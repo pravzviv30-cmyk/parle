@@ -5,11 +5,11 @@
  * `copy.test.ts` already bans the em dash from the app's own source, because a
  * learner once met one on the welcome screen. Revamp B's STYLE goes further:
  * the middot and the en dash are out too, and a line that wants a pause takes
- * a comma or a full stop. Fifteen files still carry one of the three, so this
- * lands as a ratchet rather than a wall: every file that offends today is on
- * the allowlist below, and so is nothing else. Stage 3 strikes a file from the
- * list in the same change that rewrites its copy; Stage 6 strikes the two
- * prompt sentences in core. The list ends empty.
+ * a comma or a full stop. Fifteen files carried one of the three when it
+ * landed, so this is a ratchet rather than a wall: every file that still
+ * offends is on the allowlist below, and so is nothing else. Stage 3 strikes
+ * a file from the list in the same change that rewrites its copy; Stage 6
+ * strikes the two prompt sentences in core. The list ends empty.
  *
  * The walk covers the whole of `apps/mobile/src`, the whole of
  * `packages/core/src` (its lesson and ladder lines reach the tutor's voice,
@@ -42,12 +42,10 @@ const APP_ENTRY = join(REPO, 'apps', 'mobile', 'App.tsx');
 const ALLOWLIST = [
   'apps/mobile/src/SessionScreen.tsx',
   'apps/mobile/src/SummaryScreen.tsx',
-  'apps/mobile/src/auth/SetNewPasswordScreen.tsx',
   'apps/mobile/src/conversationPacks/ConversationPackLibrary.tsx',
   'apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx',
   'apps/mobile/src/friends/InviteFriendsScreen.tsx',
   'apps/mobile/src/missions/MissionsScreen.tsx',
-  'apps/mobile/src/onboarding/PreAccountOnboarding.tsx',
   'apps/mobile/src/purchases/paywallView.ts',
   'apps/mobile/src/tabs/FriendsTab.tsx',
   'apps/mobile/src/tabs/MyFrenchTab.tsx',

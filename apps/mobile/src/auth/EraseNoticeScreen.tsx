@@ -17,6 +17,9 @@
  * There is no back arrow, because there is nothing behind it: the account is
  * gone and the tree it belonged to has been unmounted. The pill is the only
  * control, and it leads to the welcome.
+ *
+ * Revamp B (F601): the headline is a working title, not a display line. This
+ * is a paper page that says one thing, not a colour page.
  */
 
 import { Text } from 'react-native';
@@ -29,7 +32,7 @@ import { ERASE_NOTICE_BODY, ERASE_NOTICE_DISMISS, ERASE_NOTICE_TITLE } from './e
 export function EraseNoticeScreen({ onDismiss }: { onDismiss: () => void }) {
   return (
     <ScrollScreen footer={<PillButton label={ERASE_NOTICE_DISMISS} onPress={onDismiss} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>
+      <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>
         {ERASE_NOTICE_TITLE}
       </Text>
       <TroubleLine message={ERASE_NOTICE_BODY} strong />

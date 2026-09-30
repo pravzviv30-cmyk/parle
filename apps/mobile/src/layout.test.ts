@@ -244,6 +244,56 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
   });
 });
 
+/**
+ * A colour page is a whole ground, not paper with a colour laid on it — F601.
+ *
+ * The footer's hairline is the paper's rule. Drawn across a blue or sun page it
+ * is a cream scratch over the colour, so the frame draws it only on paper. And
+ * the clock above a blue, coral or ink page is dark on dark unless the page
+ * asks for a light bar, so the frame asks, once, rather than every colour page
+ * working around it. The paper mounts no bar of its own, which leaves App.tsx's
+ * one dark bar in charge everywhere else.
+ */
+describe('a colour ground is a whole page — F601', () => {
+  test('a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink', () => {
+    const source = layoutSource();
+    const screen = region(source, 'export function Screen(', 'export function ScrollScreen(');
+
+    // The rule is conditional on the paper ground, never unconditional.
+    assert.match(screen, /const onPaper = ground === paper\.ground;/, 'the frame does not ask whether it is on paper');
+    assert.match(
+      screen,
+      /\.\.\.\(onPaper \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\)/,
+      'the footer\'s hairline is not drawn only on paper',
+    );
+    assert.doesNotMatch(
+      screen,
+      /paddingTop: space\(3\), borderTopWidth: HAIRLINE/,
+      'the footer draws its paper rule on every ground again',
+    );
+
+    // The status bar comes from expo-status-bar, the same one App.tsx mounts.
+    assert.match(source, /import \{ StatusBar \} from 'expo-status-bar';/, 'the frame does not import the status bar');
+    assert.match(screen, /\{bar != null \? <StatusBar style=\{bar\} \/> : null\}/, 'the frame never mounts a status bar for its ground');
+
+    // The light grounds are named: blue, coral and ink take white words, so
+    // they take a white clock. Anything else off paper is dark, and paper
+    // mounts nothing.
+    const grounds = region(source, 'const LIGHT_BAR_GROUNDS', 'export function Screen(');
+    assert.match(
+      grounds,
+      /LIGHT_BAR_GROUNDS: readonly string\[\] = \[colour\.blue, colour\.coral, paper\.ink\];/,
+      'the light-bar grounds are not blue, coral and ink',
+    );
+    assert.match(grounds, /if \(ground === paper\.ground\) return null;/, 'the paper mounts a bar of its own over App.tsx\'s');
+    assert.match(
+      grounds,
+      /LIGHT_BAR_GROUNDS\.includes\(ground\) \? 'light' : 'dark'/,
+      'a light ground does not get a light bar, or sun and mint do not get a dark one',
+    );
+  });
+});
+
 describe('the shared header may hold a title alone — F353', () => {
   test('the shared header takes a title with neither a back nor a leave, and still never both — F353', () => {
     // Onboarding's first page holds only the progress dots: a title, no back, no

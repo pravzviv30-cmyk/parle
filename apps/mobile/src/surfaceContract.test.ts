@@ -431,7 +431,7 @@ describe('nothing ships that nothing renders — J14', () => {
     // fails as surely as a name dropped without being drawn, so the list only
     // ever shrinks. It ends empty.
     const UNDRAWN_YET = [
-      'state-notebook', 'state-waiting', 'state-offline', 'state-microphone', 'state-headphones', 'state-postcard-frame',
+      'state-notebook', 'state-waiting', 'state-offline', 'state-headphones',
       'celebrate-confetti', 'celebrate-wrapped', 'celebrate-first-line',
       'postcard-cafe-counter', 'postcard-cafe-terrace', 'postcard-hotel', 'postcard-market', 'postcard-directions', 'postcard-day', 'postcard-apero',
     ];
@@ -1155,6 +1155,16 @@ describe('one way back, and it is the shared header — F309', () => {
     // sees one — the two Checks, "I said it", and a Done on each of the three
     // terminal cards.
     const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6 };
+    // The two auth screens are the other pinned case. They are one thing to do,
+    // have an account, and revamp B's approved board (F601) draws two provider
+    // doors above the form: Apple's ink pill, only where the platform offers it,
+    // and Google's white one. A door is a way to that same one thing, not a
+    // second thing, so it is set aside by the mark it carries and the screen is
+    // still allowed one primary: the form's own pill, which the F357 test below
+    // holds in the footer. The doors are pinned at exactly two, so a third door,
+    // or a pill that is not a door, still counts against the one.
+    const DOORS = ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx'];
+    const isDoor = (tag: string) => /\bicon=\{\s*<(?:AppleMark|GoogleMark)\b/.test(tag);
     for (const name of PUSHED_ONE_BACK) {
       const body = named(name);
       assert.equal(
@@ -1162,7 +1172,12 @@ describe('one way back, and it is the shared header — F309', () => {
         1,
         `${name} lost its one way out in the restyle, or grew a second`,
       );
-      const pills = (body.match(/<PillButton\b/g) ?? []).length;
+      const all = tags(body, 'PillButton');
+      const doors = DOORS.includes(name) ? all.filter(isDoor) : [];
+      if (DOORS.includes(name)) {
+        assert.equal(doors.length, 2, `${name} draws ${doors.length} provider doors; it draws Apple and Google, and nothing else`);
+      }
+      const pills = all.length - doors.length;
       const allowed = BRANCHED[name] ?? 1;
       assert.ok(
         pills <= allowed,
@@ -1940,7 +1955,7 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
     return body.slice(start);
   }
 
-  test('the auth screens pin their pills in the frame\'s footer — F357', () => {
+  test("the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer", () => {
     for (const name of ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
       const body = named(name);
       // Keyboard-aware, so the fields lift rather than hide; and the one back is
@@ -1948,19 +1963,45 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
       assert.match(body, /<ScrollScreen\b[\s\S]*?avoidKeyboard/, `${name} is not a keyboard-aware ScrollScreen`);
       assert.match(body, /<ScreenHeader\b[^>]*\bback=/, `${name} does not draw its one back through the shared header`);
 
-      // The primary pill and the Google outline live in the footer, where a
-      // keyboard cannot scroll them out of reach.
+      // The footer holds one pill and nothing else, and it is the ink one (ink
+      // is PillButton's default tone): the form's own action, where a keyboard
+      // cannot scroll it out of reach. Revamp B (F601) moved the provider doors
+      // out of the footer, so neither mark may be left behind in it, and the
+      // outline Google door is gone from the file altogether.
       const footer = footerProp(body);
-      assert.match(footer, /<PillButton\b/, `${name} does not pin its primary pill in the footer`);
-      assert.match(footer, /<OutlineButton\b/, `${name} does not pin the Google door in the footer`);
-      assert.match(footer, /GoogleMark/, `${name}'s footer outline is not the Google door`);
+      const footerPills = tags(footer, 'PillButton');
+      assert.equal(footerPills.length, 1, `${name} pins ${footerPills.length} pills in the footer; it pins exactly one`);
+      assert.doesNotMatch(footerPills[0]!, /\btone=/, `${name}'s footer pill is not the ink one`);
+      assert.doesNotMatch(footer, /AppleMark|GoogleMark/, `${name} left a provider door in the footer`);
+      assert.doesNotMatch(body, /<OutlineButton\b/, `${name} still draws the outline door the board retired`);
 
-      // The switch row is NOT in the footer: it stays at the body's end so a
-      // field is visible over an SE-class keyboard rather than pinned under the
-      // buttons. It is the only Pressable on the screen, so the footer holding
-      // one would be the row in the wrong place.
-      assert.ok(!footer.includes('<Pressable'), `${name} pins its switch row in the footer instead of the body's end`);
-      assert.match(body, /<Pressable\b[\s\S]*?accessibilityRole="button"/, `${name} lost the switch row from the body`);
+      // The body, which follows the footer prop in the JSX, leads with the
+      // doors. Apple's is gated and ink; Google's is the white pill beneath it;
+      // and both come before the first field, the way the board draws them.
+      const content = body.slice(body.indexOf('footer={') + 'footer='.length + footer.length);
+      const doors = tags(content, 'PillButton');
+      const apple = doors.find((tag) => /<AppleMark\b/.test(tag));
+      const google = doors.find((tag) => /<GoogleMark\b/.test(tag));
+      assert.ok(apple, `${name} lost the Apple door from the body`);
+      assert.ok(google, `${name} lost the Google door from the body`);
+      assert.doesNotMatch(apple, /\btone=/, `${name}'s Apple door is not an ink pill`);
+      assert.match(google, /\btone="white"/, `${name}'s Google door is not the white pill`);
+      writtenBefore(content, '{appleOffered && (', apple, `${name} draws the Apple door whether or not the platform offers it`);
+      writtenBefore(content, apple, google, `${name} draws the Apple door below the Google one`);
+      writtenBefore(content, google, '<Field', `${name} puts a field above the provider doors`);
+
+      // The switch row is NOT in the footer: it stays at the body's end, after
+      // the last field, so a field is visible over an SE-class keyboard rather
+      // than pinned under the buttons. It is the only Press on the screen that
+      // is not inside a part, so the footer holding one would be the row in the
+      // wrong place.
+      assert.doesNotMatch(footer, /<Press(?:able)?\b/, `${name} pins its switch row in the footer instead of the body's end`);
+      const switchRow = tags(content, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));
+      assert.ok(switchRow, `${name} lost the switch row from the body`);
+      assert.ok(
+        content.lastIndexOf('<Field') < content.indexOf(switchRow),
+        `${name} moved the switch row above a field, off the body's end`,
+      );
     }
   });
 });

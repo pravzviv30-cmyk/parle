@@ -170,18 +170,25 @@ describe('the Apple door is offered only where it works — F376', () => {
       const gate = body.indexOf('{appleOffered && (');
       assert.ok(gate >= 0, `${where} draws the Apple door unconditionally, so Android and web offer a button that cannot work`);
       const gated = body.slice(gate, gate + 400);
-      assert.match(gated, /<OutlineButton/, `${where} gates something other than the Apple button on appleOffered`);
+      // Revamp B (F601): the door is an ink pill carrying the white mark, as
+      // the approved board draws it, where it used to be a quiet outline.
+      assert.match(gated, /<PillButton/, `${where} gates something other than the Apple button on appleOffered`);
       assert.match(gated, /authButtonLabel\('apple', pending === 'apple'\)/, `${where}'s gated button is not the Apple one`);
-      assert.match(gated, /<AppleMark size=\{18\} \/>/, `${where}'s Apple button carries no mark, or not the shared one`);
+      assert.match(gated, /<AppleMark color=\{paper\.onInk\} \/>/, `${where}'s Apple button carries no mark, or not the shared one in white`);
       assert.match(gated, /onPress=\{\(\) => void apple\(\)\}/, `${where}'s Apple button does not start the Apple sign-in`);
 
-      // Above the Google outline. Both are in the footer, where a keyboard
-      // cannot scroll them out of reach.
+      // Above the Google door. Revamp B (F601): both lead the body, under the
+      // title and above the first field, the way the approved board draws them;
+      // the footer keeps only the one ink pill, which surfaceContract holds.
       const applePlace = body.indexOf("authButtonLabel('apple'");
       const googlePlace = body.indexOf("authButtonLabel('google'");
       assert.ok(googlePlace >= 0, `${where} lost its Google door`);
       assert.ok(applePlace < googlePlace, `${where} draws the Apple door below the Google one`);
-      assert.ok(body.indexOf('footer={') < applePlace, `${where} draws the Apple door outside the footer`);
+      const title = body.indexOf('accessibilityRole="header"');
+      const firstField = body.indexOf('<Field');
+      assert.ok(title >= 0 && firstField >= 0, `${where} lost its title or its fields; this test is reading the wrong shape`);
+      assert.ok(title < applePlace, `${where} draws the Apple door above the title, or inside the footer`);
+      assert.ok(googlePlace < firstField, `${where} draws the provider doors below the fields`);
 
       // And the handler is a real one: its own pending flag, raised for the
       // whole request, so the button relabels instead of greying in silence.

@@ -20,6 +20,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stripTypeScriptTypes } from 'node:module';
+import { MISSIONS } from '@luvani/core';
 
 const SRC = fileURLToPath(new URL('.', import.meta.url));
 
@@ -361,6 +363,11 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     'Skeleton',
     'QuietLine',
     'FrenchBlock',
+    // Revamp B, F601: the Start parts, appended after the B stylesheet, and
+    // the alert mark Field draws, moved here from glyphs.tsx.
+    'SceneMark',
+    'canDoSentence',
+    'AlertGlyph',
   ] as const;
   /** From one export to the next, or to the end of the file. */
   const mark = (name: string): string => {
@@ -460,12 +467,39 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     assert.match(path, /accessibilityLabel=\{stopLabel\(level\.level, stop\)\}/, 'a stop is not one sentence to a screen reader');
   });
 
-  test('a tutor card shows the orb, the name, the voice, the signature line, a sample and a quiet change link', () => {
+  test('the tutor card is white: the orb, the name and voice, a play disc and a quiet change link', () => {
     const card = mark('TutorCard');
     assert.match(card, /<OrbGlyph color=\{orb\.ready\}/, 'the tutor is not drawn as the orb');
     assert.match(card, /accessibilityLabel=\{playing \? `Stop \$\{name\}` : `Hear \$\{name\}`\}/, 'the sample offers to play what is already playing');
     assert.match(card, /<GhostButton label=\{changeLabel\}/, 'changing tutor is not a quiet link');
     assert.match(card, /type\.french/, 'the signature line is not set in the French serif');
+    // Revamp B, F601: the sample is a 44 ink disc that presses through the one
+    // spring, with the white speaker mark, and no Pressable of its own.
+    assert.match(card, /<Press haptic="light"/, 'the sample does not press through the one spring with a light impact');
+    assert.doesNotMatch(card, /<Pressable\b/, 'the tutor card keeps a Pressable of its own beside the spring');
+    assert.match(card, /<EarGlyph size=\{22\} color=\{paper\.onInk\} \/>/, 'the speaker on the ink disc is not white');
+    const disc = region(componentsSource(), '  hear: {', '  brief: {');
+    assert.match(disc, /width: HIT,\s*height: HIT,\s*borderRadius: HIT \/ 2/, 'the play disc is not a circle at the touch floor');
+    assert.match(disc, /backgroundColor: paper\.ink/, 'the play disc is not ink');
+    assert.doesNotMatch(disc, /borderWidth|borderColor/, 'the play disc is still a hairline ring');
+    // A white card, the name as a heading, the voice as the soft small line,
+    // and the change link under them in the same column, before the disc.
+    assert.match(card, /<Card style=\{ls\.tutor\}>/, 'the tutor is not drawn on the one white card');
+    assert.match(card, /type\.heading, \{ color: paper\.ink \}\]\}>\{name\}/, 'the name is not the heading');
+    assert.match(card, /type\.small, \{ color: paper\.inkSoft \}\]\}>\{voice\}/, 'the voice is not the soft small line');
+    const at = (needle: string): number => {
+      const i = card.indexOf(needle);
+      assert.notEqual(i, -1, `${needle} is missing from the tutor card`);
+      return i;
+    };
+    assert.ok(at('<OrbGlyph') < at('{name}'), 'the orb does not lead the row');
+    assert.ok(at('{voice}') < at('<GhostButton'), 'the change link is not under the voice');
+    assert.ok(at('<GhostButton') < at('<Press haptic="light"'), 'the play disc does not end the row');
+    assert.ok(at('<Press haptic="light"') < at('{signature}'), 'the signature is not under the row');
+    // The signature is French, and said in a French voice.
+    assert.match(card, /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: paper\.ink \}\]\}>/, 'the signature is not marked as French');
+    // The props do not change: Speak and the plan pass the same six.
+    assert.match(card, /onHear: \(\) => void;\s*playing: boolean;\s*onChange: \(\) => void;\s*changeLabel\?: string;/, 'the tutor card\'s props changed');
   });
 
   test('a scene brief takes its one Start from the caller and draws everything else from tokens', () => {
@@ -666,5 +700,122 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(block, /<Press\b/, 'the hear control does not press through the one spring');
     const disc = region(componentsSource(), '  hearDisc: {', '});');
     assert.match(disc, /width: HIT, height: HIT/, 'the hear control is under the touch floor');
+  });
+});
+
+/**
+ * The Start parts, held to SNIPPETS.md — F601.
+ *
+ * The first run needed three things the parts file did not have: an error line
+ * that carries the alert mark rather than a colour, a mark for where a learner
+ * stands against one goal, and a can-do that reads as a sentence. The first is
+ * a restyle of `Field` in place; the other two are appended after the B
+ * stylesheet, and the alert mark moved in beside them.
+ */
+describe('the Start parts keep their promises — F601', () => {
+  /** From one export to the next, or to the end of the file. */
+  const part = (name: string): string => {
+    const source = componentsSource();
+    const at = source.indexOf(`export function ${name}(`);
+    assert.notEqual(at, -1, `${name} is missing from components.tsx`);
+    const next = source.indexOf('\nexport ', at + 1);
+    return source.slice(at, next === -1 ? source.length : next);
+  };
+
+  test('a field error sits beside the alert mark in ink, and is still announced', () => {
+    // SNIPPETS field: the alert mark, then what happened and what to do, in
+    // ink. Errors are never red, so the mark and the words carry the state.
+    const source = componentsSource();
+    const field = region(source, 'export function Field(', 'export function TabBar<');
+    const opens = field.indexOf('{error != null && (');
+    assert.notEqual(opens, -1, 'the field no longer draws its error only when there is one');
+    const error = field.slice(opens);
+    assert.match(error, /<View style=\{s\.fieldError\}>/, 'the error line is not a row');
+    assert.match(error, /<AlertGlyph size=\{16\} color=\{paper\.ink\} \/>/, 'the error line has no 16 ink alert mark');
+    assert.ok(error.indexOf('<AlertGlyph') < error.indexOf('{error}'), 'the alert mark does not lead the words');
+    assert.match(error, /style=\{\[type\.small, ROW_WORDS, \{ color: paper\.ink \}\]\}/, 'the message is not the small line in ink, able to wrap beside the mark');
+    assert.doesNotMatch(field, /signal\.correspondance/, 'the error still names the fix colour rather than the ink the board draws');
+    const row = region(source, '  fieldError: {', '  fieldErrorMark:');
+    assert.match(row, /flexDirection: 'row', alignItems: 'flex-start'/, 'the mark does not sit at the top of a wrapping message');
+
+    // Still announced, exactly as before: the id the input points at, the web
+    // alert role and the Android live region all stay on the words, and iOS
+    // is still told out loud. The mark is decorative, so nothing is said twice.
+    assert.match(
+      error,
+      /<Text\s+id=\{errorId\}\s+role="alert"\s+accessibilityLiveRegion="polite"/,
+      'the error words lost their id, their alert role or their live region',
+    );
+    assert.match(field, /AccessibilityInfo\.announceForAccessibility\(error\)/, 'iOS is left with an error nothing speaks');
+    assert.match(field, /aria-label=\{name != null && error != null \? `\$\{name\}, \$\{error\}` : name\}/, 'a failed field no longer folds its error into its name');
+
+    // The mark is ICONS.md's alert, drawn here because Field draws it, and
+    // hidden from assistive tech like every other glyph.
+    const alert = part('AlertGlyph');
+    assert.match(alert, /<Svg [^>]*\{\.\.\.decorative\}>/, 'the alert mark is announced as an unlabelled image');
+    assert.match(alert, /strokeWidth=\{STROKE\}/, 'the alert mark is not drawn in the one pen');
+    assert.match(alert, /fill="none"/, 'the alert mark is filled');
+    assert.ok(alert.includes('M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z'), 'the alert is not ICONS.md\'s mark');
+    // glyphs.tsx imports from this file, so this file never imports back.
+    assert.doesNotMatch(source, /from '\.\/glyphs\.tsx'/, 'components.tsx imports from glyphs.tsx, which imports from it: a cycle');
+  });
+
+  test('a scene mark is a mint tick, a sun dot or a field ring, and names its state', () => {
+    // SNIPPETS task-ticks and mark-next: a 24 disc. Done is mint with an ink
+    // check, next is a plain sun dot, and one not reached yet is the grey ring.
+    const mark = part('SceneMark');
+    assert.match(mark, /\{ state \}: \{ state: 'earned' \| 'here' \| 'ahead' \}/, 'the mark does not take the three states of a stop');
+    assert.match(mark, /state === 'earned' && \{ backgroundColor: colour\.mint \}/, 'a done mark is not mint');
+    assert.match(mark, /\{state === 'earned' \? <CheckGlyph size=\{16\} color=\{paper\.ink\} \/> : null\}/, 'a done mark has no 16 ink tick, or another state draws one');
+    assert.equal((mark.match(/<CheckGlyph\b/g) ?? []).length, 1, 'the tick is drawn more than once');
+    assert.match(mark, /state === 'here' && \{ backgroundColor: colour\.sun \}/, 'the next mark is not a sun dot');
+    assert.match(mark, /state === 'ahead' && \{ borderWidth: 2, borderColor: paper\.field \}/, 'a mark ahead is not the field ring');
+    // Mint and sun take ink, never white (palette.ts).
+    assert.doesNotMatch(mark, /paper\.onInk/, 'the mark sets white on mint or sun');
+    // One element, and it says its state in a word, so colour is never the
+    // only signal.
+    assert.match(
+      mark,
+      /accessible\s+accessibilityLabel=\{state === 'earned' \? 'Done' : state === 'here' \? 'Next' : 'Not yet'\}/,
+      'the mark does not say Done, Next or Not yet as one element',
+    );
+    const disc = region(componentsSource(), '  sceneMark: {', '});');
+    assert.match(disc, /width: space\(6\),\s*height: space\(6\),\s*borderRadius: space\(3\)/, 'the mark is not a 24 disc');
+  });
+
+  test('a can-do reads as one sentence after "You\'ll be able to"', () => {
+    // Production text, lifted and run: the lead and the function exactly as
+    // components.tsx spells them, through node's own type stripper, because
+    // this suite has no react-native to import the parts file with.
+    const raw = readFileSync(join(SRC, 'components.tsx'), 'utf8');
+    const lead = /const CAN_DO_LEAD = "[^"]*";/.exec(raw);
+    assert.ok(lead, 'CAN_DO_LEAD is gone from components.tsx');
+    const at = raw.indexOf('export function canDoSentence(');
+    assert.notEqual(at, -1, 'canDoSentence is missing from components.tsx');
+    const fn = raw.slice(at + 'export '.length, raw.indexOf('\n}\n', at) + 2);
+    assert.match(fn, /\$\{CAN_DO_LEAD\}/, 'the sentence spells its own lead instead of the one the scene brief uses');
+    const wrapped = stripTypeScriptTypes(`function lifted() {\n${lead[0]}\n${fn}\nreturn canDoSentence;\n}`);
+    const body = wrapped.slice(wrapped.indexOf('{') + 1, wrapped.lastIndexOf('}'));
+    const canDoSentence = new Function(`"use strict";\n${body}`)() as (canDo: string) => string;
+
+    const expected = "You'll be able to order a coffee at the counter.";
+    assert.equal(canDoSentence('Order a coffee at the counter'), expected);
+    assert.equal(canDoSentence('Order a coffee at the counter.'), expected, 'a can-do that brings its own full stop ends on two');
+    assert.equal(canDoSentence('  Order a coffee at the counter .. '), expected, 'stray space or stops survive into the sentence');
+
+    // And every can-do the catalogue holds reads as one sentence: the lead,
+    // the can-do with its first letter lowered and the rest as written, one
+    // full stop.
+    assert.ok(MISSIONS.length > 0, 'the catalogue is empty, so this check reads nothing');
+    for (const mission of MISSIONS) {
+      const canDo = mission.canDoEn.trim().replace(/\s*\.+$/, '');
+      const sentence = canDoSentence(mission.canDoEn);
+      assert.equal(
+        sentence,
+        `You'll be able to ${canDo.charAt(0).toLowerCase()}${canDo.slice(1)}.`,
+        `${mission.id} does not read as one sentence: ${sentence}`,
+      );
+      assert.doesNotMatch(sentence, /\.\.$|[–—·]/, `${mission.id} ends on two stops or carries a dash or a middot`);
+    }
   });
 });

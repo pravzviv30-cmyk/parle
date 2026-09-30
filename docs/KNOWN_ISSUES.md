@@ -5374,8 +5374,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: SignUp/SignIn keep the primary pill inside their own ScrollView (scrolls away under a keyboard) and
   draw their own back with a `space(6)` gutter. Adopt `ScrollScreen avoidKeyboard`, `ScreenHeader back`, the
   primary pill + Google outline in the footer; the switch row stays at the body's end so a field is visible
-  over an SE keyboard. Add both to `PUSHED_ONE_BACK`.
-- verified-by: `the auth screens pin their pills in the frame's footer — F357`
+  over an SE keyboard. Add both to `PUSHED_ONE_BACK`. Revamp B (F601) moved the provider doors to the top
+  of the body, Apple's ink pill above Google's white one, and the footer keeps only the one ink pill; the
+  test was renamed to say so.
+- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
 - verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
 
 ### F358 — The step dots and the station line are one spoken element
@@ -8886,7 +8888,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 - verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
 - verified-by: `the chooser's first card draws its scene through the one illustration at the hero-spot size, and sizes nothing itself`
-- verified-by: `the plan draws one drawing, its first scene's, and no picture appears outside the plan`
+- verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
 
 ### F600 — The tab bar is paper and ink with Today and My French, not white with a blue Home and Progress
 - severity: P1
@@ -8902,9 +8904,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F601 — The first run is the notebook's paper: no blue or sun pages, ledger answers with a Chosen word, a middot on the account button, and a card around the password form
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:305
-- note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list.
+- note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list. The recovery route's `OnboardingFlow.tsx` was left unchanged, because swapping its `OptionCard` for `OptionRow` would take the voice samples off; that deferral is F634.
 - verified-by: `a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink`
 - verified-by: `a field error sits beside the alert mark in ink, and is still announced`
 - verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
@@ -9140,3 +9142,52 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/settings/sections.ts:114
 - note: found by the Stage 2 pass B judge. F600 renamed the tab to Progress and F605 retitles the screen, but RecapScreen.tsx:178,181, settings/sections.ts:114, conversationPacks/ConversationPackLibrary.tsx:204, daily/DailyCard.tsx:59, profile/tutorMemory.ts:54 and tutor/TutorIntro.tsx:115 still tell the learner their phrases are saved in or managed in My French. After F605, no tab or title says My French, so a learner who looks for it finds nothing. Reword each one to Progress, or to the phrasebook where that is the real destination, in the same change as F605.
 - verified-by: `no learner-facing string names My French once the tab and its title say Progress`
+
+### F633 — The under-13 refusal is said to last the session, but leaving through "I have an account" and back starts it fresh
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:252
+- note: `underAge` is `useState(false)` inside PreAccountOnboarding, so it lives only while that screen is mounted. Refuse on save, go back five pages to hear-it, tap "I have an account" (App.tsx:530 discards the draft), tap SignIn's back (auth/AuthFlow.tsx:39 remounts the welcome with `underAge` false), walk the six pages, and "I am 13 or older, create account" is offered again in the same launch. Yet PreAccountOnboarding.tsx:18 and :252-255, firstRun.test.ts:238 and docs/ONBOARDING.md:37 and :129-130 say it stays for the session or until the app is closed. Not a regression (before F601 any page move reset it), but the words overclaim a minors safeguard. Fix the words to say that moving between the pages does not undo it, that leaving through "I have an account" starts the first run fresh, and that closing the app reopens the save page with the question asked again, the same close-the-app escape the age gate keeps for a mis-tap (corrected by F638: this note first said closing the app starts the first run fresh, which it does not). Whether it should hold for the whole launch is the founder's call, filed as F637.
+- verified-by: `the onboarding doc says what undoes the under-13 refusal, and promises no more than the screen holds`
+
+### F634 — OnboardingFlow's OptionCard was to become OptionRow in F601, and was left without a word
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:351
+- note: F601's contract says "`OptionCard` becomes `OptionRow`. Nothing else changes." It was not built. A straight swap is not possible: OptionRow has no hear control, and the voice step's cards carry `onHear` and `playing={playing === option.value}`, which F355's test pins, so the swap would take the voice samples off the recovery route. The same file keeps `question: { ...type.display }` at :415, against F601's done-when that `type.display` appears in onboarding/ only on hear-it, first-line and FirstScene. Done when OptionRow can carry a sample (a design-system change) and the voice step uses it with F355 still passing, and the question is a working title.
+- verified-by: `the recovery route's voice step is option rows that still sound their sample`
+
+### F635 — The microphone refusal tells an Android learner to find a switch Android does not have
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/micPrimer.ts:57
+- note: `PRIMER_REFUSED_HOW` reads "In Settings, open Luvani and switch on Microphone, then come back here." That is iOS. `PHONE_SETTINGS_AVAILABLE` is also true on Android (settings/phoneSettings.native.ts:57), where `Linking.openSettings` opens Luvani's app page and the microphone is an allow choice under Permissions, not a switch. The words came from the F601 contract, so this is a copy fix, not a build miss. Use "In Settings, allow Luvani to use the microphone, then come back here." and move the value pin in micPrimer.test.ts. No Platform branch in the view model.
+- verified-by: `the microphone refusal says how to turn it back on in words that are true on iOS and Android`
+
+### F636 — The age check's quiet line promises "you carry on", which is true for only one answer
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/answers.ts:118
+- note: `AGE_RETURN_NOTE` was "One question, then you carry on where you were." A learner who taps "I am younger than that" does not carry on; they get AgeRefusal and sign out, and AgeGateScreen drew the line with no condition, so it sat directly above the refusal and was false on the screen that refused them. On an age screen a line that says which answer continues also leans away from a neutral question (FTC COPPA guidance: an age screen should not encourage a false age). Raised to P1 by the F601 judge: a known-false line on the minors gate. Fixed in F601: the line is now "It is one question.", true for both answers, and AgeGateScreen draws it only while `oldEnough !== false`, so once refused the refusal is the only line under the sub. The equality pin in answers.test.ts moved to the new value. AGE_RETURN_TITLE, AGE_RETURN_SUB, AgeRefusal and the footer are unchanged; whether a stated 13+ yes or no is itself a neutral screen is for the founder and legal.
+- verified-by: `the age check's quiet line is true whichever answer the learner gives`
+
+### F637 — Founder question: should the under-13 refusal hold for the whole launch, across the sign-in detour
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/AuthFlow.tsx:39
+- note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period.
+- verified-by: `the under-13 refusal holds across the sign-in detour for the rest of the launch`
+
+### F638 — The under-13 refusal's words say closing the app starts the first run fresh, but a relaunch reopens the save page with the pill live
+- severity: P1
+- status: [x]
+- where: docs/ONBOARDING.md:130
+- note: found by the F601 judge, confirming the privacy-safety review. F633's fix wrote "closing the app, or leaving through \"I have an account\", starts the first run fresh" into docs/ONBOARDING.md and the comment in onboarding/PreAccountOnboarding.tsx, and firstRun.test.ts pinned it. Closing the app does not start the first run fresh: "Save my plan" writes page 'save' to the draft, which App.tsx saves to the device, and "I am younger than that" writes nothing, so a relaunch reopens the save page with the question asked again. That matches HEAD and the age gate's close-the-app escape, so the words are the defect, not the code. Whether a refusal should clear the draft is a founder question (F639).
+- verified-by: `the onboarding doc says a relaunch after the under-13 refusal reopens the save page with the question asked again`
+
+### F639 — Founder question: should an under-13 refusal clear the saved first-run draft, so a relaunch starts at the first page and keeps no first name
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:662
+- note: found by the privacy-safety review of F601. The refusal writes nothing, so the draft saved by go('save') keeps page 'save' and any first name the child typed on the device (never sent), and a relaunch reopens the save page with the pill live. Clearing the draft on refusal removes data about a minor rather than storing any. It overlaps F637, so decide both together. A founder and legal call, not a build miss.
+- verified-by: `a refusal on the save page clears the saved draft, so a relaunch starts at the first page and keeps no first name`

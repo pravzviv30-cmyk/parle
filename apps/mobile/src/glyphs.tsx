@@ -3,10 +3,11 @@
  *
  * They live here rather than in `components.tsx` because that file is sliced
  * between adjacent `export function X(` markers by its own test, and a new
- * export in the middle of it moves somebody else's region. `close` and `check`
- * are the exception and sit in `components.tsx`, beside the parts that draw
- * them: this file imports from that one (`SpeakerGlyph`), so the reverse edge
- * would be a cycle.
+ * export in the middle of it moves somebody else's region. `close`, `check`
+ * and `alert` are the exception and sit in `components.tsx`, beside the parts
+ * that draw them: this file imports from that one (`SpeakerGlyph`), so the
+ * reverse edge would be a cycle. `alert` is re-exported here, so a screen still
+ * finds it with the other row marks.
  *
  * The contract is `nav/icons.tsx`'s, deliberately word for word: one shared
  * wrapper, viewBox 0 0 24 24, `<Svg {...decorative}>` so assistive tech walks
@@ -41,6 +42,13 @@ export interface GlyphProps {
  * of it would drift apart the first time one of them was nudged.
  */
 export { EarGlyph as SpeakerGlyph } from './components.tsx';
+
+/**
+ * ICONS.md `alert`, drawn in `components.tsx` because `Field` draws it beside
+ * its error line, and importing it back from here would be a cycle. Callers
+ * still reach it here, beside the other row marks (F601).
+ */
+export { AlertGlyph } from './components.tsx';
 
 function Glyph({ size = 24, color = paper.ink, children }: GlyphProps & { children: React.ReactNode }) {
   return (
@@ -326,17 +334,6 @@ export function InfoGlyph(props: GlyphProps) {
       <Circle cx={12} cy={12} r={9.5} />
       <Path d="M12 11v5" />
       <Path d="M12 8h.01" />
-    </Glyph>
-  );
-}
-
-/** ICONS.md `alert`: beside a field's error line. Errors are never red. */
-export function AlertGlyph(props: GlyphProps) {
-  return (
-    <Glyph {...props}>
-      <Path d="M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z" />
-      <Path d="M12 9.5v4" />
-      <Path d="M12 17h.01" />
     </Glyph>
   );
 }

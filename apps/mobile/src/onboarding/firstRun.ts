@@ -85,7 +85,16 @@ export const FIRST_NAME_PLACEHOLDER = 'Optional';
 export const FIRST_NAME_HINT = 'So your tutor can greet you. You can leave it empty.';
 export const ALREADY_HAVE_ACCOUNT = 'I already have an account';
 export const YOUNGER = 'I am younger than that';
-export const UNDER_AGE = 'Luvani is for learners thirteen and up. Please come back when it is the right time.';
+/**
+ * The save page's one pill. It says the age question and the action in one
+ * sentence, joined by a comma, because the tap is both (revamp B, F601).
+ */
+export const CREATE_ACCOUNT_AGE = 'I am 13 or older, create account';
+/** The under-13 page: its title, then the one line under it. */
+export const UNDER_AGE_TITLE = 'Luvani is for learners thirteen and up.';
+export const UNDER_AGE_BODY = 'Please come back when it is the right time.';
+/** The two joined, as the refusal has always read. */
+export const UNDER_AGE = `${UNDER_AGE_TITLE} ${UNDER_AGE_BODY}`;
 
 /** Every fixed line the six pages show, for the copy checks. */
 export const FIRST_RUN_PAGE_COPY: readonly string[] = [
@@ -112,5 +121,8 @@ export const FIRST_RUN_PAGE_COPY: readonly string[] = [
   FIRST_NAME_HINT,
   ALREADY_HAVE_ACCOUNT,
   YOUNGER,
+  CREATE_ACCOUNT_AGE,
+  UNDER_AGE_TITLE,
+  UNDER_AGE_BODY,
   UNDER_AGE,
 ];

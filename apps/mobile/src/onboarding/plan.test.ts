@@ -17,6 +17,7 @@ import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccou
 import {
   DEFAULT_START_LEVEL,
   METHOD_STEPS,
+  MINUTES_UNIT,
   NO_STREAKS,
   PLAN_COPY,
   REASONS,
@@ -27,6 +28,7 @@ import {
   firstSceneFor,
   planFor,
   presetMinutes,
+  reminderLine,
   sceneOrder,
   startEstimate,
 } from './plan.ts';
@@ -89,6 +91,10 @@ describe('answers to a plan', () => {
     assert.equal(fresh.reminder.time, DEFAULT_REMINDER_TIME);
     assert.equal(fresh.reminder.clock, reminderTime(DEFAULT_REMINDER_TIME).gloss);
     assert.equal(fresh.reminder.note, REMINDER_NOT_ON);
+    // The plan page says the time and that it is off, in one line.
+    assert.equal(reminderLine(fresh.reminder.clock), `Reminder at ${reminderTime(DEFAULT_REMINDER_TIME).gloss}, not on yet.`);
+    assert.match(reminderLine(fresh.reminder.clock), /not on yet/, 'the reminder line reads as if it were set');
+    assert.equal(MINUTES_UNIT, 'minutes a day');
 
     const chosen = planFor(draft({ startLevel: 'getby', reason: 'work', minutes: 5, reminderTime: 'morning' }));
     assert.deepEqual(chosen.scenes.map((s) => s.id), sceneOrder('getby').slice(0, 3));
@@ -107,7 +113,7 @@ describe('answers to a plan', () => {
         const view = planFor(draft({ startLevel: level.key, reason }));
         for (const scene of view.scenes) lines.push(scene.titleEn, scene.canDoEn);
         if (view.goal !== null) lines.push(view.goal);
-        lines.push(view.reminder.note);
+        lines.push(view.reminder.note, reminderLine(view.reminder.clock));
       }
     }
     for (const line of lines) {
@@ -118,15 +124,17 @@ describe('answers to a plan', () => {
   });
 
   test('plan copy is warm and plain, and the one line about streaks denies them', () => {
-    assert.equal(NO_STREAKS, 'No streaks: miss a day and nothing breaks.');
+    // Revamp B (F601): the line denies a streak without naming a missed day or
+    // a break, the words STYLE section 10 keeps out of practice copy.
+    assert.equal(NO_STREAKS, 'A day off takes nothing away.');
+    assert.doesNotMatch(NO_STREAKS, /\b(miss|missed|break|breaks|broken|streaks?)\b/i, 'the no-streak line names what it is meant to spare the learner');
     assert.equal(METHOD_STEPS.length, 3, 'the method is three short steps');
     assert.equal(TRIAL_LINE, '30 free minutes, no card needed');
     assert.equal(PLANS.trial.secondsPerPeriod / 60, 30, 'the trial no longer grants thirty minutes, so the save page line is untrue');
     assert.equal(PLANS.trial.priceUsd, 0, 'the trial costs money, so "no card needed" is untrue');
-    for (const line of [...PLAN_COPY, ...START_LEVELS.flatMap((l) => [l.title, l.gloss]), ...REASONS.map((r) => r.title)]) {
-      assert.doesNotMatch(line, /[—–]/, `em dash in "${line}"`);
-      // The one sentence that exists to deny a streak has to say the word.
-      if (line === NO_STREAKS) continue;
+    for (const line of [...PLAN_COPY, reminderLine('6:00 pm'), ...START_LEVELS.flatMap((l) => [l.title, l.gloss]), ...REASONS.map((r) => r.title)]) {
+      assert.doesNotMatch(line, /[—–·]/, `a dash or a middot in "${line}"`);
+      // The no-streak line no longer says the word, so it is held to the ban too.
       assert.equal(guiltIn(line), undefined, `guilt in "${line}"`);
     }
     assert.ok(PLAN_COPY.includes(NO_STREAKS) && PLAN_COPY.includes(REMINDER_NOT_ON) && PLAN_COPY.includes(TRIAL_LINE));

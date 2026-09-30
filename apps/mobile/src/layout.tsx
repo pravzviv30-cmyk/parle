@@ -27,8 +27,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Card, PillButton, OutlineButton, RoundButton } from './components.tsx';
-import { paper, space, type, HAIRLINE, HIT } from './theme.ts';
+import { colour, paper, space, type, HAIRLINE, HIT } from './theme.ts';
 import { screenInsets } from './responsiveLayout.ts';
 
 /** Where the bottom of a screen ends. */
@@ -54,10 +55,32 @@ type ScreenProps = {
 };
 
 /**
+ * The grounds whose words are white, so the clock and battery above them must
+ * be white too. Blue and coral are the two colour pages that take white words
+ * (palette.ts `textOn`), and ink is the dark live ground.
+ */
+const LIGHT_BAR_GROUNDS: readonly string[] = [colour.blue, colour.coral, paper.ink];
+
+/**
+ * The status bar a ground asks for, or null for the paper, where the app's one
+ * dark bar in App.tsx already governs. The OS stacks status bar styles, so a
+ * colour page's style lifts again when the page unmounts.
+ */
+function barStyleFor(ground: string): 'light' | 'dark' | null {
+  if (ground === paper.ground) return null;
+  return LIGHT_BAR_GROUNDS.includes(ground) ? 'light' : 'dark';
+}
+
+/**
  * The still root. A full-height View on the page's paper, with the safe-area
  * top inset already paid and the bottom chosen by `bottom`. Header and footer
  * sit outside any scroll region and share the body's horizontal pad, so a back
  * arrow lines up with the content beneath it.
+ *
+ * The footer's hairline is a paper rule, so it is drawn only on the paper
+ * ground: across a blue or sun page it would be a cream scratch over the
+ * colour. A colour ground also sets the status bar, light on blue, coral and
+ * ink and dark on sun and mint, so the clock stays legible on it (F601).
  */
 export function Screen({
   children,
@@ -74,6 +97,8 @@ export function Screen({
   const horizontal = screenInsets(width, insets.left, insets.right, padded);
   const bottomPad =
     bottom === 'tab' ? space(3) : bottom === 'inset' ? insets.bottom + space(4) : 0;
+  const onPaper = ground === paper.ground;
+  const bar = barStyleFor(ground);
 
   const root = (
     <View
@@ -85,9 +110,21 @@ export function Screen({
         paddingBottom: bottomPad,
       }}
     >
+      {bar != null ? <StatusBar style={bar} /> : null}
       {header != null ? <View style={horizontal}>{header}</View> : null}
       <View style={{ flex: 1, minHeight: 0, ...horizontal }}>{children}</View>
-      {footer != null ? <View style={{ ...horizontal, paddingTop: space(3), borderTopWidth: HAIRLINE, borderTopColor: paper.line, backgroundColor: ground }}>{footer}</View> : null}
+      {footer != null ? (
+        <View
+          style={{
+            ...horizontal,
+            paddingTop: space(3),
+            ...(onPaper ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null),
+            backgroundColor: ground,
+          }}
+        >
+          {footer}
+        </View>
+      ) : null}
     </View>
   );
 

@@ -107,9 +107,12 @@ describe('one pen drew every mark in the app — F589', () => {
       'ShareGlyph',
       'CardsGlyph',
       'InfoGlyph',
-      'AlertGlyph',
       'PostcardGlyph',
     ];
+    // F601: the alert is one of the fourteen, but `Field` draws it beside its
+    // error line, so it is drawn in components.tsx and re-exported here, the
+    // way the speaker is. It is pinned as a re-export below, not as a drawing.
+    const RE_EXPORTED = ['AlertGlyph'];
     // ICONS.md has no match for these, so they are kept as drawn, at the new
     // stroke, until the stage that redraws their callers retires them.
     const KEPT_UNTIL: Record<string, string> = {
@@ -123,7 +126,11 @@ describe('one pen drew every mark in the app — F589', () => {
       [...PORTED, ...ROUND_ONE, ...Object.keys(KEPT_UNTIL)].sort(),
       'glyphs.tsx draws a glyph that is neither an ICONS.md mark nor on the retire list, or lost one a screen needs',
     );
-    assert.equal(ROUND_ONE.length, 14, 'the Round 1 set is fourteen marks; a fifteenth is a port no board asked for');
+    assert.equal(
+      ROUND_ONE.length + RE_EXPORTED.length,
+      14,
+      'the Round 1 set is fourteen marks, thirteen drawn here and the alert re-exported; a fifteenth is a port no board asked for',
+    );
 
     // The ICONS.md drawings, checked by a path each draws that nothing else in
     // the file does, so a port that was quietly reverted shows up here.
@@ -146,6 +153,14 @@ describe('one pen drew every mark in the app — F589', () => {
       /export \{ EarGlyph as SpeakerGlyph \} from '\.\/components\.tsx'/,
       'the speaker is drawn a second time instead of being the ear the tutor already speaks through',
     );
+    // F601: the alert is the one Field draws, re-exported the same way, so
+    // there is one drawing of it and no import cycle between the two files.
+    assert.match(
+      GLYPHS,
+      /export \{ AlertGlyph \} from '\.\/components\.tsx'/,
+      'the alert is not re-exported from components.tsx, so a screen cannot reach the mark Field draws',
+    );
+    assert.doesNotMatch(GLYPHS, /export function AlertGlyph\b/, 'the alert is drawn a second time here beside the one Field draws');
     // ICONS.md: "speak and mic are the same microphone on purpose".
     const icons = FILES[1]!.body;
     assert.match(

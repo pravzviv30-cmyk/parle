@@ -33,8 +33,8 @@ of a learner with no record at all, so nobody is asked twice.
 | 2 | Your first line (`first-line`) | The learner taps the reply, hears it in the tutor's recording, and it is marked with the highlighter. "I'm stuck" hands back the start of the line |
 | 3 | Where are you starting? (`start-level`) | One tap: from zero, a few words, or "I can get by" |
 | 4 | What's it for? (`reason`) | One tap from five reasons, or skip it |
-| 5 | Your plan (`plan`) | The first three scenes with their can-do lines, minutes a day, the tutor's voice, the goal, how it works, and a reminder time marked as not on yet |
-| 6 | Save your plan (`save`) | An optional first name, the AI, microphone and history notes, the usage-data switch (off), then "I am 13 or older · Create account". "I am younger than that" shows the refusal |
+| 5 | Your plan (`plan`) | The suggested minutes a day, a reminder time marked as not on yet, the first three scenes in French with their can-do lines, the tutor's voice, the goal, and how it works. It shows the plan rather than asking again: the minutes and the reminder are changed later in Profile and Settings |
+| 6 | Save your plan (`save`) | An optional first name, the AI, microphone and history notes, the usage-data switch (off), then "I am 13 or older, create account". "I am younger than that" shows the refusal, which moving between the pages does not undo |
 | 7 | Sign up (`auth/SignUpScreen.tsx`) | Creates an account by email/password, Google, or Apple on iOS |
 | 8 | Your first scene (`onboarding/FirstSceneScreen.tsx`) | The microphone primer for the scene the plan put first. One button raises the phone's prompt, and "Type instead" is always there |
 
@@ -42,8 +42,8 @@ The words on pages 1 to 6 live in `onboarding/firstRun.ts` and `onboarding/plan.
 The first scene is `firstSceneFor` in `plan.ts`: the first coffee, or the full café
 for "I can get by". `App.tsx` opens it once, over Today, so a back lands on Today.
 The primer's choices are `onboarding/micPrimer.ts`: a granted microphone opens the
-ordinary conversation, and a refusal offers the phone's Settings where there are
-any, and typing either way.
+ordinary conversation, and a refusal leads with typing, which cannot fail, and
+offers the phone's Settings second where there are any.
 
 Then the scene, where the first French is spoken, and then the recap as a keepsake
 (`RecapScreen.tsx`, decided in `live/keepsake.ts`). It shows the learner's own
@@ -124,9 +124,13 @@ TutorIntro's persona page read from the same module, so the surfaces cannot drif
 apart.
 
 **The age question sits on the save page.** It is the pill that creates the
-account: "I am 13 or older · Create account". "I am younger than that" replaces the
-page with one honest sentence and removes the pill. No account is created and
-nothing is sent anywhere.
+account: "I am 13 or older, create account". "I am younger than that" replaces the
+page with a calm page of its own (the frame drawing, "Luvani is for learners
+thirteen and up.", then one line) and removes the pill. Moving back and forward
+between the pages does not undo it. Leaving through "I have an account" starts
+the first run fresh, and closing the app reopens the save page with the question
+asked again, the same close-the-app escape the age gate keeps for a mis-tap. No
+account is created and nothing is sent anywhere.
 
 **The reason is asked again, because it is used now.** The old why page was
 removed because nothing read its answer. The `reason` page is different: its

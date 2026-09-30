@@ -120,10 +120,25 @@ export const METHOD_STEPS: readonly string[] = [
   'Get help the moment you stall.',
   'Useful lines come back later as practice.',
 ];
-export const NO_STREAKS = 'No streaks: miss a day and nothing breaks.';
+/**
+ * The one line the plan says about days off. It used to deny streaks by naming
+ * a missed day and a break, which are the words STYLE section 10 keeps out of
+ * practice copy, so it says the kind half only (revamp B, F601).
+ */
+export const NO_STREAKS = 'A day off takes nothing away.';
+/** Beside the plan's hero number: "10 minutes a day". */
+export const MINUTES_UNIT = 'minutes a day';
 export const REMINDER_LABEL = 'Reminder';
 export const REMINDER_NOT_ON = 'Not on yet. You can turn it on later.';
 export const SAVE_PLAN = 'Save my plan';
+
+/**
+ * The reminder as the plan shows it: the time, said to be off. Nothing is
+ * scheduled before an account exists, so the line has to say so.
+ */
+export function reminderLine(clock: string): string {
+  return `Reminder at ${clock}, not on yet.`;
+}
 
 /** True, and derived: the trial plan grants its minutes once, for nothing. */
 export const TRIAL_LINE = `${PLANS.trial.secondsPerPeriod / 60} free minutes, no card needed`;
@@ -133,6 +148,7 @@ export const PLAN_COPY: readonly string[] = [
   PLAN_TITLE,
   PLAN_SCENES_LABEL,
   MINUTES_LABEL,
+  MINUTES_UNIT,
   GOAL_LABEL,
   GOAL_NOTE,
   METHOD_LABEL,

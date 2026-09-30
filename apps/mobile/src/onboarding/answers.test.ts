@@ -28,6 +28,7 @@ import {
   AGE_QUESTION,
   AGE_REFUSAL,
   AGE_REFUSAL_EXIT,
+  AGE_RETURN_NOTE,
   AGE_SUB,
   NAME_LABEL,
   NAME_QUESTION,
@@ -415,6 +416,50 @@ describe('the age gate is a gate on screen, not only in the rule', () => {
       /oldEnough !== false/,
       'and it has to be gone once they have answered, or the refusal is a suggestion with a button under it',
     );
+  });
+});
+
+describe('the return gate is drawn as a working screen — F601', () => {
+  test('the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out', () => {
+    // A working title on paper, not a display headline: this is a check, not a story page.
+    assert.match(AGE_GATE, /question: \{ \.\.\.type\.title, color: paper\.ink/, 'the age check title is not a working title');
+    assert.doesNotMatch(AGE_GATE, /type\.display/, 'the age check still sets its title at display size');
+
+    // One quiet line says how much is being asked, and says nothing about why.
+    assert.equal(AGE_RETURN_NOTE, 'It is one question.');
+    assert.match(AGE_GATE, /<QuietLine>\{AGE_RETURN_NOTE\}<\/QuietLine>/, 'the quiet line is not on the age check');
+    assert.doesNotMatch(AGE_RETURN_NOTE, /[—–·]/, 'the quiet line carries a dash or a middot');
+    assert.doesNotMatch(AGE_RETURN_NOTE, /\b(said|told|heard|caught|because|sorry|wrong|must)\b/i, 'the quiet line says what happened, or scolds');
+
+    // Both answers ride in the footer, the quiet no above the one ink pill,
+    // and both go once the learner has said they are younger.
+    const answers = AGE_GATE.slice(AGE_GATE.indexOf('const answers = '), AGE_GATE.indexOf('return ('));
+    assert.match(answers, /^const answers = oldEnough !== false && \(/, 'the answers do not leave once the learner says they are younger');
+    const deny = answers.indexOf('<GhostButton label={AGE_DENY}');
+    const confirm = answers.indexOf('<PillButton');
+    assert.ok(deny > 0 && confirm > deny, 'the quiet no is not above the one ink pill');
+    assert.match(answers.slice(confirm), /label=\{AGE_CONFIRM\}/, 'the pill is not the confirmation');
+    assert.match(AGE_GATE, /<ScrollScreen footer=\{answers \|\| undefined\}>/, 'the answers are not pinned in the footer');
+    assert.equal((AGE_GATE.match(/<PillButton\b/g) ?? []).length, 1, 'the age check offers more than one pill');
+
+    // The refusal is unchanged: no footer, and the one way out is sign out.
+    assert.match(AGE_GATE, /\{refusal !== null && <AgeRefusal text=\{refusal\} onSignOut=\{onSignOut\} \/>\}/, 'a refused learner has no way out');
+    assert.ok(!REFUSAL.includes('PillButton'), 'the refusal offers a second chance');
+  });
+
+  test("the age check's quiet line is true whichever answer the learner gives", () => {
+    // F636. The line used to read "One question, then you carry on where you
+    // were." A learner who taps "I am younger than that" does not carry on: the
+    // refusal comes and the only way out is sign out. So the line was false on
+    // the very screen that refused them, and before the answer it told a child
+    // which answer lets them through, which leans on a question that has to be
+    // neutral. The quiet line says how much is asked and nothing about after.
+    assert.doesNotMatch(AGE_RETURN_NOTE, /carry on|then you|continue|where you were/i, 'the quiet line says which answer carries on');
+
+    // And once they have said they are younger it leaves with the answers, so
+    // the refusal is the only line under the sub.
+    const note = AGE_GATE.match(/\{(oldEnough !== false) && \(\s*<View style=\{st\.note\}>\s*<QuietLine>\{AGE_RETURN_NOTE\}<\/QuietLine>/);
+    assert.ok(note, 'the quiet line stays on screen above the refusal');
   });
 });
 

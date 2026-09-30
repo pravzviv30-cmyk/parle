@@ -1,16 +1,21 @@
 /**
  * The landing spot for a reset-email link (web). The recovery session is
  * already signed in; all that is left is choosing the new password.
+ *
+ * Revamp B (F601): a working title on paper, with no card around the form and
+ * no title in the header row, so nothing above the title carries a middot. The
+ * one rule is on screen while it is typed, from the same module sign-up reads.
  */
 
 import { useState } from 'react';
-import { View, Text } from 'react-native';
-import { paper, space, type, signal } from '../theme.ts';
-import { Card, GhostButton, PillButton, Field } from '../components.tsx';
+import { View, Text, StyleSheet } from 'react-native';
+import { paper, space, type } from '../theme.ts';
+import { GhostButton, PillButton, Field, AlertGlyph, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel } from './busyLabel.ts';
+import { passwordHint } from './passwordHint.ts';
 
 export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
   const { adapter } = useAuth();
@@ -37,6 +42,8 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Recomputed on every keystroke, so the rule is on screen while it is met.
+  const hint = passwordHint(password);
 
   const submit = async () => {
     // The keyboard's return key cannot be greyed out, so the guard is here too.
@@ -61,22 +68,32 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <ScrollScreen avoidKeyboard header={<ScreenHeader title="Luvani · Your account" />} footer={<PillButton label={authButtonLabel('saveNewPassword', busy)} onPress={() => void submit()} disabled={busy} />}>
+    <ScrollScreen
+      avoidKeyboard
+      header={<ScreenHeader title={false} divider={false} />}
+      footer={<PillButton label={authButtonLabel('saveNewPassword', busy)} onPress={() => void submit()} disabled={busy} />}
+    >
       <View>
-        <Card tone="feature">
-        <Text style={[type.display, { color: paper.ink }]}>Choose a new password</Text>
-        </Card>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Choose a new password</Text>
+        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+          Your reset link worked. Pick the password you will use from now on.
+        </Text>
         <View style={{ gap: space(4), marginTop: space(6) }}>
-          <Field
-            label="New password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder={`At least ${PASSWORD_MIN} characters`}
-            secure
-            autoComplete="new-password"
-            error={passwordError}
-            returnKeyType="next"
-          />
+          <View style={{ gap: space(1.5) }}>
+            <Field
+              label="New password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Choose a password"
+              secure
+              autoComplete="new-password"
+              error={passwordError}
+              returnKeyType="next"
+            />
+            {passwordError == null && (
+              <Text style={[type.small, { color: hint.met ? paper.ink : paper.inkSoft }]}>{hint.text}</Text>
+            )}
+          </View>
           <Field
             label="Confirm password"
             value={confirm}
@@ -89,11 +106,18 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
             onSubmitEditing={() => void submit()}
           />
         </View>
+        {/* A failure from the provider belongs to neither field. In ink, never
+            red, with the alert mark the fields carry. */}
         {formMessage != null && (
-          <Text style={[type.body, { color: signal.correspondance, marginTop: space(4) }]}>{formMessage}</Text>
+          <View style={st.message}>
+            <View style={st.messageMark}>
+              <AlertGlyph size={16} color={paper.ink} />
+            </View>
+            <Text style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
+          </View>
         )}
         <View style={{ marginTop: space(6) }}>
-          <Text style={[type.small, { color: paper.inkSoft }]}>Changed your mind? Your current password still works.</Text>
+          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Changed your mind? Your current password still works.</Text>
           <GhostButton
             label={leaving ? 'Signing out…' : 'Cancel and sign out'}
             disabled={leaving}
@@ -104,3 +128,8 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
     </ScrollScreen>
   );
 }
+
+const st = StyleSheet.create({
+  message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginTop: space(4) },
+  messageMark: { paddingTop: space(1) },
+});

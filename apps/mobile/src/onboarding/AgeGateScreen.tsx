@@ -20,18 +20,22 @@
  * is layout.
  *
  * It sits inside the shared frame like every other surface: `ScrollScreen`
- * pays the notch and anchors the story to the top, and the confirm action rides in
- * the footer. The refusal, when it comes, is the shared `AgeRefusal` — the same
- * spoken full stop and the same sign-out exit the first-run gate shows, so a
- * refused learner meets one thing on both doors rather than two.
+ * pays the notch and anchors the story to the top, and both answers ride in
+ * the footer, the quiet no above the one ink pill (revamp B, F601). The title
+ * is a working title on paper, and one quiet line says how much is being asked,
+ * in words that are true whichever answer comes (F636). It leaves with the
+ * answers, so once refused the refusal is the only line under the sub.
+ * The refusal, when it comes, is the shared `AgeRefusal`: the same spoken full
+ * stop and the same sign-out exit the first-run gate shows, so a refused
+ * learner meets one thing on both doors rather than two.
  */
 
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type } from '../theme.ts';
-import { PillButton, GhostButton } from '../components.tsx';
+import { PillButton, GhostButton, QuietLine } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
-import { AGE_CONFIRM, AGE_DENY, AGE_RETURN_SUB, AGE_RETURN_TITLE, ageGate } from './answers.ts';
+import { AGE_CONFIRM, AGE_DENY, AGE_RETURN_NOTE, AGE_RETURN_SUB, AGE_RETURN_TITLE, ageGate } from './answers.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
 
 export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSignOut: () => void }) {
@@ -40,42 +44,43 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
   const [oldEnough, setOldEnough] = useState<boolean | null>(null);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
+  // Gone once they have said they are younger. A refusal with the way through
+  // still sitting under it is not a gate, it is a suggestion. Closing the app
+  // and coming back offers the question again, which is the escape hatch for a
+  // mis-tap and is deliberately not a button.
+  const answers = oldEnough !== false && (
+    <View style={st.answers}>
+      <GhostButton label={AGE_DENY} onPress={() => setOldEnough(false)} />
+      <PillButton
+        label={AGE_CONFIRM}
+        onPress={() => {
+          setOldEnough(true);
+          onPass();
+        }}
+      />
+    </View>
+  );
+
   return (
-    <ScrollScreen
-      footer={
-        // Gone once they have said they are younger. A refusal with the way
-        // through still sitting under it is not a gate, it is a suggestion.
-        // Closing the app and coming back offers the question again, which is
-        // the escape hatch for a mis-tap and is deliberately not a button.
-        oldEnough !== false ? (
-          <PillButton
-            label={AGE_CONFIRM}
-            onPress={() => {
-              setOldEnough(true);
-              onPass();
-            }}
-          />
-        ) : undefined
-      }
-    >
-      {/* Notebook Phase 4 (2026-09-27): the cake picture and the feature panel
-          under it retired, so the question leads on the paper itself. */}
+    <ScrollScreen footer={answers || undefined}>
       <Text accessibilityRole="header" style={st.question}>
         {AGE_RETURN_TITLE}
       </Text>
       <Text style={st.sub}>{AGE_RETURN_SUB}</Text>
-      {refusal !== null && <AgeRefusal text={refusal} onSignOut={onSignOut} />}
       {oldEnough !== false && (
-        <View style={st.secondary}>
-          <GhostButton label={AGE_DENY} onPress={() => setOldEnough(false)} />
+        <View style={st.note}>
+          <QuietLine>{AGE_RETURN_NOTE}</QuietLine>
         </View>
       )}
+      {refusal !== null && <AgeRefusal text={refusal} onSignOut={onSignOut} />}
     </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  question: { ...type.display, color: paper.ink, marginTop: space(3) },
+  question: { ...type.title, color: paper.ink, marginTop: space(3) },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  secondary: { marginTop: space(5) },
+  note: { marginTop: space(3) },
+  // The no sits on the left edge above the pill, the way the board draws it.
+  answers: { gap: space(3), alignItems: 'stretch' },
 });

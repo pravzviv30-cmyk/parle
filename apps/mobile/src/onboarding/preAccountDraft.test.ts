@@ -14,6 +14,7 @@ import {
   loadPreAccountDraft,
   savePreAccountDraft,
 } from './preAccountDraft.ts';
+import { CREATE_ACCOUNT_AGE } from './firstRun.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 const source = read('./PreAccountOnboarding.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -185,7 +186,9 @@ describe('the pre-account hand-off', () => {
     assert.deepEqual([...PRE_ACCOUNT_PAGES], ['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save']);
     assert.match(source, /onPress=\{\(\) => chooseVoice\(option\.value\)\}/, 'a tap does not save the selected voice to the draft');
     assert.match(source, /onHear=\{\(\) => hearVoice\(selected\)\}/, 'the voice sample is not a deliberate learner action');
-    assert.match(source, /I am 13 or older · Create account/, 'age confirmation is not kept at account creation');
+    // Revamp B (F601): the pill says the age and the action as one sentence, with a comma.
+    assert.match(source, /<PillButton label=\{CREATE_ACCOUNT_AGE\} onPress=\{\(\) => onCreateAccount\(draft\)\} \/>/, 'age confirmation is not kept at account creation');
+    assert.equal(CREATE_ACCOUNT_AGE, 'I am 13 or older, create account', 'age confirmation is not kept at account creation');
     assert.match(source, /onCreateAccount\(draft\)/, 'the chosen voice is dropped before sign-up');
   });
 

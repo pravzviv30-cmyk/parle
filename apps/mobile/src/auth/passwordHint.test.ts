@@ -61,10 +61,13 @@ describe('the password requirement while it is being met — F156', () => {
       /const \w*[hH]int = passwordHint\(password\)/,
       'the hint is not computed from what has been typed, so it cannot update as the learner types',
     );
-    assert.match(screen, /signal\.good/, 'nothing on the sign-up screen turns affirmative when the rule is met');
+    // Revamp B (F601): the met state is full ink rather than green. STYLE
+    // draws no red and no green in copy, so the line steps up from soft ink to
+    // ink, and the words above ("Long enough") carry the rest.
+    assert.match(screen, /\w*[hH]int\.met \?\s*paper\.ink\b/, 'nothing on the sign-up screen turns affirmative when the rule is met');
     assert.match(
       screen,
-      /\w*[hH]int\.met \?\s*signal\.good/,
+      /\w*[hH]int\.met \?\s*paper\.ink\s*:\s*paper\.inkSoft/,
       'the hint does not change colour on the met state, so meeting the rule looks the same as not meeting it',
     );
 

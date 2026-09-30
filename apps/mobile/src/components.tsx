@@ -622,14 +622,22 @@ export function Field({
         )}
       </View>
       {error != null && (
-        <Text
-          id={errorId}
-          role="alert"
-          accessibilityLiveRegion="polite"
-          style={[type.small, { color: signal.correspondance }]}
-        >
-          {error}
-        </Text>
+        // SNIPPETS field: the alert mark, then what happened and what to do,
+        // in ink. Errors are never red; the mark and the words carry it. The
+        // mark is decorative, so what is announced is still the one line.
+        <View style={s.fieldError}>
+          <View style={s.fieldErrorMark}>
+            <AlertGlyph size={16} color={paper.ink} />
+          </View>
+          <Text
+            id={errorId}
+            role="alert"
+            accessibilityLiveRegion="polite"
+            style={[type.small, ROW_WORDS, { color: paper.ink }]}
+          >
+            {error}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -1048,6 +1056,9 @@ const s = StyleSheet.create({
     borderWidth: 3,
     borderColor: paper.ground,
   },
+  fieldError: { flexDirection: 'row', alignItems: 'flex-start', gap: space(1.5) },
+  // Centres the 16 mark on the small line's first 20pt row.
+  fieldErrorMark: { paddingTop: space(0.5) },
 });
 
 // ─────────────────────────────────────────── the notebook marks (Phase 1)
@@ -1255,6 +1266,11 @@ export function LevelPath({ levels }: { levels: readonly PathLevel[] }) {
  * line in French, a sample to hear, and a quiet link to change tutor. There is
  * no face and no initial: the orb is the tutor and the monogram is the
  * learner's. The sample says "Stop" while it sounds, like every replay ear.
+ *
+ * Revamp B (F601): a white card. The orb, then the name, the voice and the
+ * change link as one column, then the sample as a 44 ink disc with the white
+ * speaker mark, pressed through the one spring. The signature sits under the
+ * row, marked as French so a screen reader reads it in a French voice.
  */
 export function TutorCard({
   name,
@@ -1282,20 +1298,22 @@ export function TutorCard({
           <OrbGlyph color={orb.ready} size={HIT + space(3)} />
         </View>
         <View style={ROW_WORDS}>
-          <Text style={[type.cardTitle, { color: paper.ink }]}>{name}</Text>
+          <Text style={[type.heading, { color: paper.ink }]}>{name}</Text>
           <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text>
+          <View style={ls.tutorChange}>
+            <GhostButton label={changeLabel} onPress={onChange} color={paper.ink} />
+          </View>
         </View>
-        <Pressable
-          onPress={onHear}
+        <Press haptic="light" onPress={onHear} style={ls.hear}
           accessibilityRole="button"
           accessibilityLabel={playing ? `Stop ${name}` : `Hear ${name}`}
-          style={({ pressed }) => [ls.hear, pressed && ls.hearPressed]}
         >
-          <EarGlyph size={22} color={paper.ink} />
-        </Pressable>
+          <EarGlyph size={22} color={paper.onInk} />
+        </Press>
       </View>
-      <Text style={[type.french, { color: paper.ink }]}>{signature}</Text>
-      <GhostButton label={changeLabel} onPress={onChange} color={paper.ink} />
+      <Text {...frenchText} style={[type.french, { color: paper.ink }]}>
+        {signature}
+      </Text>
     </Card>
   );
 }
@@ -1465,16 +1483,17 @@ const ls = StyleSheet.create({
   stopEarned: { backgroundColor: paper.ink, borderColor: paper.ink },
   tutor: { gap: space(3) },
   tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  // The link's own side pad is pulled back so its word lines up under the
+  // name; its 44 target still reaches into the gap beside the orb, not onto it.
+  tutorChange: { alignSelf: 'flex-start', marginLeft: -space(3) },
   hear: {
     width: HIT,
     height: HIT,
     borderRadius: HIT / 2,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
+    backgroundColor: paper.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hearPressed: { backgroundColor: paper.groundDeep },
   brief: { gap: space(3) },
   briefHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(3) },
   corner: { minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' },
@@ -1870,4 +1889,71 @@ const b = StyleSheet.create({
   frenchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
   frenchWords: { ...ROW_WORDS, gap: space(1.5) },
   hearDisc: { width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center' },
+});
+
+// ─────────────────────────────────────────── the Start parts (revamp B, F601)
+// Appended, because every region above is sliced between adjacent exports.
+
+/**
+ * Where a learner stands against one goal (SNIPPETS task-ticks and mark-next):
+ * a 24 disc. Done is mint with an ink tick, next is a plain sun dot, and one
+ * not reached yet is the field ring. It is one element to a screen reader and
+ * says its state in a word, so the colour is never the only signal: the tick,
+ * the fill and the ring are three shapes as well as three colours.
+ */
+export function SceneMark({ state }: { state: 'earned' | 'here' | 'ahead' }) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={state === 'earned' ? 'Done' : state === 'here' ? 'Next' : 'Not yet'}
+      style={[
+        sp.sceneMark,
+        state === 'earned' && { backgroundColor: colour.mint },
+        state === 'here' && { backgroundColor: colour.sun },
+        state === 'ahead' && { borderWidth: 2, borderColor: paper.field },
+      ]}
+    >
+      {state === 'earned' ? <CheckGlyph size={16} color={paper.ink} /> : null}
+    </View>
+  );
+}
+
+/**
+ * A can-do as one sentence after "You'll be able to": the catalogue writes
+ * each can-do as its own capitalised line ("Order a coffee at the counter"),
+ * so the first letter is lowered, any full stop it carried is dropped, and the
+ * sentence ends on one. "You'll be able to order a coffee at the counter."
+ */
+export function canDoSentence(canDo: string): string {
+  const line = canDo.trim().replace(/\s*\.+$/, '');
+  return `${CAN_DO_LEAD} ${line.charAt(0).toLowerCase()}${line.slice(1)}.`;
+}
+
+/**
+ * ICONS.md `alert`: beside a field's error line. Errors are never red.
+ *
+ * It lives here rather than in `glyphs.tsx` because `Field` draws it, and
+ * `glyphs.tsx` already imports from this file, so the reverse edge would be a
+ * cycle. `glyphs.tsx` re-exports it, the way it re-exports the speaker.
+ */
+export function AlertGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z" />
+        <Path d="M12 9.5v4" />
+        <Path d="M12 17h.01" />
+      </G>
+    </Svg>
+  );
+}
+
+const sp = StyleSheet.create({
+  sceneMark: {
+    width: space(6),
+    height: space(6),
+    borderRadius: space(3),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
