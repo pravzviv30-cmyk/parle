@@ -28,7 +28,7 @@ export async function scoreRecordedAttempt(
     if (size === 0 || size > MAX_SCORE_BYTES) return null;
     // The learner and the line ride in headers, never the URL (F626): a query
     // string is what proxies, access logs and crash reports keep. Encoded,
-    // because a header must be ASCII and French has accents.
+    // because a header must be ASCII and French has accented letters.
     const res = await fetch(`${TOKEN_SERVER}/drill/score`, {
       method: 'POST',
       headers: {
