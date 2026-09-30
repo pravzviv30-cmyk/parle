@@ -8958,6 +8958,82 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the place scenes wait for the recap cover on a list of their own, which F611 empties`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+
+### F604 — Practice still wears the notebook: hairline ledgers, a striped review card, the old speak ring, the pen's reward mark and empty states with no drawing
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:304
+- note: Stage 3 of revamp B, the Practice area, 23 boards. Pass 0 finishes the shared parts every area draws. `Ledger` and `LedgerRow` become SNIPPETS' white list, `SpeakCircle` becomes the mint orb, `ScreenHeader` takes a left title, a trailing line and no rule, and `TabBar` gains the underline look. Practice then leads with the sun card, one white recommended card and one list. Review loses its stripe, gains Show me, and gets three equal grades. The drill names its exercise in the header, marks a verdict with a mint tick, and offers the existing typed twin as the primary when there is no microphone. The sound check, phrasebook, library, light day and conversations screens move to the B parts with their own words. The empty states draw `state-notebook` and `state-microphone`. `surface/PhraseCard.tsx` retires. Fix your line, spoken own words, Shadowing and the light day's "counts as a day" are slots, not builds.
+- verified-by: `the list is SNIPPETS' white card of rows: a 60 floor, a 16 title, a 14 detail, a soft chevron, and hairlines only between rows`
+- verified-by: `the speak control is the mint orb with an ink microphone at the size it is given, and muted is a quiet ring that still reads as a control`
+- verified-by: `the segmented control can be drawn as underlined text tabs, and each still says tab and selected`
+- verified-by: `the pushed header puts its title beside the round back, can carry one quiet trailing line, and draws no rule`
+- verified-by: `Practice opens on the sun card for the sound to tune, then the white recommended card, then one white list of ways to practise`
+- verified-by: `on day one Practice leads with the first line to say, then the sound to tune, then its rows`
+- verified-by: `a review card is white with no stripe, its front offers Show me as the one pill, and the grades are three equal quiet buttons in one row`
+- verified-by: `a drill names the exercise in its header beside the way back, and the way back still says it leaves the drills`
+- verified-by: `the drill verdict is a still mint tick beside the drill's own words, and the drill imports no authored scene`
+- verified-by: `with no microphone the drill draws the microphone, offers the typed twin as the one pill and keeps I said it as a link`
+- verified-by: `a sound check and its result draw a scored sound only when the scorer returned one, and an unscored attempt reads as practice, never as a low score`
+- verified-by: `the words and phrases library draws underlined Saved, Words and Phrases tabs over rows that hear, save and open one item, and a search with no match can be cleared`
+- verified-by: `the light day claims nothing about counting as a day until the day is recorded`
+- verified-by: `the empty phrasebook and the empty conversations draw the notebook, say their real line and offer one way on`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+- verified-by: `retired notebook files and artwork stay deleted`
+- verified-by: `a tab lists what it opens one way, as ledger rows, and never two shapes for one list — F569`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+### F605 — Progress is the notebook's long ledger titled My French, not one blue level card and one list that counts only things kept
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:211
+- note: Stage 3 of revamp B, the Progress area: ProgressDayOne, ProgressPopulated and GoalStep. A pure `myfrench/progressRows.ts` decides the tab's doors (phrases, sounds, conversations, each goal, each saved scene) and says them in counts of things kept, never days. `myfrench/LevelCard.tsx` draws the level as the one blue card, with mint, sun and ring marks and the next level's scene count, and opens the scenes. The tab draws the card and one list, plus a day-one card with the one pill, under the title Progress. The inline phrase bank, sounds map and daily and browse rows leave the tab. GoalStep moves to a title, one blue card with a white pill, and a white trail. Postcards, Your week in French, the one weekly line and the lifetime count are slots for F612, F613, F608 and F609.
+- verified-by: `Progress is one blue level card and one white list, and carries a pill only on day one`
+- verified-by: `the level card lists this level's can-dos as done, here and ahead, marks your start on day one, and says how many scenes the next level holds`
+- verified-by: `the Progress rows open the phrasebook, the sound journey, the conversations and each goal, and count only things kept`
+- verified-by: `Progress names no day, no weekday, no streak and no this-week count, and leaves one slot for the weekly line`
+- verified-by: `the Progress tab starts no voice and records nothing, so leaving it has nothing to stop`
+- verified-by: `the tab is titled Progress, the word on the tab bar`
+- verified-by: `the goal step is the learner's goal as a title over one blue card that opens the scene, then a white list of what they did with it`
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
+- verified-by: `a tab lists what it opens one way, as ledger rows, and never two shapes for one list — F569`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+### F606 — Profile and Settings draw their choices as full-screen pages, Profile still counts days this week, and deleting an account never mentions the store subscription
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:229
+- note: Stage 3 of revamp B, Profile, Settings and Legal, 12 boards. The name, voice, reminder-time and clear-memory choices rise as bottom sheets over the screen that opened them, through `Sheet`, `OptionRow` (which gains an optional hear control) and `ConfirmSheet` (drawn through `Sheet`). Selecting chooses and Done closes. Settings rows press through `Press` as SNIPPETS list rows. Switches are brand blue when on. The segmented choice ticks once. Profile stops drawing the this-week rhythm sentence and leaves a slot for F609's lifetime count. The delete page keeps its account as the one pill, puts the permanent step in a link, and adds one sentence reviewed by privacy-safety: a store subscription is cancelled in the store. Legal screens change chrome only. The Pause memory switch is a slot.
+- verified-by: `an option row can offer to hear itself, and says Stop while it plays`
+- verified-by: `the name and voice choices rise as bottom sheets over Profile, each with its heading and one pill`
+- verified-by: `Profile says no weekly day count: the week card is not drawn and the lifetime count waits for F609`
+- verified-by: `the profile avatar is the shared Monogram, an ink disc with a white initial, with no ring of its own`
+- verified-by: `settings rows are the SNIPPETS list row, pressed through Press with a selection tick, and never fade`
+- verified-by: `a segmented choice ticks once, through the control, and a switch is the brand blue when on and the field grey when off`
+- verified-by: `every profile and settings sheet names itself as a heading, whether it rises from the bottom or fills the page`
+- verified-by: `the reminder time is chosen on a bottom sheet of option rows from the presets the module owns, and Done closes it`
+- verified-by: `deleting an account keeps it as the one pill, puts the permanent step in a link, and says a store subscription is cancelled in the store`
+- verified-by: `clearing what the tutor remembers asks on a bottom sheet whose pill keeps the details, and an empty memory offers one way on`
+- verified-by: `the legal pages draw their modules' text unchanged in the reading layout: a title, white cards, and links as underlined words`
+- verified-by: `a Profile sheet that answers back itself is not answered twice — F319`
+- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
+
+### F607 — The plans are one ruled card, a purchase ends on a line of text, and the out-of-minutes screens sell inline in notebook cards
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/wall/WallScreen.tsx:192
+- note: Stage 3 of revamp B, the Plans area: WallYours, WallPlans, WallSuccess, WallUnavailable and OutOfMinutes. What stays yours becomes the sun page with one white card of iconed rows, which needs `MouthGlyph` ported. Each plan becomes its own card, the chosen one on the blue ground with a white check. A finished purchase becomes the mint page, with the bought plan's catalogue minutes as the hero and one way to start speaking. The unavailable state draws `state-offline`, Try again and the one restore. Both out-of-minutes branches draw one shared sheet, titled by the refusal's own label, that opens the wall at the declared `refused` door instead of selling inline. The purchase label joins plan and price with a comma. Every number is read from the catalogue or the store. The board's Max figures (450 minutes, about 10 a week) disagree with `meter.ts` (300, about 7) and are flagged for the founder, not shipped.
+- verified-by: `every glyph is an ICONS.md mark at the one stroke weight or a kept drawing on the retire list, and the tab and the control share one microphone`
+- verified-by: `what stays yours is the sun page: one white card of rows with one ink icon each, then what a plan adds`
+- verified-by: `the plans are two cards, the chosen one on the blue ground with a white check and the other white with the field ring, and nothing is marked recommended`
+- verified-by: `a plan card says it is selected to a screen reader, and never draws a radio control`
+- verified-by: `a finished purchase is the mint page: the bought plan's own minutes as the hero, its conversations a week from the catalogue, and one way to start speaking`
+- verified-by: `when plans cannot load the page draws the offline drawing, what happened, Try again and the one restore`
+- verified-by: `no number from the boards reaches the wall: every minute, conversation and price comes from the catalogue or the store`
+- verified-by: `both out-of-minutes screens draw the one out-of-minutes sheet, titled by the refusal, and it opens the wall rather than selling inline`
+- verified-by: `a purchase button names its plan and its store price with a comma`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 ### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
 - severity: P1
 - status: [x]
