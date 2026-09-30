@@ -9,13 +9,14 @@ test('a new learner receives a real mission and no invented continuity', () => {
   assert.equal(next.label, 'Your next conversation');
   // Rewritten 2026-09-27 (notebook Phase 3): the level and the derived minutes,
   // so the opener reads about three rather than the open-mission eight.
-  assert.equal(next.detail, 'A0 · About 3 min');
+  // Revamp B (F602): the minutes are said in full.
+  assert.equal(next.detail, 'A0 · About 3 minutes');
 });
 
 test('the next conversation is the next scene on the spine', () => {
   const next = nextConversation(missionStates([{ id: FIRST_MISSION, at: 1, rung: 4 }], [], 2), null, false);
   assert.equal(next.params.missionId, SCENE_SPINE[1], 'Speak offers something other than the spine\'s next scene');
-  assert.match(next.detail, /^A0 · About \d+ min$/);
+  assert.match(next.detail, /^A0 · About \d+ minutes?$/);
 });
 
 test('an unfinished scene takes precedence without requiring Max', () => {

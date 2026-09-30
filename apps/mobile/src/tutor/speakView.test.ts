@@ -64,7 +64,7 @@ describe('the level path', () => {
       assert.equal(row.meta, minutesLine(missionMinutes(mission)));
       assert.deepEqual(row.route, { screen: 'Missions', params: { focus: mission.id } }, 'a row does not open its brief in the chooser');
     }
-    assert.equal(rows[0]!.meta, 'About 3 min');
+    assert.equal(rows[0]!.meta, 'About 3 minutes', 'the opener is not offered as about three minutes, said in full (F602)');
     for (const group of path.groups) {
       assert.ok(group.rows.every((row) => getMission(row.missionId)!.cefr === group.level), `${group.level} holds a scene of another level`);
     }

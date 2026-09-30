@@ -1753,16 +1753,19 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   };
 
   test('a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406', () => {
-    // Home's pill is the hero's Start conversation and there is no second one
-    // anywhere on the tab, which is the assertion the file name carries: a
-    // count alone would pass with the pill in the wrong card.
+    // Home's pills are one per lead, and a learner meets one: the recall
+    // card's and the plans card's in the tab itself, each in its own branch of
+    // the one lead switch, and the Start on the mission hero. That is the
+    // assertion the file names carry: a count alone would pass with the pill in
+    // the wrong card. Revamp B (F602) added the plans lead; HomeTab.test.ts
+    // proves the three branches are exclusive.
     const homePills = SURFACES['tabs/HomeTab.tsx']!.flatMap((name) =>
       (named(name).match(/<PillButton\b/g) ?? []).map(() => name),
     );
     assert.deepEqual(
       homePills,
-      ['tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
-      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the one pill is Start conversation, on the mission hero (F544)`,
+      ['tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
+      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the pills are the recall lead's, the plans lead's and Start speaking, on the mission hero (F544, F602)`,
     );
 
     /**
@@ -1778,8 +1781,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
      * outline and the one pill a learner with no conversation yet meets.
      */
     const pills: Record<string, number> = {
-      // Two exclusive templates; nextAction.test.ts proves the priority rule.
-      'tabs/HomeTab.tsx': 2,
+      // Three exclusive leads (review, plans and Start), one pill each;
+      // nextAction.test.ts proves the priority rule.
+      'tabs/HomeTab.tsx': 3,
       'tabs/TutorTab.tsx': 1,
       'tabs/MyFrenchTab.tsx': 0,
       'tabs/PracticeTab.tsx': 1,
@@ -1813,8 +1817,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'tabs/ProfileTab.tsx': 0,
     };
     const ledger: Record<string, number> = {
-      // Today is a scene brief, two sentences and one phrase; nothing is a list.
-      'tabs/HomeTab.tsx': 0,
+      // Revamp B (F602): the one review row, under a scene or plans lead when
+      // phrases are due. Everything else on Today is a card or a sentence.
+      'tabs/HomeTab.tsx': 1,
       // The level path's scenes, the other ways in, and the memory row.
       'tabs/TutorTab.tsx': 3,
       // The review door on the tab, then replay a moment and make this phrase
@@ -2148,7 +2153,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
     assert.match(home, /title=\{greeting\.title\}/);
     assert.match(home, /purpose=\{greeting\.subline\}/);
-    assert.match(home, /<DailyCard item=\{daily\.phrase\} \/>/);
+    // Revamp B (F602): Today draws the white "today" look of the same card.
+    assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
     assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 1);
   });
@@ -2216,11 +2222,18 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // next-step row became the hero with F543.
     const home = named('tabs/HomeTab.tsx');
     assert.match(home, /<MissionHero\b/, 'Home no longer draws the hero the runbook says a beginner meets');
+    // Revamp B (F602): the page splits once on whether storage has answered
+    // (sand blocks until it has), and the lead is the rule's answer for the
+    // hero it read. The one condition on the hero is still having a situation
+    // to offer; the brief is the lead whenever neither recall nor the plans
+    // card is.
     assert.match(
       home,
-      /\{hero !== null && \(homeActionFor/,
+      /const lead = hero === null \? null : homeActionFor\(hero, due\.length, billing\);/,
       'the hero is drawn behind some other condition than having a situation to offer',
     );
+    assert.match(home, /\{hero === null \? \(/, 'Home no longer waits on storage before it draws a lead');
+    assert.match(home.replace(/\s+/g, ' '), /\) : \( <MissionHero hero=\{hero\} \/> \)\}/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the

@@ -206,10 +206,12 @@ describe('the mockup-review primitives keep their promises — F362, F366, F368,
  * what follows is the promises they make.
  */
 describe('the revamp primitives keep their promises — F569, F577, F586', () => {
-  test('a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once', () => {
+  test('a ledger row is one pressable at 60 with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once', () => {
     // One press, not a card with a button in it: the whole row is the target, a
     // nested button is invalid on the web, and a row whose only tap area is its
     // chevron is F545 again. Revamp B: that one press is `Press`, the spring.
+    // F602 (SNIPPETS list): the row is 60, its chevron the soft 20, and the
+    // hairline between rows belongs to the Ledger, so the row rules nothing.
     const row = region(componentsSource(), 'export function LedgerRow(', '\nexport function ');
     assert.equal((row.match(/<Press\b/g) ?? []).length, 1, 'the ledger row is not exactly one target');
     assert.doesNotMatch(row, /<Pressable\b/, 'the ledger row presses beside the one spring');
@@ -220,7 +222,7 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
       'the row does not name itself from its own title and gloss, so a screen reader reads two loose lines',
     );
     assert.match(row, /accessibilityState=\{\{ disabled \}\}/, 'the row never says it is unavailable');
-    assert.match(row, /<ChevronRight color=\{paper\.inkFaint\} \/>/, 'the row draws no chevron, so nothing marks it as a way in');
+    assert.match(row, /<ChevronRight size=\{20\} color=\{paper\.inkSoft\} \/>/, 'the row draws no soft 20 chevron, so nothing marks it as a way in');
     assert.match(row, /\{trailing != null \? trailing : null\}/, 'the row cannot carry a state before its chevron');
     assert.match(row, /meta\?: string/, 'the row cannot carry trailing meta');
     assert.match(row, /<Press haptic="light" style=\{ls\.row\} disabled=\{disabled\}/, 'the row has no pressed state, or presses while it is disabled');
@@ -229,9 +231,8 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
       assert.ok(!row.includes(cap), `the ledger row caps its words with ${cap}; a long title must wrap and the row grow to hold it`);
     }
     const style = region(componentsSource(), '  row: {', '  glyph: {');
-    assert.match(style, /minHeight: HIT \+ space\(3\)/, 'the ledger row is under its 56pt floor');
-    assert.match(style, /borderBottomWidth: HAIRLINE/, 'the ledger row draws no hairline divider');
-    assert.match(style, /borderBottomColor: paper\.line/, 'the divider is not the paper hairline');
+    assert.match(style, /minHeight: HIT \+ space\(4\)/, 'the ledger row is under its 60 floor');
+    assert.doesNotMatch(style, /borderBottomWidth|borderTopWidth|borderWidth/, 'the row rules itself, so a list draws a rule under its last row or two between a pair');
     assert.doesNotMatch(style, /borderRadius|backgroundColor|borderColor: paper\.ink/, 'the ledger row is a box, not a line in a ledger');
     const glyph = region(componentsSource(), '  glyph: {', '  words:');
     assert.match(glyph, /minWidth: 24/, 'the glyph slot is not the 24pt ink glyph');
@@ -411,11 +412,19 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     }
   });
 
-  test('the ledger rules its rows with a top hairline and is one list to assistive tech', () => {
+  test('the ledger rules a hairline between its rows, never around them, and is one list to assistive tech', () => {
+    // F602 (SNIPPETS list): the rule sits between rows. The card's edge is the
+    // only edge, so there is no rule above the first row or under the last.
     const ledger = mark('Ledger');
     assert.match(ledger, /accessibilityRole="list"/, 'the ledger is not a list to a screen reader');
-    assert.match(ledger, /borderTopWidth: HAIRLINE/, 'the ledger has no rule above its first row');
-    assert.match(ledger, /borderTopColor: paper\.line/, 'the ledger rule is not the paper hairline');
+    assert.match(
+      ledger,
+      /index === 0 \? \[row\] : \[<View key=\{`rule-\$\{index\}`\} \{\.\.\.decorative\} style=\{ls\.rule\} \/>, row\]/,
+      'the ledger does not rule a hairline before every row but the first, or the rule is read aloud',
+    );
+    assert.doesNotMatch(ledger, /borderTopWidth|borderBottomWidth/, 'the ledger rules above or below its rows, around them rather than between');
+    const rule = region(componentsSource(), '  rule: {', '  row: {');
+    assert.match(rule, /height: HAIRLINE, backgroundColor: paper\.line/, 'the rule between rows is not the paper hairline');
   });
 
   test('the highlighter is a still band behind one French line, marked as French, and moves nothing', () => {
@@ -502,17 +511,119 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     assert.match(card, /onHear: \(\) => void;\s*playing: boolean;\s*onChange: \(\) => void;\s*changeLabel\?: string;/, 'the tutor card\'s props changed');
   });
 
-  test('a scene brief takes its one Start from the caller and draws everything else from tokens', () => {
+  test('the scene brief is the one blue card: a meta line, the French title, the English, the can-do sentence, one line to say, and the caller\'s white Start', () => {
+    // F602 (SNIPPETS card-colour, meta-line, french-block). The brief is the
+    // one colour card on Home, and on Speak after F603: white words on the
+    // blue, and the blue ground's own secondary for every quieter line.
     const brief = mark('SceneBrief');
-    assert.match(brief, /action: ReactNode;/, 'the Start is no longer a node the caller passes');
-    assert.match(brief, /\{action\}/, 'the brief never draws the Start it was handed');
-    assert.match(brief, /CAN_DO_LEAD/, 'the can-do is not led by "You\'ll be able to"');
-    assert.match(brief, /lines\.map\(/, 'the lines you will say are not drawn');
-    assert.match(brief, /fitHero\(french\)/, 'the French title is not the fitted French hero');
+    assert.match(brief, /<ColourCard ground="blue"/, 'the brief is not the blue colour card');
+    assert.doesNotMatch(brief, /<Card\b/, 'the brief is still the white card');
+    assert.doesNotMatch(brief, /onPress/, 'the card that holds the Start presses too, a button in a button');
+
+    // The props: one meta line, the two names, a finished can-do sentence, one
+    // line to say with its English, a note, and the caller's nodes.
+    assert.match(
+      brief,
+      /meta: string;[\s\S]*french\?: string;[\s\S]*title: string;[\s\S]*canDo\?: string;[\s\S]*line\?: \{ fr: string; en\?: string \};[\s\S]*note\?: string;[\s\S]*action: ReactNode;[\s\S]*secondary\?: ReactNode;[\s\S]*corner\?: ReactNode;/,
+      'the brief does not take the meta line, the names, the can-do, one line, a note and the caller\'s nodes',
+    );
+
+    // The meta line, beside the 44 corner slot.
+    assert.match(brief, /<Text style=\{\[type\.small, ROW_WORDS, \{ color: onColour\.blue \}\]\}>\{meta\}<\/Text>/, 'the meta line is not the small line in the blue\'s secondary, taking the row');
     assert.match(brief, /\{corner != null \? <View style=\{ls\.corner\}>\{corner\}<\/View> : null\}/, 'the corner slot is gone, or reserved when empty');
     assert.match(componentsSource(), /corner: \{ minWidth: HIT, minHeight: HIT/, 'the corner slot is under the touch floor');
-    assert.match(brief, /<Card\b/, 'the brief is not drawn on the one card');
+
+    // The French title leads as the heading, read as French; the English sits
+    // under it. With no French the English leads at the same size, still the
+    // heading, and is not marked as French.
+    assert.match(
+      brief,
+      /<Text \{\.\.\.frenchText\} accessibilityRole="header" style=\{\[type\.frenchLg, \{ color: textOn\.blue \}\]\}>\s*\{french\}/,
+      'the French title is not the heading, in white at the large French size, read as French',
+    );
+    assert.match(brief, /<Text style=\{\[type\.body, \{ color: onColour\.blue \}\]\}>\{title\}<\/Text>/, 'the English is not the body line under the French');
+    assert.match(
+      brief,
+      /\) : \(\s*<Text accessibilityRole="header" style=\{\[type\.frenchLg, \{ color: textOn\.blue \}\]\}>\s*\{title\}/,
+      'with no French name the English does not lead as the heading, or it is marked as French',
+    );
+
+    // The can-do is a finished sentence in white, and the one line is French
+    // with its English quieter under it.
+    assert.match(brief, /<Text style=\{\[type\.body, \{ color: textOn\.blue \}\]\}>\{canDo\}<\/Text>/, 'the can-do sentence is not a white body line');
+    assert.match(brief, /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: textOn\.blue \}\]\}>\s*\{line\.fr\}/, 'the line to say is not French in white, read as French');
+    assert.match(brief, /type\.small, \{ color: onColour\.blue \}\]\}>\{line\.en\}/, 'the line\'s English is not the small line in the blue\'s secondary');
+    assert.match(brief, /type\.small, \{ color: onColour\.blue \}\]\}>\{note\}/, 'the note is not the small line in the blue\'s secondary');
+
+    // The caller's Start and its second way in, last and in that order.
+    assert.match(brief, /\{action\}/, 'the brief never draws the Start it was handed');
+    const at = (needle: string): number => {
+      const i = brief.indexOf(needle);
+      assert.notEqual(i, -1, `${needle} is missing from the scene brief`);
+      return i;
+    };
+    const order = ['{meta}', '{french}', '{canDo}', '{line.fr}', '{note}', '{action}', '{secondary != null'];
+    for (let i = 1; i < order.length; i += 1) {
+      assert.ok(at(order[i - 1]!) < at(order[i]!), `the brief draws ${order[i]} before ${order[i - 1]}`);
+    }
+
+    // Tokens only: no raw type, no caps Label, no fitted hero, and soft ink is
+    // never set on a colour.
     assert.doesNotMatch(brief, /fontSize|lineHeight|fontFamily/, 'the brief writes type itself; the scale lives in theme.ts');
+    assert.doesNotMatch(brief, /<Label\b/, 'the brief draws a Label; its meta is one plain line');
+    assert.doesNotMatch(brief, /fitHero\(/, 'the brief still fits a French hero; the board sets the French at one size');
+    assert.doesNotMatch(brief, /paper\.inkSoft|paper\.ink\b/, 'the brief sets ink on the blue');
+    // The lead stays, because the can-do sentence is built from it.
+    assert.match(componentsSource(), /const CAN_DO_LEAD = "You'll be able to";/, 'the can-do lead is gone');
+  });
+
+  test('a ledger is a white card of rows split by hairlines, each at 60 with a 16 title, a soft detail and a chevron', () => {
+    // F602 (SNIPPETS list): 4 above and below the rows and 20 at the sides, on
+    // white at the card radius. Every row after the first is led by the rule.
+    const source = componentsSource();
+    const ledger = mark('Ledger');
+    assert.match(ledger, /const rows = Children\.toArray\(children\);/, 'the ledger counts its rows before React drops the empty ones, so a missing row leaves a rule');
+    assert.match(ledger, /style=\{\[ls\.ledger, style\]\}/, 'the ledger is not drawn from its own card style');
+    assert.match(
+      source,
+      /ledger: \{ backgroundColor: paper\.card, borderRadius: radius\.card, paddingVertical: space\(1\), paddingHorizontal: space\(5\) \}/,
+      'the ledger is not SNIPPETS\' white list card',
+    );
+    assert.match(source, /rule: \{ height: HAIRLINE, backgroundColor: paper\.line \}/, 'the rule between rows is not the paper hairline');
+
+    // Each row: 60 tall, 10 above and below its words, no rule of its own.
+    const style = region(source, '  row: {', '  glyph: {');
+    assert.match(style, /minHeight: HIT \+ space\(4\)/, 'a row is under 60');
+    assert.match(style, /paddingVertical: space\(2\.5\)/, 'a row does not keep 10 above and below its words');
+    assert.doesNotMatch(style, /border/, 'a row rules itself');
+    const glyph = region(source, '  glyph: {', '  words:');
+    assert.match(glyph, /minWidth: 24/, 'the glyph slot is not 24');
+
+    // The title is the 16 label; a French title is the French line, read as
+    // French. The detail, the note and the meta are the soft small line.
+    const row = mark('LedgerRow');
+    assert.match(row, /lang\?: 'fr';/, 'a row cannot say its title is French');
+    assert.match(row, /<Text style=\{\[type\.label, \{ color \}\]\}>\{title\}<\/Text>/, 'the title is not the 16 label');
+    assert.match(
+      row,
+      /lang === 'fr' \? \(\s*<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color \}\]\}>\{title\}<\/Text>/,
+      'a French title is not set as French and read in a French voice',
+    );
+    assert.match(row, /const color = disabled \? paper\.inkSoft : paper\.ink;/, 'the title is not ink, or soft ink when the row is off');
+    assert.equal(
+      (row.match(/<Text style=\{\[type\.small, \{ color: paper\.inkSoft \}\]\}>\{(gloss|note|meta)\}<\/Text>/g) ?? []).length,
+      3,
+      'the detail, the note and the meta are not each the soft small line',
+    );
+    assert.match(row, /<ChevronRight size=\{20\} color=\{paper\.inkSoft\} \/>/, 'the chevron is not the soft 20');
+    assert.match(row, /\{label != null \? <Label>\{label\}<\/Label> : null\}/, 'the row lost its meta line');
+    assert.doesNotMatch(row, /type\.heading/, 'the title is still the 20 heading');
+
+    // The sizes the names promise, read from the theme.
+    const theme = stripComments(readFileSync(join(SRC, 'theme.ts'), 'utf8'));
+    assert.match(theme, /\blabel: \{ fontFamily: font\.semiBold, fontSize: 16,/, 'the row title is not 16');
+    assert.match(theme, /export const HIT = 44;/, 'the touch floor moved, so HIT + space(4) is no longer 60');
+    assert.match(theme, /export const space = \(n: number\) => n \* 4;/, 'the spacing unit moved, so HIT + space(4) is no longer 60');
   });
 
   test('the French hero fits long lines by the theme steps, never a raw size', () => {

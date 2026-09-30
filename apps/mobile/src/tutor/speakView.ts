@@ -113,7 +113,7 @@ export interface SpeakRow {
   title: string;
   /** The can-do, or the earned line once it is earned. */
   gloss: string;
-  /** "About N min", from the mission's own shape. */
+  /** "About N minutes", from the mission's own shape. */
   meta: string;
   state: SceneState;
   /** One sentence: the scene, the can-do, the minutes and where the learner stands. */

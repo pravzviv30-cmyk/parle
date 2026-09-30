@@ -232,6 +232,9 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     // promise is unchanged and is now followed through the hand-off: either the
     // primitive draws `<Label>{label}</Label>` itself, or it forwards
     // `label={label}` to a component whose own region draws it as a caps Label.
+    // Revamp B (F602): SceneBrief is the one blue card and takes no `label`
+    // any more. The label, the minutes and the tutor are one meta line, so a
+    // primitive handing its words to the brief is followed to `{meta}`.
     const components = readFileSync(join(SRC, 'components.tsx'), 'utf8');
     const regionOf = (name: string): string => {
       const at = components.indexOf(`export function ${name}(`);
@@ -240,7 +243,7 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
       return components.slice(at, next === -1 ? components.length : next);
     };
     const DRAWS_LABEL: Record<string, RegExp> = {
-      SceneBrief: /\[level, label\][\s\S]*<Label>\{caps\}<\/Label>/,
+      SceneBrief: /\{meta\}/,
       LedgerRow: /<Label>\{label\}<\/Label>/,
     };
     for (const where of LABEL_PRIMITIVES) {

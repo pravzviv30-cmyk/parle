@@ -148,11 +148,12 @@ describe('the layout primitives keep their promises — F306', () => {
 });
 
 describe('the chrome primitives hold their shape — F331, F334, F335', () => {
-  test('the tab header sets its title at display size, left, as a heading, with a purpose line beneath and nothing capped', () => {
+  test('the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped', () => {
     // TabHeader mounts in the scroll body, not the frame's header slot, so a
-    // fixed display title over a purpose line can scroll rather than pin. The
-    // title is the tab's name at display size, left, rolled as a heading; the
-    // purpose is one plain body line under it. Nothing caps or truncates either.
+    // title over a purpose line can scroll rather than pin. The title is the
+    // tab's name, left, rolled as a heading; the purpose is one plain body line
+    // under it. Nothing caps or truncates either. Its size is F602's, held in
+    // `every tab title is the working title at 30, and the greeting is one of them`.
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
     assert.match(header, /marginBottom: space\(5\)/, 'the header block does not space itself off the body beneath it');
     assert.match(
@@ -163,8 +164,8 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
     assert.match(
       header,
-      /type\.display,\s*\{ color: paper\.ink, flex: 1 \}/,
-      'the title is not the display type in ink, taking the row',
+      /type\.title,\s*\{ color: paper\.ink, flex: 1 \}/,
+      'the title is not the working title in ink, taking the row',
     );
     assert.match(
       header,
@@ -294,6 +295,50 @@ describe('a colour ground is a whole page — F601', () => {
   });
 });
 
+/**
+ * A tab is a working screen, so its title is the working title — F602.
+ *
+ * Revamp B sets the 44 display size on the colour pages of the first run and
+ * nowhere a learner works. Every tab that names a subject opens on the left
+ * branch of the one header, so that branch is where the size is decided, once.
+ * Home's greeting is not an exception: it is the title Home hands the header.
+ * The centred branch (Profile) is F606's to decide and is not read here.
+ */
+describe('the tab title is the working title — F602', () => {
+  test('every tab title is the working title at 30, and the greeting is one of them', () => {
+    const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
+    const left = outsideTheCentredBranch(header);
+    assert.match(
+      left,
+      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, flex: 1 \}\]\}>/,
+      'the left title is not the working title in ink, rolled as a heading',
+    );
+    assert.doesNotMatch(left, /type\.display/, 'a left tab title is still set at the 44 display size');
+
+    // The working title is 30 at ExtraBold, and nothing else in the theme
+    // decides it: a screen cannot nudge it.
+    const theme = stripComments(readFileSync(join(SRC, 'theme.ts'), 'utf8'));
+    assert.match(
+      theme,
+      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 30,/,
+      'the working title is not 30 at ExtraBold',
+    );
+
+    // Every tab that names a subject takes the left branch: it opens on the
+    // one header and does not ask to be centred.
+    for (const tab of ['HomeTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
+      const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
+      assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 1, `${tab} does not open on exactly one tab header`);
+      assert.doesNotMatch(body, /<TabHeader\b[^>]*align="center"/, `${tab} centres its title, which only a tab that is a person does`);
+    }
+
+    // And the greeting is one of them: Home hands its greeting to the header
+    // as the title, so it is set at the same 30 as every other tab name.
+    const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
+    assert.match(home, /<TabHeader title=\{greeting\.title\}/, 'Home does not hand its greeting to the tab header as the title');
+  });
+});
+
 describe('the shared header may hold a title alone — F353', () => {
   test('the shared header takes a title with neither a back nor a leave, and still never both — F353', () => {
     // Onboarding's first page holds only the progress dots: a title, no back, no
@@ -354,7 +399,9 @@ describe('the greeting travels by word, not by slot — F428', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
     assert.doesNotMatch(header, /translateX|translateY|arrivingWidth|shownWidth|measure\(|st\.swapLine/);
     assert.doesNotMatch(header, /height:|overflow:|position:|numberOfLines|allowFontScaling|maxFontSizeMultiplier/);
-    assert.match(header, /type\.display/);
+    // The greeting is the left branch's title, set in the one title type from
+    // the theme (the working title since F602), never a style of its own.
+    assert.match(outsideTheCentredBranch(header), /type\.title/);
   });
 });
 

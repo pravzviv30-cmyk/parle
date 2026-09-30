@@ -4,12 +4,18 @@
  *
  * Nothing here moves. The tutor's audio leads the French on Today and in the
  * library. Decorative daily drawings and their selector are retired.
+ *
+ * Two looks, one owner of the audio. `full` is the library card. `today` is
+ * Home's white card (F602): the French with a play disc that stops what it
+ * started, the English, and "Practise it", which is the library's "Say it".
+ * It has no label, no save and no example, and it never states the audio line,
+ * so a phrase with no recording still reads and still opens its practice.
  */
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { Card, GhostButton, Label } from '../components.tsx';
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+import { Card, FrenchBlock, GhostButton, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
@@ -19,8 +25,8 @@ import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { audioLine } from './libraryView.ts';
 
-export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false }: {
-  item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean;
+export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, variant = 'full' }: {
+  item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; variant?: 'full' | 'today';
 }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const focused = useIsFocused();
@@ -28,6 +34,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const tutorVoice = dailyTutorVoice(profile.tutorVoice);
   const asset = tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice);
   const player = useAudioPlayer();
+  const status = useAudioPlayerStatus(player);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [shown, setShown] = useState(reveal);
@@ -59,6 +66,12 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
     try { await setBookmark(item.id, !saved); const rows = await loadBookmarks(); const actual = rows.some(r => r.scenarioId === item.id && r.saved); if (actual === saved) setNote('That save did not finish. Please try again.'); else { setSaved(actual); onSaved?.(item.id, actual); setNote(actual ? 'Saved in My French, Daily collection.' : 'Removed from your daily collection.'); } }
     catch { setNote('That save did not finish. Please try again.'); } finally { setBusy(false); }
   };
+  // Stop this card's recording before the practice screen opens, so the
+  // learner hears their own attempt and not the tutor under it.
+  const sayIt = () => { playTicket.current++; releaseDailyPlayback(player); nav.navigate('DailyPractice', { id: item.id }); };
+  // The disc stops what it started, and the stop spends the ticket the way
+  // a blur does, so nothing queued behind it can start the sound again.
+  const toggle = () => { if (status.playing) { playTicket.current++; releaseDailyPlayback(player); } else void play(); };
   const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
     {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><GhostButton label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
@@ -74,10 +87,17 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
         <GhostButton label={busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save'} onPress={() => void save()} />
         {compact && <GhostButton label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
         {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}
-          <GhostButton label="Say it" onPress={() => { playTicket.current++; releaseDailyPlayback(player); nav.navigate('DailyPractice', { id: item.id }); }} /></>}
+          <GhostButton label="Say it" onPress={sayIt} /></>}
       </View>
     </>}
     {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
   </View>;
+  if (variant === 'today') {
+    return <Card style={{ marginTop: space(3), gap: space(3) }}>
+      <FrenchBlock french={item.fr} english={item.en} size="lg" onHear={asset != null ? toggle : undefined} playing={status.playing} />
+      <View style={{ alignItems: 'flex-end' }}><GhostButton label="Practise it" onPress={sayIt} /></View>
+      {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
+    </Card>;
+  }
   return embedded ? contents : <Card style={{ marginTop: space(3) }}>{contents}</Card>;
 }

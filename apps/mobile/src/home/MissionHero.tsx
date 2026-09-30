@@ -1,13 +1,18 @@
 /**
- * The scene Today leads with, drawn on the scene brief (F543, F571, notebook
- * Phase 3).
+ * The scene Today leads with, drawn on the blue scene brief (F543, F571,
+ * notebook Phase 3, revamp B F602).
  *
- * The card draws what `home/homeMission.ts` decided and decides nothing: the
- * level, the French title as the serif hero, "You'll be able to" and the
- * can-do, two or three lines the learner will say, the minutes, the tutor, one
- * Start in the learner's standing mode and a quiet link to the other one
- * ("Type instead", or "Speak instead" for a learner who prefers typing). No picture, no tint, no reason
- * line: every block is a fact about this scene.
+ * The card draws what `home/homeMission.ts` decided and decides nothing: one
+ * meta line (the label, the minutes and the tutor, joined by `sceneMeta`), the
+ * French title, the English under it, what the learner will be able to do as
+ * one finished sentence, one line they will say, one white Start in the
+ * learner's standing mode and a quiet link to the other one ("Type instead",
+ * or "Speak instead" for a learner who prefers typing). No picture and no
+ * reason line: every block is a fact about this scene.
+ *
+ * The Start says what Speak's Start says, from the one `launchLabel`: "Start
+ * speaking" or "Start typing", or the connection check while the tutor cannot
+ * be reached. Two words for one control on two tabs would be drift.
  *
  * ## What this file keeps hold of
  *
@@ -23,6 +28,9 @@
  * `surfaceContract.test.ts` counts primary pills per screen by reading the
  * files a tab draws. The brief takes the action as a node so this file keeps
  * the literal and the one-pill rule stays checkable.
+ *
+ * Everything on the blue is set in the blue ground's own colours: white words,
+ * the ground's secondary for the quieter lines, and never soft ink on a colour.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -34,19 +42,19 @@ import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
-import { BookmarkGlyph, GhostButton, MicGlyph, OutlineButton, PillButton, SceneBrief } from '../components.tsx';
-import { ClockGlyph } from '../glyphs.tsx';
-import { HIT, paper, space, type } from '../theme.ts';
+import { BookmarkGlyph, GhostButton, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
+import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
-import { startModes, withTutor } from '../tutor/speakView.ts';
+import { launchLabel } from '../tutor/orbState.ts';
+import { startModes } from '../tutor/speakView.ts';
 import { prefersTyping } from '../profile/typing.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { minutesLine } from './estimate.ts';
-import { START, heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
+import { sceneMeta } from './estimate.ts';
+import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
 
 export function MissionHero({ hero }: { hero: HomeMission }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
-  const { recheck } = useLive();
+  const { live, recheck } = useLive();
   const { profile } = useProfile();
   const tutorName = tutorNameOf(profile);
   // Profile's standing "Prefer typing" decides which way the Start opens.
@@ -63,6 +71,8 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
   const target = heroBookmark(hero);
   const saved = target !== null && isBookmarkedIn(decisions, target.id);
   const bookmark = bookmarkControl(saved, target?.titleEn ?? hero.title, bookmarkWrite);
+  // Speak's words for Speak's control: the mode, or the check while it runs.
+  const label = launchLabel({ checking, live, mode: modes.mode });
 
   useEffect(() => {
     let cancelled = false;
@@ -121,16 +131,11 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
 
   return (
     <SceneBrief
-      level={hero.level ?? undefined}
-      label={hero.label ?? undefined}
+      meta={sceneMeta(hero.label ?? 'Next scene', hero.minutes, tutorName)}
       french={hero.french ?? undefined}
       title={hero.title}
-      summary={hero.summary ?? undefined}
-      canDo={hero.canDo ?? undefined}
-      lines={hero.lines}
-      minutes={minutesLine(hero.minutes)}
-      minutesMark={<ClockGlyph size={16} color={paper.inkSoft} />}
-      tutor={withTutor(tutorName)}
+      canDo={hero.canDo ? canDoSentence(hero.canDo) : undefined}
+      line={hero.lines[0] ? { fr: hero.lines[0] } : undefined}
       corner={
         target === null ? undefined : (
           <Pressable
@@ -141,16 +146,17 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
             onPress={() => toggleBookmark(target.id, saved)}
             style={st.corner}
           >
-            <BookmarkGlyph size={20} color={saved ? paper.ink : paper.inkSoft} />
+            <BookmarkGlyph size={20} color={saved ? textOn.blue : onColour.blue} />
           </Pressable>
         )
       }
       action={
         <>
           <PillButton
-            label={START}
-            accessibilityLabel={`${START}: ${hero.title}`}
-            icon={<MicGlyph size={20} color={paper.onInk} />}
+            tone="white"
+            label={label}
+            accessibilityLabel={`${label}: ${hero.title}`}
+            icon={<MicGlyph size={20} color={paper.ink} />}
             disabled={checking}
             onPress={() => open(modes.textMode)}
           />
@@ -165,8 +171,9 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
           {heldBack !== null && (
             <View style={st.offline}>
               <Text style={st.offlineBody}>{TUTOR_OFFLINE.body}</Text>
-              <OutlineButton
+              <GhostButton
                 label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
+                color={paper.onInk}
                 disabled={checking}
                 onPress={() => open(heldBack.textMode)}
               />
@@ -174,7 +181,7 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
           )}
         </>
       }
-      secondary={<GhostButton label={modes.other.label} color={paper.ink} disabled={checking} onPress={() => open(modes.other.textMode)} />}
+      secondary={<GhostButton label={modes.other.label} color={paper.onInk} disabled={checking} onPress={() => open(modes.other.textMode)} />}
     />
   );
 }
@@ -187,7 +194,9 @@ const st = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  checking: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
+  // On the blue: the ground's secondary for the passing line, white for the
+  // sentence the learner has to read to know what happened.
+  checking: { ...type.small, color: onColour.blue, textAlign: 'center' },
   offline: { gap: space(3) },
-  offlineBody: { ...type.body, color: paper.ink },
+  offlineBody: { ...type.body, color: paper.onInk },
 });

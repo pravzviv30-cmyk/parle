@@ -280,14 +280,18 @@ type TabHeaderProps = {
 };
 
 /**
- * The one tab header. A tab opens with its name set at display size and left,
- * a plain purpose line beneath it where it has one, and an optional control on
- * the title row.
+ * The one tab header. A tab opens with its name set at the working title size
+ * (`type.title`, 30 at ExtraBold) and left, a plain purpose line beneath it
+ * where it has one, and an optional control on the title row. Revamp B (F602):
+ * the 44 display size is for the colour pages of the first run, and a tab is a
+ * working screen, so its title is the one working title. Home's greeting is one
+ * of these titles, not a headline of its own. The centred branch below keeps
+ * the display size until Profile's own pass (F606) decides it.
  *
  * It is the FIRST child of a tab's scroll body, not the frame's `header` slot:
- * a fixed display title over a purpose line is taller than the screen at the
- * largest reading size, so it has to scroll with the content rather than pin
- * to the top. Nothing here caps the reading size or truncates the title.
+ * a title over a purpose line is taller than the screen at the largest reading
+ * size, so it has to scroll with the content rather than pin to the top.
+ * Nothing here caps the reading size or truncates the title.
  *
  * Two of the props are optional for reasons Home gave them.
  *
@@ -296,12 +300,10 @@ type TabHeaderProps = {
  * greeting alone, so the line is absent rather than empty. A tab that passes
  * one is drawn exactly as it was.
  *
- * `titleSwap` is the only way a title can move without `type.display` leaving
- * this file. Home's greeting changes through the day, and the alternative was a
- * tab spreading the display line into a stylesheet of its own, which is how
- * five tabs end up with five slightly different titles. Given a swap, the row
- * is `TitleSwapRow` below; given nothing, it is the plain `Text` it has always
- * been, which is what the other four tabs still render.
+ * The title's type lives only here. Home's greeting changes through the day,
+ * and the alternative was a tab spreading a title style into a stylesheet of
+ * its own, which is how five tabs end up with five slightly different titles.
+ * The greeting is a still line (F418): the plain `Text` every tab renders.
  *
  * `align` is the third, and it is deliberately not a free choice. Four tabs
  * name a subject and read left, because a left edge is where the eye starts a
@@ -343,7 +345,7 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, flex: 1 }]}>
           {title}
         </Text>
         {trailing != null ? trailing : null}

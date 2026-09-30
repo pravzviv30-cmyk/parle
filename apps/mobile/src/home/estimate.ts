@@ -5,7 +5,8 @@
  * sentence about scenes in general rather than about the scene on the card. The
  * moment a screen puts a number in front of somebody, the number has to come
  * from somewhere it can be argued with. So it comes from here, and every scene
- * brief, path row and chooser card reads it as "About N min".
+ * brief, path row and chooser card reads it as "About N minutes" (the word in
+ * full since revamp B, F602; it was "About N min").
  *
  * ## Where the arithmetic comes from
  *
@@ -100,11 +101,32 @@ export function missionMinutes(mission: Pick<Mission, 'beatIds' | 'referencePhra
   return estimateMinutes(missionEstimate(mission));
 }
 
+/** "minute" or "minutes", so a measured remainder of one never reads "1 minutes". */
+function minutesWord(minutes: number): string {
+  return minutes === 1 ? '1 minute' : `${minutes} minutes`;
+}
+
 /**
  * The one sanctioned numeral on a scene: a duration, which is a fact about the
  * next few minutes rather than a measurement of the learner. "About", because
  * it is an estimate and not a contract.
+ *
+ * The word is written in full (revamp B, F602). A resumed scene's measured
+ * remainder can be a single minute, so the one reads "About 1 minute".
  */
 export function minutesLine(minutes: number): string {
-  return `About ${minutes} min`;
+  return `About ${minutesWord(minutes)}`;
+}
+
+/**
+ * The meta line over the blue scene brief (F602): what kind of scene this is,
+ * how long it takes, and who it is with, joined into one plain sentence.
+ *
+ * "Next scene, about 3 minutes with Alexandre". The minutes are the same
+ * words `minutesLine` says, lower-cased because they follow a comma. With no
+ * estimate to give, the line says who it is with and nothing it cannot back.
+ */
+export function sceneMeta(label: string, minutes: number | null, tutorName: string): string {
+  if (minutes === null) return `${label}, with ${tutorName}`;
+  return `${label}, about ${minutesWord(minutes)} with ${tutorName}`;
 }

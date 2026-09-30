@@ -13,6 +13,10 @@
  * reference line is scripted, and a scripted scene takes about a minute a
  * line. Only the opener is shaped that way today, which this suite checks
  * against the catalogue rather than by id.
+ *
+ * Revamp B (F602): the line says "minutes" in full, and the blue scene brief
+ * reads one meta line joining the label, the minutes and the tutor. That line
+ * is built here, so its wording is held here.
  */
 
 import assert from 'node:assert/strict';
@@ -20,7 +24,8 @@ import { describe, test } from 'node:test';
 import { DAILY_SCENARIOS, FIRST_MISSION, MISSIONS, getMission } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { MAX_MINUTES, MIN_MINUTES, estimateMinutes, minutesLine, missionEstimate, missionMinutes } from './estimate.ts';
+import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { MAX_MINUTES, MIN_MINUTES, estimateMinutes, minutesLine, missionEstimate, missionMinutes, sceneMeta } from './estimate.ts';
 
 describe('how long a scene is said to take — F571', () => {
   test('a three-line daily scene is about seven minutes, and an open mission is longer per beat', () => {
@@ -48,7 +53,7 @@ describe('how long a scene is said to take — F571', () => {
     assert.equal(opener.id, 'mission:premier-cafe', 'the first mission moved, so this test is reading a different scene');
     assert.deepEqual(missionEstimate(opener), { kind: 'scripted', lines: 3 }, 'the opener is not recognised as a scripted scene');
     assert.equal(missionMinutes(opener), 3, 'the opener is still offered as the open-mission eight');
-    assert.equal(minutesLine(missionMinutes(opener)), 'About 3 min');
+    assert.equal(minutesLine(missionMinutes(opener)), 'About 3 minutes');
 
     // The rule is the shape of the data, not the id: a scene is scripted when
     // every beat has a fixed line, and no other scene in the catalogue is.
@@ -73,14 +78,35 @@ describe('how long a scene is said to take — F571', () => {
     assert.equal(estimateMinutes({ kind: 'scripted', lines: 40 }), MAX_MINUTES);
   });
 
-  test('the minutes line carries exactly one numeral and reads as a duration', () => {
+  test("a scene's minutes read in full, and its meta line joins the label, the minutes and the tutor", () => {
+    // The minutes line: one numeral, a duration, the word in full.
     for (let minutes = 1; minutes <= MAX_MINUTES; minutes += 1) {
       const line = minutesLine(minutes);
       assert.deepEqual(line.match(/\d+/g), [String(minutes)], `"${line}" carries more than one number`);
       assert.doesNotMatch(line, /%|\/| out of /, `"${line}" reads as a score rather than as a duration`);
       assert.equal(guiltIn(line), undefined, `"${line}" carries the banned word "${guiltIn(line)}"`);
-      assert.doesNotMatch(line, /—/);
-      assert.match(line, /^About \d+ min$/);
+      assert.doesNotMatch(line, /[—–·]/, `"${line}" carries a dash or a middot`);
+      assert.match(line, /^About \d+ minutes?$/);
+      assert.doesNotMatch(line, /\bmin\b/, `"${line}" still abbreviates the minutes`);
+    }
+    assert.equal(minutesLine(7), 'About 7 minutes');
+    assert.equal(minutesLine(1), 'About 1 minute', 'a measured remainder of one reads "1 minutes"');
+
+    // The meta line over the blue brief: label, minutes, tutor, in that order.
+    assert.equal(sceneMeta('Next scene', 3, TUTOR_NAME), `Next scene, about 3 minutes with ${TUTOR_NAME}`);
+    assert.equal(sceneMeta('Pick up where you left off', 1, 'Camille'), 'Pick up where you left off, about 1 minute with Camille');
+    // With no estimate, it says who the scene is with and invents no number.
+    assert.equal(sceneMeta('Next scene', null, TUTOR_NAME), `Next scene, with ${TUTOR_NAME}`);
+    assert.doesNotMatch(sceneMeta('Next scene', null, TUTOR_NAME), /\d/);
+
+    for (let minutes = 1; minutes <= MAX_MINUTES; minutes += 1) {
+      const meta = sceneMeta('Next scene', minutes, TUTOR_NAME);
+      // The minutes are the same words the minutes line says, so the two cannot drift.
+      assert.ok(meta.includes(minutesLine(minutes).toLowerCase()), `"${meta}" words the minutes differently from "${minutesLine(minutes)}"`);
+      assert.deepEqual(meta.match(/\d+/g), [String(minutes)], `"${meta}" carries more than one number`);
+      assert.doesNotMatch(meta, /[—–·]/, `"${meta}" carries a dash or a middot`);
+      assert.equal(meta, meta.replace(/[A-Z]{2,}/g, ''), `"${meta}" carries a caps label`);
+      assert.equal(guiltIn(meta), undefined, `"${meta}" carries the banned word "${guiltIn(meta)}"`);
     }
   });
 });

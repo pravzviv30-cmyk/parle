@@ -5051,7 +5051,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `space(2)`; `trailing` on the title row; children under the purpose; `marginBottom: space(5)`. It mounts
   in the scroll body, not the frame's `header` slot, because a fixed display title plus a purpose line is
   taller than the screen at AX5.
-- verified-by: `the tab header sets its title at display size, left, as a heading, with a purpose line beneath and nothing capped`
+- verified-by: `the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped`
 - verified-by: `DESIGN.md names the tab header and the monogram`
 
 ### F332 — The learner's initial is one drawn thing
@@ -5855,7 +5855,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   go, and draws `TUTOR_OFFLINE.body` with "Check again" on heldBack. No "Listen to accent", no "Immersive
   audio", no level pill, and the Demo label lives in this card's eyebrow row only when `!live`.
 - verified-by: `the brief keeps its connection check and its held-back answer — F392`
-- verified-by: `one Start, launching the scene directly, and a quiet "Type instead" under it`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 - note (2026-09-12): the tab's one pill moved to the mission hero with F544; the card keeps the probe and
   the seed topic, and its action is an outline button.
 - note: notebook redesign (2026-09-27): Today's hero is a scene brief for the spine's next scene, and its
@@ -5950,7 +5950,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `<NextStepRow` for `suggestedMission`, the link goes to the Practice tab, the row goes to `Missions
   { focus }`, and Home no longer draws `<NextSituationCard`, the "Talk to" outline, or `SpeakBubbles`. My
   French still draws the card with its pill. `portfolio.test.ts`'s Home assertions change to say exactly this.
-- verified-by: `the hero is the spine's next scene, drawn on the scene brief in the brief's order`
+- verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - note (2026-09-12): the next-step row retired with F543; the mission hero is the next step now, and the
   next-situation card still belongs to My French.
 - note: notebook redesign (2026-09-27): the hero is now a scene brief for the spine's next scene, with
@@ -6261,7 +6261,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The successor checks documentation against the static header, picture-free daily card and
   Speak's single primary rather than requiring the deleted animation vocabulary.
 - verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
-- verified-by: `one Start, launching the scene directly, and a quiet "Type instead" under it`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 
 ### F422 — The word pool clears the phrasebook bar and is tiered
 - severity: P1
@@ -6947,7 +6947,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   is the spine's next scene, which starts at A0, and the day's scene is offered only once the whole
   spine is earned, picked from the learner's tier. Today still hands the rule the one level standing
   (`levelIndex: standing.index`). The pick is exercised at the beginner tier only.
-- verified-by: `the hero is the spine's next scene, drawn on the scene brief in the brief's order`
+- verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - verified-by: `a learner who has earned the whole spine meets the day's scene`
 
 ### F458 — The lesson counted the learner's position out loud to a screen reader
@@ -8296,7 +8296,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): the hero's pill is still Today's one pill outside the review
   template, and it now reads "Start". It opens the scene in the learner's standing mode, with the
   other mode as a quiet link under it.
-- verified-by: `one Start, launching the scene directly, and a quiet "Type instead" under it`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 
 ### F545 — Nothing on Home says what the learner can already do
 - severity: P2
@@ -8550,7 +8550,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: notebook redesign (2026-09-27): tinted rows became ledger rows (one pressable at 56pt, an ink glyph
   with no disc, a title, a gloss, meta and a chevron, named once), and the card lost its offset shadow.
   `TintRow` stays as a deprecated wrapper that draws the ledger row until its call sites move.
-- verified-by: `a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once`
+- verified-by: `a ledger row is one pressable at 60 with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once`
 - verified-by: `the one card is white at the card radius with no hairline, no outline and no shadow`
 
 ### F570 — Raster art ships decorative, sized once, and every key is drawn
@@ -8927,7 +8927,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F602 — Home is a white brief on paper with caps meta, a ledger row shape and a blank while loading, not the blue next-scene card, white lists and a sand skeleton
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx:124
 - note: Stage 3, area 2 of revamp B. The tab title is the working title at 30; `SceneBrief` is restyled in place as the one blue next-scene card (meta line, French title, English, can-do sentence, one line, the caller's white Start); `Ledger` and `LedgerRow` become SNIPPETS' white list with hairlines between rows. Home shows sand blocks until storage answers, then leads with exactly one colour card: the blue scene brief with "Start speaking", the blue recall card, or the sun plans card when the trial's minutes are used, read through the same billing call Speak makes. Day one lists where the learner starts with scene marks; afterwards the week sentences with no label, under a slot comment for F609's lifetime count. The review row is a white list row, and today's phrase is a white card with a play disc and "Practise it". There is no weekly day count, no weekday, no rate and no tag.
 - verified-by: `every tab title is the working title at 30, and the greeting is one of them`
@@ -9199,3 +9199,17 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: founder decision, 2026-09-30. The approved canvas sells Max as "450 minutes a month, about 10 conversations a week". `PLANS.regular` grants `300 * 60`, which the wall rounds down to about 7. Store prices, Starter (180 minutes) and the free trial (30 minutes) do not change. Filed and not built, because at $29 the 450 minutes are the allowance 202609100001 removed for losing money. Measured from DEFAULT_COST_MODEL at full use, 450 minutes cost $26.01 to serve against $24.65 net after the 15% Small Business fee, a worst-case margin of -5.5% (-28.1% at the standard 30% rate, +10.3% before any store fee). 300 minutes leave 29.7%. Setting the constant to 450 at $29 fails four margin floors in meter.test.ts. Those floors stay unless the founder signs off on the negative number. Two more things block it. Nine files under supabase/ (five migrations, four rollbacks) hold 18000, and a new forward migration has to replace consume_entitlement (data-engineer's work). And PLANS at 450 against a database that clamps seconds_used at 18000 would leave every Max learner with 150 minutes forever, which is unlimited Max. The founder needs to pick one of three: 450 at $39, the plan before 10 September (21.5% worst case after the Small Business fee, every floor passes, and the App Store tier moves too); 300 at $29, with the canvas saying about 7; or 450 at $29, with -5.5% written into the contract. The wall's minutes and conversation count come from the catalogue, so no copy changes. Only the wall test's pin moves from 7 to 10. Answered by the founder on 2026-09-30, once the loss was shown: 300 minutes at $29 stays, so nothing in code or data changes, and the Plans screens (F607) show 300 minutes and about 7 conversations a week. The two tests below keep the plan and its margin where the founder left them.
 - verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
 - verified-by: `the atomic debit uses the same plan limits as core`
+
+### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/WallYoursPage.tsx:68
+- note: found by the F602 judge. `Ledger` now draws one hairline between its rows (components.tsx), but `WallYoursPage.tsx` (`st.ruled`) and `myfrench/PhraseBank.tsx` still give each row its own bottom border, so inside the white card they show two rules between rows and a stray rule under the last. The Wall's Yours page is where Home's "See the plans" lands. Take the row's own border off so the list's rule is the only one: the Wall in F607, PhraseBank in F605 (or leave it if F605 stops drawing it).
+- verified-by: `a row inside the white list draws no rule of its own, so the list's hairline is the only one between rows`
+
+### F651 — A trial with under two minutes left leads Home with Start, and only the token server says there is not enough time
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/nextAction.ts:1
+- note: found by the revenue review of F602. `homeActionFor` leads with the plans card only when the trial's reason is `exhausted`. A trial with 1 to 119 seconds left reports `insufficient-for-session`, so Home leads with the blue Start and the server then refuses the session honestly. Decide in F607 whether that state leads with the plans card too, and walk the boundary loop over `Object.keys(PLANS)` rather than a hand-written list so a new plan is covered.
+- verified-by: `a trial with too little time for a session leads Home the way the plans pass decides, and every plan in the catalogue is walked`

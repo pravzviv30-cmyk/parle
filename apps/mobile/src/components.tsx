@@ -11,7 +11,7 @@
  * so a new component goes at the end, after the stylesheet.
  */
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Children, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated,
@@ -1065,9 +1065,15 @@ const s = StyleSheet.create({
 // Appended, because every region above is sliced between adjacent exports.
 
 /**
- * A ruled list: one hairline above the first row, and every `LedgerRow` rules
- * the line under itself. A list to assistive tech, so a screen reader can say
- * how many rows there are before the learner walks them.
+ * A list (SNIPPETS list): rows inside one white card, split by hairlines. The
+ * rule sits BETWEEN rows, never above the first or under the last, so the
+ * card's own edge is the only edge. A child that is null or false draws no row
+ * and no rule, because the rows are counted after React drops them. A list to
+ * assistive tech, so a screen reader can say how many rows there are before the
+ * learner walks them; the rules are decorative.
+ *
+ * It is a card, so it is never put inside another card (F602 files the screens
+ * that still do to their own passes).
  */
 export function Ledger({
   children,
@@ -1078,23 +1084,27 @@ export function Ledger({
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const rows = Children.toArray(children);
   return (
-    <View accessibilityRole="list" accessibilityLabel={accessibilityLabel} style={[{ borderTopWidth: HAIRLINE, borderTopColor: paper.line }, style]}>
-      {children}
+    <View accessibilityRole="list" accessibilityLabel={accessibilityLabel} style={[ls.ledger, style]}>
+      {rows.flatMap((row, index) => (index === 0 ? [row] : [<View key={`rule-${index}`} {...decorative} style={ls.rule} />, row]))}
     </View>
   );
 }
 
 /**
- * One line in a ledger: an optional 24pt ink glyph with no disc, a title, a
- * gloss, an optional note, trailing meta, and the chevron that says it opens.
+ * One row of a list (SNIPPETS list): an optional 24pt ink glyph with no disc, a
+ * 16 title, a soft detail, an optional note, trailing meta, and the soft 20
+ * chevron that says it opens. A French title (`lang="fr"`) is set as French
+ * and marked so a screen reader reads it in a French voice.
  *
  * One Press, never a card with a button inside it: the whole row is the
  * target, and a button nested in a button is invalid on the web (F545). It sits
- * at 56pt and grows rather than clips, because nothing here caps a line count
- * or the reading size. It names itself ONCE, from the title and the gloss,
- * unless the caller has something better to say. Disabled is said in soft ink
- * rather than opacity, because a faded row has no shape to fall back on.
+ * at 60 and grows rather than clips, because nothing here caps a line count or
+ * the reading size. It names itself ONCE, from the title and the gloss, unless
+ * the caller has something better to say. Disabled is said in soft ink rather
+ * than opacity, because a faded row has no shape to fall back on. The row rules
+ * nothing itself: the `Ledger` around it draws the hairline between rows.
  */
 export function LedgerRow({
   glyph,
@@ -1107,10 +1117,11 @@ export function LedgerRow({
   onPress,
   accessibilityLabel,
   disabled = false,
+  lang,
 }: {
   /** One line-art glyph in ink. No disc under it. */
   glyph?: ReactNode;
-  /** The row's one caps line, above the title, when the title alone names nothing. */
+  /** The row's one meta line, above the title, when the title alone names nothing. */
   label?: string;
   title: string;
   gloss?: string;
@@ -1124,7 +1135,10 @@ export function LedgerRow({
   /** Say something other than the title and gloss. Falls back to both, joined. */
   accessibilityLabel?: string;
   disabled?: boolean;
+  /** The title is a French line: set as French, and read in a French voice. */
+  lang?: 'fr';
 }) {
+  const color = disabled ? paper.inkSoft : paper.ink;
   return (
     <Press haptic="light" style={ls.row} disabled={disabled} onPress={onPress}
       accessibilityRole="button"
@@ -1138,13 +1152,17 @@ export function LedgerRow({
       ) : null}
       <View style={ls.words}>
         {label != null ? <Label>{label}</Label> : null}
-        <Text style={[type.heading, { color: disabled ? paper.inkSoft : paper.ink }]}>{title}</Text>
+        {lang === 'fr' ? (
+          <Text {...frenchText} style={[type.french, { color }]}>{title}</Text>
+        ) : (
+          <Text style={[type.label, { color }]}>{title}</Text>
+        )}
         {gloss != null && gloss !== '' ? <Text style={[type.small, { color: paper.inkSoft }]}>{gloss}</Text> : null}
         {note != null && note !== '' ? <Text style={[type.small, { color: paper.inkSoft }]}>{note}</Text> : null}
       </View>
       {meta != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{meta}</Text> : null}
       {trailing != null ? trailing : null}
-      <ChevronRight color={paper.inkFaint} />
+      <ChevronRight size={20} color={paper.inkSoft} />
     </Press>
   );
 }
@@ -1321,58 +1339,48 @@ export function TutorCard({
 const CAN_DO_LEAD = "You'll be able to";
 
 /**
- * The brief for one scene: what it is, what the learner will be able to do,
- * the lines they will say, and how long it takes, with one Start.
+ * The brief for one scene (SNIPPETS card-colour): the one blue card on a paper
+ * screen. A meta line, the scene's name in French with its English under it,
+ * what the learner will be able to do, one line they will say, and the
+ * caller's white Start.
  *
- * Every field but the title and the Start is optional, so a caller draws the
- * fields it has. The Start and the quiet "Type instead" arrive as nodes the
- * caller built, because `surfaceContract.test.ts` counts one primary pill per
- * screen by reading the screen's own file; a pill folded in here would move
- * every count into a shared component. The corner is a 44pt slot in flow, for
- * the bookmark, so at the largest reading size it pushes the title down rather
- * than sitting on it. One meta line at most: the level and the label, joined
- * by a comma.
+ * Every field but the meta line, the title and the Start is optional, so a
+ * caller draws the fields it has. With no French name the English title leads
+ * at the French line's size, still the heading, and is not marked as French.
+ * The Start and the quiet second way in arrive as nodes the caller built,
+ * because `surfaceContract.test.ts` counts one primary pill per screen by
+ * reading the screen's own file; a pill folded in here would move every count
+ * into a shared component. The card holds a pill, so it is never a press
+ * itself. The corner is a 44pt slot in flow beside the meta line, for the
+ * bookmark, so at the largest reading size it pushes the title down rather
+ * than sitting on it.
+ *
+ * White words on the blue, and the blue ground's own secondary for the quieter
+ * lines: soft ink is never set on a colour.
  */
 export function SceneBrief({
-  level,
-  label,
-  title,
+  meta,
   french,
-  summary,
+  title,
   canDo,
-  lines = [],
-  minutes,
-  minutesMark,
-  support,
-  tutor,
-  reason,
+  line,
+  note,
   action,
   secondary,
   corner,
 }: {
-  /** A0, A1. */
-  level?: string;
-  label?: string;
+  /** One meta line: the label, the minutes and the tutor, already in words. */
+  meta: string;
+  /** The scene's name in French, set as the French line and read as French. */
+  french?: string;
   /** The scene's name in the learner's language. */
   title: string;
-  /** The scene's name in French, set as the French hero. */
-  french?: string;
-  /** One plain line about the scene. */
-  summary?: string;
-  /** What the learner will be able to do, led by "You'll be able to". */
+  /** What the learner will be able to do, as one finished sentence (`canDoSentence`). */
   canDo?: string;
-  /** Two or three lines the learner will say, in French. */
-  lines?: readonly string[];
-  /** How long, already in words. */
-  minutes?: string;
-  /** A mark before the minutes, such as the clock glyph. */
-  minutesMark?: ReactNode;
-  /** How much help the tutor gives, in words. */
-  support?: string;
-  /** Who is teaching, in words. */
-  tutor?: string;
-  /** Why this scene was put in front of the learner. */
-  reason?: string;
+  /** One line the learner will say, in French, with its English if there is one. */
+  line?: { fr: string; en?: string };
+  /** One quiet line under the rest, such as why the scene is waiting. */
+  note?: string;
   /** The one Start, built by the caller so its pill stays countable. */
   action: ReactNode;
   /** The quiet second way in, such as "Type instead". */
@@ -1380,51 +1388,37 @@ export function SceneBrief({
   /** A 44pt slot at the top right: the bookmark toggle, or nothing. */
   corner?: ReactNode;
 }) {
-  const caps = [level, label].filter((part): part is string => part != null && part !== '').join(', ');
   return (
-    <Card style={ls.brief}>
-      {caps !== '' || corner != null ? (
-        <View style={ls.briefHead}>
-          <View style={ROW_WORDS}>{caps !== '' ? <Label>{caps}</Label> : null}</View>
-          {corner != null ? <View style={ls.corner}>{corner}</View> : null}
+    <ColourCard ground="blue" style={ls.brief}>
+      <View style={ls.briefHead}>
+        <Text style={[type.small, ROW_WORDS, { color: onColour.blue }]}>{meta}</Text>
+        {corner != null ? <View style={ls.corner}>{corner}</View> : null}
+      </View>
+      {french != null ? (
+        <View style={ls.briefTitle}>
+          <Text {...frenchText} accessibilityRole="header" style={[type.frenchLg, { color: textOn.blue }]}>
+            {french}
+          </Text>
+          <Text style={[type.body, { color: onColour.blue }]}>{title}</Text>
+        </View>
+      ) : (
+        <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.blue }]}>
+          {title}
+        </Text>
+      )}
+      {canDo != null ? <Text style={[type.body, { color: textOn.blue }]}>{canDo}</Text> : null}
+      {line != null ? (
+        <View style={ls.briefLine}>
+          <Text {...frenchText} style={[type.french, { color: textOn.blue }]}>
+            {line.fr}
+          </Text>
+          {line.en != null ? <Text style={[type.small, { color: onColour.blue }]}>{line.en}</Text> : null}
         </View>
       ) : null}
-      {french != null ? <Text style={[fitHero(french), { color: paper.ink }]}>{french}</Text> : null}
-      <Text accessibilityRole="header" style={[type.cardTitle, { color: paper.ink }]}>
-        {title}
-      </Text>
-      {summary != null ? <Text style={[type.body, { color: paper.inkSoft }]}>{summary}</Text> : null}
-      {canDo != null ? (
-        <View style={ls.canDo}>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{CAN_DO_LEAD}</Text>
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>{canDo}</Text>
-        </View>
-      ) : null}
-      {lines.length > 0 ? (
-        <View style={ls.lines}>
-          {lines.map((line) => (
-            <Text key={line} style={[type.french, { color: paper.ink }]}>
-              {line}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-      {minutes != null || support != null || tutor != null ? (
-        <View style={ls.facts}>
-          {minutes != null ? (
-            <View style={ls.fact}>
-              {minutesMark}
-              <Text style={[type.small, { color: paper.inkSoft }]}>{minutes}</Text>
-            </View>
-          ) : null}
-          {support != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{support}</Text> : null}
-          {tutor != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{tutor}</Text> : null}
-        </View>
-      ) : null}
-      {reason != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{reason}</Text> : null}
+      {note != null ? <Text style={[type.small, { color: onColour.blue }]}>{note}</Text> : null}
       {action}
       {secondary != null ? secondary : null}
-    </Card>
+    </ColourCard>
   );
 }
 
@@ -1440,14 +1434,15 @@ export function fitHero(text: string): TextStyle {
 }
 
 const ls = StyleSheet.create({
+  // SNIPPETS list: a white card, 4 above and below the rows and 20 at the sides.
+  ledger: { backgroundColor: paper.card, borderRadius: radius.card, paddingVertical: space(1), paddingHorizontal: space(5) },
+  rule: { height: HAIRLINE, backgroundColor: paper.line },
   row: {
-    minHeight: HIT + space(3),
+    minHeight: HIT + space(4),
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(3),
-    paddingVertical: space(3),
-    borderBottomWidth: HAIRLINE,
-    borderBottomColor: paper.line,
+    paddingVertical: space(2.5),
   },
   glyph: { minWidth: 24, alignItems: 'center', justifyContent: 'center' },
   words: { ...ROW_WORDS, gap: space(0.5) },
@@ -1494,13 +1489,14 @@ const ls = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // The board's rhythm inside the blue card: 12 between blocks, 4 between the
+  // French name and its English, 2 between the line and its English.
   brief: { gap: space(3) },
-  briefHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(3) },
+  // Centred, so the bookmark in its 44 slot sits on the meta line's middle.
+  briefHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space(3) },
   corner: { minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' },
-  canDo: { gap: space(0.5) },
-  lines: { gap: space(1.5), paddingLeft: space(3), borderLeftWidth: HAIRLINE + 1, borderLeftColor: paper.line },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3) },
-  fact: { flexDirection: 'row', alignItems: 'center', gap: space(1.5) },
+  briefTitle: { gap: space(1) },
+  briefLine: { gap: space(0.5) },
 });
 
 // ─────────────────────────────────────────────────── the B parts (revamp B)
