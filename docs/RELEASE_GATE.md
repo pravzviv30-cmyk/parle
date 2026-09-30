@@ -31,7 +31,8 @@ the date, environment and evidence location. A blank item is a release block.
   schedule have been confirmed. Publish the reviewed versions before inviting
   learners.
 - [ ] Confirm LiveKit, Deepgram, ElevenLabs, Speechace, TonePerfect, TypeSafe and the
-  language model vendor's retention and deletion terms; amend the learner-facing policy to match, not to assume.
+  language model vendor's retention and deletion terms; amend the learner-facing
+  policy to match, not to assume.
   TypeSafe reads own-words drill answers whenever `TYPESAFE_API_KEY` is set on the
   token server (F625); nothing here has read its terms.
   TonePerfect says it deletes audio after scoring and keeps the assessment JSON

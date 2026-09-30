@@ -412,7 +412,7 @@ describe('the privacy notice — F479', () => {
     // Sourced to the document, and on the list of terms still to confirm.
     assert.match(DOC, /\*\*An own-words answer is read by the language model, and first by TypeSafe when it is on\.\*\*/, 'the document stopped describing the drill judge route');
     assert.match(DOC, /and so is TonePerfect's, [^|]*, and so is TypeSafe's/, 'the document stopped listing TypeSafe retention as unverified');
-    assert.match(repo('docs/RELEASE_GATE.md'), /Speechace, TonePerfect and TypeSafe retention/, 'the release gate stopped asking for TypeSafe terms to be confirmed');
+    assert.match(repo('docs/RELEASE_GATE.md'), /Speechace, TonePerfect, TypeSafe and the\s+language model vendor's retention/, 'the release gate stopped asking for TypeSafe terms to be confirmed');
   });
 
 
