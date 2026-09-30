@@ -12,6 +12,7 @@ import { MISSIONS, PLANS, SCENE_SPINE, getMission } from '@luvani/core';
 import { DEFAULT_REMINDER_TIME, reminderTime } from '../reminders/reminder.ts';
 import { guiltIn } from '../copy/guilt.ts';
 import { MAX_GOAL_CHARS } from '../profile/memory.ts';
+import { sceneIllustration } from '../art/flat/scenes.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import {
   DEFAULT_START_LEVEL,
@@ -25,7 +26,6 @@ import {
   TRIAL_LINE,
   firstSceneFor,
   planFor,
-  planPlaces,
   presetMinutes,
   sceneOrder,
   startEstimate,
@@ -132,13 +132,17 @@ describe('answers to a plan', () => {
     assert.ok(PLAN_COPY.includes(NO_STREAKS) && PLAN_COPY.includes(REMINDER_NOT_ON) && PLAN_COPY.includes(TRIAL_LINE));
   });
 
-  test('the plan draws each place of its first three scenes once, and nothing else', () => {
-    assert.deepEqual(planPlaces(planFor(freshPreAccountDraft())), ['cafe', 'hotel'], 'the opener and the café share one counter');
-    const getBy = planFor(draft({ startLevel: 'getby' }));
-    assert.deepEqual(planPlaces(getBy), [...new Set(getBy.scenes.map((s) => s.place))]);
+  test("the plan's first scene has a drawing of its own", () => {
+    assert.equal(
+      sceneIllustration(planFor(freshPreAccountDraft()).scenes[0]!.id),
+      'place-cafe-counter',
+      'a fresh plan opens on the first coffee, so it draws the counter',
+    );
+    // Whatever the answers, the plan opens on a scene, and that scene has a place drawing.
     for (const level of START_LEVELS) {
-      const view = planFor(draft({ startLevel: level.key }));
-      assert.ok(planPlaces(view).length <= 3 && planPlaces(view).every((p) => view.scenes.some((s) => s.place === p)));
+      const first = planFor(draft({ startLevel: level.key })).scenes[0];
+      assert.ok(first !== undefined, `a ${level.key} plan has no first scene to draw`);
+      assert.match(sceneIllustration(first.id), /^place-/, `a ${level.key} plan opens on a scene with no place drawing`);
     }
   });
 

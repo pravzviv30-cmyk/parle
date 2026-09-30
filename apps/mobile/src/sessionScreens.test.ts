@@ -10,7 +10,7 @@
  * feature paper, no whisper shadow, no week rail, no card inside a card, and no
  * authored clip-art. Nothing here moves: only the orb and the highlighter do,
  * and both live in their own components. The highlighter is at most once per
- * file. The one picture allowed is a place's watercolour, on the chooser.
+ * file. The one picture allowed is a place's flat drawing, on the chooser.
  *
  * Read as source with comments stripped, because a comment may name the thing
  * it replaced. Same shape as `evidenceScreens.test.ts`, B2's half of this pass.
@@ -103,9 +103,11 @@ describe('the session side and the remaining screens wear the notebook — Phase
       const body = read(file);
       assert.doesNotMatch(body, /\bAnimated\./, `${file} animates; only the orb and the highlighter move`);
       assert.doesNotMatch(body, /from '(\.\.\/)*\.?\/?illustrations/, `${file} draws an authored scene`);
-      // One picture is allowed: the place's watercolour on the chooser's brief.
-      for (const art of body.match(/<Art\b[^>]*>/g) ?? []) {
-        assert.match(art, /name=\{heroArt\(/, `${file} draws a picture that is not a place: ${art}`);
+      // One picture is allowed: the scene's place drawing on the chooser's
+      // brief (revamp B, F599: the watercolour it replaced has retired).
+      assert.doesNotMatch(body, /<Art\b/, `${file} draws a retired watercolour`);
+      for (const art of body.match(/<Illustration\b[^>]*>/g) ?? []) {
+        assert.match(art, /name=\{sceneIllustration\(/, `${file} draws a picture that is not a scene's place: ${art}`);
       }
     }
   });

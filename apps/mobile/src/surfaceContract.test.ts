@@ -125,10 +125,11 @@ describe('the touch floor is a floor — J5', () => {
 });
 
 describe('drawings are drawings — J6', () => {
-  test('every drawing and every raster scene in the app is hidden from assistive technology', () => {
+  test('every drawing in the app is hidden from assistive technology, and nothing imports Image', () => {
     // theme.ts exports `decorative` for this and motion.test.ts already enforces
     // it on illustrations. The icon layer never spread it, so the microphone,
     // the ear and every chevron reached a screen reader as unlabelled images.
+    // The flat drawings under art/flat/ are Svgs too, so this walk holds them.
     for (const { path, body } of SOURCES) {
       for (const tag of body.match(/<Svg[^>]*>/g) ?? []) {
         assert.ok(
@@ -140,9 +141,10 @@ describe('drawings are drawings — J6', () => {
 
     // Revamp A brought raster scenes into a world that had only ever drawn
     // vectors, and an unlabelled <Image> is announced as "image" by every
-    // screen reader there is — the same defect J6 closed for the SVG layer.
-    // So the rule is held twice: one file may reach for `Image` at all, and
-    // every tag it draws is hidden the three ways `decorative` spells it.
+    // screen reader there is: the same defect J6 closed for the SVG layer.
+    // Revamp B (F599) drew them again as vectors and retired the one renderer
+    // that was allowed `Image`, so now no file may import it at all. The tag
+    // walk is kept, so a picture that comes back is still caught unhidden.
     const importers: string[] = [];
     for (const { path, body } of SOURCES) {
       for (const tag of body.match(/<Image(?=[\s>])[^>]*>/g) ?? []) {
@@ -158,8 +160,8 @@ describe('drawings are drawings — J6', () => {
     }
     assert.deepEqual(
       [...new Set(importers)],
-      ['art/Art.tsx'],
-      'something other than the one art renderer imports Image, so a picture can reach the screen without the registry or the decorative spread',
+      [],
+      'a file imports Image again, so a bitmap can reach the screen outside the flat drawings and without the decorative spread',
     );
   });
 });
@@ -340,11 +342,16 @@ describe('nothing ships that nothing renders — J14', () => {
   // `<HeroCafe` in `MissionArt.tsx` and calls it drawn. So the components are on
   // this list too, which is the only check in the file that would have caught
   // the chain from either end.
+  //
+  // And `Art`, the watercolour renderer, which revamp B (F599) retired with
+  // the PNGs it drew: the flat drawings reach a screen through `Illustration`,
+  // and a second renderer beside it is the same coin toss again.
   const RETIRED = [
     'Chip', 'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard',
     'RecapPostcard', 'OnboardCake', 'NothingDue', 'Phrasebook',
     'MissionDisc', 'MissionArt',
     'HeroCafe', 'StreetCorner', 'MarketStall', 'FrontDesk', 'EveningIn',
+    'Art',
   ];
 
   test('the components and scenes nothing imported are gone', () => {
@@ -393,39 +400,49 @@ describe('nothing ships that nothing renders — J14', () => {
     }
   });
 
-  test('every raster scene the registry ships reaches a screen', () => {
-    // The same promise as the walk above, for the layer that replaced four of
-    // those scenes. `registry.test.ts` holds the disk side of it — both
-    // densities present, both inside the byte budget — and this is the side
-    // that matters to a learner: a picture that ships in the download and
-    // reaches no screen is weight nobody sees.
+  test('every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks', () => {
+    // The same promise as the walk above, for the drawings revamp B (F599)
+    // generated from ILLUSTRATIONS.md. `art/registry.test.ts` holds the
+    // files themselves (generated, decorative, still, token-coloured); this is
+    // the side that matters to a learner: a drawing that ships and reaches no
+    // screen is weight nobody sees.
     //
-    // A key is reached through one of the three maps in `art/maps.ts` (by
-    // place, by tab, by screen) or drawn by name at a call site. Reaching it
-    // through a map is the normal way, which is why the maps themselves are
-    // checked below: a map nobody reads would make every key it names look
-    // reached.
-    const registry = named('art/registry.ts');
-    const keys = [...registry.matchAll(/^ {2}'?([a-z][a-z-]*)'?: \{ source: require\(/gm)].map((m) => m[1]!);
-    assert.deepEqual(keys.sort(), ['hero-cafe', 'hero-friends', 'hero-home', 'hero-hotel', 'hero-market', 'hero-street'], 'only the six place watercolours may ship');
+    // A name is reached one of two ways. Drawn by name at a call site, as
+    // `<Illustration name="state-offline"` or `name={'state-offline'}`. Or it
+    // is a scene's drawing in `art/flat/scenes.ts`, and some screen asks that
+    // map with `sceneIllustration(`, which is how the place drawings arrive:
+    // the map is only a way in if somebody reads it.
+    const flat = (path: string) => rel(path).startsWith('art/flat/');
+    const names = [...named('art/flat/index.ts').matchAll(/^ {2}'([a-z][a-z0-9-]*)': \{ draw: /gm)].map((m) => m[1]!);
+    assert.equal(names.length, 23, 'the flat registry no longer names the 23 Round 1 drawings, so this test is reading the wrong thing');
 
-    const maps = named('art/maps.ts');
-    const mapped = new Set([...maps.matchAll(/:\s*'([a-z][a-z-]*)'/g)].map((m) => m[1]!));
-    for (const key of keys) {
-      const drawn = SOURCES.some(
+    const sceneMapRead = SOURCES.some(({ path, body }) => !flat(path) && /\bsceneIllustration\(/.test(body));
+    const byScene = new Set([...named('art/flat/scenes.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map((m) => m[1]!));
+    const reached = (name: string) =>
+      (sceneMapRead && byScene.has(name)) ||
+      SOURCES.some(
         ({ path, body }) =>
-          rel(path) !== 'art/registry.ts' &&
-          new RegExp(`<(Art|HeaderArt) name=(?:"${key}"|\\{'${key}'\\})`).test(body),
+          !flat(path) && new RegExp(`<Illustration\\b[^>]*\\bname=(?:"${name}"|\\{'${name}'\\})`).test(body),
       );
-      assert.ok(mapped.has(key) || drawn, `${key} is registered and ships, and no map names it and no screen draws it`);
-    }
 
-    for (const [, name] of maps.matchAll(/export (?:const|function) (\w+)/g)) {
-      const readers = SOURCES.filter(
-        ({ path, body }) => rel(path) !== 'art/maps.ts' && new RegExp(`\\b${name}\\b`).test(body),
-      );
-      assert.ok(readers.length > 0, `art/maps.ts exports ${name} and no screen reads it`);
-    }
+    // Drawn by nothing yet, on purpose: Round 1 converted the whole set before
+    // the screens that draw them are rebuilt. Stages 3 and 4 strike a name here
+    // in the same change that draws it, and a name drawn but left on the list
+    // fails as surely as a name dropped without being drawn, so the list only
+    // ever shrinks. It ends empty.
+    const UNDRAWN_YET = [
+      'state-notebook', 'state-waiting', 'state-offline', 'state-microphone', 'state-headphones', 'state-postcard-frame',
+      'celebrate-confetti', 'celebrate-wrapped', 'celebrate-first-line',
+      'postcard-cafe-counter', 'postcard-cafe-terrace', 'postcard-hotel', 'postcard-market', 'postcard-directions', 'postcard-day', 'postcard-apero',
+    ];
+    assert.deepEqual(
+      names.filter((name) => !reached(name)).sort(),
+      [...UNDRAWN_YET].sort(),
+      'the drawings no screen reaches are not exactly the not-yet-drawn list: strike a name once a screen draws it, and never add one',
+    );
+    // The seven place drawings reach a screen today, so none of them may ever
+    // go back on the list: a screen that drops one has lost its picture.
+    assert.deepEqual(UNDRAWN_YET.filter((name) => name.startsWith('place-')), [], 'a place drawing went back on the not-yet-drawn list');
   });
 });
 
@@ -666,21 +683,23 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       );
 
       // Every picture on these screens comes through the one renderer, which
-      // is the only file allowed to reach for `Image` and spreads `decorative`
-      // over every tag it draws. A screen that drew its own would be an
-      // unlabelled "image" announced before the heading above.
-      const pictures = (body.match(/<(Art|HeaderArt)\b/g) ?? []).length;
+      // spreads `decorative` over the box and draws a drawing that spreads it
+      // again. A screen that drew its own would be an unlabelled "image"
+      // announced before the heading above. Revamp B (F599): the renderer is
+      // `Illustration` now, and the watercolour one it replaced is retired.
+      assert.doesNotMatch(body, /<(Art|HeaderArt)\b/, `${where} draws a retired watercolour`);
+      const pictures = (body.match(/<Illustration\b/g) ?? []).length;
       if (pictures > 0) {
         assert.match(
           body,
-          /import \{ (Art|HeaderArt) \} from '\.\.\/art\/(Art|HeaderArt)\.tsx'/,
-          `${where} draws a picture that does not come from the one art renderer`,
+          /import \{ Illustration \} from '\.\.\/art\/flat\/Illustration\.tsx'/,
+          `${where} draws a picture that does not come from the one illustration renderer`,
         );
       }
     }
-    const renderer = named('art/Art.tsx');
-    for (const promise of ['accessible={false}', '{...decorative}']) {
-      assert.ok(renderer.includes(promise), `art/Art.tsx no longer draws with ${promise}, so every first-run picture is announced`);
+    const renderer = named('art/flat/Illustration.tsx');
+    for (const promise of ['{...decorative}', "pointerEvents: 'none'"]) {
+      assert.ok(renderer.includes(promise), `art/flat/Illustration.tsx no longer draws with ${promise}, so every first-run picture is announced or takes a touch`);
     }
 
     // And the vector scenes the raster replaced are gone from the first run,
@@ -1235,22 +1254,23 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
     }
   });
 
-  test('the active tab is told by ink and weight, and a screen reader still hears selected — F313', () => {
+  test('the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313', () => {
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
-    // 2026-09-27, notebook Phase 1: the heavier weight is the Medium cut. Revamp B
-    // (F596) points the `sansMedium` name at Outfit Medium, so the pin is unchanged.
-    assert.match(tabbar, /fontFamily: font\.sansMedium/, 'the active tab is not marked by the heavier weight, Outfit Medium');
+    // 2026-09-30, revamp B (F600): the heavier weight is Outfit Bold, 700,
+    // beside the brand blue, over the tab label token's SemiBold.
+    assert.match(tabbar, /fontFamily: font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test('the bar is flat on the paper with a top hairline, and never a floating shadow — F313', () => {
+  test('the bar is white with a top hairline, and never a floating shadow — F313', () => {
     // 2026-09-27, notebook Phase 1: the inset dock becomes a flat bar, per the
     // design contract. The floating rules are kept whole and the dock's own
-    // corner, margin and ink outline are refused alongside them.
+    // corner, margin and ink outline are refused alongside them. 2026-09-30,
+    // revamp B (F600): the bar is SNIPPETS' white, over the one hairline.
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: paper\.ground/, 'the bar has no opaque surface of its own');
+    assert.match(barStyle, /backgroundColor: paper\.card/, 'the bar is not the opaque white surface of its own');
     assert.match(barStyle, /borderTopWidth: HAIRLINE/, 'the bar has no rule separating it from the page');
     assert.match(barStyle, /borderTopColor: paper\.line/, 'the rule is not the paper hairline');
     for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'", 'borderRadius', 'marginHorizontal', 'borderColor: paper.ink']) {
@@ -1264,24 +1284,25 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
   });
 });
 
-describe('the active tab wears the identity violet — F325', () => {
+describe('the active tab wears the brand blue — F325', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
-  test('the active tab is set in the identity violet', () => {
-    // 2026-09-27, notebook Phase 1: the identity colour is the ink (accent.primary
-    // has been #182019 since the Atelier pass), and the bar now names it as ink.
-    // Selected is an ink glyph and a Medium label; the inactive glyph is faint
-    // and the inactive word stays soft ink, because a word is held to the text
-    // floor and faint ink sits on its edge.
+  test('the active tab is set in the brand blue, and the rest in soft ink', () => {
+    // 2026-09-30, revamp B (F600). The identity colour on the bar was the ink
+    // for a whole redesign; SNIPPETS gives the selected tab the brand blue,
+    // glyph and word together, at Outfit Bold. The rest are soft ink, glyph and
+    // word alike, because a word is held to the text floor (6.6 on white) and
+    // faint ink is now only an alias of it. The same three pins as
+    // nav/tabBar.test.ts, read here with the rest of the surface.
     assert.match(
       tabbar,
-      /color=\{focused \? paper\.ink : paper\.inkFaint\}/,
-      'the active tab glyph is not ink, or the inactive one is not faint',
+      /color=\{focused \? accent\.brand : paper\.inkSoft\}/,
+      'the active tab glyph is not the brand blue, or the inactive one is not soft ink',
     );
     assert.match(
       tabbar,
-      /focused \? \{ color: paper\.ink, fontFamily: font\.sansMedium \}/,
-      'the active tab label is not ink at the heavier weight, Outfit Medium',
+      /focused \? \{ color: accent\.brand, fontFamily: font\.bold \}/,
+      'the active tab label is not the brand blue at the heavier weight, Outfit Bold',
     );
     assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
   });
@@ -2079,7 +2100,10 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     const tutor = named('tabs/TutorTab.tsx');
     assert.match(design, /Only the voice orb and the highlighter animate/);
     assert.match(design, /daily library and Today\s+show no pictures/);
-    assert.match(design, /six place watercolours/);
+    // Revamp B (F599): the places are flat drawings now, and the doc must not
+    // go on saying the retired watercolours ship.
+    assert.match(design, /seven place drawings/);
+    assert.doesNotMatch(design, /watercolours ship|Raster scenes, retiring/);
     assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
     assert.match(home, /title=\{greeting\.title\}/);
     assert.match(home, /purpose=\{greeting\.subline\}/);
@@ -2347,7 +2371,9 @@ test('retired notebook files and artwork stay deleted', () => {
     for (const density of ['', '@2x', '@3x']) {
       assert.equal(existsSync(join(APP, 'assets', 'art', `${name}${density}.png`)), false, `${name}${density} must not ship`);
     }
-    assert.ok(!named('art/registry.ts').includes(`'${name}'`), `${name} is still registered`);
+    // Revamp B (F599): the raster registry retired with the PNGs, and the one
+    // registry left is the flat one, which must not take a retired name back.
+    assert.ok(!named('art/flat/index.ts').includes(`'${name}'`), `${name} is still registered`);
   }
   for (const { path, body } of SOURCES) {
     assert.doesNotMatch(body, /\b(?:IconRowCard|HeroCard|sceneForDaily|WordScene|StillWriting|TitleSwapRow)\b/, `${rel(path)} retains retired presentation`);

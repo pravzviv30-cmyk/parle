@@ -3,15 +3,15 @@
  *
  * `chooserView.test.ts` holds what the screen is allowed to decide. This holds
  * what it puts on glass, which after Revamp A is a different shape: one hero
- * card with the scene's picture on it, five tinted rows, and the scripted
+ * card with the scene's drawing on it, five ruled rows, and the scripted
  * lesson at the foot. Six cards with six drawings became one card and five
  * rows, and the reason is the same one the founder gave for the tab: six equal
  * rectangles is a decision handed to somebody who has no way to make it yet.
  *
  * Read as source, because there is no renderer in this suite
  * (docs/TESTING.md). The ceiling is honest: this proves the screen asks the
- * registry for its picture and the tint table for its paper, never that a phone
- * drew either.
+ * one illustration renderer for its drawing at the catalogue's size, never
+ * that a phone drew it.
  */
 
 import assert from 'node:assert/strict';
@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 import { MISSIONS } from '@luvani/core';
 
-import { HERO_ART } from '../art/maps.ts';
+import { sceneIllustration } from '../art/flat/scenes.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -38,7 +38,7 @@ describe('the chooser is one card and five rows — F573', () => {
     // that says what the learner will be able to do, and the screen's one
     // solid action.
     assert.match(SCREEN, /<Label>\{CHOOSER_START_HERE\}<\/Label>/, 'the card that was chosen for the learner never says it was');
-    assert.match(SCREEN, /<Art name=\{heroArt\(first\.mission\.place\)\}/, 'the hero card lost the drawing of the place it is set in');
+    // Its drawing is held by the test below, which says how it is drawn too.
     assert.match(SCREEN, /type\.frenchSm[\s\S]{0,80}\{first\.mission\.title\}/, 'the hero keeps its French title in the serif');
     assert.match(SCREEN, /\{first\.mission\.goalEn\}/, 'the hero card lost the line saying what the learner will be able to do');
     assert.match(SCREEN, /<PillButton\s+label=\{typed \? 'Start typed mission' : 'Start mission'\}/, 'the primary action names the mode the learner arrived in');
@@ -80,12 +80,6 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /accessibilityLabel=\{asSentences\(\[card\.mission\.title, card\.mission\.titleEn, card\.status\]\)\}/, 'a row stops saying where the learner stands with the situation behind it');
     assert.match(SCREEN, /^import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';$/m, 'the row joins its label its own way rather than through the shared joiner');
     assert.ok(!/'Started'|'Ready when you are'|'Ready to come back to'/.test(SCREEN), 'the screen spells a status line that chooserView.ts already decides');
-
-    // Every place in the catalogue has a picture, so a seventh situation
-    // cannot reach this screen with a blank brief.
-    for (const mission of MISSIONS) {
-      assert.ok(HERO_ART[mission.place], `${mission.place} has no scene, so the hero card for it is blank`);
-    }
   });
 
   test('the way out of the chooser still works on the first screen after signing up, and nothing on it is capped', () => {
@@ -105,7 +99,7 @@ describe('the chooser is one card and five rows — F573', () => {
     }
     assert.doesNotMatch(SCREEN, /fontSize:/, 'the chooser names a raw font size instead of a type token');
     assert.doesNotMatch(SCREEN, /\bwidth:\s*\d/, 'the chooser pins something to a fixed width, which cannot wrap at large text');
-    assert.doesNotMatch(SCREEN, /<Art[^>]*width=/, 'the chooser sizes a picture itself instead of taking the size the registry gives it');
+    assert.doesNotMatch(SCREEN, /<Illustration[^>]*(width|height)=/, 'the chooser sizes a drawing itself instead of taking the size the catalogue gives it');
 
     // And no drawing on this screen moves. Six loops at the moment somebody is
     // trying to choose is six things pulling at the eye, which is why the art
@@ -115,7 +109,31 @@ describe('the chooser is one card and five rows — F573', () => {
     // was deleted once the chooser took `heroArt`, and a check for a name that
     // cannot exist is a check that passes for the wrong reason, so this reads
     // the two things that would actually be true again if a scene came back.
-    assert.doesNotMatch(SCREEN, /from '\.\.\/illustrations/, 'the chooser reaches for an authored scene again instead of the registered picture');
+    assert.doesNotMatch(SCREEN, /from '\.\.\/illustrations/, 'the chooser reaches for an authored scene again instead of the flat drawing');
     assert.doesNotMatch(SCREEN, /paused=/, 'something on the chooser takes a pause prop, which only a scene with a loop in it needs');
+  });
+
+  test("the chooser's first card draws its scene through the one illustration at the hero-spot size, and sizes nothing itself", () => {
+    // 2026-09-30, revamp B (F599). The watercolour left with the raster art;
+    // the hero card draws the scene's flat drawing instead, named by mission
+    // rather than by place because the café has two scenes and two drawings.
+    // `fit="small"` is the catalogue's second size, the one it gives a hero
+    // spot; the renderer turns it into a width, so nothing here writes one.
+    assert.match(
+      SCREEN,
+      /<Illustration name=\{sceneIllustration\(first\.mission\.id\)\} fit="small"/,
+      'the hero card lost the drawing of the scene it is set in, or draws it at a size of its own',
+    );
+    assert.match(SCREEN, /^import \{ Illustration \} from '\.\.\/art\/flat\/Illustration\.tsx';$/m, 'the drawing does not come from the one illustration renderer');
+    assert.match(SCREEN, /^import \{ sceneIllustration \} from '\.\.\/art\/flat\/scenes\.ts';$/m, 'the screen names a drawing for a scene itself instead of asking the scene map');
+    assert.equal((SCREEN.match(/<Illustration\b/g) ?? []).length, 1, 'the chooser draws more than the one scene on its hero card');
+    assert.doesNotMatch(SCREEN, /<Illustration[^>]*(width|height)=/, 'the chooser sizes a drawing itself instead of taking the size the catalogue gives it');
+    assert.doesNotMatch(SCREEN, /<Art\b/, 'the chooser still draws the retired watercolour');
+
+    // Every scene in the catalogue has a place drawing of its own, so a
+    // seventh situation cannot reach this screen with a blank brief.
+    for (const mission of MISSIONS) {
+      assert.match(sceneIllustration(mission.id), /^place-/, `${mission.id} has no place drawing, so the hero card for it is blank`);
+    }
   });
 });

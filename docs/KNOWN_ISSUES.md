@@ -1009,7 +1009,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the rule widened rather than moved. The same contract test in
   surfaceContract.test.ts now covers raster scenes as well as every `<Svg>`, and was renamed for
   it; the icon layer this entry was filed about keeps its own copy in glyphs.test.ts.
-- verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
+- note: revamp B (2026-09-30, F599): the raster scenes retired, so the same test now holds every
+  `<Svg>`, the flat drawings included, and refuses any import of `Image`; renamed for it.
+- verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
 - verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
 
 ### J7 — Four scene animations keep running on screens nobody is looking at
@@ -4838,10 +4840,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   state, announce and the badge are untouched; the bar stays on `paper.ground` with one hairline and
   no shadow or absolute position. `DESIGN.md` is updated to match.
 - verified-by: `every tab cell shows its label, and the label scales and wraps rather than truncating — F313`
-- verified-by: `the active tab is told by ink and weight, and a screen reader still hears selected — F313`
+- note: revamp B (2026-09-30, F600): active is the brand blue at Outfit Bold rather than ink at
+  Medium, and the bar is white rather than paper; both tests were renamed for it, and the hairline,
+  the wrapping labels and the refused shadow are unchanged.
+- verified-by: `the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313`
 - note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
   and no selected wash; it still carries no shadow, so the tick follows the renamed test.
-- verified-by: `the bar is flat on the paper with a top hairline, and never a floating shadow — F313`
+- verified-by: `the bar is white with a top hairline, and never a floating shadow — F313`
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -4981,7 +4986,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   one line. Focused glyph and label take `accent.primary` (6.64 on the Porcelain ground at 11pt);
   inactive stays `inkFaint`/`inkSoft`. The pill lettering floor (`onInk` on `accent.primary`, 6.94) has
   never been asserted and is added with the button it belongs to.
-- verified-by: `the active tab is set in the identity violet`
+- note: revamp B (2026-09-30, F600): the active tab takes the brand blue, glyph and word, and the rest
+  soft ink; the test was renamed for it.
+- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
 - verified-by: `pill lettering clears 4.5 on the primary ink, the brand blue and the coral`
 
 ### F326 — The micro-label and the primary are one violet
@@ -6522,7 +6529,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the badge glyph itself is untouched.
 - note: 2026-09-27 notebook final sweep: `MomentumCards.tsx`, its only caller, is deleted. The glyph's
   assistive-tech contract is still held below; the successor to the block's test bans its return.
-- verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
+- note: revamp B (2026-09-30, F599): the assistive-tech contract was renamed again when the raster
+  scenes retired; the badge glyph is still one of the drawings it holds.
+- verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
 - verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F438 — Home wires the phrase bank link and tells the truth in its header
@@ -8549,8 +8558,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The watercolour scenes are PNGs under `assets/art`, named once in a registry with their
   point size, drawn through one component that hides them from assistive technology, and held to a
   byte budget. Nothing ships that nothing draws, and nothing is drawn that is not registered.
-- verified-by: `every raster scene is decorative and every asset the registry names exists on disk under budget`
-- verified-by: `every art key the registry names is drawn somewhere and nothing in the folder is unregistered`
+- note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
+  drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
+  both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
+- verified-by: `the flat registry names the 23 Round 1 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
 - severity: P2
@@ -8826,7 +8838,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F597 — The shared parts are the notebook's: static presses, hairline cards, ink chips, a gradient orb, and no B parts to paste
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:957
 - note: Stage 2a of revamp B. `motion.ts` gains the one spring (`pressTo`, 0.97, stiffness 439, damping 29.3, mass 1, native driver off on the web, instant under reduced motion) and `components.tsx` gains `Press` with a `haptic` prop over new `pressed()` and `soft()` haptics; the 0.985 statics go. `Card`, `Label`, `PillButton` (with a white tone), `GhostButton`, `Monogram`, `Highlight` (still, marked as French), `Field`, `TabBar<K>` (the SNIPPETS segmented) and `ProgressDots` (the story segments) are restyled in place; `RoundButton`, `ColourCard`, `StatTile`, `HeroNumber`, `OptionRow`, `Sheet`, `Skeleton`, `QuietLine`, `FrenchBlock`, `CloseGlyph` and `CheckGlyph` are appended; the orb becomes SNIPPETS' two rings, a core and one mark per state, with `onOrb.ready` unchanged; `ScreenHeader` takes the round back button. `palette.ts` gains the STYLE §4 colours these parts draw (`paper.field`, `lilac`, `textOn`, `onColour`, `segmentPending`) and `theme.ts` gains `type.stat` and `frenchText`. A punctuation ratchet bans the middot and both dashes in learner-facing strings with an allowlist of the fifteen files that fail today.
 - verified-by: `every tappable part presses through one spring: 0.97, stiffness 439, damping 29.3, released on lift, instant under reduced motion`
@@ -8865,7 +8877,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F599 — The place scenes are watercolour PNGs, and the B drawings are not in the app
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/art/registry.ts:38
 - note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
 - verified-by: `the flat registry names the 23 Round 1 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
@@ -8878,7 +8890,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F600 — The tab bar is paper and ink with Today and My French, not white with a blue Home and Progress
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
 - verified-by: `the bar is white with a top hairline, and never a floating shadow`
@@ -9121,3 +9133,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/tabs/HomeTab.test.ts:466
 - note: found by the Stage 2 pass A judge; not a defect of revamp B stage 2. The F409 loop checks that every tappable row under home/ declares minHeight: HIT, but it walks only `tags(body, 'Pressable')`. Stage 3 moves Home onto the B parts, which press through `Press`. A `<Press style={st.row}>` with no floor would then pass unseen. Walk `tags(body, 'Press')` as well; `<Press\b` does not match `<Pressable`.
 - verified-by: `every tappable row on Home declares the touch floor, whether it presses through Pressable or Press`
+
+### F632 — Seven lines still send the learner to My French, which the tab bar now calls Progress
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/settings/sections.ts:114
+- note: found by the Stage 2 pass B judge. F600 renamed the tab to Progress and F605 retitles the screen, but RecapScreen.tsx:178,181, settings/sections.ts:114, conversationPacks/ConversationPackLibrary.tsx:204, daily/DailyCard.tsx:59, profile/tutorMemory.ts:54 and tutor/TutorIntro.tsx:115 still tell the learner their phrases are saved in or managed in My French. After F605, no tab or title says My French, so a learner who looks for it finds nothing. Reword each one to Progress, or to the phrasebook where that is the real destination, in the same change as F605.
+- verified-by: `no learner-facing string names My French once the tab and its title say Progress`

@@ -30,8 +30,8 @@ import { Card, GhostButton, Label, Ledger, LedgerRow, MicGlyph, OutlineButton, P
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
-import { Art } from '../art/Art.tsx';
-import { heroArt } from '../art/maps.ts';
+import { Illustration } from '../art/flat/Illustration.tsx';
+import { sceneIllustration } from '../art/flat/scenes.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { lessonStart, TUTOR_OFFLINE } from '../tutor/gate.ts';
@@ -140,7 +140,7 @@ export function MissionsScreen() {
         {first && (
           <Card style={st.hero}>
             <Label>{CHOOSER_START_HERE}</Label>
-            <Art name={heroArt(first.mission.place)} style={st.heroArt} />
+            <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={st.heroArt} />
             <Text style={[type.cardTitle, { color: paper.ink }]}>{first.mission.titleEn}</Text>
             <Text style={[type.frenchSm, { color: paper.inkSoft }]}>{first.mission.title}</Text>
             <Text style={[type.small, { color: paper.inkSoft }]}>{first.mission.goalEn}</Text>

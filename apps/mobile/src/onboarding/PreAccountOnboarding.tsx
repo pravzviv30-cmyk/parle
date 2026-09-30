@@ -36,8 +36,8 @@ import {
   TutorCard,
 } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { Art } from '../art/Art.tsx';
-import { HERO_ART } from '../art/maps.ts';
+import { Illustration } from '../art/flat/Illustration.tsx';
+import { sceneIllustration } from '../art/flat/scenes.ts';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 import { TutorMark } from '../tutor/TutorMark.tsx';
@@ -98,7 +98,6 @@ import {
   TRIAL_LINE,
   levelOf,
   planFor,
-  planPlaces,
 } from './plan.ts';
 import {
   MAX_FIRST_NAME_CHARS,
@@ -166,6 +165,8 @@ export function PreAccountOnboarding({
   const chosenPersona = tutorVoice(selected).persona;
   const card = tutorCardFacts(selected);
   const view = planFor(draft);
+  /** The plan's first scene: its drawing is the one picture the plan page shows. */
+  const first = view.scenes[0];
   const level = levelOf(draft);
   const previous = pageBefore(page);
   const dim = (index: number) => !reduced && lit !== null && lit !== index;
@@ -438,13 +439,14 @@ export function PreAccountOnboarding({
       {page === 'plan' && (
         <View style={st.page}>
           <Text accessibilityRole="header" style={st.title}>{PLAN_TITLE}</Text>
-          {/* One watercolour per place the plan's scenes happen in, each once,
-              decorative and hidden from assistive tech. */}
-          <View style={st.artStage} {...decorative}>
-            {planPlaces(view).map((place) => (
-              <Art key={place} name={HERO_ART[place]} style={st.art} />
-            ))}
-          </View>
+          {/* One drawing, the first scene's, because a page carries one
+              picture. Decorative and hidden from assistive tech: the scene
+              list below says in words what it shows. */}
+          {first !== undefined ? (
+            <View style={st.artStage} {...decorative}>
+              <Illustration name={sceneIllustration(first.id)} fit="small" style={st.art} />
+            </View>
+          ) : null}
 
           <View style={st.block}>
             <Label>{PLAN_SCENES_LABEL}</Label>
@@ -675,8 +677,9 @@ const st = StyleSheet.create({
   said: { gap: space(2), marginTop: space(2) },
   options: { marginTop: space(2) },
   chosen: { ...type.small, color: paper.ink },
-  artStage: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(2), overflow: 'hidden', borderRadius: radius.row },
-  // The picture's size is the registry's; this is placement only.
+  // A stage for one drawing, centred in the column.
+  artStage: { alignSelf: 'stretch', alignItems: 'center' },
+  // The drawing's size is the registry's; this is placement only.
   art: { alignSelf: 'center' },
   block: { gap: space(2), marginTop: space(3) },
   sceneRow: { paddingVertical: space(2), borderBottomWidth: HAIRLINE, borderBottomColor: paper.line, gap: space(0.5) },

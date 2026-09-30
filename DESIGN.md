@@ -69,7 +69,9 @@ pressure, no text clipping and no cap on the learner's reading size.
   expand inline. Friends appears only for useful activity. Review opens from the
   hero or the Recall tile, the optional target from the Practice time tile. After
   practice with no conversation yet, the café hero reads Your first conversation.
-- Bottom destinations: Home, Speak, Practice, My French, Friends. Profile is a
+- Bottom destinations, as the bar words them: Home, Speak, Practice, Progress,
+  Friends. Progress opens the My French screen until Stage 3 retitles it; the
+  route names are unchanged. Profile is a
   pushed screen reached from the same labelled avatar on every root tab; Settings
   is its first row. Friends is opt-in, friends-only and based on real learning
   activity, with no global leaderboard or punishment for missing a day. Before
@@ -568,38 +570,22 @@ Round 1 ships 23:
 
 The six mouth guides (`mouth-y`, `mouth-u`, `mouth-r`, `mouth-nasal-an`,
 `mouth-nasal-on`, `mouth-zh`) wait for Round 3; the script skips them by name.
-The registry arrived ahead of its screens: the missions chooser and the
-onboarding plan move to the place drawings next, and Stages 3 and 4 draw the
-rest as they redraw the screens that need them.
+Two screens draw the seven place drawings today, each at the small size and
+each the scene's own through `sceneIllustration`: the missions chooser on its
+first card, and the onboarding plan for its first scene. The other sixteen are
+registered ahead of their screens; Stages 3 and 4 draw them as they redraw the
+screens that need them, and `surfaceContract.test.ts` holds the exact list of
+the ones no screen reaches yet, which only shrinks.
 
-### Raster scenes, retiring
+### Raster scenes, retired
 
-Until the two screens above move, the six place watercolours ship in
-`apps/mobile/assets/art/`, each at `@2x` and `@3x`, and then they retire with
-`Art.tsx`, the raster registry and its map. `HERO_ART` maps each place to its
-scene. The missions chooser and the onboarding plan draw them through
-`src/art/Art.tsx`, the single decorative Image renderer. Each is 300x180 points, with `resizeMode="contain"` and no crop.
+The place watercolours, `apps/mobile/assets/art/`, `Art.tsx`, the raster
+registry and its map retired with revamp B (F599). Nothing in the app imports
+`Image`, and every picture is a vector. The welcome, cake, wave, empty table,
+recap postcard, phrasebook and wall-map rasters went before them.
 
-| File | Place |
-|---|---|
-| `hero-cafe` | Café |
-| `hero-hotel` | Hotel |
-| `hero-market` | Market |
-| `hero-street` | Street |
-| `hero-home` | Home |
-| `hero-friends` | Friends |
-
-The welcome, cake, wave, empty table, recap postcard and phrasebook rasters are
-deleted, including both densities and their registry entries. The wall-map art
-left with its last renderer, the retired map page. The daily library and Today
-show no pictures. Their French, glosses, notes, examples and audio remain.
-
-The place art was generated on 2026-09-15 from a shared watercolour-and-line
-prompt and is owned by Luvani. The founder holds originals and generation
-scripts outside the repo. Files are keyed to transparency, trimmed to the ink
-and quantised to 256 colours. No painted hex swatches, shadows or borders.
-`registry.test.ts` keeps the budget at 350 KB per file and 4 MB total, requires
-both densities and refuses anything unregistered. No asset is exempt.
+The daily library and Today show no pictures. Their French, glosses, notes,
+examples and audio remain.
 
 ### Inline SVG
 

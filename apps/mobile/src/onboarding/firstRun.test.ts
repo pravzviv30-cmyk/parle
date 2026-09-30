@@ -111,10 +111,12 @@ describe('the rest of the flow', () => {
     }
   });
 
-  test('the plan draws only the places in the plan, with the voice choice inside it', () => {
+  test("the plan draws one drawing, its first scene's, and no picture appears outside the plan", () => {
     const plan = pageSource('plan');
-    assert.match(plan, /\{planPlaces\(view\)\.map\(\(place\) => \(\s*<Art key=\{place\} name=\{HERO_ART\[place\]\}/, 'the plan draws a picture that is not a place in the plan');
-    assert.equal((SCREEN.match(/<Art\b/g) ?? []).length, 1, 'a picture appears outside the plan');
+    assert.match(plan, /<Illustration name=\{sceneIllustration\(first\.id\)\} fit="small"/, "the plan draws a picture that is not its first scene's");
+    assert.match(SCREEN, /const first = view\.scenes\[0\];/, "the drawing is not the plan's first scene");
+    assert.equal((SCREEN.match(/<Illustration\b/g) ?? []).length, 1, 'a picture appears outside the plan, or the plan draws more than one');
+    assert.equal((SCREEN.match(/<Art\b/g) ?? []).length, 0, 'a watercolour is still drawn');
     assert.match(plan, /<TutorCard\b/, 'the voice choice did not move into the plan');
     assert.match(plan, /\{NO_STREAKS\}/);
     assert.match(plan, /\{view\.reminder\.note\}/, 'the reminder is not labelled as not on yet');

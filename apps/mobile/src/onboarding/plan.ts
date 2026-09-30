@@ -144,15 +144,6 @@ export const PLAN_COPY: readonly string[] = [
   TRIAL_LINE,
 ];
 
-/**
- * The places the plan's scenes happen in, each once, in scene order. The plan
- * draws a watercolour for these and for nothing else; the opener and the full
- * café share one counter, so a fresh plan shows two places for three scenes.
- */
-export function planPlaces(view: PlanView): readonly MissionPlace[] {
-  return [...new Set(view.scenes.map((scene) => scene.place))];
-}
-
 /** The whole plan, from the draft as it stands. */
 export function planFor(draft: PreAccountOnboardingDraft): PlanView {
   const scenes = sceneOrder(levelOf(draft))
