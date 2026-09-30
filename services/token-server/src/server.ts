@@ -10,7 +10,6 @@ import 'dotenv/config';
 
 import {
   PLANS,
-  buildReport,
   secondsRemaining,
   revisionFromPack,
   withoutRevisionSource,
@@ -37,6 +36,7 @@ import { exportSupabaseAccountData } from './accountExport.ts';
 import { billingStatusFor } from './billingStatus.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
 import { handleDrillJudge, judgeUsageLine } from './drillJudge.ts';
+import { DRILL_REFERENCE_HEADER, DRILL_USER_HEADER, handleDrillScore } from './drillScore.ts';
 import {
   deleteAllConversationPacks,
   deleteConversationPack,
@@ -217,26 +217,16 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
 }
 
-/** Raw utterance audio. A drill rep is a few seconds of WAV; 2MB is generous. */
-async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > 2 * 1024 * 1024) throw new Error('payload too large');
-    chunks.push(chunk as Buffer);
-  }
-  return Buffer.concat(chunks);
-}
-
 const server = createServer(async (req, res) => {
   if (!applyHttpSecurity(req, res, originPolicy)) {
     return json(res, 403, { error: 'origin not allowed' });
   }
   if (req.method === 'OPTIONS') {
+    // The two scoring headers are listed because a browser refuses to send an
+    // unlisted one, and a web drill that cannot send its line is never scored.
     res.writeHead(204, {
       'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
-      'access-control-allow-headers': 'content-type, authorization, x-luvani-installation',
+      'access-control-allow-headers': `content-type, authorization, x-luvani-installation, ${DRILL_USER_HEADER}, ${DRILL_REFERENCE_HEADER}`,
       'access-control-max-age': '600',
     });
     return res.end();
@@ -440,33 +430,23 @@ const server = createServer(async (req, res) => {
     }
 
     // Drill mode's pronunciation check: raw utterance audio in the body, the
-    // reference text in the query — no multipart, no base64 bloat, and the
-    // known reference is exactly what makes the score trustworthy. Returns
-    // the phoneme observations plus the ONE focus core selects; the app must
-    // never turn this into eleven red bars.
+    // learner and the reference text in headers, never in the URL (F626). The
+    // handler, its header decoding and its refusal of the old query form live
+    // in drillScore.ts, beside the judge, so they can be tested without a port.
     if (req.method === 'POST' && url.pathname === '/drill/score') {
-      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.scoringIp)]))) return;
-      const reference = url.searchParams.get('reference');
-      if (!reference) return json(res, 400, { error: 'reference is required' });
-      const resolved = await users.resolve(req.headers.authorization, url.searchParams.get('userId'));
-      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
-      const userId = resolved.userId;
-      if (!(await withinLimits(req, res, [
-        [RATE_LIMITS.scoringUser, 'user', userId],
-        ...installationChecks(req, RATE_LIMITS.scoringInstallation),
-      ]))) return;
-
-      const audio = await readAudio(req);
-      if (audio.length === 0) return json(res, 400, { error: 'audio body is required' });
-
-      // Ten seconds, not the live turn's five: a drill learner is waiting for
-      // a verdict, not sitting in a conversation that has to keep moving.
-      const observations = await scoreUtterance({ reference, audio }, { timeoutMs: 10_000 });
-      // No key, vendor down, timed out, or unscorable audio: an empty result, never an
-      // invented penalty. The app treats it as "no verdict". The report is
-      // core's — one focus point at most, and only when the evidence earns it.
-      const report = buildReport(observations);
-      return json(res, 200, { observations, report });
+      return handleDrillScore(req, res, {
+        users,
+        limits: (request, response, userId) =>
+          userId === null
+            ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.scoringIp)])
+            : withinLimits(request, response, [
+                [RATE_LIMITS.scoringUser, 'user', userId],
+                ...installationChecks(request, RATE_LIMITS.scoringInstallation),
+              ]),
+        // Ten seconds, not the live turn's five: a drill learner is waiting for
+        // a verdict, not sitting in a conversation that has to keep moving.
+        score: (request) => scoreUtterance(request, { timeoutMs: 10_000 }),
+      });
     }
 
     // The own-words drill's verdict: the learner's own French, read by the

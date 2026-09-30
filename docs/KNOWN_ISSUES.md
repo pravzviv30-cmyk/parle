@@ -8887,6 +8887,77 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
 - verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
 
+
+### F601 — The first run is the notebook's paper: no blue or sun pages, ledger answers with a Chosen word, a middot on the account button, and a card around the password form
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:305
+- note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list.
+- verified-by: `a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink`
+- verified-by: `a field error sits beside the alert mark in ink, and is still announced`
+- verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
+- verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
+- verified-by: `a can-do reads as one sentence after "You'll be able to"`
+- verified-by: `the first two pages are blue: story segments, a display headline, the exchange in white and ink, and a round next`
+- verified-by: `the first chartreuse is the Highlight on the tapped reply, beside a mint tick, and nothing earlier is lit`
+- verified-by: `the one-tap answers are option rows that carry their choice as state, never ledger rows with a Chosen word`
+- verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
+- verified-by: `the save page asks with one ink pill and no middot, and the refusal is its own calm page with the frame drawing`
+- verified-by: `the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing`
+- verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
+- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
+- verified-by: `choosing a new password is a working title on paper, with no card and no middot in its header`
+- verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+
+### F602 — Home is a white brief on paper with caps meta, a ledger row shape and a blank while loading, not the blue next-scene card, white lists and a sand skeleton
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.tsx:124
+- note: Stage 3, area 2 of revamp B. The tab title is the working title at 30; `SceneBrief` is restyled in place as the one blue next-scene card (meta line, French title, English, can-do sentence, one line, the caller's white Start); `Ledger` and `LedgerRow` become SNIPPETS' white list with hairlines between rows. Home shows sand blocks until storage answers, then leads with exactly one colour card: the blue scene brief with "Start speaking", the blue recall card, or the sun plans card when the trial's minutes are used, read through the same billing call Speak makes. Day one lists where the learner starts with scene marks; afterwards the week sentences with no label, under a slot comment for F609's lifetime count. The review row is a white list row, and today's phrase is a white card with a play disc and "Practise it". There is no weekly day count, no weekday, no rate and no tag.
+- verified-by: `every tab title is the working title at 30, and the greeting is one of them`
+- verified-by: `the scene brief is the one blue card: a meta line, the French title, the English, the can-do sentence, one line to say, and the caller's white Start`
+- verified-by: `a ledger is a white card of rows split by hairlines, each at 60 with a 16 title, a soft detail and a chevron`
+- verified-by: `a scene's minutes read in full, and its meta line joins the label, the minutes and the tutor`
+- verified-by: `the used free minutes lead Home with the plans card, ahead of review and the scene`
+- verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
+- verified-by: `Today leads with one colour card: the next scene, the recall card, or the plans card when the free minutes are used`
+- verified-by: `day one lists where the learner starts with a sun dot on the first scene; afterwards the week sentences with no label and a slot for the lifetime count`
+- verified-by: `a Home that has not read its storage yet draws still sand blocks shaped like the page`
+- verified-by: `today's phrase is a white card: the French with a play disc, the English, and Practise it`
+- verified-by: `Home names no weekday, counts no days this week, shows no rate and draws no tag`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+### F603 — Speak and the live scene are the notebook's: a ledger path, a composite chooser, a centred room with a spinner, text-link controls under a small orb, and a confirm card in the middle
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/ConvoScreen.tsx:1109
+- note: Stage 3, area 3 of revamp B. `ConfirmSheet` becomes a bottom sheet over the ink scrim with staying as the pill; `ControlTile` is appended and `RoundButton` can carry a hint. Speak leads with the tutor card, or what the tutor remembers, then the blue next-scene brief with a white Start (or the offline picture and card), then one path card of the current level's scenes that opens the list. Missions is a list grouped by level with scene marks that opens each brief, and a named scene opens as the blue brief page. The room has a round close with the French title, white and ink bubbles, a 120 orb, three white control tiles with "Give me a moment" and "In English" kept as quiet links, an ink coach mark, the typed field with an ink send disc, and the completion card left-aligned. Connecting and waiting are one full page with the thinking orb and the real stage line and no invented ticks. The guided lesson wears the same frame. Errors draw their state picture with one ink pill; the safety stop, tutor intro and real moment are restyled with their words and gates kept. Four files leave the punctuation allowlist, `state-offline` leaves the not-yet-drawn list, and the place scenes wait on a named list F611 empties. Scoring stays off (F623); no task ticks and no "Why?" link.
+- verified-by: `the leave confirmation is a bottom sheet under the ink scrim, with staying as the pill and leaving as the link`
+- verified-by: `a control tile is a white 56 tile with an ICONS.md mark over a short word, and looks off when it is off`
+- verified-by: `a round button can say what it is about to do`
+- verified-by: `Speak leads with the tutor card before a first scene and with what the tutor remembers after one`
+- verified-by: `one primary on screen: the white Start on the blue next-scene card, or Check again on the offline card`
+- verified-by: `the path is one white card of the current level's scenes with their marks, and it opens the list of every scene`
+- verified-by: `offline Speak draws the offline picture, says what happened once, and still offers the guided lesson`
+- verified-by: `the path card holds the current level's scenes in French and names the rest in one line`
+- verified-by: `the list groups every scene under A0 and A1 with its mark, French title, can-do and minutes, and each row opens its brief`
+- verified-by: `a named scene opens as the blue brief: the French title at display size, the can-do, its lines in a white card, the example, and a white Start`
+- verified-by: `the room header is a round close, the French title with its English, and no rule under it`
+- verified-by: `every scene control is still there: three tiles under the orb and two quiet links, and none is a pill`
+- verified-by: `the thread is white tutor bubbles and ink learner bubbles, and only the newest correction carries the highlighter`
+- verified-by: `waiting for the room is a full page with the thinking orb, the real stage line and Leave, and no tick for a step nobody saw`
+- verified-by: `a live error draws its state picture, says what happened and what to do, and offers one ink pill and one quiet way`
+- verified-by: `the guided lesson wears the live frame: the waiter and your turn in white cards, the orb, and the control tiles`
+- verified-by: `the tutor intro keeps its four pages in the working type, with the orb states in one white card`
+- verified-by: `rehearsing a real moment says it needs Max before setup, in one white card, and picks the situation with option rows`
+- verified-by: `a safety stop is a working title, the plain sentence and one ink pill, and nothing on it moves`
+- verified-by: `the next conversation carries its French title and minutes, and joins nothing with a middot`
+- verified-by: `the place scenes wait for the recap cover on a list of their own, which F611 empties`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 ### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
 - severity: P1
 - status: [x]
@@ -8926,16 +8997,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: found by the Stage 5 judge. Drills and sound checks record with expo-audio's high-quality preset, which is AAC in an .m4a container on a phone and WebM on the web, and `/drill/score` forwards those bytes unchanged, but every upload was typed `audio/wav` and named `utterance.wav`. A vendor that trusts the label would refuse the attempt, and a refusal is no score, so drills would have gone quietly unscored. `sniffAudio` now reads the container from its first bytes (WAV, M4A, WebM, OGG, MP3, else `application/octet-stream`) and the upload carries that type and a matching filename.
 - verified-by: `a drill recording is sent to TonePerfect labelled with the format it was recorded in`
 
-### F625 — The drill judge sends a learner's French to the language model, and the policy says nothing reaches it after a session
+### F625 — The drill judge sends a learner's French to the language model and to TypeSafe, and the policy names neither
 - severity: P2
 - status: [ ]
 - where: apps/mobile/src/legal/policy.ts:152
-- note: found by the privacy-safety-engineer during Stage 5; it came in with the Jev merge and predates revamp B. `POST /drill/judge` (`services/token-server/src/server.ts:478`) hands the learner's own-words drill attempt and the target to the language model vendor, while the policy's vendor section ends "Nothing more about that session reaches any of them after that" and names no drill judging at all. `docs/PRIVACY_AND_SAFETY.md` does not describe the route either. The fix is a sentence in both, owned by privacy-safety-engineer, plus the regenerated legal HTML; no code changes.
-- verified-by: `the policy says a drill answer in your own words is read by the language model`
+- note: found by the privacy-safety-engineer during Stage 5; it came in with the Jev merge and predates revamp B. `POST /drill/judge` (`services/token-server/src/server.ts:478`) hands the learner's own-words drill attempt and the target to the language model vendor, while the policy's vendor section ends "Nothing more about that session reaches any of them after that" and names no drill judging at all. When `TYPESAFE_API_KEY` is set, `brainClientFromEnv` (`packages/brain/src/llm/factory.ts`) wraps the brain in `JevFirstBrainClient`, so the same attempt also reaches TypeSafe first, and neither the policy nor `docs/PRIVACY_AND_SAFETY.md` names TypeSafe at all. `docs/PRIVACY_AND_SAFETY.md` does not describe the route either. The fix is a sentence in both naming the language model and TypeSafe, owned by privacy-safety-engineer, plus the regenerated legal HTML; no code changes. It must land before production.
+- verified-by: `the policy says a drill answer in your own words is read by the language model and by TypeSafe`
 
 ### F626 — A drill score request puts the learner's id and the line in the URL
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/speech/scoreAttempt.ts:30
 - note: found by the privacy-safety-engineer during Stage 5; it predates revamp B. `scoreRecordedAttempt` calls `/drill/score?userId=…&reference=…`, and a query string is what proxies, hosting access logs and crash reports record by default. The line can be the learner's own corrected sentence (`packExercisesFor`), so it is personal. Move both into request headers or a small JSON envelope, and have the server refuse the old query form; the server change belongs to backend-engineer and the call site to practice-ux-engineer.
 - verified-by: `a drill score request carries no learner id or line in its URL`
