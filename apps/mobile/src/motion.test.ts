@@ -88,12 +88,27 @@ describe('every animation crosses to the native driver', () => {
     );
   });
 
-  test('nothing bounces', () => {
-    const offenders = FILES.filter((f) => /Animated\.spring\(/.test(f.body)).map((f) => f.short);
-    assert.deepEqual(
-      offenders,
-      [],
-      `DESIGN.md: "one continuous loop plus one settling entrance; nothing bounces".\n${offenders.join('\n')}`,
+  test('the one spring is the press, it lives in motion.ts at the STYLE numbers, and it crosses to the native driver everywhere but the web', () => {
+    // Revamp B, F597. This used to read "nothing bounces", and STYLE section
+    // 11 overturned it on purpose: every tappable thing scales to 0.97 on a
+    // spring of response 0.3 and damping 0.7, which overshoots a little by
+    // design. So the rule is no longer "no spring" but "one spring": written
+    // once, in motion.ts, at the converted numbers, and called from `Press`.
+    const springs = FILES.filter((f) => /Animated\.spring\(/.test(f.body)).map((f) => f.short);
+    assert.deepEqual(springs, ['motion.ts'], `a second spring was written outside the press:\n${springs.join('\n')}`);
+    const motion = FILES.find((f) => f.short === 'motion.ts');
+    assert.ok(motion, 'motion.ts moved');
+    const at = motion.body.indexOf('Animated.spring(');
+    assert.equal(motion.body.indexOf('Animated.spring(', at + 1), -1, 'motion.ts holds two springs; the press is the one');
+    const call = callBody(motion.body, at + 'Animated.spring'.length);
+    for (const number of [/stiffness: 439\b/, /damping: 29\.3\b/, /mass: 1\b/, /useNativeDriver: NATIVE_DRIVER\b/]) {
+      assert.match(call, number, `the press spring is not STYLE's response 0.3 and damping 0.7, converted: ${call.replace(/\s+/g, ' ')}`);
+    }
+    assert.match(motion.body, /export const PRESS_SCALE = 0\.97;/, 'a press does not scale to STYLE\'s 0.97');
+    assert.match(
+      motion.body,
+      /export const NATIVE_DRIVER = Platform\.OS !== 'web';/,
+      'the spring asks for the native driver on the web, where the module is absent and the spring stalls',
     );
   });
 });

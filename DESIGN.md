@@ -153,25 +153,28 @@ One ground, one white, one ink, one soft ink and one hairline. B has no pressed
 wash, no third ink and no second hairline, so the old names that asked for one
 (`groundDeep`, `inkFaint`, `lineOnCard`) are aliases of the one B value until
 Stage 6 retires them. `skeleton` is new: loading blocks, and the one fill the
-first three rungs share.
+first three rungs share. `field` arrived with Stage 2: the border of an input
+and the ring of an unchosen option, a mark and never words.
 
 | Token | Value | Role |
 |---|---|---|
 | `paper.ground` | `#FFF6E9` | The page. Every working screen sits directly on it |
 | `paper.skeleton` | `#EFE6D6` | Loading blocks, and the rung fill |
 | `paper.groundDeep` | `#EFE6D6` | Alias of `skeleton` until Stage 6 |
-| `paper.card` | `#FFFFFF` | Cards and tiles. White, one hairline, no shadow |
+| `paper.card` | `#FFFFFF` | Cards and tiles. White, no hairline, no shadow |
 | `paper.ink` | `#16123A` | Primary text, the primary button, the dark live ground |
 | `paper.inkSoft` | `#5C5A74` | Secondary text on paper or white, never on a colour |
 | `paper.inkFaint` | `#5C5A74` | Alias of `inkSoft`: counts and placeholders are words |
 | `paper.line` | `#EADFCB` | The one hairline, for decorative dividers only |
 | `paper.lineOnCard` | `#EADFCB` | Alias of `line` |
 | `paper.onInk` | `#FFFFFF` | Text and icons on a filled ink, blue or coral control |
+| `paper.field` | `#8A8499` | The 1.5pt input border and the unchosen option ring. A mark, never words |
 
 Ink clears 16.6 on the ground, 17.8 on a card and 14.4 on the skeleton. Soft
 ink clears 6.2 on the ground and 6.6 on a card. The card lifts off the ground by
 a Delta-E of 7.9, the hairline sits 8.9 off the ground and 15.5 off a card, and
-the skeleton 5.9 off the ground.
+the skeleton 5.9 off the ground. The field border clears 3.6 on a card, the
+floor for a mark.
 
 ### Four colours
 
@@ -186,10 +189,51 @@ sun or mint, no ink on blue or coral, and no soft ink on any colour.
 | `colour.sun` | `#FFC93C` | Ink (11.6). Thinking, the plan, the focus sound |
 | `colour.mint` | `#2FD18B` | Ink (9.0). Your turn, a can-do earned, a done tick |
 
-Stage 1 adds these four and nothing else. The input field's border, the story
-segments' pending tints, secondary text on ink and the illustration lilac are
-added by the stage that first draws each, because an unused value is a value
-somebody builds to.
+Stage 1 added these four and nothing else, because an unused value is a value
+somebody builds to. Stage 2 is the stage that first draws the rest of STYLE
+section 4: the field border above, what sits on each ground below, and the
+illustrations' lilac.
+
+### On a colour ground
+
+The words on each ground and the secondary line under them are fixed per
+ground, so a part set on colour never chooses. `textOn` is the words: white on
+blue and coral, ink on sun and mint. `onColour` is the secondary line, a meta
+line or the English under a French line, because soft ink is never set on a
+colour; coral has one text colour and takes white, and `ink` is the live
+session's dark ground. Every one is words and clears 4.5.
+
+| Token | Value | On |
+|---|---|---|
+| `textOn.blue` | `#FFFFFF` | Blue, 7.9 (aliases `paper.onInk`) |
+| `textOn.coral` | `#FFFFFF` | Coral, 4.7, never below 14pt (aliases `paper.onInk`) |
+| `textOn.sun` | `#16123A` | Sun, 11.6 (aliases `paper.ink`) |
+| `textOn.mint` | `#16123A` | Mint, 9.0 (aliases `paper.ink`) |
+| `onColour.blue` | `#E4E1FF` | Blue, 6.2 |
+| `onColour.coral` | `#FFFFFF` | Coral, 4.7: white is coral's only text colour (aliases `paper.onInk`) |
+| `onColour.sun` | `#3E3A56` | Sun, 7.0 |
+| `onColour.mint` | `#3E3A56` | Mint, 5.5 |
+| `onColour.ink` | `#C9C6DE` | Ink, 10.7 |
+
+The story segments draw the done bars in the ground's `textOn` and the pending
+bars in `segmentPending`, a decorative tint of the ground that says nothing on
+its own: the segments are one element to a screen reader, "Step 2 of 6".
+
+| Token | Value | Pending bar on |
+|---|---|---|
+| `segmentPending.blue` | `#7F78EB` | Blue |
+| `segmentPending.coral` | `#E47F6F` | Coral |
+| `segmentPending.sun` | `#D0A43C` | Sun |
+| `segmentPending.mint` | `#2AAB7B` | Mint |
+| `segmentPending.paper` | `#EADFCB` | Paper: the one hairline (aliases `paper.line`) |
+
+`lilac` belongs to the flat illustrations and to nothing else, as
+ILLUSTRATIONS.md allows it. `palette.test.ts` walks the source: the token is
+spelled only in `palette.ts`, `theme.ts` and the files under `src/art/flat/`.
+
+| Token | Value | Role |
+|---|---|---|
+| `lilac` | `#B9A7FF` | A fill inside the flat illustrations only |
 
 ### Ink identity, one highlighter
 
@@ -251,11 +295,15 @@ the colours apart. The three lights stay a Delta-E of 30 from each other and
 from the rung fill.
 
 Mint and sun are far too light to be a mark on paper (1.85 and 1.43), so the
-fill is never the only signal. Every state carries a glyph, the voice bars and
-the embedded status, in the colour `onOrb` pairs with its fill, and that glyph
-is held to the 4.5 floor for words on it: white on coral 4.7, ink on mint 9.0,
-ink on sun 11.6, white on ink 17.8. The coral and the ink ready disc still clear
-3 on the ground.
+fill is never the only signal. The orb is SNIPPETS' two rings and a core in the
+state colour, and every state carries one mark in the core: the seven voice
+bars while the tutor speaks, a microphone whenever it is your turn or the room
+is getting ready, three dots while the tutor thinks. The mark and the embedded
+status are in the colour `onOrb` pairs with the fill, held to the 4.5 floor for
+words on it: white on coral 4.7, ink on mint 9.0, ink on sun 11.6, white on ink
+17.8. The coral and the ink ready core still clear 3 on the ground. Below 64 the
+rings are too fine to read, so the tutor mark and the tutor card draw the core
+alone.
 
 | Token | Value | Caption / role |
 |---|---|---|
@@ -269,7 +317,7 @@ ink on sun 11.6, white on ink 17.8. The coral and the ink ready disc still clear
 | `onOrb.speaking` | `#FFFFFF` | Coral: white bars and status |
 | `onOrb.yourTurn` | `#16123A` | Mint: ink bars and status |
 | `onOrb.thinking` | `#16123A` | Sun: ink bars and status |
-| `onOrb.ready` | `#FFFFFF` | The ink ready disc: white bars and status. It turns ink when Stage 2a draws the ready orb as an ink ring on paper |
+| `onOrb.ready` | `#FFFFFF` | The ink ready orb: its white microphone and status. SNIPPETS draws ready as ink rings and an ink core with a white mic, so it stays white |
 
 Ink is not a fourth traffic light. A closed microphone waiting to be tapped is
 the primary control of the whole product, so it takes the primary colour exactly
@@ -304,7 +352,7 @@ wrapper in production source. There are no transitional allowances.
 One. **The live glow** is the halo under `SpeakCircle` while the microphone is
 open, the one shadow that reports something. It is drawn in `signal.good`, so it
 is ink until Stage 3 redraws it. Nothing else floats: a card is told from the
-page by its paper hairline alone.
+page by its white on the warm paper alone, with no hairline.
 
 **The whisper is deleted.** The theme exports no shadow token. `theme.test.ts`
 refuses the retired alias, and `surfaceContract.test.ts` refuses shadow styles
@@ -351,49 +399,58 @@ than a heading.
 
 ## Surfaces and controls
 
-The notebook system, redesign Phase 1 (27 September). Every screen picks it up
-through these primitives; no screen was edited to get it. The old primitives
-that screens still call are deprecated wrappers drawing the new look, listed at
-the end, and they go with their call sites in Phase 4.
+The notebook system, redesign Phase 1 (27 September), restyled in place by
+revamp B Stage 2 to the SNIPPETS.md parts, with the B parts appended after it.
+Every screen picks it up through these primitives; no screen was edited to get
+it. The old primitives that screens still call are deprecated wrappers drawing
+the new look, listed at the end, and they go with their call sites.
 
-- **Card** — the one card: white, radius 16, one `paper.line` hairline, no
-  shadow, no ink outline, never nested inside another card. `tone="feature"` is
-  deprecated and draws plain paper; `journal` keeps the ground for the phrase
-  card.
+- **Press** — the one press: every tappable part below shrinks to 0.97 on the
+  press spring while the finger is down, springs back on lift, and answers
+  with a light impact or, for a choice, a selection tick (see Motion).
+- **Card** — the one card (SNIPPETS card-white): white at the card radius, no
+  hairline, no shadow, no outline, never nested inside another card.
+  `tone="feature"` is deprecated and draws white; `journal` keeps the ground
+  for the phrase card.
 - **Ledger / LedgerRow** — how a list is drawn. The ledger rules a hairline
   above its first row and is a list to assistive tech; each row rules the
-  hairline under itself. A row is one `Pressable` at 56pt with an optional 24pt
+  hairline under itself. A row is one `Press` at 56pt with an optional 24pt
   ink glyph and no disc, an optional caps label, a title in `heading`, a gloss, an optional note on its
   own line, trailing meta, an earned state, and the faint chevron that says it
   opens. It names itself once, says disabled in soft ink rather than opacity,
   and grows rather than clips at the largest reading size.
 - **PillButton** — the one primary action per screen: the ink pill
-  (`accent.primary`), warm-white label, 56pt, fully rounded like the logo's L.
-- **OutlineButton / GhostButton** — the seconds are quiet text links at the
-  touch floor, ink or soft-ink words with no box, so nothing competes with the
-  one ink pill.
+  (`accent.primary`) with white lettering, 56pt, fully rounded; `tone="white"`
+  is the white pill with ink lettering on a blue or coral ground.
+- **OutlineButton / GhostButton** — the second action. `GhostButton` is
+  SNIPPETS' link-text, an underlined ink word at the touch floor (white on blue
+  and coral, which the caller passes), never a box, so nothing competes with the
+  one pill. `OutlineButton` is the older quiet link until Stage 6.
 - **OptionCard** — a tappable choice: French in the serif, English gloss under,
   quiet arrow, optional replay ear. Selection is a heavier ink rule on white; a
   replay ear that is sounding is drawn in ink on a `paper.groundDeep` disc.
-- **Field, TabBar, ProgressDots** — inputs are white with a 1.5 rule that turns
-  ink on focus, and a secure field carries a 44pt **Show / Hide** at its
-  trailing edge so a password is not typed blind; the segmented control is a
-  paper track with a white active segment and ink lettering, so it never
-  competes with the ink pill, can stand with nothing chosen, names its group
-  for a screen reader and says which segment is selected on the web as well as
-  on a device; onboarding dots stretch the current page. A field's label is the
-  one caps line, in soft ink.
-- **Label** — one small caps label per card at most, in `inkSoft`.
+- **Field, TabBar, ProgressDots** — inputs are white, 56 tall, with a 1.5
+  `paper.field` rule that turns ink on focus, and a secure field carries a 44pt
+  **Show / Hide** at its trailing edge so a password is not typed blind; the
+  label above is small ink at SemiBold. `TabBar` is SNIPPETS' segmented: a sand
+  track with a white chosen segment, ink at Bold on the chosen word and soft ink
+  at SemiBold on the rest, never ink capsules. Each segment stays at the 44
+  floor, presses as a choice, can stand with nothing chosen, names its group for
+  a screen reader and says which segment is selected on the web as well as on a
+  device. `ProgressDots` is SNIPPETS' story segments: equal bars, the done ones
+  in the ground's words colour and the rest in `segmentPending`, read once as
+  "Step 2 of 6".
+- **Label** — the meta line a card may carry: small, soft ink, sentence case.
 - **Tab bar** — flat on the paper with a top hairline: no inset dock, no
   outline, no chartreuse, no wash and no animation. Selected is an ink glyph and
   a DM Sans Medium word; unselected is a faint glyph over a soft-ink word (the
   word stays soft ink because faint ink sits on the text floor's edge). 60pt
   cells, labels wrap at large text. The five tabs read Today, Speak, Practice,
   My French and Friends; the route names are unchanged.
-- **Highlight** — the highlighter: an inline band behind a French line in
-  `highlight`, drawn in once from the left through `drawIn`, resting on the
-  drawn band under reduced motion. The band is decorative; the line on it is
-  what is read.
+- **Highlight** — the highlighter (SNIPPETS highlight): a still band in
+  `highlight` behind one French line, at most once per screen and only on white
+  or paper. The band is decorative; the line on it is what is read, marked as
+  French (`frenchText`) so a screen reader reads it in a French voice.
 - **SoundTag** — a sound, named: its IPA as notation beside one French example
   word, such as /ʁ/ rouge, read as one element.
 - **LadderMark** — the four rungs in `rungColor`, the current one drawn taller,
@@ -421,10 +478,15 @@ the end, and they go with their call sites in Phase 4.
   surface. Green-ringed when waiting, green-filled (with the live glow, the
   only shadow in the app) when live — green means "you speak", matching the
   voice circle — hairline-muted when the tutor holds the floor.
-- **Icons** — authored SVG at the illustration stroke (2.2), ink by default, in
-  `components.tsx` for the controls and `glyphs.tsx` for the row marks, both held
-  to the one stroke weight by `motion.test.ts`. The Google mark is a monochrome
-  line-art G: no brand-colour asset in v1.
+- **Icons** — ICONS.md's marks, ported path for path at its one stroke of 2 on
+  a 24 box, ink by default: `components.tsx` for the controls (with `CloseGlyph`
+  and `CheckGlyph` beside the parts that draw them), `glyphs.tsx` for the row
+  marks and the Round 1 additions, `nav/icons.tsx` for the tabs, where Speak is
+  the same microphone as the control. All are held to the one stroke by
+  `motion.test.ts` and `glyphs.test.ts`. The Apple and Google marks are the only
+  filled glyphs, in the one colour they are given. The few older drawings
+  ICONS.md has no match for are kept at the new stroke until their callers
+  retire.
 - **Art** — the single raster renderer, using registry sizes or its compact
   variant. Illustrations sit within content panels, never behind headings.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
@@ -437,22 +499,86 @@ the end, and they go with their call sites in Phase 4.
   exception and stays that way — it is the only place in the app where
   `textAlign` is written at all, and a test cuts the centred branch out before
   banning it everywhere else. The shared `ScreenHeader` rules a paper hairline
-  under itself and its back chevron has no box.
-- **Monogram**: the learner's initial drawn one way. An ink initial in DM Sans
-  Medium on `paper.groundDeep`, hidden from assistive tech. `HIT`-sized in the
-  header, larger on Profile.
+  under itself, and its way back is the round white back button at the touch
+  floor.
+- **Monogram**: the learner's initial drawn one way (SNIPPETS header-tab). A
+  white initial in Outfit Bold on an ink disc, hidden from assistive tech.
+  `HIT`-sized in the header, larger on Profile.
+
+The B parts, appended in revamp B Stage 2 for Stage 3 to paste:
+
+- **RoundButton** — back and close are a white disc at the touch floor with the
+  ICONS.md mark; next is a 64 disc (sun on blue or coral, ink on sun) with its
+  word beside it.
+- **ColourCard** — the one colour card on a paper screen: one ground at the
+  feature radius, words in `textOn`, the secondary in `onColour`. The whole card
+  is a target only when it holds no pill of its own.
+- **StatTile / HeroNumber** — a number and one plain line on white, and the one
+  giant number with its unit on a colour board. Each is one phrase to a screen
+  reader.
+- **OptionRow** — a one-tap choice: a white row with a title and a line under
+  it, ending in the brand-blue check when chosen and the field ring when not.
+  The choice is said on a device and on the web.
+- **Sheet** — a bottom sheet under an ink scrim at 0.45 that closes it, modal to
+  VoiceOver, with a grabber and a title. No drag to dismiss.
+- **Skeleton / QuietLine** — still sand blocks that say Loading once, and a
+  small centred reassurance.
+- **FrenchBlock** — a French line, large and marked as French, the English
+  under it, and a 44pt hear disc that says Stop while the line sounds.
 
 The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers
 are deleted. Callers use LedgerRow, Card and SceneBrief directly. No tint or
 retired wrapper is allowed in production source.
 ## Illustrations
 
-### Raster scenes
+### Flat drawings
 
-Only the six place watercolours ship in `apps/mobile/assets/art/`, each at `@2x`
-and `@3x`. `HERO_ART` maps each place to its scene. The missions chooser and the
-onboarding plan draw them through `src/art/Art.tsx`, the single decorative Image
-renderer. Each is 300x180 points, with `resizeMode="contain"` and no crop.
+Revamp B's pictures are ILLUSTRATIONS.md's flat drawings, one illustrator's
+hand: flat fills from the palette only, no gradients, no outlines except
+deliberate 3pt ink or white strokes, no words and no faces. They are vectors,
+generated rather than drawn in code by hand. `node scripts/illustrations.mjs
+<kit>/ILLUSTRATIONS.md` converts each drawing's `<svg>` into a react-native-svg
+component at `src/art/flat/<id>.tsx` and writes the one registry,
+`src/art/flat/index.ts`: the component, its viewBox, and the sizes the
+catalogue displays it at. Every hex goes through one map to a palette token,
+and `lilac` exists for these drawings alone. An element, an attribute or a
+colour the map does not know stops the script, so a new drawing cannot bring a
+colour, a gradient or a word in unannounced. Running it twice changes nothing.
+Never edit a generated file: change the catalogue and run the script.
+
+Screens draw through `Illustration` (`src/art/flat/Illustration.tsx`), by name:
+`<Illustration name="state-offline" />` at the catalogue's large size, or
+`fit="small"` for its second size. A caller never writes a width. On a narrow
+phone the box narrows to its column and the drawing is contained in it, centred.
+Every drawing is decorative, since the words beside it say what it shows, and
+at most one sits on a board (STYLE section 9). `src/art/flat/scenes.ts` maps
+each scene to its place drawing, `sceneIllustration(id)`, by mission rather
+than by place because the café has two scenes and two drawings.
+
+Round 1 ships 23:
+
+| Drawings | Sits on | Large | Small |
+|---|---|---|---|
+| `place-cafe-counter`, `place-cafe-terrace`, `place-hotel`, `place-market`, `place-directions`, `place-day`, `place-apero` | A blue or coral card | 350 by 220 | 262 by 165, a hero spot |
+| `state-notebook`, `state-waiting`, `state-offline`, `state-microphone`, `state-headphones`, `state-postcard-frame` | Paper, where their ink lines carry the shapes | 160 by 160 | 120 by 120, under a headline |
+| `celebrate-confetti` | Blue or coral, laid over the whole card | 390 by 260 | |
+| `celebrate-wrapped` | Blue | 350 by 260 | |
+| `celebrate-first-line` | Blue | 350 by 220 | |
+| `postcard-cafe-counter`, `postcard-cafe-terrace`, `postcard-hotel`, `postcard-market`, `postcard-directions`, `postcard-day`, `postcard-apero` | Mint or paper, in their own white border | 300 by 190 | 165 by 105, in a row |
+
+The six mouth guides (`mouth-y`, `mouth-u`, `mouth-r`, `mouth-nasal-an`,
+`mouth-nasal-on`, `mouth-zh`) wait for Round 3; the script skips them by name.
+The registry arrived ahead of its screens: the missions chooser and the
+onboarding plan move to the place drawings next, and Stages 3 and 4 draw the
+rest as they redraw the screens that need them.
+
+### Raster scenes, retiring
+
+Until the two screens above move, the six place watercolours ship in
+`apps/mobile/assets/art/`, each at `@2x` and `@3x`, and then they retire with
+`Art.tsx`, the raster registry and its map. `HERO_ART` maps each place to its
+scene. The missions chooser and the onboarding plan draw them through
+`src/art/Art.tsx`, the single decorative Image renderer. Each is 300x180 points, with `resizeMode="contain"` and no crop.
 
 | File | Place |
 |---|---|
@@ -477,8 +603,8 @@ both densities and refuses anything unregistered. No asset is exempt.
 
 ### Inline SVG
 
-The static pen in `src/illustrations/pen.tsx` uses ink strokes at 2.2, round caps
-and joins, a 200x150 viewBox and stipple shading. Frame spreads `decorative` on
+The static pen in `src/illustrations/pen.tsx` uses ink strokes at the one
+`STROKE` (2 since revamp B), round caps and joins, a 200x150 viewBox and stipple shading. Frame spreads `decorative` on
 every SVG. `NobodyYet` and `StillWriting` retain their empty-state marks but no
 longer animate. `RewardMark` remains the static tick beside a drill verdict.
 
@@ -671,29 +797,67 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-Only the voice orb and the highlighter animate. The strict source allow-list is
-`components.tsx` (Highlight), `motion.ts` (its shared driver) and
-`tutor/VoiceOrb.tsx`. There is no PENDING allowance. Decorative illustrations,
-the greeting and the tab bar are static. The old illustration hook and moving
-layers are deleted, and `RewardMark` is a still tick.
+The notebook's rule was "Only the voice orb and the highlighter animate."
+Revamp B changes both halves (STYLE section 11): the highlighter is a still band
+now, and every tappable part presses on the one spring. So two things move: the
+voice orb, which loops, and the press, which springs and settles. The strict
+source allow-list is `components.tsx` (`Press`), `motion.ts` (the shared drivers
+and the one spring) and `tutor/VoiceOrb.tsx`. There is no PENDING allowance.
+Decorative illustrations, the greeting and the tab bar are static. The old
+illustration hook and moving layers are deleted, and `RewardMark` is a still
+tick.
 
 `useReduceMotion` observes the OS preference. Reduced motion shows the final
-frame rather than hiding content. `drawIn` and `DRAW_MS` own the highlighter's
-single entrance. VoiceOrb owns its speaking/listening/thinking movement and
-stands down when paused. The orb keeps its captions and state colours when
-still; motion never carries information on its own.
+frame rather than hiding content: a press lands at its scale at once, and the
+orb holds still. VoiceOrb owns its speaking, listening and thinking movement and
+stands down when paused. The orb keeps its captions, its mark and its state
+colours when still; motion never carries information on its own.
 
-The enforced rules remain:
+### The press
 
-- Transform and opacity only, with `useNativeDriver: true`.
+Every tappable part presses through `Press` in `components.tsx`: the drawn
+surface scales to `PRESS_SCALE`, 0.97, on `pressTo`, the one `Animated.spring`
+in the app, and springs back on lift. STYLE gives the spring the way iOS
+describes one, response 0.3 s and damping ratio 0.7. Animated takes physical
+numbers, so they are converted rather than eyeballed:
+
+| Number | Derivation | Value |
+|---|---|---|
+| stiffness | (2π / 0.3)² = 438.6 | 439 |
+| damping | 2 × 0.7 × √439 = 29.33 | 29.3 |
+| mass | | 1 |
+
+A ratio of 0.7 overshoots a little on release by design. Do not round the
+numbers further; a clamped press is a change to STYLE first. The spring asks for
+the native driver everywhere but the web (`NATIVE_DRIVER`), where the native
+module is absent and a spring asked to cross stalls. A press is cancelled by
+Pressable itself: when a scroll takes the responder it fires `onPressOut` and
+never `onPress`, so the spring returns and nothing happens. `motion.test.ts`
+holds the spring to `motion.ts` and to these numbers, and `components.test.ts`
+holds the pill, the link, the ledger row and the segmented control to `Press`.
+
+The highlighter no longer draws in. It is SNIPPETS' band, whole from the first
+frame. `drawIn` and `DRAW_MS` stay exported with no caller until Stage 6
+retires them.
+
+The enforced rules:
+
+- Transform and opacity only. Loops and entrances use `useNativeDriver: true`;
+  the press spring uses `NATIVE_DRIVER`.
 - Never animate SVG geometry or layout dimensions.
-- No springs or bouncing.
+- One spring, the press, written once in `motion.ts`. Nothing else bounces.
 - No scene loops, animated greeting swaps or moving tab washes.
 - Reduced motion is watched, not sampled only once.
 
-Pressed-state touch feedback and haptics stay. Native selection feedback and
-successful conversation feedback go through `motion/haptics.native.ts`; web
-keeps safe no-ops. A haptic refusal never blocks navigation or learning state.
+### Haptics
+
+STYLE section 11, through `motion/haptics.native.ts`, with safe no-ops on the
+web. A press is a light impact (`pressed()`), a choice or a toggle is a
+selection tick (`tapSettled()`), something earned is a success
+(`arrived()`), a hint arriving is soft (`soft()`), and an error is nothing.
+`Press` takes `haptic`: `light` by default, `selection` for a choice, and `none`
+where the caller answers for itself, as the tab bar does. A haptic refusal never
+blocks navigation or learning state.
 
 The live microphone glow remains the only shadow. The voice orb casts none.
 ## Three deliberate divergences

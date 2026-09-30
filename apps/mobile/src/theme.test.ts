@@ -102,6 +102,9 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
       ['hero', 'extraBold', 112, 95, -4.5],
       ['display', 'extraBold', 44, 44, -1.3],
       ['title', 'extraBold', 30, 33, -0.6],
+      // Revamp B stage 2: the stat tile's number, SNIPPETS' 36/800. STYLE has
+      // no 36, so it is a token rather than a raw size in the component.
+      ['stat', 'extraBold', 36, 36, -0.7],
       ['heading', 'bold', 20, 25, -0.2],
       ['cardTitle', 'bold', 20, 25, -0.2],
       ['frenchHero', 'semiBold', 34, 42, -0.3],
@@ -189,6 +192,14 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     for (const face of named) {
       assert.ok(loaded.includes(face), `the theme names ${face}, which App.tsx never loads, so it renders in the system font`);
     }
+  });
+
+  test('the one pen is ICONS.md\'s: STROKE is 2', () => {
+    // Revamp B, F598. ICONS.md draws every mark at stroke-width 2 on a 24 box,
+    // and the notebook's 2.2 was a hair heavier than every board the founder
+    // approved. One token, so the glyphs, the orb's rings and the pen's scenes
+    // move together; a second weight anywhere is what glyphs.test.ts refuses.
+    assert.match(themeSource(), /export const STROKE = 2;/, 'the one stroke weight is not ICONS.md\'s 2');
   });
 
   test('the white disc inside a tinted row is the touch floor wide', () => {

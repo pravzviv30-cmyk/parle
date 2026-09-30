@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor } from './palette.ts';
+import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -172,6 +172,10 @@ describe('one ground, pinned — F321', () => {
     assert.equal(paper.line, '#EADFCB');
     assert.equal(paper.lineOnCard, paper.line, 'lineOnCard is a second hairline; B has one');
     assert.equal(paper.onInk, '#FFFFFF');
+    // Revamp B stage 2: the input border and the unchosen ring. A mark, so it
+    // is held to the mark floor on the white it sits on, and never letters words.
+    assert.equal(paper.field, '#8A8499');
+    assert.ok(contrast(paper.field, CARD) >= MARK, `the field border is ${contrast(paper.field, CARD).toFixed(2)} on a card, under the ${MARK} floor for a mark`);
   });
 
   test('the card still reads as a card, and the hairlines still read on the ground', () => {
@@ -350,6 +354,75 @@ describe('the voice circle is legible — F323', () => {
   });
 });
 
+/**
+ * The STYLE colours the B parts draw — revamp B stage 2, F597.
+ *
+ * Stage 1 shipped the four colours and nothing else, so an unused value could
+ * not be built to. Stage 2 is the stage that first draws each of these: the
+ * field border and the unchosen ring, the secondary line on each ground, the
+ * pending story segments, and the lilac the flat drawings use. Each is pinned
+ * by value, each word pairing is held to the floor for words, and the lilac is
+ * held to the drawings by a walk, because ILLUSTRATIONS.md allows it there and
+ * nowhere else.
+ */
+describe('the STYLE colours the parts draw — F597', () => {
+  test('the STYLE colours the parts draw are in the palette: the field border, the secondary on each ground, the pending segments, and lilac is drawn only by the flat illustrations', () => {
+    // The nine new values, STYLE section 4 and SNIPPETS, by value.
+    assert.equal(paper.field, '#8A8499');
+    assert.equal(lilac, '#B9A7FF');
+    assert.equal(onColour.blue, '#E4E1FF');
+    assert.equal(onColour.sun, '#3E3A56');
+    assert.equal(onColour.mint, '#3E3A56');
+    assert.equal(onColour.ink, '#C9C6DE');
+    assert.equal(segmentPending.blue, '#7F78EB');
+    assert.equal(segmentPending.coral, '#E47F6F');
+    assert.equal(segmentPending.sun, '#D0A43C');
+    assert.equal(segmentPending.mint, '#2AAB7B');
+
+    // The secondary line is words, so it clears 4.5 on its own ground. Coral
+    // has one text colour, white.
+    for (const [ground, fill] of [
+      ['blue', colour.blue],
+      ['coral', colour.coral],
+      ['sun', colour.sun],
+      ['mint', colour.mint],
+      ['ink', paper.ink],
+    ] as const) {
+      const r = contrast(onColour[ground], fill);
+      assert.ok(r >= TEXT, `the secondary line on ${ground} is ${r.toFixed(2)}, under the ${TEXT} floor for words`);
+    }
+    assert.equal(onColour.coral, paper.onInk, 'coral grew a second text colour; STYLE gives it white only');
+
+    // The words on each ground are STYLE's column: white on blue and coral,
+    // ink on sun and mint, never the forbidden other way round.
+    assert.deepEqual(
+      { ...textOn },
+      { blue: paper.onInk, coral: paper.onInk, sun: paper.ink, mint: paper.ink },
+      'the text on a colour ground is not STYLE section 4\'s pairing',
+    );
+    for (const ground of ['blue', 'coral', 'sun', 'mint'] as const) {
+      const r = contrast(textOn[ground], colour[ground]);
+      assert.ok(r >= TEXT, `the words on ${ground} are ${r.toFixed(2)}, under the ${TEXT} floor`);
+    }
+
+    // On paper the pending segment is the one hairline, not a sixth value.
+    assert.equal(segmentPending.paper, paper.line, 'the pending segment on paper is a second hairline');
+    assert.deepEqual(Object.keys(segmentPending).sort(), ['blue', 'coral', 'mint', 'paper', 'sun'], 'a ground has no pending segment colour');
+
+    // ILLUSTRATIONS.md: "lilac #B9A7FF is allowed here and nowhere else".
+    const strip = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const drawers: string[] = [];
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      if (!/\blilac\b/.test(strip(readFileSync(file, 'utf8')))) continue;
+      if (rel === 'palette.ts' || rel === 'theme.ts' || rel.startsWith('art/flat/')) continue;
+      drawers.push(rel);
+    }
+    assert.deepEqual(drawers, [], `lilac is drawn outside the flat illustrations: ${drawers.join(', ')}`);
+  });
+});
+
 describe('the rungs share one fill, and the words say which rung — F324', () => {
   // A rung colour is a FILL under an ink numeral, not a state mark. That is why
   // it is NOT held to 3 against the ground the way an orb light is: nothing reads
@@ -518,6 +591,12 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;
   for (const k of [1, 2, 3, 4] as const) tokens[`rungColor[${k}]`] = rungColor[k];
+  // Revamp B stage 2: what sits on each colour ground, the pending story
+  // segments, and the illustrations' lilac, recorded like the rest.
+  tokens.lilac = lilac;
+  for (const [k, v] of Object.entries(textOn)) tokens[`textOn.${k}`] = v;
+  for (const [k, v] of Object.entries(onColour)) tokens[`onColour.${k}`] = v;
+  for (const [k, v] of Object.entries(segmentPending)) tokens[`segmentPending.${k}`] = v;
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be

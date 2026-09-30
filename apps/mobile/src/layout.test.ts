@@ -186,12 +186,13 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
   });
 
   test('the shared header keeps a slot at the touch floor on both sides, whether or not it holds a control', () => {
-    // Three slots always. The left is the chevron at the touch floor or an empty
-    // box its width; the right is the leave word at the floor or an empty box its
-    // width; the title sits in the flex centre between them, not half a hit target
-    // off it because one side was empty. The marginLeft:auto crutch is gone.
+    // Three slots always. The left is the round back button, a disc at the
+    // touch floor (components.tsx draws it at HIT), or an empty box its width;
+    // the right is the leave word at the floor or an empty box its width; the
+    // title sits in the flex centre between them, not half a hit target off it
+    // because one side was empty. The marginLeft:auto crutch is gone.
     const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
-    assert.match(header, /width: HIT, height: HIT/, 'the back chevron is not a slot at the touch floor');
+    assert.match(header, /<RoundButton kind="back"/, 'the back control is not the round button at the touch floor');
     assert.match(header, /<View style=\{\{ width: HIT \}\} \/>/, 'the left slot collapses when there is no back control');
     assert.match(
       header,
@@ -201,6 +202,26 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(header, /<View style=\{\{ minWidth: HIT \}\} \/>/, 'the right slot collapses when there is no leave control');
     assert.match(header, /flex: 1, alignItems: 'center'/, 'the title is not the centred flex slot between the two');
     assert.doesNotMatch(header, /marginLeft: 'auto'/, 'the header still shoves the leave word with marginLeft:auto');
+  });
+
+  test('the pushed header\'s way back is a 44 round white button', () => {
+    // Revamp B, F597: SNIPPETS header-pushed. The way back is the white disc at
+    // the touch floor with the ICONS.md back mark, drawn once in components.tsx,
+    // rather than a bare chevron this file lays out itself. The name still
+    // falls back to Back when the caller gives none.
+    const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
+    assert.match(
+      header,
+      /<RoundButton kind="back" onPress=\{back\.onPress\} accessibilityLabel=\{back\.label \?\? 'Back'\} \/>/,
+      'the pushed header does not go back through the round button, or lost its fallback name',
+    );
+    assert.doesNotMatch(header, /<ChevronLeft/, 'the header draws a bare chevron again beside the round button');
+    const round = readFileSync(join(SRC, 'components.tsx'), 'utf8');
+    const at = round.indexOf('export function RoundButton(');
+    assert.notEqual(at, -1, 'components.tsx has no RoundButton for the header to use');
+    const button = round.slice(at, round.indexOf('\nexport ', at + 1));
+    assert.match(button, /const disc = next \? HIT \+ space\(5\) : HIT;/, 'the back disc is not at the touch floor');
+    assert.match(button, /ground === 'white' \? paper\.card/, 'the back disc is not white');
   });
 
   test('a scroll screen under the tab bar pads its own bottom, and one that is not does not', () => {

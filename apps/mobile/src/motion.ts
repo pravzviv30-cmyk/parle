@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
 
 /**
  * Whether the learner has asked for less movement.
@@ -72,7 +72,9 @@ export function settleIn(value: Animated.Value, reduced: boolean, delayMs = 0): 
 
 /**
  * The highlighter drawing in behind a French line: one stroke, left to right,
- * slower than a settle because a pen is slower than a card arriving.
+ * slower than a settle because a pen is slower than a card arriving. Revamp B
+ * stills the band (STYLE section 11 leaves the pen stroke out of the motion
+ * budget), so this has no caller; Stage 6 retires the export.
  */
 export const DRAW_MS = 520;
 
@@ -93,6 +95,43 @@ export function drawIn(value: Animated.Value, reduced: boolean, delayMs = 0): An
     easing: Easing.out(Easing.quad),
     useNativeDriver: true,
   });
+  animation.start();
+  return animation;
+}
+
+/**
+ * How far a pressed thing shrinks: STYLE section 11, "every tappable thing
+ * scales to 0.97".
+ */
+export const PRESS_SCALE = 0.97;
+
+/** The native Animated module is not on the web; a spring asked to cross there logs and stalls. */
+export const NATIVE_DRIVER = Platform.OS !== 'web';
+
+/**
+ * Take a scale to `to` on the press spring, or land there at once when
+ * movement is withheld.
+ *
+ * The one spring in the app. STYLE section 11 gives it as iOS describes a
+ * spring, response 0.3 s and damping ratio 0.7, and Animated takes physical
+ * numbers, so they are converted rather than eyeballed:
+ *
+ *   stiffness = (2 * PI / response)^2 = (2 * PI / 0.3)^2  = 438.6, so 439
+ *   damping   = 2 * ratio * sqrt(stiffness * mass)
+ *             = 2 * 0.7 * sqrt(439)                     = 29.33, so 29.3
+ *   mass      = 1
+ *
+ * Do not round them further. A ratio of 0.7 overshoots a little on release by
+ * design; anyone who wants a clamped press changes STYLE first. The press is
+ * cancelled by Pressable itself: when a scroll takes the responder it fires
+ * `onPressOut` and never `onPress`, so the spring returns and nothing happens.
+ */
+export function pressTo(value: Animated.Value, to: number, reduced: boolean): Animated.CompositeAnimation | null {
+  if (reduced) {
+    value.setValue(to);
+    return null;
+  }
+  const animation = Animated.spring(value, { toValue: to, stiffness: 439, damping: 29.3, mass: 1, useNativeDriver: NATIVE_DRIVER });
   animation.start();
   return animation;
 }

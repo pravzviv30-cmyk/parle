@@ -137,7 +137,11 @@ describe('a screen that is waiting says so — F152', () => {
     assert.ok(ghost.length > 0, 'GhostButton moved or was renamed; this test is reading nothing');
     assert.match(ghost, /disabled\?: boolean/, 'GhostButton takes no disabled prop, so the sign-in screen is passing one into a void');
     assert.match(ghost, /disabled=\{disabled\}/, 'GhostButton never hands disabled to its Pressable, so the tap still lands');
-    assert.match(ghost, /disabled \? paper\.inkFaint/, 'a disabled ghost looks exactly like a live one');
+    // Revamp B (F597, F627): a live ghost is ink by default and a busy one is
+    // soft ink. The two pins together are what keep them apart, since the
+    // sign-in screen passes no colour and so draws in the default.
+    assert.match(ghost, /disabled \? paper\.inkSoft : color/, 'a disabled ghost looks exactly like a live one');
+    assert.match(ghost, /color = paper\.ink,/, 'a live ghost no longer defaults to ink, so it may be drawn in the same soft ink as a busy one');
 
     // And the flag it reads is really raised for the whole request.
     //

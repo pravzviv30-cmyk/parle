@@ -5057,7 +5057,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `size * 0.44`, spread `decorative`.
 - note: notebook redesign (2026-09-27): the monogram became an ink initial on the deeper paper, because
   the accent no longer fills an avatar; it is still hidden from assistive tech.
-- verified-by: `the monogram is an ink initial on the deeper paper, and it is hidden from assistive tech`
+- verified-by: `the monogram is a white initial on an ink disc, and it is hidden from assistive tech`
 
 ### F333 — A pill and a ghost can carry a name for assistive tech
 - severity: P1
@@ -5532,7 +5532,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   leaves the illustration barrel with the sheet that drew it (J14).
 - verified-by: `the speaking target is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368`
 - verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
-- verified-by: `the tab bar can name itself and stand with nothing chosen — F368`
+- verified-by: `the segmented control is a sand track with a white chosen segment, never ink capsules, and every segment keeps the touch floor`
 - verified-by: `every scene the barrel exports is drawn somewhere`
 
 ### F369 — Profile's footer says which build this is
@@ -8540,7 +8540,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   with no disc, a title, a gloss, meta and a chevron, named once), and the card lost its offset shadow.
   `TintRow` stays as a deprecated wrapper that draws the ledger row until its call sites move.
 - verified-by: `a ledger row is one pressable at 56pt with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once`
-- verified-by: `the one card is white at radius 16 with a paper hairline, no shadow and no ink outline`
+- verified-by: `the one card is white at the card radius with no hairline, no outline and no shadow`
 
 ### F570 — Raster art ships decorative, sized once, and every key is drawn
 - severity: P2
@@ -8739,7 +8739,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The founder reversed the rings-over-sphere choice. The gradient is the one state
   colour thinned by opacity, so no new palette token and the mark floor holds; movement stays
   transform and opacity on the native driver.
-- verified-by: `the still glyph uses one state colour for two mist washes and three quiet rings`
+- verified-by: `the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking`
 - verified-by: `reduce motion and a state with nothing to animate rest for their own reasons`
 
 ### F589 — The glyph set is one pen: every icon at one stroke, decorative
@@ -8811,7 +8811,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `DESIGN.md records the palette the app ships`
 - verified-by: `the splash and the icon background are the ground`
 - verified-by: `no six-digit hex is written anywhere in source but palette.ts`
-- verified-by: `seven bars sit directly in every orb, in the glyph colour of the state, and move only in active voice states`
+- verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
 - verified-by: `the intro names the orb states in words, never by colour`
 
 ### F596 — The app is set in Fraunces and DM Sans, not Outfit
@@ -8855,7 +8855,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F598 — The glyphs are the notebook's pen at 2.2, not ICONS.md's at 2
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/glyphs.tsx:42
 - note: Stage 2b of revamp B. `STROKE` becomes 2. Every existing glyph export keeps its name and file and takes its ICONS.md path where one exists (next, back, chevron-right, mic, speaker, lifebuoy, check-circle, clock, language, book, repeat-one, waveform, home, practice, progress, friends, user, and the filled apple and google brand marks); `TutorIcon` becomes the same microphone as `MicGlyph`; the drawings ICONS.md has no match for are kept at the new stroke and listed for retirement with their callers. Fourteen marks the Round 1 boards draw and nothing covered are added to `glyphs.tsx`; `close` and `check` sit in `components.tsx` beside the parts that draw them, to keep the import edge one-way.
 - verified-by: `the one pen is ICONS.md's: STROKE is 2`
@@ -9010,3 +9010,38 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/speech/scoreAttempt.ts:30
 - note: found by the privacy-safety-engineer during Stage 5; it predates revamp B. `scoreRecordedAttempt` calls `/drill/score?userId=…&reference=…`, and a query string is what proxies, hosting access logs and crash reports record by default. The line can be the learner's own corrected sentence (`packExercisesFor`), so it is personal. Move both into request headers or a small JSON envelope, and have the server refuse the old query form; the server change belongs to backend-engineer and the call site to practice-ux-engineer.
 - verified-by: `a drill score request carries no learner id or line in its URL`
+
+### F627 — The busy-auth pin still asks a disabled ghost for inkFaint, so F152 fails on the contract's inkSoft
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/busyLabel.test.ts:140
+- note: found by the Stage 2 pass A judge. Revamp B stage 2 (F597) made GhostButton default to `color = paper.ink` and draw `disabled ? paper.inkSoft : color`, as the contract says. The pin still matched `/disabled \? paper\.inkFaint/`, so the F152 test failed and the ticked P1 F152 reopened in the gate. Forgot password passes no colour, so it is ink when live and soft ink when busy, which is the intent. The pin now matches `/disabled \? paper\.inkSoft : color/` and a second pin, `/color = paper\.ink,/`, keeps the live and busy colours apart. components.tsx needed no change.
+- verified-by: `forgot password cannot be tapped while the screen is busy`
+
+### F628 — The F152 hand-off pin still asks GhostButton for the opacity flash the press spring replaced
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:922
+- note: found by the Stage 2 pass A judge. F597 moved GhostButton onto `<Press haptic="light" style={s.ghost} disabled={disabled} ...>` and deleted its opacity pressed state, as the contract says. A disabled Pressable never fires onPressIn, so a disabled ghost neither shrinks nor flashes. The pins still matched `/pressed && !disabled/` and `/disabled \? paper\.inkFaint/`, so the test failed. They now match `/<Press haptic="light"[^>]*disabled=\{disabled\}/` and `/disabled \? paper\.inkSoft : color/`. components.tsx needed no change.
+- verified-by: `a ghost button can be turned off, and looks it`
+
+### F629 — F309's chevron allowlist does not know the shared header's back mark now lives in RoundButton
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:1014
+- note: found by the Stage 2 pass A judge. F597 moved ScreenHeader's way back into `RoundButton kind="back"` in components.tsx, which draws `<ChevronLeft size={24} ...>`, and layout.tsx no longer draws a chevron. CHEVRON_ALLOW was still `['layout.tsx', 'friends/AddFriendsScreen.tsx']`, so the F309 test failed and the ticked P1s F309 and F357 reopened. 'layout.tsx' is replaced by 'components.tsx', commented as RoundButton's back mark, which ScreenHeader draws. The same ADOPTERS loop now also refuses any `<RoundButton>` tag with `kind="back"`, whatever the attribute order, because the round back carries its own chevron and its own default Back: without that, a screen could put a second way back beside ScreenHeader with no chevron and no literal Back, and the test would stay green.
+- verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
+
+### F630 — F409 counts a Pressable in LedgerRow, which now presses through one Press
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.test.ts:486
+- note: found by the Stage 2 pass A judge. F597 made LedgerRow `<Press haptic="light" style={ls.row} disabled={disabled} ...>`, which renders one Pressable, so the row is still one target. The pin counted `/<Pressable\b/` in the LedgerRow region, got 0 instead of 1, and the F409 test failed, reopening the ticked P1s F409 and F436. It now counts `/<Press\b/` with the expected value kept at 1, and `assert.doesNotMatch(ledger, /<Pressable\b/)` keeps a second target beside the spring failing.
+- verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
+
+### F631 — Home's touch-floor walk reads only Pressable tags, so it goes blind when rows move onto Press
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.test.ts:466
+- note: found by the Stage 2 pass A judge; not a defect of revamp B stage 2. The F409 loop checks that every tappable row under home/ declares minHeight: HIT, but it walks only `tags(body, 'Pressable')`. Stage 3 moves Home onto the B parts, which press through `Press`. A `<Press style={st.row}>` with no floor would then pass unseen. Walk `tags(body, 'Press')` as well; `<Press\b` does not match `<Pressable`.
+- verified-by: `every tappable row on Home declares the touch floor, whether it presses through Pressable or Press`

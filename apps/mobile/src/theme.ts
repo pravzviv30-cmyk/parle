@@ -1,6 +1,6 @@
 /**
  * Luvani, bright (revamp B).
- * Warm paper, white cards with one hairline and no shadow, one deep ink, four
+ * Warm paper, white cards with no hairline and no shadow, one deep ink, four
  * saturated colours, and Outfit for every word on the screen, French and
  * English alike. The chartreuse is a highlighter pen, never a surface. Voice
  * signals, touch floors, reading-size scaling and reduced motion keep their
@@ -10,7 +10,7 @@
 import { Platform } from 'react-native';
 import { paper } from './palette.ts';
 
-export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor } from './palette.ts';
+export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.
@@ -60,6 +60,12 @@ export const type = {
   display: { fontFamily: font.extraBold, fontSize: 44, lineHeight: 44, letterSpacing: -1.3 },
   /** The title of a working screen. */
   title: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 33, letterSpacing: -0.6 },
+  /**
+   * The number on a stat tile (SNIPPETS stat-tile, 36/800). STYLE section 3 has
+   * no 36; the approved tile does, and a raw size in a component is the thing
+   * this file exists to refuse.
+   */
+  stat: { fontFamily: font.extraBold, fontSize: 36, lineHeight: 36, letterSpacing: -0.7 },
   /** Card titles and section heads. */
   heading: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
   /** The title of a card. The same style as heading. */
@@ -129,8 +135,12 @@ export const radius = {
 /** The white disc that holds a glyph inside a tinted row. */
 export const DISC = 44;
 
-/** The one stroke weight: icons and illustrations alike. */
-export const STROKE = 2.2;
+/**
+ * The one stroke weight, ICONS.md's 2: every glyph, the orb's rings and the
+ * pen's scenes. The flat illustrations in `art/flat/` carry their own 3pt
+ * strokes and fills by design, which is why they live outside `illustrations/`.
+ */
+export const STROKE = 2;
 
 /** Hairline rule width for cards and dividers. */
 export const HAIRLINE = 1;
@@ -159,3 +169,17 @@ export const decorative: {
   Platform.OS === 'web'
     ? { 'aria-hidden': true }
     : { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' };
+
+/**
+ * Marks a line as French, so a screen reader reads it in a French voice. Spread
+ * onto the `Text` that carries the French, and only that one: it is what STYLE
+ * section 3's `lang="fr"` means in React Native.
+ *
+ * Three platforms, the `decorative` shape again: the web takes the `lang`
+ * attribute, which react-native-web forwards to the DOM; iOS takes
+ * `accessibilityLanguage`, which switches VoiceOver's voice; Android ignores
+ * both and reads in the system voice. Neither half is sent to the other
+ * platform, so nothing unknown reaches the DOM.
+ */
+export const frenchText: { lang?: string; accessibilityLanguage?: string } =
+  Platform.OS === 'web' ? { lang: 'fr' } : { accessibilityLanguage: 'fr-FR' };

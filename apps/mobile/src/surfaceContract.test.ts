@@ -916,8 +916,11 @@ describe('a ghost control can be busy — F152 hand-off', () => {
   test('a ghost button can be turned off, and looks it', () => {
     assert.match(ghost, /disabled\?: boolean/, 'GhostButton cannot be disabled');
     assert.match(ghost, /disabled=\{disabled\}/, 'GhostButton stays tappable while disabled');
-    assert.match(ghost, /pressed && !disabled/, 'a disabled GhostButton still flashes when pressed');
-    assert.match(ghost, /disabled \? paper\.inkFaint/, 'a disabled GhostButton looks live');
+    // F628. Revamp B: the opacity flash went, and the ghost presses through the
+    // spring. The disabled flag reaches that one Press, and a disabled Pressable
+    // never fires onPressIn, so a disabled ghost neither shrinks nor flashes.
+    assert.match(ghost, /<Press haptic="light"[^>]*disabled=\{disabled\}/, 'a disabled GhostButton still springs when pressed');
+    assert.match(ghost, /disabled \? paper\.inkSoft : color/, 'a disabled GhostButton looks live');
   });
 });
 
@@ -1004,12 +1007,14 @@ const SAFE_AREA_ALLOW = [
 ];
 
 /**
- * The only files that may still draw a chevron by hand. `layout.tsx` draws the
- * one every adopted screen now borrows; the rest are the not-yet-adopted
+ * The only files that may still draw a chevron by hand. `components.tsx` draws
+ * the one every adopted screen now borrows; the rest are the not-yet-adopted
  * friends screen. The auth and onboarding screens gave theirs up in Pass 3.
  */
 const CHEVRON_ALLOW = [
-  'layout.tsx',
+  // F629. Revamp B: RoundButton's back mark, which ScreenHeader draws. The
+  // frame's header no longer lays out a chevron of its own.
+  'components.tsx',
   'friends/AddFriendsScreen.tsx',
 ];
 
@@ -1095,6 +1100,15 @@ describe('one way back, and it is the shared header — F309', () => {
       assert.ok(
         !body.includes('accessibilityLabel="Back"'),
         `${name} builds its own Back pressable instead of routing through the shared header`,
+      );
+      // F629. The round back is a public part now, and it carries its own
+      // chevron and its own default Back, so neither check above sees it. Only
+      // ScreenHeader draws it; a screen that draws one too has two ways back.
+      const roundBacks = tags(body, 'RoundButton').filter((tag) => /\bkind=(?:"back"|\{\s*['"]back['"]\s*\})/.test(tag));
+      assert.equal(
+        roundBacks.length,
+        0,
+        `${name} draws its own round back beside the shared header, so the screen has two ways back: ${roundBacks.join(' ')}`,
       );
     }
     // And the hand-rolled chevron survives nowhere but the frame and the

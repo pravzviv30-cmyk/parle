@@ -480,7 +480,11 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     const components = stripComments(read('../components.tsx'));
     assert.match(style(components, '  row'), /minHeight: HIT \+ space\(3\)/, 'the shared ledger row falls under its 56pt floor');
     const ledger = between(components, 'export function LedgerRow(', '\nexport function ', 'LedgerRow is drawn in components.tsx');
-    assert.equal((ledger.match(/<Pressable\b/g) ?? []).length, 1, 'the ledger row is not one pressable, so only its arrow would be tappable');
+    // F630. Revamp B: the row presses through the one spring, `Press`, which
+    // renders a single Pressable, so the row is still one target. A bare
+    // Pressable beside it would be a second target, and that still fails.
+    assert.equal((ledger.match(/<Press\b/g) ?? []).length, 1, 'the ledger row is not one press, so only its arrow would be tappable');
+    assert.doesNotMatch(ledger, /<Pressable\b/, 'the ledger row carries a second target beside its one press');
     assert.doesNotMatch(components, /export function TintRow\b/);
     assert.equal(existsSync(fileURLToPath(new URL('../surface/IconRowCard.tsx', import.meta.url))), false);
   });

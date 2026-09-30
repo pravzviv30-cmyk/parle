@@ -15,3 +15,13 @@ export function tapSettled(): void {
 export function arrived(): void {
   // Native only.
 }
+
+/** A press: a light impact. */
+export function pressed(): void {
+  // Native only.
+}
+
+/** A hint arriving: the softest impact. */
+export function soft(): void {
+  // Native only.
+}

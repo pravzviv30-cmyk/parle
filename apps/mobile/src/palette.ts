@@ -6,10 +6,12 @@
  * and four saturated colours that each lead a screen or report the tutor's
  * state. The chartreuse is still a highlighter pen and never a surface.
  *
- * Eleven raw values live here and nothing else does. Every token after `paper`
- * and `colour` is a reference to one of them, so a value can only drift in one
- * place. Old token names that screens still write stay as aliases of a B value
- * until the stage that redraws those screens retires them.
+ * Twenty raw values live here and nothing else does: the paper and its inks,
+ * the four colours, the highlighter, and the STYLE section 4 values that only
+ * ever sit on a colour ground or inside a drawing. Every other token is a
+ * reference to one of them, so a value can only drift in one place. Old token
+ * names that screens still write stay as aliases of a B value until the stage
+ * that redraws those screens retires them.
  */
 
 /** The single ground and its inks. Everything sits directly on this. */
@@ -20,7 +22,7 @@ export const paper = {
   skeleton: '#EFE6D6',
   /** Alias of skeleton until the pressed washes and chip fills are redrawn. */
   groundDeep: '#EFE6D6',
-  /** Cards and tiles. Pure white, one hairline, no shadow. */
+  /** Cards and tiles. Pure white, no hairline, no shadow. */
   card: '#FFFFFF',
   /** The ink. Primary text, the primary button, the dark live ground. */
   ink: '#16123A',
@@ -32,6 +34,11 @@ export const paper = {
   line: '#EADFCB',
   /** Alias of line. B has one hairline, on the ground and inside a card alike. */
   lineOnCard: '#EADFCB',
+  /**
+   * The 1.5pt border of an input and the ring of an unchosen option. 3.6 on
+   * white: a mark at the 3 floor, never words.
+   */
+  field: '#8A8499',
   /** Text and icons on a filled ink, blue or coral control. */
   onInk: '#FFFFFF',
 } as const;
@@ -123,6 +130,56 @@ export const onOrb = {
   thinking: paper.ink,
   ready: paper.onInk,
 } as const;
+
+/**
+ * What the words on each colour ground are set in: white on blue and coral, ink
+ * on sun and mint, and never the other way round (STYLE section 4's forbidden
+ * pairs).
+ */
+export const textOn = {
+  blue: paper.onInk,
+  coral: paper.onInk,
+  sun: paper.ink,
+  mint: paper.ink,
+} as const;
+
+/**
+ * The secondary line on each ground: a meta line, the English under a French
+ * line. Soft ink is never set on a colour, so each ground has its own. Coral
+ * has no secondary and takes white; ink is the live-session dark ground.
+ */
+export const onColour = {
+  /** 6.2 on blue. */
+  blue: '#E4E1FF',
+  /** White, 4.7 on coral: coral carries one text colour. */
+  coral: paper.onInk,
+  /** 7.0 on sun. */
+  sun: '#3E3A56',
+  /** 5.5 on mint. */
+  mint: '#3E3A56',
+  /** 10.7 on ink. */
+  ink: '#C9C6DE',
+} as const;
+
+/**
+ * The pending bars of the story segments on each ground. A decorative mark
+ * beside the done bars, which are `textOn` of the ground; on paper the pending
+ * bar is the hairline.
+ */
+export const segmentPending = {
+  blue: '#7F78EB',
+  coral: '#E47F6F',
+  sun: '#D0A43C',
+  mint: '#2AAB7B',
+  paper: paper.line,
+} as const;
+
+/**
+ * The illustrations' lilac. ILLUSTRATIONS.md allows it in the flat drawings and
+ * nowhere else, so nothing under `src` but `art/flat/` draws it, and
+ * `palette.test.ts` walks the source to keep it that way.
+ */
+export const lilac = '#B9A7FF';
 
 /**
  * The fills under the four rung numerals. Rungs one to three share the one

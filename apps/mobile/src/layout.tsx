@@ -11,7 +11,7 @@
  * both. `ConfirmSheet` is the one way to ask before leaving something metered.
  *
  * Nothing here drives movement and nothing here draws its own glyphs: timing
- * belongs to whoever owns the value and the pen already drew the chevron. The
+ * belongs to whoever owns the value and the pen already drew the back mark. The
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
@@ -27,8 +27,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, Card, PillButton, OutlineButton } from './components.tsx';
-import { paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
+import { Card, PillButton, OutlineButton, RoundButton } from './components.tsx';
+import { paper, space, type, HAIRLINE, HIT } from './theme.ts';
 import { screenInsets } from './responsiveLayout.ts';
 
 /** Where the bottom of a screen ends. */
@@ -165,28 +165,23 @@ type ScreenHeaderProps = { title?: ReactNode; divider?: boolean } & (
 );
 
 /**
- * The one header row. A back arrow on the left or a leave word on the right,
- * with an optional node in the centre — a title, a dot rail, a small label.
+ * The one header row. The round back button on the left or a leave word on the
+ * right, with an optional node in the centre — a title, a dot rail, a small
+ * label. The way back is SNIPPETS' header-pushed disc: white, at the touch
+ * floor, with the ICONS.md back mark, on paper or a colour ground alike.
  */
 export function ScreenHeader(props: ScreenHeaderProps) {
   const { title } = props;
   const back = props.back;
   const leave = props.leave;
-  // Three slots always, so the centre is the centre. The left holds the chevron
-  // or an empty box its width; the right holds the leave word or an empty box its
+  // Three slots always, so the centre is the centre. The left holds the round
+  // back button or an empty box its width; the right holds the leave word or an empty box its
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
     <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === false ? 0 : HAIRLINE, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
-        <Pressable
-          onPress={back.onPress}
-          accessibilityRole="button"
-          accessibilityLabel={back.label ?? 'Back'}
-          style={{ width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill }}
-        >
-          <ChevronLeft />
-        </Pressable>
+        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} />
       ) : (
         <View style={{ width: HIT }} />
       )}

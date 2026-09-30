@@ -151,31 +151,61 @@ describe('the voice circle asks this module rather than deciding again', () => {
 });
 
 /**
- * The UI 4 evolution: mist rather than gloss, and the voice mark directly in
- * the colour field rather than inside a capsule.
+ * Revamp B, F597: the SNIPPETS orb. Two rings and a core in the state colour,
+ * and one mark in the core per state in the glyph colour, rather than a mist
+ * with the bars drawn in every state.
  */
-describe('the orb is a still watercolour field with directly animated voice bars', () => {
-  test('the still glyph uses one state colour for two mist washes and three quiet rings', () => {
+describe('the orb is two rings, a core and one mark per state', () => {
+  test('the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking', () => {
     assert.equal((GLYPH.match(/<Svg\b/g) ?? []).length, 1, 'the orb is drawn as more than one Svg, so its layers can drift apart');
     assert.match(GLYPH_FLAT, /<Svg[^>]*\{\.\.\.decorative\}/, 'the orb is announced to a screen reader as an unlabelled image');
-    assert.equal((GLYPH.match(/<RadialGradient\b/g) ?? []).length, 2, 'the watercolour field lost one of its offset washes');
-    assert.equal((GLYPH.match(/stopColor=\{color\}/g) ?? []).length, 6, 'a mist stop uses a colour outside the current state');
-    for (const ring of ['strokeOpacity={0.05}', 'strokeOpacity={0.08}', 'strokeOpacity={0.13}']) {
-      assert.ok(GLYPH_FLAT.includes(ring), `the orb lost the quiet ring at ${ring}`);
-    }
-    assert.equal((GLYPH.match(/strokeWidth=\{STROKE\}/g) ?? []).length, 3, 'one ring is drawn with a different pen');
-    assert.match(GLYPH_FLAT, /const token = useId\(\)/, 'two orbs on one page can share gradient ids');
-
+    assert.equal((GLYPH.match(/<RadialGradient\b/g) ?? []).length, 0, 'the orb grew a gradient wash again; SNIPPETS draws it flat');
+    // SNIPPETS: an outer ring at 58 on a 120 box, stroke 2 at 0.3; an inner
+    // ring at 49, stroke 3 at 0.55; a solid core of radius 40.
+    assert.match(
+      GLYPH_FLAT,
+      /r=\{58\} fill="none" stroke=\{color\} strokeWidth=\{STROKE\} strokeOpacity=\{0\.3\}/,
+      'the outer ring is not SNIPPETS\' ring at 58, drawn with the one pen at 0.3',
+    );
+    assert.match(
+      GLYPH_FLAT,
+      /r=\{49\} fill="none" stroke=\{color\} strokeWidth=\{STROKE \* 1\.5\} strokeOpacity=\{0\.55\}/,
+      'the inner ring is not SNIPPETS\' ring at 49, half again as heavy, at 0.55',
+    );
+    assert.match(GLYPH_FLAT, /r=\{40\} fill=\{color\}/, 'the core is not a solid disc of radius 40 in the state colour');
+    assert.match(GLYPH_FLAT, /export const ORB_BOX = 120;/, 'the orb is not drawn on SNIPPETS\' 120 box, so the radii mean something else');
+    // Below 64 the rings are too fine to read: the tutor mark and the tutor
+    // card draw the core alone, filling the box.
+    assert.match(GLYPH_FLAT, /size >= 64 \?/, 'a small orb draws rings too fine to read');
+    assert.match(GLYPH_FLAT, /r=\{60\} fill=\{color\}/, 'a small orb is not the core alone, filling its box');
+    assert.ok(!/paper\.ground/.test(GLYPH), 'the paper collar came back around the core');
+    assert.ok(!/useId/.test(GLYPH), 'the orb mints ids again, which only a gradient needed');
     for (const moving of ['Animated', 'interpolate', 'useEffect']) {
       assert.ok(!GLYPH.includes(moving), `the orb's SVG reaches for ${moving}; the wrapper owns every moving part`);
     }
 
     assert.match(ORB_FLAT, /<OrbGlyph color=\{look\.colour\} size=\{size\} \/>/, 'the orb no longer draws itself through the one glyph');
-    assert.match(ORB_FLAT, /transform: \[\{ scale: breath \}\]/, 'the mist no longer breathes by transform');
-    assert.ok(!/MicGlyph|controlGlass|borderWidth/.test(ORB), 'a microphone or frosted inner capsule returned to the minimalist orb');
+    assert.match(ORB_FLAT, /transform: \[\{ scale: breath \}\]/, 'the orb no longer breathes by transform');
+    assert.ok(!/controlGlass|borderWidth/.test(ORB), 'a frosted inner capsule or a ring drawn in views returned to the orb');
     for (const timing of ORB.match(/Animated\.timing\([\s\S]*?\}\)/g) ?? []) {
       assert.match(timing, /useNativeDriver: true/, `an orb animation runs on the JS thread: ${flat(timing)}`);
     }
+
+    // One mark per state, named in the LOOKS table and drawn by that name.
+    const mark = (state: string): string => {
+      const from = ORB.indexOf(`  ${state}: {`);
+      assert.notEqual(from, -1, `the LOOKS table no longer has a ${state} state`);
+      const setting = /mark: '(\w+)'/.exec(ORB.slice(from, ORB.indexOf('\n  },', from)));
+      assert.ok(setting, `${state} names no mark for its core`);
+      return setting![1]!;
+    };
+    assert.equal(mark('speaking'), 'bars', 'the speaking orb does not draw its waveform');
+    for (const state of ['listening', 'ready']) assert.equal(mark(state), 'mic', `the ${state} orb does not show the microphone`);
+    assert.equal(mark('thinking'), 'dots', 'the thinking orb does not show three dots');
+    assert.match(ORB_FLAT, /<MicGlyph size=\{size \* \(32 \/ 120\)\} color=\{look\.glyph\} \/>/, 'the microphone is not SNIPPETS\' 32 in 120, in the glyph colour');
+    assert.match(ORB_FLAT, /import \{ MicGlyph \} from '\.\.\/components\.tsx'/, 'the orb draws a second microphone instead of the one the control and the Speak tab share');
+    assert.match(ORB_FLAT, /\{look\.mark === 'bars' \? \(/, 'the bars are drawn in states that are not speaking');
+    assert.match(ORB_FLAT, /width: size \* \(8 \/ 120\), height: size \* \(8 \/ 120\)/, 'the thinking dots are not SNIPPETS\' 8 in 120');
 
     const from = ORB_FLAT.indexOf('if (orbRests(');
     assert.notEqual(from, -1, 'the orb no longer asks whether to rest; this test is reading the wrong thing');
@@ -185,25 +215,24 @@ describe('the orb is a still watercolour field with directly animated voice bars
     assert.ok(!rest.includes('.start()'), 'the rest branch starts an animation before it returns');
   });
 
-  test('seven bars sit directly in every orb, in the glyph colour of the state, and move only in active voice states', () => {
+  test('the seven bars are the speaking orb\'s waveform, in the glyph colour, and every other state holds a still mark', () => {
     const signal = /signal: \{([^}]+)\}/.exec(ORB_FLAT)?.[1];
-    assert.ok(signal, 'the waveform has its own centred overlay');
-    assert.ok(!/padding|translate[XY]|margin/.test(signal), 'fixed offsets must not displace the waveform at compact sizes');
+    assert.ok(signal, 'the mark has its own centred overlay');
+    assert.ok(!/padding|translate[XY]|margin/.test(signal), 'fixed offsets must not displace the mark at compact sizes');
     for (const circle of GLYPH.match(/<Circle[^>]+>/g) ?? []) {
-      assert.match(circle, /cx=\{CENTRE\} cy=\{CENTRE\}/, 'every visible orb layer must share the waveform centre');
+      assert.match(circle, /cx=\{CENTRE\} cy=\{CENTRE\}/, 'every orb layer must share the mark\'s centre');
     }
-    assert.match(GLYPH_FLAT, /r=\{75\} fill=\{paper\.ground\}/, 'the paper collar separates the voice surface from chartreuse');
-    assert.match(ORB_FLAT, /const BAR_HEIGHTS = \[0\.1, 0\.17, 0\.27, 0\.38, 0\.27, 0\.17, 0\.1\] as const/, 'the central voice mark is no longer the seven-bar form');
-    assert.match(ORB_FLAT, /\{BAR_HEIGHTS\.map\(\(height, index\) => \(/, 'the direct voice mark is not drawn inside the orb');
-    // Revamp B: white on mint is 2.0 and on sun 1.4, so the bars and the
+    assert.match(ORB_FLAT, /const BAR_HEIGHTS = \[0\.1, 0\.17, 0\.27, 0\.38, 0\.27, 0\.17, 0\.1\] as const/, 'the waveform is no longer the seven-bar form');
+    assert.match(ORB_FLAT, /\{BAR_HEIGHTS\.map\(\(height, index\) => \(/, 'the waveform is not drawn inside the orb');
+    // Revamp B: white on mint is 2.0 and on sun 1.4, so the mark and the
     // embedded status take the glyph colour paired with each fill, never a
     // fixed white.
-    assert.match(ORB_FLAT, /backgroundColor: look\.glyph/, 'the voice bars are a fixed colour, so they vanish on a light state fill');
+    assert.match(ORB_FLAT, /backgroundColor: look\.glyph/, 'the mark is a fixed colour, so it vanishes on a light state fill');
     assert.doesNotMatch(ORB_FLAT, /bar: \{ backgroundColor: paper\.onInk \}/, 'the voice bars are fixed white again, which fails on mint and sun');
     assert.match(
       ORB_FLAT,
       /embeddedLabel !== undefined \? \(? ?<Text style=\{\[st\.embeddedLabel, \{ color: look\.glyph \}\]\}>\{embeddedLabel\}<\/Text> ?\)? : null/,
-      'the landing status is not embedded directly under the bars in the glyph colour of the state',
+      'the landing status is not embedded directly under the mark in the glyph colour of the state',
     );
     assert.doesNotMatch(
       /embeddedLabel: \{([^}]+)\}/.exec(ORB_FLAT)?.[1] ?? '',
@@ -218,14 +247,19 @@ describe('the orb is a still watercolour field with directly animated voice bars
       assert.ok(setting, `${state} no longer says whether its bars move`);
       return setting![1]!;
     };
-    for (const state of ['ready', 'idle', 'thinking', 'error']) assert.equal(look(state), 'still', `${state} animates a voice that is not talking`);
+    // Only the speaking orb's waveform moves; every other state holds a still
+    // mark (the microphone or the dots), and breathes or dims as a whole.
+    assert.equal(look('speaking'), 'moving', 'the tutor speaks and the waveform stands still');
+    for (const state of ['ready', 'idle', 'connecting', 'listening', 'thinking', 'error']) {
+      assert.equal(look(state), 'still', `${state} animates a waveform for a voice that is not talking`);
+    }
 
     // Each voice state's glyph is the colour onOrb pairs with its fill, which is
     // what palette.test.ts holds to the text floor.
     const glyph = (state: string): string => {
       const from = ORB.indexOf(`  ${state}: {`);
       const setting = /glyph: ([\w.]+),/.exec(ORB.slice(from, ORB.indexOf('\n  },', from)));
-      assert.ok(setting, `${state} names no glyph colour, so its bars fall back to whatever st.bar says`);
+      assert.ok(setting, `${state} names no glyph colour, so its mark falls back to whatever a style says`);
       return setting![1]!;
     };
     for (const [state, token] of [
@@ -236,7 +270,6 @@ describe('the orb is a still watercolour field with directly animated voice bars
     ] as const) {
       assert.equal(glyph(state), `onOrb.${token}`, `the ${state} orb's glyph is not the colour onOrb pairs with its fill`);
     }
-    for (const state of ['connecting', 'speaking', 'listening']) assert.equal(look(state), 'moving', `${state} gives no responsive movement`);
     assert.match(ORB_FLAT, /const moving = look\.bars === 'moving' \? drivers : drivers\.slice\(0, 1\);/, 'the waveform driver runs in resting states');
     assert.match(ORB_FLAT, /if \(look\.bars !== 'moving'\) drivers\[1\]!\.setValue\(0\.5\);/, 'still bars are parked part-way through a pulse');
   });

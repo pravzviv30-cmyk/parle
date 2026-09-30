@@ -1,25 +1,30 @@
 /**
- * The row and disc glyphs — the same pen as the tab icons.
+ * The row and disc glyphs: ICONS.md's marks, at its one stroke.
  *
- * Revamp A puts a white disc with a line-art mark at the head of every tinted
- * row and at the head of several white ones, so the app needed a clock, a cup,
- * a bubble, a page, the replay arrows, a pair of quote marks, a waveform and
- * one mark per place a mission happens in. They live here rather than in
- * `components.tsx` because that file is sliced between adjacent
- * `export function X(` markers by its own test, and a new export in the middle
- * of it moves somebody else's region.
+ * They live here rather than in `components.tsx` because that file is sliced
+ * between adjacent `export function X(` markers by its own test, and a new
+ * export in the middle of it moves somebody else's region. `close` and `check`
+ * are the exception and sit in `components.tsx`, beside the parts that draw
+ * them: this file imports from that one (`SpeakerGlyph`), so the reverse edge
+ * would be a cycle.
  *
  * The contract is `nav/icons.tsx`'s, deliberately word for word: one shared
  * wrapper, viewBox 0 0 24 24, `<Svg {...decorative}>` so assistive tech walks
  * straight past, and a single `<G>` carrying `fill="none"`, the shared STROKE
- * and round caps and joins. One pen drew the whole app, and `motion.test.ts`
- * now walks this file to keep it that way.
+ * and round caps and joins. Nothing here is filled: ICONS.md fills only the two
+ * brand marks. `glyphs.test.ts` and `motion.test.ts` walk this file to keep it
+ * that way.
+ *
+ * Every export keeps the name it had in revamp A, and takes its ICONS.md path
+ * where ICONS.md draws the same thing. `CoffeeCupGlyph`, `QuoteGlyph` and
+ * `PlaceGlyph` have no ICONS.md match, so they stay as drawn, at the new
+ * stroke, until the stages that redraw their callers retire them.
  *
  * The right chevron is NOT here: `components.tsx` has drawn ChevronLeft since
  * the first pushed screen and the pair belongs together.
  */
 
-import Svg, { Path, Circle, G } from 'react-native-svg';
+import Svg, { Path, Circle, G, Rect } from 'react-native-svg';
 import type { MissionPlace } from '@luvani/core';
 import { decorative, paper, STROKE } from './theme.ts';
 
@@ -47,17 +52,17 @@ function Glyph({ size = 24, color = paper.ink, children }: GlyphProps & { childr
   );
 }
 
-/** How long tonight's French takes, beside the ready line. */
+/** ICONS.md `clock`: how long tonight's French takes. */
 export function ClockGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
-      <Circle cx={12} cy={12} r={8.6} />
-      <Path d="M12 7.2v5.1l3.4 2.1" />
+      <Circle cx={12} cy={12} r={9.5} />
+      <Path d="M12 7v5l3.5 2" />
     </Glyph>
   );
 }
 
-/** The everyday mission: a café cup with its steam not quite straight. */
+/** The everyday mission: a café cup. No ICONS.md match; kept until Stage 3 retires it. */
 export function CoffeeCupGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
@@ -68,39 +73,40 @@ export function CoffeeCupGlyph(props: GlyphProps) {
   );
 }
 
-/** Talking about anything: one open bubble, nothing written in it yet. */
+/** ICONS.md `language`: talking about anything, two bubbles in turn. */
 export function ChatGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
-      <Path d="M5.6 5.4h12.8a2.2 2.2 0 0 1 2.2 2.2v7a2.2 2.2 0 0 1-2.2 2.2h-7.6l-4.4 3.3v-3.3a2.2 2.2 0 0 1-2.2-2.2v-7a2.2 2.2 0 0 1 2.2-2.2Z" />
+      <Path d="M5.5 4.5h7a2 2 0 0 1 2 2v4.5a2 2 0 0 1-2 2H8.5L6 15.5V13h-.5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" />
+      <Path d="M14.5 9h4a2 2 0 0 1 2 2v4.5a2 2 0 0 1-2 2h-1v3.5l-3-3.5h-3a2 2 0 0 1-2-2V13" />
     </Glyph>
   );
 }
 
-/** A written conversation: a page with a folded corner and two lines on it. */
+/** ICONS.md `book`: a written conversation, and the phrasebook. */
 export function DocumentGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
-      <Path d="M7 3.6h7.2l4.4 4.4v12.4H7z" />
-      <Path d="M14.2 3.6v4.4h4.4" />
-      <Path d="M9.6 12.2h5.4M9.6 15.8h4" />
+      <Path d="M4.5 18.5A2.5 2.5 0 0 1 7 16h13" />
+      <Path d="M7 3h13v18H7a2.5 2.5 0 0 1-2.5-2.5v-13A2.5 2.5 0 0 1 7 3Z" />
     </Glyph>
   );
 }
 
-/** Replay a moment: the two arrows going round again. */
+/** ICONS.md `repeat-one`: replay a moment, once more. */
 export function ReplayGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
-      <Path d="M19.2 12a7.2 7.2 0 0 1-12.4 5" />
-      <Path d="M4.8 12a7.2 7.2 0 0 1 12.4-5" />
-      <Path d="M17.2 3.6v3.4h-3.4" />
-      <Path d="M6.8 20.4V17h3.4" />
+      <Path d="M16.5 3l3.5 3.5-3.5 3.5" />
+      <Path d="M3.5 12v-1.5a4 4 0 0 1 4-4H20" />
+      <Path d="M7.5 21 4 17.5 7.5 14" />
+      <Path d="M20.5 12v1.5a4 4 0 0 1-4 4H4" />
+      <Path d="M10.75 10.75 12.25 9.5v5" />
     </Glyph>
   );
 }
 
-/** The phrase shelf: what the learner said, kept in quotes. */
+/** The phrase shelf: what the learner said, kept in quotes. No ICONS.md match; kept until Stage 6 retires it. */
 export function QuoteGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
@@ -110,17 +116,20 @@ export function QuoteGlyph(props: GlyphProps) {
   );
 }
 
-/** Tune one sound: a voice seen sideways, the middle bar the tallest. */
+/** ICONS.md `waveform`: a voice seen sideways, the middle bar the tallest. */
 export function WaveformGlyph(props: GlyphProps) {
   return (
     <Glyph {...props}>
-      <Path d="M4.5 10v4M8.2 7.2v9.6M12 4.6v14.8M15.8 8v8M19.5 10.4v3.2" />
+      <Path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 10.5v3" />
     </Glyph>
   );
 }
 
 /**
  * The mark for a place a conversation happens in.
+ *
+ * No ICONS.md match: kept as drawn, at the new stroke, until Stage 3 draws the
+ * places with the flat illustrations and Stage 6 retires it.
  *
  * One case per `MissionPlace`, because the tint is chosen by place too
  * (`missions/missionTint.ts`) and a row whose colour and drawing disagreed
@@ -193,4 +202,152 @@ function placeMark(place: MissionPlace): React.ReactNode {
         </>
       );
   }
+}
+
+// ─────────────────────────────────────────── the Round 1 marks (revamp B)
+// ICONS.md marks the Round 1 boards draw that no revamp A name covered.
+
+/** ICONS.md `chevron-down`: a row or a sheet that opens downward. */
+export function ChevronDownGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M5 9l7 7 7-7" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `play`. */
+export function PlayGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M7 4.5v15l12.5-7.5Z" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `speaker-slow`: the speaker with its outer arc dashed, for "Simpler". */
+export function SpeakerSlowGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M4 9.5h3.5L13 5v14l-5.5-4.5H4Z" />
+      <Path d="M16.5 9.5a3.5 3.5 0 0 1 0 5" />
+      <Path d="M19 7a7 7 0 0 1 0 10" strokeDasharray="2.6 2.6" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `mic-off`: the microphone struck through. */
+export function MicOffGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Rect x={9} y={3} width={6} height={11} rx={3} />
+      <Path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
+      <Path d="M12 18v3" />
+      <Path d="M8.5 21h7" />
+      <Path d="M4 4l16 16" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `keyboard`: type instead. The keys are dots drawn by the round cap. */
+export function KeyboardGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Rect x={2.5} y={6} width={19} height={12} rx={2.5} />
+      <Path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M6.5 14h.01M17.5 14h.01M9.5 14h5" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `plus`. */
+export function PlusGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M12 5v14M5 12h14" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `search`. */
+export function SearchGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Circle cx={10.5} cy={10.5} r={6.5} />
+      <Path d="M15.5 15.5 20.5 20.5" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `settings`: the cog. */
+export function SettingsGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M18.95 9.77L21.33 10.21L21.33 13.79L18.95 14.23A7.3 7.3 0 0 1 18.49 15.34L18.49 15.34L19.87 17.33L17.33 19.87L15.34 18.49A7.3 7.3 0 0 1 14.23 18.95L14.23 18.95L13.79 21.33L10.21 21.33L9.77 18.95A7.3 7.3 0 0 1 8.66 18.49L8.66 18.49L6.67 19.87L4.13 17.33L5.51 15.34A7.3 7.3 0 0 1 5.05 14.23L5.05 14.23L2.67 13.79L2.67 10.21L5.05 9.77A7.3 7.3 0 0 1 5.51 8.66L5.51 8.66L4.13 6.67L6.67 4.13L8.66 5.51A7.3 7.3 0 0 1 9.77 5.05L9.77 5.05L10.21 2.67L13.79 2.67L14.23 5.05A7.3 7.3 0 0 1 15.34 5.51L15.34 5.51L17.33 4.13L19.87 6.67L18.49 8.66A7.3 7.3 0 0 1 18.95 9.77Z" />
+      <Circle cx={12} cy={12} r={3} />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `lock`. */
+export function LockGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Rect x={5} y={11} width={14} height={10} rx={2.5} />
+      <Path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `share`. */
+export function ShareGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M12 3.5v11" />
+      <Path d="M8 7.5 12 3.5l4 4" />
+      <Path d="M8 11.5H5.5A1.5 1.5 0 0 0 4 13v6a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-6a1.5 1.5 0 0 0-1.5-1.5H16" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `cards`: the review deck. */
+export function CardsGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M7 7V5.5A2.5 2.5 0 0 1 9.5 3h9A2.5 2.5 0 0 1 21 5.5v9a2.5 2.5 0 0 1-2.5 2.5H17" />
+      <Rect x={3} y={7} width={14} height={14} rx={2.5} />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `info`. The dot is drawn by the round cap, not a fill. */
+export function InfoGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Circle cx={12} cy={12} r={9.5} />
+      <Path d="M12 11v5" />
+      <Path d="M12 8h.01" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `alert`: beside a field's error line. Errors are never red. */
+export function AlertGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Path d="M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z" />
+      <Path d="M12 9.5v4" />
+      <Path d="M12 17h.01" />
+    </Glyph>
+  );
+}
+
+/** ICONS.md `postcard`. */
+export function PostcardGlyph(props: GlyphProps) {
+  return (
+    <Glyph {...props}>
+      <Rect x={2.5} y={5.5} width={19} height={13} rx={2.5} />
+      <Rect x={15} y={8.5} width={3.5} height={3.5} rx={0.75} />
+      <Path d="M6 11.5h5M6 15h7" />
+    </Glyph>
+  );
 }
