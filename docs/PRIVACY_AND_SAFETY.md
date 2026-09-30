@@ -88,9 +88,54 @@ stops being an accident:
   named `audio`, `recording`, `transcript` and `history` before either the server
   or device cache accepts a pack.
 
-Audio does leave the device to four vendors while a session is live: LiveKit
-carries it, Deepgram transcribes it, ElevenLabs speaks the tutor's side, and
-Speechace scores a pronunciation attempt.
+Audio does leave the device to four vendors. While a session is live, LiveKit
+carries it, Deepgram transcribes it and ElevenLabs speaks the tutor's side. The
+fourth scores a pronunciation attempt, and it is TonePerfect: `selectScoringVendor`
+in `services/shared/pronunciation.ts` picks it whenever `TONEPERFECT_API_KEY` is set
+and nothing says otherwise. Speechace scores instead only when
+`LUVANI_SCORING_VENDOR=speechace` names it, or when its key is the only scoring key
+the server holds. A vendor named without its key scores nothing, so an attempt is
+never sent to a scorer nobody chose. Moving from Speechace to TonePerfect was the
+founder's decision on 29 September 2026 (ledger F616). That is the founder's half of
+the new-vendor escalation in [Escalation and what Luvani is
+not](#escalation-and-what-luvani-is-not); the legal half waits on the same review as
+the rest of this file.
+
+**The scorer hears drills and sound checks, not conversations.** The app uploads one
+attempt to `/drill/score` on the token server (`scoreRecordedAttempt` in
+`apps/mobile/src/speech/scoreAttempt.ts`, called by the drill and sound-check
+screens), and the server, not the phone, calls the vendor. The scripted lesson agent
+can hand a live turn's audio to the same router from `services/tutor-agent/src/tutor.ts`,
+but only when `LUVANI_AUDIO_SCORING=1`, and by the founder's decision of the same day
+it stays off until scoring runs off the reply path (ledger F623). With the flag off
+the agent passes the line alone, and an attempt with no audio is never sent anywhere.
+
+**What TonePerfect is sent** is one multipart request to
+`https://api.toneperfect.app/v1/assess`, made by `services/shared/toneperfect.ts`,
+carrying four things: the attempt's audio, the line it was an attempt at, the language
+code (`fr-FR`, because no caller asks for Quebec French), and an `Idempotency-Key` from
+`crypto.randomUUID()`, made fresh for each attempt and reused only for that attempt's
+one retry. Our key rides in the `Authorization` header and is ours, not the learner's.
+No user id, session id, room id, name or email is in the request, and because the
+server makes the call, the vendor sees the server's address rather than the learner's
+phone. That is not the same as sending nothing personal. The audio is the learner's
+voice. And the line is not always one we wrote: for a sound check it is an authored
+mission line, but for a drill it can be a key phrase from the learner's own
+conversation or the corrected version of something they said (`packExercisesFor` in
+`apps/mobile/src/conversationPacks/packExercises.ts`). A timeout ends our wait, not the
+upload, so an attempt the server gave up on may still have reached the vendor.
+
+**What TonePerfect says it keeps**, and this is the vendor's own statement, not
+something this repo has verified: it deletes the audio once the attempt is scored, and
+keeps the assessment for at most 24 hours. The assessment it returned for the one call
+made so far, committed as `services/tutor-agent/src/fixtures/toneperfect-fr.json`,
+carries the line, the scores and a phonetic spelling of what it heard, so that is the
+kind of record those 24 hours would cover. No account, session or room id is in it for
+as long as the idempotency id stays random, which is why it is never derived from any
+of them. The line is another matter: a drill line drawn from the learner's own
+conversation carries whatever that line said. The learner-facing notice does not
+repeat the figure, for the same reason it names no vendor's retention: a vendor's
+account of what it keeps is not a fact we have checked.
 
 **A fifth vendor receives the words themselves, as text.** The language model
 `brainClient` returns in `services/tutor-agent/src/convo.ts` (Anthropic, OpenAI or
@@ -762,7 +807,7 @@ promise already kept.
 | `product_events` and `session_usage` have no scheduled delete | The 13-month and 24-month retentions are policy, not mechanism | This file, table above |
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The published notice commits to retention periods nothing enforces | Thirteen months for events and two years for usage and trial markers are a promise made in a learner-facing document with no scheduled delete behind it | This file, rows above; `legal/policy.ts` |
-| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's | The privacy text cannot yet describe what any of them keep | Not filed |
+| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
 | Account deletion does not reach the purchase processor | The subscriber record and the purchase history stay with the vendor after the Supabase user is gone; nothing here calls its delete API. Disclosed to learners in the notice; the call itself is still owed | Ledger F498 |
 | Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |

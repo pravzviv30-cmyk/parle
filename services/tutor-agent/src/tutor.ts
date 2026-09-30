@@ -37,7 +37,7 @@ import {
 // from here) and neither module reads the other while it is being evaluated.
 import { TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
-import { scoreUtterance } from './speechace.ts';
+import { scoreUtterance } from '../../shared/pronunciation.ts';
 import { reportUsage } from './usage.ts';
 import { TurnQueue } from './queue.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';

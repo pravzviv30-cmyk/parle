@@ -18,7 +18,7 @@ import {
   type TutorRevision,
 } from '@luvani/core';
 import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
-import { scoreUtterance } from '../../shared/speechace.ts';
+import { scoreUtterance } from '../../shared/pronunciation.ts';
 import {
   DevelopmentEntitlementStore,
   FileEntitlementStore,
@@ -459,8 +459,10 @@ const server = createServer(async (req, res) => {
       const audio = await readAudio(req);
       if (audio.length === 0) return json(res, 400, { error: 'audio body is required' });
 
-      const observations = await scoreUtterance({ reference, audio });
-      // No key, vendor down, or unscorable audio: an empty result, never an
+      // Ten seconds, not the live turn's five: a drill learner is waiting for
+      // a verdict, not sitting in a conversation that has to keep moving.
+      const observations = await scoreUtterance({ reference, audio }, { timeoutMs: 10_000 });
+      // No key, vendor down, timed out, or unscorable audio: an empty result, never an
       // invented penalty. The app treats it as "no verdict". The report is
       // core's — one focus point at most, and only when the evidence earns it.
       const report = buildReport(observations);

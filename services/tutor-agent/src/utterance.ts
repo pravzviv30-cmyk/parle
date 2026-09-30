@@ -37,14 +37,16 @@ export interface CapturedUtterance {
 const WINDOW_SEC = 30;
 
 /**
- * Audio scoring stays behind a flag until it has been run against the real
- * vendor with real keys.
+ * Live audio scoring sits behind a flag, and the flag is off.
  *
- * Not because the capture is doubtful, but because the vendor's phone alphabet
- * is: an unexpected symbol set fails silently to "no focus" rather than loudly,
- * which is exactly the failure this whole change exists to stop shipping. The
- * flag is the difference between "we have not turned it on" and "we turned it
- * on and cannot tell whether it works".
+ * It began as a guard on the vendor's phone alphabet: an unexpected symbol set
+ * fails silently to "no focus" rather than loudly. That alphabet has now been
+ * verified against a real TonePerfect response on 2026-09-29, committed as
+ * fixtures/toneperfect-fr.json, and every symbol in it maps. The flag stays
+ * for a different reason: it is how a deployment switches live scoring off
+ * without pulling keys that drills still use. By the founder's decision of
+ * 2026-09-29 it stays off until scoring runs off the reply path (F623), because
+ * a score awaited before the reply adds three to four seconds of silence.
  */
 export function audioScoringEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.LUVANI_AUDIO_SCORING === '1';

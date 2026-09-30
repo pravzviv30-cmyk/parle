@@ -140,10 +140,30 @@ failure available here, so the machinery is deliberately explicit:
 - **`durationSec`** comes from the same place and is always used. It was hard-coded
   to `0`, which is why speaking share and longest turn read as nothing on every
   live session ever run.
-- **Sending that audio to Speechace is behind `LUVANI_AUDIO_SCORING=1`.** Not
-  because the capture is doubtful, but because the vendor's phone alphabet is: a
-  mismatch fails silently to "no focus", which is exactly the shape of bug this is
-  all here to stop shipping.
+- **Live scoring is built, and switched off.** Sending a live utterance to the
+  scorer is behind `LUVANI_AUDIO_SCORING=1`, and by the founder's decision of
+  2026-09-29 that stays unset until scoring runs off the reply path (F623 in
+  `docs/KNOWN_ISSUES.md`). The score is awaited before the brain replies, and the
+  one TonePerfect call took 3.4 s for a 1.7 s clip, on top of a 4.5 to 5.4 s
+  brain. Until F623 lands, a live end card reads `unavailable`. Drills and sound
+  checks are scored today, by the token server's `/drill/score`, which does not
+  read the flag. Their recordings are .m4a on a phone and WebM on the web, so
+  each upload is labelled from its own first bytes rather than assumed to be WAV.
+- **`services/shared/pronunciation.ts`** is the scoring seam. It picks the vendor
+  by `LUVANI_SCORING_VENDOR`: TonePerfect by default whenever
+  `TONEPERFECT_API_KEY` is set, Speechace when named or when its key is the only
+  one. A vendor named without its key scores nothing, and the audio is never sent
+  to the other one. Each utterance gets one deadline (5 s live, 10 s for a drill)
+  shared by the single retry, and one random Idempotency-Key, so a retry cannot
+  bill twice. A timeout, a refusal, an outage or an unassessable answer is no
+  score, never a low one, and a session where no turn was scored is
+  `unavailable`.
+- **The alphabet is verified for 18 of the 36 sounds.** The one real TonePerfect
+  response is committed as `services/tutor-agent/src/fixtures/toneperfect-fr.json`,
+  and every symbol it returned is plain IPA that maps with no alias. The other 18
+  have not been seen yet. The vendor marks the model experimental and its scale
+  uncalibrated; the first success in a process logs the model id, and every
+  success logs how long it took.
 - **`services/shared/phoneMap.ts`** translates vendor symbols into the inventory's
   IPA and counts what it cannot place, so an alphabet change is one loud log line
   rather than a slow silence.

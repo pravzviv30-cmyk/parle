@@ -18,11 +18,15 @@
  *               text-level answer grading, the silence rescue, per-utterance
  *               audio capture (utterance.ts) and the real spoken duration that
  *               comes with it.
- *   Behind a flag: sending that audio to Speechace. LUVANI_AUDIO_SCORING=1 turns
- *               it on. Off, `scoreUtterance` is called with the reference alone
- *               and returns an empty array, `grade()` treats a null score as
- *               "do not invent a penalty", and the end card says plainly that
- *               nothing was scored rather than rendering a clean session.
+ *   Behind a flag: sending that audio to the pronunciation vendor (TonePerfect
+ *               by default; see services/shared/pronunciation.ts).
+ *               LUVANI_AUDIO_SCORING=1 turns it on, and by the founder's
+ *               decision of 2026-09-29 it stays off until scoring runs off the
+ *               reply path (F623). Off, `scoreUtterance` is called with the
+ *               reference alone and returns an empty array, `grade()` treats a
+ *               null score as "do not invent a penalty", and the end card says
+ *               plainly that nothing was scored rather than rendering a clean
+ *               session.
  */
 
 import { fileURLToPath } from 'node:url';

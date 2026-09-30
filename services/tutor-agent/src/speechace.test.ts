@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseSpeechace, scoreUtterance } from './speechace.ts';
+import { parseSpeechace, scoreWithSpeechace } from './speechace.ts';
+import { scoreUtterance, type ScoreFetch } from '../../shared/pronunciation.ts';
 import { toInventoryIpa } from '../../shared/phoneMap.ts';
 import { buildReport } from '@luvani/core';
 
@@ -93,14 +94,14 @@ describe('degrading safely', () => {
   test('no API key means no score, not an exception', async () => {
     const saved = process.env.SPEECHACE_API_KEY;
     delete process.env.SPEECHACE_API_KEY;
-    assert.deepEqual(await scoreUtterance({ reference: 'Bonjour' }), []);
+    assert.deepEqual(await scoreWithSpeechace({ reference: 'Bonjour' }), []);
     if (saved !== undefined) process.env.SPEECHACE_API_KEY = saved;
   });
 
   test('no audio means no score, even with a key present', async () => {
     const saved = process.env.SPEECHACE_API_KEY;
     process.env.SPEECHACE_API_KEY = 'test-key';
-    assert.deepEqual(await scoreUtterance({ reference: 'Bonjour' }), []);
+    assert.deepEqual(await scoreWithSpeechace({ reference: 'Bonjour' }), []);
     if (saved === undefined) delete process.env.SPEECHACE_API_KEY;
     else process.env.SPEECHACE_API_KEY = saved;
   });
@@ -137,7 +138,7 @@ describe('the request that carries the audio', () => {
 
   test('an utterance with audio is sent to the vendor with its reference text', async () => {
     const { calls, fetchFn } = recorder();
-    await withKey(() => scoreUtterance({ reference: 'Sur place', audio: AUDIO }, fetchFn));
+    await withKey(() => scoreWithSpeechace({ reference: 'Sur place', audio: AUDIO }, { fetchFn }));
 
     assert.equal(calls.length, 1, 'exactly one request should carry the utterance');
     const call = calls[0]!;
@@ -154,19 +155,19 @@ describe('the request that carries the audio', () => {
 
   test('the utterance is scored against the dialect the learner is learning', async () => {
     const { calls, fetchFn } = recorder();
-    await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, fetchFn));
+    await withKey(() => scoreWithSpeechace({ reference: 'Bonjour', audio: AUDIO }, { fetchFn }));
     assert.equal(calls[0]!.init.body!.get('dialect'), 'fr-fr', 'French by default, never English');
     assert.match(calls[0]!.url, /dialect=fr-fr/);
 
     const quebec = recorder();
-    await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO, dialect: 'fr-ca' }, quebec.fetchFn));
+    await withKey(() => scoreWithSpeechace({ reference: 'Bonjour', audio: AUDIO, dialect: 'fr-ca' }, { fetchFn: quebec.fetchFn }));
     assert.equal(quebec.calls[0]!.init.body!.get('dialect'), 'fr-ca');
     assert.match(quebec.calls[0]!.url, /dialect=fr-ca/);
   });
 
   test('what the vendor heard comes back as the learner’s observations', async () => {
     const { fetchFn } = recorder();
-    const observations = await withKey(() => scoreUtterance({ reference: 'Sur place', audio: AUDIO }, fetchFn));
+    const observations = await withKey(() => scoreWithSpeechace({ reference: 'Sur place', audio: AUDIO }, { fetchFn }));
 
     assert.equal(observations.length, 7, 'a scored utterance must produce scores');
     assert.deepEqual(observations[1], { ipa: 'y', score: 41, word: 'sur', substituted: 'u' });
@@ -174,13 +175,13 @@ describe('the request that carries the audio', () => {
 
   test('a vendor that refuses the utterance leaves the session unscored, not broken', async () => {
     const refused = recorder({ ok: false, status: 429 });
-    assert.deepEqual(await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, refused.fetchFn)), []);
+    assert.deepEqual(await withKey(() => scoreWithSpeechace({ reference: 'Bonjour', audio: AUDIO }, { fetchFn: refused.fetchFn })), []);
 
     const thrown = async () => {
       throw new Error('socket hang up');
     };
     assert.deepEqual(
-      await withKey(() => scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, thrown as never)),
+      await withKey(() => scoreWithSpeechace({ reference: 'Bonjour', audio: AUDIO }, { fetchFn: thrown as never })),
       [],
       'a scorer outage degrades to text-only grading rather than ending the session',
     );
@@ -188,15 +189,45 @@ describe('the request that carries the audio', () => {
 
   test('no request is made at all when there is nothing to score', async () => {
     const noAudio = recorder();
-    await withKey(() => scoreUtterance({ reference: 'Bonjour' }, noAudio.fetchFn));
+    await withKey(() => scoreWithSpeechace({ reference: 'Bonjour' }, { fetchFn: noAudio.fetchFn }));
     assert.equal(noAudio.calls.length, 0, 'silence is not worth a vendor round trip');
 
     const noKey = recorder();
     const saved = process.env.SPEECHACE_API_KEY;
     delete process.env.SPEECHACE_API_KEY;
-    await scoreUtterance({ reference: 'Bonjour', audio: AUDIO }, noKey.fetchFn);
+    await scoreWithSpeechace({ reference: 'Bonjour', audio: AUDIO }, { fetchFn: noKey.fetchFn });
     if (saved !== undefined) process.env.SPEECHACE_API_KEY = saved;
     assert.equal(noKey.calls.length, 0, 'an unconfigured scorer must not send the learner’s voice anywhere');
+  });
+
+  test('the Speechace request honours the shared deadline', async (t) => {
+    // Handed straight through: the request runs on the caller's clock, not one of its own.
+    const deadline = new AbortController();
+    const seen: (AbortSignal | undefined)[] = [];
+    const watching: ScoreFetch = async (_url, init) => {
+      seen.push(init.signal);
+      return { ok: true, status: 200, json: async () => RESPONSE };
+    };
+    const env = { SPEECHACE_API_KEY: 'test-key' };
+    await scoreWithSpeechace({ reference: 'Sur place', audio: AUDIO }, { fetchFn: watching, env, signal: deadline.signal });
+    assert.equal(seen[0], deadline.signal);
+
+    // Through the router, whose deadline it is: a Speechace that never answers is let go at the
+    // deadline, and the turn goes on unscored rather than waiting on a vendor.
+    const warned = t.mock.method(console, 'warn', () => {});
+    const hanging: ScoreFetch = (_url, init) => {
+      seen.push(init.signal);
+      return new Promise((_, reject) => init.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true }));
+    };
+    const startedAt = Date.now();
+    const observations = await scoreUtterance(
+      { reference: 'Sur place', audio: AUDIO },
+      { fetchFn: hanging, env: { ...env, LUVANI_SCORING_VENDOR: 'speechace' }, timeoutMs: 30 },
+    );
+    assert.deepEqual(observations, [], 'a timeout is no score, never a low one');
+    assert.ok(seen[1]?.aborted, 'the request itself was told to give up, so no socket is left open');
+    assert.ok(Date.now() - startedAt < 2000);
+    assert.ok(warned.mock.calls.some((c) => /speechace/.test(String(c.arguments[0]))), 'and the log says which vendor ran out of time');
   });
 });
 

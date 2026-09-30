@@ -259,6 +259,28 @@ describe('the secret scanner — shapes found, values never spoken', () => {
     assert.deepEqual(scanLine('FISH_AUDIO_API_KEY=your-fish-audio-key-here'), []);
   });
 
+  test('an inline TONEPERFECT_API_KEY assignment is caught as a server-only credential', () => {
+    // TonePerfect scores drills and sound checks, and it bills a credit per
+    // fifteen seconds of audio, so a leaked key spends real money on somebody
+    // else's voice. It lives in the servers' .env files and nowhere else.
+    assert.deepEqual(scanLine(`TONEPERFECT_API_KEY=${token(40)}`), ['assigned-server-secret']);
+    assert.deepEqual(scanLine(`        TONEPERFECT_API_KEY: '${token(32)}',`), ['assigned-server-secret']);
+    assert.ok(
+      scanLine(`TONEPERFECT_API_KEY=${letters(32)}`).includes('assigned-server-secret'),
+      'a key of only letters must not be forgiven as a variable name',
+    );
+
+    // Wiring it up is not leaking it, and neither is the stand-in an example file carries.
+    assert.deepEqual(scanLine('const key = env.TONEPERFECT_API_KEY?.trim();'), []);
+    assert.deepEqual(scanLine('        TONEPERFECT_API_KEY: process.env.TONEPERFECT_API_KEY,'), []);
+    assert.deepEqual(scanLine('# TONEPERFECT_API_KEY='), []);
+    assert.deepEqual(scanLine('TONEPERFECT_API_KEY=<your toneperfect key here>'), []);
+
+    // Name-anchored only, like fish: TonePerfect's key format is unverified, and a
+    // guessed shape cries wolf until somebody switches the scanner off.
+    assert.deepEqual(patternIds().filter((id) => /toneperfect/i.test(id)), []);
+  });
+
   test('the history walker names the commit and line that introduced a secret', () => {
     const leaked = `gsk_${token(52)}`;
     const diff = [

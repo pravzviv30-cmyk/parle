@@ -8889,7 +8889,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/shared/pronunciation.ts:1
 - note: captured audio never reaches a scorer (`LUVANI_AUDIO_SCORING` unset), so every live end card reads `unavailable`; the one adapter is Speechace and the founder chose TonePerfect on 2026-09-29. Add a vendor-neutral router chosen by `LUVANI_SCORING_VENDOR` (TonePerfect when its key is set, Speechace otherwise, a named vendor without its key scores nothing), a TonePerfect adapter that goes through `phoneMap` into the same `PhonemeObservation[]`, one shared 5 s deadline, one random Idempotency-Key per call reused on the single retry, and a failure policy where a timeout, refusal, outage or unassessable answer is no score and never a low one. The real response is committed as `services/tutor-agent/src/fixtures/toneperfect-fr.json`; all 18 returned symbols map with none unmapped, and the tutor's own recording deterministically yields no focus. The model is marked experimental. Live-session scoring stays off by the founder's decision of 2026-09-29 until scoring runs off the reply path (see the follow-up entry).
 - verified-by: `TonePerfect is chosen whenever its key is set and nothing says otherwise`
@@ -8918,3 +8918,24 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/tutor-agent/src/tutor.ts:482
 - note: `scoreUtterance` is awaited in `onUserTurnCompleted` before the brain replies, and `grade()` reads the turn's mean at `packages/core/src/session/session.ts:286`, so a live scene would wait for the scorer (3.4 s for a 1.7 s clip in the one TonePerfect call) on top of the brain (4.5 to 5.4 s). By the founder's decision of 2026-09-29, live-session scoring stays off (`LUVANI_AUDIO_SCORING` unset) while drills and sound checks score through the token server. The fix runs scoring alongside the reply and lets the grade read the score when it lands; it touches core session code, which has no specialist by design, so it needs its own contract in Round 2.
 - verified-by: `a live turn's reply never waits for the pronunciation score`
+
+### F624 — Drill and sound-check audio went to TonePerfect labelled as WAV whatever it was
+- severity: P2
+- status: [x]
+- where: services/shared/toneperfect.ts:64
+- note: found by the Stage 5 judge. Drills and sound checks record with expo-audio's high-quality preset, which is AAC in an .m4a container on a phone and WebM on the web, and `/drill/score` forwards those bytes unchanged, but every upload was typed `audio/wav` and named `utterance.wav`. A vendor that trusts the label would refuse the attempt, and a refusal is no score, so drills would have gone quietly unscored. `sniffAudio` now reads the container from its first bytes (WAV, M4A, WebM, OGG, MP3, else `application/octet-stream`) and the upload carries that type and a matching filename.
+- verified-by: `a drill recording is sent to TonePerfect labelled with the format it was recorded in`
+
+### F625 — The drill judge sends a learner's French to the language model, and the policy says nothing reaches it after a session
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/legal/policy.ts:152
+- note: found by the privacy-safety-engineer during Stage 5; it came in with the Jev merge and predates revamp B. `POST /drill/judge` (`services/token-server/src/server.ts:478`) hands the learner's own-words drill attempt and the target to the language model vendor, while the policy's vendor section ends "Nothing more about that session reaches any of them after that" and names no drill judging at all. `docs/PRIVACY_AND_SAFETY.md` does not describe the route either. The fix is a sentence in both, owned by privacy-safety-engineer, plus the regenerated legal HTML; no code changes.
+- verified-by: `the policy says a drill answer in your own words is read by the language model`
+
+### F626 — A drill score request puts the learner's id and the line in the URL
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/speech/scoreAttempt.ts:30
+- note: found by the privacy-safety-engineer during Stage 5; it predates revamp B. `scoreRecordedAttempt` calls `/drill/score?userId=…&reference=…`, and a query string is what proxies, hosting access logs and crash reports record by default. The line can be the learner's own corrected sentence (`packExercisesFor`), so it is personal. Move both into request headers or a small JSON envelope, and have the server refuse the old query form; the server change belongs to backend-engineer and the call site to practice-ux-engineer.
+- verified-by: `a drill score request carries no learner id or line in its URL`

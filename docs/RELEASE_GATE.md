@@ -30,8 +30,10 @@ the date, environment and evidence location. A blank item is a release block.
   controller identity, contact route, governing law, vendor terms and retention
   schedule have been confirmed. Publish the reviewed versions before inviting
   learners.
-- [ ] Confirm LiveKit, Deepgram, ElevenLabs and Speechace retention and
-  deletion terms; amend the learner-facing policy to match, not to assume.
+- [ ] Confirm LiveKit, Deepgram, ElevenLabs, Speechace and TonePerfect retention
+  and deletion terms; amend the learner-facing policy to match, not to assume.
+  TonePerfect says it deletes audio after scoring and keeps the assessment JSON
+  for at most 24 hours; that is the vendor's statement, not yet verified.
 - [ ] Rotate the four credentials recorded in the historical secret incident and
   verify the old credentials no longer work.
 - [ ] Name the support and privacy-contact route, incident owner and rollback
