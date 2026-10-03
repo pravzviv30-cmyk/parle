@@ -1,14 +1,13 @@
 # Privacy and safety
 
-> 18 nodes · cohesion 0.11
+> 17 nodes · cohesion 0.11
 
 ## Key Concepts
 
-- **Privacy and safety** (10 connections) — `docs/PRIVACY_AND_SAFETY.md`
+- **Privacy and safety** (12 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Review package for an external professional** (5 connections) — `docs/PRIVACY_AND_SAFETY.md`
-- **The safety boundary** (3 connections) — `docs/PRIVACY_AND_SAFETY.md`
+- **The safety boundary** (4 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Escalation and what Luvani is not** (2 connections) — `docs/PRIVACY_AND_SAFETY.md`
-- **Raw speech is never stored** (2 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **An under-13 stop is remembered on this device** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Analytics: consent, opt-out and retention** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
 - **Antifraud identifiers: purpose, retention and disclosure** (1 connections) — `docs/PRIVACY_AND_SAFETY.md`
@@ -25,7 +24,7 @@
 
 ## Relationships
 
-- [Onboarding — everything before the first French word](Onboarding_—_everything_before_the_first_French_word.md) (1 shared connections)
+- [backoff.ts](backoff.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -33,7 +32,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 18 (100%)
+- EXTRACTED: 21 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

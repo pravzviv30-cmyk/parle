@@ -7,8 +7,8 @@
 - **evidenceContract.test.ts** (50 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
 - **readRows()** (4 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
 - **supabaseClaimProblems()** (4 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
+- **classify()** (3 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
 - **readMatrix()** (3 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
-- **classify()** (2 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
 - **provenLiveEntries()** (2 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
 - **readFindings()** (2 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
 - **readLedger()** (2 connections) — `services/token-server/src/verify/evidenceContract.test.ts`
@@ -34,8 +34,9 @@
 ## Relationships
 
 - [supabaseLive.ts](supabaseLive.ts.md) (3 shared connections)
-- [upstashLive.ts](upstashLive.ts.md) (3 shared connections)
-- [tokens.ts](tokens.ts.md) (2 shared connections)
+- [wallAccount.ts](wallAccount.ts.md) (3 shared connections)
+- [profile/store.ts](profile-store.ts.md) (2 shared connections)
+- [ciContract.test.ts](ciContract.test.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -43,7 +44,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 58 (100%)
+- EXTRACTED: 59 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

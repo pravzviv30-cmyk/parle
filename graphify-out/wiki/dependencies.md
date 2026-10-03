@@ -6,7 +6,7 @@
 
 - **dependencies** (13 connections) — `services/tutor-agent/package.json`
 - **tutor-agent/package.json** (8 connections) — `services/tutor-agent/package.json`
-- **scripts** (7 connections) — `services/tutor-agent/package.json`
+- **scripts** (8 connections) — `services/tutor-agent/package.json`
 - **devDependencies** (3 connections) — `services/tutor-agent/package.json`
 - **dotenv** (2 connections) — `services/tutor-agent/package.json`
 - **@livekit/agents** (2 connections) — `services/tutor-agent/package.json`
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 42 (100%)
+- EXTRACTED: 43 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

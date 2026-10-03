@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- [space](space.md) (1 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (1 shared connections)
 
 ## Source Files
 

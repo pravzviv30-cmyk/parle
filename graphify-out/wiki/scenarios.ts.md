@@ -1,74 +1,68 @@
 # scenarios.ts
 
-> 30 nodes · cohesion 0.12
+> 46 nodes · cohesion 0.10
 
 ## Key Concepts
 
-- **scenarios.ts** (33 connections) — `packages/core/src/daily/scenarios.ts`
-- **DailyScenario** (21 connections) — `packages/core/src/daily/scenarios.ts`
-- **MissionPlace** (19 connections) — `packages/core/src/missions/missions.ts`
-- **SavedRow** (4 connections) — `apps/mobile/src/myfrench/model.ts`
-- **HeroFacts** (3 connections) — `apps/mobile/src/home/homeMission.ts`
-- **CanDoRow** (3 connections) — `apps/mobile/src/progress/progressView.ts`
-- **adminAndPaperwork.ts** (3 connections) — `packages/core/src/daily/scenes/adminAndPaperwork.ts`
-- **cafeAndFood.ts** (3 connections) — `packages/core/src/daily/scenes/cafeAndFood.ts`
-- **cultureAndDaysOff.ts** (3 connections) — `packages/core/src/daily/scenes/cultureAndDaysOff.ts`
-- **friendsAndSmallTalk.ts** (3 connections) — `packages/core/src/daily/scenes/friendsAndSmallTalk.ts`
-- **goingOut.ts** (3 connections) — `packages/core/src/daily/scenes/goingOut.ts`
-- **healthAndPharmacy.ts** (3 connections) — `packages/core/src/daily/scenes/healthAndPharmacy.ts`
-- **homeAndNeighbours.ts** (3 connections) — `packages/core/src/daily/scenes/homeAndNeighbours.ts`
-- **shopsAndMarkets.ts** (3 connections) — `packages/core/src/daily/scenes/shopsAndMarkets.ts`
-- **transport.ts** (3 connections) — `packages/core/src/daily/scenes/transport.ts`
-- **workAndStudy.ts** (3 connections) — `packages/core/src/daily/scenes/workAndStudy.ts`
-- **ResumableDoor** (2 connections) — `apps/mobile/src/tutor/gate.ts`
-- **SCENES_ADMIN_AND_PAPERWORK** (2 connections) — `packages/core/src/daily/scenes/adminAndPaperwork.ts`
-- **SCENES_CAFE_AND_FOOD** (2 connections) — `packages/core/src/daily/scenes/cafeAndFood.ts`
-- **SCENES_CULTURE_AND_DAYS_OFF** (2 connections) — `packages/core/src/daily/scenes/cultureAndDaysOff.ts`
-- **SCENES_FRIENDS_AND_SMALL_TALK** (2 connections) — `packages/core/src/daily/scenes/friendsAndSmallTalk.ts`
-- **SCENES_GOING_OUT** (2 connections) — `packages/core/src/daily/scenes/goingOut.ts`
-- **SCENES_HEALTH_AND_PHARMACY** (2 connections) — `packages/core/src/daily/scenes/healthAndPharmacy.ts`
-- **SCENES_HOME_AND_NEIGHBOURS** (2 connections) — `packages/core/src/daily/scenes/homeAndNeighbours.ts`
-- **SCENES_SHOPS_AND_MARKETS** (2 connections) — `packages/core/src/daily/scenes/shopsAndMarkets.ts`
-- *... and 5 more nodes in this community*
+- **normalise()** (37 connections) — `packages/core/src/lessons/types.ts`
+- **lessons/types.ts** (29 connections) — `packages/core/src/lessons/types.ts`
+- **CAFE_LESSON** (23 connections) — `packages/core/src/lessons/cafe.ts`
+- **lessons/index.ts** (20 connections) — `packages/core/src/lessons/index.ts`
+- **Lesson** (15 connections) — `packages/core/src/lessons/types.ts`
+- **progress/history.ts** (14 connections) — `packages/core/src/progress/history.ts`
+- **lessons.test.ts** (13 connections) — `packages/core/src/lessons/lessons.test.ts`
+- **progress/export.ts** (13 connections) — `packages/core/src/progress/export.ts`
+- **progress/index.ts** (13 connections) — `packages/core/src/progress/index.ts`
+- **progress.test.ts** (13 connections) — `packages/core/src/progress/progress.test.ts`
+- **cards.test.ts** (13 connections) — `packages/core/src/review/cards.test.ts`
+- **matchAcceptable()** (12 connections) — `packages/core/src/lessons/types.ts`
+- **cards.ts** (12 connections) — `packages/core/src/review/cards.ts`
+- **cafe.ts** (10 connections) — `packages/core/src/lessons/cafe.ts`
+- **buildEntries()** (8 connections) — `packages/core/src/progress/export.ts`
+- **LESSONS** (7 connections) — `packages/core/src/lessons/index.ts`
+- **buildTrends()** (7 connections) — `packages/core/src/progress/history.ts`
+- **buildCardsFromSummary()** (7 connections) — `packages/core/src/review/cards.ts`
+- **LessonTurn** (6 connections) — `packages/core/src/lessons/types.ts`
+- **buildReport()** (6 connections) — `packages/core/src/progress/history.ts`
+- **ProgressReport** (5 connections) — `packages/core/src/progress/history.ts`
+- **contentHits()** (4 connections) — `packages/core/src/lessons/types.ts`
+- **isAcceptable()** (4 connections) — `packages/core/src/lessons/types.ts`
+- **words()** (4 connections) — `packages/core/src/lessons/types.ts`
+- **toCsv()** (4 connections) — `packages/core/src/progress/export.ts`
+- *... and 21 more nodes in this community*
 
 ## Relationships
 
-- [daily.test.ts](daily.test.ts.md) (8 shared connections)
-- [homeMission.ts](homeMission.ts.md) (4 shared connections)
-- [myfrench/model.ts](myfrench-model.ts.md) (4 shared connections)
-- [abilities.ts](abilities.ts.md) (4 shared connections)
-- [PracticeTab.tsx](PracticeTab.tsx.md) (3 shared connections)
-- [chooserView.ts](chooserView.ts.md) (3 shared connections)
-- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) (2 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (2 shared connections)
-- [TutorTab.tsx](TutorTab.tsx.md) (2 shared connections)
-- [MissionHero.tsx](MissionHero.tsx.md) (2 shared connections)
-- [drill/session.ts](drill-session.ts.md) (1 shared connections)
-- [story.ts](story.ts.md) (1 shared connections)
+- [soundLead.ts](soundLead.ts.md) (17 shared connections)
+- [phonemes/index.ts](phonemes-index.ts.md) (15 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (8 shared connections)
+- [nativeEvalAgent.ts](nativeEvalAgent.ts.md) (8 shared connections)
+- [conversation.ts](conversation.ts.md) (6 shared connections)
+- [lessons/types.ts](lessons-types.ts.md) (6 shared connections)
+- [profile.ts](profile.ts.md) (6 shared connections)
+- [soundcheck/store.ts](soundcheck-store.ts.md) (4 shared connections)
+- [chooserView.ts](chooserView.ts.md) (4 shared connections)
+- [journal.ts](journal.ts.md) (4 shared connections)
+- [dashboard.ts](dashboard.ts.md) (3 shared connections)
+- [generate.ts](generate.ts.md) (3 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/home/homeMission.ts`
-- `apps/mobile/src/myfrench/model.ts`
-- `apps/mobile/src/progress/progressView.ts`
-- `apps/mobile/src/tutor/gate.ts`
-- `packages/core/src/daily/scenarios.ts`
-- `packages/core/src/daily/scenes/adminAndPaperwork.ts`
-- `packages/core/src/daily/scenes/cafeAndFood.ts`
-- `packages/core/src/daily/scenes/cultureAndDaysOff.ts`
-- `packages/core/src/daily/scenes/friendsAndSmallTalk.ts`
-- `packages/core/src/daily/scenes/goingOut.ts`
-- `packages/core/src/daily/scenes/healthAndPharmacy.ts`
-- `packages/core/src/daily/scenes/homeAndNeighbours.ts`
-- `packages/core/src/daily/scenes/shopsAndMarkets.ts`
-- `packages/core/src/daily/scenes/transport.ts`
-- `packages/core/src/daily/scenes/workAndStudy.ts`
-- `packages/core/src/missions/missions.ts`
+- `packages/core/src/lessons/cafe.ts`
+- `packages/core/src/lessons/index.ts`
+- `packages/core/src/lessons/lessons.test.ts`
+- `packages/core/src/lessons/types.ts`
+- `packages/core/src/progress/export.ts`
+- `packages/core/src/progress/history.ts`
+- `packages/core/src/progress/index.ts`
+- `packages/core/src/progress/progress.test.ts`
+- `packages/core/src/review/cards.test.ts`
+- `packages/core/src/review/cards.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 87 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 228 (97%)
+- INFERRED: 7 (3%)
 - AMBIGUOUS: 0 (0%)
 
 ---

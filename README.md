@@ -63,8 +63,8 @@ npm run web
 First open: a moving welcome, then create an account (with no Supabase
 configured, accounts live in a local on-device store — any email works, and the
 Google button signs into a dev account instantly), answer the three onboarding
-questions, and land on five tabs along the bottom — Home, Tutor, Practice,
-My French, Profile.
+questions, and land on five tabs along the bottom — Home, Speak, Practice,
+Progress, Friends. The profile button opens Profile and Settings.
 
 Go to **Practice** and tap **Start the lesson** — and, this is the point, *say
 nothing for four seconds*. The tutor steps in, drops a rung, and offers you the
@@ -180,8 +180,23 @@ labelled with the process it came from, and Ctrl-C stops all of them.
 Two things it does that are worth knowing. It checks both `.env` files *before*
 starting anything, so a missing key is one line on your terminal rather than a
 room that opens and a tutor that never speaks. And if something is already
-running on one of the ports it will reuse it when it recognises it and refuse
-when it does not, naming the port and how to find out what has it.
+running on a service port it will reuse it when it recognises it and refuse
+when it does not, naming the port and how to find out what has it. An existing
+web preview is always refused: its HTML cannot prove which checkout it serves.
+Stop that preview first, then run this command from the checkout you want.
+The supervisor prints its checkout and Git revision and clears Metro's cache
+when it starts the app.
+
+For a fresh app-only preview without voice services, run this from the current
+checkout and use the URL Expo prints:
+
+```bash
+npm run web --workspace=@luvani/mobile -- --clear --localhost --port 0
+```
+
+An old browser tab, exported `dist`, or server on another branch keeps serving
+that version until you reload the correct URL, rebuild the export, or restart
+from the current checkout. See [the cleanup audit](docs/DELETION_LEDGER.md#main-and-preview-audit-3-october-2026).
 
 Starting them by hand still works if you want one process on its own:
 
@@ -277,3 +292,8 @@ source evidence and [the acceptance worksheet](docs/UX_ACCEPTANCE_REVIEW.md)
 for the remaining physical-device, French-review and sandbox/hosted checks.
 The 3 October source gate passes 4,232 tests; this does not replace those release
 checks. The founder's preview feedback can guide the next refinements.
+
+The subsequent [main and preview cleanup audit](docs/DELETION_LEDGER.md#main-and-preview-audit-3-october-2026)
+passes 4,237 tests and a fresh web export. It removes unused presentation and generic
+audio, preserves active app/data/billing code, and prevents the dev supervisor from
+silently reusing an older preview checkout.

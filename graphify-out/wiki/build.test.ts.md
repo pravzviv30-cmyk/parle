@@ -1,33 +1,30 @@
 # build.test.ts
 
-> 11 nodes · cohesion 0.20
+> 7 nodes · cohesion 0.38
 
 ## Key Concepts
 
-- **build.test.ts** (12 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **bracedAfter()** (2 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **functionBody()** (2 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **APP_JSON** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **AppConfig** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **config** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **HERE** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **NATIVE** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **pluginProps()** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **stringConst()** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
-- **stripComments()** (1 connections) — `apps/mobile/src/reminders/build.test.ts`
+- **landingProblems()** (7 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
+- **GitFacts** (4 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
+- **looksLikeBranch()** (3 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
+- **backticked()** (2 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
+- **.hasCommit()** (2 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
+- **.inHistory()** (2 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
+- **.landedOnMain()** (2 connections) — `services/token-server/src/verify/deliveryRoadmap.test.ts`
 
 ## Relationships
 
-- [guilt.ts](guilt.ts.md) (2 shared connections)
+- [deliveryRoadmap.test.ts](deliveryRoadmap.test.ts.md) (5 shared connections)
+- [capabilities.ts](capabilities.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/reminders/build.test.ts`
+- `services/token-server/src/verify/deliveryRoadmap.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 13 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 13 (93%)
+- INFERRED: 1 (7%)
 - AMBIGUOUS: 0 (0%)
 
 ---

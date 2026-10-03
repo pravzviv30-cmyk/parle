@@ -4,47 +4,47 @@
 
 ## Key Concepts
 
-- **reminder.ts** (28 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **SettingsScreen()** (28 connections) — `apps/mobile/src/settings/SettingsScreen.tsx`
+- **reminder.ts** (36 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **SettingsScreen()** (30 connections) — `apps/mobile/src/settings/SettingsScreen.tsx`
+- **reminders/store.ts** (23 connections) — `apps/mobile/src/reminders/store.ts`
 - **reminder.test.ts** (22 connections) — `apps/mobile/src/reminders/reminder.test.ts`
 - **SettingsScreen.test.ts** (19 connections) — `apps/mobile/src/settings/SettingsScreen.test.ts`
-- **reminders/store.ts** (18 connections) — `apps/mobile/src/reminders/store.ts`
+- **reminderTime** (15 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **schedule.ts** (14 connections) — `apps/mobile/src/reminders/schedule.ts`
 - **schedule.native.ts** (14 connections) — `apps/mobile/src/reminders/schedule.native.ts`
 - **reminders/store.test.ts** (13 connections) — `apps/mobile/src/reminders/store.test.ts`
-- **schedule.ts** (12 connections) — `apps/mobile/src/reminders/schedule.ts`
-- **reminderTime** (8 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **reminderRow** (7 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **loadReminder()** (6 connections) — `apps/mobile/src/reminders/store.ts`
-- **ReminderTimeId** (5 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **saveReminder()** (5 connections) — `apps/mobile/src/reminders/store.ts`
-- **TUTOR_NAME** (5 connections) — `apps/mobile/src/tutor/tutorName.ts`
+- **ReminderTimeId** (11 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **saveReminder()** (11 connections) — `apps/mobile/src/reminders/store.ts`
+- **reminderRow** (10 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **StoredReminder** (9 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **loadReminder()** (8 connections) — `apps/mobile/src/reminders/store.ts`
+- **ReminderPermission** (7 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **DEFAULT_REMINDER_TIME** (6 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **askReminderPermission()** (6 connections) — `apps/mobile/src/reminders/schedule.ts`
+- **reminderPermission()** (6 connections) — `apps/mobile/src/reminders/schedule.ts`
+- **scheduleReminder()** (6 connections) — `apps/mobile/src/reminders/schedule.ts`
+- **TUTOR_NAME** (6 connections) — `apps/mobile/src/tutor/tutorName.ts`
+- **REMINDER_EXPLAIN** (5 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **REMINDER_REFUSED** (5 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **REMINDER_TIMES** (5 connections) — `apps/mobile/src/reminders/reminder.ts`
+- **REMINDERS_AVAILABLE** (5 connections) — `apps/mobile/src/reminders/schedule.ts`
 - **reminderContent** (4 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **StoredReminder** (4 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **askReminderPermission()** (4 connections) — `apps/mobile/src/reminders/schedule.ts`
-- **cancelReminder()** (4 connections) — `apps/mobile/src/reminders/schedule.ts`
-- **scheduleReminder()** (4 connections) — `apps/mobile/src/reminders/schedule.native.ts`
-- **reminderPermission()** (4 connections) — `apps/mobile/src/reminders/schedule.ts`
-- **REMINDERS_AVAILABLE** (4 connections) — `apps/mobile/src/reminders/schedule.ts`
-- **scheduleReminder()** (4 connections) — `apps/mobile/src/reminders/schedule.ts`
-- **KEY()** (4 connections) — `apps/mobile/src/reminders/store.ts`
-- **DEFAULT_REMINDER_TIME** (3 connections) — `apps/mobile/src/reminders/reminder.ts`
-- **REMINDER_EXPLAIN** (3 connections) — `apps/mobile/src/reminders/reminder.ts`
 - *... and 45 more nodes in this community*
 
 ## Relationships
 
 - [SettingsScreen.tsx](SettingsScreen.tsx.md) (20 shared connections)
-- [scope.ts](scope.ts.md) (9 shared connections)
-- [schedule.test.ts](schedule.test.ts.md) (8 shared connections)
-- [guilt.ts](guilt.ts.md) (4 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (19 shared connections)
+- [TutorVoiceKey](TutorVoiceKey.md) (9 shared connections)
+- [SettingsScreen](SettingsScreen.md) (8 shared connections)
+- [practice/history.ts](practice-history.ts.md) (4 shared connections)
+- [guiltIn](guiltIn.md) (3 shared connections)
 - [phoneSettings.test.ts](phoneSettings.test.ts.md) (3 shared connections)
 - [html.ts](html.ts.md) (3 shared connections)
-- [TutorVoiceKey](TutorVoiceKey.md) (2 shared connections)
-- [userKey](userKey.md) (2 shared connections)
-- [space](space.md) (2 shared connections)
-- [WallScreen.tsx](WallScreen.tsx.md) (2 shared connections)
-- [disclosure.test.ts](disclosure.test.ts.md) (2 shared connections)
-- [review/store.ts](review-store.ts.md) (1 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (2 shared connections)
+- [mockAdapter.ts](mockAdapter.ts.md) (2 shared connections)
+- [abilities.ts](abilities.ts.md) (2 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (2 shared connections)
 
 ## Source Files
 
@@ -60,8 +60,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 186 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 251 (98%)
+- INFERRED: 4 (2%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -1,29 +1,42 @@
 # Testing
 
-> 7 nodes · cohesion 0.29
+> 14 nodes · cohesion 0.26
 
 ## Key Concepts
 
-- **Testing** (6 connections) — `docs/TESTING.md`
-- **TESTING.md** (2 connections) — `docs/TESTING.md`
-- **Never** (1 connections) — `docs/TESTING.md`
-- **Running** (1 connections) — `docs/TESTING.md`
-- **The rule that matters most** (1 connections) — `docs/TESTING.md`
-- **What is not covered** (1 connections) — `docs/TESTING.md`
-- **Writing** (1 connections) — `docs/TESTING.md`
+- **apple.native.ts** (13 connections) — `apps/mobile/src/auth/apple.native.ts`
+- **appleNonce.ts** (7 connections) — `apps/mobile/src/auth/appleNonce.ts`
+- **appleNonce.test.ts** (7 connections) — `apps/mobile/src/auth/appleNonce.test.ts`
+- **makeNonce()** (5 connections) — `apps/mobile/src/auth/appleNonce.ts`
+- **startAppleSignIn()** (4 connections) — `apps/mobile/src/auth/apple.native.ts`
+- **rawNonce()** (4 connections) — `apps/mobile/src/auth/appleNonce.ts`
+- **sha256Hex** (4 connections) — `apps/mobile/src/auth/appleNonce.ts`
+- **toHex()** (4 connections) — `apps/mobile/src/auth/appleNonce.ts`
+- **APPLE_CLOSED** (3 connections) — `apps/mobile/src/auth/friendly.ts`
+- **digest()** (2 connections) — `apps/mobile/src/auth/apple.native.ts`
+- **appleSignInOffered()** (1 connections) — `apps/mobile/src/auth/apple.native.ts`
+- **AppleNonce** (1 connections) — `apps/mobile/src/auth/appleNonce.ts`
+- **read()** (1 connections) — `apps/mobile/src/auth/appleNonce.test.ts`
+- **RFC-6234** (1 connections) — `apps/mobile/src/auth/appleNonce.test.ts`
 
 ## Relationships
 
-- [docs/README.md](docs-README.md.md) (1 shared connections)
+- [supabaseAdapter.ts](supabaseAdapter.ts.md) (6 shared connections)
+- [core/src/index.ts](core-src-index.ts.md) (1 shared connections)
+- [recognition.ts](recognition.ts.md) (1 shared connections)
+- [ConversationsScreen.test.ts](ConversationsScreen.test.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `docs/TESTING.md`
+- `apps/mobile/src/auth/apple.native.ts`
+- `apps/mobile/src/auth/appleNonce.test.ts`
+- `apps/mobile/src/auth/appleNonce.ts`
+- `apps/mobile/src/auth/friendly.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 7 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 32 (97%)
+- INFERRED: 1 (3%)
 - AMBIGUOUS: 0 (0%)
 
 ---

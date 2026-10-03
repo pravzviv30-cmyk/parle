@@ -27,9 +27,9 @@
 
 ## Relationships
 
-- [Onboarding — everything before the first French word](Onboarding_—_everything_before_the_first_French_word.md) (1 shared connections)
-- [iOS](iOS.md) (1 shared connections)
-- [The first run on five viewports](The_first_run_on_five_viewports.md) (1 shared connections)
+- [backoff.ts](backoff.ts.md) (1 shared connections)
+- [madeFrom.ts](madeFrom.ts.md) (1 shared connections)
+- [funnel.test.ts](funnel.test.ts.md) (1 shared connections)
 
 ## Source Files
 

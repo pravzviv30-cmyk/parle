@@ -1,35 +1,33 @@
 # SessionView.test.ts
 
-> 11 nodes · cohesion 0.25
+> 5 nodes · cohesion 0.53
 
 ## Key Concepts
 
-- **SessionView.test.ts** (9 connections) — `apps/mobile/src/SessionView.test.ts`
-- **typingPing.ts** (5 connections) — `apps/mobile/src/tutor/typingPing.ts`
-- **shouldPingTyping()** (5 connections) — `apps/mobile/src/tutor/typingPing.ts`
-- **typingPing.test.ts** (3 connections) — `apps/mobile/src/tutor/typingPing.test.ts`
-- **TYPING_PING_MS** (3 connections) — `apps/mobile/src/tutor/typingPing.ts`
-- **convo** (1 connections) — `apps/mobile/src/SessionView.test.ts`
-- **read()** (1 connections) — `apps/mobile/src/SessionView.test.ts`
-- **screen** (1 connections) — `apps/mobile/src/SessionView.test.ts`
-- **stripComments()** (1 connections) — `apps/mobile/src/SessionView.test.ts`
-- **typingFor()** (1 connections) — `apps/mobile/src/SessionView.test.ts`
-- **view** (1 connections) — `apps/mobile/src/SessionView.test.ts`
+- **tapSettled()** (15 connections) — `apps/mobile/src/motion/haptics.ts`
+- **haptics.ts** (13 connections) — `apps/mobile/src/motion/haptics.ts`
+- **arrived()** (8 connections) — `apps/mobile/src/motion/haptics.ts`
+- **haptics.test.ts** (6 connections) — `apps/mobile/src/motion/haptics.test.ts`
+- **read()** (1 connections) — `apps/mobile/src/motion/haptics.test.ts`
 
 ## Relationships
 
-- [useLiveSession.ts](useLiveSession.ts.md) (3 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (13 shared connections)
+- [HomeTab.test.ts](HomeTab.test.ts.md) (3 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (3 shared connections)
+- [createPhraseAudioCache](createPhraseAudioCache.md) (2 shared connections)
+- [src/theme.ts](src-theme.ts.md) (1 shared connections)
+- [levels.ts](levels.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/SessionView.test.ts`
-- `apps/mobile/src/tutor/typingPing.test.ts`
-- `apps/mobile/src/tutor/typingPing.ts`
+- `apps/mobile/src/motion/haptics.test.ts`
+- `apps/mobile/src/motion/haptics.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 17 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 36 (97%)
+- INFERRED: 1 (3%)
 - AMBIGUOUS: 0 (0%)
 
 ---

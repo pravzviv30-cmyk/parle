@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **useLiveSession.test.ts** (75 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
+- **useLiveSession.test.ts** (81 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **run()** (5 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **fragment()** (4 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
 - **asJs()** (3 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
@@ -33,18 +33,18 @@
 
 ## Relationships
 
+- [greeting.ts](greeting.ts.md) (6 shared connections)
 - [journal.ts](journal.ts.md) (6 shared connections)
-- [failure.ts](failure.ts.md) (5 shared connections)
-- [choosingView.ts](choosingView.ts.md) (4 shared connections)
-- [protocol.ts](protocol.ts.md) (3 shared connections)
+- [typesafe.ts](typesafe.ts.md) (4 shared connections)
+- [getMission](getMission.md) (3 shared connections)
 - [profile.ts](profile.ts.md) (3 shared connections)
-- [safetyView.test.ts](safetyView.test.ts.md) (3 shared connections)
+- [MissionProgress](MissionProgress.md) (3 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (2 shared connections)
 - [TutorVoiceKey](TutorVoiceKey.md) (2 shared connections)
-- [scope.ts](scope.ts.md) (2 shared connections)
-- [useLiveSession.ts](useLiveSession.ts.md) (2 shared connections)
-- [startOwnership.test.ts](startOwnership.test.ts.md) (2 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (1 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (1 shared connections)
+- [drill/index.ts](drill-index.ts.md) (2 shared connections)
+- [threads.ts](threads.ts.md) (2 shared connections)
+- [nav/wiring.test.ts](nav-wiring.test.ts.md) (1 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -52,7 +52,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 88 (99%)
+- EXTRACTED: 94 (99%)
 - INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 

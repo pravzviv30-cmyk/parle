@@ -108,9 +108,9 @@ before public social launch. There are no DMs or public/global leaderboards.
   tutor or the old generic voice. Home rotates only fully voiced picks, balanced
   across the three tiers (67/67/66 of each type). The other 1,600 text items keep
   saving and self-recording practice, with explicit coverage copy and no Hear.
-- The earlier 2,957 Kokoro clips and their licences remain as development
-  provenance, but their manifest is no longer imported by the app. They are not
-  the current daily voice and are not reachable from the playback controls.
+- The earlier 2,957 Kokoro clips, unused manifest and generator were retired
+  on 3 October after the active tutor pack's coverage and hashes were verified.
+  Development provenance remains in Git history and licence notices remain.
 - Native builds bundle the static assets. Web builds serve them as static app
   assets; offline web/service-worker caching was not added.
 - The illustration catalogue contains 20 reusable decorative scenes, not 1,000

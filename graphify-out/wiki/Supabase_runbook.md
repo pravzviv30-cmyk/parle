@@ -4,14 +4,14 @@
 
 ## Key Concepts
 
-- **Supabase runbook** (7 connections) — `supabase/README.md`
+- **Supabase runbook** (9 connections) — `supabase/README.md`
+- **Rollback** (2 connections) — `supabase/README.md`
+- **When something goes wrong** (2 connections) — `supabase/README.md`
 - **supabase/README.md** (1 connections) — `supabase/README.md`
 - **Apply** (1 connections) — `supabase/README.md`
 - **Backup** (1 connections) — `supabase/README.md`
 - **Restore** (1 connections) — `supabase/README.md`
-- **Rollback** (1 connections) — `supabase/README.md`
 - **Rollback evidence** (1 connections) — `supabase/README.md`
-- **When something goes wrong** (1 connections) — `supabase/README.md`
 
 ## Relationships
 
@@ -23,7 +23,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 7 (100%)
+- EXTRACTED: 11 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

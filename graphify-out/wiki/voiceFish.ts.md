@@ -30,10 +30,10 @@
 
 ## Relationships
 
-- [preflight.ts](preflight.ts.md) (6 shared connections)
-- [voice.ts](voice.ts.md) (4 shared connections)
-- [voiceFish.test.ts](voiceFish.test.ts.md) (3 shared connections)
-- [src/voiceSamples.ts](src-voiceSamples.ts.md) (1 shared connections)
+- [agent.ts](agent.ts.md) (6 shared connections)
+- [tutor.test.ts](tutor.test.ts.md) (4 shared connections)
+- [tutorBrief.ts](tutorBrief.ts.md) (3 shared connections)
+- [SignUpScreen.tsx](SignUpScreen.tsx.md) (1 shared connections)
 
 ## Source Files
 

@@ -4,8 +4,8 @@
 
 ## Key Concepts
 
-- **On the device** (7 connections) — `docs/STATE_AND_STORAGE.md`
-- **State and storage** (6 connections) — `docs/STATE_AND_STORAGE.md`
+- **On the device** (9 connections) — `docs/STATE_AND_STORAGE.md`
+- **State and storage** (8 connections) — `docs/STATE_AND_STORAGE.md`
 - **Attempt audio, and the one thing on the phone that is not a key** (1 connections) — `docs/STATE_AND_STORAGE.md`
 - **Banking a conversation, and when the journal is allowed to go** (1 connections) — `docs/STATE_AND_STORAGE.md`
 - **Device-level keys, and the one that retired** (1 connections) — `docs/STATE_AND_STORAGE.md`
@@ -19,7 +19,7 @@
 
 ## Relationships
 
-- [Onboarding — everything before the first French word](Onboarding_—_everything_before_the_first_French_word.md) (1 shared connections)
+- [backoff.ts](backoff.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -27,7 +27,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 12 (100%)
+- EXTRACTED: 16 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

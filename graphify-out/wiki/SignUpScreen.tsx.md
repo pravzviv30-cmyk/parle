@@ -1,74 +1,60 @@
 # SignUpScreen.tsx
 
-> 46 nodes · cohesion 0.09
+> 33 nodes · cohesion 0.12
 
 ## Key Concepts
 
-- **SignUpScreen.tsx** (36 connections) — `apps/mobile/src/auth/SignUpScreen.tsx`
-- **SignInScreen.tsx** (35 connections) — `apps/mobile/src/auth/SignInScreen.tsx`
-- **SetNewPasswordScreen.tsx** (19 connections) — `apps/mobile/src/auth/SetNewPasswordScreen.tsx`
-- **HeaderArt.tsx** (17 connections) — `apps/mobile/src/art/HeaderArt.tsx`
-- **AuthFlow.tsx** (12 connections) — `apps/mobile/src/auth/AuthFlow.tsx`
-- **Field()** (11 connections) — `apps/mobile/src/components.tsx`
-- **authButtonLabel()** (9 connections) — `apps/mobile/src/auth/busyLabel.ts`
-- **busyLabel.test.ts** (9 connections) — `apps/mobile/src/auth/busyLabel.test.ts`
-- **SignUpScreen()** (9 connections) — `apps/mobile/src/auth/SignUpScreen.tsx`
-- **auth/validate.ts** (9 connections) — `apps/mobile/src/auth/validate.ts`
-- **HeaderArt()** (8 connections) — `apps/mobile/src/art/HeaderArt.tsx`
-- **busyLabel.ts** (8 connections) — `apps/mobile/src/auth/busyLabel.ts`
-- **passwordTooShort()** (8 connections) — `apps/mobile/src/auth/validate.ts`
-- **SignInScreen()** (7 connections) — `apps/mobile/src/auth/SignInScreen.tsx`
-- **passwordHint.ts** (6 connections) — `apps/mobile/src/auth/passwordHint.ts`
-- **SetNewPasswordScreen()** (6 connections) — `apps/mobile/src/auth/SetNewPasswordScreen.tsx`
-- **looksLikeEmail()** (6 connections) — `apps/mobile/src/auth/validate.ts`
-- **PASSWORD_MIN** (6 connections) — `apps/mobile/src/auth/validate.ts`
-- **appleSignInOffered()** (5 connections) — `apps/mobile/src/auth/apple.ts`
-- **passwordHint** (5 connections) — `apps/mobile/src/auth/passwordHint.ts`
-- **passwordHint.test.ts** (5 connections) — `apps/mobile/src/auth/passwordHint.test.ts`
-- **auth/validate.test.ts** (5 connections) — `apps/mobile/src/auth/validate.test.ts`
-- **PreAccountOnboardingDraft** (5 connections) — `apps/mobile/src/onboarding/preAccountDraft.ts`
-- **showHeaderArt()** (4 connections) — `apps/mobile/src/art/headerArt.ts`
-- **headerArt.test.ts** (4 connections) — `apps/mobile/src/art/headerArt.test.ts`
-- *... and 21 more nodes in this community*
+- **src/voiceSamples.ts** (37 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **voiceSamples.test.ts** (26 connections) — `services/tutor-agent/src/voiceSamples.test.ts`
+- **main()** (13 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **buildTTS()** (10 connections) — `services/tutor-agent/src/voice.ts`
+- **wav.ts** (9 connections) — `services/tutor-agent/src/wav.ts`
+- **encodeWav()** (9 connections) — `services/tutor-agent/src/wav.ts`
+- **synthesizeClip()** (7 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **decodeWav()** (6 connections) — `services/tutor-agent/src/wav.ts`
+- **sampleSentences()** (5 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **sampleText()** (5 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **carryAttestation()** (3 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **joinClip()** (3 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **levelClip()** (3 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **readManifest()** (3 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **sampleDigest()** (3 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **samplePath()** (3 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **encodeArgs()** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **ENCODERS** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **MANIFEST_PATH** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **MAX_SAMPLE_BYTES** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **present()** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **readVendorRecord()** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **SampleRecord** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **SAMPLES_DIR** (2 connections) — `services/tutor-agent/src/voiceSamples.ts`
+- **WavData** (2 connections) — `services/tutor-agent/src/wav.ts`
+- *... and 8 more nodes in this community*
 
 ## Relationships
 
-- [space](space.md) (44 shared connections)
-- [PracticeTab.tsx](PracticeTab.tsx.md) (13 shared connections)
-- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) (12 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (7 shared connections)
-- [ProfileTab.tsx](ProfileTab.tsx.md) (3 shared connections)
-- [friendly.ts](friendly.ts.md) (3 shared connections)
-- [preAccountDraft.ts](preAccountDraft.ts.md) (2 shared connections)
-- [apple.test.ts](apple.test.ts.md) (2 shared connections)
-- [guilt.ts](guilt.ts.md) (2 shared connections)
-- [TutorTab.tsx](TutorTab.tsx.md) (1 shared connections)
-- [disclosure.test.ts](disclosure.test.ts.md) (1 shared connections)
-- [TutorMemoryScreen.tsx](TutorMemoryScreen.tsx.md) (1 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (7 shared connections)
+- [gate.ts](gate.ts.md) (5 shared connections)
+- [verifyProductEvents.mjs](verifyProductEvents.mjs.md) (5 shared connections)
+- [tutor.test.ts](tutor.test.ts.md) (4 shared connections)
+- [review/store.ts](review-store.ts.md) (3 shared connections)
+- [journey.ts](journey.ts.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (2 shared connections)
+- [voiceFish.ts](voiceFish.ts.md) (1 shared connections)
+- [view.test.ts](view.test.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/art/HeaderArt.tsx`
-- `apps/mobile/src/art/headerArt.test.ts`
-- `apps/mobile/src/art/headerArt.ts`
-- `apps/mobile/src/auth/AuthFlow.tsx`
-- `apps/mobile/src/auth/SetNewPasswordScreen.tsx`
-- `apps/mobile/src/auth/SignInScreen.tsx`
-- `apps/mobile/src/auth/SignUpScreen.tsx`
-- `apps/mobile/src/auth/apple.ts`
-- `apps/mobile/src/auth/busyLabel.test.ts`
-- `apps/mobile/src/auth/busyLabel.ts`
-- `apps/mobile/src/auth/passwordHint.test.ts`
-- `apps/mobile/src/auth/passwordHint.ts`
-- `apps/mobile/src/auth/validate.test.ts`
-- `apps/mobile/src/auth/validate.ts`
-- `apps/mobile/src/components.tsx`
-- `apps/mobile/src/onboarding/preAccountDraft.ts`
+- `dotenv/config`
+- `services/tutor-agent/src/voice.ts`
+- `services/tutor-agent/src/voiceSamples.test.ts`
+- `services/tutor-agent/src/voiceSamples.ts`
+- `services/tutor-agent/src/wav.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 192 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 103 (99%)
+- INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 
 ---

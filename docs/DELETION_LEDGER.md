@@ -157,3 +157,76 @@ though nothing renders them: PRODUCT.md:108-117 records the days-active rule as 
 "held by name in `progress/momentum.ts` and its suite", and F396, F412, F432, F433,
 F434 and F441 name that suite. Retiring the model is a product decision for the docs
 rewrite, not a sweep.
+
+## Main and preview audit 3 October 2026
+
+The remote and local `main` both started this audit at `2cbea86`, including the
+completed Revamp B and UX report work. Older branch names do not select code in
+that checkout. `apps/mobile/index.ts` registers one `App.tsx`, and the active root
+navigator selects the current tab and screen implementations, including lazy live
+screens and native platform variants.
+
+There are also older checkouts on this machine. At audit time the permanent
+`Documents/StartUps/Luvani` checkout was on `redesign/notebook`, 22 commits behind
+`main`, with unrelated unfinished brain/server/documentation edits. The preview on
+8095 served the older `unruffled-brahmagupta` worktree. The open Chrome preview on
+8142 served the current `main` worktree, while its old 8089 tab had no listener.
+This establishes several possible stale-preview sources; it does not establish
+which earlier screen the founder saw. No other session's work, server or branch
+was removed. The fresh audit preview on 8173 serves this audit's current checkout
+with Metro's cache cleared and visibly renders the six-step Hear it first flow and
+its authored teaching example.
+
+The supervisor previously reused any HTTP 200 as its app. F713 now refuses occupied
+app ports because neither HTML nor packager status identifies the source checkout.
+Its own spawned app still becomes ready on HTTP 200; LiveKit and token-server reuse
+keep their existing service checks. The supervisor prints its checkout and revision
+and starts Metro with `--clear`.
+
+F715 also fixes the refusal shutdown path: failure status is set immediately,
+the three-second SIGKILL fallback remains active, and child handles drain before
+exit. Real local child-process tests prove both resistant-service cleanup and a
+fatal timeout reporting failure. They failed against the previous supervisor.
+
+### Retired in this audit
+
+| Item | Production and replacement evidence | Data and verification |
+|---|---|---|
+| `home/AbilitiesCard.tsx` | No production importer or route. Current Home and Progress use the active evidence views; Home already forbids rendering AbilitiesCard. | Presentation only. Keep `home/abilities.ts` and its product tests. F714 retirement regression first failed against the old file. |
+| `myfrench/LedgerLane.tsx` | No production importer or route. Progress renders LevelCard and retains its Phrasebook route. | Presentation only. Keep `myfrench/ledger.ts`, review data and the active phrasebook. Same retirement regression. |
+| `daily/audioManifest.ts`, 2,957 `daily-kokoro` clips and their README | No production importer. DailyCard and DailyPracticeScreen exclusively resolve the selected tutor through `tutorAudioManifest.ts`. | 42,826,954 bytes of unused pack/README removed. All 2,400 current recordings retained and verified for frozen text, voice, configuration, hash, container and full selected-item coverage. All 2,000 text items remain. |
+| `scripts/build-daily-audio.mjs`, `scripts/daily-audio-worker.py` | Only generate the retired generic pack; no other caller. Current paid tutor generation and verification tools remain. | Keep provenance in Git history and existing licence notices. The absence/reference test failed before retirement; the old generic-pack test now verifies actual six-tutor playback coverage. |
+
+### Retained after audit
+
+| Item | Reason it remains |
+|---|---|
+| Core and brain packages, protocol, graders, metering, services and SQL migrations/rollbacks | Load-bearing runtime and migration history. Age does not determine whether code is obsolete. No runtime change here. |
+| Auth, storage keys, compatibility reads, sync merge policies, journal recovery and native/web adapters | Returning learners and other devices still depend on their schemas and platform resolution. The current-state map now correctly records implemented Supabase sync. |
+| Signed-in OnboardingFlow, TutorIntro and demo SessionScreen | Reachable fallback/returning-learner paths. They are not duplicate front doors. |
+| All 29 flat vector drawings; current tutor/onboarding audio and licence notices | Reachable registrations, manifests or attribution. No current art or voice removed. |
+| Old AddFriendsScreen and its UI, ConversationPackCard, PhraseBank, SoundsMap, SituationsCard, FrenchLifeCard and old pen illustrations | Unmounted presentation, with direct source-contract checks and historical issue anchors. Controlled retirement must repoint those checks to live successors before deletion. The old Friends adapter also carries persisted sample data; its storage suffix and sync exclusion need a retirement path. These are not causing the current navigator to select older screens. |
+| `purchases/Paywall.tsx` and purchase/restore contracts | Unmounted presentation remains covered by source contracts and a frozen billing-byte guard. The active wall is already central; do not weaken the billing guard as a cleanup shortcut. |
+| Pure old projections such as momentum/today/abilities/ledger and welcome-path helpers | Existing named product, issue or compatibility contracts. Remove only with an explicit replacement for those obligations. |
+| Documentation, review evidence and Git history | Evidence and recovery, rather than alternative executable app versions. No history rewrite, reset, branch purge or worktree deletion. |
+
+Baseline verification: exact-lockfile isolated `npm ci`, complete gate **4,232 tests**,
+and a real web export passed before changes. Focused final checks **31 tests** passed,
+including preview refusal, retirement and unchanged current-audio hash evidence.
+Final full-gate, export, online dependency-audit and independent review results are
+recorded below. This audit does not certify live vendor voice,
+store transactions, hosted sync or physical iOS/Android behaviour; existing acceptance
+holds remain in `UX_ACCEPTANCE_REVIEW.md`.
+
+Final verification: **4,237 tests, zero failures**, with all six workspace count
+floors intact and typecheck, secret scan, ledger and agent-pin checks green. The web
+export succeeds; both main and lazy live-screen bundle hashes match the baseline,
+consistent with removal of unimported app source and assets. A driven fresh preview
+renders the current onboarding and teaching example with no console errors. The
+online dependency audit passes under the existing recorded decisions: zero critical,
+21 high and 12 moderate inherited advisories, with accepted roots recorded in
+`package.json`; this is not a zero-vulnerability claim. No dependency version changed.
+Fresh independent GPT-6 Sol review returned LAND after the shutdown correction.
+The code graph was refreshed and its wiki exported; AST-only graph tooling reported
+missing SQL extraction support, so import/route inspection and executable checks,
+rather than the graph alone, establish the deletion evidence.

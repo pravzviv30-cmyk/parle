@@ -1,64 +1,72 @@
 # chooserView.ts
 
-> 52 nodes · cohesion 0.08
+> 37 nodes · cohesion 0.12
 
 ## Key Concepts
 
-- **chooserView.ts** (46 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **Rung** (39 connections) — `packages/core/src/ladder/ladder.ts`
-- **chooserView.test.ts** (34 connections) — `apps/mobile/src/missions/chooserView.test.ts`
-- **missions.ts** (29 connections) — `packages/core/src/missions/missions.ts`
-- **missions.test.ts** (25 connections) — `packages/core/src/missions/missions.test.ts`
-- **MISSIONS** (20 connections) — `packages/core/src/missions/missions.ts`
-- **resume.test.ts** (17 connections) — `apps/mobile/src/missions/resume.test.ts`
-- **missions/index.ts** (17 connections) — `packages/core/src/missions/index.ts`
-- **MissionCompletion** (9 connections) — `packages/core/src/missions/missions.ts`
-- **replayRung()** (9 connections) — `packages/core/src/missions/missions.ts`
-- **suggestedMission()** (9 connections) — `packages/core/src/missions/missions.ts`
-- **missionReplay** (8 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **FIRST_MISSION** (8 connections) — `packages/core/src/missions/missions.ts`
-- **chooserView** (7 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **Mission** (7 connections) — `packages/core/src/missions/missions.ts`
-- **MissionState** (6 connections) — `packages/core/src/missions/missions.ts`
-- **ChooserCard** (5 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **Independence** (5 connections) — `packages/core/src/missions/missions.ts`
-- **headMissionId()** (4 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **replayNote()** (4 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **resumableMission()** (4 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **independenceFrom()** (4 connections) — `packages/core/src/missions/missions.ts`
-- **CHOOSER_OTHER** (3 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **CHOOSER_START_HERE** (3 connections) — `apps/mobile/src/missions/chooserView.ts`
-- **LESSON_DOOR** (3 connections) — `apps/mobile/src/missions/chooserView.ts`
-- *... and 27 more nodes in this community*
+- **brain/src/index.ts** (55 connections) — `packages/brain/src/index.ts`
+- **buildSystemBlocks()** (34 connections) — `packages/brain/src/prompt/system.ts`
+- **prompt/prompt.test.ts** (28 connections) — `packages/brain/src/prompt/prompt.test.ts`
+- **system.ts** (27 connections) — `packages/brain/src/prompt/system.ts`
+- **prompt.ts** (17 connections) — `services/tutor-agent/src/prompt.ts`
+- **src/prompt.test.ts** (12 connections) — `services/tutor-agent/src/prompt.test.ts`
+- **claudeCli.test.ts** (11 connections) — `packages/brain/src/llm/claudeCli.test.ts`
+- **authenticity/types.ts** (10 connections) — `packages/brain/src/authenticity/types.ts`
+- **buildPrompt()** (9 connections) — `services/tutor-agent/src/prompt.ts`
+- **fr.ts** (8 connections) — `packages/brain/src/authenticity/fr.ts`
+- **authenticity/render.ts** (8 connections) — `packages/brain/src/authenticity/render.ts`
+- **RegisterId** (8 connections) — `packages/brain/src/types.ts`
+- **renderAuthenticityPack()** (7 connections) — `packages/brain/src/authenticity/render.ts`
+- **FR_PACK** (6 connections) — `packages/brain/src/authenticity/fr.ts`
+- **historyView.ts** (6 connections) — `packages/brain/src/prompt/historyView.ts`
+- **historyViewOfTurn()** (5 connections) — `packages/brain/src/prompt/historyView.ts`
+- **safetyConduct.ts** (5 connections) — `packages/brain/src/prompt/safetyConduct.ts`
+- **baseInstructions()** (5 connections) — `services/tutor-agent/src/prompt.ts`
+- **authenticity.test.ts** (4 connections) — `packages/brain/src/authenticity/authenticity.test.ts`
+- **SAFETY_CONDUCT** (4 connections) — `packages/brain/src/prompt/safetyConduct.ts`
+- **personaAgreementLine()** (4 connections) — `packages/brain/src/prompt/system.ts`
+- **AuthenticityPack** (3 connections) — `packages/brain/src/authenticity/types.ts`
+- **Filler** (3 connections) — `packages/brain/src/authenticity/types.ts`
+- **personaBlock()** (3 connections) — `packages/brain/src/prompt/system.ts`
+- **turnInstructions()** (3 connections) — `services/tutor-agent/src/prompt.ts`
+- *... and 12 more nodes in this community*
 
 ## Relationships
 
-- [RootNavigator.tsx](RootNavigator.tsx.md) (27 shared connections)
-- [wallMap.test.ts](wallMap.test.ts.md) (11 shared connections)
-- [homeMission.ts](homeMission.ts.md) (10 shared connections)
-- [conversation.ts](conversation.ts.md) (7 shared connections)
-- [abilities.ts](abilities.ts.md) (7 shared connections)
-- [missionWin.ts](missionWin.ts.md) (6 shared connections)
-- [myfrench/model.ts](myfrench-model.ts.md) (6 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (6 shared connections)
-- [ladder.ts](ladder.ts.md) (6 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (4 shared connections)
-- [TutorTab.tsx](TutorTab.tsx.md) (4 shared connections)
-- [drill/session.ts](drill-session.ts.md) (4 shared connections)
+- [conversation.ts](conversation.ts.md) (22 shared connections)
+- [ledger.ts](ledger.ts.md) (17 shared connections)
+- [profile.ts](profile.ts.md) (12 shared connections)
+- [bookmarks/store.ts](bookmarks-store.ts.md) (11 shared connections)
+- [tokens.ts](tokens.ts.md) (10 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (9 shared connections)
+- [curationEval.ts](curationEval.ts.md) (6 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (5 shared connections)
+- [soundcheck/store.ts](soundcheck-store.ts.md) (5 shared connections)
+- [scenarios.ts](scenarios.ts.md) (4 shared connections)
+- [generate.ts](generate.ts.md) (4 shared connections)
+- [LuvaniTutor](LuvaniTutor.md) (4 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/missions/chooserView.test.ts`
-- `apps/mobile/src/missions/chooserView.ts`
-- `apps/mobile/src/missions/resume.test.ts`
-- `packages/core/src/ladder/ladder.ts`
-- `packages/core/src/missions/index.ts`
-- `packages/core/src/missions/missions.test.ts`
-- `packages/core/src/missions/missions.ts`
+- `packages/brain/src/authenticity/authenticity.test.ts`
+- `packages/brain/src/authenticity/fr.ts`
+- `packages/brain/src/authenticity/render.ts`
+- `packages/brain/src/authenticity/types.ts`
+- `packages/brain/src/index.ts`
+- `packages/brain/src/llm/claudeCli.test.ts`
+- `packages/brain/src/llm/claudeCli.ts`
+- `packages/brain/src/llm/split.test.ts`
+- `packages/brain/src/prompt/historyView.ts`
+- `packages/brain/src/prompt/prompt.test.ts`
+- `packages/brain/src/prompt/safetyConduct.ts`
+- `packages/brain/src/prompt/system.ts`
+- `packages/brain/src/types.ts`
+- `services/tutor-agent/src/prompt.test.ts`
+- `services/tutor-agent/src/prompt.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 260 (100%)
+- EXTRACTED: 224 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

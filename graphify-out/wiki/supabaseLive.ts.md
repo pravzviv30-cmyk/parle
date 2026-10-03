@@ -21,6 +21,7 @@
 - **signal()** (3 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - **summarise()** (3 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - **SupabaseClientLike** (3 connections) — `services/token-server/src/verify/supabaseLive.ts`
+- **node:fs** (2 connections) — `node:fs`
 - **CheckResult** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - **expect()** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - **main()** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
@@ -28,15 +29,14 @@
 - **newPassword()** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - **PostgrestFilter** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - **.eq()** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
-- **.delete()** (2 connections) — `services/token-server/src/verify/supabaseLive.ts`
 - *... and 23 more nodes in this community*
 
 ## Relationships
 
 - [evidenceContract.test.ts](evidenceContract.test.ts.md) (3 shared connections)
 - [databaseContract.test.ts](databaseContract.test.ts.md) (2 shared connections)
-- [Recorder](Recorder.md) (2 shared connections)
-- [Entitlement](Entitlement.md) (2 shared connections)
+- [reminders/store.ts](reminders-store.ts.md) (2 shared connections)
+- [src/store.ts](src-store.ts.md) (2 shared connections)
 
 ## Source Files
 
@@ -47,7 +47,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 91 (100%)
+- EXTRACTED: 92 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

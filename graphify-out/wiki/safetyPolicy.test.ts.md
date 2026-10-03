@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [convo.ts](convo.ts.md) (3 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (3 shared connections)
 - [safety.ts](safety.ts.md) (3 shared connections)
 - [safetyDecision](safetyDecision.md) (2 shared connections)
 - [LuvaniTutor](LuvaniTutor.md) (1 shared connections)
-- [tutor.ts](tutor.ts.md) (1 shared connections)
+- [verifyProductEvents.mjs](verifyProductEvents.mjs.md) (1 shared connections)
 - [safety.test.ts](safety.test.ts.md) (1 shared connections)
 
 ## Source Files

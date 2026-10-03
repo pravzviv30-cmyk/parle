@@ -4,11 +4,11 @@
 
 ## Key Concepts
 
-- **ciContract.test.ts** (16 connections) — `services/token-server/src/ciContract.test.ts`
+- **ciContract.test.ts** (17 connections) — `services/token-server/src/ciContract.test.ts`
 - **resolveFrom()** (3 connections) — `services/token-server/src/ciContract.test.ts`
+- **accepted** (2 connections) — `services/token-server/src/ciContract.test.ts`
 - **dependencyClosure()** (2 connections) — `services/token-server/src/ciContract.test.ts`
 - **resolutionScopes()** (2 connections) — `services/token-server/src/ciContract.test.ts`
-- **accepted** (1 connections) — `services/token-server/src/ciContract.test.ts`
 - **AdvisoryDecision** (1 connections) — `services/token-server/src/ciContract.test.ts`
 - **atLeast()** (1 connections) — `services/token-server/src/ciContract.test.ts`
 - **fixed** (1 connections) — `services/token-server/src/ciContract.test.ts`
@@ -24,7 +24,7 @@
 
 ## Relationships
 
-- No strong cross-community connections detected
+- [evidenceContract.test.ts](evidenceContract.test.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -32,7 +32,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 18 (100%)
+- EXTRACTED: 20 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

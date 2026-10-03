@@ -1,64 +1,78 @@
 # purchases.test.ts
 
-> 60 nodes · cohesion 0.06
+> 153 nodes · cohesion 0.04
 
 ## Key Concepts
 
-- **purchases.test.ts** (31 connections) — `apps/mobile/src/purchases/purchases.test.ts`
-- **purchases/adapter.ts** (19 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **paywallView.ts** (19 connections) — `apps/mobile/src/purchases/paywallView.ts`
-- **subscription.ts** (19 connections) — `apps/mobile/src/purchases/subscription.ts`
-- **wallPlans.test.ts** (17 connections) — `apps/mobile/src/wall/wallPlans.test.ts`
-- **adapter.native.ts** (15 connections) — `apps/mobile/src/purchases/adapter.native.ts`
-- **wallPlans.ts** (13 connections) — `apps/mobile/src/wall/wallPlans.ts`
-- **StoreOffering** (10 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **paywallSurface** (9 connections) — `apps/mobile/src/purchases/paywallView.ts`
-- **PaidPlan** (8 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **PurchasesAdapter** (6 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **StoreProduct** (5 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **RESTORE_BUSY** (5 connections) — `apps/mobile/src/purchases/paywallView.ts`
-- **subscriptionGroup()** (5 connections) — `apps/mobile/src/purchases/subscription.ts`
-- **wallPlanRows()** (5 connections) — `apps/mobile/src/wall/wallPlans.ts`
-- **ready()** (4 connections) — `apps/mobile/src/purchases/adapter.native.ts`
-- **purchasable()** (4 connections) — `apps/mobile/src/purchases/paywallView.ts`
-- **PURCHASE_TROUBLE** (4 connections) — `apps/mobile/src/purchases/paywallView.ts`
-- **configuredPlans()** (3 connections) — `apps/mobile/src/purchases/adapter.native.ts`
-- **paidPackages()** (3 connections) — `apps/mobile/src/purchases/adapter.native.ts`
-- **PAID_PLANS** (3 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **StoreAction** (3 connections) — `apps/mobile/src/purchases/adapter.ts`
-- **REFRESH_TROUBLE** (3 connections) — `apps/mobile/src/purchases/paywallView.ts`
-- **RESTORE_DONE** (3 connections) — `apps/mobile/src/purchases/subscription.ts`
-- **PLANS_TRUST** (3 connections) — `apps/mobile/src/wall/wallCopy.ts`
-- *... and 35 more nodes in this community*
+- **components.tsx** (196 connections) — `apps/mobile/src/components.tsx`
+- **space()** (190 connections) — `apps/mobile/src/theme.ts`
+- **src/theme.ts** (161 connections) — `apps/mobile/src/theme.ts`
+- **paper** (134 connections) — `apps/mobile/src/palette.ts`
+- **type** (96 connections) — `apps/mobile/src/theme.ts`
+- **react** (95 connections) — `apps/mobile/tsconfig.json`
+- **layout.tsx** (79 connections) — `apps/mobile/src/layout.tsx`
+- **PhrasebookScreen.tsx** (78 connections) — `apps/mobile/src/phrases/PhrasebookScreen.tsx`
+- **SoundCheckScreen.tsx** (56 connections) — `apps/mobile/src/soundcheck/SoundCheckScreen.tsx`
+- **Card()** (55 connections) — `apps/mobile/src/components.tsx`
+- **ScrollScreen()** (51 connections) — `apps/mobile/src/layout.tsx`
+- **ReviewScreen.tsx** (51 connections) — `apps/mobile/src/ReviewScreen.tsx`
+- **SessionView.tsx** (48 connections) — `apps/mobile/src/SessionView.tsx`
+- **PillButton()** (47 connections) — `apps/mobile/src/components.tsx`
+- **ConversationPackLibrary.tsx** (43 connections) — `apps/mobile/src/conversationPacks/ConversationPackLibrary.tsx`
+- **Label()** (42 connections) — `apps/mobile/src/components.tsx`
+- **SummaryScreen.tsx** (41 connections) — `apps/mobile/src/SummaryScreen.tsx`
+- **HIT** (39 connections) — `apps/mobile/src/theme.ts`
+- **ScreenHeader()** (37 connections) — `apps/mobile/src/layout.tsx`
+- **OneLineCard.tsx** (36 connections) — `apps/mobile/src/myfrench/OneLineCard.tsx`
+- **HAIRLINE** (35 connections) — `apps/mobile/src/theme.ts`
+- **AddFriendsScreen.tsx** (34 connections) — `apps/mobile/src/friends/AddFriendsScreen.tsx`
+- **TutorIntro.tsx** (34 connections) — `apps/mobile/src/tutor/TutorIntro.tsx`
+- **TutorMemoryCard.tsx** (32 connections) — `apps/mobile/src/profile/TutorMemoryCard.tsx`
+- **Transcript.tsx** (31 connections) — `apps/mobile/src/tutor/Transcript.tsx`
+- *... and 128 more nodes in this community*
 
 ## Relationships
 
-- [WallScreen.tsx](WallScreen.tsx.md) (31 shared connections)
-- [SettingsScreen.tsx](SettingsScreen.tsx.md) (9 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (3 shared connections)
-- [meter.ts](meter.ts.md) (3 shared connections)
-- [preview.ts](preview.ts.md) (2 shared connections)
-- [guilt.ts](guilt.ts.md) (2 shared connections)
-- [Plan](Plan.md) (2 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
-- [reminder.ts](reminder.ts.md) (1 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (131 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (107 shared connections)
+- [levels.ts](levels.ts.md) (65 shared connections)
+- [nav/wiring.test.ts](nav-wiring.test.ts.md) (59 shared connections)
+- [dailyLicences.ts](dailyLicences.ts.md) (46 shared connections)
+- [storeBinding.test.ts](storeBinding.test.ts.md) (45 shared connections)
+- [DrillScreen.tsx](DrillScreen.tsx.md) (37 shared connections)
+- [createPhraseAudioCache](createPhraseAudioCache.md) (36 shared connections)
+- [SettingsScreen.tsx](SettingsScreen.tsx.md) (32 shared connections)
+- [goals/store.ts](goals-store.ts.md) (26 shared connections)
+- [PreAccountOnboarding.tsx](PreAccountOnboarding.tsx.md) (24 shared connections)
+- [HomeTab.test.ts](HomeTab.test.ts.md) (17 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/purchases/adapter.native.ts`
-- `apps/mobile/src/purchases/adapter.ts`
-- `apps/mobile/src/purchases/paywallView.ts`
-- `apps/mobile/src/purchases/purchases.test.ts`
-- `apps/mobile/src/purchases/restore.ts`
-- `apps/mobile/src/purchases/subscription.ts`
-- `apps/mobile/src/wall/wallCopy.ts`
-- `apps/mobile/src/wall/wallPlans.test.ts`
-- `apps/mobile/src/wall/wallPlans.ts`
+- `DESIGN.md`
+- `apps/mobile/src/DrillScreen.tsx`
+- `apps/mobile/src/ReviewScreen.tsx`
+- `apps/mobile/src/SessionView.tsx`
+- `apps/mobile/src/SummaryScreen.tsx`
+- `apps/mobile/src/auth/EraseNoticeScreen.tsx`
+- `apps/mobile/src/components.tsx`
+- `apps/mobile/src/conversationPacks/ConversationPackCard.tsx`
+- `apps/mobile/src/conversationPacks/ConversationPackLibrary.tsx`
+- `apps/mobile/src/drill/FocusDrillPlayer.tsx`
+- `apps/mobile/src/drill/MomentCard.tsx`
+- `apps/mobile/src/friends/AddFriendsScreen.tsx`
+- `apps/mobile/src/friends/ui.tsx`
+- `apps/mobile/src/layout.tsx`
+- `apps/mobile/src/legal/Acknowledgements.tsx`
+- `apps/mobile/src/legal/PolicyScreen.tsx`
+- `apps/mobile/src/legal/TermsScreen.tsx`
+- `apps/mobile/src/live/LiveErrorView.tsx`
+- `apps/mobile/src/myfrench/AcousticCard.tsx`
+- `apps/mobile/src/myfrench/CadenceCard.tsx`
 
 ## Audit Trail
 
-- EXTRACTED: 163 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 1952 (100%)
+- INFERRED: 5 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

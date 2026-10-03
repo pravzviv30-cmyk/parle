@@ -28,17 +28,17 @@
 - **POLICY_TITLE** (5 connections) — `apps/mobile/src/legal/policy.ts`
 - **COMPANY** (4 connections) — `apps/mobile/src/legal/company.ts`
 - **CompanyFacts** (4 connections) — `apps/mobile/src/legal/company.ts`
-- **POLICY_SECTIONS** (4 connections) — `apps/mobile/src/legal/policy.ts`
+- **fact()** (4 connections) — `apps/mobile/src/legal/company.ts`
 - *... and 36 more nodes in this community*
 
 ## Relationships
 
-- [space](space.md) (10 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (10 shared connections)
 - [SettingsScreen.tsx](SettingsScreen.tsx.md) (6 shared connections)
-- [guilt.ts](guilt.ts.md) (6 shared connections)
+- [practice/history.ts](practice-history.ts.md) (6 shared connections)
 - [disclosure.test.ts](disclosure.test.ts.md) (5 shared connections)
 - [reminder.ts](reminder.ts.md) (3 shared connections)
-- [PracticeTab.tsx](PracticeTab.tsx.md) (1 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -53,7 +53,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 168 (100%)
+- EXTRACTED: 170 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

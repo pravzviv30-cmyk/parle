@@ -1,42 +1,35 @@
 # apple.native.ts
 
-> 14 nodes · cohesion 0.26
+> 8 nodes · cohesion 0.32
 
 ## Key Concepts
 
-- **apple.native.ts** (13 connections) — `apps/mobile/src/auth/apple.native.ts`
-- **appleNonce.ts** (7 connections) — `apps/mobile/src/auth/appleNonce.ts`
-- **appleNonce.test.ts** (7 connections) — `apps/mobile/src/auth/appleNonce.test.ts`
-- **makeNonce()** (5 connections) — `apps/mobile/src/auth/appleNonce.ts`
-- **startAppleSignIn()** (4 connections) — `apps/mobile/src/auth/apple.native.ts`
-- **rawNonce()** (4 connections) — `apps/mobile/src/auth/appleNonce.ts`
-- **sha256Hex** (4 connections) — `apps/mobile/src/auth/appleNonce.ts`
-- **toHex()** (4 connections) — `apps/mobile/src/auth/appleNonce.ts`
-- **APPLE_CLOSED** (3 connections) — `apps/mobile/src/auth/friendly.ts`
-- **digest()** (2 connections) — `apps/mobile/src/auth/apple.native.ts`
-- **appleSignInOffered()** (1 connections) — `apps/mobile/src/auth/apple.native.ts`
-- **AppleNonce** (1 connections) — `apps/mobile/src/auth/appleNonce.ts`
-- **read()** (1 connections) — `apps/mobile/src/auth/appleNonce.test.ts`
-- **RFC-6234** (1 connections) — `apps/mobile/src/auth/appleNonce.test.ts`
+- **FrenchLifeCard.tsx** (15 connections) — `apps/mobile/src/profile/FrenchLifeCard.tsx`
+- **calendarWeekFrom()** (7 connections) — `apps/mobile/src/progress/momentum.ts`
+- **FrenchLifeCard()** (4 connections) — `apps/mobile/src/profile/FrenchLifeCard.tsx`
+- **rhythmSentence()** (4 connections) — `apps/mobile/src/progress/momentum.ts`
+- **WeekDay** (3 connections) — `apps/mobile/src/progress/momentum.ts`
+- **mondayAnchor()** (2 connections) — `apps/mobile/src/progress/momentum.ts`
+- **WEEKDAY_LABELS** (2 connections) — `apps/mobile/src/progress/momentum.ts`
+- **st** (1 connections) — `apps/mobile/src/profile/FrenchLifeCard.tsx`
 
 ## Relationships
 
-- [friendly.ts](friendly.ts.md) (6 shared connections)
-- [AuthResult](AuthResult.md) (1 shared connections)
-- [plugins](plugins.md) (1 shared connections)
-- [AuthAdapter](AuthAdapter.md) (1 shared connections)
+- [momentum.ts](momentum.ts.md) (10 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (7 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (2 shared connections)
+- [plugins](plugins.md) (2 shared connections)
+- [LuvaniConversation](LuvaniConversation.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/auth/apple.native.ts`
-- `apps/mobile/src/auth/appleNonce.test.ts`
-- `apps/mobile/src/auth/appleNonce.ts`
-- `apps/mobile/src/auth/friendly.ts`
+- `apps/mobile/src/profile/FrenchLifeCard.tsx`
+- `apps/mobile/src/progress/momentum.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 32 (97%)
-- INFERRED: 1 (3%)
+- EXTRACTED: 30 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -94,6 +94,21 @@ describe('devPlan — a port that already answers', () => {
     assert.equal(classifyPort(stepFor('token'), { reachable: false }).kind, 'spawn');
   });
 
+  test('an answering preview is never silently reused from another checkout', () => {
+    const app = stepFor('app');
+    for (const body of ['<!doctype html><title>Luvani</title>', 'packager-status:running', 'unrelated app']) {
+      const probe: ProbeResult = { reachable: true, status: 200, body };
+      const verdict = classifyPort(app, probe);
+      assert.equal(verdict.kind, 'occupied', 'HTTP 200 cannot prove which checkout the preview serves');
+      const message = verdict.kind === 'occupied' ? verdict.message : '';
+      assert.match(message, /checkout/);
+      assert.match(message, /8082/);
+      assert.match(message, /lsof/);
+      assert.equal(app.identify(probe), true, 'a newly spawned app must still be able to become ready');
+    }
+    assert.equal(classifyPort(app, { reachable: false }).kind, 'spawn');
+  });
+
   test('a token server already answering /health is reused', () => {
     const probe: ProbeResult = { reachable: true, status: 200, body: '{"ok":true,"livekitUrl":"ws://localhost:7880"}' };
     const verdict = classifyPort(stepFor('token'), probe);

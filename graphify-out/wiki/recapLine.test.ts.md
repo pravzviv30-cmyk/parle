@@ -17,7 +17,7 @@
 
 ## Relationships
 
-- [RootNavigator.tsx](RootNavigator.tsx.md) (3 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (3 shared connections)
 
 ## Source Files
 

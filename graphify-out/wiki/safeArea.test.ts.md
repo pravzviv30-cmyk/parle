@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **safeArea.test.ts** (10 connections) — `apps/mobile/src/live/safeArea.test.ts`
+- **safeArea.test.ts** (11 connections) — `apps/mobile/src/live/safeArea.test.ts`
 - **branchOf()** (1 connections) — `apps/mobile/src/live/safeArea.test.ts`
 - **errorView** (1 connections) — `apps/mobile/src/live/safeArea.test.ts`
 - **FULL_BLEED** (1 connections) — `apps/mobile/src/live/safeArea.test.ts`
@@ -26,7 +26,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 10 (100%)
+- EXTRACTED: 11 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

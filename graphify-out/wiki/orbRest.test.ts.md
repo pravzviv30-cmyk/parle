@@ -18,7 +18,7 @@
 
 ## Relationships
 
-- [TutorTab.tsx](TutorTab.tsx.md) (2 shared connections)
+- [storeBinding.test.ts](storeBinding.test.ts.md) (2 shared connections)
 
 ## Source Files
 

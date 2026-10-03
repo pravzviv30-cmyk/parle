@@ -12,8 +12,10 @@
    `LuvaniTutor` or `LuvaniConversation`, and publishes the core protocol over LiveKit data.
 6. Session finish reports the signed session ID and billable seconds to the token server.
    PostgreSQL records the ID once and atomically debits the entitlement.
-7. The app stores recap/practice/profile artefacts locally. The Supabase `learner_state`
-   table is not yet connected to a client sync transport.
+7. The app stores recap/practice/profile artefacts locally. With Supabase configured,
+   `App.tsx` starts the account's sync engine using the current auth bearer, `userKey`
+   and `syncPolicy`, then reconciles `learner_state` before startup completes. The explicit
+   local mock skips cloud sync. Hosted and two-device acceptance remain separate checks.
 
 ## Sources of truth
 
@@ -26,7 +28,24 @@
 | Production entitlement and trial | Supabase RPCs in `supabase/migrations/` |
 | Active session | Upstash lease keyed by deployment-salted user signal |
 | Local learner scope | `apps/mobile/src/storage/scope.ts` |
-| Production learner sync | Not implemented |
+| Learner sync | `apps/mobile/src/sync/engine.ts` and `policy.ts`; enabled when Supabase is configured |
+
+## Current presentation and preview
+
+`index.ts` registers `App.tsx`; `nav/RootNavigator.tsx` is the only app navigator.
+The five tab routes are Home, Tutor, Practice, MyFrench and Friends, displayed as
+Home, Speak, Practice, Progress and Friends. Profile is a pushed screen reached from
+the profile button. Revamp B and the UX report changes are already on `main`.
+
+Daily playback uses `daily/tutorAudioManifest.ts`: 400 items with six tutor voices,
+2,400 recordings. The full 2,000-item text library remains available. Missing tutor
+recordings have no generic-voice fallback. The unused Kokoro pack and generator were
+retired on 3 October; their provenance remains in Git history and licence notices.
+
+`npm run dev` prints its checkout and revision, clears Metro's bundler cache when
+starting its app, and refuses an existing preview on its app port. An HTTP 200 does
+not identify a checkout. The running server's directory determines its source;
+merging `main` elsewhere cannot update a server on an older branch.
 
 ## Replacement/dependency graph
 
@@ -42,4 +61,3 @@
   retains its namespace, identity, adapter, challenges and compatibility data.
 - Pricing changes cross core constants, SQL plan checks, token responses, UI, purchase
   webhooks, and compatibility migration together.
-

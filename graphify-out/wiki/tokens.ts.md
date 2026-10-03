@@ -1,44 +1,63 @@
 # tokens.ts
 
-> 16 nodes · cohesion 0.21
+> 47 nodes · cohesion 0.06
 
 ## Key Concepts
 
-- **tokens.ts** (20 connections) — `services/token-server/src/tokens.ts`
-- **tokens.test.ts** (16 connections) — `services/token-server/src/tokens.test.ts`
-- **grantSession()** (12 connections) — `services/token-server/src/tokens.ts`
-- **ROOM_LIFECYCLE** (3 connections) — `services/token-server/src/tokens.ts`
-- **roomNameFor()** (3 connections) — `services/token-server/src/tokens.ts`
-- **TokenConfig** (3 connections) — `services/token-server/src/tokens.ts`
-- **metadataFor()** (2 connections) — `services/token-server/src/tokens.test.ts`
-- **validMissionId()** (2 connections) — `services/token-server/src/tokens.ts`
-- **validSeedTopic()** (2 connections) — `services/token-server/src/tokens.ts`
-- **validStartRung()** (2 connections) — `services/token-server/src/tokens.ts`
-- **validTutorVoice()** (2 connections) — `services/token-server/src/tokens.ts`
-- **GrantResult** (1 connections) — `services/token-server/src/tokens.ts`
-- **SeedTopic** (1 connections) — `services/token-server/src/tokens.ts`
-- **SessionGrant** (1 connections) — `services/token-server/src/tokens.ts`
-- **SessionMode** (1 connections) — `services/token-server/src/tokens.ts`
-- **config** (1 connections) — `services/token-server/src/tokens.test.ts`
+- **src/copy.ts** (37 connections) — `packages/brain/src/copy.ts`
+- **frames.ts** (25 connections) — `packages/brain/src/missions/frames.ts`
+- **brain/src/copy.test.ts** (24 connections) — `packages/brain/src/copy.test.ts`
+- **src/fixtures.ts** (17 connections) — `packages/brain/src/fixtures.ts`
+- **scenarioPrompt.ts** (14 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
+- **buildScenarioRequest()** (12 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
+- **APERO_FRAME** (9 connections) — `packages/brain/src/fixtures.ts`
+- **coachFallbackLine()** (6 connections) — `packages/brain/src/copy.ts`
+- **scenarioPrompt.test.ts** (6 connections) — `packages/brain/src/prompt/scenarioPrompt.test.ts`
+- **requestFallbackFrame()** (5 connections) — `packages/brain/src/fixtures.ts`
+- **RECOVERY_LINE** (4 connections) — `packages/brain/src/copy.ts`
+- **src/fixtures.test.ts** (4 connections) — `packages/brain/src/fixtures.test.ts`
+- **fallbackVariants()** (3 connections) — `packages/brain/src/copy.ts`
+- **NOTHING_WAS_WRONG** (3 connections) — `packages/brain/src/copy.ts`
+- **recoveryLine()** (3 connections) — `packages/brain/src/copy.ts`
+- **buildScenarioInstruction()** (3 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
+- **quoteRequest()** (3 connections) — `packages/brain/src/prompt/scenarioPrompt.ts`
+- **EM_DASH_RE** (2 connections) — `packages/brain/src/copy.ts`
+- **ENGLISH_HAND_BACK_VARIANTS** (2 connections) — `packages/brain/src/copy.ts`
+- **FILLER_RE** (2 connections) — `packages/brain/src/copy.ts`
+- **outsideQuotes()** (2 connections) — `packages/brain/src/copy.ts`
+- **RESCUE_LINE** (2 connections) — `packages/brain/src/copy.ts`
+- **rotate()** (2 connections) — `packages/brain/src/copy.ts`
+- **SCOLD_RE** (2 connections) — `packages/brain/src/copy.ts`
+- **check()** (2 connections) — `packages/brain/src/copy.test.ts`
+- *... and 22 more nodes in this community*
 
 ## Relationships
 
-- [meter.ts](meter.ts.md) (6 shared connections)
-- [Entitlement](Entitlement.md) (6 shared connections)
-- [server.ts](server.ts.md) (4 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
-- [evidenceContract.test.ts](evidenceContract.test.ts.md) (2 shared connections)
-- [chooserView.ts](chooserView.ts.md) (1 shared connections)
-- [TutorVoiceKey](TutorVoiceKey.md) (1 shared connections)
+- [conversation.ts](conversation.ts.md) (30 shared connections)
+- [ledger.ts](ledger.ts.md) (14 shared connections)
+- [chooserView.ts](chooserView.ts.md) (10 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (8 shared connections)
+- [profile.ts](profile.ts.md) (7 shared connections)
+- [bookmarks/store.ts](bookmarks-store.ts.md) (5 shared connections)
+- [convo.ts](convo.ts.md) (2 shared connections)
+- [curationEval.ts](curationEval.ts.md) (1 shared connections)
+- [journey.ts](journey.ts.md) (1 shared connections)
+- [speakView.ts](speakView.ts.md) (1 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `services/token-server/src/tokens.test.ts`
-- `services/token-server/src/tokens.ts`
+- `packages/brain/src/copy.test.ts`
+- `packages/brain/src/copy.ts`
+- `packages/brain/src/fixtures.test.ts`
+- `packages/brain/src/fixtures.ts`
+- `packages/brain/src/missions/frames.ts`
+- `packages/brain/src/prompt/scenarioPrompt.test.ts`
+- `packages/brain/src/prompt/scenarioPrompt.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 47 (100%)
+- EXTRACTED: 156 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

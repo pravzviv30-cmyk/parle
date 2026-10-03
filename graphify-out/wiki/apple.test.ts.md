@@ -24,8 +24,8 @@
 
 ## Relationships
 
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (3 shared connections)
-- [SignUpScreen.tsx](SignUpScreen.tsx.md) (2 shared connections)
+- [wallPages.ts](wallPages.ts.md) (3 shared connections)
+- [dailyLicences.ts](dailyLicences.ts.md) (2 shared connections)
 
 ## Source Files
 

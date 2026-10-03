@@ -154,7 +154,7 @@ export function bootPlan(env: Env = process.env): BootStep[] {
       id: 'app',
       label: 'app',
       command: 'npm',
-      args: ['run', 'web', '--workspace=@luvani/mobile', '--', '--port', String(APP_PORT)],
+      args: ['run', 'web', '--workspace=@luvani/mobile', '--', '--clear', '--port', String(APP_PORT)],
       port: APP_PORT,
       ready: { kind: 'http', url: `http://127.0.0.1:${APP_PORT}/`, timeoutMs: 90_000, fatalOnTimeout: true },
       identify: (p) => p.status === 200,
@@ -180,6 +180,18 @@ export type PortVerdict =
  */
 export function classifyPort(step: BootStep, probe: ProbeResult): PortVerdict {
   if (step.port === null || !probe.reachable) return { kind: 'spawn' };
+  // Metro's HTML/status response carries no checkout identity. It can be an
+  // older branch, even with Luvani's title and a healthy HTTP 200. Readiness
+  // after launching our own child still uses identify; reuse cannot.
+  if (step.id === 'app') {
+    return {
+      kind: 'occupied',
+      message:
+        `An existing preview is answering on ${step.port}, but its checkout cannot be verified.\n` +
+        `        Find it with:  lsof -i :${step.port}\n` +
+        `        Stop that preview and run npm run dev from the checkout you want to preview.`,
+    };
+  }
   if (step.identify(probe)) {
     return {
       kind: 'reuse',

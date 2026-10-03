@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **scripts** (23 connections) — `package.json`
+- **scripts** (25 connections) — `package.json`
 - **package.json** (8 connections) — `package.json`
 - **dependencyAudit** (5 connections) — `package.json`
 - **workspaces** (4 connections) — `package.json`
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 39 (100%)
+- EXTRACTED: 41 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -1,31 +1,28 @@
 # recapWait.ts
 
-> 9 nodes · cohesion 0.33
+> 5 nodes · cohesion 0.50
 
 ## Key Concepts
 
-- **recapWait.ts** (8 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **recapWait.test.ts** (6 connections) — `apps/mobile/src/tutor/recapWait.test.ts`
-- **recapWait()** (4 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **LEAVE_LABEL** (2 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **RECAP_COMING** (2 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **RECAP_COMING_NOTE** (2 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **RecapWaitState** (1 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **RecapWaitSurface** (1 connections) — `apps/mobile/src/tutor/recapWait.ts`
-- **convo** (1 connections) — `apps/mobile/src/tutor/recapWait.test.ts`
+- **appVersionLine()** (4 connections) — `apps/mobile/src/profile/appVersion.ts`
+- **appVersion.test.ts** (4 connections) — `apps/mobile/src/profile/appVersion.test.ts`
+- **appVersion.ts** (3 connections) — `apps/mobile/src/profile/appVersion.ts`
+- **read()** (1 connections) — `apps/mobile/src/profile/appVersion.test.ts`
+- **stripComments()** (1 connections) — `apps/mobile/src/profile/appVersion.test.ts`
 
 ## Relationships
 
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (3 shared connections)
+- [SettingsScreen.tsx](SettingsScreen.tsx.md) (2 shared connections)
+- [reminder.ts](reminder.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/tutor/recapWait.test.ts`
-- `apps/mobile/src/tutor/recapWait.ts`
+- `apps/mobile/src/profile/appVersion.test.ts`
+- `apps/mobile/src/profile/appVersion.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 15 (100%)
+- EXTRACTED: 8 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

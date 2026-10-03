@@ -9739,3 +9739,27 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: GitHub's clean Linux run found the module Swift file and podspec absent, while local tests read the ignored copies. Preserve generated iOS exclusions and unignore exactly the two handwritten source files. The regression checks their ignore status with `--no-index`, requires both in Git's index, and keeps generated Pods/module build output excluded. It failed before the exceptions were applied. Existing native epoch/wiring assertions remain intact.
 - note: Independent GPT-6 Sol reproduced the ignore cause, reviewed the two source files and found no other unintentionally ignored authored source. Walk stays disabled; this source-packaging repair does not certify an iOS build, microphone, lock-screen or physical interruption test.
 - verified-by: `Walk ships its handwritten native module while generated iOS output remains ignored`
+
+### F713 — A healthy preview response can reuse an older checkout
+- severity: P2
+- status: [x]
+- where: services/shared/devPlan.ts, scripts/dev.mjs
+- note: The app boot step accepted any HTTP 200 as a reusable preview, so a different branch's Metro or unrelated HTML could be mistaken for this checkout. Refuse occupied app ports while keeping newly spawned app readiness and recognised service reuse. Print the source checkout and revision and clear Metro on app launch. The regression failed with reuse before the fix; focused checks pass.
+- verified-by: `an answering preview is never silently reused from another checkout`
+
+### F714 — Retired UI and generic audio remain beside the current app
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/home/AbilitiesCard.tsx, apps/mobile/src/myfrench/LedgerLane.tsx, apps/mobile/src/daily/audioManifest.ts, apps/mobile/assets/daily-kokoro, scripts/build-daily-audio.mjs, scripts/daily-audio-worker.py
+- note: Independent read-only audit found no production importers for the two presentation modules or the generic audio manifest. Remove the unmounted components, 2,957 old clips, manifest and generator; preserve their underlying evidence models, the 2,000-item text catalogue, all 2,400 active tutor clips, licences, stores and compatibility readers. Retire the obsolete 3,000-generic-recording assertion in favour of actual six-tutor coverage, container checks and absence of old references. Existing frozen-text/configuration/content-hash tests stay intact. Both retirement regressions failed before removal and focused checks pass. Other UI with source-contract or billing pins is explicitly recorded in DELETION_LEDGER rather than silently swept.
+- verified-by: `retired Home and phrase-lane components stay absent while current evidence and phrase routes remain`
+- verified-by: `every selectable daily recording is bundled for all six tutors without a runtime API`
+- verified-by: `the unused generic audio pack and generator stay retired with no production references`
+
+### F715 — Refusing a preview exits before its spawned services are reaped
+- severity: P2
+- status: [x]
+- where: scripts/dev.mjs, services/tutor-agent/src/devSupervisor.test.ts
+- note: Independent cleanup review found shutdown followed by die exited immediately, bypassing the SIGKILL fallback; an unref'ed shutdown timer could also report success after a fatal timeout. Refusal now logs and returns through shutdown, which sets the failure code immediately and keeps the cleanup timer alive until child handles drain. Apply the same path to durable-service refusal. A real local fixture service that ignores SIGTERM proves occupied-preview cleanup; a promptly exiting fixture proves the fatal timeout still exits 1. Both process tests failed before the fix and passed after it; no keys, network service or paid vendor required.
+- verified-by: `refusing an occupied preview reaps even a service that ignores SIGTERM`
+- verified-by: `a readiness timeout reports failure even when its service exits promptly`

@@ -5,9 +5,9 @@
 ## Key Concepts
 
 - **sourceText.test.ts** (4 connections) — `apps/mobile/src/sync/sourceText.test.ts`
+- **SKIP** (2 connections) — `apps/mobile/src/sync/sourceText.test.ts`
+- **testFiles()** (2 connections) — `apps/mobile/src/sync/sourceText.test.ts`
 - **ROOT** (1 connections) — `apps/mobile/src/sync/sourceText.test.ts`
-- **SKIP** (1 connections) — `apps/mobile/src/sync/sourceText.test.ts`
-- **testFiles()** (1 connections) — `apps/mobile/src/sync/sourceText.test.ts`
 - **unsearchableBytes()** (1 connections) — `apps/mobile/src/sync/sourceText.test.ts`
 
 ## Relationships
@@ -20,7 +20,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 4 (100%)
+- EXTRACTED: 5 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

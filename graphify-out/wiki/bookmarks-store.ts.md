@@ -1,59 +1,72 @@
 # bookmarks/store.ts
 
-> 26 nodes · cohesion 0.14
+> 53 nodes · cohesion 0.07
 
 ## Key Concepts
 
-- **bookmarks/store.ts** (32 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **bookmarks/store.test.ts** (20 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **setBookmark()** (10 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **loadBookmarks()** (9 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **adoptBookmarks()** (7 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **adopterFor()** (6 connections) — `apps/mobile/src/sync/registry.ts`
-- **isItem()** (4 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **KEY()** (4 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **ordered()** (4 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **readItems()** (4 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **saveItems()** (4 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **serialized()** (4 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **newerOf()** (3 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **registerAdopter()** (3 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **canonical()** (2 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **MAX_BOOKMARKS** (2 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **persistedItems()** (2 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **itemsOf()** (2 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **savedIds()** (2 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **StoredBookmarks** (1 connections) — `apps/mobile/src/bookmarks/store.ts`
-- **installDisk()** (1 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **merge()** (1 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **nextUid()** (1 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **policy** (1 connections) — `apps/mobile/src/bookmarks/store.test.ts`
-- **writeChain** (1 connections) — `apps/mobile/src/bookmarks/store.ts`
-- *... and 1 more nodes in this community*
+- **runEval.ts** (38 connections) — `services/brain-playground/src/eval/runEval.ts`
+- **usageAccounting.test.ts** (21 connections) — `packages/brain/src/llm/usageAccounting.test.ts`
+- **frameEval.ts** (19 connections) — `services/brain-playground/src/eval/frameEval.ts`
+- **addLlmUsage()** (18 connections) — `packages/brain/src/llm/client.ts`
+- **drillEval.ts** (17 connections) — `services/brain-playground/src/eval/drillEval.ts`
+- **brain-playground/src/usage.ts** (17 connections) — `services/brain-playground/src/usage.ts`
+- **ZERO_USAGE** (15 connections) — `packages/brain/src/llm/client.ts`
+- **costUsd()** (14 connections) — `packages/brain/src/llm/pricing.ts`
+- **pricing.ts** (11 connections) — `packages/brain/src/llm/pricing.ts`
+- **runCase()** (11 connections) — `services/brain-playground/src/eval/runEval.ts`
+- **applyNonSpokenInput()** (10 connections) — `packages/brain/src/engine/conversation.ts`
+- **priceUsage()** (10 connections) — `packages/brain/src/llm/pricing.ts`
+- **defaultModel()** (9 connections) — `packages/brain/src/llm/openaiCompat.ts`
+- **formatTurnUsage()** (8 connections) — `services/brain-playground/src/usage.ts`
+- **CoachKind** (7 connections) — `packages/brain/src/contract/types.ts`
+- **DEFAULT_OPENAI_TURN_MODEL** (7 connections) — `packages/brain/src/llm/openaiResponses.ts`
+- **pricing.test.ts** (7 connections) — `packages/brain/src/llm/pricing.test.ts`
+- **main()** (7 connections) — `services/brain-playground/src/eval/drillEval.ts`
+- **main()** (7 connections) — `services/brain-playground/src/eval/frameEval.ts`
+- **cases.ts** (6 connections) — `services/brain-playground/src/eval/cases.ts`
+- **main()** (6 connections) — `services/brain-playground/src/eval/runEval.ts`
+- **DEFAULT_OPENAI_ANALYST_MODEL** (5 connections) — `packages/brain/src/llm/openaiResponses.ts`
+- **formatSessionUsage()** (5 connections) — `services/brain-playground/src/usage.ts`
+- **checkFrame()** (4 connections) — `services/brain-playground/src/eval/frameEval.ts`
+- **pricedNote()** (4 connections) — `services/brain-playground/src/usage.ts`
+- *... and 28 more nodes in this community*
 
 ## Relationships
 
-- [engine.ts](engine.ts.md) (10 shared connections)
-- [MissionHero.tsx](MissionHero.tsx.md) (9 shared connections)
-- [scope.ts](scope.ts.md) (5 shared connections)
-- [userKey](userKey.md) (4 shared connections)
-- [storeBinding.test.ts](storeBinding.test.ts.md) (4 shared connections)
-- [activity.ts](activity.ts.md) (2 shared connections)
-- [PracticeTab.tsx](PracticeTab.tsx.md) (2 shared connections)
-- [progressStore.ts](progressStore.ts.md) (1 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (1 shared connections)
-- [sync/policy.ts](sync-policy.ts.md) (1 shared connections)
+- [ledger.ts](ledger.ts.md) (52 shared connections)
+- [conversation.ts](conversation.ts.md) (20 shared connections)
+- [profile.ts](profile.ts.md) (17 shared connections)
+- [chooserView.ts](chooserView.ts.md) (11 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (8 shared connections)
+- [curationEval.ts](curationEval.ts.md) (6 shared connections)
+- [tokens.ts](tokens.ts.md) (5 shared connections)
+- [agent.ts](agent.ts.md) (3 shared connections)
+- [soundcheck/store.ts](soundcheck-store.ts.md) (2 shared connections)
+- [buildConversationPack](buildConversationPack.md) (2 shared connections)
+- [lessons/types.ts](lessons-types.ts.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (2 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/bookmarks/store.test.ts`
-- `apps/mobile/src/bookmarks/store.ts`
-- `apps/mobile/src/sync/registry.ts`
+- `packages/brain/src/contract/types.ts`
+- `packages/brain/src/engine/conversation.ts`
+- `packages/brain/src/llm/anthropic.ts`
+- `packages/brain/src/llm/client.ts`
+- `packages/brain/src/llm/openaiCompat.ts`
+- `packages/brain/src/llm/openaiResponses.ts`
+- `packages/brain/src/llm/pricing.test.ts`
+- `packages/brain/src/llm/pricing.ts`
+- `packages/brain/src/llm/usageAccounting.test.ts`
+- `services/brain-playground/src/eval/cases.ts`
+- `services/brain-playground/src/eval/drillEval.ts`
+- `services/brain-playground/src/eval/frameEval.ts`
+- `services/brain-playground/src/eval/runEval.ts`
+- `services/brain-playground/src/usage.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 81 (95%)
-- INFERRED: 4 (5%)
+- EXTRACTED: 236 (100%)
+- INFERRED: 1 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

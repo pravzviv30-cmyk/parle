@@ -30,11 +30,11 @@
 
 ## Relationships
 
-- [meter.ts](meter.ts.md) (3 shared connections)
-- [guilt.ts](guilt.ts.md) (2 shared connections)
-- [Entitlement](Entitlement.md) (1 shared connections)
-- [Plan](Plan.md) (1 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (1 shared connections)
+- [LlmUsage](LlmUsage.md) (3 shared connections)
+- [practice/history.ts](practice-history.ts.md) (2 shared connections)
+- [src/store.ts](src-store.ts.md) (1 shared connections)
+- [phraseKeyOf](phraseKeyOf.md) (1 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 

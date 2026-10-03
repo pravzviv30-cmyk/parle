@@ -1,64 +1,78 @@
 # ledger.ts
 
-> 30 nodes · cohesion 0.12
+> 182 nodes · cohesion 0.04
 
 ## Key Concepts
 
-- **ledger.ts** (24 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **ledger.test.ts** (19 connections) — `apps/mobile/src/myfrench/ledger.test.ts`
-- **myfrench/model.test.ts** (16 connections) — `apps/mobile/src/myfrench/model.test.ts`
-- **myfrench/copy.ts** (15 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **myfrench/copy.test.ts** (12 connections) — `apps/mobile/src/myfrench/copy.test.ts`
-- **ledgerFrom()** (9 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **SHELF_EMPTY** (5 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **rowOf()** (4 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **shelfLine()** (4 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **CONVERSATIONS_ROW** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **CONVERSATIONS_SUB** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **MY_FRENCH_COPY** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **MY_FRENCH_PURPOSE** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **MY_FRENCH_TITLE** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **SAVED_LABEL** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **SHELF_LABEL** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **SHELF_OPEN** (3 connections) — `apps/mobile/src/myfrench/copy.ts`
-- **CLAIMS** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **FeaturedPhrase** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **hasLedger()** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **isWholeLine()** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **noteOn()** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **PhraseRow** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **RETAINED_ROWS** (2 connections) — `apps/mobile/src/myfrench/ledger.ts`
-- **card()** (1 connections) — `apps/mobile/src/myfrench/ledger.test.ts`
-- *... and 5 more nodes in this community*
+- **LlmUsage** (79 connections) — `packages/brain/src/llm/client.ts`
+- **openaiResponses.ts** (69 connections) — `packages/brain/src/llm/openaiResponses.ts`
+- **anthropic.ts** (52 connections) — `packages/brain/src/llm/anthropic.ts`
+- **llm/client.ts** (51 connections) — `packages/brain/src/llm/client.ts`
+- **contract/types.ts** (50 connections) — `packages/brain/src/contract/types.ts`
+- **openaiCompat.ts** (48 connections) — `packages/brain/src/llm/openaiCompat.ts`
+- **claudeCli.ts** (46 connections) — `packages/brain/src/llm/claudeCli.ts`
+- **MockLlmClient** (38 connections) — `packages/brain/src/llm/mock.ts`
+- **LlmClient** (36 connections) — `packages/brain/src/llm/client.ts`
+- **client.test.ts** (34 connections) — `packages/brain/src/llm/client.test.ts`
+- **mock.ts** (32 connections) — `packages/brain/src/llm/mock.ts`
+- **ScenarioFrame** (30 connections) — `packages/brain/src/contract/types.ts`
+- **OpenAiResponsesBrainClient** (28 connections) — `packages/brain/src/llm/openaiResponses.ts`
+- **schemas.ts** (27 connections) — `packages/brain/src/contract/schemas.ts`
+- **TutorTurn** (26 connections) — `packages/brain/src/contract/types.ts`
+- **BrainTurnRequest** (26 connections) — `packages/brain/src/llm/client.ts`
+- **factory.ts** (25 connections) — `packages/brain/src/llm/factory.ts`
+- **llm/index.ts** (25 connections) — `packages/brain/src/llm/index.ts`
+- **OpenAiCompatBrainClient** (25 connections) — `packages/brain/src/llm/openaiCompat.ts`
+- **openaiResponses.test.ts** (24 connections) — `packages/brain/src/llm/openaiResponses.test.ts`
+- **AnthropicBrainClient** (23 connections) — `packages/brain/src/llm/anthropic.ts`
+- **BrainJudgeRequest** (23 connections) — `packages/brain/src/llm/client.ts`
+- **BrainFrameRequest** (22 connections) — `packages/brain/src/llm/client.ts`
+- **split.ts** (22 connections) — `packages/brain/src/llm/split.ts`
+- **Curation** (21 connections) — `packages/brain/src/curate/curate.ts`
+- *... and 157 more nodes in this community*
 
 ## Relationships
 
-- [PracticeTab.tsx](PracticeTab.tsx.md) (8 shared connections)
-- [localDayKey](localDayKey.md) (8 shared connections)
-- [myfrench/model.ts](myfrench-model.ts.md) (7 shared connections)
-- [space](space.md) (5 shared connections)
-- [guilt.ts](guilt.ts.md) (4 shared connections)
-- [scheduler.ts](scheduler.ts.md) (3 shared connections)
-- [ReviewCard](ReviewCard.md) (3 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (3 shared connections)
-- [momentum.ts](momentum.ts.md) (3 shared connections)
-- [MyFrenchTab.test.ts](MyFrenchTab.test.ts.md) (2 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (2 shared connections)
-- [homeMission.ts](homeMission.ts.md) (1 shared connections)
+- [conversation.ts](conversation.ts.md) (55 shared connections)
+- [bookmarks/store.ts](bookmarks-store.ts.md) (52 shared connections)
+- [convo.ts](convo.ts.md) (31 shared connections)
+- [profile.ts](profile.ts.md) (25 shared connections)
+- [curationEval.ts](curationEval.ts.md) (21 shared connections)
+- [chooserView.ts](chooserView.ts.md) (17 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (15 shared connections)
+- [tokens.ts](tokens.ts.md) (14 shared connections)
+- [buildConversationPack](buildConversationPack.md) (13 shared connections)
+- [verifyNativeVoice.mjs](verifyNativeVoice.mjs.md) (10 shared connections)
+- [Deletion and supersession ledger](Deletion_and_supersession_ledger.md) (6 shared connections)
+- [verifySessionRefunds.mjs](verifySessionRefunds.mjs.md) (3 shared connections)
 
 ## Source Files
 
-- `@luvani/core`
-- `apps/mobile/src/myfrench/copy.test.ts`
-- `apps/mobile/src/myfrench/copy.ts`
-- `apps/mobile/src/myfrench/ledger.test.ts`
-- `apps/mobile/src/myfrench/ledger.ts`
-- `apps/mobile/src/myfrench/model.test.ts`
+- `README.md`
+- `packages/brain/src/contract/schemas.test.ts`
+- `packages/brain/src/contract/schemas.ts`
+- `packages/brain/src/contract/types.ts`
+- `packages/brain/src/curate/curate.ts`
+- `packages/brain/src/drill/generate.ts`
+- `packages/brain/src/llm/anthropic.ts`
+- `packages/brain/src/llm/claudeCli.ts`
+- `packages/brain/src/llm/client.test.ts`
+- `packages/brain/src/llm/client.ts`
+- `packages/brain/src/llm/factory.ts`
+- `packages/brain/src/llm/http.ts`
+- `packages/brain/src/llm/index.ts`
+- `packages/brain/src/llm/judge.ts`
+- `packages/brain/src/llm/mock.ts`
+- `packages/brain/src/llm/openaiCompat.ts`
+- `packages/brain/src/llm/openaiResponses.test.ts`
+- `packages/brain/src/llm/openaiResponses.ts`
+- `packages/brain/src/llm/routing.ts`
+- `packages/brain/src/llm/split.test.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 100 (99%)
-- INFERRED: 1 (1%)
+- EXTRACTED: 1020 (99%)
+- INFERRED: 11 (1%)
 - AMBIGUOUS: 0 (0%)
 
 ---

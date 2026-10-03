@@ -1,62 +1,58 @@
 # failure.ts
 
-> 43 nodes · cohesion 0.06
+> 28 nodes · cohesion 0.12
 
 ## Key Concepts
 
-- **failure.ts** (23 connections) — `apps/mobile/src/live/failure.ts`
-- **failure.test.ts** (19 connections) — `apps/mobile/src/live/failure.test.ts`
-- **typedDoor.test.ts** (15 connections) — `apps/mobile/src/live/typedDoor.test.ts`
-- **failureCopy** (10 connections) — `apps/mobile/src/live/failure.ts`
-- **LiveFailure** (9 connections) — `apps/mobile/src/live/failure.ts`
-- **classifyPipelineError()** (7 connections) — `apps/mobile/src/live/failure.ts`
-- **agentWiring.test.ts** (7 connections) — `services/tutor-agent/src/agentWiring.test.ts`
-- **ErrorKind** (6 connections) — `packages/core/src/protocol/protocol.ts`
-- **ERROR_KINDS** (5 connections) — `packages/core/src/protocol/protocol.ts`
-- **classifyFailure()** (4 connections) — `apps/mobile/src/live/failure.ts`
-- **TokenServerError** (4 connections) — `apps/mobile/src/live/failure.ts`
-- **switchWorld()** (4 connections) — `apps/mobile/src/live/useLiveSession.test.ts`
-- **LiveDiagnostics** (3 connections) — `apps/mobile/src/live/useLiveSession.ts`
-- **PIPELINE_ALARM_PREFIX** (2 connections) — `apps/mobile/src/live/failure.ts`
-- **PIPELINE_LOG_PREFIX** (2 connections) — `apps/mobile/src/live/failure.ts`
-- **PipelineErrorFrame** (2 connections) — `apps/mobile/src/live/failure.ts`
-- **pipelineLog()** (2 connections) — `apps/mobile/src/live/failure.ts`
-- **PipelineOutcome** (2 connections) — `apps/mobile/src/live/failure.ts`
-- **claimsTheSessionSurvived()** (2 connections) — `apps/mobile/src/live/failure.test.ts`
-- **isNegator()** (2 connections) — `apps/mobile/src/live/failure.test.ts`
-- **AUDIO_ONLY** (1 connections) — `apps/mobile/src/live/failure.ts`
-- **COPY** (1 connections) — `apps/mobile/src/live/failure.ts`
-- **KIND_FAILURE** (1 connections) — `apps/mobile/src/live/failure.ts`
-- **KIND_NOTICE** (1 connections) — `apps/mobile/src/live/failure.ts`
-- **blocking()** (1 connections) — `apps/mobile/src/live/failure.test.ts`
-- *... and 18 more nodes in this community*
+- **cardView.test.ts** (28 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **cardView.ts** (27 connections) — `apps/mobile/src/review/cardView.ts`
+- **cardView** (13 connections) — `apps/mobile/src/review/cardView.ts`
+- **presentationOf()** (11 connections) — `packages/core/src/review/evidence.ts`
+- **firstReturn()** (10 connections) — `packages/core/src/review/scheduler.ts`
+- **sittingView** (6 connections) — `apps/mobile/src/review/cardView.ts`
+- **GradeContext** (5 connections) — `packages/core/src/review/scheduler.ts`
+- **CardPresentation** (4 connections) — `packages/core/src/review/evidence.ts`
+- **faces()** (3 connections) — `apps/mobile/src/review/cardView.ts`
+- **frenchSide()** (3 connections) — `apps/mobile/src/review/cardView.ts`
+- **card()** (3 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **TYPE_IT** (3 connections) — `apps/mobile/src/review/cardView.ts`
+- **contextUnder()** (2 connections) — `apps/mobile/src/review/cardView.ts`
+- **hearable()** (2 connections) — `apps/mobile/src/review/cardView.ts`
+- **RETRIEVAL_ASK** (2 connections) — `apps/mobile/src/review/cardView.ts`
+- **SITTING_OPENER** (2 connections) — `apps/mobile/src/review/cardView.ts`
+- **backlog()** (2 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **turnCard()** (2 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **AttemptKind** (1 connections) — `apps/mobile/src/review/cardView.ts`
+- **CardAnswer** (1 connections) — `apps/mobile/src/review/cardView.ts`
+- **INTRODUCTION_TAG** (1 connections) — `apps/mobile/src/review/cardView.ts`
+- **RETRIEVAL_TAG** (1 connections) — `apps/mobile/src/review/cardView.ts`
+- **everythingShown()** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **NOW** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
+- **read()** (1 connections) — `apps/mobile/src/review/cardView.test.ts`
+- *... and 3 more nodes in this community*
 
 ## Relationships
 
-- [useLiveSession.ts](useLiveSession.ts.md) (11 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (9 shared connections)
-- [useLiveSession.test.ts](useLiveSession.test.ts.md) (5 shared connections)
-- [space](space.md) (4 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (3 shared connections)
-- [protocol.ts](protocol.ts.md) (3 shared connections)
-- [TutorVoiceKey](TutorVoiceKey.md) (2 shared connections)
-- [safetyView.test.ts](safetyView.test.ts.md) (1 shared connections)
-- [startOwnership.test.ts](startOwnership.test.ts.md) (1 shared connections)
+- [ReviewCard](ReviewCard.md) (16 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (16 shared connections)
+- [wallPlans.test.ts](wallPlans.test.ts.md) (4 shared connections)
+- [archive.ts](archive.ts.md) (3 shared connections)
+- [generate.ts](generate.ts.md) (3 shared connections)
+- [practice/history.ts](practice-history.ts.md) (2 shared connections)
+- [momentum.ts](momentum.ts.md) (1 shared connections)
+- [scopeGeneration](scopeGeneration.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/live/failure.test.ts`
-- `apps/mobile/src/live/failure.ts`
-- `apps/mobile/src/live/typedDoor.test.ts`
-- `apps/mobile/src/live/useLiveSession.test.ts`
-- `apps/mobile/src/live/useLiveSession.ts`
-- `packages/core/src/protocol/protocol.ts`
-- `services/tutor-agent/src/agentWiring.test.ts`
+- `apps/mobile/src/review/cardView.test.ts`
+- `apps/mobile/src/review/cardView.ts`
+- `packages/core/src/review/evidence.ts`
+- `packages/core/src/review/scheduler.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 92 (96%)
-- INFERRED: 4 (4%)
+- EXTRACTED: 92 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -1,72 +1,64 @@
 # phraseKeyOf
 
-> 30 nodes · cohesion 0.12
+> 26 nodes · cohesion 0.13
 
 ## Key Concepts
 
-- **phraseKeyOf()** (60 connections) — `packages/core/src/topics/topics.ts`
-- **newCard()** (32 connections) — `packages/core/src/review/scheduler.ts`
-- **mix.test.ts** (19 connections) — `apps/mobile/src/practice/mix.test.ts`
-- **packExercises.ts** (15 connections) — `apps/mobile/src/conversationPacks/packExercises.ts`
-- **mix.ts** (11 connections) — `apps/mobile/src/practice/mix.ts`
-- **packExercises.test.ts** (9 connections) — `apps/mobile/src/conversationPacks/packExercises.test.ts`
-- **packExercisesFor()** (7 connections) — `apps/mobile/src/conversationPacks/packExercises.ts`
-- **repairKeyOf()** (5 connections) — `apps/mobile/src/conversationPacks/packExercises.ts`
-- **topicGroups()** (5 connections) — `apps/mobile/src/practice/mix.ts`
-- **offersMix()** (4 connections) — `apps/mobile/src/practice/mix.ts`
-- **sittingTitle()** (4 connections) — `apps/mobile/src/practice/mix.ts`
-- **repeat()** (3 connections) — `apps/mobile/src/conversationPacks/packExercises.ts`
-- **translate()** (3 connections) — `apps/mobile/src/conversationPacks/packExercises.ts`
-- **retained()** (3 connections) — `apps/mobile/src/practice/archive.test.ts`
-- **due()** (3 connections) — `apps/mobile/src/practice/mix.test.ts`
-- **later()** (3 connections) — `apps/mobile/src/practice/mix.test.ts`
-- **due()** (3 connections) — `apps/mobile/src/practice/nextStep.test.ts`
-- **card()** (3 connections) — `apps/mobile/src/practice/sessionCard.test.ts`
-- **saidCard()** (3 connections) — `apps/mobile/src/wall/wallMap.test.ts`
-- **REPEATED_PHRASES** (2 connections) — `apps/mobile/src/conversationPacks/packExercises.ts`
-- **pack()** (2 connections) — `apps/mobile/src/conversationPacks/packExercises.test.ts`
-- **cardsFor()** (2 connections) — `apps/mobile/src/missions/chooserView.test.ts`
-- **DRILL_UNREAD** (2 connections) — `apps/mobile/src/practice/mix.ts`
-- **MIX_OFFER** (2 connections) — `apps/mobile/src/practice/mix.ts`
-- **topic()** (2 connections) — `apps/mobile/src/practice/mix.test.ts`
-- *... and 5 more nodes in this community*
+- **Plan** (30 connections) — `packages/core/src/metering/meter.ts`
+- **purchases/client.ts** (28 connections) — `apps/mobile/src/purchases/client.ts`
+- **purchases/billingStatus.ts** (17 connections) — `apps/mobile/src/purchases/billingStatus.ts`
+- **planStatus.ts** (17 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **fetchBillingStatus()** (15 connections) — `apps/mobile/src/purchases/client.ts`
+- **BillingStatus** (14 connections) — `apps/mobile/src/purchases/billingStatus.ts`
+- **planStatus.test.ts** (14 connections) — `apps/mobile/src/purchases/planStatus.test.ts`
+- **StartRefusal** (11 connections) — `packages/core/src/metering/meter.ts`
+- **planStatusFor()** (6 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **billingStatusIn()** (5 connections) — `apps/mobile/src/purchases/billingStatus.ts`
+- **BillingRefresh** (3 connections) — `apps/mobile/src/purchases/client.ts`
+- **BillingStatus** (3 connections) — `services/token-server/src/billingStatus.ts`
+- **REFUSALS** (2 connections) — `apps/mobile/src/purchases/billingStatus.ts`
+- **bandFor()** (2 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **periodLineFor()** (2 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PLAN_LABELS** (2 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PLAN_STATUS_COPY** (2 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PlanStatusView** (2 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PLAN_IDS** (1 connections) — `apps/mobile/src/purchases/billingStatus.ts`
+- **PLAN_IDS** (1 connections) — `apps/mobile/src/purchases/client.ts`
+- **BAND_LINES** (1 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PERIOD_LINES** (1 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PLAN_UNKNOWN** (1 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **PlanBand** (1 connections) — `apps/mobile/src/purchases/planStatus.ts`
+- **NOW** (1 connections) — `apps/mobile/src/purchases/planStatus.test.ts`
+- *... and 1 more nodes in this community*
 
 ## Relationships
 
-- [PracticeTab.tsx](PracticeTab.tsx.md) (16 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (11 shared connections)
-- [ReviewCard](ReviewCard.md) (11 shared connections)
-- [scheduler.ts](scheduler.ts.md) (9 shared connections)
-- [closure.ts](closure.ts.md) (6 shared connections)
-- [journal.ts](journal.ts.md) (6 shared connections)
-- [topics.ts](topics.ts.md) (5 shared connections)
-- [DrillScreen.tsx](DrillScreen.tsx.md) (5 shared connections)
-- [review/store.ts](review-store.ts.md) (5 shared connections)
-- [buildConversationPack](buildConversationPack.md) (4 shared connections)
-- [DrillScreen](DrillScreen.md) (4 shared connections)
-- [drill/session.ts](drill-session.ts.md) (3 shared connections)
+- [LlmUsage](LlmUsage.md) (9 shared connections)
+- [DrillScreen.tsx](DrillScreen.tsx.md) (8 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (7 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (6 shared connections)
+- [src/store.ts](src-store.ts.md) (6 shared connections)
+- [generate.ts](generate.ts.md) (4 shared connections)
+- [realMoments.ts](realMoments.ts.md) (4 shared connections)
+- [plan.ts](plan.ts.md) (3 shared connections)
+- [storeBinding.test.ts](storeBinding.test.ts.md) (3 shared connections)
+- [wallPages.ts](wallPages.ts.md) (2 shared connections)
+- [src/theme.ts](src-theme.ts.md) (2 shared connections)
+- [activity.ts](activity.ts.md) (2 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/conversationPacks/packExercises.test.ts`
-- `apps/mobile/src/conversationPacks/packExercises.ts`
-- `apps/mobile/src/missions/chooserView.test.ts`
-- `apps/mobile/src/practice/archive.test.ts`
-- `apps/mobile/src/practice/mix.test.ts`
-- `apps/mobile/src/practice/mix.ts`
-- `apps/mobile/src/practice/nextStep.test.ts`
-- `apps/mobile/src/practice/sessionCard.test.ts`
-- `apps/mobile/src/wall/wallMap.test.ts`
-- `packages/core/src/drill/session.test.ts`
-- `packages/core/src/review/evidence.test.ts`
-- `packages/core/src/review/scheduler.test.ts`
-- `packages/core/src/review/scheduler.ts`
-- `packages/core/src/topics/topics.ts`
+- `apps/mobile/src/purchases/billingStatus.ts`
+- `apps/mobile/src/purchases/client.ts`
+- `apps/mobile/src/purchases/planStatus.test.ts`
+- `apps/mobile/src/purchases/planStatus.ts`
+- `packages/core/src/metering/meter.ts`
+- `services/token-server/src/billingStatus.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 161 (98%)
-- INFERRED: 3 (2%)
+- EXTRACTED: 139 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

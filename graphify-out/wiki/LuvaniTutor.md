@@ -4,19 +4,19 @@
 
 ## Key Concepts
 
-- **LuvaniTutor** (33 connections) — `services/tutor-agent/src/tutor.ts`
+- **LuvaniTutor** (37 connections) — `services/tutor-agent/src/tutor.ts`
 - **tutor.test.ts** (27 connections) — `services/tutor-agent/src/tutor.test.ts`
 - **currentPrompt()** (14 connections) — `packages/core/src/session/session.ts`
 - **.handleClientMessage()** (11 connections) — `services/tutor-agent/src/tutor.ts`
 - **.applyInput()** (10 connections) — `services/tutor-agent/src/tutor.ts`
 - **.armRescue()** (10 connections) — `services/tutor-agent/src/tutor.ts`
-- **.finish()** (9 connections) — `services/tutor-agent/src/tutor.ts`
 - **.onUserTurnCompleted()** (9 connections) — `services/tutor-agent/src/tutor.ts`
 - **.publish()** (9 connections) — `services/tutor-agent/src/tutor.ts`
 - **.clearRescue()** (8 connections) — `services/tutor-agent/src/tutor.ts`
 - **.handleSafety()** (8 connections) — `services/tutor-agent/src/tutor.ts`
 - **.constructor()** (7 connections) — `services/tutor-agent/src/tutor.ts`
 - **.enqueue()** (5 connections) — `services/tutor-agent/src/tutor.ts`
+- **.finish()** (5 connections) — `services/tutor-agent/src/tutor.ts`
 - **.runRescue()** (5 connections) — `services/tutor-agent/src/tutor.ts`
 - **.sendCurrentPrompt()** (5 connections) — `services/tutor-agent/src/tutor.ts`
 - **rescueOnce()** (5 connections) — `services/tutor-agent/src/tutor.test.ts`
@@ -33,17 +33,17 @@
 
 ## Relationships
 
-- [session/session.ts](session-session.ts.md) (11 shared connections)
-- [tutor.ts](tutor.ts.md) (10 shared connections)
-- [protocol.ts](protocol.ts.md) (7 shared connections)
-- [TutorVoiceKey](TutorVoiceKey.md) (5 shared connections)
-- [brain/src/index.ts](brain-src-index.ts.md) (4 shared connections)
-- [convo.test.ts](convo.test.ts.md) (3 shared connections)
-- [normalise](normalise.md) (3 shared connections)
-- [convo.ts](convo.ts.md) (2 shared connections)
-- [chooserView.ts](chooserView.ts.md) (2 shared connections)
-- [ladder.ts](ladder.ts.md) (2 shared connections)
-- [agent.ts](agent.ts.md) (1 shared connections)
+- [soundLead.ts](soundLead.ts.md) (10 shared connections)
+- [verifyProductEvents.mjs](verifyProductEvents.mjs.md) (8 shared connections)
+- [getMission](getMission.md) (7 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (5 shared connections)
+- [chooserView.ts](chooserView.ts.md) (4 shared connections)
+- [convo.ts](convo.ts.md) (3 shared connections)
+- [scenarios.ts](scenarios.ts.md) (3 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (2 shared connections)
+- [dashboard.ts](dashboard.ts.md) (2 shared connections)
+- [soundcheck/store.ts](soundcheck-store.ts.md) (2 shared connections)
+- [view.test.ts](view.test.ts.md) (1 shared connections)
 - [safetyDecision](safetyDecision.md) (1 shared connections)
 
 ## Source Files
@@ -55,7 +55,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 134 (96%)
+- EXTRACTED: 136 (96%)
 - INFERRED: 5 (4%)
 - AMBIGUOUS: 0 (0%)
 
