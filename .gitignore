@@ -31,6 +31,12 @@ android/
 !apps/mobile/ios/.gitkeep
 !apps/mobile/android/.gitkeep
 
+# Handwritten local Expo module source must ship; generated native files stay out.
+!apps/mobile/modules/luvani-audio-lifecycle/ios/
+apps/mobile/modules/luvani-audio-lifecycle/ios/*
+!apps/mobile/modules/luvani-audio-lifecycle/ios/LuvaniAudioLifecycleModule.swift
+!apps/mobile/modules/luvani-audio-lifecycle/ios/LuvaniAudioLifecycle.podspec
+
 # Synthesized tutor audio (regenerate with: npm run warm-cache -w @luvani/tutor-agent)
 .tts-cache/
 

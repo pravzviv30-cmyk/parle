@@ -14,7 +14,7 @@ reports Expo Go opens. Developer Mode was disabled at the last device read,
 and this Mac has no development signing identity. Reviewer qualification and
 dated beginner findings are pending. Android: unavailable, not passed.
 
-Source verification on 3 October: 4,231 tests pass in the full gate; typechecks
+Source verification on 3 October: 4,232 tests pass in the full gate; typechecks
 and web export pass. Browser QA observed silent onboarding, a route/goal rationale,
 no fixed routine, name placeholder, mock account recovery, deliberate voice
 selection, first-scene brief, usable offline Home/Practice, starting-path labels,

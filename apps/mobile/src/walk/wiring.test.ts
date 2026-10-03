@@ -1,7 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+test('Walk ships its handwritten native module while generated iOS output remains ignored', () => {
+  const cwd = fileURLToPath(new URL('../../../../', import.meta.url));
+  const files = [
+    'apps/mobile/modules/luvani-audio-lifecycle/ios/LuvaniAudioLifecycleModule.swift',
+    'apps/mobile/modules/luvani-audio-lifecycle/ios/LuvaniAudioLifecycle.podspec',
+  ];
+  const ignored = spawnSync('git', ['check-ignore', '--no-index', '--', ...files], { cwd, encoding: 'utf8' });
+  assert.equal(ignored.status, 1, `handwritten native source must not be ignored: ${ignored.stdout}${ignored.stderr}`);
+  assert.equal(ignored.stdout, '');
+  const tracked = spawnSync('git', ['ls-files', '--error-unmatch', '--', ...files], { cwd, encoding: 'utf8' });
+  assert.equal(tracked.status, 0, `native source must ship in a clean checkout: ${tracked.stderr}`);
+  assert.deepEqual(tracked.stdout.trim().split('\n').sort(), [...files].sort());
+  const generated = [
+    'apps/mobile/ios/Pods/generated.swift',
+    'apps/mobile/modules/luvani-audio-lifecycle/ios/build/generated.swift',
+  ];
+  const excluded = spawnSync('git', ['check-ignore', '--no-index', '--', ...generated], { cwd, encoding: 'utf8' });
+  assert.equal(excluded.status, 0, `generated native output must stay ignored: ${excluded.stderr}`);
+  assert.deepEqual(excluded.stdout.trim().split('\n').sort(), [...generated].sort());
+});
 test('Walk retains safety redirect and immediate exit while recap waits', () => {
   const screen = read('../ConvoScreen.tsx'); const room = read('./WalkRoom.tsx');
   assert.match(screen, /if \(walkMode\) return <WalkRoom[\s\S]*?safety=\{safety.kind === 'redirect' \? <SafetyBanner/);

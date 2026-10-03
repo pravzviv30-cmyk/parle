@@ -1123,9 +1123,9 @@ service/import boundaries and retained Metro image-size removal proof pass.
 No Expo or tutor SDK upgrade, audit threshold change or test-floor reduction
 was used. The online audit exits zero under its recorded exceptions, not because
 the dependency tree has no vulnerabilities.
-Final landing verification passes 4,231 tests (core 711, brain 464, tutor 538,
-token server 298, playground 26 and mobile 2,194), workspace typechecks, web
+Final landing verification passes 4,232 tests (core 711, brain 464, tutor 538,
+token server 298, playground 26 and mobile 2,195), workspace typechecks, web
 export, tracked/untracked and bundle secret scans, and the online audit under
-the recorded exceptions. The refreshed source graph has 10,329 nodes,
-26,757 edges and 419 communities. The earlier 4,228-test checkpoint above
+the recorded exceptions. The refreshed source graph has 10,339 nodes,
+26,870 edges and 424 communities. The earlier 4,228-test checkpoint above
 precedes the three added dependency regressions.
