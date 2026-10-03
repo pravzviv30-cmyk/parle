@@ -271,9 +271,9 @@ against real vendor bills in week one, not month three.
 
 ## Current UX implementation review
 
-The PDF and 100-app review changes are implemented in the local Revamp B pass.
+The PDF and 100-app review source changes landed on main on 3 October.
 See [the 44-item implementation record](docs/UX_REPORT_IMPLEMENTATION.md) for
 source evidence and [the acceptance worksheet](docs/UX_ACCEPTANCE_REVIEW.md)
 for the remaining physical-device, French-review and sandbox/hosted checks.
-The 3 October source gate passes 4,231 tests; this does not replace those release
-checks. The founder's preview feedback is the next pass before main landing.
+The 3 October source gate passes 4,232 tests; this does not replace those release
+checks. The founder's preview feedback can guide the next refinements.

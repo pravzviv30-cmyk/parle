@@ -9731,3 +9731,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns`
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
 - verified-by: `unpatched build-tool exceptions cannot enter a service runtime or an app update dependency`
+
+### F712 — The generated iOS ignore rule excluded the handwritten Walk module
+- severity: P1
+- status: [x]
+- where: .gitignore, apps/mobile/modules/luvani-audio-lifecycle/ios, apps/mobile/src/walk/wiring.test.ts
+- note: GitHub's clean Linux run found the module Swift file and podspec absent, while local tests read the ignored copies. Preserve generated iOS exclusions and unignore exactly the two handwritten source files. The regression checks their ignore status with `--no-index`, requires both in Git's index, and keeps generated Pods/module build output excluded. It failed before the exceptions were applied. Existing native epoch/wiring assertions remain intact.
+- note: Independent GPT-6 Sol reproduced the ignore cause, reviewed the two source files and found no other unintentionally ignored authored source. Walk stays disabled; this source-packaging repair does not certify an iOS build, microphone, lock-screen or physical interruption test.
+- verified-by: `Walk ships its handwritten native module while generated iOS output remains ignored`
