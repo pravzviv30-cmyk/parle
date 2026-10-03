@@ -103,11 +103,14 @@ Source checks are recorded by exact regression names in `KNOWN_ISSUES.md`
 F696–F710. Core task/evidence, voice lifecycle, billing, consent, storage,
 onboarding, navigation and UI contracts run in the normal repository gate.
 No test floor or learning/billing policy was reduced to accommodate the redesign.
+The final push hook caught a stale contract-file hash after one EOF blank line
+was removed. Sol independently reconstructed the prior hash by adding exactly
+one newline; the corrected pin retains the full byte-for-byte billing guard.
 Final verification completed on 3 October 2026: `npm run gate` is green with
 **4,231 tests, zero failures** (core 711, brain 464, tutor 538, token server 298,
 playground 26, mobile 2,194). Workspace typechecks pass. `npm run build:web`
 exports successfully. `git diff --check` passes. The AST graph was refreshed to
-10,329 nodes, 26,757 edges and 418 communities; its existing missing SQL parser
+10,329 nodes, 26,757 edges and 419 communities; its existing missing SQL parser
 and empty-JSON warnings are recorded, without a paid relabelling run.
 
 The independent GPT-6 Sol review accepted the monthly store guard, scoped

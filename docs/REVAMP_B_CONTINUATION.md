@@ -1127,5 +1127,5 @@ Final landing verification passes 4,231 tests (core 711, brain 464, tutor 538,
 token server 298, playground 26 and mobile 2,194), workspace typechecks, web
 export, tracked/untracked and bundle secret scans, and the online audit under
 the recorded exceptions. The refreshed source graph has 10,329 nodes,
-26,757 edges and 418 communities. The earlier 4,228-test checkpoint above
+26,757 edges and 419 communities. The earlier 4,228-test checkpoint above
 precedes the three added dependency regressions.

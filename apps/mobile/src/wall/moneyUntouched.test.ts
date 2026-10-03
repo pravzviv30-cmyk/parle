@@ -50,7 +50,11 @@ const FILES: Record<string, string> = {
   'apps/mobile/src/purchases/adapter.ts': '91840b3c02ac00e3eb0d3b3e9cb83b4c6f7b193bf5860778b82cbccb19f9450c',
   'apps/mobile/src/purchases/adapter.native.ts': 'beb2d167d262421524ea374e89a636676a898150df21d08c74418a1d4090df6f',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
-  'apps/mobile/src/purchases/contract.ts': '653fc97ff413653d026d0b22ef357238250e222d21484ae198930ee89a6ed8fe',
+  // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
+  // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
+  // no contract text, imports or purchase behavior changed. Sol independently
+  // reconstructed that prior hash and accepted this exact-byte correction.
+  'apps/mobile/src/purchases/contract.ts': '3f5e5a828b244ea98cc9de4bd8c958b0da9090f77a1eac86583ad5464afd64be',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
   'apps/mobile/src/purchases/client.ts': '89ea93da435d0f6d8c1997b680efecdbf02940cd63eb5ceb04443fcdd686831e',
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
