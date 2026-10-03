@@ -9,8 +9,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { LearnerProfile } from '@luvani/brain/profile';
-import { loadProfile, saveProfile, withAgeGatePassed, type StoredProfile } from '../profile/store.ts';
-import { withoutForgotten } from '../profile/memory.ts';
+import { loadProfile, saveProfile, saveMemoryChange, withAgeGatePassed, type StoredProfile } from '../profile/store.ts';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
+import { brainAfterRecap } from '../profile/memory.ts';
 import { entryFor } from '../onboarding/answers.ts';
 import { AgeGateScreen } from '../onboarding/AgeGateScreen.tsx';
 
@@ -18,6 +19,7 @@ interface ProfileValue {
   profile: StoredProfile;
   /** Persist a whole new profile — fire and forget, the screen does not wait. */
   update: (next: StoredProfile) => void;
+  updateMemory: (edit: (current: StoredProfile) => StoredProfile) => Promise<boolean>;
   /** Persist just the tutor's memory of the learner, from a recap. */
   updateBrain: (blob: LearnerProfile) => void;
 }
@@ -83,15 +85,27 @@ export function ProfileGate({
       // moment a session mentions it again. The tombstones are applied here,
       // at the one write, rather than in the navigator's handler, whose deps
       // must stay exactly `[updateBrain]` (F386).
-      const next: StoredProfile = { ...current, brain: withoutForgotten(blob, current.forgottenFacts) };
+      const next: StoredProfile = { ...current, brain: brainAfterRecap(blob, current) };
       void saveProfile(next);
       return next;
     });
   }, []);
 
+  const updateMemory = useCallback(async (edit: (current: StoredProfile) => StoredProfile): Promise<boolean> => {
+    const owner = activeUserId();
+    const generation = scopeGeneration();
+    const saved = await saveMemoryChange(edit);
+    if (!saved || activeUserId() !== owner || scopeGeneration() !== generation) return false;
+    setProfile((current) => current === null || current === 'loading' ? current : {
+      ...current, forgottenFacts: saved.forgottenFacts, learnerGoals: saved.learnerGoals,
+      brain: { ...current.brain, memory: saved.brain.memory },
+    });
+    return true;
+  }, []);
+
   const value = useMemo<ProfileValue | null>(
-    () => (profile === null || profile === 'loading' ? null : { profile, update, updateBrain }),
-    [profile, update, updateBrain],
+    () => (profile === null || profile === 'loading' ? null : { profile, update, updateBrain, updateMemory }),
+    [profile, update, updateBrain, updateMemory],
   );
 
   if (profile === 'loading') return null;

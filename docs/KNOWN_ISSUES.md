@@ -1131,17 +1131,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### E2 — A dead voice key blocks the two modes that need no voice
 - severity: P2
-- status: [ ]
-- where: services/tutor-agent/src/preflight.ts:180
-- note: also found by running it. `lesson-text` and `convo-text` make no TTS call
-  at all — `say()` returns early when voiceless — yet the worker refuses to boot
-  on a rejected ElevenLabs key, so a stale *voice* credential locks out the two
-  modes built for the learner who cannot use their voice. Refusing to start is
-  the right default for a worker that serves all four modes, and a worker that
-  boots into a half-usable state is its own kind of trap, so this is a design
-  decision rather than a bug: either the worker advertises which modes it can
-  serve, or a text-only worker becomes a separate registration. Filed rather than
-  fixed because picking between those is not a call to make in passing.
+- status: [x]
+- where: services/shared/sessionCapabilities.ts
+- note: 2 October 2026: explicit paired `LUVANI_TYPED_ONLY=1` recovery serves only
+  lesson-text/convo-text without speech keys, probes, VAD/STT/TTS clients or room
+  audio. Transport and the selected brain remain required; both CLI options also
+  require/probe Groq for their actual SDK lesson dependency and check the CLI
+  binary on direct startup. The token API advertises its capabilities and refuses
+  speech before a trial/lease/grant; the client offers typing for that precise
+  reply. The dev supervisor verifies paired flags and reused token capabilities.
+  Independently deployed processes have no automatic handshake: matching flags
+  and real startup are release checks. An unsupported signed job reports zero
+  use before rejection, releasing its lease on successful cleanup. Failed cleanup
+  still needs lease expiry/reconciliation; an already claimed trial is not undone.
+  Independent authorized Sol review accepted code; 3,908-test gate green. No real
+  LiveKit/native recovery session or vendor request was performed.
 - verified-by: `a worker with no usable voice can still serve the typed modes`
 
 ### E3 — The French tutor spoke with an American voice, and every check passed
@@ -1528,7 +1532,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F57 — The two-minute promise is shown to learners and has never been timed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/missions/chooserView.ts:36
 - note: the contract says the one-minute claim is verified by stopwatch against `npm run dev`
   and that the round log must say what was measured. The mechanism under it is proven by test
@@ -1551,7 +1555,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   stays open for a person, at their own pace, with a watch.
   F36's lesson applies to a number as much as it did to a diagnosis: the record is what a
   later session trusts, so an unmeasured claim recorded as measured is worse than no record.
-- verified-by: `the record of the first-win promise names the time a stopwatch actually measured`
+  RE-SCOPED 2 October 2026: the first-line copy now promises tutor help without a
+  deadline. The old stopwatch claim is retired, not declared measured. Human first-run
+  timing remains part of the device/human release pass in IMPLEMENTATION_EVIDENCE.md.
+- verified-by: `the first-line promise gives help without an unmeasured deadline`
 
 ### F58 — On web, a first-ever learner lands on Home instead of the chooser
 - severity: P2
@@ -1824,7 +1831,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F80 — Four live vendor credentials sit in git history on two local branches
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/.env.bak-before-cli-all:11
 - note: found by the F62 scanner on its first history run, which is the argument for having
   built it. Commit 576bc53 ("WIP: epitaxy pre-switch from codex/freeform-tutor-v2", 2026-08-21)
@@ -1855,6 +1862,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   access in that window — including any folder-level backup or cloud sync of
   Documents/StartUps — could hold a copy. Rotating Groq, Deepgram, ElevenLabs and the
   LiveKit secret is what closes this, and only that.
+- update 2026-10-03: founder privately saved replacement credentials, confirmed local Luvani is the only consumer, and confirmed revocation of older keys at all four dashboards. Read-only Groq/Deepgram/ElevenLabs authentication returns HTTP200 after retirement; final LiveKit worker/token settings match and both authenticate. LiveKit dashboard now retains only the final “Luvani 2 Key”; the intermediate replacement exposed in a tool log and the unnamed older key are absent. Historical objects were already pruned in August, so old-value invalidation cannot be independently replayed; external retirement is founder-confirmed, not proved by the repository test below. History scan's sole current finding is a fabricated JWT regression fixture from 9317ec2c, explicitly allowed in its current source, not one of these vendor credentials. No branch deletion or history rewrite in this continuation.
+- verified-by: `the scanner finds each planted credential shape and never prints the matched value`
 - verified-by: `the history walker names the commit and line that introduced a secret`
 - verified-by: `the scanner finds each planted credential shape and never prints the matched value`
 
@@ -3393,7 +3402,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F208 — A stopped session still pays a model for work nobody will receive
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:1049
 - note: `closeAfterStop` deliberately does not await `finish()`, so after a safety stop the agent
   still runs extract, curate and drill generation, and publishes their results into a room that
@@ -3402,6 +3411,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   true of the device and not of the worker. Either the work is skipped on a stop or the doc
   stops claiming it. Found by tutor-behaviour-engineer, correctly left as a founder and
   policy decision rather than changed unilaterally.
+- note: 2 October 2026: safety stops now return before extraction, curation, drills and pack writes. The founder separately approved background recap/pack preparation for ordinary learner exits, with live replies cancelled. One shared finish promise prevents duplicate work. Both stop-policy tests pass; independent gpt-6-sol review found no code blocker. LiveKit interruption and worker lifetime still need live verification.
 - verified-by: `a stopped session starts no post-session model work`
 
 ### F209 — The pipeline log prefixes have two homes and no way to keep them equal
@@ -4099,7 +4109,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F263 — A billing event whose projection fails is dropped permanently
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:232
 - note: latent while RevenueCat is unconfigured; **raise to P0 before any `REVENUECAT_*` value is
   set**. `recordBillingEvent` is a PostgREST RPC and commits on its own, claiming the event id
@@ -4112,11 +4122,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `EXPIRATION`, `PRODUCT_CHANGE`, `BILLING_ISSUE` and `TRANSFER` have no client path at all, so a
   dropped renewal lapses a subscriber whose card is still being charged. The claim must be recorded
   only after the effect succeeds, or the two must share one transaction.
+- note: 2 October 2026: event completion and allowance projection share the new service-only SQL transaction. Failed vendor calls and rolled-back effects leave the event retryable. Named test and disposable database proof pass; independent gpt-6-sol review accepted the code fix. Not deployed or proven against real RevenueCat deliveries.
 - verified-by: `a webhook whose projection fails does not consume the event id`
 
 ### F264 — Entitlement refresh reads and writes without holding anything
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/billing/revenuecat.ts:143
 - note: latent while RevenueCat is unconfigured; **raise to P1 before it is configured**.
   `store.get()` and `store.save()` are each atomic, but the pair is not, and `projectSubscriber`
@@ -4127,6 +4138,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `secondsUsed: 0` outright; if a Postgres `timestamptz` round-trip ever moves that value by a
   millisecond, every refresh resets the meter. The existing test compares two hand-built in-memory
   dates that have never been near a database, so it cannot see this.
+- note: 2 October 2026: DB-issued refresh tickets fence delayed responses; projection locks the entitlement row used by the debit. Same-second expiry preserves usage; older active expiry cannot shorten the paid period. Named test and disposable SQL interleavings pass; independent gpt-6-sol review accepted the fix. Simultaneous live transactions remain unverified.
 - verified-by: `a refresh cannot revert a debit that landed while it was in flight`
 
 ### F265 — A refresh that granted nothing still tells the learner their minutes are ready
@@ -4158,7 +4170,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F266 — Client and server billing configuration are never checked against each other
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/config.ts:62
 - note: latent while RevenueCat is unconfigured; **raise to P0 before it is configured**. Each side
   is genuinely dark alone: the server 503s both billing routes without its five `REVENUECAT_*`
@@ -4169,11 +4181,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   with no note tying them together and no test asserting the pairing. This is the single
   configuration most likely to charge somebody for nothing, and it is the one the phase's "dark
   until configured" claim does not cover.
+- note: 2 October 2026: authenticated readiness requires the migration version and matching entitlement/product IDs before store actions. Wall uses the actual account; SDK identity is serialized through sheets; original scope is checked before and after purchase/restore and refresh. Named readiness, settlement and queue tests pass; independent gpt-6-sol review accepted the code fix. Real store and live configuration still need verification.
 - verified-by: `a client configured for purchases refuses to run against a server that is not`
 
 ### F267 — The billing webhook is the one endpoint with no rate limit
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:215
 - note: latent while RevenueCat is unconfigured. `/billing/refresh` beside it takes both an IP and a
   per-user limit, and `/account/delete` and `/account/export` take theirs, but `/billing/webhook`
@@ -4181,11 +4194,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   defence-in-depth gap rather than an open door — but it is also the endpoint that writes to
   `billing_events` on every call, and an unauthenticated flood still costs a signature check and a
   round trip per request.
+- note: 2 October 2026: webhook takes its dedicated IP rate limit before secret/body processing. The named endpoint inventory check passes and independent gpt-6-sol review accepted it. Real RevenueCat retry traffic and deployed Upstash behavior are not claimed verified.
 - verified-by: `every write endpoint carries a rate limit`
 
 ### F268 — Export is not gated on recent authentication, and deletion is
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:397
 - note: `/account/delete` requires `signedInRecently` within five minutes; `/account/export` has no
   equivalent check. Both correctly resolve the owner from the bearer alone and neither can be
@@ -4193,11 +4207,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   delete the account and can pull the learner's email, every `learner_state` row, every product
   event and the whole entitlement and billing history in one GET. In a phase about privacy, gating
   the destructive action and leaving the confidentiality-sensitive one open is the wrong way round.
+- note: 2 October 2026: export and deletion require the requesting verified JWT real-authentication proof within five minutes, alongside the account check. A token refresh or another account sign-in cannot renew that proof. Named tests pass; independent gpt-6-sol review accepted the code fix. Actual provider journeys still need end-to-end verification.
 - verified-by: `an export needs a recent sign-in just as a deletion does`
 
 ### F269 — The account export is left in a shared cache directory for ever
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/progress/saveFile.native.ts:9
 - note: `downloadAccountData` writes `luvani-account-data.json` into `FileSystem.cacheDirectory` and
   shares it, and nothing ever deletes it. `clearActiveUserData` sweeps the AsyncStorage keys and the
@@ -4208,11 +4223,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   path: when `Sharing.isAvailableAsync()` is false the write happens, no sheet opens, and the
   function still resolves `{ok: true}` — the learner sees the button flick back to idle and gets
   nothing, with no error.
+- note: 2 October 2026: sharing availability is checked before writing; each unique export is removed after sharing. Refused removal remains tracked, startup discovers bounded export names after restart, and account deletion awaits cleanup and surfaces failure. Failed startup sweeps can retry in session. Named and restart/retry tests pass; independent gpt-6-sol review accepted code-level closure. Native filesystem/share-sheet/kill-relaunch QA remains outstanding.
 - verified-by: `an exported account file does not outlive the account`
 
 ### F270 — The export tells the learner the antifraud marker is unlinkable, and it is not
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/accountExport.ts:83
 - note: the export's own explanatory note says the free-trial antifraud marker is "deliberately not
   linkable back to an account". `trial_installations.first_user_hash` is
@@ -4221,6 +4237,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   row straight up. It is pseudonymous, not unlinkable. `PRIVACY_AND_SAFETY.md:253` repeats the
   sentence. This matters more than a wording slip because the row deliberately survives account
   deletion, so the claim is doing real work in an answer to a data-subject request.
+- note: 2 October 2026: export and privacy documentation now describe retained markers as pseudonymous and potentially linkable by the service. Named test passes; independent gpt-6-sol review accepted the correction.
 - verified-by: `the export describes the antifraud marker as pseudonymous rather than unlinkable`
 
 ### F271 — Phase 8 landed outside the discipline the rest of the ledger is held to
@@ -5187,7 +5204,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Profile, leaving the friends copy for LeaderboardTab. So the Leaderboard drew the learner's own initial in
   sans, not hidden from assistive tech, while Home and Profile drew it in serif. Deleted the friends copy;
   `LeaderboardTab` imports the one `Monogram` from `components.tsx` with `initial={row.name.charAt(0)…}`.
-- verified-by: `the app exports one Monogram, and the leaderboard borrows it`
+  2 October: the unreachable LeaderboardTab was retired. Profile still borrows
+  the one shared Monogram; the proof follows its live caller.
+- verified-by: `the app exports one Monogram, and Profile borrows it`
 
 ### F345 — Practice decides what goes first in one pure rule
 - severity: P1
@@ -5239,7 +5258,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   pill and the ban on anything that counts are unchanged.
 - verified-by: `nothing on the page counts, tints or highlights`
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
-- verified-by: `the page opens on "Your sound to tune", decided whole by the sound model`
+- verified-by: `the page puts the short action before the optional sound guide`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
 - severity: P1
@@ -5492,8 +5513,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   drawn in one of two places. On day one it is the bonjour sound lesson inside the sound block, and
   the card is not drawn; on every other day it is the card's control. The count of one is untouched.
 - verified-by: `the tab keeps exactly one primary pill, whichever day it is`
-- verified-by: `day one's one pill is the bonjour sound lesson, with its live-minutes line, inside the sound block`
+- verified-by: `day one's one pill is the bonjour sound lesson, with its live-minutes line, in the recommendation`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
 - severity: P1
@@ -5539,10 +5562,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   profile/dailyGoal.ts carries GOALS, DAILY_GOAL_ROW, dailyGoalOf and goalLine. Strictness reuses
   STRICTNESS_OPTIONS and withStrictness. Name, voice and reminder time keep their sheets. OnboardClock
   leaves the illustration barrel with the sheet that drew it (J14).
-- verified-by: `the speaking target is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368`
+- verified-by: `the routine can be set or cleared through the same profile write without changing live allowances`
 - verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
 - verified-by: `the segmented control is a sand track with a white chosen segment, never ink capsules, and every segment keeps the touch floor`
 - verified-by: `every scene the barrel exports is drawn somewhere`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F369 — Profile's footer says which build this is
 - severity: P2
@@ -6863,9 +6888,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   throw, and `dailyPick` throws on an empty pool by design.
 - note: revamp A (2026-09): the Tutor tab's resume door became the remembers row, so the same failure is
   asserted one noun along in tabs/TutorTab.test.ts.
-- verified-by: `a storage read that fails still leaves the next scene on the page, and claims nothing about the learner`
+- verified-by: `a storage read that fails offers local practice and retry without guessing a scene`
 - verified-by: `a learner with no readable standing meets the gentlest tier, not an empty card`
 - verified-by: `a disk that will not answer takes the memory row and nothing else off the tab`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F454 — A probe that threw would have retired the one pill on Home
 - severity: P2
@@ -6984,7 +7011,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F460 — Seven live-session findings from the 2026-09-07 audit, unfixed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/Transcript.tsx:169
 - note: the audit that produced F452 to F455, F458 and F459 found seven more inside the
   conversation. The agent sent at them died on a session rate limit before writing a line,
@@ -7009,6 +7036,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   7. `ConvoScreen.tsx:107` has a second import block sitting after executable code. Legal,
      and it hides sixteen imports from anyone reading the header.
 - verified-by: `the live surfaces sit inside the one frame, F444`
+- update 2026-10-03: title clipping was already removed in B. Remaining source fixes use a single backward history walk, committed opening time, a fixed recap deadline invoking the latest committed leave callback, one tutor name and a consolidated import header. Only the latest typed tutor row has Android live-region updates; iOS announces that one row once per ID. Native screen-reader behavior still requires device QA.
+- verified-by: `conversation opening and recap timeout use committed state without resetting the deadline`
+- verified-by: `the conversation announces only its newest typed tutor reply`
 
 ### F461 — The tab bar labels collide and spill at the largest text size
 - severity: P2
@@ -7618,7 +7648,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F495 — A Google or Apple account can never finish deleting on the web build
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/supabaseAdapter.ts:153
 - note: found while sweeping this change and filed rather than fixed, because the file is outside it.
   `reauthenticateForDeletion` on web calls `startGoogleSignIn`, which is an unconditional
@@ -7627,6 +7657,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   whether this session was just re-proved. `deleteAccount()` is never reached and the branch's own
   sentence, "Finish signing in with Google, then return here and delete the account again.", promises a
   second attempt that completes. The Apple branch is identical. Native is unaffected.
+- note: 2 October 2026: verified SDK JWT claims can confirm an already-recent Google/Apple web authentication before opening another redirect. The five-minute proof and expired/refresh-only refusal tests pass; independent gpt-6-sol review accepted the code fix. Real web OAuth return remains unverified.
 - verified-by: `a reauthentication that already happened is not asked for again`
 
 ### F496 — The warning that the phone still holds a copy is set on a screen that has already gone
@@ -7682,11 +7713,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   purchase record survives, and the two-things count above it is scoped to our own systems, so one
   sentence changes when the call lands. Calling the processor's delete API is server work and a founder
   decision, filed separately as F499.
-- verified-by: `the notice says the purchase record outlives a deleted account`
+- verified-by: `the notice distinguishes a purchase erasure request from store cancellation`
 
 ### F499 — Nothing calls the purchase processor's delete API, so the record is disclosed rather than removed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/accountDeletion.ts:1
 - note: split out of F498, which closed the disclosure half. The notice now tells a learner plainly that
   the company which took the payment keeps its own record and that deleting the Luvani account does not
@@ -7696,6 +7727,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   and because the founder has not chosen between calling the API and standing on the disclosure. F498's
   test asserts that `accountDeletion.ts` mentions nothing of the processor, so whoever implements this
   gets a failure naming the sentence in the notice that has to change with it.
+- continuation: On 2 October 2026 the founder authorized processor erasure. The server now requires a successful queued RevenueCat DELETE (200 or already absent 404) before identity deletion; missing configuration and refusal keep the account available for retry. The notice distinguishes an accepted asynchronous erasure request from store subscription cancellation. Independent gpt-6-sol review accepted the code after 32 focused tests; actual vendor completion and native store cancellation remain unverified.
 - verified-by: `account deletion asks the purchase processor to erase its record too`
 
 ### F500 — The first run still carries the flat denial in the one line everybody reads
@@ -7859,7 +7891,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F509 — The live session's English is synthesised with no French around it
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/voice.ts:196
 - note: the opener, the scene-setting narration and every coaching line are English, and each
   reaches the vendor as its own request because the framework's sentence adapter splits on
@@ -7885,8 +7917,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   What stays open here is the generated half and the vendor's actual normalizer behaviour, which
   needs an ear: no schema in this repo can forbid a digit in a generated English field, because
   `contract/schemas.ts:13-17` records that no regex or refinement survives the trip to the API.
-- verified-by: `the tutor's English lines are spoken by a voice verified for English`
 
+
+- note 2026-10-03: Generated English normalization was tested with six Alexandre time/money/French-control A/B clips. Founder preferred automatic language detection and confirmed French natural. Live requests now omit the French pin and invalidate both cache identities. All six chooser previews were refreshed through the live seam and heard by the founder; frozen French-only batches stay unchanged. This closes the scoped configuration/listening defect, not every possible English pronunciation. Mixed-language ASR is separately investigated and held in F695.
+- verified-by: `live synthesis preflight omits the old French-only language request`
+- verified-by: `approved live language detection invalidates French-pinned saved audio while recording batches stay French`
 
 ### F510 — Retiring a voice threw away the whole pre-account draft
 - severity: P1
@@ -8525,20 +8560,25 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F567 — Restore has no funnel event, and a return from the wall is invisible
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/analytics/track.ts:21
 - note: after the other session's Phase 1 lands. Restore started and settled, and the return from the
   wall, join the union, the parser and the trigger in one change.
 - verified-by: `restore and the return from the wall each carry one event the parser and the trigger accept`
 
+- note: 2 October 2026, Report 45: independently accepted by the authorized gpt-6-sol reviewer at code level. Twelve reviewer checks and disposable actual-SQL proof pass. New events require migration 20261002192210, not applied live; native store and simultaneous database connections remain unverified.
+
 ### F568 — The server sees the trial start and the minutes run out, and tells nobody
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:314
 - note: after the other session's Phase 1 lands. The first trial claim and every refusal over minutes
   happen on the server, which is the only honest place to record them; the app can only guess. They
   are written as product events by the server itself, which has no precedent and so gets its own helper.
 - verified-by: `the first trial claim and every refusal over minutes are recorded as product events`
+
+- note: 2 October 2026, Report 45: independently accepted by the authorized gpt-6-sol reviewer at code level. Twelve reviewer checks and disposable actual-SQL proof pass. New events require migration 20261002192210, not applied live; native store and simultaneous database connections remain unverified.
+- note: Trial means a newly claimed entitlement, not a joined room. Literal current device consent is required. The isolated trial-evidence savepoint cannot undo money; client endpoints/roles cannot forge service facts. Exhausted and insufficient-for-session evidence is best effort; outages can lose it, while lapse and antifraud refusals are distinct.
 
 ### F569 — Cards, tinted rows and the hero are primitives, not per-screen styles
 - severity: P2
@@ -8563,7 +8603,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
   drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
   both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
-- verified-by: `the flat registry names the 23 Round 1 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 29 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
@@ -8691,7 +8731,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/DrillScreen.tsx:1
 - note: revamp A. Typed only for now, with the hint to say it aloud first; spoken attempts through a
   transcription endpoint are a filed follow-up. Offline, the line is revealed and nothing is graded.
-- verified-by: `own-words asks for the learner's own French and never a recording`
+- verified-by: `own-words checks the learner's own French as editable text`
 - verified-by: `a null verdict reveals the line and writes no grade`
 - verified-by: `the judge is asked once per Check`
 
@@ -8766,23 +8806,30 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F590 — Own words is typed only; a spoken attempt has no way in
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:1
 - note: revamp A follow-up, the founder's call for now. "Say it in your own words" takes a typed
   attempt with a hint to say it aloud first. A spoken attempt needs a transcription endpoint on
   the token server (the vendor the live tutor already uses), the existing recording flow from
   the sound check, and the typed field kept as the fallback for learners who prefer it and for
   offline. Nothing recorded is kept.
+- continuation: 2 October 2026, code-level closure independently accepted by the
+  founder-authorized gpt-6-sol reviewer. Temporary takes are transcribed once,
+  editable before Check, and removed after upload or refusal. Auth/scope/beat
+  guards refuse late account/card work; unavailable service leaves typing and
+  no grade. 47 focused tests and both workspace typechecks passed. Real native
+  microphone, filesystem deletion and Deepgram service checks remain unverified.
 - verified-by: `a spoken attempt is transcribed once, judged, and never stored`
 
 ### F591 — Own words is a door, not yet a rung
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/drill/session.ts:1
 - note: revamp A follow-up. The own-words kind is opened directly from the Practice row on a
   scoped sitting. Making it the fifth rung of the drill ladder (earned after the spoken rung
   on a phrase's fifth successful sitting) is a pedagogy change for learning-science-engineer,
   with the stage table, stageForReps and the mix tested together.
+- continuation: On 2 October 2026 the stage table, five-sitting replay, miss/reveal behavior and persisted exercise bank were implemented. A cap repair reserves only shipped authored formats and retains fresh pack exercises; failed disk writes report failure so the source pack can retry. Independent gpt-6-sol review accepted the code and focused persistence/merge/account-scope tests. Native spoken-session behavior remains unverified.
 - verified-by: `own-words is the last rung and is earned on the fifth sitting`
 
 ### F592 — The raster art decodes at file size on Android until it is measured
@@ -8882,7 +8929,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/art/registry.ts:38
 - note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
-- verified-by: `the flat registry names the 23 Round 1 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the flat registry names all 29 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
 - verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
 - verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
@@ -8913,7 +8960,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
 - verified-by: `the first two pages are blue: story segments, a display headline, the exchange in white and ink, and a round next`
-- verified-by: `the first chartreuse is the Highlight on the tapped reply, beside a mint tick, and nothing earlier is lit`
+- verified-by: `the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt`
 - verified-by: `the one-tap answers are option rows that carry their choice as state, never ledger rows with a Chosen word`
 - verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
 - verified-by: `the save page asks with one ink pill and no middot, and the refusal is its own calm page with the frame drawing`
@@ -8924,6 +8971,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F602 — Home is a white brief on paper with caps meta, a ledger row shape and a blank while loading, not the blue next-scene card, white lists and a sand skeleton
 - severity: P1
@@ -8946,108 +8995,73 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F603 — Speak and the live scene are the notebook's: a ledger path, a composite chooser, a centred room with a spinner, text-link controls under a small orb, and a confirm card in the middle
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ConvoScreen.tsx:1109
 - note: Stage 3, area 3 of revamp B. `ConfirmSheet` becomes a bottom sheet over the ink scrim with staying as the pill; `ControlTile` is appended and `RoundButton` can carry a hint. Speak leads with the tutor card, or what the tutor remembers, then the blue next-scene brief with a white Start (or the offline picture and card), then one path card of the current level's scenes that opens the list. Missions is a list grouped by level with scene marks that opens each brief, and a named scene opens as the blue brief page. The room has a round close with the French title, white and ink bubbles, a 120 orb, three white control tiles with "Give me a moment" and "In English" kept as quiet links, an ink coach mark, the typed field with an ink send disc, and the completion card left-aligned. Connecting and waiting are one full page with the thinking orb and the real stage line and no invented ticks. The guided lesson wears the same frame. Errors draw their state picture with one ink pill; the safety stop, tutor intro and real moment are restyled with their words and gates kept. Four files leave the punctuation allowlist, `state-offline` leaves the not-yet-drawn list, and the place scenes wait on a named list F611 empties. Scoring stays off (F623); no task ticks and no "Why?" link.
-- verified-by: `the leave confirmation is a bottom sheet under the ink scrim, with staying as the pill and leaving as the link`
-- verified-by: `a control tile is a white 56 tile with an ICONS.md mark over a short word, and looks off when it is off`
-- verified-by: `a round button can say what it is about to do`
-- verified-by: `Speak leads with the tutor card before a first scene and with what the tutor remembers after one`
-- verified-by: `one primary on screen: the white Start on the blue next-scene card, or Check again on the offline card`
-- verified-by: `the path is one white card of the current level's scenes with their marks, and it opens the list of every scene`
-- verified-by: `offline Speak draws the offline picture, says what happened once, and still offers the guided lesson`
-- verified-by: `the path card holds the current level's scenes in French and names the rest in one line`
-- verified-by: `the list groups every scene under A0 and A1 with its mark, French title, can-do and minutes, and each row opens its brief`
-- verified-by: `a named scene opens as the blue brief: the French title at display size, the can-do, its lines in a white card, the example, and a white Start`
-- verified-by: `the room header is a round close, the French title with its English, and no rule under it`
-- verified-by: `every scene control is still there: three tiles under the orb and two quiet links, and none is a pill`
-- verified-by: `the thread is white tutor bubbles and ink learner bubbles, and only the newest correction carries the highlighter`
-- verified-by: `waiting for the room is a full page with the thinking orb, the real stage line and Leave, and no tick for a step nobody saw`
-- verified-by: `a live error draws its state picture, says what happened and what to do, and offers one ink pill and one quiet way`
-- verified-by: `the guided lesson wears the live frame: the waiter and your turn in white cards, the orb, and the control tiles`
-- verified-by: `the tutor intro keeps its four pages in the working type, with the orb states in one white card`
-- verified-by: `rehearsing a real moment says it needs Max before setup, in one white card, and picks the situation with option rows`
-- verified-by: `a safety stop is a working title, the plain sentence and one ink pill, and nothing on it moves`
-- verified-by: `the next conversation carries its French title and minutes, and joins nothing with a middot`
-- verified-by: `the place scenes wait for the recap cover on a list of their own, which F611 empties`
-- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
-- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `revamp B Speak preserves real gates, one primary action and the authored scene path`
+- verified-by: `revamp B room controls keep typing, help and leave alongside the real waiting and error states`
+- verified-by: `hear it hides when there is no line the tutor would vouch for`
+- verified-by: `type instead sends a typed turn through the ordinary path mid-scene`
+- verified-by: `the next conversation is the next scene on the spine`
+- verified-by: `both live screens draw the connecting wait from the view model, door included`
 
 ### F604 — Practice still wears the notebook: hairline ledgers, a striped review card, the old speak ring, the pen's reward mark and empty states with no drawing
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/PracticeTab.tsx:304
 - note: Stage 3 of revamp B, the Practice area, 23 boards. Pass 0 finishes the shared parts every area draws. `Ledger` and `LedgerRow` become SNIPPETS' white list, `SpeakCircle` becomes the mint orb, `ScreenHeader` takes a left title, a trailing line and no rule, and `TabBar` gains the underline look. Practice then leads with the sun card, one white recommended card and one list. Review loses its stripe, gains Show me, and gets three equal grades. The drill names its exercise in the header, marks a verdict with a mint tick, and offers the existing typed twin as the primary when there is no microphone. The sound check, phrasebook, library, light day and conversations screens move to the B parts with their own words. The empty states draw `state-notebook` and `state-microphone`. `surface/PhraseCard.tsx` retires. Fix your line, spoken own words, Shadowing and the light day's "counts as a day" are slots, not builds.
-- verified-by: `the list is SNIPPETS' white card of rows: a 60 floor, a 16 title, a 14 detail, a soft chevron, and hairlines only between rows`
-- verified-by: `the speak control is the mint orb with an ink microphone at the size it is given, and muted is a quiet ring that still reads as a control`
-- verified-by: `the segmented control can be drawn as underlined text tabs, and each still says tab and selected`
-- verified-by: `the pushed header puts its title beside the round back, can carry one quiet trailing line, and draws no rule`
-- verified-by: `Practice opens on the sun card for the sound to tune, then the white recommended card, then one white list of ways to practise`
-- verified-by: `on day one Practice leads with the first line to say, then the sound to tune, then its rows`
-- verified-by: `a review card is white with no stripe, its front offers Show me as the one pill, and the grades are three equal quiet buttons in one row`
-- verified-by: `a drill names the exercise in its header beside the way back, and the way back still says it leaves the drills`
-- verified-by: `the drill verdict is a still mint tick beside the drill's own words, and the drill imports no authored scene`
-- verified-by: `with no microphone the drill draws the microphone, offers the typed twin as the one pill and keeps I said it as a link`
-- verified-by: `a sound check and its result draw a scored sound only when the scorer returned one, and an unscored attempt reads as practice, never as a low score`
-- verified-by: `the words and phrases library draws underlined Saved, Words and Phrases tabs over rows that hear, save and open one item, and a search with no match can be cleared`
-- verified-by: `the light day claims nothing about counting as a day until the day is recorded`
-- verified-by: `the empty phrasebook and the empty conversations draw the notebook, say their real line and offer one way on`
-- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
-- verified-by: `retired notebook files and artwork stay deleted`
-- verified-by: `a tab lists what it opens one way, as ledger rows, and never two shapes for one list — F569`
-- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare`
+- verified-by: `the tab keeps exactly one primary pill, whichever day it is`
+- verified-by: `a measured fact appears only when a check measured it`
+- verified-by: `a due production item requires retrieval before its answer is revealed`
+- verified-by: `the review sitting has no microphone and takes no recording`
+- verified-by: `revamp B retrieval and drills preserve attempted recall, honest scoring and the typed twin`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F605 — Progress is the notebook's long ledger titled My French, not one blue level card and one list that counts only things kept
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/MyFrenchTab.tsx:211
 - note: Stage 3 of revamp B, the Progress area: ProgressDayOne, ProgressPopulated and GoalStep. A pure `myfrench/progressRows.ts` decides the tab's doors (phrases, sounds, conversations, each goal, each saved scene) and says them in counts of things kept, never days. `myfrench/LevelCard.tsx` draws the level as the one blue card, with mint, sun and ring marks and the next level's scene count, and opens the scenes. The tab draws the card and one list, plus a day-one card with the one pill, under the title Progress. The inline phrase bank, sounds map and daily and browse rows leave the tab. GoalStep moves to a title, one blue card with a white pill, and a white trail. Postcards, Your week in French, the one weekly line and the lifetime count are slots for F612, F613, F608 and F609.
-- verified-by: `Progress is one blue level card and one white list, and carries a pill only on day one`
-- verified-by: `the level card lists this level's can-dos as done, here and ahead, marks your start on day one, and says how many scenes the next level holds`
-- verified-by: `the Progress rows open the phrasebook, the sound journey, the conversations and each goal, and count only things kept`
-- verified-by: `Progress names no day, no weekday, no streak and no this-week count, and leaves one slot for the weekly line`
-- verified-by: `the Progress tab starts no voice and records nothing, so leaving it has nothing to stop`
-- verified-by: `the tab is titled Progress, the word on the tab bar`
-- verified-by: `the goal step is the learner's goal as a title over one blue card that opens the scene, then a white list of what they did with it`
-- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
-- verified-by: `a tab lists what it opens one way, as ledger rows, and never two shapes for one list — F569`
-- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `Progress counts kept material and leaves empty shelves absent`
+- verified-by: `Progress keeps each goal and saved scene attached to its own destination`
+- verified-by: `one primary pill opens the suggested mission with the goal step, and says what it costs under it`
+- verified-by: `a lifetime total has no zero, target, reset or penalty for a quiet week`
+- verified-by: `the weekly sentence uses local Monday boundaries and never counts a future date`
+- verified-by: `revamp B Progress opens evidence-based materials, a weekly story and earned postcards without starting audio`
 
 ### F606 — Profile and Settings draw their choices as full-screen pages, Profile still counts days this week, and deleting an account never mentions the store subscription
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:229
 - note: Stage 3 of revamp B, Profile, Settings and Legal, 12 boards. The name, voice, reminder-time and clear-memory choices rise as bottom sheets over the screen that opened them, through `Sheet`, `OptionRow` (which gains an optional hear control) and `ConfirmSheet` (drawn through `Sheet`). Selecting chooses and Done closes. Settings rows press through `Press` as SNIPPETS list rows. Switches are brand blue when on. The segmented choice ticks once. Profile stops drawing the this-week rhythm sentence and leaves a slot for F609's lifetime count. The delete page keeps its account as the one pill, puts the permanent step in a link, and adds one sentence reviewed by privacy-safety: a store subscription is cancelled in the store. Legal screens change chrome only. The Pause memory switch is a slot.
-- verified-by: `an option row can offer to hear itself, and says Stop while it plays`
-- verified-by: `the name and voice choices rise as bottom sheets over Profile, each with its heading and one pill`
-- verified-by: `Profile says no weekly day count: the week card is not drawn and the lifetime count waits for F609`
-- verified-by: `the profile avatar is the shared Monogram, an ink disc with a white initial, with no ring of its own`
-- verified-by: `settings rows are the SNIPPETS list row, pressed through Press with a selection tick, and never fade`
-- verified-by: `a segmented choice ticks once, through the control, and a switch is the brand blue when on and the field grey when off`
-- verified-by: `every profile and settings sheet names itself as a heading, whether it rises from the bottom or fills the page`
-- verified-by: `the reminder time is chosen on a bottom sheet of option rows from the presets the module owns, and Done closes it`
-- verified-by: `deleting an account keeps it as the one pill, puts the permanent step in a link, and says a store subscription is cancelled in the store`
-- verified-by: `clearing what the tutor remembers asks on a bottom sheet whose pill keeps the details, and an empty memory offers one way on`
-- verified-by: `the legal pages draw their modules' text unchanged in the reading layout: a title, white cards, and links as underlined words`
-- verified-by: `a Profile sheet that answers back itself is not answered twice — F319`
-- verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `revamp B Profile choices stay over Profile and keep a lifetime count without a weekly rail`
+- verified-by: `the reminder time is chosen from the presets the module owns, on a sheet that takes the screen`
+- verified-by: `revamp B reminder and deletion controls retain explicit choices and explain store cancellation`
+- verified-by: `a lifetime total has no zero, target, reset or penalty for a quiet week`
 
 ### F607 — The plans are one ruled card, a purchase ends on a line of text, and the out-of-minutes screens sell inline in notebook cards
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/WallScreen.tsx:192
 - note: Stage 3 of revamp B, the Plans area: WallYours, WallPlans, WallSuccess, WallUnavailable and OutOfMinutes. What stays yours becomes the sun page with one white card of iconed rows, which needs `MouthGlyph` ported. Each plan becomes its own card, the chosen one on the blue ground with a white check. A finished purchase becomes the mint page, with the bought plan's catalogue minutes as the hero and one way to start speaking. The unavailable state draws `state-offline`, Try again and the one restore. Both out-of-minutes branches draw one shared sheet, titled by the refusal's own label, that opens the wall at the declared `refused` door instead of selling inline. The purchase label joins plan and price with a comma. Every number is read from the catalogue or the store. The board's Max figures (450 minutes, about 10 a week) disagree with `meter.ts` (300, about 7) and are flagged for the founder, not shipped.
-- verified-by: `every glyph is an ICONS.md mark at the one stroke weight or a kept drawing on the retire list, and the tab and the control share one microphone`
-- verified-by: `what stays yours is the sun page: one white card of rows with one ink icon each, then what a plan adds`
-- verified-by: `the plans are two cards, the chosen one on the blue ground with a white check and the other white with the field ring, and nothing is marked recommended`
-- verified-by: `a plan card says it is selected to a screen reader, and never draws a radio control`
-- verified-by: `a finished purchase is the mint page: the bought plan's own minutes as the hero, its conversations a week from the catalogue, and one way to start speaking`
-- verified-by: `when plans cannot load the page draws the offline drawing, what happened, Try again and the one restore`
-- verified-by: `no number from the boards reaches the wall: every minute, conversation and price comes from the catalogue or the store`
-- verified-by: `both out-of-minutes screens draw the one out-of-minutes sheet, titled by the refusal, and it opens the wall rather than selling inline`
-- verified-by: `a purchase button names its plan and its store price with a comma`
-- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
-- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `the price is the store's own string, character for character`
+- verified-by: `the allowance is the catalogue's, in whole minutes`
+- verified-by: `the cards use the selected state this app already uses, not a radio`
+- verified-by: `a finished purchase names only the refreshed server plan and its catalogue allowance`
+- verified-by: `revamp B out-of-minutes surfaces open the central wall without selling in the room`
+- verified-by: `180 minutes a month is about four ten-minute conversations a week, and Max about seven`
+
 ### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
 - severity: P1
 - status: [x]
@@ -9175,21 +9189,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - severity: P2
 - status: [ ]
 - where: apps/mobile/src/auth/AuthFlow.tsx:39
-- note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period.
+- note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
 - verified-by: `the under-13 refusal holds across the sign-in detour for the rest of the launch`
 
 ### F638 — The under-13 refusal's words say closing the app starts the first run fresh, but a relaunch reopens the save page with the pill live
 - severity: P1
 - status: [x]
 - where: docs/ONBOARDING.md:130
-- note: found by the F601 judge, confirming the privacy-safety review. F633's fix wrote "closing the app, or leaving through \"I have an account\", starts the first run fresh" into docs/ONBOARDING.md and the comment in onboarding/PreAccountOnboarding.tsx, and firstRun.test.ts pinned it. Closing the app does not start the first run fresh: "Save my plan" writes page 'save' to the draft, which App.tsx saves to the device, and "I am younger than that" writes nothing, so a relaunch reopens the save page with the question asked again. That matches HEAD and the age gate's close-the-app escape, so the words are the defect, not the code. Whether a refusal should clear the draft is a founder question (F639).
-- verified-by: `the onboarding doc says a relaunch after the under-13 refusal reopens the save page with the question asked again`
+- note: found by the F601 judge, confirming the privacy-safety review. F633's fix wrote "closing the app, or leaving through \"I have an account\", starts the first run fresh" into docs/ONBOARDING.md and the comment in onboarding/PreAccountOnboarding.tsx, and firstRun.test.ts pinned it. Closing the app does not start the first run fresh: "Save my plan" writes page 'save' to the draft, which App.tsx saves to the device, and "I am younger than that" writes nothing, so a relaunch reopens the save page with the question asked again. That matches HEAD and the age gate's close-the-app escape, so the words are the defect, not the code. Whether a refusal should clear the draft is a founder question (F639). Superseded by F639: a refusal now clears the draft, so a relaunch starts at the first page with nothing kept.
+- verified-by: `the onboarding doc says a relaunch after the under-13 refusal starts at the first page with nothing kept`
 
 ### F639 — Founder question: should an under-13 refusal clear the saved first-run draft, so a relaunch starts at the first page and keeps no first name
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:662
-- note: found by the privacy-safety review of F601. The refusal writes nothing, so the draft saved by go('save') keeps page 'save' and any first name the child typed on the device (never sent), and a relaunch reopens the save page with the pill live. Clearing the draft on refusal removes data about a minor rather than storing any. It overlaps F637, so decide both together. A founder and legal call, not a build miss.
+- note: found by the privacy-safety review of F601. The refusal writes nothing, so the draft saved by go('save') keeps page 'save' and any first name the child typed on the device (never sent), and a relaunch reopens the save page with the pill live. Clearing the draft on refusal removes data about a minor rather than storing any. It overlaps F637, so decide both together. A founder and legal call, not a build miss. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
 - verified-by: `a refusal on the save page clears the saved draft, so a relaunch starts at the first page and keeps no first name`
 
 ### F640 — The canvas sells Max as 450 minutes a month, but the plan the code sells is 300 at $29
@@ -9199,6 +9213,25 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: founder decision, 2026-09-30. The approved canvas sells Max as "450 minutes a month, about 10 conversations a week". `PLANS.regular` grants `300 * 60`, which the wall rounds down to about 7. Store prices, Starter (180 minutes) and the free trial (30 minutes) do not change. Filed and not built, because at $29 the 450 minutes are the allowance 202609100001 removed for losing money. Measured from DEFAULT_COST_MODEL at full use, 450 minutes cost $26.01 to serve against $24.65 net after the 15% Small Business fee, a worst-case margin of -5.5% (-28.1% at the standard 30% rate, +10.3% before any store fee). 300 minutes leave 29.7%. Setting the constant to 450 at $29 fails four margin floors in meter.test.ts. Those floors stay unless the founder signs off on the negative number. Two more things block it. Nine files under supabase/ (five migrations, four rollbacks) hold 18000, and a new forward migration has to replace consume_entitlement (data-engineer's work). And PLANS at 450 against a database that clamps seconds_used at 18000 would leave every Max learner with 150 minutes forever, which is unlimited Max. The founder needs to pick one of three: 450 at $39, the plan before 10 September (21.5% worst case after the Small Business fee, every floor passes, and the App Store tier moves too); 300 at $29, with the canvas saying about 7; or 450 at $29, with -5.5% written into the contract. The wall's minutes and conversation count come from the catalogue, so no copy changes. Only the wall test's pin moves from 7 to 10. Answered by the founder on 2026-09-30, once the loss was shown: 300 minutes at $29 stays, so nothing in code or data changes, and the Plans screens (F607) show 300 minutes and about 7 conversations a week. The two tests below keep the plan and its margin where the founder left them.
 - verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
 - verified-by: `the atomic debit uses the same plan limits as core`
+
+### F641 — A sign-in and sign-out in the same launch ends the under-13 refusal, offers the pill again and saves the first-run draft again
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/AuthFlow.tsx:60
+- note: found by the judge of the F637/F639 stage, confirming the privacy-safety review. The refusal lives in AuthFlow's `useState(false)`, and Gate (App.tsx) unmounts AuthFlow while anyone is signed in. Refuse on save, then 'I have an account', then Google or Apple, which creates a new account. OnboardingFlow asks the age question, 'younger' signs out through AgeRefusal, and a new AuthFlow opens on hear-it with the pill live after six pages. keep writes the draft, first name included, back to the device. The founder's answer (2026-09-30) was the whole launch, and ONBOARDING.md and PRIVACY_AND_SAFETY.md say nothing is saved again in that launch. Move the refusal up to Gate, which stays mounted for the launch and already holds state that crosses the auth door (`preAccountDraft`, `localCopyKept`). Use `const [preAccountRefused, setPreAccountRefused] = useState(false)` and a `refusePreAccount` that sets it and calls `discardPreAccountDraft`. Pass `refused` and `onRefuse` to AuthFlow as required props, and drop AuthFlow's own useState. Keep it in memory only. Pin that nothing calls `setPreAccountRefused(false)` and that the value never reaches a storage call. Also check `refused` before `onCreateAccount(draft)` in AuthFlow's save-page handler, so the write never runs ahead of the one door. Replace 'Signing in ends the first run, and the refusal with it' with 'Signing in and out again does not end it; only closing the app does' in docs/ONBOARDING.md, docs/PRIVACY_AND_SAFETY.md and AuthFlow's header comment, and move the regex pins in authFlow.test.ts and firstRun.test.ts with them. Tradeoff to state: on a shared phone, an adult who signs out later in that launch lands on the refusal page until the app is reopened. If the lead would rather let a sign-in end the refusal, that narrows the founder's answer and has to go back to the founder. The four sentences above must then say 'until someone signs in or the app is closed'.
+- note (fix, auth-engineer): built as filed. Gate holds `preAccountRefused`, set only by `refusePreAccount`, which also runs `discardPreAccountDraft`; AuthFlow takes `refused` and `onRefuse` as required props and keeps no copy; the save page's handler writes the draft only when not refused. The tradeoff is stated in Gate's comment, docs/ONBOARDING.md and docs/PRIVACY_AND_SAFETY.md. policy.test.ts's pin on `onRefuse={discardPreAccountDraft}` moved to `onRefuse={refusePreAccount}` plus the discard inside it, same intent.
+- verified-by: `the under-13 refusal outlasts a sign-in and sign-out in the same launch, and is still memory only`
+- verified-by: `the onboarding and privacy docs say a sign-in and sign-out does not end the under-13 refusal before an account`
+
+- note (independent review, 2026-10-02): user-authorized gpt-6-sol reviewed the real diff and accepted the launch-held refusal plus the serialized draft clear. The delayed storage regression proves that an already issued save finishes before removal and queued answers are invalidated. Native launch/relaunch still needs device evidence.
+- verified-by: `refusal clears a pending draft and wins over already queued answers — F641`
+
+### F642 — The privacy notice says the app asks the age question once, but a relaunch after a refusal before an account asks again
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/legal/policy.ts:214
+- note: found by the judge of the F637/F639 stage. policy.ts:135 says 'the app asks once' and :214 says 'The app asks once, in plain words, and takes the answer.' PRIVACY_AND_SAFETY.md:560 says 'Onboarding asks once'. Since the founder's 2026-09-30 decision, a relaunch after an under-13 answer before an account asks again, and the doc's Not true yet table says so. Proposed wording, which needs founder sign-off because it is legal copy: :135 'Your answer to the age question. It is a gate rather than a detail we file, and Luvani is for learners of thirteen and over.' :214 'Luvani is for learners of thirteen and over. The app asks in plain words and takes the answer.' Regenerate dist/privacy.html through html.ts, and change PRIVACY_AND_SAFETY.md:560 to match.
+- verified-by: `the privacy notice's age section does not promise the question is asked only once`
 
 ### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
 - severity: P2
@@ -9213,3 +9246,488 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/home/nextAction.ts:1
 - note: found by the revenue review of F602. `homeActionFor` leads with the plans card only when the trial's reason is `exhausted`. A trial with 1 to 119 seconds left reports `insufficient-for-session`, so Home leads with the blue Start and the server then refuses the session honestly. Decide in F607 whether that state leads with the plans card too, and walk the boundary loop over `Object.keys(PLANS)` rather than a hand-written list so a new plan is covered.
 - verified-by: `a trial with too little time for a session leads Home the way the plans pass decides, and every plan in the catalogue is walked`
+
+### F652 — Closing Fix your line during authentication can start a recording upload after exit
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/speech/transcribeAttempt.ts:8
+- note: The authorized Sol reviewer found that session disposal only fenced the returned transcript. A take waiting for authHeaders could still POST after the sheet closed or the app backgrounded. The repaired session passes cancellation and its current ticket through transcription; the client races cancellation/12s deadline across auth, checks before sending, aborts in-flight fetch, and retains caller-finally cleanup. Held headers, held upload and stalled auth deadline tests pass. No spoken accuracy or native proof is implied.
+- verified-by: `closing a correction sheet during authentication starts no late audio upload and discards the take`
+
+### F653 — Saved-audio manifest cancellation can replace its database deadline
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudioSource.ts:11
+- note: Sol found that a supplied cancellation signal replaced the helper's 5s timeout. Both now combine via a shared Node AbortSignal.any deadline for the two reads. The held-read regression observes TimeoutError without mutating caller cancellation. Sol independently ran the ten bounded source/config checks and accepted this repair. This helper does not authorize billed generation.
+- verified-by: `a caller-cancelled saved-audio lookup still has a database deadline`
+
+### F654 — An accepted uppercase saved-audio locator is not used in its canonical form
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudioSource.ts:8
+- note: Sol found that the strict public parser lowercased UUIDs but the manifest helper ignored its parsed value. The canonical parsed locator now governs both owner-scoped reads, identity comparisons and index selection; no case-insensitive phrase matching is introduced. Sol independently ran the ten bounded source/config checks and accepted the uppercase-locator regression.
+- verified-by: `a valid uppercase saved-audio locator resolves its canonical owned pack`
+
+### F655 — dynamic tutor-audio redirects could forward server secrets
+- severity: P1
+- status: [x]
+- where: services/token-server/src/phraseAudio.ts
+- note: found by authorized independent Sol review, 2 October 2026. Provider and database fetches followed redirects with custom secret headers. Refuse redirects at every new credential-bearing request.
+- verified-by: `saved tutor audio refuses credential-bearing redirects before another origin can receive them`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F656 — source deletion or subscription lapse after reservation could still dispatch saved audio
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudio.ts
+- note: found by authorized independent Sol review, 2 October 2026. Recheck owned ready/completed source, exact selected French and current entitlement immediately before dispatch; document the unavoidable post-check race.
+- verified-by: `saved audio dispatch gate refuses changed source completion and entitlement`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F657 — a higher verified rate could dispatch against an earlier cheaper reservation
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261002212536_kept_phrase_audio_budget.sql
+- note: found by authorized independent Sol review, 2 October 2026. Matching fingerprints do not version billing bounds. Change rate revision on every update; carry it in reservation and require it at dispatch.
+- verified-by: `a changed saved-audio billing revision cannot use an older reservation`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F658 — tiny response chunks could grow saved-audio overhead beyond its byte bound
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudio.ts
+- note: found by authorized independent Sol review, 2 October 2026. Use one bounded PCM buffer and nonblocking reader cleanup.
+- verified-by: `saved tutor audio bounds fragmented PCM and does not await stalled cleanup`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F659 — A saved-audio reservation can dispatch after its charged budget period ends
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261002212536_kept_phrase_audio_budget.sql:103
+- note: found by independent Sol revision review. Bind dispatch to the reserved global/paid window starts and deadline, with headroom for its bounded request. Refuse late calls without refunds.
+- verified-by: `saved tutor audio refuses dispatch outside its reserved budget period`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F660 — A kept-audio URI can return after auth changes but before storage scope updates
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/phrases/phraseAudioClient.ts:39
+- note: found by independent Sol mobile review. Recheck auth session ownership after cache reads, generated response and disk writes, before returning a URI; remove newly committed audio on failed ownership.
+- verified-by: `auth changes before scope updates cannot return cached or newly generated tutor audio`
+- note (verification): authorized Sol independently ran 46 mobile and 27 server checks, mobile typecheck and the disposable sequential SQL proof, accepting the bounded repair. Physical playback/files, hosted concurrency and actual voice billing remain unverified.
+
+### F661 — Untagged TTS frames and opening speech can masquerade as a scene reply's latency
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:207
+- note: found by authorized independent Sol design review for Report 34. The first-audio hook marks the current mutable record and every speaking transition rotates it. Remove false attribution and measure confirmed spoken scene EOU-to-guarded-say through immutable per-input records. Report first audio and phone audibility as unmeasured until a supported correlated/device seam is verified.
+- verified-by: `queued scene timing keeps its own speech end and omits failed or missing samples`
+- verified-by: `only a confirmed spoken scene reply owns its latency record`
+- note (verification): authorized Sol independently ran 161 scene/conversation/safety checks and tutor-agent typecheck after F662 repair. Worker dispatch only; no first-audio or phone-audible latency is claimed.
+
+### F662 — A delayed turn callback can borrow the next utterance's end time
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/sceneReplyTiming.ts:72
+- note: found and reproduced by authorized independent Sol review. EOU at 100ms, next speech starts and ends at 200ms, first callback begins and dispatches at 240ms: the collector reports 40ms for the first input rather than 140ms. Preserve an ambiguity marker across a new speech start or multiple end marks until the pending callback consumes it; censor instead of assigning the newer EOU.
+- verified-by: `ambiguous speech boundaries are missing rather than falsely fast samples`
+- note (verification): the regression was reproduced red before repair. Authorized Sol independently accepted the pending-boundary count/ambiguity fence, third-boundary censoring, typed invalidation and fresh recovery after 161 scoped tests and tutor-agent typecheck.
+### F663 — A voice-only model migration also moves written judges through the shared fast-model default
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:289
+- note: found by authorized independent Sol review. The founder requested GPT-6 Luna for the voice tutor. Shared turnModel also serves curate and judge, so the initial change unintentionally moves own-words and Fix your line judging without calibration. Add a live-only model setting while preserving the fast written model and analyst roles. Preflight and SDK must use the same live resolver; keep legacy explicit overrides compatible.
+- verified-by: `a live-only Luna migration preserves curated practice and written judges on their existing model`
+- review: Authorized independent gpt-6-sol accepted the live-only repair, 114 focused tests and brain/worker typechecks. Live turn/frame use GPT-6 Luna; curate/judge retain GPT-5.6 Luna; extraction/drills retain Terra. No worker restart, deployment or teaching/latency proof claimed.
+
+### F664 — A blank live override can disagree with preflight and send an empty model
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:80
+- note: The factory passes the environment's live model as config, where null coalescing accepts an empty or whitespace string. Preflight trims the same setting and reports the valid default instead. Normalize config overrides in the canonical resolver so both paths choose the same actual model.
+- verified-by: `blank live config matches the worker preflight model rather than sending an empty model`
+- review: Independent Sol accepted resolver trimming and override priority; 90 scoped tests and brain/worker typechecks passed.
+
+### F665 — Blank written and analyst overrides pass preflight but send empty runtime models
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:224
+- note: Found and reproduced by independent Sol review of F664. Factory passes blank environment values as constructor config, bypassing its trimmed process-env fallback. Normalize config turn/analyst values too so preflight and actual Responses requests agree for all three roles.
+- verified-by: `factory blank model overrides preserve all three preflight defaults on actual requests`
+- review: Independent Sol accepted the actual factory/request regression, 91 scoped tests and both affected typechecks. All three blank override paths now agree with startup defaults.
+
+### F666 — Failed-session settlement lacks a capped, idempotent refund proof
+- severity: P1
+- status: [x]
+- where: services/token-server/src/store.ts
+- note: Report 2 change 36, founder-approved policy. Record actual charged delta, not requested seconds; restore it once on a service-owned failure. A failure-before-debit tombstone blocks late charging; owner mismatch cannot credit anyone.
+- verified-by: `a failed session returns only its actual charge once and blocks a late debit`
+
+### F667 — A late session report can debit a renewed allowance
+- severity: P1
+- status: [x]
+- where: services/token-server/src/server.ts:402
+- note: Bind signed session IDs to a service-owned issued allowance epoch before returning credentials; every callable non-null consume path checks it. Failure or ordinary reports from an old epoch cannot consume the next period. Use one entitlement-first lock order and drain old writers on deployment.
+- verified-by: `a session from an earlier allowance cannot consume or refund a new period`
+
+### F668 — File-backed session idempotency disappears on restart
+- severity: P1
+- status: [x]
+- where: services/token-server/src/store.ts:187
+- note: Balance and refund/charge/grant proof must be persisted in the same atomic file replacement. A restart must preserve both debit and failure tombstones. Do not acknowledge a refund when its durable write failed.
+- verified-by: `a restarted file store preserves the failed-session tombstone and restored balance`
+
+### F669 — Refund intent is not confirmed settlement
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/usage.ts
+- note: Return a typed server acknowledgement; transport failures remain pending/reconcilable and never claim usable minutes restored. Historical reversals must not be described as current-period credit.
+- verified-by: `a failed refund request stays pending until an explicit settlement acknowledgement`
+
+### F670 — Ordinary exits and recoverable errors must not become service refunds
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:328
+- note: Only recognized terminal live SDK failures with the learner present can mark a service-failure end. Exclude recoverable/quiet-irrelevant errors, errors after finish, manual leave, safety, time limits and post-session enrichment. A terminal typed fallback starts a new grant rather than reusing the closed room.
+- verified-by: `only an unrecoverable live pipeline failure can end a session for refund`
+
+### F671 — A refund can falsely restore an expired paid allowance
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261002233520_failed_session_refunds.sql:97
+- note: Independent Sol review: refund must apply the existing lazy paid-lapse transition while holding the entitlement lock before classifying the issued epoch. Without it, an expired paid allowance is described as usable restored minutes until the next read lapses it.
+- verified-by: `an expired paid refund without an intervening entitlement read is historical`
+
+### F672 — Missing legacy refund proof never reaches reconciliation
+- severity: P2
+- status: [x]
+- where: services/token-server/src/store.ts:442
+- note: Sol review: only a controlled missing-grant/legacy-charge SQL error may become a typed 409 reconciliation acknowledgement; transient database/transport errors remain pending. Do not acknowledge a restoration or guess legacy credit.
+- verified-by: `the agent-authenticated settlement route distinguishes reconciliation from retryable failure`
+
+### F673 — Synchronous failure publishing can skip terminal settlement
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:369
+- note: Sol review: the notice publisher is evaluated before Promise.resolve, so a synchronous encode/publish failure bypasses the settlement finally. Invoke inside the promise chain and await the finish path before disconnecting. Optional chaining itself is safe when no local participant exists.
+- verified-by: `terminal settlement still runs if publishing its failure notice throws`
+
+### F674 — Concurrent scripted finishes can disconnect before settlement acknowledgement
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts:563
+- note: A second terminal SDK callback can reach finish while the first awaits settlement; an ended-only no-op lets the second disconnect before the first acknowledgement. Share the in-flight finish promise, as the conversation worker already does.
+- verified-by: `concurrent scripted finishes await one acknowledged service settlement`
+
+### F675 — A corrupted refund ledger must not reset the local allowance
+- severity: P2
+- status: [x]
+- where: services/token-server/src/store.ts:291
+- note: A missing development fixture may start empty; an existing malformed ledger must fail closed rather than forget grant/charge/refund tombstones. Critical persistence failures must reject without acknowledging a refund.
+- verified-by: `a corrupt refund ledger fails closed and a failed write cannot acknowledge a refund`
+
+### F676 — Approved phrase-audio spending limits need hard ceilings
+- severity: P2
+- status: [x]
+- where: supabase/migrations/20261003001510_approved_phrase_audio_caps.sql
+- note: Founder approved $0.02 lifetime trial, $0.20 paid account per anchored thirty days and $10 global per anchored thirty days. Apply upper-bound constraints without resetting spends/anchors, force generation off and seed no vendor rates. Approval alone does not verify actual chosen-voice billing or playback.
+- verified-by: `approved phrase audio caps remain hard ceilings with generation disabled`
+
+### F677 — Terminal typing recovery must name the new session
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/LiveErrorView.tsx
+- note: Sol review: a terminal room has ended, so its typing door starts a new grant. Label it Start a typed conversation rather than Continue by typing; keep pending/reconciliation blocked. Healthy quiet transitions retain the same-room label and flow.
+- verified-by: `terminal typing recovery names a new conversation while healthy quiet mode continues`
+
+### F678 — Can-do quotes must not claim evidence from an assisted replay
+- severity: P2
+- status: [x]
+- where: packages/core/src/canDoEvidence.ts
+- note: Sol design review: lifetime earned progress can stay earned after an assisted replay. Optional quoted proof must require this session's independent first complete mission win and exact accepted worker source; arbitrary history or last-line guesses are not evidence. Jev probability validation, public recipient disclosure and real French calibration are required before enabling.
+- verified-by: `can-do evidence is bound to the current independent finish and exact accepted learner source`
+
+
+### F679 — Correction-specific Jev passes must never use the paraphrase question
+- severity: P2
+- status: [x]
+- where: services/token-server/src/fixLineObserver.ts
+- note: Report 2 requires a distinct Noul on original, better and retry, at 0.9. Only an accepted repair skips the brain; below threshold, malformed, provider failure or timeout must preserve the existing brain request. The feature needs a reviewed real-French artifact before activation and a separate public recipient purpose. Unit fixtures are not calibration.
+- verified-by: `a correction-specific Noul may remove one brain call but never change its fallback request`
+
+### F680 — Live correction reasons need exact provenance and authored copy
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/correctionReason.ts
+- note: Report 2 and independent Sol design review require closed authored reasons, a calibrated Choice probability, exact published correction identity and confirmed input source. Never explain an invented quote or reuse a late result for a newer correction. No threshold artifact exists, so the new purpose stays dark.
+- verified-by: `authored correction reasons require exact current learner recast provenance`
+
+### F681 — A cancelled TypeSafe request must not retry after its wait
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/typesafe.ts:167
+- note: Independent Sol design review found systemOne waits after 429/529 and then invokes send without an explicit cancellation check. An optional request cancelled during the wait must dispatch no second request, even with a transport that ignores AbortSignal.
+- verified-by: `an aborted TypeSafe retry wait sends no second request`
+
+### F682 — Optional usage arriving after finish needs a session-linked correction
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1162
+- note: Independent Sol reproduced the accounting window: a cancelled optional provider can return after the one-time session summary. Its usage mutates in-memory counters but the operator's final total omitted it. Emit a session/activity-linked late total without learner text or a stale wire result. Learner minute charging is unaffected.
+- verified-by: `late optional reason usage updates the session-linked total after finish`
+
+### F683 — Recognition confidence is lost before the tutor sees the transcript
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2088
+- note: Report 35 asks to read recognition confidence. SDK final SpeechEvents carry it but session transcription events do not. Both public sttNode hooks must observe numeric confidence without retaining words, changing decisions or interrupting recognition. Missing/invalid confidence remains unavailable rather than zero.
+- verified-by: `both live agent hooks observe final recognition confidence without changing events`
+
+### F684 — The voice lifecycle harness reads the old balance-file shape
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/verify/voiceLifecycle.ts:533
+- note: The no-vendor live token/room run passed admission and lease checks but three balance assertions read undefined. FileEntitlementStore now writes version 2 with nested entitlements. The harness must read actual current and legacy balances and reject unsupported/corrupt shapes, preserving its debit assertions and explicit agent skips.
+- verified-by: `the lifecycle proof reads the actual versioned balance file and rejects corrupt snapshots`
+
+### F685 — Recap has no private tutor-versus-practice comparison
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx
+- note: Report 2 item 11 needs the selected tutor beside a fresh clearly labelled learner practice clip, without keeping live audio. Founder approved a fresh local take deleted on exit. Pending permission, recorder preparation and stop must also be invalidated and their late files removed on account reset, blur, background and unmount.
+- verified-by: `a recap clip arriving after exit is discarded and cannot become playable`
+
+### F686 — Walk mode needs an explicit start and terminal interruption boundary
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/walk
+- note: Report2 asks for hands-free background conversation on ink, without a typed twin. Founder approved lock continuation within existing caps, ending on phone call/audio interruption. Reuse the live grant and departure paths; unsupported platforms/native module failures must refuse before any grant, subscribe before start, never resume after interruption. Keep default dark until native/backend baseline passes.
+- verified-by: `Walk subscribes before starting and an interruption ends exactly once`
+
+### F687 — Exiting after room connection but before tutor arrival strands the lease
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts
+- note: Independent Walk review found leave/unmount clear the absent-tutor watchdog after start returns, but lease release is local to start. Retain attempt-owned lease cleanup through exit; observe tutor arrival before UI ownership checks and around disconnect. Never release a joined worker or newer grant, or an unsuccessfully disconnected room. Client-only observation still has a distributed race with a server join after final observation.
+- verified-by: `a tutor arriving during held disconnect keeps its own lease`
+
+### F688 — Guarded scene replies still have no exact correlated worker first-frame observation
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts
+- note: Report34 needs first-audio timing. Existing numeric EOU-to-say is narrower. Independent SDK review identified public default ttsNode's ordered frame stream as an exact worker boundary. Per-reply ALS token and returned handle identity must prove attribution; opener/replay/unknown audio cannot be assigned to a mutable current turn. Experiment remains dark until actual queued SDK correlation proof. No claim of phone audibility or unguarded partial model streaming.
+- verified-by: `a first frame is attributed only to its guarded dispatch scope`
+
+### F689 — Native microphone permission promises sound assessment while live scoring is off
+- severity: P2
+- status: [x]
+- where: apps/mobile/app.json
+- note: Simulator preparation found the microphone permission says it identifies sounds to work on, even when this build has live scoring disabled. Describe spoken conversations and deliberately requested practice recording instead; no new permission, vendor recipient or recording behavior.
+- verified-by: `the microphone permission describes conversation and private practice without claiming live sound assessment`
+
+### F690 — Quiet-door wiring proof predates the explicit Walk route
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/typedDoor.test.ts
+- note: Full gate finds F201's source assertion expects an ungated typed-error button and a dependency list without Walk mode. Preserve every ordinary quiet-door outcome and single cold-start boundary; assert the exact Walk exclusion and explicit stable route dependency rather than accepting arbitrary new conditions. No quiet-door runtime policy change.
+- verified-by: `the quiet door mid-scene keeps the scene and is never refused by the lease`
+
+### F691 — Simulator launch surface stays above a ready native app
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx
+- note: Expo57 simulator renders Home in accessibility but keeps the native launch image visibly above it. Explicitly release the native splash once bundled Outfit is ready, using the versioned Expo API; verify in simulator. No extra onboarding or new delay.
+- verified-by: `a ready native app releases its launch screen after Outfit loads`
+
+### F692 — Native purchases resolves its shared runtime constant back to itself
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/adapter.native.ts
+- note: Native Metro reports adapter.native.ts importing itself via ./adapter.ts, so PAID_PLANS may be undefined. Move the shared contract/constants to a platform-neutral filename, retaining the web adapter's public exports and exact purchase gates.
+- verified-by: `native purchases gets its paid plans from a platform-neutral contract`
+
+### F693 — Native practice exit reads an already released recorder and strands its file
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/daily/DailyPracticeScreen.tsx:80
+- note: Actual simulator record/finish/back throws at recorder.isRecording because Expo's passive hook cleanup has released the shared object. Recap uses the same pattern. Delete owned files independently of native getter availability; capture the prepared URI, clean up before Expo passive release, and discard late completion without duplicate stops or unhandled rejection.
+- verified-by: `daily practice exit deletes its held take even after Expo releases the recorder`
+- verified-by: `recap practice exit deletes its held take even after Expo releases the recorder`
+
+### F694 — Approved live language detection must not alter frozen French recordings
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/voiceConfiguration.ts
+- note: Founder listened to six bounded Alexandre samples on 3 October and preferred automatic language detection for English time/money while retaining natural French. Omit the live French request pin, invalidate live and saved-phrase cache identities, and keep the existing French-only recording batches' explicit language and manifest identities. This listening evidence covers Alexandre, not every catalogue voice or learner ASR.
+- note: The independent reviewer found the six bilingual chooser clips also needed the new live configuration. They were regenerated through buildTTS in 12 capped requests/316 characters, then the founder listened and confirmed all six clear French/intelligible English/natural French accent. Only these six previews and their real manifest changed; daily/onboarding French-only recordings stayed frozen. Digits/time/money A/B evidence remains Alexandre-only.
+- verified-by: `approved live language detection invalidates French-pinned saved audio while recording batches stay French`
+- verified-by: `live synthesis preflight omits the old French-only language request`
+
+### F695 — Mixed-language recognition needs an isolated candidate, not a global switch
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts
+- note: Bounded synthetic prerecorded/streaming Nova-3 comparisons corrupt French money or mixed English despite high confidence. Flux French/English hints preserve the French control and both languages, but still misread an English time/date. Prepare a default-off conversation-only review option; preserve Nova-3 phase language behavior, scripted lessons and typing. No automatic activation or claim of beginner calibration, room interruption or end-to-end timing. Real learner calibration remains a release hold.
+- note: Sol independently accepted the default-off source after 23 focused checks and tutor types. Strict opt-in is conversation-only; phase language updates are skipped only for Flux, whose hints remain bilingual. Actual beginner/room/EOT/interruption/number calibration remains held; no runtime configuration was changed.
+- verified-by: `ordinary recognition retains Nova-3 and its explicit phase language`
+- verified-by: `only an explicit conversation review uses Flux French and English hints`
+- verified-by: `the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints`
+
+### F696 — Recorded onboarding must describe playback and keep learner pacing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt`
+- verified-by: `the authored teaching preview connects attempt, useful feedback, model retry and saved practice without assessing playback`
+
+### F697 — The starting plan must explain real adaptation and allow no routine target
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/plan.ts
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an explicitly unset routine survives account creation without restoring the suggested minutes`
+- verified-by: `the plan bounds its beginner coverage without claiming a placement, completion date or promised level`
+
+### F698 — Practice must lead with usable work and distinguish authored sound guidance
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `the page puts the short action before the optional sound guide`
+
+### F699 — Home and Progress must recommend usable work and name their evidence
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an unavailable live tutor leads to an owned review or local phrase practice`
+- verified-by: `a failed conversation history slice leaves progress unread, never zero`
+
+### F700 — Recap must omit empty pages without losing durable work or exact retry
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `recap page navigation leaves saving independent and retries the exact kept phrase only after durable save`
+
+### F701 — Privacy and preference controls need precise scope and recoverable reads
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/settings/SettingsScreen.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `memory and Settings put practical controls before processing details without inventing support`
+- verified-by: `an unread choice stays unknown until an owned retry succeeds`
+
+### F702 — Plan recovery must offer free practice and show actual billing scope
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `unavailable plans return to free practice once and retain an accepted consented exit event`
+
+### F703 — Product measurements must distinguish real learning within existing consent
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `the research protocol defines evidence windows and denominators without adding pre-account tracking or a live experiment`
+
+### F704 — A confirmed purchase must not offer another Buy after an unreadable allowance refresh
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx
+- note: Independent review found that a confirmed purchase or restore could return to enabled plan buying when the follow-up allowance read failed. Keep the confirmed grant separate from that read, block further store actions, and offer a truthful refresh and free-practice exit without guessed totals.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `a confirmed purchase or restore blocks another store action when the separate allowance read is unavailable`
+- verified-by: `reopening with a persisted checkout or an unread fence cannot open a second purchase`
+- verified-by: `an unchanged same-tier subscription cannot clear an interrupted checkout fence`
+
+### F705 — Owned recommendations need a render-time account fence and truthful failed history reads
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/TutorTab.tsx, apps/mobile/src/tabs/MyFrenchTab.tsx, apps/mobile/src/tabs/PracticeTab.tsx
+- note: Independent review found that focus-effect cleanup alone allowed one render of the prior learner's work after a scope change. Practice also accepted a stale rejection, and Progress converted an unread history slice to zero. Require a matching read owner at render and an all-or-fail history read with retry.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an account switch hides ready evidence before the next focus effect clears it`
+- verified-by: `Practice refuses a stale failure as well as a stale success`
+- verified-by: `a failed conversation history slice leaves progress unread, never zero`
+
+### F706 — Queued bookmark writes must not recreate data after account cleanup
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/bookmarks/store.ts
+- note: Independent review found captured-key bookmark mutations were not fenced or registered with scoped writes. A held old write could recreate a deleted key after cleanup; failed sync adoption could be acknowledged. Bind queue generation, register native writes, and acknowledge only durable adoption.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `bookmarks/store.ts: a dispatched native save cannot recreate erased account data`
+- verified-by: `sync/registry.ts: a dispatched native save cannot recreate erased account data`
+- verified-by: `a dispatched checkout fence drains before account deletion and never reaches the next account`
+
+### F707 — A partial recap must not add a blank next page for unavailable conversation text
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx
+- note: A props object with null conversation text is not next-page content. Use actual owned savable text or another visible next action; a partial recap with nothing else should finish on its cover.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `a partial recap with no actionable content never adds an empty next page`
+
+### F708 — A localized store price needs a verified billing period before claiming per month
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallPlansPage.tsx, apps/mobile/src/purchases/adapter.native.ts
+- note: Independent review found localized prices were present but the runtime product period was not checked before monthly copy. Reject incompatible store periods or project verified period data; sandbox verification remains separate.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `monthly plan copy is reachable only from a verified monthly native package`
+
+### F709 — Constituent owned stores must expose unreadable work to screen recovery
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/review/store.ts, apps/mobile/src/practice/historyStore.ts, apps/mobile/src/progress/store.ts
+- note: Screen retries cannot distinguish empty work if their loaders swallow corrupt bytes, refused reads or unsupported versions. Preserve legitimate absent defaults and valid legacy migrations, reject unknown owned data, do not overwrite it through sync adoption, and clear rejected caches so retry can recover.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `absent continuity keys are empty, while malformed or refused existing reads reject`
+- verified-by: `unread continuity bytes are not replaced by local writes or a sync fold`
+- verified-by: `the owned review deck distinguishes absent from corrupt or refused bytes and a failed cache read can retry`
+- verified-by: `unread optional launch history and phrase recovery cannot trap the app or fabricate a backfill`
+
+### F710 — An empty OAuth account must confirm ownership of an anonymous plan
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx
+- note: An empty account read proves nothing is available to overwrite, not that OAuth created a new identity. Review the exact on-phone plan under the authenticated account before applying its profile, reminder or usage-data choice; allow starting a new plan and prevent a scope change during bootstrap from applying it elsewhere.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an existing empty OAuth account must confirm the on-phone draft before any preference or profile adoption`
+- verified-by: `a scope change during draft adoption cannot apply the plan or reminder to the next account`
+
+### F711 — The landing audit finds new dependency advisories outside the recorded decisions
+- severity: P1
+- status: [x]
+- where: package-lock.json, package.json, services/token-server/src/ciContract.test.ts
+- note: The 3 October online audit found brace-expansion 5.0.9 plus unpatched braces 3.0.3 and node-forge 1.4.0. Apply the compatible brace-expansion 5.0.12 patch. Record the two unpatched Expo build/development roots as temporary exceptions with actual reachability and upstream limitations, not as fixed vulnerabilities. Preserve the Metro image-size removal proof, exact reviewed versions, service/runtime boundaries and audit refusal of unknown or stale roots. Independent GPT-6 Sol review accepted that distinction; final source and online audit proof are still required.
+- note: 3 October 2026: exact-lockfile `npm ci` succeeds, all 11 CI contracts pass, and the online `audit:ci` exits zero under the recorded decisions (0 critical, 21 high and 12 moderate inherited advisories). Only brace-expansion changed in the lockfile. The two new tooling exceptions remain vulnerabilities with no published patch; this closure records their bounded handling, not a zero-vulnerability or release claim.
+- verified-by: `the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns`
+- verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
+- verified-by: `unpatched build-tool exceptions cannot enter a service runtime or an app update dependency`

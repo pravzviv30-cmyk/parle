@@ -35,7 +35,7 @@ export function FrenchLifeCard() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void loadActivity()
+      void loadActivity({ strict: true })
         .then((activity) => {
           if (cancelled) return;
           setWeek(calendarWeekFrom(activity, Date.now()));

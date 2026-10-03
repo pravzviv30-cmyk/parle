@@ -106,8 +106,13 @@ describe('the daily collection leads with something to do — Stage 3', () => {
   test('the screen and the card draw these rules rather than their own', () => {
     // The screen: the lead is the module's, the starters are real cards, and
     // the inventory line is drawn only where the module says.
-    assert.match(LIBRARY, /const lead = libraryLead\(filter, saved\.size, query\);/, 'the screen decides its own lead');
-    assert.match(LIBRARY, /const items = libraryItems\(filter, saved, query\);/, 'the screen filters for itself');
+    assert.match(LIBRARY, /const lead = saved === null \? 'none' : libraryLead\(filter, saved\.size, query\);/, 'the screen decides its own lead or treats an unread list as empty');
+    assert.match(LIBRARY, /const items = saved === null \? \[\] : libraryItems\(filter, saved, query\);/, 'the screen filters for itself');
+    assert.match(LIBRARY, /loaded\?\.scope === scope \? loaded\.saved : null/, 'the previous account’s saved list can appear during a new read');
+    assert.match(LIBRARY, /const unread = unreadScope === scope/, 'a previous account’s failed read must not become this account’s error state');
+    assert.match(LIBRARY, /placeScope !== scope \? <Text/, 'a previous account’s search and page position must not render before their scoped state resets');
+    assert.match(LIBRARY, /setFilter\(next\.filter\); setQuery\(next\.query\); setLimit\(next\.limit\); setPlaceScope\(scope\)/, 'search and page position are not restored for the new owner');
+    assert.match(LIBRARY, /Retry saved items/, 'a failed read has no retry');
     assert.match(LIBRARY, /lead === 'inventory' && <Text[^>]*>\{inventoryLine\(VOICED_WORD_IDS\.length, VOICED_PHRASE_IDS\.length\)\}<\/Text>/, 'the inventory line is drawn on the Saved tab, or spelled in JSX');
     assert.match(LIBRARY, /lead === 'starter' && /, 'the starters are not drawn');
     assert.match(LIBRARY, /starterItems\(\)\.map\(item => <DailyCard /, 'the starters are not cards that can be heard and saved');

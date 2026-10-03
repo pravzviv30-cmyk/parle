@@ -59,12 +59,11 @@ function at(marker: string): number {
   return i;
 }
 
-describe('Practice leads with a sound, and decides none of it — notebook Phase 3', () => {
-  test('the page opens on "Your sound to tune", decided whole by the sound model', () => {
-    // Sound is the signature: nothing but the header sits above it.
+describe('Practice leads with a useful action, then a sound example', () => {
+  test('the page puts the short action before the optional sound guide', () => {
     assert.ok(at('<TabHeader') < at('<TuneSoundCard'), 'the tab header is not first');
-    assert.ok(at('<TuneSoundCard') < at('<PhraseCard'), 'the sound to tune does not lead the page');
-    assert.ok(at('<TuneSoundCard') < at('<Ledger'), 'the sound to tune sits under the rows');
+    assert.ok(at('<Label>{NEXT_STEP.label}</Label>') < at('<TuneSoundCard'), 'the recommendation falls below the sound guide');
+    assert.ok(at('<TuneSoundCard') < at('{rowsCanStart && ('), 'the sound example sits under the practice rows');
     // The model reads the stores the tab already reads and the bundled audio,
     // and nothing about which sound, which word or which recording is here.
     assert.match(
@@ -72,7 +71,7 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
       /setLead\(soundLead\(\{ checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS \}\)\)/,
       'the sound is not chosen by practice/soundLead.ts over the stored checks and the bundled recordings',
     );
-    assert.match(FLAT, /\{lead !== null && \(/, 'the sound block draws before the model has answered');
+    assert.match(FLAT, /\{ownerMatches && lead !== null && \(/, 'the sound block draws before the model has answered or after its owner changed');
     for (const decided of ['getPhoneme(', 'FRENCH_PHONEMES', 'isMeasuredCheck(', 'soundFocus(', 'tutorAudioFor(', '.examples[']) {
       assert.ok(!SCREEN.includes(decided), `the tab works out ${decided} itself; that belongs to practice/soundLead.ts`);
     }
@@ -99,11 +98,11 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
     }
   });
 
-  test('day one\'s one pill is the bonjour sound lesson, with its live-minutes line, inside the sound block', () => {
+  test('day one\'s one pill is the bonjour sound lesson, with its live-minutes line, in the recommendation', () => {
     // Day one is the model's answer, not the tab's: the card's action is the lesson.
-    assert.match(FLAT, /const dayOne = step !== null && step\.card\.action\.kind === 'lesson';/, 'the tab decides for itself what day one is');
-    const block = between(RENDER, '<TuneSoundCard', '/>', 'the tab draws the sound card');
-    assert.match(block, /control=\{dayOne \? primary : null\}/, 'on day one the one action is not inside the sound block');
+    assert.match(FLAT, /const dayOne = ownerMatches && step !== null && step\.card\.action\.kind === 'lesson';/, 'the tab decides for itself what day one is, or shows the previous account’s lesson');
+    const card = between(RENDER, '<Label>{NEXT_STEP.label}</Label>', '</Card>', 'the recommended action');
+    assert.match(card, /\{primary\}/, 'the day-one action is not next to the preview');
     // The primary is built once and drawn in exactly one of two places.
     const primary = between(SCREEN, 'const primary = ', '\n  );\n', 'the one primary action is built once');
     assert.match(flat(primary), /<PillButton label=\{step\.card\.action\.label\} disabled=\{checking\} onPress=\{startRecommended\} \/>/, 'the pill spells its own label or opens something of its own');
@@ -114,7 +113,7 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
     const handler = between(SCREEN, 'const startRecommended = () => {', '\n  };\n', 'the recommended action is a component-level handler');
     assert.match(handler, /if \(action\.kind === 'lesson'\) return openLesson\(\);/, 'the day-one action does not open the lesson');
     const lesson = between(SCREEN, 'const openLesson = (', '\n  };\n', 'the lesson opener is a component-level handler');
-    assert.match(lesson, /if \(checking\) return;/, 'a second tap during the probe opens a second lesson');
+    assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/, 'a second tap or an old account’s action opens a lesson');
     assert.ok(lesson.indexOf('setChecking(true)') >= 0 && lesson.indexOf('setChecking(true)') < lesson.indexOf('recheck()'), 'the tap is acknowledged after the network is touched');
     assert.match(flat(lesson), /const start = lessonStart\(false\); nav\.navigate\(start\.screen, start\.params\);/, 'the lesson opens somewhere other than where gate.ts says');
     assert.match(flat(lesson), /void recheck\(\)\.then\(go, go\);/, 'a failed probe leaves the lesson unopened, and it runs offline too');
@@ -124,21 +123,20 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
 
   test('the tab keeps exactly one primary pill, whichever day it is', () => {
     assert.equal((SCREEN.match(/<PillButton/g) ?? []).length, 1, 'a second primary pill was added somewhere on the tab');
-    // Drawn in the sound block on day one, and in the card on every other day,
-    // never both: the card itself is not drawn on day one.
-    assert.match(FLAT, /\{step !== null && !dayOne && \( <View style=\{st\.block\}> <PhraseCard/, 'the card and its pill draw on day one too');
-    const card = RENDER.slice(at('<PhraseCard'), at('<Ledger'));
-    assert.match(card, /control=\{primary\}/, 'the card\'s control is something other than the one primary');
+    // The same recommendation card serves both a starter and returning learner.
+    assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.block\}> <Card/, 'the one card does not serve both starter and returning learners, or survives an account switch');
+    const card = RENDER.slice(at('<Label>{NEXT_STEP.label}</Label>'), at('<Ledger'));
+    assert.match(card, /\{primary\}/, 'the card\'s control is something other than the one primary');
     for (const loud of ['<OutlineButton', '<PillButton']) {
       assert.ok(!between(RENDER, '<TuneSoundCard', '/>', 'the sound card').includes(loud), `the sound card draws its own ${loud}`);
     }
   });
 
   test('the recommended card previews one French line the sitting will not ask for', () => {
-    const card = RENDER.slice(at('<PhraseCard'), at('<Ledger'));
-    assert.match(card, /label=\{NEXT_STEP\.label\}/, 'the card spells its own label instead of reading it from nextStep.ts');
+    const card = RENDER.slice(at('<Label>{NEXT_STEP.label}</Label>'), at('<Ledger'));
+    assert.match(card, /<Label>\{NEXT_STEP\.label\}<\/Label>/, 'the card spells its own label instead of reading it from nextStep.ts');
     assert.match(card, /french=\{step\.card\.phrase\.fr\}/, 'the card draws something other than the model\'s own French line');
-    assert.match(card, /gloss=\{step\.card\.phrase\.en\}/, 'the line is shown with no meaning beside it');
+    assert.match(card, /english=\{step\.card\.phrase\.en\}/, 'the line is shown with no meaning beside it');
     assert.match(card, /playing=\{playing\}/);
     assert.match(card, /onHear=\{\(\) => hearNext\(step\.card\.phrase\.fr\)\}/, 'the card hears something other than the line it shows');
     // The preview-leak rule lives in practiceCard.ts; the tab hands it the
@@ -151,7 +149,7 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
   });
 
   test('the ways to practise are ledger rows, each drawn only when it can start', () => {
-    const ledger = between(RENDER, '<Ledger', '</Ledger>', 'the rows sit in one ledger');
+    const ledger = between(RENDER, '{rowsCanStart && (', '</Ledger>', 'the rows sit in one ledger');
     // The replay row opens only a sitting that would hold something (the
     // sayable rule), and the phrase row only when there is a phrase.
     assert.match(flat(ledger), /\{made\?\.value\?\.replay != null && made\.value\.replay\.sayable && \(/, 'the replay row draws when its sitting would be empty');
@@ -159,7 +157,7 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
     assert.match(flat(ledger), /\{step !== null && step\.doors\.review !== null && \( <LedgerRow/, 'due review is not a ledger row gated on the deck');
     assert.ok(ledger.indexOf('<ReplayMomentCard') < ledger.indexOf('<MakePhraseCard'), 'the phrase sits above the moment');
     assert.ok(ledger.indexOf('<MakePhraseCard') < ledger.indexOf('step.doors.review'), 'review sits above the made-from rows');
-    assert.match(flat(ledger), /onPress=\{\(\) => nav\.navigate\('Review'\)\}/, 'the review row does not open the review deck');
+    assert.match(flat(ledger), /onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Review'\); \}\}/, 'the review row does not open the review deck, or opens it after the account changes');
     // The whole ledger is drawn only when one row in it can start.
     assert.match(FLAT, /\{rowsCanStart && \( <View style=\{st\.block\}>/, 'an empty ledger draws its heading over nothing');
     assert.match(FLAT, /<Label>\{ALTERNATIVES\.label\}<\/Label>/, 'the rows lost their one quiet heading');
@@ -176,8 +174,10 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
     const load = between(SCREEN, 'const load = useCallback(', '\n  );\n', 'the tab reads its stores in one callback');
     assert.ok(load.indexOf('recoverPracticeCompletion()') >= 0, 'a completion a previous launch left half-done is never finished');
     assert.ok(load.indexOf('recoverPracticeCompletion()') < load.indexOf('loadPracticeSession()'), 'the saved sitting is read before a pending completion lands');
-    assert.match(flat(load), /const scope = scopeGeneration\(\); const stale = \(\): boolean => cancelled\(\) \|\| scopeGeneration\(\) !== scope;/);
-    assert.equal((load.match(/if \(stale\(\)\)/g) ?? []).length + (load.match(/if \(!stale\(\)\)/g) ?? []).length + (load.match(/if \(stale\(\) \|\|/g) ?? []).length, 3, 'a read can be drawn for an account that has changed');
+    assert.match(load, /loadSoundChecks\(\{ strict: true \}\)/, 'unreadable sound evidence is treated as an empty check history');
+    assert.match(flat(load), /const scope = scopeGeneration\(\); const userId = user\?\.id \?\? null; const capturedOwner = \{ scope, userId \}; const stale = \(\): boolean => cancelled\(\) \|\| !ownsPracticeRead\(capturedOwner, scopeGeneration\(\), userId, activeUserId\(\)\);/);
+    assert.equal((load.match(/if \(stale\(\)\)/g) ?? []).length + (load.match(/if \(!stale\(\)\)/g) ?? []).length + (load.match(/if \(stale\(\) \|\|/g) ?? []).length, 4, 'a read or failed read can be drawn for an account that has changed');
+    assert.match(flat(load), /\.catch\(\(\) => \{ if \(!stale\(\)\) \{ setFailureOwner\(\{ scope, userId \}\); setFailed\(true\); \} \}\)/, 'a stale rejection shows the new account a read failure');
     const start = between(SCREEN, 'const startRecommended = () => {', '\n  };\n', 'the recommended action is a component-level handler');
     assert.match(start, /nav\.navigate\('Drill', practiceRouteParams\(\{ origin: 'resume', packId: null, exposed: false \}\)\)/, 'Resume opens something other than the saved sitting');
     assert.match(start, /nav\.navigate\('Drill', action\.params\)/, 'a short practice opens something other than a practice sitting');
@@ -186,7 +186,7 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
   });
 
   test('the quiet doors stay quiet, gated on the model, and the tutor door says it uses live minutes', () => {
-    assert.match(FLAT, /\{step\.doors\.choose !== null && <GhostButton label=\{step\.doors\.choose\}[^>]*onPress=\{\(\) => nav\.navigate\('Conversations'\)\}/, 'choosing a conversation is not a quiet door to the list');
+    assert.match(FLAT, /\{step\.doors\.choose !== null && <GhostButton label=\{step\.doors\.choose\}[^>]*onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Conversations'\); \}\}/, 'choosing a conversation is not a quiet door to the list or opens stale material');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{step\.doors\.revisit\.label\}\. \$\{step\.doors\.revisit\.uses\}`\}/, 'the tutor door does not say its cost to a screen reader');
     assert.match(FLAT, /\{step\.doors\.revisit !== null && \(/, 'the tutor door is drawn without asking the model');
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
@@ -197,12 +197,12 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
 
   test('the door that touches the network guards its tap and says so — F154', () => {
     const handler = between(SCREEN, 'const startFirst = (', '\n  };\n', 'the live conversation is a component-level handler');
-    assert.match(handler, /if \(checking\) return;/);
+    assert.match(handler, /if \(checking \|\| !ownsReadNow\(\)\) return;/);
     assert.ok(handler.indexOf('setChecking(true)') < handler.indexOf('recheck()'));
     assert.match(handler, /setChecking\(false\)/);
     assert.match(handler, /\.catch\(\(\) => \{/);
     assert.match(handler, /setHeldBack/);
-    assert.match(FLAT, /\{checking && \([\s\S]{0,200}accessibilityLiveRegion="polite"[\s\S]{0,200}TUTOR_OFFLINE\.checking/, 'the acknowledgement is either not a live region or not tied to the flag');
+    assert.match(FLAT, /\{ownerMatches && checking && \([\s\S]{0,200}accessibilityLiveRegion="polite"[\s\S]{0,200}TUTOR_OFFLINE\.checking/, 'the acknowledgement is either not a live region or not tied to the current account’s flag');
   });
 
   test('nothing on the page counts, tints or highlights', () => {
@@ -224,8 +224,8 @@ describe('Practice leads with a sound, and decides none of it — notebook Phase
   });
 
   test('every block that can be empty is gated, and a failed read says so', () => {
-    assert.match(FLAT, /\{failed && \(/, 'a read that never finished leaves the learner on a page that says nothing');
-    assert.match(FLAT, /\{step !== null && \( <View style=\{st\.doors\}>/, 'the doors draw before the card has answered');
+    assert.match(FLAT, /\{showFailed && \(/, 'a read that never finished leaves the learner on a page that says nothing');
+    assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.doors\}>/, 'the doors draw before the card has answered, or after the account changes');
   });
 
   test('the header says where the page came from, and none of those words live here', () => {

@@ -111,13 +111,19 @@ export const DELETE_ROW = 'Delete account';
 // ────────────────────────────────────────────────────────── data and privacy
 
 export const SAVED_ROW = 'Saved conversations';
-export const SAVED_SUB = 'Manage in My French';
+export const SAVED_SUB = 'Manage in Progress';
 
 export const DOWNLOAD_ROW = 'Download my data';
 export const DOWNLOAD_SUB = 'A copy of your learning history';
 
 /** While the export is being built. A wait, not a percentage. */
 export const DOWNLOAD_BUSY = 'Preparing…';
+export const DATA_USE_ROW = 'How your data is used';
+export const DATA_USE_SUB = 'Providers, saved learning and retention';
+export const CONNECTION_HELP_ROW = 'Connection and practice help';
+export const CONNECTION_HELP_SUB = 'Pause, typing and audio controls';
+export const LOCAL_PRACTICE_ROW = 'Free local practice';
+export const LOCAL_PRACTICE_SUB = 'Hear, say and compare without a live room';
 
 // ─────────────────────────────────────────────────────────────────────── about
 
@@ -175,6 +181,8 @@ export const CONSENT_SAVE_TROUBLE = 'Your phone did not save that. The switch is
  * above is covered the moment it is added rather than when somebody remembers.
  */
 export const SETTINGS_COPY: readonly string[] = [
+  DATA_USE_ROW, DATA_USE_SUB, CONNECTION_HELP_ROW, CONNECTION_HELP_SUB,
+  LOCAL_PRACTICE_ROW, LOCAL_PRACTICE_SUB,
   SETTINGS_TITLE,
   SETTINGS_ROW,
   SETTINGS_ROW_SUB,

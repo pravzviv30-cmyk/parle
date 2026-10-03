@@ -39,8 +39,9 @@ describe('the recap is a keepsake', () => {
     assert.ok(at('<Highlight text={keptPhrase.fr}') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
     assert.ok(at('{KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
     assert.ok(at('{nextTime}') < at('{offer.title}'), 'the reminder is offered before the keepsake is over');
-    assert.ok(at('{offer.title}') < at('label="Finish conversation"'));
-    assert.ok(at('label="Finish conversation"') < at('expanded: more'), 'More is drawn before Done, so opening it pushes the way out down the screen');
+    assert.match(render, /currentPage === 'next' &&/);
+    assert.match(render, /footer=\{/);
+    assert.ok(at('footer={') < at('expanded: more'), 'Finish stays pinned outside the More content');
 
     // Each piece is the model's, not the screen's.
     assert.match(code, /lines\.map\(\(line\) =>/, 'the learner\'s lines are not drawn from the lines they said');
@@ -59,7 +60,7 @@ describe('the recap is a keepsake', () => {
     assert.match(code, /const won = lines\.length > 0 \|\| keptPhrase !== null;/, 'the offer is not gated on the first win');
     assert.match(code, /const offer = reminderOffer\(\{ available: REMINDERS_AVAILABLE, won, stored, permission \}\);/);
     // Read on the way in, never asked.
-    assert.match(code, /Promise\.all\(\[loadReminder\(\), reminderPermission\(\)\]\)/, 'the recap does not read the permission it offers against');
+    assert.match(code, /Promise\.all\(\[loadReminder\(\{ strict: true \}\), reminderPermission\(\)\]\)/, 'the recap does not read the permission it offers against');
     for (const effect of code.split('useEffect(').slice(1)) {
       const body = effect.slice(0, effect.indexOf('}, ['));
       assert.ok(!body.includes('askReminderPermission'), 'an effect raises the notification dialog nobody accepted');
@@ -78,7 +79,7 @@ describe('the recap is a keepsake', () => {
     assert.equal((code.match(/accessibilityState=\{\{ expanded: more \}\}/g) ?? []).length, 1, 'there is not exactly one More disclosure');
     const more = render.slice(render.indexOf('{more && ('));
     assert.ok(render.includes('{more && ('), 'nothing is behind More');
-    for (const part of ['closure.didWell.map(', 'otherPhrases.map(', 'closure.repair']) {
+    for (const part of ['closure.didWell.map(', 'otherPhrases.map(', 'otherFocus']) {
       assert.ok(more.includes(part), `${part} is no longer reachable from More`);
     }
     // The three-phrase ceiling holds across the keepsake and the rest.
@@ -104,7 +105,7 @@ describe('the recap is a keepsake', () => {
 describe('the conversation closes with something useful', () => {
   test('the exact visible keepsake is durable before the recap calls it saved', () => {
     assert.match(screen, /onSave\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)/);
-    assert.match(screen, /saveState === 'saved'[\s\S]*\? 'Saved to My French'/);
+    assert.match(screen, /saveState === 'saved'[\s\S]*\? 'Saved to Progress'/);
     assert.match(screen, /saveState === 'failed'[\s\S]*\? 'Not saved yet'/);
     assert.match(keepsake, /const acknowledged = await addPhrases\(/);
     assert.match(keepsake, /return acknowledged === 'durable'/);
@@ -117,10 +118,12 @@ describe('the conversation closes with something useful', () => {
   });
 
   test('practice is the recommended next action and finishing stays available', () => {
-    assert.match(screen, /<PillButton\s+label="Practise this phrase"/);
-    assert.equal((code.match(/<PillButton\b/g) ?? []).length, 1, 'the recap draws more than one primary');
-    assert.match(screen, /<GhostButton label="Finish conversation"/);
-    assert.ok(at('label="Practise this phrase"') < at('label="Finish conversation"'), 'Done comes before the practice');
+    assert.match(screen, /<GhostButton\s+label="Practise this phrase"/);
+    assert.match(code, /nextPage === null && canPractise\s*\? <PillButton[\s\S]*?: <PillButton/, 'the two exclusive primary states are not one practice-or-next choice');
+    assert.match(screen, /nextPage === null \? 'Finish conversation' : 'Next'/);
+    assert.match(screen, /accessibilityLabel="Finish conversation" onPress=\{onDone\}/);
+    assert.match(screen, /currentPage === 'lines' &&/);
+    assert.match(screen, /nextPage === null \? onDone\(\) : setPage/);
     assert.match(convo, /leaveTo\(\(\) => onPractice\(phrase\)\)/);
     assert.match(
       convo,

@@ -93,7 +93,7 @@ describe('one pen drew every mark in the app — F589', () => {
     // The fourteen after them are the ICONS.md marks the Round 1 boards draw
     // that no older name covered. The list is exact, so a glyph added without
     // being named here, or one lost, fails rather than drifting in.
-    const PORTED = ['ClockGlyph', 'ChatGlyph', 'DocumentGlyph', 'ReplayGlyph', 'WaveformGlyph'];
+    const PORTED = ['MouthGlyph', 'ClockGlyph', 'ChatGlyph', 'DocumentGlyph', 'ReplayGlyph', 'WaveformGlyph'];
     const ROUND_ONE = [
       'ChevronDownGlyph',
       'PlayGlyph',

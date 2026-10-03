@@ -139,7 +139,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     // which is the rule the reminder row already keeps: a name spelled in two
     // places is a name that comes to mean two things. So the claim splits in
     // two, and together they are the same claim as before.
-    assert.equal(DAILY_GOAL_ROW, 'Speaking target', 'the target row has no name a learner could find it by');
+    assert.equal(DAILY_GOAL_ROW, 'Flexible practice routine', 'the routine row has no plain name a learner could find it by');
     assert.ok(
       PROFILE_TAB.includes('DAILY_GOAL_ROW'),
       'profile spells the row name itself, or has no row for the goal at all',
@@ -162,7 +162,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     // with the same component the Profile sheet uses. So the guard is re-pointed
     // at the fact that still carries it — every option card in this flow belongs
     // to the voice step, and none of them asks a question about the learner.
-    const cards = [...FLOW.matchAll(/<OptionCard/g)].map((m) => m.index ?? -1);
+    const cards = [...FLOW.matchAll(/<OptionRow/g)].map((m) => m.index ?? -1);
     const voicePageAt = FLOW.indexOf("{page === 'voice' && (");
     assert.ok(voicePageAt > 0, 'the voice step is no longer rendered by name');
     for (const index of cards) {
@@ -314,8 +314,8 @@ describe('the Meet page reads as a paragraph, not a plaque — F359', () => {
     );
     assert.match(
       FLOW,
-      /question:\s*\{[^}]*\.\.\.type\.display/,
-      'the Meet title must use the shared editorial display scale',
+      /question:\s*\{[^}]*\.\.\.type\.title/,
+      'the recovery question must use the shared working title',
     );
   });
 });
@@ -672,4 +672,10 @@ describe('the first run asks about usage data once, and off is the answer until 
       'App.tsx writes a consent for a page that never asked, which is how a stored yes is silently withdrawn',
     );
   });
+});
+
+ test("the recovery route's voice step is option rows that still sound their sample", () => {
+  assert.doesNotMatch(FLOW, /<OptionCard/);
+  assert.match(FLOW, /<OptionRow[\s\S]*?title=\{option.label\}[\s\S]*?detail=\{option.gloss\}[\s\S]*?selected=\{voice === option.value\}[\s\S]*?playing=\{playing === option.value\}[\s\S]*?onPress=\{\(\) => setVoice\(option.value\)\}[\s\S]*?onHear=\{\(\) => hearVoice\(option.value\)\}/);
+  assert.match(FLOW, /question: \{ \.\.\.type.title/);
 });

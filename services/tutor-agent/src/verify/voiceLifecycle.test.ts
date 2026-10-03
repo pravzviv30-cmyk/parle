@@ -14,7 +14,8 @@
  */
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
@@ -30,15 +31,43 @@ import {
   parseOptions,
   redactCredentials,
   refuseForeignWorker,
+  readStore,
   seedForHardStop,
   summariseRun,
   ttlSecondsOf,
   type CheckResult,
 } from './voiceLifecycle.ts';
+import { FileEntitlementStore } from '../../../token-server/src/store.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HARNESS_SOURCE = readFileSync(join(HERE, 'voiceLifecycle.ts'), 'utf8');
 const AGENT_SOURCE = readFileSync(resolve(HERE, '..', 'agent.ts'), 'utf8');
+
+it('the lifecycle proof reads the actual versioned balance file and rejects corrupt snapshots', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'luvani-lifecycle-balance-'));
+  const path = join(directory, 'balance.json');
+  try {
+    writeFileSync(path, '{}');
+    const store = new FileEntitlementStore(path);
+    const owner = 'invented-lifecycle-owner';
+    await store.get(owner);
+    await store.recordSessionGrant(owner, 'invented-session', await store.get(owner));
+    await store.consume(owner, 37, 'invented-session');
+    const before = readFileSync(path, 'utf8');
+    assert.equal(JSON.parse(before).version, 2, 'exercise the real current writer');
+    assert.equal(readStore(path)[owner]?.secondsUsed, 37);
+    assert.equal(readFileSync(path, 'utf8'), before, 'proof reading must not rewrite the ledger');
+    writeFileSync(path, JSON.stringify({ [owner]: { plan: 'trial', secondsUsed: 11 } }));
+    assert.equal(readStore(path)[owner]?.secondsUsed, 11, 'legacy balances remain readable');
+    for (const malformed of [null, [], { version: 3, entitlements: {} }, { version: 2 },
+      { version: 2, entitlements: [] }, { [owner]: { plan: 'trial', secondsUsed: -1 } }]) {
+      writeFileSync(path, JSON.stringify(malformed));
+      assert.throws(() => readStore(path), 'an invalid snapshot cannot silently read as an empty balance');
+    }
+    writeFileSync(path, '{truncated');
+    assert.throws(() => readStore(path));
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 /** A run in which every check answered the way a clean run answers. */
 function cleanRun(): CheckResult[] {

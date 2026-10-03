@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { buildConversationPack, newCard, phraseKeyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
+import { CAFE_LESSON, buildConversationPack, newCard, phraseKeyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 
 import { practiceCard, practiceDoors } from './practiceCard.ts';
 import { recommendation } from './recommendation.ts';
@@ -117,6 +117,7 @@ describe('the Practice card and its quiet doors', () => {
     const c = practiceCard({ rec, deck: [], packs: [], now: NOW, resuming: [] });
     assert.equal(c.action.kind, 'lesson');
     assert.equal(c.action.label, SOUND_LEAD.lesson);
+    assert.deepEqual(c.phrase,{fr:CAFE_LESSON.turns[0]!.target,en:CAFE_LESSON.turns[0]!.targetEn});
     assert.notEqual(c.action.label, NEXT_STEP.first, 'day one on Practice still offers a first conversation');
     assert.equal(c.noMinutes, null, 'the lesson runs live while a tutor is connected and was labelled as using no minutes');
     assert.equal(c.liveMinutes, LESSON_MINUTES, 'the lesson does not say it uses live minutes while the tutor is connected');

@@ -13,13 +13,18 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+import { TUTOR_VOICES } from '@luvani/core';
+
 import {
   CONNECTING_STAGES,
   CONNECTING_TICK_MS,
+  CONNECTING_TITLE,
   LEAVE_LABEL,
+  connectingBody,
   connectingTick,
   connectingView,
 } from './connectingView.ts';
+import { ONE_MOMENT, waitingNote } from '../tutor/waitingView.ts';
 
 const SRC = new URL('..', import.meta.url).pathname;
 const read = (name: string) => readFileSync(SRC + name, 'utf8');
@@ -118,12 +123,12 @@ describe('the wait before the room opens — F151', () => {
       assert.match(body, /connectingView\(/, `${name} still writes its connect copy into the branch by hand`);
       assert.match(body, /\{connecting\.headline\}/, `${name} draws a line the view model did not give it`);
       assert.doesNotMatch(body, /Reaching the server/, `${name} kept the hard-coded line the view model replaced`);
-      assert.match(
-        body,
-        /<GhostButton\s+label=\{connecting\.leaveLabel\}/,
-        `${name} leaves a learner in the connect wait with no door, which is F151 exactly`,
-      );
-      assert.match(body, /onPress=\{leaveNow\}/, `${name} draws a door that goes somewhere other than the exit`);
+      assert.match(body, /<RoomWait\b/, `${name} has no shared waiting page`);
+      assert.match(body, /leaveLabel=\{connecting\.leaveLabel\}/, `${name} leaves a learner in the connect wait with no door`);
+      assert.match(body, /onLeave=\{leaveNow\}/, `${name} draws a door that goes somewhere other than the exit`);
+      const page = read('live/RoomWait.tsx');
+      assert.match(page, /<GhostButton label=\{leaveLabel\} onPress=\{onLeave\}/, 'the shared waiting page drops the leave action');
+      assert.match(page, /accessibilityLiveRegion="polite"/, 'the stage line is never announced');
 
       // The clock, and the promise that it stops. An interval started in the
       // connecting branch and never cleared outlives the screen.
@@ -201,6 +206,45 @@ describe('the wait before the room opens — F151', () => {
         source,
         new RegExp(`${setter}\\(0\\)`),
         `${name} reuses the last attempt's clock, so a retry starts on the oldest sentence`,
+      );
+    }
+  });
+
+  // Revamp B (F603). Connecting and waiting become one full page each, with a
+  // headline that says what is opening and one sentence under it. These are
+  // the words; the page that draws them is RoomWait. Two rules carry over from
+  // the stages above: nothing is invented (no tick for a step the client never
+  // observes, no number) and nothing remarks on anybody's time.
+  test('the waiting pages say what is opening and that nothing is counted until the chosen tutor joins', () => {
+    assert.equal(CONNECTING_TITLE, 'Opening your conversation…');
+    assert.ok(
+      !CONNECTING_STAGES.some((stage) => stage.headline === CONNECTING_TITLE),
+      'the page headline is one of the stage lines, so the fixed line and the moving one say the same thing',
+    );
+
+    const names = Object.values(TUTOR_VOICES).map((voice) => voice.persona.name);
+    assert.ok(new Set(names).size > 1, 'the catalogue has one tutor, so this cannot tell a name from a constant');
+    for (const name of names) {
+      assert.equal(connectingBody(name), `This takes a few seconds. Nothing is counted until ${name} joins.`);
+      assert.equal(waitingNote(name), `Nothing is counted until ${name} joins.`);
+      // Both pages promise the same thing in the same words.
+      assert.ok(connectingBody(name).endsWith(waitingNote(name)), 'the two waits say different things about what is counted');
+    }
+    assert.notEqual(waitingNote(names[0]!), waitingNote(names[1]!), 'the note names one tutor whoever the learner chose');
+
+    // The waiting state has no clock, so its note says nothing about time.
+    for (const name of names) {
+      assert.doesNotMatch(waitingNote(name), /second|minute|moment|long|while|soon|quick/i, 'the waiting note talks about time');
+    }
+
+    for (const line of [CONNECTING_TITLE, connectingBody(names[0]!), waitingNote(names[0]!), ONE_MOMENT]) {
+      assert.doesNotMatch(line, /[✓✔☑]|\bdone\b/i, `"${line}" ticks off a step nobody saw`);
+      assert.doesNotMatch(line, /\d/, `"${line}" carries a number`);
+      assert.doesNotMatch(line, /[·—–]/, `"${line}" carries a middot or a dash`);
+      assert.doesNotMatch(
+        line,
+        /sorry|apolog|unfortunately|take your time|no rush|still waiting for you|taking (?:so )?long/i,
+        `"${line}" apologises or remarks on the wait`,
       );
     }
   });

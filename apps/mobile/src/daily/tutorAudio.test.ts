@@ -3,13 +3,24 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { TUTOR_VOICES, DEFAULT_TUTOR_VOICE, DAILY_WORDS, DAILY_PHRASES, wordTierFor, type TutorVoiceKey } from '@luvani/core';
-import { dailyTutorVoice, tutorAudioFor, type TutorAudioPack } from './tutorAudio.ts';
+import { dailyTutorVoice, tutorAudioFor, tutorAudioForFrench, type TutorAudioPack } from './tutorAudio.ts';
 import { VOICED_WORD_IDS, VOICED_PHRASE_IDS } from './voicedSelection.ts';
 import { DAILY_ITEMS, todayItems } from './catalogue.ts';
 
 const voices = Object.keys(TUTOR_VOICES) as TutorVoiceKey[];
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const sha = (data: string | Buffer) => createHash('sha256').update(data).digest('hex');
+
+test('French recording reuse is exact, Unicode-normalized and restricted to the selected voice', () => {
+  const items = [{ id: 'first', fr: 'Café.' }, { id: 'second', fr: 'Café.' }];
+  const pack = { alexandre: { first: 11 }, emilie: { second: 22 } };
+  assert.equal(tutorAudioForFrench(pack, items, ' Cafe\u0301. ', 'alexandre'), 11);
+  assert.equal(tutorAudioForFrench(pack, items, 'Café.', 'emilie'), 22);
+  for (const text of ['Cafe.', 'café.', 'Café', 'Café ?', '']) {
+    assert.equal(tutorAudioForFrench(pack, items, text, 'alexandre'), undefined);
+  }
+  assert.equal(tutorAudioForFrench(pack, items, 'Café.', 'marie'), undefined);
+});
 
 test('daily audio follows every tutor choice and has no other-voice or generic fallback', () => {
   const pack = Object.fromEntries(voices.map((voice, i) => [voice, { word: i + 1 }])) as TutorAudioPack;
@@ -110,7 +121,11 @@ test('daily playback is local, gated by coverage and cancelled when the selected
   assert.match(card, /asset != null && <GhostButton label="Hear"/);
   assert.match(card, /asset != null && <GhostButton label="Slow replay"/);
   assert.match(card, /\[focused, player, item.id, tutorVoice\]/);
-  assert.match(practice, /modelAsset != null && <OutlineButton label="Hear the model"/);
+  assert.match(practice, /modelAsset != null && <GhostButton label="Hear model"/);
+  for (const state of ['Record my take', 'Hear my take', 'Try again', 'Finish practice']) {
+    assert.ok(practice.includes(state), `local comparison lost its ${state} state`);
+  }
+  assert.match(practice, /your take is deleted when you leave/i);
   assert.match(practice, /\[tutorVoice, player, item\?\.id\]/);
   assert.match(practice, /playback !== playbackTicket.current/);
   assert.match(read('DailyLibraryScreen.tsx'), /VOICED_WORD_IDS.length/);

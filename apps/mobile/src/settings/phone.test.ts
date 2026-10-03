@@ -276,14 +276,13 @@ describe('a refused permission is the only one worth a row — F476', () => {
       /const phone = phoneRows\(\{ microphone, notifications, available: PHONE_SETTINGS_AVAILABLE \}\);/,
       'the screen decides which phone rows to draw itself, so the re-read reaches nothing',
     );
-    // The group has two reasons to exist since the daily reminder moved into it
-    // (F576), and exactly two: a reminder this build can actually schedule, or a
-    // permission the OS has refused. Both absent and the whole group is absent,
-    // which is what an allowed microphone on a phone with no reminder set gets.
+    // The group also holds an unread reminder's Retry. It cannot render the
+    // reminder as Off until the owned read succeeds, even with no permission
+    // row beside it.
     assert.match(
       SETTINGS,
-      /\{\(reminders \|\| phone\.length > 0\) && \(/,
-      'the Phone group is drawn whether or not there is a row in it, or it is drawn on some third condition',
+      /\{\(reminders \|\| reminderUnknown \|\| phone\.length > 0\) && \(/,
+      'the Phone group hides an unread reminder instead of offering Retry',
     );
     // And the permission rows themselves come from the module's answer and
     // nowhere else, so a granted permission has no other way onto the screen.

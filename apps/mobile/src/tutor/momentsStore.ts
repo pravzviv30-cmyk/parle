@@ -17,7 +17,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { userKey } from '../storage/scope.ts';
+import { userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import type { RealMomentKey } from './realMoments.ts';
 
 const VERSION = 1;
@@ -44,9 +44,10 @@ const KEY = () => userKey('moments');
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -67,16 +68,13 @@ function isMoment(value: unknown): value is RealMoment {
 }
 
 async function readStored(key: string): Promise<RealMoment[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<StoredMoments> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.moments)) return [];
-    return parsed.moments.filter(isMoment);
-  } catch {
-    // A corrupt list means a moment has to be typed again. Nothing else is lost.
-    return [];
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return [];
+  const parsed = JSON.parse(raw) as Partial<StoredMoments> | null;
+  if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.moments) || !parsed.moments.every(isMoment)) {
+    throw new Error('saved moments could not be read');
   }
+  return parsed.moments;
 }
 
 /** Newest rehearsed first. */
@@ -92,7 +90,7 @@ export function loadMoments(): Promise<RealMoment[]> {
  * filling up with one thing. The cap drops the least recently rehearsed.
  */
 export function saveMoment(kind: RealMomentKey, detail: string, now: number): Promise<RealMoment> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const current = await readStored(key);
     const same = current.find((moment) => moment.kind === kind && moment.detail === detail);
     const kept: RealMoment = same
@@ -101,7 +99,7 @@ export function saveMoment(kind: RealMomentKey, detail: string, now: number): Pr
     const rest = current.filter((moment) => moment !== same).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
     const next: StoredMoments = { version: VERSION, moments: [kept, ...rest].slice(0, MAX_MOMENTS) };
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(next));
+      await setItemInUserScope(owner, key, JSON.stringify(next));
     } catch {
       // Storage full or unavailable. The moment still opens the conversation it
       // was brought for; it is only not there to rehearse again.

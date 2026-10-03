@@ -32,8 +32,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ConvoPhrase, DrillExercise, SessionSummary, StoredSession } from '@luvani/core';
 
-import { USER_KEY_SUFFIXES, setActiveUser } from './scope.ts';
-import { adopterFor, clearDirty, dirtyStamp, resetSyncRegistry, type SyncFold } from '../sync/registry.ts';
+import { USER_KEY_SUFFIXES, setActiveUser, clearActiveUserData } from './scope.ts';
+import { attachDirtyStore, dirtySettled, adopterFor, clearDirty, dirtyStamp, markDirty, resetSyncRegistry, type SyncFold } from '../sync/registry.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { sameData } from '../sync/envelope.ts';
 
@@ -61,6 +61,11 @@ import { loadGoalSteps, recordGoalStepStarted } from '../goals/store.ts';
 const GOAL_KEY = 'order a coffee in paris';
 const goalStep = (id: string, at: number) =>
   ({ kind: 'step-started', id, at, goalKey: GOAL_KEY, task: 'mission:cafe' }) as const;
+
+import { replaceConversationPacks } from '../conversationPacks/store.ts';
+import { saveReminder } from '../reminders/store.ts';
+import { saveMoment } from '../tutor/momentsStore.ts';
+import { savePracticeSession } from '../practice/sessionStore.ts';
 
 // ─────────────────────────────────────────────────────────── the storage double
 
@@ -222,7 +227,8 @@ const QUEUED_WRITES: readonly QueuedWrite[] = [
 ];
 
 /** Stores that refuse a write outright when the account changes mid-queue, rather than landing it in the old account. */
-const REFUSES_ON_SWITCH: ReadonlySet<string> = new Set(['goalSteps']);
+// 3 October 2026, F706: every queued owned write is now generation-fenced.
+const REFUSES_ON_SWITCH: ReadonlySet<string> = new Set(QUEUED_WRITES.map(entry => entry.suffix).filter(suffix => suffix !== 'tutorIntro'));
 
 /**
  * Queue a write, switch account before the queue can drain, and report where it
@@ -237,7 +243,7 @@ async function landingOf(entry: QueuedWrite): Promise<{ mine: boolean; theirs: b
   const inFlight = entry.write();
   const next = nextUid();
   setActiveUser(next);
-  await inFlight;
+  await inFlight.catch(() => {}); // A refused stale writer may reject instead of acknowledging.
 
   return {
     mine: (disk.get(mine) ?? null) !== before,
@@ -291,8 +297,8 @@ describe('the account a queued write belongs to', () => {
     const landedTheirs = JSON.parse(disk.get(`luvani.u.${other}.drills`)!) as { exercises: DrillExercise[] };
     assert.deepEqual(
       landedMine.exercises.map((e) => e.id).sort(),
-      ['gen:mine', 'gen:queued'],
-      'the batch folded into the bank of the account that generated it',
+      ['gen:mine'],
+      'a stale queued batch must not resurrect work in the old account either',
     );
     assert.deepEqual(
       landedTheirs.exercises.map((e) => e.id),
@@ -782,4 +788,43 @@ describe('the seam every synced store shares with the reconciler', () => {
       );
     }
   });
+});
+
+
+describe('account deletion drains native writes before removing owned keys', () => {
+  const extra: readonly QueuedWrite[] = [
+    { store: 'conversationPacks/store.ts', suffix: 'conversationPacks', write: () => replaceConversationPacks([]) },
+    { store: 'reminders/store.ts', suffix: 'reminder', write: () => saveReminder({ enabled: false, time: 'morning' }) },
+    { store: 'tutor/momentsStore.ts', suffix: 'moments', write: () => saveMoment('interview', 'asking about a role', 5) },
+    { store: 'practice/sessionStore.ts', suffix: 'practiceSession', write: () => savePracticeSession({
+      sittingId: 's-held', startedAt: 5, origin: 'review', packId: null, exposed: false, micSuppressed: false, targets: [],
+      state: { queue: [], answered: [], missesById: {}, startedAt: 5, finished: false },
+    }) },
+    { store: 'sync/registry.ts', suffix: 'syncState', write: async () => {
+      await attachDirtyStore(AsyncStorage, `luvani.u.${uid}.syncState`);
+      markDirty('history'); await dirtySettled();
+    } },
+  ];
+  for (const entry of [...QUEUED_WRITES, ...extra]) {
+    test(`${entry.store}: a dispatched native save cannot recreate erased account data`, { timeout: 5000 }, async () => {
+      const key = `luvani.u.${uid}.${entry.suffix}`;
+      if (entry.seed) disk.set(key, entry.seed(key));
+      let enter!: () => void, release!: () => void;
+      const entered = new Promise<void>(resolve => { enter = resolve; });
+      const held = new Promise<void>(resolve => { release = resolve; });
+      const original = AsyncStorage.setItem;
+      AsyncStorage.setItem = async (target: string, value: string) => {
+        if (target === key) { enter(); await held; }
+        await original(target, value);
+      };
+      const inFlight = entry.write();
+      await entered;
+      let erased = false;
+      const removal = clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) }).then(() => { erased = true; });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.equal(erased, false, 'reset must wait for a native write already dispatched');
+      release(); await inFlight.catch(() => {}); await removal;
+      assert.equal(disk.has(key), false, 'a delayed save recreated erased account data');
+    });
+  }
 });

@@ -144,7 +144,7 @@ describe('a sitting says how much of it was active learning — Phase 1B', () =>
 
   test('review: typing, the attempt, the flip, hearing and a grade are all learner evidence', () => {
     const body = flat('../ReviewScreen.tsx');
-    for (const handler of ['onChangeText', 'attempt = ', 'flipped: !t.flipped', 'tutorVoice.speak(hear)', 'handleGrade = ']) {
+    for (const handler of ['onChangeText', 'attempt = ', 'flipped: true', 'tutorVoice.speak(hear)', 'handleGrade = ']) {
       const at = body.indexOf(handler);
       assert.ok(at >= 0, `the review screen has no ${handler}, so this test is stale`);
       assert.match(body.slice(Math.max(0, at - 200), at + 250), /clock\.touch\(\)/, `${handler} does not touch the active clock`);

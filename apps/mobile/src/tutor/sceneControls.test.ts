@@ -161,7 +161,7 @@ describe('the simpler control', () => {
     assert.equal(SIMPLER, 'Simpler');
     assert.equal(simplerLabel('Céline'), 'Ask Céline to say it more simply');
     const screen = read('../ConvoScreen.tsx');
-    assert.ok(screen.includes('>Simpler</Text>'), 'the scene control is not labelled Simpler');
+    assert.ok(screen.includes('label="Simpler"'), 'the scene control is not labelled Simpler');
     assert.ok(!screen.includes('>Slower</Text>'), 'the scene control still promises a slower voice');
     assert.match(screen, /accessibilityLabel=\{simplerLabel\(tutorName\)\}/, 'a screen reader still hears a promise about speed');
     assert.match(screen, /live\.sendSlower\(\);/, 'the control stopped sending the tag the agent acts on');

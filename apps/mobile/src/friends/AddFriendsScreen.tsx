@@ -122,7 +122,7 @@ export function AddFriendsScreen() {
       )}
 
       <View style={{ marginTop: space(4) }}>
-        <Field value={q} onChangeText={setQ} placeholder="Search by name or username" autoCapitalize="none" />
+        <Field label="Find a friend" value={q} onChangeText={setQ} placeholder="e.g. James or james_french" autoCapitalize="none" />
       </View>
       {note !== null && (
         <Text style={[type.small, { color: note.ok ? paper.inkSoft : signal.correspondance, marginTop: space(2) }]}>

@@ -18,10 +18,11 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { setActiveUser } from '../storage/scope.ts';
+import { clearActiveUserData, setActiveUser } from '../storage/scope.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { sameData } from '../sync/envelope.ts';
-import { claimActivityInstant, loadActivity, recordActivity, recordActivityOnce, type ActivityEntry } from './activity.ts';
+import { adopterFor } from '../sync/registry.ts';
+import { claimActivityInstant, loadActiveDays, loadActivity, recordActivity, recordActivityOnce, type ActivityEntry } from './activity.ts';
 
 function installDisk(initial: Record<string, string> = {}): Map<string, string> {
   const map = new Map<string, string>(Object.entries(initial));
@@ -58,6 +59,60 @@ function merge(local: unknown, remote: unknown): unknown {
 }
 
 const entriesOf = (blob: unknown): ActivityEntry[] => (blob as { entries: ActivityEntry[] }).entries;
+
+test('a visible activity read distinguishes absence from corrupt or refused history', async () => {
+  const key = `luvani.u.${uid}.activity`;
+  assert.deepEqual(await loadActivity({ strict: true }), []);
+  disk.set(key, JSON.stringify({ version: 1, entries: [{ at: 9, kind: 'lesson', xp: 20 }] }));
+  assert.deepEqual(await loadActivity({ strict: true }), [{ at: 9, kind: 'lesson', xp: 20 }], 'the legacy envelope remains valid');
+  disk.set(key, JSON.stringify({ version: 2, entries: [{ at: 9, kind: 'drill', xp: 3, activeMs: -4 }, { at: 10, kind: 'drill', xp: 3, activeMs: 4_000 }] }));
+  await assert.rejects(loadActivity({ strict: true }), /unreadable/);
+  await assert.rejects(loadActiveDays(), /Unreadable/);
+  assert.deepEqual(await loadActivity(), [{ at: 10, kind: 'drill', xp: 3, activeMs: 4_000 }], 'legacy normalization stays available internally');
+  disk.set(key, '{broken');
+  await assert.rejects(loadActivity({ strict: true }));
+  AsyncStorage.getItem = async () => { throw new Error('device refused'); };
+  await assert.rejects(loadActivity({ strict: true }), /device refused/);
+});
+
+test('erase waits for a dispatched activity write and stale queued sittings cannot recreate it', async () => {
+  let entered!: () => void;
+  let release!: () => void;
+  const dispatched = new Promise<void>(resolve => { entered = resolve; });
+  const held = new Promise<void>(resolve => { release = resolve; });
+  AsyncStorage.setItem = async (key, value) => { entered(); await held; disk.set(key, value); };
+  AsyncStorage.multiRemove = async keys => { for (const key of keys) disk.delete(key); };
+  const first = recordActivity('convo', 5, 10);
+  await dispatched;
+  const queued = recordActivity('review', 3, 11);
+  const erasing = clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) });
+  release();
+  await Promise.all([first, queued, erasing]);
+  assert.equal(disk.has(`luvani.u.${uid}.activity`), false);
+});
+
+test('an activity write does not replace unreadable existing sittings with a fresh log', async () => {
+  const key = `luvani.u.${uid}.activity`;
+  disk.set(key, '{broken');
+  await recordActivity('review', 3, 10);
+  assert.equal(disk.get(key), '{broken');
+  assert.equal(await recordActivityOnce('review', 3, 10), 'failed');
+  assert.equal(await claimActivityInstant('review', 3, 10), null);
+  assert.equal(await adopterFor('activity')!(() => ({ version: 2, entries: [] })), 'declined');
+  assert.equal(disk.get(key), '{broken');
+  const invalidDays = JSON.stringify({ version: 2, entries: [], activeDays: ['2026-02-30'] });
+  disk.set(key, invalidDays);
+  await recordActivity('review', 3, 11);
+  assert.equal(disk.get(key), invalidDays, 'a malformed date was normalized away by a writer');
+  await assert.rejects(loadActiveDays(), /Unreadable/);
+});
+
+test('activity sync adoption declines when the device refuses its write', async () => {
+  AsyncStorage.setItem = async () => { throw new Error('device refused'); };
+  const adopt = adopterFor('activity');
+  assert.ok(adopt);
+  assert.equal(await adopt(() => ({ version: 2, entries: [{ at: 10, kind: 'review', xp: 3 }] })), 'declined');
+});
 
 describe('a sitting that records how long it took', () => {
   test('an activity entry carries its duration, an old one without it still reads, and sync keeps the copy that has one — F395', async () => {
@@ -186,4 +241,66 @@ describe('active learning time on the log (Phase 1B)', () => {
     const bad = { version: 2, entries: [{ at: 9, kind: 'drill', xp: 4, activeMs: Number.NaN }, { at: 11, kind: 'drill', xp: 4, activeMs: -1 }] };
     assert.deepEqual(entriesOf(merge(bad, { version: 2, entries: [] })), []);
   });
+});
+
+describe('a light day is a durable date, never a grade', () => {
+  test('completing light practice adds one active date without XP, and repeats and quiet days cannot reduce it', async () => {
+    const { recordActiveDay, loadActiveDays } = await import('./activity.ts');
+    const at = new Date(2026, 9, 2, 12).getTime();
+    assert.equal(await recordActiveDay(at), 'durable');
+    assert.equal(await recordActiveDay(at + 1000), 'durable');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02']);
+    assert.deepEqual(await loadActivity(), []);
+    await recordActivity('review', 5, at + 86400000);
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02', '2026-10-03']);
+    assert.equal(await recordActiveDay(NaN), 'failed');
+  });
+  test('a light-day write is bound before a switch of account and reports a refused disk write honestly', async () => {
+    const { recordActiveDay, loadActiveDays } = await import('./activity.ts');
+    const at = new Date(2026, 9, 2, 12).getTime();
+    const writing = recordActiveDay(at);
+    const other = nextUid();
+    setActiveUser(other);
+    assert.equal(await writing, 'failed');
+    assert.deepEqual(await loadActiveDays(), []);
+    setActiveUser(uid);
+    assert.deepEqual(await loadActiveDays(), []);
+    (AsyncStorage as unknown as { setItem: () => Promise<void> }).setItem = async () => { throw new Error('unavailable'); };
+    assert.equal(await recordActiveDay(at + 86400000), 'failed');
+    assert.deepEqual(await loadActiveDays(), []);
+  });
+});
+
+
+test('a pending light-day read cannot resurrect a reset account', async () => {
+  const { recordActiveDay } = await import('./activity.ts');
+  let release!: () => void;
+  let started!: () => void;
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  AsyncStorage.getItem = async key => { const raw = disk.get(key) ?? null; started(); await delayed; return raw; };
+  AsyncStorage.multiRemove = async keys => { for (const key of keys) disk.delete(key); };
+  const writing = recordActiveDay();
+  await entered;
+  await clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) });
+  release();
+  assert.equal(await writing, 'failed');
+  assert.equal(disk.has(`luvani.u.${uid}.activity`), false);
+});
+
+test('reset waits for an already issued light-day disk write before removing data', async () => {
+  const { recordActiveDay } = await import('./activity.ts');
+  let release!: () => void;
+  let started!: () => void;
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  AsyncStorage.setItem = async (key, value) => { started(); await delayed; disk.set(key, value); };
+  AsyncStorage.multiRemove = async keys => { for (const key of keys) disk.delete(key); };
+  const writing = recordActiveDay();
+  await entered;
+  const resetting = clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) });
+  release();
+  await resetting;
+  assert.equal(await writing, 'failed');
+  assert.equal(disk.has(`luvani.u.${uid}.activity`), false);
 });

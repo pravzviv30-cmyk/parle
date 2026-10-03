@@ -260,7 +260,7 @@ const SCREEN = stripComments(read('./DrillScreen.tsx'));
 const checkBlock = (() => {
   const from = SCREEN.indexOf('const checkOwnWords = useCallback(');
   assert.ok(from > 0, 'the own-words Check handler moved; this test is reading the wrong thing');
-  const to = SCREEN.indexOf('const keepPhrase = useCallback(', from);
+  const to = SCREEN.indexOf('const recordOwnWords = useCallback(', from);
   assert.ok(to > from, 'the keep-phrase handler no longer follows the Check handler; this test is stale');
   return SCREEN.slice(from, to);
 })();
@@ -297,6 +297,8 @@ function judgeClient(answer: { status: number; body: unknown }): { judge: Judge;
   );
   let calls = 0;
   const world: Record<string, unknown> = {
+    auth: { getSession: () => Promise.resolve({ id: 'learner' }) },
+    scopeGeneration: () => 0,
     authHeaders: () => Promise.resolve({}),
     TOKEN_SERVER: 'https://tokens.invalid',
     loadProfile: () => Promise.resolve(null),
@@ -324,25 +326,31 @@ const OWN_WORDS = ownWordsFrom(
 );
 
 describe('the drill asks for the learner’s own French — F581', () => {
-  test("own-words asks for the learner's own French and never a recording", () => {
+  test('feedback keeps the learner’s thought visible beside a supported alternative', () => {
+    const view = SCREEN.slice(SCREEN.indexOf('function OwnWordsView('), SCREEN.indexOf('export function DrillScreen('));
+    assert.match(view, /\{outcome\.attempt !== null && <View/, 'the learner’s checked words disappear when the feedback arrives');
+    assert.match(view, /\{outcome\.attempt\}/, 'the feedback cannot be compared with the learner’s words');
+    assert.match(view, /\{outcome\.note\}/, 'the judge’s supported reason is hidden');
+    assert.match(view, /OWN_WORDS_ANOTHER\(outcome\.another\)/, 'the natural alternative is hidden');
+    assert.match(checkBlock, /attempt,\s*\}\);/, 'the checked thought is not held for the transient comparison');
+    assert.ok(!checkBlock.includes('why: generate'), 'a reason is invented rather than read from the guarded verdict');
+  });
+  test("own-words checks the learner's own French as editable text", () => {
     // 1. The exercise has no answer key, so there is nothing to reproduce.
     assert.deepEqual([...OWN_WORDS.accepted], [], 'the own-words exercise carries a right string, which makes it a recall drill');
     assert.ok(OWN_WORDS.situation.length > 0 && OWN_WORDS.en.length > 0, 'the learner is given neither a situation nor a meaning to carry');
     assert.ok(OWN_WORDS.mustKeep.length > 0, 'nothing says what the learner’s own words have to get across');
 
-    // 2. The card takes typing, and it says out loud first. The hint is the
-    //    honest bit: the phone can read text and cannot hear, and pretending
-    //    otherwise would be a claim about pronunciation nobody has earned.
+    // A recording supplies editable text, with the same typed fallback.
     const view = SCREEN.slice(SCREEN.indexOf('function OwnWordsView('), SCREEN.indexOf('export function DrillScreen('));
     assert.ok(view.length > 0, 'the own-words view moved; this test is reading the wrong thing');
     assert.match(view, /placeholder=\{OWN_WORDS_PROMPT\}/, 'the own-words field does not ask for the learner’s own French');
     assert.match(view, /\{OWN_WORDS_HINT\}/, 'the card never tells the learner to say it out loud first');
-    assert.equal(OWN_WORDS_HINT, 'Say it out loud first if you can, then type what you said.');
+    assert.equal(OWN_WORDS_HINT, 'Say it your way, or type your French. Check the words before sending.');
     assert.equal(OWN_WORDS_PROMPT, 'Say it your way, in French');
 
-    // 3. Nothing listens. The microphone belongs to repeat-this, which has a
-    //    known reference to score against; this kind has none, so a recording
-    //    here could only ever be scored against a sentence nobody wrote down.
+    assert.match(view, /<SpokenAttempt onTake=\{onTake\} onTyping=\{typeInstead\}/);
+    // Check remains a text job: no pronunciation score is inferred.
     for (const listening of ['useAudioRecorder', 'SpeakCircle', 'AudioModule', 'scoreRecordedAttempt', 'consumeRecording', 'RecordingPresets']) {
       assert.ok(!view.includes(listening), `the own-words card reaches for ${listening}; nothing here records`);
       assert.ok(!checkBlock.includes(listening), `the own-words Check reaches for ${listening}; nothing here records`);
@@ -397,7 +405,7 @@ describe('the drill asks for the learner’s own French — F581', () => {
     // because a second call would grade the same attempt twice and the second
     // grade would land on a session the first had already moved.
     assert.equal((SCREEN.match(/judgeOwnWords\(/g) ?? []).length, 1, 'the screen asks the judge from more than one place');
-    assert.match(checkBlock, /if \(!session \|\| session\.finished \|\| judging\) return;/, 'a second Check can start while the first is still out');
+    assert.match(checkBlock, /if \(!session \|\| session\.finished \|\| judging \|\| attemptBusy\.current\) return;/, 'a second Check can start while the first is still out');
     assert.ok(
       checkBlock.indexOf('setJudging(true)') < checkBlock.indexOf('judgeOwnWords('),
       'the door is closed after the call is made, which is not closed at all',
@@ -585,7 +593,7 @@ describe('a practice sitting says where the learner is, and nothing about how it
     );
     // In the header's centre slot, which scrolls with nothing and never
     // pushes the exercise down, spoken politely as it changes.
-    assert.match(flatScreen, /<ScreenHeader leave=\{\{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' \}\} title=\{progress !== null \? \( <Text accessibilityLiveRegion="polite" style=\{\[type\.small, \{ color: paper\.inkSoft, textAlign: 'center' \}\]\}>\{progress\.label\}<\/Text> \) : undefined\} \/>/, 'the strip is not the header\'s own quiet line');
+    assert.match(flatScreen, /<ScreenHeader leave=\{\{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' \}\} title=\{session\?.queue\[0\]\?.kind \? drillTitle\(session.queue\[0\].kind\) : heading\} trailing=\{progress !== null \? \( <Text accessibilityLiveRegion="polite" style=\{\[type\.small, \{ color: paper\.inkSoft, textAlign: 'center' \}\]\}>\{progress\.label\}<\/Text> \) : undefined\} \/>/, 'the strip is not the header\'s own quiet line');
     // Words only: no digit, no fraction, no bar, no percentage anywhere in it.
     assert.doesNotMatch(flatScreen, /\{progress\.step\}|\{progress\.total\}|progress\.step \/|percent|<ProgressBar|<Bar\b/, 'the strip draws a number, a fraction or a bar');
     // And it added no control: the pill count is exactly what it was.

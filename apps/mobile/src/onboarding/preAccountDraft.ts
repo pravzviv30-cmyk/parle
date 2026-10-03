@@ -55,7 +55,7 @@ export type StartLevel = (typeof START_LEVEL_KEYS)[number];
 export const REASON_KEYS = ['trip', 'family', 'moving', 'work', 'because'] as const;
 export type Reason = (typeof REASON_KEYS)[number];
 
-export const PLAN_MINUTES = [5, 10, 15] as const;
+export const PLAN_MINUTES = [5, 10, 15, 'none'] as const;
 export type PlanMinutes = (typeof PLAN_MINUTES)[number];
 
 /** A first name, not a biography: long enough for any name, short enough for a greeting. */
@@ -163,14 +163,24 @@ function repaired(value: object): PreAccountOnboardingDraft {
   };
 }
 
+// Saves and clears share one queue. A refusal invalidates answers not yet
+// written, then removes the draft after any already-issued disk write settles.
+let draftGeneration = 0;
+let draftChain: Promise<void> = Promise.resolve();
+function enqueueDraft(work: () => Promise<void>): Promise<void> {
+  const next = draftChain.then(work, work).catch(() => {});
+  draftChain = next;
+  return next;
+}
+
 /** A best-effort local hand-off; no account is ever blocked by a full disk. */
-export async function savePreAccountDraft(draft: PreAccountOnboardingDraft): Promise<void> {
-  try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(draft));
-  } catch {
-    // The in-memory hand-off still covers this launch. Account creation must
-    // never turn a storage write into an unexplained dead end.
-  }
+export function savePreAccountDraft(draft: PreAccountOnboardingDraft): Promise<void> {
+  const owner = draftGeneration;
+  const encoded = JSON.stringify(draft);
+  return enqueueDraft(async () => {
+    if (owner !== draftGeneration) return;
+    await AsyncStorage.setItem(KEY, encoded);
+  });
 }
 
 export async function loadPreAccountDraft(): Promise<PreAccountOnboardingDraft | null> {
@@ -184,12 +194,8 @@ export async function loadPreAccountDraft(): Promise<PreAccountOnboardingDraft |
   }
 }
 
-/** Discarded on sign-in, or once a signed-in learner has a complete profile. */
-export async function clearPreAccountDraft(): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(KEY);
-  } catch {
-    // It holds only the first-run answers, and the account now owns the
-    // durable copy. A later launch will safely try to clear it again.
-  }
+/** Discarded on refusal, sign-in, or once the account owns a complete profile. */
+export function clearPreAccountDraft(): Promise<void> {
+  draftGeneration++;
+  return enqueueDraft(() => AsyncStorage.removeItem(KEY));
 }

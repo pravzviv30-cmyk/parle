@@ -28,7 +28,8 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
-import { Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar } from '../components.tsx';
+import { scopeGeneration } from '../storage/scope.ts';
+import { Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, OptionRow } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -71,33 +72,11 @@ import {
  * It grows rather than clips: `flexBasis` with `flexGrow`, so at the largest
  * reading size the two columns fall to one and every title wraps whole.
  */
-function MomentCard({
-  title,
-  gloss,
-  selected,
-  onPress,
-}: {
-  momentKey: RealMomentKey;
-  title: string;
-  gloss: string;
-  selected: boolean;
-  onPress: () => void;
+function MomentCard({ title, gloss, selected, onPress }: {
+  momentKey: RealMomentKey; title: string; gloss: string;
+  selected: boolean; onPress: () => void;
 }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${title}, ${gloss}`}
-      accessibilityState={{ selected }}
-      aria-selected={selected}
-      style={st.cell}
-    >
-      <View style={[st.moment, selected && st.chosen]}>
-        <Text style={[type.heading, { color: paper.ink }]}>{title}</Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
-      </View>
-    </Pressable>
-  );
+  return <OptionRow title={title} detail={gloss} selected={selected} onPress={onPress} />;
 }
 
 export function RealMomentScreen({
@@ -121,6 +100,9 @@ export function RealMomentScreen({
   const [planError, setPlanError] = useState(false);
   const [planAttempt, setPlanAttempt] = useState(0);
   const [moments, setMoments] = useState<readonly RealMoment[]>([]);
+  const [momentsRead, setMomentsRead] = useState<'loading' | 'ready' | 'unread'>('loading');
+  const [momentsOwner, setMomentsOwner] = useState<{ generation: number; userId: string | null } | null>(null);
+  const [momentsAttempt, setMomentsAttempt] = useState(0);
   // Null until the plan answers: the action slot draws nothing rather than a
   // plan line a paying learner would see for a frame.
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -131,11 +113,23 @@ export function RealMomentScreen({
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const generation = scopeGeneration();
+      const userId = user?.id ?? null;
+      setMomentsRead('loading');
       setAllowed(null);
       setPlanError(false);
       void loadMoments().then((stored) => {
-        if (!cancelled) setMoments(stored);
-      }).catch(() => { /* Saved suggestions are optional; rehearsal remains available. */ });
+        if (!cancelled && scopeGeneration() === generation) {
+          setMoments(stored);
+          setMomentsOwner({ generation, userId });
+          setMomentsRead('ready');
+        }
+      }).catch(() => {
+        if (!cancelled && scopeGeneration() === generation) {
+          setMomentsOwner({ generation, userId });
+          setMomentsRead('unread');
+        }
+      });
       if (user === null) { setPlanError(true); return () => { cancelled = true; }; }
       void fetchBillingStatus(user.id).then((status) => {
         if (cancelled) return;
@@ -145,9 +139,12 @@ export function RealMomentScreen({
       return () => {
         cancelled = true;
       };
-    }, [user, planAttempt]),
+    }, [user, planAttempt, momentsAttempt]),
   );
 
+  const momentsStatus = momentsOwner?.generation === scopeGeneration() && momentsOwner.userId === (user?.id ?? null)
+    ? momentsRead : 'loading';
+  const visibleMoments = momentsStatus === 'ready' ? moments : [];
   const kind = key === null ? null : kindOf(key);
 
   const open = () => {
@@ -182,7 +179,7 @@ export function RealMomentScreen({
 
   return (
     <ScrollScreen avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{REAL_MOMENT_TITLE}</Text>
+      <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{REAL_MOMENT_TITLE}</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REAL_MOMENT_SUB}</Text>
 
       {/* The plan, said before anything is filled in (Stage 3A). One notice,
@@ -233,7 +230,7 @@ export function RealMomentScreen({
             returnKeyType="done"
             multiline
           />
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters · Include who you will speak to and what you need to say.</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters. Include who you will speak to and what you need to say.</Text>
         </View>
       )}
 
@@ -267,11 +264,17 @@ export function RealMomentScreen({
         </View>
       )}
 
-      {moments.length > 0 && (
+      {momentsStatus === 'unread' && (
+        <View style={st.again}>
+          <Text style={st.planLine}>We couldn’t load your saved moments.</Text>
+          <GhostButton label="Try loading saved moments again" onPress={() => setMomentsAttempt((n) => n + 1)} />
+        </View>
+      )}
+      {visibleMoments.length > 0 && (
         <View style={st.again}>
           <Label>{REHEARSE_AGAIN_LABEL}</Label>
           <View style={st.kinds}>
-            {moments.map((moment) => {
+            {visibleMoments.map((moment) => {
               const brought = kindOf(moment.kind);
               if (brought === null) return null;
               return (
@@ -296,7 +299,7 @@ export function RealMomentScreen({
 }
 
 const st = StyleSheet.create({
-  kinds: { marginTop: space(4), flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
+  kinds: { marginTop: space(4), gap: space(2) },
   cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
   moment: {
     backgroundColor: paper.card,

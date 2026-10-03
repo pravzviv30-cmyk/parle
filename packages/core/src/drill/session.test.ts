@@ -20,6 +20,7 @@ import {
   type DrillStage,
 } from './session.ts';
 import { DRILL_FIXTURES } from './fixtures.ts';
+import { ownWordsFrom } from './ownWords.ts';
 import { newCard, AGAIN_RETRY_MS, DUE_CAP, type ReviewCard } from '../review/scheduler.ts';
 import type { DrillExercise, FillBlankExercise, ListenTypeExercise, RepeatThisExercise, TapTranslateExercise } from './types.ts';
 
@@ -69,6 +70,30 @@ function sessionOf(...queue: DrillExercise[]): DrillSessionState {
 }
 
 describe('the ramp — reps to stage', () => {
+  test('own-words is the last rung and is earned on the fifth sitting', () => {
+    const own = ownWordsFrom({ fr: 'Bonjour', en: 'Hello', key: 'phrase:a' }, 'Greet someone');
+    const bank = [own, spokenEx('spoken', 'phrase:a'), typedEx('typed', 'phrase:a'), tapEx('tap', 'phrase:a'), optionsEx('options', 'phrase:a')];
+    const expected = ['options', 'tap-tokens', 'typed', 'spoken', 'own-words'];
+    let deck = [card('phrase:a')];
+    for (let sitting = 0; sitting < 5; sitting++) {
+      const session = buildDrillSession(deck, bank, NOW, { only: ['phrase:a'] });
+      assert.equal(stageOf(session.queue[0]!), expected[sitting]);
+      const answer = 'bonjour';
+      const finished = answerCurrent(session, answer, sitting === 4 ? 'good' : undefined).state;
+      assert.equal(finished.finished, true);
+      deck = applyDrillResults(deck, finished, NOW).map(item => ({ ...item, due: NOW }));
+    }
+    assert.equal(stageForReps(deck[0]!.reps), 'own-words');
+    const session = buildDrillSession(deck, bank, NOW, { only: ['phrase:a'] });
+    const firstMiss = answerCurrent(session, 'no', 'retry').state;
+    const revealed = answerCurrent(firstMiss, 'no', 'reveal').state;
+    const held = applyDrillResults(deck, revealed, NOW);
+    assert.equal(held[0]!.reps, deck[0]!.reps, 'a miss cannot earn a rung');
+    assert.equal(stageOf(buildDrillSession(held.map(item => ({ ...item, due: NOW })), bank, NOW, { only: ['phrase:a'] }).queue[0]!), 'own-words');
+    assert.equal(stageOf(buildDrillSession(deck, bank.filter(e => e.kind !== 'own-words'), NOW, { only: ['phrase:a'] }).queue[0]!), 'spoken', 'a missing fifth rung falls back');
+    assert.equal(suppressMic(session).queue[0]?.kind, 'own-words', 'own words keeps its editable typed twin');
+    assert.deepEqual(mixQueue(session.queue, [['phrase:a']]), session.queue);
+  });
   test('one rung per successful sitting: options, tokens, typed, spoken', () => {
     assert.equal(stageForReps(0), 'options');
     assert.equal(stageForReps(1), 'tap-tokens');
@@ -77,7 +102,7 @@ describe('the ramp — reps to stage', () => {
   });
 
   test('the top rung holds however far reps climb', () => {
-    assert.equal(stageForReps(9), 'spoken');
+    assert.equal(stageForReps(9), 'own-words');
   });
 
   test('exercise formats sit on the expected rungs', () => {

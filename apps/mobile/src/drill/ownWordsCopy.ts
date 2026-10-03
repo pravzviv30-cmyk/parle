@@ -8,11 +8,8 @@
  * note is the judge's own words, already swept for French leaks and banned
  * words on the server side.
  *
- * The hint is the one that carries the pedagogy. The exercise wants speech, and
- * the phone can only read text, so it asks the learner to say it aloud first
- * and then type what they said. That is honest about the gap rather than
- * pretending a typed line is a spoken one, and it costs nothing when somebody
- * is on a train and cannot speak: "if you can".
+ * The learner checks and can edit the transcript before the existing text
+ * judge reads it. Typing reaches the same exercise without a microphone.
  */
 
 /** The caps label above the card. */
@@ -22,7 +19,7 @@ export const OWN_WORDS_LABEL = 'In your own words';
 export const OWN_WORDS_SITUATION = 'Situation';
 
 /** Under the meaning, above the field. */
-export const OWN_WORDS_HINT = 'Say it out loud first if you can, then type what you said.';
+export const OWN_WORDS_HINT = 'Say it your way, or type your French. Check the words before sending.';
 
 /** In the field, before anything is typed. */
 export const OWN_WORDS_PROMPT = 'Say it your way, in French';
@@ -46,6 +43,11 @@ export const OWN_WORDS_ANOTHER = (line: string): string => `Another way: «${lin
 /** The tutor could not read it. Shown with the line, and no grade is written. */
 export const JUDGE_UNAVAILABLE = 'Your tutor could not read that just now. Here is one way to say it.';
 
+export const TRANSCRIPTION_UNAVAILABLE = 'Your tutor could not hear that just now. You can type your French.';
+export const RECORDING_READY = 'Record your French. We turn it into words for you to check before your tutor reads them.';
+export const RECORDING_LIVE = 'Up to 20 seconds. Tap to stop, or type instead.';
+export const RECORDING_TYPE = 'Type instead';
+
 /** Every fixed line this module can say, for the copy sweeps. */
 export const OWN_WORDS_COPY: readonly string[] = [
   OWN_WORDS_LABEL,
@@ -55,4 +57,8 @@ export const OWN_WORDS_COPY: readonly string[] = [
   OWN_WORDS_FIELD_LABEL,
   OWN_WORDS_CHECK_LABEL,
   JUDGE_UNAVAILABLE,
+  TRANSCRIPTION_UNAVAILABLE,
+  RECORDING_READY,
+  RECORDING_LIVE,
+  RECORDING_TYPE,
 ];

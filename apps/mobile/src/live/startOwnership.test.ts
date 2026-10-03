@@ -1,3 +1,5 @@
+import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
+import { tokenFailureCode, TokenServerError, classifyFailure } from './failure.ts';
 /**
  * Leaving while the session is still connecting.
  *
@@ -29,7 +31,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { RoomEvent, Track } from 'livekit-client';
-import { DEFAULT_TUTOR_VOICE, TOPIC_SERVER } from '@luvani/core';
+import { ConversationTextRecorder, DEFAULT_TUTOR_VOICE, TOPIC_SERVER } from '@luvani/core';
 
 import { NO_START, nextStart, standDown, startStillOwns } from './startOwnership.ts';
 import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';
@@ -159,6 +161,7 @@ class FakeRoom {
   played = 0;
   canPlaybackAudio = true;
   readonly handlers = new Map<string, Handler>();
+  readonly remoteParticipants = new Map<string, unknown>();
   /** What happens to the learner while this room is connecting. */
   duringConnect: () => Promise<void> = async () => {};
   localParticipant = {
@@ -210,10 +213,12 @@ interface Hook {
 function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promise<unknown> } = {}): Hook {
   const rooms: FakeRoom[] = [];
   const roomRef: { current: FakeRoom | null } = { current: null };
+  const leaseRef: { current: UnjoinedLease | null } = { current: null };
   const startGenRef = { current: NO_START };
   const watchdogRef: { current: number[] } = { current: [] };
   const diagRef: { current: Record<string, unknown> } = { current: {} };
   const noticeTimer: { current: number | null } = { current: null };
+  const conversationTextRef = { current: new ConversationTextRecorder() };
   const statuses: string[] = [];
   const failures: string[] = [];
   const sent: string[] = [];
@@ -252,6 +257,10 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     // The refs the hook keeps its session in.
     startGenRef,
     roomRef,
+    leaseRef,
+    unjoinedLease,
+    disconnectLease,
+    noTypedRecovery: false,
     watchdogRef,
     diagRef,
     noticeTimer,
@@ -259,6 +268,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     heardAgentRef: { current: false },
     sessionOpenedRef: { current: false },
     safetyRef: { current: null },
+    conversationTextRef,
     typingPingAt: { current: null },
     // The session's own shape.
     userId: 'learner-1',
@@ -291,6 +301,8 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     micApiUnavailable: () => false,
     ensureLiveKitGlobals: () => {},
     authHeaders: async (): Promise<Record<string, string>> => ({}),
+    loadConsent: async () => null,
+    analyticsAllowed: (value: unknown) => typeof value === 'object' && value !== null && 'allowed' in value && value.allowed === true,
     fetch: token.fetch ?? (async (): Promise<unknown> => response),
     ensureAudioSession: async (): Promise<void> => {
       // The OS hands the session over whatever the learner does in the middle
@@ -308,6 +320,10 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
       const value = typeof next === 'function' ? (next as (s: unknown) => { phase: string })({ phase: 'live' }) : next;
       statuses.push((value as { phase: string }).phase);
     },
+    terminalFailureRef: { current: false },
+    setSettlement: () => {},
+    setCanDoEvidence: () => {},
+    evidenceSessionRef: { current: null },
     setWaitingForTutor: () => {},
     setDiagnostics: () => {},
     // The grant's id, for source-linked history. Recorded so an abandoned
@@ -353,6 +369,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     // matters here is only whether the hook reports a failure at all.
     classifyFailure: () => 'unknown',
     TokenServerError: class extends Error {},
+    tokenFailureCode,
     trace: () => {},
     leave: async (): Promise<void> => {},
     // Added to `start` by the F165 lease-release work: the abandon path now hands
@@ -566,4 +583,42 @@ describe('an abandoned room cannot speak to the screen it left', () => {
 
     assert.equal(session.journalled, 0, 'practice the learner never did was banked from a session they had left');
   });
+});
+
+
+test('a voice-only refusal in the shipped start offers typing without constructing a room', async () => {
+  const session = liveHook({ status: 503, body: { error: 'voice-unavailable', supportedModes: ['lesson-text', 'convo-text'] } });
+  await start(session, { TokenServerError, classifyFailure });
+  assert.deepEqual(session.failures, ['voice-unavailable']);
+  assert.deepEqual(session.rooms, []);
+  assert.ok(!session.statuses.includes('live'));
+});
+
+test('an account screen abandoned during the consent read sends no session or permission',async()=>{
+ const session=liveHook();let calls=0;
+ await start(session,{loadConsent:async()=>{await session.unmount();return {allowed:true};},fetch:async()=>{calls++;throw new Error('unexpected request');}});
+ assert.equal(calls,0);assert.deepEqual(session.rooms,[]);
+});
+
+test('leaving a connected room before tutor arrival releases the issued lease once', async () => {
+  const id = '11111111-1111-4111-8111-111111111111';
+  const session = liveHook({ body: { token: 'signed', livekitUrl: 'wss://livekit.example', sessionId: id } });
+  const released: string[] = [];
+  await start(session, { abandonSession: async (_user: string, sessionId: string) => { released.push(sessionId); } });
+  assert.equal(session.statuses.at(-1), 'live');
+  await session.leave(); await session.unmount();
+  assert.deepEqual(released, [id]);
+});
+
+test('a tutor joining while the old room disconnects is observed before obsolete UI guards', async () => {
+  const id = '22222222-2222-4222-8222-222222222222';
+  const session = liveHook({ body: { token: 'signed', livekitUrl: 'wss://livekit.example', sessionId: id } });
+  const released: string[] = [];
+  await start(session, { abandonSession: async (_user: string, sessionId: string) => { released.push(sessionId); } });
+  const room = session.rooms[0]!; let disconnected!: () => void;
+  room.disconnect = () => new Promise<void>(resolve => { disconnected = resolve; });
+  const exit = session.leave();
+  room.handlers.get(RoomEvent.ParticipantConnected)!({ identity: 'tutor' });
+  disconnected(); await exit;
+  assert.deepEqual(released, []);
 });

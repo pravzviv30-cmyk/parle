@@ -1,3 +1,5 @@
+import { scopeGeneration, writeInUserScope } from '../storage/scope.ts';
+
 /**
  * The seam between the twelve device stores and the one background reconciler.
  *
@@ -271,10 +273,12 @@ function persist(): void {
   const store = storage;
   const key = stateKey;
   if (store === null || key === null) return;
+  const owner = scopeGeneration();
   const snapshot: Persisted = { version: PERSISTED_VERSION, dirty: [...dirty.keys()] };
   const write = async (): Promise<void> => {
     try {
-      await store.setItem(key, JSON.stringify(snapshot));
+      if (storage !== store || stateKey !== key) return;
+      await writeInUserScope(owner, () => store.setItem(key, JSON.stringify(snapshot)));
     } catch {
       // Storage full or unavailable. The launch reconcile is the backstop.
     }

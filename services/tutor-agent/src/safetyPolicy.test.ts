@@ -878,8 +878,13 @@ describe('the privacy and safety policy is held against the code', () => {
       assert.match(closer, /void this\.finish\(\)/, `${agent}: the stop path now waits on finish(), so the doc's F208 paragraph is out of date`);
       assert.doesNotMatch(closer, /await this\.finish\(\)/, `${agent}: the stop path now awaits finish(), so the doc's F208 paragraph is out of date`);
     }
-    assert.match(stop, /extract, curate and drill generation still run/, 'the stop list claims a cleanliness the worker does not have');
-    assert.ok(stop.includes('F208'), 'the stop list does not name the ledger entry that owns the work a stop does not stop');
+    assert.match(stop, /skips memory extraction, curation and drill generation/);
+    assert.match(stop, /No practice pack is saved for a safety stop/);
+    const completion = methodBody(path.join(import.meta.dirname, 'convo.ts'), 'private async complete');
+    const safetyReturn = completion.indexOf('if (this.safetyStopped)');
+    assert.ok(safetyReturn >= 0 && safetyReturn < completion.indexOf('this.extractMemory('));
+    assert.match(completion.slice(safetyReturn, completion.indexOf('reportConversationPack(')), /return;/,
+      'safety must return before any pack or enrichment');
   });
 
   test('no shipped copy anywhere tells a learner that Luvani is an emergency service', () => {

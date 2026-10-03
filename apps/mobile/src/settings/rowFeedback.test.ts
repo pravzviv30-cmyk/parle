@@ -21,29 +21,31 @@ describe('profile and settings controls answer a tap', () => {
   test('action rows use a porcelain surface and haptic receipt without opacity-only feedback', () => {
     const settings = stripComments(read('./SettingsRow.tsx'));
     const tutor = stripComments(read('../profile/TutorMemoryCard.tsx'));
-
-    for (const [name, source] of [['a settings row', settings], ['a tutor row', tutor]] as const) {
-      assert.match(source, /tapSettled\(\);\s*onPress\(\);/, `${name} gives no device-level receipt when its action lands`);
-      assert.match(source, /pressed[^\n]*backgroundColor: paper\.groundDeep/, `${name} has no visible pressed surface`);
-      assert.doesNotMatch(source, /pressed[^\n]*opacity/, `${name} fades its words to acknowledge a tap`);
-    }
+    assert.match(settings, /<Press\s+haptic="selection"\s+onPress=\{onPress\}/);
+    assert.match(settings, /minHeight: 60/);
+    assert.doesNotMatch(settings, /pressed[^\n]*opacity/);
+    assert.match(tutor, /tapSettled\(\);\s*onPress\(\);/);
+    assert.match(tutor, /pressed[^\n]*backgroundColor: paper.groundDeep/);
   });
 
   test('in-place choices give tactile receipt and switches explain their consequence', () => {
     const choice = stripComments(read('./ChoiceRow.tsx'));
     const toggle = stripComments(read('./SwitchRow.tsx'));
-
-    assert.match(choice, /onChange=\{\(key\) => \{\s*tapSettled\(\);\s*onChange\(key\);/, 'a segmented choice changes silently');
-    assert.match(toggle, /onValueChange=\{\(next\) => \{\s*tapSettled\(\);\s*onChange\(next\);/, 'a switch changes silently');
-    assert.match(toggle, /accessibilityHint=\{sub\}/, 'a switch does not explain what changing it does');
+    assert.match(choice, /<TabBar/);
+    assert.match(choice, /onChange=\{onChange\}/);
+    assert.doesNotMatch(choice, /tapSettled\(/, 'shared TabBar owns the single selection tick');
+    assert.match(toggle, /tapSettled\(\);\s*onChange\(next\);/);
+    assert.match(toggle, /accessibilityHint=\{sub\}/);
+    assert.match(toggle, /trackColor=\{\{ true: accent.brand, false: paper.field \}\}/);
   });
 
   test('every full-screen profile and settings sheet exposes its title as a heading', () => {
     const profile = stripComments(read('../tabs/ProfileTab.tsx'));
     const settings = stripComments(read('./SettingsScreen.tsx'));
-
-    assert.match(profile, /accessibilityRole="header"[^>]*>\{TUTOR_VOICE_TITLE\}<\/Text>/, 'the tutor voice sheet has no heading');
-    assert.match(profile, /accessibilityRole="header"[^>]*>Your name<\/Text>/, 'the name sheet has no heading');
-    assert.match(settings, /accessibilityRole="header"[^>]*>Delete your account\?<\/Text>/, 'the delete sheet has no heading');
+    const shared = stripComments(read('../components.tsx'));
+    assert.match(profile, /<BottomSheet visible=\{sheet === 'tutorVoice'\} title=\{TUTOR_VOICE_TITLE\}/);
+    assert.match(profile, /<BottomSheet visible=\{sheet === 'name'\} title="Your name"/);
+    assert.match(settings, /accessibilityRole="header"[^>]*>Delete your account\?<\/Text>/);
+    assert.match(shared, /accessibilityRole="header" accessibilityLiveRegion="polite"[^>]*>\{title\}<\/Text>/);
   });
 });

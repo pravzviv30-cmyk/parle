@@ -1,5 +1,5 @@
 /**
- * "Your sound to tune": the one sound Practice leads with (notebook Phase 3,
+ * The sound Practice offers after its short action (notebook Phase 3,
  * 2026-09-27).
  *
  * Sound is the signature of Practice, so the page opens on one sound, named by
@@ -31,13 +31,17 @@ import { tutorAudioFor, type TutorAudioPack } from '../daily/tutorAudio.ts';
 
 export const SOUND_LEAD = {
   /** The block's one caps label. */
-  label: 'Your sound to tune',
+  starterLabel: 'A sound to try',
+  measuredLabel: 'Your focus from the check',
   /** Day one's one primary action: the guided lesson that opens on "Bonjour". */
   lesson: 'Start the bonjour sound lesson',
   /** Said under it, in the shared words for a lesson's cost. */
   lessonCost: LESSON_MINUTES,
   /** Where an unmeasured sound comes from, said plainly. */
   fromLesson: 'The first sound in the café lesson.',
+  unassessed: 'This is an example to practise, not a check of your pronunciation.',
+  measuredScope: 'This focus came from one checked line, not all your pronunciation.',
+  noAudio: 'No recording in your chosen tutor’s voice here. You can still read and say the word.',
   /** The quiet way to measure a sound a check already named. */
   check: 'Check this sound',
   /** The hear control, and what it says while playing. */

@@ -367,7 +367,12 @@ describe('nothing ships that nothing renders — J14', () => {
       .flatMap((m) => m[1]!.split(','))
       .map((n) => n.trim())
       .filter(Boolean);
-    assert.ok(exported.length > 0, 'the illustration barrel exports nothing; this test is stale');
+    // Revamp B retired the last pen scene with the unreachable leaderboard.
+    // An empty barrel is valid only when no runtime caller still imports it.
+    if (exported.length === 0) {
+      const callers = SOURCES.filter(({ body }) => /import(?!\s+type\b)[^;]*from ['"][^'"]*illustrations(?:\.tsx|\/index\.ts)['"]/.test(body));
+      assert.deepEqual(callers.map(({ path }) => rel(path)), [], 'a caller still expects a retired runtime illustration');
+    }
     // The barrel and the one-line shim in front of it re-export every name they
     // carry, so a file that only passes a scene along is not a file that draws
     // one. Counting them made this test unfalsifiable: every export reached
@@ -414,11 +419,17 @@ describe('nothing ships that nothing renders — J14', () => {
     // the map is only a way in if somebody reads it.
     const flat = (path: string) => rel(path).startsWith('art/flat/');
     const names = [...named('art/flat/index.ts').matchAll(/^ {2}'([a-z][a-z0-9-]*)': \{ draw: /gm)].map((m) => m[1]!);
-    assert.equal(names.length, 23, 'the flat registry no longer names the 23 Round 1 drawings, so this test is reading the wrong thing');
+    assert.equal(names.length, 29, 'the flat registry no longer names the 23 Round 1 drawings, so this test is reading the wrong thing');
 
     const sceneMapRead = SOURCES.some(({ path, body }) => !flat(path) && /\bsceneIllustration\(/.test(body));
     const byScene = new Set([...named('art/flat/scenes.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map((m) => m[1]!));
+    const postcardRead = SOURCES.some(({path,body}) => !flat(path) && /\bpostcardIllustration\(/.test(body));
+    const byPostcard = new Set([...named('recap/postcardArt.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map(m=>m[1]!));
+    const mouthRead = SOURCES.some(({path,body}) => !flat(path) && /<MouthGuide\b/.test(body));
+    const byMouth = new Set([...named('practice/mouthGuide.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map(m=>m[1]!));
     const reached = (name: string) =>
+      (mouthRead && byMouth.has(name)) ||
+      (postcardRead && byPostcard.has(name)) ||
       (sceneMapRead && byScene.has(name)) ||
       SOURCES.some(
         ({ path, body }) =>
@@ -430,10 +441,7 @@ describe('nothing ships that nothing renders — J14', () => {
     // in the same change that draws it, and a name drawn but left on the list
     // fails as surely as a name dropped without being drawn, so the list only
     // ever shrinks. It ends empty.
-    const UNDRAWN_YET = [
-      'state-notebook', 'state-waiting', 'state-offline', 'state-headphones',
-      'celebrate-confetti', 'celebrate-wrapped', 'celebrate-first-line',
-      'postcard-cafe-counter', 'postcard-cafe-terrace', 'postcard-hotel', 'postcard-market', 'postcard-directions', 'postcard-day', 'postcard-apero',
+    const UNDRAWN_YET: string[] = [
     ];
     assert.deepEqual(
       names.filter((name) => !reached(name)).sort(),
@@ -840,7 +848,8 @@ describe('a tap that starts with a network probe — F154', () => {
     for (const [name, file, opens] of PROBING) {
       const body = bodyOf(file, opens);
       assert.match(body, /recheck\(\)/, `${name} no longer probes, so this test is stale`);
-      assert.match(body, /if \(checking\) return;/, `${name} lets a second tap queue a second navigation`);
+      const guard = file === 'tabs/PracticeTab.tsx' ? /if \(checking \|\| !ownsReadNow\(\)\) return;/ : /if \(checking\) return;/;
+      assert.match(body, guard, `${name} lets a second tap or a stale account queue navigation`);
       assert.match(body, /setChecking\(false\)/, `${name} never lets go, so one probe disables the tab for good`);
     }
 
@@ -852,9 +861,11 @@ describe('a tap that starts with a network probe — F154', () => {
       assert.match(source, /\{TUTOR_OFFLINE\.checking\}/, `nothing on ${file} says a probe is running`);
       assert.match(
         source,
-        // The paren is optional: Practice wraps its receipt in the frame's
-        // header slot and Tutor draws it inline, and both are the same claim.
-        /\{checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/,
+        // Practice also gates the receipt by the owner of the read, so the
+        // previous account's pending probe cannot speak on a new account.
+        file === 'tabs/PracticeTab.tsx'
+          ? /\{ownerMatches && checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/
+          : /\{checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/,
         `${file}'s acknowledgement is either not a live region or not tied to the flag, so it is invisible to a screen reader or never goes away`,
       );
     }
@@ -898,6 +909,7 @@ describe('a tap that starts with a network probe — F154', () => {
     // the second and a half it exists to cover.
     for (const [name, file, opens] of PROBING) {
       const body = bodyOf(file, opens);
+      const guard = file === 'tabs/PracticeTab.tsx' ? 'if (checking || !ownsReadNow()) return;' : 'if (checking) return;';
       assert.ok(
         body.includes('setChecking(true)'),
         `${name} never raises the checking flag, so the tap it starts says nothing for as long as the probe runs`,
@@ -905,7 +917,7 @@ describe('a tap that starts with a network probe — F154', () => {
       assert.ok(body.includes('recheck()'), `${name} no longer probes, so this test is stale`);
       writtenBefore(
         body,
-        'if (checking) return;',
+        guard,
         'setChecking(true)',
         `${name} raises the flag before it has checked whether one is already up`,
       );
@@ -1017,12 +1029,12 @@ const ADOPTERS = [
  */
 const SAFE_AREA_ALLOW = [
   'layout.tsx',
+  'components.tsx', // Sheet's native Modal is outside its caller's frame and owns its inset.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
   'auth/SetNewPasswordScreen.tsx',
   'friends/AddFriendsScreen.tsx',
-  'tabs/LeaderboardTab.tsx',
 ];
 
 /**
@@ -1345,7 +1357,7 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     const src = stripComments(readFileSync(join(SRC, 'soundcheck', 'SoundCheckScreen.tsx'), 'utf8'));
     assert.match(
       src,
-      /header=\{!noCheck && phase !== 'result' \?/,
+      /header=\{!noCheck && shownPhase !== 'result' \?/,
       'the sound-check chevron is not gated off the terminal cards, so a terminal card shows two doors',
     );
   });
@@ -1485,7 +1497,7 @@ describe('faint ink is a mark, not a word — F330, F338', () => {
   // kept as a comfort, and a Send that goes back to faint ink fails here.
   const OFF_CONTROL = new Set([
     '<Text style={[type.bodyStrong, { color: disabled ? paper.inkFaint : color }]}>{label}</Text>',
-    'const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.good;',
+    'const iconColor = muted ? paper.inkFaint : paper.ink;',
     'color: active ? (rung === 4 ? paper.onInk : paper.ink) : paper.inkFaint,',
     '<Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>',
     '<Text style={[type.bodyStrong, { color: locked ? paper.inkFaint : paper.ink }]}>{node.title}</Text>',
@@ -1535,11 +1547,16 @@ describe('the five tabs open the same way — F336', () => {
   test('every tab opens with the one tab header and draws no headline of its own', () => {
     for (const name of TABS) {
       const body = named(name);
+      const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : 1;
       assert.equal(
         (body.match(/<TabHeader\b/g) ?? []).length,
-        1,
-        `${name} does not open with exactly one TabHeader`,
+        expectedHeaders,
+        `${name} lacks the header in a reachable render branch`,
       );
+      if (name === 'tabs/TutorTab.tsx') {
+        assert.match(body, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/, 'Speak must have a separate loading and unread branch');
+        assert.match(body, /<TabHeader title=\{tutorHeading\(tutorName\)\}/g, 'Speak must name its tutor in both render branches');
+      }
       assert.doesNotMatch(
         body,
         /\.\.\.type\.display/,
@@ -1748,7 +1765,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
     ],
-    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/PhraseBank.tsx', 'myfrench/SoundsMap.tsx'],
+    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/LevelCard.tsx'],
     'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx'],
   };
 
@@ -1764,9 +1781,12 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     );
     assert.deepEqual(
       homePills,
-      ['tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
-      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the pills are the recall lead's, the plans lead's and Start speaking, on the mission hero (F544, F602)`,
+      ['tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
+      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; read recovery, local, plans, recall and scene each need one working action`,
     );
+    const home = named('tabs/HomeTab.tsx').replace(/\s+/g, ' ');
+    assert.match(home, /!unowned && readFailed \? \( <Card[\s\S]*?\) : hero === null \|\| unowned \? \( <Skeleton/, 'unread work must not reach the loaded lead or cross accounts');
+    assert.match(home, /lead === 'local' \? \( <ColourCard[\s\S]*?\) : lead === 'plans' \? \( <ColourCard[\s\S]*?\) : lead === 'review' \? \( <ColourCard/, 'local, plans and review must be alternate leads');
 
     /**
      * Revamp A's counts, and every change to them is a decision rather than a
@@ -1783,11 +1803,11 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const pills: Record<string, number> = {
       // Three exclusive leads (review, plans and Start), one pill each;
       // nextAction.test.ts proves the priority rule.
-      'tabs/HomeTab.tsx': 3,
+      'tabs/HomeTab.tsx': 5,
       'tabs/TutorTab.tsx': 1,
-      'tabs/MyFrenchTab.tsx': 0,
+      'tabs/MyFrenchTab.tsx': 2,
       'tabs/PracticeTab.tsx': 1,
-      'tabs/ProfileTab.tsx': 0,
+      'tabs/ProfileTab.tsx': 2,
     };
     for (const [tab, expected] of Object.entries(pills)) {
       const n = SURFACES[tab]!.reduce((total, name) => total + (named(name).match(/<PillButton\b/g) ?? []).length, 0);
@@ -1821,13 +1841,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // phrases are due. Everything else on Today is a card or a sentence.
       'tabs/HomeTab.tsx': 1,
       // The level path's scenes, the other ways in, and the memory row.
-      'tabs/TutorTab.tsx': 3,
+      'tabs/TutorTab.tsx': 2,
       // The review door on the tab, then replay a moment and make this phrase
       // yours in their own card files.
-      'tabs/PracticeTab.tsx': 3,
+      'tabs/PracticeTab.tsx': 4,
       // Conversations and their "see all", the phrase shelf, the collection,
       // goals, the daily collection and the door to every situation.
-      'tabs/MyFrenchTab.tsx': 9,
+      'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };
@@ -1875,7 +1895,7 @@ describe('the device runbook carries the Pass 2 content checks — F350', () => 
 });
 
 describe('one Monogram, borrowed everywhere — F344', () => {
-  test('the app exports one Monogram, and the leaderboard borrows it', () => {
+  test('the app exports one Monogram, and Profile borrows it', () => {
     // Two Monograms is two initials that drift: friends/ui.tsx drew a sans disc
     // with radius.pill, components.tsx draws the serif decorative one. The tab
     // that shows the learner their own row used the friends copy. One export now.
@@ -1885,9 +1905,9 @@ describe('one Monogram, borrowed everywhere — F344', () => {
       'friends/ui.tsx still exports its own Monogram',
     );
     assert.match(
-      named('tabs/LeaderboardTab.tsx'),
+      named('profile/ProfileButton.tsx'),
       /import \{[^}]*\bMonogram\b[^}]*\} from '\.\.\/components\.tsx'/,
-      'the leaderboard does not borrow the shared Monogram',
+      'Profile does not borrow the shared Monogram',
     );
   });
 });
@@ -2144,7 +2164,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
     const home = named('tabs/HomeTab.tsx');
     const tutor = named('tabs/TutorTab.tsx');
-    assert.match(design, /Only the voice orb and the highlighter animate/);
+    assert.match(design, /Only the voice orb, shared press and once-only recap celebration animate/);
     assert.match(design, /daily library and Today\s+show no pictures/);
     // Revamp B (F599): the places are flat drawings now, and the doc must not
     // go on saying the retired watercolours ship.
@@ -2229,10 +2249,11 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // card is.
     assert.match(
       home,
-      /const lead = hero === null \? null : homeActionFor\(hero, due\.length, billing\);/,
+      /const lead = hero === null \|\| unowned \? null : homeActionFor\(hero, due\.length, billing, live\);/,
       'the hero is drawn behind some other condition than having a situation to offer',
     );
-    assert.match(home, /\{hero === null \? \(/, 'Home no longer waits on storage before it draws a lead');
+    assert.match(home, /\{!unowned && readFailed \? \(/, 'Home no longer separates failed reads from a fresh account');
+    assert.match(home, /\) : hero === null \|\| unowned \? \(/, 'Home no longer waits on storage before it draws a lead');
     assert.match(home.replace(/\s+/g, ' '), /\) : \( <MissionHero hero=\{hero\} \/> \)\}/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden

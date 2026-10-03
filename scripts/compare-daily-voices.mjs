@@ -8,7 +8,8 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { DAILY_WORDS, DAILY_PHRASES } from '../packages/core/src/daily/index.ts';
-import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, LANGUAGE_CODE } from '../services/tutor-agent/src/voice.ts';
+import { RECORDING_LANGUAGE } from './daily-tutor-plan.mjs';
+import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
 
 const CAP = 500;
 const destination = resolve('artifacts/voice-comparison-2026-09-19');
@@ -54,12 +55,12 @@ for (const [voice, id] of (resume ? [] : Object.entries(ELEVEN_VOICES))) {
   }
 }
 const saved = resume ? JSON.parse(readFileSync(manifestPath, 'utf8')) : null;
-if (saved && (saved.cap !== CAP || JSON.stringify(saved.settings) !== JSON.stringify(VOICE_SETTINGS) || saved.language !== LANGUAGE_CODE)) throw new Error('Experiment settings changed.');
+if (saved && (saved.cap !== CAP || JSON.stringify(saved.settings) !== JSON.stringify(VOICE_SETTINGS) || saved.language !== RECORDING_LANGUAGE)) throw new Error('Experiment settings changed.');
 const current = await subscription();
 const before = saved?.before ?? current;
 if (current.limit - current.used < CAP) throw new Error('Insufficient credit headroom.');
 mkdirSync(destination, { recursive: true });
-const manifest = saved ?? { createdAt: new Date().toISOString(), cap: CAP, estimatedCredits, before, settings: VOICE_SETTINGS, language: LANGUAGE_CODE, format: 'pcm_22050', clips: [], status: 'running' };
+const manifest = saved ?? { createdAt: new Date().toISOString(), cap: CAP, estimatedCredits, before, settings: VOICE_SETTINGS, language: RECORDING_LANGUAGE, format: 'pcm_22050', clips: [], status: 'running' };
 const checkpoint = () => writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 checkpoint();
 let accounted = manifest.clips.reduce((n, clip) => n + (Number.isFinite(clip.responseCredits) ? clip.responseCredits : clip.reservedCredits), 0);
@@ -82,7 +83,7 @@ try {
     checkpoint(); // Record before the billed request, including timeout/crash cases.
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${entry.voiceId}?output_format=pcm_22050&optimize_streaming_latency=3`, {
       method: 'POST', headers, signal: AbortSignal.timeout(45000),
-      body: JSON.stringify({ text: entry.text.fr, model_id: entry.model.id, language_code: LANGUAGE_CODE, voice_settings: VOICE_SETTINGS }),
+      body: JSON.stringify({ text: entry.text.fr, model_id: entry.model.id, language_code: RECORDING_LANGUAGE, voice_settings: VOICE_SETTINGS }),
     });
     if (!response.ok) throw new Error(`Synthesis HTTP ${response.status}; no retry.`);
     const bytes = Buffer.from(await response.arrayBuffer());

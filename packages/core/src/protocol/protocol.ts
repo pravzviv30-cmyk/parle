@@ -22,6 +22,10 @@
 import type { Rung } from '../ladder/ladder.ts';
 import type { SessionPrompt, SessionSummary, TurnFeedback } from '../session/session.ts';
 import type { DrillExercise } from '../drill/types.ts';
+import { readMissionTasks, type MissionTasks } from '../missions/tasks.ts';
+import { readCorrectionReason, type CorrectionReasonEvidence } from '../correctionReason.ts';
+import { readCanDoEvidence, type CanDoEvidence } from '../canDoEvidence.ts';
+import { readSettlementResult, type SettlementResult } from '../sessionSettlement.ts';
 
 /** Data-channel topics. Kept distinct so each side can subscribe narrowly. */
 export const TOPIC_SERVER = 'luvani.server';
@@ -74,6 +78,8 @@ export interface ConvoPhrase {
 
 /** What the app renders after each free-conversation turn. */
 export interface ConvoView {
+  /** Stable per scene reply; support-only updates and ready replays retain it. */
+  textTurnId?: string;
   sceneReply: ConvoSpeakerLine;
   /** The one spoken coaching line this turn, or null when coaching deferred. */
   coachLine: string | null;
@@ -117,6 +123,8 @@ export interface ConvoView {
    * missions ignores the key and renders the turn exactly as it does today.
    */
   missionDone: boolean;
+  /** Absent only for older workers/generated scenes; null blocks unreadable evidence. */
+  missionTasks?: MissionTasks | null;
 }
 
 /** The free-conversation end card. Numbers are allowed here and only here. */
@@ -208,6 +216,7 @@ export const ERROR_KINDS: readonly ErrorKind[] = [
 
 /** Agent → app. */
 export type ServerMessage =
+  | { t: 'settlement'; result: SettlementResult }
   /** Render this turn. Sent on every state change, including rescues. */
   | { t: 'prompt'; prompt: SessionPrompt }
   /** One short line after a turn. Never contains a score. */
@@ -234,6 +243,9 @@ export type ServerMessage =
    * agent owns the shape, the app is just the storage.
    */
   | { t: 'recap'; recap: RecapPayload; profile: unknown }
+  /** Optional exact accepted source; never grants an achievement. */
+  | { t: 'can-do-evidence'; evidence: CanDoEvidence }
+  | { t: 'correction-reason'; evidence: CorrectionReasonEvidence }
   /**
    * What this session leaves behind in Practice: the topics actually talked
    * about, each carrying the few phrases worth keeping. Curated agent-side
@@ -297,7 +309,7 @@ export type ServerMessage =
    * for unread input to inherit. Losing the label costs a nicer rendering;
    * losing the frame costs the learner the only sign that anything is wrong.
    */
-  | { t: 'error'; message: string; kind?: ErrorKind; recoverable?: boolean };
+  | { t: 'error'; message: string; kind?: ErrorKind; recoverable?: boolean; terminal?: boolean };
 
 /** App → agent. */
 export type ClientMessage =
@@ -428,7 +440,7 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
   return message === null ? null : asTheAgentReadsIt(message);
 }
 
-const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error']);
+const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error', 'settlement', 'can-do-evidence', 'correction-reason']);
 const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'mode', 'leave']);
 const SAFETY_CATEGORY_TAGS: ReadonlySet<string> = new Set(SAFETY_CATEGORIES);
 const ERROR_KIND_TAGS: ReadonlySet<string> = new Set(ERROR_KINDS);
@@ -456,12 +468,27 @@ const ERROR_KIND_TAGS: ReadonlySet<string> = new Set(ERROR_KINDS);
  * argument: there is no honest default, so there is nothing to repair towards.
  */
 function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
+  if (message.t === 'correction-reason') {
+    const evidence = readCorrectionReason(message.evidence);
+    return evidence ? {t:'correction-reason',evidence} : null;
+  }
+  if (message.t === 'can-do-evidence') {
+    const evidence = readCanDoEvidence(message.evidence);
+    return evidence ? { t: 'can-do-evidence', evidence } : null;
+  }
+  if (message.t === 'settlement') {
+    const result = readSettlementResult(message.result);
+    return result ? { t: 'settlement', result } : null;
+  }
   // An agent that predates missions sends a view with no `missionDone` key.
   // `ConvoView` calls the field required, and this is what makes that true:
   // anything that is not literally `true` reads as `false`. A session with no
   // mission has no win, so nothing is ever celebrated that was not earned.
   if (message.t === 'convo' && typeof message.view === 'object' && message.view !== null) {
     if (message.view.missionDone !== true) message.view.missionDone = false;
+    if (Object.hasOwn(message.view, 'missionTasks')) {
+      message.view.missionTasks = readMissionTasks(message.view.missionTasks);
+    }
   }
 
   // A safety decision arrives with authority: it ends a session and puts a
@@ -477,13 +504,14 @@ function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
   // `kind` is typed as a value from a closed set and the app is entitled to
   // switch on it exhaustively.
   if (message.t === 'error') {
-    const frame = message as { kind?: unknown; recoverable?: unknown };
+    const frame = message as { kind?: unknown; recoverable?: unknown; terminal?: unknown };
     if (frame.kind !== undefined && !(typeof frame.kind === 'string' && ERROR_KIND_TAGS.has(frame.kind))) {
       delete frame.kind;
     }
     if (frame.recoverable !== undefined && typeof frame.recoverable !== 'boolean') {
       delete frame.recoverable;
     }
+    if (frame.terminal !== true || frame.recoverable !== false || frame.kind === undefined) delete frame.terminal;
   }
 
   return message;

@@ -1,3 +1,7 @@
+import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
+import { attachCorrectionReason } from './correctionReason.ts';
+import { analyticsAllowed } from '../analytics/consent.ts';
+import { loadConsent } from '../analytics/consentStore.ts';
 /**
  * The live session hook — the app side of the wire protocol.
  *
@@ -16,6 +20,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import {
   decodeServerMessage,
+  ConversationTextRecorder,
+  type ConversationTextLine,
   DEFAULT_TUTOR_VOICE,
   encodeMessage,
   PLANS,
@@ -34,6 +40,8 @@ import {
   type StartRefusal,
   type TurnFeedback,
   type TutorVoiceKey,
+  type SettlementResult,
+  type CanDoEvidence,
 } from '@luvani/core';
 import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
 import { authHeaders } from '../auth/adapter.ts';
@@ -45,6 +53,7 @@ import {
   failureCopy,
   micApiUnavailable,
   TokenServerError,
+  tokenFailureCode,
   type LiveFailure,
 } from './failure.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
@@ -56,6 +65,7 @@ import { micOpensAtConnect, modeCarriesAudio } from '../tutor/choosingView.ts';
 import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
 import { shouldPingTyping } from '../tutor/typingPing.ts';
 import type { ReplayLine } from '../tutor/sceneControls.ts';
+import { onUserScopeReset } from '../storage/scope.ts';
 
 
 /**
@@ -117,7 +127,7 @@ const CONNECT_TIMEOUTS = { peerConnectionTimeout: 12000, websocketTimeout: 8000 
  */
 async function abandonSession(userId: string, sessionId: string): Promise<void> {
   try {
-    const headers = await authHeaders();
+    const [headers, consent] = await Promise.all([authHeaders(), loadConsent().catch(() => null)]);
     const res = await fetch(`${TOKEN_SERVER}/session/abandon`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...headers },
@@ -323,6 +333,8 @@ export type LiveStatus =
   | { phase: 'ended' };
 
 export interface LiveSession {
+  /** Entire received thread, memory only; null for overflow, incomplete rooms or safety stops. */
+  conversationText: readonly ConversationTextLine[] | null;
   status: LiveStatus;
   prompt: SessionPrompt | null;
   feedback: TurnFeedback | null;
@@ -357,6 +369,9 @@ export interface LiveSession {
    * is still live — this renders IN the session, never as a terminal screen.
    */
   notice: string | null;
+  /** Persistent server-confirmed settlement; never inferred from leaving. */
+  settlement: SettlementResult | null;
+  canDoEvidence: CanDoEvidence | null;
   /**
    * The tutor's safety decision for this session, or null. Never a notice.
    *
@@ -434,7 +449,7 @@ export interface LiveSession {
    * agrees to be heard, and on the web the gesture is also what the browser
    * wants before it will hand over a device.
    */
-  openMic: () => void;
+  openMic: () => Promise<boolean>;
   /**
    * Go quiet without leaving the room.
    *
@@ -516,6 +531,7 @@ export function useLiveSession(
   startRung?: Rung,
   opts?: {
     mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
+    noTypedRecovery?: boolean;
     snapshot?: unknown;
     /**
      * What the learner asked to talk about, when a topic card started this.
@@ -561,8 +577,21 @@ export function useLiveSession(
   const [practice, setPractice] = useState<LiveSession['practice']>(null);
   const [drills, setDrills] = useState<DrillExercise[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [canDoEvidence, setCanDoEvidence] = useState<CanDoEvidence | null>(null);
+  const evidenceSessionRef = useRef<string | null>(null);
+  const [settlement, setSettlement] = useState<SettlementResult | null>(null);
+  const terminalFailureRef = useRef(false);
   const [safety, setSafety] = useState<SafetyDecision | null>(null);
   const [turns, setTurns] = useState<TurnLine[]>([]);
+  const conversationTextRef = useRef(new ConversationTextRecorder());
+  useEffect(() => onUserScopeReset(() => {
+    conversationTextRef.current.clear();
+    setTurns([]);
+    terminalFailureRef.current = false;
+    setSettlement(null);
+    setCanDoEvidence(null);
+    evidenceSessionRef.current = null;
+  }), []);
   const [thinking, setThinking] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [micOpen, setMicOpen] = useState(false);
@@ -575,12 +604,14 @@ export function useLiveSession(
   // Destructured so `start` does not churn on every render just because the
   // caller wrote the options object inline.
   const mode = opts?.mode;
+  const noTypedRecovery = opts?.noTypedRecovery ?? false;
   const snapshot = opts?.snapshot;
   const seedTopic = opts?.seedTopic;
   const continuationPackId = opts?.continuationPackId;
   const missionId = opts?.missionId;
   const tutorVoice = opts?.tutorVoice;
   const roomRef = useRef<Room | null>(null);
+  const leaseRef = useRef<UnjoinedLease | null>(null);
   const diagRef = useRef<LiveDiagnostics>(emptyDiagnostics());
   // Which attempt at starting owns the session. Bumped by leaving, by unmount
   // and by every new start, so an attempt still waiting on a token can find out
@@ -661,10 +692,14 @@ export function useLiveSession(
     // tutor teaching an empty call at full price. This is the line that tells
     // it the session is no longer its to open.
     startGenRef.current = nextStart(startGenRef.current);
+    conversationTextRef.current.clear();
     clearWatchdog();
+    const room = roomRef.current;
+    const lease = leaseRef.current;
     send({ t: 'leave' });
-    await roomRef.current?.disconnect();
-    roomRef.current = null;
+    await disconnectLease(room, lease);
+    if (roomRef.current === room) roomRef.current = null;
+    if (leaseRef.current === lease) leaseRef.current = null;
     removeAudioEls();
     await releaseAudioSession();
   }, [send, removeAudioEls, clearWatchdog]);
@@ -708,13 +743,10 @@ export function useLiveSession(
     // under a live tutor is how one account comes to run two — the same rule the
     // give-up watchdog keeps for 'agent-silent'. Cleared on release so a second
     // teardown on the same attempt hands nothing back twice.
-    let heldSessionId: string | null = null;
+    let ownedLease: UnjoinedLease | null = null;
     const releaseHeldLease = (): void => {
-      if (heldSessionId === null) return;
-      if (diagRef.current.agentJoined || heardAgentRef.current) return;
-      const sessionId = heldSessionId;
-      heldSessionId = null;
-      void abandonSession(userId, sessionId);
+      ownedLease?.release();
+      if (leaseRef.current === ownedLease) leaseRef.current = null;
     };
     /**
      * Stop here if the learner has left, the screen has gone, or another start
@@ -729,13 +761,19 @@ export function useLiveSession(
       // with it, so the microphone closes here too. Neither call may throw:
       // this path exists to clean up, and a throw would put an error screen in
       // front of a learner who has already walked away.
-      if (plan.disconnectRoom) await opened?.disconnect().catch(() => {});
+      if (plan.disconnectRoom) {
+        try { await disconnectLease(opened, ownedLease); } catch { return true; }
+      }
       if (plan.releaseAudioSession) await releaseAudioSession().catch(() => {});
       // The grant this attempt took goes back with it: a start given up before a
       // tutor joined must not leave the account holding a lease nobody will end.
       releaseHeldLease();
       return true;
     };
+    terminalFailureRef.current = false;
+    setSettlement(null);
+    setCanDoEvidence(null);
+    evidenceSessionRef.current = null;
     setStatus({ phase: 'connecting' });
     setWaitingForTutor(false);
     setDiagnostics(null);
@@ -753,6 +791,7 @@ export function useLiveSession(
     // The last room's view goes with its turns: a rebuilt session is a new one,
     // and it is open only once its own agent publishes a view (Stage 4).
     setConvo(null);
+    conversationTextRef.current.clear();
     setThinking(false);
     setMicOpen(false);
     setReconnecting(false);
@@ -768,8 +807,10 @@ export function useLiveSession(
     // learner switches to typing. The old room's own handlers are already deaf
     // by now, because the generation moved above.
     const previous = roomRef.current;
+    const previousLease = leaseRef.current;
     roomRef.current = null;
-    if (previous !== null) void previous.disconnect().catch(() => {});
+    leaseRef.current = null;
+    void disconnectLease(previous, previousLease).catch(() => {});
     removeAudioEls();
     clearWatchdog();
     try {
@@ -794,7 +835,7 @@ export function useLiveSession(
       if (modeCarriesAudio(mode) && micApiUnavailable()) throw new Error('navigator.mediaDevices is unavailable');
 
       const authStartedAt = Date.now();
-      const headers = await authHeaders();
+      const [headers, consent] = await Promise.all([authHeaders(), loadConsent().catch(() => null)]);
       // Checked before the diagnostics are written, not after: the diagnostics
       // describe the session on screen, and this attempt may no longer be it.
       if (await abandoned()) return;
@@ -810,6 +851,7 @@ export function useLiveSession(
         // opens as is not something the client can quietly re-assert.
         body: JSON.stringify({
           userId,
+          analyticsAllowed: analyticsAllowed(consent),
           lessonId,
           ...(startRung !== undefined ? { startRung } : {}),
           ...(mode !== undefined ? { mode } : {}),
@@ -848,7 +890,11 @@ export function useLiveSession(
         setStatus({ phase: 'out-of-minutes', code, label: copy.label, message: copy.message, plans });
         return;
       }
-      if (!res.ok) throw new TokenServerError(res.status);
+      if (!res.ok) {
+        const body: unknown = await res.json().catch(() => null);
+        if (await abandoned()) return;
+        throw new TokenServerError(res.status, tokenFailureCode(res.status, body));
+      }
 
       // sessionId rides along because the lease is keyed on it: it is what
       // /session/abandon compares against before releasing anything, which is
@@ -861,12 +907,14 @@ export function useLiveSession(
       // From here this attempt holds the account's session lease, keyed on this
       // sessionId. If it never reaches a room with a tutor in it, the teardown
       // paths below hand it back; see releaseHeldLease. F165.
-      heldSessionId = grant.sessionId;
+      ownedLease = unjoinedLease(grant.sessionId, id => { void abandonSession(userId, id); });
+      if (owns()) leaseRef.current = ownedLease;
       // The last gate before a room exists at all. Everything past here has to
       // be given back rather than simply skipped.
       if (await abandoned()) return;
       // Published only once this attempt still owns the session, and only when
       // the grant actually named one; nothing here invents an id.
+      evidenceSessionRef.current = grant.sessionId;
       setSessionId(typeof grant.sessionId === 'string' && grant.sessionId !== '' ? grant.sessionId : null);
       diagRef.current.livekitUrl = grant.livekitUrl;
       trace('token', {
@@ -916,6 +964,7 @@ export function useLiveSession(
       // Whether anyone else is in the room at all. The difference between "the
       // tutor is thinking" and "the tutor was never dispatched" is exactly this.
       room.on(RoomEvent.ParticipantConnected, (participant) => {
+        ownedLease?.observeTutor();
         // A tutor walking into an abandoned room is not proof of life for the
         // session on screen, and the watchdog reads this to decide which of the
         // two silences it is looking at.
@@ -936,10 +985,12 @@ export function useLiveSession(
         // recap is the sharp end of that: it is journalled the moment it
         // arrives, and a recap for a session the learner never had would land
         // in their review deck as practice they never did.
-        if (!owns()) return;
         if (topic !== TOPIC_SERVER) return;
         const msg = decodeServerMessage(payload);
         if (!msg) return;
+        ownedLease?.observeTutor();
+        if (!owns()) return;
+        conversationTextRef.current.receive(msg);
         // Any message at all proves the agent is in the room and talking to us.
         // It does NOT prove the session started — see SESSION_OPEN_TIMEOUT_MS.
         if (!heardAgentRef.current) {
@@ -983,7 +1034,7 @@ export function useLiveSession(
             break;
           case 'summary':
             setSummary(msg.summary);
-            setStatus({ phase: 'ended' });
+            if (!terminalFailureRef.current) setStatus({ phase: 'ended' });
             break;
           case 'convo':
             setConvo(msg.view);
@@ -1012,7 +1063,9 @@ export function useLiveSession(
                 const next = [...list];
                 next[i] = {
                   ...next[i]!,
-                  recasts: msg.view.coachNow.map((c) => ({
+                  recasts: msg.view.coachNow.map((c, correctionIndex) => ({
+                    textTurnId: msg.view.textTurnId,
+                    correctionIndex,
                     quote: c.quote,
                     better: c.better,
                     betterEn: c.betterEn,
@@ -1046,6 +1099,7 @@ export function useLiveSession(
             // them. What the screens draw is `tutor/safetyView.ts`.
             safetyRef.current = msg;
             setSafety(msg);
+            if (msg.action === 'stop') { setCanDoEvidence(null); evidenceSessionRef.current = null; }
             break;
           case 'recap':
             setRecap({ recap: msg.recap, profile: msg.profile });
@@ -1076,7 +1130,25 @@ export function useLiveSession(
           case 'drills':
             setDrills(msg.exercises);
             break;
+          case 'correction-reason':
+            if (evidenceSessionRef.current === grant.sessionId && !terminalFailureRef.current && !stoppedBySafety(safetyRef.current)) {
+              setTurns(lines => attachCorrectionReason(lines, msg.evidence, grant.sessionId));
+            }
+            break;
+          case 'can-do-evidence':
+            if (msg.evidence.sessionId === grant.sessionId && evidenceSessionRef.current === grant.sessionId
+              && msg.evidence.missionId === missionId && !terminalFailureRef.current && !stoppedBySafety(safetyRef.current)) setCanDoEvidence(msg.evidence);
+            break;
+          case 'settlement':
+            if (terminalFailureRef.current) setSettlement(msg.result);
+            break;
           case 'error': {
+            if (msg.terminal === true) {
+              terminalFailureRef.current = true;
+              setCanDoEvidence(null);
+              evidenceSessionRef.current = null;
+              setSettlement({ kind: 'pending' });
+            }
             // Most of these are hiccups that pass: the room, the microphone and
             // the meter are all still running, and replacing a live session with
             // a dead-end screen over a blip loses the conversation the learner
@@ -1100,7 +1172,7 @@ export function useLiveSession(
               // counting. Where typing is a real answer the room is worth
               // keeping — it is the room `switchToText` carries on in — and
               // where it is not, the only honest move is to leave.
-              if (!failureCopy(outcome.failure).canType) void leave().catch(() => {});
+              if (!msg.terminal && (noTypedRecovery || !failureCopy(outcome.failure).canType)) void leave().catch(() => {});
               fail(outcome.failure);
               break;
             }
@@ -1192,6 +1264,7 @@ export function useLiveSession(
       if (await abandoned()) return;
       const connectStartedAt = Date.now();
       await room.connect(grant.livekitUrl, grant.token, CONNECT_TIMEOUTS);
+      if (room.remoteParticipants.size > 0) ownedLease?.observeTutor();
       // The room is up. From here an abandoned attempt is not a tidy-up but a
       // bill: the tutor is dispatched into a connected room, teaches nobody,
       // and the minutes come off the learner's allowance.
@@ -1235,7 +1308,6 @@ export function useLiveSession(
         // gets it: 'agent-silent' means an agent IS in the room and may still be
         // holding the floor, and freeing a lease out from under a live session
         // is how one account comes to run two.
-        if (failure === 'agent-absent') void abandonSession(userId, grant.sessionId);
         void leave().catch(() => {});
         fail(failure);
       };
@@ -1272,8 +1344,8 @@ export function useLiveSession(
       // stays open behind the error screen, the agent keeps teaching an empty
       // call, and the meter keeps counting.
       clearWatchdog();
-      void roomRef.current?.disconnect().catch(() => {});
-      roomRef.current = null;
+      try { await disconnectLease(opened, ownedLease); } catch { fail(classifyFailure(err)); return; }
+      if (roomRef.current === opened) roomRef.current = null;
       removeAudioEls();
       // The grant this attempt took never reached a tutor, so hand the lease
       // back — a connect that threw is the strand F165 was filed for.
@@ -1285,6 +1357,7 @@ export function useLiveSession(
     lessonId,
     startRung,
     mode,
+    noTypedRecovery,
     snapshot,
     seedTopic,
     continuationPackId,
@@ -1306,10 +1379,16 @@ export function useLiveSession(
 
   const openMic = useCallback(() => {
     const room = roomRef.current;
-    if (room === null || room.localParticipant.isMicrophoneEnabled) return;
-    void room.localParticipant
+    if (room === null) return Promise.resolve(false);
+    if (room.localParticipant.isMicrophoneEnabled) return Promise.resolve(true);
+    const openingGeneration = startGenRef.current;
+    return room.localParticipant
       .setMicrophoneEnabled(true)
       .then(() => {
+        if (roomRef.current !== room || openingGeneration !== startGenRef.current) {
+          void room.localParticipant.setMicrophoneEnabled(false).catch(() => {});
+          return false;
+        }
         // Kept in step with the diagnostics panel, which reports this. Left
         // false it would make a healthy tap-to-talk session read as broken to
         // whoever debugs it next.
@@ -1324,16 +1403,20 @@ export function useLiveSession(
           setVoiceless(false);
           send({ t: 'mode', voiceless: false });
         }
+        return true;
       })
       .catch((err: unknown) => {
         // Not a dead end and not a terminal screen: the room, the tutor and the
         // meter are all still running, and the quiet door is on the same screen.
         trace('mic-open-failed', { error: String(err) });
+        if (roomRef.current !== room || openingGeneration !== startGenRef.current) return false;
+        if (noTypedRecovery) { void leave().catch(() => {}); fail(classifyFailure(err)); return false; }
         setNotice('Your microphone did not open. You can switch to typing instead.');
         if (noticeTimer.current) clearTimeout(noticeTimer.current);
         noticeTimer.current = setTimeout(() => setNotice(null), 8000);
+        return false;
       });
-  }, [send]);
+  }, [send, noTypedRecovery, leave, fail]);
 
   /**
    * The quiet door, taken in the room the learner is already in.
@@ -1356,6 +1439,7 @@ export function useLiveSession(
     // help, and saying so is what lets the caller open a typed session properly
     // instead of believing this one carried on.
     if (room === null) return false;
+    if (terminalFailureRef.current) return false;
     voicelessRef.current = true;
     setVoiceless(true);
     // Fire and forget in both directions. The agent reads `voiceless` strictly,
@@ -1395,10 +1479,14 @@ export function useLiveSession(
       // start in flight has to hear about it either way. Same reason as `leave`:
       // without this, the room arrives after the screen has gone.
       startGenRef.current = nextStart(startGenRef.current);
+      conversationTextRef.current.clear();
       for (const t of watchdogRef.current) clearTimeout(t);
       watchdogRef.current = [];
-      void roomRef.current?.disconnect();
+      const room = roomRef.current;
+      const lease = leaseRef.current;
       roomRef.current = null;
+      leaseRef.current = null;
+      void disconnectLease(room, lease).catch(() => {});
       removeAudioEls();
       if (noticeTimer.current) clearTimeout(noticeTimer.current);
       void releaseAudioSession();
@@ -1406,6 +1494,7 @@ export function useLiveSession(
   }, [removeAudioEls]);
 
   return {
+    conversationText: status.phase === 'ended' && !stoppedBySafety(safetyRef.current) ? conversationTextRef.current.snapshot() : null,
     status,
     prompt,
     feedback,
@@ -1418,6 +1507,8 @@ export function useLiveSession(
     practice,
     drills,
     notice,
+    settlement,
+    canDoEvidence,
     safety,
     dismissSafety,
     turns,
@@ -1444,9 +1535,9 @@ export function useLiveSession(
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
     sendSay: useCallback(
       async (text: string) => {
-        // The agent transcribes speech back to us but never echoes a TYPED
-        // turn, so without this optimistic append the learner's own words
-        // simply never appear in text mode.
+        // Show a typed turn immediately. The current conversation agent echoes
+        // it as a confirmed final transcript before running the brain; only
+        // that received echo enters optional saved text, never an unsent draft.
         const optimisticId = addTurn({ who: 'learner', fr: text, frWritten: null, en: null });
         setThinking(true);
         const sent = await publish({ t: 'say', text });

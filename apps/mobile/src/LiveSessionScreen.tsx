@@ -1,3 +1,4 @@
+import { sessionSettlementCopy } from '@luvani/core';
 /**
  * The live session driver.
  *
@@ -25,6 +26,9 @@ import { ConfirmSheet, Screen } from './layout.tsx';
 import { SessionView } from './SessionView.tsx';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
+import { RoomWait } from './live/RoomWait.tsx';
+import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
+import { waitingNote } from './tutor/waitingView.ts';
 import { LiveErrorView } from './live/LiveErrorView.tsx';
 import { connectionLine } from './live/connectionLine.ts';
 import { leaveConfirmCopy } from './live/leaveConfirm.ts';
@@ -152,8 +156,8 @@ export function LiveSessionScreen({
   useEffect(() => {
     // `onFinish` is what puts SummaryScreen on the screen, so withholding it is
     // what keeps a card counting up what went well away from a stop.
-    if (live.summary && !stopped) onFinish(live.summary);
-  }, [live.summary, onFinish, stopped]);
+    if (live.summary && !stopped && live.settlement === null) onFinish(live.summary);
+  }, [live.summary, live.settlement, onFinish, stopped]);
 
   const leaveNow = () => {
     void live.leave().finally(onExit);
@@ -198,29 +202,14 @@ export function LiveSessionScreen({
     // down and gives back the room it was about to open. See
     // live/startOwnership.ts.
     const connecting = connectingView(connectingMs);
-    return (
-      <Screen padded={false}>
-        <View style={st.center}>
-          <ActivityIndicator color={paper.inkSoft} />
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}
-          >
-            {connecting.headline}
-          </Text>
-          <View style={{ marginTop: space(6) }}>
-            <GhostButton label={connecting.leaveLabel} onPress={leaveNow} />
-          </View>
-        </View>
-      </Screen>
-    );
+    return <RoomWait title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'out-of-minutes') {
     // The session has ended, so this is not the live scene F444 keeps still.
     // The page can be taller than a small phone at a large text size, so it
     // scrolls in its own file, as the safety stop does.
-    return <OutOfMinutesView message={live.status.message} userId={userId} onExit={onExit} />;
+    return <OutOfMinutesView label={live.status.label} message={live.status.message} userId={userId} onExit={onExit} />;
   }
 
   if (live.status.phase === 'error') {
@@ -236,6 +225,10 @@ export function LiveSessionScreen({
         failure={live.status.failure}
         message={live.status.message}
         diagnostics={live.diagnostics}
+        settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
+        typedRestartLabel="Start a typed lesson"
+        restartAsText={live.settlement !== null}
+        retryBlocked={live.settlement?.kind === 'pending' || live.settlement?.kind === 'reconciliation'}
         onBack={leaveNow}
         onType={typedDoorFor(live.status.failure, { typing }) ? goQuiet : null}
       />
@@ -253,22 +246,8 @@ export function LiveSessionScreen({
     // first line was never drawn at all. The view model carries it now. See
     // tutor/waitingView.ts.
     const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
-    return (
-      <Screen padded={false}>
-        <View style={st.center}>
-          {waiting.banner ? (
-            <View style={st.waitingBanner}>
-              <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} />
-            </View>
-          ) : null}
-          <ActivityIndicator color={paper.inkSoft} />
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
-          <View style={{ marginTop: space(6) }}>
-            <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
-          </View>
-        </View>
-      </Screen>
-    );
+    return <RoomWait title={waiting.headline} body={waitingNote(tutorName)} leaveLabel={waiting.leaveLabel} onLeave={leaveNow}
+      banner={waiting.banner ? <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} /> : undefined} />;
   }
 
   // Everything the scene draws above the Leave row, handed to the frame rather

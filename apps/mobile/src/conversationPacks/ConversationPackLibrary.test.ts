@@ -10,7 +10,7 @@ const source = readFileSync(fileURLToPath(new URL('./ConversationPackLibrary.tsx
 describe('Conversation Pack library', () => {
   test('keeps a complete learner-owned route back into a conversation', () => {
     for (const required of [
-      'Your conversations',
+      'Practice from conversations',
       'You practised',
       'Review phrases',
       'Continue talking',
@@ -20,6 +20,7 @@ describe('Conversation Pack library', () => {
       assert.ok(source.includes(required), `the library no longer offers ${required}`);
     }
     assert.match(source, /useHardwareBack\(selected !== null/, 'Android back strands a learner inside pack detail');
+    assert.match(source, /Full conversation text is saved only if you choose it separately/, 'curated practice is not distinguished from opted-in text');
   });
 
   test('the tutor revisit is drawn only when the plan opens it, and each route says what it costs', () => {

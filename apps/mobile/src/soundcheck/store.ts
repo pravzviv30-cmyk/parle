@@ -11,7 +11,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, writeInUserScope, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import type { SoundCheckEvidence, SoundCheckKind } from './model.ts';
 
@@ -29,11 +29,12 @@ interface StoredSoundChecks {
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => undefined);
   return next;
@@ -58,14 +59,19 @@ function isEvidence(value: unknown): value is SoundCheckEvidence {
   );
 }
 
-async function read(key: string): Promise<SoundCheckEvidence[]> {
+async function read(key: string, strict = false): Promise<SoundCheckEvidence[]> {
   try {
     const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
+    if (raw === null) return [];
     const parsed = JSON.parse(raw) as Partial<StoredSoundChecks> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.evidence)) return [];
+    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.evidence)) {
+      if (strict) throw new Error('Sound checks are unreadable');
+      return [];
+    }
+    if (strict && !parsed.evidence.every(isEvidence)) throw new Error('Sound checks are unreadable');
     return parsed.evidence.filter(isEvidence);
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return [];
   }
 }
@@ -78,32 +84,31 @@ async function read(key: string): Promise<SoundCheckEvidence[]> {
  * empty one. The merge policy works on the shape that is on disk.
  */
 async function persisted(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(key);
+  return raw === null ? null : (JSON.parse(raw) as unknown);
 }
 
-export function loadSoundChecks(): Promise<SoundCheckEvidence[]> {
-  return read(KEY());
+export function loadSoundChecks(options?: { strict: boolean }): Promise<SoundCheckEvidence[]> {
+  return read(KEY(), options?.strict);
 }
 
-async function save(key: string, evidence: readonly SoundCheckEvidence[], origin: WriteOrigin): Promise<void> {
+async function save(key: string, owner: number, evidence: readonly SoundCheckEvidence[], origin: WriteOrigin): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, evidence: [...evidence] } satisfies StoredSoundChecks));
-    if (origin === 'local') markDirty('soundChecks');
+    const saved = await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, evidence: [...evidence] } satisfies StoredSoundChecks)));
+    if (saved && origin === 'local') markDirty('soundChecks');
+    return saved;
   } catch {
     // The learner still completed the check; a full device must not block the screen.
+    return false;
   }
 }
 
 export function recordSoundCheck(evidence: SoundCheckEvidence): Promise<void> {
-  return serialized(async (key) => {
-    const current = await read(key);
+  return serialized(async (key, owner) => {
+    let current: SoundCheckEvidence[];
+    try { current = await read(key, true); } catch { return; }
     const next = [...current, evidence].sort((a, b) => a.at - b.at).slice(-MAX_EVIDENCE);
-    await save(key, next, 'local');
+    await save(key, owner, next, 'local');
   });
 }
 
@@ -124,14 +129,19 @@ export function recordSoundCheck(evidence: SoundCheckEvidence): Promise<void> {
  * one thing the sound check must never do.
  */
 function adoptSoundChecks(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persisted(key));
+  return serialized(async (key, owner) => {
+    let current: unknown;
+    try { current = await persisted(key); } catch { return 'declined'; }
+    if (current !== null && (typeof current !== 'object' || current === null ||
+      (current as Partial<StoredSoundChecks>).version !== VERSION ||
+      !Array.isArray((current as Partial<StoredSoundChecks>).evidence) ||
+      !(current as StoredSoundChecks).evidence.every(isEvidence))) return 'declined';
+    const folded = fold(current);
     if (typeof folded !== 'object' || folded === null) return 'declined';
     const envelope = folded as Partial<StoredSoundChecks>;
     if (envelope.version !== VERSION || !Array.isArray(envelope.evidence)) return 'declined';
     const evidence = envelope.evidence.filter(isEvidence).sort((a, b) => a.at - b.at).slice(-MAX_EVIDENCE);
-    await save(key, evidence, 'adopted');
-    return 'adopted';
+    return await save(key, owner, evidence, 'adopted') ? 'adopted' : 'declined';
   });
 }
 

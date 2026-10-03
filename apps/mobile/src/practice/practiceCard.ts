@@ -165,9 +165,10 @@ export function practiceCard(input: {
     };
   }
 
-  // Day one: nothing said yet, so the one action is the sound lesson.
+  // Day one opens on the same greeting the sound lesson asks for.
+  const greeting = CAFE_LESSON.turns[0]!;
   return {
-    phrase: starterFrom().phrase,
+    phrase: { fr: greeting.target, en: greeting.targetEn },
     action: { kind: 'lesson', label: SOUND_LEAD.lesson },
     source: null,
     sourcePackId: null,

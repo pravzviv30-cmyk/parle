@@ -187,7 +187,19 @@ export function deletionFailure(status: number): string {
   // Three deletion attempts per account per day, twenty per address per day.
   // "Give it a minute" sent a learner back to a button that stays shut for up
   // to a day, so the line says the window the server actually keeps.
-  if (status === 429) return 'Account deletion has been tried too many times today. Nothing was changed. Try again in a day.';
-  if (status === 503) return 'Account deletion is not available right now. Nothing was changed. Try again later.';
-  return 'Your account could not be deleted right now. Nothing was changed. Try again in a moment.';
+  if (status === 429) return 'Account deletion has been tried too many times today. Try again in a day.';
+  if (status === 503) return 'Account deletion is not available right now. Try again later.';
+  return 'Deletion could not be confirmed right now. Try again in a moment.';
+}
+
+
+/** Copy for the provider round trip shared by deletion and account export. */
+export function reauthenticationLine(purpose: 'deletion' | 'export', provider?: 'google' | 'apple'): string {
+  if (provider === 'google') return purpose === 'export'
+    ? 'Finish signing in with Google, then return here and download your data again.'
+    : 'Finish signing in with Google, then return here and delete the account again.';
+  if (provider === 'apple') return purpose === 'export'
+    ? 'Finish signing in with Apple, then return here and download your data again.'
+    : 'Finish signing in with Apple, then return here and delete the account again.';
+  return purpose === 'export' ? 'Sign in again before downloading your data.' : 'Sign in again before deleting your account.';
 }

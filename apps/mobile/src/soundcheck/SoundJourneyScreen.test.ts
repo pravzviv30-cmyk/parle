@@ -28,9 +28,11 @@ const FLAT = SCREEN.replace(/\s+/g, ' ');
 describe('the sound journey screen — Stage 4 item 2', () => {
   test('it reads the sound checks itself, on focus, and drops an answer from another account', () => {
     assert.match(FLAT, /useFocusEffect\(/, 'the journey is not re-read when the learner comes back from a check');
-    assert.equal((SCREEN.match(/loadSoundChecks\(\)/g) ?? []).length, 1, 'the store is read other than once a visit');
-    assert.match(FLAT, /const scope = scopeGeneration\(\);/, 'the read is not bound to the account it started under');
-    assert.match(FLAT, /scopeGeneration\(\) === scope/, 'a result from the previous account can be drawn for this one');
+    assert.equal((SCREEN.match(/loadSoundChecks\(\{ strict: true \}\)/g) ?? []).length, 1, 'the visible journey must refuse corrupt or unavailable evidence');
+    assert.match(FLAT, /const owner = \{ scope: scopeGeneration\(\), userId: activeUserId\(\) \};/, 'the read is not bound to the account it started under');
+    assert.match(FLAT, /scopeGeneration\(\) === owner\.scope && activeUserId\(\) === owner\.userId/, 'a result from the previous account can be drawn for this one');
+    assert.match(FLAT, /const ownerMatches = readOwner\?\.scope === scopeGeneration\(\) && readOwner\.userId === activeUserId\(\)/, 'an old result can appear before the next account focus effect runs');
+    assert.match(FLAT, /const shownStatus = ownerMatches \? status : 'loading'/);
   });
 
   test('loading, could-not-load and nothing-to-show are three different screens', () => {
@@ -39,7 +41,8 @@ describe('the sound journey screen — Stage 4 item 2', () => {
       assert.ok(SCREEN.includes(words), `the screen never says ${words}`);
     }
     // A failed read offers the same read again, not an empty journey.
-    assert.match(FLAT, /label=\{JOURNEY_COPY\.retry\}[^>]*onPress=\{\(\) => \{ setStatus\('loading'\); setAttempt\(\(n\) => n \+ 1\); \}\}/);
+    assert.match(FLAT, /label=\{JOURNEY_COPY\.retry\}[^>]*onPress=\{\(\) => \{ if \(!ownerMatches\) return; setStatus\('loading'\); setAttempt\(\(n\) => n \+ 1\); \}\}/);
+    assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/, 'a failed current-account read can retain stale measured claims');
   });
 
   test('the empty state offers a quiet way on, to the chooser — Stage 4 review (2026-09-25)', () => {
@@ -50,7 +53,7 @@ describe('the sound journey screen — Stage 4 item 2', () => {
     assert.match(stripComments(read('./SoundCheckScreen.tsx')), /<GhostButton label="Choose a situation"/, 'the sound check changed its words, and this door no longer matches them');
     assert.match(
       FLAT,
-      /\{status === 'ready' && journey === null && \( <View style=\{st\.block\}> <Text style=\{st\.soft\}>\{JOURNEY_COPY\.none\}<\/Text> <GhostButton label=\{JOURNEY_COPY\.choose\} color=\{paper\.ink\} onPress=\{\(\) => nav\.navigate\('Missions'\)\} \/> <\/View> \)\}/,
+      /\{shownStatus === 'ready' && journey === null && \( <View style=\{st\.block\}> <Text style=\{st\.soft\}>\{JOURNEY_COPY\.none\}<\/Text> <GhostButton label=\{JOURNEY_COPY\.choose\} color=\{paper\.ink\} onPress=\{\(\) => nav\.navigate\('Missions'\)\} \/> <\/View> \)\}/,
       'a learner with no journey yet is offered only the way back',
     );
   });
@@ -64,7 +67,8 @@ describe('the sound journey screen — Stage 4 item 2', () => {
 
   test('a word leads, and the symbol waits behind a toggle', () => {
     assert.match(FLAT, /soundInWord\(journey\.example\)/, 'the heading is not the example word');
-    const notation = SCREEN.indexOf('journey.phoneme');
+    assert.match(FLAT, /<MouthGuide ipa=\{journey.phoneme\}/);
+    const notation = SCREEN.indexOf('{journey.phoneme}/</Text>');
     assert.notEqual(notation, -1, 'the symbol is not offered at all');
     const gate = SCREEN.lastIndexOf('detail &&', notation);
     assert.ok(gate !== -1 && notation - gate < 120, 'the IPA is drawn outside the detail toggle');

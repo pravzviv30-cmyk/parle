@@ -103,7 +103,7 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 }
 
 /** The body, or null when it was too large or was not an object. */
-async function readJudgeBody(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+export async function readJudgeBody(req: IncomingMessage): Promise<Record<string, unknown> | null> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
@@ -172,6 +172,7 @@ export async function handleDrillJudge(req: IncomingMessage, res: ServerResponse
     typeof body.userId === 'string' ? body.userId : null,
   );
   if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+  if (typeof body.userId === 'string' && body.userId !== resolved.userId) return json(res, 403, { error: 'account changed' });
   if (!(await deps.limits(req, res, resolved.userId))) return;
 
   const fr = line(body.fr);

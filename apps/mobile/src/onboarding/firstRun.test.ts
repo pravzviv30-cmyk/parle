@@ -33,6 +33,32 @@ const read = (relative: string) => strip(readFileSync(fileURLToPath(new URL(rela
 const SCREEN = read('./PreAccountOnboarding.tsx');
 const AUDIO = read('./exchangeAudio.ts');
 
+/** A file as written, comments and all, for the tests that read words rather than code. */
+const raw = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+/** Comment lines joined into prose, so a sentence split across `//` lines still reads whole. */
+const prose = (text: string) => text.replace(/\n\s*(?:\/\/|\*)[ \t]?/g, ' ').replace(/\s+/g, ' ');
+/** The onboarding doc's paragraph on the age question, as one line of prose. */
+function ageParagraph(): string {
+  const doc = raw('../../../../docs/ONBOARDING.md');
+  const at = doc.indexOf('**The age question sits on the save page.**');
+  assert.ok(at > 0, 'docs/ONBOARDING.md no longer explains the age question on the save page');
+  return prose(doc.slice(at, doc.indexOf('\n\n', at)));
+}
+/** One JSX element's source, from its opening tag to the `/>` that closes it. */
+function element(source: string, tag: string): string {
+  const at = source.search(new RegExp(`<${tag}(?=\\s|>)`));
+  assert.ok(at >= 0, `<${tag}> is not rendered`);
+  return source.slice(at, source.indexOf('/>', at) + 2);
+}
+/** The screen's one door to the draft. */
+const keepSource = () => SCREEN.slice(SCREEN.indexOf('const keep ='), SCREEN.indexOf('const setConsent'));
+/** The younger link's handler. */
+const refuseSource = () => {
+  const at = SCREEN.indexOf('const refuse = ');
+  assert.ok(at > 0, 'the younger link has no handler of its own');
+  return SCREEN.slice(at, SCREEN.indexOf('};', at) + 2);
+};
+
 /** The source of one page: from its `page === '<name>' &&` block to the next page's. */
 function pageSource(name: string): string {
   const at = SCREEN.indexOf(`page === '${name}' && (`);
@@ -71,10 +97,10 @@ describe('screen one plays a real recorded exchange', () => {
     assert.match(hear, /\{line\.fr\}/);
     assert.match(hear, /\{line\.en\}/);
     assert.match(SCREEN, /const dim = \(index: number\) => !reduced && lit !== null && lit !== index/, 'reduced motion does not show every line in full');
-    assert.match(hear, /<Press\b[^>]*?accessibilityLabel=\{HEAR_AGAIN\}/, 'there is no quiet way to hear it again');
-    assert.match(hear, /<Text style=\{st\.againLabel\}>\{HEAR_AGAIN\}<\/Text>/, 'the way to hear it again does not say so');
-    assert.match(SCREEN, /if \(page === 'hear-it' && allowed\) playExchange\(0\)/, 'the exchange does not try to play on arrival');
-    assert.match(SCREEN, /const AUTOPLAYS = Platform\.OS !== 'web'/, 'a browser is asked to autoplay before the page is touched');
+    assert.match(hear, /accessibilityLabel=\{lit !== null \? 'Stop the recording' : HEAR_AGAIN\}/, 'the explicit playback control has no matching name');
+    assert.match(hear, /if \(lit !== null\) stop\(\); else playExchange\(0\)/, 'Hear and Stop do not control the exchange');
+    assert.doesNotMatch(SCREEN, /AUTOPLAYS|if \(page === 'hear-it'[^\n]*playExchange/, 'the exchange starts without the learner choosing Hear');
+    assert.match(SCREEN, /useLayoutEffect\(\(\) => \(\) => \{\s*onFinish.current = null;/, 'leaving can continue the audio chain');
     assert.match(hear, /WELCOME_SUBLINE\(persona\)/, 'the AI disclosure left the first screen');
   });
 
@@ -132,22 +158,22 @@ describe('screen two: the learner’s first line, then the first highlight', () 
     assert.equal(STUCK_HINT, 'Bonjour, je vais…');
   });
 
-  test('the first chartreuse is the Highlight on the tapped reply, beside a mint tick, and nothing earlier is lit', () => {
+  test('the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt', () => {
     assert.equal((SCREEN.match(/<Highlight\b/g) ?? []).length, 1, 'the flow draws more than one highlighter');
     const line = pageSource('first-line');
-    const said = line.indexOf("stage === 'said'");
+    const said = line.indexOf("stage === 'selected'");
     const highlight = line.indexOf('<Highlight');
-    assert.ok(said > 0 && highlight > said, 'the highlight is drawn before the reply has been said');
+    assert.ok(said > 0 && highlight > said, 'the highlight appears before the learner selects the example');
     assert.match(line, /<Highlight text=\{FIRST_LINE\.reply\.fr\}/, 'the highlight is on something other than the reply');
     // The mint tick sits beside the marked line, and only once it is said.
-    const tick = line.indexOf('<SceneMark state="earned" />');
-    assert.ok(tick > highlight, 'the marked reply has no mint tick beside it');
-    assert.equal((SCREEN.match(/<SceneMark\b/g) ?? []).length, 1, 'a tick appears somewhere other than the marked reply');
+    assert.doesNotMatch(SCREEN, /SceneMark|state="earned"/, 'a recording selection awards unearned learning evidence');
+    assert.match(line, /\{HIGHLIGHT_MEANS\}/, 'the playback highlight has no scope explanation');
     // The tutor is named by a meta line on a white card, not drawn as a mark.
     assert.match(line, /<Text style=\{st\.speaker\}>\{persona\.name\}<\/Text>/, 'the tutor is not named on the first-line page');
     assert.doesNotMatch(SCREEN, /TutorMark/, 'the tutor mark is still drawn beside the lines');
     assert.match(line, /<FrenchBlock\s+french=\{FIRST_LINE\.question\.fr\}\s+english=\{FIRST_LINE\.question\.en\}\s+size="lg"/, 'the question is not the large French block');
-    assert.match(line, /questionClip === undefined \|\| stage === 'saying'\s*\?\s*undefined/, 'the question offers a disc with no recording behind it, or one that cuts across the reply');
+    assert.match(line, /questionClip === undefined\s*\?\s*undefined/, 'the question offers playback with no recording behind it');
+    assert.match(SCREEN, /player\.pause\(\);[\s\S]*player\.replace\(clip\)/, 'a second recording overlaps the first');
     assert.match(SCREEN, /const questionClip = clipFor\(FIRST_LINE\.question\)/, 'the question plays something other than its bundled recording');
     assert.doesNotMatch(line, /<Pressable\b/, 'the reply is not pressed through the one spring');
     assert.match(line, /<Press\s+haptic="light"\s+accessibilityRole="button"\s+accessibilityLabel=\{`Reply: /, 'the reply is not the white card the learner presses');
@@ -188,7 +214,10 @@ describe('the rest of the flow', () => {
 
     // It shows the plan rather than configuring it: no pickers, no picture.
     assert.doesNotMatch(plan, /<TabBar\b/, 'the plan still asks for the minutes or the reminder');
-    assert.doesNotMatch(SCREEN, /\b(MINUTES_LABEL|REMINDER_LABEL|GOALS|REMINDER_TIMES)\b/, 'the plan still reads the pickers it dropped');
+    assert.match(plan, /\{MINUTES_LABEL\}/, 'the flexible routine has no label');
+    assert.match(plan, /ROUTINE_OPTIONS.map[\s\S]*keep\(\{ minutes: option.key \}\)/, 'a suggested routine cannot be changed and kept');
+    assert.match(plan, /view.minutes === 'none'/, 'the routine has no unset state');
+    assert.doesNotMatch(SCREEN, /\b(REMINDER_TIMES|requestPermissionsAsync)\b/, 'the demo introduces a permission or notification picker');
     assert.doesNotMatch(SCREEN, /sceneIllustration|<Art\b/, 'the plan still draws a place');
     assert.doesNotMatch(plan, /<Illustration\b/, 'the plan draws a picture the board does not');
     // The save page's refusal is the one picture this flow draws.
@@ -235,10 +264,9 @@ describe('the rest of the flow', () => {
     }
 
     // Under thirteen: the frame drawing, a title and one line, no footer, and
-    // moving between the pages does not undo it. It lives in this screen's
-    // state only, so leaving through "I have an account" starts the first run
-    // fresh, and closing the app reopens the save page with the question asked
-    // again (F638).
+    // moving between the pages does not undo it. The sign-in detour does not
+    // either (F637), and the refusal clears the saved draft (F639): both are
+    // pinned in their own tests below.
     assert.equal(UNDER_AGE, `${UNDER_AGE_TITLE} ${UNDER_AGE_BODY}`, 'the refusal no longer reads as it always has');
     assert.equal(UNDER_AGE_TITLE, 'Luvani is for learners thirteen and up.');
     assert.match(page, /\{underAge && <Illustration name="state-postcard-frame" fit="small" \/>\}/, 'the refusal has no frame drawing');
@@ -253,76 +281,156 @@ describe('the rest of the flow', () => {
   });
 
   test('the onboarding doc says what undoes the under-13 refusal, and promises no more than the screen holds', () => {
-    // F633. The refusal is this screen's own state, so it holds while the
-    // learner moves between the pages and no longer: "I have an account"
-    // leaves the screen, and SignIn's back mounts a fresh one with no refusal.
-    // Closing the app is not a fresh start: the saved draft reopens the save
-    // page with the question asked again (F638, pinned in the next test).
-    // Saying it lasts the session overclaims a minors safeguard. If the
-    // refusal moves to state that outlives the screen (F637), rewrite the
-    // words and this pin together.
+    // F633, moved by F637 and F641. The refusal is seeded from state held
+    // above this screen, so it holds while the learner moves between the
+    // pages, across "I have an account" and back, and across a sign-in and
+    // sign-out, for the rest of the launch. Saying it lasts the session
+    // overclaims a minors safeguard, because a relaunch may ask again. If the
+    // refusal moves to state with a different life, rewrite the words and
+    // this pin together.
     assert.match(
       SCREEN,
-      /const \[underAge, setUnderAge\] = useState\(false\);/,
-      'the refusal no longer lives in this screen alone: check what the doc says undoes it, and move this pin with it',
+      /const \[underAge, setUnderAge\] = useState\(refused\);/,
+      'the refusal no longer comes from the flow above the screen: check what the doc says undoes it, and move this pin with it',
     );
-    const raw = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
     const doc = raw('../../../../docs/ONBOARDING.md');
     const row = doc.split('\n').find((line) => line.includes('| Save your plan (`save`) |'));
     assert.ok(row, 'docs/ONBOARDING.md has no row for the save page');
-    const paraAt = doc.indexOf('**The age question sits on the save page.**');
-    assert.ok(paraAt > 0, 'docs/ONBOARDING.md no longer explains the age question on the save page');
-    const para = doc.slice(paraAt, doc.indexOf('\n\n', paraAt)).replace(/\s+/g, ' ');
+    const para = ageParagraph();
     const overclaim = /\b(for|the rest of) the session\b|until the app is closed/i;
     assert.doesNotMatch(row, overclaim, 'the save page row says the refusal lasts the session');
     assert.doesNotMatch(para, overclaim, 'the age question paragraph says the refusal lasts the session');
-    assert.match(row, /moving between the pages does not undo/, 'the save page row no longer says what the refusal survives');
+    assert.match(
+      row,
+      /Moving between the pages and leaving through "I have an account" do not undo it for the rest of the launch/,
+      'the save page row no longer says what the refusal survives',
+    );
     assert.match(
       para,
-      /Moving back and forward between the pages does not undo it\. Leaving through "I have an account" starts the first run fresh, and closing the app reopens the save page with the question asked again, the same close-the-app escape the age gate keeps for a mis-tap\./,
-      'the doc no longer names what starts the first run fresh after a refusal, and what a relaunch shows',
+      /Moving back and forward between the pages does not undo it, and neither does leaving through "I have an account" and coming back: the refusal holds for the rest of the launch\./,
+      'the doc no longer names what the refusal survives',
     );
+    assert.match(para, /Signing in and out again does not end it; only closing the app does\./, 'the doc no longer says what does end the refusal');
+    assert.doesNotMatch(para, /Signing in ends|until someone signs in/i, 'the doc says a sign-in ends the refusal, which narrows the founder\'s answer (F641)');
     // The screen's own comments make the same promise, and no bigger one.
     assert.doesNotMatch(raw('./PreAccountOnboarding.tsx'), /stays for the session|rest of the session|until the app is closed/i);
   });
 
-  test('the onboarding doc says a relaunch after the under-13 refusal reopens the save page with the question asked again', () => {
-    // F638. "Save my plan" writes page 'save' to the draft, App.tsx saves every
-    // draft to the device, and "I am younger than that" writes nothing. So a
-    // relaunch opens on the save page with the refusal gone and the pill live.
-    // That is the age gate's close-the-app escape for a mis-tap, and the words
-    // must not promise a fresh start. If a refusal ever clears the draft (F639),
-    // the pins below fail: rewrite the doc, the comment and this test together.
-    const raw = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-    // Comment lines joined into prose, so a sentence split across `//` lines still reads whole.
-    const prose = (text: string) => text.replace(/\n\s*(?:\/\/|\*)[ \t]?/g, ' ').replace(/\s+/g, ' ');
-    const closingStartsFresh =
-      /closing the app[^.]{0,80}starts the first run fresh|starts the first run fresh,? (?:when|if|after|once|on) [^.]{0,30}(?:clos|relaunch|quit)/i;
+  test('the onboarding doc says a relaunch after the under-13 refusal starts at the first page with nothing kept', () => {
+    // F638, rewritten for F639. The words once said a relaunch reopens the
+    // save page with the question asked again, which was true while a refusal
+    // wrote nothing. The founder chose to clear on refusal (2026-09-30): the
+    // saved draft goes, and nothing is saved again that launch, so a relaunch
+    // opens the first page with no answers and no first name. The refusal
+    // itself is memory only, never a marker on the device, so the words must
+    // not promise it survives a relaunch either: that is the option the
+    // founder did not choose.
+    const reopensSave = /(?:clos|reopen|relaunch)[^.]{0,80}(?:reopens|opens on|back on|returns to) the save page/i;
+    const survives =
+      /refusal[^.]{0,60}(?:survives|outlasts|is remembered|is stored|is saved|stays after)[^.]{0,40}(?:clos|relaunch|reopen|restart)|(?:never|not) asked again|remembers? the refusal/i;
     for (const [name, text] of [
       ['docs/ONBOARDING.md', raw('../../../../docs/ONBOARDING.md')],
       ['PreAccountOnboarding.tsx', raw('./PreAccountOnboarding.tsx')],
     ] as const) {
-      assert.doesNotMatch(prose(text), closingStartsFresh, `${name} says closing the app starts the first run fresh, but a relaunch reopens the save page`);
+      assert.doesNotMatch(prose(text), reopensSave, `${name} says a relaunch reopens the save page, but the refusal clears the draft`);
+      assert.doesNotMatch(prose(text), survives, `${name} says the refusal outlasts a relaunch, but it is never written to the device`);
     }
 
-    const doc = raw('../../../../docs/ONBOARDING.md');
-    const paraAt = doc.indexOf('**The age question sits on the save page.**');
-    assert.ok(paraAt > 0, 'docs/ONBOARDING.md no longer explains the age question on the save page');
-    const para = prose(doc.slice(paraAt, doc.indexOf('\n\n', paraAt)));
-    assert.match(para, /closing the app reopens the save page/, 'the age question paragraph no longer says what a relaunch after a refusal shows');
+    const para = ageParagraph();
+    assert.match(
+      para,
+      /It also clears the saved first-run draft, including any first name typed, and nothing is saved again in that launch, so reopening the app starts at the first page with nothing kept\./,
+      'the age question paragraph no longer says what a relaunch after a refusal shows',
+    );
+    assert.match(
+      para,
+      /The refusal itself lives in memory only and is never written to the device, so after a relaunch the question can be asked again, the same close-the-app escape the age gate keeps for a mis-tap\./,
+      'the age question paragraph no longer says a relaunch may ask again',
+    );
 
-    // What makes it true: moving page is written to the draft, the refusal is
-    // not, and the screen opens on the draft's page with no refusal.
-    const go = SCREEN.slice(SCREEN.indexOf('const go = '), SCREEN.indexOf('const sayReply'));
-    assert.match(go, /keep\(\{ page: to \}\)/, 'moving page is no longer written to the draft, so a relaunch may not reopen the save page');
+    // What makes it true: with no draft the screen opens on the first page
+    // with an empty name, the refusal is never written to the draft, and once
+    // refused nothing reaches the draft at all.
+    assert.match(SCREEN, /useState<PreAccountPage>\(\(\) => initialDraft\?\.page \?\? 'hear-it'\)/, 'with no draft the screen opens somewhere other than the first page');
+    assert.match(SCREEN, /const \[nameText, setNameText\] = useState\(\(\) => initialDraft\?\.firstName \?\? ''\);/, 'with no draft the name field is not empty');
+    assert.doesNotMatch(SCREEN, /keep\(\{[^}]*(?:underAge|refus)/, 'the refusal is written to the draft, which the founder did not choose');
+    assert.match(keepSource(), /if \(!underAge\) onDraftChange\(next\);/, 'a refused screen still writes the draft, so a relaunch would reopen mid-flow');
+  });
+
+  test('a refusal on the save page clears the saved draft, so a relaunch starts at the first page and keeps no first name', () => {
+    // F639, founder 2026-09-30: clear on refusal. "Save my plan" wrote page
+    // 'save' to the device, and so did any first name typed. The refusal now
+    // hands off through `onRefuse`, which AuthFlow passes up to App.tsx, where
+    // it runs the same discard the sign-in links use, and once refused this
+    // screen writes nothing again, so moving page cannot put the draft back.
+    const refuse = refuseSource();
+    assert.match(refuse, /setUnderAge\(true\);/, 'the younger link no longer shows the refusal');
+    assert.match(refuse, /onRefuse\?\.\(\);/, 'the refusal does not tell the flow, so the saved draft stays on the device');
+    assert.doesNotMatch(refuse, /\bkeep\(|onDraftChange/, 'the refusal writes to the draft it should clear');
     assert.match(
       SCREEN,
-      /<GhostButton label=\{YOUNGER\} color=\{paper\.ink\} onPress=\{\(\) => setUnderAge\(true\)\} \/>/,
-      'the younger link now does more than set the refusal: check whether it writes or clears the draft, and move the doc with it',
+      /<GhostButton label=\{YOUNGER\} color=\{paper\.ink\} onPress=\{refuse\} \/>/,
+      'the younger link does not go through the refusal handler',
     );
-    assert.doesNotMatch(SCREEN, /keep\(\{[^}]*underAge/, 'the refusal is written to the draft, so a relaunch no longer asks again');
-    assert.match(SCREEN, /useState<PreAccountPage>\(\(\) => initialDraft\?\.page \?\? 'hear-it'\)/, 'the screen no longer opens on the saved page');
-    assert.match(SCREEN, /const \[underAge, setUnderAge\] = useState\(false\);/, 'the screen no longer opens with the question unanswered');
+
+    // Once refused, nothing reaches the device again this launch.
+    assert.match(keepSource(), /if \(!underAge\) onDraftChange\(next\);/, 'a refused screen still saves the draft, so the next page move writes it back');
+    assert.equal((SCREEN.match(/\bonDraftChange\(/g) ?? []).length, 1, 'the draft is written from somewhere other than keep');
+
+    // The flow passes the refusal up, and App.tsx clears the draft with it.
+    const flow = element(read('../auth/AuthFlow.tsx'), 'PreAccountOnboarding');
+    assert.match(flow, /\bonRefuse=\{onRefuse\}/, 'AuthFlow does not pass the refusal up, so nothing clears the draft');
+    const app = read('../../App.tsx');
+    assert.match(element(app, 'AuthFlow'), /\bonRefuse=\{refusePreAccount\}/, 'App.tsx does not hear the refusal');
+    const refuseInApp = app.slice(app.indexOf('const refusePreAccount'), app.indexOf('}, [discardPreAccountDraft]);', app.indexOf('const refusePreAccount')));
+    assert.match(refuseInApp, /\bdiscardPreAccountDraft\(\);/, 'App.tsx does not clear the draft on a refusal');
+    const discard = app.slice(app.indexOf('const discardPreAccountDraft'), app.indexOf('}, []);', app.indexOf('const discardPreAccountDraft')));
+    assert.match(discard, /setPreAccountDraft\(null\);/, 'the discard keeps the draft in memory, so the screen could resume it');
+    assert.match(discard, /void clearPreAccountDraft\(\);/, 'the discard leaves the draft on the device');
+
+    // The clear takes the whole key, first name and page with it, and a
+    // launch with no draft opens on the first page with an empty name.
+    const draft = read('./preAccountDraft.ts');
+    assert.match(draft, /firstName: string \| null;/, 'the first name no longer rides the draft: check what the refusal must clear');
+    assert.match(draft, /export function clearPreAccountDraft\(\): Promise<void> \{\s*draftGeneration\+\+;\s*return enqueueDraft\(\(\) => AsyncStorage\.removeItem\(KEY\)\);/, 'the clear no longer removes the whole draft');
+    assert.match(SCREEN, /useState<PreAccountPage>\(\(\) => initialDraft\?\.page \?\? 'hear-it'\)/, 'with no draft the screen opens somewhere other than the first page');
+    assert.match(SCREEN, /const \[nameText, setNameText\] = useState\(\(\) => initialDraft\?\.firstName \?\? ''\);/, 'with no draft the name field is not empty');
+  });
+
+  test('the under-13 refusal holds across the sign-in detour for the rest of the launch', () => {
+    // F637, founder 2026-09-30: firmer. The refusal lives in Gate in App.tsx,
+    // which stays mounted for the whole launch (F641), and AuthFlow hands it
+    // back to the screen whenever the first run is shown again. So "I have an
+    // account", then SignIn's back, meets the refusal it left. It is memory
+    // only: a marker on the device would be new data about a minor with a
+    // retention period, which the founder did not choose.
+    assert.match(SCREEN, /\brefused\?: boolean;/, 'the screen takes no refusal from the flow');
+    assert.match(SCREEN, /\bonRefuse\?: \(\) => void;/, 'the screen cannot tell the flow it refused');
+    assert.match(SCREEN, /\brefused = false,/, 'a screen mounted without the flow is not unrefused by default');
+    assert.match(SCREEN, /const \[underAge, setUnderAge\] = useState\(refused\);/, 'the screen does not seed its refusal from the flow');
+    assert.doesNotMatch(SCREEN, /setUnderAge\(false\)/, 'something on the screen undoes the refusal');
+    assert.match(keepSource(), /if \(!underAge\) onDraftChange\(next\);/, 'a refused screen still writes the draft');
+
+    const auth = read('../auth/AuthFlow.tsx');
+    const app = read('../../App.tsx');
+    assert.match(app, /const \[preAccountRefused, setPreAccountRefused\] = useState\(false\);/, 'nothing above the screen holds the refusal');
+    assert.equal((app.match(/setPreAccountRefused\(/g) ?? []).length, 1, 'the refusal is set or cleared from more than one place');
+    assert.match(app, /setPreAccountRefused\(true\);/, 'the refusal is never held');
+    assert.match(element(app, 'AuthFlow'), /\brefused=\{preAccountRefused\}/, 'App.tsx does not hand the refusal to the flow');
+    assert.equal((auth.match(/<PreAccountOnboarding\b/g) ?? []).length, 1, 'the first run is drawn from more than one place in the flow');
+    const flow = element(auth, 'PreAccountOnboarding');
+    assert.match(flow, /\brefused=\{refused\}/, 'the flow does not hand the refusal back to the screen');
+    assert.match(flow, /\bonRefuse=\{onRefuse\}/, 'the flow does not pass the refusal up');
+    // Sign in's back returns to the one welcome, which carries the refusal.
+    assert.match(auth, /<SignInScreen onBack=\{\(\) => setScreen\('welcome'\)\}/, 'sign-in no longer returns to the first run');
+    // Nothing remounts the flow while signed out.
+    assert.doesNotMatch(element(app, 'AuthFlow'), /\bkey=/, 'App.tsx keys the flow, so a new key would drop the refusal');
+
+    // Memory only, in both files, and the draft has no field for it.
+    for (const [name, source] of [['AuthFlow.tsx', auth], ['PreAccountOnboarding.tsx', SCREEN]] as const) {
+      assert.doesNotMatch(source, /AsyncStorage|SecureStore|localStorage|savePreAccountDraft|clearPreAccountDraft/, `${name} writes to the device itself`);
+    }
+    assert.doesNotMatch(read('./preAccountDraft.ts'), /refus|underAge/i, 'the draft carries the refusal to the device');
   });
 
   test('every answer and the page go through the draft, so a return resumes where it left', () => {

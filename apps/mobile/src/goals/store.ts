@@ -19,7 +19,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, scopeGeneration, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, userKey, setItemInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import {
   GOAL_STEPS_VERSION,
@@ -52,14 +52,13 @@ function serialized<T>(mutation: (bound: Bound) => Promise<T>): Promise<T> {
   return next;
 }
 
-/** The raw parsed blob, or null when absent or unparseable. */
+/** The raw parsed blob, or null only when absent. Unread local data must block adoption. */
 async function persisted(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return null;
+  const parsed: unknown = JSON.parse(raw);
+  if (readGoalSteps(parsed) === null || !(parsed as StoredGoalSteps).steps.every(isGoalStepEvent)) throw new Error('goal steps could not be read');
+  return parsed;
 }
 
 async function readStored(key: string): Promise<StoredGoalSteps | 'newer' | 'unreadable'> {
@@ -70,23 +69,24 @@ async function readStored(key: string): Promise<StoredGoalSteps | 'newer' | 'unr
   } catch {
     return 'unreadable';
   }
-  if (!raw) return empty;
+  if (raw === null) return empty;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw) as unknown;
   } catch {
-    return empty;
+    return 'unreadable';
   }
   const version = typeof parsed === 'object' && parsed !== null ? (parsed as { version?: unknown }).version : undefined;
   if (typeof version === 'number' && version > GOAL_STEPS_VERSION) return 'newer';
-  return readGoalSteps(parsed) ?? empty;
+  const stored = readGoalSteps(parsed);
+  return stored !== null && (parsed as StoredGoalSteps).steps.every(isGoalStepEvent) ? stored : 'unreadable';
 }
 
 /** Write only if the scope this work was bound under still stands. */
 async function write(bound: Bound, value: StoredGoalSteps, origin: 'local' | 'adopted'): Promise<PersistAck> {
   if (scopeGeneration() !== bound.generation) return 'failed';
   try {
-    await AsyncStorage.setItem(bound.key, JSON.stringify(value));
+    await setItemInUserScope(bound.generation, bound.key, JSON.stringify(value));
   } catch {
     return 'failed';
   }
@@ -97,12 +97,12 @@ async function write(bound: Bound, value: StoredGoalSteps, origin: 'local' | 'ad
 /**
  * Every readable row for the signed-in account, one per (kind, id), oldest
  * first. Rejects when the disk cannot be read at all, so a screen can tell a
- * failed read from an empty record; a newer build's disk reads as empty.
+ * failed read from an empty record. A newer build's disk is also unreadable.
  */
 export async function loadGoalSteps(): Promise<GoalStepEvent[]> {
   const stored = await readStored(KEY());
-  if (stored === 'unreadable') throw new Error('goal steps could not be read');
-  return stored === 'newer' ? [] : uniqueGoalSteps(stored.steps);
+  if (stored === 'unreadable' || stored === 'newer') throw new Error('goal steps could not be read');
+  return uniqueGoalSteps(stored.steps);
 }
 
 /**
@@ -146,10 +146,11 @@ export function recordUsedOutside(input: { stepId: string; goalKey: string; at: 
  */
 function adoptGoalSteps(fold: SyncFold): Promise<SyncAdoption> {
   return serialized(async (bound) => {
-    const folded = readGoalSteps(fold(await persisted(bound.key)));
+    let current: unknown;
+    try { current = await persisted(bound.key); } catch { return 'declined'; }
+    const folded = readGoalSteps(fold(current));
     if (folded === null) return 'declined';
-    await write(bound, folded, 'adopted');
-    return 'adopted';
+    return (await write(bound, folded, 'adopted')) === 'durable' ? 'adopted' : 'declined';
   });
 }
 

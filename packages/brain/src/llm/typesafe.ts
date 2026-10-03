@@ -194,6 +194,7 @@ export class TypeSafeClient {
   }
 
   private send(body: string, signal?: AbortSignal) {
+    signal?.throwIfAborted();
     return this.fetchFn(`${this.config.baseUrl}/systemone`, {
       method: 'POST',
       headers: {

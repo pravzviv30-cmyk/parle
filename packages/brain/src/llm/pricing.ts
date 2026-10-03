@@ -26,6 +26,8 @@ export interface MtokPrices {
 }
 
 export const USD_PER_MTOK: Record<string, MtokPrices> = {
+  // Standard short-context rates, official model page checked 2026-10-02.
+  'gpt-6-luna': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
   'gpt-5.6-luna': { input: 0.2, output: 1.2, cacheRead: 0.02, cacheWrite: 0.25 },
   'gpt-5.6-terra': { input: 2, output: 12, cacheRead: 0.2, cacheWrite: 2.5 },
   'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },

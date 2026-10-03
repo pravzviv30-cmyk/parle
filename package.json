@@ -39,7 +39,7 @@
   },
   "luvani": {
     "dependencyAudit": {
-      "reviewed": "2026-09-19",
+      "reviewed": "2026-10-03",
       "auditFailsAbove": "moderate",
       "note": "Every advisory npm audit reports is listed here exactly once, keyed on the vulnerable package rather than on the dependants that inherit it. `npm run audit:ci` refuses any high or critical advisory whose package is not on this list, and refuses an accepted entry whose advisory has gone away, so the record cannot rot in either direction. `lockedAt` is the version package-lock.json carries today; ciContract.test.ts pins it, so a later install cannot move one of these without a person re-reading the reachability argument.",
       "advisories": [
@@ -48,6 +48,7 @@
           "severity": "high",
           "decision": "fixed",
           "lockedAt": "56.0.2",
+          "removedPackages": ["image-size"],
           "advisories": [
             "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
             "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq"
@@ -80,6 +81,30 @@
           "chain": "expo -> @expo/config-plugins -> xcode -> uuid",
           "reachability": "not reached. The advisory is a missing bounds check in v3, v5 and v6 when a caller supplies its own buf. xcode's only use of uuid is `uuid.v4()` at lib/pbxProject.js:90, with no buf argument, and no source file in this repo imports uuid at all. The chain is also build time only: xcode writes Xcode project files during an Expo prebuild, and ios/ and android/ are gitignored here.",
           "why": "The fix is uuid >= 11.1.1 against xcode's declared ^7.0.3 — four majors of forced bump, on an unreachable call site, and xcode 3.0.1 is the newest version published so there is no dependant to move instead. Moderate, so `npm run audit:ci` reports it rather than failing on it."
+        },
+        {
+          "module": "braces",
+          "severity": "high",
+          "decision": "accepted",
+          "lockedAt": "3.0.3",
+          "advisories": [
+            "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm"
+          ],
+          "chain": "expo -> @expo/cli -> @expo/metro-file-map -> micromatch -> braces; the retained @expo/metro -> metro-file-map build chain also resolves this copy",
+          "reachability": "Build/development watcher only. Metro's includedByGlob matches filesystem paths against project-authored glob patterns; its no-glob fallback is the constant **/*. Luvani does not accept learner-supplied glob patterns, and no app or service runtime imports braces or micromatch. The service dependency closures do not reach either package. An attacker would need to change trusted project/build configuration to supply the nested pattern in this advisory.",
+          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 3.0.3 is still the latest published release and the advisory has no patched version. npm's proposed fix is an incompatible downgrade to Expo 44, which cannot run the SDK 57 app. Retain a temporary build-only exception, not a claim that braces is patched; revisit when a compatible upstream fix exists, and before accepting external patterns in a build service. Unknown high roots still fail audit:ci. The separate brace-expansion copy is patched to 5.0.12."
+        },
+        {
+          "module": "node-forge",
+          "severity": "high",
+          "decision": "accepted",
+          "lockedAt": "1.4.0",
+          "advisories": [
+            "https://github.com/advisories/GHSA-86w9-cpqp-85rv"
+          ],
+          "chain": "expo -> @expo/cli -> node-forge; @expo/cli -> @expo/code-signing-certificates -> node-forge",
+          "reachability": "Expo build/development tooling only. The CLI parses local iOS signing certificates and EAS-issued development certificates, validates a locally configured certificate with its matching private key, and signBufferRSASHA256AndVerify checks a signature it has just generated. Luvani has no expo-updates dependency, imports no Forge or Expo certificate verifier in application code, and its service dependency closures do not reach Forge. These checks do not authenticate a learner or authorise a billing operation.",
+          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 1.4.0 is still the latest published release and this incomplete RSA verification fix has no patched release. npm's proposed Expo 44 downgrade is incompatible with SDK 57. Record a temporary tooling exception rather than a security fix. Keep development certificate inputs trusted; revisit on a compatible upstream patch and before enabling remote-update signing or using this verifier for untrusted external signatures. CI keeps the exact version, build-only boundaries and refusal of unknown high roots under test."
         }
       ]
     }

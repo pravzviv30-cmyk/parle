@@ -98,7 +98,7 @@ const KEPT = [
   'New phrases',
   'Next step',
   'One sound to practise next',
-  'You',
+  // The leaderboard-only 'You' badge retired with that unreachable screen.
 ];
 
 /**
@@ -125,9 +125,7 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
   // French structure names the group "French you can use". Same constant, same
   // module, still drawn as a caps label by SituationsCard.
   { words: 'French you can use', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
-  { words: 'Your phrase shelf', from: 'myfrench/copy.ts', name: 'SHELF_LABEL' },
   { words: 'Your tutor', from: 'profile/frenchLife.ts', name: 'TUTOR_LABEL' },
-  { words: 'Your speaking rhythm', from: 'profile/frenchLife.ts', name: 'RHYTHM_LABEL' },
   { words: 'Your learning', from: 'profile/frenchLife.ts', name: 'LEARNING_LABEL' },
 ];
 
@@ -138,7 +136,7 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
  * the app takes, and a button word is not a caps label. These three are the
  * only components that turn the prop into `<Label>`.
  */
-const LABEL_PRIMITIVES = ['surface/PhraseCard.tsx'];
+const LABEL_PRIMITIVES: string[] = [];
 
 describe('the caps micro-label — what it is allowed to be used for', () => {
   test('the retired kickers stay retired', () => {
@@ -181,7 +179,7 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     const header = readFileSync(join(SRC, 'layout.tsx'), 'utf8');
     assert.match(
       header,
-      /flex: 1, alignItems: 'center'/,
+      /flex: 1, alignItems: 'flex-start'/,
       'the shared header centre no longer expands, so it cannot push the leave word to the edge',
     );
     assert.match(

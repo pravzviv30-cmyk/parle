@@ -109,8 +109,14 @@ export interface SpeakRow {
   missionId: Mission['id'];
   /** "You are here" on the one row that is, and nothing on the rest. */
   label?: string;
+  /**
+   * The scene's own French name, `mission.title` ("Le premier café"). Revamp B
+   * draws a scene by its French name first (F603), with the English under it.
+   */
+  french: string;
   /** The scene's name in the learner's language. */
   title: string;
+  progressLabel: string;
   /** The can-do, or the earned line once it is earned. */
   gloss: string;
   /** "About N minutes", from the mission's own shape. */
@@ -156,20 +162,55 @@ export function speakPath(progress: readonly MissionProgress[]): SpeakPath {
         const title = mission.titleEn;
         const gloss = state === 'earned' ? mission.earnedEn : mission.canDoEn;
         const meta = minutesLine(missionMinutes(mission));
+        const mine = progress.find((item) => item.mission.id === mission.id);
+        const progressLabel = state === 'earned' ? 'Independently used' : mine && mine.timesFinished > 0 ? 'Practised with support' : state === 'here' ? 'Next scene' : 'Available scene';
         return {
           missionId: mission.id,
           ...(state === 'here' ? { label: YOU_ARE_HERE } : {}),
+          french: mission.title,
           title,
+          progressLabel,
           gloss,
           meta,
           state,
-          accessibilityLabel: `${title}, ${gloss}, ${meta}, ${WHERE[state]}`,
+          accessibilityLabel: `${title}, ${gloss}, ${progressLabel}, ${meta}, ${WHERE[state]}`,
           route: { screen: 'Missions', params: { focus: mission.id } },
         };
       }),
   })).filter((group) => group.rows.length > 0);
 
   return { groups };
+}
+
+/** What Speak's one path card holds: the level the learner is in, and a line for the next. */
+export interface PathCard {
+  level: 'A0' | 'A1';
+  /** Every scene of that level, in spine order, each with its mark and French name. */
+  rows: SpeakRow[];
+  /** "Then A1, 4 more scenes", or null when nothing comes after this level. */
+  rest: string | null;
+}
+
+/**
+ * The path, as Speak's one card (revamp B, F603).
+ *
+ * Speak used to draw every scene on the spine as a ledger row. The card holds
+ * only the level the learner is working in, which is the group with the "here"
+ * row in it; once every scene is earned there is no "here", and the last level
+ * stands. The level after it is named in one line rather than drawn, and the
+ * card itself opens the list of every scene. The count is the spine's own, so
+ * the line promises nothing the list does not show.
+ */
+export function pathCard(path: SpeakPath): PathCard {
+  const at = path.groups.findIndex((group) => group.rows.some((row) => row.state === 'here'));
+  const index = at === -1 ? path.groups.length - 1 : at;
+  const group = path.groups[index]!;
+  const after = path.groups[index + 1];
+  return {
+    level: group.level,
+    rows: group.rows,
+    rest: after === undefined ? null : `Then ${after.level}, ${after.rows.length} more ${after.rows.length === 1 ? 'scene' : 'scenes'}`,
+  };
 }
 
 /**

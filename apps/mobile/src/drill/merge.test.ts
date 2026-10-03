@@ -11,7 +11,7 @@
 
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import type { DrillExercise, FillBlankExercise, TapTranslateExercise, TranslationExercise } from '@luvani/core';
+import { DRILL_FIXTURES, type DrillExercise, type FillBlankExercise, type TapTranslateExercise, type TranslationExercise } from '@luvani/core';
 
 import { MAX_DRILL_EXERCISES, mergeExerciseBank } from './merge.ts';
 
@@ -186,14 +186,14 @@ describe('folding a generated batch into the drill bank — replace, never accum
   });
 
   test('generated variations are capped while authored offline drills survive', () => {
-    const authored = fillBlank({ id: 'fixture:coffee' });
+    const authored = DRILL_FIXTURES[0]!;
     const generated = Array.from({ length: MAX_DRILL_EXERCISES + 20 }, (_, index) =>
       fillBlank({ id: `gen:${index}`, phraseKey: `phrase:${index}` }),
     );
     const merged = mergeExerciseBank([authored], generated);
 
     assert.equal(merged.length, MAX_DRILL_EXERCISES);
-    assert.equal(merged[0]!.id, 'fixture:coffee');
+    assert.equal(merged[0]!.id, authored.id);
     assert.equal(merged.at(-1)!.id, `gen:${MAX_DRILL_EXERCISES + 19}`);
   });
 });

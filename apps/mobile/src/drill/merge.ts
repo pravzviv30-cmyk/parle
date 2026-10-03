@@ -21,7 +21,7 @@
  * one incoming exercise can only leave one exercise behind.
  */
 
-import type { DrillExercise } from '@luvani/core';
+import { DRILL_FIXTURES, type DrillExercise } from '@luvani/core';
 
 /** A generous offline bank, bounded so parsing and rendering never grow forever. */
 export const MAX_DRILL_EXERCISES = 160;
@@ -61,13 +61,17 @@ export function mergeExerciseBank(
   }
   if (merged.length <= MAX_DRILL_EXERCISES) return merged;
 
-  // Authored fixtures are the reliable offline floor. Generated variations are
-  // the part that ages, so retain the newest ones inside the remaining budget.
-  const authored = merged.filter((exercise) => !exercise.id.startsWith('gen:'));
-  const generated = merged.filter((exercise) => exercise.id.startsWith('gen:'));
-  const room = Math.max(0, MAX_DRILL_EXERCISES - authored.length);
-  return [
-    ...authored.slice(0, MAX_DRILL_EXERCISES),
-    ...(room === 0 ? [] : generated.slice(-room)),
-  ];
+  // Only the shipped formats are the offline floor. A pack's authored id is
+  // still learner-specific material, not an immortal fixture. Reserve the
+  // fixture formats, then prefer this batch and the newest remaining rows.
+  const fixtureFormats = new Set(DRILL_FIXTURES.map(exerciseIdentity));
+  const floor = merged.filter(exercise => fixtureFormats.has(exerciseIdentity(exercise)));
+  const variable = merged.filter(exercise => !fixtureFormats.has(exerciseIdentity(exercise)));
+  const incomingFormats = new Set(incoming.map(exerciseIdentity));
+  const fresh = variable.filter(exercise => incomingFormats.has(exerciseIdentity(exercise)));
+  const older = variable.filter(exercise => !incomingFormats.has(exerciseIdentity(exercise)));
+  const room = Math.max(0, MAX_DRILL_EXERCISES - floor.length);
+  const heldFresh = room === 0 ? [] : fresh.slice(-room);
+  const olderRoom = Math.max(0, room - heldFresh.length);
+  return [...floor.slice(0, MAX_DRILL_EXERCISES), ...(olderRoom === 0 ? [] : older.slice(-olderRoom)), ...(room === 0 ? [] : heldFresh)];
 }

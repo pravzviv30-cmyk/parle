@@ -1,3 +1,4 @@
+import { WALK_AVAILABLE } from '../walk/observer.ts';
 /**
  * Speak: who is teaching, the next conversation, and the path from A0 to A1.
  *
@@ -23,8 +24,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { missionStates, type MissionProgress } from '@luvani/core';
+import { memoryPaused } from '@luvani/brain/profile';
+import { todayItems } from '../daily/catalogue.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { ownedReadStatus } from './ownedRead.ts';
 
-import { Card, GhostButton, Highlight, Label, Ledger, LedgerRow, OutlineButton, PillButton, TutorCard } from '../components.tsx';
+import { Card, GhostButton, Highlight, Label, Ledger, LedgerRow, OutlineButton, PillButton, TutorCard, SceneBrief, SceneMark, Press, canDoSentence } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -40,8 +45,10 @@ import { loadMissionCompletions } from '../missions/store.ts';
 import { MICROPHONE_NOTICE, missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { loadDeck } from '../review/store.ts';
-import { HIT, paper, space, type } from '../theme.ts';
-import { TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
+import { frenchText, HIT, paper, space, type } from '../theme.ts';
+import { sceneMeta } from '../home/estimate.ts';
+import { Illustration } from '../art/flat/Illustration.tsx';
+import { tutorHeading } from '../tutor/dashboard.ts';
 import { launchAccessibilityLabel, launchLabel, launchNotice, tutorOrbState } from '../tutor/orbState.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { ContinuityCard } from '../tutor/ContinuityCard.tsx';
@@ -59,6 +66,7 @@ import {
   PATH_LABEL,
   moreWaysOpen,
   speakPath,
+  pathCard,
   startModes,
   startNote,
   tutorCardFacts,
@@ -81,6 +89,10 @@ export function TutorTab() {
   useEffect(() => { if (live) setHeldBack(null); }, [live]);
   const [checking, setChecking] = useState(false);
   const [progress, setProgress] = useState<readonly MissionProgress[]>(() => missionStates([], [], Date.now()));
+  const [historyStatus, setHistoryStatus] = useState<'loading' | 'ready' | 'unread'>('loading');
+  const [historyReadOwner, setHistoryReadOwner] = useState(() => scopeGeneration());
+  const [historyReadyOwner, setHistoryReadyOwner] = useState<number | null>(null);
+  const [historyAttempt, setHistoryAttempt] = useState(0);
   const pendingStart = useRef<object>({});
   const starting = useRef(false);
   /** What the tutor remembers, from a real record only, or null. */
@@ -116,25 +128,31 @@ export function TutorTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const scope = scopeGeneration();
+      setHistoryReadOwner(scope);
+      setHistoryReadyOwner(null);
+      setHistoryStatus('loading');
       void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress(), loadConversationPacks(), loadPackMarks(), loadTopics()])
         .then(([completions, deck, scenes, packs, marks, topics]) => {
-          if (cancelled) return;
+          if (cancelled || scopeGeneration() !== scope) return;
           // One projection of where every scene stands, handed to the path,
           // the memory line and the thread, so they cannot disagree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, Date.now());
           setProgress(progress);
-          setContinuity(continuityFrom({ brain: profile.brain, packs, records: scenes, progress }));
+          setContinuity(continuityFrom({ brain: memoryPaused(profile.brain) ? null : profile.brain, packs, records: scenes, progress }));
           setThread(threadFrom({ records: scenes, progress, packs, marks, topics }));
+          setHistoryReadyOwner(scope);
+          setHistoryStatus('ready');
         })
         // A disk that will not answer takes nothing away: the path keeps what
         // it last read, and a re-read that failed is not evidence that a
         // thread is gone. `.catch` at the end of the chain, so a throw inside
         // the handler above is caught too.
-        .catch(() => {});
+        .catch(() => { if (!cancelled && scopeGeneration() === scope) setHistoryStatus('unread'); });
       return () => {
         cancelled = true;
       };
-    }, [profile]),
+    }, [profile, historyAttempt]),
   );
 
   /**
@@ -174,10 +192,13 @@ export function TutorTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const scope = scopeGeneration();
+      setCanStart(null);
+      setPlan({ tier: 'unknown', lapsed: false });
       if (!live || user === null) return;
       void fetchBillingStatus(user.id)
         .then((status) => {
-          if (cancelled) return;
+          if (cancelled || scopeGeneration() !== scope) return;
           setCanStart(status === null ? null : status.canStart);
           setPlan(status === null ? { tier: 'unknown', lapsed: false } : { tier: status.plan, lapsed: status.lapsed });
         })
@@ -192,7 +213,9 @@ export function TutorTab() {
   const offlineShown = !live || heldBack !== null;
   const note = startNote(orb, offlineShown);
   const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc);
-  const path = speakPath(progress);
+  const path = pathCard(speakPath(progress));
+  const currentScope = scopeGeneration();
+  const renderHistoryStatus = ownedReadStatus(historyStatus, historyReadOwner, historyReadyOwner, currentScope);
 
   // The open conversation probes like the Start; the other two push a screen.
   const more = (way: MoreWay) => {
@@ -200,72 +223,29 @@ export function TutorTab() {
     nav.navigate(way.screen);
   };
 
+  const primary = <PillButton tone={offlineShown ? 'ink' : 'white'}
+    label={offlineShown ? (checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry) : launchLabel({ checking, live, mode: modes.mode })}
+    accessibilityLabel={offlineShown ? TUTOR_OFFLINE.retry : launchAccessibilityLabel({ checking, live, mode: modes.mode, tutorName })}
+    disabled={checking} onPress={() => open(heldBack?.textMode ?? modes.textMode, heldBack ? pendingStart.current : next.params)} />;
+
+  if (renderHistoryStatus !== 'ready') return <ScrollScreen bottom="tab">
+    <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
+    <Card style={st.offline}>
+      <Text style={[type.body, { color: paper.ink }]}>{renderHistoryStatus === 'loading' ? 'Finding your next conversation.' : 'Your conversation history could not be read just now.'}</Text>
+      {renderHistoryStatus === 'unread' && <GhostButton label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
+      <GhostButton label="Practise today's phrase on this phone" onPress={() => nav.navigate('DailyPractice', { id: todayItems(0, Date.now()).phrase.id })} />
+    </Card>
+  </ScrollScreen>;
+
   return (
     <ScrollScreen bottom="tab">
-      <TabHeader title={tutorHeading(tutorName)} purpose={TUTOR_PURPOSE} trailing={<ProfileButton />} />
-
-      <TutorCard
-        name={card.name}
-        voice={card.voice}
-        signature={card.signature}
-        onHear={hear}
-        playing={playing}
-        onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}
-        changeLabel={CHANGE_VOICE}
-      />
-
-      {/* The one Start, in the learner's standing mode; the other is a quiet link. */}
-      <View style={st.start}>
-        <Label>{next.label}</Label>
-        <Text style={[type.cardTitle, { color: paper.ink }]}>{next.title}</Text>
-        <Text style={[type.small, { color: paper.inkSoft }]}>{next.detail}</Text>
-        {next.lines.map((line) => <Text key={line} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
-        {note !== null && <Text style={st.notice}>{note}</Text>}
-        <PillButton label={launchLabel({ checking, live, mode: modes.mode })} accessibilityLabel={launchAccessibilityLabel({ checking, live, mode: modes.mode, tutorName })} disabled={checking} onPress={() => open(modes.textMode, next.params)} />
-        <GhostButton label={modes.other.label} color={paper.ink} disabled={checking} onPress={() => open(modes.other.textMode, next.params)} />
-        <Text style={st.notice}>{launchNotice(modes.mode)}</Text>
-      </View>
-
-      {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
-
-      {offlineShown && (
-        <Card style={st.offline}>
-          <Label>{TUTOR_OFFLINE.label}</Label>
-          <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
-          {heldBack !== null && (
-            <>
-              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_OFFLINE.body}</Text>
-              <View style={{ marginTop: space(3) }}>
-                <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode, pendingStart.current)} />
-              </View>
-            </>
-          )}
-          <GhostButton label="Try guided practice" onPress={() => nav.navigate('Lesson', { textMode: false })} />
-        </Card>
-      )}
-
-      {/* The path, drawn once: A0 then A1 from the spine, every scene a row
-          with its can-do and minutes that opens its brief in the chooser, and
-          the "here" row carrying the screen's one highlighter mark. */}
-      <View style={st.path}>
-        <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PATH_LABEL}</Text>
-        {path.groups.map((group) => (
-          <View key={group.level} style={st.group}>
-            <Label>{group.level}</Label>
-            <Ledger accessibilityLabel={`${group.level} scenes`}>
-              {group.rows.map((row) => (
-                <LedgerRow key={row.missionId} label={row.label} title={row.title} gloss={row.gloss} meta={row.meta} trailing={row.state === 'here' ? <Highlight text={HERE_MARK} style={type.frenchSm} /> : undefined} accessibilityLabel={row.accessibilityLabel} disabled={checking} onPress={() => nav.navigate(row.route.screen, row.route.params)} />
-              ))}
-            </Ledger>
-          </View>
-        ))}
-      </View>
+      <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
 
       {/* What the tutor remembers, from a real record only. */}
       {continuity !== null && (
         <View style={st.remembers}>
           <ContinuityCard
-            headline={continuityHeadline(tutorName)}
+            headline={memoryPaused(profile.brain) ? 'Continue your French' : continuityHeadline(tutorName)}
             line={continuity.line}
             thread={thread}
             continueAllowed={capabilitiesFor(plan.tier, plan.lapsed).continueArc}
@@ -282,6 +262,61 @@ export function TutorTab() {
           />
         </View>
       )}
+
+      {continuity === null && <TutorCard
+        name={card.name} voice={card.voice} signature={card.signature} onHear={hear}
+        playing={playing} onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}
+        changeLabel={CHANGE_VOICE}
+      />}
+      <View style={st.start}>
+        {!offlineShown && <SceneBrief
+          meta={next.minutes === null ? `${next.label}, with ${tutorName}` : sceneMeta(next.label, next.minutes, tutorName)}
+          french={next.french ?? undefined} title={next.title}
+          canDo={next.canDo ? canDoSentence(next.canDo) : next.body}
+          line={next.lines[0] ? { fr: next.lines[0] } : undefined}
+          note={next.minutes === null ? undefined : "The estimate is for this scene's steps. The live room uses minutes while open."}
+          action={<>
+            {note !== null && <Text style={[type.small, { color: paper.onInk }]}>{note}</Text>}
+            {primary}
+            <Text style={[type.small, { color: paper.onInk }]}>Speaking and typing in a live room use live minutes. Tap the microphone when it is your turn.</Text>
+          </>}
+          secondary={<GhostButton label={modes.other.label} color={paper.onInk} disabled={checking} onPress={() => open(modes.other.textMode, next.params)} />}
+        />}
+      </View>
+
+      {WALK_AVAILABLE && <GhostButton label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
+
+      {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
+
+      {offlineShown && (
+        <Card style={st.offline}>
+          <Illustration name="state-offline" fit="small" style={{ alignSelf: 'center' }} />
+          <Label>{TUTOR_OFFLINE.label}</Label>
+          <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
+          {heldBack !== null && (
+            <>
+              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Try connecting again, or practise today's phrase on this phone.</Text>
+
+            </>
+          )}
+          {primary}
+          <GhostButton label="Practise today's phrase on this phone" onPress={() => nav.navigate('DailyPractice', { id: todayItems(0, Date.now()).phrase.id })} />
+        </Card>
+      )}
+
+      <View style={st.path}>
+        <Press haptic="light" onPress={() => nav.navigate('Missions')} accessibilityLabel={`${PATH_LABEL}, ${path.level}. See every scene`}>
+          <Card style={{ gap: space(4) }}>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PATH_LABEL}, {path.level}</Text>
+            {path.rows.map((row) => <View key={row.missionId} style={{ flexDirection: 'row', gap: space(3), alignItems: 'center' }}>
+              <SceneMark state={row.state} />
+              <View style={{ flex: 1 }}><Text style={[type.bodyStrong, { color: paper.ink }]}>{row.title}</Text><Text {...frenchText} style={[type.french, { color: paper.ink }]}>{row.french}</Text><Text style={[type.small, { color: paper.inkSoft }]}>{row.progressLabel}</Text></View>
+            </View>)}
+            {path.rest !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{path.rest}</Text>}
+            <Text style={[type.small, { color: paper.inkSoft }]}>See every scene</Text>
+          </Card>
+        </Press>
+      </View>
 
       {moreWaysOpen(progress) && (
         <View style={st.path}>

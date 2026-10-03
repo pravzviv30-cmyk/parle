@@ -98,7 +98,7 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
             label="Confirm password"
             value={confirm}
             onChangeText={setConfirm}
-            placeholder="Once more"
+            placeholder="Enter your password again"
             secure
             autoComplete="new-password"
             error={confirmError}

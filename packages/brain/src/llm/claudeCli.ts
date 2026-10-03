@@ -25,11 +25,12 @@ import { tmpdir } from 'node:os';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
+import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import { OwnWordsVerdictSchema } from './judge.ts';
+import { FixLineVerdictSchema } from './fixLineJudge.ts';
 import {
   BrainParseError,
   type BrainCurateRequest,
@@ -62,7 +63,8 @@ type ContractSchema =
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
   | typeof CurationSchema
-  | typeof OwnWordsVerdictSchema;
+  | typeof OwnWordsVerdictSchema
+  | typeof FixLineVerdictSchema;
 
 function jsonSchemaText(schema: ContractSchema): string {
   const format = zodOutputFormat(schema) as { schema?: unknown };
@@ -180,7 +182,7 @@ export class ClaudeCliBrainClient implements LlmClient {
    * brain can still be one process when TUTOR_LLM asks for it.
    */
   async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
-    const { value, usage } = await this.ask('judge', request.system, request.request, OwnWordsVerdictSchema);
+    const { value, usage } = await this.ask('judge', request.system, request.request, request.judgeType === 'fix-line' ? FixLineVerdictSchema : OwnWordsVerdictSchema);
     return { verdict: value, usage };
   }
 
@@ -236,7 +238,8 @@ export class ClaudeCliBrainClient implements LlmClient {
 
       lastRaw = envelope.result ?? '';
       try {
-        return { value: schema.parse(JSON.parse(extractJson(lastRaw))), usage };
+        const decoded: unknown = JSON.parse(extractJson(lastRaw));
+        return { value: schema.parse(schema === TurnSchema ? withMissingGoalObservation(decoded) : decoded), usage };
       } catch (error) {
         lastError = error instanceof Error ? error.message.slice(0, 400) : 'unknown parse failure';
       }

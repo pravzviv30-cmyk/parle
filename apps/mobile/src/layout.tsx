@@ -24,11 +24,10 @@ import {
   Platform,
   useWindowDimensions,
   KeyboardAvoidingView,
-  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Card, PillButton, OutlineButton, RoundButton } from './components.tsx';
+import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT } from './theme.ts';
 import { screenInsets } from './responsiveLayout.ts';
 
@@ -196,7 +195,7 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode; divider?: boolean } & (
+type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean } & (
   | { back?: { onPress: () => void; label?: string }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
@@ -216,21 +215,22 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === false ? 0 : HAIRLINE, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
+    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
         <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} />
       ) : (
         <View style={{ width: HIT }} />
       )}
-      <View style={{ flex: 1, alignItems: 'center' }}>
+      <View style={{ flex: 1, alignItems: 'flex-start', gap: space(1), marginHorizontal: space(2) }}>
         {typeof title === 'string' || typeof title === 'number' ? (
           // A bare string under a View is a raw text node — Fabric drops it and
           // logs. A caller that wants a status line passes its own <Text> (with
           // a live region); this only keeps a plain string title from vanishing.
-          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{title}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{title}</Text>
         ) : (
           title ?? <Text style={[type.label, { color: paper.ink }]}>Luvani</Text>
         )}
+        {props.trailing}
       </View>
       {leave != null ? (
         <Pressable
@@ -392,8 +392,16 @@ type ConfirmSheetProps = {
 /**
  * The one leave-confirmation. It asks before a learner abandons something the
  * meter is counting. The safe answer, staying, is the solid pill and comes
- * first; the leaving answer is the quiet outline, so the primary action on the
- * sheet is the one that keeps the room.
+ * first; the leaving answer is the quiet link under it, so the primary action
+ * on the sheet is the one that keeps the room.
+ *
+ * Revamp B (F603): it is the shared bottom `Sheet`, rising under the ink scrim,
+ * rather than a card of its own in the middle of the screen. The props are the
+ * same, so its callers change nothing. The sheet's own ways out all land on
+ * `onCancel`: a tap on the scrim and the screen reader's escape both keep the
+ * learner in the room, because staying is the answer that costs nothing. Only
+ * the link leaves. The sheet announces its title as it rises, so the question
+ * is still heard the moment it is asked.
  */
 export function ConfirmSheet({
   visible,
@@ -404,36 +412,11 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
 }: ConfirmSheetProps) {
-  if (!visible) return null;
   return (
-    <View style={st.overlay} accessibilityViewIsModal>
-      <View style={st.scrim} />
-      <Card style={st.sheet}>
-        <Text
-          accessibilityRole="header"
-          accessibilityLiveRegion="polite"
-          style={[type.title, { color: paper.ink }]}
-        >
-          {title}
-        </Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{body}</Text>
-        <View style={{ marginTop: space(4), gap: space(2) }}>
-          <PillButton label={cancelLabel} onPress={onCancel} />
-          <OutlineButton label={confirmLabel} onPress={onConfirm} />
-        </View>
-      </Card>
-    </View>
+    <Sheet visible={visible} title={title} onClose={onCancel}>
+      <Text style={[type.body, { color: paper.inkSoft }]}>{body}</Text>
+      <PillButton label={cancelLabel} onPress={onCancel} />
+      <GhostButton label={confirmLabel} onPress={onConfirm} />
+    </Sheet>
   );
 }
-
-const st = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: space(6),
-  },
-  // The fade lives on its own layer so the sheet above it stays at full ink.
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: paper.ink, opacity: 0.32 },
-  sheet: { width: '100%', maxWidth: 420 },
-});

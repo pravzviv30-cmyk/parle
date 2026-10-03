@@ -52,16 +52,25 @@ Recommended first production configuration:
 TUTOR_LLM=openai
 OPENAI_API_KEY=your_standard_openai_api_key
 # Optional overrides:
+OPENAI_LIVE_MODEL=gpt-6-luna
 # OPENAI_TURN_MODEL=gpt-5.6-luna
 # OPENAI_ANALYST_MODEL=gpt-5.6-terra
 ```
 
 There is no separate GPT Luna credential. Luna and Terra use the normal OpenAI
 API key. The implementation uses the Responses API with strict JSON schemas:
-Luna handles the calls a learner waits through, the turn and the scene; Terra
-performs memory, curation and drill work once the room has closed. This is the best initial balance of latency, cost and
-contract reliability. If tutor evals show a material live-turn quality gap,
-change only `OPENAI_TURN_MODEL` to Terra and compare again.
+GPT-6 Luna handles live turns and scene design. GPT-5.6 Luna retains curated
+phrases and written checks; GPT-5.6 Terra retains memory extraction and drill
+authoring. `OPENAI_LIVE_MODEL` changes only live turns and scenes. For compatibility,
+an explicit `OPENAI_TURN_MODEL` also controls those calls when no live override is
+set; it always controls the existing fast curation and judge roles.
+GPT-6 Luna is the founder-selected live brain as of
+2 October 2026; API account access was verified, while comparative French
+teaching and phone-audible latency remain unverified. Its Responses/structured
+output support and standard short-context rates are documented on the
+[official model page](https://developers.openai.com/api/docs/models/gpt-6-luna).
+If tutor evals show a material live-turn quality gap,
+change only `OPENAI_LIVE_MODEL` to Terra and compare again.
 
 Anthropic remains a fully supported A/B route:
 
@@ -116,15 +125,17 @@ Current list prices used for planning:
 
 | route | input / million tokens | output / million tokens |
 |---|---:|---:|
-| GPT-5.6 Luna | $0.20 | $1.20 |
+| GPT-6 Luna (live turns/scenes) | $0.10 | $0.50 |
+| GPT-5.6 Luna (curation/written checks) | $0.20 | $1.20 |
 | GPT-5.6 Terra | $2.00 | $12.00 |
 | Claude Haiku 4.5 | $1.00 | $5.00 |
 | Claude Sonnet 5 | $2.00 | $10.00 |
 | Claude Opus 5 | $5.00 | $25.00 |
 
 An illustrative twelve-turn OpenAI session with 90k Luna input / 10k Luna
-output and 15k Terra input / 8k Terra output is about **$0.16 for the brain**
-before cache discounts. This is a planning example, not a billing promise. The
+output and 15k Terra input / 8k Terra output is about **$0.14 for the brain**
+before cache discounts and separate curation/written-check calls. This is a
+planning example, not a billing promise. The
 worker now logs actual input, output and cached tokens for every successful call
 under `[luvani:brain]`; collect those lines from real sessions and replace the
 example with measured p50 and p95 usage.

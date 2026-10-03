@@ -150,8 +150,8 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.match(FLAT, /setHero\(homeMissionFrom\(\{ progress, records, levelIndex: standing\.index, now \}\)\)/, 'the hero is not the one homeMission.ts decides');
     // Revamp B (F602): the lead waits on the storage having answered and on
     // nothing else, and which lead it is belongs to the rule.
-    assert.match(FLAT, /const lead = hero === null \? null : homeActionFor\(hero, due\.length, billing\);/, 'the lead is gated behind something other than having a scene');
-    assert.match(RENDER, /\{hero === null \? \(/, 'the page is not split on whether storage has answered');
+    assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\); const lead = hero === null \|\| unowned \? null : homeActionFor\(hero, due\.length, billing, live\);/, 'the lead must respond to live availability and account ownership');
+    assert.match(RENDER, /\) : hero === null \|\| unowned \? \(/, 'the page is not split on whether storage has answered');
 
     // Drawn on the one scene brief, and every field is the rule's. The meta
     // line is one sentence `sceneMeta` writes from the label, the minutes and
@@ -207,12 +207,16 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.notEqual(launchLabel({ checking: false, live: true, mode: 'speak' }), START);
     assert.ok(!/\bSTART\b/.test(HERO), 'the brief still labels its pill with the bare "Start"');
 
-    // Three pills on the tab, one per lead, and a learner meets one: the
-    // recall card's and the plans card's in HomeTab, each in its own branch of
-    // the one lead switch, and the Start in the brief.
+    // Error, local, plans, recall and conversation are mutually exclusive leads.
     const pills = HOME_SURFACE.flatMap(([path, body]) => (body.match(/<PillButton\b/g) ?? []).map(() => path));
-    assert.deepEqual(pills, ['HomeTab.tsx', 'HomeTab.tsx', 'MissionHero.tsx'], 'Today carries a pill outside its three exclusive leads');
-    const plans = between(FLAT, "{lead === 'plans' ? (", ") : lead === 'review' ? (", 'the plans lead is its own branch');
+    assert.deepEqual(pills, ['HomeTab.tsx', 'HomeTab.tsx', 'HomeTab.tsx', 'HomeTab.tsx', 'MissionHero.tsx'], 'Today loses an exclusive working action');
+    const unread = between(FLAT, '!unowned && readFailed ? (', ') : hero === null || unowned ? (', 'a failed read must have its own working door');
+    const local = between(FLAT, "lead === 'local' ? (", ") : lead === 'plans' ? (", 'the unavailable live tutor must have a local lead');
+    assert.equal((unread.match(/<PillButton\b/g) ?? []).length, 1, 'the unread branch must have exactly one primary action');
+    assert.equal((local.match(/<PillButton\b/g) ?? []).length, 1, 'the local branch must have exactly one primary action');
+    assert.match(unread, /navigate\('DailyPractice', \{ id: daily\.phrase\.id \}\)/, 'the unread branch must offer an actual bundled phrase');
+    assert.match(local, /navigate\('DailyPractice', \{ id: daily\.phrase\.id \}\)/, 'the offline lead must offer an actual bundled phrase');
+    const plans = between(FLAT, ") : lead === 'plans' ? (", ") : lead === 'review' ? (", 'the plans lead is its own branch');
     const review = between(FLAT, ") : lead === 'review' ? (", ') : ( <MissionHero hero={hero} /> )}', 'the recall lead is its own branch');
     assert.equal((plans.match(/<PillButton\b/g) ?? []).length, 1, 'the plans card carries other than one pill');
     assert.equal((review.match(/<PillButton\b/g) ?? []).length, 1, 'the recall card carries other than one pill');
@@ -310,14 +314,11 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.doesNotMatch(weekBlock, /<Label\b|WEEK_LABEL/, 'the week sentences are under a label again');
     assert.ok(!SCREEN.includes('WEEK_LABEL'), 'Today still reads the retired week label');
 
-    // The slot for F609's lifetime count: a comment and no number. It sits
-    // under the lead and over day one or the week.
-    const slot = '{/* F609: the lifetime count lands here, "12 days of French so far". Home draws no weekly day count (founder, 29 Sept). */}';
-    assert.ok(SCREEN_RAW.includes(slot), 'the slot for the lifetime count is not there, word for word');
+    assert.match(SCREEN_RAW, /<DayCount \/>/);
+    assert.doesNotMatch(SCREEN_RAW, /<DayCount weekly/);
     const rawRender = SCREEN_RAW.slice(SCREEN_RAW.indexOf('<ScrollScreen'));
-    assert.ok(at('<MissionHero hero={hero} />', rawRender) < at(slot, rawRender), 'the slot is above the lead');
-    assert.ok(at(slot, rawRender) < at('{start !== null ? (', rawRender), 'the slot is under day one or the week');
-    assert.ok(!SCREEN.includes('days of French'), 'the lifetime count is drawn before F609 draws it');
+    assert.ok(at('<MissionHero hero={hero} />', rawRender) < at('<DayCount />',rawRender));
+    assert.ok(at('<DayCount />',rawRender) < at('{start !== null ? (',rawRender));
 
     // Order: greeting, the lead, then the week or day one, then today's phrase.
     assert.ok(at('<TabHeader') < at('<MissionHero'));
@@ -380,7 +381,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
       "the word of the day is not today's word from the learner's tier, on the screen's one clock reading",
     );
     assert.ok(
-      FLAT.indexOf('setDaily(') > FLAT.indexOf('void Promise.all('),
+      FLAT.indexOf('setDaily(todayItems(standing.index, now))') > FLAT.indexOf('void Promise.all('),
       'the word is picked before the XP is read, so a learner would watch it change tier a moment after it appeared',
     );
 
@@ -422,7 +423,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // lives only in the `lead === 'review'` branch, and the row is drawn only
     // when `lead !== 'review'`.
     assert.equal((FLAT.match(/nav\.navigate\('Review'\)/g) ?? []).length, 2, 'Today opens the review deck from somewhere other than its two exclusive recall actions');
-    assert.ok(!between(FLAT, "{lead === 'plans' ? (", ") : lead === 'review' ? (", 'the plans lead is its own branch').includes("navigate('Review')"), 'the plans card carries a recall action beside the row');
+    assert.ok(!between(FLAT, ") : lead === 'plans' ? (", ") : lead === 'review' ? (", 'the plans lead is its own branch').includes("navigate('Review')"), 'the plans card carries a recall action beside the row');
     const practice = stripComments(read('../tabs/PracticeTab.tsx'));
     assert.match(practice, /nav\.navigate\('Review'\)/, 'Practice no longer opens the review deck, so the two surfaces have drifted apart');
 
@@ -430,7 +431,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // around it would be a blank page on a first run. The counts left Today
     // entirely and their block is deleted, so nothing on Today folds or draws
     // them and the hero cannot sit inside one of their gates.
-    assert.match(FLAT, /const lead = hero === null \? null : homeActionFor\(hero, due\.length, billing\);/, 'one adaptive action must be available independently of any count');
+    assert.match(FLAT, /const lead = hero === null \|\| unowned \? null : homeActionFor\(hero, due\.length, billing, live\);/, 'one adaptive action must be available independently of any count');
     assert.match(FLAT, /\) : \( <MissionHero hero=\{hero\} \/> \)\}/, 'the conversation hero must remain the alternate, not a second primary action');
     assert.doesNotMatch(SCREEN, /momentumFrom\(|<HomeMomentum|<MomentumCards|<WeekRail|<HomeProgressDetails/, 'the counts are back on Today');
     assert.doesNotMatch(SCREEN, /nav\.navigate\('Progress'\)/, 'the old destination must be removed');
@@ -446,8 +447,8 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
 
     // One switch, three branches, one colour card each: the sun plans card,
     // the blue recall card, and the brief, which is the blue card itself.
-    const leads = between(FLAT, "{lead === 'plans' ? (", ') : ( <MissionHero hero={hero} /> )}', 'the lead is one switch that ends on the brief');
-    assert.equal((SCREEN.match(/<ColourCard\b/g) ?? []).length, 2, 'Today draws a colour card outside its lead');
+    const leads = between(FLAT, ") : lead === 'plans' ? (", ') : ( <MissionHero hero={hero} /> )}', 'the lead is one switch that ends on the brief');
+    assert.equal((SCREEN.match(/<ColourCard\b/g) ?? []).length, 3, 'Today draws a colour card outside its local, plans and recall leads');
     assert.equal((leads.match(/<ColourCard\b/g) ?? []).length, 2, 'a lead is drawn without its colour card');
     assert.equal((SCREEN.match(/<MissionHero\b/g) ?? []).length, 1, 'the brief is drawn outside the lead switch');
     assert.doesNotMatch(HERO, /<ColourCard\b/, 'the brief composes its own colour card beside SceneBrief');
@@ -456,7 +457,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
 
     // HomeOutOfMinutes: sun, ink words, the ground's secondary for what is
     // kept, and the ink pill to the plans.
-    const plans = flat(between(FLAT, "{lead === 'plans' ? (", ") : lead === 'review' ? (", 'the plans lead is its own branch'));
+    const plans = flat(between(FLAT, ") : lead === 'plans' ? (", ") : lead === 'review' ? (", 'the plans lead is its own branch'));
     assert.match(plans, /<ColourCard ground="sun">/);
     assert.match(plans, /<Text accessibilityRole="header" style=\{\[type\.frenchLg, \{ color: textOn\.sun \}\]\}>\{PLANS_LEAD\.title\}<\/Text>/);
     assert.match(plans, /<Text style=\{\[type\.body, \{ color: textOn\.sun \}\]\}>\{PLANS_LEAD\.body\}<\/Text>/);
@@ -474,7 +475,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(review, /<Text style=\{\[type\.small, \{ color: onColour\.blue \}\]\}>A little French to bring back<\/Text>/);
     assert.match(review, /<Text accessibilityRole="header" style=\{\[type\.frenchLg, \{ color: textOn\.blue \}\]\}>\{due\.length === 1 \? 'One phrase is ready\.' : `\$\{due\.length\} phrases are ready\.`\}<\/Text>/);
     assert.match(review, /<Text style=\{\[type\.body, \{ color: onColour\.blue \}\]\}>Try recalling a few phrases from your own collection\. A short review is enough\.<\/Text>/);
-    assert.match(review, /<GhostButton label="I’d rather speak" color=\{paper\.onInk\} onPress=\{\(\) => nav\.navigate\('Tutor'\)\} \/>/);
+    assert.match(review, /live \? <GhostButton label="I’d rather speak" color=\{paper\.onInk\} onPress=\{\(\) => nav\.navigate\('Tutor'\)\} \/> : <GhostButton label="Practise today's phrase on this phone" color=\{paper\.onInk\} onPress=\{\(\) => nav\.navigate\('DailyPractice', \{ id: daily\.phrase\.id \}\)\} \/>/, 'the quiet link cannot promise Speak when it is unavailable');
     // Soft ink is never set on a colour, and no caps label sits on one.
     assert.doesNotMatch(leads, /paper\.inkSoft|<Label\b/, 'a lead sets soft ink or a caps label on its colour');
 
@@ -482,7 +483,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // signed-out or offline Home makes no read, and an unanswered read is null.
     assert.match(FLAT, /const \[billing, setBilling\] = useState<BillingStatus \| null>\(null\)/, 'Today guesses a plan before it has read one');
     const billingRead = between(FLAT, 'if (!live || user === null) return;', '}, [live, user]),', 'Today reads the plan on focus, guarded');
-    assert.match(billingRead, /void fetchBillingStatus\(user\.id\) \.then\(\(status\) => \{ if \(cancelled\) return; setBilling\(status\); \}\) \.catch\(\(\) => \{\}\);/, 'the billing read is not the one Speak makes');
+    assert.match(billingRead, /void fetchBillingStatus\(user\.id\) \.then\(\(status\) => \{ if \(cancelled \|\| scopeGeneration\(\) !== scope\) return; setBilling\(status\); \}\) \.catch\(\(\) => \{\}\);/, 'the billing read must be account-scoped');
     const tutor = flat(stripComments(read('./TutorTab.tsx')));
     assert.match(tutor, /if \(!live \|\| user === null\) return; void fetchBillingStatus\(user\.id\)/, "Speak's read changed shape, so Home's copy of it is stale");
   });
@@ -491,10 +492,10 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(FLAT, /const \[hero, setHero\] = useState<HomeMission \| null>\(null\)/, 'Today starts with a scene it has not read');
     // The loading branch is the sand blocks and nothing else, so no card is
     // drawn before the lead it sits under.
-    const loading = between(FLAT, '{hero === null ? (', ') : (', 'the loading branch is its own');
+    const loading = between(FLAT, ') : hero === null || unowned ? (', ') : (', 'the loading branch is its own');
     const skeleton = tags(loading, 'Skeleton');
     assert.equal(skeleton.length, 1, 'Today draws other than one skeleton while it loads');
-    assert.equal(loading.replace(skeleton[0]!, '').replace('{hero === null ? (', '').trim(), '', 'Today draws something beside the sand blocks while it loads');
+    assert.equal(loading.replace(skeleton[0]!, '').replace(') : hero === null || unowned ? (', '').trim(), '', 'Today draws something beside the sand blocks while it loads');
     // Shaped like the page: the lead card, the heading, a row, today's phrase.
     assert.equal(
       skeleton[0],
@@ -502,12 +503,12 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
       'the sand blocks are not shaped like the page',
     );
     // Everything else waits for the other branch.
-    const loaded = FLAT.slice(FLAT.indexOf('{hero === null ? ('));
+    const loaded = FLAT.slice(FLAT.indexOf(') : hero === null || unowned ? ('));
     const otherwise = loaded.indexOf(') : (');
     for (const block of ['<MissionHero', '{start !== null', '<Ledger', '<DailyCard', 'friendsActivity !== null', 'Explore my daily collection']) {
       assert.ok(loaded.indexOf(block) > otherwise, `${block} is drawn before storage has answered`);
     }
-    assert.ok(at('<TabHeader') < at('{hero === null ? ('), 'the greeting waits on storage');
+    assert.ok(at('<TabHeader') < at(') : hero === null || unowned ? ('), 'the greeting waits on storage');
 
     // Still: the shared part is sand, read once as "Loading", and never moves.
     const components = stripComments(read('../components.tsx'));
@@ -556,7 +557,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     ];
     for (const [path, body] of HOME_SURFACE) {
       // A skeleton block's width ('60%') is a length, not a rate.
-      const words = spoken(body).filter((line) => !/^'\d+%'$/.test(line));
+      const words = spoken(path === 'HomeTab.tsx' ? RENDER : body).filter((line) => !/^'\d+%'$/.test(line));
       for (const line of [...words, ...(path === 'HomeTab.tsx' ? written : [])]) {
         assert.doesNotMatch(line, WEEKDAY, `${path} names a weekday: ${line}`);
         assert.doesNotMatch(line, /this week|\bdays?\b/i, `${path} counts days: ${line}`);
@@ -577,7 +578,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
 
   test('every word Today spells is plain, and every import is used — F400', () => {
     for (const [path, body] of HOME_SURFACE) {
-      const said = spoken(body);
+      const said = spoken(path === 'HomeTab.tsx' ? RENDER : body);
       assert.ok(said.length > 3, `only ${said.length} strings found in ${path}, so this sweep proves little`);
       for (const line of said) {
         assert.equal(guiltIn(line), undefined, `${path} says ${line}, which carries "${guiltIn(line)}"`);
@@ -600,14 +601,25 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
 });
 
 describe('Today keeps its day when the disk will not answer', () => {
-  test('a storage read that fails still leaves the next scene on the page, and claims nothing about the learner', () => {
+  test('an account switch clears the old recommendation before any new read resolves', () => {
+    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); setDaily\(todayItems\(0, now\)\); setHero\(null\); setStart\(null\); setWeek\(\[\]\); setDue\(\[\]\);/);
+    assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/);
+    assert.match(FLAT, /!unowned && readFailed \? \(/);
+    assert.match(FLAT, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
+    assert.match(FLAT, /setBilling\(null\); if \(!live \|\| user === null\) return;/);
+    assert.match(FLAT, /hero === null \|\| unowned \? null : homeActionFor\(hero, due\.length, billing, live\)/);
+  });
+  test('a storage read that fails offers local practice and retry without guessing a scene', () => {
     const readChain = between(FLAT, 'void Promise.all(', 'return () => {', 'Today folds its storage reads together');
     assert.match(readChain, /\.catch\(/);
     assert.ok(readChain.indexOf('.then(') < readChain.indexOf('.catch('));
     assert.doesNotMatch(readChain, /\}, \(\) => \{/);
     assert.match(readChain, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
     const rescue = readChain.slice(readChain.indexOf('.catch('));
-    assert.match(rescue, /setHero\(fallbackHero\(\)\)/, 'a failed read leaves Today with no way into a scene');
+    assert.match(rescue, /setReadFailed\(true\)/, 'a failed read must remain distinct from a fresh account');
+    assert.match(FLAT, /readFailed \? \( <Card/);
+    assert.match(FLAT, /nav\.navigate\('DailyPractice', \{ id: daily\.phrase\.id \}\)/);
+    assert.match(FLAT, /setReadAttempt\(\(n\) => n \+ 1\)/);
     for (const invented of ['setStart(', 'setWeek(', 'startingPoint(', 'missionStates(']) {
       assert.ok(!rescue.includes(invented), `a failed read draws ${invented} out of nothing`);
     }

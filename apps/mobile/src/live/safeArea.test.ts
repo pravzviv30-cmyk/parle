@@ -104,7 +104,7 @@ describe('the live surfaces sit inside the one frame, F444', () => {
       );
       assert.match(
         body,
-        /<(Screen|ScrollScreen)\b/,
+        /<(Screen|ScrollScreen|RoomWait)\b/,
         `${name} is not built on the shared frame, so its content starts at y=0 and runs under the Dynamic Island`,
       );
     }
@@ -159,10 +159,11 @@ describe('the live surfaces sit inside the one frame, F444', () => {
       const body = branchOf(lesson, opens);
       assert.match(
         body,
-        /return \(\s*<Screen\b/,
+        /return <RoomWait\b/,
         `the lesson branch at "${opens}" returns a full-bleed root of its own instead of the frame`,
       );
     }
+    assert.match(read('./RoomWait.tsx'), /<ScrollScreen bottom="inset"/, 'the shared wait has no safe-area frame');
     // Stage 3 Fable review (2026-09-25): out of minutes hands over to its own
     // page, the way a failure hands over to LiveErrorView, because the paywall
     // inside it can be taller than a small phone at a large text size. That
@@ -170,12 +171,12 @@ describe('the live surfaces sit inside the one frame, F444', () => {
     // below, so it opens on the scrolling frame in its own file.
     assert.match(
       branchOf(lesson, "if (live.status.phase === 'out-of-minutes')"),
-      /return <OutOfMinutesView message=\{live\.status\.message\} userId=\{userId\} onExit=\{onExit\} \/>;/,
+      /return <OutOfMinutesView label=\{live\.status\.label\} message=\{live\.status\.message\} userId=\{userId\} onExit=\{onExit\} \/>;/,
       'the lesson draws its own out-of-minutes page again instead of the one on the frame',
     );
     assert.match(
       outOfMinutesView,
-      /export function OutOfMinutesView\([\s\S]*?return \(\s*<ScrollScreen center bottom="inset">/,
+      /export function OutOfMinutesView\([\s\S]*?return \(\s*<ScrollScreen bottom="inset">/,
       'the out-of-minutes page is not on the scrolling frame, so Back can fall off a small phone',
     );
     // And the two shared surfaces open on the frame in their own files.

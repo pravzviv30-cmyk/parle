@@ -122,7 +122,7 @@ describe('the analytics consent store — whose answer it is', () => {
     setActiveUser(mine);
     const inFlight = saveConsent({ allowed: false });
     setActiveUser(theirs);
-    assert.equal(await inFlight, 'durable');
+    assert.equal(await inFlight, 'failed', 'the old scope must refuse queued consent writes');
     assert.deepEqual(
       await loadConsent(),
       { allowed: false },
@@ -243,4 +243,49 @@ describe('the analytics consent store — what a write is allowed to claim', () 
     assert.equal(await loadConsent(), null, 'a refused write left something readable behind');
     setActiveUser(null);
   });
+});
+
+test('a pending or failed withdrawal cannot hand the previous Yes to a session start', async () => {
+ setActiveUser('withdrawal-race');
+ let release!:()=>void;
+ const held=new Promise<void>(resolve=>{release=resolve;});
+ let fail=false;
+ const disk=installDisk({hold:call=>call===2?held:Promise.resolve(),refuse:()=>fail});
+ assert.equal(await saveConsent({allowed:true}),'durable');
+ fail=true;
+ const saving=saveConsent({allowed:false});
+ let readFinished=false;
+ const startConsent=loadConsent().then(value=>{readFinished=true;return value;});
+ await Promise.resolve(); assert.equal(readFinished,false,'a start skipped the pending consent write');
+ release(); assert.equal(await saving,'failed');
+ assert.deepEqual(await startConsent,{allowed:false});
+ assert.equal(JSON.parse(disk.map.get('luvani.u.withdrawal-race.analytics')!).consent.allowed,true,'fixture did not retain the old Yes');
+ assert.deepEqual(await loadConsent(),{allowed:false},'failed withdrawal lost its runtime fence');
+ fail=false; assert.equal(await saveConsent({allowed:true}),'durable'); assert.deepEqual(await loadConsent(),{allowed:true},'a deliberate durable re-opt-in cannot recover');
+});
+
+test('an older pending On cannot clear a newer failed Off fence',async()=>{
+ setActiveUser('consent-order');
+ let release!:()=>void;
+ const held=new Promise<void>(resolve=>{release=resolve;});
+ let fail=false;
+ installDisk({hold:call=>{if(call===2)fail=true;return call===1?held:Promise.resolve();},refuse:()=>fail});
+ const on=saveConsent({allowed:true});
+ const off=saveConsent({allowed:false});
+ release(); assert.equal(await on,'durable'); assert.equal(await off,'failed');
+ assert.deepEqual(await loadConsent(),{allowed:false});
+});
+
+test('reset waits an already dispatched consent write and never resurrects On',async()=>{
+ setActiveUser('consent-reset');
+ let dispatched!:()=>void,release!:()=>void;
+ const began=new Promise<void>(resolve=>{dispatched=resolve;});
+ const held=new Promise<void>(resolve=>{release=resolve;});
+ const disk=installDisk({hold:()=>{dispatched();return held;}});
+ const writing=saveConsent({allowed:true});await began;
+ let cleared=false;const reset=clearActiveUserData().then(()=>{cleared=true;});
+ await Promise.resolve();assert.equal(cleared,false,'reset outran a native consent write');
+ release();assert.equal(await writing,'failed');await reset;
+ assert.equal(disk.map.has('luvani.u.consent-reset.analytics'),false);
+ assert.equal(await loadConsent(),null);
 });

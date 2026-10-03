@@ -55,8 +55,11 @@ function section(heading: string): string {
 
 /** The body of `finish()` in the agent, from its signature to the next method. */
 function finishBody(): string {
-  const at = CONVO.indexOf('async finish(): Promise<void> {');
-  assert.ok(at >= 0, 'convo.ts no longer has a finish(), so the doc cannot be held to it');
+  const wrapper = CONVO.slice(CONVO.indexOf('  finish(): Promise<void> {'), CONVO.indexOf('  private async complete(): Promise<void> {'));
+  assert.match(wrapper, /if \(this.finishing\) return this.finishing/);
+  assert.match(wrapper, /this.finishing = this.complete\(\)/);
+  const at = CONVO.indexOf('private async complete(): Promise<void> {');
+  assert.ok(at >= 0, 'convo.ts no longer has its shared completion pipeline, so the doc cannot be held to it');
   const rest = CONVO.slice(at);
   const end = rest.indexOf('\n  }\n');
   assert.ok(end > 0, 'finish() has no end, so this is reading the rest of the file');
@@ -113,7 +116,9 @@ describe('the storage doc and the agent it describes', () => {
     //     The debit must not wait on analyst work and the summary must include it.
     const usageAt = body.indexOf('reportUsage');
     const joinAt = body.search(/Promise\.allSettled/);
-    const summaryAt = body.indexOf('logSpendSummary');
+    const summaryAt = body.lastIndexOf('logSpendSummary');
+    assert.match(body, /if \(this.safetyStopped\) \{\s*this.logSpendSummary\(\);\s*return;\s*\}/,
+      'an early spend summary is valid only for the safety path that skips enrichment');
     assert.ok(usageAt >= 0 && joinAt >= 0 && summaryAt >= 0, 'finish() no longer debits, joins and summarises, so the doc claim cannot be checked');
     assert.ok(usageAt < joinAt, 'reportUsage now runs after the analyst join, so the minutes debit waits on telemetry');
     assert.ok(joinAt < summaryAt, 'the spend summary now runs before the analyst join and cannot see the biggest spend of the session');

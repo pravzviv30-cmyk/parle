@@ -1,3 +1,5 @@
+import { transcriptTail, replyAnnouncement } from './transcriptTail.ts';
+import { authoredCorrectionReason, type CorrectionReasonId } from '@luvani/core';
 /**
  * The conversation as a thread.
  *
@@ -15,33 +17,44 @@
  * themselves, which is most of the reason recasts fail to land.
  */
 
-import { useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { accent, paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { EarGlyph, Label } from '../components.tsx';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, AccessibilityInfo, Platform } from 'react-native';
+import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { EarGlyph, Highlight, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';
 import { replayEar } from './replayEar.ts';
 
-function Recast({ better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
+function Recast({ better, betterEn, reason, latest }: { quote: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const explanation = authoredCorrectionReason(reason);
   return (
     <View style={st.recast}>
       <Label>A more natural way</Label>
-      <Text style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>
+      {latest ? <Highlight text={better} /> : <Text {...frenchText} style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>}
       <Text style={[type.small, { color: paper.inkSoft }]}>{betterEn}</Text>
-      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{why}</Text>
+      {explanation !== null && <>
+        <Pressable accessibilityRole="button" accessibilityLabel="Why this form?" accessibilityState={{expanded}}
+          onPress={() => setExpanded(value => !value)} style={{minHeight:HIT,minWidth:HIT,justifyContent:'center'}}>
+          <Text style={[type.small, {color:paper.ink}]}>Why?</Text>
+        </Pressable>
+        {expanded && <Text style={[type.small, {color:paper.inkSoft}]}>{explanation}</Text>}
+      </>}
     </View>
   );
 }
 
 function Line({
   turn,
+  latestCorrection,
   onReplay,
   isLastTutorLine,
   tutorName,
   tutorSpeaking,
+  announceReply = false,
 }: {
   turn: TurnLine;
+  latestCorrection: boolean;
   onReplay?: () => void;
   /** This is the most recent tutor line in the thread. */
   isLastTutorLine: boolean;
@@ -49,6 +62,7 @@ function Line({
   tutorName: string;
   /** The tutor holds the floor right now, which lights the ear. */
   tutorSpeaking: boolean;
+  announceReply?: boolean;
 }) {
   if (turn.who === 'narration') {
     return (
@@ -70,11 +84,11 @@ function Line({
   });
   const body = (
     <>
-      <Text style={[type.french, { color: paper.ink }]}>{turn.fr}</Text>
+      <Text {...frenchText} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[type.french, { color: learner ? paper.onInk : paper.ink }]}>{turn.fr}</Text>
       {turn.frWritten && turn.frWritten !== turn.fr ? (
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
+        <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
       ) : null}
-      {turn.en ? <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
+      {turn.en ? <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
     </>
   );
 
@@ -124,8 +138,8 @@ function Line({
         ) : (
           <View style={st.tutorBubble}>{body}</View>
         )}
-        {turn.recasts?.map((r) => (
-          <Recast key={r.better} {...r} />
+        {turn.recasts?.map((r, index) => (
+          <Recast key={`${r.textTurnId ?? 'legacy'}:${r.correctionIndex ?? index}:${r.quote}:${r.better}:${r.reason ?? 'none'}`} {...r} latest={latestCorrection && index === turn.recasts!.length - 1} />
         ))}
       </View>
     </View>
@@ -137,6 +151,7 @@ export function Transcript({
   onReplayTutor,
   tutorName,
   tutorSpeaking,
+  announceReply = false,
 }: {
   turns: readonly TurnLine[];
   /**
@@ -157,6 +172,7 @@ export function Transcript({
   tutorName: string;
   /** The tutor is sounding right now, which lights the ear on its last line. */
   tutorSpeaking: boolean;
+  announceReply?: boolean;
 }) {
   const ref = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
@@ -167,7 +183,15 @@ export function Transcript({
   const reduced = useReduceMotion();
   // Which bubble carries the replay. Found by walking back rather than by
   // index, because the last line in the thread is usually the learner's.
-  const lastTutorId = [...turns].reverse().find((t) => t.who === 'tutor')?.id;
+  const latest = transcriptTail(turns);
+  const lastCorrectionId = latest.correctionId;
+  const lastTutorId = latest.tutor?.id;
+  const announcedTutor = useRef<string | null>(null);
+  useEffect(() => {
+    if (latest.tutor === null || announcedTutor.current === latest.tutor.id) return;
+    announcedTutor.current = latest.tutor.id;
+    if (announceReply && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(replyAnnouncement(latest.tutor, tutorName));
+  }, [lastTutorId, announceReply, tutorName]);
 
   return (
     <View style={st.frame}>
@@ -189,16 +213,19 @@ export function Transcript({
         }}
         // A learner may be typing into the box below this one while it scrolls.
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         accessibilityLabel="Your conversation so far"
       >
         {turns.map((t) => (
           <Line
             key={t.id}
             turn={t}
+            latestCorrection={t.id === lastCorrectionId}
             onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined}
             isLastTutorLine={t.id === lastTutorId}
             tutorName={tutorName}
             tutorSpeaking={tutorSpeaking}
+            announceReply={announceReply}
           />
         ))}
       </ScrollView>
@@ -236,8 +263,6 @@ const st = StyleSheet.create({
   // dissolving into the ground. Same bargain `components.tsx` states for Card.
   tutorBubble: {
     backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
     borderRadius: radius.card,
     paddingHorizontal: space(4),
     paddingVertical: space(3.5),
@@ -245,7 +270,7 @@ const st = StyleSheet.create({
   // Tighter corners than the card: the learner's side is the page itself,
   // a shade deeper, rather than an object sitting on it.
   learnerBubble: {
-    backgroundColor: paper.groundDeep,
+    backgroundColor: paper.ink,
     borderRadius: radius.row,
     paddingHorizontal: space(3.5),
     paddingVertical: space(3),

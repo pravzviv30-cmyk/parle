@@ -55,7 +55,7 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
-async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
+export async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
@@ -71,7 +71,7 @@ async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
  * `searchParams.get` answered, so identity resolution sees the same value it
  * always did. A value that is not valid percent-encoding is `undefined`.
  */
-function decodedHeader(req: IncomingMessage, name: string): string | null | undefined {
+export function decodedHeader(req: IncomingMessage, name: string): string | null | undefined {
   const raw = req.headers[name];
   if (raw === undefined) return null;
   if (typeof raw !== 'string') return undefined;

@@ -60,7 +60,7 @@ describe('pressing Finish and waiting for the recap — F155', () => {
     assert.match(convo, /\{finishWait\.note\}/, 'the second line was dropped on the way to the screen');
     assert.match(
       convo,
-      /<GhostButton label=\{finishWait\.leaveLabel\} onPress=\{leaveNow\}/,
+      /leaveLabel=\{finishWait\.leaveLabel\} onLeave=\{leaveNow\}/,
       'the finish wait has no door out of it',
     );
 
@@ -69,14 +69,16 @@ describe('pressing Finish and waiting for the recap — F155', () => {
     // front of somebody who had just ended it.
     const branch = convo.slice(convo.indexOf('if (finishWait)'), convo.indexOf('const listening ='));
     assert.ok(branch.length > 0, 'the finish wait is no longer a branch of its own; this test is stale');
-    assert.match(branch, /<ActivityIndicator/, 'the wait says something is happening without showing it');
-    assert.match(branch, /accessibilityLiveRegion="polite"/, 'the screen changed under a screen reader in silence');
+    assert.match(branch, /<RoomWait/, 'the wait no longer uses the shared accessible waiting page');
+    const roomWait = readFileSync(new URL('../live/RoomWait.tsx', import.meta.url), 'utf8');
+    assert.match(roomWait, /<VoiceOrb state="thinking"/, 'the wait has no truthful thinking state');
+    assert.match(roomWait, /accessibilityLiveRegion="polite"/, 'the screen changed under a screen reader in silence');
 
     // And the two things the ledger says stay exactly as they were.
     assert.match(convo, /const RECAP_WAIT_MS = 15_000;/, 'the bail under the wait moved or changed length');
     assert.match(
       convo,
-      /if \(!finishing \|\| live\.recap\) return;[\s\S]{0,200}setTimeout\(\(\) => leaveNow\(\), RECAP_WAIT_MS\)/,
+      /if \(!finishing \|\| live\.recap\) return;[\s\S]{0,200}setTimeout\(\(\) => recapBailLeave\.current\(\), RECAP_WAIT_MS\)/,
       'the fifteen second bail out of the finish wait is gone, so a recap that never comes strands the learner',
     );
   });

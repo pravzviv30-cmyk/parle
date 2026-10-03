@@ -11,7 +11,7 @@
  * can be tested without a renderer (`firstRun.test.ts`).
  */
 
-import { DAILY_PHRASES, type TutorVoiceKey } from '@luvani/core';
+import { DAILY_PHRASES, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 
 import { DEMO_REPLY_ID, TUTOR_LINES, TUTOR_LINES_VOICE, type TutorLine } from './tutorLines.ts';
 
@@ -60,18 +60,31 @@ export const STUCK_HINT = 'Bonjour, je vais…';
 // ─────────────────────────────────────────────────────────── the page words
 
 export const HEAR_TITLE = 'Hear it first';
+export const HEAR_REASSURANCE = 'Try a café exchange, with help when you need it.';
 export const LEARNER_LABEL = 'A learner';
-export const HEAR_NOTE = 'Recorded voices, with no microphone on.';
-export const HEAR_AGAIN = 'Hear it again';
+export const HEAR_NOTE = `A recorded example with ${tutorVoice(TUTOR_LINES_VOICE).persona.name}. Your microphone is off. You can choose another tutor later.`;
+export const HEAR_AGAIN = 'Hear the exchange';
 export const TRY_A_LINE = 'Try a line';
 export const HAVE_ACCOUNT = 'I have an account';
 
 export const FIRST_LINE_TITLE = 'Your first line';
-export const FIRST_LINE_PROMPT = 'Tap the reply to say it.';
+export const FIRST_LINE_PROMPT = 'Tap to hear the reply. Say it aloud if you like.';
 export const STUCK = "I'm stuck";
-export const HIGHLIGHT_MEANS = 'A marked line is one you have made yours.';
-export const TAP_TO_CONTINUE = 'Tap the French reply above to continue.';
+export const HIGHLIGHT_MEANS = 'A useful line to try. Your voice is not recorded or assessed here.';
+export const TAP_TO_CONTINUE = 'You can continue without playing the recording.';
 export const CONTINUE = 'Continue';
+
+/** An authored illustration of feedback, never a judgment of the learner. */
+export const DEMO_COACHING = {
+  title: 'How a phrase becomes practice',
+  scope: 'An authored example, not an assessment of your French.',
+  attempt: 'Je veux un café.',
+  attemptEn: 'I want a coffee.',
+  feedback: 'That asks for a coffee. Start with "bonjour" to greet the person before ordering.',
+  alternative: FIRST_LINE.reply,
+  retry: 'Hear the alternative, then try saying it. Your microphone stays off here.',
+  kept: 'After a real conversation, you can keep a useful phrase and return to it in Practice.',
+} as const;
 
 export const LEVEL_TITLE = 'Where are you starting?';
 export const REASON_TITLE = "What's it for?";
@@ -81,7 +94,7 @@ export const CHOSEN = 'Chosen';
 
 export const SAVE_TITLE = 'Save your plan';
 export const FIRST_NAME_LABEL = 'First name';
-export const FIRST_NAME_PLACEHOLDER = 'Optional';
+export const FIRST_NAME_PLACEHOLDER = 'e.g. James';
 export const FIRST_NAME_HINT = 'So your tutor can greet you. You can leave it empty.';
 export const ALREADY_HAVE_ACCOUNT = 'I already have an account';
 export const YOUNGER = 'I am younger than that';
@@ -98,7 +111,10 @@ export const UNDER_AGE = `${UNDER_AGE_TITLE} ${UNDER_AGE_BODY}`;
 
 /** Every fixed line the six pages show, for the copy checks. */
 export const FIRST_RUN_PAGE_COPY: readonly string[] = [
+  DEMO_COACHING.title, DEMO_COACHING.scope, DEMO_COACHING.attemptEn,
+  DEMO_COACHING.feedback, DEMO_COACHING.retry, DEMO_COACHING.kept,
   HEAR_TITLE,
+  HEAR_REASSURANCE,
   LEARNER_LABEL,
   HEAR_NOTE,
   HEAR_AGAIN,

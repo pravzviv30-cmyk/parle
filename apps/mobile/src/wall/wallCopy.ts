@@ -183,17 +183,17 @@ const count = (n: number, one: string): string => `${n} ${n === 1 ? one : `${one
 
 /** The headline of a plan row: its minutes as conversations a week, rounded down. */
 export function perWeekLine(conversations: number): string {
-  return `About ${count(conversations, 'conversation')} a week`;
+  return `For example, about ${count(conversations, 'conversation')} a week`;
 }
 
 /** The allowance underneath, in the server's own minutes. */
 export function minutesAMonth(minutes: number): string {
-  return `${count(minutes, 'minute')} of speaking a month`;
+  return `${count(minutes, 'live minute')} a month`;
 }
 
 /** The unit, stated once, so "a conversation" is a length and not a feeling. */
 export function conversationLength(minutes: number): string {
-  return `A conversation here is about ${count(minutes, 'minute')} of talking.`;
+  return `The examples assume ${count(minutes, 'minute')} per conversation. Actual lengths vary. Connected typing also uses live minutes.`;
 }
 
 /** The trial, said in minutes, with what those minutes are in conversations. */

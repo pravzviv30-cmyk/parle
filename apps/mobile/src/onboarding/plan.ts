@@ -19,7 +19,7 @@ import { PLANS, SCENE_SPINE, getMission, type MissionId, type MissionPlace } fro
 import { DEFAULT_REMINDER_TIME, reminderTime, type ReminderTimeId } from '../reminders/reminder.ts';
 import type { PlanMinutes, PreAccountOnboardingDraft, Reason, StartLevel } from './preAccountDraft.ts';
 
-export interface AnswerOption<K extends string> {
+export interface AnswerOption<K extends string | number> {
   key: K;
   title: string;
   gloss?: string;
@@ -106,20 +106,37 @@ export interface PlanView {
   minutes: PlanMinutes;
   /** The seeded goal the tutor will be given, or null when the reason was skipped. */
   goal: string | null;
+  /** Describes the actual route rule, not an inferred tailored curriculum. */
+  startingReason: string;
   reminder: { time: ReminderTimeId; clock: string; note: string };
 }
 
 export const PLAN_TITLE = 'Your plan';
 export const PLAN_SCENES_LABEL = 'Your first three scenes';
-export const MINUTES_LABEL = 'Minutes a day';
+export const MINUTES_LABEL = 'A flexible starting routine';
 export const GOAL_LABEL = 'Your goal';
-export const GOAL_NOTE = 'Your tutor keeps this in mind.';
+export const GOAL_NOTE = 'This goal guides tutor context. It does not change the scene route.';
 export const METHOD_LABEL = 'How it works';
 export const METHOD_STEPS: readonly string[] = [
   'Talk through a real scene, out loud or by typing.',
   'Get help the moment you stall.',
   'Useful lines come back later as practice.',
 ];
+export const ROUTINE_OPTIONS: readonly AnswerOption<PlanMinutes>[] = [
+  { key: 5, title: 'Five minutes' },
+  { key: 10, title: 'Ten minutes' },
+  { key: 15, title: 'Fifteen minutes' },
+  { key: 'none', title: 'No fixed daily target' },
+];
+export const ROUTINE_NOTE = 'A suggestion for practice, not an extra allowance of live minutes. Change it whenever you like.';
+export const COVERAGE_NOTE = 'Beginner A0 and A1 scenes. These are a starting route, not a certified placement or a full tailored course.';
+
+export function startingReasonFor(level: StartLevel): string {
+  if (level === 'getby') return 'You said you can get by, so we skip the first coffee and start with ordering and paying.';
+  return level === 'few'
+    ? 'You know a few words, so we start with a short café greeting.'
+    : 'You are starting from zero, so we start with a short café greeting.';
+}
 /**
  * The one line the plan says about days off. It used to deny streaks by naming
  * a missed day and a break, which are the words STYLE section 10 keeps out of
@@ -148,6 +165,9 @@ export const PLAN_COPY: readonly string[] = [
   PLAN_TITLE,
   PLAN_SCENES_LABEL,
   MINUTES_LABEL,
+  ROUTINE_NOTE,
+  COVERAGE_NOTE,
+  ...ROUTINE_OPTIONS.map(option => option.title),
   MINUTES_UNIT,
   GOAL_LABEL,
   GOAL_NOTE,
@@ -175,6 +195,7 @@ export function planFor(draft: PreAccountOnboardingDraft): PlanView {
     scenes,
     minutes: minutesOf(draft),
     goal: draft.reason === null ? null : SEEDED_GOAL[draft.reason],
+    startingReason: startingReasonFor(levelOf(draft)),
     reminder: { time, clock: reminderTime(time).gloss, note: REMINDER_NOT_ON },
   };
 }

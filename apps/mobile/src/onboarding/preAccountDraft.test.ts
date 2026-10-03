@@ -11,6 +11,7 @@ import {
   PRE_ACCOUNT_PAGES,
   firstNameFrom,
   freshPreAccountDraft,
+  clearPreAccountDraft,
   loadPreAccountDraft,
   savePreAccountDraft,
 } from './preAccountDraft.ts';
@@ -42,6 +43,12 @@ function installDisk(): Map<string, string> {
 }
 
 describe('the pre-account hand-off', () => {
+  test('a learner can resume an explicitly unset routine after restarting the local first run', async () => {
+    installDisk();
+    const chosen = { ...freshPreAccountDraft(), page: 'plan' as const, minutes: 'none' as const };
+    await savePreAccountDraft(chosen);
+    assert.deepEqual(await loadPreAccountDraft(), chosen);
+  });
   test('contains only the minimum account-creation answers', () => {
     assert.deepEqual(freshPreAccountDraft(), {
       version: 1,
@@ -153,7 +160,7 @@ describe('the pre-account hand-off', () => {
   test('the signup sign-in link discards the draft before navigating', () => {
     const auth = read('../auth/AuthFlow.tsx');
     const signup = auth.slice(auth.indexOf("if (screen === 'signup')"), auth.indexOf("if (screen === 'signin')"));
-    assert.match(signup, /onSignIn=\{\(\) => \{\s*onSignIn\(\);\s*setScreen\('signin'\);\s*\}\}/);
+    assert.match(signup, /onSignIn=\{\(\) => \{\s*setSignupDraft\(null\);\s*onSignIn\(\);\s*setScreen\('signin'\);\s*\}\}/);
     assert.match(app, /onSignIn=\{discardPreAccountDraft\}/);
     assert.match(app, /const discardPreAccountDraft = useCallback\(\(\) => \{\s*setPreAccountDraft\(null\);\s*void clearPreAccountDraft\(\)/);
   });
@@ -166,7 +173,7 @@ describe('the pre-account hand-off', () => {
     // 2026-09-27: retain both original conditions and require safe account-read evidence.
     assert.match(app, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
     assert.match(app, /const \[freshStart, setFreshStart\] = useState<FreshStart \| null>\(null\)/);
-    assert.match(app, /if \(!cancelled\) \{\s*setFreshStart\(start\);\s*setReady\(true\);\s*\}/);
+    assert.match(app, /if \(!cancelled && owner === scopeGeneration\(\)\) \{\s*setFreshStart\(start\);\s*setReady\(true\);\s*\}/);
     assert.match(app, /if \(!ready \|\| freshStart === null\) return <Loading \/>/);
     const fallback = app.slice(app.indexOf('<OnboardingFlow'), app.indexOf('</ProfileGate>'));
     assert.match(fallback, /^<OnboardingFlow\s+existing=\{existing\}/);
@@ -209,12 +216,12 @@ describe('the pre-account hand-off', () => {
     assert.match(source, /import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';/, 'the reply label does not use the shared sentence joiner');
   });
 
-  test('the second page is the learner’s first line, and Continue waits for it', () => {
+  test('the second page is optional recorded practice, and Continue works silently and after an audio failure', () => {
     assert.match(source, /const \[stage, setStage\] = useState<LineStage>\('ask'\)/, 'the first line has no local state');
-    assert.match(source, /setStage\('saying'\)/, 'tapping the reply does not play it');
-    assert.match(source, /\{page === 'first-line' && stage === 'said' && <PillButton label=\{CONTINUE\}/, 'the learner can move on before saying the line');
-    assert.match(source, /\{page === 'first-line' && stage !== 'said' && <Text/, 'the first decision is not explained while Continue is withheld');
-    assert.match(source, /accessibilityLiveRegion="polite"/, 'the tutor’s close is not announced when it appears');
+    assert.match(source, /setStage\('selected'\);\s*play\(clipFor\(FIRST_LINE.reply\), null\)/, 'the reply does not play its own bundled recording');
+    assert.match(source, /page === 'first-line' && <><PillButton label=\{CONTINUE\}/, 'Continue depends on playing or assessing the example');
+    assert.match(source, /setAudioNotice\('The recording could not play. You can read the example and continue.'\)/, 'an audio failure has no honest silent recovery');
+    assert.match(source, /accessibilityLiveRegion="polite"/, 'the selected-line explanation is not announced');
 
     // A demonstration is not an excuse to ask for either permission. The real
     // scene remains the first place a learner can deliberately ask to speak.
@@ -229,12 +236,13 @@ describe('the pre-account hand-off', () => {
     assert.match(source, /onChange=\{\(\) => setVoicesOpen\(\(open\) => !open\)\}/, 'the tutor card cannot open the voice list');
   });
 
-  test('a voice selection plays that tutor’s bundled bilingual introduction', () => {
+  test('voice selection is silent and a separate Hear control plays or stops that tutor’s bundled introduction', () => {
     const choose = source.slice(source.indexOf('const chooseVoice'), source.indexOf('const hearVoice'));
-    assert.match(choose, /setPlaying\('sample'\)/, 'selecting a tutor does not show their introduction as playing');
-    assert.match(choose, /player\.replace\(voiceSample\(voice\)\)/, 'selecting a tutor does not load that tutor’s own clip');
-    assert.match(choose, /player\.play\(\)/, 'the selected tutor introduction is loaded but never heard');
-    assert.ok(choose.indexOf('player.pause()') < choose.indexOf('player.replace('), 'a previous voice can keep sounding under the newly selected one');
+    assert.match(choose, /stop\(\);\s*keep\(\{ tutorVoice: voice \}\)/, 'changing a voice does not stop the prior preview and retain the choice');
+    assert.doesNotMatch(choose, /\bplay\(|player.play/, 'selecting a voice forces an audition');
+    const hear = source.slice(source.indexOf('const hearVoice'), source.indexOf('const setName'));
+    assert.match(hear, /playing === 'sample'[\s\S]*stop\(\)/, 'the preview cannot be stopped');
+    assert.match(hear, /if \(play\(voiceSample\(voice\), null\)\) setPlaying\('sample'\)/, 'an unavailable preview is shown as playing');
   });
 
   test('the final page separates trust facts before it asks for analytics consent', () => {
@@ -251,7 +259,7 @@ describe('the pre-account hand-off', () => {
 
   test('turns the draft into one account-scoped profile exactly once', () => {
     assert.match(app, /function PreAccountProfileBootstrap/, 'the account boundary has no pre-account bootstrap');
-    assert.match(app, /if \(delivered\.current\) return/, 'strict mode can apply the draft more than once');
+    assert.match(app, /if \(!confirmed \|\| delivered\.current\) return/, 'strict mode can apply the draft more than once');
     assert.match(app, /const built = profileFromDraft\(draft\)/, 'the draft is not written through the one constructor that knows the contract');
     assert.match(app, /done\(built\)/, 'the profile is never handed over');
     assert.match(app, /onConsumed\(\)/, 'the pre-account draft is not cleared after profile creation');
@@ -301,4 +309,30 @@ describe('a draft that names a voice the catalogue no longer has', () => {
     map.set(KEY, JSON.stringify({ version: 1, ageConfirmed: false, tutorVoice: 'marie' }));
     assert.equal(await loadPreAccountDraft(), null, 'an unconfirmed age was repaired into a confirmation');
   });
+});
+
+
+test('refusal clears a pending draft and wins over already queued answers — F641', async () => {
+  const disk = installDisk();
+  let release!: () => void;
+  let started!: () => void;
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  let writes = 0;
+  AsyncStorage.setItem = async (key, value) => {
+    writes++;
+    if (writes === 1) { started(); await delayed; }
+    disk.set(key, value);
+  };
+  const first = savePreAccountDraft({ ...freshPreAccountDraft(), firstName: 'Ada' });
+  await entered;
+  const queued = savePreAccountDraft({ ...freshPreAccountDraft(), firstName: 'Second answer' });
+  const cleared = clearPreAccountDraft();
+  release();
+  await Promise.all([first, queued, cleared]);
+  assert.equal(disk.has(KEY), false);
+  assert.equal(await loadPreAccountDraft(), null);
+  // A genuine new onboarding after this refusal is cleared may save again.
+  await savePreAccountDraft(freshPreAccountDraft());
+  assert.notEqual(await loadPreAccountDraft(), null);
 });

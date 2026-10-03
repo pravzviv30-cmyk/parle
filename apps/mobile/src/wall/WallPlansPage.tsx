@@ -1,7 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, GhostButton, Label } from '../components.tsx';
-import { HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
+import { CheckGlyph, GhostButton, Label, Press } from '../components.tsx';
+import { colour, decorative, HIT, onColour, paper, radius, space, type } from '../theme.ts';
 import type { PaidPlan } from '../purchases/adapter.ts';
 import {
   ACCOUNT_LABEL,
@@ -76,11 +76,12 @@ export function WallPlansPage({
         </View>
       )}
 
-      <Card padded={false} style={st.card}>
-        {rows.map((row, index) => {
+      <View style={st.card}>
+        {rows.map((row) => {
           const chosen = row.plan === selected;
           return (
-            <Pressable
+            <Press
+              haptic="selection"
               key={row.plan}
               onPress={() => onSelect(row.plan)}
               // `button` with a `selected` state, which is what OptionCard and
@@ -96,27 +97,28 @@ export function WallPlansPage({
               // puts in the accessibility tree, and without it a learner in a
               // browser heard two identical buttons and could not tell which
               // plan was picked (F522, closed by F586).
-              aria-selected={chosen}
-              accessibilityLabel={row.name}
-              style={({ pressed }) => [st.row, index > 0 && st.divided, pressed && st.pressed]}
+              aria-selected={chosen} aria-pressed={chosen}
+              accessibilityLabel={[row.name, row.minutes !== null ? minutesAMonth(row.minutes) : null, row.perWeek !== null ? perWeekLine(row.perWeek) : null, `${row.price} per month`].filter(Boolean).join(", ")}
+              style={[st.row, chosen ? st.chosen : st.unchosen]}
             >
-              <View style={[st.mark, chosen && st.markChosen]} {...decorative}>
-                {chosen && <View style={st.markDot} />}
-              </View>
+              <View style={st.mark} {...decorative}>{chosen && <CheckGlyph size={22} color={paper.onInk} />}</View>
               <View style={st.words}>
-                <Text style={st.name}>{row.name}</Text>
+                <Text style={[st.name, chosen && { color: paper.onInk }]}>{row.name}</Text>
                 {/* The conversations and the minutes are absent rather than
                     guessed when the server has not sent a catalogue. A count
                     invented on the phone is the one number on this page that
                     could disagree with the meter. */}
-                {row.perWeek !== null && <Text style={st.perWeek}>{perWeekLine(row.perWeek)}</Text>}
-                {row.minutes !== null && <Text style={st.minutes}>{minutesAMonth(row.minutes)}</Text>}
+                {row.minutes !== null && <Text style={[st.minutes, chosen && { color: onColour.blue }]}>{minutesAMonth(row.minutes)}</Text>}
+                {row.perWeek !== null && <Text style={[st.perWeek, chosen && { color: paper.onInk }]}>{perWeekLine(row.perWeek)}</Text>}
               </View>
-              <Text style={st.price}>{row.price}</Text>
-            </Pressable>
+              <View>
+                <Text style={[st.price, chosen && { color: paper.onInk }]}>{row.price}</Text>
+                <Text style={[type.small, { color: chosen ? paper.onInk : paper.ink }]}>per month</Text>
+              </View>
+            </Press>
           );
         })}
-      </Card>
+      </View>
 
       <Text style={st.note}>{conversationLength(CONVERSATION_MINUTES)}</Text>
       <Text style={st.note}>{PLANS_BOTH}</Text>
@@ -154,9 +156,6 @@ export function WallPlansAtButton() {
   );
 }
 
-/** The mark is a picture of the selected state the row already announces. */
-const decorative = { accessible: false, importantForAccessibility: 'no-hide-descendants' } as const;
-
 const MARK = 22;
 
 const st = StyleSheet.create({
@@ -165,7 +164,7 @@ const st = StyleSheet.create({
   account: { marginTop: space(5) },
   accountTitle: { ...type.heading, color: paper.ink, marginTop: space(1) },
   accountLine: { ...type.body, color: paper.ink, marginTop: space(1) },
-  card: { marginTop: space(5) },
+  card: { marginTop: space(5), gap: space(4) },
   // Ledger rows: a hairline between them, 56pt at least, growing with the text.
   row: {
     flexDirection: 'row',
@@ -174,24 +173,15 @@ const st = StyleSheet.create({
     paddingHorizontal: space(4),
     paddingVertical: space(4),
     minHeight: Math.max(HIT, 56),
+    borderRadius: radius.card,
   },
-  divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
-  pressed: { backgroundColor: paper.groundDeep },
-  mark: {
-    width: MARK,
-    height: MARK,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: paper.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markChosen: { borderColor: paper.ink, backgroundColor: paper.ink },
-  markDot: { width: MARK / 3, height: MARK / 3, borderRadius: radius.pill, backgroundColor: paper.card },
+  chosen: { backgroundColor: colour.blue },
+  unchosen: { backgroundColor: paper.card, borderWidth: 1, borderColor: paper.field },
+  mark: { width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' },
   words: { flex: 1, minWidth: 0 },
   name: { ...type.heading, color: paper.ink },
-  perWeek: { ...type.body, color: paper.ink, marginTop: space(1) },
-  minutes: { ...type.small, color: paper.inkSoft, marginTop: space(0.5) },
+  perWeek: { ...type.small, color: paper.ink, marginTop: space(1) },
+  minutes: { ...type.bodyStrong, color: paper.inkSoft, marginTop: space(0.5) },
   price: { ...type.heading, color: paper.ink, textAlign: 'right' },
   note: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
   decline: { marginTop: space(4), alignItems: 'center' },

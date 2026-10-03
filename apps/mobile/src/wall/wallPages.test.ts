@@ -80,7 +80,7 @@ describe('the wall is as long as it has something to show', () => {
     const screen = read('./WallScreen.tsx');
     assert.doesNotMatch(screen, /if \([^\n]*page === undefined[^\n]*\) return null/);
     assert.match(screen, /Plans aren’t available here yet\./);
-    assert.match(screen, /header=\{<ScreenHeader back=\{\{ onPress: onLeave \}\}/);
+    assert.match(screen, /header=\{<ScreenHeader back=\{\{ onPress: \(\) => leave\(\) \}\}/);
     assert.match(screen, /setRetry\(\(value\) => value \+ 1\)/);
     // 2026-09-27, notebook Phase 6-E: the map and French pages left, and with
     // them the wall's only disk read, so there is no progress load left to fail.

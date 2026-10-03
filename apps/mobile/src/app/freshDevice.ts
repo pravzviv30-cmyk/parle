@@ -58,7 +58,7 @@ export type FreshStartKind =
   | 'has-local'
   /** The account had state and a store adopted it. Onboarding is skipped. */
   | 'adopted'
-  /** The account reconciled cleanly and had nothing to give. A genuinely new learner. */
+  /** The account reconciled cleanly and had nothing to give. Identity creation is unknown. */
   | 'empty'
   /** The budget expired first. Open the app; the engine carries on behind it. */
   | 'timed-out'

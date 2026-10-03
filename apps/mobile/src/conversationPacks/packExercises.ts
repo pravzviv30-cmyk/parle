@@ -14,7 +14,7 @@
  * is offered, because a malformed one is a sitting that ends at once.
  */
 
-import { phraseKeyOf, validateExercise, type ConversationPack, type ConvoPhrase, type DrillExercise, type RepeatThisExercise, type TranslationExercise } from '@luvani/core';
+import { ownWordsFrom, phraseKeyOf, validateExercise, type ConversationPack, type ConvoPhrase, type DrillExercise, type RepeatThisExercise, type TranslationExercise } from '@luvani/core';
 
 /** Restore the cards as well as their exercises after a missed room delivery. */
 export function reviewPhrasesFor(pack: ConversationPack): ConvoPhrase[] {
@@ -49,6 +49,7 @@ export function packExercisesFor(pack: ConversationPack): DrillExercise[] {
   pack.keyPhrases.slice(0, REPEATED_PHRASES).forEach((phrase, index) => {
     const twin = translate(`pack:${pack.id}:repeat-twin:${index}`, phrase.fr, phrase.en);
     out.push(repeat(`pack:${pack.id}:repeat:${index}`, phrase.fr, phrase.en, twin));
+    out.push(ownWordsFrom({ ...phrase, key: phraseKeyOf(phrase.fr) }, pack.title.en));
   });
   return out.filter((exercise) => validateExercise(exercise).ok);
 }

@@ -48,10 +48,11 @@ const FUNCTION_HEADERS = {
  * file directly would miss a later migration undoing it, and reading the oldest would
  * miss the fix.
  */
-function effectiveBody(header: RegExp): string {
+function effectiveBody(header: RegExp, before?: string): string {
   const pattern = new RegExp(`${header.source}[\\s\\S]*?as \\$\\$([\\s\\S]*?)\\$\\$;`, 'gi');
   let body: string | null = null;
   for (const name of migrationFiles) {
+    if (name === before) break;
     const last = [...sqlOf(name).matchAll(pattern)].at(-1);
     if (last?.[1]) body = last[1];
   }
@@ -495,7 +496,7 @@ function debitAssignments(body: string): [string, string][] {
   assert.ok(at >= 0, 'the debit never updates public.entitlements');
   const rest = sql.slice(at);
   const setAt = rest.search(/\bset\b/i);
-  const whereAt = rest.search(/\bwhere user_id = p_user_id\b/i);
+  const whereAt = rest.search(/\bwhere user_id\s*=\s*p_user_id\b/i);
   assert.ok(setAt >= 0 && whereAt > setAt, 'the debit UPDATE has no set ... where clause to read');
 
   const clause = rest.slice(setAt + 'set'.length, whereAt);
@@ -541,8 +542,21 @@ function applyDebit(body: string, row: EntitlementRow, seconds: number, now: Dat
     p_seconds: seconds,
     now,
   };
+  let statement = body;
+  if (body.includes('g.usage_epoch=e.usage_epoch')) {
+    // The current body has separate conditional statements. Evaluate its lapse
+    // condition and assignments rather than treating the final UPDATE as the
+    // only statement. This fixture assumes a current, owned issued grant; actual
+    // SQL tests separately exercise stale/cross-owner grants and transactions.
+    const condition = stripComments(body).match(/if (e\.plan[\s\S]*?) then\s*update public\.entitlements/i)?.[1];
+    assert.ok(condition);
+    const updates = [...stripComments(body).matchAll(/update public\.entitlements[\s\S]*?returning \* into e;/g)];
+    assert.equal(updates.length, 2);
+    const expired = evaluateSqlExpression(condition.replace(/\be\./g, ''), bindings);
+    statement = updates[expired === true ? 0 : 1]![0].replace(/\be\./g, '');
+  }
   const applied = new Map<string, SqlValue>();
-  for (const [column, expression] of debitAssignments(body)) {
+  for (const [column, expression] of debitAssignments(statement)) {
     if (column === 'updated_at') continue;
     applied.set(column, evaluateSqlExpression(expression, bindings));
   }
@@ -603,10 +617,10 @@ function createdObjects(sql: string): CreatedObject[] {
       undone: [new RegExp(`drop policy if exists "${escape(name!)}" on ${escape(table!)}`, 'i')],
     });
   }
-  for (const [, name, args] of flat.matchAll(/create or replace function (public\.\w+)\s*\(([^)]*)\)/gi)) {
+  for (const [, name, args] of flat.matchAll(/create (?:or replace )?function (public\.\w+)\s*\(([^)]*)\)/gi)) {
     const types = (args ?? '')
       .split(',')
-      .map((argument) => argument.trim().split(/\s+/).slice(1).join(' '))
+      .map((argument) => argument.replace(/\s+default\b[\s\S]*$/i, '').trim().split(/\s+/).slice(1).join(' '))
       .filter(Boolean);
     const signature = `${name}(${types.join(', ')})`;
     objects.push({
@@ -615,7 +629,7 @@ function createdObjects(sql: string): CreatedObject[] {
       // Either dropped, or restored to its previous definition — both are rollbacks, and
       // a `create or replace` migration can only be undone by one of the two.
       undone: [
-        new RegExp(`drop function if exists ${escape(signature)}`, 'i'),
+        new RegExp(`drop function if exists ${escape(signature).replaceAll(', ', ',\\s*')}`, 'i'),
         new RegExp(`create or replace function ${escape(name!)}\\s*\\(`, 'i'),
       ],
     });
@@ -634,9 +648,8 @@ function createdObjects(sql: string): CreatedObject[] {
   // migration that quietly dropped a constraint and never put one back would have gone
   // unread. A named constraint is undone either by dropping it or by adding it again with
   // a different body, which is what narrowing a whitelist back looks like.
-  for (const [, table, name] of flat.matchAll(
-    /alter table (public\.\w+) add constraint (\w+)/gi,
-  )) {
+  for (const [, table, actions] of flat.matchAll(/alter table (public\.\w+) ([^;]*);/gi)) {
+    for (const [, name] of actions!.matchAll(/\badd constraint (\w+)/gi)) {
     objects.push({
       kind: 'constraint',
       name: `${name} on ${table}`,
@@ -645,6 +658,7 @@ function createdObjects(sql: string): CreatedObject[] {
         new RegExp(`add constraint ${escape(name!)}`, 'i'),
       ],
     });
+    }
   }
 
   return objects;
@@ -704,7 +718,14 @@ describe('database security contract — SQL cannot drift quietly', () => {
     // 202608230001. This line used to read `assert.match(hardeningMigration, /if not
     // recorded then/i)`, which pinned F74 in place and would have gone red on the fix —
     // the same mistake databaseContract.test.ts once made about F73.
-    assert.match(effectiveBody(FUNCTION_HEADERS.consume_entitlement_session), /on conflict \(session_id\) do nothing/i);
+    const current = stripComments(effectiveBody(FUNCTION_HEADERS.consume_entitlement_session));
+    // The refund migration serializes on the entitlement before looking for an
+    // existing session. The actual independent PostgreSQL race check covers it.
+    assert.match(current, /select \* into e from public\.entitlements[\s\S]*?for update/);
+    assert.match(current, /select \* into u from public\.session_usage[\s\S]*?for update;\s*if found then/);
+    assert.match(current, /if u\.user_id is distinct from p_user_id then raise exception/);
+    assert.match(current, /return e;/);
+    assert.ok(current.indexOf('into e from public.entitlements') < current.indexOf('into u from public.session_usage'));
   });
 
   test('a trial can be claimed only once per pseudonymous installation and user signal', () => {
@@ -787,7 +808,12 @@ describe('database security contract — SQL cannot drift quietly', () => {
   });
 
   test('the session debit bills a replayed session id once rather than falling through on a null', () => {
-    const body = effectiveBody(FUNCTION_HEADERS.consume_entitlement_session);
+    const current = stripComments(effectiveBody(FUNCTION_HEADERS.consume_entitlement_session));
+    assert.match(current, /select \* into u from public\.session_usage[\s\S]*?for update;\s*if found then[\s\S]*?return e;/);
+    assert.doesNotMatch(current, /if\s+not\s+recorded\s+then/i);
+    // Retain the complete three-valued F74 theorem and its historic unsafe
+    // counterexample. The current body avoids nullable RETURNING flags entirely.
+    const body = effectiveBody(FUNCTION_HEADERS.consume_entitlement_session, '20261002233520_failed_session_refunds.sql');
     const guard = idempotencyGuard(body);
 
     // F74, and the same three-valued reading as F73. `insert ... on conflict (session_id)
@@ -1010,9 +1036,11 @@ describe('database security contract — SQL cannot drift quietly', () => {
       migrationFiles.indexOf(LAPSE_FIX) > migrationFiles.indexOf('202608250001_consume_entitlement_null_fix.sql'),
       'the lapse fix does not come after the migration it corrects',
     );
-    assert.ok(guardIsNullSafe(idempotencyGuard(body), 'recorded'), 'the lapse fix dropped F74 idempotency guard');
+    assert.ok(guardIsNullSafe(idempotencyGuard(effectiveBody(FUNCTION_HEADERS.consume_entitlement_session, '20261002233520_failed_session_refunds.sql')), 'recorded'), 'the lapse fix dropped F74 idempotency guard');
+    assert.match(body, /for update;\s*if found then[\s\S]*?return e;/, 'the current locked replay path must remain null-safe');
     assert.match(body, /raise exception 'session id already belongs to another account'/i);
-    assert.match(body, /raise exception 'session id is being reported concurrently'/i);
+    assert.match(effectiveBody(FUNCTION_HEADERS.consume_entitlement_session, '20261002233520_failed_session_refunds.sql'), /raise exception 'session id is being reported concurrently'/i);
+    assert.match(body, /select \* into u from public\.session_usage[\s\S]*?for update/, 'the current session lookup must wait for committed settlement proof');
     const lapseFix = sqlOf(LAPSE_FIX);
     assert.doesNotMatch(stripComments(lapseFix), /drop table|alter table|delete from|truncate|drop function/i);
     assert.match(lapseFix, /revoke all on function public\.consume_entitlement\(uuid, integer, uuid\) from public, anon, authenticated/i);

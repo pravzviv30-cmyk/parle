@@ -53,7 +53,10 @@ describe('the closure a conversation earns (F552)', () => {
     // A measured sound outranks the clarity line.
     const heard = closureFromPack(pack(), { progress, deck: [], checks: [CHECK] });
     assert.equal(heard.focus!.kind, 'sound');
-    if (heard.focus!.kind === 'sound') assert.equal(heard.focus!.missionId, 'mission:hotel');
+    if (heard.focus!.kind === 'sound') {
+      assert.equal(heard.focus!.missionId, 'mission:hotel');
+      assert.equal(heard.focus!.ipa, CHECK.phoneme);
+    }
 
     // With no context at all, nothing is invented: no next mission, no cadence.
     const early = closureFromPack(pack(), null);

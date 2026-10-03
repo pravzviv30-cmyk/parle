@@ -1,3 +1,4 @@
+import { DayCount } from '../progress/DayCount.tsx';
 /**
  * Profile — who you are, who your tutor is, and how you learn.
  *
@@ -51,14 +52,13 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
 import { paper, space, type } from '../theme.ts';
-import { Card, Label, Monogram, OptionCard, OutlineButton, Field } from '../components.tsx';
+import { Card, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 import { ChoiceRow } from '../settings/ChoiceRow.tsx';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
-import { FrenchLifeCard } from '../profile/FrenchLifeCard.tsx';
 import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
 import { LEARNING_LABEL, PROFILE_PURPOSE, RHYTHM_LABEL, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -226,76 +226,9 @@ export function ProfileTab() {
    * with the eight cards that choose who the tutor is rather than on a card of
    * the learner's own settings.
    */
-  if (sheet === 'tutorVoice') {
-    return (
-      <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: closeVoiceSheet }} />}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{TUTOR_VOICE_TITLE}</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_VOICE_SUB}</Text>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
-          {TUTOR_VOICE_OPTIONS.map((option) => (
-            <OptionCard
-              key={option.value}
-              text={option.label}
-              gloss={option.gloss}
-              selected={tutorVoiceOf(profile) === option.value}
-              playing={samplePlaying === option.value}
-              onPress={() => {
-                update(withTutorVoice(profile, option.value));
-                closeVoiceSheet();
-              }}
-              onHear={() => hearVoice(option.value)}
-            />
-          ))}
-        </View>
-        <Card style={{ marginTop: space(6) }}>
-          <SwitchRow
-            first
-            title={PACE_ROW}
-            sub={PACE_SUB}
-            value={paceOf(profile) === 'slow'}
-            onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))}
-            accessibilityLabel={PACE_ROW}
-          />
-        </Card>
-      </ScrollScreen>
-    );
-  }
-
-  if (sheet === 'name') {
-    // The chevron is Cancel here: leaving restores the stored name, exactly as
-    // the removed Cancel button did. Save is the one action left in the body.
-    return (
-      <ScrollScreen
-        bottom="inset"
-        avoidKeyboard
-        header={<ScreenHeader back={{ onPress: () => { setDraftName(profile.name ?? ''); setSheet('none'); } }} />}
-      >
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Your name</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-          What your tutor calls you at the start of a session.
-        </Text>
-        <View style={{ marginTop: space(6) }}>
-          <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="Your name" />
-        </View>
-        <View style={{ marginTop: space(6) }}>
-          <OutlineButton
-            label="Save"
-            onPress={() => {
-              const next = draftName.trim();
-              // Through the named door, like every other field on the card
-              // (F477). A field two places can set is a field that can come to
-              // disagree with itself, which is what `profile/store.ts` says its
-              // `with*` helpers exist to prevent.
-              if (next.length > 0) update(withName(profile, next));
-              setSheet('none');
-            }}
-          />
-        </View>
-      </ScrollScreen>
-    );
-  }
 
   return (
+    <>
     <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} title="Profile" />}>
       {/* The one row that leads to everything general: the account, the plan,
           the subscription, the documents, the phone's own permissions and the
@@ -323,12 +256,7 @@ export function ProfileTab() {
         <Label>{TUTOR_LABEL}</Label>
         <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
 
-        {/* The week, Monday to Sunday, said in one plain sentence (notebook
-            Phase 4). It names no number and sets no target. */}
-        <View style={st.group}>
-          <Label>{RHYTHM_LABEL}</Label>
-          <FrenchLifeCard />
-        </View>
+        <DayCount />
 
         <View style={st.group}>
           <Label>{LEARNING_LABEL}</Label>
@@ -368,6 +296,26 @@ export function ProfileTab() {
         </View>
       </View>
     </ScrollScreen>
+    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} footer={<PillButton label="Done" onPress={closeVoiceSheet} />}>
+      <Text style={[type.body, { color: paper.inkSoft }]}>{TUTOR_VOICE_SUB}</Text>
+      {TUTOR_VOICE_OPTIONS.map((option) => (
+        <OptionRow key={option.value} title={option.label} detail={option.gloss}
+          selected={tutorVoiceOf(profile) === option.value} playing={samplePlaying === option.value}
+          onPress={() => update(withTutorVoice(profile, option.value))} onHear={() => hearVoice(option.value)} />
+      ))}
+      <SwitchRow first title={PACE_ROW} sub={PACE_SUB} value={paceOf(profile) === 'slow'}
+        onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))} accessibilityLabel={PACE_ROW} />
+    </BottomSheet>
+    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet}>
+      <Text style={[type.body, { color: paper.inkSoft }]}>What your tutor calls you at the start of a session.</Text>
+      <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="e.g. James" />
+      <PillButton label="Save" disabled={draftName.trim().length === 0} onPress={() => {
+        const next = draftName.trim();
+        if (next.length > 0) update(withName(profile, next));
+        setSheet('none');
+      }} />
+    </BottomSheet>
+    </>
   );
 }
 

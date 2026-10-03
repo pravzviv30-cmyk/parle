@@ -43,9 +43,10 @@ export async function playWhenCurrent(
   ticket: number,
   ready: () => Promise<unknown>,
   play: () => void,
+  stillWanted: () => boolean = () => true,
 ): Promise<boolean> {
   await ready();
-  if (!gate.isCurrent(ticket)) return false;
+  if (!gate.isCurrent(ticket) || !stillWanted()) return false;
   play();
   return true;
 }

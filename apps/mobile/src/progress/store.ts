@@ -14,7 +14,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { buildProgressReport, type ProgressReport, type SessionSummary, type StoredSession } from '@luvani/core';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -27,26 +27,23 @@ type WriteOrigin = 'local' | 'adopted';
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
 }
 
 async function readHistory(key: string): Promise<StoredSession[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as StoredSession[]) : [];
-  } catch {
-    // A corrupt history is not worth crashing over. Start fresh.
-    return [];
-  }
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return [];
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed) || !parsed.every(isSession)) throw new Error('session history could not be read');
+  return parsed;
 }
 
 /**
@@ -58,35 +55,41 @@ async function readHistory(key: string): Promise<StoredSession[]> {
  * whose history is genuinely empty.
  */
 async function persistedHistory(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return null;
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed) || !parsed.every(isSession)) throw new Error('session history could not be read');
+  return parsed;
 }
 
 /** The least a stored session must be to be carried through a merge. */
 function isSession(value: unknown): value is StoredSession {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as StoredSession).endedAt === 'number' &&
-    typeof (value as StoredSession).summary === 'object' &&
-    (value as StoredSession).summary !== null
-  );
+  if (typeof value !== 'object' || value === null) return false;
+  const row = value as Partial<StoredSession>;
+  const summary = row.summary as Partial<SessionSummary> | undefined;
+  const pronunciation = summary?.pronunciation;
+  return typeof row.endedAt === 'number' && Number.isFinite(row.endedAt) &&
+    typeof summary?.lessonId === 'string' && summary.lessonId.length > 0 &&
+    typeof summary.longestTurnSec === 'number' && Number.isFinite(summary.longestTurnSec) &&
+    Array.isArray(summary.wordsProduced) && summary.wordsProduced.every((word) => typeof word === 'string') &&
+    typeof pronunciation === 'object' && pronunciation !== null && Array.isArray(pronunciation.stats) &&
+    pronunciation.stats.every((stat) => typeof stat?.ipa === 'string' &&
+      typeof stat.sampleCount === 'number' && Number.isFinite(stat.sampleCount) &&
+      typeof stat.meanScore === 'number' && Number.isFinite(stat.meanScore));
 }
 
 export function loadHistory(): Promise<StoredSession[]> {
   return readHistory(KEY());
 }
 
-async function saveHistory(key: string, history: readonly StoredSession[], origin: WriteOrigin): Promise<void> {
+async function saveHistory(key: string, history: readonly StoredSession[], origin: WriteOrigin, owner: number): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(history));
+    await setItemInUserScope(owner, key, JSON.stringify(history));
     if (origin === 'local') markDirty('history');
+    return true;
   } catch {
-    // Storage full or unavailable. The session still counts for this launch.
+    // Storage full, unavailable or stale. No durable adoption is claimed.
+    return false;
   }
 }
 
@@ -107,10 +110,10 @@ export async function lastSummaryFor(lessonId: string): Promise<SessionSummary |
 
 /** Append a finished session and return the updated report. */
 export function recordSession(summary: SessionSummary, now = Date.now()): Promise<ProgressReport> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const history = await readHistory(key);
     const trimmed = [...history, { endedAt: now, summary }].slice(-MAX_SESSIONS);
-    await saveHistory(key, trimmed, 'local');
+    if (!(await saveHistory(key, trimmed, 'local', owner))) throw new Error('session history could not be saved');
     return buildProgressReport(trimmed);
   });
 }
@@ -133,11 +136,13 @@ export function recordSession(summary: SessionSummary, now = Date.now()): Promis
  * sync/policy.ts sorts into, so the disk and the account agree byte for byte.
  */
 function adoptHistory(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persistedHistory(key));
+  return serialized(async (key, owner) => {
+    let current: unknown;
+    try { current = await persistedHistory(key); } catch { return 'declined'; }
+    const folded = fold(current);
     if (!Array.isArray(folded)) return 'declined';
     const sessions = folded.filter(isSession).sort((a, b) => a.endedAt - b.endedAt).slice(-MAX_SESSIONS);
-    await saveHistory(key, sessions, 'adopted');
+    if (!(await saveHistory(key, sessions, 'adopted', owner))) return 'declined';
     return 'adopted';
   });
 }

@@ -19,32 +19,45 @@ import { AppState } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
-import { claimDailyPlayback, releaseDailyPlayback } from '../daily/playback.ts';
+import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from '../daily/playback.ts';
 import { createPlaybackGate, playWhenCurrent } from './playbackGate.ts';
+import { onUserScopeReset } from '../storage/scope.ts';
 
 export interface RecordedLinePlayer {
   /** The asset playing now, or null. */
   playing: number | null;
+  playingUri: string | null;
+  playUri: (uri: string) => void;
   /** Play this asset, or stop it when it is the one playing. */
   toggle: (asset: number) => void;
+  /** Replay, including when another row uses the same bundled asset. */
+  play: (asset: number) => void;
   stop: () => void;
 }
 
-export function useRecordedLine(): RecordedLinePlayer {
+export function useRecordedLine(options?: { isCurrent: () => boolean }): RecordedLinePlayer {
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
   const [playing, setPlaying] = useState<number | null>(null);
+  const [playingUri, setPlayingUri] = useState<string | null>(null);
   const gate = useRef(createPlaybackGate()).current;
   const focused = useIsFocused();
+  const focusedNow = useRef(focused);
+  focusedNow.current = focused;
+  const active = useRef(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+  const currentGuard = useRef(options?.isCurrent);
+  currentGuard.current = options?.isCurrent;
 
   const stop = useCallback(() => {
     gate.cancel();
     releaseDailyPlayback(player);
     setPlaying(null);
+    setPlayingUri(null);
   }, [gate, player]);
+  useEffect(() => onUserScopeReset(stop), [stop]);
 
   useEffect(() => {
-    if (status.didJustFinish) setPlaying(null);
+    if (status.didJustFinish) { setPlaying(null); setPlayingUri(null); }
   }, [status.didJustFinish]);
 
   // The tab stays mounted when the learner switches away, so a blur is a leave.
@@ -54,7 +67,10 @@ export function useRecordedLine(): RecordedLinePlayer {
 
   // And so is the app going to the background.
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => { if (state !== 'active') stop(); });
+    const subscription = AppState.addEventListener('change', (state) => {
+      active.current = state === 'active';
+      if (!active.current) stop();
+    });
     return () => subscription.remove();
   }, [stop]);
 
@@ -67,25 +83,33 @@ export function useRecordedLine(): RecordedLinePlayer {
     [gate, player],
   );
 
-  const toggle = useCallback(
-    (asset: number) => {
-      if (playing === asset) {
-        stop();
-        return;
-      }
+  const playSource = useCallback(
+    (asset: number | string) => {
+      const guard = currentGuard.current;
+      if (!focusedNow.current || !active.current || (guard && !guard())) return;
       const ticket = gate.begin();
       claimDailyPlayback(player);
-      setPlaying(asset);
+      setPlaying(typeof asset === 'number' ? asset : null);
+      setPlayingUri(typeof asset === 'string' ? asset : null);
       void playWhenCurrent(gate, ticket, () => setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, shouldPlayInBackground: false }), () => {
         player.pause();
-        player.replace(asset);
+        player.replace(typeof asset === 'string' ? { uri: asset } : asset);
         player.play();
+      }, () => focusedNow.current && active.current && (guard?.() ?? true) && ownsDailyPlayback(player)).then((played) => {
+        if (!played && gate.isCurrent(ticket)) { setPlaying(null); setPlayingUri(null); }
       }).catch(() => {
-        if (gate.isCurrent(ticket)) setPlaying(null);
+        if (gate.isCurrent(ticket)) { setPlaying(null); setPlayingUri(null); }
       });
     },
-    [gate, player, playing, stop],
+    [gate, player],
   );
+  const play = useCallback((asset: number) => playSource(asset), [playSource]);
+  const playUri = useCallback((uri: string) => { if (/^(file:|blob:)/.test(uri)) playSource(uri); }, [playSource]);
 
-  return { playing, toggle, stop };
+  const toggle = useCallback((asset: number) => {
+    if (playing === asset) stop();
+    else play(asset);
+  }, [playing, stop, play]);
+
+  return { playing, playingUri, toggle, play, playUri, stop };
 }

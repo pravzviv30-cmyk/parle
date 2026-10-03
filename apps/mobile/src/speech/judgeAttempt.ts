@@ -26,7 +26,8 @@
 
 import type { OwnWordsExercise, OwnWordsVerdict } from '@luvani/core';
 
-import { authHeaders } from '../auth/adapter.ts';
+import { auth, authHeaders } from '../auth/adapter.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { loadProfile } from '../profile/store.ts';
 
@@ -49,12 +50,17 @@ export async function judgeOwnWords(
   userId: string,
   exercise: OwnWordsExercise,
   attempt: string,
+  owner = scopeGeneration(),
 ): Promise<OwnWordsVerdict | null> {
   try {
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return null;
     const cefr = await levelHint();
+    const headers = await authHeaders();
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return null;
     const res = await fetch(`${TOKEN_SERVER}/drill/judge`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...(await authHeaders()) },
+      signal: AbortSignal.timeout(12_000),
+      headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify({
         userId,
         fr: exercise.fr,
@@ -67,6 +73,7 @@ export async function judgeOwnWords(
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { verdict?: unknown };
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return null;
     return readVerdict(data.verdict);
   } catch {
     return null;

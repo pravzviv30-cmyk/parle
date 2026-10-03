@@ -70,7 +70,7 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     const source = themeSource();
     const fonts = block(source, 'export const font = {', '} as const;');
     const cuts = [...fonts.matchAll(/^\s{2}(\w+): '([^']+)',$/gm)].map((m) => [m[1]!, m[2]!] as const);
-    assert.equal(cuts.length, 10, `the font block names ${cuts.length} faces, expected the five cuts and five aliases`);
+    assert.equal(cuts.length, 5, `the font block names ${cuts.length} faces, expected only the five canonical cuts`);
     for (const [name, face] of cuts) {
       assert.match(face, /^Outfit-(Regular|Medium|SemiBold|Bold|ExtraBold)$/, `font.${name} is ${face}, which is not an Outfit cut`);
     }

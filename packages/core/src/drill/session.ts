@@ -35,7 +35,7 @@ import type { OwnWordsDecision } from './ownWords.ts';
 import type { DrillExercise } from './types.ts';
 
 /** The ramp, in climbing order. Recognition on the left, production on the right. */
-export const DRILL_STAGES = ['options', 'tap-tokens', 'typed', 'spoken'] as const;
+export const DRILL_STAGES = ['options', 'tap-tokens', 'typed', 'spoken', 'own-words'] as const;
 
 export type DrillStage = (typeof DRILL_STAGES)[number];
 
@@ -43,10 +43,8 @@ export type DrillStage = (typeof DRILL_STAGES)[number];
  * Which rung of the ramp an exercise format sits on, or null for a format that
  * is not on the ramp at all.
  *
- * Only own-words returns null today. It is deliberately off the ladder — see
- * the note on OwnWordsExercise — and null is how that is said out loud, rather
- * than parking it on whichever rung looked closest and quietly teaching the
- * ramp to hand out unscripted production as a step.
+ * Own words is the fifth sitting: reproduce a reference first, then carry the
+ * meaning in a sentence of your own. It uses the existing semantic judge.
  */
 export function stageOf(exercise: DrillExercise): DrillStage | null {
   switch (exercise.kind) {
@@ -63,7 +61,7 @@ export function stageOf(exercise: DrillExercise): DrillStage | null {
     case 'repeat-this':
       return 'spoken';
     case 'own-words':
-      return null;
+      return 'own-words';
   }
 }
 

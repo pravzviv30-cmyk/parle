@@ -144,11 +144,11 @@ The keys go into `services/tutor-agent/.env`:
 
 | Key | Where | Powers |
 |---|---|---|
-| `OPENAI_API_KEY` | platform.openai.com | Recommended first production path: `TUTOR_LLM=openai` uses GPT-5.6 Luna for low-latency turns and scene design, and GPT-5.6 Terra for memory and varied practice through strict Responses API schemas. `OPENAI_TURN_MODEL` and `OPENAI_ANALYST_MODEL` are optional overrides; there is no separate Luna key. |
+| `OPENAI_API_KEY` | platform.openai.com | `TUTOR_LLM=openai` uses GPT-6 Luna for live turns and scene design, GPT-5.6 Luna for curated phrases and written checks, and GPT-5.6 Terra for memory extraction and drill authoring through strict Responses API schemas. `OPENAI_LIVE_MODEL`, `OPENAI_TURN_MODEL` and `OPENAI_ANALYST_MODEL` are optional overrides; there is no separate Luna key. |
 | `ANTHROPIC_API_KEY` | console.anthropic.com | Alternative production brain: `TUTOR_LLM=anthropic` routes Claude by activity through the same provider-neutral contracts. |
 | `GROQ_API_KEY` | console.groq.com | The $0 fallback brain (`TUTOR_LLM=groq`). Useful for plumbing work; model availability and free-tier limits change, so the worker probes it before accepting learners. |
 | *(no key)* | your Claude subscription | `TUTOR_LLM=claude-cli` runs the brain through the `claude` command instead of the API, so the coaching can be judged before buying a key. It splits by who is waiting: post-session memory, curation and drill authoring go to Claude, and realtime turns stay on Groq, because one command-line call measures about 8 to 12 seconds against a sub-second turn budget. Needs `claude` on PATH and `GROQ_API_KEY`. Moving to the API later is `TUTOR_LLM=anthropic` plus a key, and nothing else. |
-| *(no key)* | your Claude subscription | `TUTOR_LLM=claude-cli-all` sends **every** call to the `claude` command, realtime turns included, and needs no vendor key of any kind. Development only: each turn costs the same 8 to 12 seconds, so the learner waits through it, and the scene builder is given 30 seconds instead of 10 so a slow call does not lose the race and open a fixture scene. Reach for it when Groq's free tier is rate limiting you, or to judge coaching quality with no spend at all. Needs `claude` on PATH. |
+| *(no key)* | your Claude subscription | `TUTOR_LLM=claude-cli-all` sends **every** call to the `claude` command, realtime turns included, while scripted SDK lessons still use Groq and require `GROQ_API_KEY`. Development only: each turn costs the same 8 to 12 seconds, so the learner waits through it, and the scene builder is given 30 seconds instead of 10 so a slow call does not lose the race and open a fixture scene. Reach for it when Groq's free tier is rate limiting you, or to judge coaching quality with no spend at all. Needs `claude` on PATH and `GROQ_API_KEY`. |
 | `DEEPGRAM_API_KEY` | console.deepgram.com | French STT ($200 signup credit) |
 | `ELEVEN_API_KEY` + `ELEVEN_VOICE_ID` | elevenlabs.io | The tutor's French voice (free tier) |
 | `TONEPERFECT_API_KEY` | toneperfect.app (optional, token server) | Pronunciation scoring for speak drills and sound checks via the token server's `/drill/score`, and the default scorer whenever it is set. Absent, drills fall back to honest self-report. Live-scene scoring is built but off (`LUVANI_AUDIO_SCORING`, see F623 in `docs/KNOWN_ISSUES.md`). |
@@ -267,3 +267,13 @@ audio — not your own — before trusting any of the pronunciation output.
 **2. Cost per session.** Premium voice is ~60% of the per-minute cost. The model in
 `packages/core/src/metering/meter.ts` is instrumented and tested; reconcile it
 against real vendor bills in week one, not month three.
+
+
+## Current UX implementation review
+
+The PDF and 100-app review changes are implemented in the local Revamp B pass.
+See [the 44-item implementation record](docs/UX_REPORT_IMPLEMENTATION.md) for
+source evidence and [the acceptance worksheet](docs/UX_ACCEPTANCE_REVIEW.md)
+for the remaining physical-device, French-review and sandbox/hosted checks.
+The 3 October source gate passes 4,231 tests; this does not replace those release
+checks. The founder's preview feedback is the next pass before main landing.

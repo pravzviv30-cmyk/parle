@@ -90,7 +90,7 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
             placeholder={TYPE_PROMPT}
             placeholderTextColor={paper.inkFaint}
             accessibilityLabel={TYPE_LABEL}
-            style={[st.input, { fontFamily: font.sans, fontSize: type.body.fontSize }]}
+            style={[st.input, { fontFamily: font.regular, fontSize: type.body.fontSize }]}
           />
           <OutlineButton
             label={CHECK}

@@ -39,27 +39,16 @@ describe('Friends is restyled in the notebook system, and nothing else moved —
     assert.match(FLAT, /<LedgerRow [^>]*onPress=\{\(\) => nav\.navigate\('SocialSettings'\)\}/, 'privacy is not a ledger row');
   });
 
-  test('the board, the points and the moderation are unchanged', () => {
-    for (const kept of [
-      'rankedFriends([s.self, ...s.friends])',
-      'POINTS_EXPLANATION',
-      "person.points ? `${person.points} points`",
-      'person.rank',
-      "act('inviteChallenge'",
-      "act('acceptChallenge'",
-      "act('leaveChallenge'",
-      "act('remove'",
-      "act('block'",
-      "act('report', { id: f.id, reason: reason.trim() })",
-      'maxLength={500}',
-      'REACTIONS.map(',
-      "act('react'",
-      'Fresh week Monday',
-    ]) {
-      assert.ok(SCREEN.includes(kept), `the tab lost ${kept}; this phase restyles Friends and changes none of its behaviour`);
+  test('Friends removes visible ranks while keeping shared challenges and moderation', () => {
+    assert.match(SCREEN, /friendsByName\(s\.friends\)/);
+    assert.doesNotMatch(SCREEN, /person\.points|person\.rank|POINTS_EXPLANATION|rankedFriends|weekly board/i);
+    for (const kept of ["act('inviteChallenge'", "act('acceptChallenge'", "act('leaveChallenge'", "act('remove'", "act('block'", "act('report', { id: f.id, reason: reason.trim() })", 'maxLength={500}', 'REACTIONS.map(', "act('react'"]) {
+      assert.ok(SCREEN.includes(kept), `the change lost ${kept}`);
     }
-    // The learner's own row still says it is theirs, in words rather than a colour.
-    assert.match(FLAT, /person\.id === s\.self\.id \? 'You' : person\.name/, 'the learner\'s own row no longer says it is theirs');
+    assert.match(SCREEN, /notices\.filter\(n => n\.kind !== 'result'\)/);
+    const privacy = read('../friends/SocialSettingsScreen.tsx');
+    assert.doesNotMatch(privacy, /key: 'showScore'|key: 'results'/);
+    assert.match(privacy, /key: 'shareMilestones'/);
   });
 
   test('English is never set in the French face', () => {

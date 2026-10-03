@@ -271,7 +271,7 @@ export function completePracticeSitting(input: CompletePracticeInput): Promise<P
 async function completeNow(input: CompletePracticeInput): Promise<PracticeCompletionResult> {
   const bound = bindPracticeScope();
   const slot = await readCompletionSlot(bound, input.sittingId);
-  if (slot.kind === 'unreadable') return result('failed', input.sittingId);
+  if (slot.kind === 'unreadable') return result(moved(bound) ? 'account-changed' : 'failed', input.sittingId);
   if (slot.kind === 'completed') return result('already-completed', input.sittingId);
   if (slot.kind === 'pending') return runPlan(bound, slot.plan, 'completed');
   if (slot.kind === 'other-pending') {
@@ -284,7 +284,7 @@ async function completeNow(input: CompletePracticeInput): Promise<PracticeComple
   // The receipt ring is bounded, so the retained history is asked too. A
   // history that cannot be read cannot prove the sitting is new: refuse.
   const recorded = await hasRecordedSitting(input.sittingId);
-  if (recorded === null) return result('failed', input.sittingId);
+  if (recorded === null) return result(moved(bound) ? 'account-changed' : 'failed', input.sittingId);
   if (recorded) return result('already-completed', input.sittingId);
   if (moved(bound)) return result('account-changed', input.sittingId);
 
@@ -308,11 +308,11 @@ async function completeNow(input: CompletePracticeInput): Promise<PracticeComple
 
   if (moved(bound)) return result('account-changed', input.sittingId, { outcomes, xp });
   const grades = await planPracticeGrades(practiceCardGrades(input.state, input.targets, input.exposed, input.assisted), event.at);
-  if (grades === null) return result('failed', input.sittingId, { outcomes, xp });
+  if (grades === null) return result(moved(bound) ? 'account-changed' : 'failed', input.sittingId, { outcomes, xp });
 
   if (moved(bound)) return result('account-changed', input.sittingId, { outcomes, xp });
   const activityAt = xp > 0 ? await claimActivityInstant('drill', xp, event.at) : event.at;
-  if (activityAt === null) return result('failed', input.sittingId, { outcomes, xp });
+  if (activityAt === null) return result(moved(bound) ? 'account-changed' : 'failed', input.sittingId, { outcomes, xp });
 
   const plan: CompletionPlan = {
     sittingId: input.sittingId,

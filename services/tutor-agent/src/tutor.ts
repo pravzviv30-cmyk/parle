@@ -39,8 +39,11 @@ import { TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
 import { reportUsage } from './usage.ts';
+import { terminalServiceFailure } from './serviceFailure.ts';
+import type { ServiceFailure } from '@luvani/core';
 import { TurnQueue } from './queue.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
+import { observeRecognitionConfidence } from './recognitionConfidence.ts';
 import { recordSafetyDecision, safetyDecision } from './safety.ts';
 
 /**
@@ -129,6 +132,7 @@ export class LuvaniTutor extends voice.Agent {
   private publish: Publisher = () => {};
   private startedAt = Date.now();
   private ended = false;
+  private finishing: Promise<void> | null = null;
   /** Every mutation of `state` goes through here, one at a time. */
   private readonly queue = new TurnQueue();
   /** True between the learner starting to talk and their turn being applied. */
@@ -140,6 +144,12 @@ export class LuvaniTutor extends voice.Agent {
    * turn index — see `finish()`.
    */
   private learnerTurns = 0;
+  private serviceFailure: ServiceFailure | null = null;
+  terminalFailureFor(kind: unknown, recoverable: unknown, learnerPresent: boolean): ServiceFailure | null {
+    const failure = terminalServiceFailure({ kind, recoverable, learnerPresent, ended: this.ended, voiceless: this.voiceless });
+    if (failure) this.serviceFailure ??= failure;
+    return failure;
+  }
   /** A spent credential re-opened this room, so this tutor never goes on air. */
   private refused = false;
   /** Keeps a copy of each utterance on its way to the recogniser. */
@@ -451,7 +461,7 @@ export class LuvaniTutor extends voice.Agent {
   ): Promise<ReadableStream<stt.SpeechEvent | string> | null> {
     const events = await voice.Agent.default.sttNode(this, observeFrames(audio, this.tap), modelSettings);
     if (!events) return events;
-    return ReadableStream.from(observeEvents(events, this.tap)) as ReadableStream<stt.SpeechEvent | string>;
+    return ReadableStream.from(observeEvents(observeRecognitionConfidence(events), this.tap)) as ReadableStream<stt.SpeechEvent | string>;
   }
 
   /** The learner said something. Grade it, move the ladder, re-brief the tutor. */
@@ -552,8 +562,14 @@ export class LuvaniTutor extends voice.Agent {
    * arrive here — and billing someone twice for one session is the kind of bug
    * that costs a refund and a review.
    */
-  async finish(): Promise<void> {
-    if (this.ended) return;
+  finish(): Promise<void> {
+    if (this.finishing) return this.finishing;
+    if (this.ended) return Promise.resolve();
+    this.finishing = this.complete();
+    return this.finishing;
+  }
+
+  private async complete(): Promise<void> {
     this.ended = true;
     this.clearRescue();
 
@@ -585,12 +601,14 @@ export class LuvaniTutor extends voice.Agent {
     // Spent before the call goes out: a crash between here and the debit must
     // not leave a used credential looking fresh to the next room it opens.
     noteSessionReported(this.sessionId);
-    await reportUsage({
+    const settlement = await reportUsage({
       userId: this.learnerId,
       sessionId: this.sessionId,
       seconds: billableSeconds,
       utterancesScored: summary.utterancesScored,
+      ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}),
     });
+    if (this.serviceFailure) await this.publish({ t: 'settlement', result: settlement });
   }
 
   /** Set from the room identity so usage lands on the right account. */

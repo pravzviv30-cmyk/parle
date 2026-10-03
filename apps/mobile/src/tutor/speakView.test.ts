@@ -23,6 +23,7 @@ import {
   TYPE_INSTEAD,
   YOU_ARE_HERE,
   moreWaysOpen,
+  pathCard,
   speakPath,
   startModes,
   startNote,
@@ -59,6 +60,7 @@ describe('the level path', () => {
     assert.ok(rows.slice(1).every((row) => row.state === 'ahead'));
     for (const row of rows) {
       const mission = getMission(row.missionId)!;
+      assert.equal(row.french, mission.title, 'a row does not carry the scene\'s French name');
       assert.equal(row.title, mission.titleEn);
       assert.equal(row.gloss, mission.canDoEn);
       assert.equal(row.meta, minutesLine(missionMinutes(mission)));
@@ -94,9 +96,58 @@ describe('the level path', () => {
     for (const row of rows) {
       // One sentence to a screen reader: the scene, the can-do, the minutes and where the learner stands.
       const where = row.state === 'here' ? 'you are here' : row.state === 'earned' ? 'done' : 'not yet';
-      assert.equal(row.accessibilityLabel, `${row.title}, ${row.gloss}, ${row.meta}, ${where}`);
+      assert.equal(row.accessibilityLabel, `${row.title}, ${row.gloss}, ${row.progressLabel}, ${row.meta}, ${where}`);
+      assert.equal(row.progressLabel, row.state === 'here' ? 'Next scene' : 'Available scene');
     }
     assert.ok(SPEAK_COPY.includes(YOU_ARE_HERE));
+  });
+
+  // Revamp B, F603. Speak draws the path as one white card: the scenes of the
+  // level the learner is in, by their French names, and one line for the level
+  // after. The card opens the list of every scene, so nothing here is lost.
+  test("the path card holds the current level's scenes in French and names the rest in one line", () => {
+    const levelOf = (level: 'A0' | 'A1') => SCENE_SPINE.filter((id) => getMission(id)!.cefr === level);
+    const a0 = levelOf('A0');
+    const a1 = levelOf('A1');
+    assert.ok(a0.length > 0 && a1.length > 0, 'the spine lost a level, so this test reads nothing');
+
+    // A first run: the "here" is the opener, so the card is A0 and names A1 after it.
+    const fresh = pathCard(speakPath(missionStates([], [], NOW)));
+    assert.equal(fresh.level, 'A0');
+    assert.deepEqual(fresh.rows.map((row) => row.missionId), a0, 'the card holds something other than the current level, in spine order');
+    for (const row of fresh.rows) {
+      const mission = getMission(row.missionId)!;
+      assert.equal(row.french, mission.title, 'a path row is not drawn by its French name');
+      assert.notEqual(row.french, row.title, 'the French name is the English one');
+    }
+    assert.equal(fresh.rows.filter((row) => row.state === 'here').length, 1, 'the card lost the "here" row');
+    assert.equal(fresh.rest, `Then A1, ${a1.length} more scenes`);
+
+    // Every A0 scene earned: "here" moves into A1, the card follows it, and
+    // with nothing after A1 there is no line to add.
+    const pastA0 = missionStates(a0.map((id, i) => ({ id, at: NOW - 10_000 + i, rung: 4 as const })), [], NOW);
+    const second = pathCard(speakPath(pastA0));
+    assert.equal(second.level, 'A1', 'the card stayed on a level the learner has finished');
+    assert.deepEqual(second.rows.map((row) => row.missionId), a1);
+    assert.equal(second.rest, null, 'the last level names a level after it that does not exist');
+
+    // Everything earned: there is no "here" at all, and the last level stands.
+    const done = missionStates(SCENE_SPINE.map((id, i) => ({ id, at: NOW - 10_000 + i, rung: 4 as const })), [], NOW);
+    const last = pathCard(speakPath(done));
+    assert.equal(last.level, 'A1');
+    assert.ok(last.rows.every((row) => row.state === 'earned'));
+    assert.equal(last.rest, null);
+
+    // One scene after this level reads as one scene, not "1 more scenes".
+    const path = speakPath(missionStates([], [], NOW));
+    const one = pathCard({ groups: [path.groups[0]!, { ...path.groups[1]!, rows: path.groups[1]!.rows.slice(0, 1) }] });
+    assert.equal(one.rest, 'Then A1, 1 more scene');
+
+    // One line, joined with a comma, and nothing the punctuation ratchet bans.
+    for (const line of [fresh.rest!, one.rest!]) {
+      assert.doesNotMatch(line, /\n|[·—–]/, `"${line}" is not one plain line`);
+      assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
+    }
   });
 });
 

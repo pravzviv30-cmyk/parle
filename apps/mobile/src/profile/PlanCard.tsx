@@ -26,12 +26,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { Card } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { planStatusFor, type PlanStatusView } from '../purchases/planStatus.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
 
-export const CHANGE_PLAN_ROW = 'Change plan';
+export const CHANGE_PLAN_ROW = 'View plans';
 export const CHANGE_PLAN_SUB = 'See what each plan opens.';
 /**
  * The second row, which reports a band and never a number.
@@ -51,15 +52,18 @@ export function PlanCard() {
   const { user } = useAuth();
   // Null until the read answers. A card drawn from an unanswered read would
   // say the plan could not be checked to a learner whose plan is on its way.
-  const [view, setView] = useState<PlanStatusView | null>(null);
+  const [record, setRecord] = useState<{ owner: number; view: PlanStatusView } | null>(null);
+  const view = record?.owner === scopeGeneration() ? record.view : null;
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const owner = scopeGeneration();
+      setRecord(null);
       if (user === null) return;
       void fetchBillingStatus(user.id)
         .then((status) => {
-          if (!cancelled) setView(planStatusFor(status, Date.now()));
+          if (!cancelled && owner === scopeGeneration()) setRecord({ owner, view: planStatusFor(status, Date.now()) });
         })
         .catch(() => {
           // fetchBillingStatus answers null for every failure, so this is the

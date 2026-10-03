@@ -1,6 +1,8 @@
+import { scopeGeneration } from '../storage/scope.ts';
+import { billingPairMatches } from './billingReadiness.ts';
 import type { Plan } from '@luvani/core';
 
-import { authHeaders } from '../auth/adapter.ts';
+import { auth, authHeaders } from '../auth/adapter.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { billingStatusIn, type BillingStatus } from './billingStatus.ts';
 
@@ -29,14 +31,19 @@ export interface BillingRefresh {
  * because a purchase surface that guesses is the failure this function exists
  * to stop.
  */
-export async function refreshBilling(): Promise<BillingRefresh | null> {
+export async function refreshBilling(userId: string, owner = scopeGeneration()): Promise<BillingRefresh | null> {
   try {
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return null;
+    const headers = await authHeaders();
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return null;
     const response = await fetch(`${TOKEN_SERVER}/billing/refresh`, {
       method: 'POST',
-      headers: await authHeaders(),
+      headers,
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return null;
     const body: unknown = await response.json();
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return null;
     if (typeof body !== 'object' || body === null) return null;
     const { refreshed, plan } = body as { refreshed?: unknown; plan?: unknown };
     if (typeof refreshed !== 'boolean') return null;
@@ -69,4 +76,25 @@ export async function fetchBillingStatus(userId: string): Promise<BillingStatus 
   } catch {
     return null;
   }
+}
+
+
+/** Rechecked before each store operation; cached readiness cannot outlive deploys. */
+export async function serverBillingReady(userId: string): Promise<boolean> {
+  const owner = scopeGeneration();
+  try {
+    if ((await auth.getSession())?.id !== userId) return false;
+    const headers = await authHeaders();
+    if (!headers.authorization || owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return false;
+    const response = await fetch(`${TOKEN_SERVER}/billing/readiness`, {
+      method: 'POST', headers, signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok || owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return false;
+    const body: unknown = await response.json();
+    if (owner !== scopeGeneration() || (await auth.getSession())?.id !== userId) return false;
+    return billingPairMatches(body, {
+      entitlementId: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
+      products: { starter: process.env.EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID, regular: process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_PRODUCT_ID },
+    });
+  } catch { return false; }
 }

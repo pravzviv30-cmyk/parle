@@ -1,19 +1,24 @@
+import { authenticationIsRecent } from '@luvani/core';
+import { signedInRecently } from './accountDeletion.ts';
+
 /**
  * A learner's server-side data, through the same admin boundary as deletion.
  *
  * Every table is filtered by the user id resolved from the bearer token. The
- * caller never supplies an id, and the deliberately unlinkable trial-installation
- * HMACs are absent: exporting them would require inventing a link the schema was
- * designed not to retain.
+ * caller never supplies an id. Trial-installation HMACs are pseudonymous
+ * antifraud data retained separately, including after account deletion.
  */
 
 const OWNED_TABLES = [
+  'session_grants',
   'learner_state',
   'product_events',
   'entitlements',
   'session_usage',
   'billing_events',
   'conversation_packs',
+  'saved_conversation_text',
+  'phrase_audio_budgets',
   'social_profiles',
   'social_blocks',
   'social_reports',
@@ -60,23 +65,18 @@ export async function exportSupabaseAccountData(
     headers,
     signal: AbortSignal.timeout(5_000),
   });
-  const tableRequests = OWNED_TABLES.map(async (table) => {
-    const encoded = encodeURIComponent(userId);
-    const filter = table === 'social_edges' || table === 'social_challenges'
-      ? `or=(sender.eq.${encoded},recipient.eq.${encoded})` : `user_id=eq.${encoded}`;
-    const response = await request(
-      `${root}/rest/v1/${table}?${filter}&select=*`,
-      { headers, signal: AbortSignal.timeout(5_000) },
-    );
-    const body = await responseJson(response, `${table} export`);
-    if (!Array.isArray(body)) throw new Error(`${table} export returned an invalid payload`);
-    return [table, body] as const;
-  });
+  const serverRowsRequest = request(`${root}/rest/v1/rpc/export_account_data`, {
+    method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+    body: JSON.stringify({ p_user_id: userId }), signal: AbortSignal.timeout(5_000),
+  }).then(response => responseJson(response, 'server data export'));
 
-  const [accountBody, rows] = await Promise.all([
+  const [accountBody, serverData] = await Promise.all([
     accountRequest.then((response) => responseJson(response, 'account export')),
-    Promise.all(tableRequests),
+    serverRowsRequest,
   ]);
+  if (typeof serverData !== 'object' || serverData === null || Array.isArray(serverData) ||
+    Object.keys(serverData).length !== OWNED_TABLES.length || OWNED_TABLES.some(table => !Array.isArray((serverData as Record<string, unknown>)[table]) || ((serverData as Record<string, unknown[]>)[table]!.length > 10000)) ||
+    new TextEncoder().encode(JSON.stringify(serverData)).byteLength > 32 * 1024 * 1024) throw new Error('server data export returned an invalid or oversized snapshot');
   const account = (typeof accountBody === 'object' && accountBody !== null ? accountBody : {}) as Record<string, unknown>;
 
   return {
@@ -88,10 +88,25 @@ export async function exportSupabaseAccountData(
       createdAt: typeof account.created_at === 'string' ? account.created_at : null,
       lastSignInAt: typeof account.last_sign_in_at === 'string' ? account.last_sign_in_at : null,
     },
-    serverData: Object.fromEntries(rows) as Record<ExportedTable, unknown[]>,
+    serverData: serverData as Record<ExportedTable, unknown[]>,
     notes: [
-      'Raw learner audio and full transcripts are not stored, so they are not present.',
-      'The free-trial antifraud marker is deliberately not linkable back to an account.',
+      'Raw learner audio is not stored. Conversation text is present only for sessions you explicitly chose to save; deleted text leaves a word-free retry marker until account deletion.',
+      'Pseudonymous free-trial antifraud markers are retained separately after account deletion. The server can match their keyed hashes to an account or installation; these markers are not included in this export.',
     ],
   };
+}
+
+
+/** Refreshing a bearer alone cannot authorize an account-data download. */
+export async function exportRecentlyAuthenticatedAccountData(
+  baseUrl: string,
+  serviceRoleKey: string,
+  userId: string,
+  authenticatedAt: number | undefined,
+  request: typeof fetch = fetch,
+  now = new Date(),
+): Promise<AccountDataExport | null> {
+  if (!authenticationIsRecent(authenticatedAt, now.getTime())) return null;
+  if (!await signedInRecently(baseUrl, serviceRoleKey, userId, request, now.getTime())) return null;
+  return exportSupabaseAccountData(baseUrl, serviceRoleKey, userId, request, now);
 }

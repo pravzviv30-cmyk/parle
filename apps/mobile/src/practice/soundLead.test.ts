@@ -51,6 +51,12 @@ const check = (over: Partial<SoundCheckEvidence>): SoundCheckEvidence => ({
 });
 
 describe('the sound Practice leads with — notebook Phase 3', () => {
+  test('starter and checked labels describe their actual evidence', () => {
+    assert.equal(SOUND_LEAD.starterLabel, 'A sound to try');
+    assert.equal(SOUND_LEAD.measuredLabel, 'Your focus from the check');
+    assert.match(SOUND_LEAD.unassessed, /not a check/);
+    assert.match(SOUND_LEAD.measuredScope, /one checked line/);
+  });
   test('with nothing measured it is the bonjour lesson\'s own sound, from the inventory', () => {
     const first = CAFE_LESSON.turns[0]!;
     assert.equal(first.target, 'Bonjour', 'the lesson no longer opens on bonjour; the day-one sound is stale');

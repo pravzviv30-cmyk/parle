@@ -208,3 +208,17 @@ describe('configured with a JWKS (asymmetric, the new Supabase default)', () => 
     if (!result.ok) assert.equal(result.status, 401);
   });
 });
+
+
+test('the recent-authentication proof comes only from the verified bearer session', async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const token = await new SignJWT({ role: 'authenticated', session_id: 'current-session', amr: [{ method: 'oauth', timestamp: now - 30 }] })
+    .setProtectedHeader({ alg: 'HS256' }).setSubject('real-user').setIssuedAt().setExpirationTime('1h').sign(new TextEncoder().encode(SECRET));
+  const resolver = createUserResolver({ jwtSecret: SECRET });
+  assert.deepEqual(await resolver.resolve(`Bearer ${token}`, 'fake-user'), { ok: true, userId: 'real-user', authenticatedAt: (now - 30) * 1000 });
+  // Changing the auth time without the project's signature makes it unusable.
+  const parts = token.split('.');
+  const forged = { ...JSON.parse(Buffer.from(parts[1]!, 'base64url').toString()), amr: [{ method: 'oauth', timestamp: now }] };
+  parts[1] = Buffer.from(JSON.stringify(forged)).toString('base64url');
+  assert.equal((await resolver.resolve(`Bearer ${parts.join('.')}`, 'real-user')).ok, false);
+});

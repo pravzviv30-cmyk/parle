@@ -22,6 +22,8 @@ import {
   initialState as initialLadder,
   normalise,
   openingRung,
+  readMissionTasks,
+  type MissionTasks,
   type LadderDirective,
   type LadderState,
   type Rung,
@@ -109,6 +111,9 @@ export interface ConversationState {
    * so a flag recomputed each turn would flicker off and take the win with it.
    */
   missionDone: boolean;
+  missionId: string | null;
+  /** Exact goal observations, separate from movement/forced beat completion. */
+  evidencedBeatIds: string[];
   learner: LearnerSnapshot;
   ladder: LadderState;
   /** Governs the NEXT learner turn: how much support the tutor offers. */
@@ -185,6 +190,7 @@ export interface TurnView {
    * whether to carry on; nothing here ends the session on its own.
    */
   missionDone: boolean;
+  missionTasks?: MissionTasks | null;
   beat: { id: string; goalEn: string; position: number; total: number };
   advancedBeat: boolean;
   /**
@@ -330,6 +336,7 @@ export function createConversation(
     maxTurns: number;
     request?: string;
     mission?: boolean;
+    missionId?: string;
     /**
      * Open this scene on a named rung instead of the cold-open rule's answer.
      *
@@ -362,6 +369,8 @@ export function createConversation(
     // generated-frame path, behaving exactly as it did.
     mission: config.mission ?? false,
     missionDone: false,
+    missionId: config.mission === true ? config.missionId ?? null : null,
+    evidencedBeatIds: [],
     learner,
     ladder,
     directive: directiveFor(ladder.rung),
@@ -606,6 +615,11 @@ function sanitizeTurn(raw: TutorTurn): TutorTurn {
   };
 }
 
+/** Keep the model's later context aligned with the actual guarded dialogue. */
+export function historyForPublishedTurn(raw: TutorTurn, view: TurnView): string {
+  return historyViewOfTurn({ ...sanitizeTurn(raw), sceneReply: view.sceneReply, coachLine: view.coachLine, narration: view.narration });
+}
+
 /**
  * What this turn's coaching named, normalised once.
  *
@@ -764,6 +778,14 @@ export function integrateTurn(
   // already set for them by applyNonSpokenInput once the attempts run out, so
   // the scene still moves whatever happens.
   const wasRescued = input.type === 'silence' || input.type === 'help' || state.directive.rescued;
+  const evidencedBeatIds = [...state.evidencedBeatIds];
+  if (state.mission && state.missionId !== null && input.type === 'spoke' && input.text.trim().length > 0 &&
+      (turn.assessment.language === 'french' || turn.assessment.language === 'mixed') &&
+      turn.assessment.understood && turn.assessment.taskAchieved && turn.scene.goalMet === true &&
+      turn.scene.beat === state.currentBeat && turn.scene.beatDone && turn.topicShift === null &&
+      !wasRescued && !state.forceAdvance && !evidencedBeatIds.includes(state.currentBeat)) {
+    evidencedBeatIds.push(state.currentBeat);
+  }
   const shouldAdvance = (turn.scene.beatDone && !reachedForEnglish && !wasRescued) || forceAdvance;
   if (shouldAdvance) {
     beatStatus[state.currentBeat] = 'done';
@@ -857,6 +879,7 @@ export function integrateTurn(
     ],
     beatStatus,
     currentBeat,
+    evidencedBeatIds,
     attemptsOnBeat,
     forceAdvance,
     lastSupport: turn.support,
@@ -901,9 +924,18 @@ export function integrateTurn(
       rung: ladder.rung,
       recapDue,
       missionDone,
+      ...(next.missionId === null ? {} : { missionTasks: missionTasksFor(next) }),
       beat: { id: beat.id, goalEn: beat.goalEn, position, total: beats.length },
       advancedBeat,
       reachedForEnglish,
     },
   };
+}
+
+/** Authored whole-list projection, including unticked goals before the first turn. */
+export function missionTasksFor(state: ConversationState): MissionTasks | null {
+  if (!state.mission || state.missionId === null) return null;
+  return readMissionTasks({ missionId: state.missionId, items: state.frame.beats.map(beat => ({
+    id: beat.id, goalEn: beat.goalEn, achieved: state.evidencedBeatIds.includes(beat.id),
+  })) });
 }

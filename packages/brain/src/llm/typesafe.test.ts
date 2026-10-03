@@ -151,3 +151,13 @@ describe('typeSafeFromEnv — off unless the key is really there', () => {
     assert.equal(typeSafeFromEnv({ TYPESAFE_API_KEY: 'k', TYPESAFE_MODEL: 'jev-latest' })?.model, 'jev-latest');
   });
 });
+
+test('an aborted TypeSafe retry wait sends no second request', async () => {
+  const controller = new AbortController();
+  const {fetchFn,sent} = scripted([{status:429},{status:200,body:OK_BODY}]);
+  const client = new TypeSafeClient({apiKey:'invented-not-sent'},fetchFn,async()=>{controller.abort();});
+  await assert.rejects(client.systemOne('s',QUESTIONS,controller.signal));assert.equal(sent.length,1);
+  const before = scripted([{status:200,body:OK_BODY}]);
+  await assert.rejects(new TypeSafeClient({apiKey:'invented-not-sent'},before.fetchFn,noSleep).systemOne('s',QUESTIONS,controller.signal));
+  assert.equal(before.sent.length,0);
+});

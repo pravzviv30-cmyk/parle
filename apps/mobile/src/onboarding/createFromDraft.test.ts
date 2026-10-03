@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
-import { SEEDED_GOAL, firstSceneFor, presetMinutes } from './plan.ts';
+import { SEEDED_GOAL, START_LEVELS, REASONS, firstSceneFor, presetMinutes, planFor } from './plan.ts';
 import { profileFromDraft, reminderFromDraft } from './createFromDraft.ts';
 
 const NOW = new Date(2026, 8, 27, 12).getTime();
@@ -25,6 +25,28 @@ const strip = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replac
 const APP = strip(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
 
 describe('the plan is written at account creation', () => {
+  test('every level and purpose combination persists exactly the route and tutor goal shown without inventing evidence', () => {
+    for (const level of START_LEVELS) for (const reason of [null, ...REASONS.map(option => option.key)]) {
+      const answer = draft({ startLevel: level.key, reason });
+      const view = planFor(answer);
+      const profile = profileFromDraft(answer, NOW);
+      assert.equal(view.scenes[0]?.id, firstSceneFor(level.key));
+      assert.equal(profile.dailyGoalMin, view.minutes);
+      assert.deepEqual(profile.learnerGoals, view.goal === null ? [] : [view.goal]);
+      assert.equal(profile.brain.cefr.confidence, 'low');
+      assert.deepEqual(profile.brain.cefr.evidence, []);
+      assert.match(view.startingReason, level.key === 'getby' ? /skip the first coffee/ : /short café greeting/);
+    }
+  });
+
+  test('an explicitly unset routine survives account creation without restoring the suggested minutes', () => {
+    const answer = draft({ startLevel: 'getby', reason: 'work', minutes: 'none' });
+    assert.equal(planFor(answer).minutes, 'none');
+    const profile = profileFromDraft(answer, NOW);
+    assert.equal(profile.dailyGoalMin, null);
+    assert.deepEqual(profile.brain.cefr.evidence, []);
+    assert.deepEqual(reminderFromDraft(answer), { enabled: false, time: DEFAULT_REMINDER_TIME });
+  });
   test('each answer lands in the field the contract names', () => {
     const profile = profileFromDraft(
       draft({ startLevel: 'getby', reason: 'work', minutes: 10, firstName: 'Ada', tutorVoice: 'marie' }),

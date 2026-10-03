@@ -122,6 +122,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             onPress={onPress}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
+            aria-selected={focused}
             // Counting out loud would be a number in the chrome; "ready" is the
             // fact the learner needs and matches the forward framing elsewhere.
             accessibilityLabel={badged ? `${label}, ${route.name === 'Friends' ? 'new social updates' : 'practice ready'}` : label}

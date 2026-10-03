@@ -24,11 +24,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
+import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import { OwnWordsVerdictSchema } from './judge.ts';
+import { FixLineVerdictSchema } from './fixLineJudge.ts';
 import {
   addLlmUsage,
   BrainParseError,
@@ -125,7 +126,11 @@ export class AnthropicBrainClient implements LlmClient {
       output_config: outputConfig(TurnSchema, route.effort),
     };
     const { parsed, usage } = await this.parseWithRetry(params, request.signal);
-    return { turn: parsed as TutorTurn, usage };
+    try {
+      return { turn: TurnSchema.parse(withMissingGoalObservation(parsed)), usage };
+    } catch {
+      throw new BrainParseError('The model did not return a contract-shaped turn.', '', usage);
+    }
   }
 
   async frame(request: BrainFrameRequest): Promise<{ frame: ScenarioFrame; usage: LlmUsage }> {
@@ -212,7 +217,7 @@ export class AnthropicBrainClient implements LlmClient {
       max_tokens: route.maxTokens,
       system: [{ type: 'text', text: request.system }],
       messages: [{ role: 'user', content: [{ type: 'text', text: request.request }] }],
-      output_config: outputConfig(OwnWordsVerdictSchema, route.effort),
+      output_config: outputConfig(request.judgeType === 'fix-line' ? FixLineVerdictSchema : OwnWordsVerdictSchema, route.effort),
     };
     const { parsed, usage } = await this.parseWithRetry(params, request.signal);
     return { verdict: parsed, usage };
@@ -271,10 +276,17 @@ function outputConfig(
     | typeof MemoryExtractionSchema
     | typeof DrillBatchSchema
     | typeof CurationSchema
-    | typeof OwnWordsVerdictSchema,
+    | typeof OwnWordsVerdictSchema
+    | typeof FixLineVerdictSchema,
   effort: BrainEffort | undefined,
 ): Record<string, unknown> {
-  const config: Record<string, unknown> = { format: zodOutputFormat(schema) };
+  const format = zodOutputFormat(schema);
+  if (schema === TurnSchema) {
+    // SDK parse runs before parsed_output reaches us. Keep the advertised
+    // schema strict while applying the same absent-only compatibility here.
+    format.parse = content => TurnSchema.parse(withMissingGoalObservation(JSON.parse(content)));
+  }
+  const config: Record<string, unknown> = { format };
   if (effort !== undefined) config.effort = effort;
   return config;
 }

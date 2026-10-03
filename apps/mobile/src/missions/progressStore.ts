@@ -25,7 +25,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -65,11 +65,12 @@ type WriteOrigin = 'local' | 'adopted';
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -127,18 +128,13 @@ function ordered(records: readonly ScenarioRecord[]): ScenarioRecord[] {
 }
 
 async function readRecords(key: string): Promise<ScenarioRecord[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<StoredScenarioProgress> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.records)) return [];
-    return parsed.records.filter(isRecordRow);
-  } catch {
-    // A corrupt store costs the learner one resume door. The mission itself is
-    // untouched and opens from the top, which is where it opened before this
-    // store existed.
-    return [];
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return [];
+  const parsed = JSON.parse(raw) as Partial<StoredScenarioProgress> | null;
+  if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.records) || !parsed.records.every(isRecordRow)) {
+    throw new Error('scenario progress could not be read');
   }
+  return parsed.records;
 }
 
 /**
@@ -146,24 +142,30 @@ async function readRecords(key: string): Promise<ScenarioRecord[]> {
  * this account has never written one.
  */
 async function persistedRecords(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return null;
+  const parsed: unknown = JSON.parse(raw);
+  if (typeof parsed !== 'object' || parsed === null ||
+      (parsed as Partial<StoredScenarioProgress>).version !== VERSION ||
+      !Array.isArray((parsed as Partial<StoredScenarioProgress>).records) ||
+      !(parsed as StoredScenarioProgress).records.every(isRecordRow)) {
+    throw new Error('scenario progress could not be read');
   }
+  return parsed;
 }
 
-async function saveRecords(key: string, records: readonly ScenarioRecord[], origin: WriteOrigin): Promise<void> {
+async function saveRecords(key: string, records: readonly ScenarioRecord[], origin: WriteOrigin, owner: number): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(
+    await setItemInUserScope(owner,
       key,
       JSON.stringify({ version: VERSION, records: [...records] } satisfies StoredScenarioProgress),
     );
     if (origin === 'local') markDirty('scenarioProgress');
+    return true;
   } catch {
     // Storage full or unavailable. The scene simply opens from the top next
     // time, which is a smaller loss than anything this store could throw for.
+    return false;
   }
 }
 
@@ -180,9 +182,11 @@ export function loadScenarioProgress(): Promise<ScenarioRecord[]> {
  * fresher one.
  */
 export function recordScenarioProgress(record: ScenarioRecord): Promise<void> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     if (!isRecordRow(record)) return;
-    await saveRecords(key, ordered([...(await readRecords(key)), record]), 'local');
+    let existing: ScenarioRecord[];
+    try { existing = await readRecords(key); } catch { return; }
+    await saveRecords(key, ordered([...existing, record]), 'local', owner);
   });
 }
 
@@ -197,11 +201,12 @@ export function recordScenarioProgress(record: ScenarioRecord): Promise<void> {
  * empty row for an account that has never left a scene part way.
  */
 export function clearScenarioProgress(missionId: string): Promise<void> {
-  return serialized(async (key) => {
-    const existing = await readRecords(key);
+  return serialized(async (key, owner) => {
+    let existing: ScenarioRecord[];
+    try { existing = await readRecords(key); } catch { return; }
     const remaining = existing.filter((row) => row.missionId !== missionId);
     if (remaining.length === existing.length) return;
-    await saveRecords(key, ordered(remaining), 'local');
+    await saveRecords(key, ordered(remaining), 'local', owner);
   });
 }
 
@@ -217,12 +222,14 @@ export function clearScenarioProgress(missionId: string): Promise<void> {
  * engine is about to push.
  */
 function adoptScenarioProgress(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persistedRecords(key));
+  return serialized(async (key, owner) => {
+    let current: unknown;
+    try { current = await persistedRecords(key); } catch { return 'declined'; }
+    const folded = fold(current);
     if (typeof folded !== 'object' || folded === null) return 'declined';
     const envelope = folded as Partial<StoredScenarioProgress>;
     if (envelope.version !== VERSION || !Array.isArray(envelope.records)) return 'declined';
-    await saveRecords(key, ordered(envelope.records.filter(isRecordRow)), 'adopted');
+    if (!(await saveRecords(key, ordered(envelope.records.filter(isRecordRow)), 'adopted', owner))) return 'declined';
     return 'adopted';
   });
 }

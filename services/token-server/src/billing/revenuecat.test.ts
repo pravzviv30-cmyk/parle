@@ -63,7 +63,8 @@ describe('RevenueCat subscriber projection — F247', () => {
     });
   });
 
-  test('an unknown product identifier changes nothing and is logged loudly', async () => {
+  test('an unknown product identifier changes nothing and is logged loudly', async (t) => {
+    t.mock.timers.enable({ apis: ['Date'], now: now.getTime() });
     const store = new InMemoryEntitlementStore('starter');
     await store.save('5a18f595-9d67-4e34-b620-d410ba4335b1', {
       plan: 'starter',
@@ -187,4 +188,54 @@ describe('a plan change inside a paid period is not a new allowance', () => {
     assert.equal(result.kind === 'active' && result.entitlement.plan, 'regular');
     assert.equal(result.kind === 'active' && result.entitlement.secondsUsed, 0, 'a trial has no period to be inside');
   });
+});
+
+
+test('a webhook whose projection fails does not consume the event id', async () => {
+  const store = new InMemoryEntitlementStore();
+  const save = store.save.bind(store);
+  store.save = async () => { throw new Error('unavailable'); };
+  const options = { now: new Date('2026-10-02'), eventId: 'retry-after-failure', request: async () => new Response(JSON.stringify(subscriber('luvani_regular_monthly', '2027-01-01T00:00:00Z'))) };
+  await assert.rejects(refreshSubscriber('learner', store, config, options), /unavailable/);
+  assert.equal(await store.billingEventComplete(options.eventId), false);
+  store.save = save;
+  assert.equal((await refreshSubscriber('learner', store, config, options)).kind, 'active');
+  assert.equal(await store.billingEventComplete(options.eventId), true);
+});
+
+test('a same-period precision difference or earlier expiry never refills usage', () => {
+  const current = { plan: 'regular' as const, secondsUsed: 1200, periodEnd: new Date('2027-01-01T00:00:00.987Z') };
+  for (const end of ['2027-01-01T00:00:00.001Z', '2026-12-31T00:00:00Z']) {
+    assert.equal(projectSubscriber(subscriber('luvani_regular_monthly', end), current, config, new Date('2026-10-02')).entitlement.secondsUsed, 1200);
+  }
+});
+
+test('a later refresh with an older active expiry cannot shorten the paid period', () => {
+  const current = { plan: 'regular' as const, secondsUsed: 600, periodEnd: new Date('2027-02-01') };
+  const result = projectSubscriber(subscriber('luvani_starter_monthly', '2027-01-01'), current, config, new Date('2026-10-02'));
+  assert.deepEqual(result, { kind: 'unchanged', reason: 'superseded', entitlement: current });
+});
+
+test('an invalid vendor response cannot lapse a paid learner or finish its event', async () => {
+  const store = new InMemoryEntitlementStore();
+  await store.save('learner', { plan: 'regular', secondsUsed: 1200, periodEnd: new Date('2027-01-01') });
+  await assert.rejects(refreshSubscriber('learner', store, config, { eventId: 'bad-body', request: async () => new Response('{}') }), /entitlements are invalid/);
+  assert.equal(await store.billingEventComplete('bad-body'), false);
+  assert.equal((await store.get('learner')).plan, 'regular');
+});
+
+
+test('a refresh cannot revert a debit that landed while it was in flight', async () => {
+  const store = new InMemoryEntitlementStore();
+  await store.save('learner', { plan: 'regular', secondsUsed: 1000, periodEnd: new Date('2027-01-01') });
+  let release!: () => void; let started!: () => void;
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  const refreshing = refreshSubscriber('learner', store, config, { now: new Date('2026-10-02'), request: async () => { started(); await delayed; return new Response(JSON.stringify(subscriber('luvani_regular_monthly', '2027-01-01T00:00:00.001Z'))); } });
+  await entered;
+  assert.equal(await store.recordSessionGrant('learner', 'once', await store.get('learner')), true);
+  await store.consume('learner', 600, 'once');
+  release();
+  assert.equal((await refreshing).entitlement.secondsUsed,1600);
+  assert.equal((await store.get('learner')).secondsUsed,1600);
 });

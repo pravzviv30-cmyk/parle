@@ -19,7 +19,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 
 import { GhostButton } from '../components.tsx';
-import { HIT, paper, space, type } from '../theme.ts';
+import { HIT, onColour, frenchText, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { dailyTutorVoice } from '../daily/tutorAudio.ts';
@@ -32,7 +32,9 @@ import { PREVIEW_COPY, previewFor, type PreviewSelection } from './preview.ts';
  * default, because a host card usually says it already: on the chooser's hero
  * it is the goal line drawn just above this control.
  */
-export function ListeningPreview({ selection, showContext = false }: { selection: PreviewSelection; showContext?: boolean }) {
+export function ListeningPreview({ selection, showContext = false, ground = 'white' }: { selection: PreviewSelection; showContext?: boolean; ground?: 'white' | 'blue' }) {
+  const ink = ground === 'blue' ? paper.onInk : paper.ink;
+  const quiet = ground === 'blue' ? onColour.blue : paper.inkSoft;
   const { profile } = useProfile();
   const voice = dailyTutorVoice(profile.tutorVoice);
   const player = useAudioPlayer();
@@ -127,27 +129,27 @@ export function ListeningPreview({ selection, showContext = false }: { selection
         accessibilityState={{ expanded: open }}
         style={({ pressed }) => [st.toggle, pressed && st.pressed]}
       >
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>{open ? PREVIEW_COPY.close : PREVIEW_COPY.open}</Text>
+        <Text style={[type.bodyStrong, { color: ink }]}>{open ? PREVIEW_COPY.close : PREVIEW_COPY.open}</Text>
       </Pressable>
 
       {open && (
         <View style={st.body}>
-          {showContext && <Text style={[type.small, { color: paper.inkSoft }]}>{preview.context}</Text>}
+          {showContext && <Text style={[type.small, { color: quiet }]}>{preview.context}</Text>}
           {preview.lines.map((line) => (
             <View key={line.fr}>
-              <Text style={[type.french, { color: paper.ink }]}>{line.fr}</Text>
-              {line.en !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{line.en}</Text>}
+              <Text {...frenchText} style={[type.french, { color: ink }]}>{line.fr}</Text>
+              {line.en !== null && <Text style={[type.small, { color: quiet }]}>{line.en}</Text>}
             </View>
           ))}
-          {sourceKnown && <Text style={[type.small, { color: paper.ink }]}>{preview.label}</Text>}
-          <Text style={[type.small, { color: paper.inkSoft }]}>{preview.note}</Text>
+          {sourceKnown && <Text style={[type.small, { color: ink }]}>{preview.label}</Text>}
+          <Text style={[type.small, { color: quiet }]}>{preview.note}</Text>
           {sourceKnown && preview.plays !== 'none' && (
             <View style={st.controls}>
               <GhostButton label={preview.plays === 'first' ? PREVIEW_COPY.playFirst : PREVIEW_COPY.play} color={paper.ink} onPress={() => void play()} />
-              <GhostButton label={PREVIEW_COPY.stop} onPress={silence} />
+              <GhostButton label={PREVIEW_COPY.stop} color={ink} onPress={silence} />
             </View>
           )}
-          {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
+          {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: quiet }]}>{note}</Text>}
         </View>
       )}
     </View>

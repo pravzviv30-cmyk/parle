@@ -47,14 +47,16 @@ asking a human for help, and coming back because they can feel and see progress.
 Two things competitors structurally cannot copy without changing shape:
 
 1. **Pronunciation feedback that is actually trustworthy.** Accuracy scoring
-   requires a known reference text. Speak and Issen both lead with open-ended
-   conversation, which is exactly why users of both describe their speech
-   recognition as "too forgiving". Beginners spend most of a session on scripted
-   and cued turns, so scoring is reliable precisely where our audience lives.
+   requires a known reference text. Beginners practise scripted and cued turns,
+   which give a scorer a known line to assess. Show pronunciation feedback only
+   when an assessment returned evidence; an unavailable assessment stays
+   unscored. Open conversation is practice, with no promise of reference-based
+   scoring on a line that has no reference.
 
 2. **French only, in depth.** A hand-built French phoneme inventory weighted for
-   English-L1 error patterns, mapped to minimal-pair drills. Issen's founders
-   publicly conceded their quality collapses in untested languages.
+   English-L1 error patterns, mapped to minimal-pair drills. The inventory and
+   its examples are authored for French, rather than inferred from an English
+   pronunciation model.
 
 ## Operating Context
 
@@ -72,7 +74,7 @@ Two things competitors structurally cannot copy without changing shape:
 - Pronunciation assessment needs a reference text; free conversation yields
   fluency signals only. This constraint shapes the whole scaffolding design.
 - **Metered minutes, enforced from v1.** Trial is a finite 30 minutes total (not a
-  daily allowance). Paid: ~$19/180min, ~$39/450min. Unlimited pricing is rejected
+  daily allowance). Paid: Starter 180 minutes, Max 300 minutes. Prices come from the store. Unlimited pricing is rejected
   on modelled unit economics.
 - Premium French TTS voices — the dominant cost line, and the most immediately
   felt quality signal for a beginner.

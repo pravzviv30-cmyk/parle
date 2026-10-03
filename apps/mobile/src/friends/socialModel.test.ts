@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { rankedFriends, utcWeek, socialPreview, socialUpdateCount, DEFAULT_SOCIAL_SETTINGS, type SocialSnapshot } from './socialModel.ts';
+import { rankedFriends, friendsByName, utcWeek, socialPreview, socialUpdateCount, DEFAULT_SOCIAL_SETTINGS, type SocialSnapshot } from './socialModel.ts';
 import { friendUsernameFromUrl } from './invite.ts';
 const person=(id:string,points:number|null)=>({id,username:id,name:id,points,days:0,conversations:0});
 test('Friends ranking respects ties, private scores and unchanged inputs',()=>{
@@ -16,11 +16,17 @@ test('friend invitations cannot intercept OAuth or navigate arbitrary URLs',()=>
  assert.equal(friendUsernameFromUrl('luvani://invite/alice_7'),'alice_7');
  for(const url of ['luvani://auth/callback?code=test','https://evil.test/invite/alice','luvani://invite/a','luvani://invite/alice?token=secret']) assert.equal(friendUsernameFromUrl(url),null);
 });
-test('preview copy distinguishes sole first from tied first and badges honour privacy preferences',()=>{
+test('preview copy names companionship without rank and badges honour privacy preferences',()=>{
  const s:SocialSnapshot={self:person('me',20),friends:[person('friend',10)],requests:[],challenges:[],notices:[],blocked:[],settings:{...DEFAULT_SOCIAL_SETTINGS,enabled:true},week:'2026-09-14',resets:'2026-09-21'};
- assert.match(socialPreview(s),/You are first/);
- s.friends[0]!.points=20; assert.match(socialPreview(s),/joint first/);
+ assert.equal(socialPreview(s),'1 friend learning alongside you.');
+ s.friends[0]!.points=20; assert.equal(socialPreview(s),'1 friend learning alongside you.');
  s.notices=[{id:'n',actor:'Friend',actorId:'friend',kind:'milestone',body:'Practised',read:false,week:s.week,reactions:[]}];
  assert.equal(socialUpdateCount(s),0); s.settings.milestones=true; assert.equal(socialUpdateCount(s),1);
  s.notices[0]!.read=true; assert.equal(socialUpdateCount(s),0);
+});
+
+test('the circle includes private activity and orders by name without changing the server snapshot', () => {
+ const input=[{...person('z',999),name:'Zoe'}, {...person('b',null),name:'Alice'}, {...person('a',0),name:'Alice'}];
+ assert.deepEqual(friendsByName(input).map(p=>p.id),['a','b','z']);
+ assert.deepEqual(input.map(p=>p.id),['z','b','a']);
 });

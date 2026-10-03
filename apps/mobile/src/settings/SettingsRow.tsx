@@ -7,10 +7,9 @@
  * the shape every other surface here already uses.
  */
 
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
-import { ArrowRight } from '../components.tsx';
-import { tapSettled } from '../motion/haptics.ts';
+import { ArrowRight, Press } from '../components.tsx';
 
 export function SettingsRow({
   label,
@@ -44,22 +43,20 @@ export function SettingsRow({
     return body;
   }
   return (
-    <Pressable
-      onPress={() => {
-        tapSettled();
-        onPress();
-      }}
+    <Press
+      haptic="selection"
+      onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={value ? `${label}, ${value}` : label}
-      style={({ pressed }) => [st.pressable, pressed && st.pressed]}
+      style={st.pressable}
     >
       {body}
-    </Pressable>
+    </Press>
   );
 }
 
 const st = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2.5) },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: 60, paddingVertical: space(2.5) },
   divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   // Keep every word fully legible while a tap lands. The deeper porcelain is
   // the design system's pressed surface; opacity made the whole row disappear

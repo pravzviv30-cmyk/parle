@@ -107,7 +107,7 @@ describe('the session side and the remaining screens wear the notebook — Phase
       // brief (revamp B, F599: the watercolour it replaced has retired).
       assert.doesNotMatch(body, /<Art\b/, `${file} draws a retired watercolour`);
       for (const art of body.match(/<Illustration\b[^>]*>/g) ?? []) {
-        assert.match(art, /name=\{sceneIllustration\(/, `${file} draws a picture that is not a scene's place: ${art}`);
+        assert.match(art, /name=\{sceneIllustration\(|name="state-(?:microphone|offline|notebook|waiting|headphones)"|name="celebrate-first-line"|name=\{postcardIllustration\(|name=\{failure.startsWith\('mic-'\) \? 'state-microphone' : 'state-offline'\}/, `${file} draws a picture that is not a scene's place: ${art}`);
       }
     }
   });

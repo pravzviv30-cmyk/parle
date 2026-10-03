@@ -87,7 +87,7 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     // All four inputs, whole, with a passed clock. Narrowing is the module's
     // job, and doing it here is how the no-delta guarantee gets bypassed one
     // commit later.
-    for (const load of ['loadHistory()', 'loadActivity()', 'loadConversationPacks()', 'loadMissionCompletions()']) {
+    for (const load of ['loadHistory()', 'loadActivity({ strict: true })', 'loadConversationPacks()', 'loadMissionCompletions()']) {
       assert.ok(STORY_FLAT.includes(load), `the screen never reads ${load}, so the story is built from less than the week`);
     }
     assert.match(
@@ -142,8 +142,8 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
       .map((path) => path.slice(SRC.length));
     assert.deepEqual(
       readers,
-      ['tabs/HomeTab.tsx'],
-      'only Home may read the story; no background or notification importer',
+      ['progress/WeekWrappedScreen.tsx', 'tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx'],
+      'the story is read only on learner-opened surfaces, never in notifications',
     );
     // Profile is not that file any more, and half a move is worse than either
     // end of it: two surfaces drawing one week are two weeks to keep in step.

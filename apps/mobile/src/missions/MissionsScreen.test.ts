@@ -33,50 +33,27 @@ function stripComments(source: string): string {
 const SCREEN = stripComments(read('./MissionsScreen.tsx'));
 
 describe('the chooser is one card and five rows — F573', () => {
+  test('an unread scene history is never drawn as a fresh catalogue', () => {
+    assert.match(SCREEN, /setProgress\(null\)/);
+    assert.match(SCREEN, /if \(progress === null\) return <ScrollScreen/);
+    assert.match(SCREEN, /Your scene history could not be read just now/);
+    assert.match(SCREEN, /Try loading scenes again/);
+  });
   test('the situation already picked out is the card, and the other five are rows a learner can read at a glance', () => {
-    // The hero. One picture, the French title in the serif, the English line
-    // that says what the learner will be able to do, and the screen's one
-    // solid action.
-    assert.match(SCREEN, /<Label>\{CHOOSER_START_HERE\}<\/Label>/, 'the card that was chosen for the learner never says it was');
-    // Its drawing is held by the test below, which says how it is drawn too.
-    assert.match(SCREEN, /type\.frenchSm[\s\S]{0,80}\{first\.mission\.title\}/, 'the hero keeps its French title in the serif');
-    assert.match(SCREEN, /\{first\.mission\.goalEn\}/, 'the hero card lost the line saying what the learner will be able to do');
-    assert.match(SCREEN, /<PillButton\s+label=\{typed \? 'Start typed mission' : 'Start mission'\}/, 'the primary action names the mode the learner arrived in');
-
-    // 2026-09-27 (notebook Phase 3, B1): the Speak/Type segmented pill left.
-    // Speaking is the default, "Type instead" is a quiet link under the one
-    // Start, and the brief says the level and the minutes the mission derives,
-    // so the opener reads about three rather than the open-mission eight.
-    assert.ok(!/<TabBar\b/.test(SCREEN), 'the Speak/Type segmented pill is back on the chooser');
+    assert.match(SCREEN, /if \(focus && first\)/, 'a named scene never opens its own brief');
+    assert.match(SCREEN, /\{first\.mission\.title\}/, 'the brief loses its French title');
+    assert.match(SCREEN, /\{first\.mission\.canDoEn\}/, 'the brief loses its learning outcome');
+    assert.match(SCREEN, /<PillButton tone="white" label=\{typed \? 'Start typing' : 'Start speaking'\}/, 'the action does not preserve the selected mode');
+    assert.doesNotMatch(SCREEN, /<TabBar\b/, 'the scene brief grows a mode chooser');
     assert.match(SCREEN, /const typed = route\.params\?\.textMode === true;/);
-    assert.match(
-      SCREEN.replace(/\s+/g, ' '),
-      /\{!typed && <GhostButton label=\{TYPE_INSTEAD\} color=\{paper\.ink\} onPress=\{\(\) => open\(first, true\)\} \/>\}/,
-      '"Type instead" is not a quiet link under the Start',
-    );
-    assert.ok(SCREEN.indexOf("'Start mission'") < SCREEN.indexOf('label={TYPE_INSTEAD}'), '"Type instead" sits above the Start');
-    assert.match(SCREEN, /\{first\.mission\.cefr\} · \{first\.status\} · \{minutesLine\(missionMinutes\(first\.mission\)\)\}/, 'the brief does not say its level and derived minutes');
-    assert.ok(!SCREEN.includes('estimateMinutes('), 'the chooser estimates a mission itself instead of asking missionMinutes');
-
-    // The other five, as rows. 2026-09-27, notebook Phase 4 (B1): a row is a
-    // ledger line now, the place's mark in ink with no disc and no tint, the
-    // English title, the goal under it and a chevron, on one hairline list.
-    assert.match(SCREEN, /\{rest\.map\(\(card\) => \(/, 'the other situations are not drawn from the view model');
-    assert.match(SCREEN, /<Ledger\b/, 'the other situations are not one ruled list');
-    assert.match(SCREEN, /<LedgerRow\b/, 'the other situations are still six rectangles rather than rows');
-    assert.ok(!/<TintRow\b|missionTint|tone="feature"|accent\.feature/.test(SCREEN), 'the chooser still paints a place tint or feature paper');
-    assert.match(SCREEN, /glyph=\{<PlaceGlyph place=\{card\.mission\.place\} color=\{paper\.ink\}/, 'a row lost the ink mark that says where it is set');
-    assert.match(SCREEN, /title=\{card\.mission\.titleEn\}/, 'a row names the situation in the learner’s language');
-    assert.match(SCREEN, /gloss=\{`\$\{card\.mission\.goalEn\} · \$\{card\.status\}`\}/, 'each row visibly explains its goal and earned status');
-    assert.match(SCREEN, /<Label>\{CHOOSER_OTHER\}<\/Label>/, 'the rest of the situations sit under no heading');
-
-    // Where the learner stands is still said, and it is said to everybody who
-    // listens to the screen rather than dropped when the status line left the
-    // row. `chooserView.ts` owns the words; nothing here invents one.
-    // Stage 4 review (2026-09-25): the parts are joined by the shared sentence
-    // joiner, so a French title that already ends on its own mark ("Ta
-    // journée, ça a été ?") is not read with a second one after it. The same
-    // three parts, in the same order.
+    assert.match(SCREEN, /label=\{TYPE_INSTEAD\} color=\{paper\.onInk\} onPress=\{\(\) => open\(first, true\)\}/, 'the brief loses its quiet typed twin');
+    assert.match(SCREEN, /missionMinutes\(first\.mission\)/, 'the brief invents its minutes');
+    assert.match(SCREEN, /\['A0', 'A1'\]/, 'the list loses its level grouping');
+    assert.match(SCREEN, /view\.cards\.filter\(\(card\) => card\.mission\.cefr === level\)\.map/, 'the list loses scenes from the view model');
+    assert.match(SCREEN, /<LedgerRow\b/);
+    assert.match(SCREEN, /glyph=\{<SceneMark state=\{earnedMissionIds/, 'the list invents earning instead of asking core');
+    assert.match(SCREEN, /title=\{card\.mission\.titleEn\} gloss=\{`\$\{card\.mission\.title\}\. \$\{card\.status\}`\}/, 'the list loses its English outcome, French title or evidence state');
+    assert.match(SCREEN, /nav\.setParams\(\{ focus: card\.mission\.id, textMode: typed \}\)/, 'the list starts a session before its brief');
     assert.match(SCREEN, /accessibilityLabel=\{asSentences\(\[card\.mission\.title, card\.mission\.titleEn, card\.status\]\)\}/, 'a row stops saying where the learner stands with the situation behind it');
     assert.match(SCREEN, /^import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';$/m, 'the row joins its label its own way rather than through the shared joiner');
     assert.ok(!/'Started'|'Ready when you are'|'Ready to come back to'/.test(SCREEN), 'the screen spells a status line that chooserView.ts already decides');

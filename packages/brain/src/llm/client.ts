@@ -85,6 +85,8 @@ export interface BrainCurateRequest extends Abortable {
  */
 export interface BrainJudgeRequest extends Abortable {
   kind: 'judge';
+  /** Absent preserves the existing own-words schema and Jev route verbatim. */
+  judgeType?: 'fix-line';
   /** The grader's whole brief. See llm/judge.ts. */
   system: string;
   /** The line, its meaning, the situation, and the learner's attempt as data. */

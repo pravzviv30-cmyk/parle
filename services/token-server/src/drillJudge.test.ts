@@ -75,6 +75,16 @@ function deps(overrides: Partial<DrillJudgeDeps> = {}): DrillJudgeDeps & { seen:
 }
 
 describe('the own-words judge endpoint — F580', () => {
+  test('a mismatched learner assertion cannot send another account’s attempt to the judge', async () => {
+    let judged = 0;
+    const d = deps({ client: { judge: async () => { judged++; throw new Error('must not run'); } } });
+    const r = response();
+    await handleDrillJudge(request({ ...CARD, userId: 'previous-learner' }), r.res, d);
+    assert.equal(r.status(), 403);
+    assert.equal(judged, 0);
+    assert.deepEqual(d.seen.usage, []);
+    assert.ok(!JSON.stringify(r.body()).includes(ATTEMPT));
+  });
   test('an attempt is judged by the brain and the verdict is returned whole', async () => {
     const { res, status, body } = response();
     const d = deps();

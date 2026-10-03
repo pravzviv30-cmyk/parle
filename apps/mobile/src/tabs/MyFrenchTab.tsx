@@ -1,20 +1,13 @@
+import { storyFrom, hasStory } from '../progress/story.ts';
+import { loadHistory } from '../progress/store.ts';
+import { earnedPostcards } from '../recap/evidence.ts';
+import { DayCount } from '../progress/DayCount.tsx';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import {
-  DAILY_SCENARIOS,
-  MISSIONS,
-  missionStates,
-  seedTopicOf,
-  suggestedMission,
-  type ConversationPack,
-  type DailyScenario,
-  type MissionProgress,
-  type ReviewCard,
-} from '@luvani/core';
-
-import { Label, Ledger, LedgerRow, LevelPath } from '../components.tsx';
-import { ChatGlyph, DocumentGlyph, PlaceGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
+import { DAILY_SCENARIOS, MISSIONS, isEarned, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
+import { Card, Ledger, LedgerRow, PillButton } from '../components.tsx';
+import { ChatGlyph, DocumentGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { paper, space, type } from '../theme.ts';
@@ -31,71 +24,31 @@ import { trackProductEvent } from '../analytics/track.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
 import { myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
-import {
-  BROWSE_LINE,
-  BROWSE_OPEN,
-  CONVERSATIONS_ROW,
-  CONVERSATIONS_SUB,
-  DAILY_LABEL,
-  DAILY_LINE,
-  DAILY_OPEN,
-  GOALS_ROW_LABEL,
-  RECENT_ALL,
-  MY_FRENCH_RETRY,
-  MY_FRENCH_UNREAD,
-  MY_FRENCH_PURPOSE,
-  MY_FRENCH_TITLE,
-  SAVED_LABEL,
-  SHELF_LABEL,
-  SHELF_OPEN,
-} from '../myfrench/copy.ts';
-import { NOTEBOOK, isFirstVisit, levelLine, levelPathFrom, phraseBankFrom, soundsMapFrom } from '../myfrench/notebook.ts';
-import { PhraseBank } from '../myfrench/PhraseBank.tsx';
-import { SoundsMap } from '../myfrench/SoundsMap.tsx';
-import { allConversations, progressStatement, recentConversations, type HistoryItem } from '../myfrench/recentConversations.ts';
+import { MY_FRENCH_RETRY, MY_FRENCH_UNREAD, MY_FRENCH_PURPOSE, MY_FRENCH_TITLE } from '../myfrench/copy.ts';
+import { NOTEBOOK, isFirstVisit, levelPathFrom, soundsMapFrom } from '../myfrench/notebook.ts';
+import { LevelCard } from '../myfrench/LevelCard.tsx';
+import { progressRows } from '../myfrench/progressRows.ts';
+import { allConversations, type HistoryItem } from '../myfrench/recentConversations.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { legacyMarkItems } from '../practice/history.ts';
 import { loadPackMarks } from '../conversationPacks/marks.ts';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
-import { SOUND_FINGERPRINT_LABEL, soundFingerprint } from '../myfrench/sounds.ts';
-import { soundDoorLabel, soundJourney } from '../soundcheck/journey.ts';
+import { soundJourney } from '../soundcheck/journey.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { goalRouteKey, goalRows } from '../goals/rows.ts';
-import { GOALS_LABEL } from '../profile/tutorMemory.ts';
-import { DAILY_ITEMS } from '../daily/catalogue.ts';
-import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
-import { dailyTutorVoice } from '../daily/tutorAudio.ts';
+import { abilityProof } from '../myfrench/abilityProof.ts';
+import { ownedReadStatus } from './ownedRead.ts';
 
-/**
- * My French: the record of what has become the learner's (notebook Phase 3,
- * 2026-09-27).
- *
- * Four blocks, in this order, each only once it has something true to show:
- * the level and the can-dos earned, drawn as the level path with "you are here"
- * on the next scene (the page's one highlighter); the phrase bank, the newest
- * kept phrases with audio that says whose voice it is; the sounds map, every
- * sound in the inventory led by a word, marked only where a measured check
- * called it out; then the conversations. A first visit reads one line on what
- * will collect here. Under them sit the quiet doors that were already here:
- * the scenes the learner saved, their goals, the daily collection and the
- * whole catalogue.
- *
- * There is no rank name and no points on this page: XP stays internal, and the
- * level is the spine's A0 or A1. There is no primary pill: nothing here is a
- * task. Every judgement is a module's (`myfrench/notebook.ts`,
- * `myfrench/model.ts`, `myfrench/sounds.ts`), because there is no renderer in
- * this workspace and a rule left in a `.tsx` is a rule nothing defends.
- */
+/** Evidence-based level and saved-material doors; this tab starts no audio. */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
   const { profile } = useProfile();
-  // The learner's chosen tutor, whose recordings are the only tutor audio here.
-  const voice = dailyTutorVoice(profile.tutorVoice);
   const [deck, setDeck] = useState<readonly ReviewCard[]>([]);
   const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
+  const [completions, setCompletions] = useState<readonly { id: string; at: number; rung: number }[]>([]);
   const [packs, setPacks] = useState<ConversationPack[]>([]);
   const [suggested, setSuggested] = useState<MissionProgress | null>(null);
   const [saved, setSaved] = useState<readonly DailyScenario[]>([]);
@@ -105,7 +58,10 @@ export function MyFrenchTab() {
   const [history, setHistory] = useState<readonly HistoryItem[]>([]);
   // 'loading' and 'unread' are facts of their own: neither is an empty account.
   const [status, setStatus] = useState<'loading' | 'ready' | 'unread'>('loading');
+  const [readOwner, setReadOwner] = useState(() => scopeGeneration());
+  const [readyOwner, setReadyOwner] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [hasWeek, setHasWeek] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -113,23 +69,42 @@ export function MyFrenchTab() {
       // Bound to the account before any read.
       const scope = scopeGeneration();
       const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
+      setReadOwner(scope);
+      setReadyOwner(null);
+      setStatus('loading');
+      setMissions([]);
+      setCompletions([]);
+      setDeck([]);
+      setPacks([]);
+      setSaved([]);
+      setChecks([]);
+      setHistory([]);
       void Promise.all([
         loadMissionCompletions(),
         loadDeck(),
         loadTopics(),
-        loadActivity(),
+        loadActivity({ strict: true }),
         loadBookmarks(),
-        loadSoundChecks(),
+        loadSoundChecks({ strict: true }),
+        loadHistory(),
+        loadConversationPacks(),
+        loadPracticeHistory(),
+        loadPackMarks(),
       ]).then(
-        ([completions, cards, topics, activity, bookmarks, soundChecks]) => {
+        ([completions, cards, topics, activity, bookmarks, soundChecks, sessions, packs, events, marks]) => {
           if (!sameAccount()) return;
           const at = Date.now();
           const nextMissions = missionStates(missionCompletionsFrom(completions), cards, at);
           setDeck(cards);
+          setPacks(packs);
+          setHasWeek(hasStory(storyFrom({ sessions, activity, packs, completions, now: at })));
           setMissions(nextMissions);
+          setCompletions(completions);
           setSuggested(suggestedMission(nextMissions));
           setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
           setChecks(soundChecks);
+          setHistory([...events, ...legacyMarkItems(marks)]);
+          setReadyOwner(scope);
           setStatus('ready');
           // The two numbers the product event has always carried, still never drawn.
           const nextEvidence = evidenceFrom({ missions: nextMissions, book: buildPhrasebook(cards, topics, at), activity });
@@ -139,22 +114,11 @@ export function MyFrenchTab() {
           });
         },
         () => {
-          // A failed read says so; what was drawn for this account stays.
-          if (sameAccount()) setStatus((current) => (current === 'ready' ? 'ready' : 'unread'));
+          // Any failed evidence read leaves the whole account view unread.
+          if (sameAccount()) setStatus('unread');
         },
       );
-      void loadConversationPacks().then((stored) => {
-        if (sameAccount()) setPacks(stored);
-      });
-      // A history that cannot be read says nothing rather than something false.
-      void Promise.all([loadPracticeHistory(), loadPackMarks()])
-        .then(([events, marks]) => {
-          if (cancelled) return;
-          setHistory(sameAccount() ? [...events, ...legacyMarkItems(marks)] : []);
-        })
-        .catch(() => {
-          if (!cancelled) setHistory([]);
-        });
+      setHasWeek(false);
       if (user) {
         void refreshConversationPacks(user, adapter).then((result) => {
           if (sameAccount() && result.ok) setPacks(result.packs);
@@ -169,24 +133,30 @@ export function MyFrenchTab() {
   const now = Date.now();
   const model: MyFrench = myFrenchFrom({ deck, missions, saved, packs, suggested, now });
   const path = levelPathFrom(missions);
-  const bank = phraseBankFrom({ deck, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS });
-  const map = soundsMapFrom(checks, now);
+  const proof = abilityProof(missions, completions, now);
+  const hasFinish = missions.some((mission) => mission.timesFinished > 0);
+  const hasEarned = missions.some(isEarned);
   const firstVisit = isFirstVisit({ progress: missions, deck, checks, packs: packs.length });
-  const fingerprint = soundFingerprint(checks);
-  // Past one measured call-out, the sound door opens the focused journey.
   const journey = soundJourney(checks, now);
-  const recent = recentConversations({ packs, events: history });
-  const progress = progressStatement(allConversations({ packs, events: history }));
-  const goals = goalRows(profile.learnerGoals, MISSIONS);
+  const rows = progressRows({
+    phrases: new Set(deck.filter((card) => card.front.trim() !== '').map((card) => phraseKeyOf(card.front))).size,
+    sounds: soundsMapFrom(checks, now).show,
+    conversations: allConversations({ packs, events: history }).length,
+    goals: goalRows(profile.learnerGoals, MISSIONS),
+    saved: model.saved,
+  });
+  const currentScope = scopeGeneration();
+  const renderStatus = ownedReadStatus(status, readOwner, readyOwner, currentScope);
 
   return (
     <ScrollScreen bottom="tab">
       <View style={st.head}>
         <TabHeader title={MY_FRENCH_TITLE} purpose={MY_FRENCH_PURPOSE} trailing={<ProfileButton />} />
       </View>
+      {renderStatus === 'loading' && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>Finding your French.</Text>}
 
       {/* A failed read is a row like every other door, not a button. */}
-      {status === 'unread' && (
+      {renderStatus === 'unread' && (
         <View style={st.block}>
           <Ledger>
             <LedgerRow
@@ -203,105 +173,54 @@ export function MyFrenchTab() {
         </View>
       )}
 
-      {/* Your level, and the can-dos earned along the spine. */}
-      {status === 'ready' && (
+      {renderStatus === 'ready' && (
         <View style={st.group}>
-          <Label>{NOTEBOOK.levelLabel}</Label>
-          <Text style={st.level}>{levelLine(path.level)}</Text>
-          <LevelPath levels={path.levels} />
+          {proof !== null && <Card style={{ gap: space(2) }}>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>You can {proof.mission.canDoEn.toLowerCase()}</Text>
+            <Text style={[type.body, { color: paper.inkSoft }]}>{proof.mission.titleEn}. {new Date(proof.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+            <Text style={[type.small, { color: paper.inkSoft }]}>You finished this scene independently. A later practice with help does not take it away.</Text>
+            <PillButton label="See this scene" onPress={() => nav.navigate('Missions', { focus: proof.mission.id })} />
+          </Card>}
+          {proof === null && hasFinish && <Text style={[type.body, { color: paper.inkSoft }]}>You have practised a scene with support. An independent finish adds a can-do here.</Text>}
+          <LevelCard path={path} hasFinish={hasFinish} hasEarned={hasEarned} onPress={() => nav.navigate('Missions')} />
         </View>
       )}
 
-      {/* A first visit: one line on what will collect here, and nothing empty. */}
-      {status === 'ready' && firstVisit && <Text style={st.firstVisit}>{NOTEBOOK.firstVisit}</Text>}
-
-      {/* The phrase bank: the newest kept phrases, with audio, and one door to all of them. */}
-      {bank.length > 0 && (
-        <View style={st.group}>
-          <Label>{SHELF_LABEL}</Label>
-          <PhraseBank rows={bank} />
-          <LedgerRow glyph={<QuoteGlyph color={paper.ink} />} title={SHELF_OPEN} onPress={() => nav.navigate('Phrasebook')} />
-        </View>
+      {renderStatus === 'ready' && firstVisit && (
+        <Card style={st.group}>
+          <Text style={type.heading}>Your French starts here</Text>
+          <Text style={st.line}>{NOTEBOOK.firstVisit}</Text>
+          <PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} />
+        </Card>
       )}
 
-      {/* The sounds map, once a measured check exists to mark it. */}
-      {map.show && (
+      <DayCount weekly />
+      {renderStatus === 'ready' && (hasWeek || earnedPostcards(missions).length > 0) && <View style={st.group}><Ledger>
+        {hasWeek && <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Your week in French" accessibilityLabel="Your week in French, a few moments from the last seven days" gloss="A few moments from the last seven days" onPress={() => nav.navigate('WeekWrapped')} />}
+        {earnedPostcards(missions).length > 0 && <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Place postcards" accessibilityLabel="Place postcards, scenes you can handle on your own" gloss="Scenes you can handle on your own" onPress={() => nav.navigate('Postcards')} />}
+      </Ledger></View>}
+      {renderStatus === 'ready' && rows.length > 0 && (
         <View style={st.group}>
-          <Label>{NOTEBOOK.soundsLabel}</Label>
-          <Text style={st.line}>{NOTEBOOK.soundsLine}</Text>
-          <SoundsMap cells={map.cells} />
-          {fingerprint !== null && (
-            <Ledger>
-              <LedgerRow
-                glyph={<WaveformGlyph color={paper.ink} />}
-                label={SOUND_FINGERPRINT_LABEL}
-                title={fingerprint.line}
-                accessibilityLabel={soundDoorLabel(journey)}
-                onPress={() => (journey !== null ? nav.navigate('SoundJourney') : nav.navigate('SoundCheck', { missionId: fingerprint.missionId }))}
-              />
-            </Ledger>
-          )}
-        </View>
-      )}
-
-      {/* Your conversations, once one exists: the progress sentence, up to
-          three recent rows, and one door into the whole library. */}
-      {model.showConversations && (
-        <View style={st.group}>
-          <Label>{CONVERSATIONS_ROW}</Label>
-          {progress !== null && <Text style={st.line}>{progress}</Text>}
           <Ledger>
-            {recent.map((row) => (
+            {rows.map((row) => (
               <LedgerRow
-                key={row.pack.id}
-                glyph={<DocumentGlyph color={paper.ink} />}
-                label={row.pack.title.en} title={row.preview.join(' · ')} note={row.line} accessibilityLabel={row.accessibilityLabel}
-                onPress={() => nav.navigate('Conversations', { packId: row.pack.id })}
-              />
-            ))}
-            <LedgerRow glyph={<ChatGlyph color={paper.ink} />} title={RECENT_ALL} gloss={CONVERSATIONS_SUB} accessibilityLabel={RECENT_ALL} onPress={() => nav.navigate('Conversations')} />
-          </Ledger>
-        </View>
-      )}
-
-      {/* What the learner saved from Home, only when something is saved. */}
-      {model.showSaved && (
-        <View style={st.group}>
-          <Label>{SAVED_LABEL}</Label>
-          <Ledger>
-            {model.saved.map((row) => (
-              <LedgerRow
-                key={row.scenario.id}
-                glyph={<PlaceGlyph place={row.place} color={paper.ink} />}
-                title={row.scenario.titleFr}
-                gloss={row.scenario.titleEn}
-                accessibilityLabel={row.accessibilityLabel}
-                onPress={() => nav.navigate('Convo', { seedTopic: seedTopicOf(row.scenario) })}
+                key={row.id}
+                glyph={row.kind === 'phrases' ? <QuoteGlyph color={paper.ink} /> : row.kind === 'sounds' ? <WaveformGlyph color={paper.ink} /> : row.kind === 'conversations' ? <ChatGlyph color={paper.ink} /> : <DocumentGlyph color={paper.ink} />}
+                title={row.title}
+                gloss={row.detail}
+                accessibilityLabel={`${row.title}. ${row.detail}`}
+                onPress={() => {
+                  if (row.kind === 'phrases') nav.navigate('Phrasebook');
+                  else if (row.kind === 'sounds') nav.navigate(journey !== null ? 'SoundJourney' : 'SoundCheck', journey === null ? { missionId: suggested?.mission.id } : undefined);
+                  else if (row.kind === 'conversations') nav.navigate('Conversations');
+                  else if (row.kind === 'goal') nav.navigate('GoalStep', { key: goalRouteKey(row.title) });
+                  else nav.navigate('Convo', { seedTopic: row.seedTopic });
+                }}
               />
             ))}
           </Ledger>
         </View>
       )}
-
-      {/* The learner's own goals, under the goal editor's own heading. */}
-      {goals.length > 0 && (
-        <View style={st.group}>
-          <Label>{GOALS_LABEL}</Label>
-          <Ledger>
-            {goals.map((row) => (
-              <LedgerRow key={row.goal} glyph={<DocumentGlyph color={paper.ink} />} label={GOALS_ROW_LABEL} title={row.goal} note={row.line} accessibilityLabel={row.spoken} onPress={() => nav.navigate('GoalStep', { key: goalRouteKey(row.goal) })} />
-            ))}
-          </Ledger>
-        </View>
-      )}
-
-      {/* The quiet doors: the daily collection, and every situation in Missions. */}
-      <View style={st.block}>
-        <Ledger>
-          <LedgerRow glyph={<QuoteGlyph color={paper.ink} />} label={DAILY_LABEL} title={DAILY_LINE} accessibilityLabel={DAILY_OPEN} onPress={() => nav.navigate('DailyLibrary')} />
-          <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title={BROWSE_LINE} accessibilityLabel={BROWSE_OPEN} onPress={() => nav.navigate('Missions')} />
-        </Ledger>
-      </View>
     </ScrollScreen>
   );
 }

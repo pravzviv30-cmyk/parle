@@ -24,7 +24,7 @@ export function sampleSupport(overrides: Partial<SupportMaterial> = {}): Support
  * A clean, well-behaved turn: learner did fine, no coaching, scene moves on.
  * Deep overrides go section by section so callers never rebuild the world.
  */
-export function sampleTurn(overrides: Partial<TutorTurn> = {}): TutorTurn {
+export function sampleTurn(overrides: Omit<Partial<TutorTurn>, 'scene'> & { scene?: Partial<TutorTurn['scene']> } = {}): TutorTurn {
   return {
     assessment: {
       understood: true,
@@ -46,8 +46,8 @@ export function sampleTurn(overrides: Partial<TutorTurn> = {}): TutorTurn {
     newPhrases: [],
     profileSignals: { errorPatterns: [], usedWell: [] },
     topicShift: null,
-    scene: { beat: 'order-drink', beatDone: false, sceneDone: false },
     ...overrides,
+    scene: { beat: 'order-drink', beatDone: false, sceneDone: false, goalMet: null, ...overrides.scene },
   };
 }
 

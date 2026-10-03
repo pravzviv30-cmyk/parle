@@ -207,7 +207,9 @@ export class JevFirstBrainClient implements LlmClient {
   }
 
   async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
-    if (request.input !== undefined) {
+    // A correction has a stricter target than a paraphrase. Its proposed Jev
+    // shortcut stays off until labeled French calibration supports it.
+    if (request.judgeType !== 'fix-line' && request.input !== undefined) {
       const settled = await this.screen(request.input, request.signal);
       if (settled !== null) return settled;
     }

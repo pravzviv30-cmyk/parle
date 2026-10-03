@@ -89,6 +89,20 @@ describe('the scene Today leads with', () => {
     assert.ok(hero.minutes > 0);
   });
 
+  test('the newest unfinished scene is offered before an unrelated spine suggestion', () => {
+    const progress = progressWith();
+    const older: ScenarioRecord = { missionId: 'mission:hotel', at: EVENING - 90_000, elapsedMs: 60_000, beatsDone: 1 };
+    const newer: ScenarioRecord = { missionId: 'mission:marche', at: EVENING - 30_000, elapsedMs: 60_000, beatsDone: 1 };
+    const hero = homeMissionFrom({ progress, records: [older, newer], levelIndex: 0, now: EVENING });
+    assert.ok(hero !== null && hero.kind === 'scene');
+    assert.equal(hero.mission.id, 'mission:marche');
+    assert.equal(hero.label, HERO_LABELS.resume);
+    const finished = progressWith([{ id: 'mission:marche', at: EVENING - 10_000, rung: 1 }]);
+    const afterFinish = homeMissionFrom({ progress: finished, records: [newer], levelIndex: 0, now: EVENING });
+    assert.ok(afterFinish !== null && afterFinish.kind === 'scene');
+    assert.equal(afterFinish.mission.id, FIRST_MISSION, 'a finished scene must not be offered as a resume');
+  });
+
   test("a learner who has earned the whole spine meets the day's scene", () => {
     const progress = progressWith(allEarned());
     assert.equal(spineFrom(progress).next, null);

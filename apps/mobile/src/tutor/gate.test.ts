@@ -232,7 +232,7 @@ describe('the three ways into a conversation — what a learner meets instead of
     // that says what the circle's states mean, so it is asserted to be somewhere
     // rather than in a named file: whichever screen holds it, it is reachable.
     assert.equal(TUTOR_INTRO_LINK, 'How the voice circle works');
-    const holders = sourceFiles().filter((file) => file.body.includes('TUTOR_INTRO_LINK'));
+    const holders = sourceFiles().filter((file) => file.body.includes('label={CONNECTION_HELP_ROW}'));
     assert.ok(holders.length > 0, 'nothing in the app links to the explainer any more, so the circle is never explained');
     for (const holder of holders) {
       assert.ok(

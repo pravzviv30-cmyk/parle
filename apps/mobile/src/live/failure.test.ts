@@ -10,6 +10,7 @@ import {
   PIPELINE_ALARM_PREFIX,
   PIPELINE_LOG_PREFIX,
   TokenServerError,
+  tokenFailureCode,
   type LiveFailure,
   type PipelineOutcome,
 } from './failure.ts';
@@ -20,6 +21,7 @@ import {
  * unclassified failure is a stranded learner.
  */
 const EVERY_FAILURE = Object.keys({
+  'voice-unavailable': true,
   'mic-denied': true,
   'mic-missing': true,
   'mic-in-use': true,
@@ -548,4 +550,18 @@ describe('a live session refused by a lease this device cannot reach — the lea
       `"${message}" never says the wait is long, so the learner taps start again against a lease that holds for thirty minutes.`,
     );
   });
+});
+
+
+test('only an explicit typing-only capability reply offers typing after a voice refusal', () => {
+  const body = { error: 'voice-unavailable', supportedModes: ['lesson-text', 'convo-text'], message: 'Untrusted remote prose' };
+  const failure = classifyFailure(new TokenServerError(503, tokenFailureCode(503, body)));
+  assert.equal(failure, 'voice-unavailable');
+  assert.equal(failureCopy(failure).canType, true);
+  assert.doesNotMatch(failureCopy(failure).message, /Untrusted/);
+  for (const bad of [null, {}, { ...body, error: 'outage' }, { ...body, supportedModes: ['convo-text'] }, { ...body, supportedModes: ['convo-text', 'convo-text'] }, { ...body, supportedModes: [...body.supportedModes, 'convo'] }]) {
+    assert.equal(tokenFailureCode(503, bad), undefined);
+    assert.equal(failureCopy(classifyFailure(new TokenServerError(503, tokenFailureCode(503, bad)))).canType, false);
+  }
+  for (const status of [401, 409, 429, 500]) assert.equal(tokenFailureCode(status, body), undefined);
 });

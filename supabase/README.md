@@ -57,6 +57,12 @@ transactional migration tooling. Inspect the schema before recovering a partial 
 | 18 | `migrations/20260920200807_practice_account_deletion.sql` | Narrow, search-path-hardened trigger elevation so Supabase Auth account deletion can tombstone a pack without granting Auth access to queue contents. Requires 16. |
 | 19 | `migrations/202609230001_learner_state_practice_history.sql` | Widens `learner_state`'s namespace whitelist to accept `practiceHistory`, the account-synced record of completed conversation practice (ids, times, source links and per-target outcomes only). Recreates one named check constraint, touches no rows. Prepared, not applied to any project. |
 | 20 | `migrations/202609250001_learner_state_goal_steps.sql` | Widens `learner_state`'s namespace whitelist to accept `goalSteps`, the account-synced record that a conversation was opened from a goal card (session id, normalised goal key, task id) and the learner's own "used outside" self-report (ids only). Recreates one named check constraint, touches no rows. Prepared, not applied to any project. Requires 12. |
+| 21 | `migrations/20261002154637_atomic_billing_projection.sql` | F263/F264: completed-event marker and DB-issued ordering fences; allowance projection and event completion share one transaction/row lock. Provisioning through billing starts exhausted; no free trial is granted. Prepared and tested in disposable PostgreSQL/WASM, not applied to a live project. Requires 8–10. |
+| 22 | `migrations/20261002171317_opt_in_conversation_text.sql` | Explicit post-recap text saving, separate from practice. Service-only owned-completion proof, deletion retry fence and a bounded single-statement account-export snapshot. Prepared and tested in disposable PostgreSQL/WASM; not applied live. Requires 2 and 11. |
+| 23 | `migrations/20261002192210_consented_product_funnel.sql` | Report 45: thirteen closed device events, two service-only facts, and a service-only first-trial RPC with isolated optional evidence. No persistent server consent or money-policy change. Disposable SQL proof only; requires 2 and 11. |
+| 24 | `migrations/20261002212536_kept_phrase_audio_budget.sql` | Disabled, zero-cap dynamic saved-phrase audio; verified rate revisions, atomic source/account/global reservations and final source/period dispatch gate. Extends bounded account export to fifteen owned tables. No hosted application, approved cap assumptions or seeded vendor rates. Requires 2, 10, 11 and 22. |
+| 25 | `migrations/20261002233520_failed_session_refunds.sql` | Founder-approved confirmed service-failure refunds of actual charged seconds, allowance-epoch grants and entitlement-first locking. Extends bounded export to sixteen owned tables. Drain all old grant/debit writers before migration; no hosted application. Requires 2, 10, 13, 21, 22 and 24. |
+| 26 | `migrations/20261003001510_approved_phrase_audio_caps.sql` | Founder-approved hard ceilings: $0.02 lifetime trial, $0.20 paid per thirty days, $10 global per thirty days. Forces disabled; retains spent counters and anchors, seeds no rates. Not applied live; requires 24. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -147,6 +153,9 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `20261002212536_kept_phrase_audio_budget.sql` | `rollback/20261002212536_down.sql` | Disable worker first and back up budgets. Removes spend history and restores the previous fourteen-table archive. Reapply stays dark; do not enable with reset spend counters. |
+| `20261002233520_failed_session_refunds.sql` | `rollback/20261002233520_down.sql` | Drain new grant/debit/refund writers first; back up proof. Removes refund history and grants, restores the old debit body and fifteen-table export. Never run alongside new workers. |
+| `20261003001510_approved_phrase_audio_caps.sql` | `rollback/20261003001510_down.sql` | Disable runtime switches and drain synthesis first; sets disabled/zero caps and removes ceilings, preserving all spends and anchors. Reapply stays dark. |
 | `202609250001_learner_state_goal_steps.sql` | `rollback/202609250001_down.sql` | **DESTRUCTIVE.** Deletes every server copy of a learner's goal steps (which conversations were opened from a goal, and their "used outside" reports) before narrowing the whitelist. Device copies survive; a learner who changes phone loses them. Refuses to run until you set `luvani.remove_goal_steps` in the same session |
 | `202609230001_learner_state_practice_history.sql` | `rollback/202609230001_down.sql` | **DESTRUCTIVE.** Deletes every server copy of completed conversation-practice history before narrowing the whitelist. Device copies survive; a learner who changes phone loses it. Refuses to run until you set `luvani.remove_practice_history` in the same session |
 | `20260920200807_practice_account_deletion.sql` | `rollback/20260920200807_down.sql` | Reopens restricted-role account deletion failure. Guarded by `luvani.reopen_practice_delete`; prefer fixing forward. |
@@ -207,12 +216,30 @@ metered minutes instead of the company's, which is worse in kind if not in dolla
 The last two rows destroy data. Take the backup first, and escalate rather than paste if
 the project has real accounts on it.
 
+### Atomic billing rollback
+
+`rollback/20261002154637_down.sql` requires
+`luvani.reopen_billing_projection = 'yes'`. Disable native purchase access first:
+it reopens F263/F264 and removes processed-event metadata and ordering fences.
+Run it before the older rollback scripts. Neither forward nor rollback file has
+been applied to any remote project in this continuation.
+
+The executable disposable proof is `scripts/verifyBillingProjection.mjs`; point
+`PGLITE_MODULE` at an isolated `@electric-sql/pglite` runtime. It covers legacy
+failed-event recovery, rollback/retry, timestamp precision, session-debit
+preservation, crossgrades, completed replays, delayed fetches, unissued tickets,
+RPC permissions and account cascade. Real multi-connection concurrency and vendor
+sandbox purchases remain separate release evidence.
+
+The saved-text rollback is `rollback/20261002171317_down.sql`. It permanently removes saved conversation text; export and back up before running it, and run it before the older schema rollbacks. This continuation has not applied it to a remote project.
+| `20261002192210_consented_product_funnel.sql` | `rollback/20261002192210_down.sql` | Revert the worker first. Restores the prior event validator and removes the observed-claim RPC; retained evidence is not deleted |
+
 ## Rollback evidence
 
 "We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
 project, and keep the output:
 
-1. Apply all twenty migrations. Run the harness. Record: twelve proofs, all passed. Separately run `scripts/verifyPracticeQueue.mjs` against disposable PostgreSQL/WASM for the new queue functions; the legacy harness does not cover them.
+1. Apply all 26 migrations. Run the harness. Record: twelve proofs, all passed. Separately run `scripts/verifyPracticeQueue.mjs` against disposable PostgreSQL/WASM for the new queue functions; the legacy harness does not cover them.
 2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
 3. Take the backup from `## Backup`, and record its timestamp.
 4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
@@ -233,7 +260,7 @@ project, and keep the output:
    interlocks set, then `rollback/202608230001_down.sql`, then
    `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
    not applied, naming each missing object.
-7. Re-apply all twenty migrations, restore from step 3, and record the row counts from
+7. Re-apply all 26 migrations, restore from step 3, and record the row counts from
    step 2 matching.
 
 Steps 4 and 5 are the cheap half and can be run on their own: they touch one function
@@ -251,3 +278,54 @@ Supabase row; a step that was not run stays marked as not run.
   service_role` at the end of the migration did not run. Re-paste that file.
 - **The harness reports a proof this runbook says should pass**: that is a finding, not a
   flake. File it in `docs/KNOWN_ISSUES.md` before changing anything.
+
+### Optional funnel evidence (Report 45)
+
+Apply migration 23 before the new token worker. Missing-RPC PGRST202 permits the
+old claim path during rollout, with no invented trial evidence; other failures
+remain trial failures. Never edit historic allowance functions. Consent is read
+on the requesting device for each start, and withdrawal affects future requests.
+An already dispatched start can finish its event after Off. The trial event is
+inside the claim transaction but its isolated failure cannot undo a trial.
+Minutes refusals are best effort and exclude subscription lapse and antifraud.
+Run `scripts/verifyProductEvents.mjs` with a disposable PGLite module; its role,
+transaction and injected-writer checks are not simultaneous PostgreSQL connections.
+Prove concurrency on a disposable multi-connection PostgreSQL instance before
+release. No hosted migration has been applied by this continuation.
+
+## Saved-phrase audio remains disabled
+
+Migration 24 originally seeds disabled policy and zero caps. Migration 26 applies the founder-approved hard ceilings of $0.02 per lifetime trial, $0.20 per paid account per anchored thirty days and $10 global per anchored thirty days, while forcing enabled=false and retaining all spend counters/anchors. Neither migration seeds verified voice rates. Both worker and phone switches stay off. Caps are approved; before enabling, verify actual USD upper bounds for EACH selected voice/configuration fingerprint, including credit conversion, surcharges and minimum charges; public prices do not suffice. Rates expire within thirty days, and every update changes their revision. No key is copied into this branch or the phone.
+
+The service-only transaction resolves an owned ready/completed French source and permanently reserves both budgets before ONE uncached synthesis request. Trial budget lasts for the account; paid and global budgets use anchored thirty-day periods, independent of subscription plan/period changes. Reservation and dispatch require thirty seconds of period headroom; the whole HTTP request is bounded to twenty seconds. There is no retry/refund RPC. Unknown provider outcomes stay charged. Final checks refuse changed rates, source, completion, entitlement, bucket, caps or period. A deletion or policy change after the last check cannot revoke an already dispatched provider call. Vendor billing timestamp/fee behavior and hosted simultaneous transactions still require verification. These limits apply only to this route, never all live-voice charges.
+
+Run `scripts/verifyPhraseAudioBudget.mjs` with the existing disposable PGLite module. It checks default darkness, owners/sources/completion, rate revisions/expiry, budget periods/caps, roles, transaction rollback, complete owned export, account cascade and rollback/reapply. It is sequential evidence, not concurrent PostgreSQL or live provider proof.
+
+## Confirmed service-failure refunds: rollout hold
+
+The founder approved refunding only the affected session's actual charged seconds
+for a recognized terminal Luvani pipeline failure. Recoverable errors, manual exits,
+learner connection loss, time limits and safety stops do not request this refund.
+
+Migration 25 changes every callable session debit to entitlement-first locking.
+Stop new starts and drain **all** old grant/debit writers and in-flight transactions
+before applying it and deploying the paired token server/worker. An already running
+old function keeps its old lock order until its transaction ends. Legacy session
+rows have no invented issued epoch or capped-charge proof; their confirmed failures
+need explicit reconciliation, not a debit or refund against today's balance.
+
+The session grant is persisted before its signed credential is returned. Refund and
+debit share the entitlement lock; only the actual capped delta is returned, once.
+Late prior-period settlement cannot consume the new allowance; old-period reversal
+is labelled historical. Expired paid allowances lapse before classifying a refund.
+The app waits for a typed acknowledgement and labels failed transport pending.
+
+Local proof: `scripts/verifySessionRefunds.mjs` runs sequential disposable SQL,
+including ownership/RLS, lapse, rollback, export and cascade.
+`scripts/verifySessionRefundConcurrency.mjs` uses a separate isolated PostgreSQL
+18.4 instance with independent connections and observed transaction blocking; it
+checks both debit/refund orders, renewal races and duplicate refunds. These do not
+prove hosted rollout, native delivery or recovery of a worker that crashes before
+reporting its failure. The current worker retries three bounded calls in-process;
+there is no durable refund reconciliation queue. Reconcile those missing reports
+before release. No hosted migration has been applied.

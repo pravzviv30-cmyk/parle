@@ -116,17 +116,21 @@ export function homeMissionFrom(input: {
 }): HomeMission | null {
   if (input.progress.length === 0) return null;
 
+  // An unfinished, still-catalogued scene is the most concrete next step,
+  // even when another scene is first on the spine. Never infer a resume from
+  // an old record superseded by a finish.
+  const unfinished = input.progress
+    .map((mine) => ({ mine, record: leftPartWay(mine, input.records) }))
+    .filter((item): item is { mine: MissionProgress; record: ScenarioRecord } => item.record !== null)
+    .sort((a, b) => b.record.at - a.record.at)[0];
+  if (unfinished !== undefined) {
+    const remaining = minutesRemaining(unfinished.record, unfinished.mine.mission.beatIds.length, unfinished.mine.lastFinishedAt);
+    const minutes = remaining === null ? missionMinutes(unfinished.mine.mission) : estimateMinutes({ kind: 'measured', minutes: remaining });
+    return sceneHero(unfinished.mine.mission, minutes, HERO_LABELS.resume);
+  }
+
   const next = spineFrom(input.progress).next;
   if (next !== null) {
-    const mine = input.progress.find((p) => p.mission.id === next.id);
-    const left = mine === undefined ? null : leftPartWay(mine, input.records);
-    if (left !== null) {
-      // Measured from this learner's own pace through the beats they did; no
-      // pace behind it means the mission's own shape instead.
-      const remaining = minutesRemaining(left, next.beatIds.length, mine!.lastFinishedAt);
-      const minutes = remaining === null ? missionMinutes(next) : estimateMinutes({ kind: 'measured', minutes: remaining });
-      return sceneHero(next, minutes, HERO_LABELS.resume);
-    }
     return sceneHero(next, missionMinutes(next), null);
   }
 

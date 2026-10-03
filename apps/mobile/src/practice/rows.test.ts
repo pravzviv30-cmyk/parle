@@ -142,13 +142,15 @@ describe('practice is three rows made from what the learner said — F574, F582'
   });
 });
 
-describe('"Your sound to tune" says only what is true of the sound — notebook Phase 3', () => {
+describe('the sound example says only what is true of the sound', () => {
   const FLAT = ROWS.sound.replace(/\s+/g, ' ');
 
-  test('it names the sound by symbol and example word, with the inventory\'s mouth cue', () => {
-    assert.match(FLAT, /<SoundTag ipa=\{`\/\$\{lead\.ipa\}\/`\} example=\{lead\.example\} \/>/, 'the sound is not named with the shared SoundTag');
+  test('it leads with a word and cue, and discloses the symbol and guide on request', () => {
+    assert.match(FLAT, /\{lead\.example\}/, 'the example word is missing');
     assert.match(FLAT, /\{lead\.cue\}/, 'the mouth cue is not drawn');
-    assert.match(FLAT, /<Label>\{SOUND_LEAD\.label\}<\/Label>/, 'the block is not headed "Your sound to tune" from the module');
+    assert.match(FLAT, /measured === null \? SOUND_LEAD\.starterLabel : SOUND_LEAD\.measuredLabel/, 'starter and measured states are labelled alike');
+    assert.match(FLAT, /\{details && <View/, 'the full guide is shown before the learner asks for it');
+    assert.match(FLAT, /<MouthGuide ipa=\{lead\.ipa\} \/>/, 'the guide is not tied to the selected sound');
   });
 
   test('a measured fact appears only when a check measured it', () => {

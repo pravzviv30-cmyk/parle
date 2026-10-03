@@ -19,7 +19,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { setActiveUser } from '../storage/scope.ts';
+import { clearActiveUserData, setActiveUser, userKey } from '../storage/scope.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { sameData } from '../sync/envelope.ts';
 import { adopterFor, resetSyncRegistry } from '../sync/registry.ts';
@@ -37,6 +37,7 @@ function installDisk(initial: Record<string, string> = {}): Map<string, string> 
     map.delete(key);
     return Promise.resolve();
   };
+  shared.multiRemove = async (keys: string[]): Promise<void> => { for (const key of keys) map.delete(key); };
   return map;
 }
 
@@ -67,6 +68,48 @@ const savedIds = (blob: unknown): string[] =>
     .sort();
 
 describe('bookmarks that can be un-saved', () => {
+  test('only an absent key is empty; an unreadable bookmark cannot be replaced or adopted', async () => {
+    const disk = installDisk();
+    const key = userKey('bookmarks');
+    assert.deepEqual(await loadBookmarks(), []);
+    for (const raw of ['{', '{"version":3,"items":[]}', '{"version":2,"items":[{}]}']) {
+      disk.set(key, raw);
+      await assert.rejects(loadBookmarks());
+      await assert.rejects(setBookmark('scene:a', true));
+      const adopt = adopterFor('bookmarks');
+      assert.ok(adopt);
+      await assert.rejects(adopt(() => ({ version: 2, items: [] })));
+      assert.equal(disk.get(key), raw);
+    }
+  });
+
+  test('a held native write finishes before reset removal and cannot report durable', async () => {
+    const disk = installDisk();
+    const key = userKey('bookmarks');
+    let entered!: () => void;
+    let release!: () => void;
+    const writingNative = new Promise<void>(resolve => { entered = resolve; });
+    const held = new Promise<void>(resolve => { release = resolve; });
+    (AsyncStorage as unknown as Record<string, unknown>).setItem = async (at: string, value: string) => {
+      entered(); await held; disk.set(at, value);
+    };
+    const write = setBookmark('scene:held', true);
+    await writingNative;
+    const reset = clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) });
+    release();
+    await assert.rejects(write, /not saved/);
+    await reset;
+    assert.equal(disk.has(key), false, 'the reset left behind a write from the deleted account');
+  });
+
+  test('a refused adopted write is never acknowledged', async () => {
+    installDisk();
+    (AsyncStorage as unknown as Record<string, unknown>).setItem = async () => { throw new Error('disk full'); };
+    const adopt = adopterFor('bookmarks');
+    assert.ok(adopt);
+    await assert.rejects(adopt(() => ({ version: 2, items: [] })), /not durable/);
+  });
+
   test("a bookmark toggled off on one device stays off after the other device's copy folds in — F393", async () => {
     // ── 1. This phone saves two situations, then changes its mind about one.
     await setBookmark('scene:market', true, 1_000);

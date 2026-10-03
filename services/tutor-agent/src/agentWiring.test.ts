@@ -89,7 +89,7 @@ describe('the vendor failure the worker reports', () => {
 
     // Nothing the learner said, and not the frame's sentence either. That line
     // is the one most likely to be pasted somewhere public.
-    const logged = body.slice(body.indexOf('console.error(\n'), body.indexOf('void publish('));
+    const logged = body.slice(body.indexOf('console.error(\n'), body.indexOf('void Promise.resolve()'));
     assert.doesNotMatch(logged, /message|transcript|text/, 'the log line carries learner-facing prose, and diagnostics carry none');
   });
 });

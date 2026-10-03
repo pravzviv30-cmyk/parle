@@ -74,8 +74,8 @@ describe('first run introduces the voices and lets the learner choose one — F2
 
     // On glass: one card per voice, each with its name, its line, and an ear.
     assert.match(FLOW, /VOICE_STEP_OPTIONS\.map\(/, 'the voice page draws something other than the catalogue');
-    assert.match(FLOW, /text=\{option\.label\}/, 'the cards do not show the name of the voice');
-    assert.match(FLOW, /gloss=\{option\.gloss\}/, "the cards do not show the catalogue's description");
+    assert.match(FLOW, /title=\{option\.label\}/, 'the cards do not show the name of the voice');
+    assert.match(FLOW, /detail=\{option\.gloss\}/, "the cards do not show the catalogue's description");
     assert.match(FLOW, /onHear=\{\(\) => hearVoice\(option\.value\)\}/, 'no voice on the first run can be heard before it is chosen');
     assert.match(FLOW, /selected=\{voice === option\.value\}/, 'nothing marks which voice is selected');
 

@@ -136,6 +136,7 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
       title={hero.title}
       canDo={hero.canDo ? canDoSentence(hero.canDo) : undefined}
       line={hero.lines[0] ? { fr: hero.lines[0] } : undefined}
+      note="The estimate is for this scene's steps. The live room uses minutes while open."
       corner={
         target === null ? undefined : (
           <Pressable

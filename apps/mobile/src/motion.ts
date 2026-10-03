@@ -24,13 +24,15 @@ import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
  * react-native-web's support for the change event varies by version, so both
  * the subscribe and the teardown are guarded.
  */
-export function useReduceMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
+export function useReduceMotion(waitUntilKnown: true): boolean | null;
+export function useReduceMotion(waitUntilKnown?: false): boolean;
+export function useReduceMotion(waitUntilKnown = false): boolean | null {
+  const [reduced, setReduced] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
     void AccessibilityInfo.isReduceMotionEnabled().then((on) => {
       if (live) setReduced(on);
-    });
+    }).catch(() => { if (live) setReduced(true); });
     const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (on: boolean) => {
       if (live) setReduced(on);
     });
@@ -39,7 +41,7 @@ export function useReduceMotion(): boolean {
       sub?.remove?.();
     };
   }, []);
-  return reduced;
+  return waitUntilKnown ? reduced : reduced !== false;
 }
 
 /**

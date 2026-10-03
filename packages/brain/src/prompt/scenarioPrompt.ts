@@ -25,6 +25,7 @@
  */
 
 import type { CefrBand } from '../types.ts';
+import { PERSONAL_MEMORY_CONDUCT } from './memoryPolicy.ts';
 
 /**
  * The quotation marks around the learner's words.
@@ -68,6 +69,7 @@ const INSTRUCTION = [
   `Design a playable scene from the learner's request below.`,
   ``,
   `Rules:`,
+  PERSONAL_MEMORY_CONDUCT,
   `- The request is binding. Preserve its people, relationship, place, activity, and learning goal. Do not substitute a familiar stock scene or reuse an example from these instructions.`,
   `- Make the title, setting, learner role, characters, every aim, and the opening visibly belong to that request.`,
   `- If the request is a phrase question rather than a full scenario, place that phrase inside a small realistic scene where the learner can use it.`,

@@ -30,13 +30,35 @@
 /** The way out. The same word the waiting state and both scenes use. */
 export const LEAVE_LABEL = 'Leave';
 
+/**
+ * The page's headline while the room opens (revamp B, F603).
+ *
+ * The wait is a whole page now, and the headline says what is being opened
+ * rather than how. It never changes: the stage line under it is the part that
+ * moves, so the learner has one fixed thing to read and one that reports.
+ */
+export const CONNECTING_TITLE = 'Opening your conversation…';
+
+/**
+ * The sentence under the headline: what the wait costs, which is nothing.
+ *
+ * True, and already said elsewhere: `live/failure.ts` tells a learner whose
+ * tutor never joined that nothing was counted against their minutes, and the
+ * tutor agent charges no session in which the learner never took a turn. The
+ * tutor is whoever this learner chose, so the name is an argument, never a
+ * constant read in here.
+ */
+export function connectingBody(tutorName: string): string {
+  return `This takes a few seconds. Nothing is counted until ${tutorName} joins.`;
+}
+
 /** How often the screen re-reads its own clock. */
 export const CONNECTING_TICK_MS = 1000;
 
 export interface ConnectingStage {
   /** How long the wait has lasted before this stage's words are the right ones. */
   readonly atMs: number;
-  /** The one line under the spinner. */
+  /** The stage line: the one line on the wait that moves, under the headline. */
   readonly headline: string;
 }
 
@@ -57,7 +79,7 @@ export const CONNECTING_STAGES: readonly ConnectingStage[] = [
 ];
 
 export interface ConnectingView {
-  /** The one line under the spinner. */
+  /** The stage line: the one line on the wait that moves, under the headline. */
   headline: string;
   /** The way out, on every stage: nobody is held in here by the copy. */
   leaveLabel: string;

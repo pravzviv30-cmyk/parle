@@ -27,12 +27,13 @@ import { SEEDED_GOAL, levelOf, minutesOf, reminderOf, startEstimate } from './pl
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 
 export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.now()): StoredProfile {
+  const minutes = minutesOf(draft);
   const built = createStoredProfile(
     {
       name: draft.firstName,
       ageConfirmed: draft.ageConfirmed,
       motivation: draft.reason,
-      dailyGoalMin: minutesOf(draft),
+      dailyGoalMin: minutes === 'none' ? null : minutes,
     },
     now,
   );

@@ -24,6 +24,7 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { audioLine } from './libraryView.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 
 export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, variant = 'full' }: {
   item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; variant?: 'full' | 'today';
@@ -35,14 +36,27 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const asset = tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice);
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
-  const [saved, setSaved] = useState(false);
+  const owner = scopeGeneration();
+  const [saveRead, setSaveRead] = useState<{ owner: number; saved: boolean } | null>(null);
+  const saved = saveRead?.owner === owner ? saveRead.saved : null;
+  const [saveUnread, setSaveUnread] = useState(false);
+  const [readAttempt, setReadAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [shown, setShown] = useState(reveal);
   const [note, setNote] = useState('');
   const [expanded, setExpanded] = useState(!compact);
   const active = useRef(focused);
   const playTicket = useRef(0);
-  useEffect(() => { let live = true; setShown(reveal); void loadBookmarks().then(rows => { if (live) setSaved(rows.some(r => r.scenarioId === item.id && r.saved)); }).catch(() => {}); return () => { live = false; }; }, [item.id, reveal, focused]);
+  const lastOwner = useRef(owner);
+  useEffect(() => { if (lastOwner.current !== owner) { lastOwner.current = owner; setBusy(false); } }, [owner]);
+  useEffect(() => {
+    let live = true;
+    setShown(reveal); setSaveRead(null); setSaveUnread(false);
+    if (focused) void loadBookmarks().then(rows => {
+      if (live && owner === scopeGeneration()) setSaveRead({ owner, saved: rows.some(r => r.scenarioId === item.id && r.saved) });
+    }).catch(() => { if (live && owner === scopeGeneration()) setSaveUnread(true); });
+    return () => { live = false; };
+  }, [item.id, reveal, focused, owner, readAttempt]);
   useEffect(() => { active.current = focused; setNote(''); return () => { active.current = false; playTicket.current++; releaseDailyPlayback(player); }; }, [focused, player, item.id, tutorVoice]);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
@@ -62,10 +76,31 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
     } catch { setNote('Audio could not play. Please try again.'); }
   };
   const save = async () => {
-    if (busy) return; setBusy(true);
-    try { await setBookmark(item.id, !saved); const rows = await loadBookmarks(); const actual = rows.some(r => r.scenarioId === item.id && r.saved); if (actual === saved) setNote('That save did not finish. Please try again.'); else { setSaved(actual); onSaved?.(item.id, actual); setNote(actual ? 'Saved in My French, Daily collection.' : 'Removed from your daily collection.'); } }
-    catch { setNote('That save did not finish. Please try again.'); } finally { setBusy(false); }
+    if (busy || saved === null || owner !== scopeGeneration()) return;
+    setBusy(true);
+    try {
+      await setBookmark(item.id, !saved);
+      if (owner !== scopeGeneration() || !active.current) return;
+      const rows = await loadBookmarks();
+      if (owner !== scopeGeneration() || !active.current) return;
+      const actual = rows.some(r => r.scenarioId === item.id && r.saved);
+      if (actual === saved) setNote('That save did not finish. Please try again.');
+      else {
+        setSaveRead({ owner, saved: actual }); onSaved?.(item.id, actual);
+        setNote(actual ? 'Saved in Progress, Daily collection.' : 'Removed from your daily collection.');
+      }
+    } catch {
+      if (owner === scopeGeneration() && active.current) {
+        setSaveRead(null); setSaveUnread(true);
+        setNote('');
+      }
+    } finally { if (owner === scopeGeneration()) setBusy(false); }
   };
+  const retrySaveRead = () => setReadAttempt(value => value + 1);
+  const saveFailure = saveUnread && <View style={{ gap: space(1) }}>
+    <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
+    <GhostButton label="Retry save status" onPress={retrySaveRead} />
+  </View>;
   // Stop this card's recording before the practice screen opens, so the
   // learner hears their own attempt and not the tutor under it.
   const sayIt = () => { playTicket.current++; releaseDailyPlayback(player); nav.navigate('DailyPractice', { id: item.id }); };
@@ -84,18 +119,20 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
       {item.exampleFr && <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
-        <GhostButton label={busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save'} onPress={() => void save()} />
+        <GhostButton label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
         {compact && <GhostButton label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
         {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}
           <GhostButton label="Say it" onPress={sayIt} /></>}
       </View>
     </>}
+    {saveFailure}
     {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
   </View>;
   if (variant === 'today') {
     return <Card style={{ marginTop: space(3), gap: space(3) }}>
       <FrenchBlock french={item.fr} english={item.en} size="lg" onHear={asset != null ? toggle : undefined} playing={status.playing} />
       <View style={{ alignItems: 'flex-end' }}><GhostButton label="Practise it" onPress={sayIt} /></View>
+      {saveFailure}
       {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
     </Card>;
   }

@@ -24,10 +24,10 @@ export const navTheme: Theme = {
   },
   fonts: {
     ...DefaultTheme.fonts,
-    regular: { fontFamily: font.sans, fontWeight: '400' },
-    medium: { fontFamily: font.sansMedium, fontWeight: '500' },
-    bold: { fontFamily: font.sansBold, fontWeight: '700' },
-    heavy: { fontFamily: font.sansBold, fontWeight: '700' },
+    regular: { fontFamily: font.regular, fontWeight: '400' },
+    medium: { fontFamily: font.medium, fontWeight: '500' },
+    bold: { fontFamily: font.bold, fontWeight: '700' },
+    heavy: { fontFamily: font.bold, fontWeight: '700' },
   },
 };
 
@@ -72,6 +72,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       FirstScene: 'first-scene/:missionId',
       Phrasebook: 'phrasebook',
       Conversations: 'conversations',
+      SavedConversationText: 'saved-conversation-text',
       ConversationPractice: 'conversation-practice/:packId',
       Settings: 'settings',
       Profile: 'profile',
@@ -79,6 +80,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       SocialSettings: 'social-settings',
       DailyPractice: 'daily/:id',
       DailyLibrary: 'daily-library',
+      Postcards: 'postcards',
+      WeekWrapped: 'week-in-french',
       RealMoment: 'real-moment',
       TutorMemory: 'tutor-memory',
       TutorIntro: 'tutor-guide',

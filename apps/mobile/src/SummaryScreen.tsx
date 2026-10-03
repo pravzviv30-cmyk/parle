@@ -31,6 +31,7 @@ export function SummaryScreen({
   lesson,
   summary,
   report,
+  historySaveFailed = false,
   onAgain,
   onReview,
   onDone,
@@ -39,6 +40,8 @@ export function SummaryScreen({
   summary: SessionSummary;
   /** Progress across all stored sessions. Null until there is enough history. */
   report?: ProgressReport | null;
+  /** Native storage did not confirm the history write; never present a saved total. */
+  historySaveFailed?: boolean;
   onAgain: () => void;
   /** Opens the review deck, while today's words are still warm. Optional: no prop, no button. */
   onReview?: () => void;
@@ -88,6 +91,8 @@ export function SummaryScreen({
             {secs}s
           </Text>
         </View>
+
+        {historySaveFailed && <Text accessibilityRole="alert" style={[type.body, { color: paper.inkSoft }]}>Your lesson history could not be confirmed as saved. This practice card is available until you leave; totals from your saved history are not shown.</Text>}
 
         {/* ── what went well ────────────────────────────────────────── */}
         <View>

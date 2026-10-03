@@ -27,8 +27,10 @@ import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { passwordHint } from './passwordHint.ts';
 import { appleSignInOffered } from './apple.ts';
+import { planFor } from '../onboarding/plan.ts';
+import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 
-export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignIn: () => void }) {
+export function SignUpScreen({ onBack, onSignIn, planDraft = null }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null }) {
   const { adapter } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,6 +44,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   // the button that started it changes its words.
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
+  const plan = planDraft === null ? null : planFor(planDraft);
   // Asked once, and false until it answers. The Apple door is drawn only where
   // the platform actually opens it; Android and web never do.
   const [appleOffered, setAppleOffered] = useState(false);
@@ -126,6 +129,13 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
         An account keeps your plan, your lines and what your tutor remembers.
       </Text>
+      {plan && <View style={{ gap: space(1), marginTop: space(3) }}>
+        <Text style={[type.bodyStrong, { color: paper.ink }]}>Your start: {plan.scenes[0]?.titleEn}</Text>
+        <Text style={[type.small, { color: paper.inkSoft }]}>{plan.startingReason}</Text>
+        <Text style={[type.small, { color: paper.inkSoft }]}>
+          {plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a flexible practice routine.`} You can change your plan later in Profile.
+        </Text>
+      </View>}
 
       {/* The provider doors lead the form. Apple is an ink pill, drawn only where
           the platform offers it; Google is the white pill beneath it. */}
@@ -158,7 +168,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
           label="Email"
           value={email}
           onChangeText={setEmail}
-          placeholder="you@example.com"
+          placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
           error={emailError}
@@ -189,7 +199,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
           label="Confirm password"
           value={confirm}
           onChangeText={setConfirm}
-          placeholder="Once more"
+          placeholder="Enter your password again"
           secure
           autoComplete="new-password"
           error={confirmError}

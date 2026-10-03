@@ -179,6 +179,23 @@ const SCHEDULE_TROUBLE = 'Your phone would not change the reminder just now. You
 const HANDLERS = ['toggleReminder', 'chooseReminderTime'] as const;
 
 describe('the daily reminder on Settings', () => {
+  test('an unread choice stays unknown until an owned retry succeeds', () => {
+    assert.match(TAB, /loadReminder\(\{ strict: true \}\)/, 'the screen uses a lenient read that can turn corrupt bytes into Off');
+    assert.match(TAB, /const reminderOwned = storedOwner\?\.scope === currentReminderScope && storedOwner\.userId === currentReminderUser && storedOwner\.userId === activeUserId\(\)/);
+    assert.match(TAB, /const reminderUnread = unreadReminderOwner\?\.scope === currentReminderScope && unreadReminderOwner\.userId === currentReminderUser && unreadReminderOwner\.userId === activeUserId\(\)/);
+    assert.match(TAB, /const row = notifications === null \|\| !reminderOwned \? null : reminderRow\(stored, notifications\)/, 'the switch can show Off before the owned read succeeds');
+    assert.match(REMINDER_CARD, /reminderUnknown && <View[\s\S]*?Reminder status could not be read\. Try again before changing it\./, 'an unread choice has no visible explanation');
+    assert.match(REMINDER_CARD, /reminderUnread && <GhostButton label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
+    assert.match(TAB, /\}, \[user, reminderAttempt\]\)/, 'Retry cannot reread the owned value');
+    for (const name of HANDLERS) {
+      const body = bodyOf(TAB, name);
+      assert.match(body, /if \(row === null[^\n]*!ownsReminderNow\(\)\) return;/, `${name} accepts a tap from an unknown or former owner`);
+      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'saveReminder(wanted)'), `${name} can write after a scope change during the permission read`);
+      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'scheduleReminder(wanted.time)'), `${name} can schedule after a scope change`);
+    }
+    assert.match(TAB, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\}/, 'a former owner can expose the selected reminder time');
+  });
+
   test('the profile reminder row explains the ask first and a refusal leaves no dead switch', () => {
     // ─────────────────────────────────────────── explains the ask first
     //
@@ -240,7 +257,7 @@ describe('the daily reminder on Settings', () => {
     const focus = callArguments(TAB, 'useFocusEffect');
     assert.equal(focus.length, 1, 'the screen reads permission on focus in more than one place, or in none');
     assert.ok(focus[0]?.includes('reminderPermission()'), 'the row is drawn from a permission the screen never re-read');
-    assert.ok(focus[0]?.includes('loadReminder()'), 'the row is drawn from a stored value the screen never re-read');
+    assert.ok(focus[0]?.includes('loadReminder({ strict: true })'), 'the row is drawn from a stored value the screen never strictly re-read');
 
     // Nothing reaches the disk that the module did not approve. This is the
     // structural form of "no dead switch": the value written is reminderRow's
@@ -548,19 +565,13 @@ describe('a schedule the phone would not take', () => {
  */
 describe('the part of the day the reminder lands in — F576', () => {
   test('the reminder time is chosen from the presets the module owns, on a sheet that takes the screen', () => {
-    assert.ok(TAB.includes("if (sheet === 'reminderTime')"), 'the preset sheet is not an early return, so it can be open and invisible');
-    assert.match(TAB, /REMINDER_TIMES\.map\(/, 'the sheet offers something other than the four presets');
-    assert.match(TAB, /selected=\{chosen\.value === option\.value\}/, 'nothing on the sheet marks the preset already chosen');
-    assert.match(TAB, /onPress=\{\(\) => chooseReminderTime\(option\.value\)\}/, 'a tap on a preset writes nothing');
-    assert.match(
-      TAB,
-      /label=\{REMINDER_TIME_TITLE\} value=\{chosen\.label\} onPress=\{\(\) => setSheet\('reminderTime'\)\}/,
-      'the row into the sheet does not say which part of the day is set, or does not open it',
-    );
-    // The row is only there when something is actually going to arrive.
-    assert.ok(
-      writtenBefore(REMINDER_CARD, 'row.on && (', 'REMINDER_TIME_TITLE'),
-      'a time row is drawn over a reminder that is off, which is a setting for something that will not happen',
-    );
+    assert.match(TAB, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\} title=\{REMINDER_TIME_TITLE\}/);
+    assert.match(TAB, /REMINDER_TIMES.map\(/);
+    assert.match(TAB, /selected=\{chosen.value === option.value\}/);
+    assert.match(TAB, /onPress=\{\(\) => chooseReminderTime\(option.value\)\}/);
+    assert.match(TAB, /footer=\{<PillButton label="Done" onPress=\{\(\) => setSheet\('none'\)\}/);
+    const writer = TAB.slice(TAB.indexOf('const chooseReminderTime'), TAB.indexOf('const forgetDeleteDraft'));
+    assert.doesNotMatch(writer, /setSheet\('none'\)/, 'choosing stays open until Done');
+    assert.ok(writtenBefore(REMINDER_CARD, 'row.on && (', 'REMINDER_TIME_TITLE'));
   });
 });

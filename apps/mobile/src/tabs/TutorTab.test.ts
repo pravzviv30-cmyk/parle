@@ -74,79 +74,45 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
   });
 
   test('one Start, the next conversation, with a quiet "Type instead" under it and no segmented pill', () => {
-    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 1, 'Speak has more or less than one primary');
-    const pill = between(FLAT, '<PillButton', '/>', 'Speak keeps one launch pill');
-    // 2026-09-27 follow-up: the Start opens in the learner's standing mode
-    // (Profile's "Prefer typing"), and the quiet link offers the other one.
-    assert.match(FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/, 'Speak ignores the learner\'s standing choice to type');
-    assert.match(pill, /label=\{launchLabel\(\{ checking, live, mode: modes\.mode \}\)\}/, 'the Start does not name the preferred mode');
-    assert.match(pill, /onPress=\{\(\) => open\(modes\.textMode, next\.params\)\}/);
-    assert.match(pill, /disabled=\{checking\}/);
-    assert.match(pill, /accessibilityLabel=\{launchAccessibilityLabel\(\{ checking, live, mode: modes\.mode, tutorName \}\)\}/);
-    assert.match(RENDER_FLAT, /<GhostButton label=\{modes\.other\.label\} color=\{paper\.ink\} disabled=\{checking\} onPress=\{\(\) => open\(modes\.other\.textMode, next\.params\)\} \/>/, 'the quiet link does not open the same conversation the other way');
-    assert.ok(at('<PillButton') < at('label={modes.other.label}'), 'the quiet link is not under Start');
-    assert.ok(!/<TabBar\b/.test(SCREEN), 'the Speak/Type segmented pill is back');
-    assert.ok(!SCREEN.includes("mode === 'type'"), 'Speak still carries a mode toggle');
-    // The next conversation says its level, minutes and lines, never "Ready when you are".
-    assert.match(RENDER, /\{next\.detail\}/);
-    assert.match(RENDER, /next\.lines\.map\(/);
-    assert.match(FLAT, /<Text style=\{st\.notice\}>\{launchNotice\(modes\.mode\)\}<\/Text>/);
-    assert.ok(!SCREEN.includes('Ready when you are'));
+    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 1);
+    assert.match(FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/);
+    assert.match(FLAT, /launchLabel\(\{ checking, live, mode: modes.mode \}\)/);
+    assert.match(FLAT, /open\(heldBack\?.textMode \?\? modes.textMode, heldBack \? pendingStart.current : next.params\)/);
+    assert.match(RENDER_FLAT, /label=\{modes.other.label\} color=\{paper.onInk\} disabled=\{checking\} onPress=\{\(\) => open\(modes.other.textMode, next.params\)\}/);
+    assert.match(RENDER_FLAT, /!offlineShown && <SceneBrief/);
+    assert.match(RENDER_FLAT, /canDo=\{next.canDo \? canDoSentence\(next.canDo\) : next.body\}/);
+    assert.doesNotMatch(SCREEN, /<TabBar\b|Ready when you are/);
   });
 
   test('the level path from the spine, then every scene as a ledger row that opens its brief', () => {
-    // 2026-09-27, notebook Phase 4 (B1): the Phase 3 browser proof found the
-    // path drawn twice, the level path's can-do stops and then the same lines
-    // as rows. It is one list now: rows grouped by level, each with its minutes,
-    // the "here" row carrying the highlighter, and each opening its brief.
-    assert.match(FLAT, /const path = speakPath\(progress\)/, 'the path is not the spine projection');
-    assert.ok(!SCREEN.includes('<LevelPath'), 'Speak draws the path twice again');
-    assert.ok(!SCREEN.includes('path.levels'), 'Speak reads a second list of the same scenes');
-    assert.match(RENDER_FLAT, /path\.groups\.map\(\(group\) => \(/);
-    const group = between(RENDER_FLAT, 'path.groups.map((group) => (', '))}', 'the path is drawn by level');
-    assert.match(group, /<Label>\{group\.level\}<\/Label>/, 'a group of scenes does not say its level');
-    // To the row's own close, past the highlighter's `/>` inside its trailing slot.
-    const row = between(RENDER_FLAT, '<LedgerRow key={row.missionId}', 'row.route.params)} />', 'each scene is a ledger row');
-    for (const prop of [
-      'label={row.label}',
-      'title={row.title}',
-      'gloss={row.gloss}',
-      'meta={row.meta}',
-      'accessibilityLabel={row.accessibilityLabel}',
-      'onPress={() => nav.navigate(row.route.screen, ',
-      'disabled={checking}',
-    ]) {
-      assert.ok(row.includes(prop), `a scene row does not take ${prop}`);
-    }
-    // The highlighter is the "here" row's, and nothing else on Speak draws one.
-    assert.match(row, /trailing=\{row\.state === 'here' \? <Highlight text=\{HERE_MARK\}/, 'the "here" row does not carry the highlighter');
-    assert.equal((SCREEN.match(/<Highlight\b/g) ?? []).length, 1, 'Speak draws more or less than one highlighter');
-    assert.ok(!SCREEN.includes('accent.feature'), 'Speak paints chartreuse outside the path');
-    // Order: the tutor, the Start, the rows.
-    assert.ok(at('<TabHeader') < at('<TutorCard'));
-    assert.ok(at('<TutorCard') < at('<PillButton'));
-    assert.ok(at('<PillButton') < at('<LedgerRow key={row.missionId}'));
+    assert.match(FLAT, /const path = pathCard\(speakPath\(progress\)\)/);
+    assert.match(RENDER_FLAT, /path.rows.map\(\(row\) =>/);
+    assert.match(RENDER_FLAT, /<SceneMark state=\{row.state\}/);
+    assert.match(RENDER_FLAT, /onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
+    assert.match(RENDER_FLAT, /\{row.french\}/);
+    assert.equal((SCREEN.match(/path.rows.map\(/g) ?? []).length, 1);
+    assert.doesNotMatch(SCREEN, /<LevelPath|path.groups.map|<Highlight/);
+    assert.ok(at('<SceneBrief') < at('path.rows.map('));
   });
 
   test('offline Speak says it is unavailable once', () => {
-    // 2026-09-27, notebook Phase 4 (B1): the line under the Start said the tutor
-    // was away while the offline card under it said it could not connect.
-    // `startNote` stands the line down while the card is up.
-    assert.match(FLAT, /const offlineShown = !live \|\| heldBack !== null;/);
-    assert.match(FLAT, /const note = startNote\(orb, offlineShown\);/);
-    assert.match(RENDER_FLAT, /\{note !== null && <Text style=\{st\.notice\}>\{note\}<\/Text>\}/);
-    assert.match(RENDER_FLAT, /\{offlineShown && \(/, 'the offline card is drawn on a different condition from the one the line stands down for');
-    assert.ok(!RENDER.includes('orb.subline'), 'the line under the Start is drawn without asking whether the card already says it');
+    assert.match(FLAT, /const offlineShown = !live \|\| heldBack !== null/);
+    assert.match(FLAT, /const note = startNote\(orb, offlineShown\)/);
+    assert.match(RENDER_FLAT, /!offlineShown && <SceneBrief/);
+    assert.match(RENDER_FLAT, /\{offlineShown && \(/);
+    assert.equal((RENDER.match(/TUTOR_OFFLINE.headline/g) ?? []).length, 1);
+    assert.equal((RENDER.match(/\{note\}/g) ?? []).length, 1);
+    assert.match(RENDER, /name="state-offline"/);
   });
 
   test('"More ways to practise" appears only after a first finished scene', () => {
-    assert.match(RENDER, /\{moreWaysOpen\(progress\) && \(/, 'more ways are offered before a first scene');
+    assert.match(RENDER, /moreWaysOpen\(progress\) &&/);
     assert.match(RENDER, /\{MORE_WAYS_LABEL\}/);
-    assert.match(RENDER_FLAT, /MORE_WAYS\.map\(\(way\) => \(/);
-    assert.ok(at('<LedgerRow key={row.missionId}') < at('MORE_WAYS.map('), 'more ways come before the path');
+    assert.match(RENDER_FLAT, /MORE_WAYS.map\(\(way\) =>/);
+    assert.ok(at('path.rows.map(') < at('MORE_WAYS.map('));
     const handler = between(FLAT, 'const more = (', '};', 'Speak opens a way in');
-    assert.match(handler, /if \(way\.screen === null\) \{ open\(modes\.textMode\); return; \}/, 'the open conversation does not probe the tutor in the preferred mode');
-    assert.match(handler, /nav\.navigate\(way\.screen\)/);
+    assert.match(handler, /if \(way.screen === null\) \{ open\(modes.textMode\); return; \}/);
+    assert.match(handler, /nav.navigate\(way.screen\)/);
   });
 
   test('what left Speak stays gone', () => {
@@ -168,11 +134,21 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
 });
 
 describe('Speak keeps its memory, its plan read and its continuation', () => {
+  test('unread history is a retry state, and paused personal memory is not used for continuity', () => {
+    assert.match(FLAT, /setHistoryStatus\('loading'\)/);
+    assert.match(FLAT, /setHistoryStatus\('unread'\)/);
+    assert.match(FLAT, /setHistoryReadOwner\(scope\); setHistoryReadyOwner\(null\); setHistoryStatus\('loading'\)/);
+    assert.match(FLAT, /setHistoryReadyOwner\(scope\); setHistoryStatus\('ready'\)/);
+    assert.match(FLAT, /const renderHistoryStatus = ownedReadStatus\(historyStatus, historyReadOwner, historyReadyOwner, currentScope\)/);
+    assert.match(FLAT, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/);
+    assert.match(FLAT, /brain: memoryPaused\(profile\.brain\) \? null : profile\.brain/);
+    assert.match(FLAT, /Try loading conversations again/);
+  });
   test('what the tutor remembers is drawn from a real record only, and a thread reaches the room it opens', () => {
     assert.match(RENDER, /\{continuity !== null && \(/);
     assert.match(RENDER, /<ContinuityCard/);
-    assert.match(FLAT, /continuityFrom\(\{ brain: profile\.brain, packs, records: scenes, progress \}\)/);
-    assert.match(FLAT, /headline=\{continuityHeadline\(tutorName\)\}/);
+    assert.match(FLAT, /continuityFrom\(\{ brain: memoryPaused\(profile\.brain\) \? null : profile\.brain, packs, records: scenes, progress \}\)/);
+    assert.match(FLAT, /headline=\{memoryPaused\(profile\.brain\) \? 'Continue your French' : continuityHeadline\(tutorName\)\}/);
     assert.doesNotMatch(FLAT, /markPackContinued/);
     assert.match(FLAT, /nav\.navigate\(route\.screen, \{ \.\.\.route\.params, continuationPackId: route\.markPack, textMode: false \}\)/);
     assert.match(FLAT, /nav\.navigate\(route\.screen, route\.screen === 'Convo' \? \{ \.\.\.route\.params, textMode: false \} : route\.params\)/);

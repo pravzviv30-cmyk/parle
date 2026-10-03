@@ -165,10 +165,8 @@ export const LEGAL_REVIEW_PENDING = 'Our privacy policy and terms still need leg
 export function privacyNote(facts: CompanyFacts = COMPANY): string {
   const contact = facts.supportEmail === null ? '' : ` You can reach us at ${facts.supportEmail}.`;
   return (
-    'Luvani records your email, name and age confirmation, then sends live speech to speech and language ' +
-    'services so the tutor can answer. Nothing is sold, and nothing about you goes to a company for any ' +
-    'purpose other than carrying a conversation, answering you, keeping what you have learned, and ' +
-    'taking a payment. ' +
-    `You can download your account data or delete your account from this screen. ${LEGAL_REVIEW_PENDING}${contact}`
+    'Your account stores your email, name, age confirmation and learning. Spoken or typed words are processed by speech and language ' +
+    'services for tutor replies and practice. You control memory, saved conversation text and optional usage data. ' +
+    `You can export your data or delete your account here. ${LEGAL_REVIEW_PENDING}${contact}`
   );
 }

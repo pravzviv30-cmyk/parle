@@ -16,7 +16,8 @@
  * Those decisions live in package.json under `luvani.dependencyAudit`, and the tests below
  * hold them against package-lock.json: every decision names a version the lockfile
  * actually carries, and the chain that was judged fixable is walked, edge by edge, to
- * prove no vulnerable package is still on it.
+ * prove the dependency targeted by that fix remains absent. Separately accepted
+ * tooling advisories keep their own version and runtime-boundary contracts.
  *
  * The third is the strength of a guard that reads git, which is not decided in that
  * guard's own source but in one line of this workflow. It has its own comment below.
@@ -49,6 +50,7 @@ interface AdvisoryDecision {
   severity: string;
   decision: string;
   lockedAt: string;
+  removedPackages?: string[];
   advisories?: string[];
   chain?: string;
   reachability?: string;
@@ -272,8 +274,6 @@ describe('the ci contract', () => {
         'If nothing was fixable, say so in package.json rather than leaving the list empty.',
     );
 
-    const stillVulnerable = new Set(accepted.map((d) => d.module));
-
     for (const record of fixed) {
       const key = `node_modules/${record.module}`;
       const entry = lock.packages[key];
@@ -290,13 +290,17 @@ describe('the ci contract', () => {
           'which means the walk is broken rather than the chain being clean',
       );
 
-      for (const [resolvedKey, resolved] of closure) {
-        const name = resolvedKey.slice(resolvedKey.lastIndexOf('node_modules/') + 'node_modules/'.length);
-        assert.ok(
-          !stillVulnerable.has(name),
-          `${record.module} was judged fixable, but ${name}@${resolved.version} is still on its chain at ` +
-            `${resolvedKey}. Either the fix regressed or the acceptance for ${name} is wrong.`,
-        );
+      // A fixed image-size advisory is not a promise that every future advisory
+      // elsewhere in Metro's tree is fixed. Those roots still face audit:ci's
+      // independent decision, version and reachability checks.
+      assert.ok(record.removedPackages?.length, `${record.module} names no dependency its fix removed`);
+      for (const removed of record.removedPackages ?? []) {
+        for (const [resolvedKey, resolved] of closure) {
+          assert.ok(
+            !resolvedKey.endsWith(`node_modules/${removed}`),
+            `${record.module} restored ${removed}@${resolved.version} at ${resolvedKey}`,
+          );
+        }
       }
     }
 
@@ -309,6 +313,74 @@ describe('the ci contract', () => {
       atLeast(metro[1].version, '0.84.5'),
       `the Expo bundler resolves metro ${metro[1].version}; 0.84.5 is the first release without image-size`,
     );
+    assert.ok(
+      ![...expoMetro.keys()].some((key) => key.endsWith('node_modules/image-size')),
+      'the measured Metro fix must still remove image-size from its real dependency closure',
+    );
+  });
+
+  test('the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns', () => {
+    const copies = Object.entries(lock.packages).filter(([key]) => key.endsWith('node_modules/brace-expansion'));
+    assert.ok(copies.length > 0, 'the fingerprint glob dependency is checked');
+    for (const [key, entry] of copies) {
+      assert.ok(atLeast(entry.version ?? '0.0.0', '5.0.12'), `${key} restores an unpatched brace expander`);
+    }
+    // Run the actual installed parser in a bounded child: a bad dependency
+    // must fail this test, not crash or indefinitely block the test runner.
+    execFileSync(process.execPath, ['--input-type=commonjs', '-e', `
+      const assert = require('node:assert/strict');
+      const { expand } = require('brace-expansion');
+      assert.deepEqual(expand('src/{home,practice}.tsx'), ['src/home.tsx', 'src/practice.tsx']);
+      const nested = '{'.repeat(6000) + 'a,b' + '}'.repeat(6000);
+      assert.ok(expand(nested).some(value => value.includes('{')), 'deep nesting is bounded as literal text');
+      const rewrite = '{a}' + '}'.repeat(10000) + ',z}';
+      assert.ok(expand(rewrite).some(value => value.includes('{')), 'repeated rewrites are bounded');
+    `], { cwd: ROOT, timeout: 5_000, stdio: ['ignore', 'pipe', 'pipe'] });
+  });
+
+  test('the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains', () => {
+    const cli = resolveFrom('node_modules/expo', '@expo/cli');
+    assert.ok(cli, 'Expo CLI resolves from the actual SDK');
+    const fileMap = resolveFrom(cli, '@expo/metro-file-map');
+    assert.ok(fileMap, 'the Metro watcher chain remains inspectable');
+    const matcher = resolveFrom(fileMap, 'micromatch');
+    assert.ok(matcher, 'the watcher uses the reviewed glob matcher');
+    const braces = resolveFrom(matcher, 'braces');
+    const forge = resolveFrom(cli, 'node-forge');
+    const certificates = resolveFrom(cli, '@expo/code-signing-certificates');
+    assert.ok(braces && forge && certificates, 'both reviewed tooling paths resolve');
+    assert.equal(lock.packages[braces]?.version, '3.0.3');
+    assert.equal(lock.packages[forge]?.version, '1.4.0');
+    assert.equal(resolveFrom(certificates, 'node-forge'), forge);
+    for (const [name, version] of [['braces', '3.0.3'], ['node-forge', '1.4.0']]) {
+      const decision = accepted.find((item) => item.module === name);
+      assert.equal(decision?.lockedAt, version, `${name} needs a current explicit exception`);
+      assert.match(decision?.reachability ?? '', /build|development/i);
+      assert.match(decision?.why ?? '', /no patched|no .*patched/i);
+    }
+  });
+
+  test('unpatched build-tool exceptions cannot enter a service runtime or an app update dependency', () => {
+    const tooling = ['braces', 'micromatch', 'node-forge', '@expo/code-signing-certificates'];
+    for (const workspace of ['packages/core', 'packages/brain', 'services/tutor-agent', 'services/token-server', 'services/brain-playground']) {
+      const closure = dependencyClosure(workspace);
+      for (const key of closure.keys()) {
+        assert.ok(!tooling.some((name) => key.endsWith(`node_modules/${name}`)), `${workspace} reaches build-only ${key}`);
+      }
+    }
+    assert.ok(!Object.keys(lock.packages).some((key) => key.endsWith('node_modules/expo-updates')),
+      'enabling remote updates requires a new review of the certificate verifier');
+    const files = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8' })
+      .split('\0').filter((file) => /^(apps|services|packages)\//.test(file) && /\.(?:tsx?|[cm]?js)$/.test(file) && !/\.(?:test|spec)\.(?:tsx?|[cm]?js)$/.test(file));
+    assert.ok(files.length > 100, 'the runtime import check must inspect the actual application');
+    const forbiddenImport = /\b(?:from\s+|require\s*\(\s*|import\s*(?:\(\s*)?)['"](?:braces|micromatch|node-forge|@expo\/code-signing-certificates|expo-updates)(?:\/[^'"]+)?['"]/;
+    for (const example of ["import 'node-forge';", "import forge from 'node-forge';", "require('braces');", "import('node-forge/lib/rsa.js');"]) {
+      assert.ok(forbiddenImport.test(example), `the runtime guard misses ${example}`);
+    }
+    for (const file of new Set(files)) {
+      if (!existsSync(path.join(ROOT, file))) continue; // tracked deletions before commit
+      assert.ok(!forbiddenImport.test(readFileSync(path.join(ROOT, file), 'utf8')), `${file} imports an unreviewed runtime tool`);
+    }
   });
 
   test('every advisory decision names a package the lockfile carries, an advisory and a reachability argument', () => {

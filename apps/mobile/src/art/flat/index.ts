@@ -24,6 +24,12 @@ import { StatePostcardFrame } from './state-postcard-frame.tsx';
 import { CelebrateConfetti } from './celebrate-confetti.tsx';
 import { CelebrateWrapped } from './celebrate-wrapped.tsx';
 import { CelebrateFirstLine } from './celebrate-first-line.tsx';
+import { MouthY } from './mouth-y.tsx';
+import { MouthU } from './mouth-u.tsx';
+import { MouthR } from './mouth-r.tsx';
+import { MouthNasalAn } from './mouth-nasal-an.tsx';
+import { MouthNasalOn } from './mouth-nasal-on.tsx';
+import { MouthZh } from './mouth-zh.tsx';
 import { PostcardCafeCounter } from './postcard-cafe-counter.tsx';
 import { PostcardCafeTerrace } from './postcard-cafe-terrace.tsx';
 import { PostcardHotel } from './postcard-hotel.tsx';
@@ -57,6 +63,12 @@ export const ILLUSTRATIONS = {
   'celebrate-confetti': { draw: CelebrateConfetti, box: [390, 260], large: [390, 260] },
   'celebrate-wrapped': { draw: CelebrateWrapped, box: [350, 260], large: [350, 260] },
   'celebrate-first-line': { draw: CelebrateFirstLine, box: [350, 220], large: [350, 220] },
+  'mouth-y': { draw: MouthY, box: [200, 160], large: [200, 160] },
+  'mouth-u': { draw: MouthU, box: [200, 160], large: [200, 160] },
+  'mouth-r': { draw: MouthR, box: [200, 160], large: [200, 160] },
+  'mouth-nasal-an': { draw: MouthNasalAn, box: [200, 160], large: [200, 160] },
+  'mouth-nasal-on': { draw: MouthNasalOn, box: [200, 160], large: [200, 160] },
+  'mouth-zh': { draw: MouthZh, box: [200, 160], large: [200, 160] },
   'postcard-cafe-counter': { draw: PostcardCafeCounter, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-cafe-terrace': { draw: PostcardCafeTerrace, box: [300, 190], large: [300, 190], small: [165, 105] },
   'postcard-hotel': { draw: PostcardHotel, box: [300, 190], large: [300, 190], small: [165, 105] },

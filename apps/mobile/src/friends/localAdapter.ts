@@ -19,7 +19,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { activeUserId, onUserScopeReset, userKey } from '../storage/scope.ts';
+import { activeUserId, onUserScopeReset, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { loadProfile } from '../profile/store.ts';
 import type { FriendEntry, FriendRequest, FriendsAdapter, FriendsResult } from './types.ts';
 import {
@@ -50,13 +50,14 @@ const defaultStore = (): FriendsStore => ({ version: 1, friends: [], requests: [
 /** Same shape as drill/store.ts and for the same reason: see that file. */
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account, and
   // this store has a timer in it, so a queued accept can land a whole second
   // after the switch.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -111,11 +112,12 @@ function loadStore(): Promise<FriendsStore> {
   return loadStoreFor(KEY());
 }
 
-async function saveStore(key: string, store: FriendsStore): Promise<void> {
+async function saveStore(key: string, store: FriendsStore, owner: number): Promise<void> {
+  if (owner !== scopeGeneration()) return;
   // The cache is the truth the moment the write is decided; the disk catches up.
   caches.set(key, Promise.resolve(store));
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(store));
+    await setItemInUserScope(owner, key, JSON.stringify(store));
   } catch {
     // Storage full or unavailable. The list still works for this launch.
   }
@@ -123,11 +125,11 @@ async function saveStore(key: string, store: FriendsStore): Promise<void> {
 
 /** Run one reducer over the store, persist when it changed, tell the screens. */
 function mutate(reduce: (state: FriendsState) => { state: FriendsState; result: FriendsResult }): Promise<FriendsResult> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const store = await loadStoreFor(key);
     const { state, result } = reduce({ friends: store.friends, requests: store.requests });
     if (state.friends !== store.friends || state.requests !== store.requests) {
-      await saveStore(key, { version: 1, ...state });
+      await saveStore(key, { version: 1, ...state }, owner);
       notify();
     }
     return result;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { scopeGeneration } from '../storage/scope.ts';
 
 import { GhostButton, PillButton } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
@@ -58,6 +59,7 @@ export function Paywall({ userId }: { userId: string }) {
   // the question put to the store, and shares everything after the answer.
   const finish = async (kind: 'buying' | 'restoring') => {
     if (action !== 'idle') return;
+    const owner = scopeGeneration();
     // Nothing to buy without an offer; the unavailable block draws no buy button.
     const offered = view.kind === 'offer' ? view.surface : null;
     if (kind === 'buying' && offered === null) return;
@@ -65,8 +67,9 @@ export function Paywall({ userId }: { userId: string }) {
     setMessage(null);
     const surface = offered;
     const outcome = kind === 'buying' && surface !== null
-      ? await settleStoreAction(await purchases.purchase(userId, surface.product.productId))
-      : await restorePurchases(userId);
+      ? await settleStoreAction(userId, () => purchases.purchase(userId, surface.product.productId))
+      : await restorePurchases(userId, 'inline');
+    if (owner !== scopeGeneration()) return;
     const done = outcome.kind === 'done';
     setAction(done ? 'ready' : 'idle');
     setMessage(done ? PURCHASE_READY : restoreTrouble(outcome));

@@ -32,10 +32,12 @@ import {
   TextInput,
 } from 'react-native';
 import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HAIRLINE, HIT, accent, font, paper, radius, space, type } from './theme.ts';
+import { HAIRLINE, HIT, accent, font, paper, radius, space, type, frenchText } from './theme.ts';
 import { Card, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
 import { SpeakerGlyph } from './glyphs.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
+import { conversationContext } from './review/context.ts';
+import { loadConversationPacks } from './conversationPacks/store.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
 import {
   CARD_START,
@@ -56,6 +58,7 @@ const SPEAKER = 64;
 export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // The sitting: dealt once on mount. Null while the deck is still loading.
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
+  const [fragments, setFragments] = useState<Record<string, ReturnType<typeof conversationContext>>>({});
   const [index, setIndex] = useState(0);
   const [turn, setTurn] = useState<ReviewTurn>(CARD_START);
   /**
@@ -84,7 +87,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     let cancelled = false;
-    void loadDeck().then((deck) => {
+    void Promise.all([loadDeck(), loadConversationPacks()]).then(([deck, packs]) => {
       if (cancelled) return;
       const now = Date.now();
       dealtAt.current = now;
@@ -94,6 +97,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // cards in a different order. It has no way to select, so the cap and
       // the longest-overdue-first rule cannot be starved from here.
       const sitting = sittingView(dueCards(deck, now), now);
+      setFragments(Object.fromEntries(sitting.cards.map(card => [card.id, conversationContext(card, packs)])));
       setQueue(sitting.cards);
       setOpener(sitting.opener);
     });
@@ -119,6 +123,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   const card = queue && index < queue.length ? queue[index]! : null;
   const view = card ? cardView(card, dealtAt.current, turn) : null;
+  const fragment = card ? fragments[card.id] : null;
 
   // The answer appears without focus moving, so a screen reader is told about
   // it. Without this the content under the finger silently becomes something
@@ -159,12 +164,18 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   const remaining = queue.length - index;
 
+  const primary = <PillButton label={!card || !view ? 'Done' : 'Show me'} onPress={() => {
+    if (!card || !view) return onDone();
+    clock.touch();
+    setTurn((t) => ({ ...t, flipped: true }));
+  }} />;
+
   // Nothing due, or the sitting is done. Same calm card either way — the
   // deck never announces a backlog and never asks for more than it dealt. A
   // terminal card, so Done is its one door and it carries no back header.
   if (!card || !view) {
     return (
-      <ScrollScreen footer={<PillButton label="Done" onPress={onDone} />}>
+      <ScrollScreen footer={primary}>
         {/* An empty deck is the good outcome, not a dead end, so it gets the
             cleared table rather than a sentence sitting on its own. The size is
             the art registry's, never a width written here. */}
@@ -181,7 +192,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   const hear = view.hear;
 
   const face = (
-    <Card tone="journal" style={st.card}>
+    <Card style={st.card}>
       <Label>{view.tag}</Label>
 
       {view.answer === null ? (
@@ -198,7 +209,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
           <Text style={[fitDisplay(view.answer.text), { color: paper.ink, textAlign: 'center' }]}>
             {view.answer.text}
           </Text>
-          {view.answer.context !== '' && (
+          {fragment ? <View style={{ marginTop: space(3), gap: space(2) }}>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{fragment.label}</Text>
+            <Text {...frenchText} style={[type.french, { color: paper.ink }]}>{fragment.quote}</Text>
+          </View> : view.answer.context !== '' && (
             <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2.5) }]}>
               {view.answer.context}
             </Text>
@@ -321,7 +335,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         </View>
       ) : (
         <View style={st.flipHint}>
-          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Tap to turn it over</Text>
+          {primary}
         </View>
       )}
     </View>
@@ -348,20 +362,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
         <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginBottom: space(3) }]}>{opener}</Text>
       )}
 
-      {view.flippable ? (
-        <Pressable
-          onPress={() => {
-            clock.touch();
-            setTurn((t) => ({ ...t, flipped: !t.flipped }));
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={view.revealed ? 'Show the front of the card' : 'Turn the card over'}
-        >
-          {face}
-        </Pressable>
-      ) : (
-        face
-      )}
+      {face}
     </ScrollScreen>
   );
 }
@@ -369,7 +370,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The card itself: the SessionView main-card anatomy, content centred.
-  card: { alignItems: 'center', minHeight: 240, justifyContent: 'center', borderTopWidth: 5 },
+  card: { alignItems: 'center', minHeight: 240, justifyContent: 'center' },
   // The speaker disc: white, on the card, under a paper hairline. No shadow:
   // the whisper retired with notebook Phase 4 (2026-09-27).
   hear: {
@@ -420,7 +421,7 @@ const st = StyleSheet.create({
     paddingHorizontal: space(4),
     paddingVertical: space(3),
     color: paper.ink,
-    fontFamily: font.sans,
+    fontFamily: font.regular,
     fontSize: 16,
     textAlign: 'center',
   },

@@ -138,9 +138,20 @@ export const TurnSchema = z.object({
     /** Id of the beat the conversation is on, from the scenario frame. */
     beat: z.string(),
     beatDone: z.boolean(),
+    /** Exact current authored goal met by the last learner reply; uncertain = null. */
+    goalMet: z.boolean().nullable(),
     sceneDone: z.boolean(),
   }),
 });
+
+/** Compatibility at adapter parse seams only; never repair an invalid judgment. */
+export function withMissingGoalObservation(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return value;
+  const turn = value as Record<string, unknown>;
+  if (typeof turn.scene !== 'object' || turn.scene === null || Array.isArray(turn.scene)) return value;
+  const scene = turn.scene as Record<string, unknown>;
+  return Object.hasOwn(scene, 'goalMet') ? value : { ...turn, scene: { ...scene, goalMet: null } };
+}
 
 /**
  * Post-session memory extraction — the one question a good tutor asks

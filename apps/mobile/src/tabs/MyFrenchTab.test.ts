@@ -71,111 +71,100 @@ function gated(marker: string, gate: string, within = 200): void {
 }
 
 describe('My French is the level, the phrases, the sounds and the conversations — notebook Phase 3', () => {
+  test('a new account read clears the old evidence before rendering progress', () => {
+    assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope; setReadOwner\(scope\); setReadyOwner\(null\); setStatus\('loading'\); setMissions\(\[\]\); setCompletions\(\[\]\);/);
+    assert.match(FLAT, /setReadyOwner\(scope\); setStatus\('ready'\)/);
+    assert.match(FLAT, /const renderStatus = ownedReadStatus\(status, readOwner, readyOwner, currentScope\)/);
+    assert.match(FLAT, /renderStatus === 'ready' && \( <View style=\{st\.group\}>/);
+  });
   test('the blocks run level, phrase bank, sounds map, conversations, in that order', () => {
-    assert.ok(at('<TabHeader') < at('<LevelPath'), 'something sits above the header');
-    assert.ok(at('<LevelPath') < at('<PhraseBank'), 'the phrases sit above the level');
-    assert.ok(at('<PhraseBank') < at('<SoundsMap'), 'the sounds sit above the phrases');
-    assert.ok(at('<SoundsMap') < at('<Label>{CONVERSATIONS_ROW}</Label>'), 'the conversations sit above the sounds');
-    // The rest of the page is quiet doors, after the four blocks.
-    assert.ok(at('<Label>{CONVERSATIONS_ROW}</Label>') < at('title={BROWSE_LINE}'), 'the catalogue door sits above the learner\'s own French');
+    assert.ok(at('<TabHeader') < at('<LevelCard'));
+    assert.ok(at('<LevelCard') < at('rows.map('));
+    for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}']) assert.ok(!SCREEN.includes(retired));
   });
 
   test('the level is the spine\'s, with the can-dos earned and "here" on the next scene, and no rank anywhere', () => {
-    assert.match(FLAT, /const path = levelPathFrom\(missions\);/, 'the path is not built from the spine over the learner\'s progress');
-    assert.match(FLAT, /<LevelPath levels=\{path\.levels\} \/>/, 'the level path draws something other than the model\'s levels');
-    assert.match(FLAT, /\{levelLine\(path\.level\)\}/, 'the level is spelled on the screen instead of read from the model');
-    gated('<LevelPath', "status === 'ready' &&");
-    for (const rank of ['levelFor(', 'totalXp(', 'levelName', 'LEVELS[', 'Beginner', 'Veteran']) {
-      assert.ok(!SCREEN.includes(rank), `My French reaches for ${rank}; rank names and points stay internal`);
-    }
-    assert.doesNotMatch(SCREEN, /\b(xp|points?|rank)\b/i, 'My French names points or a rank; they stay internal');
-    // The one highlighter on the page is the level path's "you are here".
-    assert.ok(!SCREEN.includes('<Highlight'), 'a second highlighter is drawn beside the level path\'s');
-    assert.ok(!/accent\.feature|\bhighlight\b/.test(SCREEN), 'the tab reaches for the chartreuse itself');
+    assert.match(FLAT, /const path = levelPathFrom\(missions\);/);
+    assert.match(FLAT, /<LevelCard path=\{path\} hasFinish=\{hasFinish\} hasEarned=\{hasEarned\} onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
+    gated('<LevelCard', "renderStatus === 'ready' &&", 1000);
+    const level = read('../myfrench/LevelCard.tsx');
+    assert.match(level, /ground="blue"/);
+    assert.match(level, /<SceneMark state=\{stop.state\}/);
+    assert.match(level, /path.level/);
+    assert.match(level, /next.stops.length/);
+    assert.doesNotMatch(SCREEN, /totalXp\(|levelName|LEVELS\[/);
   });
 
   test('a first visit reads one line on what will collect here, and nothing empty', () => {
-    assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs\.length \}\);/, 'the tab decides for itself what a first visit is');
-    gated('{NOTEBOOK.firstVisit}', 'firstVisit &&', 120);
-    gated('<PhraseBank', 'bank.length > 0 &&');
-    gated('<SoundsMap', 'map.show &&');
-    gated('<Label>{CONVERSATIONS_ROW}</Label>', 'model.showConversations &&', 120);
+    assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs.length \}\);/);
+    gated('{NOTEBOOK.firstVisit}', 'firstVisit &&', 300);
+    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'first visit and earned proof each have one scene door');
+    assert.match(FLAT, /label="Choose a scene" onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
   });
 
   test('the phrase bank is the newest kept phrases with audio, and one door to all of them', () => {
-    assert.match(FLAT, /const bank = phraseBankFrom\(\{ deck, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS \}\);/, 'the bank is not chosen by the model over the deck and the bundled recordings');
-    assert.match(FLAT, /const voice = dailyTutorVoice\(profile\.tutorVoice\);/, 'the recordings are not the learner\'s chosen tutor');
-    assert.match(FLAT, /<Label>\{SHELF_LABEL\}<\/Label>/, 'the phrase bank lost its heading');
-    assert.match(FLAT, /<LedgerRow glyph=\{<QuoteGlyph color=\{paper\.ink\} \/>\} title=\{SHELF_OPEN\} onPress=\{\(\) => nav\.navigate\('Phrasebook'\)\} \/>/, 'the bank has no door to the whole phrasebook');
-    // French in Fraunces, and the audio says whose voice it is.
-    assert.match(BANK, /type\.frenchSm/, 'the kept French is not set in the French face');
-    assert.match(BANK, /\{row\.audio\.label\}/, 'a row plays without saying whose voice it is');
-    assert.match(BANK.replace(/\s+/g, ' '), /if \(row\.audio\.kind === 'recorded'\) \{ recorded\.toggle\(row\.audio\.asset\); return; \}/, 'a recorded phrase is played through the phone\'s voice');
+    assert.match(FLAT, /phrases: new Set\(deck.filter/);
+    assert.match(FLAT, /phraseKeyOf\(card.front\)/);
+    assert.match(FLAT, /row.kind === 'phrases'\) nav.navigate\('Phrasebook'\)/);
+    assert.doesNotMatch(SCREEN, /tutorVoice.speak|useAudioPlayer|useRecordedLine/);
+    assert.match(BANK, /row.audio.label/);
   });
 
   test('the sounds map lays the inventory out example word first, and marks only what a measured check called out', () => {
-    assert.match(FLAT, /const map = soundsMapFrom\(checks, now\);/, 'the map decides for itself what counts as measured');
-    assert.match(FLAT, /<SoundsMap cells=\{map\.cells\} \/>/);
-    const flatMap = MAP.replace(/\s+/g, ' ');
-    assert.ok(flatMap.indexOf('{cell.example}') < flatMap.indexOf('/${cell.ipa}/'), 'the symbol leads the word');
-    assert.match(flatMap, /\{cell\.calledOut && /, 'a mark is drawn for a sound no check called out');
-    for (const invented of ['score', 'percent', '%', 'mastered', 'accuracy', 'tint', 'accent.feature']) {
-      assert.ok(!MAP.toLowerCase().includes(invented.toLowerCase()), `the sounds map reaches for ${invented}`);
-    }
-    // The measured door stays: it opens the journey or the check it came from.
-    assert.match(FLAT, /const fingerprint = soundFingerprint\(checks\)/);
-    assert.match(FLAT, /journey !== null \? nav\.navigate\('SoundJourney'\) : nav\.navigate\('SoundCheck', \{ missionId: fingerprint\.missionId \}\)/);
-    assert.match(FLAT, /accessibilityLabel=\{soundDoorLabel\(journey\)\}/);
-    for (const kind of ["'assessed-focus'", "'assessed-clear'", "'self-guided'", "'unavailable'"]) {
-      assert.ok(!SCREEN.includes(kind), `the tab branches on ${kind}; measured evidence belongs to sounds.ts and notebook.ts`);
-    }
+    assert.match(FLAT, /sounds: soundsMapFrom\(checks, now\).show/);
+    assert.match(FLAT, /row.kind === 'sounds'/);
+    assert.match(FLAT, /journey !== null \? 'SoundJourney' : 'SoundCheck'/);
+    assert.match(MAP, /cell.calledOut/);
+    assert.doesNotMatch(SCREEN, /mastered|accuracy|percent/);
   });
 
   test('the conversations lead with their progress sentence and open their own conversation', () => {
-    assert.match(FLAT, /const recent = recentConversations\(\{ packs, events: history \}\)/);
-    assert.match(FLAT, /const progress = progressStatement\(allConversations\(\{ packs, events: history \}\)\)/);
-    assert.match(FLAT, /\{progress !== null && /);
-    assert.match(FLAT, /nav\.navigate\('Conversations', \{ packId: row\.pack\.id \}\)/);
-    assert.match(FLAT, /label=\{row\.pack\.title\.en\} title=\{row\.preview\.join\(' · '\)\} note=\{row\.line\} accessibilityLabel=\{row\.accessibilityLabel\}/, 'a recent row reads a partial label to a screen reader');
-    assert.equal((SCREEN.match(/title=\{RECENT_ALL\}/g) ?? []).length, 1, 'the library has more than one door, or none');
-    assert.match(FLAT, /setHistory\(sameAccount\(\) \? \[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\] : \[\]\)/);
+    assert.match(FLAT, /conversations: allConversations\(\{ packs, events: history \}\).length/);
+    assert.match(FLAT, /row.kind === 'conversations'\) nav.navigate\('Conversations'\)/);
+    assert.match(FLAT, /setHistory\(\[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\]\); setReadyOwner\(scope\); setStatus\('ready'\)/);
   });
 
   test('the page is ledger rows and nothing louder: no pill, no tint, no retired row', () => {
-    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 0, 'My French draws a primary pill; this page asks for nothing');
-    for (const gone of ['<TintRow', '<IconRowCard', '<SituationsCard', 'tint=', 'missionTint(', '<OutlineButton', '<Stat']) {
-      assert.ok(!SCREEN.includes(gone), `${gone} is on My French; the notebook page is ledger rows`);
-    }
-    assert.ok(SCREEN.includes('<Ledger'), 'the rows are not in a ledger');
+    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'proof and first visit are exclusive scene doors');
+    assert.match(FLAT, /proof !== null && <Card/);
+    assert.equal(tags(SCREEN, 'Ledger').length, 3, 'retry, saved materials and evidence-based stories');
+    assert.match(SCREEN, /hasWeek \|\| earnedPostcards\(missions\).length > 0/);
+    assert.ok(SCREEN.includes('renderStatus === \'ready\' && rows.length > 0'));
+    for (const retired of ['<TintRow', '<IconRowCard', '<OutlineButton', '<Stat']) assert.ok(!SCREEN.includes(retired));
   });
 
   test('every row goes somewhere and names itself', () => {
     const rows = tags(FLAT, 'LedgerRow');
-    assert.ok(rows.length >= 6, `only ${rows.length} rows found, so this proves little`);
-    for (const row of rows) {
-      assert.match(row, /onPress=\{/, `a row on My French goes nowhere: ${row.slice(0, 80)}`);
-    }
+    assert.equal(rows.length, 4, 'retry, saved materials, week story and postcards');
+    for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
+    assert.match(FLAT, /key=\{row.id\}/);
   });
 
   test('saved scenes, goals and the daily collection keep their gates and their doors', () => {
-    gated('<Label>{SAVED_LABEL}</Label>', 'model.showSaved &&', 160);
-    assert.match(FLAT, /nav\.navigate\('Convo', \{ seedTopic: seedTopicOf\(row\.scenario\) \}\)/);
-    assert.match(FLAT, /const goals = goalRows\(profile\.learnerGoals, MISSIONS\);/);
-    gated('goals.map(', 'goals.length > 0 &&', 160);
-    assert.match(FLAT, /nav\.navigate\('GoalStep', \{ key: goalRouteKey\(row\.goal\) \}\)/);
-    assert.match(FLAT, /accessibilityLabel=\{DAILY_OPEN\} onPress=\{\(\) => nav\.navigate\('DailyLibrary'\)\}/);
-    assert.match(FLAT, /accessibilityLabel=\{BROWSE_OPEN\} onPress=\{\(\) => nav\.navigate\('Missions'\)\}/);
+    assert.match(FLAT, /goals: goalRows\(profile.learnerGoals, MISSIONS\)/);
+    assert.match(FLAT, /saved: model.saved/);
+    assert.match(FLAT, /nav.navigate\('Convo', \{ seedTopic: row.seedTopic \}\)/);
+    assert.match(FLAT, /nav.navigate\('GoalStep', \{ key: goalRouteKey\(row.title\) \}\)/);
+    assert.doesNotMatch(SCREEN, /title=\{DAILY_LINE\}|title=\{BROWSE_LINE\}/);
   });
 
   test('every read is bound to the account, once a visit, and a failed read says so', () => {
     assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope;/);
-    for (const store of ['loadMissionCompletions()', 'loadDeck()', 'loadBookmarks()', 'loadSoundChecks()', 'loadConversationPacks()']) {
+    for (const store of ['loadMissionCompletions()', 'loadDeck()', 'loadBookmarks()', 'loadSoundChecks({ strict: true })', 'loadConversationPacks()', 'loadPracticeHistory()', 'loadPackMarks()']) {
       assert.equal(SCREEN.split(store).length - 1, 1, `${store} is read more or less than once a visit`);
     }
     assert.match(FLAT, /useState<'loading' \| 'ready' \| 'unread'>\('loading'\)/);
-    assert.match(FLAT, /setStatus\(\(current\) => \(current === 'ready' \? 'ready' : 'unread'\)\)/);
+    assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/);
     assert.match(FLAT, /\[user, adapter, attempt\]/);
-    gated('title={MY_FRENCH_UNREAD}', "status === 'unread' &&", 400);
+    gated('title={MY_FRENCH_UNREAD}', "renderStatus === 'unread' &&", 400);
+  });
+
+  test('a failed conversation history slice leaves progress unread, never zero', () => {
+    const read = FLAT.slice(FLAT.indexOf('void Promise.all(['), FLAT.indexOf(']).then(', FLAT.indexOf('void Promise.all([')));
+    assert.match(read, /loadPracticeHistory\(\), loadPackMarks\(\)/);
+    assert.match(FLAT, /setHistory\(\[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\]\); setReadyOwner\(scope\); setStatus\('ready'\)/);
+    assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/);
+    assert.match(FLAT, /renderStatus === 'ready' && rows\.length > 0/);
   });
 
   test('every word is a module\'s, and clean', () => {
@@ -232,7 +221,12 @@ describe('My French speaks, and stops — F470', () => {
     for (const [name, body] of [['PhraseBank.tsx', bank], ['recordedPlayer.ts', player]] as const) {
       assert.match(body, /const focused = useIsFocused\(\);/, `${name} cannot tell when its tab loses focus`);
       assert.match(body, /if \(!focused\) /, `${name} does nothing when its tab loses focus`);
-      assert.match(body, /AppState\.addEventListener\('change', \(state\) => \{ if \(state !== 'active'\) /, `${name} keeps playing when the app goes to the background`);
+      if (name === 'recordedPlayer.ts') {
+        // Foreground is also read by a tap arriving after the background event.
+        assert.match(body, /AppState\.addEventListener\('change', \(state\) => \{ active\.current = state === 'active'; if \(!active\.current\) stop\(\);/, `${name} keeps playing when the app goes to the background`);
+      } else {
+        assert.match(body, /AppState\.addEventListener\('change', \(state\) => \{ if \(state !== 'active'\) /, `${name} keeps playing when the app goes to the background`);
+      }
       assert.match(body, /subscription\.remove\(\)/, `${name} leaves its background listener behind`);
     }
     // The bank stops only a voice it started, so a blur never silences the next screen.

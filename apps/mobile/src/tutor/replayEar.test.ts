@@ -139,10 +139,12 @@ describe('the ear on the tutor line — F372', () => {
     // F293 made the tutor per learner; a default fed in here would put Luc's
     // name over Celine's sentences.
     const convo = stripComments(read('../ConvoScreen.tsx'));
+    assert.match(convo, /const tutorName = tutorNameOf\(profile\);/);
+    assert.equal((convo.match(/tutorNameOf\(profile\)/g) ?? []).length, 1);
     const threads = convo.match(/<Transcript[\s\S]{0,320}?\/>/g) ?? [];
     assert.equal(threads.length, 2, 'the conversation no longer draws two threads; this test is stale');
     for (const thread of threads) {
-      assert.match(thread, /tutorName=\{tutorNameOf\(profile\)\}/, `a thread names nobody: ${thread}`);
+      assert.match(thread, /tutorName=\{tutorName\}/, `a thread names nobody: ${thread}`);
       assert.match(
         thread,
         /tutorSpeaking=\{live\.tutorSpeaking && !typing\}/,
@@ -162,7 +164,8 @@ describe('the words beside the ear keep their width on a phone — F385', () => 
   // sizes the row from its content, which is why the web never showed it.
   test('the bubble body shrinks to fit rather than growing from nothing — F385', () => {
     const source = readFileSync(fileURLToPath(new URL('./Transcript.tsx', import.meta.url)), 'utf8');
-    const row = source.slice(source.indexOf('st.withEar'), source.indexOf('</Pressable>'));
+    const earRowStart = source.indexOf('st.withEar');
+    const row = source.slice(earRowStart, source.indexOf('</Pressable>', earRowStart));
     assert.ok(row.length > 0, 'the ear row is missing from Transcript.tsx');
     assert.match(row, /<View style=\{\{ flexShrink: 1 \}\}>\{body\}<\/View>/, 'the body beside the ear must be a flexShrink: 1 view');
     assert.doesNotMatch(row, /style=\{\{ flex: 1 \}\}/, 'a flex: 1 body collapses to zero width on a phone');

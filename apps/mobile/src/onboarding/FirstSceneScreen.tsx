@@ -32,7 +32,6 @@ import { tutorPersonaOf } from '../tutor/tutorName.ts';
 import { PHONE_SETTINGS_AVAILABLE, openPhoneSettings } from '../settings/phoneSettings.ts';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import {
-  PRIMER_LINES,
   PRIMER_META,
   PRIMER_SETTINGS_FAILED,
   afterPermission,
@@ -53,6 +52,7 @@ export function FirstSceneScreen({
 }) {
   const [phase, setPhase] = useState<PrimerPhase>('ask');
   const [settingsNote, setSettingsNote] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const persona = tutorPersonaOf(useProfile().profile);
   const mission = getMission(missionId);
   const view = primerView(phase, PHONE_SETTINGS_AVAILABLE);
@@ -105,6 +105,7 @@ export function FirstSceneScreen({
       header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
         <View style={st.actions}>
+          {!refused && <Text style={[type.small, { color: paper.onInk }]}>Speaking asks for microphone access when you tap Start. Speaking and typing in the live room use live minutes.</Text>}
           <PillButton
             tone={refused ? 'ink' : 'white'}
             label={view.primary.label}
@@ -135,16 +136,18 @@ export function FirstSceneScreen({
       ) : (
         <View style={st.brief}>
           <Text style={st.meta}>{PRIMER_META(persona.name)}</Text>
-          <Text {...frenchText} accessibilityRole="header" style={st.title}>{mission.title}</Text>
-          <Text style={st.english}>{mission.titleEn}</Text>
+          <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>{mission.titleEn}</Text>
+          <Text {...frenchText} style={st.title}>{mission.title}</Text>
           <Text style={st.canDo}>{canDoSentence(mission.canDoEn)}</Text>
           <Text style={st.meta}>{minutesLine(missionMinutes(mission))}</Text>
           {lines.length > 0 && (
             <Card style={st.lines}>
-              <Label>{PRIMER_LINES(lines.length)}</Label>
-              {lines.map((line, at) => (
+              <Label>One line to try</Label>
+              {lines.slice(0, 1).map((line, at) => (
                 <Text key={line} {...frenchText} style={[st.line, at > 0 && st.lineRuled]}>{line}</Text>
               ))}
+              {lines.length > 1 && <GhostButton label={showMore ? 'Hide other examples' : 'See other examples'} onPress={() => setShowMore((open) => !open)} />}
+              {showMore && lines.slice(1).map((line) => <Text key={line} {...frenchText} style={st.line}>{line}</Text>)}
             </Card>
           )}
           <Text style={st.meta}>{view.note}</Text>

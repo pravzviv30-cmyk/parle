@@ -51,7 +51,7 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.match(FLAT, /<OneLineCard line=\{oneLine\} onGraded=\{\(\) => setGraded\(\(n\) => n \+ 1\)\} \/>/, 'the one line card is gone, or no longer re-reads the deck it just graded');
     assert.ok(at('<OneLineCard') < at('<Label>{LEDGER.rowsLabel}</Label>'), 'the lines already said are drawn above the one line the visit asks for');
     assert.ok(at('<CadenceCard cadence={cadence}') > at('<Label>{LEDGER.rowsLabel}</Label>'), 'the cadence set no longer closes the page');
-    assert.match(FLAT, /oneLine !== null && <OneLineCard/, 'an empty deck still deals a card');
+    assert.match(FLAT, /visibleBook !== null && oneLine !== null && <OneLineCard/, 'an unread deck still deals a card');
     // Stage 3: the set is an optional collection now, so the card is gated on a
     // read that has answered with words AND on the learner asking to see it.
     assert.match(FLAT, /hasCadence\(cadence\) && \(/, 'the cadence collection is drawn from an unanswered read');
@@ -63,7 +63,8 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.match(FLAT, /setBook\(buildPhrasebook\(deck, topics, now, packs\)\)/, 'the screen groups the phrases itself instead of asking phrasebook.ts');
     assert.match(FLAT, /setOneLine\(oneLineFrom\(\{ deck, now \}\)\)/, 'the screen deals the card itself instead of asking oneLine.ts');
     assert.match(FLAT, /setCadence\(cadenceFrom\(\{ deck \}\)\)/, 'the screen picks the connectors itself instead of asking cadence.ts');
-    assert.match(FLAT, /book !== null && hasPhrases\(book\)/, 'a learner with no kept lines is shown an empty list under a heading');
+    assert.match(FLAT, /visibleBook !== null && hasPhrases\(visibleBook\)/, 'a learner with no kept lines is shown an empty list under a heading');
+    assert.match(FLAT, /bookScope === owner \? book : null/, 'old-account phrases can remain visible after an account switch');
 
     // The route's own picture, at the registry's size, and the heading from the
     // module rather than typed here.
@@ -79,16 +80,16 @@ describe('your phrases, as a route of its own — F575', () => {
   test('saved phrases not yet recalled are their own block, after the retained lines and under their own name — Stage 1', () => {
     // Separate from "Yours in conversation", never inside it: the retained
     // groups are evidence, and a saved phrase is a promise until it is recalled.
-    assert.match(FLAT, /book !== null && hasSaved\(book\) &&/, 'the saved block is drawn from an unanswered read, or on a length the screen works out itself');
+    assert.match(FLAT, /visibleBook !== null && hasSaved\(visibleBook\) &&/, 'the saved block is drawn from an unanswered read, or on a length the screen works out itself');
     assert.match(FLAT, /<Label>\{SAVED_TITLE\}<\/Label>/, 'the saved block spells its own heading, or has none');
     assert.match(FLAT, /\{SAVED_NOTE\}/, 'the saved block does not say how a phrase joins the retained lines');
-    assert.match(FLAT, /book\.saved\.map\(/, 'the saved phrases are not drawn');
+    assert.match(FLAT, /visibleBook\.saved\.map\(/, 'the saved phrases are not drawn');
     assert.ok(at('<Label>{LEDGER.rowsLabel}</Label>') < at('<Label>{SAVED_TITLE}</Label>'), 'saved phrases are drawn above the lines already recalled');
     assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('<CadenceCard cadence={cadence}'), 'the cadence set no longer closes the page');
     // The retained gate is unchanged, so a saved phrase alone never draws the retained heading.
-    assert.match(FLAT, /book !== null && hasPhrases\(book\) &&/, 'the retained block lost its own gate');
+    assert.match(FLAT, /visibleBook !== null && hasPhrases\(visibleBook\) &&/, 'the retained block lost its own gate');
     // And each saved line can be heard by the same labelled speaker.
-    const saved = FLAT.slice(at('book.saved.map('));
+    const saved = FLAT.slice(at('visibleBook.saved.map('));
     assert.match(saved.slice(0, 400), /<PhraseRow/, 'a saved line is drawn without the shared row and its speaker');
   });
 
@@ -126,7 +127,7 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the saved lines');
   });
 
-  test('every phrase can be heard by a name a screen reader can tell apart, and the voice stops when the screen goes', () => {
+  test('available selected-tutor recordings have distinct controls and unavailable lines say so', () => {
     assert.equal(speakerLabel("C'est combien ?", false), "Hear C'est combien ?", 'the resting speaker does not say which line it will say');
     assert.equal(speakerLabel("C'est combien ?", true), STOP_LABEL, 'the sounding speaker offers to play something that is already playing');
     assert.notEqual(speakerLabel('a', false), speakerLabel('b', false), 'two speakers reach a screen reader as the same button');
@@ -134,7 +135,12 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.match(FLAT, /accessibilityLabel=\{speakerLabel\(phrase\.front, playing\)\}/, 'the speaker is unlabelled, or labels itself');
     assert.match(FLAT, /accessibilityRole="button"/, 'the speaker does not announce itself as a button');
     assert.match(FLAT, /width: HIT, height: HIT, borderRadius: HIT \/ 2/, 'the speaker is under the touch floor, or sized by a number rather than the token');
-    assert.match(FLAT, /useEffect\(\(\) => \(\) => tutorVoice\.stop\(\), \[\]\)/, 'a voice started here follows the learner onto the next screen (F304)');
+    assert.match(FLAT, /useRecordedLine\(/, 'recordings bypass the focus/background playback owner');
+    assert.match(FLAT, /owner === scopeGeneration\(\) && selectedVoice === voiceRef\.current/, 'a pending listen outlives its account or voice');
+    assert.match(FLAT, /playingId === phrase\.id && recorded\.playing === assetFor\(phrase\.front\)/, 'duplicate French rows light up together');
+    assert.match(FLAT, /onHear !== undefined && <Pressable/, 'unavailable audio offers a silent speaker');
+    assert.match(FLAT, /Tutor audio is not ready for this phrase yet\./, 'missing selected-tutor recordings are hidden');
+    assert.doesNotMatch(FLAT, /speech\/tutorVoice|tutorVoice\.speak/, 'an unnamed device voice substitutes for the chosen tutor');
 
     assert.equal(guiltIn(PHRASEBOOK_TITLE), undefined, `"${PHRASEBOOK_TITLE}" carries "${guiltIn(PHRASEBOOK_TITLE)}"`);
     assert.doesNotMatch(PHRASEBOOK_TITLE, /\d|—/, 'the title counts something, or carries an em dash');

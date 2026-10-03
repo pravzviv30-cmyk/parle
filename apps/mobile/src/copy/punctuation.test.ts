@@ -42,15 +42,9 @@ const APP_ENTRY = join(REPO, 'apps', 'mobile', 'App.tsx');
 const ALLOWLIST = [
   'apps/mobile/src/SessionScreen.tsx',
   'apps/mobile/src/SummaryScreen.tsx',
-  'apps/mobile/src/conversationPacks/ConversationPackLibrary.tsx',
   'apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx',
   'apps/mobile/src/friends/InviteFriendsScreen.tsx',
-  'apps/mobile/src/missions/MissionsScreen.tsx',
   'apps/mobile/src/purchases/paywallView.ts',
-  'apps/mobile/src/tabs/FriendsTab.tsx',
-  'apps/mobile/src/tabs/MyFrenchTab.tsx',
-  'apps/mobile/src/tutor/RealMomentScreen.tsx',
-  'apps/mobile/src/tutor/nextConversation.ts',
   // Two prompt sentences to the tutor, not screen copy; Stage 6 rewrites them with commas.
   'packages/core/src/ladder/ladder.ts',
   'packages/core/src/lessons/cafe.ts',

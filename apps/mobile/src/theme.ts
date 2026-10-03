@@ -25,9 +25,7 @@ export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac,
 export { rungLabel } from './tutor/rungLabel.ts';
 
 /**
- * Outfit, in the five cuts App.tsx loads, named exactly as it loads them. The
- * old names below the canonical five are aliases, so no screen has to change in
- * the same stage as the face; revamp B's Stage 6 retires them.
+ * Outfit, in the five cuts App.tsx loads, named exactly as it loads them. Every caller uses these five canonical names.
  */
 export const font = {
   regular: 'Outfit-Regular',
@@ -35,12 +33,6 @@ export const font = {
   semiBold: 'Outfit-SemiBold',
   bold: 'Outfit-Bold',
   extraBold: 'Outfit-ExtraBold',
-  // aliases until Stage 6
-  serif: 'Outfit-SemiBold',
-  serifBold: 'Outfit-Bold',
-  sans: 'Outfit-Regular',
-  sansMedium: 'Outfit-Medium',
-  sansBold: 'Outfit-Bold',
 } as const;
 
 /**

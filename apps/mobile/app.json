@@ -15,7 +15,7 @@
       "buildNumber": "1",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Luvani listens while you speak French so it can tell you which sounds to work on."
+        "NSMicrophoneUsageDescription": "Luvani uses your microphone for spoken French conversations and practice recordings you choose to make."
       }
     },
     "android": {

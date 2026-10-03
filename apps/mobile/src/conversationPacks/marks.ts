@@ -22,7 +22,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ConversationPack } from '@luvani/core';
 
-import { userKey } from '../storage/scope.ts';
+import { readOwnedCache } from '../storage/ownedRead.ts';
+import { scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 
 const VERSION = 1;
 
@@ -45,10 +46,12 @@ const KEY = () => userKey('packMarks');
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+interface Bound { key: string; generation: number }
+
+function serialized<T>(mutation: (bound: Bound) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested, never when it runs.
-  const key = KEY();
-  const run = () => mutation(key);
+  const bound = { key: KEY(), generation: scopeGeneration() };
+  const run = () => mutation(bound);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -58,19 +61,16 @@ function isMark(value: unknown): value is PackMark {
   if (typeof value !== 'object' || value === null) return false;
   const { packId, practisedAt, continuedAt } = value as Record<string, unknown>;
   const stamp = (v: unknown) => v === null || (typeof v === 'number' && Number.isFinite(v));
-  return typeof packId === 'string' && stamp(practisedAt) && stamp(continuedAt);
+  return typeof packId === 'string' && packId.length > 0 && stamp(practisedAt) && stamp(continuedAt);
+}
+
+function isStoredMarks(value: unknown): value is StoredMarks {
+  return typeof value === 'object' && value !== null && (value as StoredMarks).version === VERSION &&
+    Array.isArray((value as StoredMarks).marks) && (value as StoredMarks).marks.every(isMark);
 }
 
 async function readStored(key: string): Promise<PackMark[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<StoredMarks> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.marks)) return [];
-    return parsed.marks.filter(isMark);
-  } catch {
-    return [];
-  }
+  return readOwnedCache(await AsyncStorage.getItem(key), isStoredMarks)?.marks ?? [];
 }
 
 export function loadPackMarks(): Promise<PackMark[]> {
@@ -94,12 +94,10 @@ export function withMark(marks: readonly PackMark[], packId: string, field: Mark
 }
 
 function stamp(packId: string, field: MarkField, now: number): Promise<void> {
-  return serialized(async (key) => {
-    const next: StoredMarks = { version: VERSION, marks: withMark(await readStored(key), packId, field, now) };
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      // Storage full or unavailable. The pack is offered once more; nothing else.
+  return serialized(async (bound) => {
+    const next: StoredMarks = { version: VERSION, marks: withMark(await readStored(bound.key), packId, field, now) };
+    if (!await writeInUserScope(bound.generation, () => AsyncStorage.setItem(bound.key, JSON.stringify(next)))) {
+      throw new Error('Pack mark was not saved');
     }
   });
 }

@@ -32,10 +32,10 @@
  *
  * What this kind does NOT claim: an own-words success is evidence of production
  * in a situation, not evidence about pronunciation (no known-reference audio is
- * involved) and not a ladder rung earned. `OwnWordsExercise` carries no
+ * involved). `OwnWordsExercise` carries no
  * `transfer` mark for the same reason — the mark feeds a phrase's evidence
- * record, and whether unscripted production should feed it is a decision nobody
- * has made yet.
+ * record, and carrying a known meaning in new words does not prove transfer to
+ * a different situation. The fifth rung changes the ask, not that evidence rule.
  */
 
 import { buildDrillSession, MAX_MISSES, type DrillSessionState } from './session.ts';

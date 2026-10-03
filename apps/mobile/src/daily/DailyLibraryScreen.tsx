@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -19,6 +19,8 @@ import {
   type LibraryFilter,
 } from './libraryView.ts';
 import { paper, space, type } from '../theme.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { libraryPlace, pageItems, rememberLibraryPlace } from './libraryPlace.ts';
 
 /**
  * The daily collection. The learner's saved items lead; an empty Saved tab
@@ -27,26 +29,46 @@ import { paper, space, type } from '../theme.ts';
  */
 export function DailyLibraryScreen() {
   const goBack = useBackToHome();
-  const [saved, setSaved] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<LibraryFilter>('saved');
-  const [query, setQuery] = useState('');
-  const [limit, setLimit] = useState(12);
-  useFocusEffect(useCallback(() => { let live = true; void loadBookmarks().then(rows => { if (live) setSaved(new Set(rows.filter(r => r.saved).map(r => r.scenarioId))); }); return () => { live = false; }; }, []));
-  const onSaved = (id: string, value: boolean) => setSaved(previous => { const next = new Set(previous); if (value) next.add(id); else next.delete(id); return next; });
-  const lead = libraryLead(filter, saved.size, query);
-  const items = libraryItems(filter, saved, query);
+  const scope = scopeGeneration();
+  const place = libraryPlace(scope);
+  const [loaded, setLoaded] = useState<{ scope: number; saved: Set<string> } | null>(null);
+  const saved = loaded?.scope === scope ? loaded.saved : null;
+  const [filter, setFilter] = useState<LibraryFilter>(place.filter);
+  const [query, setQuery] = useState(place.query);
+  const [limit, setLimit] = useState(place.limit);
+  const [placeScope, setPlaceScope] = useState(scope);
+  const [unreadScope, setUnreadScope] = useState<number | null>(null);
+  const unread = unreadScope === scope;
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const next = libraryPlace(scope);
+    setFilter(next.filter); setQuery(next.query); setLimit(next.limit); setPlaceScope(scope);
+  }, [scope]);
+  useFocusEffect(useCallback(() => { let live = true; setLoaded(null); setUnreadScope(null); void loadBookmarks().then(rows => { if (live && scope === scopeGeneration()) setLoaded({ scope, saved: new Set(rows.filter(r => r.saved).map(r => r.scenarioId)) }); }).catch(() => { if (live && scope === scopeGeneration()) setUnreadScope(scope); }); return () => { live = false; }; }, [scope, attempt]));
+  const change = (next: { filter?: LibraryFilter; query?: string; limit?: number }) => {
+    const updated = { filter: next.filter ?? filter, query: next.query ?? query, limit: next.limit ?? limit };
+    setFilter(updated.filter); setQuery(updated.query); setLimit(updated.limit);
+    rememberLibraryPlace(scope, updated);
+  };
+  const onSaved = (id: string, value: boolean) => setLoaded(previous => { if (previous?.scope !== scope) return previous; const next = new Set(previous.saved); if (value) next.add(id); else next.delete(id); return { scope, saved: next }; });
+  const lead = saved === null ? 'none' : libraryLead(filter, saved.size, query);
+  const items = saved === null ? [] : libraryItems(filter, saved, query);
   return <ScrollScreen bottom="inset" header={<ScreenHeader title="Daily collection" back={{ onPress: goBack }} />}>
-    <TabBar tabs={[{ key: 'saved', label: 'Saved' }, { key: 'words', label: 'Words' }, { key: 'phrases', label: 'Phrases' }]} active={filter} onChange={key => { setFilter(key); setLimit(12); }} />
-    <Field placeholder={SEARCH_PLACEHOLDER} value={query} onChangeText={text => { setQuery(text); setLimit(12); }} />
+    {placeScope !== scope ? <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>Loading your collection…</Text> : <>
+    <TabBar appearance="underline" tabs={[{ key: 'saved', label: 'Saved' }, { key: 'words', label: 'Words' }, { key: 'phrases', label: 'Phrases' }]} active={filter} onChange={key => change({ filter: key, limit: 12 })} />
+    <Field placeholder={SEARCH_PLACEHOLDER} value={query} onChangeText={text => change({ query: text, limit: 12 })} />
+    {unread && <><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3) }]}>Your saved items could not be loaded. Try again to see them.</Text><GhostButton label="Retry saved items" onPress={() => setAttempt(value => value + 1)} /></>}
+    {!unread && saved === null && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>Loading your collection…</Text>}
     {lead === 'inventory' && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{inventoryLine(VOICED_WORD_IDS.length, VOICED_PHRASE_IDS.length)}</Text>}
-    {lead === 'starter' && <>
+    {!unread && lead === 'starter' && <>
       <Label>{STARTER_TITLE}</Label>
       <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{STARTER_NOTE}</Text>
       {starterItems().map(item => <DailyCard key={item.id} item={item} onSaved={onSaved} />)}
     </>}
-    {lead !== 'starter' && items.length === 0 && <Text style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{NO_MATCH}</Text>}
-    {items.slice(Math.max(0, limit - 12), limit).map(item => <DailyCard key={item.id} item={item} onSaved={onSaved} />)}
-    {limit > 12 && <GhostButton label="Previous page" onPress={() => setLimit(n => Math.max(12, n - 12))} />}
-    {items.length > limit && <GhostButton label="Next page" onPress={() => setLimit(n => n + 12)} />}
+    {!unread && saved !== null && lead !== 'starter' && items.length === 0 && <><Text style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{NO_MATCH}</Text>{query.trim() !== '' && <GhostButton label="Clear search" onPress={() => change({ query: '', limit: 12 })} />}</>}
+    {!unread && saved !== null && pageItems(items, limit).map(item => <DailyCard key={item.id} item={item} onSaved={onSaved} />)}
+    {!unread && saved !== null && limit > 12 && <GhostButton label="Previous page" onPress={() => change({ limit: Math.max(12, limit - 12) })} />}
+    {!unread && saved !== null && items.length > limit && <GhostButton label="Next page" onPress={() => change({ limit: limit + 12 })} />}
+    </>}
   </ScrollScreen>;
 }

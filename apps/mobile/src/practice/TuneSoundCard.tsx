@@ -1,29 +1,13 @@
-/**
- * "Your sound to tune": the block Practice leads with (notebook Phase 3,
- * 2026-09-27; it replaces the tinted "Tune one sound" row, F554, F558).
- *
- * One sound, named by its symbol and an example word through the shared
- * `SoundTag`, the inventory's mouth cue under it, and only then whatever else
- * is true of it:
- *
- * - a measured line and a way back to the check, only when a check the assessor
- *   actually measured named this sound;
- * - a bundled recording that says the example word, labelled as a recording,
- *   only when one exists in the learner's chosen voice. The card plays nothing
- *   itself: the tab's recorded player does, and it never falls back to the
- *   phone's synthesiser;
- * - the day-one action, handed in by the tab as `control`, so the page's one
- *   pill is built once and drawn once.
- *
- * Nothing here records, listens or scores, and there is no learner recording to
- * play, because the app keeps none. Every word is `soundLead.ts`'s.
- */
+/** One evidence-bounded sound example. Word and cue lead; symbol and exact
+ * mapped mouth guide are disclosed on request. Playback is a bundled line in
+ * the chosen voice, when one exists. This card does not assess pronunciation. */
 
-import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, GhostButton, Label, SoundTag } from '../components.tsx';
+import { Card, GhostButton, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
+import { MouthGuide } from './MouthGuide.tsx';
 import { SOUND_LEAD, type SoundLead } from './soundLead.ts';
 
 export function TuneSoundCard({
@@ -31,7 +15,6 @@ export function TuneSoundCard({
   playing,
   onHear,
   onCheck,
-  control,
 }: {
   lead: SoundLead;
   /** The recording playing now, so the control can offer Stop. */
@@ -40,16 +23,16 @@ export function TuneSoundCard({
   onHear: (asset: number) => void;
   /** Open the sound check for the situation the sound was measured in. */
   onCheck: (missionId: string) => void;
-  /** The page's one primary action, on day one only. */
-  control?: ReactNode;
 }) {
   const { measured, native } = lead;
+  const [details, setDetails] = useState(false);
   return (
     <Card style={st.card}>
-      <Label>{SOUND_LEAD.label}</Label>
-      <SoundTag ipa={`/${lead.ipa}/`} example={lead.example} />
+      <Label>{measured === null ? SOUND_LEAD.starterLabel : SOUND_LEAD.measuredLabel}</Label>
+      <Text style={st.word}>{lead.example}</Text>
       <Text style={st.cue}>{lead.cue}</Text>
       {lead.source !== null && <Text style={st.quiet}>{lead.source}</Text>}
+      <Text style={st.quiet}>{measured === null ? SOUND_LEAD.unassessed : SOUND_LEAD.measuredScope}</Text>
       {measured !== null && (
         <View style={st.group}>
           <Text style={st.fact}>{measured.line}</Text>
@@ -68,7 +51,12 @@ export function TuneSoundCard({
           />
         </View>
       )}
-      {control != null && <View style={st.control}>{control}</View>}
+      {native === null && <Text style={st.quiet}>{SOUND_LEAD.noAudio}</Text>}
+      <GhostButton label={details ? 'Hide sound guide' : 'See sound guide and symbol'} color={paper.ink} onPress={() => setDetails(value => !value)} />
+      {details && <View style={st.group}>
+        <Text style={st.quiet}>Sound symbol: /{lead.ipa}/</Text>
+        <MouthGuide ipa={lead.ipa} />
+      </View>}
     </Card>
   );
 }
@@ -77,8 +65,8 @@ const st = StyleSheet.create({
   card: { gap: space(3) },
   cue: { ...type.body, color: paper.ink },
   quiet: { ...type.small, color: paper.inkSoft },
+  word: { ...type.frenchLg, color: paper.ink },
   fact: { ...type.small, color: paper.ink },
   line: { ...type.frenchSm, color: paper.ink },
   group: { gap: space(1) },
-  control: { marginTop: space(1) },
 });

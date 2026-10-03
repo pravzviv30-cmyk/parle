@@ -65,7 +65,7 @@ import { AppState, View, Text } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { paper, space, type } from '../theme.ts';
-import { Card, Field, Label, OptionCard, OutlineButton } from '../components.tsx';
+import { Card, Field, Label, OptionRow, OutlineButton, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
@@ -73,7 +73,7 @@ import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
 import { PlanCard } from '../profile/PlanCard.tsx';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
-import { TUTOR_INTRO_LINK } from '../tutor/gate.ts';
+import { DATA_USE_ROW, DATA_USE_SUB, CONNECTION_HELP_ROW, CONNECTION_HELP_SUB, LOCAL_PRACTICE_ROW, LOCAL_PRACTICE_SUB } from './sections.ts';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
 import { PolicyScreen } from '../legal/PolicyScreen.tsx';
 import { TermsScreen } from '../legal/TermsScreen.tsx';
@@ -81,8 +81,9 @@ import { companyLine, contactRow, privacyNote } from '../legal/company.ts';
 import { TERMS_TITLE } from '../legal/terms.ts';
 import { CONSENT_ROW, CONSENT_SUB, analyticsAllowed } from '../analytics/consent.ts';
 import { loadConsent, saveConsent } from '../analytics/consentStore.ts';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
-import { downloadAccountData } from '../privacy/export.ts';
+import { downloadVerifiedAccountData } from '../privacy/export.ts';
 import { appVersionLine } from '../profile/appVersion.ts';
 import { purchases, type StoreOffering } from '../purchases/adapter.ts';
 import { restorePurchases } from '../purchases/restore.ts';
@@ -150,7 +151,7 @@ import type { AuthResult } from '../auth/types.ts';
  * closing a card nobody had seen. A refusal is not a sheet: it is a line in the
  * group whose control caused it, which is what every other one here already is.
  */
-type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete';
+type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete' | 'export';
 
 /**
  * Said when the disk refuses the reminder's two-field write, and only then.
@@ -209,6 +210,7 @@ export function SettingsScreen({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [exportPassword, setExportPassword] = useState('');
 
   // Null until the first read lands, in all four cases, and for the same reason
   // the reminder row is: a guess draws a row at somebody who was never asked.
@@ -222,6 +224,9 @@ export function SettingsScreen({
   // call, and a second copy of it here would be a second answer to one question
   // that could disagree with the row two lines below it.
   const [stored, setStored] = useState<StoredReminder | null>(null);
+  const [storedOwner, setStoredOwner] = useState<{ scope: number; userId: string | null } | null>(null);
+  const [unreadReminderOwner, setUnreadReminderOwner] = useState<{ scope: number; userId: string | null } | null>(null);
+  const [reminderAttempt, setReminderAttempt] = useState(0);
   const [reminderBusy, setReminderBusy] = useState(false);
 
   const [storeBusy, setStoreBusy] = useState<StoreBusy>('none');
@@ -262,6 +267,12 @@ export function SettingsScreen({
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const reminderOwner = { scope: scopeGeneration(), userId: user?.id ?? null };
+      const sameReminderOwner = () => !cancelled && reminderOwner.scope === scopeGeneration() && reminderOwner.userId === activeUserId();
+      setStoredOwner(null);
+      setUnreadReminderOwner(null);
+      setReminderBusy(false);
+      setReminderTrouble(null);
       const readPhonePermissions = () => {
         void Promise.all([microphonePermission(), reminderPermission()])
           .then(([mic, notify]) => {
@@ -295,17 +306,18 @@ export function SettingsScreen({
       // notification channel above, read on focus AND on the walk back, which
       // is the whole defence against a dead switch: permission is per install
       // and can be turned off in the phone's own settings months later without
-      // the app hearing a word about it. `loadReminder` throws rather than
-      // resolving when nobody is signed in, so the throw is caught and the row
-      // simply does not draw.
-      void loadReminder()
-        .then((saved) => {
-          if (!cancelled) setStored(saved);
-        })
-        .catch(() => {
-          // Nobody signed in, or storage unavailable. Nothing to draw and
-          // nothing to say: the reminder is the one thing here that can wait.
-        });
+      // the app hearing a word about it. A missing choice can draw Off. An
+      // unread choice stays unknown, with Retry, until its owner can reread it.
+      if (user) {
+        void Promise.resolve()
+          .then(() => loadReminder({ strict: true }))
+          .then((saved) => {
+            if (sameReminderOwner()) { setStored(saved); setStoredOwner(reminderOwner); }
+          })
+          .catch(() => {
+            if (sameReminderOwner()) setUnreadReminderOwner(reminderOwner);
+          });
+      }
       void loadConsent()
         .then((consented) => {
           if (!cancelled) setConsent(analyticsAllowed(consented));
@@ -319,7 +331,7 @@ export function SettingsScreen({
         cancelled = true;
         foreground.remove();
       };
-    }, [user]),
+    }, [user, reminderAttempt]),
   );
 
   /**
@@ -346,6 +358,11 @@ export function SettingsScreen({
    */
   const closeCurrentSheet = () => {
     switch (sheet) {
+      case 'export':
+        setExportPassword('');
+        setExportTrouble(null);
+        setSheet('none');
+        return;
       case 'delete':
         forgetDeleteDraft();
         setSheet('none');
@@ -383,15 +400,22 @@ export function SettingsScreen({
   const phone = phoneRows({ microphone, notifications, available: PHONE_SETTINGS_AVAILABLE });
   // What the learner asked for, crossed with what the OS will allow. Every
   // judgement in it belongs to reminder.ts; nothing below re-decides any of it.
-  const row = notifications === null ? null : reminderRow(stored, notifications);
+  const currentReminderScope = scopeGeneration();
+  const currentReminderUser = user?.id ?? null;
+  const reminderOwned = storedOwner?.scope === currentReminderScope && storedOwner.userId === currentReminderUser && storedOwner.userId === activeUserId();
+  const reminderUnread = unreadReminderOwner?.scope === currentReminderScope && unreadReminderOwner.userId === currentReminderUser && unreadReminderOwner.userId === activeUserId();
+  const reminderPending = !reminderOwned && !reminderUnread;
+  const ownsReminderNow = () => reminderOwned && storedOwner.scope === scopeGeneration() && storedOwner.userId === activeUserId();
+  const row = notifications === null || !reminderOwned ? null : reminderRow(stored, notifications);
   // The preset behind the row. `reminderTime` repairs a mangled or missing id
   // to the default, so there is no second opinion here about which hour is
   // which, and no throw on a byte that came back wrong from disk.
-  const chosen = reminderTime(stored?.time);
+  const chosen = reminderTime(reminderOwned ? stored?.time : undefined);
   // Whether there is a reminder to draw at all: a build with a scheduler, and a
   // permission that has come back. `REMINDERS_AVAILABLE` is the platform pair
   // saying the OS can be asked; `row` is null until the first read lands.
   const reminders = REMINDERS_AVAILABLE && row !== null;
+  const reminderUnknown = REMINDERS_AVAILABLE && notifications !== null && !reminderOwned;
   // What the group has to say right now: the wait while it is waiting, and
   // whatever the last attempt settled on otherwise.
   const storeLine = storeBusy === 'restore' ? RESTORE_BUSY : storeMessage;
@@ -410,6 +434,7 @@ export function SettingsScreen({
    */
   const askStore = (action: SubscriptionAction) => {
     if (!user || storeBusy !== 'none') return;
+    const owner = scopeGeneration();
     setStoreBusy(action);
     setStoreMessage(null);
     const asked: Promise<string | null> =
@@ -425,9 +450,9 @@ export function SettingsScreen({
               : restoreTrouble(outcome),
           );
     void asked
-      .then(setStoreMessage)
-      .catch(() => setStoreMessage(PURCHASE_TROUBLE))
-      .finally(() => setStoreBusy('none'));
+      .then(message => { if (owner === scopeGeneration()) setStoreMessage(message); })
+      .catch(() => { if (owner === scopeGeneration()) setStoreMessage(PURCHASE_TROUBLE); })
+      .finally(() => { if (owner === scopeGeneration()) setStoreBusy('none'); });
   };
 
   /**
@@ -471,11 +496,12 @@ export function SettingsScreen({
    * turning it back on months later restores the part of the day they picked.
    */
   const toggleReminder = (next: boolean) => {
-    if (row === null || reminderBusy) return;
+    if (row === null || reminderBusy || !ownsReminderNow()) return;
     setReminderBusy(true);
     setReminderTrouble(null);
     void (row.asks ? askReminderPermission() : reminderPermission())
       .then(async (fresh) => {
+        if (!ownsReminderNow()) return;
         setNotifications(fresh);
         const honest = reminderRow({ enabled: next, time: chosen.value }, fresh);
         const wanted: StoredReminder = { enabled: honest.on, time: chosen.value };
@@ -485,13 +511,16 @@ export function SettingsScreen({
         // negation worked out here.
         const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
         const ack = await saveReminder(wanted);
+        if (!ownsReminderNow()) return;
         if (ack === 'failed') {
           setReminderTrouble(REMINDER_SAVE_TROUBLE);
           return;
         }
         const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
+        if (!ownsReminderNow()) return;
         if (outcome === 'failed') {
           await saveReminder(reverted);
+          if (!ownsReminderNow()) return;
           setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
           return;
         }
@@ -502,8 +531,8 @@ export function SettingsScreen({
       // where `saveReminder` throws the way `loadConsent` does. The row stays
       // where it was and says so: a flip that changed nothing and explained
       // nothing is the dead switch this whole entry exists to prevent.
-      .catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE))
-      .finally(() => setReminderBusy(false));
+      .catch(() => { if (ownsReminderNow()) setReminderTrouble(REMINDER_SAVE_TROUBLE); })
+      .finally(() => { if (ownsReminderNow()) setReminderBusy(false); });
   };
 
   /**
@@ -515,28 +544,31 @@ export function SettingsScreen({
    * read raises no dialog, which keeps the no-re-ask rule intact.
    */
   const chooseReminderTime = (value: ReminderTimeId) => {
-    setSheet('none');
-    if (row === null) return;
+    if (row === null || !ownsReminderNow()) return;
     setReminderTrouble(null);
     void (async () => {
       const fresh = await reminderPermission();
+      if (!ownsReminderNow()) return;
       setNotifications(fresh);
       const honest = reminderRow({ enabled: true, time: value }, fresh);
       const wanted: StoredReminder = { enabled: honest.on, time: value };
       const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
       const ack = await saveReminder(wanted);
+      if (!ownsReminderNow()) return;
       if (ack === 'failed') {
         setReminderTrouble(REMINDER_SAVE_TROUBLE);
         return;
       }
       const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
+      if (!ownsReminderNow()) return;
       if (outcome === 'failed') {
         await saveReminder(reverted);
+        if (!ownsReminderNow()) return;
         setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
         return;
       }
       setStored(wanted);
-    })().catch(() => setReminderTrouble(REMINDER_SAVE_TROUBLE));
+    })().catch(() => { if (ownsReminderNow()) setReminderTrouble(REMINDER_SAVE_TROUBLE); });
   };
 
   /** Hand the learner to their own phone, and say so when the phone will not go. */
@@ -556,15 +588,23 @@ export function SettingsScreen({
    * itself flips back from Preparing to its ordinary value and that change is
    * invisible to somebody who cannot see it (F489).
    */
-  const askForMyData = () => {
+  const prepareMyData = (secret?: string) => {
     if (!user || exporting) return;
+    const owner = scopeGeneration();
     setExporting(true);
     setExportTrouble(null);
-    void downloadAccountData(user, adapter)
-      .then((result) => {
-        if (!result.ok) setExportTrouble(result.message);
-      })
-      .finally(() => setExporting(false));
+    const requested = downloadVerifiedAccountData(user, adapter, secret);
+    setExportPassword('');
+    void requested.then(result => {
+      if (owner !== scopeGeneration()) return;
+      if (!result.ok) setExportTrouble(result.message);
+      else setSheet('none');
+    }).finally(() => { if (owner === scopeGeneration()) setExporting(false); });
+  };
+  const askForMyData = () => {
+    if (!user || exporting) return;
+    if (adapter.kind === 'mock') { prepareMyData(); return; }
+    setExportPassword(''); setExportTrouble(null); setSheet('export');
   };
 
   /** Open a mail app at the one address, and leave the address readable if it will not. */
@@ -593,26 +633,6 @@ export function SettingsScreen({
    * interesting choice is morning or evening, and a preset at 18:07 is a time
    * picker that has been hidden rather than removed.
    */
-  if (sheet === 'reminderTime') {
-    return (
-      <ScrollScreen header={<ScreenHeader back={{ onPress: () => setSheet('none') }} />}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{REMINDER_TIME_TITLE}</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REMINDER_TIME_SUB}</Text>
-        <View style={{ marginTop: space(6), gap: space(3) }}>
-          {REMINDER_TIMES.map((option) => (
-            <OptionCard
-              key={option.value}
-              text={option.label}
-              gloss={option.gloss}
-              selected={chosen.value === option.value}
-              onPress={() => chooseReminderTime(option.value)}
-            />
-          ))}
-        </View>
-      </ScrollScreen>
-    );
-  }
-
   if (sheet === 'delete') {
     // No chevron: this is the one sheet where leaving is the safe answer and it
     // is spelled out as "Keep my account" rather than a quiet back arrow.
@@ -620,7 +640,7 @@ export function SettingsScreen({
       <ScrollScreen>
         <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
-          This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone.
+          This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone. Cancel an App Store or Google Play subscription in the store; deleting your Luvani account does not cancel it.
         </Text>
         {/* The reason a wrong password was refused belongs to the field that
             holds the password, not to a loose line under it. `Field` marks the
@@ -662,7 +682,7 @@ export function SettingsScreen({
             is a password to hold it. */}
         {!hasPassword && deleteError !== null && <TroubleLine message={deleteError} strong />}
         <View style={{ marginTop: space(7), gap: space(3) }}>
-          <OutlineButton
+          <GhostButton
             label={deleting ? 'Verifying…' : 'Verify and delete permanently'}
             disabled={deleting || (hasPassword && deletePassword.length === 0)}
             onPress={() => {
@@ -677,7 +697,7 @@ export function SettingsScreen({
               });
             }}
           />
-          <OutlineButton
+          <PillButton
             label="Keep my account"
             disabled={deleting}
             onPress={() => {
@@ -691,6 +711,7 @@ export function SettingsScreen({
   }
 
   return (
+    <>
     <ScrollScreen
       header={
         <ScreenHeader back={{ onPress: () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')) }} />
@@ -749,6 +770,8 @@ export function SettingsScreen({
         <Card style={{ marginTop: space(2.5) }}>
           {/* The honest paragraph, and every fact in it comes from one module.
               This screen never spells an address or a company name itself. */}
+          <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>Control what is saved, export your data or delete your account. Live tasks send spoken or typed words to speech and language services.</Text>
+          <SettingsRow first label={DATA_USE_ROW} value={DATA_USE_SUB} onPress={() => setSheet('policy')} />
           <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>{privacyNote()}</Text>
           {consentTrouble !== null && <TroubleLine message={consentTrouble} />}
           {/* The export refusal, in the card that holds the row that asked for
@@ -787,7 +810,7 @@ export function SettingsScreen({
           sentence it is handed. The whole block is absent on a build with no
           scheduler rather than sitting there disabled, because the refusal line
           names phone settings and would be a lie on a laptop. */}
-      {(reminders || phone.length > 0) && (
+      {(reminders || reminderUnknown || phone.length > 0) && (
         <View style={{ marginTop: space(6) }}>
           <Label>{PHONE_GROUP}</Label>
           <Card style={{ marginTop: space(2.5) }}>
@@ -797,7 +820,11 @@ export function SettingsScreen({
             {reminders && row !== null && row.note.length > 0 && (
               <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>{row.note}</Text>
             )}
-            {reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+            {reminderOwned && sheet !== 'reminderTime' && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+            {reminderUnknown && <View style={{ gap: space(2) }}>
+              <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{reminderPending ? 'Checking reminder status…' : 'Reminder status could not be read. Try again before changing it.'}</Text>
+              {reminderUnread && <GhostButton label="Retry reminder status" onPress={() => setReminderAttempt(value => value + 1)} />}
+            </View>}
             {reminders && row !== null && (
               <SwitchRow
                 first
@@ -842,7 +869,8 @@ export function SettingsScreen({
           {/* What the three colours of the circle mean. It was a row on Profile
               and it is here now (F576): it explains a control rather than
               setting one, which is what the Help group is for. */}
-          <SettingsRow first={contact === null} label={TUTOR_INTRO_LINK} onPress={() => setSheet('intro')} />
+          <SettingsRow first={contact === null} label={CONNECTION_HELP_ROW} value={CONNECTION_HELP_SUB} onPress={() => setSheet('intro')} />
+          <SettingsRow label={LOCAL_PRACTICE_ROW} value={LOCAL_PRACTICE_SUB} onPress={() => nav.navigate('Tabs', { screen: 'Practice' })} />
         </Card>
       </View>
 
@@ -890,5 +918,24 @@ export function SettingsScreen({
         </Card>
       </View>
     </ScrollScreen>
+    <BottomSheet visible={sheet === 'export'} title="Download your data" onClose={closeCurrentSheet}
+      footer={<View style={{ gap: space(3) }}>
+        <PillButton label={exporting ? 'Preparing…' : 'Verify and download'} disabled={exporting || (hasPassword && exportPassword.length === 0)} onPress={() => prepareMyData(hasPassword ? exportPassword : undefined)} />
+        <GhostButton label="Cancel" onPress={closeCurrentSheet} />
+      </View>}>
+      <Text style={[type.body, { color: paper.inkSoft }]}>Confirm it is you before downloading your account and learning data.</Text>
+      {hasPassword ? <Field label="Confirm with your password" value={exportPassword} onChangeText={setExportPassword} placeholder="Your password" secure autoComplete="current-password" error={exportTrouble} />
+        : <Text style={[type.body, { color: paper.inkSoft }]}>{user?.provider === 'apple' ? 'Apple' : 'Google'} will ask you to sign in again.</Text>}
+      {!hasPassword && exportTrouble !== null && <TroubleLine message={exportTrouble} />}
+    </BottomSheet>
+    <BottomSheet visible={sheet === 'reminderTime' && reminderOwned} title={REMINDER_TIME_TITLE} onClose={() => setSheet('none')} footer={<PillButton label="Done" onPress={() => setSheet('none')} />}>
+      <Text style={[type.body, { color: paper.inkSoft }]}>{REMINDER_TIME_SUB}</Text>
+      {REMINDER_TIMES.map((option) => (
+        <OptionRow key={option.value} title={option.label} detail={option.gloss}
+          selected={chosen.value === option.value} onPress={() => chooseReminderTime(option.value)} />
+      ))}
+      {reminderOwned && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+    </BottomSheet>
+    </>
   );
 }

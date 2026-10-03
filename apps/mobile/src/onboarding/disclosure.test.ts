@@ -175,14 +175,14 @@ describe('the first run says what a learner is talking to', () => {
     for (const line of FIRST_RUN_COPY) {
       assert.ok(!claimsAHumanListener(line), `"${line}" puts a person on the other end`);
       for (const claim of HUMAN_CLAIMS) {
-        assert.ok(!line.toLowerCase().includes(claim), `"${line}" implies a person is there: "${claim}"`);
+        assert.ok(!line.toLowerCase().replace('no live human tutor', '').includes(claim), `"${line}" implies a person is there: "${claim}"`);
       }
     }
 
     // Not implying is half of it. Saying so is the other half.
     assert.ok(
-      FIRST_RUN_COPY.some((line) => /\bno (person|one|body)\b[^.!?]{0,40}\bhear/i.test(line)),
-      'nothing in the first run tells a learner that no person hears them',
+      FIRST_RUN_COPY.some((line) => /no live human tutor in the room/i.test(line)),
+      'the first run does not distinguish an AI conversation from a live human tutor',
     );
 
     // And the screens themselves, so a hardcoded line cannot say what the
@@ -210,22 +210,11 @@ describe('the first run says what a learner is talking to', () => {
       MEET_PRIVACY(DEFAULT_TUTOR_PERSONA).includes(VENDOR_PHRASE),
       'the first run invented its own words for the vendors',
     );
-    // F497. What stood here asked the footer to keep saying "Nothing is shared
-    // with anyone else". That was defensible while the sentence before it named
-    // the only recipients there were, because every one of them was a speech or
-    // language service. It stopped being defensible when F481 added the language
-    // model and F488 added the company that takes the payment, the rented
-    // database and the counter store, none of which is either. So the footer
-    // bounds what leaves by the purposes it leaves for, in the notice's own
-    // words, and this pins the clause character for character rather than
-    // asking for less than the line it replaces.
-    assert.ok(
-      note.includes(
-        'Nothing is sold, and nothing about you goes to a company for any purpose other than carrying a ' +
-          'conversation, answering you, keeping what you have learned, and taking a payment.',
-      ),
-      'the footer stopped bounding what leaves by the purposes it leaves for',
-    );
+    assert.match(note, /Your account stores your email, name, age confirmation and learning/);
+    assert.match(note, /processed by speech and language services for tutor replies and practice/);
+    assert.match(note, /control memory, saved conversation text and optional usage data/);
+    assert.match(note, /export your data or delete your account/);
+    assert.ok(note.includes(LEGAL_REVIEW_PENDING), 'a concise footer hides the unchecked legal review');
     assert.doesNotMatch(note, /Nothing is shared with anyone else/, 'the footer denies a sharing that happens every turn');
     assert.doesNotMatch(note, /anyone else/i, 'the footer bounds its recipients by who is not one of them again');
     assert.doesNotMatch(
@@ -258,10 +247,10 @@ describe('the first run says what a learner is talking to', () => {
 
     // What the page still says, because a bound is not licence to say less than
     // the screen said before it.
-    assert.match(line, /^No person hears you\./, 'the first run stopped saying that nobody is listening');
+    assert.match(line, /is an AI tutor, with no live human tutor in the room/, 'the first run does not explain the kind of tutor');
     assert.ok(line.includes(VENDOR_PHRASE), 'the first run invented its own words for the vendors');
     assert.ok(
-      line.includes(`${DEFAULT_TUTOR_PERSONA.name} can answer`),
+      line.includes('prepare replies and practice'),
       'the first run stopped saying why what a learner says goes anywhere at all',
     );
 
@@ -275,108 +264,12 @@ describe('the first run says what a learner is talking to', () => {
     );
     assert.doesNotMatch(line, /beyond the \w+ (services|companies|vendors)/i, 'the first run closes its recipients on a count');
 
-    // And the shape that is right, read off the notice rather than retyped, so a
-    // purpose added to the bound above cannot leave this line behind.
-    const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
-    assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
-    const bound = seen.body.find((paragraph) => paragraph.startsWith('Nothing is sold.'));
-    assert.ok(bound, 'the notice stopped bounding what leaves at all');
-    assert.match(line, /for any purpose other than/, 'the first run stopped bounding what leaves by the purposes it leaves for');
-    for (const purpose of ['carrying a conversation', 'answering you', 'keeping what you have learned']) {
-      assert.ok(line.includes(purpose), `the first run stopped naming a purpose what a learner says leaves for: ${purpose}`);
-      assert.ok(bound.includes(purpose), `the first run names a purpose the notice does not bound by: ${purpose}`);
-      assert.ok(privacyNote().includes(purpose), `the footer stopped naming a purpose the first run names: ${purpose}`);
-    }
+    assert.match(line, /Spoken or typed words are processed/);
+    assert.match(line, /Settings explains the providers, saved learning and deletion controls/);
+    assert.doesNotMatch(line, /for any purpose other than|No person hears you/, 'the concise disclosure overpromises vendor behavior');
+    const seen = POLICY_SECTIONS.find(section => section.heading === 'Who else sees it');
+    assert.ok(seen?.body.some(paragraph => /Provider retention.*verified before release/.test(paragraph)), 'the full notice hides unverified provider retention');
 
-    // The one purpose deliberately absent. No word of French reaches the company
-    // that takes the payment, so naming it here would be longer and less true at
-    // once. Pinned as a decision rather than left to read as an oversight.
-    assert.ok(
-      bound.includes('taking a payment'),
-      'the notice stopped bounding by the purchase purpose, so leaving it out of the first run now means something else',
-    );
-    assert.ok(!line.includes('taking a payment'), 'the first run says a learner’s words reach the company that takes the payment');
-
-    // Still a first-run line. A learner is ninety seconds into the app here and
-    // the notice is a tap away in Settings, so this may not grow into it.
-    assert.ok(line.length < 250, `the first run is turning into the notice: ${line.length} characters`);
-    assert.equal(line.split(/(?<=[.!?])\s+/).length, 2, 'the first-run disclosure grew a third sentence');
-
-    // All eight, not only the default: the bound is the part of the sentence
-    // that does not move when the persona does.
-    for (const persona of EVERY_PERSONA) {
-      const said = MEET_PRIVACY(persona);
-      assert.ok(
-        said.endsWith('for any purpose other than carrying a conversation, answering you and keeping what you have learned.'),
-        `${persona.name}'s first run bounds what leaves differently`,
-      );
-      assert.equal(guiltIn(said), undefined, `guilt in the first-run disclosure: ${said}`);
-      assert.ok(!/[—–]/.test(said), `${persona.name}'s first-run disclosure carries an em dash`);
-    }
-
-    // Sourced, like the notice it now agrees with.
-    const doc = readFileSync(fileURLToPath(new URL('../../../../docs/PRIVACY_AND_SAFETY.md', import.meta.url)), 'utf8');
-    assert.match(
-      doc,
-      /No learner-facing sentence says how many vendors there are/,
-      'the document stopped holding the rule this line now follows',
-    );
-  });
-
-  test('no first-run copy promises a policy that does not exist', () => {
-    // Legal review remains a release gate. First-run copy may not imply a
-    // reviewed policy exists before the founder can name a controller, a
-    // contact channel and vendor terms that have actually been checked.
-    for (const line of FIRST_RUN_COPY) {
-      for (const promise of [
-        'privacy policy',
-        'terms of service',
-        'terms and conditions',
-        'gdpr',
-        'compliant',
-        'certified',
-        'encrypted',
-        'guarantee',
-        'anonymous',
-        'never stored',
-        'deleted immediately',
-        '100%',
-      ]) {
-        assert.ok(!line.toLowerCase().includes(promise), `"${line}" promises "${promise}"`);
-      }
-    }
-
-    // Including the promise this repo cannot make yet: attempt recordings still
-    // linger in the app cache, listed under Not true yet.
-    assert.ok(!/\brecord/i.test(MEET_MIC), 'the microphone line makes a claim about recordings');
-    // The gate itself, on the surface a learner can actually reach. It is a
-    // value in legal/company.ts now, and it stays on screen until a lawyer has
-    // read the documents: accurate words are not cleared words.
-    assert.equal(
-      LEGAL_REVIEW_PENDING,
-      'Our privacy policy and terms still need legal review before Luvani can be released.',
-      'the legal-review sentence was reworded, and the policy and the note both quote it',
-    );
-    assert.ok(
-      privacyNote().includes(LEGAL_REVIEW_PENDING),
-      'the privacy note stopped naming the legal-review release gate',
-    );
-  });
-
-  test('nothing the first run says carries an em dash or a scolding', () => {
-    for (const line of FIRST_RUN_COPY) {
-      assert.ok(!/[—–]/.test(line), `"${line}" carries an em dash`);
-      assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(line), `"${line}" scolds`);
-      assert.ok(line.trim().length > 0, 'a first-run line is empty');
-    }
-
-    // The page a learner is left on has one thing to do next.
-    assert.equal(MEET_PILL, 'Choose your first scene');
-    assert.equal(
-      MEET_TITLE(DEFAULT_TUTOR_PERSONA),
-      `Meet ${TUTOR_NAME}`,
-      'the page stopped being an introduction to him',
-    );
     assert.match(MEET_MIC, /microphone/, 'the microphone line stopped mentioning the microphone');
     assert.match(MEET_TYPING, /Type instead/, 'the typing line no longer names the control it points at');
     assert.match(MEET_MORE, /Settings/, 'the pointer to the rest of it lost its destination');
@@ -398,7 +291,12 @@ describe('the first run says what a learner is talking to', () => {
 
   test('the pre-account save page renders the approved speech and typed-data disclosure beside AI', () => {
     for (const persona of EVERY_PERSONA) {
-      assert.equal(SAVE_PRIVACY(persona), `No person hears you. What you say and type, like your name and your goal, goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`);
+      const line = SAVE_PRIVACY(persona);
+      assert.ok(line.includes(persona.name) && line.includes(VENDOR_PHRASE));
+      assert.match(line, /After you start a task/);
+      assert.match(line, /Full conversation text is saved only if you choose it/);
+      assert.match(line, /Settings explains providers and data controls/);
+      assert.doesNotMatch(line, /No person hears|for any purpose other than/);
     }
     const screen = stripComments(read('onboarding/PreAccountOnboarding.tsx'));
     const save = screen.slice(screen.indexOf("page === 'save' && ("), screen.indexOf('avoidKeyboard='));

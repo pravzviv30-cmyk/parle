@@ -20,8 +20,9 @@
  * the projection needs without letting a keen learner grow storage forever.
  */
 
+import { retainCompletions } from './retain.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, writeInUserScope, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { clearScenarioProgress } from './progressStore.ts';
 
@@ -56,11 +57,12 @@ type WriteOrigin = 'local' | 'adopted';
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -72,17 +74,21 @@ function isCompletion(value: unknown): value is MissionCompletion {
   return typeof record.id === 'string' && typeof record.at === 'number' && typeof record.rung === 'number';
 }
 
-async function readCompletions(key: string): Promise<MissionCompletion[]> {
+async function readCompletions(key: string, strict = false): Promise<MissionCompletion[]> {
   try {
     const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
+    if (raw === null) return [];
     const parsed = JSON.parse(raw) as Partial<StoredMissions> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.completions)) return [];
+    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.completions)) {
+      if (strict) throw new Error('Mission history is unreadable');
+      return [];
+    }
+    if (strict && !parsed.completions.every(isCompletion)) throw new Error('Mission history is unreadable');
     return parsed.completions.filter(isCompletion);
-  } catch {
-    // A corrupt store is not worth crashing over, and it costs the learner
-    // nothing they can feel: the missions read as new again, and the phrases
-    // they earned are in the review deck either way.
+  } catch (error) {
+    if (strict) throw error;
+    // Only explicitly forgiving callers normalize malformed legacy bytes.
+    // Visible reads and new writes use strict mode so evidence is not erased.
     return [];
   }
 }
@@ -95,16 +101,15 @@ async function readCompletions(key: string): Promise<MissionCompletion[]> {
  * with an empty one. The merge policy works on the shape that is on disk.
  */
 async function persistedCompletions(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(key);
+  return raw === null ? null : (JSON.parse(raw) as unknown);
 }
 
-export function loadMissionCompletions(): Promise<MissionCompletion[]> {
-  return readCompletions(KEY());
+export function loadMissionCompletions(options?: { strict: boolean }): Promise<MissionCompletion[]> {
+  // A recap opened during the win write must read that write, not stale history.
+  // A screen must never interpret refused or corrupt evidence as a fresh path.
+  // The internal writer still uses the forgiving reader for legacy repair.
+  return serialized(key => readCompletions(key, options?.strict ?? true));
 }
 
 /**
@@ -121,28 +126,31 @@ export function loadMissionCompletions(): Promise<MissionCompletion[]> {
  */
 export function recordMissionCompletion(id: string, rung: number, at = Date.now()): Promise<void> {
   const cleared = clearScenarioProgress(id);
-  const written = serialized(async (key) => {
-    const existing = await readCompletions(key);
-    const mine = [...existing.filter((c) => c.id === id), { id, at, rung }]
-      .sort((a, b) => a.at - b.at)
-      .slice(-COMPLETIONS_PER_MISSION);
+  const written = serialized(async (key, owner) => {
+    let existing: MissionCompletion[];
+    try { existing = await readCompletions(key, true); } catch { return; }
+    const mine = retainCompletions([...existing.filter((c) => c.id === id), { id, at, rung }]
+      .sort((a, b) => a.at - b.at), COMPLETIONS_PER_MISSION);
     const completions = [...existing.filter((c) => c.id !== id), ...mine];
-    await saveCompletions(key, completions, 'local');
+    await saveCompletions(key, owner, completions, 'local');
   });
   return Promise.all([written, cleared]).then(() => undefined);
 }
 
 async function saveCompletions(
   key: string,
+  owner: number,
   completions: readonly MissionCompletion[],
   origin: WriteOrigin,
-): Promise<void> {
+): Promise<boolean> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, completions: [...completions] } satisfies StoredMissions));
-    if (origin === 'local') markDirty('missions');
+    const saved = await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, completions: [...completions] } satisfies StoredMissions)));
+    if (saved && origin === 'local') markDirty('missions');
+    return saved;
   } catch {
     // Storage full or unavailable. The learner still had the win, the recap
     // still banks the phrases, and the mission simply reads as new next time.
+    return false;
   }
 }
 
@@ -157,7 +165,7 @@ async function saveCompletions(
  * `(mission, finished at)`, so folding twice is the same as folding once.
  *
  * The per-mission cap is re-applied rather than trusted from the wire: a merged
- * set is the union of two devices' rows and can exceed it. Keeping the most
+ * set is the union of two devices' rows and can exceed it. Keeping the best valid rung and the most
  * recent by `at` is the same rule `recordMissionCompletion` uses, so a synced
  * device and a solo one age out the same wins. Missions are visited in sorted id
  * order because that is the order sync/policy.ts emits, and the disk has to end
@@ -167,8 +175,14 @@ async function saveCompletions(
  * still does if the fold ever stops sorting.
  */
 function adoptMissionCompletions(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persistedCompletions(key));
+  return serialized(async (key, owner) => {
+    let current: unknown;
+    try { current = await persistedCompletions(key); } catch { return 'declined'; }
+    if (current !== null && (typeof current !== 'object' || current === null ||
+      (current as Partial<StoredMissions>).version !== VERSION ||
+      !Array.isArray((current as Partial<StoredMissions>).completions) ||
+      !(current as StoredMissions).completions.every(isCompletion))) return 'declined';
+    const folded = fold(current);
     if (typeof folded !== 'object' || folded === null) return 'declined';
     const envelope = folded as Partial<StoredMissions>;
     if (envelope.version !== VERSION || !Array.isArray(envelope.completions)) return 'declined';
@@ -180,10 +194,9 @@ function adoptMissionCompletions(fold: SyncFold): Promise<SyncAdoption> {
     }
     const completions: MissionCompletion[] = [];
     for (const id of [...byMission.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
-      completions.push(...(byMission.get(id) ?? []).sort((a, b) => a.at - b.at).slice(-COMPLETIONS_PER_MISSION));
+      completions.push(...retainCompletions((byMission.get(id) ?? []).sort((a, b) => a.at - b.at), COMPLETIONS_PER_MISSION));
     }
-    await saveCompletions(key, completions, 'adopted');
-    return 'adopted';
+    return await saveCompletions(key, owner, completions, 'adopted') ? 'adopted' : 'declined';
   });
 }
 

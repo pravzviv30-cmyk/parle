@@ -28,21 +28,26 @@ Every durable store, with the retention that governs it. A row whose retention s
 | What | Where it lives | Why | Retention | Removed by |
 |---|---|---|---|---|
 | Email, name, sign-in provider | Supabase `auth.users` | There is no account without them | Life of the account | Account deletion |
-| Pre-account age confirmation and selected Tutor voice | Device, `@luvani/pre-account-onboarding/v1` | Carry the minimum first-run choice through account creation | Until the signed-in profile is created | Cleared after profile creation, clearing app data |
+| The first-run draft before an account: age confirmation, Tutor voice, usage-data answer, the plan's answers, the page reached, and an optional first name | Device, `@luvani/pre-account-onboarding/v1` | Carry the first-run answers through account creation, and resume where the learner left off | Until the signed-in profile is created, a link to sign in is taken, or the learner says they are under thirteen | Profile creation, any link to sign in, "I am younger than that" on the save page, clearing app data |
 | Age confirmation, and a date of birth for learners who joined when Luvani asked | Device, `luvani.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Account deletion |
 | The moment a session stopped because the learner said they are under thirteen | Device, `luvani.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reinstall, account deletion |
 | Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `luvani.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Account deletion, cascade |
 | Conversation Pack: curated phrases, corrections, short summary and exercises | `public.conversation_packs`, with a device cache | Recover post-session practice if the app closes | Life of the account | Account deletion, cascade; delete one/all Packs in My French |
-| Five content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
-| Seconds of voice per session | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
+| Saved conversation text, only after the learner chooses Save on the recap | `public.saved_conversation_text`; memory-only while the room is open, no device disk cache | Read the received conversation thread later | Until per-text deletion or account deletion | Delete each text in Progress, Your conversations, Saved conversation text; a word-free retry fence remains until account deletion |
+| Fifteen content-free product events | `public.product_events` | Product decisions | 13 months from `occurred_at` | Scheduled delete, cascade |
+| Session seconds, actual capped charge, allowance epoch and content-free failure/refund proof | `public.session_usage` | Bill each session at most once | 24 months from `reported_at` | Scheduled delete, cascade |
 | Plan and seconds used | `public.entitlements` | The allowance | Life of the account | Cascade |
 | One row per purchase delivery already seen: vendor event id, account, event type | `public.billing_events` | A retried webhook grants an entitlement once | Life of the account | Cascade |
-| The account id a purchase is filed under, and what that account bought | RevenueCat, as `appUserID` | Take the payment and tell the app what was bought | Not true yet: vendor-side, and nothing here sets it | Nothing in this repo, and not account deletion |
+| The account id a purchase is filed under, and what that account bought | RevenueCat, as `appUserID` | Take the payment and tell the app what was bought | Vendor-side retention remains unverified | Account deletion requests queued subscriber erasure; store subscriptions are cancelled in the store |
+| Issued session id and allowance epoch | `public.session_grants` | Keep late session settlement in its original allowance; verify owned refunds | Account lifetime, until account deletion; no automatic cleanup implemented | Account cascade; included in bounded account export |
 | Two salted antifraud HMACs | `public.trial_installations` | One free trial per installation | 24 months from `claimed_at` | Scheduled delete only, never account deletion |
 | Rate-limit counters and session leases | Upstash, `luvani:*` | Abuse and cost limits | The window TTL, 60 seconds to 24 hours | Key expiry |
 | A random installation id | Device, `luvani.installation.v1` | The input the antifraud HMAC is made from | Until app data is cleared | Clearing app data, uninstall |
 | One content-free line per safety decision | Agent host logs, worker stdout | Know how often the boundary fires, and on which rule | Not true yet: whatever the host keeps, and nothing here sets it | Nothing in this repo |
+| Numeric recognition confidence and known/unavailable final-segment counts | Agent host logs, worker stdout; counters only in memory per STT stream | Diagnose recognition during voice QA; no grading or learner-facing confidence | Host log retention remains unset; counters reset with the stream | No new deletion mechanism; no words, audio or identity added |
 | Synthesised tutor lines as WAV | Agent host disk, TTS cache | A voice vendor should be paid once per line | Indefinite, tutor speech only | Deleting the cache directory |
+| Optional kept-phrase tutor WAVs and word-free last-used timestamps | App-private phone cache; web memory URLs | Replay in the selected tutor voice | At most twenty WAVs / 8 MiB, OS cache lifetime; LRU eviction | Account change starts removal, deletion awaits it; interrupted files recovered on next cache use/clear |
+| Kept-phrase audio spend counters and paid accounting-period start | `public.phrase_audio_budgets` | Bound extra synthesis spend without changing minutes | Account lifetime; trial counter never renews, paid counter uses anchored thirty-day periods | Account cascade; included in account export |
 | Learner utterance audio | Never written anywhere | See the next section | Never written anywhere | Nothing to remove |
 
 Two things are deliberately absent from that table. There is no advertising or
@@ -50,6 +55,28 @@ attribution identifier of any kind, and there is no third-party analytics SDK in
 the app. Adding either is an escalation to the founder, not an engineering choice.
 
 ## Daily offline practice and Friends (review branch)
+
+### Optional kept-phrase tutor audio
+
+Explicit Hear can send the curated French to ElevenLabs in the exact selected
+catalogue voice. Phone-edited words cannot authorize a paid call: the server-only
+RPC resolves an owned ready/completed pack source and permanently reserves account
+plus global budget in one transaction. This route makes one direct uncached call,
+without shared worker WAV storage, retries, refunds, phrase logs or phrase events.
+Rate revision, exact source/completion/entitlement, caps and reserved periods are
+rechecked before dispatch. An in-flight vendor request cannot be revoked by a
+deletion or policy change after that final check. Vendor-side retention for this
+generated phrase is unverified; no enterprise zero-retention or deletion claim is
+made. Public prices do not verify actual account/voice billing upper bounds.
+
+Both generation and phone exposure remain off by default. The migration seeds
+disabled zero caps and no verified voice rates; caps remain a founder choice.
+Native cache/file/voice playback, vendor billing timing and hosted concurrency
+remain unverified. Temporary tutor playback audio is excluded from the text export;
+account spend metadata is included. Global spend retains no learner/source identity.
+The native queue fences owner/voice changes and awaits disk work on deletion;
+failed cleanup is reported on that deletion path. It is separate from learner
+recordings and is never used as learning or pronunciation evidence.
 
 Daily "Record my take" is an explicit exception to the historic blanket "no file" wording below: a temporary local recording enables self-comparison. It is never uploaded; leaving/backgrounding/re-recording deletes it best-effort. A process kill may leave a cache file until OS cleanup. Update public legal pages from `legal/policy.ts` before release.
 
@@ -72,6 +99,15 @@ stops being an accident:
   written to disk and the request body is capped at 2 MB.
 - `apps/mobile/src/speech/scoreAttempt.ts` uploads one attempt against one known
   reference and keeps nothing.
+- Own-words practice may instead record a temporary take, bounded to 20 seconds
+  on the device. `/drill/transcribe` authenticates and rate-limits the upload,
+  reads at most 2 MiB into memory, and forwards it once to Deepgram for French
+  transcription. No audio, transcript or account identity is stored or logged
+  by this path; the vendor receives audio, language and our service key, without
+  a learner identifier. The device removes the take after upload settles, even
+  on refusal. The returned words remain editable and reach `/drill/judge` only
+  when the learner chooses Check. Typing and an ungraded retry remain available.
+  A missing transcription key is unavailable transcription, never a score.
 - The TTS cache in `services/tutor-agent/src/ttsCache.ts` stores **tutor** speech
   only. A cached WAV is a line the product wrote, never a line a learner said.
 - Sound-check evidence in `apps/mobile/src/soundcheck/store.ts` is
@@ -154,10 +190,11 @@ is set, and the CEFR estimate with the watch-for list, which is derived from the
 profile the server keeps.
 
 The turn is not the only call, and the scene call hands over more than a derived
-estimate. `buildFrame` in `services/tutor-agent/src/convo.ts` sends
-`profile.memory.facts.slice(-5)` to the same vendor, as `REAL ACCOUNT MEMORY` in
-`packages/brain/src/prompt/scenarioPrompt.ts`, with the unmastered phrases and the
-recent scene list beside it. Those are stored rows, and they are about the learner's
+estimate. `tutorMemoryBrief` in `services/tutor-agent/src/convo.ts` repairs the
+profile and sends `repaired.memory.facts.slice(-5)` to the same vendor, once
+inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`.
+The unmastered phrases and recent scene list remain beside it in the scene call.
+Those are stored rows, and they are about the learner's
 real life: `extractMemory` writes them after each session from what was volunteered
 around the scene, interests, events coming up and goals
 (`packages/brain/src/prompt/extractPrompt.ts`), and the profile carries up to twelve of
@@ -166,8 +203,59 @@ mentions a job interview on Monday has that sentence sent to the model vendor on
 Wednesday to build the next scene. Since F562 the goals the learner writes in Profile ride
 in the same slice, appended after the remembered facts by `snapshotFor` in
 `apps/mobile/src/profile/memory.ts`, and the facts themselves can be seen and removed
-there: a removed fact is kept as a tombstone the snapshot filters, because the extraction
-would otherwise write it back. The email and the sign-in identity are never handed
+there: a removed fact is kept as a normalised-wording tombstone. These markers
+are no longer capped at forty or aged out by later forgets. Loading, recap
+application and both sync merge orders filter the raw stored facts, not only
+the outgoing snapshot; forgetting also clears the unsourced saved opener.
+The markers themselves still contain the normalised wording, appear in the
+account export and are deleted with the account. Exact matching does not
+recognise every paraphrase; this is not semantic erasure, and it cannot recover
+markers that an older build already pruned.
+
+**Pause personal memory applies from the next conversation.** The profile's
+optional `memory.control` carries a validated pause flag and change clock.
+The next snapshot withholds personal facts, learner-written goals and the
+saved opener; the conversation agent also enforces the flag before scene
+construction and skips personal-memory extraction. Name, French progress,
+ordinary replies, learning recaps and practice preparation continue. Held facts
+remain manageable on the device. A late recap preserves the current privacy
+choice. Sync selects the newest valid control independently of the busier
+profile; equal clocks choose pause. Device clock skew can still misorder choices.
+Memory changes acknowledge only a successful serialized storage write. A refusal
+leaves the displayed choice unchanged and offers retry. Profile writes register
+with account reset; reset awaits dispatched bridge writes, fences new writes
+through cleanup, and invalidates work begun during that window before removing
+the account keys. These orderings have local tests, not physical-device proof.
+The founder approved the sensitive-topic personal-memory boundary on 2 October:
+exclude personal health details, finances, sexuality/intimate relationships,
+political/religious beliefs and identifying secrets. Ordinary French goals and
+non-sensitive family/travel context remain eligible. Shared instructions now cover
+all extraction fields and the greeting, and guide live replies back to non-sensitive
+French practice without overriding crisis responses. This is a prompt policy, not
+a validated semantic gate. Model output can miss the rule; schema-valid facts still
+merge and sync through the existing path. Older notes and learner-authored goals
+are not semantically purged. Early speech skips stored greetings without the exact
+current extraction-policy marker; new extraction stamps that nested marker, repair
+and merge preserve it without promoting old text, and old workers replacing an
+opener lose it. This is a compatibility fence, not proof of non-sensitive text.
+The ordinary name greeting speaks immediately when the marker is absent. Learning recaps/practice packs and explicitly saved
+full conversation text are separate and are not covered by this memory-only rule.
+
+**A previous correction is separate learning context.** Before the next
+conversation, the app can attach one curated correction from the active learner's
+latest cached ready pack: its original fragment, better form, English meaning,
+reason, pack id and source title. It never falls back to an older error if the
+latest cached session is clean, generating, failed or archived. The agent
+allowlists and bounds this data, labels it untrusted in the teaching brief and
+uses it in scene construction and each turn. It guides a later attempt without
+pre-filling the next answer or asserting the learner repeated an error. It stays
+out of the persisted brain profile and does not include the optional saved full
+conversation. Personal-memory pause leaves this French-learning context active,
+as it leaves learning recaps active. Explicitly revisiting a selected pack takes
+precedence over this ordinary carryover. A local cache can lag server data; no
+live two-device or native session proof is claimed.
+
+The email and the sign-in identity are never handed
 over, and no audio ever is.
 
 **The recent scene list beside those facts is not learner words.**
@@ -202,8 +290,27 @@ What each of the five vendors retains on its own side is a vendor question and i
 **not verified** by this repo. Naming their retention in the learner-facing privacy
 text is a launch blocker, listed below.
 
+**Fix your line reads one correction retry, without retaining it.** The recap
+opens an in-memory sheet; the original/corrected fragment and reason never enter
+navigation parameters or web URLs. A temporary spoken take uses the existing
+bounded Deepgram transcription path and is removed after upload settles,
+including refusal/failure or a late response after exit. Its words remain editable;
+only choosing Check sends the original/corrected fragment, reason, edited retry
+and level to `/drill/fix-line`. That endpoint uses the same authentication,
+4KiB body bound and scoring rate-limit buckets as other drills. It sends no
+identity to the configured language model and no text to a log, event, table,
+deck or grade. A timeout, malformed or uncertain answer stays unjudged.
+The own-words Jev shortcut is bypassed: a correction-specific screen has not
+been calibrated on real French attempts. The practice window is one minute;
+leaving, backgrounding or an account/scope change fences late results and cancels
+the correction/transcription request. A cancelled take waiting for authentication
+starts no later upload; the 12s transcription deadline also bounds stalled auth.
+An upload already sent may have reached Deepgram despite cancellation. Vendor
+retention remains unverified, as below. A transcript is not pronunciation proof.
+
 **An own-words answer is read by the language model, and first by TypeSafe when it is on.**
-The own-words drill asks a learner to type a phrase their own way. It opens from a session
+The own-words drill asks a learner to type a phrase their own way, or check and edit
+the transcript of a temporary spoken take before choosing Check. It opens from a session
 recap (`RecapScreen.tsx` passes a kept phrase with that session's situation) or from a
 Practice card (`MakePhraseCard.tsx`, whose `from` is the conversation the phrase came out
 of). `judgeOwnWords` in `apps/mobile/src/speech/judgeAttempt.ts` posts one request to
@@ -306,21 +413,20 @@ pay to hold things, and neither was named in the notice either. The notice says 
 the same by-function words as the rest, rather than letting a rented database read as a
 machine of ours.
 
-**Account deletion does not reach the purchase processor.** `POST /account/delete` deletes
-the Supabase user and everything that cascades from it. Nothing in this repo calls the
-vendor's delete API, so the subscriber record and its purchase history stay where they are.
-That is a gap rather than a decision, and it is listed below.
+**Account deletion requests purchase-processor erasure.** After verified recent bearer
+authentication and the existing account check, `POST /account/delete` calls RevenueCat's
+`DELETE /v1/subscribers/{app_user_id}` with the verified caller's id and a server-only
+secret. Only documented 200 (queued) or 404 (absent) permits Supabase identity deletion.
+No GET is made, since its subscriber endpoint can create a missing customer. Missing
+configuration, refusal or network failure leaves the Luvani identity available to retry.
+If identity deletion fails after processor acceptance, retry can safely use 404.
 
-The half of it that could be closed without server work is the disclosure, and it is closed.
-The notice's "Your rights" section says, beside the two things we keep on purpose, that
-the company that took the payment keeps its own record of what was bought, and that
-deleting the Luvani account does not reach it. It is written as who holds it and what it is
-rather than as a list, so the day the deletion path does call the vendor, one sentence
-changes rather than a closed list being rediscovered. Saying it there rather than only among the recipients is the
-point: a learner asking what survives deletion reads that section and stops. The bound holds
-in the other direction too, because overclaiming a gap is the same defect as hiding one, and
-what stays with the vendor is an account id and what that account bought, never audio, never
-words, never learning. **Calling the vendor's delete API is still owed**, and is ledger F498.
+The founder authorized this F499 policy on 2 October 2026. RevenueCat documents an
+asynchronous queue, so neither code nor notice claims that every vendor record has
+already gone. Vendor-side retention remains unverified, and store subscription
+cancellation still happens in the store. No audio, learner words or learning data is
+sent in the erasure request. No real customer was deleted during implementation.
+Primary reference: https://www.revenuecat.com/docs/api-v1/customers#tag/customers/operation/delete-subscriber.
 
 The rule for anyone extending this: a feature that needs to keep a recording is a
 new consent, a new retention period and a new disclosure, and it is an escalation
@@ -370,7 +476,7 @@ at Settings for the rest, which is what `MEET_MORE` says.
 
 ## Analytics: consent, opt-out and retention
 
-Luvani records ten events. They exist so product decisions are made on evidence
+Luvani records fifteen events: thirteen device events and two authoritative server facts. They exist so product decisions are made on evidence
 rather than on the loudest opinion in the room, and they are content-free by
 construction, not by good intentions.
 
@@ -381,6 +487,15 @@ construction, not by good intentions.
 | `mission_completed` | `missionId`, `rung` | The words that earned the rung |
 | `sound_check_completed` | `missionId`, `kind` | The audio, the focus sentence, any score |
 | `my_french_opened` | `situationsDone`, `linesKept`, both counts | The phrases themselves |
+| `wall_shown` | Closed `entry`, count `pages` | Learner content or prices |
+| `wall_page_seen` | Closed `page`, count `index` | Learner content |
+| `plan_selected`, `purchase_started` | Closed paid `plan` | Store account or price |
+| `purchase_settled` | Closed paid `plan`, closed `outcome` | Receipt or store account |
+| `restore_started` | Closed `entry` | Store account or a guessed paid plan |
+| `restore_settled` | Closed `entry`, closed `outcome` | Receipt or store account |
+| `wall_left` | Closed `entry`, `outcome`, `destination` | Learner content |
+| `trial_started` | No properties, service-only | Antifraud markers or learner content |
+| `minutes_refused` | Closed `plan`, `reason`, service-only | Utterances or exact balance |
 
 Two independent allowlists enforce that. `parseProductEvent` in the token server
 rejects an unknown name, an unknown property, an extra property or a wrong type,
@@ -408,16 +523,27 @@ removed in TypeScript is not a property removed from Luvani: the compiler holds 
 client's half of this, so the parser, the trigger and this table are a manual step every
 time.
 
-**What is true today:** every event passes `analyticsAllowed` in
+**What is true today:** every device event passes `analyticsAllowed` in
 `apps/mobile/src/analytics/consent.ts` before the network call, inside the `try` that
 already swallows failures, and only a stored literal `true` counts. A learner who has
-not answered emits nothing. `public.product_events` rows are still kept forever: the
+not answered emits nothing. Session starts read that same device-local choice afresh
+and send only a literal permission boolean. The service-only trial RPC records only
+its own newly inserted trial, never a later opt-in or an existing paid account.
+Its analytics insert has a separate savepoint, so failure cannot undo the trial.
+Minutes events are attempted only for consented `exhausted` or
+`insufficient-for-session` refusals, not lapse or antifraud refusals; an outage can
+lose optional evidence. The client parser and the database trigger refuse
+client-written trial/minutes names. Restore evidence is bound to the requesting
+account and scope. A pending or failed Off write masks the previous on-disk Yes in
+this running app. An already dispatched request can finish after withdrawal;
+withdrawal cannot recall it. No permission history or server consent table was
+introduced. `public.product_events` rows are still kept forever: the
 thirteen months below is stated in the published notice and no scheduled delete
 enforces it.
 
 **What must be true before real learners arrive:**
 
-1. **Disclosure before collection.** The privacy notice in Settings names the five
+1. **Disclosure before collection.** The privacy notice in Settings names the fifteen
    events in plain words, says they carry no learner content, and says how long they
    are kept. It says the same thing this file says.
 2. **A real opt-out.** One switch in Settings, and the same question asked once on the
@@ -497,7 +623,7 @@ refreshed bearer is not reauthentication and a stolen session must not be able t
 erase somebody. Deletion is rate limited to 3 per account and 20 per IP per day.
 
 **What the delete removes.** The Supabase user, and by `on delete cascade`:
-`learner_state`, `product_events`, `entitlements`, `session_usage`, `billing_events`
+`learner_state`, `product_events`, `entitlements`, `session_usage`, `session_grants`, `billing_events`
 and `conversation_packs`. On the
 device, `clearActiveUserData` erases every per-account key in `USER_KEY_SUFFIXES`,
 and `App.tsx` deliberately holds the local session open until that finishes so the
@@ -509,11 +635,10 @@ On the device, `luvani.installation.v1` and the legacy-migration marker survive,
 because the installation signal is exactly the thing a fresh account must not be
 able to reset. Neither carries learning, content or identity.
 
-**What survives without anybody deciding it should.** The purchase processor's record of the
-account and what it bought, because no code here asks the vendor to delete anything. That one
-is a gap rather than a choice, it is described under "Account deletion does not reach the
-purchase processor" above and listed in [Not true yet](#not-true-yet), and the notice tells a
-learner about it in the same section that tells them what deletion does.
+**What stays outside our deletion guarantee.** The purchase processor accepts a queued
+erasure request before Luvani removes the identity. Its completion and any vendor-side
+retention are not verified. Store subscriptions and store-held payment records are
+separate, so the notice directs the learner to cancel a subscription in the store.
 
 **What is not proven.** The cascade has never been executed against a live
 database, and the device wipe has never been run on a real iOS or Android build.
@@ -523,11 +648,13 @@ verified until it is.
 **Export.** Settings' **Download my data** writes a JSON file containing every
 per-account device key and, for a Supabase account, the authenticated learner's
 account metadata and rows from `learner_state`, `product_events`, `entitlements`,
-`session_usage`, `billing_events` and `conversation_packs`. `GET /account/export` takes no user id: it
-resolves the bearer first, rate-limits the request by IP and account, and filters
-every table by that resolved id. It deliberately excludes raw audio and transcripts
-(neither is stored), access tokens, and `trial_installations` (the antifraud HMAC is
-deliberately not linkable back to an account). A local-development account exports
+`session_usage`, `session_grants`, `billing_events`, `conversation_packs` and opted-in `saved_conversation_text`, plus owned social records. `GET /account/export` takes no user id: it
+resolves the bearer first, requires a real sign-in within five minutes, rate-limits
+the request by IP and account, and filters
+every table by that resolved id. It includes explicitly saved conversation text and word-free deletion markers. It
+deliberately excludes raw learner audio (not stored), access tokens, and `trial_installations` (the antifraud HMAC is
+pseudonymous: the server can recompute its keyed hashes to match an account or
+installation, and the marker is retained separately after account deletion). A local-development account exports
 its device data and says that it has no server copy.
 
 ## The safety boundary
@@ -557,7 +684,7 @@ The copy never quotes the learner back at themselves, never diagnoses, and never
 scolds. `safetyPolicy.test.ts` holds this table against the running code, so the
 words in this file and the words a learner hears cannot drift apart.
 
-Age is a gate rather than a field. Onboarding asks once, in plain words, and a
+Age is a gate rather than a field. Onboarding asks in plain words, and a
 learner who cannot say they are thirteen is refused without a retry dressed up as a
 second chance. A learner who says mid-session that they are under 13 hits the same
 `stop`.
@@ -602,6 +729,43 @@ and an authenticated write path from the agent to the server, and Supabase
 deployment is still an unclaimed external check, so it could not be verified end
 to end. The founder accepted this ceiling explicitly rather than wait for it. It
 is listed again in [Not true yet](#not-true-yet).
+
+### An under-13 answer before an account keeps nothing
+
+The first run asks the age question on its last page, before any account
+exists. "I am younger than that" shows a calm page of its own and takes away
+"I am 13 or older, create account". From that tap, nothing about the learner is
+kept:
+
+- **It clears the draft.** The first-run draft on the device goes, and with it
+  the voice, the plan's answers, the page reached and any first name typed.
+  `onRefuse` in `onboarding/PreAccountOnboarding.tsx` reaches
+  `discardPreAccountDraft` in `App.tsx`, the same discard every link to sign in
+  runs. After it, `keep` writes nothing for the rest of the launch, so moving
+  between the pages cannot put the draft back.
+- **It sends nothing.** There is no account yet, the first-run pages carry no
+  analytics sender and no network call, and the refusal adds none.
+- **It stores no marker.** The refusal lives in memory only. `Gate` in
+  `App.tsx`, which stays mounted for the whole launch, holds it above the first
+  run and the sign-in door, so leaving through "I have an account" and coming
+  back opens on the refusal page again, and sign-in's "Create one" leads there
+  too. `PreAccountOnboardingDraft` has no field for it, and nothing writes it to
+  the device. Signing in and out again does not end it; only closing the app
+  does. On a shared phone, that means an adult who signs out later in the same
+  launch meets the refusal page until the app is reopened.
+
+**The ceiling, plainly.** Because nothing is stored, a relaunch starts at the
+first page with nothing kept, and the question can be asked again. That is the
+same close-the-app escape the age gate keeps for a mis-tap. Holding the refusal
+past a relaunch would mean storing a note about a child on the device, with a
+retention period of its own. The founder chose not to (2026-09-30, F637 and
+F639), and changing that is a founder and legal decision, not an engineering
+one. It is listed again in [Not true yet](#not-true-yet).
+
+This differs from the stop above on purpose. That stop belongs to a signed-in
+account and sits in its profile until the gate is passed. Before an account
+there is no profile to hold it, and a store made only to remember a refusal
+would itself be data about a child.
 
 ### The tutor's own words are checked too
 
@@ -681,13 +845,17 @@ does not promise help it cannot send.
    speech to finish playing where there is speech, and then disconnects, so the
    microphone stops being published and the recogniser stops transcribing into a
    session that will neither hear nor answer.
-9. The worker does not stop with it, and this is the part the list used to leave
-   out. `closeAfterStop` starts `finish()` without waiting for it, so the seconds
-   are still debited and extract, curate and drill generation still run and
-   publish into a room that is closing. Whatever arrives in time is thrown away
-   by the guards in points 6 and 7, so the learner sees none of it, and it is
-   still model work paid for on a session that ended. That is ledger F208, and it
-   is a founder decision rather than an engineering one.
+9. The worker closes the usage ledger, cancels live frame and turn requests,
+   and skips memory extraction, curation and drill generation. No practice pack
+   is saved for a safety stop. The stop message still finishes playing before
+   the room disconnects.
+
+A learner choosing to leave an ordinary session is different. The founder chose
+on 2 October 2026 to cancel live replies while the saved recap and practice pack
+finish in the background. A deterministic baseline pack is saved before the
+slower enrichment, and repeated finish calls await the same work. These bounded
+calls can continue after the microphone and room close; a failed-session refund
+rule remains a separate founder decision.
 
 Point 7 is the honest tension in this document. Retaining nothing is the
 strongest privacy position available and it is the one we take, and it also means
@@ -727,8 +895,8 @@ step in front of it. The record carries what a decision was made of and nothing
 it was made about.
 
 Two other shapes were considered and refused, and neither is coming back. A
-sixth analytics event is out because this file allows exactly five and adding one
-is a founder escalation. A server-side counter is out because it is new storage
+safety analytics event remains out: the founder-authorized Report 45 funnel additions
+carry no safety category, rule or disclosure. A server-side counter is out because it is new storage
 for a question `grep` already answers.
 
 **Nothing watches this line.** It is read after the fact, by whoever can read the
@@ -764,6 +932,8 @@ positions — to review:
   want this challenged, not confirmed.
 - The 13+ age gate, the self-declaration that backs it, and what the product owes a
   learner who is plainly younger than they claimed.
+- Whether an under-13 answer before an account should outlast a relaunch, when
+  holding it would mean storing a note about a child on the device.
 - The disclosure text for the antifraud identifier and the five analytics events.
 
 ### The adversarial corpus
@@ -857,13 +1027,100 @@ promise already kept.
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The published notice commits to retention periods nothing enforces | Thirteen months for events and two years for usage and trial markers are a promise made in a learner-facing document with no scheduled delete behind it | This file, rows above; `legal/policy.ts` |
 | Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked, and so is TypeSafe's, which reads own-words drill answers whenever `TYPESAFE_API_KEY` is set | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
-| Account deletion does not reach the purchase processor | The subscriber record and the purchase history stay with the vendor after the Supabase user is gone; nothing here calls its delete API. Disclosed to learners in the notice; the call itself is still owed | Ledger F498 |
+| Purchase-processor erasure has not been observed against a real account | The queued request is implemented and tested with fixtures; its live completion and vendor-side retention remain unverified | Ledger F499 external verification |
 | Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |
 | Device deletion and token hygiene are unproven on a real build | The device half of deletion is unproven | Ledger F71 |
 | No professional review has been obtained | The safety position is unreviewed | Ledger F70 |
 | An under-13 stop is remembered on the device that saw it, not on the account | A reinstall clears it, and a second phone never learns about it | This file, section above; founder accepted |
+| An under-13 answer before an account lasts the launch and no longer | A relaunch asks the age question again, because holding it would mean storing a note about a child, which the founder chose not to do | This file, section above; founder decision, 2026-09-30 |
 | Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
-| A stop does not stop the worker's post-session model work | Extract, curate and drills still run and publish into a room that is closing | Ledger F208 |
 | The scripted lesson agent's own lines pass no output guard | `outputGuard` covers the conversation agent only | Not filed |
 | No reviewed privacy policy or terms exist | The app says professional review remains required before release; it must not present an unreviewed document as a legal promise | Release roadmap, Phase 8 |
+
+## Explicitly saved conversation text (2 October review branch)
+
+The founder authorized opt-in text with per-conversation deletion. The final recap
+page offers Save conversation text; it sends nothing before that deliberate tap.
+The client captures confirmed wire text in memory, including typed topics/replies and tutor coaching,
+separately from the last forty displayed turns. Recognition can differ from speech.
+The whole buffer becomes unavailable on overflow rather than silently truncating;
+leaving, scope reset and safety stops discard it. No audio, new model request or
+learning evidence is added by saving text. Losing the room before choosing Save
+loses this ephemeral copy.
+
+The authenticated caller owns every read, save and delete. Service-only SQL RPCs
+require an owned session-usage row and an agent-owned ready practice pack; safety
+stops produce no pack. A recap can arrive before those reports: the save retries
+three times at most while the owner still matches, then explains that preparation
+is pending and offers another deliberate attempt. The first accepted payload is
+immutable. Deletion blanks the payload and keeps a word-free session fence, so
+a delayed or retried save cannot restore the words. That marker is included in
+the account export and cascades with the account. Curated
+practice deletion and text deletion are explicitly separate choices.
+
+The library loads up to ten conversations per request with a timestamp/session cursor that keeps PostgreSQL microseconds intact. It uses exact range counts to expose older pages even when a database row cap returns fewer than requested. Account export reads all sixteen owned server tables in one service-only statement snapshot, separate from the Auth-admin account metadata. It checks row counts and bytes before building that snapshot and fails the whole preparation if a table exceeds ten thousand rows or the archive exceeds thirty-two megabytes. It has no partial-data fallback. Disposable SQL tests exercise ownership,
+completion proof, immutable retry, delete-before-save, save-before-delete, role
+permissions and cascade sequentially; concurrent live PostgreSQL and device QA
+remain unverified. The new migration has not been applied to a hosted database.
+
+### Confirmed service-failure settlement (3 October 2026, code only)
+
+Founder-approved rule: return only the affected session's actual charged seconds
+when a recognized terminal Luvani pipeline error ends a live session with its
+learner present. Ordinary exits, learner-side disconnects, time limits and safety
+stops retain their prior billing rules. Recoverable voice errors keep teaching.
+Refund records contain a closed failure kind and seconds, never raw vendor errors,
+learner words, recordings or a new transcript. Issued grants are separate from
+completed-session proof. Current-period credit, historical reversal, no charge,
+pending transport and legacy reconciliation have distinct acknowledgements.
+
+Prepared migration 20261002233520 has not been deployed. Hosted operation, native
+delivery and reconciliation of crashes before a failure report remain release
+checks. There is no implemented scheduled grant cleanup or durable failed-refund
+queue; do not promise automatic completion after a worker crash.
+
+On 3 October the founder approved saved-phrase audio ceilings of $0.02 lifetime
+trial, $0.20 paid-account per anchored thirty days and $10 app-wide per anchored
+thirty days. Prepared migration 26 enforces maxima without resetting spends.
+Generation remains disabled; these bounds do not verify actual vendor rates or
+playback and do not cap all live tutoring charges.
+
+
+### Default-off can-do and correction-repair TypeSafe purposes
+The conditional public notice now covers two additional purposes, both dark.
+The worker can-do reader sends only the authored can-do and at most eight exact
+accepted-goal fragments with transient source IDs. No account, session, name,
+profile or level goes to TypeSafe. Code selects the fixed outcome and projects
+one exact source only after this session's first independent complete win and
+strict pinned-model Choice distributions clear the report's 0.8 threshold. No
+transcript or achievement is added. Room exit and safety/service failure cancel it.
+The phone binds the result to the issued session, observed independent win and
+exact current learner line. No French calibration artifact is approved.
+
+The distinct Fix your line Noul sends only original, better and learner_retry,
+without the reason, level, account or profile. A pinned jev-1.13.0 finite Noul at
+least 0.9 can remove the correction brain call. Every uncertain/malformed/provider/
+timeout result preserves the same correction brain request; departure starts no
+fallback. Returned Jev usage is numeric/model-only and metered even if late.
+A separate default-zero switch and real-French approved artifact are required;
+approvedFixLineCalibration() returns null, so no normal request reaches TypeSafe.
+The public notice says today's direct model routing and the future conditional
+shortcut separately. No transcript, grade, recording or new table is written.
+Real French/ASR calibration and both vendors' retention/use remain unverified.
+
+
+### Default-off authored live correction reasons
+A third additional TypeSafe purpose, also dark, receives only a confirmed attempt
+fragment and its exact guarded correction. Closed authored reason IDs plus none
+are compared with strict complete Choice distributions under pinned jev-1.13.0.
+The report gives no threshold; an approved real-French artifact must supply it.
+No artifact exists. No account/session/profile/level goes to TypeSafe, and no
+new durable record is written. Issued-session, published view ID/index and exact
+pair bind the optional wire to an existing learner recast on the phone. The live
+Why? link appears only for accepted authored copy, never the generated why;
+existing recap/drill why remains unchanged. At most three optional requests per
+session, one active, with a 2.5-second bound. A newer input before the turn queue,
+finish, safety/service failure or room departure cancels it. Late results cannot
+publish, but returned usage is still metered. Cancelled TypeSafe retry waits
+check cancellation before sending again. Vendor retention remains unverified.

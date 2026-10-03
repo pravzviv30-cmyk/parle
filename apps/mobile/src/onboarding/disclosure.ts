@@ -70,6 +70,13 @@
  */
 
 import { DEFAULT_TUTOR_PERSONA, type TutorPersona } from '../tutor/tutorName.ts';
+import { isTutorVoiceKey, tutorVoice } from '@luvani/core';
+
+/** Name only a voice the learner has actually selected. */
+export function nameGreeting(selectedVoice: unknown): string {
+  const name = isTutorVoiceKey(selectedVoice) ? tutorVoice(selectedVoice).persona.name : 'Your tutor';
+  return `${name} greets you by name.`;
+}
 
 /**
  * The English pronouns a sentence about the tutor has to agree with.
@@ -122,7 +129,7 @@ export const VENDOR_PHRASE = 'speech and language services';
  */
 export function WELCOME_SUBLINE(persona: TutorPersona): string {
   const p = pronouns(persona);
-  return `${persona.name} is an AI tutor. ${p.Subject} talks with you in French, steps in when you stall, and never makes you feel silly.`;
+  return `${persona.name} is an AI tutor. ${p.Subject} helps you try a French conversation. You can ask for help, a slower reply or switch to typing.`;
 }
 
 /** The meet page: the one readiness screen, immediately before the chooser. */
@@ -165,12 +172,12 @@ export function MEET_AI(persona: TutorPersona): string {
  * the notice is a tap away in Settings for everything this does not say.
  */
 export function MEET_PRIVACY(persona: TutorPersona): string {
-  return `No person hears you. What you say goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`;
+  return `${persona.name} is an AI tutor, with no live human tutor in the room. Spoken or typed words are processed by ${VENDOR_PHRASE} to prepare replies and practice. Settings explains the providers, saved learning and deletion controls.`;
 }
 
 /** The save page also names the typed answers carried into the account. */
 export function SAVE_PRIVACY(persona: TutorPersona): string {
-  return `No person hears you. What you say and type, like your name and your goal, goes to ${VENDOR_PHRASE} so ${persona.name} can answer, and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you and keeping what you have learned.`;
+  return `After you start a task, ${VENDOR_PHRASE} process your spoken or typed words so ${persona.name} can answer and prepare practice. Your account stores your chosen plan and learning. Full conversation text is saved only if you choose it. Settings explains providers and data controls.`;
 }
 
 /**
@@ -285,7 +292,7 @@ export const VOICE_BODY =
   'Whoever you pick does the talking, in every conversation. The French you learn is the same either way, and so is the way it is taught.';
 
 /** The disclosure, on the page most likely to read as a cast list. */
-export const VOICE_AI = 'All eight are voices for one AI tutor. Tap the ear to hear one, tap a name to keep it.';
+export const VOICE_AI = 'These are voices for one AI tutor. Tap the ear to hear one, tap a name to keep it.';
 
 /** The way past, worded as an answer rather than as a deferral. */
 export const VOICE_SKIP = 'Skip for now';

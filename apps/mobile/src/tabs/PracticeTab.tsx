@@ -1,24 +1,9 @@
 /**
- * Practice — sound first, then what the learner's own conversations left.
- *
- * Notebook Phase 3 (2026-09-27) made sound the signature of this page. It opens
- * on "Your sound to tune": one sound named by its symbol and an example word,
- * the inventory's mouth cue, a bundled recording that says the word where one
- * exists, and a measured fact only when a check measured one
- * (`practice/soundLead.ts` decides all of it). Under it sits the recommended
- * card, whose preview line is never one the sitting asks for
- * (`practice/practiceCard.ts`), then the ways to practise as ledger rows, each
- * drawn only when it can start: replay a moment (only when its sitting would
- * hold something), make a phrase yours, and due review. The quiet doors are the
- * foot of the page.
- *
- * On day one there is nothing said yet, so the one pill is the guided lesson
- * that opens on "Bonjour", inside the sound block, with the shared line saying
- * it uses live minutes while the tutor is connected. The recommended card is
- * not drawn that day, so the page keeps one pill.
- *
- * This file is null gates and a stylesheet, the same shape `home/MomentumCards.tsx`
- * settled on, because a screen that can count is a screen that can draw a nought.
+ * Practice leads with one recommended action. Its preview stays outside the
+ * sitting's target set. A free local hear/say/compare door follows when the
+ * selected tutor has an exact bundled line. The authored or checked sound is a
+ * compact example below those actions; its full mouth guide is optional.
+ * Conversation-made rows and due review still appear only when usable.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -26,11 +11,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
+import { Card, FrenchBlock, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { PhraseCard } from '../surface/PhraseCard.tsx';
 import { UNREAD } from '../practice/archive.ts';
 import { ALTERNATIVES, PRACTICE_PURPOSE, PRACTICE_TITLE } from '../practice/copy.ts';
 import { NEXT_STEP } from '../practice/nextStep.ts';
@@ -43,10 +27,11 @@ import { recoverPracticeCompletion } from '../practice/completion.ts';
 import { loadPracticeSession, type PracticeSessionRecord } from '../practice/sessionStore.ts';
 import { resumableOf } from '../practice/opening.ts';
 import { practiceRouteParams } from '../practice/practiceRoute.ts';
-import { scopeGeneration } from '../storage/scope.ts';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { MADE_FROM, madeFromConversations, type MadeFrom } from '../practice/madeFrom.ts';
 import { STARTER } from '../practice/starter.ts';
 import { soundLead, type SoundLead } from '../practice/soundLead.ts';
+import { ownsPracticeRead, type PracticeReadOwner } from '../practice/readOwner.ts';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
 import { ReplayMomentCard } from '../practice/ReplayMomentCard.tsx';
 import { MakePhraseCard } from '../practice/MakePhraseCard.tsx';
@@ -61,6 +46,7 @@ import { loadPackMarks, withMarks, type PackMark } from '../conversationPacks/ma
 import { TUTOR_OFFLINE, lessonStart, tutorGate } from '../tutor/gate.ts';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
+import { shadowingPhrase } from '../daily/shadowing.ts';
 import { dailyTutorVoice } from '../daily/tutorAudio.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
@@ -74,6 +60,7 @@ export function PracticeTab() {
   // audio this page plays. Never another voice filling a gap.
   const voice = dailyTutorVoice(profile.tutorVoice);
   const recorded = useRecordedLine();
+  const shadowPhrase = shadowingPhrase(DAILY_ITEMS,TUTOR_DAILY_AUDIO,voice);
 
   // The one recommended action and the quiet doors under it, answered whole by
   // practice/practiceCard.ts over core's balanced selector. Null while storage
@@ -94,6 +81,12 @@ export function PracticeTab() {
   const [playing, setPlaying] = useState(false);
   // The read did not finish, and the learner is told so (F449).
   const [failed, setFailed] = useState(false);
+  const [readOwner, setReadOwner] = useState<PracticeReadOwner | null>(null);
+  const [failureOwner, setFailureOwner] = useState<PracticeReadOwner | null>(null);
+  const currentScope = scopeGeneration();
+  const ownerMatches = ownsPracticeRead(readOwner, currentScope, user?.id ?? null, activeUserId());
+  const showFailed = failed && ownsPracticeRead(failureOwner, currentScope, user?.id ?? null, activeUserId());
+  const ownsReadNow = () => ownerMatches && ownsPracticeRead(readOwner, scopeGeneration(), user?.id ?? null, activeUserId());
 
   // A voice started here stops when the tab goes.
   useEffect(() => () => tutorVoice.stop(), []);
@@ -106,9 +99,16 @@ export function PracticeTab() {
     (cancelled: () => boolean) => {
       const now = Date.now();
       setFailed(false);
+      setChecking(false);
+      setHeldBack(null);
+      setPlaying(false);
+      tutorVoice.stop();
+      recorded.stop();
       // Bound to the account before any read.
       const scope = scopeGeneration();
-      const stale = (): boolean => cancelled() || scopeGeneration() !== scope;
+      const userId = user?.id ?? null;
+      const capturedOwner = { scope, userId };
+      const stale = (): boolean => cancelled() || !ownsPracticeRead(capturedOwner, scopeGeneration(), userId, activeUserId());
 
       const draw = (
         fetched: readonly ConversationPack[],
@@ -127,6 +127,7 @@ export function PracticeTab() {
         setStep({ card, doors: practiceDoors({ deck, packs, now, revisitAllowed, revisitPackId }) });
         setMade({ value: madeFromConversations({ packs, marks, deck, checks, bank, now }) });
         setLead(soundLead({ checks, now, voice, recordings: TUTOR_DAILY_AUDIO, items: DAILY_ITEMS }));
+        setReadOwner({ scope, userId });
       };
 
       // A completion a previous launch left half-done lands first, then the
@@ -134,7 +135,7 @@ export function PracticeTab() {
       void recoverPracticeCompletion()
         .catch(() => null)
         .then(() =>
-          Promise.all([loadConversationPacks(), loadDeck(), loadDrillBank(), loadPackMarks(), loadSoundChecks(), loadPracticeSession()]),
+          Promise.all([loadConversationPacks(), loadDeck(), loadDrillBank(), loadPackMarks(), loadSoundChecks({ strict: true }), loadPracticeSession()]),
         )
         .then(([packs, deck, bank, marks, checks, saved]) => {
           if (stale()) return undefined;
@@ -150,10 +151,10 @@ export function PracticeTab() {
           });
         })
         .catch(() => {
-          if (!cancelled()) setFailed(true);
+          if (!stale()) { setFailureOwner({ scope, userId }); setFailed(true); }
         });
     },
-    [user, adapter, revisitAllowed, voice],
+    [user, adapter, revisitAllowed, voice, recorded.stop],
   );
 
   // Rebuilt on every return, so a conversation that just finished is here.
@@ -173,9 +174,10 @@ export function PracticeTab() {
    * is answered on the tab with the same start.
    */
   const startFirst = () => {
-    if (checking) return;
+    if (checking || !ownsReadNow()) return;
     setChecking(true);
     void recheck().then((answered) => {
+      if (!ownsReadNow()) return;
       setChecking(false);
       const decision = tutorGate(answered, false);
       if (!decision.go) {
@@ -185,6 +187,7 @@ export function PracticeTab() {
       setHeldBack(null);
       nav.navigate(decision.screen, decision.params);
     }).catch(() => {
+      if (!ownsReadNow()) return;
       setChecking(false);
       setHeldBack({ textMode: false });
     });
@@ -196,9 +199,10 @@ export function PracticeTab() {
    * is and on this phone when not, so it opens either way.
    */
   const openLesson = () => {
-    if (checking) return;
+    if (checking || !ownsReadNow()) return;
     setChecking(true);
     const go = () => {
+      if (!ownsReadNow()) return;
       setChecking(false);
       const start = lessonStart(false);
       nav.navigate(start.screen, start.params);
@@ -208,7 +212,7 @@ export function PracticeTab() {
 
   /** The one recommended action. A module sitting is local, so nothing is probed. */
   const startRecommended = () => {
-    if (step === null) return;
+    if (step === null || !ownsReadNow()) return;
     recorded.stop();
     const action = step.card.action;
     if (action.kind === 'lesson') return openLesson();
@@ -220,11 +224,13 @@ export function PracticeTab() {
 
   /** The tutor revisit, routed the way every continuation is. */
   const revisitWithTutor = (packId: string) => {
+    if (!ownsReadNow()) return;
     nav.navigate('Convo', { continuationPackId: packId });
   };
 
   /** Say the preview line, or stop saying it. */
   const hearNext = (french: string) => {
+    if (!ownsReadNow()) return;
     if (playing) {
       tutorVoice.stop();
       setPlaying(false);
@@ -237,22 +243,23 @@ export function PracticeTab() {
 
   /** Play the sound's recording, or stop it. Never the synthesiser. */
   const hearRecording = (asset: number) => {
+    if (!ownsReadNow()) return;
     tutorVoice.stop();
     setPlaying(false);
     recorded.toggle(asset);
   };
 
   // Day one is the model's answer: the card's action is the sound lesson.
-  const dayOne = step !== null && step.card.action.kind === 'lesson';
+  const dayOne = ownerMatches && step !== null && step.card.action.kind === 'lesson';
   // The ledger is drawn only when one of its rows can start.
   const rowsCanStart =
-    (made?.value?.replay != null && made.value.replay.sayable) ||
+    ownerMatches && ((made?.value?.replay != null && made.value.replay.sayable) ||
     made?.value?.phrase != null ||
-    (step !== null && step.doors.review !== null);
+    (step !== null && step.doors.review !== null));
 
   // The page's one primary action, built once. It sits in the sound block on
   // day one and in the recommended card on every other day, never both.
-  const primary = step === null ? null : (
+  const primary = !ownerMatches || step === null ? null : (
     <View style={st.firstStart}>
       {step.card.source !== null && <Text style={st.sourceLine}>{step.card.source}</Text>}
       <View style={st.action}>
@@ -274,7 +281,7 @@ export function PracticeTab() {
       bottom="tab"
       // The F154 checking receipt, kept in the frame header so a tap that waits
       // on the network stays acknowledged when the title scrolls away.
-      header={checking && (
+      header={ownerMatches && checking && (
         <Text
           accessibilityLiveRegion="polite"
           style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}
@@ -287,45 +294,38 @@ export function PracticeTab() {
         <TabHeader title={PRACTICE_TITLE} purpose={PRACTICE_PURPOSE} trailing={<ProfileButton />} />
 
         {/* The read did not finish. Said plainly, with the same work offered again. */}
-        {failed && (
+        {showFailed && (
           <View style={st.block}>
             <Card>
               <Text style={st.openingTitle}>{UNREAD.title}</Text>
               <Text style={st.openingBody}>{UNREAD.body}</Text>
               <View style={st.blockBody}>
-                <OutlineButton label={UNREAD.retry} onPress={() => load(() => false)} />
+                <OutlineButton label={UNREAD.retry} onPress={() => { if (ownsPracticeRead(failureOwner, scopeGeneration(), user?.id ?? null, activeUserId())) load(() => false); }} />
               </View>
             </Card>
           </View>
         )}
 
-        {/* Your sound to tune: the page's signature, and on day one its one action. */}
-        {lead !== null && (
+        {/* The exact next action stays in the first viewport, including on day one. */}
+        {ownerMatches && step !== null && (
           <View style={st.block}>
-            <TuneSoundCard
-              lead={lead}
-              playing={recorded.playing}
-              onHear={hearRecording}
-              onCheck={(missionId) => nav.navigate('SoundCheck', { missionId })}
-              control={dayOne ? primary : null}
-            />
+            <Card style={{ gap: space(4) }}>
+              <Label>{NEXT_STEP.label}</Label>
+              <FrenchBlock french={step.card.phrase.fr} english={step.card.phrase.en} playing={playing} onHear={() => hearNext(step.card.phrase.fr)} />
+              {primary}
+            </Card>
           </View>
         )}
 
         {/* One sentence, on day one only: what this page becomes. */}
         {dayOne && <Text style={st.starterLine}>{STARTER.line}</Text>}
 
-        {/* The recommended card, on every day but the first. */}
-        {step !== null && !dayOne && (
+        {shadowPhrase && <View style={st.block}><Ledger><LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Hear, say and compare" gloss="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={()=>nav.navigate('DailyPractice',{id:shadowPhrase.id,mode:'shadowing'})} /></Ledger></View>}
+
+        {/* The sound example follows the short action; its full guide is optional. */}
+        {ownerMatches && lead !== null && (
           <View style={st.block}>
-            <PhraseCard
-              label={NEXT_STEP.label}
-              french={step.card.phrase.fr}
-              gloss={step.card.phrase.en}
-              playing={playing}
-              onHear={() => hearNext(step.card.phrase.fr)}
-              control={primary}
-            />
+            <TuneSoundCard lead={lead} playing={recorded.playing} onHear={hearRecording} onCheck={(missionId) => { if (ownsReadNow()) nav.navigate('SoundCheck', { missionId }); }} />
           </View>
         )}
 
@@ -339,7 +339,8 @@ export function PracticeTab() {
               {made?.value?.replay != null && made.value.replay.sayable && (
                 <ReplayMomentCard
                   replay={made.value.replay}
-                  onTry={() =>
+                  onTry={() => {
+                    if (!ownsReadNow()) return;
                     nav.navigate('Drill', {
                       node: {
                         id: `replay:${made.value!.replay!.packId}`,
@@ -347,25 +348,25 @@ export function PracticeTab() {
                         phraseKeys: [made.value!.replay!.key],
                         moment: { quote: made.value!.replay!.quote, better: made.value!.replay!.better, why: made.value!.replay!.why },
                       },
-                    })
-                  }
+                    });
+                  }}
                 />
               )}
               {made?.value?.phrase != null && (
                 /* The own-words node the row builds, passed straight on (F581). */
-                <MakePhraseCard phrase={made.value.phrase} onSay={(node) => nav.navigate('Drill', { node })} />
+                <MakePhraseCard phrase={made.value.phrase} onSay={(node) => { if (ownsReadNow()) nav.navigate('Drill', { node }); }} />
               )}
               {step !== null && step.doors.review !== null && (
-                <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title={step.doors.review} onPress={() => nav.navigate('Review')} />
+                <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title={step.doors.review} onPress={() => { if (ownsReadNow()) nav.navigate('Review'); }} />
               )}
             </Ledger>
           </View>
         )}
 
         {/* The quieter doors at the foot, each only when it has something behind it. */}
-        {step !== null && (
+        {ownerMatches && step !== null && (
           <View style={st.doors}>
-            {step.doors.choose !== null && <GhostButton label={step.doors.choose} color={paper.ink} onPress={() => nav.navigate('Conversations')} />}
+            {step.doors.choose !== null && <GhostButton label={step.doors.choose} color={paper.ink} onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />}
             {step.doors.revisit !== null && (
               <View>
                 <GhostButton

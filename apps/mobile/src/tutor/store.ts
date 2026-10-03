@@ -17,7 +17,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /**
@@ -40,8 +40,9 @@ export async function markTutorIntroSeen(): Promise<void> {
   // Resolved before the await, not after: a sign-out that lands mid-write must
   // not mark the next learner as having seen an intro they have never seen.
   const key = userKey('tutorIntro');
+  const owner = scopeGeneration();
   try {
-    await AsyncStorage.setItem(key, SEEN);
+    await setItemInUserScope(owner, key, SEEN);
     markDirty('tutorIntro');
   } catch {
     // The learner may see it once more. Nothing is lost.
@@ -66,12 +67,14 @@ async function adoptTutorIntro(fold: SyncFold): Promise<SyncAdoption> {
   // Bound before the read, not after: a sign-out landing mid-adoption must not
   // redirect one learner's answer into the next learner's key.
   const key = userKey('tutorIntro');
+  const owner = scopeGeneration();
   const folded = fold(await readPersisted(key));
   if (folded === null || folded === undefined || folded === false || folded === 0) return 'declined';
   try {
-    await AsyncStorage.setItem(key, SEEN);
+    await setItemInUserScope(owner, key, SEEN);
   } catch {
-    // Storage full or unavailable. The next cycle hands the same fold back.
+    // Storage full, unavailable or stale. The next cycle may retry.
+    return 'declined';
   }
   return 'adopted';
 }
@@ -81,11 +84,12 @@ const COACH_MARKS_KEY = () => userKey('coachMarks');
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = COACH_MARKS_KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -137,13 +141,13 @@ export function loadSeenCoachMarks(): Promise<string[]> {
 
 /** Remember that a mark has been read. Idempotent. */
 export function markCoachMarkSeen(id: string): Promise<void> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     // Two marks can be dismissed in one beat, so this read-modify-write goes
     // through the chain: without it the second write loses the first one.
     const seen = await readSeen(key);
     if (seen.includes(id)) return;
     try {
-      await AsyncStorage.setItem(key, JSON.stringify([...seen, id]));
+      await setItemInUserScope(owner, key, JSON.stringify([...seen, id]));
       markDirty('coachMarks');
     } catch {
       // Storage full or unavailable. The mark may show once more, never twice
@@ -171,16 +175,17 @@ export function markCoachMarkSeen(id: string): Promise<void> {
  * `readSeen` keeps it — it belongs to a mark some other build showed.
  */
 function adoptCoachMarks(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const current = await readPersisted(key);
     const seen = idsOf(current);
     const folded = fold(current);
     if (!Array.isArray(folded)) return 'declined';
     const union = [...new Set([...seen, ...idsOf(folded)])].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(union));
+      await setItemInUserScope(owner, key, JSON.stringify(union));
     } catch {
-      // Storage full or unavailable. The next cycle hands the same fold back.
+      // Storage full, unavailable or stale. The next cycle may retry.
+      return 'declined';
     }
     return 'adopted';
   });

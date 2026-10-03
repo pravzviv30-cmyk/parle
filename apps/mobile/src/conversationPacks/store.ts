@@ -1,13 +1,14 @@
 /** Local cache for server-owned Conversation Packs. */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { readOwnedCache } from '../storage/ownedRead.ts';
 import { isConversationPack, normaliseConversationPacks, type ConversationPack } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { mergeExercises } from '../drill/store.ts';
 import { packExercisesFor, reviewPhrasesFor } from './packExercises.ts';
 import { addPhrases } from '../review/store.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
-import { activeUserId, onUserScopeReset, userKey } from '../storage/scope.ts';
+import { activeUserId, onUserScopeReset, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { orderedConversationPacks } from './model.ts';
 
 const VERSION = 1;
@@ -20,9 +21,10 @@ interface StoredConversationPacks {
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialised<T>(operation: (key: string) => Promise<T>): Promise<T> {
+function serialised<T>(operation: (key: string, owner: number) => Promise<T>): Promise<T> {
   const key = KEY();
-  const run = () => operation(key);
+  const owner = scopeGeneration();
+  const run = () => operation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => undefined);
   return next;
@@ -36,26 +38,17 @@ function readable(value: unknown): value is StoredConversationPacks {
 }
 
 async function read(key: string): Promise<ConversationPack[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    // Normalised here rather than by each reader. `isConversationPack` accepts
-    // a pack written before `topics` and `durationSec` existed, so the fields
-    // the type promises can be absent on anything already on disk. Paying that
-    // once at the boundary is what stopped Practice going blank on a real
-    // learner's phone (F449).
-    return readable(parsed) ? normaliseConversationPacks(orderedConversationPacks(parsed.packs)) : [];
-  } catch {
-    return [];
-  }
+  const raw = await AsyncStorage.getItem(key);
+  const parsed = readOwnedCache(raw, readable);
+  // Legacy valid packs still receive the established normalisation at this boundary.
+  return parsed === null ? [] : normaliseConversationPacks(orderedConversationPacks(parsed.packs));
 }
 
 /** Packs are server-owned, so a successful pull replaces a stale local view. */
 export function replaceConversationPacks(packs: readonly ConversationPack[]): Promise<void> {
-  return serialised(async (key) => {
+  return serialised(async (key, owner) => {
     const ordered = orderedConversationPacks(packs);
-    await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, packs: ordered } satisfies StoredConversationPacks));
+    await setItemInUserScope(owner, key, JSON.stringify({ version: VERSION, packs: ordered } satisfies StoredConversationPacks));
   });
 }
 
@@ -101,13 +94,13 @@ export async function refreshConversationPacks(
     // A disconnected recap can lose the phrase packet too. Restoring only the
     // exercises leaves Drill with no review cards to schedule. Merge by phrase
     // identity, with no invented conversation-use or mastery evidence.
-    await addPhrases(ordered.filter((pack) => pack.state === 'ready').flatMap(reviewPhrasesFor), { stagger: true });
+    if (await addPhrases(ordered.filter((pack) => pack.state === 'ready').flatMap(reviewPhrasesFor), { stagger: true }) !== 'durable') return { ok: false };
     if (activeUserId() !== user.id) return { ok: false };
-    await mergeExercises(ordered.flatMap((pack) => pack.exercises));
+    if (await mergeExercises(ordered.flatMap((pack) => pack.exercises)) !== 'durable') return { ok: false };
     // The repair and the repeats the server does not write (F553), keyed so
     // the bank folds them beside the server's own pairs rather than over them.
     if (activeUserId() !== user.id) return { ok: false };
-    await mergeExercises(ordered.flatMap(packExercisesFor));
+    if (await mergeExercises(ordered.flatMap(packExercisesFor)) !== 'durable') return { ok: false };
     return { ok: true, packs: ordered };
   } catch {
     return { ok: false };

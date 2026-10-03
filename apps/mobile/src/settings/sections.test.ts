@@ -155,9 +155,9 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     assert.match(PROFILE, /label=\{SETTINGS_ROW\}/, 'Profile draws no Settings row, so everything that moved is unreachable');
     assert.match(PROFILE, /value=\{SETTINGS_ROW_SUB\}/, 'the Settings row does not say what is behind it');
     assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
-    assert.equal((PROFILE.match(/<Label>/g) ?? []).length, 3, 'Profile draws a caps label it did not before, or lost one');
+    assert.equal((PROFILE.match(/<Label>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
     assert.match(PROFILE, /<Label>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=/, 'the tutor block lost its heading or its card');
-    assert.match(PROFILE, /<Label>\{RHYTHM_LABEL\}<\/Label>\s*<FrenchLifeCard \/>/, 'the rhythm block lost its heading or its week');
+    assert.doesNotMatch(PROFILE, /<FrenchLifeCard|<Label>\{RHYTHM_LABEL\}/, 'Profile must leave weekly days to the later evidence stage');
     assert.ok(
       PROFILE.lastIndexOf('<Label>') < PROFILE.lastIndexOf('<Card'),
       'the Settings row has a caps label over it, which says the same word twice',
@@ -287,7 +287,7 @@ describe('the Settings screen is one push away — F473', () => {
     // per refused permission under Phone, Contact and the intro under Help, and
     // three documents under About. A row added or lost is a change to what this
     // screen is, and it should be read here rather than slipping under a `>=`.
-    assert.equal(rows.length, 14, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
+    assert.equal(rows.length, 16, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
     for (const row of rows) {
       assert.doesNotMatch(row, /label="/, `a Settings row spells its label in JSX: ${row.split('\n')[0]}`);
       assert.match(row, /label=\{/, `a Settings row has no label at all: ${row.split('\n')[0]}`);
@@ -462,9 +462,10 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // And nothing says anything outside a card. The export refusal was a Card
     // of its own at the foot of the file, below the version line, which is how
     // a tap on the row above it read as dead.
-    let loose = LIST;
+    let loose = LIST.slice(0, LIST.indexOf('<BottomSheet visible={sheet === \'export\'}'));
+    assert.ok(LIST.includes('<BottomSheet visible={sheet === \'export\'}'), 'export confirmation sheet is missing');
     for (const card of CARDS) loose = loose.replace(card, '');
-    for (const [line] of LINES) {
+    for (const [line] of LINES.filter(([line]) => line !== 'reminderTrouble')) {
       assert.ok(
         !loose.includes(line),
         `${line} is drawn somewhere on Settings that is not the card its control is in`,
@@ -474,10 +475,11 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // The export line clears before each new attempt, the way the two doors out
     // of the app already do. A stale reason over a fresh Preparing is a screen
     // reporting on the wrong tap.
-    const ask = SETTINGS.slice(SETTINGS.indexOf('const askForMyData'), SETTINGS.indexOf('const writeTo'));
-    writtenBefore(ask, 'setExportTrouble(null)', 'downloadAccountData(', 'the export refusal survives into the next attempt');
+    const ask = SETTINGS.slice(SETTINGS.indexOf('const prepareMyData'), SETTINGS.indexOf('const writeTo'));
+    writtenBefore(ask, 'setExportTrouble(null)', 'downloadVerifiedAccountData(', 'the export refusal survives into the next attempt');
     assert.match(ask, /if \(!result\.ok\) setExportTrouble\(result\.message\)/, 'a refused export says nothing at all');
-    assert.ok(!ask.includes('setSheet('), 'a refused export still opens a sheet instead of answering in its own card');
+    assert.match(ask, /if \(adapter\.kind === 'mock'\) \{ prepareMyData\(\); return; \}/);
+    assert.match(ask, /setSheet\('export'\)/, 'sensitive data export never asks for confirmation');
   });
 
   test('a refusal never leaves the hardware back holding a card nobody saw', () => {
@@ -490,7 +492,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // voice-circle intro, which was a row on Profile, and the reminder's four
       // presets, which were a sheet on Profile (F576). Both take the screen for
       // the same reason the other four do.
-      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete'],
+      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export'],
       'the sheet union names something other than the six views that take the whole screen',
     );
     assert.ok(!SETTINGS.includes('unavailable'), 'the export refusal is a sheet again, which is where F489 started');
@@ -499,17 +501,16 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // there is no such thing as an open sheet the learner cannot see. That is
     // the fix by construction: a card drawn at the foot of a scroll could be
     // open and invisible, and an early return cannot.
-    for (const member of members.filter((m) => m !== 'none')) {
+    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export')) {
       assert.ok(
         SETTINGS.includes(`if (sheet === '${member}')`),
         `the ${member} sheet is not an early return, so it can be open while the learner is looking at something else`,
       );
     }
-    assert.doesNotMatch(
-      LIST,
-      /sheet === '/,
-      'the settings list draws something on a sheet condition, so a sheet can be open below the fold',
-    );
+    assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'export'\} title="Download your data" onClose=\{closeCurrentSheet\}/);
+    assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\} title=\{REMINDER_TIME_TITLE\}/);
+    assert.match(SETTINGS, /onClose=\{\(\) => setSheet\('none'\)\}/);
+
 
     // And the hardware back answers exactly the ones this screen draws itself.
     // The four that render their own screens answer their own press (F319), and
@@ -523,7 +524,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // The reminder presets joined the delete confirmation with revamp A. It
       // is an ordinary `ScrollScreen` drawn by this file with no hook of its
       // own, so this screen's hook is the only thing that can close it.
-      ['reminderTime', 'delete'],
+      ['reminderTime', 'delete', 'export'],
       'the hardware back is answered for a sheet this screen does not draw in place, so a press is eaten',
     );
     // The four that stand it down are exactly the four that bring their own

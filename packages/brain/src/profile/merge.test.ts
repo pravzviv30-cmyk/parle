@@ -66,7 +66,7 @@ function chain(stored: unknown, now: number): Record<string, unknown> | null {
     tutorVoice: (version === 6 || version === 7 || version === 8) && isTutorVoiceKey(r.tutorVoice) ? r.tutorVoice : null,
     preferTyping: (version === 7 || version === 8) && r.preferTyping === true,
     // v8's two lists, read only from a v8 blob's own slot, as upgrade.ts does.
-    forgottenFacts: version === 8 ? strings(r.forgottenFacts, 40) : [],
+    forgottenFacts: version === 8 ? strings(r.forgottenFacts, Number.MAX_SAFE_INTEGER) : [],
     learnerGoals: version === 8 ? strings(r.learnerGoals, 3) : [],
     onboardedAt: typeof r.onboardedAt === 'number' ? r.onboardedAt : now,
     username: typeof r.username === 'string' ? r.username : null,

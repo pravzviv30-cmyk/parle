@@ -348,3 +348,11 @@ export function PostcardGlyph(props: GlyphProps) {
     </Glyph>
   );
 }
+
+/** ICONS.md `mouth`: sound practice that stays yours. */
+export function MouthGlyph(props: GlyphProps) {
+  return <Glyph {...props}>
+    <Path d="M3.5 12c3-3.5 5.5-5 7-5 1 0 1.5 1.2 1.5 1.2S12.5 7 13.5 7c1.5 0 4 1.5 7 5-3 3.5-5.5 5-8.5 5S6.5 15.5 3.5 12Z" />
+    <Path d="M3.5 12c3 1 5.8 1.5 8.5 1.5s5.5-.5 8.5-1.5" />
+  </Glyph>;
+}

@@ -14,6 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { readOwnedCache } from '../storage/ownedRead.ts';
 import {
   applyGrade,
   buildCardsFromSummary,
@@ -31,7 +32,7 @@ import {
   type SessionSummary,
 } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, scopeGeneration, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, userKey, setItemInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -53,32 +54,20 @@ onUserScopeReset(() => {
   caches.clear();
 });
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
 }
 
 async function readDeck(key: string): Promise<ReviewCard[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    // Every element checked, not just the array. This used to be a bare
-    // `as ReviewCard[]`, so one malformed entry travelled into `dueCards`,
-    // `evidenceOf` and every screen that folds the deck, and threw there
-    // instead of here. A screen that throws inside a promise chain goes blank
-    // and says nothing, which is how F449 reached a real phone.
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isCard);
-  } catch {
-    // A corrupt deck is not worth crashing over. Start fresh.
-    return [];
-  }
+  const raw = await AsyncStorage.getItem(key);
+  return readOwnedCache(raw, isDeck) ?? [];
 }
 
 /**
@@ -91,25 +80,29 @@ async function readDeck(key: string): Promise<ReviewCard[]> {
  * learner who cleared theirs.
  */
 async function persistedDeck(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    // Unreadable is the same as absent here: the fold merges against nothing
-    // and the account's deck is adopted whole, which is what a fresh device does.
-    return null;
-  }
+  return readOwnedCache(await AsyncStorage.getItem(key), isDeck);
 }
 
 /** The least a card must be to have an identity the merge can carry. */
 function isCard(value: unknown): value is ReviewCard {
-  return typeof value === 'object' && value !== null && typeof (value as ReviewCard).id === 'string';
+  if (typeof value !== 'object' || value === null) return false;
+  const card = value as ReviewCard;
+  return typeof card.id === 'string' && ['vocab', 'turn', 'phoneme'].includes(card.kind)
+    && [card.front, card.back, card.context, card.ipa].every(text => typeof text === 'string')
+    && [card.due, card.intervalDays, card.ease, card.reps, card.lapses].every(number => typeof number === 'number' && Number.isFinite(number));
+}
+
+function isDeck(value: unknown): value is ReviewCard[] {
+  return Array.isArray(value) && value.every(isCard);
 }
 
 function loadDeckFor(key: string): Promise<ReviewCard[]> {
   const cached = caches.get(key);
   if (cached) return cached;
-  const pending = readDeck(key);
+  const pending = readDeck(key).catch(error => {
+    if (caches.get(key) === pending) caches.delete(key);
+    throw error;
+  });
   caches.set(key, pending);
   return pending;
 }
@@ -128,11 +121,12 @@ export function loadDeck(): Promise<ReviewCard[]> {
  * — a flag raised for a write that then failed would push whatever happened to
  * be on disk, which is the previous value.
  */
-async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteOrigin): Promise<PersistAck> {
+async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteOrigin, owner: number): Promise<PersistAck> {
+  if (owner !== scopeGeneration()) return 'failed';
   const next = [...deck];
   caches.set(key, Promise.resolve(next));
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(next));
+    await setItemInUserScope(owner, key, JSON.stringify(next));
     if (origin === 'local') markDirty('review');
     return 'durable';
   } catch {
@@ -157,10 +151,10 @@ async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteO
  * but nothing downstream can retry a failure it was never told about.
  */
 export function addFromSummary(summary: SessionSummary): Promise<PersistAck> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const existing = await loadDeckFor(key);
     const incoming = buildCardsFromSummary(summary, LESSONS, Date.now());
-    return saveDeck(key, mergeCards(existing, incoming), 'local');
+    return saveDeck(key, mergeCards(existing, incoming), 'local', owner);
   });
 }
 
@@ -247,9 +241,9 @@ export async function addPhrases(
   // answer is durable: no disk was asked for anything and none refused.
   if (incoming.length === 0 && uses.length === 0) return 'durable';
   if (opts.stagger) incoming = staggerNewCards(incoming, now);
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const existing = await loadDeckFor(key);
-    return saveDeck(key, foldConvoUses(mergeCards(existing, incoming), uses), 'local');
+    return saveDeck(key, foldConvoUses(mergeCards(existing, incoming), uses), 'local', owner);
   });
 }
 
@@ -279,13 +273,13 @@ export function gradeCard(id: string, grade: ReviewGrade, context: GradeContext 
  * only copy of a conversation.
  */
 export function gradeCards(grades: readonly CardGrade[]): Promise<ReviewCard[]> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     let updated = await loadDeckFor(key);
     const now = Date.now();
     for (const { id, grade, ...context } of grades) {
       updated = updated.map((card) => (card.id === id ? applyGrade(card, grade, now, context) : card));
     }
-    await saveDeck(key, updated, 'local');
+    await saveDeck(key, updated, 'local', owner);
     return updated;
   });
 }
@@ -327,18 +321,10 @@ function scheduleFingerprint(card: ReviewCard): string {
 
 /** The deck exactly as the disk holds it, or null when the disk cannot be read. */
 async function durableDeck(key: string): Promise<ReviewCard[] | null> {
-  let raw: string | null;
   try {
-    raw = await AsyncStorage.getItem(key);
+    return await readDeck(key);
   } catch {
     return null;
-  }
-  if (!raw) return [];
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isCard) : [];
-  } catch {
-    return [];
   }
 }
 
@@ -348,7 +334,7 @@ async function durableDeck(key: string): Promise<ReviewCard[] | null> {
  * planned. Pure with respect to the deck: nothing is written.
  */
 export function planPracticeGrades(grades: readonly CardGrade[], at: number): Promise<PlannedPracticeGrade[] | null> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const deck = await durableDeck(key);
     if (deck === null) return null;
     return grades.map(({ id, grade, transfer }) => {
@@ -379,7 +365,7 @@ export function planPracticeGrades(grades: readonly CardGrade[], at: number): Pr
  */
 export function applyPracticeGrades(plan: readonly PlannedPracticeGrade[], at: number): Promise<PracticeGradeReport> {
   const generation = scopeGeneration();
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const report: PracticeGradeReport = { ack: 'durable', applied: [], alreadyApplied: [], skipped: [] };
     const deck = await durableDeck(key);
     if (deck === null) return { ...report, ack: 'failed' };
@@ -406,7 +392,7 @@ export function applyPracticeGrades(plan: readonly PlannedPracticeGrade[], at: n
     if (graded.size === 0) return report;
     if (scopeGeneration() !== generation) return { ...report, ack: 'failed', applied: [], skipped: [...report.skipped, ...report.applied] };
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(next));
+      await setItemInUserScope(owner, key, JSON.stringify(next));
     } catch {
       // The cache is deliberately NOT given these grades. A cached grade the
       // disk never took would be persisted by the next ordinary write, outside
@@ -447,12 +433,12 @@ export async function dueCount(now = Date.now()): Promise<number> {
  * two cards' scheduling survives is core's job, not this store's.
  */
 function adoptDeck(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const folded = fold(await persistedDeck(key));
     // Validated the way anything off disk is: the fold merged in a payload
     // another device wrote, on a build this one has never seen.
-    if (!Array.isArray(folded)) return 'declined';
-    await saveDeck(key, folded.filter(isCard), 'adopted');
+    if (!isDeck(folded)) return 'declined';
+    if (await saveDeck(key, folded, 'adopted', owner) !== 'durable') return 'declined';
     return 'adopted';
   });
 }

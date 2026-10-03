@@ -778,15 +778,17 @@ describe('the B parts keep their promises — F597', () => {
 
   test('a sheet rises from the bottom under an ink scrim, is modal, and closes from the scrim', () => {
     const sheet = part('Sheet');
-    assert.match(sheet, /if \(!visible\) return null/, 'a hidden sheet still mounts');
-    assert.match(sheet, /accessibilityViewIsModal/, 'the sheet is not modal, so a screen reader walks into the screen under it');
-    assert.match(sheet, /backgroundColor: paper\.ink, opacity: 0\.45/, 'the scrim is not ink at 0.45');
-    assert.match(sheet, /accessibilityLabel="Close"\s+onPress=\{onClose\}/, 'the scrim does not close the sheet, or says nothing when it does');
-    assert.match(sheet, /borderTopLeftRadius: radius\.feature/, 'the panel\'s top corners are not the feature radius');
-    assert.match(sheet, /accessibilityRole="header"/, 'the sheet\'s title is not a heading');
-    assert.doesNotMatch(sheet, /#[0-9A-Fa-f]{6}\b|rgba\(/, 'the sheet spells a raw colour; palette.ts is the only file with one');
-    const panel = region(componentsSource(), '  sheetOverlay: {', '  grabber:');
-    assert.match(panel, /justifyContent: 'flex-end'/, 'the sheet does not rise from the bottom');
+    assert.match(sheet, /<Modal visible=\{visible\} transparent animationType="none" onRequestClose=\{onClose\}/);
+    assert.match(sheet, /accessibilityViewIsModal/);
+    assert.match(sheet, /onAccessibilityEscape=\{onClose\}/);
+    assert.match(sheet, /accessibilityRole="header"/);
+    assert.match(sheet, /accessibilityLabel="Close" onPress=\{onClose\}/);
+    assert.match(sheet, /backgroundColor: paper.ink, opacity: 0.45/);
+    assert.match(sheet, /Math.max\(insets.bottom, space\(6\)\)/);
+    assert.match(sheet, /<ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"/);
+    assert.match(sheet, /\{footer\}/);
+    assert.doesNotMatch(sheet, /#[0-9A-Fa-f]{6}|Animated.spring/);
+    assert.match(region(componentsSource(), '  sheetOverlay: {', '  grabber:'), /justifyContent: 'flex-end'/);
   });
 
   test('a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line', () => {

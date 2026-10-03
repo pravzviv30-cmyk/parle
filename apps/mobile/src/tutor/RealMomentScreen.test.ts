@@ -41,6 +41,15 @@ function at(marker: string): number {
 }
 
 describe('a real moment says what the plan allows before the learner fills anything in', () => {
+  test('saved moments stay account scoped and a failed read offers retry rather than an empty list', () => {
+    assert.match(SCREEN, /const generation = scopeGeneration\(\);/);
+    assert.match(SCREEN, /const userId = user\?\.id \?\? null;/);
+    assert.match(SCREEN, /setMomentsRead\('unread'\)/);
+    assert.match(SCREEN, /momentsOwner\?\.generation === scopeGeneration\(\) && momentsOwner\.userId === \(user\?\.id \?\? null\)/);
+    assert.match(RENDER, /momentsStatus === 'unread' &&/);
+    assert.match(RENDER, /label="Try loading saved moments again"/);
+    assert.match(RENDER, /visibleMoments\.length > 0/);
+  });
   test('the plan notice, the upgrade line and the one door to plans come before the situation list and the form', () => {
     const list = at('REAL_MOMENTS.map(');
     assert.ok(at('{MAX_ONLY_LINE}') < list, 'the Max requirement is only said after the situations');

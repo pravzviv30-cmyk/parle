@@ -1,0 +1,217 @@
+{
+  "startedAt": "2026-10-02T20:48:05.611Z",
+  "syntheticOnly": true,
+  "scope": "typed correction fallback smoke; not Jev calibration, ASR, pronunciation or native acceptance",
+  "results": [
+    {
+      "id": "same-meaning-still-gender-error",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1516,
+      "verdict": {
+        "fixed": false,
+        "hint": "Use the feminine article \"une\" with \"baguette\""
+      },
+      "usage": {
+        "inputTokens": 379,
+        "outputTokens": 34,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "gender-fixed-nonverbatim",
+      "expected": true,
+      "pass": true,
+      "elapsedMs": 1628,
+      "verdict": {
+        "fixed": true,
+        "hint": null
+      },
+      "usage": {
+        "inputTokens": 384,
+        "outputTokens": 22,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "target-avoided",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1643,
+      "verdict": {
+        "fixed": false,
+        "hint": "Use the feminine article with \"baguette\": \"une\""
+      },
+      "usage": {
+        "inputTokens": 378,
+        "outputTokens": 34,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "unrelated-french",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1471,
+      "verdict": {
+        "fixed": false,
+        "hint": "Use the feminine article with « baguette »."
+      },
+      "usage": {
+        "inputTokens": 379,
+        "outputTokens": 31,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "english-retry",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1285,
+      "verdict": {
+        "fixed": false,
+        "hint": "Use the feminine article \"une\" with \"baguette\""
+      },
+      "usage": {
+        "inputTokens": 380,
+        "outputTokens": 34,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "same-age-error",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1977,
+      "verdict": {
+        "fixed": false,
+        "hint": "Try the corrected part once more."
+      },
+      "usage": {
+        "inputTokens": 378,
+        "outputTokens": 31,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "age-fixed-nonverbatim",
+      "expected": true,
+      "pass": true,
+      "elapsedMs": 1145,
+      "verdict": {
+        "fixed": true,
+        "hint": null
+      },
+      "usage": {
+        "inputTokens": 378,
+        "outputTokens": 22,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "age-error-plus-unrelated-edit",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1307,
+      "verdict": {
+        "fixed": false,
+        "hint": "Use the verb from the correction to express your age"
+      },
+      "usage": {
+        "inputTokens": 379,
+        "outputTokens": 31,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "plain-apostrophe-target-fixed",
+      "expected": true,
+      "pass": true,
+      "elapsedMs": 1199,
+      "verdict": {
+        "fixed": true,
+        "hint": null
+      },
+      "usage": {
+        "inputTokens": 377,
+        "outputTokens": 22,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "instruction-in-retry",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 1193,
+      "verdict": {
+        "fixed": false,
+        "hint": "Use the verb from the correction to express age"
+      },
+      "usage": {
+        "inputTokens": 380,
+        "outputTokens": 30,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "thin-no-demonstrated-error",
+      "expected": null,
+      "pass": true,
+      "elapsedMs": 1031,
+      "verdict": null,
+      "usage": {
+        "inputTokens": 365,
+        "outputTokens": 22,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "model": "gpt-5.6-luna"
+      }
+    },
+    {
+      "id": "ambiguous-recognition",
+      "expected": null,
+      "pass": true,
+      "elapsedMs": 1018,
+      "verdict": null,
+      "usage": {
+        "inputTokens": 372,
+        "outputTokens": 50,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 26,
+        "model": "gpt-5.6-luna"
+      }
+    }
+  ]
+}

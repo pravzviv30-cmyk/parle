@@ -39,12 +39,20 @@ let activeUid: string | null = null;
  * stores do; older stores keep their own behaviour.
  */
 let generation = 0;
+let resetsInProgress = 0;
 
 /** Module-level caches (e.g. the drill bank) register to drop on account switch. */
 const resetHooks: (() => void)[] = [];
+const cleanupHooks: (() => Promise<void>)[] = [];
 
-export function onUserScopeReset(hook: () => void): void {
+/** Sensitive file cleanup is awaited on account deletion, unlike cache invalidation. */
+export function onUserScopeCleanup(hook: () => Promise<void>): void {
+  cleanupHooks.push(hook);
+}
+
+export function onUserScopeReset(hook: () => void): () => void {
   resetHooks.push(hook);
+  return () => { const index = resetHooks.indexOf(hook); if (index >= 0) resetHooks.splice(index, 1); };
 }
 
 export function setActiveUser(uid: string | null): void {
@@ -57,6 +65,28 @@ export function setActiveUser(uid: string | null): void {
 /** See `generation`. Read it when work is enqueued; compare it before the write. */
 export function scopeGeneration(): number {
   return generation;
+}
+
+// Reset must remove data after opted-in disk writes, including a write that
+// crossed the native bridge before the generation changed.
+const pendingScopeWrites = new Set<Promise<unknown>>();
+export async function writeInUserScope(owner: number, write: () => Promise<void>): Promise<boolean> {
+  if (resetsInProgress > 0 || owner !== generation) return false;
+  const pending = write();
+  pendingScopeWrites.add(pending);
+  try {
+    await pending;
+    return owner === generation;
+  } finally {
+    pendingScopeWrites.delete(pending);
+  }
+}
+
+/** Native account writes participate in deletion's drain and reject stale work. */
+export async function setItemInUserScope(owner: number, key: string, value: string): Promise<void> {
+  if (!(await writeInUserScope(owner, () => AsyncStorage.setItem(key, value)))) {
+    throw new Error('Account storage scope changed');
+  }
 }
 
 export function activeUserId(): string | null {
@@ -123,6 +153,8 @@ export const USER_KEY_SUFFIXES = [
   // A queue that survived a data reset would ask the engine to push namespaces
   // the learner just cleared.
   'syncState',
+  // A checkout fence contains only the selected store product and paid plan.
+  'pendingPurchase',
 ] as const;
 
 /**
@@ -176,6 +208,7 @@ export async function clearActiveUserData(hooks: ClearHooks = {}): Promise<void>
   if (uid === null) return;
   // Before any await: a write enqueued before the reset must not land after it.
   generation += 1;
+  resetsInProgress += 1;
   try {
     const sweep = hooks.sweepAudio ?? sweepAttemptAudio;
     const alarm = hooks.alarm ?? ((line: string): void => console.error(line));
@@ -184,8 +217,15 @@ export async function clearActiveUserData(hooks: ClearHooks = {}): Promise<void>
     } catch {
       alarm(ATTEMPT_AUDIO_NOT_SWEPT);
     }
+    await Promise.allSettled([...pendingScopeWrites]);
+    const cleanup = await Promise.allSettled(cleanupHooks.map(hook => hook()));
     await AsyncStorage.multiRemove(USER_KEY_SUFFIXES.map((s) => `luvani.u.${uid}.${s}`));
+    const refused = cleanup.find(result => result.status === 'rejected');
+    if (refused?.status === 'rejected') throw refused.reason;
   } finally {
+    // Work begun while cleanup was awaiting must also be stale after it ends.
+    generation += 1;
+    resetsInProgress -= 1;
     for (const hook of resetHooks) hook();
   }
 }
@@ -220,6 +260,7 @@ export const RETIRED_DEVICE_KEYS = ['luvani.seenSplash.v1'] as const;
  * leaves data duplicated rather than lost.
  */
 export async function migrateLegacyStores(uid: string): Promise<void> {
+  const owner = scopeGeneration();
   try {
     const targets = LEGACY_KEYS.map(([, suffix]) => `luvani.u.${uid}.${suffix}`);
     const keys = [
@@ -256,7 +297,7 @@ export async function migrateLegacyStores(uid: string): Promise<void> {
 
     // Copy first, mark second, delete last. A crash can leave a harmless
     // duplicate, but never delete the learner's only copy.
-    await AsyncStorage.multiSet([...writes, [MIGRATED_MARKER, '1']]);
+    if (!(await writeInUserScope(owner, () => AsyncStorage.multiSet([...writes, [MIGRATED_MARKER, '1']])))) return;
     if (removals.length > 0) await AsyncStorage.multiRemove(removals);
   } catch {
     // Storage unavailable. The learner starts clean; nothing is corrupted.

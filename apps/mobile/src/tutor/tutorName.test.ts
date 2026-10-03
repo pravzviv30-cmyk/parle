@@ -62,6 +62,7 @@ import { choosingView, anythingGoes } from './choosingView.ts';
 import { rungLabel } from './rungLabel.ts';
 import { statusLine, momentAnswer } from '../practice/statusLine.ts';
 import {
+  nameGreeting,
   MEET_AI,
   MEET_PRIVACY,
   MEET_TITLE,
@@ -301,11 +302,8 @@ describe('onboarding introduces the voice already on the record — F300', () =>
     for (const call of ['{MEET_TITLE(persona)}', '{MEET_AI(persona)}', '{MEET_PRIVACY(persona)}', '{VOICE_SKIP_HINT(persona)}']) {
       assert.ok(FLOW.includes(call), `the flow renders ${call.slice(1, -2)} for somebody other than this learner`);
     }
-    assert.match(
-      FLOW,
-      /\$\{persona\.name\} greets you by name/,
-      'the name page tells a learner who already chose Céline that Luc greets them by name',
-    );
+    assert.ok(FLOW.includes('nameGreeting(voice ?? existing?.tutorVoice)'),
+      'the name page must follow the current choice, falling back to the stored selection');
 
     // The persona is read off the record, not off the picker on the last page.
     // `voice` moves under the learner's thumb; a skip writes nothing, so who
@@ -339,6 +337,15 @@ describe('onboarding introduces the voice already on the record — F300', () =>
     }
   });
 
+  test('the name greeting stays generic until a voice is chosen and follows every voice choice', () => {
+    for (const empty of [null, undefined, 'not-a-voice']) {
+      assert.equal(nameGreeting(empty), 'Your tutor greets you by name.');
+    }
+    for (const [key, entry] of Object.entries(TUTOR_VOICES)) {
+      assert.equal(nameGreeting(key), `${entry.persona.name} greets you by name.`);
+    }
+  });
+
   test('a first run has nobody on the record, so it still names the default on purpose', () => {
     // Byte for byte what onboarding has always said to somebody arriving with
     // no profile. `tutorPersonaOf` resolves null, undefined and a key the
@@ -350,19 +357,19 @@ describe('onboarding introduces the voice already on the record — F300', () =>
         MEET_AI(persona),
         `${TUTOR_NAME} is an AI tutor with a character we wrote for him. He helps you practise natural French, explains useful patterns, and builds on the learning you choose to save.`,
       );
-      assert.equal(
-        MEET_PRIVACY(persona),
-        `No person hears you. What you say goes to speech and language services so ${TUTOR_NAME} can answer, ` +
-          `and nothing about it goes anywhere for any purpose other than carrying a conversation, answering you ` +
-          `and keeping what you have learned.`,
-      );
+      const disclosure = MEET_PRIVACY(persona);
+      assert.ok(disclosure.startsWith(`${TUTOR_NAME} is an AI tutor`));
+      assert.match(disclosure, /no live human tutor in the room/);
+      assert.match(disclosure, /Spoken or typed words are processed by speech and language services/);
+      assert.match(disclosure, /Settings explains the providers, saved learning and deletion controls/);
+      assert.doesNotMatch(disclosure, /No person hears you|for any purpose other than/);
       assert.equal(
         VOICE_SKIP_HINT(persona),
         `You do not have to pick. Skip and you talk to ${TUTOR_NAME}, and you can change it in Profile whenever you like.`,
       );
       assert.equal(
         WELCOME_SUBLINE(persona),
-        `${TUTOR_NAME} is an AI tutor. He talks with you in French, steps in when you stall, and never makes you feel silly.`,
+        `${TUTOR_NAME} is an AI tutor. He helps you try a French conversation. You can ask for help, a slower reply or switch to typing.`,
       );
     }
 

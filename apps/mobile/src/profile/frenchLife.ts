@@ -19,7 +19,7 @@
  */
 
 /** Under the learner's own name, in the centred header: what this tab holds. */
-export const PROFILE_PURPOSE = 'Your tutor, your week and how you like to practise.';
+export const PROFILE_PURPOSE = 'Your tutor and how you like to practise.';
 
 /** Over the card that holds the tutor and what the tutor remembers. */
 export const TUTOR_LABEL = 'Your tutor';

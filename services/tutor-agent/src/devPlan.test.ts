@@ -228,10 +228,7 @@ describe('devPlan — the supervisor and the agent must agree', () => {
   });
 
   test('both brain selectors agree on claude-cli-all', () => {
-    // The fourth value the mirror was waiting for. It is the one where the
-    // right answer is "no key at all": the subscription answers through a
-    // binary on PATH, and Groq drops out of the picture entirely. A supervisor
-    // that demanded GROQ_API_KEY here would refuse to boot a stack that runs.
+    // The all-CLI conversation brain still depends on Groq for SDK lessons.
     const env = { ...AGENT_ENV, TUTOR_LLM: 'claude-cli-all', ANTHROPIC_API_KEY: '', GROQ_API_KEY: '' };
 
     assert.equal(selectedBrain(env), 'claude-cli-all');
@@ -240,8 +237,8 @@ describe('devPlan — the supervisor and the agent must agree', () => {
       .filter((gap) => gap.name.endsWith('_API_KEY'))
       .map((gap) => gap.name);
 
-    assert.deepEqual(agentWants, [], 'the agent asks for no brain credential');
-    assert.deepEqual(devWants, agentWants, 'and npm run dev asks for exactly the same nothing');
+    assert.deepEqual(agentWants, ['GROQ_API_KEY'], 'the agent requires the actual lesson pipeline credential');
+    assert.deepEqual(devWants, agentWants, 'and npm run dev agrees with the worker');
   });
 
   test('the supervisor and the agent preflight agree on which voice key LUVANI_TTS_VENDOR selects', () => {

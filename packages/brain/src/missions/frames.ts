@@ -64,7 +64,7 @@ const PREMIER_CAFE_FRAME: ScenarioFrame = {
     {
       id: 'say-where',
       goal: 'Dire si on le prend sur place',
-      goalEn: 'Say you will have it here',
+      goalEn: 'Say whether it is for here or to go',
     },
     {
       id: 'pay',

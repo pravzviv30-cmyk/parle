@@ -44,19 +44,19 @@ const learner = (): StoredProfile =>
   createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: null }, NOW);
 
 describe('the flexible speaking target, chosen where it is read — F368', () => {
-  test('the speaking target is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368', () => {
+  test('the routine can be set or cleared through the same profile write without changing live allowances', () => {
     // 1. Three options, and the minute counts the store's own union names. A
     //    fourth would not fit the track, and a value outside the union would be
     //    a write the store types reject.
-    assert.equal(GOALS.length, 3, 'a segmented control with a different number of segments is a different control');
-    assert.deepEqual(GOALS.map((g) => g.minutes), [5, 10, 15], 'the goal offers minutes the store cannot hold');
-    assert.deepEqual(GOALS.map((g) => g.label), ['Five', 'Ten', 'Fifteen'], 'the segments are not the three words');
+    assert.equal(GOALS.length, 4, 'the approved routine must include an explicit No target choice');
+    assert.deepEqual(GOALS.map((g) => g.minutes), [5, 10, 15, null], 'the goal offers minutes the store cannot hold');
+    assert.deepEqual(GOALS.map((g) => g.label), ['Five', 'Ten', 'Fifteen', 'No target'], 'the segments are not the three words');
     assert.deepEqual(
       GOALS.map((g) => g.gloss),
-      ['A quick speaking moment', 'Room for a full scene', 'A longer conversation'],
+      ['A quick speaking moment', 'Room for a full scene', 'A longer conversation', 'Practise when it suits you'],
       'the choices judge commitment instead of describing the size of a sitting',
     );
-    assert.equal(new Set(GOALS.map((g) => g.key)).size, 3, 'two segments share a key, so one of them cannot be chosen');
+    assert.equal(new Set(GOALS.map((g) => g.key)).size, 4, 'two segments share a key, so one of them cannot be chosen');
 
     // 2. Reading it. Never chosen is null rather than a default, because "has
     //    not been asked" and "asked for five" are different facts and the
@@ -64,7 +64,7 @@ describe('the flexible speaking target, chosen where it is read — F368', () =>
     assert.equal(dailyGoalOf(null), null, 'no profile at all resolves to a promise nobody made');
     assert.equal(dailyGoalOf(undefined), null);
     assert.equal(dailyGoalOf(learner()), null, 'a new learner arrives already committed to something');
-    assert.equal(goalKeyOf(learner()), null, 'the control would draw a pill over a choice nobody made');
+    assert.equal(goalKeyOf(learner()), 'none', 'the control would draw a pill over a choice nobody made');
     for (const junk of ['10', 0, 7, -5, null, {}, [10], true]) {
       const tampered = { ...learner(), dailyGoalMin: junk } as unknown as StoredProfile;
       assert.equal(dailyGoalOf(tampered), null, `${JSON.stringify(junk)} in the slot read as a real goal`);
@@ -79,16 +79,19 @@ describe('the flexible speaking target, chosen where it is read — F368', () =>
       assert.equal(goalKeyOf(set), option.key, `${option.label} is set and the control marks a different segment`);
       assert.equal(goalFor(option.key).minutes, option.minutes, 'a segment key resolves to a different number of minutes');
     }
+    const cleared = withDailyGoal(withDailyGoal(learner(), 15), null);
+    assert.equal(cleared.dailyGoalMin, null, 'No target does not clear an existing routine');
+    assert.deepEqual(cleared.brain, learner().brain, 'a preference creates learning evidence');
     const before = learner();
     withDailyGoal(before, 15);
     assert.equal(dailyGoalOf(before), null, 'the write mutated the profile it was handed');
 
     // 4. The line under the control. What is set, and what that means, in that
     //    order, because a learner scanning the card reads the first sentence.
-    assert.equal(goalLine(withDailyGoal(learner(), 10)), 'Ten minutes today. Room for a full scene.');
-    assert.equal(goalLine(withDailyGoal(learner(), 5)), 'Five minutes today. A quick speaking moment.');
+    assert.equal(goalLine(withDailyGoal(learner(), 10)), 'Ten minutes as a flexible routine. Local practice is free; connected tutor time uses live minutes.');
+    assert.equal(goalLine(withDailyGoal(learner(), 5)), 'Five minutes as a flexible routine. Local practice is free; connected tutor time uses live minutes.');
     assert.equal(goalLine(null), DAILY_GOAL_UNSET, 'a learner who has not chosen is told nothing about what to do');
-    assert.match(DAILY_GOAL_UNSET, /flexible speaking target/, 'the unset line makes the target sound compulsory');
+    assert.match(DAILY_GOAL_UNSET, /No fixed daily target/, 'the unset line makes the target sound compulsory');
 
     // 5. The copy. No digits anywhere a learner reads: the store holds five,
     //    ten and fifteen because minutes are a number, and the row says the
@@ -109,7 +112,7 @@ describe('the flexible speaking target, chosen where it is read — F368', () =>
         `"${line}" turns a promise into a debt`,
       );
     }
-    assert.equal(DAILY_GOAL_ROW, 'Speaking target', 'the row is named something onboarding.test.ts cannot find');
+    assert.equal(DAILY_GOAL_ROW, 'Flexible practice routine', 'the row is named something onboarding.test.ts cannot find');
 
     // 6. The wiring. There is no renderer in this suite, so the row is read out
     //    of the screen: the choice is on the card, it writes through the store's

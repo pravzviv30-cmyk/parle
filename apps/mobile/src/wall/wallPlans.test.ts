@@ -201,21 +201,25 @@ describe('plans read as conversations a week', () => {
 });
 
 describe('the wall is a page of the notebook', () => {
-  test('the plans are one card of ruled rows, with no highlighter, no whisper and no ring', () => {
+  test('the plans are separate chosen and unchosen cards with no highlighter or recommendation', () => {
     const page = code('./WallPlansPage.tsx');
-    assert.doesNotMatch(page, /\baccent\./, 'the plans page reaches for an accent; the chosen plan is said in ink');
-    assert.doesNotMatch(page, /\bshadow\./, 'the plans page spreads a shadow');
-    assert.doesNotMatch(page, /\bhighlight\b/, 'the plans page draws the highlighter, which is for French');
-    assert.equal((page.match(/<Card\b/g) ?? []).length, 1, 'the plans page is not one card');
-    assert.doesNotMatch(page, /<Art\b|SCREEN_ART/, 'the plans page draws a picture of a place it does not show');
-    assert.match(page, /HAIRLINE/, 'the plan rows are not ruled');
+    assert.equal((page.match(/rows.map\(/g) ?? []).length, 1);
+    assert.match(page, /<Press\s+haptic="selection"/);
+    assert.match(page, /style=\{\[st.row, chosen \? st.chosen : st.unchosen\]\}/);
+    assert.match(page, /chosen: \{ backgroundColor: colour.blue \}/);
+    assert.match(page, /unchosen: \{ backgroundColor: paper.card, borderWidth: 1, borderColor: paper.field \}/);
+    assert.match(page, /chosen && <CheckGlyph/);
+    assert.doesNotMatch(page, /recommended|best value|most popular|markDot|<Highlight|shadow/);
   });
 
   test('what you get is one card and ruled rows, with no place art', () => {
     const page = code('./WallYoursPage.tsx');
-    assert.equal((page.match(/<Card\b/g) ?? []).length, 1, 'what you get is not one card');
-    assert.doesNotMatch(page, /\baccent\.|\bshadow\.|\bhighlight\b|\btint\b/, 'what you get takes a colour it has no reason to');
-    assert.doesNotMatch(page, /<Art\b|SCREEN_ART/, 'what you get draws a picture of a place it does not show');
+    const screen = code('./WallScreen.tsx');
+    assert.equal((page.match(/<Ledger\b/g) ?? []).length, 1);
+    assert.match(page, /YOURS_ROWS.map/);
+    assert.match(page, /ADDS_ROWS.map/);
+    assert.doesNotMatch(page, /st.ruled|borderBottomWidth|<Art|<Illustration/);
+    assert.match(screen, /ground=\{page === 'yours' \? colour.sun : paper.ground\}/);
   });
 
   test('each plan says its conversations a week and its minutes, and the price is the store\'s', () => {
@@ -250,12 +254,11 @@ describe('the wall is a page of the notebook', () => {
 describe('a chosen plan says so to a screen reader', () => {
   test('the cards use the selected state this app already uses, not a radio', () => {
     const page = code('./WallPlansPage.tsx');
-    // OptionCard and TabBar both announce a chosen thing with a button role and a
-    // `selected` state. `accessibilityRole="radio"` with `checked` is not mapped
-    // by React Native Web, so both cards reported no state at all and a screen
-    // reader could not tell which plan was picked. Caught in a browser, not here.
+    assert.match(page, /accessibilityRole="button"/);
     assert.match(page, /accessibilityState=\{\{ selected: chosen \}\}/);
-    assert.doesNotMatch(page, /accessibilityRole="radio"/, 'the plan cards went back to a role that announces nothing');
-    assert.match(page, /accessibilityLabel=\{row\.name\}/, 'a plan card has no name for a screen reader');
+    assert.match(page, /aria-selected=\{chosen\}/);
+    assert.match(page, /accessibilityLabel=\{\[row.name,/);
+    assert.match(page, /`\$\{row.price\} per month`\].filter\(Boolean\)/, 'the spoken price includes its billing period');
+    assert.doesNotMatch(page, /accessibilityRole="radio"|checked:|markDot/);
   });
 });

@@ -14,6 +14,13 @@ test('Today keeps one next action: the next scene, recall, then a fresh scene', 
   assert.equal(homeActionFor({ ...hero, kind: 'today' }, 0, null), 'conversation');
 });
 
+test('an unavailable live tutor leads to an owned review or local phrase practice', () => {
+  const hero = fallbackHero();
+  assert.equal(homeActionFor(hero, 0, null, false), 'local');
+  assert.equal(homeActionFor(hero, 2, null, false), 'review');
+  assert.equal(homeActionFor(hero, 0, { plan: 'trial', reason: 'exhausted' }, false), 'local');
+});
+
 // Revamp B (F602): the trial's used minutes lead Home with the sun card, read
 // through the same billing call Speak makes. Only that one state does.
 test('the used free minutes lead Home with the plans card, ahead of review and the scene', () => {
@@ -25,11 +32,15 @@ test('the used free minutes lead Home with the plans card, ahead of review and t
   assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, spent), 'plans', 'recall stood in front of the used free minutes');
 
   // Every other billing answer leaves the old rule exactly as it was.
-  const plans: readonly Plan[] = ['trial', 'starter', 'regular'];
+  const plans = Object.keys(PLANS) as Plan[];
   const reasons: readonly (StartRefusal | null)[] = [null, 'exhausted', 'insufficient-for-session', 'subscription-lapsed'];
   for (const plan of plans) {
     for (const reason of reasons) {
-      if (plan === 'trial' && reason === 'exhausted') continue;
+      if (plan === 'trial' && (reason === 'exhausted' || reason === 'insufficient-for-session')) {
+        assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 12, { plan, reason }), 'plans');
+        assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, { plan, reason }), 'plans');
+        continue;
+      }
       const billing = { plan, reason };
       assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 12, billing), 'conversation', `${plan}/${reason} changed the scene lead`);
       assert.equal(homeActionFor({ ...hero, kind: 'today' }, 12, billing), 'review', `${plan}/${reason} changed the recall lead`);
@@ -40,8 +51,7 @@ test('the used free minutes lead Home with the plans card, ahead of review and t
   assert.equal(homeActionFor({ ...hero, kind: 'scene' }, 0, null), 'conversation');
 
   // The card's words: the trial's own minutes, what still works, what is kept.
-  assert.equal(PLANS_LEAD.title, `Your ${PLANS.trial.secondsPerPeriod / 60} free minutes are used.`);
-  assert.equal(PLANS_LEAD.title, 'Your 30 free minutes are used.', 'the trial changed length; check the card still reads true');
+  assert.equal(PLANS_LEAD.title, 'Ready for more speaking time?', 'the card must stay true even with a short amount remaining');
   assert.match(PLANS_LEAD.body, /offline/, 'the card no longer says what still works without minutes');
   assert.match(PLANS_LEAD.keeps, /stay yours/, 'the card no longer says the learner keeps what they made');
   assert.equal(PLANS_LEAD.action, 'See the plans');

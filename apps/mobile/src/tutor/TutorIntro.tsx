@@ -112,13 +112,13 @@ function pagesFor(persona: TutorPersona) {
   {
     key: 'after',
     title: 'Leave with something useful',
-    body: 'Your recap keeps the lines you said, one phrase to take with you and one sound, and says what comes next time. Saved phrases wait in My French.',
+    body: 'Your recap keeps the lines you said, one phrase to take with you and one sound, and says what comes next time. Saved phrases wait in Progress.',
     note: null,
   },
   {
     key: 'orb',
     title: 'The circle runs the room',
-    body: 'One circle tells you whose turn it is, in traffic lights. You never have to guess.',
+    body: 'The circle names whose turn it is, with a symbol as well as a colour.',
     note: null,
   },
   ] as const;
@@ -163,6 +163,6 @@ const st = StyleSheet.create({
   stateRow: { flexDirection: 'row', alignItems: 'center', gap: space(4), paddingVertical: space(2) },
   stateDivided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, marginTop: space(2) },
   stateWords: ROW_WORDS,
-  title: { ...type.display, color: paper.ink },
+  title: { ...type.title, color: paper.ink },
   body: { ...type.body, color: paper.inkSoft, marginTop: space(3) },
 });

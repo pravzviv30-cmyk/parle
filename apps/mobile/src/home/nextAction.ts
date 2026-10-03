@@ -6,7 +6,7 @@
  *
  * 1. `plans`, when the free trial's minutes are used. Revamp B draws this as
  *    the sun card on Home (HomeOutOfMinutes), read through the same billing
- *    call Speak makes. Only the trial's `exhausted` state leads with it: a paid
+ *    call Speak makes. A trial without enough time to start leads with it: a paid
  *    plan out of minutes, or a lapsed subscription, is F607's with revenue. An
  *    unknown plan (`billing` null: signed out, offline, or a read that failed)
  *    never leads with plans, because a purchase surface that guesses is the
@@ -22,7 +22,7 @@ import { PLANS, type Plan, type StartRefusal } from '@luvani/core';
 import type { HomeMission } from './homeMission.ts';
 
 /** The one lead Home draws. */
-export type HomeAction = 'plans' | 'review' | 'conversation';
+export type HomeAction = 'plans' | 'review' | 'conversation' | 'local';
 
 /** The part of the billing status this rule reads. `BillingStatus` fits it. */
 export interface HomeBilling {
@@ -30,8 +30,9 @@ export interface HomeBilling {
   reason: StartRefusal | null;
 }
 
-export function homeActionFor(hero: Pick<HomeMission, 'kind'>, dueCount: number, billing: HomeBilling | null): HomeAction {
-  if (billing?.plan === 'trial' && billing.reason === 'exhausted') return 'plans';
+export function homeActionFor(hero: Pick<HomeMission, 'kind'>, dueCount: number, billing: HomeBilling | null, live = true): HomeAction {
+  if (!live) return dueCount > 0 ? 'review' : 'local';
+  if (billing?.plan === 'trial' && (billing.reason === 'exhausted' || billing.reason === 'insufficient-for-session')) return 'plans';
   return hero.kind === 'today' && dueCount > 0 ? 'review' : 'conversation';
 }
 
@@ -44,7 +45,7 @@ export function homeActionFor(hero: Pick<HomeMission, 'kind'>, dueCount: number,
  * out of speaking time takes nothing they made away from them.
  */
 export const PLANS_LEAD = {
-  title: `Your ${PLANS.trial.secondsPerPeriod / 60} free minutes are used.`,
+  title: `Ready for more speaking time?`,
   body: 'Practice and review still work offline. When you want more conversations, a plan adds speaking time every month.',
   keeps: 'Your phrases, recaps and progress stay yours.',
   action: 'See the plans',

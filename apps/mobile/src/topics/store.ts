@@ -17,7 +17,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mergeTopics, type IncomingTopic, type PracticeTopic } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { readOwnedCache } from '../storage/ownedRead.ts';
+import { onUserScopeReset, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -35,28 +36,35 @@ interface StoredTopics {
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+interface Bound { key: string; generation: number }
+
+function serialized<T>(mutation: (bound: Bound) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
-  const key = KEY();
-  const run = () => mutation(key);
+  const bound = { key: KEY(), generation: scopeGeneration() };
+  const run = () => mutation(bound);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
 }
 
+function isTopic(value: unknown): value is PracticeTopic {
+  if (typeof value !== 'object' || value === null) return false;
+  const topic = value as Partial<PracticeTopic>;
+  return typeof topic.id === 'string' && topic.id.length > 0 &&
+    typeof topic.title === 'object' && topic.title !== null &&
+    typeof topic.title.fr === 'string' && typeof topic.title.en === 'string' &&
+    Array.isArray(topic.discussed) && topic.discussed.every(day => typeof day === 'string') &&
+    Array.isArray(topic.phraseKeys) && topic.phraseKeys.every(key => typeof key === 'string');
+}
+
+function isStoredTopics(value: unknown): value is StoredTopics {
+  return typeof value === 'object' && value !== null && (value as StoredTopics).version === VERSION &&
+    Array.isArray((value as StoredTopics).topics) && (value as StoredTopics).topics.every(isTopic);
+}
+
 async function readTopics(key: string): Promise<PracticeTopic[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<StoredTopics> | null;
-    if (!parsed || parsed.version !== VERSION || !Array.isArray(parsed.topics)) return [];
-    return parsed.topics;
-  } catch {
-    // A corrupt store is not worth crashing over. The topics rebuild from
-    // future sessions; the review deck underneath lost nothing.
-    return [];
-  }
+  return readOwnedCache(await AsyncStorage.getItem(key), isStoredTopics)?.topics ?? [];
 }
 
 /**
@@ -67,12 +75,7 @@ async function readTopics(key: string): Promise<PracticeTopic[]> {
  * an empty one. The merge policy works on the shape that is actually on disk.
  */
 async function persistedTopics(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  return readOwnedCache(await AsyncStorage.getItem(key), isStoredTopics);
 }
 
 export function loadTopics(): Promise<PracticeTopic[]> {
@@ -88,9 +91,11 @@ export function loadTopics(): Promise<PracticeTopic[]> {
  * gets back is the same fact in one word, so an outbox can tell a banked
  * session from a session that only looked banked.
  */
-async function saveTopics(key: string, topics: readonly PracticeTopic[], origin: WriteOrigin): Promise<PersistAck> {
+async function saveTopics(bound: Bound, topics: readonly PracticeTopic[], origin: WriteOrigin): Promise<PersistAck> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, topics: [...topics] } satisfies StoredTopics));
+    const written = await writeInUserScope(bound.generation, () =>
+      AsyncStorage.setItem(bound.key, JSON.stringify({ version: VERSION, topics: [...topics] } satisfies StoredTopics)));
+    if (!written) return 'failed';
     if (origin === 'local') markDirty('topics');
     return 'durable';
   } catch {
@@ -106,9 +111,9 @@ export function mergeSessionTopics(
 ): Promise<PersistAck> {
   // No topics is no write, and no write is nothing that can have been lost.
   if (incoming.length === 0) return Promise.resolve('durable');
-  return serialized(async (key) => {
-    const existing = await readTopics(key);
-    return saveTopics(key, mergeTopics(existing, incoming, discussedOn), 'local');
+  return serialized(async (bound) => {
+    const existing = await readTopics(bound.key);
+    return saveTopics(bound, mergeTopics(existing, incoming, discussedOn), 'local');
   });
 }
 
@@ -128,16 +133,11 @@ export function mergeSessionTopics(
  * about them and does not grow one here.
  */
 function adoptTopics(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persistedTopics(key));
-    if (typeof folded !== 'object' || folded === null) return 'declined';
-    const envelope = folded as Partial<StoredTopics>;
-    if (envelope.version !== VERSION || !Array.isArray(envelope.topics)) return 'declined';
-    const topics = envelope.topics.filter(
-      (topic): topic is PracticeTopic =>
-        typeof topic === 'object' && topic !== null && typeof (topic as PracticeTopic).id === 'string',
-    );
-    await saveTopics(key, topics, 'adopted');
+  return serialized(async (bound) => {
+    if (scopeGeneration() !== bound.generation) throw new Error('Topics account changed before adoption');
+    const folded = fold(await persistedTopics(bound.key));
+    if (!isStoredTopics(folded)) return 'declined';
+    if (await saveTopics(bound, folded.topics, 'adopted') !== 'durable') throw new Error('Topics adoption was not durable');
     return 'adopted';
   });
 }

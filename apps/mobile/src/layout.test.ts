@@ -201,7 +201,7 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
       'the leave word is not a right slot at the touch floor',
     );
     assert.match(header, /<View style=\{\{ minWidth: HIT \}\} \/>/, 'the right slot collapses when there is no leave control');
-    assert.match(header, /flex: 1, alignItems: 'center'/, 'the title is not the centred flex slot between the two');
+    assert.match(header, /flex: 1, alignItems: 'flex-start'/, 'the title is not the centred flex slot between the two');
     assert.doesNotMatch(header, /marginLeft: 'auto'/, 'the header still shoves the leave word with marginLeft:auto');
   });
 
@@ -328,7 +328,23 @@ describe('the tab title is the working title — F602', () => {
     // one header and does not ask to be centred.
     for (const tab of ['HomeTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
       const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
-      assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 1, `${tab} does not open on exactly one tab header`);
+      if (tab === 'TutorTab.tsx') {
+        const unreadStart = body.indexOf("if (renderHistoryStatus !== 'ready') return <ScrollScreen");
+        assert.notEqual(unreadStart, -1, 'Speak no longer separates loading or unread history from a ready conversation');
+        const unreadEnd = body.indexOf('</ScrollScreen>;', unreadStart);
+        assert.notEqual(unreadEnd, -1, 'Speak has no end to its loading and unread branch');
+        const readyStart = body.indexOf('\n  return (', unreadEnd);
+        assert.notEqual(readyStart, -1, 'Speak has no ready render branch');
+        const unread = body.slice(unreadStart, unreadEnd);
+        const ready = body.slice(readyStart);
+        for (const [state, branch] of [['loading or unread', unread], ['ready', ready]] as const) {
+          assert.equal((branch.match(/<TabHeader\b/g) ?? []).length, 1, `Speak draws other than one header when ${state}`);
+          assert.match(branch, /<TabHeader title=\{tutorHeading\(tutorName\)\}/, `Speak loses its working title when ${state}`);
+        }
+        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 2, 'Speak gained a header outside its mutually exclusive render branches');
+      } else {
+        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 1, `${tab} does not open on exactly one tab header`);
+      }
       assert.doesNotMatch(body, /<TabHeader\b[^>]*align="center"/, `${tab} centres its title, which only a tab that is a person does`);
     }
 

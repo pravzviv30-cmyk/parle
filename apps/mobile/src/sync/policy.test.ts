@@ -427,7 +427,7 @@ describe('the per-domain conflict policy — twenty-three namespaces, three clas
     // because a merged consent is a withdrawal that can come back on its own.
     assert.deepEqual(
       [...excluded].sort(),
-      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'packMarks', 'practiceSession', 'reminder', 'suggestions'],
+      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'suggestions'],
     );
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);

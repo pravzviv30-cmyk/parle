@@ -190,11 +190,11 @@ async function main() {
     );
   }
 
-  const childEnv = { ...process.env, LUVANI_AGENT_SECRET: secret.value, FORCE_COLOR: '1' };
+  const childEnv = { ...process.env, LUVANI_TYPED_ONLY: agentEnv.LUVANI_TYPED_ONLY === '1' ? '1' : '0', LUVANI_AGENT_SECRET: secret.value, FORCE_COLOR: '1' };
   say('dev', `brain: ${brain === '' ? 'anthropic (default)' : brain}`);
   if (secret.generated) say('dev', 'generated a LUVANI_AGENT_SECRET for this run, so /session/end is closed.');
 
-  for (const step of resolvedPlan()) {
+  for (const step of resolvedPlan(childEnv)) {
     const result = step.port === null ? { reachable: false } : await probe(step.ready.url ?? `http://127.0.0.1:${step.port}/`);
     const verdict = classifyPort(step, result);
 
@@ -248,8 +248,8 @@ async function main() {
 }
 
 /** livekit-server is usually built into ~/.local/bin rather than installed globally. */
-function resolvedPlan() {
-  const plan = bootPlan(process.env);
+function resolvedPlan(env = process.env) {
+  const plan = bootPlan(env);
   const fallback = join(homedir(), '.local/bin/livekit-server');
   return plan.map((step) => {
     if (step.id !== 'livekit' || step.command !== 'livekit-server') return step;

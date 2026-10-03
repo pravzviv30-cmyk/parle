@@ -28,6 +28,19 @@ function deferred(): { promise: Promise<void>; resolve: () => void; reject: (e: 
 }
 
 describe('the recorded player plays only what is still wanted', () => {
+  test('a changed voice, account or shared playback owner refuses a held load without a new ticket', async () => {
+    for (const reason of ['voice', 'account', 'playback owner']) {
+      const gate = createPlaybackGate();
+      const ready = deferred();
+      let current = true;
+      let plays = 0;
+      const outcome = playWhenCurrent(gate, gate.begin(), () => ready.promise, () => { plays++; }, () => current);
+      current = false;
+      ready.resolve();
+      assert.equal(await outcome, false, reason);
+      assert.equal(plays, 0, reason);
+    }
+  });
   test('a recording stopped before it finished loading never starts', async () => {
     const gate = createPlaybackGate();
     const ready = deferred();

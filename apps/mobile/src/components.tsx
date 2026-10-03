@@ -14,6 +14,9 @@
 import { Children, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
+  Modal,
+  KeyboardAvoidingView,
+  ScrollView,
   Animated,
   View,
   Text,
@@ -27,6 +30,7 @@ import {
   type ViewStyle,
   type KeyboardTypeOptions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, G, Rect } from 'react-native-svg';
 import {
   accent,
@@ -578,7 +582,7 @@ export function Field({
           aria-labelledby={label != null ? labelId : undefined}
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
+          placeholder={placeholder ?? 'Type here'}
           placeholderTextColor={paper.inkFaint}
           secureTextEntry={secure && !revealed}
           keyboardType={keyboardType}
@@ -617,7 +621,7 @@ export function Field({
               justifyContent: 'center',
             }}
           >
-            <Text style={[type.small, { fontFamily: font.sansMedium, color: paper.inkSoft }]}>{revealed ? 'Hide' : 'Show'}</Text>
+            <Text style={[type.small, { fontFamily: font.medium, color: paper.inkSoft }]}>{revealed ? 'Hide' : 'Show'}</Text>
           </Pressable>
         )}
       </View>
@@ -667,6 +671,7 @@ export function TabBar<K extends string>({
   active,
   onChange,
   track = paper.skeleton,
+  appearance = 'segments',
   accessibilityLabel,
 }: {
   tabs: readonly { key: K; label: string }[];
@@ -674,16 +679,17 @@ export function TabBar<K extends string>({
   onChange: (key: K) => void;
   /** The sand track behind the segments. */
   track?: string;
+  appearance?: 'segments' | 'underline';
   accessibilityLabel?: string;
 }) {
   return (
-    <View style={[s.tabTrack, { backgroundColor: track }]} accessibilityRole="tablist" accessibilityLabel={accessibilityLabel}>
+    <View style={[s.tabTrack, { backgroundColor: appearance === 'underline' ? 'transparent' : track, borderRadius: appearance === 'underline' ? 0 : radius.control }]} accessibilityRole="tablist" accessibilityLabel={accessibilityLabel}>
       {tabs.map((tab) => {
         const isActive = tab.key === active;
         return (
           <Press haptic="selection" frame={s.segmentFrame}
             key={tab.key}
-            style={[s.tab, isActive && s.tabActive]}
+            style={[s.tab, appearance === 'segments' && isActive && s.tabActive, appearance === 'underline' && { borderBottomWidth: 2, borderBottomColor: isActive ? accent.brand : 'transparent', borderRadius: 0 }]}
             onPress={() => onChange(tab.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
@@ -782,7 +788,7 @@ export function SpeakCircle({
   size?: number;
   accessibilityLabel: string;
 }) {
-  const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.good;
+  const iconColor = muted ? paper.inkFaint : paper.ink;
   return (
     <Pressable
       onPress={
@@ -798,6 +804,7 @@ export function SpeakCircle({
       disabled={disabled || muted}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: disabled || muted }}
       style={({ pressed }) => [
         s.speak,
         { width: size, height: size, borderRadius: size / 2 },
@@ -1036,15 +1043,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: paper.card,
   },
-  speakIdle: { borderWidth: 2, borderColor: signal.good },
-  speakLive: {
-    backgroundColor: signal.good,
-    shadowColor: signal.good,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+  speakIdle: { backgroundColor: colour.mint },
+  speakLive: { backgroundColor: colour.mint },
   speakMuted: { borderWidth: 2, borderColor: paper.line },
   stationRow: { flexDirection: 'row', alignItems: 'center' },
   stationCell: { flexDirection: 'row', alignItems: 'center', flex: 1 },
@@ -1207,7 +1207,7 @@ export function SoundTag({ ipa, example }: { ipa: string; example: string }) {
   return (
     <View accessible accessibilityLabel={`Sound ${ipa}, as in ${example}`} style={ls.soundTag}>
       <Text style={[type.notation, { color: paper.ink }]}>{ipa}</Text>
-      <Text style={[type.frenchSm, { color: paper.ink }]}>{example}</Text>
+      <Text {...frenchText} style={[type.frenchSm, { color: paper.ink }]}>{example}</Text>
     </View>
   );
 }
@@ -1454,11 +1454,6 @@ const ls = StyleSheet.create({
     alignItems: 'baseline',
     alignSelf: 'flex-start',
     gap: space(2),
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(3),
-    paddingVertical: space(1),
   },
   ladder: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   rungs: { flexDirection: 'row', alignItems: 'flex-end', gap: space(1) },
@@ -1602,11 +1597,17 @@ export function CheckGlyph({ size = 24, color = paper.ink }: { size?: number; co
  * a sun ground, with a white mark and the word in ink. The name defaults to the
  * word beside the disc when there is one, so what a screen reader says is what
  * the learner reads, and otherwise to Back, Next or Close.
+ *
+ * A hint is passed straight through when the name alone does not say what
+ * happens next: the live room's close opens a confirmation rather than ending
+ * the session, and a screen reader says so (F603). Without one, nothing extra
+ * is said.
  */
 export function RoundButton({
   kind,
   onPress,
   accessibilityLabel,
+  accessibilityHint,
   tone,
   label,
 }: {
@@ -1614,6 +1615,8 @@ export function RoundButton({
   onPress: () => void;
   /** Defaults to the label beside the disc, or 'Back', 'Next', 'Close'. */
   accessibilityLabel?: string;
+  /** What pressing it is about to do, when the name alone does not say. Passed to Press as it is. */
+  accessibilityHint?: string;
   /** white: a white disc, ink mark (back and close, any ground). sun: the round next on blue or coral. ink: the round next on a sun ground. Defaults white, or sun for next. */
   tone?: 'white' | 'sun' | 'ink';
   /** The word beside a round next, in type.bodyStrong, in the ground's text colour. */
@@ -1627,7 +1630,7 @@ export function RoundButton({
   const words = ground === 'sun' ? textOn.blue : paper.ink;
   const name = accessibilityLabel ?? label ?? (kind === 'back' ? 'Back' : next ? 'Next' : 'Close');
   return (
-    <Press haptic="light" onPress={onPress} accessibilityLabel={name} frame={b.roundFrame} style={b.roundRow}>
+    <Press haptic="light" onPress={onPress} accessibilityLabel={name} accessibilityHint={accessibilityHint} frame={b.roundFrame} style={b.roundRow}>
       <View style={[b.roundDisc, { width: disc, height: disc, borderRadius: disc / 2, backgroundColor: fill }]}>
         {kind === 'back' ? <ChevronLeft size={24} color={markColour} /> : null}
         {kind === 'next' ? <ArrowRight size={28} color={markColour} /> : null}
@@ -1708,41 +1711,30 @@ export function HeroNumber({ value, unit, ground }: { value: string; unit: strin
  * chosen, the field ring when not. The choice is said twice, once per
  * platform, the way the segmented control says it, and it ticks like a choice.
  */
-export function OptionRow({
-  title,
-  detail,
-  selected,
-  onPress,
-  accessibilityLabel,
-}: {
+export function OptionRow({ title, detail, selected, onPress, accessibilityLabel, onHear, playing = false }: {
   title: string;
   detail?: string;
   selected: boolean;
   onPress: () => void;
   accessibilityLabel?: string;
+  onHear?: () => void;
+  playing?: boolean;
 }) {
   return (
-    <Press
-      haptic="selection"
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      aria-selected={selected}
-      accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
-      onPress={onPress}
-      style={b.option}
-    >
-      <View style={b.optionWords}>
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>{title}</Text>
-        {detail != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{detail}</Text> : null}
-      </View>
-      {selected ? (
-        <View {...decorative} style={[b.optionMark, { backgroundColor: accent.brand }]}>
-          <CheckGlyph size={18} color={paper.onInk} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: paper.card }}>
+      <Press haptic="selection" accessibilityRole="button" accessibilityState={{ selected }} aria-selected={selected} aria-pressed={selected}
+        accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)} onPress={onPress} frame={{ flex: 1, minWidth: 0 }} style={b.option}>
+        <View style={b.optionWords}>
+          <Text style={[type.label, { color: paper.ink }]}>{title}</Text>
+          {detail != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{detail}</Text> : null}
         </View>
-      ) : (
-        <View {...decorative} style={[b.optionMark, { borderWidth: 2, borderColor: paper.field }]} />
-      )}
-    </Press>
+        {selected ? <View {...decorative} style={[b.optionMark, { backgroundColor: accent.brand }]}><CheckGlyph size={18} color={paper.onInk} /></View>
+          : <View {...decorative} style={[b.optionMark, { borderWidth: 2, borderColor: paper.field }]} />}
+      </Press>
+      {onHear != null ? <Press haptic="light" onPress={onHear} accessibilityLabel={playing ? `Stop ${title}` : `Hear ${title}`} style={{ minHeight: HIT, minWidth: HIT, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={[type.small, { color: paper.ink }]}>{playing ? 'Stop' : 'Hear'}</Text>
+      </Press> : null}
+    </View>
   );
 }
 
@@ -1753,30 +1745,32 @@ export function OptionRow({
  * The panel is modal to VoiceOver, so the screen under it goes quiet, and the
  * two-finger escape closes it as the scrim does. There is no drag to dismiss:
  * that is gesture-handler, which this app does not take. The scrim is ink at
- * 0.45, the way `ConfirmSheet` draws it, so no raw colour enters this file.
+ * 0.45 on its own layer, so no raw colour enters this file.
+ *
+ * The title is a polite live region, so TalkBack says it as the sheet rises,
+ * the way the old centred leave card said its question (F603). `ConfirmSheet`
+ * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children }: { visible: boolean; title: string; onClose: () => void; children: ReactNode }) {
-  if (!visible) return null;
+export function Sheet({ visible, title, onClose, children, footer }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={b.sheetOverlay}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-        onPress={onClose}
-        style={[StyleSheet.absoluteFill, { backgroundColor: paper.ink, opacity: 0.45 }]}
-      />
-      <View
-        accessibilityViewIsModal
-        onAccessibilityEscape={onClose}
-        style={[b.sheetPanel, { borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature }]}
-      >
-        <View {...decorative} style={b.grabber} />
-        <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>
-          {title}
-        </Text>
-        {children}
-      </View>
-    </View>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={b.sheetOverlay}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}
+            style={[StyleSheet.absoluteFill, { backgroundColor: paper.ink, opacity: 0.45 }]} />
+          <View accessibilityViewIsModal onAccessibilityEscape={onClose}
+            style={[b.sheetPanel, { maxHeight: '90%', paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature }]}>
+            <View {...decorative} style={b.grabber} />
+            <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.heading, { color: paper.ink }]}>{title}</Text>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ gap: space(4) }}>
+              {children}
+            </ScrollView>
+            {footer}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -1953,3 +1947,17 @@ const sp = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+
+/** A live-room action: one consistent touch target with a named state. */
+export function ControlTile({ label, glyph, onPress, disabled = false, accessibilityLabel }: {
+  label: string; glyph: ReactNode; onPress: () => void; disabled?: boolean; accessibilityLabel?: string;
+}) {
+  return (
+    <Press haptic="light" disabled={disabled} accessibilityState={{ disabled }} accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress} frame={{ flex: 1, minWidth: 0 }} style={{ minHeight: 56, minWidth: HIT, alignItems: 'center', justifyContent: 'center', gap: space(2), padding: space(3), borderRadius: radius.field, backgroundColor: disabled ? paper.skeleton : paper.card }}>
+      {glyph}
+      <Text style={[type.small, { color: disabled ? paper.inkSoft : paper.ink }]}>{label}</Text>
+    </Press>
+  );
+}

@@ -15,15 +15,15 @@
  * pages with the exchange in white and ink bubbles and a round next; the two
  * answers are option rows on paper; the plan is the sun page, showing the
  * plan rather than configuring it; the save page is paper, and an under-13
- * answer turns it into a calm page of its own that moving between the pages
- * does not undo.
+ * answer turns it into a calm page of its own that holds for the rest of the
+ * launch and clears the saved draft (F637, F639).
  *
  * This is intentionally separate from `OnboardingFlow`: that flow remains the
  * recovery route for older accounts that have never answered the age gate.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { tutorVoice, type TutorVoiceKey } from '@luvani/core';
 
@@ -43,7 +43,6 @@ import {
   ProgressDots,
   ROW_WORDS,
   RoundButton,
-  SceneMark,
   TutorCard,
   type Ground,
 } from '../components.tsx';
@@ -64,6 +63,7 @@ import {
   ALREADY_HAVE_ACCOUNT,
   ANSWER_HINT,
   CONTINUE,
+  DEMO_COACHING,
   CREATE_ACCOUNT_AGE,
   FIRST_LINE,
   FIRST_LINE_PROMPT,
@@ -75,6 +75,7 @@ import {
   HEAR_AGAIN,
   HEAR_IT_EXCHANGE,
   HEAR_NOTE,
+  HEAR_REASSURANCE,
   HEAR_TITLE,
   HIGHLIGHT_MEANS,
   LEARNER_LABEL,
@@ -97,6 +98,10 @@ import {
   METHOD_LABEL,
   METHOD_STEPS,
   MINUTES_UNIT,
+  MINUTES_LABEL,
+  ROUTINE_OPTIONS,
+  ROUTINE_NOTE,
+  COVERAGE_NOTE,
   NO_STREAKS,
   PLAN_SCENES_LABEL,
   PLAN_TITLE,
@@ -119,18 +124,8 @@ import {
   type StartLevel,
 } from './preAccountDraft.ts';
 
-/** Where the learner's first line stands: not yet said, sounding, said. */
-type LineStage = 'ask' | 'saying' | 'said';
-
-/**
- * How long a tapped reply may take to report that it finished before the page
- * moves on anyway. A clip that never reports (a muted web tab, a decoder that
- * stalls) must not leave the learner stuck on a line they already said.
- */
-const SAYING_FALLBACK_MS = 6000;
-
-/** Native plays on arrival; a browser plays only after the page has been touched. */
-const AUTOPLAYS = Platform.OS !== 'web';
+/** Selecting a recorded example never becomes assessed learner evidence. */
+type LineStage = 'ask' | 'selected';
 
 const pageBefore = (page: PreAccountPage): PreAccountPage | null => {
   const index = PRE_ACCOUNT_PAGES.indexOf(page);
@@ -142,29 +137,36 @@ export function PreAccountOnboarding({
   onDraftChange,
   onCreateAccount,
   onSignIn,
+  refused = false,
+  onRefuse,
 }: {
   initialDraft: PreAccountOnboardingDraft | null;
   onDraftChange: (draft: PreAccountOnboardingDraft) => void;
   onCreateAccount: (draft: PreAccountOnboardingDraft) => void;
   onSignIn: () => void;
+  /** An under-13 answer given earlier in this launch, held by the flow above this screen. */
+  refused?: boolean;
+  /** Told once, when the learner says they are younger, so the flow can hold it and clear the draft. */
+  onRefuse?: () => void;
 }) {
   const [page, setPage] = useState<PreAccountPage>(() => initialDraft?.page ?? 'hear-it');
+  const [coachingOpen, setCoachingOpen] = useState(false);
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => initialDraft ?? freshPreAccountDraft());
   const draftRef = useRef(draft);
-  const [underAge, setUnderAge] = useState(false);
+  const [underAge, setUnderAge] = useState(refused);
   const [lit, setLit] = useState<number | null>(null);
   const [stage, setStage] = useState<LineStage>('ask');
   const [stuck, setStuck] = useState(false);
   const [playing, setPlaying] = useState<'sample' | null>(null);
   const [voicesOpen, setVoicesOpen] = useState(false);
+  const [routineOpen, setRoutineOpen] = useState(false);
+  const [audioNotice, setAudioNotice] = useState<string | null>(null);
   const [nameText, setNameText] = useState(() => initialDraft?.firstName ?? '');
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
   const reduced = useReduceMotion();
   /** What to do when the clip now sounding finishes. One at a time, by construction. */
   const onFinish = useRef<(() => void) | null>(null);
-  /** A browser allows sound once the page has been touched. */
-  const touched = useRef(false);
 
   // The recorded tutor on the first two pages is Alexandre whichever voice the
   // learner later picks, so the disclosure there names him. The plan and the
@@ -178,12 +180,16 @@ export function PreAccountOnboarding({
   const previous = pageBefore(page);
   const dim = (index: number) => !reduced && lit !== null && lit !== index;
 
-  /** The one door every answer goes through, so leaving and coming back finds it. */
+  /**
+   * The one door every answer goes through, so leaving and coming back finds
+   * it. Once refused it writes nothing: the refusal cleared the saved draft,
+   * and saving it again would put a child's answers back on the device.
+   */
   const keep = (patch: Partial<PreAccountOnboardingDraft>) => {
     const next: PreAccountOnboardingDraft = { ...draftRef.current, ...patch };
     draftRef.current = next;
     setDraft(next);
-    onDraftChange(next);
+    if (!underAge) onDraftChange(next);
   };
 
   /** Usage data, answered once on the save page and carried across sign-up. */
@@ -195,16 +201,23 @@ export function PreAccountOnboarding({
     then?.();
   };
 
-  /** Play one bundled clip, then do `then`. A missing clip moves straight on. */
+  /** Audio is optional. Captions and Continue work even if decoding fails. */
   const play = (clip: number | undefined, then: (() => void) | null) => {
     onFinish.current = then;
-    player.pause();
-    if (clip === undefined) {
-      finish();
-      return;
+    setAudioNotice(null);
+    try {
+      player.pause();
+      if (clip === undefined) throw new Error('Bundled clip unavailable');
+      player.replace(clip);
+      player.play();
+      return true;
+    } catch {
+      onFinish.current = null;
+      setLit(null);
+      setPlaying(null);
+      setAudioNotice('The recording could not play. You can read the example and continue.');
+      return false;
     }
-    player.replace(clip);
-    player.play();
   };
 
   const playExchange = (index: number): void => {
@@ -219,9 +232,10 @@ export function PreAccountOnboarding({
 
   const stop = () => {
     onFinish.current = null;
-    player.pause();
+    try { player.pause(); } catch { /* The native player may already have closed. */ }
     setLit(null);
     setPlaying(null);
+    setAudioNotice(null);
   };
 
   useEffect(() => {
@@ -233,43 +247,42 @@ export function PreAccountOnboarding({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.didJustFinish]);
 
-  // Each page starts its own sound, and leaving a page stops it.
+  // Page changes only stop audio. Playback starts from an explicit Hear control.
   useEffect(() => {
-    const allowed = AUTOPLAYS || touched.current;
-    if (page === 'hear-it' && allowed) playExchange(0);
-    else if (page === 'first-line' && allowed && stage === 'ask') play(clipFor(FIRST_LINE.question), null);
-    else stop();
+    stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  // A reply that never reports finishing still gets its highlight.
-  useEffect(() => {
-    if (stage !== 'saying') return;
-    const timer = setTimeout(finish, SAYING_FALLBACK_MS);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage]);
+  // Layout cleanup precedes the audio hook's native release.
+  useLayoutEffect(() => () => {
+    onFinish.current = null;
+    try { player.pause(); } catch { /* No later recording continues this example. */ }
+  }, [player]);
 
   // Moving back and forward between the pages does not undo the refusal:
   // resetting it would put "I am 13 or older" one tap away from a learner who
-  // has just said they are younger. It lives in this screen's state only and is
-  // never written to the draft. Leaving through "I have an account" starts the
-  // first run fresh, and closing the app reopens the save page with the
-  // question asked again, the same close-the-app escape the age gate keeps for
-  // a mis-tap.
+  // has just said they are younger.
   const go = (to: PreAccountPage) => {
-    touched.current = true;
     setPage(to);
     keep({ page: to });
   };
 
+  // The refusal holds for the rest of the launch. The flow above this screen
+  // hears it through `onRefuse` and hands it back as `refused`, so leaving
+  // through "I have an account" and coming back does not undo it either. The
+  // flow also clears the saved draft, including any first name typed, and
+  // `keep` writes nothing after this, so reopening the app starts at the first
+  // page with nothing kept. The refusal itself lives in memory only and is
+  // never written to the device, so after a relaunch the question can be asked
+  // again, the same close-the-app escape the age gate keeps for a mis-tap.
+  const refuse = () => {
+    setUnderAge(true);
+    onRefuse?.();
+  };
+
   const sayReply = () => {
-    touched.current = true;
-    setStage('saying');
-    play(clipFor(FIRST_LINE.reply), () => {
-      setStage('said');
-      play(clipFor(FIRST_LINE.close), null);
-    });
+    setStage('selected');
+    play(clipFor(FIRST_LINE.reply), null);
   };
 
   const answerLevel = (key: StartLevel) => {
@@ -283,27 +296,13 @@ export function PreAccountOnboarding({
   };
 
   const chooseVoice = (voice: TutorVoiceKey) => {
+    stop();
     keep({ tutorVoice: voice });
-    // Choosing plays the tutor's bundled bilingual introduction, which
-    // `tutorSampleLine` owns, so the choice feels like meeting a person.
-    onFinish.current = null;
-    player.pause();
-    setPlaying('sample');
-    player.replace(voiceSample(voice));
-    player.play();
   };
 
   const hearVoice = (voice: TutorVoiceKey) => {
-    touched.current = true;
-    onFinish.current = null;
-    player.pause();
-    if (playing === 'sample') {
-      setPlaying(null);
-      return;
-    }
-    setPlaying('sample');
-    player.replace(voiceSample(voice));
-    player.play();
+    if (playing === 'sample') { stop(); return; }
+    if (play(voiceSample(voice), null)) setPlaying('sample');
   };
 
   const setName = (value: string) => {
@@ -322,7 +321,8 @@ export function PreAccountOnboarding({
       {page === 'hear-it' && (
         <View style={st.page}>
           <Text accessibilityRole="header" style={st.display}>{HEAR_TITLE}</Text>
-          <Text style={st.onBlue}>{WELCOME_SUBLINE(persona)}</Text>
+          <Text style={st.onBlue}>{HEAR_REASSURANCE}</Text>
+          <Text style={st.noteOnBlue}>{WELCOME_SUBLINE(persona)}</Text>
           <View style={st.exchange}>
             {HEAR_IT_EXCHANGE.map((line, at) => {
               const learner = line.speaker === 'learner';
@@ -340,18 +340,17 @@ export function PreAccountOnboarding({
           <Press
             haptic="light"
             accessibilityRole="button"
-            accessibilityLabel={HEAR_AGAIN}
+            accessibilityLabel={lit !== null ? 'Stop the recording' : HEAR_AGAIN}
             frame={st.againFrame}
             style={st.again}
             onPress={() => {
-              touched.current = true;
-              playExchange(0);
+                        if (lit !== null) stop(); else playExchange(0);
             }}
           >
             <View {...decorative} style={st.againDisc}>
               <PlayGlyph size={22} color={paper.ink} />
             </View>
-            <Text style={st.againLabel}>{HEAR_AGAIN}</Text>
+            <Text style={st.againLabel}>{lit !== null ? 'Stop the recording' : HEAR_AGAIN}</Text>
           </Press>
           <Text style={st.noteOnBlue}>{HEAR_NOTE}</Text>
         </View>
@@ -371,11 +370,10 @@ export function PreAccountOnboarding({
               english={FIRST_LINE.question.en}
               size="lg"
               onHear={
-                questionClip === undefined || stage === 'saying'
+                questionClip === undefined
                   ? undefined
                   : () => {
-                      touched.current = true;
-                      play(questionClip, null);
+                                        play(questionClip, null);
                     }
               }
             />
@@ -413,31 +411,34 @@ export function PreAccountOnboarding({
             </>
           )}
 
-          {stage === 'saying' && (
-            <Card style={st.whiteCard}>
-              <Text {...frenchText} style={st.frenchLg}>{FIRST_LINE.reply.fr}</Text>
-              <Text style={st.english}>{FIRST_LINE.reply.en}</Text>
-            </Card>
-          )}
-
-          {stage === 'said' && (
+          {stage === 'selected' && (
             <View accessibilityLiveRegion="polite" style={st.said}>
               <Card style={st.whiteCard}>
                 <View style={st.markedRow}>
                   <View style={st.replyWords}>
                     <Highlight text={FIRST_LINE.reply.fr} accessibilityLabel={`${FIRST_LINE.reply.fr} ${HIGHLIGHT_MEANS}`} style={type.frenchLg} />
                   </View>
-                  <SceneMark state="earned" />
+
                 </View>
                 <Text style={st.english}>{FIRST_LINE.reply.en}</Text>
                 <Text style={st.meaning}>{HIGHLIGHT_MEANS}</Text>
               </Card>
-              <Card style={st.stuckCard}>
-                <Text style={st.speaker}>{persona.name}</Text>
-                <FrenchBlock french={FIRST_LINE.close.fr} english={FIRST_LINE.close.en} size="md" />
-              </Card>
+              <GhostButton label="Hear the reply again" color={paper.onInk} onPress={sayReply} />
+              <GhostButton label="Stop the recording" color={paper.onInk} onPress={stop} />
             </View>
           )}
+          <GhostButton color={paper.onInk} label={coachingOpen ? 'Close the practice example' : 'See how practice works'} onPress={() => setCoachingOpen(open => !open)} />
+          {coachingOpen && <Card style={{ gap: space(2) }}>
+            <Text style={type.heading}>{DEMO_COACHING.title}</Text>
+            <Text style={type.small}>{DEMO_COACHING.scope}</Text>
+            <Text style={type.small}>An example attempt</Text>
+            <FrenchBlock french={DEMO_COACHING.attempt} english={DEMO_COACHING.attemptEn} />
+            <Text style={type.body}>{DEMO_COACHING.feedback}</Text>
+            <FrenchBlock french={DEMO_COACHING.alternative.fr} english={DEMO_COACHING.alternative.en}
+              onHear={() => play(clipFor(DEMO_COACHING.alternative), null)} />
+            <Text style={type.small}>{DEMO_COACHING.retry}</Text>
+            <Text style={type.small}>{DEMO_COACHING.kept}</Text>
+          </Card>}
         </View>
       )}
 
@@ -482,7 +483,17 @@ export function PreAccountOnboarding({
               the reminder keep their defaults in the draft and are changed in
               Profile and Settings. No picture: the board draws none. */}
           <Text accessibilityRole="header" style={st.planTitle}>{PLAN_TITLE}</Text>
-          <HeroNumber value={String(view.minutes)} unit={MINUTES_UNIT} ground="sun" />
+          <Text style={st.sectionHead}>{MINUTES_LABEL}</Text>
+          {view.minutes === 'none'
+            ? <Text style={st.onSun}>No fixed daily target</Text>
+            : <HeroNumber value={String(view.minutes)} unit={MINUTES_UNIT} ground="sun" />}
+          <Text style={st.onSunSmall}>{ROUTINE_NOTE}</Text>
+          <GhostButton label={routineOpen ? 'Close routine choices' : 'Adjust routine'} color={paper.ink} onPress={() => setRoutineOpen(!routineOpen)} />
+          {routineOpen && <View style={st.options}>{ROUTINE_OPTIONS.map(option => (
+            <OptionRow key={option.key} title={option.title} selected={view.minutes === option.key}
+              onPress={() => { keep({ minutes: option.key }); setRoutineOpen(false); }} />
+          ))}</View>}
+          <Text style={st.onSun}>{view.startingReason}</Text>
           <View style={st.planFacts}>
             <Text style={st.planFact}>{NO_STREAKS}</Text>
             <Text style={st.planFact}>{reminderLine(view.reminder.clock)}</Text>
@@ -536,6 +547,7 @@ export function PreAccountOnboarding({
             </View>
           )}
 
+          <Text style={st.onSunSmall}>{COVERAGE_NOTE}</Text>
           <View style={st.block}>
             <Text style={st.sectionHead}>{METHOD_LABEL}</Text>
             <Card style={st.planCard}>
@@ -560,7 +572,8 @@ export function PreAccountOnboarding({
             <Text style={st.refusalBody}>{UNDER_AGE_BODY}</Text>
           ) : (
             <>
-              <Text style={st.body}>Make an account to keep your plan and talk with {chosenPersona.name}.</Text>
+              <Text style={st.body}>Make an account to keep your plan across devices and start a real task with {chosenPersona.name}.</Text>
+              <Card><Text style={type.body}>{view.scenes[0]?.titleEn}</Text><Text style={type.small}>{view.startingReason}</Text></Card>
               <View style={st.block}>
                 <Field
                   label={FIRST_NAME_LABEL}
@@ -638,8 +651,7 @@ export function PreAccountOnboarding({
                 <GhostButton label={HAVE_ACCOUNT} color={paper.onInk} onPress={onSignIn} />
               </View>
             )}
-            {page === 'first-line' && stage === 'said' && <PillButton label={CONTINUE} tone="white" onPress={() => go('start-level')} />}
-            {page === 'first-line' && stage !== 'said' && <Text style={st.footerHint}>{TAP_TO_CONTINUE}</Text>}
+            {page === 'first-line' && <><PillButton label={CONTINUE} tone="white" onPress={() => go('start-level')} /><Text style={st.footerHint}>{TAP_TO_CONTINUE}</Text></>}
             {page === 'start-level' && <PillButton label={CONTINUE} onPress={() => answerLevel(level)} />}
             {page === 'reason' && (
               <>
@@ -659,7 +671,7 @@ export function PreAccountOnboarding({
               <>
                 <PillButton label={CREATE_ACCOUNT_AGE} onPress={() => onCreateAccount(draft)} />
                 <View style={st.secondary}>
-                  <GhostButton label={YOUNGER} color={paper.ink} onPress={() => setUnderAge(true)} />
+                  <GhostButton label={YOUNGER} color={paper.ink} onPress={refuse} />
                   <GhostButton label={ALREADY_HAVE_ACCOUNT} color={paper.ink} onPress={onSignIn} />
                 </View>
               </>
@@ -669,6 +681,7 @@ export function PreAccountOnboarding({
       }
     >
       {body}
+      {audioNotice && <Text accessibilityLiveRegion="polite" style={page === 'hear-it' || page === 'first-line' ? st.noteOnBlue : st.english}>{audioNotice}</Text>}
     </ScrollScreen>
   );
 }

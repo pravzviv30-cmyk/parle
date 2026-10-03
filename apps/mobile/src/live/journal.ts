@@ -33,7 +33,7 @@ import type { DrillExercise, RecapPayload, SessionSummary } from '@luvani/core';
 import { mergeExercises } from '../drill/store.ts';
 import { addFromSummary, addPhrases } from '../review/store.ts';
 import type { PersistAck } from '../storage/ack.ts';
-import { activeUserId, userKey } from '../storage/scope.ts';
+import { activeUserId, userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { mergeSessionTopics } from '../topics/store.ts';
 import {
   isWorthKeeping,
@@ -52,11 +52,12 @@ const KEY = () => userKey('journal');
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -74,9 +75,9 @@ async function readJournal(key: string): Promise<SessionJournal | null> {
   }
 }
 
-async function write(key: string, journal: SessionJournal): Promise<PersistAck> {
+async function write(key: string, journal: SessionJournal, owner: number): Promise<PersistAck> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(journal));
+    await setItemInUserScope(owner, key, JSON.stringify(journal));
     return 'durable';
   } catch {
     // Storage full or unavailable. Nothing is lost that was not already at
@@ -103,10 +104,10 @@ export function journalRecap(
   const savedAt = opts.savedAt ?? Date.now();
   const journal = journalFor(recap, savedAt, opts.profile ?? null);
   if (!isWorthKeeping(journal)) return Promise.resolve();
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     // What survives a recap landing on a key that is not empty is a rule, not a
     // storage detail, so it lives in journalRules.ts with the rest of them.
-    await write(key, journalWithRecap(await readJournal(key), recap, savedAt, opts.profile ?? null));
+    await write(key, journalWithRecap(await readJournal(key), recap, savedAt, opts.profile ?? null), owner);
   });
 }
 
@@ -121,10 +122,10 @@ export function journalRecap(
  */
 export function journalDrills(drills: readonly DrillExercise[], savedAt = Date.now()): Promise<void> {
   if (drills.length === 0) return Promise.resolve();
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const journal = journalWithDrills(await readJournal(key), drills, savedAt);
     if (!isWorthKeeping(journal)) return;
-    await write(key, journal);
+    await write(key, journal, owner);
   });
 }
 
@@ -156,10 +157,10 @@ export function journalDrills(drills: readonly DrillExercise[], savedAt = Date.n
  */
 export async function journalPractice(batch: PracticeBatch, savedAt = Date.now()): Promise<PracticeBatch> {
   try {
-    return await serialized(async (key) => {
+    return await serialized(async (key, owner) => {
       const journal = journalWithPractice(await readJournal(key), batch, savedAt);
       if (!isWorthKeeping(journal)) return batch;
-      await write(key, journal);
+      await write(key, journal, owner);
       return { ...batch, batchId: journal.batchId };
     });
   } catch {
@@ -188,8 +189,8 @@ export async function bankLesson(summary: SessionSummary): Promise<PersistAck> {
     // `serialized` throws rather than rejects when nobody is signed in, which
     // is why this is a try and not a `.catch()`. Nothing is kept in that case,
     // and nothing can be: there is no account to keep it under.
-    await serialized(async (key) => {
-      await write(key, journalWithLesson(await readJournal(key), summary, Date.now()));
+    await serialized(async (key, owner) => {
+      await write(key, journalWithLesson(await readJournal(key), summary, Date.now()), owner);
     });
   } catch {
     // Nothing more to try. The caller already knows the deck did not land.

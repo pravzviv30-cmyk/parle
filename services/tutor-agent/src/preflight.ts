@@ -10,10 +10,12 @@
  * misconfigured it.
  */
 
-import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_TURN_MODEL } from '@luvani/brain';
+import { DEFAULT_OPENAI_ANALYST_MODEL, DEFAULT_OPENAI_LIVE_MODEL, DEFAULT_OPENAI_TURN_MODEL, openAiLiveModel } from '@luvani/brain';
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
 import { ELEVEN_VOICES, MODEL, PROBE_LINE, VOICE_KEY, selectedVoiceVendor, synthesisProbeRequest } from './voice.ts';
 import { fishModel, fishSynthesisProbeRequest, fishVoiceId } from './voiceFish.ts';
+import { spawnSync } from 'node:child_process';
+import { typedOnly } from '../../shared/sessionCapabilities.ts';
 
 export type Brain = 'anthropic' | 'openai' | 'groq' | 'claude-cli' | 'claude-cli-all';
 
@@ -50,27 +52,14 @@ export function selectedBrain(env: Env = process.env): Brain {
   return 'anthropic';
 }
 
-/**
- * Which credential each brain cannot start without, and `null` for the one that
- * needs none.
- *
- * `claude-cli` wants GROQ_API_KEY rather than an Anthropic one, and that is not
- * a mistake: the subscription answers through the `claude` command, which needs
- * no key at all, but it costs about eight seconds a call and so cannot serve a
- * realtime turn. The turn stays on Groq. What claude-cli needs beyond this is a
- * binary on PATH, which is a filesystem question and is checked by the dev
- * supervisor rather than here.
- *
- * `claude-cli-all` takes the realtime turn too, so Groq drops out of the
- * picture entirely and there is no credential left to want. Demanding one would
- * refuse to boot a worker that was perfectly able to run.
- */
+/** The SDK lesson pipeline uses Groq for both CLI selections; the separate
+ * conversation brain additionally requires the Claude binary. */
 const BRAIN_KEY: Record<Brain, string | null> = {
   anthropic: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
   groq: 'GROQ_API_KEY',
   'claude-cli': 'GROQ_API_KEY',
-  'claude-cli-all': null,
+  'claude-cli-all': 'GROQ_API_KEY',
 };
 
 /**
@@ -132,11 +121,11 @@ export function missingRequired(env: Env = process.env): string[] {
     'LIVEKIT_URL',
     'LIVEKIT_API_KEY',
     'LIVEKIT_API_SECRET',
-    'DEEPGRAM_API_KEY',
+    ...(!typedOnly(env) ? ['DEEPGRAM_API_KEY'] : []),
     // The voice key follows LUVANI_TTS_VENDOR exactly as the brain key follows
     // TUTOR_LLM. Demanding ElevenLabs' key under fish would refuse to boot a
     // worker that was never going to call ElevenLabs.
-    VOICE_KEY[selectedVoiceVendor(env)],
+    ...(!typedOnly(env) ? [VOICE_KEY[selectedVoiceVendor(env)]] : []),
     ...(brainKey === null ? [] : [brainKey]),
   ];
   return required.filter((name) => (env[name] ?? '').trim() === '');
@@ -178,7 +167,7 @@ export function warnings(env: Env = process.env): string[] {
         'trusts it.',
     );
   }
-  if (vendor === 'fish' && (env.FISH_VOICE_ID ?? '').trim() === '') {
+  if (!typedOnly(env) && vendor === 'fish' && (env.FISH_VOICE_ID ?? '').trim() === '') {
     // Not the same warning with a different variable name. fish's default voice
     // is "Sarah", a young American woman, which is precisely the voice this
     // vendor was added to escape — so an unset id here does not merely miss the
@@ -200,9 +189,14 @@ export function warnings(env: Env = process.env): string[] {
     out.push('TUTOR_LLM=groq selects the $0 fallback brain. Its coaching is visibly weaker than Claude’s.');
   }
   if (selectedBrain(env) === 'openai') {
+    const turnModel = openAiLiveModel(env);
+    const analystModel = env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL;
+    const turnLabel = turnModel === DEFAULT_OPENAI_LIVE_MODEL ? `GPT-6 Luna (${turnModel})` : turnModel;
+    const analystLabel = analystModel === DEFAULT_OPENAI_ANALYST_MODEL ? `GPT-5.6 Terra (${analystModel})` : analystModel;
     out.push(
-      'TUTOR_LLM=openai uses GPT-5.6 Luna for live turns and scene design, and GPT-5.6 Terra for '
-        + 'memory, practice and drill work after the session.',
+      `TUTOR_LLM=openai uses ${turnLabel} for live turns and scene design, and `
+        + `${analystLabel} for memory and drill authoring. Curated phrases and written checks use `
+        + `${env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL}.`,
     );
   }
   if (selectedBrain(env) === 'claude-cli') {
@@ -213,7 +207,7 @@ export function warnings(env: Env = process.env): string[] {
   }
   if (selectedBrain(env) === 'claude-cli-all') {
     out.push(
-      'TUTOR_LLM=claude-cli-all puts your Claude subscription behind every call, the learner’s turn included. ' +
+      'TUTOR_LLM=claude-cli-all uses your Claude subscription for the conversation brain, its turns included. Scripted lessons still require Groq. ' +
         'Expect eight to twelve seconds of silence per turn: this is for development only, never for anyone learning.',
     );
   }
@@ -435,18 +429,11 @@ export async function verifyVendors(
 ): Promise<VendorCheck[]> {
   const checks: Promise<VendorCheck | null>[] = [];
 
-  // claude-cli probes Groq, not Anthropic. The subscription needs no key and so
-  // has nothing to verify here, while Groq is genuinely serving its realtime
-  // turns — probing Anthropic instead would send an empty key, take the 401 as
-  // fatal, and refuse to start a worker that was perfectly able to run.
-  //
-  // claude-cli-all probes neither, for that same reason twice over: it holds no
-  // key for either vendor and calls neither. The one thing it needs is a binary
-  // on PATH, which no HTTP probe can answer.
+  // Both CLI configurations also serve scripted lessons through the SDK's
+  // Groq plugin. Probe the dependency they actually construct, even when the
+  // separate conversation brain shells out to Claude.
   const brain = selectedBrain(env);
-  if (brain === 'claude-cli-all') {
-    // nothing to ask
-  } else if (brain === 'openai') {
+  if (brain === 'openai') {
     checks.push(
       probe(
         'OpenAI',
@@ -458,6 +445,7 @@ export async function verifyVendors(
             .map((entry) => entry.id)
             .filter((id): id is string => typeof id === 'string');
           const required = [
+            openAiLiveModel(env),
             env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
             env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
           ];
@@ -468,7 +456,7 @@ export async function verifyVendors(
             fatal: true,
             detail:
               `does not list the configured model${missing.length === 1 ? '' : 's'} ${missing.map((id) => `"${id}"`).join(', ')} for this key.\n` +
-              `          Check OPENAI_TURN_MODEL and OPENAI_ANALYST_MODEL in services/tutor-agent/.env.`,
+              `          Check OPENAI_LIVE_MODEL, OPENAI_TURN_MODEL and OPENAI_ANALYST_MODEL in services/tutor-agent/.env.`,
           };
         },
       ),
@@ -501,6 +489,7 @@ export async function verifyVendors(
   // Only the selected voice vendor is asked anything. Probing the other one
   // would send an empty key, read the 401 as fatal, and refuse to start a worker
   // that was perfectly able to run — the same trap claude-cli-all showed above.
+  if (typedOnly(env)) return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null);
   if (selectedVoiceVendor(env) === 'fish') {
     checks.push(
       (async (): Promise<VendorCheck | null> => {
@@ -659,11 +648,20 @@ export function reportVendors(checks: readonly VendorCheck[], exit: (code: numbe
 }
 
 /** Called once at startup, before the worker registers with LiveKit. */
-export function preflight(env: Env = process.env, exit: (code: number) => never = process.exit): void {
+export function preflight(env: Env = process.env, exit: (code: number) => never = process.exit, hasCli: () => boolean = () => {
+  const result = spawnSync('claude', ['--version'], { stdio: 'ignore', timeout: 5000 });
+  return !result.error && result.status === 0;
+}): void {
   for (const line of warnings(env)) console.warn(`[luvani:agent] ${line}`);
 
   const missing = missingRequired(env);
   if (missing.length === 0) {
+    const brain = selectedBrain(env);
+    if ((brain === 'claude-cli' || brain === 'claude-cli-all') && !hasCli()) {
+      console.error('[luvani:agent] Cannot start. The selected Claude CLI brain needs the claude command on PATH.');
+      exit(1);
+      return;
+    }
     console.info(`[luvani:agent] preflight ok — brain: ${selectedBrain(env)}`);
     return;
   }

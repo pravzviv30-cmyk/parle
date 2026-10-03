@@ -70,9 +70,9 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProfile, repairProfile, type LearnerProfile } from '@luvani/brain/profile';
+import { createProfile, repairProfile, withoutForgottenMemory, validMemoryControl, type LearnerProfile } from '@luvani/brain/profile';
 import type { TutorVoiceKey } from '@luvani/core';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, userKey, scopeGeneration, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
 import { upgradeStored } from './upgrade.ts';
@@ -125,7 +125,7 @@ export interface StoredProfile {
   /**
    * Facts the learner asked the tutor to forget, as the normalised keys the
    * extraction dedupes on. A tombstone rather than a deletion, because the
-   * next session that mentions the same thing would write it back. Capped,
+   * next session that mentions the same wording would write it back. No expiry,
    * written only by `profile/memory.ts`, and unioned across devices by the
    * brain's merge so a forget anywhere is a forget everywhere.
    */
@@ -141,7 +141,7 @@ export interface StoredProfile {
   /** The daily practice promise, set in Profile. Null until they pick one. */
   dailyGoalMin: 5 | 10 | 15 | null;
   onboardedAt: number;
-  /** Leaderboard identity, e.g. 'camille.4821'. Null until first claimed. */
+  /** Friends identity, e.g. 'camille.4821'. Null until first claimed. */
   username: string | null;
   /** The brain's learner model. Updated after live conversations. */
   brain: LearnerProfile;
@@ -200,17 +200,6 @@ function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
  * builds are compared like for like. Handing it an already-upgraded blob would
  * be this store deciding a schema question the merge owns.
  */
-async function persistedProfile(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    // Unreadable is the same as absent: the fold merges against nothing and the
-    // account's profile is adopted whole, which is what a fresh device does.
-    return null;
-  }
-}
-
 export async function loadProfile(): Promise<StoredProfile | null> {
   try {
     const raw = await AsyncStorage.getItem(KEY());
@@ -222,21 +211,54 @@ export async function loadProfile(): Promise<StoredProfile | null> {
     // worker as the session snapshot and crashed it on open. Repair at the
     // door: this is the only place the device's copy is read, so it is the
     // only place that can stop a bad one leaving.
-    return { ...upgraded, brain: repairProfile(upgraded.brain) };
+    return { ...upgraded, brain: withoutForgottenMemory(repairProfile(upgraded.brain), upgraded.forgottenFacts) };
   } catch {
     // A corrupt profile is not worth crashing over. Onboarding runs again.
     return null;
   }
 }
 
-export function saveProfile(p: StoredProfile): Promise<void> {
+/** Read failures must not masquerade as absence and erase existing privacy choices. */
+async function profileAt(key: string): Promise<StoredProfile | null> {
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return null;
+  const value = upgradeStored(JSON.parse(raw) as unknown);
+  if (!value) throw new Error('profile cannot be read');
+  return { ...value, brain: withoutForgottenMemory(repairProfile(value.brain), value.forgottenFacts) };
+}
+
+export function saveProfile(p: StoredProfile): Promise<boolean> {
+  const generation = scopeGeneration();
   return serialized(async (key) => {
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(p));
+      const held = await profileAt(key);
+      const forgottenFacts = [...new Set([...(held?.forgottenFacts ?? []), ...p.forgottenFacts])];
+      const before = validMemoryControl(held?.brain.memory.control);
+      const proposed = validMemoryControl(p.brain.memory.control);
+      const newerHeld = before && (!proposed || before.changedAt > proposed.changedAt || (before.changedAt === proposed.changedAt && before.paused && !proposed.paused));
+      const memory = newerHeld && held ? held.brain.memory : p.brain.memory;
+      const next = { ...p, forgottenFacts, brain: withoutForgottenMemory({ ...p.brain, memory }, forgottenFacts) };
+      if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify(next))))) return false;
       markDirty('profile');
-    } catch {
-      // Storage full or unavailable. The profile still holds for this launch.
-    }
+      return true;
+    } catch { return false; }
+  });
+}
+
+/** Privacy changes are read/edited/written on the same queue and acknowledged. */
+export function saveMemoryChange(edit: (profile: StoredProfile) => StoredProfile): Promise<StoredProfile | null> {
+  const generation = scopeGeneration();
+  return serialized(async (key) => {
+    try {
+      if (generation !== scopeGeneration()) return null;
+      const held = await profileAt(key);
+      if (!held || generation !== scopeGeneration()) return null;
+      const edited = edit(held);
+      const next = { ...edited, brain: withoutForgottenMemory(edited.brain, edited.forgottenFacts) };
+      if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify(next))))) return null;
+      markDirty('profile');
+      return next;
+    } catch { return null; }
   });
 }
 
@@ -271,8 +293,9 @@ export function saveProfile(p: StoredProfile): Promise<void> {
  * new local change. See sync/registry.ts.
  */
 function adoptProfile(fold: SyncFold): Promise<SyncAdoption> {
+  const generation = scopeGeneration();
   return serialized(async (key) => {
-    const persisted = await persistedProfile(key);
+    const persisted = await profileAt(key);
     const folded = fold(persisted);
     const upgraded = upgradeStored(folded);
     if (!upgraded) return 'declined';
@@ -285,9 +308,10 @@ function adoptProfile(fold: SyncFold): Promise<SyncAdoption> {
     // different door. So the device keeps its own, whatever the account says.
     const own = upgradeStored(persisted)?.ageStopAt ?? null;
     try {
-      await AsyncStorage.setItem(key, JSON.stringify({ ...upgraded, ageStopAt: own, brain: repairProfile(upgraded.brain) }));
+      if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify({ ...upgraded, ageStopAt: own, brain: withoutForgottenMemory(repairProfile(upgraded.brain), upgraded.forgottenFacts) }))))) throw new Error('profile scope changed');
     } catch {
-      // Storage full or unavailable. The next cycle hands the same fold back.
+      // Throwing keeps the namespace pending; the engine retries on the next cycle.
+      throw new Error('profile adoption could not be saved');
     }
     return 'adopted';
   });
@@ -401,7 +425,7 @@ export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
  * Set the daily practice promise. A plain spread, named so the field has one
  * write path — the goal is asked in Profile now, from exactly one row.
  */
-export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15): StoredProfile {
+export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15 | null): StoredProfile {
   return { ...existing, dailyGoalMin };
 }
 

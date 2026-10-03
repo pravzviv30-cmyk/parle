@@ -83,6 +83,7 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>): LlmClient 
     return new OpenAiResponsesBrainClient({
       apiKey: env.OPENAI_API_KEY,
       turnModel: env.OPENAI_TURN_MODEL,
+      liveModel: env.OPENAI_LIVE_MODEL,
       analystModel: env.OPENAI_ANALYST_MODEL,
     });
   }

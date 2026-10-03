@@ -23,11 +23,11 @@ import type { StoredProfile } from './store.ts';
 export type GoalMinutes = 5 | 10 | 15;
 
 /** What a segment is keyed by. A word, so nothing on this row is a numeral. */
-export type GoalKey = 'five' | 'ten' | 'fifteen';
+export type GoalKey = 'five' | 'ten' | 'fifteen' | 'none';
 
 export interface GoalOption {
   key: GoalKey;
-  minutes: GoalMinutes;
+  minutes: GoalMinutes | null;
   /** The word on the segment. Short: three of these share one track. */
   label: string;
   /** What a sitting of that size feels like. */
@@ -39,6 +39,7 @@ export const GOALS: readonly GoalOption[] = [
   { key: 'five', minutes: 5, label: 'Five', gloss: 'A quick speaking moment' },
   { key: 'ten', minutes: 10, label: 'Ten', gloss: 'Room for a full scene' },
   { key: 'fifteen', minutes: 15, label: 'Fifteen', gloss: 'A longer conversation' },
+  { key: 'none', minutes: null, label: 'No target', gloss: 'Practise when it suits you' },
 ];
 
 /**
@@ -48,7 +49,7 @@ export const GOALS: readonly GoalOption[] = [
  * pin the two together: `onboarding/answers.test.ts` looks for these exact
  * words in ProfileTab as the proof that the question is asked somewhere at all.
  */
-export const DAILY_GOAL_ROW = 'Speaking target';
+export const DAILY_GOAL_ROW = 'Flexible practice routine';
 
 /**
  * Said when nobody has chosen yet.
@@ -57,7 +58,7 @@ export const DAILY_GOAL_ROW = 'Speaking target';
  * scolding, and no suggestion that not having chosen is a lapse: this is the
  * first time most learners will have seen the question.
  */
-export const DAILY_GOAL_UNSET = 'Choose a flexible speaking target. Change it whenever you like.';
+export const DAILY_GOAL_UNSET = 'No fixed daily target. Local practice is free; connected tutor time uses live minutes.';
 
 /**
  * What this learner has asked for, or null.
@@ -74,7 +75,7 @@ export function dailyGoalOf(profile: StoredProfile | null | undefined): GoalMinu
 /** The chosen segment, or null when the control stands with nothing chosen. */
 export function goalKeyOf(profile: StoredProfile | null | undefined): GoalKey | null {
   const minutes = dailyGoalOf(profile);
-  return minutes === null ? null : (GOALS.find((g) => g.minutes === minutes)?.key ?? null);
+  return minutes === null ? 'none' : (GOALS.find((g) => g.minutes === minutes)?.key ?? 'none');
 }
 
 /** The option behind a segment key. */
@@ -91,7 +92,7 @@ export function goalFor(key: GoalKey): GoalOption {
  */
 export function goalLine(profile: StoredProfile | null | undefined): string {
   const key = goalKeyOf(profile);
-  if (key === null) return DAILY_GOAL_UNSET;
+  if (key === null || key === 'none') return DAILY_GOAL_UNSET;
   const option = goalFor(key);
-  return `${option.label} minutes today. ${option.gloss}.`;
+  return `${option.label} minutes as a flexible routine. Local practice is free; connected tutor time uses live minutes.`;
 }

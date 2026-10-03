@@ -1,3 +1,4 @@
+import { DayCount } from '../progress/DayCount.tsx';
 /**
  * Today: the learner's next scene, what it lets them say, and where they are.
  *
@@ -52,7 +53,7 @@ import { MissionHero } from '../home/MissionHero.tsx';
 import { storyFrom } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
-import { fallbackHero, homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
+import { homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
 import { loadActivity } from '../progress/activity.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
@@ -85,6 +86,9 @@ export function HomeTab() {
 
   // Null here means the storage read has not answered yet.
   const [hero, setHero] = useState<HomeMission | null>(null);
+  const [readOwner, setReadOwner] = useState(() => scopeGeneration());
+  const [readFailed, setReadFailed] = useState(false);
+  const [readAttempt, setReadAttempt] = useState(0);
   const [start, setStart] = useState<StartingPoint | null>(null);
   const [week, setWeek] = useState<readonly string[]>([]);
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
@@ -101,7 +105,14 @@ export function HomeTab() {
       // Bound to the account before any read, so a result from the previous
       // account is dropped rather than drawn for this one.
       const scope = scopeGeneration();
-      void Promise.all([loadActivity(), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks(), loadPracticeHistory()])
+      setReadOwner(scope);
+      setDaily(todayItems(0, now));
+      setHero(null);
+      setStart(null);
+      setWeek([]);
+      setDue([]);
+      setReadFailed(false);
+      void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadPracticeHistory()])
         .then(([activity, deck, completions, records, history, packs, checks, events]) => {
           if (cancelled || scopeGeneration() !== scope) return;
           // The standing pitches the daily pool and nothing else; no name, no
@@ -113,21 +124,20 @@ export function HomeTab() {
           // that draws from it, so the brief and the blocks under it agree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, now);
           setHero(homeMissionFrom({ progress, records, levelIndex: standing.index, now }));
+          setReadFailed(false);
           setStart(startingPoint(progress));
           const story = storyFrom({ sessions: history, activity, packs, completions, now });
           setWeek(weekLines({ story, reflection: reflectionFrom({ story, recent: allConversations({ packs, events }), checks, progress, now }) }));
         })
         .catch(() => {
-          if (cancelled) return;
-          // The brief survives, on the first scene of the spine, which is true
-          // for every learner and so claims nothing about the one who could
-          // not be read. Day one and the week are withheld rather than guessed.
-          setHero(fallbackHero());
+          if (cancelled || scopeGeneration() !== scope) return;
+          // A failed read cannot identify the learner's next scene.
+          setReadFailed(true);
         });
       return () => {
         cancelled = true;
       };
-    }, [profile, revision]),
+    }, [profile, revision, readAttempt]),
   );
 
   // The plan, on its own read, the way Speak reads it (TutorTab), so the used
@@ -136,10 +146,12 @@ export function HomeTab() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const scope = scopeGeneration();
+      setBilling(null);
       if (!live || user === null) return;
       void fetchBillingStatus(user.id)
         .then((status) => {
-          if (cancelled) return;
+          if (cancelled || scopeGeneration() !== scope) return;
           setBilling(status);
         })
         .catch(() => {});
@@ -151,7 +163,8 @@ export function HomeTab() {
 
   // Which one colour card leads is the rule's, never the screen's. Null only
   // while the storage read has not answered.
-  const lead = hero === null ? null : homeActionFor(hero, due.length, billing);
+  const unowned = readOwner !== scopeGeneration();
+  const lead = hero === null || unowned ? null : homeActionFor(hero, due.length, billing, live);
 
   return (
     // bottom="tab": the tab bar owns the bottom edge.
@@ -164,30 +177,46 @@ export function HomeTab() {
         {/* HomeLoading: the storage read has not answered, so still sand blocks
             shaped like the page, and nothing else. The brief is outside every
             other gate once it has: a first run meets it too. */}
-        {hero === null ? (
+        {!unowned && readFailed ? (
+          <Card style={{ gap: space(3) }}>
+            <Text style={[type.bodyStrong, { color: paper.ink }]}>Your next scene could not be loaded.</Text>
+            <Text style={[type.body, { color: paper.inkSoft }]}>We could not check your saved work. Today's phrase is available on this phone while we try again.</Text>
+            <PillButton label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
+            <GhostButton label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
+          </Card>
+        ) : hero === null || unowned ? (
           <Skeleton blocks={[{ height: 328, radius: radius.feature }, { height: 24, width: '60%', radius: radius.field }, { height: 68, radius: radius.tile }, { height: 132, radius: radius.card }]} />
         ) : (
           <>
-            {lead === 'plans' ? (
+            {lead === 'local' ? (
+              <ColourCard ground="blue">
+                <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.blue }]}>Keep practising French</Text>
+                <Text style={[type.body, { color: onColour.blue }]}>The live tutor cannot connect just now. Today's phrase is ready on this phone.</Text>
+                <PillButton tone="white" label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
+                <GhostButton label="Explore Practice" color={paper.onInk} onPress={() => nav.navigate('Practice')} />
+              </ColourCard>
+            ) : lead === 'plans' ? (
               <ColourCard ground="sun">
                 <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.sun }]}>{PLANS_LEAD.title}</Text>
                 <Text style={[type.body, { color: textOn.sun }]}>{PLANS_LEAD.body}</Text>
                 <Text style={[type.small, { color: onColour.sun }]}>{PLANS_LEAD.keeps}</Text>
                 <PillButton label={PLANS_LEAD.action} onPress={() => nav.navigate('Wall', { entry: 'refused' })} />
+                <GhostButton label="Practise today's phrase on this phone" color={paper.ink} onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
               </ColourCard>
             ) : lead === 'review' ? (
               <ColourCard ground="blue">
                 <Text style={[type.small, { color: onColour.blue }]}>A little French to bring back</Text>
                 <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.blue }]}>{due.length === 1 ? 'One phrase is ready.' : `${due.length} phrases are ready.`}</Text>
                 <Text style={[type.body, { color: onColour.blue }]}>Try recalling a few phrases from your own collection. A short review is enough.</Text>
+                {due[0] && <Text style={[type.body, { color: paper.onInk }]}>One line to bring back: {due[0].front}</Text>}
                 <PillButton tone="white" label="Practise recall" onPress={() => nav.navigate('Review')} />
-                <GhostButton label="I’d rather speak" color={paper.onInk} onPress={() => nav.navigate('Tutor')} />
+                {live ? <GhostButton label="I’d rather speak" color={paper.onInk} onPress={() => nav.navigate('Tutor')} /> : <GhostButton label="Practise today's phrase on this phone" color={paper.onInk} onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />}
               </ColourCard>
             ) : (
               <MissionHero hero={hero} />
             )}
 
-            {/* F609: the lifetime count lands here, "12 days of French so far". Home draws no weekly day count (founder, 29 Sept). */}
+            <DayCount />
 
             {/* Day one names where the path begins, the first scene next; after
                 that, the week in plain sentences, and nothing on a quiet week. */}

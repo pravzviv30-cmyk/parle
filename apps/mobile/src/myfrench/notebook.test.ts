@@ -92,6 +92,17 @@ describe('the phrase bank, with audio that says whose voice it is', () => {
   const recordings = { alexandre: { 'phrase:situation:cafe-first-coffee:0': 7 } } as const;
   const items = [{ id: 'phrase:situation:cafe-first-coffee:0', fr: 'Bonjour, je vais prendre un café.' }];
 
+  test('authored turn cards use their French back, and sounds or incomplete cards do not displace phrases', () => {
+    const authored = { ...card('English cue', NOW), kind: 'turn' as const, back: items[0]!.fr };
+    const invalid = { ...card('Incomplete', NOW + 1), back: '' };
+    const sound = { ...card('ʁ', NOW + 2), kind: 'phoneme' as const };
+    const bank = phraseBankFrom({ deck: [sound, invalid, authored], voice: 'alexandre', recordings, items });
+    assert.equal(bank.length, 1);
+    assert.equal(bank[0]!.fr, items[0]!.fr);
+    assert.equal(bank[0]!.en, 'English cue');
+    assert.deepEqual(bank[0]!.audio, { kind: 'recorded', asset: 7, label: RECORDED_AUDIO });
+  });
+
   test('the newest kept phrases, capped, each with a recording where one exists and the device voice named where not', () => {
     const deck = [
       card('Bonjour, je vais prendre un café.', NOW - 3 * DAY),

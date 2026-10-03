@@ -28,8 +28,10 @@ export type RootStackParamList = {
   Profile: { sheet?: 'tutorVoice' } | undefined;
   AddFriends: { username?: string } | undefined;
   SocialSettings: undefined;
-  DailyPractice: { id: string };
+  DailyPractice: { id: string; mode?: 'shadowing' };
   DailyLibrary: undefined;
+  Postcards: undefined;
+  WeekWrapped: undefined;
   Tabs: undefined;
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it
@@ -63,6 +65,7 @@ export type RootStackParamList = {
    * real, and it never rides to the agent; a goal is not a seed topic.
    */
   Convo: {
+    walkMode?: boolean;
     textMode?: boolean;
     seedTopic?: { fr: string; en: string };
     missionId?: string;
@@ -215,5 +218,6 @@ export type RootStackParamList = {
    * longer here simply opens the list.
    */
   Conversations: { packId?: string } | undefined;
+  SavedConversationText: undefined;
   ConversationPractice: { packId: string };
 };

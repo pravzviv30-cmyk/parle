@@ -10,11 +10,12 @@
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
+import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import { OwnWordsVerdictSchema } from './judge.ts';
+import { FixLineVerdictSchema } from './fixLineJudge.ts';
 import {
   BrainParseError,
   type BrainCurateRequest,
@@ -77,7 +78,8 @@ type ContractSchema =
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
   | typeof CurationSchema
-  | typeof OwnWordsVerdictSchema;
+  | typeof OwnWordsVerdictSchema
+  | typeof FixLineVerdictSchema;
 
 function jsonSchemaText(schema: ContractSchema): string {
   const format = zodOutputFormat(schema) as { schema?: unknown };
@@ -165,11 +167,12 @@ export class OpenAiCompatBrainClient implements LlmClient {
    * no persona or pack to fold in front of it.
    */
   async judge(request: BrainJudgeRequest): Promise<{ verdict: unknown; usage: LlmUsage }> {
+    const schema = request.judgeType === 'fix-line' ? FixLineVerdictSchema : OwnWordsVerdictSchema;
     const { value, usage } = await this.completeJson(
       request.system,
       [{ role: 'user', text: request.request }],
-      OwnWordsVerdictSchema,
-      jsonSchemaText(OwnWordsVerdictSchema),
+      schema,
+      jsonSchemaText(schema),
       request.signal,
     );
     return { verdict: value, usage };
@@ -211,7 +214,8 @@ export class OpenAiCompatBrainClient implements LlmClient {
 
       lastRaw = completion.choices?.[0]?.message?.content ?? '';
       try {
-        return { value: schema.parse(JSON.parse(lastRaw)), usage };
+        const decoded: unknown = JSON.parse(lastRaw);
+        return { value: schema.parse(schema === TurnSchema ? withMissingGoalObservation(decoded) : decoded), usage };
       } catch (error) {
         lastError = error instanceof Error ? error.message.slice(0, 400) : 'unknown parse failure';
       }

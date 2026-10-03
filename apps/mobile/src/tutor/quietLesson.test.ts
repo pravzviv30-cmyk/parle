@@ -24,6 +24,6 @@ test('offline typing has no silence pressure, sound controls or fabricated pronu
 test('a failed rehearsal plan check can retry without clearing the draft', () => {
   const screen = read('./RealMomentScreen.tsx');
   assert.match(screen, /label="Check my plan again" onPress=\{\(\) => setPlanAttempt/);
-  assert.match(screen, /\[user, planAttempt\]/);
+  assert.match(screen, /\[user, planAttempt, momentsAttempt\]/);
   assert.match(screen, /if \(cancelled\) return;/);
 });

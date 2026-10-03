@@ -10,8 +10,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ELEVEN_VOICES, VOICE_SETTINGS, LANGUAGE_CODE } from '../services/tutor-agent/src/voice.ts';
-import { MODEL, GAIN_DB, MULTIPLIERS, hash, reserveRequest, estimateCredits } from './daily-tutor-plan.mjs';
+import { ELEVEN_VOICES, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
+import { MODEL, GAIN_DB, RECORDING_LANGUAGE, MULTIPLIERS, hash, reserveRequest, estimateCredits } from './daily-tutor-plan.mjs';
 import { TUTOR_LINES, TUTOR_LINES_VOICE } from '../apps/mobile/src/onboarding/tutorLines.ts';
 
 const CAP = 300;
@@ -22,7 +22,7 @@ const checkpointPath = resolve(dir, 'manifest.json');
 const voice = TUTOR_LINES_VOICE;
 const voiceId = ELEVEN_VOICES[voice];
 if (!voiceId) throw new Error(`Unknown voice ${voice}.`);
-const config = { model: MODEL, gainDb: GAIN_DB, settings: VOICE_SETTINGS, language: LANGUAGE_CODE, voice, voiceId, format: 'pcm_22050', encoding: 'aac_64000', cap: CAP };
+const config = { model: MODEL, gainDb: GAIN_DB, settings: VOICE_SETTINGS, language: RECORDING_LANGUAGE, voice, voiceId, format: 'pcm_22050', encoding: 'aac_64000', cap: CAP };
 const entries = Object.values(TUTOR_LINES).map(({ id, fr }) => ({ id, text: fr }));
 const fingerprint = hash(JSON.stringify({ config, entries }));
 const jobs = entries.map(item => ({
@@ -147,7 +147,7 @@ try {
   const meta = await metadata(`/v1/voices/${voiceId}`);
   if (Number(meta.sharing?.rate ?? 1) !== MULTIPLIERS[voice] || !meta.verified_languages?.some(l => l.language === 'fr' && l.model_id === MODEL)) throw new Error(`Voice pricing/verification changed: ${voice}`);
   const samples = JSON.parse(readFileSync(resolve(root, 'artifacts/voice-comparison-2026-09-19/manifest.json'), 'utf8'));
-  if (JSON.stringify(samples.settings) !== JSON.stringify(VOICE_SETTINGS) || samples.language !== LANGUAGE_CODE) throw new Error('Approved sample settings mismatch.');
+  if (JSON.stringify(samples.settings) !== JSON.stringify(VOICE_SETTINGS) || samples.language !== RECORDING_LANGUAGE) throw new Error('Approved sample settings mismatch.');
   manifest.status = 'running'; delete manifest.reason; checkpoint();
   for (const job of jobs) {
     let clip = manifest.clips[job.key];
@@ -162,7 +162,7 @@ try {
     manifest.clips[job.key] = clip; checkpoint(); // Durable reservation before spending.
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=pcm_22050&optimize_streaming_latency=3`, {
       method: 'POST', headers, signal: AbortSignal.timeout(45000),
-      body: JSON.stringify({ text: job.text, model_id: MODEL, language_code: LANGUAGE_CODE, voice_settings: VOICE_SETTINGS }),
+      body: JSON.stringify({ text: job.text, model_id: MODEL, language_code: RECORDING_LANGUAGE, voice_settings: VOICE_SETTINGS }),
     });
     if (!response.ok) { clip.httpStatus = response.status; checkpoint(); throw new Error(`Synthesis HTTP ${response.status}; no automatic retry.`); }
     const costHeader = response.headers.get('character-cost');

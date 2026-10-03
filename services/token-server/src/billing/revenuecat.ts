@@ -1,6 +1,7 @@
+import { applyBillingSnapshot, type BillingSnapshot, type BillingProjection } from './state.ts';
 import { timingSafeEqual } from 'node:crypto';
 
-import { PLANS, lapsedEntitlement, type Entitlement } from '@luvani/core';
+import { type Entitlement } from '@luvani/core';
 import type { EntitlementStore } from '../store.ts';
 
 export interface RevenueCatConfiguration {
@@ -77,53 +78,25 @@ function paidPlan(productId: string, products: RevenueCatConfiguration['products
  * told their speaking time was ready (F265). A caller cannot report what it did
  * from a value that does not say, so the value says.
  */
-export type SubscriberProjection =
-  | { kind: 'active'; entitlement: Entitlement }
-  | { kind: 'lapsed'; entitlement: Entitlement }
-  | { kind: 'unchanged'; reason: 'not-paid' | 'unknown-product'; entitlement: Entitlement };
+export type SubscriberProjection = BillingProjection;
 
-/**
- * Project the vendor's current subscriber state, never the webhook event itself.
- * A later period or a changed plan resets usage; a repeat of the same projection
- * preserves it. Unknown products fail closed and are made loud by the caller.
- */
-export function projectSubscriber(
-  body: RevenueCatSubscriberBody,
-  current: Entitlement,
-  config: RevenueCatConfiguration,
-  now: Date = new Date(),
-): SubscriberProjection {
-  const vendor = body.subscriber?.entitlements?.[config.entitlementId];
+function subscriberSnapshot(body: RevenueCatSubscriberBody, config: RevenueCatConfiguration, now = new Date()): BillingSnapshot {
+  if (!body.subscriber || !body.subscriber.entitlements || typeof body.subscriber.entitlements !== 'object' || Array.isArray(body.subscriber.entitlements)) {
+    throw new Error('RevenueCat subscriber entitlements are invalid');
+  }
+  const vendor = body.subscriber.entitlements[config.entitlementId];
   if (vendor) {
-    const productId = typeof vendor.product_identifier === 'string' ? vendor.product_identifier : '';
-    const plan = paidPlan(productId, config.products);
-    if (plan === null) return { kind: 'unchanged', reason: 'unknown-product', entitlement: current };
-    const periodEnd = typeof vendor.expires_date === 'string' ? new Date(vendor.expires_date) : null;
-    if (periodEnd && Number.isFinite(periodEnd.getTime()) && periodEnd.getTime() > now.getTime()) {
-      // A new PERIOD grants a new allowance. A change of plan inside a period does
-      // not, and the difference is money. This read `current.plan === plan && ...`,
-      // so any crossgrade reset the counter to zero: on a store that keeps the
-      // expiry date through a plan change, moving between the two paid tiers was a
-      // fresh allowance every time, as often as the learner cared to switch. The
-      // period is the thing that was paid for, so the period is what is compared,
-      // and seconds already spent are carried over and clamped to the new cap.
-      const newPeriod = current.periodEnd?.getTime() !== periodEnd.getTime();
-      return {
-        kind: 'active',
-        entitlement: {
-          plan,
-          secondsUsed: newPeriod ? 0 : Math.min(current.secondsUsed, PLANS[plan].secondsPerPeriod),
-          periodEnd,
-          lapsed: false,
-        },
-      };
-    }
+    const product = typeof vendor.product_identifier === 'string' ? vendor.product_identifier : null;
+    const plan = product ? paidPlan(product, config.products) : null;
+    if (!plan) return { kind: 'unknown-product' };
+    const end = typeof vendor.expires_date === 'string' ? new Date(vendor.expires_date) : null;
+    if (end && Number.isFinite(end.getTime()) && end > now) return { kind: 'active', plan, periodEnd: end };
   }
+  return { kind: 'inactive' };
+}
 
-  if (current.plan === 'starter' || current.plan === 'regular') {
-    return { kind: 'lapsed', entitlement: lapsedEntitlement() };
-  }
-  return { kind: 'unchanged', reason: 'not-paid', entitlement: current };
+export function projectSubscriber(body: RevenueCatSubscriberBody, current: Entitlement, config: RevenueCatConfiguration, now = new Date()): SubscriberProjection {
+  return applyBillingSnapshot(current, subscriberSnapshot(body, config, now));
 }
 
 export async function fetchSubscriber(
@@ -153,19 +126,15 @@ export async function refreshSubscriber(
     request?: typeof fetch;
     now?: Date;
     logger?: Pick<Console, 'error'>;
+    eventId?: string;
   } = {},
 ): Promise<SubscriberProjection> {
-  const [current, body] = await Promise.all([
-    store.get(userId),
-    fetchSubscriber(userId, config, options.request),
-  ]);
-  const projection = projectSubscriber(body, current, config, options.now);
-  if (projection.kind === 'unchanged') {
-    if (projection.reason === 'unknown-product') {
-      (options.logger ?? console).error('[luvani] REVENUECAT_UNKNOWN_PRODUCT', { userId });
-    }
-    return projection;
+  const ticket = await store.beginBillingRefresh(userId);
+  const body = await fetchSubscriber(userId, config, options.request);
+  const snapshot = subscriberSnapshot(body, config, options.now);
+  const projection = await store.applyBilling(userId, ticket, snapshot, options.eventId);
+  if (projection.kind === 'unchanged' && projection.reason === 'unknown-product') {
+    (options.logger ?? console).error('[luvani] REVENUECAT_UNKNOWN_PRODUCT', { userId });
   }
-  await store.save(userId, projection.entitlement);
   return projection;
 }

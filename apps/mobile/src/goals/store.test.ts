@@ -144,10 +144,10 @@ describe('the goal-step store — contract test 5', () => {
     assert.equal(dirtyStamp('goalSteps'), null, 'adopting raised the flag, which is a pointless push cycle');
   });
 
-  test('a disk written by a newer build refuses local writes and reads as empty', async () => {
+  test('a disk written by a newer build refuses local writes and visible reads', async () => {
     disk.set(key(), JSON.stringify({ version: 2, steps: [] }));
     assert.equal(await recordGoalStepStarted({ sessionId: SESSION, goalKey: GOAL, task: 'mission:cafe', at: 5 }), 'failed');
-    assert.deepEqual(await loadGoalSteps(), []);
+    await assert.rejects(loadGoalSteps());
     assert.equal(disk.get(key()), JSON.stringify({ version: 2, steps: [] }), 'an older build wrote over a newer disk');
   });
 });

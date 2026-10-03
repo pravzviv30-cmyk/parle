@@ -48,6 +48,9 @@ describe('the drills a pack does not yet carry (F553)', () => {
     assert.equal(repeats.length, REPEATED_PHRASES);
     assert.deepEqual(repeats.map((drill) => drill.phraseKey), ['Le code wifi', 'Je peux avoir la clé', 'Bonne soirée'].map(phraseKeyOf));
     assert.equal(new Set(drills.map((drill) => drill.id)).size, drills.length, 'two exercises share an id');
+    const own = drills.filter(drill => drill.kind === 'own-words');
+    assert.equal(own.length, REPEATED_PHRASES);
+    assert.ok(own.every(drill => drill.kind === 'own-words' && drill.situation === 'The wifi password' && drill.accepted.length === 0));
 
     // No correction, no repair drill, and nothing invented in its place.
     assert.equal(repairKeyOf(pack(false)), null);

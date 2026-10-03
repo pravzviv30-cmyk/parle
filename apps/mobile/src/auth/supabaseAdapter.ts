@@ -10,6 +10,7 @@
  * is how the raw provider message got back onto a screen the first time.
  */
 
+import { authenticationIsRecent, verifiedAuthenticationAt } from '@luvani/core';
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -17,7 +18,7 @@ import { createClient, type Session, type SupabaseClient } from '@supabase/supab
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
 import { startAppleSignIn } from './apple.ts';
-import { friendly, deletionFailure, GOOGLE_NOT_CONFIGURED, APPLE_NOT_CONFIGURED } from './friendly.ts';
+import { friendly, deletionFailure, reauthenticationLine, GOOGLE_NOT_CONFIGURED, APPLE_NOT_CONFIGURED } from './friendly.ts';
 import { googleAvailable, appleAvailable } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
@@ -146,14 +147,18 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       return error ? { ok: false, message: friendly(error) } : { ok: true };
     },
 
-    async reauthenticateForDeletion(secret?: string): Promise<AuthResult> {
+    async reauthenticateForDeletion(secret?: string, purpose: 'deletion' | 'export' = 'deletion'): Promise<AuthResult> {
       const { data } = await client.auth.getSession();
       const user = data.session?.user;
-      if (!user) return { ok: false, message: 'Sign in again before deleting your account.' };
+      if (!user) return { ok: false, message: reauthenticationLine(purpose) };
+      if (Platform.OS === 'web' && (user.app_metadata?.provider === 'google' || user.app_metadata?.provider === 'apple')) {
+        const proof = await client.auth.getClaims();
+        if (!proof.error && proof.data?.claims.sub === user.id && authenticationIsRecent(verifiedAuthenticationAt(proof.data.claims))) return { ok: true };
+      }
       if (user.app_metadata?.provider === 'google') {
         const result = await startGoogleSignIn(client);
         if (Platform.OS === 'web' && result.ok) {
-          return { ok: false, message: 'Finish signing in with Google, then return here and delete the account again.' };
+          return { ok: false, message: reauthenticationLine(purpose, 'google') };
         }
         return result;
       }
@@ -163,7 +168,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         // must not be read as confirmed.
         const result = await startAppleSignIn(client);
         if (Platform.OS === 'web' && result.ok) {
-          return { ok: false, message: 'Finish signing in with Apple, then return here and delete the account again.' };
+          return { ok: false, message: reauthenticationLine(purpose, 'apple') };
         }
         return result;
       }
@@ -191,7 +196,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         // proxy that knows nothing about this product. The status says enough.
         return response.ok ? { ok: true } : { ok: false, message: deletionFailure(response.status) };
       } catch {
-        return { ok: false, message: 'The connection dropped. Nothing was deleted. Try again.' };
+        return { ok: false, message: 'The connection dropped before deletion was confirmed. Try again.' };
       }
     },
 

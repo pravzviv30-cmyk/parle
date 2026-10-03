@@ -25,7 +25,7 @@ import {
   SCENE_SPINE,
   earnedMissionIds,
   getMission,
-  phraseKeyOf,
+  reviewPhraseFor,
   spineFrom,
   type Mission,
   type MissionProgress,
@@ -35,7 +35,7 @@ import {
 
 import type { LevelStop, PathLevel } from '../components.tsx';
 import { DEVICE_VOICE, RECORDED_AUDIO } from '../copy/access.ts';
-import { tutorAudioFor, type TutorAudioPack } from '../daily/tutorAudio.ts';
+import { tutorAudioForFrench, type TutorAudioPack } from '../daily/tutorAudio.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 import { isMeasuredCheck } from './sounds.ts';
 
@@ -126,20 +126,15 @@ export function phraseBankFrom(input: {
   recordings: TutorAudioPack;
   items: readonly { id: string; fr: string }[];
 }): PhraseBankRow[] {
-  const byKey = new Map<string, string>();
-  for (const item of input.items) {
-    const key = phraseKeyOf(item.fr);
-    if (!byKey.has(key)) byKey.set(key, item.id);
-  }
   return [...input.deck]
-    .filter((card) => card.front.trim() !== '')
+    .filter((card) => reviewPhraseFor(card) !== null)
     .sort((a, b) => b.addedAt - a.addedAt)
     .slice(0, PHRASE_BANK_ROWS)
     .map((card) => {
-      const id = byKey.get(phraseKeyOf(card.front));
-      const asset = id === undefined ? undefined : tutorAudioFor(input.recordings, id, input.voice);
+      const pair = reviewPhraseFor(card)!;
+      const asset = tutorAudioForFrench(input.recordings, input.items, pair.fr, input.voice);
       const audio: PhraseAudio = asset === undefined ? { kind: 'device', label: DEVICE_VOICE } : { kind: 'recorded', asset, label: RECORDED_AUDIO };
-      return { id: card.id, fr: card.front, en: card.back, audio };
+      return { id: card.id, fr: pair.fr, en: pair.en, audio };
     });
 }
 

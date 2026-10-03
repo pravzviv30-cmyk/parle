@@ -110,6 +110,15 @@ about a problem that *does* have a drill because a different one did not.
 
 ## Practice answer disclosure
 
+The drill ramp is separate from the live support ladder. It now has five
+stages across successful review sittings: options, tokens, typed retrieval,
+spoken repetition, and own words. Reps 0 through 4 select those stages, so the
+fifth sitting asks for meaning in the learner's own French. A missing format
+falls back to the nearest easier one. Existing scheduling and the two-miss
+limit stay in force; a miss earns no new rung. Own words checks the existing
+semantic judgment, offers editable transcription or typing, and claims no
+pronunciation or changed-situation transfer evidence.
+
 An incorrect answer gets one retry without an answer or translation. Only the
 second incorrect attempt on that exercise reveals it. The drill engine hides
 the answer in both feedback copy and feedback data; conversation matching and

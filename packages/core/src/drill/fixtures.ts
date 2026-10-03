@@ -20,13 +20,13 @@
  * phraseKey reuses the deck's identity scheme (phrase:<fr lowercased>, the
  * same key the mobile review store writes), so drilling here reschedules the
  * very card the flashcard deck shows. One phrase, "un café, s'il vous plaît",
- * is deliberately authored at all four ramp stages as the reference ladder.
+ * is deliberately authored at all five ramp stages as the reference ladder.
  *
  * The mission sections below exist because a path node with nothing behind it is
  * a door onto an empty room, which path.ts:183 records as a bug that shipped
  * rather than a theoretical one. Every phrase an authored mission leaves behind
  * gets one recognition exercise and one production exercise, so the ramp has
- * somewhere to walk it. No mission phrase is authored at all four stages: that
+ * somewhere to walk it. No other mission phrase is authored at all five stages: that
  * ladder belongs to the café line, and a second one would give the bank two
  * centres of gravity. pickForStage falls back to the nearest easier stage, so a
  * phrase with no spoken exercise gets its typed one rather than nothing.
@@ -264,6 +264,13 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   },
 
   // ---- repeat-this, each with its silent twin -----------------------------
+
+  {
+    kind: 'own-words', id: 'own-cafe', phraseKey: "phrase:un café, s'il vous plaît",
+    difficulty: 'production', fr: "Un café, s'il vous plaît", en: 'A coffee, please',
+    situation: 'You are at a café counter. Ask politely for a coffee.',
+    mustKeep: ['coffee', 'please'], accepted: [],
+  },
 
   {
     kind: 'repeat-this',

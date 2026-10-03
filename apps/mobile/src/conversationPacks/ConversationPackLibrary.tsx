@@ -1,5 +1,7 @@
+import { Illustration } from '../art/flat/Illustration.tsx';
 /** A quiet library of the learner's own, curated Tutor conversations. */
 
+import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { ConversationPack } from '@luvani/core';
@@ -53,6 +55,7 @@ export function ConversationPackLibrary({
   onDeleteOne: (pack: ConversationPack) => Promise<DeleteResult>;
   onDeleteAll: () => Promise<DeleteResult>;
 }) {
+  const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const [selected, setSelected] = useState<ConversationPack | null>(null);
   const [confirming, setConfirming] = useState<string | 'all' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -122,7 +125,7 @@ export function ConversationPackLibrary({
   if (selected !== null) {
     return (
       <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: leaveDetail }} />}>
-        <Label>Conversation</Label>
+        <Label>Practice from conversation</Label>
         <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>{selected.title.en}</Text>
         <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(1) }]}>{selected.title.fr}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{selected.summary}</Text>
@@ -201,7 +204,7 @@ export function ConversationPackLibrary({
         ) : (
           <Card style={st.section}>
             <Text style={[type.bodyStrong, { color: paper.ink }]}>{selected.state === 'generating' ? 'Your conversation is becoming practice.' : 'This conversation needs a little more time.'}</Text>
-            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Your saved phrases remain available in My French.</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Your saved phrases remain available in Progress.</Text>
           </Card>
         )}
 
@@ -223,15 +226,16 @@ export function ConversationPackLibrary({
 
   return (
     <ScrollScreen bottom="tab" header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Label>My French</Label>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>Your conversations</Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Curated phrases, corrections and practice from the situations you have spoken through.</Text>
+      <Label>Progress</Label>
+      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>Practice from conversations</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>
 
       {ordered.length === 0 ? (
         <Card style={st.empty}>
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>No saved conversations yet</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Finish a Tutor conversation and it will appear here as practice you can return to.</Text>
-        </Card>
+          <Illustration name="state-notebook" fit="small" />
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>No conversation practice yet</Text>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Finish a Tutor conversation and its curated practice can appear here.</Text>
+        <PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>
       ) : (
         <View style={st.packs}>
           {ordered.map((pack) => (
@@ -239,7 +243,7 @@ export function ConversationPackLibrary({
               <Text style={[type.bodyStrong, { color: paper.ink }]}>{pack.title.en}</Text>
               <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{pack.title.fr}</Text>
               <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{pack.summary}</Text>
-              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{packStatus(pack)}{dateLine(pack.createdAt) ? ` · ${dateLine(pack.createdAt)}` : ''}</Text>
+              <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{packStatus(pack)}{dateLine(pack.createdAt) ? `, ${dateLine(pack.createdAt)}` : ''}</Text>
               <View style={st.cardActions}>
                 <OutlineButton label="Open conversation" onPress={() => setSelected(pack)} />
                 {pack.state === 'ready' && onContinue !== undefined && (
