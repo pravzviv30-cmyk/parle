@@ -1,0 +1,147 @@
+/**
+ * The paywall redesign moved words and boxes, and not one byte of money code.
+ *
+ * 2026-09-27, notebook Phase 6-E. The wall went from four pages to two and the
+ * plans were priced in conversations a week, which is layout and copy only. The
+ * brief for that phase says purchase, restore, entitlement and metering stay
+ * byte-identical, and a promise like that is only worth something if the gate
+ * can see it break. So every file that buys, restores, grants or meters is
+ * pinned here by its SHA-256, and so is every money function that lives inside
+ * a file the redesign did edit (the wall frame and the inline paywall).
+ *
+ * The hashes were read at `redesign/notebook` 0cb39ad, before the redesign
+ * touched anything. Changing money code on purpose is allowed; it means reading
+ * the new hash off this test's failure, writing it in with a dated comment that
+ * says why, and getting the revenue reviewer to agree. What this refuses is a
+ * money change riding in on a copy change without anybody noticing.
+ */
+
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { describe, test } from 'node:test';
+
+const REPO = fileURLToPath(new URL('../../../../', import.meta.url));
+const read = (fromRepo: string): string => readFileSync(`${REPO}${fromRepo}`, 'utf8');
+const sha = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
+
+// 2026-10-02: founder-authorized Report 2 billing hardening F263/F264/F266/F267.
+// Independent gpt-6-sol reviewed atomic projection, readiness and original-owner
+// settlement; all reported code blockers repaired. Updated pins reflect these
+// deliberate security changes, not allowance, price or margin changes. Live
+// vendor/store/database checks remain outstanding. Meter and historic SQL pins
+// are unchanged. New billing helpers and migration are pinned below as well.
+/** The whole files: nothing the paywall redesign had any reason to open. */
+// 3 October 2026, F704/F708: founder-authorised UX billing recovery, independently
+// accepted by gpt-6-sol after fresh period/owner/storage review and 11/11 checks.
+// Native packages must verify P1M. Wall checkout writes a scoped durable fence
+// before its store sheet, refuses active duplicate plans, and reconciles after
+// reopening only with a matching newly established or advanced paid period.
+// Unknown grant, period or storage never enables another purchase. Existing
+// prices, allowance/debit, restore settlement and historic SQL pins are unchanged.
+// Native sandbox and cross-device transaction proof remain explicitly unverified.
+const FILES: Record<string, string> = {
+  // 3 October 2026, F692: simulator exposed Metro's native adapter self-cycle.
+  // Unchanged shared contract moved to a neutral filename; native's sole code
+  // change is the import target. Root and independent Sol reconstructed both
+  // previous pinned hashes exactly and accepted this split. New contract pinned
+  // too; every other money pin and purchase/restore/allowance rule is unchanged.
+  'apps/mobile/src/purchases/adapter.ts': '91840b3c02ac00e3eb0d3b3e9cb83b4c6f7b193bf5860778b82cbccb19f9450c',
+  'apps/mobile/src/purchases/adapter.native.ts': 'beb2d167d262421524ea374e89a636676a898150df21d08c74418a1d4090df6f',
+  'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
+  'apps/mobile/src/purchases/contract.ts': '653fc97ff413653d026d0b22ef357238250e222d21484ae198930ee89a6ed8fe',
+  'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
+  'apps/mobile/src/purchases/client.ts': '89ea93da435d0f6d8c1997b680efecdbf02940cd63eb5ceb04443fcdd686831e',
+  // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
+  'apps/mobile/src/purchases/billingStatus.ts': '3104923354eec188303c25d0fc1e78abe4954daad392d7ad1427d32ce15392b1',
+  'apps/mobile/src/purchases/capabilities.ts': 'fe15969f716eaa618e58dfb5bc3c45fa0a36f0a4353db6c3029e62e317387e84',
+  'packages/core/src/metering/meter.ts': '4f5724e2e6885cd4a7df29a6f044d5358a7a5173958a59a6ce21a25925f896f8',
+  'services/token-server/src/billing/revenuecat.ts': 'ffb7403eab7207cacee8b44c700562ec82602d04d7d18a249c76c1798c4a1690',
+  'services/token-server/src/billingStatus.ts': '4007af875bbddd777b4511db6143b9dabca82c1ef1174de5f9b4bd99fda8e1c6',
+  // 3 October 2026: founder-authorized Report 36 confirmed service-failure
+  // refunds and Report 32 approved audio spending ceilings. Sol independently
+  // reviewed bounded charge/epoch/ownership/disabled-cap repairs; disposable SQL
+  // and actual isolated PostgreSQL refund races passed. Hosted/native/crash
+  // reconciliation remain release holds. Prices, allowances and margin floors
+  // retain their original pins. These new pins guard the deliberate new rules.
+  'packages/core/src/sessionSettlement.ts': '3daea2582cd956bd060215f0ad241bdccd5a08cff4c778ffbfab87d47faf43be',
+  'supabase/migrations/20261002233520_failed_session_refunds.sql': 'e2159b5fa5079ac44a68fc84bbb8717ba891324c000b488be4d4ee6af606b122',
+  'supabase/migrations/20261003001510_approved_phrase_audio_caps.sql': '4dcb7de1e44d95cd10c3914ae59d3b8e9d435ea9714e0cb0264cd42d451252c6',
+  // 2026-09-27, Fable paywall review: the entitlement gate, the debit, core metering's entry point, the
+  // client subscription state and every billing or entitlement migration were missing, so a change to
+  // them would have ridden past this pin. Each hash was read at 0cb39ad and equals the working tree.
+  'services/token-server/src/tokens.ts': 'f0120883b1e44221c85a7e9bc5e44c1cb257f98d57a3fd1d8033de6e32baa562',
+  'services/token-server/src/store.ts': 'b3edf92493b55f836a1d2de84858724033c1613d18785f2072271898bd7eebac',
+  'packages/core/src/metering/index.ts': 'f7f45e8b95c398e8cfb44eb1205d5abf6619df185f8b47f4b8f8def9c911b100',
+  'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
+  'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',
+  'supabase/migrations/202608220001_luvani_learning.sql': '837130edcd96955383936bb34814c38a6cf9357e5031355156dd5398eb1f8c23',
+  'supabase/migrations/202608230001_session_usage_idempotency.sql': '40b8eeb9315d766972434c6b5abb7b8a525f03d9cdd65b06812f06fff02b1a95',
+  'supabase/migrations/202608240001_claim_trial_null_fix.sql': '4d002c9f2399b4b9b9d2cf7b8779f2631614155a1748fd5cf99046cdc69130aa',
+  'supabase/migrations/202608250001_consume_entitlement_null_fix.sql': 'fd4793858c9c625f4e972be96cd7d22b2b38fec83380b60535e388429923fe25',
+  'supabase/migrations/202608300001_billing_events.sql': '9cca723b62cfa72c5e107407e742a292c3642615ab76bc4db1c3eb08f471b340',
+  'supabase/migrations/202608300002_paid_period_lapse.sql': '0a9defce38d24c790112b3af5518b442da6e8ff6527e88dcfc7a151fbe985026',
+  'supabase/migrations/202608300003_paid_lapse_marker.sql': 'f62c7f5af3db814128873c98903f5161e1dd215a80071d0f66f9727b7e4c3b41',
+  'supabase/migrations/202609100001_max_allowance_three_hundred.sql': '0e0982a4a43efa7100674848e8698eb5a7d15f44e39e4cbeac1e866c7069aadc',
+  'apps/mobile/src/purchases/storeSettlement.ts': '6b1fd0203883dfa7631f78fdd8b07e0714fb3e1c31ce22193a1c771b0e5f23dd',
+  'apps/mobile/src/purchases/storeQueue.ts': 'e082c5feb556e5eda675884e56255ebf2ef4365ddfa783d26ad0005c271d9c74',
+  'apps/mobile/src/purchases/billingReadiness.ts': 'e5ea45cca5e1fa6fcc94e41ebe14329cfabd3d2d4156ef9bcb04443901c792cb',
+  'services/token-server/src/billing/state.ts': '41ff7d8e7f4736e238f48faccf4faa47e458afb28d1901dfb48254e81d2e1453',
+  // 2 October 2026, Report 45: founder-authorized optional consented funnel evidence.
+  // Sol accepted the separate-savepoint trial RPC, strict server event boundaries
+  // and ordered ownership-bound restore tracking; allowance/debit policy is unchanged.
+  'services/token-server/src/sessionEvents.ts': 'ef4f9bf949f4c320bfdf92eaaf6ad7b7da8a2ac1477e28599332319069cff176',
+  'supabase/migrations/20261002192210_consented_product_funnel.sql': '3d07ab4e30a75ebe1664b0c907e531ec41fcf723d727f86580cae3b223585649',
+  'supabase/migrations/20261002154637_atomic_billing_projection.sql': '9353bfd992c71eb42cb581b169c16dc320a509323a240e5913d8812c8f3bb40c',
+};
+
+/**
+ * The money functions inside files the redesign did edit, each cut from its
+ * first line to its own closing brace. The cut is by text, so the pin covers
+ * the indentation and the comments inside the function as well as the code.
+ */
+const FUNCTIONS: ReadonlyArray<{ file: string; from: string; to: string; hash: string }> = [
+  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function purchasable(', to: '\n}\n', hash: '43b7a449f84496d510760ee14a60d455c11f7be43951e3cd6880e86b4e233526' },
+  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function paywallSurface(', to: '\n}\n', hash: 'd84931dc6e9138415641ca4acde9fd0fc746b4032c318ffe52fbe22d0b8935a9' },
+  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: 'a42a8dbf9d09d8b44260a42e20ff35956cd51e104fdc815ee3f27a4cd0e943db' },
+  { file: 'apps/mobile/src/purchases/Paywall.tsx', from: '  const finish = async (', to: '\n  };\n', hash: '84b76d1009e37cb18928dba63a23fbe243160a42d96fcc48581f6bebd76e508d' },
+  { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const settle = async (', to: '\n  };\n', hash: '6a43acfd12cebaee7a0919d2040ba6bc9cbb6875bd7659b4b9322c8331a6deb2' },
+  { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const buy = async () => {', to: '\n  };\n', hash: '722a6d7ab28faaa9751d1e3ae938b92983f44f2f125228cd1c654cb7d98a3c40' },
+  { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const restore = async () => {', to: '\n  };\n', hash: 'eb161316f3375fefd7f77bd06e7c9196839976c64e51c9a1f1a0e42cf96f3b14' },
+  { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const checkAcceptedPurchase = async () => {', to: '\n  };\n', hash: 'a1c162349a5a3655958a1b6bf0d64614aa46812ca6265a81f672072829030c19' },
+  // 2026-09-27, Fable paywall review: the token server's billing routes, cut out of server.ts rather than
+  // pinning the whole server, so an unrelated server change does not trip a money pin.
+  { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/webhook') {", to: '\n    }\n', hash: 'bea88b27886862ceed72a873b9f4f5980818c82c6b9c85254a65145eba36a9dd' },
+  { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/refresh') {", to: '\n    }\n', hash: '3fec25dc6d1e7bf7691dcd06e2f14c1b64b8667f2578303993e1e0b2469f593d' },
+  { file: 'services/token-server/src/server.ts', from: "if (req.method === 'POST' && url.pathname === '/billing/status') {", to: '\n    }\n', hash: 'e04ae269c2ef774524d3fcfbd0e0654a65030af2de073e5cd4730778ca123e83' },
+];
+
+function cut(body: string, from: string, to: string): string {
+  const start = body.indexOf(from);
+  assert.notEqual(start, -1, `${from.trim()} is gone, so the pin is guarding nothing`);
+  assert.equal(body.indexOf(from, start + 1), -1, `${from.trim()} appears twice, so the cut is ambiguous`);
+  const end = body.indexOf(to, start);
+  assert.notEqual(end, -1, `${from.trim()} has no closing brace where one was expected`);
+  return body.slice(start, end + to.length);
+}
+
+describe('the paywall redesign left the money alone', () => {
+  test('every file that buys, restores, grants or meters is byte-identical', () => {
+    const moved: string[] = [];
+    for (const [file, hash] of Object.entries(FILES)) {
+      const now = sha(read(file));
+      if (now !== hash) moved.push(`${file}: ${now}`);
+    }
+    assert.deepEqual(moved, [], 'money code changed; if that was meant, pin the new hash with a dated reason');
+  });
+
+  test('every money function inside an edited file is byte-identical', () => {
+    const moved: string[] = [];
+    for (const { file, from, to, hash } of FUNCTIONS) {
+      const now = sha(cut(read(file), from, to));
+      if (now !== hash) moved.push(`${file} ${from.trim()}: ${now}`);
+    }
+    assert.deepEqual(moved, [], 'a money function changed; if that was meant, pin the new hash with a dated reason');
+  });
+});

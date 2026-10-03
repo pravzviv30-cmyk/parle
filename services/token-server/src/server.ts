@@ -7,10 +7,13 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import 'dotenv/config';
+import { supportedSessionModes, supportsSessionMode } from '../../shared/sessionCapabilities.ts';
 
 import {
+  authenticationIsRecent,
+  conversationTextCursor,
+  isConversationText,
   PLANS,
-  buildReport,
   secondsRemaining,
   revisionFromPack,
   withoutRevisionSource,
@@ -18,8 +21,9 @@ import {
   type TutorRevision,
 } from '@luvani/core';
 import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
-import { scoreUtterance } from '../../shared/speechace.ts';
+import { scoreUtterance } from '../../shared/pronunciation.ts';
 import {
+  SessionReconciliationRequired,
   DevelopmentEntitlementStore,
   FileEntitlementStore,
   InMemoryEntitlementStore,
@@ -32,11 +36,20 @@ import { createUserResolver } from './auth.ts';
 import { agentDebitAllowed } from './agentAuth.ts';
 import { practiceJobs } from './practiceJobs.ts';
 import { productionConfigurationProblems } from './config.ts';
-import { deleteSupabaseUser, signedInRecently } from './accountDeletion.ts';
-import { exportSupabaseAccountData } from './accountExport.ts';
+import { deleteAccountWithProcessor, signedInRecently } from './accountDeletion.ts';
+import { exportRecentlyAuthenticatedAccountData } from './accountExport.ts';
+import { saveConversationText, deleteConversationText, listConversationText } from './conversationText.ts';
 import { billingStatusFor } from './billingStatus.ts';
+import { claimTrialWithEvidence, recordMinutesRefusal } from './sessionEvents.ts';
 import { insertProductEvent, parseProductEvent } from './productEvents.ts';
-import { handleDrillJudge } from './drillJudge.ts';
+import { handleDrillJudge, judgeUsageLine } from './drillJudge.ts';
+import { fixLineObserverFromEnv } from './fixLineObserver.ts';
+import { handleFixLineJudge } from './fixLineJudge.ts';
+import { isServiceFailure } from '@luvani/core';
+import { handlePhraseAudio } from './phraseAudioRoute.ts';
+import { DRILL_REFERENCE_HEADER, DRILL_USER_HEADER, handleDrillScore } from './drillScore.ts';
+import { handleDrillTranscribe } from './drillTranscribe.ts';
+import { transcribeFrenchTake } from '../../shared/transcription.ts';
 import {
   deleteAllConversationPacks,
   deleteConversationPack,
@@ -49,6 +62,8 @@ import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
 import {
   refreshSubscriber,
   revenueCatConfiguration,
+  fetchSubscriber,
+  projectSubscriber,
   webhookAuthorised,
 } from './billing/revenuecat.ts';
 import {
@@ -150,6 +165,8 @@ const users = createUserResolver({
   localDevelopment: process.env.LUVANI_LOCAL_DEVELOPMENT,
 });
 const billing = revenueCatConfiguration(process.env);
+const eventSink = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? { baseUrl: process.env.SUPABASE_URL, serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY } : null;
 const userIdPattern = sessionIdPattern;
 
 /**
@@ -205,28 +222,16 @@ function installationChecks(req: IncomingMessage, rule: RateLimitRule): readonly
   return installation ? [[rule, 'installation', installation]] : [];
 }
 
-async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJson(req: IncomingMessage, limit = 64 * 1024): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 64 * 1024) throw new Error('payload too large');
+    if (size > limit) throw new Error('payload too large');
     chunks.push(chunk as Buffer);
   }
   if (chunks.length === 0) return {};
   return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
-}
-
-/** Raw utterance audio. A drill rep is a few seconds of WAV; 2MB is generous. */
-async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > 2 * 1024 * 1024) throw new Error('payload too large');
-    chunks.push(chunk as Buffer);
-  }
-  return Buffer.concat(chunks);
 }
 
 const server = createServer(async (req, res) => {
@@ -234,9 +239,11 @@ const server = createServer(async (req, res) => {
     return json(res, 403, { error: 'origin not allowed' });
   }
   if (req.method === 'OPTIONS') {
+    // The two scoring headers are listed because a browser refuses to send an
+    // unlisted one, and a web drill that cannot send its line is never scored.
     res.writeHead(204, {
       'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
-      'access-control-allow-headers': 'content-type, authorization, x-luvani-installation',
+      'access-control-allow-headers': `content-type, authorization, x-luvani-installation, ${DRILL_USER_HEADER}, ${DRILL_REFERENCE_HEADER}`,
       'access-control-max-age': '600',
     });
     return res.end();
@@ -246,12 +253,13 @@ const server = createServer(async (req, res) => {
 
   try {
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { ok: true, livekitUrl, durablePractice: process.env.LUVANI_DURABLE_PRACTICE === '1' });
+      return json(res, 200, { ok: true, livekitUrl, supportedModes: supportedSessionModes(), durablePractice: process.env.LUVANI_DURABLE_PRACTICE === '1' });
     }
 
     // RevenueCat's event is a doorbell, not authority. Authenticate and dedupe
     // before reading current subscriber state from the vendor.
     if (req.method === 'POST' && url.pathname === '/billing/webhook') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.billingWebhookIp)]))) return;
       if (!billing) return json(res, 503, { error: 'billing is not configured' });
       const authorisation = Array.isArray(req.headers.authorization)
         ? req.headers.authorization[0]
@@ -265,13 +273,28 @@ const server = createServer(async (req, res) => {
         : null;
       const eventId = typeof event?.id === 'string' ? event.id : '';
       const userId = typeof event?.app_user_id === 'string' ? event.app_user_id : '';
-      if (!eventId || !userIdPattern.test(userId)) {
+      if (!/^[a-zA-Z0-9:._-]{1,128}$/.test(eventId) || !userIdPattern.test(userId)) {
         return json(res, 400, { error: 'invalid billing event' });
       }
-      const first = await store.recordBillingEvent(userId, eventId);
-      if (!first) return json(res, 200, { received: true, replay: true });
-      await refreshSubscriber(userId, store, billing);
+      const complete = await store.billingEventComplete(eventId);
+      if (complete) return json(res, 200, { received: true, replay: true });
+      await refreshSubscriber(userId, store, billing, { eventId });
       return json(res, 200, { received: true });
+    }
+
+    // Purchases stay closed until configuration and the atomic DB schema agree.
+    if (req.method === 'POST' && url.pathname === '/billing/readiness') {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.billingReadinessIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.billingReadinessUser, 'user', resolved.userId]]))) return;
+      if (!billing || !(store instanceof SupabaseEntitlementStore) || !await store.billingProjectionReady()) {
+        return json(res, 503, { ready: false });
+      }
+      // Validate vendor credentials and response shape without granting time.
+      const subscriber = await fetchSubscriber(resolved.userId, billing);
+      projectSubscriber(subscriber, { plan: 'trial', secondsUsed: 0 }, billing);
+      return json(res, 200, { ready: true, entitlementId: billing.entitlementId, products: billing.products, projectionVersion: 1 });
     }
 
     // Learner-triggered recovery for restore and for a webhook delayed or lost.
@@ -338,6 +361,7 @@ const server = createServer(async (req, res) => {
             : body.mode === 'lesson-text'
               ? ('lesson-text' as const)
               : ('lesson' as const);
+      if (!supportsSessionMode(mode)) return json(res, 503, { error: 'voice-unavailable', message: 'Voice is unavailable here. You can start a typed conversation.', supportedModes: supportedSessionModes() });
       const snapshot = typeof body.snapshot === 'object' && body.snapshot !== null ? body.snapshot : undefined;
       let seedTopic = typeof body.seedTopic === 'object' && body.seedTopic !== null ? body.seedTopic : undefined;
       const missionId = typeof body.missionId === 'string' && body.missionId ? body.missionId : undefined;
@@ -364,10 +388,12 @@ const server = createServer(async (req, res) => {
 
       if (
         installation !== null &&
-        !(await store.claimTrial(
+        !(await claimTrialWithEvidence(
+          store, store instanceof SupabaseEntitlementStore ? eventSink : null,
           userId,
           privateSignal(rateLimitSalt, 'installation', installation),
           privateSignal(rateLimitSalt, 'user', userId),
+          body.analyticsAllowed,
         ))
       ) {
         return json(res, 402, {
@@ -400,6 +426,7 @@ const server = createServer(async (req, res) => {
       ].join(', ');
 
       if (!result.ok) {
+        void recordMinutesRefusal(eventSink, userId, body.analyticsAllowed, entitlement, result.reason);
         return json(res, result.status, { error: result.reason, message: result.message, plans: PLANS }, { 'server-timing': serverTiming });
       }
       const leaseSignal = privateSignal(rateLimitSalt, 'user', userId);
@@ -410,6 +437,17 @@ const server = createServer(async (req, res) => {
           { error: 'session already active', message: 'Your other French session is still active. End it before starting another.' },
           { 'server-timing': serverTiming },
         );
+      }
+      // The token stays private until its issued allowance is durably fenced.
+      // A concurrent billing change cannot turn this into a grant for old minutes.
+      try {
+        if (!(await store.recordSessionGrant(userId, result.grant.sessionId, entitlement))) {
+          await sessionLeases.release(leaseSignal, result.grant.sessionId);
+          return json(res, 409, { error: 'allowance changed', message: 'Your allowance changed. Please try again.' });
+        }
+      } catch {
+        await sessionLeases.release(leaseSignal, result.grant.sessionId);
+        return json(res, 503, { error: 'session settlement unavailable', message: 'The session could not be prepared. Please try again.' });
       }
       // The catalogue rides the grant as well as the 402. It was attached only to the
       // refusal, so a learner had to be turned away once before the app knew what a
@@ -440,31 +478,43 @@ const server = createServer(async (req, res) => {
     }
 
     // Drill mode's pronunciation check: raw utterance audio in the body, the
-    // reference text in the query — no multipart, no base64 bloat, and the
-    // known reference is exactly what makes the score trustworthy. Returns
-    // the phoneme observations plus the ONE focus core selects; the app must
-    // never turn this into eleven red bars.
+    // learner and the reference text in headers, never in the URL (F626). The
+    // handler, its header decoding and its refusal of the old query form live
+    // in drillScore.ts, beside the judge, so they can be tested without a port.
     if (req.method === 'POST' && url.pathname === '/drill/score') {
-      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.scoringIp)]))) return;
-      const reference = url.searchParams.get('reference');
-      if (!reference) return json(res, 400, { error: 'reference is required' });
-      const resolved = await users.resolve(req.headers.authorization, url.searchParams.get('userId'));
-      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
-      const userId = resolved.userId;
-      if (!(await withinLimits(req, res, [
-        [RATE_LIMITS.scoringUser, 'user', userId],
-        ...installationChecks(req, RATE_LIMITS.scoringInstallation),
-      ]))) return;
+      return handleDrillScore(req, res, {
+        users,
+        limits: (request, response, userId) =>
+          userId === null
+            ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.scoringIp)])
+            : withinLimits(request, response, [
+                [RATE_LIMITS.scoringUser, 'user', userId],
+                ...installationChecks(request, RATE_LIMITS.scoringInstallation),
+              ]),
+        // Ten seconds, not the live turn's five: a drill learner is waiting for
+        // a verdict, not sitting in a conversation that has to keep moving.
+        score: (request) => scoreUtterance(request, { timeoutMs: 10_000 }),
+      });
+    }
 
-      const audio = await readAudio(req);
-      if (audio.length === 0) return json(res, 400, { error: 'audio body is required' });
+    if (req.method === 'POST' && url.pathname === '/drill/transcribe') {
+      return handleDrillTranscribe(req, res, {
+        users,
+        limits: (request, response, userId) => userId === null
+          ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.scoringIp)])
+          : withinLimits(request, response, [[RATE_LIMITS.scoringUser, 'user', userId],
+            ...installationChecks(request, RATE_LIMITS.scoringInstallation)]),
+        transcribe: audio => transcribeFrenchTake(audio),
+      });
+    }
 
-      const observations = await scoreUtterance({ reference, audio });
-      // No key, vendor down, or unscorable audio: an empty result, never an
-      // invented penalty. The app treats it as "no verdict". The report is
-      // core's — one focus point at most, and only when the evidence earns it.
-      const report = buildReport(observations);
-      return json(res, 200, { observations, report });
+    if (req.method === 'POST' && (url.pathname === '/phrase-audio/manifest' || url.pathname === '/phrase-audio/generate')) {
+      return handlePhraseAudio(req, res, url.pathname.endsWith('/generate'), {
+        users, env: process.env,
+        limits: (request, response, userId) => userId === null
+          ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.phraseAudioIp)])
+          : withinLimits(request, response, [[RATE_LIMITS.phraseAudioUser, 'user', userId]]),
+      });
     }
 
     // The own-words drill's verdict: the learner's own French, read by the
@@ -473,8 +523,9 @@ const server = createServer(async (req, res) => {
     // answers 503 rather than inventing a verdict — see drillJudge.ts. The
     // brain is built once, lazily, so a server with no key still boots and
     // still serves every other endpoint.
-    if (req.method === 'POST' && url.pathname === '/drill/judge') {
-      return handleDrillJudge(req, res, {
+    if (req.method === 'POST' && (url.pathname === '/drill/judge' || url.pathname === '/drill/fix-line')) {
+      const handler = url.pathname === '/drill/fix-line' ? handleFixLineJudge : handleDrillJudge;
+      return handler(req, res, {
         users,
         limits: (request, response, userId) =>
           userId === null
@@ -484,6 +535,8 @@ const server = createServer(async (req, res) => {
                 ...installationChecks(request, RATE_LIMITS.scoringInstallation),
               ]),
         client: judgeBrain(),
+        usage: (usage) => console.log(judgeUsageLine(usage)),
+        ...(url.pathname === '/drill/fix-line' ? { fixLineObserver: fixLineObserverFromEnv() } : {}),
       });
     }
 
@@ -499,13 +552,15 @@ const server = createServer(async (req, res) => {
       if (!supabaseUrl || !serviceRoleKey) {
         return json(res, 503, { error: 'account deletion is not configured' });
       }
-      if (!(await signedInRecently(supabaseUrl, serviceRoleKey, resolved.userId))) {
+      if (!authenticationIsRecent(resolved.authenticatedAt) || !(await signedInRecently(supabaseUrl, serviceRoleKey, resolved.userId))) {
         return json(res, 403, {
           error: 'recent authentication required',
           message: 'Sign in again to confirm it is you, then delete the account within five minutes.',
         });
       }
-      await deleteSupabaseUser(supabaseUrl, serviceRoleKey, resolved.userId);
+      if (!(await deleteAccountWithProcessor(supabaseUrl, serviceRoleKey, resolved.userId, process.env.REVENUECAT_SECRET_API_KEY))) {
+        return json(res, 503, { error: 'purchase record erasure could not be requested' });
+      }
       return json(res, 200, { deleted: true });
     }
 
@@ -521,7 +576,11 @@ const server = createServer(async (req, res) => {
       if (!supabaseUrl || !serviceRoleKey) {
         return json(res, 503, { error: 'account export is not configured' });
       }
-      const exported = await exportSupabaseAccountData(supabaseUrl, serviceRoleKey, resolved.userId);
+      const exported = await exportRecentlyAuthenticatedAccountData(supabaseUrl, serviceRoleKey, resolved.userId, resolved.authenticatedAt);
+      if (exported === null) return json(res, 403, {
+        error: 'recent authentication required',
+        message: 'Sign in again to confirm it is you, then download your data within five minutes.',
+      });
       return json(res, 200, exported, {
         'content-disposition': 'attachment; filename="luvani-account-data.json"',
       });
@@ -544,6 +603,32 @@ const server = createServer(async (req, res) => {
       if (!supabaseUrl || !serviceRoleKey) return json(res, 200, { accepted: false });
       await insertProductEvent(supabaseUrl, serviceRoleKey, resolved.userId, event);
       return json(res, 200, { accepted: true });
+    }
+
+    // Saving full readable text requires a deliberate learner action, never an agent report.
+    const textDelete = url.pathname.match(/^\/conversation-text\/([0-9a-f-]{36})$/i);
+    if ((url.pathname === '/conversation-text' && (req.method === 'GET' || req.method === 'POST')) || (textDelete && req.method === 'DELETE')) {
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.conversationPackIp)]))) return;
+      const resolved = await users.resolve(req.headers.authorization, null);
+      if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.conversationPackUser, 'user', resolved.userId]]))) return;
+      const db = process.env.SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!db || !key) return json(res, 503, { error: 'Saved conversation text is unavailable.' });
+      if (req.method === 'GET') {
+        const after = url.searchParams.get('after');
+        if (after !== null && conversationTextCursor(after) === null) return json(res, 400, { error: 'invalid conversation cursor' });
+        return json(res, 200, await listConversationText(db, key, resolved.userId, fetch, after));
+      }
+      if (req.method === 'DELETE' && textDelete) {
+        if (!sessionIdPattern.test(textDelete[1]!)) return json(res, 400, { error: 'invalid conversation reference' });
+        await deleteConversationText(db, key, resolved.userId, textDelete[1]!);
+        return json(res, 200, { deleted: true });
+      }
+      const body = await readJson(req, 256 * 1024);
+      if (body.consent !== true || !isConversationText(body.conversation)) return json(res, 400, { error: 'Choose to save a valid conversation text.' });
+      const result = await saveConversationText(db, key, resolved.userId, body.conversation);
+      return result === 'saved' ? json(res, 200, { saved: true }) : json(res, 409, { error: result });
     }
 
     // The tutor agent writes a completed Pack after curation and drill
@@ -645,7 +730,8 @@ const server = createServer(async (req, res) => {
         seconds < 0 ||
         seconds > 900 ||
         !sessionId ||
-        !sessionIdPattern.test(sessionId)
+        !sessionIdPattern.test(sessionId) ||
+        (body.serviceFailure !== undefined && !isServiceFailure(body.serviceFailure))
       ) {
         return json(res, 400, { error: 'userId, sessionId and whole seconds from 0 to 900 are required' });
       }
@@ -653,9 +739,20 @@ const server = createServer(async (req, res) => {
         ipCheck(req, RATE_LIMITS.debitIp),
         [RATE_LIMITS.debitUser, 'user', userId],
       ]))) return;
+      if (isServiceFailure(body.serviceFailure)) {
+        try {
+          const settled = await store.refundSession(userId, sessionId, body.serviceFailure);
+          await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
+          return json(res, 200, settled);
+        } catch (error) {
+          if (!(error instanceof SessionReconciliationRequired)) throw error;
+          await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
+          return json(res, 409, { kind: 'reconciliation' });
+        }
+      }
       const updated = await store.consume(userId, seconds, sessionId);
       await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
-      return json(res, 200, { secondsRemaining: secondsRemaining(updated), plan: updated.plan });
+      return json(res, 200, { kind: 'charged', refundedSeconds: 0, secondsRemaining: secondsRemaining(updated), plan: updated.plan });
     }
 
     // The other way a session ends: the tutor never turned up.

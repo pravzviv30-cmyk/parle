@@ -242,6 +242,8 @@ describe('provenance is a fact, never a guess — whole-app phase 1', () => {
     assert.equal(book.count, 1, 'a saved phrase was counted as one the learner can say');
     assert.deepEqual(book.groups.map((g) => g.id), ['topic:le-cafe'], 'a saved phrase reached a retained group');
     assert.deepEqual(book.saved.map((p) => p.front), ['Autre chose ?', 'Sur place, merci.', 'un croissant'], 'the saved list is not every unrecalled phrase, newest first');
+    assert.equal(book.saved.find((p) => p.front === 'Sur place, merci.')?.source, 'Ordering at a café', 'a saved line loses its known situation');
+    assert.equal(book.saved.find((p) => p.front === 'Autre chose ?')?.source, undefined, 'an unknown source is guessed from the words');
     assert.ok(!book.saved.some((p) => p.front === 'y'), 'a sound is not a phrase, saved or not');
     for (const phrase of book.saved) {
       assert.equal('hold' in phrase, false, 'a saved phrase carries a shelf, which is a claim about how well it is held');
@@ -266,4 +268,16 @@ describe('provenance is a fact, never a guess — whole-app phase 1', () => {
     assert.equal(book.groups[0]?.title, OTHER_PHRASES_TITLE);
     assert.doesNotMatch(OTHER_PHRASES_TITLE, /lesson/i);
   });
+});
+
+test('the phrase library displays and groups the French of turn cards, including saved-only lines',()=>{
+ const fr='Un café, s’il vous plaît.';const en='A coffee, please.';
+ const recalled=card({id:'turn:cafe:order',kind:'turn',front:en,back:fr,reps:1});
+ const saved=card({id:'turn:cafe:thanks',kind:'turn',front:'Thank you.',back:'Merci.',reps:0});
+ const book=buildPhrasebook([recalled,saved],[],NOW,[{id:'owned-pack',title:{en:'At the café'},keyPhrases:[{fr}]}]);
+ assert.equal(book.count,1);assert.equal(book.groups[0]?.title,'At the café');
+ assert.deepEqual(book.groups[0]?.phrases[0],{id:recalled.id,front:fr,back:en,hold:'new'});
+ assert.deepEqual(book.saved,[{id:saved.id,front:'Merci.',back:'Thank you.'}]);
+ const malformed=card({id:'bad',kind:'turn',front:'Coffee',back:' ',reps:1});
+ assert.equal(buildPhrasebook([malformed],[],NOW).count,0,'an empty French answer was counted as a phrase');
 });

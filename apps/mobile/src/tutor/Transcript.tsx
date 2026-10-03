@@ -1,3 +1,5 @@
+import { transcriptTail, replyAnnouncement } from './transcriptTail.ts';
+import { authoredCorrectionReason, type CorrectionReasonId } from '@luvani/core';
 /**
  * The conversation as a thread.
  *
@@ -16,32 +18,43 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { accent, paper, shadow, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
-import { EarGlyph, Label, TintPanel } from '../components.tsx';
+import { View, Text, Pressable, ScrollView, StyleSheet, AccessibilityInfo, Platform } from 'react-native';
+import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { EarGlyph, Highlight, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
-import { settleIn, useReduceMotion } from '../motion.ts';
+import { useReduceMotion } from '../motion.ts';
 import { replayEar } from './replayEar.ts';
 
-function Recast({ better, betterEn, why }: { quote: string; better: string; betterEn: string; why: string }) {
+function Recast({ better, betterEn, reason, latest }: { quote: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const explanation = authoredCorrectionReason(reason);
   return (
     <View style={st.recast}>
       <Label>A more natural way</Label>
-      <Text style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>
+      {latest ? <Highlight text={better} /> : <Text {...frenchText} style={[type.french, { color: paper.ink, marginTop: space(0.5) }]}>{better}</Text>}
       <Text style={[type.small, { color: paper.inkSoft }]}>{betterEn}</Text>
-      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{why}</Text>
+      {explanation !== null && <>
+        <Pressable accessibilityRole="button" accessibilityLabel="Why this form?" accessibilityState={{expanded}}
+          onPress={() => setExpanded(value => !value)} style={{minHeight:HIT,minWidth:HIT,justifyContent:'center'}}>
+          <Text style={[type.small, {color:paper.ink}]}>Why?</Text>
+        </Pressable>
+        {expanded && <Text style={[type.small, {color:paper.inkSoft}]}>{explanation}</Text>}
+      </>}
     </View>
   );
 }
 
 function Line({
   turn,
+  latestCorrection,
   onReplay,
   isLastTutorLine,
   tutorName,
   tutorSpeaking,
+  announceReply = false,
 }: {
   turn: TurnLine;
+  latestCorrection: boolean;
   onReplay?: () => void;
   /** This is the most recent tutor line in the thread. */
   isLastTutorLine: boolean;
@@ -49,6 +62,7 @@ function Line({
   tutorName: string;
   /** The tutor holds the floor right now, which lights the ear. */
   tutorSpeaking: boolean;
+  announceReply?: boolean;
 }) {
   if (turn.who === 'narration') {
     return (
@@ -70,11 +84,11 @@ function Line({
   });
   const body = (
     <>
-      <Text style={[type.french, { color: paper.ink }]}>{turn.fr}</Text>
+      <Text {...frenchText} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[type.french, { color: learner ? paper.onInk : paper.ink }]}>{turn.fr}</Text>
       {turn.frWritten && turn.frWritten !== turn.fr ? (
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
+        <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
       ) : null}
-      {turn.en ? <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
+      {turn.en ? <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.en}</Text> : null}
     </>
   );
 
@@ -117,17 +131,15 @@ function Line({
             )}
           </Pressable>
         ) : learner ? (
-          // The learner's own side is the house lilac, which is the one tint a
-          // surface may take when it is not about a place: these are their
-          // words, and the paper under them says so without a second colour
-          // entering the signal set. TintPanel draws it, because a screen never
-          // names a colour (palette.test.ts).
-          <TintPanel tint="lilac" style={st.learnerBubble}>{body}</TintPanel>
+          // The learner's own side is the deeper paper rather than a tint, since
+          // the notebook redesign retired the tints: these are their words, set
+          // on the page itself, and the tutor's are the white card opposite.
+          <View style={st.learnerBubble}>{body}</View>
         ) : (
           <View style={st.tutorBubble}>{body}</View>
         )}
-        {turn.recasts?.map((r) => (
-          <Recast key={r.better} {...r} />
+        {turn.recasts?.map((r, index) => (
+          <Recast key={`${r.textTurnId ?? 'legacy'}:${r.correctionIndex ?? index}:${r.quote}:${r.better}:${r.reason ?? 'none'}`} {...r} latest={latestCorrection && index === turn.recasts!.length - 1} />
         ))}
       </View>
     </View>
@@ -139,6 +151,7 @@ export function Transcript({
   onReplayTutor,
   tutorName,
   tutorSpeaking,
+  announceReply = false,
 }: {
   turns: readonly TurnLine[];
   /**
@@ -159,38 +172,29 @@ export function Transcript({
   tutorName: string;
   /** The tutor is sounding right now, which lights the ear on its last line. */
   tutorSpeaking: boolean;
+  announceReply?: boolean;
 }) {
   const ref = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const [newLines, setNewLines] = useState(false);
-  // One settling entrance, in the vocabulary the splash established and the
-  // only one this app has: transform and opacity, native driver, nothing
-  // bounces. It lives here rather than at the call site so both places the
-  // thread appears get it, and neither has to remember the numbers.
-  const settle = useRef(new Animated.Value(0)).current;
-
-  // The final frame when movement is withheld. The conversation is the content;
-  // the arrival is the flourish, and nobody should sit through a flourish to
-  // read. settleIn owns both halves of that, for every surface.
+  // The thread arrives in place (notebook Phase 4, 2026-09-27): only the orb
+  // and the highlighter move in this app. Reduce motion still decides whether
+  // the scroll to the newest line glides or jumps.
   const reduced = useReduceMotion();
   // Which bubble carries the replay. Found by walking back rather than by
   // index, because the last line in the thread is usually the learner's.
-  const lastTutorId = [...turns].reverse().find((t) => t.who === 'tutor')?.id;
+  const latest = transcriptTail(turns);
+  const lastCorrectionId = latest.correctionId;
+  const lastTutorId = latest.tutor?.id;
+  const announcedTutor = useRef<string | null>(null);
   useEffect(() => {
-    const animation = settleIn(settle, reduced);
-    return () => animation?.stop();
-  }, [settle, reduced]);
+    if (latest.tutor === null || announcedTutor.current === latest.tutor.id) return;
+    announcedTutor.current = latest.tutor.id;
+    if (announceReply && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(replyAnnouncement(latest.tutor, tutorName));
+  }, [lastTutorId, announceReply, tutorName]);
 
   return (
-    <Animated.View
-      style={[
-        st.settleBox,
-        {
-          opacity: settle,
-          transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-        },
-      ]}
-    >
+    <View style={st.frame}>
       <ScrollView
         ref={ref}
         style={st.scroll}
@@ -209,32 +213,35 @@ export function Transcript({
         }}
         // A learner may be typing into the box below this one while it scrolls.
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         accessibilityLabel="Your conversation so far"
       >
         {turns.map((t) => (
           <Line
             key={t.id}
             turn={t}
+            latestCorrection={t.id === lastCorrectionId}
             onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined}
             isLastTutorLine={t.id === lastTutorId}
             tutorName={tutorName}
             tutorSpeaking={tutorSpeaking}
+            announceReply={announceReply}
           />
         ))}
       </ScrollView>
       {newLines && <Pressable accessibilityRole="button" accessibilityLabel="Go to the latest message" onPress={() => { nearBottom.current = true; setNewLines(false); ref.current?.scrollToEnd({ animated: !reduced }); }} style={st.latest}>
         <Text style={[type.small, { color: paper.ink }]}>Latest message ↓</Text>
       </Pressable>}
-    </Animated.View>
+    </View>
   );
 }
 
 const st = StyleSheet.create({
   latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: paper.groundDeep, borderRadius: radius.control },
-  // The entrance wrapper carries the same flex the scroll used to, so adding it
-  // moves nothing: minHeight 0 is what stops a flex child from refusing to
-  // shrink and pushing the controls off the bottom of the screen.
-  settleBox: { flex: 1, minHeight: 0 },
+  // The wrapper carries the same flex the scroll does, so it moves nothing:
+  // minHeight 0 is what stops a flex child from refusing to shrink and pushing
+  // the controls off the bottom of the screen.
+  frame: { flex: 1, minHeight: 0 },
   scroll: { flex: 1, minHeight: 0 },
   // Short conversations sit against the controls instead of stranded at the top.
   content: { flexGrow: 1, justifyContent: 'flex-end', gap: space(3), paddingVertical: space(3) },
@@ -251,22 +258,19 @@ const st = StyleSheet.create({
   // nothing here for reduce motion to withhold.
   ear: { padding: space(1) },
   earSounding: { padding: space(1), backgroundColor: paper.groundDeep, borderRadius: radius.pill },
-  // The tutor speaks from a white card, with the app's one whisper under it and
-  // the hairline still there: elevation draws nothing on older Android and
-  // clips on the web column, and without the rule a card there dissolves into
-  // the ground. Same bargain `components.tsx` states for Card itself.
+  // The tutor speaks from a white card on the paper hairline, and no shadow:
+  // the notebook retired the whisper, and the rule alone keeps the card from
+  // dissolving into the ground. Same bargain `components.tsx` states for Card.
   tutorBubble: {
     backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
     borderRadius: radius.card,
     paddingHorizontal: space(4),
     paddingVertical: space(3.5),
-    ...shadow.whisper,
   },
-  // Tighter corners than the card and no shadow: a row is not a card, and the
-  // learner's side is a surface rather than an object sitting on the page.
+  // Tighter corners than the card: the learner's side is the page itself,
+  // a shade deeper, rather than an object sitting on it.
   learnerBubble: {
+    backgroundColor: paper.ink,
     borderRadius: radius.row,
     paddingHorizontal: space(3.5),
     paddingVertical: space(3),

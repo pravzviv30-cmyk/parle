@@ -1,5 +1,31 @@
 # The live path
 
+## Recognition confidence (Report 2, item 35)
+
+Both live agents wrap the public default `sttNode` event stream. Each provider
+`FINAL_TRANSCRIPT` contributes the first alternative's confidence only when it
+is a finite number from zero through one. Missing or invalid values contribute
+to an unavailable count, never a zero. Numeric-only `[luvani:recognition]` lines
+report final segment counts and the last value; counts reset per STT stream.
+Segments can be parts of one utterance and are not completed learner turns.
+No words, audio or identity are retained for this observation. Sink exceptions
+cannot interrupt the event stream. No confidence grade or threshold is applied.
+These numbers do not prove correct French recognition. The founder approved automatic TTS language detection after Alexandre time/money
+A/B listening, then heard all six refreshed bilingual chooser clips. Live requests
+omit `language_code`; live/saved cache identities change. Frozen French-only daily
+and onboarding batches retain `fr`. This does not prove all voices normalize every
+English number correctly.
+
+Mixed-language recognition remains a review candidate. Normal Nova-3 behavior is
+unchanged: multilingual conversation opening, French scenes and lessons.
+`LUVANI_CONVO_ASR_EXPERIMENT=1` selects Flux Multilingual with French/English hints
+only for conversations; it is OFF by default and has not been enabled in the
+running/canonical configuration. Lessons and typing retain their existing path.
+It does not enable eager model generation. Synthetic prerecorded and actual SDK
+streaming probes found high-confidence errors in both candidates; this option
+requires consenting beginner, interruption, room and end-to-end timing QA before
+activation. It adds no grade, confidence threshold, saved transcript or recipient.
+
 What happens between a learner tapping "start" and a tutor answering them, and
 where every part of it can go wrong.
 
@@ -30,6 +56,12 @@ agent  ──POST /session/end──►  token-server debits the metered seconds
 
 The agent is **authoritative**. The app renders what it is sent and sends what the
 learner did; it never decides a rung, a grade or an end card.
+
+On a learner exit, live scene/turn requests and queued speech are cancelled.
+The saved recap and practice pack still finish in the background, by the founder's
+2 October 2026 decision. Completion is shared by repeated finish calls, so room
+teardown can await the same enrichment. A safety stop instead skips post-session
+model work and saves no practice pack; its safety message finishes before disconnect.
 
 ## The four modes
 
@@ -84,10 +116,29 @@ call fails.
 On an ordinary free-conversation turn, the learner hears the French character
 reply and, only for a genuine scene shift, one short English scene-setting line.
 Routine correction cards remain visible and feed the recap, but are not read
-aloud over the conversation. When the learner reaches for English, the one
+aloud over every exchange. Once per voiced scene, an eligible inline finding
+about the learner's actual confirmed words can be echoed briefly inside the
+character's French reply. No recast is invented for a clean turn; deferred
+findings, narration shifts and English-help turns keep their existing policy.
+The correction and combined line must fit short speech budgets (120 characters
+and twenty words on the low rungs; 240 and forty above them), or only the card
+remains. The original character, display meaning and one speech handle remain.
+The augmented line passes the existing output guard before display and speech,
+and the actual guarded dialogue replaces the corresponding assistant history
+entry for later turns and post-session work. The typed twin stays unchanged.
+This does not broaden the output guard's categories or validate model-generated
+French/voice fluency; native TTS still needs testing.
+When the learner reaches for English, the one
 short English-to-French hand-back takes that single support slot before the
 French reply. This keeps the tutor responsive without making every answer sound
 like narration, correction, and roleplay glued together.
+
+The conversation-only memory brief now supplies the same last five repaired
+saved notes to the frame and every turn, labelled as editable tutor memory
+rather than an exact past utterance or an invented conversation/date source.
+Paused memory supplies no brief. Relevance and at most one natural sourced
+recall are prompt guidance; a real model test is still required before claiming
+reliable adherence. No extra model call or new decision threshold was added.
 
 If the scenario-builder call times out, fails, or returns an invalid frame, the
 agent opens a small request-grounded frame instead. The learner's words remain
@@ -140,10 +191,30 @@ failure available here, so the machinery is deliberately explicit:
 - **`durationSec`** comes from the same place and is always used. It was hard-coded
   to `0`, which is why speaking share and longest turn read as nothing on every
   live session ever run.
-- **Sending that audio to Speechace is behind `LUVANI_AUDIO_SCORING=1`.** Not
-  because the capture is doubtful, but because the vendor's phone alphabet is: a
-  mismatch fails silently to "no focus", which is exactly the shape of bug this is
-  all here to stop shipping.
+- **Live scoring is built, and switched off.** Sending a live utterance to the
+  scorer is behind `LUVANI_AUDIO_SCORING=1`, and by the founder's decision of
+  2026-09-29 that stays unset until scoring runs off the reply path (F623 in
+  `docs/KNOWN_ISSUES.md`). The score is awaited before the brain replies, and the
+  one TonePerfect call took 3.4 s for a 1.7 s clip, on top of a 4.5 to 5.4 s
+  brain. Until F623 lands, a live end card reads `unavailable`. Drills and sound
+  checks are scored today, by the token server's `/drill/score`, which does not
+  read the flag. Their recordings are .m4a on a phone and WebM on the web, so
+  each upload is labelled from its own first bytes rather than assumed to be WAV.
+- **`services/shared/pronunciation.ts`** is the scoring seam. It picks the vendor
+  by `LUVANI_SCORING_VENDOR`: TonePerfect by default whenever
+  `TONEPERFECT_API_KEY` is set, Speechace when named or when its key is the only
+  one. A vendor named without its key scores nothing, and the audio is never sent
+  to the other one. Each utterance gets one deadline (5 s live, 10 s for a drill)
+  shared by the single retry, and one random Idempotency-Key, so a retry cannot
+  bill twice. A timeout, a refusal, an outage or an unassessable answer is no
+  score, never a low one, and a session where no turn was scored is
+  `unavailable`.
+- **The alphabet is verified for 18 of the 36 sounds.** The one real TonePerfect
+  response is committed as `services/tutor-agent/src/fixtures/toneperfect-fr.json`,
+  and every symbol it returned is plain IPA that maps with no alias. The other 18
+  have not been seen yet. The vendor marks the model experimental and its scale
+  uncalibrated; the first success in a process logs the model id, and every
+  success logs how long it took.
 - **`services/shared/phoneMap.ts`** translates vendor symbols into the inventory's
   IPA and counts what it cannot place, so an alphabet change is one loud log line
   rather than a slow silence.
@@ -168,15 +239,67 @@ on top of them. One moment of being stuck, two rescues.
 
 ## When it fails
 
-`apps/mobile/src/live/failure.ts` enumerates nineteen distinct failures, each with
-its own words and its own way out; seven carry `canType: true` and offer the typed
+`apps/mobile/src/live/failure.ts` enumerates twenty distinct failures, each with
+its own words and its own way out; eight carry `canType: true` and offer the typed
 route instead. `LiveErrorView` keeps a **Support details** panel, closed by
 default and drawn after every recovery action, reporting whether
 the token server answered, how long the room took, whether the agent joined and
 whether it ever spoke — which is how you tell an environment problem from a bug
 without reading LiveKit's logs.
 
-The worker refuses to start at all if it cannot serve a turn:
-`services/tutor-agent/src/preflight.ts` checks the keys and then live-probes every
-vendor, because a tutor that joins and never speaks is indistinguishable from a
-tutor that is thinking.
+The ordinary spoken worker checks the required keys and probes its selected
+vendors before registration. A missing or deterministically rejected speech key
+still refuses startup; it never silently offers a partly usable spoken session.
+
+For a speech-credential outage, explicitly set `LUVANI_TYPED_ONLY=1` in **both**
+`services/tutor-agent/.env` and `services/token-server/.env`, then restart both
+processes. The supervisor checks the pair, pins the reviewed flag rather than an
+inherited shell override, and refuses reuse of a token server advertising different
+capabilities. Directly started/deployed services must use the same paired setting; there is
+no cross-process capability handshake. A mismatched spoken grant is rejected by
+the agent before audio construction and reported with zero usage to release its
+lease. This cannot undo a trial already claimed by the mismatched token service,
+and failed cleanup still needs the existing lease expiry/reconciliation. Checking
+both deployed environments and real recovery is a release requirement.
+This is operator-selected recovery, not automatic outage detection.
+
+In that mode the agent skips speech-key requirements and speech-vendor probes,
+skips VAD loading, and constructs no STT or TTS client for either typed mode.
+LiveKit input and output audio are disabled and `vad: null` prevents the SDK's
+implicit VAD. Transport credentials and the selected brain are still required. Both Claude CLI
+options also require Groq for the scripted SDK lesson and a `claude --version`
+check on direct worker startup; `claude-cli-all` never promises keyless lessons.
+`GET /health` advertises only `lesson-text` and `convo-text`. The token API refuses
+spoken starts before trial, lease or grant with a closed `voice-unavailable` code
+and those two capabilities. The app offers “Continue by typing” for that reply;
+a generic unavailable service still points at offline practice. The worker also
+rejects spoken job metadata independently. To restore speech, set both flags to
+`0` and restart after fixing the speech keys. No real credentials were altered
+or live/native recovery session verified during this implementation.
+
+## Scene reply dispatch timing
+
+The worker's `[luvani:scene-latency]` summary measures the framework's detected
+end of a confirmed spoken scene input to the guarded `say` dispatch. Each input
+captures its own record before queueing. Typed input, choosing/opening speech,
+bridges and recovery never become successful samples. A failed model reply is
+counted as failed; a stopped pending reply or a switch to typing is cancelled.
+Missing or non-monotonic marks are counted, not replaced with zero. The summary
+uses nearest-rank p50 and p95 over the last 128 eligible dispatches and always
+reports n and its failure/cancellation/missing counts. This is worker dispatch
+latency, not recognition quality, TTS delivery or sound at the learner's phone.
+
+The former untagged first-audio hook could attach an opening or an older cached
+sentence to a newer record. Speaking-state transitions also included bridges
+and recovery. They no longer contribute per-turn timings. Separate vendor
+`[luvani:metrics]` lines still expose vendor first-byte and EOU metrics, without
+being combined into scene latency. SDK 1.9's inspected public seam has no supported
+first-frame callback carrying the returned speech handle ID. The summary therefore
+states `first-audio=unmeasured phone-audible=unmeasured`. Actual correlated first
+frames and phone audible p50/p95 require live/native proof.
+
+The brain still returns a complete structured turn. Integration, safety, coaching,
+recast and text/speech agreement all run before the guarded line is spoken. No
+partial JSON field is released as speech. An SSE transport experiment that still
+waits for final validation would not establish earlier sound; it is not enabled
+or claimed as the report's streaming improvement.

@@ -133,7 +133,7 @@ const AsyncFunction = Object.getPrototypeOf(async (): Promise<void> => {}).const
   ...args: string[]
 ) => (...args: unknown[]) => Promise<void>;
 
-const TRACK_BODY = bodyOf(TRACK, 'export async function trackProductEvent(event: ProductEvent): Promise<void> {');
+const TRACK_BODY = bodyOf(TRACK, 'export async function trackProductEvent(event: ProductEvent, expected?: { userId: string; generation: number }): Promise<void> {');
 
 /** Run the lifted body with a fabricated world, and hand back what it did. */
 async function send(world: Record<string, unknown>): Promise<void> {
@@ -161,6 +161,9 @@ function world(consent: () => Promise<unknown>, calls: string[]): Record<string,
       return Promise.resolve({ ok: true });
     },
     event: EVENT,
+    expected: undefined,
+    scopeGeneration: () => 1,
+    activeUserId: () => 'learner-1',
   };
 }
 

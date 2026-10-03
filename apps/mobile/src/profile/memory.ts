@@ -33,13 +33,11 @@
  * the language model is sent, and says the facts can be removed here.
  */
 
-import { normalise, reviewFocusFromDeck, type ReviewCard, type TutorReviewFocus } from '@luvani/core';
-import { MAX_MEMORY_FACTS, withLearnerName, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
+import { normalise, parsePreviousCorrection, reviewFocusFromDeck, type ReviewCard, type TutorReviewFocus, type TutorPreviousCorrection } from '@luvani/core';
+import { MAX_MEMORY_FACTS, withLearnerName, memoryPaused, withoutForgottenMemory, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
 
 import type { StoredProfile } from './store.ts';
 
-/** Tombstones kept. Beyond this the oldest forget goes, which lets that fact return. */
-export const MAX_FORGOTTEN_FACTS = 40;
 /** Goals kept. Three is a promise a person can hold in their head. */
 export const MAX_LEARNER_GOALS = 3;
 /** One line. The same ceiling the seed topic keeps, for the same wire. */
@@ -52,7 +50,7 @@ export function factKey(en: string): string {
 
 /**
  * A stored list of tombstones, read sceptically: strings only, each a key
- * this module could have written, deduped, the newest kept. Used by the
+ * this module could have written, deduped, with no expiry or count-based eviction. Used by the
  * version chain, so junk in the slot reads as no forget rather than as one.
  */
 export function storedForgottenFacts(value: unknown): string[] {
@@ -64,7 +62,7 @@ export function storedForgottenFacts(value: unknown): string[] {
     if (key.length === 0 || keys.includes(key)) continue;
     keys.push(key);
   }
-  return keys.slice(-MAX_FORGOTTEN_FACTS);
+  return keys;
 }
 
 /** One goal as this module keeps it, or null when there is nothing to keep. */
@@ -88,10 +86,7 @@ export function storedLearnerGoals(value: unknown): string[] {
 
 /** The brain without any fact the learner asked to forget. Pure. */
 export function withoutForgotten(brain: LearnerProfile, forgotten: readonly string[]): LearnerProfile {
-  if (forgotten.length === 0) return brain;
-  const gone = new Set(forgotten);
-  const facts = brain.memory.facts.filter((fact) => !gone.has(factKey(fact.en)));
-  return facts.length === brain.memory.facts.length ? brain : { ...brain, memory: { ...brain.memory, facts } };
+  return withoutForgottenMemory(brain, forgotten);
 }
 
 /** The facts the learner can see: what the brain holds, minus the tombstoned. */
@@ -106,7 +101,7 @@ export function visibleFacts(profile: StoredProfile): readonly RememberedFact[] 
 export function withFactForgotten(profile: StoredProfile, en: string): StoredProfile {
   const key = factKey(en);
   if (key.length === 0) return profile;
-  const forgottenFacts = [...profile.forgottenFacts.filter((held) => held !== key), key].slice(-MAX_FORGOTTEN_FACTS);
+  const forgottenFacts = [...profile.forgottenFacts.filter((held) => held !== key), key];
   return { ...profile, forgottenFacts, brain: withoutForgotten(profile.brain, forgottenFacts) };
 }
 
@@ -169,11 +164,31 @@ export function goalFact(goal: string): RememberedFact {
  * tombstones applied, the goals appended last, and the brain's own cap taken
  * from the end so the goals survive it.
  */
-export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now()): LearnerProfile & { reviewFocus?: TutorReviewFocus[] } {
+export function snapshotFor(profile: StoredProfile, deck: readonly ReviewCard[] = [], now = Date.now(), previousCorrection?: TutorPreviousCorrection): LearnerProfile & { reviewFocus?: TutorReviewFocus[]; previousCorrection?: TutorPreviousCorrection } {
   const named = withLearnerName(withoutForgotten(profile.brain, profile.forgottenFacts), profile.name);
   const focus = reviewFocusFromDeck(deck, now);
-  const extras = focus.length ? { reviewFocus: focus } : {};
+  const correction = parsePreviousCorrection(previousCorrection);
+  const extras = { ...(focus.length ? { reviewFocus: focus } : {}), ...(correction ? { previousCorrection: correction } : {}) };
+  if (memoryPaused(named)) return { ...named, ...extras, memory: { ...named.memory, facts: [], opener: null } };
   if (profile.learnerGoals.length === 0) return { ...named, ...extras };
   const facts = [...named.memory.facts, ...profile.learnerGoals.map(goalFact)].slice(-MAX_MEMORY_FACTS);
   return { ...named, ...extras, memory: { ...named.memory, facts } };
+}
+
+
+/** A local choice with a monotonic clock; learning progress and held facts stay. */
+export function withMemoryPaused(profile: StoredProfile, paused: boolean, now = Date.now()): StoredProfile {
+  if (!Number.isSafeInteger(now) || now < 0) return profile;
+  const prior = profile.brain.memory.control?.changedAt ?? 0;
+  const changedAt = Math.max(now, prior + 1);
+  if (!Number.isSafeInteger(changedAt)) return profile;
+  return { ...profile, brain: { ...profile.brain, memory: { ...profile.brain.memory, opener: null, control: { paused, changedAt } } } };
+}
+
+/** A late recap cannot undo the learner's current pause or restore forgotten details. */
+export function brainAfterRecap(blob: LearnerProfile, current: StoredProfile): LearnerProfile {
+  const memory = memoryPaused(current.brain) ? current.brain.memory : blob.memory;
+  const control = current.brain.memory.control;
+  const kept = { ...blob, memory: { ...memory, ...(control ? { control } : {}) } };
+  return withoutForgotten(kept, current.forgottenFacts);
 }

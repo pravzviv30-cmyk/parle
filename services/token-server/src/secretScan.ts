@@ -318,6 +318,9 @@ export const SECRET_PATTERNS: readonly SecretPattern[] = [
         'LUVANI_AGENT_SECRET',
         'LUVANI_RATE_LIMIT_SALT',
         'SPEECHACE_API_KEY',
+        // TonePerfect, the default pronunciation scorer. Billed per fifteen
+        // seconds of audio, so a leaked key spends money on somebody else's voice.
+        'TONEPERFECT_API_KEY',
         'ELEVEN_API_KEY',
         // fish.audio, under both names that exist in the wild: the plugin reads
         // FISH_API_KEY, and a live .env in this repo still holds the key under

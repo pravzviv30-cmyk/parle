@@ -20,6 +20,7 @@
  * reads the window for itself.
  */
 
+import { Illustration } from '../art/flat/Illustration.tsx';
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { openPhoneSettings } from '../settings/phoneSettings.ts';
@@ -49,12 +50,20 @@ export function LiveErrorView({
   failure,
   message,
   diagnostics,
+  settlementMessage,
+  retryBlocked = false,
+  restartAsText = false,
+  typedRestartLabel = 'Start a typed conversation',
   onBack,
   onType,
 }: {
   failure: LiveFailure;
   message: string;
   diagnostics: LiveDiagnostics | null;
+  settlementMessage?: string | null;
+  retryBlocked?: boolean;
+  restartAsText?: boolean;
+  typedRestartLabel?: 'Start a typed conversation' | 'Start a typed lesson';
   /**
    * Leave. Both live screens hand this their own `leaveNow`, because a blocking
    * failure that keeps a typed door open also keeps the ROOM open for it, and
@@ -82,6 +91,7 @@ export function LiveErrorView({
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={st.center} keyboardShouldPersistTaps="handled">
+        <Illustration name={failure.startsWith('mic-') ? 'state-microphone' : 'state-offline'} fit="small" />
         <Label color={paper.inkSoft}>{copy.label}</Label>
         <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>Let’s get you back to French</Text>
         {/* The sentence is the point of this screen, so it reads at body size in
@@ -89,11 +99,13 @@ export function LiveErrorView({
             4.5 against the ground, and a line somebody is meant to act on is
             not a caption (F330). */}
         <Text style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
+        {settlementMessage && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{settlementMessage}</Text>}
 
         {canType ? (
           <>
             <View style={st.action}>
-              <PillButton label="Continue by typing" onPress={onType} />
+              {restartAsText ? <PillButton label={typedRestartLabel} onPress={onType} disabled={retryBlocked} />
+                : <PillButton label="Continue by typing" onPress={onType} disabled={retryBlocked} />}
             </View>
             <View style={st.secondary}>
               <GhostButton label="Back" onPress={onBack} />
@@ -101,7 +113,7 @@ export function LiveErrorView({
           </>
         ) : (
           <View style={st.action}>
-            <OutlineButton label="Back" onPress={onBack} />
+            <PillButton label="Back" onPress={onBack} />
           </View>
         )}
 

@@ -41,16 +41,16 @@ export function InviteFriendsScreen() {
   const size = code ? Math.sqrt(code.length) : 0;
   return <ScrollScreen bottom="inset" header={<ScreenHeader title="Add friends" back={{ onPress: goBack }} />}>
     {error !== '' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text>}
-    {s && !s.settings.enabled ? <Card tone="feature"><Text style={[type.title, { color: paper.ink }]}>Choose your username</Text>
+    {s && !s.settings.enabled ? <Card><Text style={[type.title, { color: paper.ink }]}>Choose your username</Text>
       <Text style={[type.body, { color: paper.inkSoft }]}>Only accepted friends can see your weekly score. Milestone sharing starts off. You can leave at any time.</Text>
-      <Field value={username} onChangeText={setUsername} placeholder="Your username" autoCapitalize="none" maxLength={24} />
+      <Field label="Your username" value={username} onChangeText={setUsername} placeholder="e.g. james_french" autoCapitalize="none" maxLength={24} />
       <OutlineButton label={busy ? 'Setting up…' : 'Join Friends'} disabled={busy} onPress={() => void act('enrol', { username: username.trim().toLowerCase(), name: profile.name ?? 'Learner' })} />
     </Card> : s?.settings.enabled && <>
       <Card><Label>Your invitation</Label><Text style={[type.heading, { color: paper.ink }]}>@{s.self.username}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}><GhostButton label="Share invitation" onPress={() => void share()} /><GhostButton label={qr ? 'Hide QR code' : 'Show QR code'} onPress={() => setQr(v => !v)} /></View>
         {code && <View accessible accessibilityLabel={`Invitation QR code for ${s.self.username}. You can also use Share invitation or the username above.`} style={{ alignItems: 'center' }}><Svg {...decorative} width={220} height={220} viewBox={`0 0 ${size + 8} ${size + 8}`}><Rect width={size + 8} height={size + 8} fill={paper.card} />{Array.from(code).map((cell, i) => cell ? <Rect key={i} x={i % size + 4} y={Math.floor(i / size) + 4} width={1} height={1} fill={paper.ink} /> : null)}</Svg></View>}
       </Card>
-      <View style={{ marginTop: space(4), gap: space(2) }}><Field value={query} onChangeText={v => { searchTicket.current++; setQuery(v); setSearched(false); setHits([]); }} placeholder="Exact username" autoCapitalize="none" maxLength={24} /><OutlineButton label={searching ? 'Searching…' : 'Find friend'} disabled={searching || query.trim().length < 3} onPress={() => void search()} /></View>
+      <View style={{ marginTop: space(4), gap: space(2) }}><Field label="Friend's username" value={query} onChangeText={v => { searchTicket.current++; setQuery(v); setSearched(false); setHits([]); }} placeholder="e.g. james_french" autoCapitalize="none" maxLength={24} /><OutlineButton label={searching ? 'Searching…' : 'Find friend'} disabled={searching || query.trim().length < 3} onPress={() => void search()} /></View>
       {searched && !hits.length && <Text style={[type.body, { color: paper.inkSoft }]}>Nobody available with that username. Check it with your friend or share your invitation.</Text>}
       {hits.map(p => <Card key={p.id} style={{ marginTop: space(3) }}><Text style={[type.bodyStrong, { color: paper.ink }]}>{p.name} · @{p.username}</Text>
         {s.friends.some(f => f.id === p.id) ? <Text>Already friends</Text> : s.requests.some(r => r.username === p.username) ? <Text>Request waiting</Text> : <GhostButton label="Send friend request" onPress={() => void act('request', { username: p.username })} />}

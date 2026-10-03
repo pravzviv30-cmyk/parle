@@ -1,5 +1,5 @@
 /**
- * The glyph set, read as source — F589.
+ * The glyph set, read as source — F589, F598.
  *
  * There is no renderer in this workspace (docs/TESTING.md), so this is the
  * `motion.test.ts` idiom: walk the two files that hold the app's line-art marks,
@@ -87,25 +87,91 @@ describe('one pen drew every mark in the app — F589', () => {
     assert.ok(!/default:/.test(GLYPHS), 'PlaceGlyph answers a place it does not know with a default instead of failing to compile');
   });
 
-  test('the row glyphs the revamp asked for are all here, and the speaker is the ear again', () => {
-    for (const glyph of [
-      'ClockGlyph',
-      'CoffeeCupGlyph',
-      'ChatGlyph',
-      'DocumentGlyph',
-      'ReplayGlyph',
-      'QuoteGlyph',
-      'WaveformGlyph',
-      'PlaceGlyph',
-    ]) {
-      assert.match(GLYPHS, new RegExp(`export function ${glyph}\\b`), `glyphs.tsx no longer draws ${glyph}`);
+  test('every glyph is an ICONS.md mark at the one stroke weight or a kept drawing on the retire list, and the tab and the control share one microphone', () => {
+    // Revamp B, F598. Every revamp A name survives in its file, so no caller
+    // moved; where ICONS.md draws the same thing its path replaced the old one.
+    // The fourteen after them are the ICONS.md marks the Round 1 boards draw
+    // that no older name covered. The list is exact, so a glyph added without
+    // being named here, or one lost, fails rather than drifting in.
+    const PORTED = ['MouthGlyph', 'ClockGlyph', 'ChatGlyph', 'DocumentGlyph', 'ReplayGlyph', 'WaveformGlyph'];
+    const ROUND_ONE = [
+      'ChevronDownGlyph',
+      'PlayGlyph',
+      'SpeakerSlowGlyph',
+      'MicOffGlyph',
+      'KeyboardGlyph',
+      'PlusGlyph',
+      'SearchGlyph',
+      'SettingsGlyph',
+      'LockGlyph',
+      'ShareGlyph',
+      'CardsGlyph',
+      'InfoGlyph',
+      'PostcardGlyph',
+    ];
+    // F601: the alert is one of the fourteen, but `Field` draws it beside its
+    // error line, so it is drawn in components.tsx and re-exported here, the
+    // way the speaker is. It is pinned as a re-export below, not as a drawing.
+    const RE_EXPORTED = ['AlertGlyph'];
+    // ICONS.md has no match for these, so they are kept as drawn, at the new
+    // stroke, until the stage that redraws their callers retires them.
+    const KEPT_UNTIL: Record<string, string> = {
+      CoffeeCupGlyph: 'Stage 3, with the rows that draw a place disc',
+      QuoteGlyph: 'Stage 6, with the phrase shelf row',
+      PlaceGlyph: 'Stage 6, once Stage 3 draws the places with the flat illustrations',
+    };
+    const exported = [...GLYPHS.matchAll(/export function (\w+(?:Glyph|Icon))\b/g)].map((m) => m[1]!).sort();
+    assert.deepEqual(
+      exported,
+      [...PORTED, ...ROUND_ONE, ...Object.keys(KEPT_UNTIL)].sort(),
+      'glyphs.tsx draws a glyph that is neither an ICONS.md mark nor on the retire list, or lost one a screen needs',
+    );
+    assert.equal(
+      ROUND_ONE.length + RE_EXPORTED.length,
+      14,
+      'the Round 1 set is fourteen marks, thirteen drawn here and the alert re-exported; a fifteenth is a port no board asked for',
+    );
+
+    // The ICONS.md drawings, checked by a path each draws that nothing else in
+    // the file does, so a port that was quietly reverted shows up here.
+    for (const [glyph, path] of [
+      ['ClockGlyph', 'M12 7v5l3.5 2'],
+      ['ChatGlyph', 'M14.5 9h4a2 2 0 0 1 2 2v4.5'],
+      ['DocumentGlyph', 'M4.5 18.5A2.5 2.5 0 0 1 7 16h13'],
+      ['ReplayGlyph', 'M10.75 10.75 12.25 9.5v5'],
+      ['WaveformGlyph', 'M4 10v4M8 7v10M12 4v16M16 8v8M20 10.5v3'],
+    ] as const) {
+      const at = GLYPHS.indexOf(`export function ${glyph}(`);
+      const next = GLYPHS.indexOf('\nexport ', at + 1);
+      assert.ok(GLYPHS.slice(at, next === -1 ? undefined : next).includes(path), `${glyph} is not ICONS.md's drawing`);
     }
+    // The slow speaker is the speaker with its outer arc dashed, and nothing else.
+    assert.match(GLYPHS, /<Path d="M19 7a7 7 0 0 1 0 10" strokeDasharray="2\.6 2\.6" \/>/, 'the slow speaker lost its dashed arc');
+
     assert.match(
       GLYPHS,
       /export \{ EarGlyph as SpeakerGlyph \} from '\.\/components\.tsx'/,
       'the speaker is drawn a second time instead of being the ear the tutor already speaks through',
     );
-    // The pair of chevrons stays together in components.tsx, beside the back one.
+    // F601: the alert is the one Field draws, re-exported the same way, so
+    // there is one drawing of it and no import cycle between the two files.
+    assert.match(
+      GLYPHS,
+      /export \{ AlertGlyph \} from '\.\/components\.tsx'/,
+      'the alert is not re-exported from components.tsx, so a screen cannot reach the mark Field draws',
+    );
+    assert.doesNotMatch(GLYPHS, /export function AlertGlyph\b/, 'the alert is drawn a second time here beside the one Field draws');
+    // ICONS.md: "speak and mic are the same microphone on purpose".
+    const icons = FILES[1]!.body;
+    assert.match(
+      icons,
+      /export \{ MicGlyph as TutorIcon \} from '\.\.\/components\.tsx'/,
+      'the Speak tab draws its own microphone instead of the one the control draws',
+    );
+    assert.doesNotMatch(icons, /export function TutorIcon\b/, 'the Speak tab is drawn a second time beside the re-export');
+    // The pair of chevrons stays together in components.tsx, beside the back
+    // one, and so do close and check: this file imports from that one.
     assert.ok(!/export function ChevronRight\b/.test(GLYPHS), 'glyphs.tsx draws a second right chevron away from ChevronLeft');
+    assert.ok(!/export function (Close|Check)Glyph\b/.test(GLYPHS), 'close or check is drawn here, away from the parts that draw them');
   });
 });

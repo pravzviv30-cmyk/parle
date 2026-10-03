@@ -20,7 +20,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DRILL_FIXTURES, type DrillExercise } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import { readOwnedCache } from '../storage/ownedRead.ts';
+import { onUserScopeReset, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { mergeExerciseBank } from './merge.ts';
 
@@ -44,11 +45,13 @@ function defaultStore(): DrillStore {
 /** Same shape as review/store.ts and for the same reason: see that file. */
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+interface Bound { key: string; generation: number }
+
+function serialized<T>(mutation: (bound: Bound) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
-  const key = KEY();
-  const run = () => mutation(key);
+  const bound = { key: KEY(), generation: scopeGeneration() };
+  const run = () => mutation(bound);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -67,7 +70,11 @@ function isStore(value: unknown): value is DrillStore {
     typeof value === 'object' &&
     value !== null &&
     (value as { version?: unknown }).version === 1 &&
-    Array.isArray((value as { exercises?: unknown }).exercises)
+    Array.isArray((value as { exercises?: unknown }).exercises) &&
+    (value as { exercises: unknown[] }).exercises.every(isExercise) &&
+    ((value as { micSuppressedUntil?: unknown }).micSuppressedUntil === undefined ||
+      (value as { micSuppressedUntil?: unknown }).micSuppressedUntil === null ||
+      typeof (value as { micSuppressedUntil?: unknown }).micSuppressedUntil === 'string')
   );
 }
 
@@ -86,22 +93,16 @@ function isExercise(value: unknown): value is DrillExercise {
 }
 
 async function readStore(key: string): Promise<DrillStore> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (raw) {
-      const parsed: unknown = JSON.parse(raw);
-      if (isStore(parsed)) {
-        return {
-          version: 1,
-          exercises: parsed.exercises,
-          micSuppressedUntil: typeof parsed.micSuppressedUntil === 'string' ? parsed.micSuppressedUntil : null,
-        };
-      }
-    }
-  } catch {
-    // A corrupt bank is not worth crashing over. Start from the fixtures.
-  }
-  return defaultStore();
+  const parsed = readOwnedCache(await AsyncStorage.getItem(key), isStore);
+  if (parsed === null) return defaultStore();
+  return {
+    version: 1,
+    // Add the new authored fifth rung for an existing bank. Stored choices win.
+    exercises: mergeExerciseBank(parsed.exercises, DRILL_FIXTURES.filter(fixture =>
+      fixture.kind === 'own-words' && !parsed.exercises.some(saved =>
+        saved.phraseKey === fixture.phraseKey && saved.kind === fixture.kind))),
+    micSuppressedUntil: typeof parsed.micSuppressedUntil === 'string' ? parsed.micSuppressedUntil : null,
+  };
 }
 
 /**
@@ -113,14 +114,7 @@ async function readStore(key: string): Promise<DrillStore> {
  * the account as if the learner had earned them.
  */
 async function persistedStore(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    // Unreadable is the same as absent: the fold merges against nothing rather
-    // than against a guess, and the account's bank is adopted whole.
-    return null;
-  }
+  return readOwnedCache(await AsyncStorage.getItem(key), isStore);
 }
 
 function loadStoreFor(key: string): Promise<DrillStore> {
@@ -128,6 +122,7 @@ function loadStoreFor(key: string): Promise<DrillStore> {
   if (cached) return cached;
   const pending = readStore(key);
   caches.set(key, pending);
+  void pending.catch(() => { if (caches.get(key) === pending) caches.delete(key); });
   return pending;
 }
 
@@ -143,11 +138,13 @@ function loadStore(): Promise<DrillStore> {
  * try for the registry's own reason (sync/registry.ts:181): a flag raised for a
  * failed write pushes the previous value to the account as if it were new.
  */
-async function saveStore(key: string, store: DrillStore, origin: WriteOrigin): Promise<PersistAck> {
+async function saveStore(bound: Bound, store: DrillStore, origin: WriteOrigin): Promise<PersistAck> {
   // The cache is the truth the moment the write is decided; the disk catches up.
-  caches.set(key, Promise.resolve(store));
+  if (scopeGeneration() !== bound.generation) return 'failed';
+  caches.set(bound.key, Promise.resolve(store));
   try {
-    await AsyncStorage.setItem(key, JSON.stringify(store));
+    const written = await writeInUserScope(bound.generation, () => AsyncStorage.setItem(bound.key, JSON.stringify(store)));
+    if (!written) return 'failed';
     if (origin === 'local') markDirty('drills');
     return 'durable';
   } catch {
@@ -187,10 +184,10 @@ export function mergeExercises(incoming: readonly DrillExercise[]): Promise<Pers
   // An empty batch folds to the bank that is already there, so there is nothing
   // to write and nothing that can have been lost.
   if (incoming.length === 0) return Promise.resolve('durable');
-  return serialized(async (key) => {
-    const store = await loadStoreFor(key);
+  return serialized(async (bound) => {
+    const store = await loadStoreFor(bound.key);
     const merged = mergeExerciseBank(store.exercises, incoming);
-    return saveStore(key, { ...store, exercises: merged }, 'local');
+    return saveStore(bound, { ...store, exercises: merged }, 'local');
   });
 }
 
@@ -200,9 +197,9 @@ export function mergeExercises(incoming: readonly DrillExercise[]): Promise<Pers
  * so the next hour of sittings opens silent without being asked again.
  */
 export function setMicSuppressed(until: string | null): Promise<void> {
-  return serialized(async (key) => {
-    const store = await loadStoreFor(key);
-    await saveStore(key, { ...store, micSuppressedUntil: until }, 'local');
+  return serialized(async (bound) => {
+    const store = await loadStoreFor(bound.key);
+    await saveStore(bound, { ...store, micSuppressedUntil: until }, 'local');
   });
 }
 
@@ -229,11 +226,12 @@ export async function isMicSuppressed(now = Date.now()): Promise<boolean> {
  * idempotent and identity-based, so folding twice is the same as folding once.
  */
 function adoptDrillBank(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persistedStore(key));
+  return serialized(async (bound) => {
+    if (scopeGeneration() !== bound.generation) throw new Error('Drill account changed before adoption');
+    const folded = fold(await persistedStore(bound.key));
     if (!isStore(folded)) return 'declined';
     const micSuppressedUntil = typeof folded.micSuppressedUntil === 'string' ? folded.micSuppressedUntil : null;
-    await saveStore(key, { version: 1, exercises: folded.exercises.filter(isExercise), micSuppressedUntil }, 'adopted');
+    if (await saveStore(bound, { version: 1, exercises: folded.exercises, micSuppressedUntil }, 'adopted') !== 'durable') throw new Error('Drill adoption was not durable');
     return 'adopted';
   });
 }

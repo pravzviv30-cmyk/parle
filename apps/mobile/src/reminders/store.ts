@@ -23,14 +23,12 @@
  * the key, so turning it back on months later restores the part of the day the
  * learner chose instead of silently moving their reminder to the default.
  *
- * ## Every unreadable shape resolves to off
+ * ## A strict read keeps unknown separate from off
  *
- * A missing key, a half-written blob, a version this build does not know and a
- * storage layer that refuses the read all answer `null`, which `reminderRow`
- * draws as an off switch. The asymmetry is deliberate and it only runs one way:
- * reading junk as *on* would schedule a daily notification nobody asked for,
- * underneath a row that says Off, which the learner then cannot turn off from
- * the one place they would look. Reading it as off costs a learner one tap.
+ * A missing key means no choice and answers `null`. Settings and Recap request
+ * a strict read: corrupt, unsupported or refused bytes throw, so neither can
+ * show Off or offer scheduling over a choice this build cannot verify. The
+ * default read remains lenient for older callers; it never guesses On.
  *
  * ## Not synced, and that is a decision
  *
@@ -52,7 +50,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PersistAck } from '../storage/ack.ts';
-import { userKey } from '../storage/scope.ts';
+import { userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { reminderTime, type ReminderTimeId, type StoredReminder } from './reminder.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -80,9 +78,10 @@ let writeChain: Promise<unknown> = Promise.resolve();
  * here states: a sign-out while a write is queued must never redirect that
  * write into the next account's namespace.
  */
-function serialized<T>(write: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(write: (key: string, owner: number) => Promise<T>): Promise<T> {
   const key = KEY();
-  const run = (): Promise<T> => write(key);
+  const owner = scopeGeneration();
+  const run = (): Promise<T> => write(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -99,20 +98,24 @@ function serialized<T>(write: (key: string) => Promise<T>): Promise<T> {
  * mangled hour costs the learner the default time and not their choice to be
  * reminded at all.
  */
-async function read(key: string): Promise<StoredReminder | null> {
+async function read(key: string, strict: boolean): Promise<StoredReminder | null> {
+  const unreadable = (): null => {
+    if (strict) throw new Error('Reminder choice could not be read');
+    return null;
+  };
   try {
     const raw = await AsyncStorage.getItem(key);
-    if (!raw) return null;
+    if (raw === null) return null;
+    if (raw === '') return unreadable();
     const parsed = JSON.parse(raw) as Partial<StoredEnvelope> | null;
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
-    if (parsed.version !== VERSION) return null;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return unreadable();
+    if (parsed.version !== VERSION) return unreadable();
     const stored = parsed.reminder as Partial<StoredReminder> | null | undefined;
-    if (typeof stored !== 'object' || stored === null) return null;
-    if (typeof stored.enabled !== 'boolean') return null;
+    if (typeof stored !== 'object' || stored === null) return unreadable();
+    if (typeof stored.enabled !== 'boolean') return unreadable();
     return { enabled: stored.enabled, time: presetOf(stored.time) };
-  } catch {
-    // Unreadable or unavailable. The row draws as off, which is the honest
-    // thing to show for a reminder this build cannot promise will arrive.
+  } catch (error) {
+    if (strict) throw error;
     return null;
   }
 }
@@ -128,8 +131,8 @@ function presetOf(raw: unknown): ReminderTimeId {
  * Not `async`, so a read with nobody signed in throws where the caller can see
  * it rather than resolving to a shared key — the same shape `loadTopics` has.
  */
-export function loadReminder(): Promise<StoredReminder | null> {
-  return read(KEY());
+export function loadReminder(options: { strict?: boolean } = {}): Promise<StoredReminder | null> {
+  return read(KEY(), options.strict === true);
 }
 
 /**
@@ -146,13 +149,13 @@ export function loadReminder(): Promise<StoredReminder | null> {
  * `StoredReminder` cannot grow what lands on disk.
  */
 export function saveReminder(reminder: StoredReminder): Promise<PersistAck> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     const envelope: StoredEnvelope = {
       version: VERSION,
       reminder: { enabled: reminder.enabled, time: reminder.time },
     };
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(envelope));
+      await setItemInUserScope(owner, key, JSON.stringify(envelope));
       return 'durable';
     } catch {
       // Storage full or unavailable. The switch on screen is unaffected this

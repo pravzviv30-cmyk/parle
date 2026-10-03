@@ -12,20 +12,18 @@
  * is audible before it is legible, and hearing it costs nothing — the voice is
  * the platform synthesizer, offline and free. It plays, and never records.
  *
- * It sits on the same sand the Practice row that opens it sits on, so the
- * moment looks like the thing the learner tapped rather than a new object.
- * `madeFromTint.ts` says which paper that is and `TintPanel` lays it, so this
- * file names a kind of practice and never a colour (palette.test.ts).
+ * Notebook Phase 4 (2026-09-27): one white `Card`, no tint and no shadow. The
+ * speaker is a white disc under a paper hairline, which is what tells it from
+ * the card now that the whisper has retired.
  */
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Label, TintPanel } from '../components.tsx';
+import { Card, Label } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { MADE_FROM } from '../practice/madeFrom.ts';
-import { MADE_FROM_TINT } from '../practice/madeFromTint.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { DISC, accent, paper, radius, shadow, space, type } from '../theme.ts';
+import { DISC, HAIRLINE, accent, paper, space, type } from '../theme.ts';
 
 export interface DrillMoment {
   quote: string;
@@ -35,7 +33,7 @@ export interface DrillMoment {
 
 export function MomentCard({ moment }: { moment: DrillMoment }) {
   return (
-    <TintPanel tint={MADE_FROM_TINT.replay} style={st.card}>
+    <Card style={st.card}>
       <Label>{MADE_FROM.replay.said}</Label>
       <Text style={st.quote}>« {moment.quote} »</Text>
       <Label>{MADE_FROM.replay.better}</Label>
@@ -51,16 +49,12 @@ export function MomentCard({ moment }: { moment: DrillMoment }) {
         </Pressable>
       </View>
       <Text style={st.why}>{moment.why}</Text>
-    </TintPanel>
+    </Card>
   );
 }
 
 const st = StyleSheet.create({
-  card: {
-    marginBottom: space(4),
-    borderRadius: radius.row,
-    padding: space(4),
-  },
+  card: { marginBottom: space(4) },
   quote: { ...type.body, color: paper.inkSoft, marginTop: space(1), marginBottom: space(3) },
   betterRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginTop: space(1) },
   better: { ...type.french, color: paper.ink, flex: 1 },
@@ -71,7 +65,8 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: paper.card,
-    ...shadow.whisper,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
   },
   why: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
 });

@@ -53,6 +53,27 @@ senior-level scrutiny before code is written:
 - Nothing ships without a test that fails if the behaviour regresses, and
   `npm run gate` green.
 
+## TypeSafe Jev
+
+Jev, TypeSafe's model, answers typed judgments: yes or no, one option from a set,
+or a score on levels. It writes no text. When a task involves an LLM call whose
+whole answer is a judgment, load the TypeSafe skill (`/typesafe:typesafe-ai`) and
+read its live docs before designing. Writing stays on the brain: turns, frames,
+memory, drills and extensions.
+
+- The integration today: `packages/brain/src/llm/jevJudge.ts` screens the
+  own-words judge, and `typesafe.ts` is the HTTP client. `brainClientFromEnv`
+  wraps whichever brain `TUTOR_LLM` chose in `JevFirstBrainClient` when
+  `TYPESAFE_API_KEY` is set, so there is still one factory.
+- Jev may only remove a brain call, never change what the brain would have been
+  asked. Anything uncertain goes to the brain. The pass thresholds are `JEV_PASS`;
+  do not lower them without an eval on real attempts, because Jev's strongest
+  language is English and learners write French.
+- The token server logs `[luvani:judge] answered by <model>` for every check,
+  which is how to see what Jev settled.
+- Sending learner text to Jev makes TypeSafe a recipient of it, so
+  `apps/mobile/src/legal/policy.ts` has to name it before production.
+
 ## Mercury development model routing
 
 This section governs Mercury's Agent dispatch for development, not the app's tutor

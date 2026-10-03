@@ -29,6 +29,8 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
 
     // "I cannot answer that one" is an answer. The session is still live and the
     // learner still has the floor, so the orb must stop claiming otherwise.
+    case 'can-do-evidence':
+    case 'settlement':
     case 'error':
       return false;
 
@@ -46,6 +48,7 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
 
     // Feedback rides alongside a prompt; practice and drills arrive after the
     // recap has already ended the wait. None of them is an answer on its own.
+    case 'correction-reason':
     case 'feedback':
     case 'practice':
     case 'drills':

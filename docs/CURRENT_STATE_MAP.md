@@ -38,8 +38,8 @@
   art, and surface-contract tests.
 - Practice consolidation must preserve the scheduler, review grades, drill bank, topics,
   journal recovery, and post-session protocol before presentation code is deleted.
-- Leaderboard/friend removal requires a persisted-key check before deleting the friends
-  namespace or local adapter.
+- The unreachable Leaderboard UI is retired. The live unranked Friends product
+  retains its namespace, identity, adapter, challenges and compatibility data.
 - Pricing changes cross core constants, SQL plan checks, token responses, UI, purchase
   webhooks, and compatibility migration together.
 

@@ -14,14 +14,14 @@
  * be a second answer to a question core already answers, and the two would part
  * company on a Tuesday.
  *
- * The promise line is the one piece of copy in the app with an expiry. "You'll
- * say your first useful French line in the next two minutes" is true exactly
- * once, and repeating it to somebody who has already had ten conversations is
- * the app failing to notice them.
+ * The first-line invitation appears only before the first conversation. It
+ * promises help, with no deadline: how long a beginner needs has not been timed.
+ * Repeating it to someone with ten conversations would fail to notice their progress.
  */
 
 import {
   FIRST_MISSION,
+  earnedMissionIds,
   getMission,
   replayRung,
   suggestedMission,
@@ -151,31 +151,24 @@ export interface ChooserInput {
   focus?: string | null;
 }
 
-const FINISHED_LINE: Record<Independence, string> = {
-  new: 'Ready when you are',
-  'with-help': 'You did this one with help',
-  'getting-there': 'You did this one with a little help',
-  'mostly-yours': 'You did this one mostly on your own',
-  'on-your-own': 'You did this one on your own',
-};
-
 /**
  * What a card says under its title.
  *
  * Descriptive, never a verdict: no percentage, no count of attempts, no word
- * that could be read as a mark. A mission the scheduler wants back says so
- * first, because a phrase slipping away matters more than a finished scene.
+ * that could be read as a mark. An independently earned scene keeps that
+ * evidence when its phrases come due for review.
  */
-export function missionStatus(state: MissionState, independence: Independence): string {
+export function missionStatus(state: MissionState, independence: Independence, earned = false): string {
+  if (earned || independence === 'on-your-own') return state === 'needs-review' ? 'Independently used, ready to review' : 'Independently used';
   switch (state) {
     case 'needs-review':
-      return 'Ready to come back to';
+      return independence === 'new' ? 'Available scene, ready to review' : 'Practised with support, ready to review';
     case 'complete':
-      return FINISHED_LINE[independence];
+      return independence === 'new' ? 'Available scene' : 'Practised with support';
     case 'in-progress':
-      return 'Started';
+      return 'Practised with support';
     default:
-      return 'Ready when you are';
+      return 'Available scene';
   }
 }
 
@@ -196,6 +189,7 @@ export function headMissionId(input: ChooserInput): string {
 
 export function chooserView(input: ChooserInput): ChooserView {
   const head = headMissionId(input);
+  const earned = earnedMissionIds(input.progress);
   const ordered = [
     ...input.progress.filter((p) => p.mission.id === head),
     ...input.progress.filter((p) => p.mission.id !== head),
@@ -212,7 +206,7 @@ export function chooserView(input: ChooserInput): ChooserView {
       mission: p.mission,
       state: p.state,
       independence: p.independence,
-      status: missionStatus(p.state, p.independence),
+      status: p.state === 'new' ? i === 0 ? 'Next scene' : 'Available scene' : missionStatus(p.state, p.independence, earned.has(p.mission.id)),
       primary: i === 0,
       route: { screen: 'Convo', params: { missionId: p.mission.id } },
     })),

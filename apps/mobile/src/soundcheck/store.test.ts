@@ -12,8 +12,9 @@
 import assert from 'node:assert/strict';
 import { describe, test, beforeEach } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { adopterFor } from '../sync/registry.ts';
 
-import { setActiveUser, userKey } from '../storage/scope.ts';
+import { clearActiveUserData, setActiveUser, userKey } from '../storage/scope.ts';
 import { loadSoundChecks, recordSoundCheck } from './store.ts';
 
 /** Give the shared AsyncStorage module an implementation for this test. */
@@ -85,4 +86,47 @@ describe('a sound check written before it knew the sound — F468', () => {
       assert.deepEqual(kept, [], 'a number was accepted as a phoneme symbol');
     });
   });
+});
+
+test('a visible sound-check read distinguishes absence from corrupt or refused evidence', async () => {
+  assert.deepEqual(await loadSoundChecks({ strict: true }), []);
+  disk.set(userKey('soundChecks'), JSON.stringify({ version: 1, evidence: [{ missionId: 'mission:cafe', reference: 'a', at: 10, kind: 'assessed-focus', focus: null }] }));
+  assert.equal((await loadSoundChecks({ strict: true })).length, 1, 'legacy evidence without a phoneme remains valid');
+  disk.set(userKey('soundChecks'), JSON.stringify({ version: 1, evidence: [{ missionId: 'mission:cafe', reference: 'a', at: 10, kind: 'assessed-focus', focus: null, phoneme: 7 }] }));
+  await assert.rejects(loadSoundChecks({ strict: true }), /unreadable/);
+  disk.set(userKey('soundChecks'), '{broken');
+  await assert.rejects(loadSoundChecks({ strict: true }));
+  AsyncStorage.getItem = async () => { throw new Error('device refused'); };
+  await assert.rejects(loadSoundChecks({ strict: true }), /device refused/);
+});
+
+test('erase waits for a dispatched sound-check write and stale queued checks cannot recreate it', async () => {
+  let entered!: () => void;
+  let release!: () => void;
+  const dispatched = new Promise<void>(resolve => { entered = resolve; });
+  const held = new Promise<void>(resolve => { release = resolve; });
+  AsyncStorage.setItem = async (key, value) => { entered(); await held; disk.set(key, value); };
+  AsyncStorage.multiRemove = async keys => { for (const key of keys) disk.delete(key); };
+  const first = recordSoundCheck({ missionId: 'mission:cafe', reference: 'a', at: 10, kind: 'self-guided', focus: null, phoneme: null });
+  await dispatched;
+  const queued = recordSoundCheck({ missionId: 'mission:cafe', reference: 'b', at: 11, kind: 'self-guided', focus: null, phoneme: null });
+  const erasing = clearActiveUserData({ sweepAudio: () => ({ removed: 0, failed: 0 }) });
+  release();
+  await Promise.all([first, queued, erasing]);
+  assert.equal(disk.has(userKey('soundChecks')), false);
+});
+
+test('a sound-check write does not replace unreadable existing evidence with a fresh list', async () => {
+  const key = userKey('soundChecks');
+  disk.set(key, '{broken');
+  await recordSoundCheck({ missionId: 'mission:cafe', reference: 'a', at: 10, kind: 'self-guided', focus: null, phoneme: null });
+  assert.equal(await adopterFor('soundChecks')!(() => ({ version: 1, evidence: [] })), 'declined');
+  assert.equal(disk.get(key), '{broken');
+});
+
+test('sound-check sync adoption declines when the device refuses its write', async () => {
+  AsyncStorage.setItem = async () => { throw new Error('device refused'); };
+  const adopt = adopterFor('soundChecks');
+  assert.ok(adopt);
+  assert.equal(await adopt(() => ({ version: 1, evidence: [{ missionId: 'mission:cafe', reference: 'a', at: 10, kind: 'self-guided', focus: null, phoneme: null }] })), 'declined');
 });

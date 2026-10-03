@@ -1,0 +1,33 @@
+{
+  "verifiedAt": "2026-09-27T15:27:05.178Z",
+  "fingerprint": "0d2226a059ebc85b024e00cda4771939d1117299ffa9824553d7152a5aa854a2",
+  "count": 3,
+  "maxGainErrorDb": 0.058402245773635286,
+  "maxPeak": 0.42974743247032166,
+  "clips": [
+    {
+      "id": "onboarding:tutor-question",
+      "file": "alexandre/f08a9391c74035a9e9c9ea7f.m4a",
+      "sha256": "c05d508ecb5542ca9ad8cc198d7dd03693daf62634f393ceb065b2533648b540",
+      "gainDb": -3.9962344642567387,
+      "seconds": 1.9969160997732427,
+      "peak": 0.3525083363056183
+    },
+    {
+      "id": "onboarding:tutor-follow-up",
+      "file": "alexandre/2ab6a29c25e5ddab61a0e3fc.m4a",
+      "sha256": "e6704679f4348e9fbc0f0377228097c29d6977bd1f4c04ecd92c294162f5b8d8",
+      "gainDb": -4.0377619228558235,
+      "seconds": 1.3467573696145125,
+      "peak": 0.42974743247032166
+    },
+    {
+      "id": "onboarding:tutor-close",
+      "file": "alexandre/56d79e4015e3abfbc000bde4.m4a",
+      "sha256": "f555746fdf2f0388fcc422a5c7a1ffda06056d799b876ab2fe8e6ed313043753",
+      "gainDb": -4.058402245773635,
+      "seconds": 1.207437641723356,
+      "peak": 0.3228258192539215
+    }
+  ]
+}

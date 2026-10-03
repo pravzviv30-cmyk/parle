@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { levelFor, missionStates } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { evidenceFrom, hasEvidence, levelName } from './evidence.ts';
+import { evidenceFrom, hasEvidence } from './evidence.ts';
 
 const NOW = Date.parse('2026-09-03T10:00:00Z');
 const nothing = { missions: [], book: { count: 0 }, activity: [] };
@@ -33,12 +33,13 @@ describe('the evidence row draws nothing at zero — F366', () => {
     const lines = evidenceFrom({ ...nothing, book: { count: 3 } });
     assert.deepEqual(lines.stats.map((s) => [s.value, s.label]), [['3', 'Lines kept']]);
 
+    // 2026-09-27: XP alone is no longer a fact the row says. Rank names left
+    // with the CEFR spine; what a learner can do is the evidence now.
     const level = evidenceFrom({ ...nothing, activity: someXp });
-    assert.equal(level.stats.length, 1);
-    assert.equal(level.stats[0]!.label, 'Level');
-    assert.equal(level.stats[0]!.value, levelFor(40).name, 'the level is not the one core computes');
+    assert.deepEqual(level.stats, [], 'XP alone put a rank name in the row');
+    assert.equal(hasEvidence(level), false);
 
-    // All three, in reading order, and the counts are the counts core keeps.
+    // Both facts, in reading order, and the counts are the counts core keeps.
     const all = evidenceFrom({
       missions: missionStates([], [], NOW).map((item, i) => ({ ...item, timesFinished: i < 2 ? 1 : 0 })),
       book: { count: 1 },
@@ -46,7 +47,7 @@ describe('the evidence row draws nothing at zero — F366', () => {
     });
     assert.deepEqual(
       all.stats.map((s) => s.label),
-      ['Situations handled', 'Line kept', 'Level'],
+      ['Situations handled', 'Line kept'],
     );
     assert.equal(all.situations, 2);
     assert.equal(all.lines, 1);
@@ -61,14 +62,27 @@ describe('the evidence row draws nothing at zero — F366', () => {
   });
 });
 
-describe('the level name is evidence, not a promise — F367', () => {
-  test('the level name is said only once something has been earned — F367', () => {
-    // A brand new learner is a Beginner by definition, and saying so under
-    // their name is telling them they have achieved nothing yet. The line
-    // waits for the first XP, exactly as Home's level card does.
-    assert.equal(levelName(levelFor(0)), null);
-    assert.equal(levelName(levelFor(1)), levelFor(1).name);
-    assert.equal(levelName(levelFor(9_999)), levelFor(9_999).name);
-    assert.doesNotMatch(levelName(levelFor(150)) ?? '', /\d/, 'a level name is a word, never a number');
+describe('no rank name is said in the row — F367', () => {
+  test('no rank name appears in the stats at any amount of XP — F367', () => {
+    // F367 held that a level name at zero XP is a promise, not evidence. The
+    // CEFR spine (2026-09-27) goes further: a rank name is never the evidence,
+    // at any XP. The row says what was done; the spine says what you can do.
+    const rankNames = new Set<string>([0, 1, 150, 9_999, 1_000_000].map((xp) => levelFor(xp).name));
+    for (const xp of [1, 40, 150, 9_999]) {
+      const evidence = evidenceFrom({
+        missions: [{ timesFinished: 1 }],
+        book: { count: 2 },
+        activity: [{ at: NOW - 60_000, xp }],
+      });
+      for (const stat of evidence.stats) {
+        assert.ok(!rankNames.has(stat.value), `at ${xp} XP the row said the rank name "${stat.value}"`);
+        assert.notEqual(stat.label, 'Level', `at ${xp} XP the row carries a Level stat`);
+      }
+    }
+  });
+
+  test('the module no longer offers a level name to borrow — F367', async () => {
+    const module: Record<string, unknown> = await import('./evidence.ts');
+    assert.equal(module.levelName, undefined, 'levelName is back, and a screen can say a rank name again');
   });
 });

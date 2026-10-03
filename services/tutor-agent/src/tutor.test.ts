@@ -632,3 +632,26 @@ describe('the tutor speaks as the person the learner chose', () => {
     assert.match(promptOf(tutor), /\bAlexandre\b/);
   });
 });
+
+ test('concurrent scripted finishes await one acknowledged service settlement', async () => {
+  forgetReportedSessions();
+  const real = globalThis.fetch;
+  let answer!: (value: Response) => void;
+  const request = new Promise<Response>(resolve => { answer = resolve; });
+  let requests = 0;
+  globalThis.fetch = (async () => { requests++; return request; }) as typeof fetch;
+  const { tutor, published } = build(RUNGS.PROMPTED, { sessionId: '123e4567-e89b-42d3-a456-426614174777' });
+  try {
+    assert.equal(tutor.terminalFailureFor('tts_error', false, true), 'tts_error');
+    const first = tutor.finish();
+    let secondSettled = false;
+    const second = tutor.finish().then(() => { secondSettled = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(secondSettled, false, 'an in-flight acknowledgement must hold every concurrent close');
+    answer(new Response(JSON.stringify({ kind: 'not-charged', refundedSeconds: 0, secondsRemaining: 1800, plan: 'trial' })));
+    await Promise.all([first, second]);
+    assert.equal(requests, 1);
+    assert.equal(published.filter(m => m.t === 'settlement').length, 1);
+    assert.equal(tutor.terminalFailureFor('tts_error', false, true), null, 'finished sessions cannot gain a new failure cause');
+  } finally { answer(new Response('{}')); globalThis.fetch = real; forgetReportedSessions(); }
+ });

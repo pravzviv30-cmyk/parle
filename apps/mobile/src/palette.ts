@@ -1,138 +1,206 @@
 /**
  * The complete colour vocabulary. This leaf module imports nothing so the
  * palette can be tested without loading React Native.
- * Ink is identity; chartreuse is feature paper, always carrying dark text.
- * The warm journal ground and six contextual tints support the editorial layout.
- * Voice states and pedagogical support colours retain their existing meanings.
+ *
+ * Luvani, bright (revamp B). A warm paper ground, white cards, one deep ink,
+ * and four saturated colours that each lead a screen or report the tutor's
+ * state. The chartreuse is still a highlighter pen and never a surface.
+ *
+ * Twenty raw values live here and nothing else does: the paper and its inks,
+ * the four colours, the highlighter, and the STYLE section 4 values that only
+ * ever sit on a colour ground or inside a drawing. Every other token is a
+ * reference to one of them, so a value can only drift in one place. Old token
+ * names that screens still write stay as aliases of a B value until the stage
+ * that redraws those screens retires them.
  */
 
 /** The single ground and its inks. Everything sits directly on this. */
 export const paper = {
-  /** The page itself. Everything sits directly on this. */
-  ground: '#F7F3E8',
-  /** One step deeper — pressed states, chip fills, the tab track. */
-  groundDeep: '#E6DECD',
-  /** Card surface. Flat white, hairline rule, no shadow. */
-  card: '#FFFEFA',
-  /** The ink. Near-black with a real violet cast so the page feels of a piece. */
-  ink: '#182019',
-  /** Secondary text. */
-  inkSoft: '#51584C',
-  /** Tertiary — counts, placeholders, timestamps, the inactive tab glyph. */
-  inkFaint: '#6A7266',
-  /** Hairline rule on the ground. */
-  line: '#B8BCAD',
-  /** Hairline divider inside a white card. */
-  lineOnCard: '#DADBCF',
-  /** Text and icons on a filled control. Warm violet-white, never pure. */
-  onInk: '#FFFDF5',
+  /** The page itself. Every working screen sits directly on this. */
+  ground: '#FFF6E9',
+  /** Loading blocks, and the one fill the first three rungs share. */
+  skeleton: '#EFE6D6',
+  /** Alias of skeleton until the pressed washes and chip fills are redrawn. */
+  groundDeep: '#EFE6D6',
+  /** Cards and tiles. Pure white, no hairline, no shadow. */
+  card: '#FFFFFF',
+  /** The ink. Primary text, the primary button, the dark live ground. */
+  ink: '#16123A',
+  /** Secondary text on paper or on a white card. Never on a colour ground. */
+  inkSoft: '#5C5A74',
+  /** Alias of inkSoft. B has no third ink, so counts and placeholders stay words. */
+  inkFaint: '#5C5A74',
+  /** The one hairline. Decorative dividers only. */
+  line: '#EADFCB',
+  /** Alias of line. B has one hairline, on the ground and inside a card alike. */
+  lineOnCard: '#EADFCB',
+  /**
+   * The 1.5pt border of an input and the ring of an unchosen option. 3.6 on
+   * white: a mark at the 3 floor, never words.
+   */
+  field: '#8A8499',
+  /** Text and icons on a filled ink, blue or coral control. */
+  onInk: '#FFFFFF',
 } as const;
 
 /**
- * The identity violet. One accent, two named jobs: the primary action and the
- * micro-labels. `label` is simply `primary` — there is one identity colour, and
- * this pins it so a second one cannot creep back in beside it.
+ * The four colours. One leads a screen at most; the rest of the screen is
+ * paper, white and ink. What may sit on each is fixed: white on blue and coral,
+ * ink on sun and mint, and never the other way round.
+ */
+export const colour = {
+  /** The brand. Onboarding, the next-scene card, the selected tab. White on it. */
+  blue: '#3B2FE0',
+  /** The tutor speaking, and the recap cover. White on it, never below 14pt. */
+  coral: '#D63A22',
+  /** Thinking, the plan, the focus sound. Ink on it, never white. */
+  sun: '#FFC93C',
+  /** Your turn, a can-do earned, a done tick. Ink on it, never white. */
+  mint: '#2FD18B',
+} as const;
+
+/**
+ * The action colours. The primary action and the labels are ink, and the brand
+ * is the blue. `label` is simply `primary`: this pins it so a second label
+ * colour cannot creep back in beside it.
  */
 export const accent = {
-  /** The primary action and the monogram. */
-  primary: '#182019',
-  /** Micro-labels — the caps line above a card. The same violet as primary. */
-  label: '#182019',
-  /** Atelier's bright paper. Always carries dark ink, never white text. */
-  feature: '#D8FF54',
+  /** The primary action: the one ink pill. */
+  primary: paper.ink,
+  /** Labels. The same ink as primary. */
+  label: paper.ink,
+  /** The brand blue, for the moments that lead in colour. */
+  brand: colour.blue,
 } as const;
 
 /**
- * Signal colours, kept out of the rung set so state never reads as a rung.
- * Green and magenta are words and clear the text floor; the tutor's red is a
- * mark and clears the mark floor.
+ * The one highlighter. A pen, not a surface: the band behind a French line,
+ * the "you are here" stop on the level path, and the brand mark. At most one
+ * per screen, always under ink, never the ground of a panel, tile, avatar, tab,
+ * title, card or button.
+ */
+export const highlight = '#D8FF54';
+
+/**
+ * Signals. Words are ink, so the two word signals are ink and clear the text
+ * floor by being ink. The tutor's coral is a mark on the orb and never words.
  */
 export const signal = {
-  /** Something to change. Full magenta. */
-  correspondance: '#B4008A',
-  /** A sound that is working. Full green — the same green the learner speaks in. */
-  good: '#12784A',
-  /** The tutor's voice. A saturated red that says "listen" without shouting. */
-  live: '#DE3B2D',
+  /** Something to change. Set in ink; the words carry the meaning. */
+  correspondance: paper.ink,
+  /** A sound that is working. Set in ink; the words carry the meaning. */
+  good: paper.ink,
+  /** The tutor's voice. A mark, and never words. */
+  live: colour.coral,
 } as const;
 
 /**
- * The voice circle speaks traffic lights, and these are its three words:
- * red, the tutor is talking, listen; green, your turn, speak; amber, it is
- * thinking, one moment. The intro's final page teaches exactly this mapping,
- * so these values changing means that page is teaching a lie — change both.
+ * The voice circle's four states: coral, the tutor is talking; mint, your turn;
+ * sun, it is thinking; ink, ready to be tapped. The intro teaches these states
+ * in words, never by colour name, because the glyph and the caption carry the
+ * state for a learner who cannot tell the colours apart.
  *
- * Each is a MARK, and a mark that reports state is held to 3 against the ground
- * it sits on, not to the 4.5 that words are held to. The captions are ink, which
- * is the floor for words.
+ * Mint and sun are too light to be a mark on paper, so the fill is never the
+ * only signal: each state carries a glyph in the colour `onOrb` pairs with it,
+ * and the caption beside the orb is ink.
  */
 export const orb = {
-  /** Red — the tutor is speaking. Listen. */
-  speaking: signal.live,
-  /** Green — your turn. Speak. */
-  yourTurn: signal.good,
-  /** Amber — the tutor is thinking. Muted, but still distinct from green/red. */
-  thinking: '#B07510',
+  /** Coral. The tutor is speaking. Listen. */
+  speaking: colour.coral,
+  /** Mint. Your turn. Speak. */
+  yourTurn: colour.mint,
+  /** Sun. The tutor is thinking. One moment. */
+  thinking: colour.sun,
   /**
-   * Violet — the microphone is closed and the circle is waiting to be pressed.
-   *
-   * Not a fourth traffic light. Waiting to be tapped is not a state report, it
-   * is the primary control of the whole product, so it takes the primary
-   * colour exactly as the pill does. It stops being violet the instant the orb
-   * starts reporting anything.
+   * Ink. The microphone is closed and the circle is waiting to be pressed. Not
+   * a fourth state report: the primary control of the whole product, so it
+   * takes the primary colour exactly as the pill does.
    */
-  ready: accent.primary,
+  ready: paper.ink,
 } as const;
 
 /**
- * Support colours for the four rungs, cooling as help is withdrawn: hot yellow
- * while the tutor carries the learner, plain ink once they walk alone. A rung
- * colour is a fill under an ink numeral, not a state mark, so its floor is that
- * ink clears the text floor on it, not that the fill clears the mark floor on
- * the ground.
+ * What sits ON each orb fill: the voice bars and the embedded status. White on
+ * coral and ink, ink on mint and sun, so every glyph clears the text floor on
+ * its own fill.
+ */
+export const onOrb = {
+  speaking: paper.onInk,
+  yourTurn: paper.ink,
+  thinking: paper.ink,
+  ready: paper.onInk,
+} as const;
+
+/**
+ * What the words on each colour ground are set in: white on blue and coral, ink
+ * on sun and mint, and never the other way round (STYLE section 4's forbidden
+ * pairs).
+ */
+export const textOn = {
+  blue: paper.onInk,
+  coral: paper.onInk,
+  sun: paper.ink,
+  mint: paper.ink,
+} as const;
+
+/**
+ * The secondary line on each ground: a meta line, the English under a French
+ * line. Soft ink is never set on a colour, so each ground has its own. Coral
+ * has no secondary and takes white; ink is the live-session dark ground.
+ */
+export const onColour = {
+  /** 6.2 on blue. */
+  blue: '#E4E1FF',
+  /** White, 4.7 on coral: coral carries one text colour. */
+  coral: paper.onInk,
+  /** 7.0 on sun. */
+  sun: '#3E3A56',
+  /** 5.5 on mint. */
+  mint: '#3E3A56',
+  /** 10.7 on ink. */
+  ink: '#C9C6DE',
+} as const;
+
+/**
+ * The pending bars of the story segments on each ground. A decorative mark
+ * beside the done bars, which are `textOn` of the ground; on paper the pending
+ * bar is the hairline.
+ */
+export const segmentPending = {
+  blue: '#7F78EB',
+  coral: '#E47F6F',
+  sun: '#D0A43C',
+  mint: '#2AAB7B',
+  paper: paper.line,
+} as const;
+
+/**
+ * The illustrations' lilac. ILLUSTRATIONS.md allows it in the flat drawings and
+ * nowhere else, so nothing under `src` but `art/flat/` draws it, and
+ * `palette.test.ts` walks the source to keep it that way.
+ */
+export const lilac = '#B9A7FF';
+
+/**
+ * The fills under the four rung numerals. Rungs one to three share the one
+ * skeleton fill under an ink numeral, and rung four is plain ink: no line left
+ * to follow. The words in `rungLabel` say which rung is which, not the fill.
  */
 export const rungColor: Record<1 | 2 | 3 | 4, string> = {
-  1: '#FFCD00',
-  2: '#FF7B00',
-  3: '#6EC4E8',
-  4: '#182019',
+  1: paper.skeleton,
+  2: paper.skeleton,
+  3: paper.skeleton,
+  4: paper.ink,
 };
 
 /**
- * Tints: soft paper under a row.
+ * Tints are retired (notebook redesign, 2026-09-27).
  *
- * A tint is a SURFACE under a place's row or under a kind of practice. It is the
- * disc behind a situation's drawing, and since revamp A it is mostly the ground
- * under the row itself: the way into a place, into a way of talking, into a
- * drill made from a conversation. Which tint goes with which role is not decided
- * here and never inside a screen — `missions/missionTint.ts`,
- * `tutor/doorTint.ts`, `practice/madeFromTint.ts` and `profile/rhythmTint.ts`
- * name a tint by the job it does, so a screen names a place and a primitive
- * names the colour.
- *
- * It is not a mark and not an accent: never lettering, never a stroke or a
- * border, never a ring or a dot that reports state. So its floors are a paper's
- * floors: ink and soft ink both clear the text floor on it, it sits far enough
- * off the ground, the chip fill and the card to read as a surface, it stays
- * thirty from every signal and the accent, twenty from every rung fill, lighter
- * than every mark, and no two tints come within ten of each other. The sky is
- * twenty-six from rung three's blue, which is why the rung floor is twenty and
- * not thirty: nothing reads a disc under a café cup as a support colour, but
- * nothing should have to squint either.
+ * Six soft papers used to sit under a place's row, a way into the tutor, a kind
+ * of practice and the speaking rhythm, named by role in four small tables. The
+ * app has one ground and one white card, so the tokens, the role tables and the
+ * tinted primitives are deleted, and `surfaceContract.test.ts` refuses any of
+ * them coming back: no `tint` token, no role table, no tinted row, panel or
+ * disc, and none of the six hexes anywhere in source. DESIGN.md's Colour
+ * section records the retirement.
  */
-export const tint = {
-  /** Café: a warm paper under the cup. */
-  sand: '#FEE7DB',
-  /** Friends: a blush under the clinking bubbles. */
-  rose: '#F8D8DF',
-  /** Home: the old house lilac, under the window and the moon. */
-  lilac: '#E4D3EE',
-  /** The street: a cool lagoon under the signpost. */
-  lagoon: '#CFF3EB',
-  /** The market: sage under the crate of tomatoes. */
-  sage: '#E8EED5',
-  /** The hotel: sky under the front desk. */
-  sky: '#D5EFFE',
-} as const;
-
-export type TintName = keyof typeof tint;

@@ -7,6 +7,7 @@
  * train arrives is. The agent knows how long the room was actually live.
  */
 
+import { isServiceFailure, readSessionSettlement, type ServiceFailure, type SettlementResult } from '@luvani/core';
 const TOKEN_SERVER = process.env.TOKEN_SERVER_URL ?? 'http://localhost:8787';
 
 /**
@@ -25,6 +26,7 @@ export interface UsageReport {
   sessionId: string;
   seconds: number;
   utterancesScored: number;
+  serviceFailure?: ServiceFailure;
 }
 
 export interface UsageReportOptions {
@@ -43,13 +45,14 @@ export interface UsageReportOptions {
  * log line is deliberately greppable — if these start appearing, minutes are being
  * given away.
  */
-export async function reportUsage(report: UsageReport, options: UsageReportOptions = {}): Promise<void> {
+export async function reportUsage(report: UsageReport, options: UsageReportOptions = {}): Promise<SettlementResult> {
   // Direct unit tests construct tutors without a signed room. The worker never
   // does: agent.ts refuses metadata without a real session id before starting.
-  if (report.sessionId === '00000000-0000-4000-8000-000000000000') return;
-  if (!Number.isInteger(report.seconds) || report.seconds < 0 || report.seconds > 900) {
+  if (report.sessionId === '00000000-0000-4000-8000-000000000000') return { kind: 'pending' };
+  if (!Number.isInteger(report.seconds) || report.seconds < 0 || report.seconds > 900
+    || (report.serviceFailure !== undefined && !isServiceFailure(report.serviceFailure))) {
     console.error(`[luvani] USAGE_NOT_DEBITED session=${report.sessionId.slice(0, 8)} reason=invalid-seconds`);
-    return;
+    return { kind: 'pending' };
   }
 
   const request = options.request ?? fetch;
@@ -73,16 +76,20 @@ export async function reportUsage(report: UsageReport, options: UsageReportOptio
           sessionId: report.sessionId,
           seconds: report.seconds,
           utterancesScored: report.utterancesScored,
+          ...(report.serviceFailure === undefined ? {} : { serviceFailure: report.serviceFailure }),
         }),
       });
       if (res.ok) {
-        const body = (await res.json()) as { secondsRemaining?: number };
+        const body: unknown = await res.json();
+        const settlement = readSessionSettlement(body);
         console.log(
           `[luvani] usage recorded session=${report.sessionId.slice(0, 8)} seconds=${report.seconds} ` +
-            `remaining=${body.secondsRemaining ?? '?'}`,
+            `remaining=${settlement?.secondsRemaining ?? '?'}`,
         );
-        return;
+        if (settlement && (!report.serviceFailure || settlement.kind !== 'charged')) return settlement;
+        return { kind: 'pending' };
       }
+      if (report.serviceFailure && res.status === 409) return { kind: 'reconciliation' };
       lastFailure = `status=${res.status}`;
       if (res.status < 500 && res.status !== 429) break;
     } catch (error) {
@@ -94,4 +101,5 @@ export async function reportUsage(report: UsageReport, options: UsageReportOptio
   // No raw account id in logs. The random session prefix is enough to match
   // this line to the token-server request without creating identity telemetry.
   console.error(`[luvani] USAGE_NOT_DEBITED session=${report.sessionId.slice(0, 8)} ${lastFailure}`);
+  return { kind: 'pending' };
 }

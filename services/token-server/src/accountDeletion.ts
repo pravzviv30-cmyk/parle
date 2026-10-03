@@ -2,6 +2,34 @@ function adminHeaders(serviceRoleKey: string): Record<string, string> {
   return { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}` };
 }
 
+/** A queued erasure request, not a claim about vendor-side completion. */
+export async function requestRevenueCatErasure(
+  userId: string,
+  secretKey: string | undefined,
+  request: typeof fetch = fetch,
+): Promise<boolean> {
+  if (!secretKey?.trim()) return false;
+  try {
+    const response = await request(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+      method: 'DELETE', headers: { authorization: `Bearer ${secretKey}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    // RevenueCat documents an asynchronous accepted deletion and an absent
+    // customer as retry-safe completion. Never GET: that can create a customer.
+    return response.status === 200 || response.status === 404;
+  } catch { return false; }
+}
+
+/** Processor first, so a refusal leaves the signed-in account able to retry. */
+export async function deleteAccountWithProcessor(
+  baseUrl: string, serviceRoleKey: string, userId: string,
+  processorKey: string | undefined, request: typeof fetch = fetch,
+): Promise<boolean> {
+  if (!(await requestRevenueCatErasure(userId, processorKey, request))) return false;
+  await deleteSupabaseUser(baseUrl, serviceRoleKey, userId, request);
+  return true;
+}
+
 /**
  * A refreshed bearer is not reauthentication. Supabase preserves the account's
  * last real sign-in across access-token refreshes, so deletion checks that

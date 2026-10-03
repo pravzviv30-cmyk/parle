@@ -1,44 +1,72 @@
-/**
- * Tune one sound (F554, F558).
- *
- * One tinted row. The acoustic panel — the sound, its cue, the physical trick
- * and the minimal pair — lives on the sound-check screen the row opens, and
- * printing it on Practice as well was the same words in two places.
- *
- * Behaviour is unchanged from the card it replaces: with a check behind it the
- * row opens that check again, and with none it offers the way to the next
- * situation, which is what will name a sound. Nothing here scores anything and
- * nothing here calls an accent wrong.
- */
+/** One evidence-bounded sound example. Word and cue lead; symbol and exact
+ * mapped mouth guide are disclosed on request. Playback is a bundled line in
+ * the chosen voice, when one exists. This card does not assess pronunciation. */
 
-import { WaveformGlyph } from '../glyphs.tsx';
-import { TintRow } from '../components.tsx';
-import { accent } from '../theme.ts';
-import { MADE_FROM, type SoundToTune } from './madeFrom.ts';
-import { MADE_FROM_TINT } from './madeFromTint.ts';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { Card, GhostButton, Label } from '../components.tsx';
+import { paper, space, type } from '../theme.ts';
+import { MouthGuide } from './MouthGuide.tsx';
+import { SOUND_LEAD, type SoundLead } from './soundLead.ts';
 
 export function TuneSoundCard({
-  sound,
+  lead,
+  playing,
+  onHear,
   onCheck,
-  onChoose,
 }: {
-  sound: SoundToTune | null;
+  lead: SoundLead;
+  /** The recording playing now, so the control can offer Stop. */
+  playing: number | null;
+  /** Play or stop a bundled recording. Never device speech. */
+  onHear: (asset: number) => void;
+  /** Open the sound check for the situation the sound was measured in. */
   onCheck: (missionId: string) => void;
-  onChoose: () => void;
 }) {
+  const { measured, native } = lead;
+  const [details, setDetails] = useState(false);
   return (
-    <TintRow
-      tint={MADE_FROM_TINT.sound}
-      glyph={<WaveformGlyph color={accent.primary} />}
-      // With no measured sound there is nothing to tune yet, and the row opens
-      // the situations list. Its title says that first step, never a tuning.
-      title={sound === null ? MADE_FROM.sound.go : MADE_FROM.sound.label}
-      gloss={sound === null ? MADE_FROM.sound.none : MADE_FROM.sound.gloss}
-      accessibilityLabel={sound === null ? `${MADE_FROM.sound.go}. ${MADE_FROM.sound.none}` : `${MADE_FROM.sound.label}, ${sound.acoustic.heading}`}
-      onPress={() => {
-        if (sound === null) onChoose();
-        else onCheck(sound.missionId);
-      }}
-    />
+    <Card style={st.card}>
+      <Label>{measured === null ? SOUND_LEAD.starterLabel : SOUND_LEAD.measuredLabel}</Label>
+      <Text style={st.word}>{lead.example}</Text>
+      <Text style={st.cue}>{lead.cue}</Text>
+      {lead.source !== null && <Text style={st.quiet}>{lead.source}</Text>}
+      <Text style={st.quiet}>{measured === null ? SOUND_LEAD.unassessed : SOUND_LEAD.measuredScope}</Text>
+      {measured !== null && (
+        <View style={st.group}>
+          <Text style={st.fact}>{measured.line}</Text>
+          <GhostButton label={SOUND_LEAD.check} color={paper.ink} onPress={() => onCheck(measured.missionId)} />
+        </View>
+      )}
+      {native !== null && (
+        <View style={st.group}>
+          <Text style={st.line}>{native.fr}</Text>
+          <Text style={st.quiet}>{native.label}</Text>
+          <GhostButton
+            label={playing === native.asset ? SOUND_LEAD.stop : SOUND_LEAD.hear}
+            color={paper.ink}
+            accessibilityLabel={playing === native.asset ? SOUND_LEAD.stop : `Hear ${native.fr}. ${native.label}`}
+            onPress={() => onHear(native.asset)}
+          />
+        </View>
+      )}
+      {native === null && <Text style={st.quiet}>{SOUND_LEAD.noAudio}</Text>}
+      <GhostButton label={details ? 'Hide sound guide' : 'See sound guide and symbol'} color={paper.ink} onPress={() => setDetails(value => !value)} />
+      {details && <View style={st.group}>
+        <Text style={st.quiet}>Sound symbol: /{lead.ipa}/</Text>
+        <MouthGuide ipa={lead.ipa} />
+      </View>}
+    </Card>
   );
 }
+
+const st = StyleSheet.create({
+  card: { gap: space(3) },
+  cue: { ...type.body, color: paper.ink },
+  quiet: { ...type.small, color: paper.inkSoft },
+  word: { ...type.frenchLg, color: paper.ink },
+  fact: { ...type.small, color: paper.ink },
+  line: { ...type.frenchSm, color: paper.ink },
+  group: { gap: space(1) },
+});

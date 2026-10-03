@@ -530,13 +530,22 @@ interface Live {
   records: string[];
 }
 
-function readStore(path: string): Record<string, Entitlement> {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, Entitlement>) : {};
-  } catch {
-    return {};
+/** Read balances only; no trial creation, period rollover or ledger rewrite. */
+export function readStore(path: string): Record<string, Pick<Entitlement, 'plan' | 'secondsUsed'>> {
+  const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
+  const record = (value: unknown): value is Record<string, unknown> =>
+    value !== null && typeof value === 'object' && !Array.isArray(value);
+  if (!record(parsed)) throw new Error('Invalid lifecycle balance snapshot');
+  if ('version' in parsed && parsed.version !== 2) throw new Error('Unsupported lifecycle balance version');
+  const rows = parsed.version === 2 ? parsed.entitlements : parsed;
+  if (!record(rows)) throw new Error('Invalid lifecycle balance rows');
+  for (const row of Object.values(rows)) {
+    if (!record(row) || !['trial', 'starter', 'regular'].includes(String(row.plan)) ||
+      typeof row.secondsUsed !== 'number' || !Number.isFinite(row.secondsUsed) || row.secondsUsed < 0) {
+      throw new Error('Invalid lifecycle balance');
+    }
   }
+  return rows as Record<string, Pick<Entitlement, 'plan' | 'secondsUsed'>>;
 }
 
 /**

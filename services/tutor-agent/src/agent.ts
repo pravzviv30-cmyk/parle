@@ -18,13 +18,19 @@
  *               text-level answer grading, the silence rescue, per-utterance
  *               audio capture (utterance.ts) and the real spoken duration that
  *               comes with it.
- *   Behind a flag: sending that audio to Speechace. LUVANI_AUDIO_SCORING=1 turns
- *               it on. Off, `scoreUtterance` is called with the reference alone
- *               and returns an empty array, `grade()` treats a null score as
- *               "do not invent a penalty", and the end card says plainly that
- *               nothing was scored rather than rendering a clean session.
+ *   Behind a flag: sending that audio to the pronunciation vendor (TonePerfect
+ *               by default; see services/shared/pronunciation.ts).
+ *               LUVANI_AUDIO_SCORING=1 turns it on, and by the founder's
+ *               decision of 2026-09-29 it stays off until scoring runs off the
+ *               reply path (F623). Off, `scoreUtterance` is called with the
+ *               reference alone and returns an empty array, `grade()` treats a
+ *               null score as "do not invent a penalty", and the end card says
+ *               plainly that nothing was scored rather than rendering a clean
+ *               session.
  */
 
+import { correctionReasonReaderFromEnv } from './correctionReason.ts';
+import { canDoEvidenceReaderFromEnv } from './canDoEvidence.ts';
 import { fileURLToPath } from 'node:url';
 import {
   type JobContext,
@@ -36,11 +42,12 @@ import {
 } from '@livekit/agents';
 import * as anthropic from '@livekit/agents-plugin-anthropic';
 import * as openai from '@livekit/agents-plugin-openai';
-import { DEFAULT_OPENAI_TURN_MODEL, DEFAULT_ROUTING, defaultModel } from '@luvani/brain';
+import { openAiLiveModel, DEFAULT_ROUTING, defaultModel } from '@luvani/brain';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
 import { preflight, reportVendors, selectedBrain, verifyVendors } from './preflight.ts';
 import 'dotenv/config';
+import { sessionAudio, supportsSessionMode, typedOnly } from '../../shared/sessionCapabilities.ts';
 
 import { buildTTS, resolveTutorVoice } from './voice.ts';
 
@@ -55,9 +62,12 @@ import {
   type ServerMessage,
 } from '@luvani/core';
 import { LuvaniConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
+import { recognitionPlan } from './recognitionPlan.ts';
 import { LuvaniTutor } from './tutor.ts';
-import { createTurnTiming, formatTiming, formatVendorMetrics, mark, type VendorMetrics } from './timing.ts';
+import { formatVendorMetrics, type VendorMetrics } from './timing.ts';
+import { createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { turnHandlingFor } from './turnHandling.ts';
+import { reportUsage } from './usage.ts';
 
 /**
  * The tutor brain, selected by env so the quality/cost trade is a .env change.
@@ -82,7 +92,7 @@ function tutorLLM() {
   // command line. A subscription cannot serve it, so the scripted lesson's
   // spoken replies stay on Groq while the conversation brain splits.
   if (selectedBrain() === 'openai') {
-    return new openai.LLM({ model: process.env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL });
+    return new openai.LLM({ model: openAiLiveModel() });
   }
   if (selectedBrain() !== 'anthropic') return openai.LLM.withGroq({ model: defaultModel() }); // reads GROQ_API_KEY
   return new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model });
@@ -92,18 +102,15 @@ export default defineAgent({
   prewarm: async (proc: JobProcess) => {
     // Loading the VAD model takes seconds; doing it per job would put that delay
     // in front of a learner who just tapped "speak".
-    proc.userData.vad = await silero.VAD.load();
+    if (!typedOnly()) proc.userData.vad = await silero.VAD.load();
   },
 
   entry: async (ctx: JobContext) => {
     const lesson = CAFE_LESSON;
 
-    // Latency accounting: one record per turn, marked from the seams this file
-    // already owns (session state changes, the TTS first-audio hook) and printed
-    // when the tutor starts speaking. The brain marks belong to convo.ts and are
-    // simply absent until wired there; formatTiming omits unmarked segments.
-    let turnCount = 1;
-    let timing = createTurnTiming(turnCount);
+    // Confirmed spoken scene inputs own their records. Untagged TTS frames and
+    // speaking-state transitions are not evidence of this reply's first audio.
+    const sceneTiming = createSceneReplyTiming(() => performance.now());
 
     // Connect before anything is built: the token server signs the lesson, the
     // opening rung and the session mode into the join credential, and the tutor
@@ -144,6 +151,15 @@ export default defineAgent({
     if (meta.lessonId && meta.lessonId !== lesson.id) {
       console.warn(`[luvani] token metadata names lesson ${meta.lessonId}; agent is running ${lesson.id}`);
     }
+    if (!supportsSessionMode(meta.mode ?? 'lesson')) {
+      // A directly deployed mismatched token process may already have granted
+      // this signed room. Nothing ran; close its lease with zero usage before
+      // refusing it. This does not reverse an already claimed trial.
+      await reportUsage({ userId: participant.identity, sessionId: meta.sessionId, seconds: 0, utterancesScored: 0 });
+      throw new Error('This worker supports typed sessions only.');
+    }
+    const voiceless = meta.mode === 'convo-text' || meta.mode === 'lesson-text';
+    const isConvo = meta.mode === 'convo' || meta.mode === 'convo-text';
     const allowanceRemaining =
       typeof meta.secondsRemaining === 'number' && Number.isFinite(meta.secondsRemaining)
         ? Math.max(1, Math.floor(meta.secondsRemaining))
@@ -178,38 +194,18 @@ export default defineAgent({
     //
     // The cost of moving it: a missing or refused vendor key now throws after
     // the room is open instead of before. Preflight already refuses to register
-    // a worker whose voice key is absent, so the case this trades away is one
+    // a spoken worker whose voice key is absent, so the case this trades away is one
     // the worker would not have been running in.
-    const voiceTts = buildTTS({
-      voice: chosenVoice,
-      onFirstAudio: ({ hit }) => {
-        mark(timing, 'firstAudio', performance.now());
-        if (timing.cache === null) timing.cache = hit ? 'hit' : 'miss';
-      },
-    });
-
-    // The person that voice belongs to. Name and pronoun travel together out of
-    // core's catalogue, in one row, so they cannot drift: two of the eight
-    // voices are women, and a hardcoded "Luc, he" would have Céline introduce
-    // herself as a man in her first sentence. The prompts do not get to decide
-    // this, and neither does this file — it reads the row and passes it on.
     const persona = tutorVoice(chosenVoice).persona;
-
-    // Both session shapes share the whole voice pipeline below; only the agent
-    // driving it differs. The convo profile is the app's stored brain profile,
-    // riding the token as an opaque snapshot — tampering with it moves
-    // pedagogy, never minutes.
-    const voiceless = meta.mode === 'convo-text' || meta.mode === 'lesson-text';
-    const isConvo = meta.mode === 'convo' || meta.mode === 'convo-text';
-
-    // Learner French is mangled French, and nova-3 with an explicit fr hint beats
-    // a multilingual default at reading it. The one moment that is not true is a
-    // conversation's opening question, which is asked in English and answered in
-    // English — so a conversation starts multilingual and convo.ts retunes this
-    // to French the moment the scene opens. See sttLanguageFor.
-    const stt = new deepgram.STT({
-      model: 'nova-3',
-      language: sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'),
+    const recognition = recognitionPlan(isConvo ? 'convo' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
+    const { vad, stt, tts: voiceTts } = sessionAudio(voiceless, {
+      vad: () => ctx.proc.userData.vad as silero.VAD,
+      stt: () => recognition.experimental
+        ? new deepgram.STTv2(recognition.options)
+        : new deepgram.STT(recognition.options),
+      tts: () => buildTTS({
+        voice: chosenVoice,
+      }),
     });
 
     // A topic the learner tapped in Practice, so the conversation opens on it
@@ -234,6 +230,8 @@ export default defineAgent({
     const missionId = meta.missionId;
     const reviewFocus = typeof meta.snapshot === 'object' && meta.snapshot !== null
       ? (meta.snapshot as { reviewFocus?: unknown }).reviewFocus : undefined;
+    const previousCorrection = typeof meta.snapshot === 'object' && meta.snapshot !== null
+      ? (meta.snapshot as { previousCorrection?: unknown }).previousCorrection : undefined;
 
     const tutor = isConvo
       ? new LuvaniConversation(parseStoredProfile(meta.snapshot), {
@@ -241,7 +239,10 @@ export default defineAgent({
           seedTopic,
           revision: meta.revision,
           reviewFocus,
+          previousCorrection,
           missionId,
+          canDoEvidenceReader: canDoEvidenceReaderFromEnv(),
+          correctionReasonReader: correctionReasonReaderFromEnv(),
           // The same clamped rung the scripted lesson below already got, now
           // reaching the branch a mission actually runs on. It rode this far
           // and then died here: missions are conversations, so handing it only
@@ -251,7 +252,9 @@ export default defineAgent({
           // mission and nowhere else.
           startRung,
           persona,
-          setSttLanguage: (language) => stt.updateOptions({ language }),
+          setSttLanguage: (language) => {
+            if (!recognition.experimental) stt?.updateOptions({ language });
+          },
         })
       : new LuvaniTutor(lesson, startRung, { voiceless, persona });
     tutor.learnerId = participant.identity;
@@ -261,14 +264,13 @@ export default defineAgent({
     // participant. This timer is the actual vendor-cost and allowance ceiling.
     const hardStop = setTimeout(() => {
       tutor.publishError('That is a good place to stop. Your session has reached its time limit.');
+      if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
       void tutor.finish().finally(() => ctx.room.disconnect());
     }, maximumSessionSec * 1_000);
 
-    // The brain marks belong to the conversation; the record and the clock stay
-    // here. Reading `timing` through the closure keeps marks landing on the
-    // current turn's record across the per-turn resets below.
+    // Capture before queueing so a later input cannot replace an earlier EOU.
     if (tutor instanceof LuvaniConversation) {
-      tutor.attachTiming((stage) => mark(timing, stage, performance.now()));
+      tutor.attachReplyTiming((eligible) => sceneTiming.begin(eligible), () => sceneTiming.invalidate());
     }
 
     // The first verified participant owns this tutor for its whole lifetime.
@@ -316,7 +318,7 @@ export default defineAgent({
     });
 
     const session = new voice.AgentSession({
-      vad: ctx.proc.userData.vad as silero.VAD,
+      vad,
       stt,
       llm: tutorLLM(),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
@@ -350,6 +352,8 @@ export default defineAgent({
       // (classifyPipelineError in apps/mobile/src/live/failure.ts).
       const kind = ev.error.type;
       const recoverable = ev.error.recoverable;
+      const learnerPresent = [...ctx.room.remoteParticipants.values()].some(p => p.identity === tutor.learnerId);
+      const serviceFailure = tutor.terminalFailureFor(kind, recoverable, learnerPresent);
 
       // The line somebody greps at two in the morning. `TUTOR_PIPELINE_DOWN` is
       // an interface, not a log message: a vendor half of the tutor is down and
@@ -369,12 +373,18 @@ export default defineAgent({
       // The sentence stays what it has always been. With `kind` on the frame the
       // app never renders it, and an app that predates the field still shows the
       // notice it shows today rather than a new string it was never tested with.
-      void publish({
+      void Promise.resolve().then(() => publish({
         t: 'error',
         message: 'The tutor lost its voice for a moment. Give it a second, or leave and come back.',
         kind,
         recoverable,
-      });
+        ...(serviceFailure ? { terminal: true } : {}),
+      })).finally(() => {
+        if (!serviceFailure) return;
+        clearTimeout(hardStop);
+        if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
+        return tutor.finish().finally(() => ctx.room.disconnect());
+      }).catch(() => {});
     });
 
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => {
@@ -383,13 +393,6 @@ export default defineAgent({
       if (ev.newState === 'speaking' || ev.newState === 'thinking') tutor.clearRescue();
       tutor.sendSpeaking(ev.newState === 'speaking');
 
-      // The tutor's mouth opening closes the turn's books: print the line and
-      // start the next record.
-      if (ev.newState === 'speaking') {
-        mark(timing, 'speaking', performance.now());
-        console.log(formatTiming(timing));
-        timing = createTurnTiming(++turnCount);
-      }
     });
 
     // The pipeline measures the vendors Luvani was guessing about: time to the
@@ -407,21 +410,29 @@ export default defineAgent({
       // They have started speaking — they are not stuck after all. This also
       // stands a rescue down that has already fired and is on its way; clearing
       // the timeout alone cannot, and both landing costs the learner a turn.
-      if (ev.newState === 'speaking') tutor.setLearnerSpeaking(true);
+      if (ev.newState === 'speaking') {
+        sceneTiming.speechStarted();
+        tutor.setLearnerSpeaking(true);
+      }
       if (ev.newState === 'listening' || ev.newState === 'away') tutor.setLearnerSpeaking(false);
 
       // The learner falling silent is this turn's end of utterance, the moment
       // every later stage is measured against.
       if (ev.oldState === 'speaking' && ev.newState === 'listening') {
-        mark(timing, 'eou', performance.now());
+        sceneTiming.speechEnded(performance.now());
       }
     });
 
     // A learner who closes the app still gets their minutes debited correctly.
     ctx.room.on('disconnected', () => {
       clearTimeout(hardStop);
+      if (tutor instanceof LuvaniConversation) {
+        console.log(sceneTiming.close());
+        if (process.env.LUVANI_REPLY_FIRST_FRAME_TIMING === '1') console.log(sceneTiming.audioFormat());
+      }
       // Cost visibility per session: hits are free lines, misses were billed.
-      console.log(`[luvani] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
+      if (voiceTts) console.log(`[luvani] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
+      if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
       void tutor.finish();
     });
 
@@ -431,13 +442,16 @@ export default defineAgent({
     ctx.room.on('participantDisconnected', (p) => {
       if (p.identity === tutor.learnerId) {
         clearTimeout(hardStop);
-        void tutor.finish().finally(() => ctx.room.disconnect());
+        if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
+        return tutor.finish().finally(() => ctx.room.disconnect());
       }
     });
 
     // Learning artefacts are saved explicitly; do not upload raw session audio,
     // transcripts, logs or traces through the SDK's default cloud recorder.
-    await session.start({ agent: tutor, room: ctx.room, record: false });
+    await session.start({ agent: tutor, room: ctx.room, record: false,
+      ...(voiceless ? { inputOptions: { audioEnabled: false }, outputOptions: { audioEnabled: false } } : {}),
+    });
 
     if (tutor instanceof LuvaniConversation) {
       // The scene opens: the character speaks first and the app renders the
@@ -475,7 +489,7 @@ if (isWorkerProcess) {
   // Presence is not health. The keys can all be filled in and still be rejected,
   // and the model named in one of them can have been retired since it was written
   // — both of which land on the learner as that same silent room.
-  reportVendors(await verifyVendors(process.env, selectedBrain() === 'groq' ? defaultModel() : ''));
+  reportVendors(await verifyVendors(process.env, ['groq', 'claude-cli', 'claude-cli-all'].includes(selectedBrain()) ? defaultModel() : ''));
 }
 
 cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));

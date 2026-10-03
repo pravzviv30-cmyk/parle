@@ -67,7 +67,7 @@ export interface WinStep {
  */
 export function winAfterTurn(
   state: WinState,
-  view: { missionDone: boolean; rung: Rung } | null,
+  view: { missionDone: boolean; rung: Rung; missionTasks?: MissionTasks | null } | null,
   missionId: string | null | undefined,
 ): WinStep {
   if (view === null || !view.missionDone) return { state, record: null };
@@ -78,6 +78,11 @@ export function winAfterTurn(
   // a claim about a session that had nothing to finish, so the state is left
   // exactly as it was.
   if (mission === undefined) return { state, record: null };
+
+  if (Object.hasOwn(view, 'missionTasks')) {
+    const tasks = readMissionTasks(view.missionTasks, mission.id);
+    if (tasks === null || !tasks.items.every(item => item.achieved)) return { state, record: null };
+  }
 
   return { state: { seen: true, showing: true }, record: { id: mission.id, rung: view.rung } };
 }
@@ -125,3 +130,4 @@ export function winCard(missionId: string | null | undefined): WinCard | null {
     finishLabel: 'Finish and see your recap',
   };
 }
+import { readMissionTasks, type MissionTasks } from '@luvani/core';

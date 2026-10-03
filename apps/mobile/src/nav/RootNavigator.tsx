@@ -1,3 +1,4 @@
+import { WalkIntro } from '../walk/WalkIntro.tsx';
 /**
  * The navigator.
  *
@@ -15,12 +16,13 @@
  * paths do not diverge, and so no route ever has to carry a summary object.
  */
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, type RouteProp, useRoute } from '@react-navigation/native';
-import { CAFE_LESSON, lessonXp, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFromPacks, type TutorPreviousCorrection, type MissionId, type ProgressReport, type Rung, type SessionSummary, type ReviewCard } from '@luvani/core';
+import { FirstSceneScreen } from '../onboarding/FirstSceneScreen.tsx';
 import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
 import { GhostButton, Label, PillButton } from '../components.tsx';
@@ -31,6 +33,7 @@ import { TermsScreen } from '../legal/TermsScreen.tsx';
 import { WallScreen } from '../wall/WallScreen.tsx';
 import { wallPreviewEnabled } from '../wall/preview.ts';
 import { useLive } from '../app/LiveContext.tsx';
+import { scopeGeneration } from '../storage/scope.ts';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
 import { bankLesson } from '../live/journal.ts';
@@ -44,6 +47,7 @@ import { TutorIntro } from '../tutor/TutorIntro.tsx';
 import { TutorMemoryScreen } from '../profile/TutorMemoryScreen.tsx';
 import { PhrasebookScreen } from '../phrases/PhrasebookScreen.tsx';
 import { ConversationsScreen } from '../conversationPacks/ConversationsScreen.tsx';
+import { SavedTextScreen } from '../conversationPacks/SavedTextScreen.tsx';
 import { ConversationPracticeScreen } from '../conversationPacks/ConversationPracticeScreen.tsx';
 import { PRACTICE_PREVIEW } from '../conversationPacks/practicePreview.ts';
 import { loadSampleConversation, sampleAllowed } from '../conversationPacks/sampleFixture.ts';
@@ -64,6 +68,8 @@ import { FriendsTab } from '../tabs/FriendsTab.tsx';
 import { InviteFriendsScreen } from '../friends/InviteFriendsScreen.tsx';
 import { SocialSettingsScreen } from '../friends/SocialSettingsScreen.tsx';
 import { DailyPracticeScreen } from '../daily/DailyPracticeScreen.tsx';
+import { PostcardsScreen } from '../progress/PostcardsScreen.tsx';
+import { WeekWrappedScreen } from '../progress/WeekWrappedScreen.tsx';
 import { DailyLibraryScreen } from '../daily/DailyLibraryScreen.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
@@ -117,6 +123,26 @@ function backOrTabs(nav: {
   else nav.navigate('Tabs', tab === undefined ? undefined : { screen: tab });
 }
 
+/**
+ * A brand-new learner's first scene, behind the microphone primer (notebook
+ * Phase 5). App.tsx resets the root onto Today with this above it. The primer
+ * replaces itself with the ordinary conversation route, so a back from the
+ * scene lands on Today and nothing in the live session is special-cased.
+ */
+function FirstSceneRoute() {
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'FirstScene'>>();
+  const raw = route.params?.missionId;
+  const missionId: MissionId = typeof raw === 'string' && getMission(raw as MissionId) !== undefined ? (raw as MissionId) : FIRST_MISSION;
+  return (
+    <FirstSceneScreen
+      missionId={missionId}
+      onStart={(textMode) => nav.replace('Convo', { missionId, textMode })}
+      onBack={() => backOrTabs(nav)}
+    />
+  );
+}
+
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
   const nav = useNavigation<{
@@ -134,23 +160,37 @@ function LessonRoute() {
   const [startRung, setStartRung] = useState<Rung | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [report, setReport] = useState<ProgressReport | null>(null);
+  const [historyFailed, setHistoryFailed] = useState(false);
+  const [historyRead, setHistoryRead] = useState(0);
+  const [historySaveFailed, setHistorySaveFailed] = useState(false);
+  const owner = useRef({ generation: scopeGeneration(), userId: user?.id ?? null }).current;
+  const ownsLesson = () => owner.generation === scopeGeneration() && owner.userId === (user?.id ?? null);
 
   // Continuity: the next session opens one rung below where the last one ended.
   useEffect(() => {
     let cancelled = false;
+    setHistoryFailed(false);
     void lastSummaryFor(CAFE_LESSON.id).then((s) => {
-      if (!cancelled) setStartRung(asRung(s?.nextStartRung) ?? 1);
+      if (!cancelled && ownsLesson()) setStartRung(asRung(s?.nextStartRung) ?? 1);
+    }).catch(() => {
+      if (!cancelled && ownsLesson()) setHistoryFailed(true);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [historyRead]);
 
   const finish = useCallback((s: SessionSummary, timing?: { activeMs: number }) => {
     // Show the card immediately; the history write catches up and fills the
     // since-you-started block when it lands. A slow disk must not delay it.
+    if (!ownsLesson()) return;
     setSummary(s);
-    void recordSession(s).then(setReport);
+    setHistorySaveFailed(false);
+    void recordSession(s).then(value => {
+      if (ownsLesson()) setReport(value);
+    }).catch(() => {
+      if (ownsLesson()) setHistorySaveFailed(true);
+    });
     // How long the sitting took, from the summary core already computed rather
     // than from a second clock this screen would have to keep. Home's speaking
     // goal is the only reader; a summary written before F395 carries no
@@ -186,14 +226,21 @@ function LessonRoute() {
    * one below where it finished.
    */
   const again = useCallback(() => {
+    if (!ownsLesson()) return;
+    setSummary(null);
+    setReport(null);
     setStartRung(null);
-    void lastSummaryFor(CAFE_LESSON.id).then((s) => {
-      setStartRung(asRung(s?.nextStartRung) ?? 1);
-      setSummary(null);
-      setReport(null);
-    });
+    setHistoryRead(value => value + 1);
   }, []);
 
+  if (!ownsLesson()) return <Loading />;
+  if (historyFailed) return (
+    <View style={[st.center, { gap: space(3), padding: space(6) }]}>
+      <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
+      <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
+      <GhostButton label="Back to Home" onPress={leave} />
+    </View>
+  );
   if (startRung === null) return <Loading />;
   if (summary) {
     return (
@@ -201,6 +248,7 @@ function LessonRoute() {
         lesson={CAFE_LESSON}
         summary={summary}
         report={report}
+        historySaveFailed={historySaveFailed}
         onAgain={again}
         onReview={() => nav.navigate('Review')}
         onDone={leave}
@@ -249,6 +297,8 @@ function ConvoRoute() {
   const { live, recheck } = useLive();
   const [checking, setChecking] = useState(false);
   const missionId = route.params?.missionId;
+  const walkMode = route.params?.walkMode === true;
+  const [walkStarted, setWalkStarted] = useState(false);
   // Opened from a goal (Stage 4): the route carries the goal's opaque key and
   // the task, never the goal's words, so the step is made here from the
   // profile. A key that names no goal the profile holds records nothing.
@@ -260,9 +310,17 @@ function ConvoRoute() {
     return goal === undefined ? undefined : { goalKey: factKey(goal), task };
   }, [profile.learnerGoals, route.params?.goalRef, route.params?.goalTask]);
   const [reviewDeck, setReviewDeck] = useState<ReviewCard[] | null>(null);
+  const [previousCorrection, setPreviousCorrection] = useState<TutorPreviousCorrection | undefined>();
   useEffect(() => {
     let cancelled = false;
-    void loadDeck().then((deck) => { if (!cancelled) setReviewDeck(deck); }, () => { if (!cancelled) setReviewDeck([]); });
+    const owner = user?.id;
+    setReviewDeck(null);
+    setPreviousCorrection(undefined);
+    void Promise.allSettled([loadDeck(), loadConversationPacks()]).then(([deck, packs]) => {
+      if (cancelled) return;
+      setReviewDeck(deck.status === 'fulfilled' ? deck.value : []);
+      setPreviousCorrection(owner && packs.status === 'fulfilled' ? previousCorrectionFromPacks(packs.value, owner) : undefined);
+    });
     return () => { cancelled = true; };
   }, [user?.id]);
 
@@ -350,6 +408,7 @@ function ConvoRoute() {
   // After the offline gate on purpose: a learner with no server to talk to gets
   // the honest screen at once rather than a spinner over a disk read that
   // cannot help them.
+  if (walkMode && !walkStarted) return <WalkIntro onStart={() => setWalkStarted(true)} onBack={leave} />;
   if (!replayRead || reviewDeck === null) return <Loading />;
   return (
     <Suspense fallback={<Loading />}>
@@ -359,11 +418,12 @@ function ConvoRoute() {
         // the facts the learner forgot and the goals they wrote (F562), so this
         // is where they are joined. The snapshot is the only thing that reaches
         // the agent, and `snapshotFor` is the one place it is composed.
-        snapshot={snapshotFor(profile, reviewDeck)}
+        snapshot={snapshotFor(profile, reviewDeck, Date.now(), previousCorrection)}
         onRecap={onRecap}
         onExit={leave}
         onPractice={(phrase) => nav.replace('Drill', { ownWords: phrase })}
-        startInTextMode={route.params?.textMode ?? false}
+        walkMode={walkMode}
+        startInTextMode={walkMode ? false : route.params?.textMode ?? false}
         seedTopic={route.params?.seedTopic}
         continuationPackId={route.params?.continuationPackId}
         // The mission the learner chose, carried through to the join token so
@@ -427,7 +487,7 @@ function DrillRoute() {
       // step and the session cards. Only a pack whose own targets were
       // answered is marked; review alone names none.
       onPracticeFinished={(packId) => {
-        if (packId !== null) void markPackPractised(packId, Date.now());
+        if (packId !== null) void markPackPractised(packId, Date.now()).catch(() => {});
       }}
     />
   );
@@ -456,6 +516,7 @@ function WallRoute() {
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
+    replace: (screen: string, params?: object) => void;
     navigate: (screen: string, params?: object) => void;
   }>();
   const { entry } = useRoute<RouteProp<RootStackParamList, 'Wall'>>().params;
@@ -469,6 +530,8 @@ function WallRoute() {
     <WallScreen
       entry={entry}
       onLeave={leave}
+      onStartSpeaking={() => nav.replace('Convo')}
+      onOpenPractice={() => nav.replace('Tabs', { screen: 'Practice' })}
       onOpenBank={() => nav.navigate('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}
       onOpenTerms={() => nav.navigate('Terms')}
@@ -607,22 +670,13 @@ function Tabs() {
 export function RootNavigator({
   onSignOut,
   onDeleteAccount,
-  startOnMissions = false,
 }: {
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
-  /**
-   * A learner who finished onboarding a second ago opens on the chooser rather
-   * than on Home, so the first thing after signing up is picking something to
-   * say. The flag is held in memory by App.tsx and never written down: an app
-   * killed between the two lands on Home, whose mission card leads here anyway,
-   * and a persisted flag would be one more thing that can get stuck.
-   */
-  startOnMissions?: boolean;
 }) {
   return (
     <Stack.Navigator
-      initialRouteName={wallPreviewEnabled() ? 'Wall' : startOnMissions ? 'Missions' : 'Tabs'}
+      initialRouteName={wallPreviewEnabled() ? 'Wall' : 'Tabs'}
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: paper.ground },
@@ -637,6 +691,8 @@ export function RootNavigator({
       <Stack.Screen name="SocialSettings" component={SocialSettingsScreen} />
       <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
+      <Stack.Screen name="Postcards" component={PostcardsScreen} />
+      <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
       {/* Settings is where sign out and delete account live now (F473), so it
           takes the two callbacks Profile used to, through the same children
           function idiom and for the same reason: they are functions, and a
@@ -658,6 +714,7 @@ export function RootNavigator({
       <Stack.Screen name="SoundJourney" component={SoundJourneyScreen} />
       <Stack.Screen name="GoalStep" component={GoalStepScreen} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
+      <Stack.Screen name="FirstScene" component={FirstSceneRoute} />
       <Stack.Screen name="RealMoment" component={RealMomentRoute} />
       <Stack.Screen name="TutorMemory" component={TutorMemoryRoute} />
       <Stack.Screen name="TutorIntro" component={TutorIntroRoute} />
@@ -666,6 +723,7 @@ export function RootNavigator({
           sit above the tabs like every other push, so the bar goes with them. */}
       <Stack.Screen name="Phrasebook" component={PhrasebookRoute} />
       <Stack.Screen name="Conversations" component={ConversationsRoute} />
+      <Stack.Screen name="SavedConversationText" component={SavedTextScreen} />
       <Stack.Screen name="ConversationPractice" component={ConversationPracticeRoute} />
       {/* `initialParams` is what makes the preview safe to open directly: with
           the wall as the initial route there is no navigate to carry a param, so

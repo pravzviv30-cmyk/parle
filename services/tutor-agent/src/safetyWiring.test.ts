@@ -9,7 +9,8 @@ const tutor = readFileSync(path.join(import.meta.dirname, 'tutor.ts'), 'utf8');
 describe('safety is a code boundary, not prompt advice', () => {
   test('free-conversation text and speech are guarded before scene or brain calls', () => {
     assert.match(convo, /msg\.t === 'say' && this\.handleSafety\(msg\.text\)/);
-    assert.match(convo, /if \(this\.handleSafety\(text\)\) throw new voice\.StopResponse\(\)/);
+    // Safety now also closes the captured timing record before the same stop.
+    assert.match(convo, /if \(this\.handleSafety\(text\)\) \{\s*timing\?\.finish\('cancelled'\);\s*throw new voice\.StopResponse\(\)/);
     const brainTurn = convo.indexOf('private async runBrainTurn');
     const guard = convo.indexOf("input.type === 'spoke' && this.handleSafety", brainTurn);
     const prepare = convo.indexOf('prepareTurn(this.state, input)', brainTurn);
@@ -31,4 +32,3 @@ describe('safety is a code boundary, not prompt advice', () => {
     assert.match(tutor, /decision\.action === 'stop'\) void this\.closeAfterStop\(/);
   });
 });
-

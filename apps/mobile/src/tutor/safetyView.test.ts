@@ -119,7 +119,7 @@ describe('a safety decision, as a surface — F137', () => {
     // withholding onFinish is what keeps a card counting up wins off a stop.
     assert.match(
       lesson,
-      /if \(live\.summary && !stopped\) onFinish\(live\.summary\);/,
+      /if \(live\.summary && !stopped && live\.settlement === null\) onFinish\(live\.summary\);/,
       'a stopped lesson still hands its summary on, and SummaryScreen is drawn from it',
     );
     assert.ok(

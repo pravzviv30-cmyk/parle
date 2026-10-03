@@ -1,11 +1,12 @@
 import { auth, authHeaders } from '../auth/adapter.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import type { SoundCheckKind } from '../soundcheck/model.ts';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { analyticsAllowed } from './consent.ts';
 import { loadConsent } from './consentStore.ts';
 
 /**
- * The ten events, and every property any of them may carry.
+ * The thirteen device events, and every property any of them may carry.
  *
  * This union is the allowlist. There is no free-text property and no `unknown`
  * escape hatch, so learner content cannot reach analytics by accident: it would
@@ -31,10 +32,13 @@ export type ProductEvent =
   // with. A monetisation surface nobody can measure is a surface nobody can improve,
   // and this is the smallest set that answers "which page lost them".
   | { name: 'wall_shown'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; pages: number } }
-  | { name: 'wall_page_seen'; properties: { page: 'map' | 'french' | 'yours' | 'plans'; index: number } }
+  | { name: 'wall_page_seen'; properties: { page: 'yours' | 'plans'; index: number } }
   | { name: 'plan_selected'; properties: { plan: 'starter' | 'regular' } }
   | { name: 'purchase_started'; properties: { plan: 'starter' | 'regular' } }
-  | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'store-trouble' | 'refresh-trouble' } };
+  | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'store-trouble' | 'refresh-trouble' } }
+  | { name: 'restore_started'; properties: { entry: 'settings' | 'wall' | 'inline' } }
+  | { name: 'restore_settled'; properties: { entry: 'settings' | 'wall' | 'inline'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'store-trouble' | 'refresh-trouble' } }
+  | { name: 'wall_left'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; outcome: 'granted' | 'unchanged'; destination: 'back' | 'speak' } };
 
 /**
  * Fire-and-forget product evidence. No content fields exist in the type.
@@ -50,13 +54,16 @@ export type ProductEvent =
  * the server discards. `loadConsent` throws rather than resolving with nobody
  * signed in, and that throw lands in the same `catch`: no account, no event.
  */
-export async function trackProductEvent(event: ProductEvent): Promise<void> {
+export async function trackProductEvent(event: ProductEvent, expected?: { userId: string; generation: number }): Promise<void> {
+  const owner = scopeGeneration();
   try {
     const [user, headers, consent] = await Promise.all([auth.getSession(), authHeaders(), loadConsent()]);
-    if (!user) return;
+    if (!user || owner !== scopeGeneration() || user.id !== activeUserId()) return;
+    if (expected && (expected.userId !== user.id || expected.generation !== owner)) return;
     if (!analyticsAllowed(consent)) return;
     await fetch(`${TOKEN_SERVER}/events`, {
       method: 'POST',
+      signal: AbortSignal.timeout(5_000),
       headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify({ userId: user.id, ...event }),
     });

@@ -19,6 +19,8 @@ re-deriving the architecture from source every time.
 | What is known to be broken right now | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 | How the privacy and support pages get hosted, and what App Store Connect needs | [LEGAL_HOSTING.md](LEGAL_HOSTING.md) |
 | What is implemented, local-only, missing, or externally blocked | [IMPLEMENTATION_EVIDENCE.md](IMPLEMENTATION_EVIDENCE.md) |
+| Report 2 implementation disposition and remaining acceptance holds | [REVAMP_B_CONTINUATION.md](REVAMP_B_CONTINUATION.md) |
+| The recommendations from the 100-app design review | [REVAMP_B_DESIGN_REVIEW.md](REVAMP_B_DESIGN_REVIEW.md) |
 | The current runtime path and replacement dependency graph | [CURRENT_STATE_MAP.md](CURRENT_STATE_MAP.md) |
 | The controlled product/security/release phases | [DELIVERY_ROADMAP.md](DELIVERY_ROADMAP.md) |
 | The agreed tutor-audio batches, credit-reset reminder and pre-publication checklist | [DAILY_AUDIO_ROLLOUT.md](DAILY_AUDIO_ROLLOUT.md) |

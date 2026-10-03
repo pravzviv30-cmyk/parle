@@ -69,9 +69,9 @@ describe('the exercise — a situation, not an answer key', () => {
     assert.deepEqual(meaningWords('It is for me'), ['it is for me']);
   });
 
-  test('the learner keeps their own words off the ladder until somebody decides where it belongs', () => {
-    assert.equal(stageOf(ownWordsFrom(PHRASE, SITUATION)), null);
-    assert.equal(([...DRILL_STAGES] as string[]).includes('own-words'), false);
+  test('own words follows spoken repetition on the drill ladder', () => {
+    assert.equal(stageOf(ownWordsFrom(PHRASE, SITUATION)), 'own-words');
+    assert.equal(DRILL_STAGES.at(-1), 'own-words');
   });
 
   test('nothing compares the attempt to a string, so the grade stays pending until a judge speaks', () => {

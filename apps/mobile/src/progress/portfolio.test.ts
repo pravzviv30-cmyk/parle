@@ -34,7 +34,11 @@ import { NEXT_SITUATION, SITUATION_ACTION, situationAction, startLabel } from '.
 /** A fixed clock, because the rule under test never reads one. */
 const NOW = Date.parse('2026-08-22T10:00:00Z');
 
-/** The café is `missionStates`' first row: never attempted, so `timesFinished` is 0. */
+/**
+ * `missionStates`' first row: never attempted, so `timesFinished` is 0.
+ * 2026-09-27: that row is now the three-line opener, "Your first coffee",
+ * which leads the catalogue; it was the full café before.
+ */
 const unfinished: MissionProgress = missionStates([], [], NOW)[0]!;
 /** The same situation, having been walked into once. */
 const finished: MissionProgress = { ...unfinished, timesFinished: 1 };
@@ -54,14 +58,14 @@ describe('the portfolio — a situation row and the next-situation words, decide
     assert.equal(start.label, SITUATION_ACTION.start);
     assert.equal(start.label, 'Start');
     assert.equal(start.accessibilityLabel, startLabel(unfinished.mission.titleEn));
-    assert.equal(start.accessibilityLabel, 'Start Order at a café');
+    assert.equal(start.accessibilityLabel, 'Start Your first coffee');
 
     const refine = situationAction(finished);
     assert.equal(refine.kind, 'refine');
     assert.equal(refine.label, SITUATION_ACTION.refine);
     assert.equal(refine.label, 'Refine pronunciation');
     assert.equal(refine.accessibilityLabel, `Refine pronunciation for ${finished.mission.titleEn}`);
-    assert.equal(refine.accessibilityLabel, 'Refine pronunciation for Order at a café');
+    assert.equal(refine.accessibilityLabel, 'Refine pronunciation for Your first coffee');
   });
 
   test("the portfolio's words carry no score, no number and no word that scolds", () => {
@@ -157,11 +161,11 @@ describe('the portfolio — a situation row and the next-situation words, decide
     // reached as a chip before the chevron.
     const card = stripComments(read('../myfrench/SituationsCard.tsx'));
     assert.equal(
-      (card.match(/<TintRow\b/g) ?? []).length,
+      (card.match(/<LedgerRow\b/g) ?? []).length,
       1,
       'the two groups are drawn by two different rows, so one of them can be restyled without the other',
     );
-    assert.match(card, /tint=\{row\.tint\}/, 'the row does not sit on the paper of the place it happens in');
+    assert.doesNotMatch(card, /\btint\b|TintRow|TintPanel/, 'the situation row must not retain retired tint presentation');
     assert.match(card, /<PlaceGlyph place=\{row\.place\}/, 'the row does not show the place on its disc');
     assert.match(card, /title=\{row\.title\}/, 'the row lost the French title');
     assert.match(card, /gloss=\{row\.gloss\}/, 'the row lost the English title');
@@ -173,7 +177,7 @@ describe('the portfolio — a situation row and the next-situation words, decide
     // model's, which is what stops a screen growing a second opinion about
     // whether a place has been handled.
     const model = stripComments(read('../myfrench/model.ts'));
-    for (const decision of ['missionTint(', 'chipFor(', 'situationAction(']) {
+    for (const decision of ['chipFor(', 'situationAction(']) {
       assert.ok(model.includes(decision), `the model no longer folds ${decision}, so the card would have to decide it`);
     }
 

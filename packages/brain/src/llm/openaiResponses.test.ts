@@ -9,6 +9,7 @@ import { CAFE_FRAME } from '../fixtures.ts';
 import type { BrainTurnRequest } from './client.ts';
 import {
   DEFAULT_OPENAI_ANALYST_MODEL,
+  DEFAULT_OPENAI_LIVE_MODEL,
   DEFAULT_OPENAI_TURN_MODEL,
   OpenAiResponsesBrainClient,
   type OpenAiResponsesConfig,
@@ -103,7 +104,7 @@ describe('OpenAI Responses brain — the wire it speaks', () => {
 
     const body = bodies[0]!;
     assert.equal(turn.sceneReply.fr, 'Ça marche, un café !');
-    assert.equal(body.model, DEFAULT_OPENAI_TURN_MODEL);
+    assert.equal(body.model, DEFAULT_OPENAI_LIVE_MODEL);
     assert.equal((body.reasoning as { effort: string }).effort, 'low');
     assert.equal((body.text as { format: { type: string; strict: boolean } }).format.type, 'json_schema');
     assert.equal((body.text as { format: { type: string; strict: boolean } }).format.strict, true);
@@ -115,7 +116,7 @@ describe('OpenAI Responses brain — the wire it speaks', () => {
       outputTokens: 50,
       cacheReadTokens: 20,
       cacheWriteTokens: 5,
-      model: DEFAULT_OPENAI_TURN_MODEL,
+      model: DEFAULT_OPENAI_LIVE_MODEL,
     });
   });
 
@@ -160,7 +161,7 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
 
     assert.equal(
       body.model,
-      DEFAULT_OPENAI_TURN_MODEL,
+      DEFAULT_OPENAI_LIVE_MODEL,
       'the learner hears the bridge line while the scene is built, so frame is a call somebody waits through',
     );
   });
@@ -189,7 +190,8 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     // wire follows. A future adapter-local shortcut fails here, not in a bill.
     for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
       const body = await bodyFor(activity);
-      const expected = isAnalystActivity(activity) ? DEFAULT_OPENAI_ANALYST_MODEL : DEFAULT_OPENAI_TURN_MODEL;
+      const expected = isAnalystActivity(activity) ? DEFAULT_OPENAI_ANALYST_MODEL
+        : activity === 'turn' || activity === 'frame' ? DEFAULT_OPENAI_LIVE_MODEL : DEFAULT_OPENAI_TURN_MODEL;
       assert.equal(body.model, expected, `${activity} must be served by the tier routing.ts assigns it`);
     }
   });
@@ -341,7 +343,7 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
     const { prompt_cache_key: key, ...rest } = body;
 
     assert.deepEqual(rest, {
-      model: DEFAULT_OPENAI_TURN_MODEL,
+      model: DEFAULT_OPENAI_LIVE_MODEL,
       instructions: [REQUEST.system.persona, REQUEST.system.pack, REQUEST.system.contract].join('\n\n'),
       input: [
         { role: 'user', content: 'scene' },

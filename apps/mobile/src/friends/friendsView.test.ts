@@ -78,11 +78,11 @@ describe('Friends starts with one clear opt-in — Stage 3', () => {
   test('before joining there is one start, and privacy is a quiet link beneath it', () => {
     assert.match(TAB, /const entry = friendsEntry\(s\);/, 'the tab decides for itself which Friends to draw');
     const start = block(TAB, 'start');
-    assert.equal((start.match(/<OutlineButton\b/g) ?? []).length, 1, 'the start offers more than one strong action, or none');
+    assert.equal((start.match(/<PillButton\b/g) ?? []).length, 1, 'the start offers more than one strong action, or none');
     assert.equal((start.match(/nav\.navigate\('AddFriends'\)/g) ?? []).length, 1, 'the start has more than one door onto setup');
-    assert.match(start, /<OutlineButton label=\{FRIENDS_START\} onPress=\{\(\) => nav\.navigate\('AddFriends'\)\} \/>/, 'the one start is not the setup door');
+    assert.match(start, /<PillButton label=\{FRIENDS_START\} onPress=\{\(\) => nav\.navigate\('AddFriends'\)\} \/>/, 'the one start is not the setup door');
     assert.match(start, /<GhostButton label=\{FRIENDS_PRIVACY_LINK\} onPress=\{\(\) => nav\.navigate\('SocialSettings'\)\} \/>/, 'privacy is not reachable from the start');
-    assert.ok(start.indexOf('<OutlineButton') < start.indexOf('FRIENDS_PRIVACY_LINK'), 'privacy is drawn above the start it is secondary to');
+    assert.ok(start.indexOf('<PillButton') < start.indexOf('FRIENDS_PRIVACY_LINK'), 'privacy is drawn above the start it is secondary to');
     assert.match(start, /\{FRIENDS_START_TITLE\}/, 'the start spells its own heading');
     assert.match(start, /\{FRIENDS_START_BODY\}/, 'the start spells its own line');
 
@@ -102,7 +102,7 @@ describe('Friends starts with one clear opt-in — Stage 3', () => {
     // Exactly the three setup doors that existed: the toolbar, the empty
     // board's invite, and the one start. A fourth is a new feature by the back door.
     assert.equal((TAB.match(/nav\.navigate\('AddFriends'\)/g) ?? []).length, 3, 'the tab grew or lost a door onto setup');
-    for (const kept of ['rankedFriends(', 'POINTS_EXPLANATION', "act('inviteChallenge'", "act('report'", "act('block'", 'REACTIONS.map(']) {
+    for (const kept of ['friendsByName(', "act('inviteChallenge'", "act('report'", "act('block'", 'REACTIONS.map(']) {
       assert.ok(TAB.includes(kept), `the joined tab lost ${kept}`);
     }
     assert.ok(!/global|leaderboard/i.test(TAB), 'the tab reaches beyond the learner’s own circle');

@@ -102,3 +102,11 @@ describe('the arithmetic', () => {
     assert.equal(costUsd(u), prices.input + prices.output + prices.cacheRead + prices.cacheWrite);
   });
 });
+test('GPT-6 Luna usage uses verified standard prices in all four buckets and retains the earlier comparison row', () => {
+  assert.deepEqual(USD_PER_MTOK['gpt-6-luna'], { input: .1, output: .5, cacheRead: .01, cacheWrite: .125 });
+  const priced = priceUsage(usage({ inputTokens: 1_000_000, outputTokens: 1_000_000, cacheReadTokens: 1_000_000,
+    cacheWriteTokens: 1_000_000, model: 'gpt-6-luna' }));
+  assert.equal(priced.exact, true); assert.equal(priced.pricedAs, 'gpt-6-luna');
+  assert.equal(priced.usd, .735);
+  assert.deepEqual(USD_PER_MTOK['gpt-5.6-luna'], { input: .2, output: 1.2, cacheRead: .02, cacheWrite: .25 });
+});

@@ -147,10 +147,9 @@ export interface TranslationExercise extends DrillExerciseBase {
  * into a session outcome; that split is why this kind can exist at all
  * without a model living in the engine.
  *
- * Deliberately NOT a rung of DRILL_STAGES yet. The ramp promises one piece of
- * scaffolding removed per successful sitting, and nobody has yet shown where
- * unscripted production sits on that promise. Until they have, this is a
- * surface the app can open on purpose, not a step a phrase is pushed onto.
+ * The fifth drill rung removes the reference wording after spoken repetition.
+ * The meaning and situation stay visible. Typing is the quiet twin; this
+ * exercises production of meaning and makes no pronunciation claim.
  */
 export interface OwnWordsExercise extends DrillExerciseBase {
   kind: 'own-words';

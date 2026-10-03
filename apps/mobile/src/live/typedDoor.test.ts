@@ -58,6 +58,7 @@ const hook = read('./useLiveSession.ts');
  * than quietly inherit an answer about whether typing helps.
  */
 const EVERY_FAILURE = Object.keys({
+  'voice-unavailable': true,
   'mic-denied': true,
   'mic-missing': true,
   'mic-in-use': true,
@@ -134,7 +135,7 @@ describe('the quiet door, taken where the learner is standing — F201', () => {
     const offered = EVERY_FAILURE.filter((failure) => typedDoorFor(failure, { typing: false }));
     assert.deepEqual(
       offered.sort(),
-      ['mic-denied', 'mic-in-use', 'mic-missing', 'mic-unavailable', 'tutor-deaf', 'tutor-mute', 'tutor-talks-over'],
+      ['mic-denied', 'mic-in-use', 'mic-missing', 'mic-unavailable', 'tutor-deaf', 'tutor-mute', 'tutor-talks-over', 'voice-unavailable'],
       'the typed door is offered on a different set of failures than the copy promises it on',
     );
     for (const failure of EVERY_FAILURE) {
@@ -192,20 +193,21 @@ describe('the quiet door, taken where the learner is standing — F201', () => {
     assert.match(convo, /GhostButton label=\{QUIET_DOOR\} onPress=\{goQuiet\}/, 'the choosing screen has its own door again');
     assert.match(
       convo,
-      /onType=\{typedDoorFor\(live\.status\.failure, \{ typing \}\) \? goQuiet : null\}/,
+      /onType=\{!walkMode && typedDoorFor\(live\.status\.failure, \{ typing \}\) \? goQuiet : null\}/,
       'the failure screen decides for itself whether typing is offered',
     );
 
     // The restart itself. It is still there, it is still an effect, and it
-    // still watches only the mode this session CONNECTS in: a door that
+    // still watches only the modes this session CONNECTS in: a door that
     // changed anything this list reads would restart the session again, which
     // is the defect wearing its original clothes.
     assert.equal((convo.match(/live\.start\(\)/g) ?? []).length, 1, 'the conversation starts a session from more than one place');
     assert.match(
       convo,
-      /void live\.start\(\);[\s\S]{0,120}\}, \[openedTyped\]\);/,
+      /if \(!walkMode\) \{ void live\.start\(\); return; \}[\s\S]*?\}, \[openedTyped, walkMode\]\);/,
       'the connect effect watches something other than the cold-start mode',
     );
+    assert.match(convo, /const gate = prepareWalk\(walkObserver\(\), \{\s*start: live\.start,/, 'Walk bypasses its interruption gate to start a room');
     assert.match(
       convo,
       /const typing = openedTyped \|\| live\.voiceless;/,

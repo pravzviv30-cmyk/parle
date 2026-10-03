@@ -18,11 +18,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getMission } from '@luvani/core';
 
-import { Card, GhostButton, Label, TintRow } from '../components.tsx';
+import { MouthGuide } from '../practice/MouthGuide.tsx';
+import { Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
 import { WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { accent, HIT, paper, space, type } from '../theme.ts';
-import { scopeGeneration } from '../storage/scope.ts';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { SOUND_DETAIL, soundInWord } from '../tutor/soundExample.ts';
 import type { SoundCheckEvidence } from './model.ts';
 import { loadSoundChecks } from './store.ts';
@@ -43,6 +44,7 @@ export function SoundJourneyScreen() {
   // A read that has not answered and a read that failed are facts of their
   // own; neither may be drawn as a learner with no journey.
   const [status, setStatus] = useState<'loading' | 'ready' | 'unread'>('loading');
+  const [readOwner, setReadOwner] = useState<{ scope: number; userId: string | null } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [detail, setDetail] = useState(false);
 
@@ -51,16 +53,18 @@ export function SoundJourneyScreen() {
       let cancelled = false;
       // Bound to the account before the read, so a list from the previous
       // account is dropped rather than drawn for this one.
-      const scope = scopeGeneration();
-      const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
-      void loadSoundChecks().then(
+      const owner = { scope: scopeGeneration(), userId: activeUserId() };
+      const sameAccount = (): boolean => !cancelled && scopeGeneration() === owner.scope && activeUserId() === owner.userId;
+      setReadOwner(owner);
+      setStatus('loading');
+      void Promise.resolve().then(() => loadSoundChecks({ strict: true })).then(
         (stored) => {
           if (!sameAccount()) return;
           setChecks(stored);
           setStatus('ready');
         },
         () => {
-          if (sameAccount()) setStatus((current) => (current === 'ready' ? 'ready' : 'unread'));
+          if (sameAccount()) setStatus('unread');
         },
       );
       return () => {
@@ -71,34 +75,37 @@ export function SoundJourneyScreen() {
 
   // A cold link has nothing behind it, and then the tabs are the way out.
   const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
-  const journey = soundJourney(checks, Date.now());
+  const ownerMatches = readOwner?.scope === scopeGeneration() && readOwner.userId === activeUserId();
+  const shownStatus = ownerMatches ? status : 'loading';
+  const journey = shownStatus === 'ready' ? soundJourney(checks, Date.now()) : null;
 
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
       <Label>{JOURNEY_COPY.label}</Label>
 
-      {status === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{JOURNEY_COPY.loading}</Text>}
+      {shownStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{JOURNEY_COPY.loading}</Text>}
 
-      {status === 'unread' && (
+      {shownStatus === 'unread' && (
         <Card style={st.block}>
           <Text style={[type.body, { color: paper.ink }]}>{JOURNEY_COPY.unread}</Text>
-          <GhostButton label={JOURNEY_COPY.retry} color={paper.ink} onPress={() => { setStatus('loading'); setAttempt((n) => n + 1); }} />
+          <GhostButton label={JOURNEY_COPY.retry} color={paper.ink} onPress={() => { if (!ownerMatches) return; setStatus('loading'); setAttempt((n) => n + 1); }} />
         </Card>
       )}
 
       {/* Nothing measured yet: a quiet way to the situations that measure it. */}
-      {status === 'ready' && journey === null && (
+      {shownStatus === 'ready' && journey === null && (
         <View style={st.block}>
           <Text style={st.soft}>{JOURNEY_COPY.none}</Text>
           <GhostButton label={JOURNEY_COPY.choose} color={paper.ink} onPress={() => nav.navigate('Missions')} />
         </View>
       )}
 
-      {status === 'ready' && journey !== null && (
+      {shownStatus === 'ready' && journey !== null && (
         <>
           <Text accessibilityRole="header" style={st.heading}>{soundInWord(journey.example)}</Text>
           <Text style={st.soft}>{JOURNEY_COPY.purpose}</Text>
           <Text style={st.count}>{calledOutLine(journey.flaggedTimes, situationName(journey.situations[0]))}</Text>
+          <MouthGuide ipa={journey.phoneme} />
           {journey.focus !== null && <Text style={st.soft}>{journey.focus}</Text>}
 
           {/* The notation, for whoever wants it. A beginner hears a word in
@@ -122,13 +129,14 @@ export function SoundJourneyScreen() {
                   <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{situationName(line.missionId)}</Text>
                   {line.clearAt !== null && <Text style={[type.small, { color: paper.ink, marginTop: space(2) }]}>{JOURNEY_COPY.lineClear}</Text>}
                 </Card>
-                <TintRow
-                  tint="sky"
-                  glyph={<WaveformGlyph color={accent.primary} />}
-                  title={againLabel(line, checks)}
-                  gloss={situationName(line.missionId)}
-                  onPress={() => nav.navigate('SoundCheck', { missionId: line.missionId })}
-                />
+                <Ledger>
+                  <LedgerRow
+                    glyph={<WaveformGlyph color={accent.primary} />}
+                    title={againLabel(line, checks)}
+                    gloss={situationName(line.missionId)}
+                    onPress={() => nav.navigate('SoundCheck', { missionId: line.missionId })}
+                  />
+                </Ledger>
               </View>
             ))}
           </View>

@@ -1,0 +1,3708 @@
+{
+  "retrievedDate": "2026-10-03",
+  "chartUpdated": "Sat, 3 Oct 2026 13:10:32 +0000",
+  "chartSource": "https://rss.marketingtools.apple.com/api/v2/gb/apps/top-free/100/apps.json",
+  "method": "Three published iPhone App Store screenshots per distinct app; not live app/account interaction. First, middle and final listed images selected before visual inspection.",
+  "apps": [
+    {
+      "number": 1,
+      "id": 570060128,
+      "name": "Duolingo: Language & Chess",
+      "group": "Language and learning",
+      "selectionQuery": "Duolingo",
+      "source": "https://apps.apple.com/gb/app/duolingo-language-chess/id570060128?uo=4",
+      "country": "gb",
+      "chartRank": 95,
+      "version": "7.142.0",
+      "releaseDate": "2026-09-28T17:42:01Z",
+      "seller": "Duolingo, Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6e/ef/30/6eef3023-de04-3b29-21f8-a993245b9abd/iPhone6.5_-_Default_-_first_screen_adapt_Var_2_01.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/001-01.img",
+          "sha256": "936a1d4a42ed3454b43b78e7682207726a05c46ce89b5f77ca785706f12ea0da"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/60/9d/f5/609df56a-1d35-f7fa-92bb-4120ad5ec16c/V2_iOS6.5_05.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/001-05.img",
+          "sha256": "bbdbaf8c6541870a9b6747cbe8bb5c38a78338ed7e090d2f911638304b90decd"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6b/a0/8e/6ba08efd-ba4a-b4f8-25a4-dfd749c570a7/V2_iOS6.5_08.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/001-08.img",
+          "sha256": "4e612d91b6773b0f107e6dcacb0396b127dbc6451b8d055e9254a1468a2971a4"
+        }
+      ],
+      "observedUi": "Characters and concrete course choices; caf\u00e9 conversation preview",
+      "lessonOrLimit": "Keep a concrete scene preview; omit ranks and streak pressure.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 2,
+      "id": 829587759,
+      "name": "Babbel - Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Babbel",
+      "source": "https://apps.apple.com/gb/app/babbel-language-learning/id829587759?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "22.17.0",
+      "releaseDate": "2026-10-02T09:17:16Z",
+      "seller": "Babbel GmbH",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/84/d8/9a/84d89acc-8078-e587-2f19-f810e7bc925f/31736675-c90d-4462-b12c-c1e34803f46d_01.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/002-01.img",
+          "sha256": "3aec80c982ef81c55548088e8429be8ddfb8f6030cb1bba957e92435907c8778"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/06/19/7a/06197ac5-cfdb-2e6d-65b3-2a9f3807da73/6d41324e-4984-4d6e-b6b9-c40b6f780e1b_05.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/002-05.img",
+          "sha256": "5de9a40842273c493f8f13bf0975fb3fc958345f2b24f29fffcdc4f073db4002"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/3e/6c/98/3e6c986c-0b9e-a0a3-152e-5e34b3e2530a/a41734ff-915d-4b02-9504-b08fbd568c98_08.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/002-08.img",
+          "sha256": "efece4c0065e670ee3899c7f24956109767ceb9c0d0f5163b586359ae1fbf8b3"
+        }
+      ],
+      "observedUi": "Orange and cream; visible lessons and audio controls",
+      "lessonOrLimit": "Use coherent colour roles and labelled content modes; claims are not outcome proof.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 3,
+      "id": 635966718,
+      "name": "Memrise: Speak a new language",
+      "group": "Language and learning",
+      "selectionQuery": "Memrise",
+      "source": "https://apps.apple.com/gb/app/memrise-speak-a-new-language/id635966718?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2026.9.4",
+      "releaseDate": "2026-09-07T08:19:24Z",
+      "seller": "Memrise Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/01/a7/b6/01a7b684-5f13-b387-f45c-23752684c968/f34db08d-1032-4100-a84d-974b33eb1573_5.5__U00281_U0029.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/003-01.img",
+          "sha256": "d2df358ac0631001e7a91bbc088a6ece677349659f144f442c553b2bb5d85542"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/a5/82/ac/a582ac86-293f-7ed2-9a29-f4422ee828b9/e7fe5c40-a574-44d4-994f-8213631a9ea2_5.5__U00283_U0029-1.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/003-05.img",
+          "sha256": "48a088dc1f9760239ec2958b7e6e313a7fc5aea9afcbddcd53e8ad7608ab9416"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/89/6a/8e/896a8eec-5aca-5d5f-b8c5-3a25ff071d44/654f7801-254d-493e-ace6-bd6ff68cc93d_5.5__U00287_U0029.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/003-09.img",
+          "sha256": "2e125e6aa268aeaf34c63c945ca624a339dfa9a96be34559662698b9a9241c28"
+        }
+      ],
+      "observedUi": "Yellow and black; practical word inventory and testimonial",
+      "lessonOrLimit": "Show vocabulary in context; do not borrow rapid progress promises.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 4,
+      "id": 379968583,
+      "name": "Busuu: Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Busuu",
+      "source": "https://apps.apple.com/gb/app/busuu-language-learning/id379968583?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "30.28.0",
+      "releaseDate": "2026-09-27T18:09:21Z",
+      "seller": "Busuu Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/29/c0/d1/29c0d1ac-a421-63ae-046c-d319f3d516e6/bca1230b-81ba-4adb-b44f-5e66e9bebcc4_iOS-5.5-RealLife.jpeg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/004-01.img",
+          "sha256": "7ea555918b80715a1139ad2e17bb64504b954c9137a2acbfb9f38dcec1aa050a"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/cb/3e/a7/cb3ea7fe-84df-b029-da68-7dc9e512d14f/fbbf6499-55fc-4c88-9c86-462a0d2d9237_iOS-5.5-ShareTips.jpeg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/004-06.img",
+          "sha256": "ec861d267d4f174ef3da379450af4306181562147978971e6e426cc348e0efbc"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/55/1a/c3/551ac301-f6f7-e676-0799-1860b36601ab/119c204d-fb06-47b6-b484-4093ed2530e5_EN-iOS_EN_5.5__US_Growth_08.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/004-10.img",
+          "sha256": "9adc1063906ff24dc9048adef720bbf5c4602e3a07db7f22e5d4e9b1a4f79bef"
+        }
+      ],
+      "observedUi": "Blue lesson UI; community correction and speaker video",
+      "lessonOrLimit": "Tie social interaction to an actual language task.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 5,
+      "id": 435588892,
+      "name": "Rosetta Stone Classic (2024)",
+      "group": "Language and learning",
+      "selectionQuery": "Rosetta Stone",
+      "source": "https://apps.apple.com/gb/app/rosetta-stone-classic-2024/id435588892?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "9.2.5",
+      "releaseDate": "2026-09-25T21:27:43Z",
+      "seller": "Rosetta Stone Ltd.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/9a/1d/66/9a1d66ec-740f-21ce-f8fa-5a64ea60d09b/1290x2796-screen1_no_alpha.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/005-01.img",
+          "sha256": "ecb1a7a3e4ef62f51a084a4e00fdc07254d0bc6ca7b5257c761dfb25257c30ed"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/09/b1/f8/09b1f837-a90e-99f6-9dd1-de7f6498cb46/1290x2796-screen4_no_alpha.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/005-04.img",
+          "sha256": "907500dd50e9acde7a92707d5bebb5c164e54ff331a39c0d82b5df49580dc00d"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/0e/84/eb/0e84eb0f-8850-d403-0bd0-e166efd38bc7/1290x2796-screen6_no_alpha.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/005-06.img",
+          "sha256": "7e1f7add84d9f9a57491456133577bac824c8080b1675a7b17e2c95f09463df7"
+        }
+      ],
+      "observedUi": "Photo and audio content library; classic edition explicitly dated",
+      "lessonOrLimit": "Make content and listening visible; this is a legacy edition reference.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 6,
+      "id": 987873536,
+      "name": "Mondly: Learn 41 Languages",
+      "group": "Language and learning",
+      "selectionQuery": "Mondly",
+      "source": "https://apps.apple.com/gb/app/mondly-learn-41-languages/id987873536?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "10.67.0",
+      "releaseDate": "2026-03-19T11:01:21Z",
+      "seller": "ATi Studios A.P.P.S. SRL",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e8/15/d8/e815d814-3240-92ae-2d7a-45ce09b5d9d2/6bd6bb28-762a-43de-8404-5a041b7ac530_Screen_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/006-01.img",
+          "sha256": "227bdac1746b667f709eebcaba79b3f0439a9ee2ed1e996f3a0e1a1556824f3a"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e3/f7/0c/e3f70ce7-8a18-74ec-e346-657d65b267f6/e0f0b6a4-0123-4be5-ac65-47f40321dad8_Screen_6.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/006-06.img",
+          "sha256": "4b66dd34822890c326a1b5287a7afdc6e97a79c00d47523515b5e31e9adeb523"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/77/f6/96/77f696e3-0c60-2fd3-03bb-bf3f7c4e5569/ffb11e2b-3cc1-40e8-b91d-acaf5ea329dd_Screen_10.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/006-10.img",
+          "sha256": "781fc6220e9dc231e27b3d0f2fd56d8ccb5cf745e61b5273e586f58d84e692bb"
+        }
+      ],
+      "observedUi": "Blue and purple lesson overview; XP and globe imagery",
+      "lessonOrLimit": "Make the route legible without copying XP.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 7,
+      "id": 939540371,
+      "name": "Drops: Fun Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Drops language",
+      "source": "https://apps.apple.com/gb/app/drops-fun-language-learning/id939540371?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "39.18",
+      "releaseDate": "2026-08-11T06:42:11Z",
+      "seller": "PLANB LABS OU",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/3e/23/a3/3e23a367-1d61-76db-dcaa-138d7189cd68/90529a0a-6163-48f3-9cbd-eccfeca00b97_1_screenshot_iphone_5.5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/007-01.img",
+          "sha256": "fedcd251fa119c4b89b30cb2bbbfd3ce04b727b8fa94da6d3e2588aab3f46f1f"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/b3/43/ef/b343ef33-62be-dc82-c2bb-a889243541bf/883ad0ce-bc47-4a6e-bf95-26f3b332a284_1242x2208bb__U00284_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/007-05.img",
+          "sha256": "4e311361c42bcf3da57e8446b7def3db1d8d31c850d71e41dc7f6b989c5a92d0"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/c3/e6/9a/c3e69af1-d942-1295-a100-8ba279ee5c75/1ee16ce0-d758-4a05-af59-2190454aa2bf_1242x2208bb__U00288_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/007-08.img",
+          "sha256": "0244dffa9f6f0e7dde57b608688598329e081a7d113685ee355d56fbf83d0329"
+        }
+      ],
+      "observedUi": "Bold illustrations and short vocabulary activity",
+      "lessonOrLimit": "Use original craft around a bounded task; omit streak pressure.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 8,
+      "id": 379385811,
+      "name": "LingQ | Learn Languages",
+      "group": "Language and learning",
+      "selectionQuery": "LingQ",
+      "source": "https://apps.apple.com/gb/app/lingq-learn-languages/id379385811?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "6.0.27",
+      "releaseDate": "2026-09-16T21:28:26Z",
+      "seller": "LingQ Languages Ltd.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/5c/a1/ac/5ca1acf8-58ea-a4f9-9138-5c457d23fac8/v3-card-2_Immerse__U0028white_U0029.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/008-01.img",
+          "sha256": "513e4e2e314d8fc5bf38fff87ff5276d4cb33449c83c538dcd684994d96da580"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/34/49/a8/3449a871-34bc-a20d-0676-09a7239706ac/v3-card-1_For_serious_learners__U0028white_U0029.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/008-06.img",
+          "sha256": "ffd3b7344c61c69f6d69623fdcf7e005cafc17c258177a2837a313155feb7eed"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/2b/db/82/2bdb82ff-6dfe-ebeb-3b0a-ae5aefe57686/v3-card-9__U0028white_U0029.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/008-10.img",
+          "sha256": "5afdcda4e41e9d88de81a835d1320698e71ab931f3685cccd761c6257f4d0188"
+        }
+      ],
+      "observedUi": "Reading with highlighted words and audio",
+      "lessonOrLimit": "Give French content visual priority and make help local to a word.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 9,
+      "id": 1405735469,
+      "name": "Pimsleur | Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Pimsleur",
+      "source": "https://apps.apple.com/gb/app/pimsleur-language-learning/id1405735469?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.0",
+      "releaseDate": "2026-09-17T16:11:54Z",
+      "seller": "Simon & Schuster",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/1e/51/ad/1e51ad1f-ec63-4066-b224-9b0d19dba338/fc3130bb-bb77-4473-b546-09a196452b7e_Pimsleur_ios_5.5_f1.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/009-01.img",
+          "sha256": "930953d75d0073ea3fa27a10399caf42a177060376a90a7ee3fc9a402115d8de"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/4b/5f/77/4b5f774f-0f0a-2099-5926-bf1b727dfe99/4c1460a6-edb2-45a9-97dd-9bf728d3a9e3_Pimsleur_ios_5.5_f4.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/009-04.img",
+          "sha256": "1f9d2e23899cff54897f773d80c46cf281d9c6713649306c1d85a1dc350e98b7"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b8/56/89/b8568962-9812-cf34-9df5-31ef9c4ff01f/0d930379-b431-4344-9ea5-7dd2b38ee822_Pimsleur_ios_5.5_f6.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/009-06.img",
+          "sha256": "4d437f5527f14ca23b7108b71215c7d05ce436268064f0e90caf81ddebfc5d44"
+        }
+      ],
+      "observedUi": "Numbered audio lessons and simple player",
+      "lessonOrLimit": "Keep the listening task and its controls obvious.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 10,
+      "id": 443516516,
+      "name": "Mango Languages: Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Mango Languages",
+      "source": "https://apps.apple.com/gb/app/mango-languages-learning/id443516516?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.86.0",
+      "releaseDate": "2026-09-22T21:48:00Z",
+      "seller": "Creative Empire, LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b8/42/b9/b842b9a3-8e98-87b0-492a-a854e3a9e401/1242x2208_EN-1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/010-01.img",
+          "sha256": "c4ccdc6e853076fd59c2231c172c7bf6e159763667270067b1c2b2272052e3c5"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/65/d8/f5/65d8f57d-a533-33fa-114b-9e492bf6c3ea/1242x2208_EN-4.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/010-04.img",
+          "sha256": "2ceb340ba0ab64149515b20fb1ce148d3aa68aa5cf7856b76d6078977a06f335"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ee/ff/ad/eeffadd4-42be-50df-8e49-32bfc7056ee8/1242x2208_EN-7.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/010-07.img",
+          "sha256": "36290bc5a5c5d1a749d2767a43b68748b3a523e8eed3f2a3ef55a44cb28d4c8a"
+        }
+      ],
+      "observedUi": "Native and learner waveform comparison with recording",
+      "lessonOrLimit": "Label reference and practice audio separately; no unvalidated sound score.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-01.jpg"
+    },
+    {
+      "number": 11,
+      "id": 1261193709,
+      "name": "LingoDeer - Learn Languages",
+      "group": "Language and learning",
+      "selectionQuery": "LingoDeer",
+      "source": "https://apps.apple.com/gb/app/lingodeer-learn-languages/id1261193709?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.1.16",
+      "releaseDate": "2026-08-17T08:14:07Z",
+      "seller": "LingoDeer Co., Ltd.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/56/da/a1/56daa157-aa6c-217d-ef25-1a38c2fe01f8/fb1e7844-ecf6-47ce-a076-2654524d3015_iPhone5.5_Uff08414-736_Uff09.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/011-01.img",
+          "sha256": "c4b5a9e4e98a086fc130b6ba5388d3d9a06486428b3eab804c91c0d9360c37c8"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/64/ac/55/64ac55b7-a10a-be7b-e4dd-4a5ff3233a51/f4dd38e9-9e7f-4a57-8bc3-b238a085fa00_US_5_5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/011-05.img",
+          "sha256": "035acbdcb8b741ab6ff9bc9e212b7681e673ea50bb5d43768a6f01a158dc54ec"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/67/f0/9b/67f09b32-b9a9-ff9a-ae84-7d04ea40ec2f/3bdb250c-00b2-4c7c-847d-e119a97e0295_US_5_10.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/011-09.img",
+          "sha256": "68301dcb7e62e8c33b799ba29f461dbebd40bca6c4b03f76437b2cf35792d0de"
+        }
+      ],
+      "observedUi": "Tracing and dialogue tasks with reward statistics",
+      "lessonOrLimit": "Use clear task instructions; exclude reward metrics.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 12,
+      "id": 557130558,
+      "name": "HelloTalk - Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "HelloTalk",
+      "source": "https://apps.apple.com/gb/app/hellotalk-language-learning/id557130558?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "6.4.20",
+      "releaseDate": "2026-09-23T03:19:30Z",
+      "seller": "HELLOTALK FOREIGN LANGUAGE EXCHANGE LEARNING TALK CHAT APP",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d8/a0/a2/d8a0a218-5759-620d-459b-06e2cd0ef219/_U82f1_U6587.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/012-01.img",
+          "sha256": "479a134ac3a437c472512d8b4f5261f9f8c79845724b74826abc02fb3e30024e"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/57/c9/cc/57c9cc95-c81f-19dc-f1d6-2405aff383a9/1242_2688-04.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/012-04.img",
+          "sha256": "793d33b3ca8812ddf49e4e8a6e5d14181f1f6c701464c9e7ee564272b0a02ca0"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/b4/53/ab/b453ab5c-6840-e4a4-9190-6cf5d73730fc/1242_2688-07.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/012-07.img",
+          "sha256": "6d138c123678e233a916876eb25aac318b046bfb10642dc6ff42e2eea9c9a516"
+        }
+      ],
+      "observedUi": "Human partner profiles and community feed",
+      "lessonOrLimit": "Make the source of human interaction explicit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 13,
+      "id": 959001619,
+      "name": "Tandem: Practice Languages",
+      "group": "Language and learning",
+      "selectionQuery": "Tandem language",
+      "source": "https://apps.apple.com/gb/app/tandem-practice-languages/id959001619?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "7.26.0",
+      "releaseDate": "2026-10-01T16:53:53Z",
+      "seller": "Tripod Technology GmbH",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/23/5f/89/235f897a-57f1-ceed-abea-1a6084608fe3/46d7e980-2c51-4347-80bc-99ac51d528f8_01_5.5_en@3x.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/013-01.img",
+          "sha256": "082f047b7fa5d0185a8186b905fda082e43e9da17e4ab95b47159e04afdb7d43"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/e2/7f/1c/e27f1c4a-7849-00d4-7d07-85ff07f7707a/03a3e7c6-e915-4e75-b8b9-20e114aab2b0_04_5.5_en.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/013-04.img",
+          "sha256": "5adc4ad0ddb418e67798798a35b18bfd5fa6044a6e15256363bfc3e1f423fa96"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/2a/a1/e9/2aa1e999-bfb2-2a65-2714-5ffa403f710f/2dda1fc3-7b20-460f-8ee0-a0df0e53a8f8_06_5.5_en.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/013-06.img",
+          "sha256": "ac019e9870e1f82ccef0238a083b989b779f4a089719ec22aeb6751f679c8e5b"
+        }
+      ],
+      "observedUi": "Partner matching and calls with community filters",
+      "lessonOrLimit": "Friends should have a concrete shared activity; distinguish humans from AI.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 14,
+      "id": 1225056371,
+      "name": "Beelinguapp: Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Beelinguapp",
+      "source": "https://apps.apple.com/gb/app/beelinguapp-language-learning/id1225056371?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.9.22",
+      "releaseDate": "2026-10-01T13:10:23Z",
+      "seller": "Beelinguapp UG (haftungsbeschrankt)",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/52/ab/c3/52abc3bc-1ff3-cb62-8344-afc7b10d723d/f34ea0bc-3879-45a1-9179-3dd51f35cb8c_1242x2208_-_English_-_A1.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/014-01.img",
+          "sha256": "e2e30144b35d863006c1a5be2c6c12eef10e2fcc08836c95379f4e10d0643ada"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/0d/5e/12/0d5e12be-7eec-f063-3c1f-c6fc03fa102f/73f80829-5c84-4af5-bf26-a7d6993a67b8_1242x2208_-_English_-_A6.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/014-05.img",
+          "sha256": "9ab4f7f35e1099bd7e0ca2e2a85cdd225ed17d4c3a4dd64011780e857c798dd0"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b4/5f/24/b45f2428-1d02-7b44-6d77-42242b09e20b/1755ce38-fa0b-4277-9e27-64866ee19ca1_1242x2208_-_English_-_A8.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/014-08.img",
+          "sha256": "b06c269f8dcaf9c70f5bf8516148f1e3a25e5feaaba4c8e75335b5b3f9773726"
+        }
+      ],
+      "observedUi": "Parallel bilingual text and audio",
+      "lessonOrLimit": "Keep French primary and the English gloss secondary.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 15,
+      "id": 969093402,
+      "name": "Lingvist: Learn Languages Fast",
+      "group": "Language and learning",
+      "selectionQuery": "Lingvist",
+      "source": "https://apps.apple.com/gb/app/lingvist-learn-languages-fast/id969093402?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2.65.3",
+      "releaseDate": "2026-04-15T11:12:01Z",
+      "seller": "Lingvist Technologies OU",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/fd/21/72/fd2172db-e689-bdb8-58f7-ce10959343cb/d4106541-ecb2-4201-9798-de4fca5fafbf_1._Choose_from_50_U002b_language_pairs.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/015-01.img",
+          "sha256": "04d20ee228116a6d0000bd3727d5d593378062d3ece0372630331616a56965b3"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/24/51/80/2451801c-5959-24a8-8f88-0ed3896ef40b/f0d4a8b2-7d56-44b0-99a8-668532d3964d_5._Rapid_language_improvement.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/015-05.img",
+          "sha256": "02647286b0e394aaa6131e5c9385f30b9b4adbeac856f153297fbe3241ab1d95"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/f7/7e/06/f77e068b-9cd1-5fdd-2928-66c0c23aa003/9d283677-4309-418a-94a1-aeaec4415f3d_9._Personalise_your_learning.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/015-09.img",
+          "sha256": "86257fc95b5fe2e22468647a54f4f15d1f111a3a4fe52077a54fde60d57d9cf4"
+        }
+      ],
+      "observedUi": "Vocabulary coverage and editable settings",
+      "lessonOrLimit": "Name the basis of progress rather than showing an unexplained ring.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 16,
+      "id": 1286609883,
+      "name": "Speak: Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Speak language",
+      "source": "https://apps.apple.com/gb/app/speak-language-learning/id1286609883?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.68.0",
+      "releaseDate": "2026-10-01T19:23:31Z",
+      "seller": "Speakeasy Labs, Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/2a/c4/e9/2ac4e973-91ee-f3de-88e3-0eb00ff60a6f/a6cd0677-6e0b-4b08-84bc-8b74bf5ce510_iPhone5.5__screenshots01.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/016-01.img",
+          "sha256": "3e3cb39587a12e54bfae262ed86b687c34778b8ba531c7a9cb6ef727b833c7ed"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/f8/7c/8a/f87c8a69-36ab-186d-a11c-d0df821ce533/3b1157a5-c04e-47c3-8ac0-7a0fff7d575c_iPhone5.5__screenshots05.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/016-05.img",
+          "sha256": "67ffd6bdc76b23b4556c6599796324dd1156b8103b349444b7a1ccab386f36bd"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/91/f2/76/91f27673-5744-627c-b443-018285c6b97b/iPhone5.5__screenshots09.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/016-09.img",
+          "sha256": "14946277e32ee2ecd2df5c85cda6990e1b8f643b54f5e2f7176b6eb74e143433"
+        }
+      ],
+      "observedUi": "Restrained blue; situational correction and quick review",
+      "lessonOrLimit": "Carry an actual learner line through feedback into practice.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 17,
+      "id": 1567841142,
+      "name": "BoldVoice: Accent Training",
+      "group": "Language and learning",
+      "selectionQuery": "BoldVoice",
+      "source": "https://apps.apple.com/gb/app/boldvoice-accent-training/id1567841142?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.4.7",
+      "releaseDate": "2026-10-01T17:31:04Z",
+      "seller": "Wellocution Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/d6/4d/58/d64d5804-b732-ee38-cc68-d9341974d951/BoldVoice_iOS_6.5_-_1.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/017-01.img",
+          "sha256": "c6824342b3d6cacc518367c7bf1f4ae09faaea30bea039fbfa0d5fc83f790e6c"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/2e/a7/c6/2ea7c60d-0e2a-47b5-eab6-7b4180b62ad6/BoldVoice_iOS_6.5_-_4.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/017-06.img",
+          "sha256": "b96469c1d0295cb5bec0c290fcb0159d1f87d3fdfee7c8283676616cea1ecc3d"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/c1/da/11/c1da1122-7e9a-0848-5bdf-c7e300a004ba/BoldVoice_iOS_6.5_-_10.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/017-10.img",
+          "sha256": "da05a9cc73aacbc285e686cba4e98a1d714c07397df0505fc303a1ce72cbff08"
+        }
+      ],
+      "observedUi": "Adult accent coaching and specific sound feedback",
+      "lessonOrLimit": "Explain the sound task; do not import a score without calibration.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 18,
+      "id": 1083804886,
+      "name": "ELSA Speak - English Learning",
+      "group": "Language and learning",
+      "selectionQuery": "ELSA Speak",
+      "source": "https://apps.apple.com/gb/app/elsa-speak-english-learning/id1083804886?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "9.2.1",
+      "releaseDate": "2026-09-30T02:39:19Z",
+      "seller": "ELSA, Corp.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/df/f5/92/dff592f4-4666-c8a7-dcdd-96e263b1bb35/iPhone_1320x2868_-_1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/018-01.img",
+          "sha256": "f44e3a025426b3d2f51a70f9011cde7baa17b886d6d63b251468193bdd0201b8"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/78/5d/d7/785dd78a-8d09-7f2a-d78e-9a0d615505a7/Elsa_Corp_Elsa_Speak_US_iOS_6.9_Screenshots_251211_06.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/018-05.img",
+          "sha256": "bede8e604bc29fc09680feb9d3ef8f3b40748d8c7b43884d0adaa714c8682899"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/36/04/dc/3604dc7c-2078-c8e4-57d2-c5b809ded312/10.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/018-09.img",
+          "sha256": "f3ca5516d23dca5ea06d9cb4369516ed4a3729eafd324ee49a9b5c4a04c05c5f"
+        }
+      ],
+      "observedUi": "Business situations and bilingual coach UI",
+      "lessonOrLimit": "Show who a scenario serves; avoid generic avatar decoration.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 19,
+      "id": 1552708303,
+      "name": "Speak English with Loora AI",
+      "group": "Language and learning",
+      "selectionQuery": "Loora",
+      "source": "https://apps.apple.com/gb/app/speak-english-with-loora-ai/id1552708303?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.83.1",
+      "releaseDate": "2026-09-14T07:35:22Z",
+      "seller": "Loora A.I LTD",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/2f/9e/2b/2f9e2be8-cdc0-8dfb-2a01-8e03dd42c8ab/TEST0_EN_55_A.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/019-01.img",
+          "sha256": "3037a166368aa27091d7503dabbb91f8b5a9e4ff865eb7c5c73e0980da47417c"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/1e/90/10/1e901086-9e6f-41d0-e44b-be0fb153a1e6/TEST0_EN_55_C.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/019-04.img",
+          "sha256": "07489e549e5a882d0c62f49f5a717514daf68f538b09befc4a1a54c654648e16"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/85/22/6f/85226f8f-716a-566f-d017-aab335bf24e8/TEST0_EN_55_G.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/019-07.img",
+          "sha256": "72cede22f1ebabc04b80f8ce172f177416f223f802c0a408297f3730cd4b2473"
+        }
+      ],
+      "observedUi": "Conversation followed by grammar and pronunciation tabs",
+      "lessonOrLimit": "Make feedback traceable to the attempt; testimonials do not validate outcomes.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 20,
+      "id": 1624701477,
+      "name": "Praktika \u2013 AI Language Tutor",
+      "group": "Language and learning",
+      "selectionQuery": "Praktika",
+      "source": "https://apps.apple.com/gb/app/praktika-ai-language-tutor/id1624701477?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.38.1",
+      "releaseDate": "2026-09-29T10:41:39Z",
+      "seller": "Praktika.ai Company",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/2e/cf/ad/2ecfaddd-a1a6-b78a-a621-0241f2563832/11.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/020-01.img",
+          "sha256": "78689477f33a029cefd48dc43352f1aec37bee52f17d09f91526fb26f59fa6a3"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/4a/af/04/4aaf043b-df50-18dc-46f6-ee02793490be/14.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/020-05.img",
+          "sha256": "804b11f72a8cc478d5d44b01eb3c78e396cf0b86530991ed3553109badc2b261"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/cc/99/14/cc9914b8-02c8-34d6-c7c5-384878041229/16.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/020-08.img",
+          "sha256": "9702f17a3514cbd8d6c21e6b253adf0bae175024c4786b12b75e89d17814118a"
+        }
+      ],
+      "observedUi": "Three dimensional tutor avatars and feedback panel",
+      "lessonOrLimit": "Demonstrate the method; do not copy price or popularity claims.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-02.jpg"
+    },
+    {
+      "number": 21,
+      "id": 1460579936,
+      "name": "Falou - Fast language learning",
+      "group": "Language and learning",
+      "selectionQuery": "Falou",
+      "source": "https://apps.apple.com/gb/app/falou-fast-language-learning/id1460579936?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "0.0.424",
+      "releaseDate": "2026-10-02T13:36:41Z",
+      "seller": "Moymer Negocios e Servicos em Tecnologia LTDA.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/84/88/e0/8488e05e-4656-1765-9fcd-1e3c4b2f7f82/a49d34a5-58f9-4771-8ce7-8c984caf5ad2_iPhone_PT_1__U2013_28.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/021-01.img",
+          "sha256": "cf1787130bb731ae54d24d57ca465ddb1914f24a5ef6abc072958d3ca32638be"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/7e/98/98/7e9898ec-c1fe-3223-6cef-ff3b14ac962d/3c212051-c95f-463b-bddd-33c81f838460_iPhone_PT_5__U2013_25.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/021-05.img",
+          "sha256": "f819d0578b39fd06134bb9be18f4e1a910fa0201a4de126e7c8db7062313d7c5"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d8/dd/b8/d8ddb847-324a-ca0d-e2a6-a9fb66566db9/893b371c-eb2e-496e-8b70-c03fddb3329f_iPhone_PT_8__U2013_27.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/021-08.img",
+          "sha256": "592c345db9b3f3d663965552cf1211f393fa55241c0cff22b43fcfdc05bfc675"
+        }
+      ],
+      "observedUi": "Orange lesson steps; dated 2024 promotional imagery",
+      "lessonOrLimit": "Keep instructions current; avoid fluency promises.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 22,
+      "id": 1460782849,
+      "name": "Promova: Language Learning App",
+      "group": "Language and learning",
+      "selectionQuery": "Promova",
+      "source": "https://apps.apple.com/gb/app/promova-language-learning-app/id1460782849?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.1.0",
+      "releaseDate": "2026-09-22T16:19:04Z",
+      "seller": "Unlimited Promova Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/0c/fc/83/0cfc83e0-6d87-2c4a-0b0c-6ec6876bbb31/01.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/022-01.img",
+          "sha256": "d36c25409b59be69c9aeff547a357bcbe6be0472945fbb52c7966272ff6898de"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/55/40/0a/55400a56-895d-9edc-661a-afc9d3e20025/06.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/022-06.img",
+          "sha256": "4b536bd97e65b62d041ea55b887c3df1a6ec2618863b8bb5b9a18bf3ba2ea2de"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/c6/6a/8b/c66a8b4d-8c7d-4c3e-0493-848d17c4ef5f/10.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/022-10.img",
+          "sha256": "56b833b544caa516fecb135c294e58cfee97d2f946e3dcff2c29c5788473e802"
+        }
+      ],
+      "observedUi": "Book library and vocabulary imagery",
+      "lessonOrLimit": "Show substantive levelled learning content.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 23,
+      "id": 1514709368,
+      "name": "Jumpspeak | Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Jumpspeak",
+      "source": "https://apps.apple.com/gb/app/jumpspeak-language-learning/id1514709368?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "5.5.6",
+      "releaseDate": "2026-10-02T04:15:47Z",
+      "seller": "Rype, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ed/e0/b8/ede0b80d-a8e5-8d7e-2f1f-1a4208c4539d/Screenshot01.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/023-01.img",
+          "sha256": "e2400d6e7b43ff544620b318c6fc8f1389620ff737e562930311646d1a408866"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/7d/be/32/7dbe32c7-1d00-ba7c-174a-fb7d2ce0ae01/Screenshot07.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/023-06.img",
+          "sha256": "f8fcab23269752cc69ec80f1b5082812aff6d7fdd100323955762aed5065772e"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b1/e9/6d/b1e96df3-2d50-3c29-2a1b-76082b556d83/Screenshot10.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/023-10.img",
+          "sha256": "27c1fea38f3bf66e666e0f772d14852f5e17ec8022f4d7ab72f726801c3bff37"
+        }
+      ],
+      "observedUi": "French conversation and CEFR path on dark UI",
+      "lessonOrLimit": "Connect a scene to a learning route; the dark palette is not needed.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 24,
+      "id": 6739271539,
+      "name": "ISSEN - Voice Tutor",
+      "group": "Language and learning",
+      "selectionQuery": "Issen",
+      "source": "https://apps.apple.com/gb/app/issen-voice-tutor/id6739271539?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.16.12",
+      "releaseDate": "2026-09-10T22:36:08Z",
+      "seller": "Issen, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/70/78/7b/70787b42-bb41-8143-d021-f2643290feb1/Splash_Screen.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/024-01.img",
+          "sha256": "27ce509700d3a5abd08d423f9cd2d053b730d8b127503f69828f731888a16668"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d8/47/0b/d8470b98-2dd6-6096-7e0e-668bf02cd40f/iOS_App_Store_Screenshot_I_6.9_-1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/024-04.img",
+          "sha256": "3601dc2ed428414b5d200cb000c4b228657ad74773ffe620f778f7550eaeb58b"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/21/07/9b/21079bc6-8b4c-0cdb-bffe-4fda9e8975b1/iOS_App_Store_Screenshot_I_6.9_-3.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/024-06.img",
+          "sha256": "4249d20c926349e4a349d1b565f2460a82838986502d6ff0d14567fb1cfb5365"
+        }
+      ],
+      "observedUi": "Curriculum units and review cards",
+      "lessonOrLimit": "Connect the session, curriculum and review.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 25,
+      "id": 6737520234,
+      "name": "Langua: AI language learning",
+      "group": "Language and learning",
+      "selectionQuery": "Langua",
+      "source": "https://apps.apple.com/gb/app/langua-ai-language-learning/id6737520234?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2.4.0",
+      "releaseDate": "2026-09-28T20:29:51Z",
+      "seller": "LanguaTalk Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/67/24/58/672458a2-da52-cc54-3da1-601a0a1c44bf/1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/025-01.img",
+          "sha256": "ce8fdc43c571815d4879f726ee99845b68bc05e47fc9e977056f209152604e94"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/f7/cc/0e/f7cc0e6b-0b8b-5494-1595-3502c008aa73/4.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/025-04.img",
+          "sha256": "4f24d14b83835ccd5537bb0c8caa235cee17068f816f78ca5afeccd114756e0d"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/27/6c/c8/276cc808-aa15-719c-7989-229fd571a391/7.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/025-07.img",
+          "sha256": "4a7a70656d4f4877841c85d122f29bfb0f602fef1a1bde6b65bcc05d0b0f84cf"
+        }
+      ],
+      "observedUi": "French restaurant conversation, help and recall card",
+      "lessonOrLimit": "Make the return from a session to specific practice explicit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 26,
+      "id": 6443595452,
+      "name": "Univerbal AI Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Univerbal",
+      "source": "https://apps.apple.com/gb/app/univerbal-ai-language-learning/id6443595452?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.36.0",
+      "releaseDate": "2026-08-26T08:33:18Z",
+      "seller": "univerbal GmbH",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ff/e8/db/ffe8dbbd-2aab-dd8c-a54e-3dceed1a3905/6a7777ac-c7fc-46d1-a683-1c041888d6b0_Main_value_prop_-_ios_-_enUS_-_5.5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/026-01.img",
+          "sha256": "40f72aa7fb657d5dd88c88271f66e8966ff667c63cae5d71629e1cb2051b7c6b"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/27/43/9e/27439e42-273c-10a7-2c0b-b626344ae112/9f3e6300-3601-4d8a-9450-077790f81f42_Main_value_prop_-_ios_-_enUS_-_5.5-2.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/026-04.img",
+          "sha256": "70928ce9f9de8986966109f3abba74c14a170c1c0b559a7d2123f84e9392e60a"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/66/b9/6f/66b96f04-9766-9364-5b0c-6dc0bc0a4185/954410a3-35a5-46c5-8a41-bf69e31f92a7_Main_value_prop_-_ios_-_enUS_-_5.5-4.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/026-07.img",
+          "sha256": "a727dcb85f8e199d041f2bb06241ef357bd7e8dbdf745fae03ff158de38cae3f"
+        }
+      ],
+      "observedUi": "Lilac and mint tutor gallery with portraits",
+      "lessonOrLimit": "Make tutor selection understandable and AI identity explicit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 27,
+      "id": 6468219825,
+      "name": "Talkpal - AI Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Talkpal",
+      "source": "https://apps.apple.com/gb/app/talkpal-ai-language-learning/id6468219825?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2.8.23",
+      "releaseDate": "2026-09-30T05:40:36Z",
+      "seller": "TalkPal Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/f9/3c/60/f93c6032-7272-6569-f488-d855e80f9aea/en_AppStore_Mobile_01.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/027-01.img",
+          "sha256": "07b6c61499c6b50f1155b79d685d03b55e20ef7304d8a07cfb96b3da4eabda13"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/5b/93/9b/5b939b67-47d5-03f3-b493-ba6bfc617be8/en_AppStore_Mobile_06.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/027-06.img",
+          "sha256": "514514b3872973e23f8165b5b74d5a6935067124f9bd716337ba8136c77fab36"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ff/37/b2/ff37b2d6-cb2e-58a1-e20d-08fda1f9daa9/en_AppStore_Mobile_10.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/027-10.img",
+          "sha256": "8267a61dbcc170ac9a9fc529d6183007e35d5e4f7df9a4072a752f720e71e431"
+        }
+      ],
+      "observedUi": "Large efficiency claims beside inline correction",
+      "lessonOrLimit": "Prefer a visible correction to a vague efficiency headline.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 28,
+      "id": 1149199075,
+      "name": "Clozemaster: Expand Vocabulary",
+      "group": "Language and learning",
+      "selectionQuery": "Clozemaster",
+      "source": "https://apps.apple.com/gb/app/clozemaster-expand-vocabulary/id1149199075?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.18.0",
+      "releaseDate": "2026-09-22T07:57:15Z",
+      "seller": "Language Innovation LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/60/23/e3/6023e3e9-4b85-a615-c60a-f8aa712ec6ea/APP_IPHONE_65_01.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/028-01.img",
+          "sha256": "f62fbc641a585b988078fe2697d2787b15a960a244e1ab610eab2efce61538e4"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/34/af/ce/34afce36-69d4-2cd9-c702-991269009ce1/APP_IPHONE_65_05.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/028-05.img",
+          "sha256": "90ae793db7d4d45fbeafc1a13014708f68d006ab6e9fb235a63268e261d0e1dd"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/30/6f/ff/306ffff9-cc42-2e29-66d2-c2452ead5ba1/APP_IPHONE_65_08.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/028-08.img",
+          "sha256": "0fcbe4218507f9e3252ba93a3456a09615dfac8540954b041a8d2ad144d4b4a0"
+        }
+      ],
+      "observedUi": "Real sentence recall and a beyond basics position",
+      "lessonOrLimit": "State the intended learner level clearly.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 29,
+      "id": 917892175,
+      "name": "FluentU: Learn Language Videos",
+      "group": "Language and learning",
+      "selectionQuery": "FluentU",
+      "source": "https://apps.apple.com/gb/app/fluentu-learn-language-videos/id917892175?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.4.1",
+      "releaseDate": "2026-10-02T00:11:49Z",
+      "seller": "Enux Education Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource126/v4/d4/e9/68/d4e96817-a064-98c4-18db-b4d24f1ea1a6/32c6577a-36fb-4459-988a-093c1d2e7221_iPhone_5.5_-_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/029-01.img",
+          "sha256": "1d6c17c0a26fd3d0362bb64fcccc39890da81d5a1c4b189a98a273f3652c279d"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource126/v4/29/1a/1a/291a1afb-f2db-0428-8af3-91b234b06edd/993edea2-3cc5-4b93-9023-00076adc4807_5.5_inch_-_FluentU_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/029-05.img",
+          "sha256": "0026d481d43ca1345da42f762849c763ffd2f51f7d761e77ca14035e7b3ef4e0"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource126/v4/ec/f9/d6/ecf9d6b3-09df-6412-af72-fc8a54f387e8/d8730aef-fcc2-436a-b63b-58762f846d4b_iPhone_5.5_-_4.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/029-09.img",
+          "sha256": "6ac6a1ff1c418e14cc4eeeb4c7e087a9b6d13d67f3d23fca3ecabcfb03fabb17"
+        }
+      ],
+      "observedUi": "Subtitled videos and tap word definitions",
+      "lessonOrLimit": "Preview the real language context before feature claims.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 30,
+      "id": 596409483,
+      "name": "Yabla French",
+      "group": "Language and learning",
+      "selectionQuery": "Yabla",
+      "source": "https://apps.apple.com/gb/app/yabla-french/id596409483?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.4.6",
+      "releaseDate": "2025-01-30T19:17:39Z",
+      "seller": "Yabla, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple113/v4/31/34/ac/3134ac33-f79b-7e8f-226f-da6960d23633/pr_source.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/030-01.img",
+          "sha256": "4fdc502c892441901a0855e669e031a28637bd32cdf7cb222786139320f7b204"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple123/v4/21/61/e6/2161e6a0-bd01-b211-aba3-110932a06e28/pr_source.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/030-05.img",
+          "sha256": "888723914883bfc4e30833014a745891c920a6a0cff2b9b05709109257212281"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple123/v4/c2/6a/71/c26a71b3-2288-2f8b-61c7-8595ab6c9a72/pr_source.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/030-09.img",
+          "sha256": "364007bf4bd9350259467187198f6ac382d48a1aa63fa99b3170a37d0dea7d98"
+        }
+      ],
+      "observedUi": "Categorised French video player and exercises",
+      "lessonOrLimit": "Clear levels and content structure matter more than decoration.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-03.jpg"
+    },
+    {
+      "number": 31,
+      "id": 1239983313,
+      "name": "Speechling: Learn Any Language",
+      "group": "Language and learning",
+      "selectionQuery": "Speechling",
+      "source": "https://apps.apple.com/gb/app/speechling-learn-any-language/id1239983313?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "10",
+      "releaseDate": "2021-05-05T22:39:14Z",
+      "seller": "Speechling Education Corporation",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource125/v4/0f/64/5d/0f645df6-f9f4-2630-5e88-9c9b6fc2b603/0a589a0f-6a04-43f6-8b3e-bb2bde4a389b_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/031-01.img",
+          "sha256": "c3da26612d30cba1a24aedc78310de8f31c879dac79d45e5facd27a76948caec"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource125/v4/bf/e7/ab/bfe7ab50-7fbf-e9f0-1528-b77d3a2f145c/ada4d71d-d187-4388-ae7c-b4ae1f96018b_6.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/031-06.img",
+          "sha256": "a7d936acdef894f52fd1d134ea483cf4aa2674dd213155723834c1b2f34e2000"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource125/v4/79/eb/8e/79eb8ec6-342b-dc20-d26f-94430d6030b2/005952bf-86c7-4691-93f6-8c075f953f4b_10.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/031-10.img",
+          "sha256": "59d2659ac89a67af1440763c3afdeb0c501f7cc64e7e101eae2e322c1f8dcdf0"
+        }
+      ],
+      "observedUi": "Dated audio journal, feedback and reference recordings",
+      "lessonOrLimit": "Show where feedback came from and what can be compared.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 32,
+      "id": 1519599004,
+      "name": "Language Transfer",
+      "group": "Language and learning",
+      "selectionQuery": "Language Transfer",
+      "source": "https://apps.apple.com/gb/app/language-transfer/id1519599004?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.5.1",
+      "releaseDate": "2022-10-07T01:33:10Z",
+      "seller": "Mihalis Eleftheriou",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource124/v4/3c/93/d6/3c93d611-7291-15db-a257-94cf300cec46/dd525e0e-8bb4-4297-88b5-a0cadd6afe20_Image_1.jpeg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/032-01.img",
+          "sha256": "6582232dbcf3569c3caea71a49c08bd6d1f21b7aa93a5d3f7696575adda98bc3"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource114/v4/89/e9/90/89e99085-7913-4a4a-2fc8-d74f0a4a6cb3/d82a3480-c3b1-4e1f-b804-9d1a22095f87_Image_3.jpeg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/032-03.img",
+          "sha256": "d927b01af3db73b26e5803e68418bbc116781b641fb6079a8e250803505ff4d3"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource124/v4/19/5b/33/195b33be-5238-ac52-39f1-91a62bd1f4bb/f958e8f5-d67e-40c5-993d-55eedbe78dc9_Image_5.jpeg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/032-05.img",
+          "sha256": "13eca563c892b56cb6d13821ad0843090be7dde3492c7813985c3893bb7140db"
+        }
+      ],
+      "observedUi": "Plain numbered lessons and minimal audio player",
+      "lessonOrLimit": "Give a single useful action precedence.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 33,
+      "id": 373493387,
+      "name": "AnkiMobile Flashcards",
+      "group": "Language and learning",
+      "selectionQuery": "AnkiMobile",
+      "source": "https://apps.apple.com/gb/app/ankimobile-flashcards/id373493387?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "25.09",
+      "releaseDate": "2025-09-08T15:11:50Z",
+      "seller": "Anki Software LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple114/v4/30/fc/57/30fc572d-189e-bacf-8126-d42a5f4786dc/pr_source.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/033-01.img",
+          "sha256": "265d36c83bb5752bd0b6066baab940ef8cb2de90410c3755637ea0e45ee4184f"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple124/v4/3b/4b/5c/3b4b5cf8-f1ec-739e-85d6-67a63bb919a2/pr_source.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/033-03.img",
+          "sha256": "89d0c30bdb7133cdb36534ba60b3b24b93973a157045c5a6bacd71ea6ccfae0c"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource114/v4/31/d2/ea/31d2ea0d-7cdd-8f4f-5f17-ac8fb1840456/2a194264-7048-475e-8cb5-56a5795084eb_Simulator_Screen_Shot_-_iPhone_8_Plus_-_2020-08-06_at_15.56.15.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/033-05.img",
+          "sha256": "7b236b4b4ed21f18ae69c537640ca12b18d99902dc1fd237e80332dbc0029e59"
+        }
+      ],
+      "observedUi": "Deck authoring and visible review counts",
+      "lessonOrLimit": "Base a review queue on actual saved work.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 34,
+      "id": 546473125,
+      "name": "Quizlet: AI-powered flashcards",
+      "group": "Language and learning",
+      "selectionQuery": "Quizlet",
+      "source": "https://apps.apple.com/gb/app/quizlet-ai-powered-flashcards/id546473125?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "10.54",
+      "releaseDate": "2026-09-29T18:13:51Z",
+      "seller": "Quizlet Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/db/5f/11/db5f11e4-ee63-6432-5f1d-b4c338751d13/f187179a-fb56-4c33-a9fa-49143aa1d603_0_APP_IPHONE_55_0.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/034-01.img",
+          "sha256": "18846083a3a3d963543382cc9c97eaf1eb215364598ed5ae24fb7e6fb4a2a940"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ab/14/e2/ab14e2f0-173f-842a-7477-8703c2f4aa9e/80b90877-6285-4a7f-8004-ee6f88e7dba8_2_APP_IPHONE_55_2.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/034-04.img",
+          "sha256": "efa02bbf312764ef1ab66d0c5735c514f6a7acd7c4c687a087b2d8901936ff17"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ce/4c/07/ce4c07ce-5188-a6af-7ff6-e333e8614dc2/9cd8e412-512e-4057-a7ec-569f48d5e0b6_4_APP_IPHONE_55_4.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/034-06.img",
+          "sha256": "8dc378397976c8dc9ced8384a9226f97071617eb8fd053101bfd958bcc27d19f"
+        }
+      ],
+      "observedUi": "Flashcards with reveal and retry",
+      "lessonOrLimit": "Make the next retry immediate and specific.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 35,
+      "id": 913335252,
+      "name": "Brilliant: Learn Math & Coding",
+      "group": "Language and learning",
+      "selectionQuery": "Brilliant",
+      "source": "https://apps.apple.com/gb/app/brilliant-learn-math-coding/id913335252?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "10.4.4",
+      "releaseDate": "2026-09-25T14:29:08Z",
+      "seller": "Brilliant Worldwide, Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/9d/61/79/9d617943-32e9-0d39-f40e-08308afc7585/mobile_-_15.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/035-01.img",
+          "sha256": "3aeba7562f73a1fa1061f6bec739606ce08068977af82ce3055eede6aaeb92ad"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/44/49/c1/4449c16a-ee53-76ba-b8fb-bad145de2bca/mobile_-_10.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/035-05.img",
+          "sha256": "dadafbf450a418d1330100f5d9efc70d90ca6ad173eef339d76b9feddbd33343"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/46/17/9e/46179e65-b013-202a-b85e-ddde45161e55/mobile_-_19.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/035-09.img",
+          "sha256": "b61688b0c35c6d21af18001a88546c2a5728ee9493cc5e132ad8ad4b67ca34da"
+        }
+      ],
+      "observedUi": "Interactive worked examples and bounded steps",
+      "lessonOrLimit": "Demonstrate the teaching method through a real example.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 36,
+      "id": 1534737981,
+      "name": "Lingopie: Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "Lingopie",
+      "source": "https://apps.apple.com/gb/app/lingopie-language-learning/id1534737981?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.107",
+      "releaseDate": "2026-10-01T20:16:35Z",
+      "seller": "Lingopie Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d8/7d/52/d87d5231-5b98-8b1c-538c-21746f6e2237/Iphone_1242_x_2208_pixels_2.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/036-01.img",
+          "sha256": "e93af5c306baa7e5daaadeda034e0a436df7931331380e840c3debe140454bfc"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/13/cb/44/13cb446a-5901-a239-079a-b0aca0c167ec/Iphone_1242_x_2208_pixels_3.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/036-03.img",
+          "sha256": "3b9d1341115aac998f11ec47ed8af01b6efad41ab2fb92f6c6e5a483be3996bf"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ff/c6/97/ffc697b1-b082-2571-9755-734fb650d794/Iphone_1242_x_2208_pixels_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/036-05.img",
+          "sha256": "8c6692d779c9ffe4affa63ee8d627f95020200d5e28f7b054d55febfcc86f0e2"
+        }
+      ],
+      "observedUi": "Subtitled media with vocabulary selection",
+      "lessonOrLimit": "Reuse language from context in practice.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 37,
+      "id": 1352790442,
+      "name": "Preply: Language Lessons",
+      "group": "Language and learning",
+      "selectionQuery": "Preply",
+      "source": "https://apps.apple.com/gb/app/preply-language-lessons/id1352790442?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "6.143.0",
+      "releaseDate": "2026-09-28T09:58:48Z",
+      "seller": "PREPLY, INC.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/b8/57/25/b857254c-cebc-fc1c-9217-3403f7c020d3/uk-en_dm-2221_ppo_aso_ios_6.9_3d-phone_sub-en_feat_1.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/037-01.img",
+          "sha256": "74610e97777569e6c98d12eab8f6abd25a07fcc06d72f7beafff4bcdbd0544dd"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/03/3e/a6/033ea62b-96ef-f158-6ceb-e278e35c4409/uk-en_dm-2221_ppo_aso_ios_6.9_3d-phone_sub-en_feat_7.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/037-06.img",
+          "sha256": "2cddaaff816d9ba79c521e111967cd68dba8c5a23ddbaa565487a586416a8779"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/df/4b/f9/df4bf95d-5fc4-4156-0121-1cd6aca58939/uk-en_dm-2221_ppo_aso_ios_6.9_3d-phone_sub-en_feat_10.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/037-10.img",
+          "sha256": "b1dd5aa1c77a5c949a93826dd29192c4843d48db3ea9738bc95368e47d2e6420"
+        }
+      ],
+      "observedUi": "Human tutor, lesson duration and level",
+      "lessonOrLimit": "Human credentials cannot be transferred to an AI tutor.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 38,
+      "id": 1140000003,
+      "name": "italki - Language Learning",
+      "group": "Language and learning",
+      "selectionQuery": "italki",
+      "source": "https://apps.apple.com/gb/app/italki-language-learning/id1140000003?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.38",
+      "releaseDate": "2026-09-25T18:13:31Z",
+      "seller": "ITALKI HK LIMITED",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/a8/68/9a/a8689aac-b716-3328-2970-50899c2c5049/italki_Set2_5.5_1.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/038-01.img",
+          "sha256": "95eb344f058d8e34ea2346c2ba2889562517b25372f12a15c7b8bc62dd85ac31"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/8e/62/68/8e626859-950a-5503-6cc1-f315d7246ede/italki_Set2_5.5_4.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/038-04.img",
+          "sha256": "c03450074d803396c336b8736e370c2167d959561cb8ff6333370feec6027740"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/3a/53/f7/3a53f750-7beb-1b1d-be92-de9c6fe8e560/iTalki_Set2_5.5_6.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/038-07.img",
+          "sha256": "4341e40c2a52cdab60016902ace90397a8353864945ce6a9806da54fce723edd"
+        }
+      ],
+      "observedUi": "Specific lesson phrases and grammar recap",
+      "lessonOrLimit": "Leave the learner with an organised record of the session.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 39,
+      "id": 614603569,
+      "name": "Learn French with Frantastique",
+      "group": "Language and learning",
+      "selectionQuery": "Frantastique",
+      "source": "https://apps.apple.com/gb/app/learn-french-with-frantastique/id614603569?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "13.17.3",
+      "releaseDate": "2026-09-09T09:53:54Z",
+      "seller": "Aimigo",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d3/6c/cd/d36ccd92-ac06-f84d-0466-232ab22d034e/Store-screens_Appstore_EN_1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/039-01.img",
+          "sha256": "20c4b5909e0f8008362fb42d4d858aa584d99676722e8a0a87befd82fc0a3c65"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d8/65/4d/d8654d11-e66b-c43e-8a97-d77954da957f/Store-screens_Appstore_EN_4.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/039-04.img",
+          "sha256": "14999c498de48b65331dbd72dd9ea7b0010f517637c6eb0fb656d98d41178a43"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/eb/62/8b/eb628bbc-a267-22b6-67fd-202538c58c4d/Store-screens_Appstore_EN_6.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/039-06.img",
+          "sha256": "1d90635cfdbef8cabfbe854fa28459156469703f18b96cc6ae880672e86bb9d7"
+        }
+      ],
+      "observedUi": "French culture, authored stories and coherent illustration",
+      "lessonOrLimit": "Original French content makes the learning proposition credible.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 40,
+      "id": 1141277436,
+      "name": "French Today Audiobook Player",
+      "group": "Language and learning",
+      "selectionQuery": "French Today",
+      "source": "https://apps.apple.com/gb/app/french-today-audiobook-player/id1141277436?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2.0.5",
+      "releaseDate": "2023-12-24T20:33:08Z",
+      "seller": "Camille Chevalier-Karfis",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple113/v4/d6/a7/77/d6a777d7-a672-e651-18ed-3b8c2c303926/pr_source.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/040-01.img",
+          "sha256": "ebd6560d67e18d2f2ada725aab5120aa042bd56ea237209b806f8b00cd6cea24"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple113/v4/53/3f/1d/533f1d95-b4a2-87d9-fd17-4c2f5777d46c/pr_source.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/040-04.img",
+          "sha256": "3de6373f23381d260b517056efb208688155d43c07aace64cb79072a7c600dd3"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple113/v4/fa/5e/a7/fa5ea7bb-a269-4d66-a2ca-b245a24de45b/pr_source.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/040-06.img",
+          "sha256": "a73644cbe70f8144f40463fd1808c669b681f39ba97457881ac53903eab545ac"
+        }
+      ],
+      "observedUi": "Multiple recorded speeds, transcript and car mode",
+      "lessonOrLimit": "Label real audio modes and speeds accurately.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-04.jpg"
+    },
+    {
+      "number": 41,
+      "id": 1668000334,
+      "name": "Perplexity - AI Search & Chat",
+      "group": "AI and language utility",
+      "selectionQuery": "Perplexity",
+      "source": "https://apps.apple.com/gb/app/perplexity-ai-search-chat/id1668000334?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "26.38.0",
+      "releaseDate": "2026-09-29T02:30:35Z",
+      "seller": "Perplexity AI Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/4e/91/db/4e91dbc8-7928-0bd5-7573-2eaca17dc9ed/ec6f3df2-07ef-4e83-a061-c1dee5d5b200_5.5_inch_iphone_01.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/041-01.img",
+          "sha256": "84b39245dd151b463f3009d26f6ad95aba6c955e07567484dede9704a2aaa46b"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/5a/5c/93/5a5c93b1-62e0-daf4-0a19-fdc75f2aa3ae/26a011e7-8788-4cd4-b3d5-7086f786a678_5.5_inch_iphone_05.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/041-05.img",
+          "sha256": "be55eac63244b2aae6ca659771115574b52506ebef43ad9ad031bed5b268cd73"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/7c/65/36/7c653682-e6a0-ec47-9dd3-eb66e57c1111/0e623c91-8fa3-478b-b00e-e4ed961cfc7c_5.5_inch_iphone_08.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/041-08.img",
+          "sha256": "938b22186551a47f7624cd133cc32331f6ee7de820915486d80a6a9eda57f538"
+        }
+      ],
+      "observedUi": "Cited results, research library and voice state",
+      "lessonOrLimit": "Make the source of an explanation inspectable.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 42,
+      "id": 1671705818,
+      "name": "Character AI: Chat, Talk, Text",
+      "group": "AI and language utility",
+      "selectionQuery": "Character AI",
+      "source": "https://apps.apple.com/gb/app/character-ai-chat-talk-text/id1671705818?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.17.4",
+      "releaseDate": "2026-10-02T22:39:33Z",
+      "seller": "Character Technologies, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/be/e8/c7/bee8c767-b12f-06d9-1263-3fa88da99f7e/1_6.9__ASO__U00281290x2796_U0029.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/042-01.img",
+          "sha256": "1cb62068a5db5b790ccc12bc19c1ffd98b22856fe1231298b2d51adf4a684414"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/13/6a/95/136a95ab-50e3-cd43-0d66-abe782652b40/5_6.9__ASO__U00281290x2796_U0029.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/042-05.img",
+          "sha256": "6d8bf36f8c6cd7bf5f1e0b884fd4a59745d4b57ae84c6ea4ff862bd2a49abeb9"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/26/3d/df/263ddf43-af67-2720-b1e5-f031d9637b0c/8_6.9__ASO__U00281290x2796_U0029.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/042-08.img",
+          "sha256": "19fab0415eaee279b40d1d0904db27b4ac355de3ca71db1fdf9214b7e0c83434"
+        }
+      ],
+      "observedUi": "Character gallery, custom themes and long conversations",
+      "lessonOrLimit": "Companion engagement does not establish a French curriculum.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 43,
+      "id": 1640745955,
+      "name": "Poe \u2013 Fast AI Chat",
+      "group": "AI and language utility",
+      "selectionQuery": "Poe AI",
+      "source": "https://apps.apple.com/gb/app/poe-fast-ai-chat/id1640745955?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "6.0.0",
+      "releaseDate": "2026-09-21T14:21:07Z",
+      "seller": "Quora, Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/a1/12/ac/a112ac1f-2bae-0f30-7d58-798d650900a2/0_APP_IPHONE_55_0.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/043-01.img",
+          "sha256": "e2f0f3e57ec52b763cad99ebc594376b75e6f044da48840f11d13452315e9452"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/60/62/bd/6062bddc-c9df-6b02-8b61-53c9da3058d9/4_APP_IPHONE_55_4.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/043-05.img",
+          "sha256": "757248e6e11ac346c5810c8a368c9cfdab05e3a167357b4d7669fbd6b5699abc"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/41/8e/f4/418ef483-977b-4640-c74c-8483c4d0c95e/7_APP_IPHONE_55_7.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/043-08.img",
+          "sha256": "81949c5a31230b2f47b88f3e34d0627ceab1e782e1eef9372e10266f5d16c494"
+        }
+      ],
+      "observedUi": "Bot identity and voice output",
+      "lessonOrLimit": "Be explicit about the assistant type without adding model jargon.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 44,
+      "id": 1158555867,
+      "name": "Replika - AI Companion Chat",
+      "group": "AI and language utility",
+      "selectionQuery": "Replika",
+      "source": "https://apps.apple.com/gb/app/replika-ai-companion-chat/id1158555867?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "12.3.5",
+      "releaseDate": "2026-07-24T18:19:00Z",
+      "seller": "Luka, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/94/78/f6/9478f699-cae5-e264-2f13-355e96a9588d/1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/044-01.img",
+          "sha256": "5104fe5f711d9450e59297541a9b3fd2c5d3ef95c013a652f7720977d5595d23"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/6f/22/8b/6f228b54-5f83-a9b2-1cd5-e2e17bf75c45/4.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/044-04.img",
+          "sha256": "926f16583376d6132041f9b597c1343e89fc398bdbd3dd7396266d09de08e3a2"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/6f/1d/98/6f1d98a9-30e4-68b7-434a-16b3c2b30083/7.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/044-07.img",
+          "sha256": "d2be5864f48304af4c50777b4af61fe890e3149099d0423f3639f6d8d64250a9"
+        }
+      ],
+      "observedUi": "Photoreal companion and attention claims",
+      "lessonOrLimit": "Avoid implying a human relationship or unlimited personal care.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 45,
+      "id": 6445815935,
+      "name": "Pi, your personal AI",
+      "group": "AI and language utility",
+      "selectionQuery": "Pi personal AI",
+      "source": "https://apps.apple.com/gb/app/pi-your-personal-ai/id6445815935?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "26.914.6",
+      "releaseDate": "2026-09-29T19:14:04Z",
+      "seller": "Inflection AI, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/74/36/73/7436732d-946a-6238-4d54-9a6032a318dd/1_intro_iOS.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/045-01.img",
+          "sha256": "13a631f4947737164c1e615a3f9287ca0e9bd593bba8b6d9392fc5a14bf4320b"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/95/ab/e8/95abe848-4310-f5f5-5fea-3f37bebb9741/4_call_iOS.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/045-04.img",
+          "sha256": "bb47f7efd0de662eae4f680b3f4416f01641ac178856b00b61cb5354d70b4c01"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/a2/67/dc/a267dc3d-ba25-b703-2a14-7836409cab92/7_reviews_iOS.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/045-07.img",
+          "sha256": "d62a9cbc0126cd2f331167c18b5706a42918d9e7cdd90de4712231f6648f9a93"
+        }
+      ],
+      "observedUi": "Cream and mint; a clear listening state",
+      "lessonOrLimit": "Use a quiet, readable response state; do not copy emotional intelligence claims.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 46,
+      "id": 6670324846,
+      "name": "Grok - AI Assistant",
+      "group": "AI and language utility",
+      "selectionQuery": "You.com AI",
+      "source": "https://apps.apple.com/gb/app/grok-ai-assistant/id6670324846?uo=4",
+      "country": "gb",
+      "chartRank": 98,
+      "version": "1.4.47",
+      "releaseDate": "2026-10-01T17:50:11Z",
+      "seller": "TWITTER INTERNATIONAL UNLIMITED COMPANY",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/bf/30/e3/bf30e351-dc9b-0f87-a98e-3176a62486ba/SS_1.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/046-01.img",
+          "sha256": "2449c898d04a5283f219d6722fe8fa927175b4f043a74ccfc465e1e85d8ab307"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/fe/2b/8b/fe2b8b43-c35d-acbc-71ff-ab3a9c910d2f/SS_3.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/046-03.img",
+          "sha256": "c0234c045a88c0acd9b4743ad914d1ccec692a7e54c7f29f70b5ed31c7a94e5b"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/d7/2e/4f/d72e4fa4-8721-e170-3409-cdfb02277eda/SS_5.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/046-05.img",
+          "sha256": "9b364935f60fb4fa3bc981d6e098d6ab2cc583afa8a6e532fe4f62363a514264"
+        }
+      ],
+      "observedUi": "Monochrome multimodal gallery and creation templates",
+      "lessonOrLimit": "Show a concrete output instead of a generic AI badge.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 47,
+      "id": 1552407475,
+      "name": "DeepL Translate",
+      "group": "AI and language utility",
+      "selectionQuery": "DeepL",
+      "source": "https://apps.apple.com/gb/app/deepl-translate/id1552407475?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "26.52",
+      "releaseDate": "2026-09-24T03:01:31Z",
+      "seller": "DeepL SE",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/bb/8a/99/bb8a99b2-9f85-97ad-3367-ba1a4a3e63cd/APP_IPHONE_65_1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/047-01.img",
+          "sha256": "05c316ad02dbd5888613e2cd825cdda6dbf11fa7321c2d3236ce55367a9ef904"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/aa/7c/7c/aa7c7c0d-7948-15b7-3cfd-34f94a4eb8b1/APP_IPHONE_65_4.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/047-04.img",
+          "sha256": "f365e1c187614e6e358b9d21bd170cf6ef101c9bfd55c7034e560e872bf58be6"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/23/ce/24/23ce24c1-35f3-e365-fc8e-cba5faf0ccc9/APP_IPHONE_65_7.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/047-07.img",
+          "sha256": "12834dd241cace7ebb6833a325e011d83e08855388e313e0c20fb869ed8e9a26"
+        }
+      ],
+      "observedUi": "Separate source and translation with alternatives",
+      "lessonOrLimit": "Keep the original and correction distinguishable and editable.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 48,
+      "id": 1158877342,
+      "name": "Grammarly: AI Keyboard & Voice",
+      "group": "AI and language utility",
+      "selectionQuery": "Grammarly",
+      "source": "https://apps.apple.com/gb/app/grammarly-ai-keyboard-voice/id1158877342?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "15.0.0",
+      "releaseDate": "2026-09-30T10:41:13Z",
+      "seller": "Superhuman Platform Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/64/0b/56/640b568e-1b39-1e5d-efb4-fb7831436df2/iphone55_01.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/048-01.img",
+          "sha256": "b4bec97b7e023ecb83bc4260e3f17d5269edb82c24a0122f32be8b1137be9bb5"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e3/39/9e/e3399edb-9b42-0037-ee5d-ff877b89563e/iphone55_06.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/048-06.img",
+          "sha256": "19de08b652d68d2e7ba8a7d900f398a4da38e59269df52b1dc8957e076acd1d7"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/54/b7/c1/54b7c18b-74f1-fced-29f0-85d5bfc5d413/iphone55_10.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/048-10.img",
+          "sha256": "e9a38a4c843b6cf70a2c7d4b9929759db348ea32eb4c4f9887060a7219f9f36b"
+        }
+      ],
+      "observedUi": "Contextual writing and voice edits in green UI",
+      "lessonOrLimit": "Show what changed and its purpose.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 49,
+      "id": 1436732536,
+      "name": "Lensa AI: Photo Editor",
+      "group": "AI and language utility",
+      "selectionQuery": "Lensa",
+      "source": "https://apps.apple.com/gb/app/lensa-ai-photo-editor/id1436732536?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.13.0",
+      "releaseDate": "2026-09-29T05:57:05Z",
+      "seller": "Prisma labs, inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/1c/b4/86/1cb486bf-86eb-cbcc-df38-1fb9c5682963/1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/049-01.img",
+          "sha256": "c36277b5d644f2a7aaeb0a2a432d3024e8d052cf19ce94bd1d9e947a5537c6e8"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/60/86/2f/60862fda-baec-45e2-b6c5-964f478cba79/3.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/049-03.img",
+          "sha256": "c77610c4ec0b55e243082353180727a772dcec05c8c8dafb5e21990a819fb6aa"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/a3/3f/d0/a33fd03d-196f-b13c-cbcf-4cf4c23647df/5.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/049-05.img",
+          "sha256": "d038659ee2c637843085d2287b7db9f02d3bfb25c7173b8b418a77909f379a6d"
+        }
+      ],
+      "observedUi": "Photo foreground with adjacent editing controls",
+      "lessonOrLimit": "Place controls beside the object they act on.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 50,
+      "id": 919087726,
+      "name": "Photomath",
+      "group": "AI and language utility",
+      "selectionQuery": "Photomath",
+      "source": "https://apps.apple.com/gb/app/photomath/id919087726?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.47.0",
+      "releaseDate": "2026-08-31T17:05:59Z",
+      "seller": "Google LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/0a/fe/db/0afedbb5-2f11-95dc-dc2f-60146fc5b9d2/0fcab17f-0165-478b-bf51-4dd479bec01d_01.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/050-01.img",
+          "sha256": "44a5401869864b287280a90e859bd4964d2bb5f04a41f1eacac9d2b0cc426f09"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/c7/9e/12/c79e1225-898f-719e-d835-ed7ad8f0802d/1429fcc0-f26f-40ce-8838-54b92d65b027_03.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/050-03.img",
+          "sha256": "ff6b01842ef798f8ca587f2e63aa19fd2442f12bdb640825729844bd76ffa818"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/8e/6e/17/8e6e175d-a4d5-351e-653f-cac2e2acffaf/fe97b3ec-5da3-45e5-ab30-5d153630484c_05.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/050-05.img",
+          "sha256": "0bdc64f20058f549c7ce3369be45a080439632db1c5b06b062e7b10c2b6090c0"
+        }
+      ],
+      "observedUi": "Worked solving steps and next step control",
+      "lessonOrLimit": "Keep explanations bounded to the current task.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-05.jpg"
+    },
+    {
+      "number": 51,
+      "id": 1276437113,
+      "name": "Otter Transcribe Voice Notes",
+      "group": "AI and language utility",
+      "selectionQuery": "Otter",
+      "source": "https://apps.apple.com/gb/app/otter-transcribe-voice-notes/id1276437113?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.109.0",
+      "releaseDate": "2026-09-29T16:59:48Z",
+      "seller": "Otter.ai, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/42/0f/1c/420f1c81-06e3-aae9-b538-e943f7976a12/db12207a-c0bf-4330-ae6a-658ee3208702_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/051-01.img",
+          "sha256": "f0ee2dbb5784dd5fb154107a55f28cb73f10aa0593ec2dcdac36c6c39d9fa09d"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d5/26/d7/d526d77b-8893-cca2-7201-e78ddf183f4c/5a13a7a6-c19b-454d-a733-2851080bf6ea_4.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/051-04.img",
+          "sha256": "12bc7e3b49acd67d65cc82d932a76ca63de8f5d8a432dc94cac1571bd9403029"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/f0/2c/5a/f02c5ada-c895-95d9-d322-ce8f63f25da6/993eb64b-2f84-436f-b74d-3526dd48e840_5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/051-06.img",
+          "sha256": "39a7b9d1b4ad54dae66c66b2eb51b45ceb994edff1bb1d25f432734153fc1922"
+        }
+      ],
+      "observedUi": "Transcript, summary and dated actions",
+      "lessonOrLimit": "Trace a session artifact to its source; it is not proof of skill.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 52,
+      "id": 1232780281,
+      "name": "Notion: notes, tasks, AI",
+      "group": "AI and language utility",
+      "selectionQuery": "Notion",
+      "source": "https://apps.apple.com/gb/app/notion-notes-tasks-ai/id1232780281?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.7.344",
+      "releaseDate": "2026-10-02T19:17:03Z",
+      "seller": "Notion Labs, Incorporated",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/94/dd/d8/94ddd889-f9f6-f58d-c4f1-6e59650341fa/NotionLabs_Notion_iOS-6.9_US_Screenshots_250924_01.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/052-01.img",
+          "sha256": "092b3236d11e9e12c9cfc4609e66bc1929057508231f335c9fbadd717b41ff0f"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/dc/ab/18/dcab1823-c701-c006-f6de-fdd4007f564d/NotionLabs_Notion_iOS-6.9_US_Screenshots_250924_04.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/052-04.img",
+          "sha256": "34aaecc8226ff00d3b1fe69d97fd932e4f06b8b4fb462e52d2be175f0b01b764"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/10/07/52/100752d7-dccb-f3ec-718e-f4b510366089/NotionLabs_Notion_iOS-6.9_US_Screenshots_250924_07.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/052-07.img",
+          "sha256": "c69f9748d9312b6f026e5ef331d7aa542f77671704a41786e2e4f01de2ad8445"
+        }
+      ],
+      "observedUi": "Content first pages and restrained navigation",
+      "lessonOrLimit": "Use hierarchy in lists rather than a large hero for every section.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 53,
+      "id": 6448311069,
+      "name": "ChatGPT",
+      "group": "AI and language utility",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/chatgpt/id6448311069?uo=4",
+      "country": "gb",
+      "chartRank": 4,
+      "version": "1.2026.267",
+      "releaseDate": "2026-10-02T14:26:33Z",
+      "seller": "OpenAI OpCo, LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/e2/d4/88/e2d488ce-9162-60ae-2cc5-4dd588a25002/1_iPhone.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/053-01.img",
+          "sha256": "05da0be141b9fde7f7cb80767b465344cf09d75e21efe9805f76c552c6b7d21e"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/4e/52/dd/4e52ddfa-3616-c268-88ce-c474487ad222/5_iPhone.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/053-05.img",
+          "sha256": "d86d09eed9d1c5e96d68e0af286c4d0241a5ac4e4fc1bc106706f7b83ef7563a"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e2/99/0a/e2990a02-29e7-39b8-dea9-ced564e9a24b/8_iPhone.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/053-08.img",
+          "sha256": "06a15886b73a2112ca029fcc49feea33b2db1762ced526edda9081c73aab8920"
+        }
+      ],
+      "observedUi": "Conversation with concrete generated output examples",
+      "lessonOrLimit": "Preview the actual product result.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 54,
+      "id": 6473753684,
+      "name": "Claude by Anthropic",
+      "group": "AI and language utility",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/claude-by-anthropic/id6473753684?uo=4",
+      "country": "gb",
+      "chartRank": 9,
+      "version": "1.260930.20",
+      "releaseDate": "2026-10-02T17:47:59Z",
+      "seller": "Anthropic PBC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/25/ca/bb/25cabb65-69f2-7bd3-e068-212c36a0e10f/UK__U00281_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/054-01.img",
+          "sha256": "50d4a795074034a9ac0c69b09c8dabde4abffcfdb54cb52d23625b76ba506798"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/db/43/5e/db435e51-ed60-681b-c997-88deaea7e08e/Ideas_-__Files.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/054-05.img",
+          "sha256": "5f6008eb6d440baf8a7209d0eb31bd284732780a21c3b957b97729fb348cfc52"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/c6/5a/b1/c65ab124-1b69-87e8-6dd7-a0e6469bda35/End_Card.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/054-09.img",
+          "sha256": "4bad44efeffa644a5fa68d1578aca0840c725674aeb51bbc4dbf489d71d6c80c"
+        }
+      ],
+      "observedUi": "Warm paper with visible file and artifact outputs",
+      "lessonOrLimit": "A calm layout can show substantive work without copying a brand.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 55,
+      "id": 6477489729,
+      "name": "Google Gemini",
+      "group": "AI and language utility",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/google-gemini/id6477489729?uo=4",
+      "country": "gb",
+      "chartRank": 22,
+      "version": "1.2026.3870402",
+      "releaseDate": "2026-10-02T10:01:23Z",
+      "seller": "Google LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b2/e2/8b/b2e28b36-442d-5727-a380-dde4bb5e351d/APP_IPHONE_65-0.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/055-01.img",
+          "sha256": "3107b7b66d8e881a7842429c7ecfb47824f97ca38936d6cc32d5b0c1a5ceffef"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ea/14/b7/ea14b79d-e4fe-a0e2-d5d2-6b7c3ea485ba/APP_IPHONE_65-4.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/055-05.img",
+          "sha256": "bc782b3382db7bbf537b152e6efc1e7515455b1223e2f2a388aa91eea23ef4d4"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d2/cc/7f/d2cc7f48-5c46-afcb-ec2e-1bbf9f5edbf1/APP_IPHONE_65-7.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/055-08.img",
+          "sha256": "9b39c9b2b90db7d24c4fa49dc7854ec4ea9ec8fddcbfa9d652f41c319a80321c"
+        }
+      ],
+      "observedUi": "Dark image, video and voice examples",
+      "lessonOrLimit": "Make output types clear; broad assistant scope is not a learning route.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 56,
+      "id": 541164041,
+      "name": "Microsoft Copilot",
+      "group": "AI and language utility",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/microsoft-copilot/id541164041?uo=4",
+      "country": "gb",
+      "chartRank": 7,
+      "version": "2.114.2",
+      "releaseDate": "2026-09-30T07:03:58Z",
+      "seller": "Microsoft Corporation",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/fb/ec/bf/fbecbfd0-d893-13fc-7cfa-36e1e0ab2dbb/Copilot-Update-20260903_Screen1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/056-01.img",
+          "sha256": "a1b83d05d97399e7bacda0cbc9ef4b4c9a82fcae3db26c0970c6dd2011913d29"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/9b/7d/49/9b7d49a8-6895-5970-4375-b9b7ea334740/sceenshot_05.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/056-05.img",
+          "sha256": "76d53a57362528da087ac432eca22652117f0673c8053b49e74886f537920674"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/16/dd/bc/16ddbc0f-a106-740b-3ebd-4d9e6930287b/screenshot_08.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/056-08.img",
+          "sha256": "9d468f01cbf7d32e4d7a40d94e59a67a0cdd7eec903ab474b18a49aff9467ec2"
+        }
+      ],
+      "observedUi": "Task context and final send action",
+      "lessonOrLimit": "Keep consequential action states explicit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 57,
+      "id": 1558240027,
+      "name": "Meta AI",
+      "group": "AI and language utility",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/meta-ai/id1558240027?uo=4",
+      "country": "gb",
+      "chartRank": 8,
+      "version": "292.1.0",
+      "releaseDate": "2026-10-02T19:25:41Z",
+      "seller": "Meta Platforms, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/9a/e7/80/9ae78019-bf0b-b044-8853-052a0f00f2a1/en_gb_01_app_store_screens__U00285.5__display_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/057-01.img",
+          "sha256": "b946fcacfe82416c7b02b25eeea553c87dd15f2241730b23e8624c382367cdb8"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/32/94/24/32942447-ac8b-5d4a-0040-daba6e146688/en_gb_05_app_store_screens__U00285.5__display_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/057-05.img",
+          "sha256": "c9d542eb2cf46a65a2dd4adce4ccdc475ba0f4711f41c7c714208459345152a0"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/0f/1a/d7/0f1ad73a-8081-0798-a87c-9628f8faf916/en_gb_08_app_store_screens__U00285.5__display_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/057-08.img",
+          "sha256": "f2dfa6471efbf6d5a5b2b91d4f7da6c2f40718f51cb5ae8a610910d684b9f079"
+        }
+      ],
+      "observedUi": "Specific utility results and generated content feed",
+      "lessonOrLimit": "Make the result concrete; resist turning learning into a general AI hub.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 58,
+      "id": 6451431247,
+      "name": "Dola: Smart AI Assistant",
+      "group": "AI and language utility",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/dola-smart-ai-assistant/id6451431247?uo=4",
+      "country": "gb",
+      "chartRank": 26,
+      "version": "15.2.0",
+      "releaseDate": "2026-09-29T06:35:24Z",
+      "seller": "SPRING SG PTE. LTD.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/7b/a1/2d/7ba12d82-f335-0ee4-a792-ace6a45b2233/o4i5NA31UBC0gvpAi77SCkXBBPifAauAZsYQEB.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/058-01.img",
+          "sha256": "8fbedc47438ec4da0b45a930510981e4b2e1aa127d3a8b79cae68093d191ff34"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e4/df/3c/e4df3c4c-c134-da38-937e-b05e8932f83d/20240967.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/058-05.img",
+          "sha256": "b01636f198c11d312697c28a677e73033c1eae7e832e75ac62a1ced6d8855eaf"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/8a/54/80/8a54807b-13d9-d021-88e1-aeda5f56e180/20240969.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/058-08.img",
+          "sha256": "cbfb0d005d3b575dfe4eaebebf1f2b90aab0614317d535120bd07af0d11a57ca"
+        }
+      ],
+      "observedUi": "Dark feature dense AI tool gallery",
+      "lessonOrLimit": "Avoid competing feature doors that obscure the next learning action.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 59,
+      "id": 493145008,
+      "name": "Headspace: Sleep & Meditation",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Headspace",
+      "source": "https://apps.apple.com/gb/app/headspace-sleep-meditation/id493145008?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.34.0",
+      "releaseDate": "2026-09-28T23:27:11Z",
+      "seller": "Headspace Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/72/5a/ec/725aec3b-ce7e-04e5-3fb2-c3eddd568959/6edb2838-55b4-46d0-b166-358beae09bf2_1242x2208bb__U002832_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/059-01.img",
+          "sha256": "0ca4457efae032d91f237d90a7791be6e7e349c1491ea90eb709944c4d1ced29"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/db/40/f3/db40f353-9106-7edf-1c8b-66521fbfe1c4/d751a414-cfe4-4f1c-962b-1504a6d5b8de_1242x2208bb__U002836_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/059-05.img",
+          "sha256": "869b07b4cad86a52e0d662480dcc06e7dffe133288ff561b8bd93a449253fe8b"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/25/7b/7f/257b7f65-b836-3cda-e749-cd0c8620683f/c543a866-810f-4d1e-80ea-4f568a08ebc6_1242x2208bb__U002839_U0029.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/059-08.img",
+          "sha256": "51b16b3f2cfdf7c4464b591b75a1db1f68ebbdcee4b976b153ee675a1ab36a23"
+        }
+      ],
+      "observedUi": "Warm yellow illustration and duration labelled daily content",
+      "lessonOrLimit": "Adult friendly craft can support a small daily task.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 60,
+      "id": 571800810,
+      "name": "Calm: Sleep & Meditation",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Calm",
+      "source": "https://apps.apple.com/gb/app/calm-sleep-meditation/id571800810?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "7.2",
+      "releaseDate": "2026-10-01T08:39:38Z",
+      "seller": "Calm.com, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/0a/f0/92/0af09220-f75a-0039-30fb-8547a2985c71/App_Store_iOS_Day_-_1__U005b5.5in_U005d.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/060-01.img",
+          "sha256": "eb1e7632673d3b4d1e410ad6518ea89ddcc0be9693951c57e2a4a160eb8d93f3"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/c8/e4/4d/c8e44d18-fe83-f22c-cee7-4cc444eaee63/App_Store_iOS_Day_-_4__U005b5.5in_U005d.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/060-04.img",
+          "sha256": "520dfa4b940ee199af1edc1861123c0831e4b734029a206a58a72f1da506737d"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/9a/07/6c/9a076c52-e15e-7fe6-48aa-7a969e17f0c4/App_Store_iOS_Day_-_6__U005b5.5in_U005d.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/060-06.img",
+          "sha256": "7742f27477e762a47e84e8d5752e32df2a42b24324913307d90cf5ec62e9a75e"
+        }
+      ],
+      "observedUi": "Photo, coach identity and daily audio player",
+      "lessonOrLimit": "Label the content source and duration; health claims are outside this audit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-06.jpg"
+    },
+    {
+      "number": 61,
+      "id": 1307736395,
+      "name": "Waking Up: Meditation & Wisdom",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Waking Up",
+      "source": "https://apps.apple.com/gb/app/waking-up-meditation-wisdom/id1307736395?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.26",
+      "releaseDate": "2026-09-08T10:05:24Z",
+      "seller": "Waking Up Course, LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/31/d8/42/31d8426e-c34a-ead8-658a-8f9829db0e1f/01.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/061-01.img",
+          "sha256": "882035396e1171f540738b094a9a1f7ca0ee162c464444271e7f699e74cd02d4"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ee/82/61/ee8261e3-5d83-09ee-08b6-60744c5d4758/05.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/061-05.img",
+          "sha256": "df929ac457a2753bccd78da54b97c7edb8e46dd2493b49ac18b8064eaaffe8bb"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/f3/ac/c7/f3acc7c6-1077-96f2-4983-9fc649a60e62/10.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/061-09.img",
+          "sha256": "b884e6e71061019d08bdc622283cd08a738a99d1643bc80437221a8b03a2e96e"
+        }
+      ],
+      "observedUi": "Course resume list and practice versus theory categories",
+      "lessonOrLimit": "Lead with the guided route before exploration.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 62,
+      "id": 1361356590,
+      "name": "Balance: Meditation & Sleep",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Balance meditation",
+      "source": "https://apps.apple.com/gb/app/balance-meditation-sleep/id1361356590?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.212.0",
+      "releaseDate": "2026-09-23T19:54:38Z",
+      "seller": "Elevate Labs, LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/86/2e/49/862e4938-f1d6-68f8-f75e-8b2e8f255b36/1.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/062-01.img",
+          "sha256": "dc7a69c2d7c73be332ceda418b8e40510dbbbbfa2faca41accd0d0d053f48379"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/1f/81/0e/1f810e2c-c9db-8148-6c5a-0b60e9e70439/6.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/062-06.img",
+          "sha256": "80cc3d215377dffab75d01664ce612b685f5da3a5d1865716b6c459e8c632cb2"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/eb/7c/e1/eb7ce11e-cb05-0c11-92bc-fadf4aa8ccd4/10.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/062-10.img",
+          "sha256": "0f3b0cf558d1799581baef8fe367ff2fdb07afcf4c88bd62876cefb112eadb22"
+        }
+      ],
+      "observedUi": "Teal skills and a visible breathing task",
+      "lessonOrLimit": "Make the skill and immediate action specific.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 63,
+      "id": 1203637303,
+      "name": "Fabulous: Daily Habit Tracker",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Fabulous",
+      "source": "https://apps.apple.com/gb/app/fabulous-daily-habit-tracker/id1203637303?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "24.0.1",
+      "releaseDate": "2026-09-28T13:08:40Z",
+      "seller": "Fabulous",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/92/8e/fa/928efa04-16e1-9aa4-c053-0c82980665ff/0x0ss.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/063-01.img",
+          "sha256": "f6adf4e4598d65a8558a2dcbcdfc9ea375c32cdcc2faccb6cd70f1b9f06821a4"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/8e/27/b9/8e27b99c-179f-3b63-108a-09ba0622d380/0x0ss-3.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/063-04.img",
+          "sha256": "2ba40dbe9e3d875e2a5514a6a5740505466d27aeefe085fb647b3fa18c661a55"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ec/b1/00/ecb10026-f0eb-9af9-7d10-7991ac4e8931/0x0ss-5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/063-06.img",
+          "sha256": "d2b7114702af3e3038ab0e212d4ff2003a93dd5c6ca07faad1b62b5429c92de2"
+        }
+      ],
+      "observedUi": "Illustrated routines with time blocks",
+      "lessonOrLimit": "Use coherent original art; large promotional grids are not task evidence.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 64,
+      "id": 1528595748,
+      "name": "Finch: Self-Care Pet",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Finch",
+      "source": "https://apps.apple.com/gb/app/finch-self-care-pet/id1528595748?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.73.220",
+      "releaseDate": "2026-10-02T20:24:53Z",
+      "seller": "Finch Care Public Benefit Corporation",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6f/a9/fe/6fa9feb6-41c9-7c26-0f5c-296558c9f0f1/iPhone_social_large_01.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/064-01.img",
+          "sha256": "6e92a514ba41e48875e7c97b7d295e75e4f45c9809ad77ae60ef790f10e1d52c"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/79/1d/c2/791dc207-24ec-5d17-ae7f-2faafaf7bdbc/iPhone_social_large_05.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/064-05.img",
+          "sha256": "eb59eae28e6947617bdd243bd8b078f1346d653bc325420f7696e6342b0f9f21"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ab/3c/4c/ab3c4cbf-089a-f52e-759c-b7fb618465fd/iPhone_social_large_08.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/064-08.img",
+          "sha256": "27266a77333cb9de1a0f40ba6873cf7305e72c9435467162a9fc10bb7ffd37fa"
+        }
+      ],
+      "observedUi": "Cooperative goal buddy and celebration",
+      "lessonOrLimit": "Use low pressure support; no need to introduce a virtual companion.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 65,
+      "id": 1312926037,
+      "name": "journal & habit tracker\uff0dstoic.",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Stoic journal",
+      "source": "https://apps.apple.com/gb/app/journal-habit-tracker-stoic/id1312926037?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2026.19",
+      "releaseDate": "2026-10-02T16:00:23Z",
+      "seller": "Stoic app inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/7c/2e/76/7c2e7630-a704-583f-0363-ea1a6da1181f/1-iphone-small-en.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/065-01.img",
+          "sha256": "08879ddb8af88862707c1dce299014d45863bef57634f187069e84129c40726f"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/43/61/fa/4361fa99-e98b-919e-e75f-dda3df02f465/5-iphone-small-en.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/065-06.img",
+          "sha256": "b52b97ecf4e0586dee8a1ff8b6f032cb24d1387d873c3f68b297fcebc92c1a32"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d6/28/a1/d628a199-e311-462a-5eea-3f18f8e46ce5/10-iphone-small-en.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/065-10.img",
+          "sha256": "cd9fd6d095335fb43c9003bda46fbab2a8b26b21fc8ab042d1ea4a27d5d3dc19"
+        }
+      ],
+      "observedUi": "Private journal controls and breathing UI",
+      "lessonOrLimit": "Make privacy controls visible; imagery alone cannot prove security.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 66,
+      "id": 1044867788,
+      "name": "Day One: Daily Journal & Diary",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Day One Journal",
+      "source": "https://apps.apple.com/gb/app/day-one-daily-journal-diary/id1044867788?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "2026.20",
+      "releaseDate": "2026-09-28T13:08:38Z",
+      "seller": "Bloom Built Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ab/be/26/abbe2692-1507-c126-c76e-1969759bb62c/iphone-6.9-01.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/066-01.img",
+          "sha256": "1d80f497fb51d2e04c945d525918a8582820e4350a45a7a1b05640d8cbc2d744"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/14/01/9a/14019a01-8663-99f0-8a94-d569dfdfd570/iphone-6.9-06.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/066-06.img",
+          "sha256": "1917bcdb6ec3d7100011d75a44f5f7badf9d5e132d0ba49147e06e77be4f3242"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/50/8a/ff/508aff64-a5d7-8e31-7f4c-5d6820e093b1/iphone-6.9-10.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/066-10.img",
+          "sha256": "fc25165c3cf9a081d7a14835679406bbc0f9b6a207b0a4faf2e6e3bc020f200a"
+        }
+      ],
+      "observedUi": "Dated entries and journal templates",
+      "lessonOrLimit": "Organise lasting personal artifacts by their context.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 67,
+      "id": 1241229134,
+      "name": "Reflectly - Journal & AI Diary",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Reflectly",
+      "source": "https://apps.apple.com/gb/app/reflectly-journal-ai-diary/id1241229134?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "5.0.5",
+      "releaseDate": "2026-09-18T18:25:45Z",
+      "seller": "Kodeon, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource115/v4/c3/b9/7b/c3b97b2e-47a0-c08a-1bb2-060843affbb2/7d50f4a2-cc15-4c5f-8d1c-daba141c9c1a_5.5_iOS_screenshot_1.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/067-01.img",
+          "sha256": "595b53197dd91a61497dfa47046b8237befadc8755d8b91c7d427eb53fb46508"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource125/v4/79/55/4b/79554b5d-3c6a-1ef4-cfe5-4681e31f2dcd/d52529d5-7382-4b56-a4bf-93336b388569_5.5_iOS_screenshot_5.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/067-05.img",
+          "sha256": "d1ea85b24f8d9dce2562931615eb584bfc6fc695b19efee4f03058ffdda86b11"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource115/v4/13/e9/df/13e9df7e-807f-e4a6-bf31-9a689af8b3ca/cddafaec-5457-4d71-b80d-5b913518f7c5_5.5_iOS_screenshot_8.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/067-08.img",
+          "sha256": "d13f4c998a06d54722049d38367a3bc8639bca862795c9c21de30ae3b14ffdbb"
+        }
+      ],
+      "observedUi": "Purple journal with exuberant encouragement",
+      "lessonOrLimit": "Avoid interchangeable AI cheerleading.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 68,
+      "id": 1562706384,
+      "name": "How We Feel",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "How We Feel",
+      "source": "https://apps.apple.com/gb/app/how-we-feel/id1562706384?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.17.15",
+      "releaseDate": "2026-10-02T02:00:04Z",
+      "seller": "The How We Feel Project, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/b1/71/46/b1714685-ca5c-f1f3-9eba-9635d201701e/b0bad75c-812d-4171-900c-978c52387b04_HWF-5-5in-Screen-2.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/068-01.img",
+          "sha256": "ba42c5b3134b4680b2f9b3105650adcdeeb6691b7a954319f7567b1a9c307324"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/4e/7a/fd/4e7afd23-f50f-ba7f-004c-f34b946f64b2/83df0427-3ac6-4e55-a37d-fa67d9cb78f7_HWF-5-5in-Screen-6-v9.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/068-05.img",
+          "sha256": "7023fad4101691d0e63c9499f57d15a99a27a5476008e8c62983939886669aa0"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/43/19/bb/4319bb54-542f-80a7-ac7a-cc1e6c96037a/7241a7f7-5ec4-4087-b0c2-6a1011272153_HWF-5-5in-Screen-9-v9.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/068-08.img",
+          "sha256": "6bf260adc1db88e45a828785b74ea2a631cd668e150850bd70d54c8998ee7760"
+        }
+      ],
+      "observedUi": "Colour vocabulary and distinct emotional categories",
+      "lessonOrLimit": "Use colour to convey a stable meaning rather than random decoration.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 69,
+      "id": 963034692,
+      "name": "Streaks",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Streaks",
+      "source": "https://apps.apple.com/gb/app/streaks/id963034692?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "11.4.2",
+      "releaseDate": "2026-09-27T21:10:11Z",
+      "seller": "Crunchy Bagel Pty Ltd",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/59/7b/07/597b07b0-f74d-4d91-949c-18ebcf02bd39/iPhone_16_Pro_Max-05-tasks.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/069-01.img",
+          "sha256": "f752c8d3a4e93bc411667bd886d861439eb6186e876a48fc46e5eb1734ff8d5d"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/21/bc/b9/21bcb94a-5005-8780-6f88-e0c3dfcd540c/iPhone_16_Pro_Max-30-notifications.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/069-06.img",
+          "sha256": "233523de5d91ae0430b25325afd83e0f2a871d7533e95433a3a02abd3a0e6567"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/a4/9a/fa/a49afa41-a55d-b0f6-f496-2b2b297e50a8/iPhone_16_Pro_Max-45-live.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/069-10.img",
+          "sha256": "17a708f3bedd9ffa0b0dabe2a9947e8a6629321e59863cfd9d146b3be2aa8d3d"
+        }
+      ],
+      "observedUi": "Icon actions, timed activity and settings",
+      "lessonOrLimit": "Make each action small and legible; omit streak metrics.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 70,
+      "id": 1499198946,
+      "name": "Structured: Daily Planner Todo",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Structured",
+      "source": "https://apps.apple.com/gb/app/structured-daily-planner-todo/id1499198946?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.6.4",
+      "releaseDate": "2026-09-29T16:19:30Z",
+      "seller": "unorderly GmbH",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/2a/a5/10/2aa51022-8813-fa96-e378-fc659dac33d5/6.9_baseline_1.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/070-01.img",
+          "sha256": "f6e1caca6a5421263a6ae0203c653ad127faa07c4eacba8145bdd7c5110e8221"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/53/1b/5b/531b5bf9-0135-5f95-a3c3-331bf09a9d15/6.9__baseline_7.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/070-05.img",
+          "sha256": "260242d3906d48f04ff0eed3178216fb21459272519f9003833162fc1c80afbe"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ae/a2/dd/aea2dd8e-e3df-e572-3362-6214e378e186/6.9__baseline_8.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/070-08.img",
+          "sha256": "3e89291749a6728fc636606ea6a8d5de3c3e54161de43786e9ce4c35beb0f8b2"
+        }
+      ],
+      "observedUi": "Pastel agenda, widgets and next task",
+      "lessonOrLimit": "Show sequence and the next action without ambiguity.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-07.jpg"
+    },
+    {
+      "number": 71,
+      "id": 904237743,
+      "name": "Things 3",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Things 3",
+      "source": "https://apps.apple.com/gb/app/things-3/id904237743?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "3.24.2",
+      "releaseDate": "2026-09-22T11:02:19Z",
+      "seller": "Cultured Code GmbH & Co. KG",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/06/0b/49/060b49b0-5da8-d148-4f13-bffa7ce2faab/iPhone_14_Pro_Max_-_1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/071-01.img",
+          "sha256": "9ce16ac4b967f30b5b68d2f63683ab4971d44dd95d45e239e8e901cef149c432"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/c8/b4/a3/c8b4a376-3913-1fd8-c443-07fa621a24a3/iPhone_14_Pro_Max_-_5.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/071-05.img",
+          "sha256": "d43df50bc719166372d92fd61690f26f503913fcf5147e187d8540b5e77ab62b"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/7c/5c/e2/7c5ce243-ad6b-198b-d98a-bf9cef11a33a/iPhone_14_Pro_Max_-_8.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/071-08.img",
+          "sha256": "4736c0762c6ed495a7d67a153af6c2118ca53b24fcfd5c502cac91ce7914b27f"
+        }
+      ],
+      "observedUi": "Inbox, Today and subordinate task headings",
+      "lessonOrLimit": "Use a calm hierarchy for saved material and actions.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 72,
+      "id": 572688855,
+      "name": "Todoist: To Do List & Calendar",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Todoist",
+      "source": "https://apps.apple.com/gb/app/todoist-to-do-list-calendar/id572688855?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "26.9.26",
+      "releaseDate": "2026-10-01T16:15:29Z",
+      "seller": "Todoist Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/75/24/2b/75242b22-90f3-27d6-e709-84686c03a73f/1_iphone_capture.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/072-01.img",
+          "sha256": "7e7a6f37cf3941466a44840e48a1d5ccd7d1b5e00defeeb2d52cf7b3ba68cba7"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/89/9f/47/899f4771-d7e3-dbef-0fdf-a4a985e04e9a/4_iphone_workspace.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/072-04.img",
+          "sha256": "4a9f46e469a83fe749aec1511acd31a06b9237dc94fff5fa3cbc0e0292e517f1"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/eb/9b/39/eb9b39ad-03f1-8505-c1a1-721fade3c883/7_iphone_devices.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/072-07.img",
+          "sha256": "48ca079e7c30d9a7a958a1bfc87f88ddc1eed46b00676f367f89dfa21927ef5c"
+        }
+      ],
+      "observedUi": "Capture, projects and cross device task lists",
+      "lessonOrLimit": "Prioritise content and organisation over repeated hero cards.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 73,
+      "id": 866450515,
+      "name": "Forest: Focus for Productivity",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Forest focus",
+      "source": "https://apps.apple.com/gb/app/forest-focus-for-productivity/id866450515?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "5.29.1",
+      "releaseDate": "2026-10-02T16:55:29Z",
+      "seller": "SEEKRTECH CO., LTD.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/47/0d/9c/470d9cd7-98a4-3900-16c9-744e0d9bcda0/en.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/073-01.img",
+          "sha256": "6a3dccafb46d2c649ddde8742ac7b92e15735a532bc7e5d37101e3b09d1850da"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ba/6e/81/ba6e8180-4091-cc74-049d-7613a1835c91/en5__U00281_U0029.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/073-05.img",
+          "sha256": "b5c6c01fe88fd261b356c396ae42fd49411f523de44945d08b5a524bed87839a"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/8f/3f/ce/8f3fcee5-f851-22bc-6017-8caf5f1d8262/en8__U00281_U0029.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/073-08.img",
+          "sha256": "7416b3b2df7fb8527e0d373a748580a750b28f5c6cb343d0568675773fefa464"
+        }
+      ],
+      "observedUi": "Tree progress and focus illustrations",
+      "lessonOrLimit": "Make consequences visible without pressure or reward manipulation.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 74,
+      "id": 6443918070,
+      "name": "Habit Tracker - HabitKit",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "HabitKit",
+      "source": "https://apps.apple.com/gb/app/habit-tracker-habitkit/id6443918070?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.18.0",
+      "releaseDate": "2026-09-21T08:40:41Z",
+      "seller": "Sebastian Roehl",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/a9/7d/41/a97d417a-4a5b-801a-9e17-e860e104cf03/01-progress.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/074-01.img",
+          "sha256": "fd9e1de24e23fb483c1fd028f8f4ea721ffdfd2b8f1ce8a53109e443437a2f5b"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/90/34/50/90345055-d19b-c221-6b0f-d76a63f0265f/05-statistics.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/074-05.img",
+          "sha256": "5dcae816d35009422dabff5767b9f10492fe20b60d36018a90698719838d6804"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ae/2b/c5/ae2bc5ef-bdf3-2b49-1181-f7b0a48863d8/09-personalize.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/074-09.img",
+          "sha256": "157270e633150a6258a80e77c088d812f67fa1ccfc82f880426019289faec190"
+        }
+      ],
+      "observedUi": "Colour coded completion heatmaps",
+      "lessonOrLimit": "Name completion as completion rather than evidence of skill.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 75,
+      "id": 1576857102,
+      "name": "Gentler Streak Workout Tracker",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Gentler Streak",
+      "source": "https://apps.apple.com/gb/app/gentler-streak-workout-tracker/id1576857102?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "5.13.3",
+      "releaseDate": "2026-10-01T18:24:53Z",
+      "seller": "Gentler Stories d.o.o.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/fc/43/dc/fc43dc40-f5df-a46d-3799-521f962107df/Valera_English_iPhone1.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/075-01.img",
+          "sha256": "6e05d6ead7d05773525c9d2bc36bc33ba41ae60df0062597093151023bc563e5"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/93/45/7f/93457f93-0177-5e24-3d03-29a24631244a/Valera_English_iPhone5.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/075-06.img",
+          "sha256": "993eb2904fc25bfa85d66a89a162b6816796b3adb27a8049b1caa5c75390a03d"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/83/c8/5e/83c85e09-5e04-03ea-1408-84c952cde27d/Valera_English_iPhone9.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/075-10.img",
+          "sha256": "9fe756c27cb3674a6481c17d5db18cd17d127f8f9183082c46fa6a1ced8e39cb"
+        }
+      ],
+      "observedUi": "Rest aware language and recorded activity views",
+      "lessonOrLimit": "Make progress readable without demanding daily continuity.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 76,
+      "id": 426826309,
+      "name": "Strava: Run, Bike, Walk",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Strava",
+      "source": "https://apps.apple.com/gb/app/strava-run-bike-walk/id426826309?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "483.0.0",
+      "releaseDate": "2026-09-30T19:21:33Z",
+      "seller": "Strava Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ac/99/84/ac998464-b034-190d-a86d-e1f4f18f3544/AppStore-TodayTab-5.5-en-US.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/076-01.img",
+          "sha256": "4a030cd72f834bbcd09e523f539de5fe7193d6b2d26a0d0555edb67f6bcc98f6"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e1/93/a8/e193a837-49e5-fedb-fdab-6f53aadabcdf/02ASO-5.5-ShareWithFriends-en-US.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/076-06.img",
+          "sha256": "20334116d288c6f951b44d28ac2bc8312f2073a8cfd9475f4976baedc484ae50"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/85/a6/ea/85a6eafe-0140-7415-d322-1291e1c625f2/07ASO-5.5-Leaderboards-en-US.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/076-10.img",
+          "sha256": "f61857145573f3c555cd1963079649f8c9aa2459e71660b908b87e5f0383d5a5"
+        }
+      ],
+      "observedUi": "Personal activity, social feed and leaderboards",
+      "lessonOrLimit": "Use actual activity context; exclude competitive ranking.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 77,
+      "id": 387771637,
+      "name": "Nike Run Club: Running Coach",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Nike Run Club",
+      "source": "https://apps.apple.com/gb/app/nike-run-club-running-coach/id387771637?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "7.79.3",
+      "releaseDate": "2026-09-02T15:11:15Z",
+      "seller": "Nike, Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/5b/c3/3d/5bc33d35-b15a-b242-955c-19c8a7c6808f/f331c178-e893-4ba3-a726-b6c20827a108_Nike_NikeRunClub_en-GB_iOS_5.5_ScreenshotMockup_240805_01.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/077-01.img",
+          "sha256": "c4874a072296103792ac6848e6d8a0f93556e6bceb01adacb44e1bdff91ce2d4"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/3c/19/78/3c197821-6f4d-2a03-4274-ed09671b60e9/14470cb8-8f5c-42fe-b2d9-4469f7c56814_Nike_NikeRunClub_en-GB_iOS_5.5_ScreenshotMockup_240805_06.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/077-06.img",
+          "sha256": "1e4a6a0351854a735c1e76d8957eeeb63ac98a4043d30d9bf3c1e0db7b17256e"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/98/e4/de/98e4de3c-ba3c-0c76-3c97-b9711a846115/0c19dd01-40b7-4b8c-839a-345c8a31a5b3_Nike_NikeRunClub_en-GB_iOS_5.5_ScreenshotMockup_240805_10.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/077-10.img",
+          "sha256": "3316b782e8d49b44f1031be4d25fe6401716b6c7f9eff76d0617b539ec0a98e2"
+        }
+      ],
+      "observedUi": "Strong type, coach audio and hands free controls",
+      "lessonOrLimit": "Make audio action and the learner goal immediately legible.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 78,
+      "id": 1041517543,
+      "name": "Fitbod Workout & Gym Planner",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Fitbod",
+      "source": "https://apps.apple.com/gb/app/fitbod-workout-gym-planner/id1041517543?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "8.35.0",
+      "releaseDate": "2026-10-01T16:58:17Z",
+      "seller": "Fitbod Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/e0/83/4b/e0834b03-efef-a419-82cb-8ae76132539d/41b79018-e13d-4d60-94bf-5c77bdb8d205_Page_1_5_SIZE.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/078-01.img",
+          "sha256": "7b7ca180e5acd30f89f7ff90d42b0259eba97c4b9ddb4a2c31f296b39fc4dd1a"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/bb/6b/32/bb6b3298-f83a-cd0d-474f-5f2beb44be62/Slice_4.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/078-06.img",
+          "sha256": "20ea7b5f1e0544d35581fda23d2af9354ee5302460ced01753055cae8aca6d13"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/7a/16/d4/7a16d44f-15cf-8a6f-c55e-5220dccd766c/Slice_8.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/078-10.img",
+          "sha256": "13922b4c8792b77afb77c4f37b1580510ce93dac737a526f1ece1d7a4c4861ab"
+        }
+      ],
+      "observedUi": "Structured workout, duration and specific exercises",
+      "lessonOrLimit": "A plan should identify the next concrete task.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 79,
+      "id": 1043837948,
+      "name": "Oura",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Oura",
+      "source": "https://apps.apple.com/gb/app/oura/id1043837948?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "7.25.0",
+      "releaseDate": "2026-09-22T05:31:39Z",
+      "seller": "Oura Health Oy",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/23/da/33/23da33a6-8ee1-0476-d8cc-9c97219d3658/02_-_AS_-_EN_-__1284x2778_-_Home_view_-_Morning.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/079-01.img",
+          "sha256": "63e88e01c9fa885ae27ef2da7f2d9bc8c456020668e6eda3ccd2ba6008973859"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6e/b0/e8/6eb0e82b-b934-5f63-01ed-0251b706db27/06_-_AS_-_EN_-__1284x2778_-_Heart_Health_view.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/079-05.img",
+          "sha256": "160ab104b67204c454196df82088f3c8be915d4c5fca88c9a3ed53d3eca41e6b"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/05/22/25/05222505-d2fc-5af9-a36e-83cc7050a45b/10_-_AS_-_EN_-__1284x2778_-_Advisor.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/079-09.img",
+          "sha256": "06091b8985cf738db51d8ef0500a39a518774ea0b751bd0e6dc946f8102b4a26"
+        }
+      ],
+      "observedUi": "Named sensor metrics and advisor UI",
+      "lessonOrLimit": "Explain the basis of a metric; do not borrow health score authority.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 80,
+      "id": 933944389,
+      "name": "WHOOP",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "WHOOP",
+      "source": "https://apps.apple.com/gb/app/whoop/id933944389?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "5.72.1",
+      "releaseDate": "2026-09-28T19:14:22Z",
+      "seller": "Whoop Incorporated",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/87/f9/30/87f930b3-02c7-9f66-d408-4713cd817c1c/EN-iOS-6.9-1320x2868-Vertical-Frame-01.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/080-01.img",
+          "sha256": "db4433e76a347112d34947332a7f5bf927d9389ef95a16bb24276f74fe3662eb"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/25/06/b7/2506b7cd-4d46-a5d1-8940-60d2894f5037/Frame_11_-_ADVANCE_LABS.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/080-06.img",
+          "sha256": "b41a3e4b6ffdc67ce5973447911eaab78a08e308c9fae27b8e4400457999db08"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/ee/7a/de/ee7ade0b-bfe1-4a60-ecf1-04aaf5f0473b/iOS-6.9-1320x2868-Vertical-Frame_09-STRESS.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/080-10.img",
+          "sha256": "c482feb016fc1f40389595a5b46af3d735cee14564cc74db823611cfaf6f33ee"
+        }
+      ],
+      "observedUi": "Measurement dashboard and activity trends",
+      "lessonOrLimit": "Avoid presenting uncertain French recognition as a precise skill score.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-08.jpg"
+    },
+    {
+      "number": 81,
+      "id": 1454778585,
+      "name": "Water tracker Waterllama",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Waterllama",
+      "source": "https://apps.apple.com/gb/app/water-tracker-waterllama/id1454778585?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.94.10",
+      "releaseDate": "2026-09-30T15:36:09Z",
+      "seller": "Llama Luna Apps Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/1e/0c/db/1e0cdb02-7fed-69c9-8fc2-f5ec52fcc74b/75b583a1-6adc-4390-95a0-9b000dc81b36_1---water-tracker---water-reminder---drink.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/081-01.img",
+          "sha256": "3625a5b9da25c8e9eff98ea98ab39ae48b4cea0bb1865933d4e2d4b64043a593"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/d4/ff/ce/d4ffce60-4d7e-3dfc-472c-16f556b89de5/tns.ulhyqpbj.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/081-06.img",
+          "sha256": "7ed855f4a1095eb2a0b310bba1ead4ee263103a39817f9302192501b5fc37504"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/01/58/5c/01585cd4-bfab-0370-03e2-0fa2792f67dc/tns.bevmjtlp.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/081-10.img",
+          "sha256": "8b300c00dce04f5b675786f0329a85ac8f4d5400bef81ca840e4658a5c837a56"
+        }
+      ],
+      "observedUi": "Bright water characters and habit completion",
+      "lessonOrLimit": "Keep original illustration; do not borrow broad health benefit claims.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 82,
+      "id": 320606217,
+      "name": "Sleep Cycle - Tracker & Sounds",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Sleep Cycle",
+      "source": "https://apps.apple.com/gb/app/sleep-cycle-tracker-sounds/id320606217?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "6.26.391",
+      "releaseDate": "2026-10-02T18:05:44Z",
+      "seller": "Sleep Cycle AB",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/51/bd/d6/51bdd652-c777-d8c8-e91e-6d7365d55c42/6.9__Non-EN_Master_ASO_iPhone_Screen_1.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/082-01.img",
+          "sha256": "3362d30a5020c6fed512438bb8a70d8bdd2b91eb7b080806927c847e1827075d"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/a9/80/09/a980096a-bb0e-55e7-6a7b-a6a0b42555c5/6.9__Non-EN_Master_ASO_iPhone_Screen_7.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/082-06.img",
+          "sha256": "c0a097d46403bc9350ca26fc0839fc97ff59cf1c4811e732cf5246e25e02c3fd"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/95/58/72/95587234-1286-b16d-e402-a530371f0eb1/6.9__Non-EN_Master_ASO_iPhone_Screen_10.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/082-10.img",
+          "sha256": "f4f30f3dadd413c9c56bd5ab83b1bc8200ca1e8706695598472b5c24ad49802b"
+        }
+      ],
+      "observedUi": "Sleep graph and named audio content",
+      "lessonOrLimit": "Separate measured records from content suggestions; no health validation implied.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 83,
+      "id": 1453884781,
+      "name": "Sleep Tracker \u2013 Rise",
+      "group": "Wellbeing and daily practice",
+      "selectionQuery": "Rise sleep",
+      "source": "https://apps.apple.com/gb/app/sleep-tracker-rise/id1453884781?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "1.633.0",
+      "releaseDate": "2026-09-29T16:36:14Z",
+      "seller": "Rise Science Inc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/f5/fe/b7/f5feb7b6-0c2d-3758-7ecd-21e4553cd2c7/a457da92-9a8d-48e8-8150-8f355011e70e_5.5_SS1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/083-01.img",
+          "sha256": "d24a40d9bfa19602f086594d54ed77b7b5a6fc24a48edde0066b8db01fb92699"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/0f/cd/e7/0fcde7ac-c1b2-2423-ca30-a3d9fba896bb/614eb2fd-bd8f-440b-a22f-59fb19b65f89_5.5_SS5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/083-05.img",
+          "sha256": "e205f4b497013237580aee4bfa836818822ecbda46f2360cdf4d926ed97b0dc6"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/97/46/51/974651a8-244c-a8a6-f788-2152997c8252/0bcbd3f6-cfaf-4ce5-b804-80df43281741_5.5_SS8.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/083-08.img",
+          "sha256": "bb94af148730fa2ed69254ea206a2ad2509fbc6d58f18e60c7bcc84f832bd5f0"
+        }
+      ],
+      "observedUi": "Habit list and linked science content",
+      "lessonOrLimit": "Keep the reason for a recommendation inspectable.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 84,
+      "id": 1052238659,
+      "name": "Monzo Bank - Mobile Banking",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/monzo-bank-mobile-banking/id1052238659?uo=4",
+      "country": "gb",
+      "chartRank": 19,
+      "version": "8.3.0",
+      "releaseDate": "2026-10-01T10:00:52Z",
+      "seller": "Monzo Bank Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/a8/c5/2a/a8c52af4-2000-ac92-b285-c8b4d2a4c67e/iOS_1242x2208_01.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/084-01.img",
+          "sha256": "50e5b463ac1d15f2c86aaddca127e157d35e972931af2059204fc53b882bbdf0"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/01/1e/7c/011e7c3a-46c2-939a-23a7-fe390cba5f28/iOS_1242x2208_05.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/084-05.img",
+          "sha256": "455da81c046404408f526c4b08b6473cdbe6ea3035ab292faf240d6e430a5e0a"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/88/d8/88/88d8886d-0c49-5f81-c0ea-6f4d3375f81a/iOS_1242x2208_08.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/084-08.img",
+          "sha256": "46b73c5e8295534282188d710b4e8eb7af24880f7d12d66531953531cdb6ce91"
+        }
+      ],
+      "observedUi": "Transaction list and visible privacy or security settings",
+      "lessonOrLimit": "Put important controls where users can find them; no banking trust badges for Luvani.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 85,
+      "id": 932493382,
+      "name": "Revolut \u2014 Mobile Finance",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/revolut-mobile-finance/id932493382?uo=4",
+      "country": "gb",
+      "chartRank": 31,
+      "version": "10.149",
+      "releaseDate": "2026-09-24T08:12:45Z",
+      "seller": "Revolut Ltd",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/59/0e/d6/590ed6f1-7110-790f-d6c4-acfc61a5711a/Screen_1_1242x2208.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/085-01.img",
+          "sha256": "d906a397e65ff8b553c503693f10112a4bc3df4d9cf2b22bb764f57b5495d8c4"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/94/c5/65/94c5655c-694e-c022-7bd4-a279c4e21bca/Screen_5_1242x2208.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/085-05.img",
+          "sha256": "08dc0d08db75d8ec94a79bed3f2db2d78493d296b5ba0e068af811c28253e722"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/89/81/1a/89811ac5-1309-4fbf-1b93-bd4b15aa96b7/Screen_9_1242x2688.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/085-09.img",
+          "sha256": "fd7805a6c1d201732e0bd206fed9c28ed50f0bbbba91b0eb66e98ac2e370965e"
+        }
+      ],
+      "observedUi": "Financial balances, charts and risk qualifiers",
+      "lessonOrLimit": "Qualify consequential claims near the action; the dark metallic look is not required.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 86,
+      "id": 368677368,
+      "name": "Uber: Rides, eats, and more",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/uber-rides-eats-and-more/id368677368?uo=4",
+      "country": "gb",
+      "chartRank": 12,
+      "version": "3.741.10001",
+      "releaseDate": "2026-09-28T01:43:25Z",
+      "seller": "Uber Technologies, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/2f/67/ab/2f67ab9b-6b55-f1ae-be92-5407d6f50dee/357621e1-1cee-4b4f-ae58-759922a08475_SS01.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/086-01.img",
+          "sha256": "72e0e9b8fb06e831cfb987ce7efbba07aaaad6b45d7505c59007e69b54d04d5c"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/e4/68/eee46828-220a-4efb-144f-c1a27c66c18c/7c554cc8-80d9-4b19-ac58-a2eb2bca39d4_SS04.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/086-05.img",
+          "sha256": "41ad5705d4c7fe69ac5f21e97286f6ffd3e1b6689e46af8af27a5acbb5724b3c"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/7a/21/ee/7a21ee90-ecff-d274-f88c-b9c0ff84a749/43edbcb3-7c25-4d3d-a515-c871b566534d_SS06.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/086-08.img",
+          "sha256": "dd70fe4f5d1e4ab9b89ff9d6d307e299369e8c36d0cffa28d5a80d8182bd4d8f"
+        }
+      ],
+      "observedUi": "Pickup location, upfront price and trip feedback",
+      "lessonOrLimit": "Explain cost and current state before the user commits.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 87,
+      "id": 632064380,
+      "name": "Vinted: Shop & sell pre-loved",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/vinted-shop-sell-pre-loved/id632064380?uo=4",
+      "country": "gb",
+      "chartRank": 10,
+      "version": "26.38.0",
+      "releaseDate": "2026-09-28T11:33:19Z",
+      "seller": "Vinted Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/80/7e/77/807e779f-2bb6-318f-ad3c-6487fc9ad57f/App_store_-_UK_-_6_U002c5_inch_-_1_A.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/087-01.img",
+          "sha256": "870f28b4e9d42ad17dfb448bec129afdffc6f1937944b3d583280a5d9dd99216"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/9e/58/b0/9e58b021-d365-17f7-6740-eea150fb073a/App_store_-_UK_-_6_U002c5_inch_-_7.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/087-04.img",
+          "sha256": "80142557d77e4f8ee29f1047ace5aeca0cbb42625d3371424ae008832306e393"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/e5/e4/fc/e5e4fced-54a2-6ffb-eb38-2d519d9c3c7f/5_-_App_store_-_UK_-_6_U002c5_inch.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/087-06.img",
+          "sha256": "a6d2766ee7814ad8ce555dae7792cc0cc3c64e017765eb86a1e5e687f6473970"
+        }
+      ],
+      "observedUi": "Checkout item verification and shipping status",
+      "lessonOrLimit": "Show exactly what is included and what happens next.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 88,
+      "id": 1223471316,
+      "name": "Shop: Track, Pay, Discover",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/shop-track-pay-discover/id1223471316?uo=4",
+      "country": "gb",
+      "chartRank": 16,
+      "version": "3.8.0",
+      "releaseDate": "2026-10-01T03:04:37Z",
+      "seller": "Shopify Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/8e/14/91/8e1491ae-57fd-7626-e276-40a20454311c/6.9_Baseline_White_en-GB_01.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/088-01.img",
+          "sha256": "52731eef5b400a2a5e14677e3a0af34d7e8bb235ff351dd53d730183cd8fd066"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/31/c8/99/31c8991b-faae-b412-ddce-8400311e863e/6.9_Baseline_White_en-GB_04.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/088-04.img",
+          "sha256": "e75166c8aea51c78a1a8226e91ff136e3b9f22444d63f77571ab0ddcdda324ec"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6a/fb/1e/6afb1eb5-0440-37b8-6e0b-73eb68f08838/6.9_Baseline_White_en-GB_06.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/088-06.img",
+          "sha256": "7369445296f669c3734b1e23fb28e7f31b973afc962baa86965a7fb989eff0b3"
+        }
+      ],
+      "observedUi": "Product previews, deals and contextual search",
+      "lessonOrLimit": "Make a result concrete; avoid a generic personalised feed.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 89,
+      "id": 1500855883,
+      "name": "CapCut: Photo & Video Editor",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/capcut-photo-video-editor/id1500855883?uo=4",
+      "country": "gb",
+      "chartRank": 14,
+      "version": "19.6.0",
+      "releaseDate": "2026-09-21T05:13:42Z",
+      "seller": "BYTEDANCE PTE. LTD.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/0f/97/6a/0f976a15-bf3c-2b50-1580-522a28d14eab/1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/089-01.img",
+          "sha256": "ccc1f56228baf3539f0f82da57f8820eb54b8e3cc0754256f33e4a64b5222677"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/bc/8e/33/bc8e3385-04d1-cc3d-a4f7-ff2ab0f91768/5.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/089-05.img",
+          "sha256": "76a20983fbe671896c301fb39893c97ba48e384d47e0da3824b38398f3829c02"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/d7/48/cc/d748ccca-13ac-375d-b07d-71a64d9d31aa/9.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/089-09.img",
+          "sha256": "0e097bb25c4b6954adaabe52402dfd3d8d98eb1eb4ee1afbbb6857f25a0f1d66"
+        }
+      ],
+      "observedUi": "Content preview with adjacent editing and timeline controls",
+      "lessonOrLimit": "Show the artifact and direct manipulation together.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 90,
+      "id": 585027354,
+      "name": "Google Maps",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/google-maps/id585027354?uo=4",
+      "country": "gb",
+      "chartRank": 21,
+      "version": "26.40.3",
+      "releaseDate": "2026-10-02T16:27:46Z",
+      "seller": "Google LLC",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/84/22/b6/8422b655-4d23-8ff8-c5e6-638173415d4b/APP_IPHONE_65-0.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/090-01.img",
+          "sha256": "b62e5f1d75198a0ad3f5db871f43bc1633ea3868f37c1f06074d62dd98062cd2"
+        },
+        {
+          "index": 3,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e5/9f/77/e59f777c-1507-f7de-7296-d5d3ac52fc89/APP_IPHONE_65-2.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/090-03.img",
+          "sha256": "ce2bbd0f48bfda86ada29cff16d8161a9bc737a8be82064808f1a6f3fce2dd38"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/b1/40/ea/b140ea03-0f68-3b3f-6051-ddfb0e264120/APP_IPHONE_65-3.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/090-04.img",
+          "sha256": "df086763b9d5ce56d333159cb49f8ecbdf92512eb18119ac7dde9abc899ef9e2"
+        }
+      ],
+      "observedUi": "Route status, saved lists and voice search",
+      "lessonOrLimit": "Make live status and shared purpose explicit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-09.jpg"
+    },
+    {
+      "number": 91,
+      "id": 389581236,
+      "name": "Tesco Grocery & Clubcard",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Current UK chart",
+      "source": "https://apps.apple.com/gb/app/tesco-grocery-clubcard/id389581236?uo=4",
+      "country": "gb",
+      "chartRank": 20,
+      "version": "26.16.0",
+      "releaseDate": "2026-09-23T08:33:16Z",
+      "seller": "Tesco Plc",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/80/64/9a/80649a02-2529-6fd7-303a-2cb2d5eec2da/iPhone-6.5_0.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/091-01.img",
+          "sha256": "1e394bf899b383942e4de168ad20057108dd7f33d5afb8292f13def036efdfec"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/98/d2/91/98d29109-cee1-703a-bb0e-c52ef1d81581/iPhone-6.5_5.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/091-06.img",
+          "sha256": "5c26a31ef22a2e449ba7dc7d6de362cd603e64fdeb1d0602a6a692f580d6dcda"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/0f/bf/ab/0fbfab72-d12f-7530-a9b6-c44fd0a870e0/iPhone-6.5_9.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/091-10.img",
+          "sha256": "426778f2d4350b840ea3a4facaa8a3ebfaba906b7726b14c0c88d60d0080f945"
+        }
+      ],
+      "observedUi": "Shopping list, stock location and reward navigation",
+      "lessonOrLimit": "Keep the useful next task easy to find amid secondary services.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 92,
+      "id": 401626263,
+      "name": "Airbnb",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Airbnb",
+      "source": "https://apps.apple.com/gb/app/airbnb/id401626263?uo=4",
+      "country": "gb",
+      "chartRank": 74,
+      "version": "26.40",
+      "releaseDate": "2026-10-01T15:11:16Z",
+      "seller": "Airbnb, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/81/e0/99/81e0994d-d41a-6a95-2b80-47cff10b900f/250509_AppStore_Mobile_Airbnb_Carousel_01_en-GB.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/092-01.img",
+          "sha256": "8b2bc0bc5c4868c964d7d30fd20658c9367ac891d27ff7ecd41ee2fe5bbde69c"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/58/f9/da/58f9dad1-f6aa-9f8e-c206-8e7c09422ad1/250509_AppStore_Mobile_Airbnb_Carousel_04_en-GB.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/092-04.img",
+          "sha256": "b1b1e7ff3741187f5168e3f1c85491fb68f29a71d84a98815c4784e6a479cfcc"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/5f/b0/2a/5fb02a1a-257c-674e-6ad6-17ce6f6fd26a/250509_AppStore_Mobile_Airbnb_Carousel_07_en-GB.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/092-07.img",
+          "sha256": "79a9eefacc7bf92f35d49cbea5c0429b7f9c61e031fe4c9abb7d7ee85b9e8cc3"
+        }
+      ],
+      "observedUi": "Destination imagery, service categories and host choices",
+      "lessonOrLimit": "Use concrete scene identity and clear category choices.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 93,
+      "id": 405075943,
+      "name": "AllTrails: Hike, Run & Walk",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "AllTrails",
+      "source": "https://apps.apple.com/gb/app/alltrails-hike-run-walk/id405075943?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "26.9.50",
+      "releaseDate": "2026-10-01T18:02:00Z",
+      "seller": "AllTrails, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/84/ea/78/84ea7804-6873-b584-c48f-08fa37b69471/AT-2024-Organic-EN-GB-s1__U00281_U0029.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/093-01.img",
+          "sha256": "169d9f5cf0f1809a66ca4fa00234518d53ddb9af007445ca5e8b0756eeabb47c"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/5f/77/b2/5f77b28a-eaa6-0dd0-f2ef-746277ad637b/AT-2025rebrand-Organic-iOS-1290-x-2796-EN-GB-s6.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/093-06.img",
+          "sha256": "0bbe57bcb2eb07ce129130e4f22ac135dae36b37b4735824abb2fd0e6c8aa11f"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/3a/a7/29/3aa7293d-e019-61e8-f636-dcb7c3d606e7/AT-2025rebrand-Organic-iOS-1290-x-2796-EN-GB-s10.jpg/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/093-10.img",
+          "sha256": "62b31bcb0e2f873726d3dc0484d69fc1354eeba684847e176224f0a9ebf3bdfc"
+        }
+      ],
+      "observedUi": "Trail map, offline downloads and named locations",
+      "lessonOrLimit": "Make offline availability and context explicit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 94,
+      "id": 469463298,
+      "name": "Citymapper: Your Transport App",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Citymapper",
+      "source": "https://apps.apple.com/gb/app/citymapper-your-transport-app/id469463298?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "11.51.1",
+      "releaseDate": "2026-09-24T20:25:21Z",
+      "seller": "Citymapper Limited",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/eb/96/15/eb96150b-1b7b-2d1c-d137-eba62e54291c/5.5in_1_AppStore-uk.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/094-01.img",
+          "sha256": "011b157f3216df03847f749400d7371742b5a0cda9a35f309c2cdc2756983bba"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/65/cd/57/65cd5742-e2df-01f9-4c2d-4b0356902cbc/b19f0655-73dc-4ebb-9da9-da5554f21c5f_5.5in_5_AppStore-uk.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/094-05.img",
+          "sha256": "ee197516cfea42f5fa6bf299e1d6c21022508851172b65b66057aeb89fe338af"
+        },
+        {
+          "index": 9,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/93/a6/d4/93a6d4af-0ded-57ed-b0c7-9e04e6bd129b/97553952-842d-4e03-a5df-487733049629_5.5in_10_AppStore-uk.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/094-09.img",
+          "sha256": "bd902694f8b18c2821bcfecdc4a5b1a8cf1f92a0a2ab45af5e159f6a7ca6f625"
+        }
+      ],
+      "observedUi": "Journey sequence and get off notification",
+      "lessonOrLimit": "Keep the next instruction visible; strong brand colour supports function.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 95,
+      "id": 1060683933,
+      "name": "Too Good To Go: End Food Waste",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Too Good To Go",
+      "source": "https://apps.apple.com/gb/app/too-good-to-go-end-food-waste/id1060683933?uo=4",
+      "country": "gb",
+      "chartRank": 39,
+      "version": "26.9.11",
+      "releaseDate": "2026-09-29T21:49:07Z",
+      "seller": "Too Good To Go ApS",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/c2/15/aa/c215aa21-863f-aaa1-deaa-e82781349390/65b3107b-6550-4f25-b631-e8f47e4fa44a_0_APP_IPHONE_55_0.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/095-01.img",
+          "sha256": "9b4fd655a9464c3d73505975003886e2d4aed1a7297bb5f9d22169b0c9c74f27"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/fd/17/61/fd1761ff-7f86-9ecc-d79d-dd7583692ecf/cd2475b0-914e-425e-88d5-829b881d6b19_3_APP_IPHONE_55_3.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/095-04.img",
+          "sha256": "fc46e6c6c2a773e4ed3e9c176094fc3f17b64f400b73b659edee707836cf0fe4"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/3a/89/fe/3a89fe8d-a0af-9cee-0f04-17f0b5c26879/7ac73166-b086-4c31-850a-8c442d5f840a_5_APP_IPHONE_55_5.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/095-06.img",
+          "sha256": "34bfec16b2c6be95b3f8bd80124325b9379b72a0fe0e1831a8edb83d9c3f19c2"
+        }
+      ],
+      "observedUi": "Collection time, confirmation and map browsing",
+      "lessonOrLimit": "Show a specific action, timing and confirmation.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 96,
+      "id": 334235181,
+      "name": "Trainline: Train & Bus Tickets",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Trainline",
+      "source": "https://apps.apple.com/gb/app/trainline-train-bus-tickets/id334235181?uo=4",
+      "country": "gb",
+      "chartRank": 40,
+      "version": "436.0.0",
+      "releaseDate": "2026-09-27T11:04:49Z",
+      "seller": "thetrainline",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/58/7f/95/587f95ee-3026-4c75-6562-51f9b943a31c/3b296af3-8e2a-4985-b856-a9dfd836a2d1_UK_5.5_-_Slide_1_refreshed.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/096-01.img",
+          "sha256": "7a675f341284d1322267c43bdab558411394c12e7a8be5030bee816bcd8206f8"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/f4/12/58/f41258c6-c9b0-bd2d-4b5c-ed4751e445cc/e56a3360-5289-4d96-8669-bd06c51669d0_UK_5.5_-_Slide_4__U00281_U0029.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/096-04.img",
+          "sha256": "34bee41a10fb2c1528a36ae82ba7dd8e7c2a6e3af0237b2d744357b844774dde"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/4a/64/96/4a649684-a4da-8aa3-8357-c8b6b696aca5/16c3930c-c7d2-4fa6-b4db-3db51d96483a_UK_5.5_-_Slide_6__U00281_U0029.jpg/392x696bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/096-06.img",
+          "sha256": "8e3235c0b187f09425cadf0a6dca487b21da18ebcc53606f56b177206c3bbcb5"
+        }
+      ],
+      "observedUi": "Railcard choices and live journey progress",
+      "lessonOrLimit": "Separate eligibility, selection and current progress.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 97,
+      "id": 324684580,
+      "name": "Spotify: Music and Podcasts",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Spotify",
+      "source": "https://apps.apple.com/gb/app/spotify-music-and-podcasts/id324684580?uo=4",
+      "country": "gb",
+      "chartRank": 69,
+      "version": "9.1.88",
+      "releaseDate": "2026-10-01T15:03:03Z",
+      "seller": "Spotify",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/b8/f5/52/b8f552b9-ad4e-39df-b2ee-42c6a4d774fd/IOS_-_5.5_-_S01_-_EN_-_GB.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/097-01.img",
+          "sha256": "e94a7d8ce1662112966e5e00ceeda8925c31a1b6d4d5b153e5e88f678401c321"
+        },
+        {
+          "index": 5,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/81/16/1c/81161c34-c9ab-c019-cc1f-36a46d48e951/IOS_-_5.5_-_S05_-_EN_-_GB.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/097-05.img",
+          "sha256": "239d98b0e0ca30d076502f99f76fdf7ded19b9d32dfbb9a20715315805cb9dc5"
+        },
+        {
+          "index": 8,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/41/cc/80/41cc809e-9d51-3626-212c-f7e3bef85760/IOS_-_5.5_-_S08_-__U005bEnglish__U0028GB_U0029_U005d.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/097-08.img",
+          "sha256": "a26cbdadc708acadc3609fbf2dd53ce5c8f8bb485080b065d1d4bfa156300c97"
+        }
+      ],
+      "observedUi": "Content categories, resume row and playlist creation",
+      "lessonOrLimit": "Let people resume meaningful work before browsing everything.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 98,
+      "id": 897446215,
+      "name": "Canva: AI Video & Photo Editor",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Canva",
+      "source": "https://apps.apple.com/gb/app/canva-ai-video-photo-editor/id897446215?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "4.229.0",
+      "releaseDate": "2026-10-01T22:56:46Z",
+      "seller": "Canva Pty Ltd",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/d6/b9/ca/d6b9caaf-11ec-6f56-7036-3db24bbee008/0.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/098-01.img",
+          "sha256": "f3103f5d3840d8718fa67ba7eda6c2b6728cc8ca1bd6db8f236d01be7267372a"
+        },
+        {
+          "index": 6,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/a3/7a/a0/a37aa021-f58f-bb3a-1df0-a1c9d8e52252/5.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/098-06.img",
+          "sha256": "994336f58632d1e2fe7fb30773b028f98836e9d1c9655f364a58cbbbab9e8f6e"
+        },
+        {
+          "index": 10,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/76/04/82/7604829f-a938-09d5-c7a6-e03b436e405e/9.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/098-10.img",
+          "sha256": "83198b5e79d0fd176d8cc36f61bf811ccb05fc8f32ab4a6ac2ec2616712842bc"
+        }
+      ],
+      "observedUi": "Editing timeline and visible output examples",
+      "lessonOrLimit": "Show what the learner will receive; AI is a tool rather than the benefit.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 99,
+      "id": 429047995,
+      "name": "Pinterest: Lifestyle Ideas",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "Pinterest",
+      "source": "https://apps.apple.com/gb/app/pinterest-lifestyle-ideas/id429047995?uo=4",
+      "country": "gb",
+      "chartRank": 93,
+      "version": "14.38",
+      "releaseDate": "2026-10-01T17:26:51Z",
+      "seller": "Pinterest, Inc.",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/38/c0/de/38c0decb-74ce-8e4e-6283-ce64bd2f3d63/260630_H2-App-Store-Update_UK_iOSApp_Image-Designed_1242x2208_iPhone-5.5_Halloween_1.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/099-01.img",
+          "sha256": "156ba58a75c63b6ffb0d0419d6edcd567a5b8e86f55779331ba569b7539c4b85"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/d7/cf/7b/d7cf7b87-6c30-9dec-3fc6-d34af7d7c78b/260630_H2-App-Store-Update_UK_iOSApp_Image-Designed_1242x2208_iPhone-5.5_Halloween_4.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/099-04.img",
+          "sha256": "7d74a1571e30f63b4088e8640a6577c7b297e4d03ae54509d70bed765241bb52"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/dd/93/06/dd93067e-ebe7-a3c1-84b6-4c624ff0e4e8/260630_H2-App-Store-Update_UK_iOSApp_Image-Designed_1242x2208_iPhone-5.5_Halloween_7.png/392x696bb.png",
+          "file": ".firecrawl/100-app-ui/screens/099-07.img",
+          "sha256": "e6c4664caf9bec43975d48a2b9b7c299aabc273819999ecd98fa97d9054b17d0"
+        }
+      ],
+      "observedUi": "Visual discovery, specific shopping result and shared board",
+      "lessonOrLimit": "Tie collaboration to a concrete artifact.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    },
+    {
+      "number": 100,
+      "id": 588013838,
+      "name": "VSCO: Photo Editor",
+      "group": "B2C navigation and trust",
+      "selectionQuery": "VSCO",
+      "source": "https://apps.apple.com/gb/app/vsco-photo-editor/id588013838?uo=4",
+      "country": "gb",
+      "chartRank": null,
+      "version": "461.9.2",
+      "releaseDate": "2026-10-02T00:20:05Z",
+      "seller": "Visual Supply Company",
+      "screenshots": [
+        {
+          "index": 1,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/e4/e9/36/e4e9366a-7c9c-7df9-6572-828711a94800/Slate_1.2d.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/100-01.img",
+          "sha256": "5de9321594d104075ce31a1ea532f038ea1d42bf0b982807de03d0d3a30bb187"
+        },
+        {
+          "index": 4,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/bc/d9/ff/bcd9ff3c-d9ee-7d2b-da0d-d860f781ccf2/Slate_4d.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/100-04.img",
+          "sha256": "29557427ef32338357c609d7ff5d851c13c642d55f54721ed767bf2ac76fa59c"
+        },
+        {
+          "index": 7,
+          "url": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/c7/84/f0/c784f09c-743a-7197-65b1-6a3204a4c346/Slate_7d.png/320x480bb.jpg",
+          "file": ".firecrawl/100-app-ui/screens/100-07.img",
+          "sha256": "f65e398af64ff6a0c8ef8d108ec7312a8544d95ba73793bb6a9a4fa945edaf50"
+        }
+      ],
+      "observedUi": "Before and after effects, sliders and creator spaces",
+      "lessonOrLimit": "Make changes inspectable; preserve a coherent visual system.",
+      "inspected": "All three published depictions visually reviewed on 2026-10-03",
+      "panel": "docs/revamp-evidence/app-reference-panels/panel-10.jpg"
+    }
+  ]
+}

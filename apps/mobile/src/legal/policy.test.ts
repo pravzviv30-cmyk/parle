@@ -77,9 +77,11 @@ describe('the privacy notice — F479', () => {
     // the notice quietly becoming untrue. It has already earned its keep once, when
     // the subscription wall took the count from five to ten.
     const union = readFileSync(`${HERE}../analytics/track.ts`, 'utf8');
-    assert.equal((union.match(/\| \{ name: '/g) ?? []).length, 10, 'ProductEvent no longer declares ten events');
-    assert.match(WHOLE, /record ten plain events/, 'the notice stopped naming how many events there are');
-    assert.match(DOC, /Luvani records ten events/, 'the document no longer says ten, so the notice is guessing');
+    const serverEvents = readFileSync(`${HERE}../../../../services/token-server/src/productEvents.ts`, 'utf8');
+    assert.equal((union.match(/\| \{ name: '/g) ?? []).length, 13, 'ProductEvent no longer declares thirteen device events');
+    assert.match(serverEvents, /SERVER_EVENT_NAMES = \['trial_started', 'minutes_refused'\]/, 'the two server facts must stay explicit');
+    assert.match(WHOLE, /record fifteen plain events/, 'the notice stopped naming how many events there are');
+    assert.match(DOC, /Luvani records fifteen events/, 'the document no longer says ten, so the notice is guessing');
 
     // Speech. The strongest sentence in the notice, and the one most worth
     // holding to the document word for word.
@@ -110,10 +112,24 @@ describe('the privacy notice — F479', () => {
     assert.match(said, /kept for two years/, 'the notice stopped saying how long the markers are kept');
     assert.match(said, /stay when an account is deleted/, 'the notice hides that the markers survive deletion');
 
-    // What the vendors keep is unverified, so the notice describes what they do
-    // for us and stops. Naming one would be a claim about a contract nobody in
-    // this repo has read.
-    assert.doesNotMatch(WHOLE, /LiveKit|Deepgram|ElevenLabs|Speechace/i, 'the notice names a vendor');
+    // A direct recipient can be verified from the shipped request; its retention
+    // contract remains unverified. The optional saved-phrase path names only its
+    // actual recipient and makes no retention, certification or zero-log claim.
+    const savedAudio = POLICY_COPY.find(paragraph => paragraph.startsWith('Where saved-phrase tutor audio is available,'));
+    assert.ok(savedAudio, 'saved phrase delivery needs an explicit conditional disclosure');
+    assert.match(savedAudio, /choosing Hear can send that curated French line to ElevenLabs in your chosen tutor voice/);
+    assert.match(savedAudio, /bounded private audio cache/);
+    assert.match(savedAudio, /deletion waits for it and reports a failure/);
+    assert.match(DOC, /Explicit Hear can send the curated French to ElevenLabs/);
+    assert.match(DOC, /Vendor-side retention for this\s+generated phrase is unverified/);
+    const savedServer = readFileSync(`${HERE}../../../../services/token-server/src/phraseAudio.ts`, 'utf8');
+    assert.match(savedServer, /https:\/\/api\.elevenlabs\.io\/v1\/text-to-speech\//);
+    assert.doesNotMatch(WHOLE.replace(savedAudio, ''), /LiveKit|ElevenLabs|Speechace/i, 'another vendor claim appeared without verified routing');
+    const speech = POLICY_SECTIONS.find(section => section.heading === 'Your speech')?.body.join(' ') ?? '';
+    assert.match(speech, /Deepgram turns that take into French text/);
+    assert.match(speech, /check and edit before choosing Check/);
+    assert.match(speech, /own-words drill or Fix your line/, 'both temporary recording doors need disclosure');
+    assert.match(speech, /removes the local take after the upload finishes or is refused/);
     assert.match(DOC, /Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified/);
 
     // Deletion is described, never certified. The cascade has never run against
@@ -188,8 +204,9 @@ describe('the privacy notice — F479', () => {
     // What it is bounded *by* changed in F488, from a count of vendors to the
     // purposes named above the sentence, so this asks for the bound rather than
     // for the number the model was once the fifth of.
-    assert.match(said, /Nothing is sold\./);
-    assert.match(said, /Nothing about you goes to a company for any purpose other than the ones above/);
+    assert.match(said, /Luvani does not sell your learning data/);
+    assert.match(said, /Provider retention.*verified before release/);
+    assert.match(said, /may retain or review material under their own terms/);
     assert.doesNotMatch(WHOLE, /Nothing is shared with anyone else/, 'the notice denies a sharing that happens every turn');
 
     // Its retention is as unchecked as the other four, and the notice says so
@@ -256,18 +273,20 @@ describe('the privacy notice — F479', () => {
     assert.match(memory, /\.\.\.profile\.learnerGoals\.map\(goalFact\)/, 'the snapshot no longer appends the goals, so the sentence about them is untrue');
     assert.match(DOC, /goals the learner writes in Profile ride/, 'the document stopped describing the goals that ride with the facts');
 
-    // The code the sentence is about. The facts ride the scene call rather than
-    // the turn, so this fails when that call changes shape rather than only
-    // when somebody edits the copy.
+    // Facts now ride the scene and each turn in the same repaired bounded
+    // memory brief. Keep the disclosure and both actual call doors together.
     const convo = readFileSync(fileURLToPath(new URL('../../../../services/tutor-agent/src/convo.ts', import.meta.url)), 'utf8');
-    assert.match(convo, /this\.profile\.memory\.facts\.slice\(-5\)/, 'the scene call stopped sending the learner facts, or sends a different slice of them');
+    assert.match(convo, /repaired\.memory\.facts\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
+    assert.match(convo, /this\.memoryBrief = tutorMemoryBrief\(this\.profile\)/);
+    assert.match(convo, /this\.teachingBrief, this\.memoryBrief/);
+    assert.match(convo, /text: this\.memoryBrief/);
+    assert.match(said, /and on each tutor turn/);
     assert.match(convo, /this\.client\.frame\(/, 'the scene is no longer built by a model client from convo.ts');
-    const scenario = readFileSync(fileURLToPath(new URL('../../../../packages/brain/src/prompt/scenarioPrompt.ts', import.meta.url)), 'utf8');
-    assert.match(scenario, /REAL ACCOUNT MEMORY/, 'the scene prompt stopped handing the facts over under the name the document cites');
+    assert.match(convo, /SAVED TUTOR MEMORY/, 'the memory prompt stopped naming its actual editable-note source');
 
     // And the document, which is where the narrower sentence came from. It said
     // no stored row is handed over; the memory facts are stored rows.
-    assert.match(DOC, /`buildFrame`[\s\S]{0,200}`profile\.memory\.facts\.slice\(-5\)`/, 'the document stopped describing what the scene call sends');
+    assert.match(DOC, /`tutorMemoryBrief`[\s\S]{0,200}`repaired\.memory\.facts\.slice\(-5\)`/, 'the document stopped describing what the memory brief sends');
     assert.doesNotMatch(DOC, /no stored row/i, 'the document claims again that nothing stored reaches the model vendor');
   });
 
@@ -302,8 +321,9 @@ describe('the privacy notice — F479', () => {
     // And a boundary, so "after a session ends" cannot be read as open ended.
     // It closed on a count of the services until F501 and closes on the
     // services themselves now; what it has to keep saying is that the sending
-    // stops, which is what this asks for.
-    assert.match(said, /Nothing more about that session reaches any of them after that\./);
+    // stops, which is what this asks for. Since F625 it names the one way a
+    // session's phrase goes out again, which is practising it.
+    assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./);
 
     // The scene list, named proportionately: what it is, and whose words.
     assert.match(said, /the titles of the last few situations you practised/, 'the notice hides the scene list sent with the memory facts');
@@ -328,6 +348,98 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /The sending is not over when the session is/, 'the document stopped describing the calls that run after a session');
     assert.match(DOC, /every fact on file up to twelve, rendered as\n`Already on file:`/, 'the document stopped saying the facts go over again after a session');
     assert.match(DOC, /The recent scene list beside those facts is not learner words/, 'the document stopped saying what the scene list is made of');
+  });
+
+  test('the policy says a drill answer in your own words is read by the language model and by TypeSafe', () => {
+    // F625. `POST /drill/judge` hands a typed own-words answer to the language
+    // model, and with `TYPESAFE_API_KEY` set `JevFirstBrainClient` hands it to
+    // TypeSafe first. The section named neither, and closed on "Nothing more
+    // about that session reaches any of them after that" while the phrase and
+    // the situation being judged come out of a finished session's recap.
+    const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
+    assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
+    const said = seen.body.join(' ');
+
+    // The language model, and exactly what it is handed.
+    const model = seen.body.find((paragraph) => paragraph.startsWith('When you check a phrase in your own words'));
+    assert.ok(model, 'the notice hides that an own-words answer is read by the language model');
+    assert.match(model, /your typed or edited transcribed answer is read by the language model too\./);
+    assert.match(
+      model,
+      /It is sent your answer, the phrase, what the phrase means, the situation it came from and a note of your level\./,
+      'the notice names the recipient and hides what it is handed',
+    );
+    assert.match(model, /It checks that your words still mean the same thing and may suggest a more natural way to say it\./);
+    assert.match(model, /It is not told who you are, and we keep no copy of your answer\./);
+
+    // TypeSafe, named, and said to be conditional, to write nothing, and to be
+    // followed by the language model whenever it is not sure.
+    const jev = seen.body.find((paragraph) => paragraph.includes('a company called TypeSafe'));
+    assert.ok(jev, 'the notice does not name TypeSafe, which reads the answer first when it is switched on');
+    assert.match(jev, /^For own-words checks, when we have it switched on, a company called TypeSafe reads your answer first\./);
+    assert.match(jev, /It is sent the same things, without your level\./, 'the notice hides what TypeSafe is handed');
+    assert.match(jev, /yes or no on whether your answer means the same thing/, 'the notice stopped saying what TypeSafe answers');
+    assert.match(jev, /writes nothing/);
+    assert.match(jev, /the language model is not asked\. Otherwise the language model reads it too\./, 'the notice lets TypeSafe read as the only reader');
+    const repair = seen.body.find(paragraph => paragraph.startsWith('In Fix your line, choosing Check'));
+    assert.ok(repair, 'the distinct repair check must describe its own disclosure');
+    assert.match(repair, /original fragment, the corrected French, the reason for that correction, your edited retry and a note of your level/);
+    assert.match(repair, /not pronunciation or overall fluency/);
+    assert.match(repair, /receives no account identifier/);
+    assert.match(repair, /saves no copy of the retry or its verdict/);
+    assert.match(repair, /An uncertain check stays unjudged/);
+    assert.match(repair, /directly to the language model, without TypeSafe/);
+
+    // The "nothing more" bound, true again. The unqualified close is gone, and
+    // the exception it carries is the practice the two paragraphs describe.
+    assert.doesNotMatch(said, /reaches any of them after that\./, 'the notice still says nothing about a session goes out after it, which the drill judge contradicts');
+    assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./);
+
+    // Order carries meaning here. The unchecked-retention sentence and the
+    // purpose bound speak of "these companies" and "the ones above", so the drill
+    // paragraphs have to sit above both or TypeSafe falls outside them.
+    const at = (start: string) => seen.body.findIndex((paragraph) => paragraph.startsWith(start));
+    const unchecked = at('What any of these companies keeps on its own side');
+    const bound = at('Luvani does not sell');
+    assert.ok(unchecked > 0 && bound > 0, 'the notice lost the retention caveat or the purpose bound');
+    assert.ok(seen.body.indexOf(model) < unchecked && seen.body.indexOf(jev) < unchecked, 'TypeSafe sits below the sentence that says its retention is unchecked');
+    assert.ok(seen.body.indexOf(jev) < bound, 'TypeSafe sits below the purpose bound, so the bound does not cover it');
+
+    // House voice, held on the new sentences directly as well as by the loop
+    // over the whole notice above.
+    for (const paragraph of [model, jev]) {
+      assert.doesNotMatch(paragraph, /[—–·]/, `a dash or middot in the drill judge copy: ${paragraph}`);
+      assert.equal(guiltIn(paragraph), undefined, `guilt in the drill judge copy: ${paragraph}`);
+    }
+
+    // The code every clause is about, so this fails when the route changes
+    // shape rather than only when somebody edits the copy.
+    const repo = (path: string) => readFileSync(fileURLToPath(new URL(`../../../../${path}`, import.meta.url)), 'utf8');
+    const drillJudge = repo('services/token-server/src/drillJudge.ts');
+    assert.match(
+      drillJudge,
+      /buildOwnWordsJudgeRequest\(\s*\{ fr, en, situation, mustKeep: mustKeepOf\(body\.mustKeep\), attempt, cefr: cefrOf\(body\.cefr\) \}/,
+      'the judge request is built from something other than the answer, the phrase, its meaning, the situation and the level',
+    );
+    assert.doesNotMatch(drillJudge, /console\.|\.insert\(|\.upsert\(/, 'the judge handler logs or stores something, so "we keep no copy" is untrue');
+    const server = repo('services/token-server/src/server.ts');
+    assert.match(server, /client: judgeBrain\(\),\s*usage: \(usage\) => console\.log\(judgeUsageLine\(usage\)\)/, 'the judge route logs more than the usage line');
+    const judge = repo('packages/brain/src/llm/judge.ts');
+    assert.match(judge, /`LEARNER LEVEL: \$\{input\.cefr\}`/, 'the model stopped being sent the level, so the sentence overclaims');
+    const jevJudge = repo('packages/brain/src/llm/jevJudge.ts');
+    const state = jevJudge.slice(jevJudge.indexOf('export function jevJudgeState'), jevJudge.indexOf('export const JEV_JUDGE_QUESTIONS'));
+    assert.match(state, /learner_attempt: input\.attempt/, 'TypeSafe stopped being sent the answer');
+    assert.doesNotMatch(state, /cefr|userId/, 'TypeSafe is now sent the level or an id, which the notice says it is not');
+    assert.match(jevJudge, /request\.signal\?\.throwIfAborted\(\);\s*return this\.brain\.judge\(request\);/, 'an unsettled answer no longer goes on to the language model');
+    const factory = repo('packages/brain/src/llm/factory.ts');
+    assert.match(factory, /jev === null \? brain : new JevFirstBrainClient\(\{ brain, jev \}\)/, 'TypeSafe stopped being optional in front of the model');
+    const typesafe = repo('packages/brain/src/llm/typesafe.ts');
+    assert.match(typesafe, /if \(apiKey === ''\) return null;/, 'TypeSafe is reached without a key, so "when we have it switched on" is untrue');
+
+    // Sourced to the document, and on the list of terms still to confirm.
+    assert.match(DOC, /\*\*An own-words answer is read by the language model, and first by TypeSafe when it is on\.\*\*/, 'the document stopped describing the drill judge route');
+    assert.match(DOC, /and so is TonePerfect's, [^|]*, and so is TypeSafe's/, 'the document stopped listing TypeSafe retention as unverified');
+    assert.match(repo('docs/RELEASE_GATE.md'), /Speechace, TonePerfect, TypeSafe and the\s+language model vendor's retention/, 'the release gate stopped asking for TypeSafe terms to be confirmed');
   });
 
 
@@ -393,24 +505,23 @@ describe('the privacy notice — F479', () => {
     const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
     assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
     const said = seen.body.join(' ');
-    const bound = seen.body.find((paragraph) => paragraph.startsWith('Nothing is sold.'));
+    const bound = seen.body.find((paragraph) => paragraph.startsWith('Luvani does not sell'));
     assert.ok(bound, 'the notice stopped bounding what leaves at all');
 
     // The sentence that was always true, kept whole.
-    assert.match(bound, /^Nothing is sold\./);
+    assert.match(bound, /^Luvani does not sell your learning data/);
 
     // No count in the bound, in either spelling, and none anywhere in the notice
     // closing a recipients list.
     assert.doesNotMatch(bound, /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d)\b/i, 'the bound counts vendors again, and the next vendor falsifies a count');
     assert.doesNotMatch(WHOLE, /beyond the \w+ services/i, 'the notice closes its recipients list on a number again');
 
-    // What it bounds by instead: the purposes named above it, one for each
-    // recipient the section describes, and the categories still refused outright.
-    assert.match(bound, /for any purpose other than the ones above/);
-    for (const purpose of ['carrying a conversation', 'answering you', 'keeping what you have learned', 'taking a payment']) {
-      assert.ok(bound.includes(purpose), `the bound stopped naming a purpose the section describes above it: ${purpose}`);
+    for (const purpose of ['conversation replies', 'saved learning', 'account operations', 'payment handling', 'abuse controls', 'optional usage events']) {
+      assert.ok(bound.includes(purpose), `the notice hides processing for ${purpose}`);
     }
-    assert.match(bound, /Not to an advertiser, not to a data broker/);
+    assert.match(bound, /advertisers or data brokers/);
+    assert.match(bound, /Provider retention.*verified before release/);
+    assert.doesNotMatch(bound, /for any purpose other than/, 'unknown vendor processing is described as an absolute purpose promise');
 
     // "The ones above" has to point at something, so the two recipients the
     // count hid are named there. Our own server is companies we pay to hold
@@ -485,7 +596,7 @@ describe('the privacy notice — F479', () => {
     const said = seen.body.join(' ');
     assert.match(said, /Another is the language model/, 'the language model is the fifth of something again');
     assert.match(said, /What you say reaches these services during a session/, 'what a learner says reaches a number again');
-    assert.match(said, /Nothing more about that session reaches any of them after that\./, 'the sending after a session stops at a number again');
+    assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./, 'the sending after a session stops at a number again');
     assert.match(said, /Paying for Luvani brings in another company/, 'the payment company is counted rather than named');
 
     // What a count is NOT. The opening enumeration gives each service the job it
@@ -537,33 +648,16 @@ describe('the privacy notice — F479', () => {
     const note = privacyNote();
     const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
     assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
-    const bound = seen.body.find((paragraph) => paragraph.startsWith('Nothing is sold.'));
+    const bound = seen.body.find((paragraph) => paragraph.startsWith('Luvani does not sell'));
     assert.ok(bound, 'the notice stopped bounding what leaves at all');
 
-    const listed = bound.slice(bound.indexOf('the ones above: ') + 'the ones above: '.length);
-    const purposes = listed
-      .slice(0, listed.indexOf('.'))
-      .split(/,\s*(?:and\s+)?/)
-      .map((purpose) => purpose.trim())
-      .filter((purpose) => purpose.length > 0);
-    assert.deepEqual(
-      purposes,
-      ['carrying a conversation', 'answering you', 'keeping what you have learned', 'taking a payment'],
-      'the purposes the notice bounds by moved, so the footer is being held to a list that no longer exists',
-    );
-    for (const purpose of purposes) {
-      assert.ok(note.includes(purpose), `the footer stopped naming a purpose the notice bounds by: ${purpose}`);
-    }
-
-    // And the clause itself, character for character, because a footer that
-    // agrees in substance and disagrees in words is how these two drift.
-    assert.ok(
-      note.includes(
-        'Nothing is sold, and nothing about you goes to a company for any purpose other than carrying a ' +
-          'conversation, answering you, keeping what you have learned, and taking a payment.',
-      ),
-      'the footer stopped bounding what leaves by the purposes it leaves for',
-    );
+    assert.match(bound, /Provider retention.*verified before release/);
+    assert.match(note, /spoken or typed words are processed/i);
+    assert.match(note, /speech and language services for tutor replies and practice/);
+    assert.match(note, /control memory, saved conversation text and optional usage data/);
+    assert.match(note, /export your data or delete your account/);
+    assert.ok(note.includes(LEGAL_REVIEW_PENDING), 'the footer hides outstanding legal verification');
+    assert.doesNotMatch(note, /for any purpose other than/, 'a short footer certifies unverified vendor purposes');
 
     // The two shapes that were wrong before: a denial of every recipient
     // nobody had thought of, and a count the next vendor falsifies.
@@ -588,79 +682,29 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /Recipients are bounded by purpose, not by a count/, 'the document stopped holding the rule both surfaces follow');
   });
 
-  test('the notice says the purchase record outlives a deleted account', () => {
-    // F498, disclosure half. `POST /account/delete` removes the Supabase user
-    // and everything that cascades from it, and nothing in this repo asks the
-    // purchase processor to delete anything, so the subscriber record and the
-    // purchase history keyed to `appUserID` outlive the account. "Your rights"
-    // named two things kept on purpose and stopped, so a learner reading the
-    // one section written to answer "what survives?" concluded that nothing
-    // else did.
-    const rights = POLICY_SECTIONS.find((section) => section.heading === 'Your rights');
-    assert.ok(rights, 'the notice stopped telling a learner what they can ask for');
+  test('the notice distinguishes a purchase erasure request from store cancellation', () => {
+    const rights = POLICY_SECTIONS.find(section => section.heading === 'Your rights');
+    assert.ok(rights);
     const said = rights.body.join(' ');
-
-    // Said plainly, and said where the question is asked. Naming it only among
-    // the recipients would be true and unfindable.
-    assert.match(said, /leaves a record with the company that took the payment/, 'the notice hides that a purchase record survives deletion');
-    assert.match(said, /deleting your Luvani account does not reach it/, 'the notice lets deletion read as reaching every company that holds something');
-
-    // Bounded the other way, because overclaiming a gap is the same defect as
-    // hiding one. An account id and a purchase cross, and nothing else does.
-    assert.match(said, /What stays with them is which account bought what\./);
-    assert.match(said, /No audio, no words you said and nothing you are learning is part of it\./);
-
-    // Beside the two things we keep on purpose, which are scoped to ours now.
-    // A count that reads as the whole answer is what made this findable as a
-    // defect: two of ours, and one that is not ours at all.
-    const ours = rights.body.findIndex((paragraph) => paragraph.startsWith('Two things of ours are kept on purpose'));
-    const theirs = rights.body.findIndex((paragraph) => paragraph.startsWith('Paying for Luvani also leaves a record'));
-    assert.ok(ours >= 0, 'the notice stopped scoping its count of what is kept on purpose to our own systems');
-    assert.equal(theirs, ours + 1, 'the purchase record is no longer beside the other things that survive deletion');
-    assert.doesNotMatch(said, /Two things are kept on purpose/, 'the count reads again as everything that survives');
-
-    // Not an enumeration. F481, F484 and F488 were one defect three times: a
-    // closed list narrower than the code. This is who holds it and what it is,
-    // so the day the deletion path calls the vendor, one sentence changes.
-    const paragraph = rights.body[theirs]!;
-    assert.doesNotMatch(
-      paragraph,
-      /\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/i,
-      'the disclosure counts what survives, and a count is what the next one falsifies',
-    );
-
-    // The code the sentence is about, both halves. The processor is handed an
-    // account id, and the deletion path does not mention the processor at all.
-    const adapter = readFileSync(`${HERE}../purchases/adapter.native.ts`, 'utf8');
-    assert.match(
-      adapter,
-      /Purchases\.configure\(\{ apiKey: key, appUserID: userId \}\)/,
-      'the processor is no longer handed the account id, so what survives deletion is a different fact',
-    );
+    assert.match(said, /Account deletion asks it to erase the record of which account bought what before removing your Luvani account/);
+    assert.match(said, /That request is queued by the company/);
+    assert.match(said, /it is not a claim that every record it holds has already gone/);
+    assert.match(said, /No audio, no words you said and nothing you are learning is part of that record/);
+    assert.match(said, /Deleting your account does not cancel a store subscription\. Cancel it in the store\./);
+    assert.doesNotMatch(said, /deleting your Luvani account does not reach it/);
     const deletion = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/accountDeletion.ts', import.meta.url)), 'utf8');
-    assert.doesNotMatch(
-      deletion,
-      /revenuecat|subscribers|appUserID/i,
-      'the deletion path reaches the purchase processor now, so the sentence saying it does not is the thing to edit',
-    );
-
-    // Sourced, and still open. The disclosure closes the half that can be
-    // closed from inside this repo; the call itself is server work.
-    assert.match(DOC, /Account deletion does not reach the purchase processor/, 'the document stopped describing the gap the notice discloses');
-    assert.match(
-      DOC,
-      /the company that took the payment keeps its own record of what was bought/,
-      'the document does not source the sentence the notice now says',
-    );
-    assert.match(DOC, /\*\*Calling the vendor's delete API is still owed\*\*/, 'the document stopped saying the deletion half is owed');
-    const table = DOC.slice(DOC.indexOf('## Not true yet'));
-    assert.ok(
-      table.split('\n').some((row) => row.startsWith('| Account deletion does not reach the purchase processor')),
-      'Not true yet stopped listing the gap, which disclosing it does not close',
-    );
-
-    // Still no vendor named in learner-facing text.
-    assert.doesNotMatch(WHOLE, /RevenueCat|StoreKit|Google Play Billing/i, 'the notice names the purchase vendor');
+    assert.match(deletion, /method: 'DELETE'/);
+    assert.match(deletion, /api\.revenuecat\.com\/v1\/subscribers/);
+    assert.match(deletion, /response\.status === 200 \|\| response\.status === 404/);
+    const ordered = deletion.slice(deletion.indexOf('export async function deleteAccountWithProcessor('));
+    assert.ok(ordered.indexOf('requestRevenueCatErasure(') < ordered.indexOf('deleteSupabaseUser('));
+    const server = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/server.ts', import.meta.url)), 'utf8');
+    const route = server.slice(server.indexOf("if (req.method === 'POST' && url.pathname === '/account/delete')"), server.indexOf("if (req.method === 'GET' && url.pathname === '/account/export')"));
+    assert.match(route, /authenticationIsRecent\(resolved\.authenticatedAt\)/);
+    assert.match(route, /deleteAccountWithProcessor\(supabaseUrl, serviceRoleKey, resolved\.userId, process\.env\.REVENUECAT_SECRET_API_KEY\)/);
+    assert.match(DOC, /Account deletion requests purchase-processor erasure/);
+    assert.match(DOC, /asynchronous queue/);
+    assert.doesNotMatch(WHOLE, /RevenueCat|StoreKit|Google Play Billing/i);
   });
 
   test('the not true yet table carries no gap the ledger has already closed', () => {
@@ -707,12 +751,97 @@ describe('the privacy notice — F479', () => {
     // way to pass this.
     assert.match(table, /no scheduled delete/, 'the unenforced retentions stopped being listed');
     assert.match(table, /Vendor-side retention/, 'the unverified vendor retention stopped being listed');
-    assert.ok(rows.some((row) => row.includes('F208')), 'the table stopped tracking the open work it points at');
-    assert.equal(ticked.get('F208'), false, 'F208 closed, so its row needs the same read as the two above');
+    assert.equal(ticked.get('F208'), true, 'safety-stop enrichment remains a live gap if its repair is reopened');
+    assert.ok(!rows.some((row) => row.includes('F208')), 'the table still lists the closed safety-stop model work gap');
+    assert.doesNotMatch(table, /stop does not stop the worker/);
 
     // And the tab those two gaps live on is called Settings now.
     for (const stale of ['One switch in Profile', 'The Profile legal text', "Profile's **Download my data**"]) {
       assert.ok(!DOC.includes(stale), `the document still sends a learner to Profile: "${stale}"`);
+    }
+  });
+
+  test('the privacy document says an under-13 answer before an account keeps nothing, and the code keeps nothing', () => {
+    // F637 and F639, founder 2026-09-30: firmer, and clear on refusal. "I am
+    // younger than that" clears the first-run draft, first name and all, sends
+    // nothing and stores no marker, so a relaunch may ask again. The document
+    // is held to that and to the code, because a refusal that quietly began
+    // leaving something behind would be data about a child nobody chose to keep.
+    const flat = (text: string) => text.replace(/\s+/g, ' ');
+    const heading = '### An under-13 answer before an account keeps nothing';
+    const at = DOC.indexOf(heading);
+    assert.ok(at > 0, 'the document no longer says what an under-13 answer before an account keeps');
+    const rest = DOC.slice(at + heading.length);
+    const said = flat(rest.slice(0, rest.search(/\n#{2,3} /)));
+    assert.match(said, /It clears the draft\./, 'the document no longer says the refusal clears the first-run draft');
+    assert.match(said, /any first name typed/, 'the document no longer says the first name goes with the draft');
+    assert.match(said, /It sends nothing\./, 'the document no longer says the refusal sends nothing');
+    assert.match(said, /It stores no marker\./, 'the document no longer says the refusal leaves no marker on the device');
+    assert.match(
+      said,
+      /a relaunch starts at the first page with nothing kept, and the question can be asked again/,
+      'the document no longer says what a relaunch after a refusal shows',
+    );
+    assert.doesNotMatch(
+      said,
+      /(?:never|not) asked again|remembers? the refusal|refusal (?:is|stays) (?:stored|saved|remembered)/i,
+      'the document promises the refusal outlasts a relaunch, which the founder did not choose',
+    );
+
+    // The holdings table names the first name and the refusal, and Not true
+    // yet carries the ceiling.
+    const row = DOC.split('\n').find((line) => line.startsWith('| ') && line.includes('`@luvani/pre-account-onboarding/v1`'));
+    assert.ok(row, 'the holdings table has no row for the first-run draft');
+    assert.match(row, /an optional first name/, 'the draft row does not say it can hold a first name');
+    assert.match(row, /"I am younger than that" on the save page/, 'the draft row does not name the refusal among what removes it');
+    assert.match(
+      DOC.slice(DOC.indexOf('## Not true yet')),
+      /An under-13 answer before an account lasts the launch and no longer/,
+      'Not true yet stopped saying a relaunch asks the age question again',
+    );
+
+    // What makes it true. The refusal reaches the discard, which takes the
+    // whole key off the device.
+    const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+    const app = read('../../App.tsx');
+    assert.match(app, /onRefuse=\{refusePreAccount\}/, 'App.tsx does not hear the refusal, so the document overclaims');
+    const refuseAt = app.indexOf('const refusePreAccount');
+    assert.ok(refuseAt > 0, 'App.tsx no longer has the refusal handler the flow is wired to');
+    assert.match(app.slice(refuseAt, app.indexOf('}, [', refuseAt)), /\bdiscardPreAccountDraft\(\);/, 'App.tsx does not clear the draft on a refusal, so the document overclaims');
+    const discardAt = app.indexOf('const discardPreAccountDraft');
+    assert.ok(discardAt > 0, 'App.tsx no longer has the discard the document names');
+    assert.match(app.slice(discardAt, app.indexOf('}, []);', discardAt)), /clearPreAccountDraft\(\)/, 'the discard leaves the draft on the device');
+
+    // The draft holds exactly what the row names, and nothing about a refusal.
+    // A new field is new data on the device before an account: change the row
+    // and this list together.
+    const draft = read('../onboarding/preAccountDraft.ts');
+    const shapeAt = draft.indexOf('export interface PreAccountOnboardingDraft {');
+    assert.ok(shapeAt > 0, 'the first-run draft has no declared shape');
+    const fields = [...draft.slice(shapeAt, draft.indexOf('\n}', shapeAt)).matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
+    assert.deepEqual(
+      fields,
+      ['version', 'ageConfirmed', 'tutorVoice', 'analyticsConsent', 'page', 'startLevel', 'reason', 'minutes', 'reminderTime', 'firstName'],
+      'the first-run draft holds a different set of fields from the ones the holdings row names',
+    );
+
+    // Nothing on the first run or in the flow holding the refusal can send or
+    // store on its own.
+    for (const file of ['../onboarding/PreAccountOnboarding.tsx', '../auth/AuthFlow.tsx']) {
+      assert.doesNotMatch(
+        read(file),
+        /analytics\/track|trackProductEvent|\bfetch\(|supabase|AsyncStorage|SecureStore/i,
+        `${file} can send or store something itself, and the document says the refusal does neither`,
+      );
+    }
+
+    // The notice promises no more. The only age fact it says is kept is the
+    // stop said during a conversation.
+    const age = POLICY_SECTIONS.find((section) => section.heading === 'Age');
+    assert.ok(age, 'the notice lost its age section');
+    for (const sentence of age.body.join(' ').split(/(?<=\.)\s+/)) {
+      if (!/remember|kept|keeps|stored|saved/i.test(sentence)) continue;
+      assert.match(sentence, /during a conversation/, `the notice says an age answer is kept that is not the stop in a conversation: ${sentence}`);
     }
   });
 
@@ -779,4 +908,11 @@ describe('the privacy notice — F479', () => {
       assert.doesNotMatch(line, /[—–]/, `em dash in the terms copy: ${line}`);
     }
   });
+});
+
+test("the privacy notice's age section does not promise the question is asked only once", () => {
+ const source = readFileSync(new URL('./policy.ts', import.meta.url), 'utf8');
+ assert.doesNotMatch(source, /asks once/);
+ assert.match(source, /The app asks in plain words and takes the answer\./);
+ assert.match(source, /learners of thirteen and over/);
 });

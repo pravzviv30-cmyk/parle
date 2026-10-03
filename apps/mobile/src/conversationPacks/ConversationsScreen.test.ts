@@ -39,16 +39,16 @@ describe('your conversations, as a route of its own — F574', () => {
     // The three pieces that left Practice, each still drawn by the component
     // that owns it and fed by the module that decided it.
     assert.match(FLAT, /setArchive\(archiveFrom\(\{ packs: marked, deck, now: Date\.now\(\) \}\)\)/, 'the screen builds the archive itself instead of asking archive.ts');
-    assert.match(FLAT, /<SessionFilters filters=\{archive\.filters\} active=\{filter\} onChange=\{setFilter\} \/>/, 'the filter chips are gone, or no longer draw the filters archive.ts handed over');
-    assert.match(FLAT, /archive\.filters\.length > 0 &&/, 'the filter row is drawn before it would do any work');
-    assert.match(FLAT, /<VaultCard vault=\{archive\.vault\} \/>/, 'the counts-in-words card is gone');
-    assert.match(FLAT, /archive\.vault !== null &&/, 'the vault card is drawn from an unanswered read, so a first morning is shown to somebody who has had thirty conversations');
-    assert.match(FLAT, /const shown = archive === null \? \[\] : sessionsUnder\(archive, filter\)/, 'the screen filters the feed itself instead of asking archive.ts');
+    assert.match(FLAT, /<SessionFilters filters=\{visibleArchive\.filters\} active=\{filter\} onChange=\{setFilter\} \/>/, 'the filter chips are gone, or no longer draw the filters archive.ts handed over');
+    assert.match(FLAT, /visibleArchive\.filters\.length > 0 &&/, 'the filter row is drawn before it would do any work');
+    assert.match(FLAT, /<VaultCard vault=\{visibleArchive\.vault\} \/>/, 'the counts-in-words card is gone');
+    assert.match(FLAT, /visibleArchive\.vault !== null &&/, 'the vault card is drawn from an unanswered read, so a first morning is shown to somebody who has had thirty conversations');
+    assert.match(FLAT, /const shown = visibleArchive === null \? \[\] : sessionsUnder\(visibleArchive, filter\)/, 'the screen filters the feed itself instead of asking archive.ts');
     assert.match(FLAT, /<SessionRow key=\{session\.id\} session=\{session\}/, 'the feed no longer draws the shared session card');
     assert.match(FLAT, /onRevisit=\{\(\) => nav\.navigate\('ConversationPractice', \{ packId: session.id \}\)/, 'a feed row must open practice from that saved conversation');
 
     // The whole delete flow, handed to the library rather than written twice.
-    assert.match(FLAT, /<ConversationPackLibrary packs=\{packs\}/, 'the library is gone, so the detail view and the delete flow are unreachable');
+    assert.match(FLAT, /<ConversationPackLibrary packs=\{visiblePacks\}/, 'the library is gone, so the detail view and the delete flow are unreachable');
     for (const handler of ['onDeleteOne', 'onDeleteAll', 'onReview', 'onContinue', 'onBack']) {
       assert.ok(SCREEN.includes(`${handler}=`), `the library is mounted without ${handler}, so that door is dead`);
     }
@@ -63,7 +63,7 @@ describe('your conversations, as a route of its own — F574', () => {
 
     // Android's hardware back closes the sub-view rather than popping the whole
     // route out from under the learner (F312).
-    assert.match(FLAT, /useHardwareBack\(showingLibrary, \(\) => setShowingLibrary\(false\)\)/, 'the hardware back pops the route while the library is open');
+    assert.match(FLAT, /useHardwareBack\(showingLibrary && archiveIsOwned, \(\) => setShowingLibrary\(false\)\)/, 'the hardware back pops the route while the library is open');
   });
 
   test('the screen says what it is for without counting, and the door says what is behind it', () => {
@@ -83,9 +83,15 @@ describe('your conversations, as a route of its own — F574', () => {
   });
 
   test('the route wears the one frame and shows one way back', () => {
-    assert.equal((SCREEN.match(/<ScrollScreen\b/g) ?? []).length, 1, 'the route is not built on the shared scrolling frame');
-    assert.equal((SCREEN.match(/<ScreenHeader\b/g) ?? []).length, 1, 'a pushed screen shows exactly one way back');
+    assert.equal((SCREEN.match(/<ScrollScreen\b/g) ?? []).length, 1, 'the route has duplicated its shared scrolling frame');
+    assert.equal((SCREEN.match(/<ScreenHeader\b/g) ?? []).length, 1, 'the route has duplicated its back control');
     assert.match(FLAT, /<ScreenHeader back=\{\{ onPress: onBack \}\} \/>/, 'the header is not the shared back');
+    assert.match(FLAT, /showingLibrary && !visibleUnread && visibleArchive !== null && \(!remotePending \|\| visiblePacks\.length > 0\)/, 'unread or pending owned material is presented as an empty practice library');
+    assert.match(FLAT, /setUnread\(true\); setShowingLibrary\(false\);/, 'a failed read cannot return to the single retry view');
+    assert.match(FLAT, /const archiveIsOwned = archiveOwner === currentOwner && archiveUserId === currentUserId && archiveUserId === activeUserId\(\)/, 'an account switch must hide the previous account’s archive before the next read');
+    assert.match(FLAT, /const visibleArchive = archiveIsOwned \? archive : null/, 'an account switch must hide the previous account’s archive before the next read');
+    assert.match(FLAT, /const visiblePacks = archiveIsOwned \? packs : \[\]/, 'an account switch must hide the previous account’s pack list before the next read');
+    assert.match(FLAT, /if \(currentOwner !== scopeGeneration\(\) \|\| currentUserId !== activeUserId\(\)\) return \{ ok: false, message: 'Account changed/, 'an old account’s deletion result cannot replace the new account’s pack list');
     for (const own of ['useSafeAreaInsets', '<ScrollView', '<ChevronLeft', 'accessibilityLabel="Back"']) {
       assert.ok(!SCREEN.includes(own), `the route re-derives ${own} instead of taking it from the frame`);
     }

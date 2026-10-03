@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { GOALS_ROW_LABEL } from '../myfrench/copy.ts';
-import { GOAL_COPY, GOAL_LABEL, USED_OUTSIDE_SAID, rehearsedOn } from './copy.ts';
+import { GOAL_COPY, GOAL_LABEL, GOAL_UNREAD, USED_OUTSIDE_SAID, rehearsedOn } from './copy.ts';
 
 describe('the words the goal surface says — Stage 4', () => {
   test('no banned word, no dash, no digit, no claim of a result', () => {
@@ -26,6 +26,11 @@ describe('the words the goal surface says — Stage 4', () => {
 
   test('the self-report is said back as the learner\'s word, not as a fact the app checked', () => {
     assert.equal(USED_OUTSIDE_SAID, 'You said you used this outside the app.');
+  });
+
+  test('a failed history read asks for retry without asserting that storage succeeded', () => {
+    assert.match(GOAL_UNREAD, /could not be loaded/);
+    assert.doesNotMatch(GOAL_UNREAD, /still saved|everything is saved/i);
   });
 
   test('the screen names the goal with the same words as the My French row that opens it', () => {

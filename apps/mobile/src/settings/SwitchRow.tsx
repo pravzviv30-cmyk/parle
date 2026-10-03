@@ -27,6 +27,7 @@ export function SwitchRow({
   onChange,
   accessibilityLabel,
   first = false,
+  disabled = false,
 }: {
   title: string;
   /** One plain sentence about what turning this on does. */
@@ -36,6 +37,7 @@ export function SwitchRow({
   accessibilityLabel: string;
   /** Rows after the first carry a divider above them, as SettingsRow does. */
   first?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <View style={[st.row, !first && st.divided]}>
@@ -45,13 +47,14 @@ export function SwitchRow({
       </View>
       <Switch
         value={value}
+        disabled={disabled}
         onValueChange={(next) => {
           tapSettled();
           onChange(next);
         }}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={sub}
-        trackColor={{ true: accent.primary, false: paper.groundDeep }}
+        trackColor={{ true: accent.brand, false: paper.field }}
         thumbColor={paper.card}
       />
     </View>

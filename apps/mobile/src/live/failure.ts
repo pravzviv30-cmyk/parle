@@ -24,6 +24,8 @@ export type LiveFailure =
   | 'mic-in-use'
   /** No microphone API at all: an insecure origin, or an unsupported browser. */
   | 'mic-unavailable'
+  /** Speech is disabled here, and the service explicitly supports typing. */
+  | 'voice-unavailable'
   /** The token server did not answer. */
   | 'server-unreachable'
   /** The token server answered, and said no for a reason we cannot act on. */
@@ -60,11 +62,23 @@ export type LiveFailure =
 /** Thrown by the hook when the token server answers with something unusable. */
 export class TokenServerError extends Error {
   readonly status: number;
-  constructor(status: number) {
+  readonly code: 'voice-unavailable' | undefined;
+  constructor(status: number, code?: 'voice-unavailable') {
     super(`token server replied ${status}`);
     this.name = 'TokenServerError';
     this.status = status;
+    this.code = code;
   }
+}
+
+/** Read only our capability code; remote prose never becomes learner copy. */
+export function tokenFailureCode(status: number, body: unknown): 'voice-unavailable' | undefined {
+  if (status !== 503 || !body || typeof body !== 'object') return undefined;
+  const value = body as Record<string, unknown>;
+  const modes = value.supportedModes;
+  return value.error === 'voice-unavailable' && Array.isArray(modes)
+    && modes.length === 2 && modes.includes('lesson-text') && modes.includes('convo-text')
+    ? 'voice-unavailable' : undefined;
 }
 
 /**
@@ -96,11 +110,12 @@ export function classifyFailure(err: unknown): LiveFailure {
     // same thing: sign out and back in. Wrong for the first two, and for the
     // second it is the move that loses them the session they still had.
     //
-    // Only the status is read. The reply carries a sentence of its own and it
+    // A known capability code is read alongside the status. The reply carries a sentence of its own and it
     // is deliberately thrown away: everything below comes from the closed table
     // in this file, so nothing a learner reads can be changed by a deploy of
     // something else. The out-of-minutes 402 never arrives here at all; the
     // hook answers it with the paywall before this is reached.
+    if (err.status === 503 && err.code === 'voice-unavailable') return 'voice-unavailable';
     if (err.status >= 500) return 'server-unreachable';
     switch (err.status) {
       case 401:
@@ -161,6 +176,11 @@ export interface FailureCopy {
 }
 
 const COPY: Record<LiveFailure, FailureCopy> = {
+  'voice-unavailable': {
+    label: 'Voice unavailable',
+    message: 'Voice is not available here. You can have this conversation by typing instead.',
+    canType: true,
+  },
   'mic-denied': {
     label: 'Microphone blocked',
     message: 'Luvani needs your microphone to hear you speak. Allow it for this site and try again, or carry on by typing.',

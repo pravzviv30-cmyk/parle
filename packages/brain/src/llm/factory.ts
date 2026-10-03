@@ -22,9 +22,11 @@
 import { AnthropicBrainClient } from './anthropic.ts';
 import { ClaudeCliBrainClient } from './claudeCli.ts';
 import type { LlmClient } from './client.ts';
+import { JevFirstBrainClient } from './jevJudge.ts';
 import { OpenAiCompatBrainClient } from './openaiCompat.ts';
 import { OpenAiResponsesBrainClient } from './openaiResponses.ts';
 import { SplitBrainClient } from './split.ts';
+import { typeSafeFromEnv } from './typesafe.ts';
 
 /** The four brains TUTOR_LLM can ask for. */
 export type BrainChoice = 'anthropic' | 'groq' | 'openai' | 'claude-cli' | 'claude-cli-all';
@@ -63,14 +65,25 @@ export function brainChoice(env: Record<string, string | undefined> = process.en
  *          the default and why preflight says so out loud. It exists because
  *          Groq's free tier rate-limits a real session, and a fourth value on
  *          the one enum beats a second flag that could disagree with it.
+ *
+ * TYPESAFE_API_KEY is not a fifth brain. It puts Jev in front of whichever
+ * brain the flag chose, for the own-words judge only; see jevJudge.ts. Unset,
+ * the brain comes back exactly as it did before the key existed.
  */
 export function brainClientFromEnv(env: Record<string, string | undefined> = process.env): LlmClient {
+  const brain = vendorBrainFromEnv(env);
+  const jev = typeSafeFromEnv(env);
+  return jev === null ? brain : new JevFirstBrainClient({ brain, jev });
+}
+
+function vendorBrainFromEnv(env: Record<string, string | undefined>): LlmClient {
   const brain = brainChoice(env);
   if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' });
   if (brain === 'openai') {
     return new OpenAiResponsesBrainClient({
       apiKey: env.OPENAI_API_KEY,
       turnModel: env.OPENAI_TURN_MODEL,
+      liveModel: env.OPENAI_LIVE_MODEL,
       analystModel: env.OPENAI_ANALYST_MODEL,
     });
   }

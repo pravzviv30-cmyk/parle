@@ -96,7 +96,13 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
         title: 'Walking in',
         sub: 'Never order before you say hello',
         kind: 'phrases',
-        phraseKeys: ["phrase:bonjour, un café s'il vous plaît", "phrase:un café, s'il vous plaît"],
+        // 2026-09-27: the opener's first line joined the café unit, so the
+        // three-line first scene drills exactly what it asks the learner to say.
+        phraseKeys: [
+          "phrase:bonjour, un café s'il vous plaît",
+          "phrase:un café, s'il vous plaît",
+          'phrase:bonjour, je vais prendre un café',
+        ],
       },
       {
         id: 'cafe:order',
@@ -105,6 +111,7 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
         kind: 'phrases',
         phraseKeys: [
           "phrase:sur place, s'il vous plaît",
+          "phrase:sur place, au comptoir, s'il vous plaît",
           'phrase:je vais prendre un croissant',
           "phrase:oui, c'est tout, merci",
           'phrase:ça sera tout, merci',
@@ -115,7 +122,12 @@ export const AUTHORED_PATH: readonly AuthoredUnit[] = [
         title: 'Paying and leaving',
         sub: 'Card, thanks, and the way out',
         kind: 'phrases',
-        phraseKeys: ['phrase:je peux payer par carte ?', 'phrase:merci beaucoup', 'phrase:bonne journée !'],
+        phraseKeys: [
+          'phrase:je peux payer par carte ?',
+          'phrase:je vous dois combien ?',
+          'phrase:merci beaucoup',
+          'phrase:bonne journée !',
+        ],
       },
       {
         id: 'cafe:rescue',

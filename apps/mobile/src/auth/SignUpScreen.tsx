@@ -1,32 +1,36 @@
 /**
- * Create an account: email, password, or a provider door.
+ * Create an account: a provider door, or email and password.
  * Errors are plain sentences under the field they belong to.
  *
  * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
  * the fields above the keyboard, and draws the one back through `ScreenHeader`.
- * The primary pill and the provider outlines ride in the footer so a keyboard
- * cannot scroll them out of reach, and the "Already have an account? Sign in"
- * row stays at the end of the body, where a field is still visible over an
+ * Only the "Create account" pill rides in the footer, so a keyboard cannot
+ * scroll the one ink action out of reach. The "Already have an account? Sign
+ * in" row stays at the end of the body, where a field is still visible over an
  * SE-class keyboard rather than pinned under the buttons.
  *
- * The Apple outline sits above the Google one and only where the platform
- * offers it, which today means iOS. Sign-in and sign-up draw the same doors in
- * the same order on purpose: a learner who cannot remember which one they used
- * last time should not have to find out from a screen that offers fewer.
+ * Revamp B (F601): the provider doors lead the body, above an "or" rule and the
+ * three fields, the way the approved board draws them. The Apple pill sits
+ * above the Google one and only where the platform offers it, which today
+ * means iOS. Sign-in and sign-up draw the same doors in the same order on
+ * purpose: a learner who cannot remember which one they used last time should
+ * not have to find out from a screen that offers fewer.
  */
 
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { accent, HAIRLINE, paper, radius, space, type, signal, HIT } from '../theme.ts';
-import { PillButton, OutlineButton, Field, GoogleMark, AppleMark } from '../components.tsx';
+import { View, Text, StyleSheet } from 'react-native';
+import { paper, space, type, HIT, HAIRLINE } from '../theme.ts';
+import { PillButton, Press, Field, GoogleMark, AppleMark, AlertGlyph, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { passwordHint } from './passwordHint.ts';
 import { appleSignInOffered } from './apple.ts';
+import { planFor } from '../onboarding/plan.ts';
+import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 
-export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignIn: () => void }) {
+export function SignUpScreen({ onBack, onSignIn, planDraft = null }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null }) {
   const { adapter } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,6 +44,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
   // the button that started it changes its words.
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
+  const plan = planDraft === null ? null : planFor(planDraft);
   // Asked once, and false until it answers. The Apple door is drawn only where
   // the platform actually opens it; Android and web never do.
   const [appleOffered, setAppleOffered] = useState(false);
@@ -110,43 +115,60 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
       avoidKeyboard
       header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
-        <View style={{ gap: space(3) }}>
-          <PillButton
-            label={authButtonLabel('createAccount', pending === 'createAccount')}
-            onPress={() => void submit()}
-            disabled={busy}
-          />
-          {appleOffered && (
-            <OutlineButton
-              label={authButtonLabel('apple', pending === 'apple')}
-              onPress={() => void apple()}
-              disabled={busy}
-              icon={<AppleMark size={18} />}
-            />
-          )}
-          <OutlineButton
-            label={authButtonLabel('google', pending === 'google')}
-            onPress={() => void google()}
-            disabled={busy}
-            icon={<GoogleMark size={18} />}
-          />
-        </View>
+        <PillButton
+          label={authButtonLabel('createAccount', pending === 'createAccount')}
+          onPress={() => void submit()}
+          disabled={busy}
+        />
       }
     >
-      {/* A compact feature heading keeps the form close to its introduction. */}
+      {/* A working title on the paper itself, then what an account is for. */}
       <View style={st.head}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Create your account</Text>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Create your account</Text>
       </View>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-        Your progress, your phrases, and your tutor's memory live here.
+        An account keeps your plan, your lines and what your tutor remembers.
       </Text>
+      {plan && <View style={{ gap: space(1), marginTop: space(3) }}>
+        <Text style={[type.bodyStrong, { color: paper.ink }]}>Your start: {plan.scenes[0]?.titleEn}</Text>
+        <Text style={[type.small, { color: paper.inkSoft }]}>{plan.startingReason}</Text>
+        <Text style={[type.small, { color: paper.inkSoft }]}>
+          {plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a flexible practice routine.`} You can change your plan later in Profile.
+        </Text>
+      </View>}
 
-      <View style={{ gap: space(4), marginTop: space(6) }}>
+      {/* The provider doors lead the form. Apple is an ink pill, drawn only where
+          the platform offers it; Google is the white pill beneath it. */}
+      <View style={st.doors}>
+        {appleOffered && (
+          <PillButton
+            label={authButtonLabel('apple', pending === 'apple')}
+            onPress={() => void apple()}
+            disabled={busy}
+            icon={<AppleMark color={paper.onInk} />}
+          />
+        )}
+        <PillButton
+          tone="white"
+          label={authButtonLabel('google', pending === 'google')}
+          onPress={() => void google()}
+          disabled={busy}
+          icon={<GoogleMark />}
+        />
+      </View>
+
+      <View style={st.or}>
+        <View style={st.rule} />
+        <Text style={[type.small, { color: paper.inkSoft }]}>or</Text>
+        <View style={st.rule} />
+      </View>
+
+      <View style={{ gap: space(4) }}>
         <Field
           label="Email"
           value={email}
           onChangeText={setEmail}
-          placeholder="you@example.com"
+          placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
           error={emailError}
@@ -160,7 +182,7 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
               setPassword(v);
               // The complaint is from the last submit. Once they are typing
               // again it is stale, and the hint below says the same thing
-              // without the red.
+              // without the alert mark.
               if (passwordError) setPasswordError(null);
             }}
             placeholder="Choose a password"
@@ -170,14 +192,14 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
             returnKeyType="next"
           />
           {passwordError == null && (
-            <Text style={[type.small, { color: hint.met ? signal.good : paper.inkSoft }]}>{hint.text}</Text>
+            <Text style={[type.small, { color: hint.met ? paper.ink : paper.inkSoft }]}>{hint.text}</Text>
           )}
         </View>
         <Field
           label="Confirm password"
           value={confirm}
           onChangeText={setConfirm}
-          placeholder="Once more"
+          placeholder="Enter your password again"
           secure
           autoComplete="new-password"
           error={confirmError}
@@ -186,25 +208,38 @@ export function SignUpScreen({ onBack, onSignIn }: { onBack: () => void; onSignI
         />
       </View>
 
+      {/* In ink, never red. A refusal carries the alert mark the fields use, so
+          the difference from a "check your email" line is not colour alone. */}
       {formMessage != null && (
-        <Text style={[type.body, { color: formOk ? signal.good : signal.correspondance, marginTop: space(4) }]}>
-          {formMessage}
-        </Text>
+        <View style={st.message}>
+          {!formOk && (
+            <View style={st.messageMark}>
+              <AlertGlyph size={16} color={paper.ink} />
+            </View>
+          )}
+          <Text style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
+        </View>
       )}
 
       {/* The switch row stays at the end of the body, not in the footer: over an
-          SE-class keyboard the footer buttons pin to the keyboard's top, and a
-          field has to stay visible above them rather than this row. */}
-      <Pressable onPress={onSignIn} accessibilityRole="button" style={st.switchRow}>
+          SE-class keyboard the footer pill pins to the keyboard's top, and a
+          field has to stay visible above it rather than this row. */}
+      <Press haptic="light" style={st.switchRow} accessibilityRole="button" onPress={onSignIn}>
         <Text style={[type.small, { color: paper.inkSoft }]}>
-          Already have an account? <Text style={{ color: paper.ink, fontFamily: type.bodyStrong.fontFamily }}>Sign in</Text>
+          Already have an account? <Text style={st.switchWord}>Sign in</Text>
         </Text>
-      </Pressable>
+      </Press>
     </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  head: { backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(5) },
+  head: { paddingTop: space(2) },
+  doors: { gap: space(3), marginTop: space(6) },
+  or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(5) },
+  rule: { flex: 1, height: HAIRLINE, backgroundColor: paper.line },
+  message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginTop: space(4) },
+  messageMark: { paddingTop: space(1) },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', marginTop: space(6) },
+  switchWord: { color: paper.ink, fontFamily: type.bodyStrong.fontFamily, textDecorationLine: 'underline' },
 });

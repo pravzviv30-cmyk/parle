@@ -5,6 +5,13 @@ it does not prove a legal notice, a store purchase, a physical phone or a
 deployment that nobody has run. The release owner records each item below with
 the date, environment and evidence location. A blank item is a release block.
 
+**3 October 2026 status.** The repository has 26 ordered migrations. Ledger
+F263–F270 are closed for their local code fixes, with named tests and, where
+stated there, disposable database proofs. Those closures do not attest hosted
+migrations, real RevenueCat delivery, native export cleanup, provider sign-in,
+or a signed store transaction. F271 and F272 remain open. The checklist below
+asks for those missing release proofs rather than reopening the fixed defects.
+
 ## Engineering checks
 
 - [ ] Run `npm run gate`, `npm run build:web`, `npm run scan:secrets` and
@@ -15,7 +22,7 @@ the date, environment and evidence location. A blank item is a release block.
   reopen while online, and verify exactly one server-owned Conversation Pack
   becomes ready with review, continuation and delete-one/delete-all Pack
   controls. Verify that deleting history leaves earned phrases and review cards.
-- [ ] Apply all twelve migrations to the target Supabase project, reload its API
+- [ ] Reconcile and apply the 26-migration inventory in `supabase/README.md` to the target Supabase project, reload its API
   schema cache and run `npm run verify:supabase` against it.
 - [ ] Execute the rollback evidence procedure in `supabase/README.md` on a
   disposable project, including a backup/restore and re-application.
@@ -30,49 +37,57 @@ the date, environment and evidence location. A blank item is a release block.
   controller identity, contact route, governing law, vendor terms and retention
   schedule have been confirmed. Publish the reviewed versions before inviting
   learners.
-- [ ] Confirm LiveKit, Deepgram, ElevenLabs and Speechace retention and
-  deletion terms; amend the learner-facing policy to match, not to assume.
-- [ ] Rotate the four credentials recorded in the historical secret incident and
-  verify the old credentials no longer work.
+- [ ] Confirm LiveKit, Deepgram, ElevenLabs, Speechace, TonePerfect, TypeSafe and the
+  language model vendor's retention and deletion terms; amend the learner-facing
+  policy to match, not to assume.
+  TypeSafe reads own-words drill answers whenever `TYPESAFE_API_KEY` is set on the
+  token server (F625); nothing here has read its terms.
+  TonePerfect says it deletes audio after scoring and keeps the assessment JSON
+  for at most 24 hours; that is the vendor's statement, not yet verified.
+- [ ] Record release-owner acceptance of the F80 credential retirement evidence:
+  the founder reports revocation of the older Groq, Deepgram, ElevenLabs and
+  LiveKit keys at their dashboards, and replacement credentials authenticated
+  read-only. The historical secret objects were pruned, so direct HTTP refusal
+  of the old values was not measured. Attach dashboard/operational evidence and
+  the exact-release secret scan; do not describe the old-key refusal as tested.
 - [ ] Name the support and privacy-contact route, incident owner and rollback
   decision-maker.
 
-## Before the first RevenueCat key is set
+## Billing code fixes and launch evidence
 
-These are open ledger items, not checklist wishes. Every one of them is harmless
-today for exactly one reason: RevenueCat is unconfigured, so both billing routes
-answer 503 and the paywall stays shut. Setting the first `REVENUECAT_*` value is
-what arms them, and the severities in the ledger say so entry by entry. Nobody
-should switch payments on and fix these afterwards — the failure modes are a
-learner charged for nothing and a paying subscriber quietly lapsed.
+F263–F267 have closed local fixes: transactional webhook event completion,
+refresh/debit ordering, an honest no-grant refresh response, paired client/server
+readiness, and a webhook rate limit. The original defect descriptions remain in
+`KNOWN_ISSUES.md`. Payment activation still requires these independent proofs:
 
-- [ ] **F263** — a webhook whose projection throws consumes the event id anyway,
-  so RevenueCat's retry answers `replay: true` and grants nothing, for ever.
-  Raise to P0 before configuring.
-- [ ] **F266** — nothing checks the client's RevenueCat keys against the
-  server's. A build with one and not the other takes a real charge and grants
-  nothing. Raise to P0 before configuring.
-- [ ] **F264** — entitlement refresh reads and writes without holding anything,
-  so a concurrent debit is silently reverted. Raise to P1 before configuring.
-- [ ] **F265** — `/billing/refresh` reports success even when it granted
-  nothing, and the paywall then hides the buy button. Raise to P1 before
-  configuring.
-- [ ] **F267** — `/billing/webhook` is the only write endpoint with no rate
-  limit.
+- [ ] **F263/F264** — on the deployed schema, prove a failed webhook effect can
+  retry and simultaneous refresh/debit transactions preserve paid usage.
+- [ ] **F265/F266** — with the actual client build, server configuration and
+  products, prove no-grant refresh messaging and mismatched-readiness refusal
+  before any purchase action.
+- [ ] **F267** — verify the deployed webhook limit against ordinary signed
+  RevenueCat retries and the actual rate-limit backing service.
+- [ ] Complete the signed iOS and Android purchase/restore matrix above before
+  enabling payments for learners.
 
-## Privacy items already live
+## Export, deletion and Phase 8 evidence
 
-Unlike the billing items above, these are reachable today, because export and
-deletion are wired and running.
+F268–F270 have closed local fixes: recent real-authentication proof for export,
+bounded native export-file cleanup and honest pseudonymous-marker copy. The
+following release work remains:
 
-- [ ] **F268** — `/account/export` is not gated on recent authentication while
-  `/account/delete` is.
-- [ ] **F269** — the exported JSON is left in a shared cache directory for ever,
-  and is a silent no-op when sharing is unavailable.
-- [ ] **F270** — the export tells the learner the antifraud marker is unlinkable.
-  It is a keyed HMAC the server can recompute, so it is pseudonymous. Fix the
-  sentence before it is relied on in an answer to a data-subject request.
-- [ ] **F271** — the Phase 8 roadmap row is pinned by no test, unlike Phase 7's.
+- [ ] **F268** — verify recent-sign-in and token-refresh behavior through real
+  provider journeys on devices.
+- [ ] **F269** — verify sharing refusal, file removal, restart recovery and
+  account deletion on physical iOS and Android storage/share sheets.
+- [ ] **F270** — include the corrected pseudonymous-marker explanation in the
+  professionally reviewed and published policy/export copy.
+- [ ] **F271 (open)** — pin the Phase 8 roadmap claim to the ledger and a test,
+  then record the same standard of evidence used for Phase 7.
+- [ ] **F272 (open)** — reconcile the development export failure caused by
+  unapplied billing tables; make a missing dependency report unconfigured
+  instead of an unexplained 500, then run a real owned account export against
+  the fully migrated target project. Never return a partial export.
 
 Until every item has dated evidence, Phase 8 is locally implemented where code
 can implement it, but **not release-complete**.

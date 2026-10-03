@@ -52,7 +52,7 @@ the most personal text the app holds), `practiceHistory` (completed conversation
 practice, account-synced: see "Conversation-practice history" below), `goalSteps`
 (which conversations were opened from one of the learner's goals, and their own "used
 outside" reports, account-synced, ids and the normalised goal key only: see "Goal steps"
-below), `practiceSession`
+below), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
 (the one unfinished practice sitting on this phone and the frozen plan that finishes
 it, device-local), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because
@@ -63,13 +63,14 @@ privacy defect. `null` from `loadConsent` means nobody has been asked, which is
 deliberately a different fact from a stored `false`).
 
 Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
-It contains only `ageConfirmed: true`, a catalogue Tutor voice key and
-`analyticsConsent`, the answer to the usage-data question the first run asks
-once. It is not a user-scoped learning store, and is removed once `App.tsx`
-creates the signed-in profile. It never holds a name, free-form answer,
-transcript or audio. The draft stays at **version 1** with the consent added,
-because a missing field reads `false` on load: a draft written before the
-question existed is a learner who was never asked, and never asked is opted out.
+The current version-1 draft carries age confirmation, the starting level and
+reason, suggested routine (including no fixed target), reminder preset kept off,
+catalogue Tutor voice, optional bounded first name and usage-data choice. It
+holds no transcript or audio and sends no pre-account telemetry. Missing fields
+from older drafts receive established defaults; missing consent stays off.
+The draft is cleared after adoption or when the learner chooses a new plan.
+An empty OAuth account does not prove who made this on-phone draft: the
+signed-in learner must review and confirm the plan before it is applied.
 
 `journal` is the only store that is meant to be empty. A conversation's recap is
 written there the moment it arrives and deleted once every store that took part
@@ -87,7 +88,7 @@ keys of memory facts the learner asked the tutor to forget, kept as tombstones
 because the extraction would otherwise write the fact back the next session that
 mentions it, and `learnerGoals`, up to three lines the learner wrote about what
 they want from French, appended after the remembered facts in the session
-snapshot so the agent's last-five slice always carries them
+snapshot when personal memory is on, so the agent's last-five slice carries them
 (`apps/mobile/src/profile/memory.ts` is the one writer of both). Version 6 added
 `tutorVoice`, the catalogue key of
 the voice the learner asked for, null until they choose. Version 7 added
@@ -102,6 +103,21 @@ are under thirteen. Null until one lands, null again once they pass the age gate
 before the field existed can be read as a stop after the fact, and junk in the slot
 reads as null for the same reason every other field in that chain reads junk as an
 unanswered question.
+
+The optional `brain.memory.control` adds pause/resume without a version bump;
+legacy profiles retain their existing behavior. Pausing keeps facts available
+for management but excludes them and learner goals from the next tutor snapshot
+and prevents new personal-memory extraction. The current control survives late
+recaps. Memory-screen writes edit the latest serialized disk profile and update
+the screen only after the write succeeds; failures remain retryable. Ordinary
+profile saves preserve newer controls and union all exact-wording forget markers.
+Loading and adoption remove matching raw facts. The account reset tracks writes
+already dispatched to AsyncStorage, rejects new writes through its cleanup, and
+invalidates delayed reads at completion. Local tests exercise each ordering;
+native disk failures and live two-device convergence remain unverified.
+Markers contain normalised wording, are exported, and have no count expiry.
+Existing sync payload-size limits remain; markers are never silently pruned to
+fit a limit, and markers previously pruned by an older build cannot be recovered.
 
 Three named doors and nothing else touches it. `withAgeStop` writes it,
 `withAgeGatePassed` clears it, `ageStopStanding` reads it, and `entryFor` in
@@ -315,10 +331,11 @@ minutes and force-quits during the goodbye used to keep the minutes they spent
 and none of the phrases they earned.
 
 **The agent persists the recovery artefact.** `finish()` in
-`services/tutor-agent/src/convo.ts` ends with
+`services/tutor-agent/src/convo.ts` shares one completion promise; its ordinary
+completion pipeline ends with
 
 ```ts
-await Promise.allSettled([this.extractMemory(state.turnCount), this.curateAndDrill(state)]);
+await Promise.allSettled([this.extractMemory(state.turnCount), this.curateAndDrill(state, recap)]);
 this.logSpendSummary();
 ```
 
@@ -330,6 +347,10 @@ disconnects on `finish().finally(...)`, never ahead of it. Both calls were
 `void`ed and unawaited until F101 closed that, and a document that still describes
 the `void` sends the next engineer to fix a fixed thing and walk past the loss
 that is actually there.
+
+Safety stops return after closing the usage ledger and skip this enrichment and
+all pack writes. Ordinary learner exits cancel live frame/turn requests and speech
+but still finish saved practice, as the founder selected on 2 October 2026.
 
 The agent writes an audio-free `generating` Conversation Pack to
 `public.conversation_packs` immediately after the recap and upserts the same
@@ -493,7 +514,7 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Nine are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `practiceSession`
+Ten are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
 is the unfinished sitting and its completion plan: its meaning is local to this device's
 bank and deck, and a copy on a second device could finish the same sitting again, so
 completed sittings travel through `practiceHistory` instead. `packMarks`
@@ -541,11 +562,18 @@ one ordering truth. `202608260001_learner_state_revision.sql` adds it with a
 BEFORE UPDATE trigger that overwrites whatever the client sent with
 `old.revision + 1`, which makes the column monotonic whatever a client believes.
 
-What this does **not** do: it does not merge `cefr`, `memory` or `stats`
+What this does **not** do: it does not merge `cefr`, memory facts or `stats`
 field-wise. Those ride whole with the evidence-heavier side, so two simultaneous
 offline sessions lose the smaller one's deltas to those three fields. Phrases and
 error patterns always survive, because they are unioned. That is the biggest
-accepted loss in the design and field-wise merging is Phase 4. The one outer field that does not ride whole is `forgottenFacts`: the tombstones of memory facts the learner asked to forget are unioned as a sorted set (`PROFILE_UNION_FIELDS` in the brain's merge), because a forget made on the quieter phone must survive the busier one; `learnerGoals` rides whole like everything else, there being no clock to order two lists by.
+accepted loss in the design and field-wise merging is Phase 4. The outer
+`forgottenFacts` markers are unioned as a sorted set (`PROFILE_UNION_FIELDS`),
+without count expiry, and applied to the raw merged brain even when only one
+side is readable. Forgetting clears the unsourced opener too. `learnerGoals`
+rides whole, there being no clock to order two lists by. The optional
+`memory.control` is a separate exception: the highest validated `changedAt`
+selects pause/resume, with pause winning equal clocks. This prevents a busier
+stale device from silently resuming memory, but does not solve device clock skew.
 
 `npm run verify:sync` runs the whole engine twice as two devices on two real
 accounts against a live project. It proves isolation, forged filters, offline
@@ -694,3 +722,64 @@ up — a slow disk must never delay it.
 from `lastRung` through `openingRung`, and is deliberately **not** stored
 separately: a second copy of a derived value is a second source of truth for the
 one quantity two engines already disagreed about once.
+
+## Explicit conversation text
+
+`ConversationTextRecorder` holds confirmed room text in memory only until the recap
+and an explicit Save choice. It is separate from the displayed forty-turn list,
+ConversationPack, profile, sync, journal and learning evidence. Scope reset, leaving
+and safety discard it. The authenticated server stores chosen text in
+`saved_conversation_text`; there is no AsyncStorage cache. Per-text deletion clears
+its words and keeps a retry fence until account deletion. Account export
+includes these records. Read/delete is in Progress, Your conversations, Saved
+conversation text. The local development adapter does not advertise remote saving.
+
+## Optional kept-phrase tutor audio
+
+Explicit Hear first verifies a server-owned ready/completed source. The phone
+compares exact canonical French, selected catalogue voice and opaque configuration
+fingerprint; it never posts edited deck words to a synthesis endpoint. Hash keys
+include owner/source/French hash/voice/configuration. The native cache is app-private
+under `Paths.cache/luvani-phrase-audio-v1`, limited to twenty WAVs and 8 MiB, with
+word-free last-used timestamps. Temporary writes commit by File.move; next use
+recovers interrupted files. The web preview keeps only bounded memory URLs.
+Account reset cancels requests/player preparation immediately and queues cleanup;
+deletion awaits pending scope writes plus cache removal and surfaces failures.
+Cached or freshly written URI results also recheck the actual auth session before
+returning, because storage binding can lag an auth change.
+
+The server retains only `phrase_audio_budgets` account counters and paid accounting
+period start, included in the bounded fifteen-table export and cascaded on account
+deletion. Global spend has no account/source/text identity. Policy/rate metadata is
+operator-owned. There are no server WAVs, phrase reservation rows or word events in
+this route. Both switches default off, with a disabled zero-cap DB policy and no
+verified rates. Native playback/cleanup and real billing remain release proof.
+
+
+### Optional can-do evidence
+A separate bounded, default-off selector can join the post-recap work. It receives
+only the authored outcome and at most eight transient exact accepted-goal source
+lines. The worker keeps the first complete independent finish separate from
+lifetime earning. Its optional wire carries the issued session and source IDs;
+the phone checks its own current win and exact learner line before displaying it.
+No new durable record or achievement is written. Actual room exit, safety stop,
+service failure and account reset revoke this optional evidence, while ordinary
+saved recap/practice enrichment retains its existing finish-in-background rule.
+The optional request has a 2.5-second deadline. Returned usage is metered under
+can-do-evidence; provider failure, cancellation and timeout are reported as
+abandoned work with unknown billing, never a claim of zero spend.
+Activation requires both the worker switch and an approved real-French calibration
+artifact. No artifact is approved today, so no request is dispatched in normal use.
+
+
+### Optional live correction explanations
+The live thread replaces generated why with a Why? control only for a validated
+closed authored reason. Recap/drill reasons stay as before. Session/view/index and
+exact confirmed-input pair fence the optional result; no new store or completion
+is written. Key/flag alone cannot activate it: real-French calibration must supply
+a threshold, which the report does not give. One optional request active, at most
+three unique views per session, 2.5-second deadline. New inputs before queueing,
+finish, safety/failure and departure cancel it. Reset clears held thread text.
+Late provider usage after the first spend summary emits a session/activity-linked
+late-usage total, never a learner quote or late explanation. Unknown abandoned
+provider billing remains labelled as abandoned rather than claimed free.

@@ -133,6 +133,7 @@ export function buildOwnWordsJudgeRequest(input: OwnWordsJudgeInput, signal?: Ab
     kind: 'judge',
     system: JUDGE_SYSTEM,
     request,
+    input,
     ...(signal === undefined ? {} : { signal }),
   };
 }
@@ -146,7 +147,7 @@ export function buildOwnWordsJudgeRequest(input: OwnWordsJudgeInput, signal?: Ab
  * sentence that slipped into French. Digits are not allowed — a note about
  * someone's French with a number in it is a mark, whatever it says.
  */
-function noteIsSafe(note: string, allowedFrom: string): boolean {
+export function safeJudgeNote(note: string, allowedFrom: string): boolean {
   if (note.length > OWN_WORDS_NOTE_MAX) return false;
   if (copyViolations(note).length > 0) return false;
   return !carriesFrench(note, allowedFrom);
@@ -166,5 +167,5 @@ function noteIsSafe(note: string, allowedFrom: string): boolean {
  */
 export function parseOwnWordsVerdict(raw: unknown, allowedFrom = ''): OwnWordsVerdict {
   const verdict = OwnWordsVerdictSchema.parse(raw);
-  return { ...verdict, note: noteIsSafe(verdict.note, allowedFrom) ? verdict.note : '' };
+  return { ...verdict, note: safeJudgeNote(verdict.note, allowedFrom) ? verdict.note : '' };
 }

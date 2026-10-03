@@ -1,8 +1,12 @@
+import { scopeGeneration } from '../storage/scope.ts';
+import { serverBillingReady } from './client.ts';
+import { auth } from '../auth/adapter.ts';
+import { storeQueue } from './storeQueue.ts';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
 
-import { PAID_PLANS, type PaidPlan, type PurchasesAdapter, type StoreAction, type StoreOffering, type StoreProduct } from './adapter.ts';
+import { PAID_PLANS, type PaidPlan, type PurchasesAdapter, type StoreAction, type StoreOffering, type StoreProduct } from './contract.ts';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
@@ -30,6 +34,7 @@ function configuredPlans(): readonly PaidPlan[] {
 }
 
 let configuredFor: string | null = null;
+const serial = storeQueue();
 
 function apiKey(): string | null {
   if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return null;
@@ -39,11 +44,13 @@ function apiKey(): string | null {
 }
 
 async function ready(userId: string): Promise<boolean> {
+  const owner = scopeGeneration();
   const key = apiKey();
   // A key and at least one product. Either alone buys nothing: a key with no
   // product id has nothing to sell, and a product id with no key cannot reach
   // the store to ask about it.
   if (!key || configuredPlans().length === 0) return false;
+  if ((await auth.getSession())?.id !== userId || owner !== scopeGeneration()) return false;
   if (configuredFor === null) {
     Purchases.configure({ apiKey: key, appUserID: userId });
     configuredFor = userId;
@@ -51,7 +58,8 @@ async function ready(userId: string): Promise<boolean> {
     await Purchases.logIn(userId);
     configuredFor = userId;
   }
-  return true;
+  const available = await serverBillingReady(userId);
+  return available && owner === scopeGeneration() && configuredFor === userId;
 }
 
 /**
@@ -62,14 +70,18 @@ async function ready(userId: string): Promise<boolean> {
  * trips to learn the same thing, with the second able to disagree with the first.
  */
 async function paidPackages(userId: string): Promise<readonly { plan: PaidPlan; found: PurchasesPackage }[]> {
+  const owner = scopeGeneration();
   if (!(await ready(userId))) return [];
   const offering = (await Purchases.getOfferings()).current;
+  if (owner !== scopeGeneration() || configuredFor !== userId) return [];
   if (!offering) return [];
   const out: { plan: PaidPlan; found: PurchasesPackage }[] = [];
   for (const plan of configuredPlans()) {
     const id = PRODUCT_IDS[plan];
     const found = offering.availablePackages.find((candidate) => candidate.product.identifier === id);
-    if (found) out.push({ plan, found });
+    // Approved plan copy is monthly. Unknown or incompatible periods are not
+    // offered or bought, even when a configured identifier matches.
+    if (found?.product.subscriptionPeriod === 'P1M') out.push({ plan, found });
   }
   return out;
 }
@@ -94,6 +106,7 @@ function actionFrom(error: unknown): StoreAction {
 
 export const purchases: PurchasesAdapter = {
   async offering(userId): Promise<StoreOffering> {
+    return serial(async () => {
     try {
       const products = (await paidPackages(userId))
         .map(({ plan, found }) => productOf(plan, found))
@@ -105,30 +118,40 @@ export const purchases: PurchasesAdapter = {
     } catch {
       return { available: false };
     }
+    });
   },
 
   async purchase(userId, productId): Promise<StoreAction> {
+    const owner = scopeGeneration();
+    return serial(async () => {
     try {
       // Only a package this build offered a moment ago. An id from anywhere
       // else buys nothing, which is what keeps the purchase path to the two
       // tiers the store and the server both agree exist.
       const match = (await paidPackages(userId)).find((entry) => entry.found.product.identifier === productId);
-      if (!match) return { ok: false, cancelled: false };
+      if (!match || configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       await Purchases.purchasePackage(match.found);
+      if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       return { ok: true };
     } catch (error) {
       return actionFrom(error);
     }
+    });
   },
 
   async restore(userId): Promise<StoreAction> {
+    const owner = scopeGeneration();
+    return serial(async () => {
     try {
       if (!(await ready(userId))) return { ok: false, cancelled: false };
+      if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       await Purchases.restorePurchases();
+      if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       return { ok: true };
     } catch (error) {
       return actionFrom(error);
     }
+    });
   },
 
   // The sheet belongs to the store, so there is nothing to read back. On a
@@ -136,12 +159,17 @@ export const purchases: PurchasesAdapter = {
   // same answer the web half gives and the reason the row is drawn only when
   // an offering arrived.
   async manage(userId): Promise<StoreAction> {
+    const owner = scopeGeneration();
+    return serial(async () => {
     try {
       if (!(await ready(userId))) return { ok: false, cancelled: false };
+      if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       await Purchases.showManageSubscriptions();
+      if (configuredFor !== userId || owner !== scopeGeneration()) return { ok: false, cancelled: false };
       return { ok: true };
     } catch (error) {
       return actionFrom(error);
     }
+    });
   },
 };

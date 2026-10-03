@@ -53,8 +53,8 @@ describe('billing endpoint wiring — F248', () => {
   });
 
   test('a replayed webhook is acknowledged without a second vendor fetch', () => {
-    const dedupe = webhook.indexOf('store.recordBillingEvent(');
-    const replay = webhook.indexOf('if (!first)');
+    const dedupe = webhook.indexOf('store.billingEventComplete(');
+    const replay = webhook.indexOf('if (complete)');
     const fetch = webhook.indexOf('refreshSubscriber(');
     assert.ok(dedupe >= 0 && replay > dedupe && fetch > replay);
     assert.match(webhook.slice(replay, fetch), /return json\(res, 200,[\s\S]*replay: true/);
@@ -79,7 +79,7 @@ describe('billing endpoint wiring — F248', () => {
     assert.match(route, /RATE_LIMITS\.exportIp/);
     assert.match(route, /users\.resolve\(req\.headers\.authorization, null\)/);
     assert.match(route, /RATE_LIMITS\.exportUser/);
-    assert.match(route, /exportSupabaseAccountData\(supabaseUrl, serviceRoleKey, resolved\.userId\)/);
+    assert.match(route, /exportRecentlyAuthenticatedAccountData\(supabaseUrl, serviceRoleKey, resolved\.userId, resolved\.authenticatedAt\)/);
     assert.doesNotMatch(route, /searchParams\.get\(['"]userId/);
     assert.doesNotMatch(route, /body\.userId/);
   });
@@ -104,4 +104,16 @@ describe('revisit source provenance on /conversation-packs/complete', () => {
     assert.match(route, /saveConversationPack\(supabaseUrl, serviceRoleKey, pack\)/);
     assert.doesNotMatch(route, /receive\(body\.pack|saveConversationPack\([^)]*body\.pack/);
   });
+});
+
+
+test('every write endpoint carries a rate limit', () => {
+  const routes = [...server.matchAll(/if \(req\.method === '(POST|DELETE)' && url\.pathname === '([^']+)'\)/g)];
+  assert.ok(routes.length >= 10);
+  for (const match of routes) {
+    const at = match.index!;
+    const end = server.indexOf('if (req.method', at + match[0].length);
+    const body = server.slice(at, end < 0 ? undefined : end);
+    assert.match(body, /withinLimits\(|handleDrillJudge\(|handleDrillScore\(|handleDrillTranscribe\(/, `${match[2]} has no bounded handler`);
+  }
 });

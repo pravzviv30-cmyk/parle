@@ -17,6 +17,7 @@
  * Supabase credentials can no longer open the trust-the-client path.
  */
 
+import { verifiedAuthenticationAt } from '@luvani/core';
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 
 export interface VerifierConfig {
@@ -30,7 +31,7 @@ export interface VerifierConfig {
   localDevelopment?: string | undefined;
 }
 
-export type ResolvedUser = { ok: true; userId: string } | { ok: false; status: number; message: string };
+export type ResolvedUser = { ok: true; userId: string; authenticatedAt?: number } | { ok: false; status: number; message: string };
 
 export interface UserResolver {
   /** True when a token verifier exists; asserted local identity is a separate opt-in. */
@@ -44,7 +45,7 @@ export function createUserResolver(
   config: VerifierConfig,
   options: { getKey?: JWTVerifyGetKey } = {},
 ): UserResolver {
-  let verify: ((token: string) => Promise<string | null>) | null = null;
+  let verify: ((token: string) => Promise<{ userId: string; authenticatedAt?: number } | null>) | null = null;
 
   if (config.supabaseUrl || options.getKey) {
     // The JWKS fetcher is injectable so tests can hand over a key without a
@@ -60,14 +61,18 @@ export function createUserResolver(
     if (getKey) {
       verify = async (token) => {
         const { payload } = await jwtVerify(token, getKey);
-        return typeof payload.sub === 'string' && payload.sub !== '' ? payload.sub : null;
+        if (typeof payload.sub !== 'string' || !payload.sub) return null;
+        const at = verifiedAuthenticationAt(payload);
+        return { userId: payload.sub, ...(at === null ? {} : { authenticatedAt: at }) };
       };
     }
   } else if (config.jwtSecret) {
     const secret = new TextEncoder().encode(config.jwtSecret);
     verify = async (token) => {
       const { payload } = await jwtVerify(token, secret);
-      return typeof payload.sub === 'string' && payload.sub !== '' ? payload.sub : null;
+      if (typeof payload.sub !== 'string' || !payload.sub) return null;
+        const at = verifiedAuthenticationAt(payload);
+        return { userId: payload.sub, ...(at === null ? {} : { authenticatedAt: at }) };
     };
   }
 
@@ -84,8 +89,8 @@ export function createUserResolver(
       if (header !== undefined && header.trim() !== '') {
         if (!token || active === null) return SIGN_IN_REQUIRED;
         try {
-          const sub = await active(token);
-          return sub === null ? SIGN_IN_REQUIRED : { ok: true, userId: sub };
+          const identity = await active(token);
+          return identity === null ? SIGN_IN_REQUIRED : { ok: true, ...identity };
         } catch {
           // Expired, malformed, wrong key — the reason is not the client's business.
           return SIGN_IN_REQUIRED;

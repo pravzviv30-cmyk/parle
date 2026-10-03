@@ -77,7 +77,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     }
   });
 
-  test('a tab still says which one it is, and announces itself when the screen behind it changes', () => {
+  test('the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected', () => {
     // The layout change is the only change: every signal F313 and F325 put on
     // this bar is read back here, because a cell restyled without them is a bar
     // a screen reader cannot use.
@@ -87,31 +87,87 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
       /if \(!focused && !event\.defaultPrevented\) \{ tapSettled\(\); navigation\.navigate\(route\.name as never\); announceTab\(route\.name\); \}/,
       'a tap on the tab you are already on announces a move that did not happen',
     );
+    // 2026-09-30, revamp B (F600): SNIPPETS' bar. Selected is the glyph and the
+    // word in the brand blue at Outfit Bold (7.9 on white); the rest are the
+    // glyph and the word in soft ink at SemiBold (6.6 on white), so every word
+    // on the bar clears the text floor, selected or not.
     assert.match(
       FLAT,
-      /color=\{focused \? accent\.primary : paper\.inkSoft\}/,
-      'the active tab glyph is no longer set in the identity violet',
+      /color=\{focused \? accent\.brand : paper\.inkSoft\}/,
+      'the active tab glyph is not the brand blue, or the inactive one is not soft ink',
     );
     assert.match(
       FLAT,
-      /focused \? \{ color: accent\.primary, fontFamily: type\.button\.fontFamily \}/,
-      'the active tab label is no longer the identity violet at the heavier weight',
+      /focused \? \{ color: accent\.brand, fontFamily: font\.bold \}/,
+      'the active tab label is not the brand blue at Outfit Bold',
     );
     assert.match(FLAT, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
+    // The 600 is the tab label token's own weight, so the unselected word takes
+    // it by not naming a face, and the token is read to prove it is SemiBold.
+    assert.match(FLAT, /label: \{ \.\.\.type\.tabLabel, textAlign: 'center' \}/, 'the tab word is not set in the tab label token');
+    assert.match(read('../theme.ts'), /tabLabel: \{ fontFamily: font\.semiBold,/, 'the tab label token is no longer Outfit SemiBold, so the unselected word is not at 600');
     assert.ok(!/\bst\.dot\b/.test(BAR), 'the bar marks the active cell with a dot again');
   });
 
-  test('the selected tab arrives on a quiet wash and a settled tap', () => {
-    assert.match(FLAT, /const reduced = useReduceMotion\(\)/, 'the active wash cannot honour reduced motion');
-    assert.match(FLAT, /const selection = useRef\(state\.routes\.map\(\(_\, index\) => new Animated\.Value\(index === state\.index \? 1 : 0\)\)\)\.current/, 'the five tabs do not own stable animation drivers or the initial active tab begins blank');
-    assert.match(FLAT, /useNativeDriver: true/, 'the tab transition runs on the JS thread');
-    assert.match(FLAT, /<Animated\.View[^>]*st\.activeSurface/, 'the selected tab has no quiet coloured surface');
-    assert.match(FLAT, /backgroundColor: ACTIVE_TAB_SURFACE/, 'the wash bypasses the named navigation surface');
-    assert.match(FLAT, /borderColor: ACTIVE_TAB_OUTLINE/, 'the active surface has no outline, so the icon can disappear into its wash');
-    assert.match(FLAT, /outputRange: \[0, -2\]/, 'the selected glyph and label do not make the restrained two-point lift');
-    const pressed = BAR.slice(BAR.indexOf('cellPressed: {'), BAR.indexOf('},', BAR.indexOf('cellPressed: {')) + 1);
-    assert.doesNotMatch(pressed, /opacity/, 'pressing a tab fades the whole icon and word away');
-    assert.match(FLAT, /zIndex: 1/, 'the active wash can paint over the outlined icon');
+  test('the bar is white with a top hairline, and never a floating shadow', () => {
+    // 2026-09-30, revamp B (F600). Replaces "the bar is flat on paper with a top
+    // hairline". The wash, its outline, its lift and every animation stay
+    // refused; the one accent the bar may name is the brand blue, and the
+    // identity ink, the caps-label colour and the chartreuse stay off it.
+    for (const gone of ['Animated', 'useReduceMotion', 'interpolate', 'activeSurface', 'ACTIVE_TAB_SURFACE', 'ACTIVE_TAB_OUTLINE', 'highlight']) {
+      assert.ok(!BAR.includes(gone), `the tab bar still carries ${gone}`);
+    }
+    assert.match(BAR, /\baccent\.brand\b/, 'the bar no longer names the brand blue for the selected tab');
+    for (const other of ['accent.primary', 'accent.label']) {
+      assert.ok(!BAR.includes(other), `the tab bar names ${other}; the selected tab is the brand blue and nothing else`);
+    }
+    const from = BAR.indexOf('bar: {');
+    assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
+    const bar = BAR.slice(from, BAR.indexOf('},', from) + 1);
+    assert.match(bar, /backgroundColor: paper\.card/, 'the bar is not white');
+    assert.match(bar, /borderTopWidth: HAIRLINE/, 'the bar has no top hairline');
+    assert.match(bar, /borderTopColor: paper\.line/, 'the top rule is not the paper hairline');
+    for (const dock of ['borderRadius', 'marginHorizontal', 'borderColor: paper.ink', 'shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
+      assert.ok(!bar.includes(dock), `the bar still carries ${dock}, so it is a dock rather than a flat bar`);
+    }
+    // Pressing a tab shrinks it on the spring; it never fades the icon and word away.
+    assert.doesNotMatch(BAR, /opacity/, 'pressing a tab fades the whole icon and word away');
     assert.match(FLAT, /tapSettled\(\); navigation\.navigate/, 'a successful tab change gives no tactile answer');
+  });
+
+  test('a tab cell presses through Press with no haptic of its own, and the bar still moves nothing', () => {
+    // 2026-09-30, revamp B (F597, F600). The cell is the shared press: the one
+    // spring, released on lift, instant under reduced motion. It asks for no
+    // haptic, because the tick belongs to the tap that really changes tab and
+    // is already given inside onPress; a second one would tick on the tab you
+    // are already on.
+    assert.match(
+      FLAT,
+      /<Press haptic="none" frame=\{\[st\.cell, wrapped && st\.cellWrapped\]\}/,
+      'the tab cell does not press through the shared Press, or it asks for a haptic of its own',
+    );
+    assert.match(BAR, /^import \{ Press \} from '\.\.\/components\.tsx';$/m, 'the tab bar builds its own press instead of the shared one');
+    const cell = FLAT.slice(FLAT.indexOf('<Press haptic="none"'), FLAT.indexOf('</Press>'));
+    assert.match(cell, /accessibilityRole="tab"/, 'the pressed cell is announced as a button rather than a tab');
+    assert.doesNotMatch(BAR, /<Pressable\b/, 'the tab bar hand-rolls a Pressable beside the shared press');
+    assert.doesNotMatch(BAR, /cellPressed/, 'the static pressed style is back');
+    assert.doesNotMatch(BAR, /scale: 0\.985/, 'the tab bar scales by hand again instead of on the spring');
+    assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press may move a cell');
+  });
+
+  test('the five words are Home, Speak, Practice, Progress and Friends, and no route name changed', () => {
+    // 2026-09-30, revamp B (F600). Replaces "Home is labelled Today". The words
+    // under the glyphs follow the approved bar; the route names, which deep
+    // links and every navigate() call spell, do not move.
+    assert.match(
+      FLAT,
+      /const LABELS: Record<string, string> = \{ Home: 'Home', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'Progress', Friends: 'Friends', \};/,
+      'the five words under the glyphs are not Home, Speak, Practice, Progress and Friends',
+    );
+    assert.match(
+      FLAT,
+      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, Friends: FriendsIcon, \};/,
+      'a route name changed; only the word under the glyph was meant to',
+    );
   });
 });

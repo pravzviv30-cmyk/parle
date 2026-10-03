@@ -81,18 +81,11 @@ function writtenBefore(source: string, first: string, second: string): boolean {
 
 /** The body of one `if (sheet === '<name>') {` branch, braces matched. */
 function sheetBranch(source: string, name: string): string {
-  const start = source.indexOf(`if (sheet === '${name}')`);
-  assert.ok(start >= 0, `Profile has no ${name} sheet at all`);
-  const open = source.indexOf('{', start);
-  let depth = 0;
-  for (let i = open; i < source.length; i += 1) {
-    if (source[i] === '{') depth += 1;
-    else if (source[i] === '}') {
-      depth -= 1;
-      if (depth === 0) return source.slice(start, i + 1);
-    }
-  }
-  throw new Error(`the ${name} sheet is never closed`);
+  const start = source.indexOf(`<BottomSheet visible={sheet === '${name}'}`);
+  assert.ok(start >= 0, `Profile has no ${name} sheet`);
+  const end = source.indexOf('</BottomSheet>', start);
+  assert.ok(end > start, 'the sheet is not closed');
+  return source.slice(start, end + '</BottomSheet>'.length);
 }
 
 describe('the tab that is a person — F576', () => {
@@ -144,18 +137,12 @@ describe('the tab that is a person — F576', () => {
     //
     // Your tutor, your speaking rhythm, your learning. A fourth over the row
     // that reads Settings would say the same word twice.
-    assert.equal((TAB.match(/<Label>/g) ?? []).length, 3, 'Profile draws a caps label it did not before, or lost one');
-    for (const heading of ['TUTOR_LABEL', 'RHYTHM_LABEL', 'LEARNING_LABEL']) {
+    assert.equal((TAB.match(/<Label>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
+    for (const heading of ['TUTOR_LABEL', 'LEARNING_LABEL']) {
       assert.ok(TAB.includes(`<Label>{${heading}}</Label>`), `the ${heading} heading is spelled in JSX rather than imported`);
     }
-    assert.ok(
-      writtenBefore(BODY, '<Label>{TUTOR_LABEL}</Label>', '<Label>{RHYTHM_LABEL}</Label>'),
-      'the week is drawn above the tutor',
-    );
-    assert.ok(
-      writtenBefore(BODY, '<Label>{RHYTHM_LABEL}</Label>', '<Label>{LEARNING_LABEL}</Label>'),
-      'the learning card is drawn above the week',
-    );
+    assert.ok(writtenBefore(BODY, '<Label>{TUTOR_LABEL}</Label>', '<Label>{LEARNING_LABEL}</Label>'));
+    assert.doesNotMatch(TAB, /<FrenchLifeCard|<Label>\{RHYTHM_LABEL\}/);
     for (const spelled of ['Your tutor', 'Your speaking rhythm', 'Your learning', 'Your French life']) {
       assert.ok(!TAB.includes(`>${spelled}<`), `Profile writes "${spelled}" in JSX, so the copy sweeps cannot read it`);
     }
@@ -221,10 +208,10 @@ describe('the tab that is a person — F576', () => {
     );
     assert.match(SETTINGS, /title=\{REMINDER_ROW\}/, 'the daily reminder switch is on neither screen now');
     assert.match(SETTINGS, /REMINDERS_AVAILABLE && row !== null/, 'the reminder is drawn on a build that cannot schedule anything');
-    assert.match(SETTINGS, /label=\{TUTOR_INTRO_LINK\}/, 'nothing on Settings opens the one page that teaches the circle');
+    assert.match(SETTINGS, /label=\{CONNECTION_HELP_ROW\}/, 'nothing on Settings opens the one page that teaches the circle');
     assert.match(SETTINGS, /<TutorIntro onDone=\{\(\) => setSheet\('none'\)\} \/>/, 'Settings links to an intro it never renders');
     assert.ok(
-      writtenBefore(SETTINGS, '<Label>{HELP_GROUP}</Label>', 'label={TUTOR_INTRO_LINK}'),
+      writtenBefore(SETTINGS, '<Label>{HELP_GROUP}</Label>', 'label={CONNECTION_HELP_ROW}'),
       'the intro link is drawn outside the Help group',
     );
 
@@ -237,7 +224,7 @@ describe('the tab that is a person — F576', () => {
       writtenBefore(voice, 'TUTOR_VOICE_OPTIONS.map(', 'PACE_ROW'),
       'the pace switch is drawn above the eight voices, so the sheet opens on a setting rather than on a choice',
     );
-    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'));
+    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'), TAB.indexOf('</ScrollScreen>'));
     assert.ok(!learning.includes('PACE_ROW'), 'the pace switch is on the learning card as well as on the sheet');
 
     // One row on Profile leads anywhere at all, and everything above went

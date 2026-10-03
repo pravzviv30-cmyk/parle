@@ -15,8 +15,8 @@
  *
  * ## Matched, or a starting point
  *
- * Free-text goals will often match nothing. Then the answer is the first
- * mission, and its fit is `'starter'`: the words for it say "a good place to
+ * Free-text goals will often match nothing. Then the answer is the first full
+ * scene (the café, never the three-line opener), and its fit is `'starter'`: the words for it say "a good place to
  * start" and never "matches your goal". The fit is never stored, so the claim
  * is remade from the table every time it is drawn.
  */
@@ -111,14 +111,18 @@ function hits(words: readonly string[], mission: Mission): number {
 }
 
 /**
- * The one mission to offer for a goal, or null when the catalogue is empty.
+ * The one mission to offer for a goal, or null when the catalogue holds no full
+ * scene.
  *
  * The mission with the most hits wins; ties go to catalogue order, so the same
  * goal always gets the same task. No hit at all is the starter: the catalogue's
- * first mission (core's `FIRST_MISSION` when present), fit `'starter'`.
+ * first full scene, fit `'starter'`. Core's `FIRST_MISSION`, the three-line
+ * opener, is never offered for a goal, matched or not, at any boundary
+ * (2026-09-27): a goal names a place, and a place means its full scene, so the
+ * opener shares the café's place but is only ever the starting point.
  */
 export function nextTaskForGoal(goal: string, input: { missions: readonly Mission[] }): NextGoalTask | null {
-  const missions = input.missions;
+  const missions = input.missions.filter((mission) => mission.id !== FIRST_MISSION);
   if (missions.length === 0) return null;
   const said = wordsOf(goal);
   const negated = said.some((word) => NEGATIONS.has(word));
@@ -132,8 +136,7 @@ export function nextTaskForGoal(goal: string, input: { missions: readonly Missio
     }
   }
   if (best !== null) return { task: { kind: 'mission', id: best.id }, fit: 'matched' };
-  const starter = missions.find((mission) => mission.id === FIRST_MISSION) ?? missions[0]!;
-  return { task: { kind: 'mission', id: starter.id }, fit: 'starter' };
+  return { task: { kind: 'mission', id: missions[0]!.id }, fit: 'starter' };
 }
 
 /** The stored task id: the mission id, which already reads `mission:<place>`. */

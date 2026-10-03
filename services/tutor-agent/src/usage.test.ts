@@ -11,6 +11,22 @@ const report = {
 };
 
 describe('usage reporting', () => {
+  test('a failed refund request stays pending until an explicit settlement acknowledgement', async () => {
+    const refund = { ...report, seconds: 100, serviceFailure: 'tts_error' as const };
+    const base = { tokenServer: 'https://api.luvani.test', agentSecret: 'agent-secret', attempts: 1 };
+    assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response('{}', { status: 503 }) }), { kind: 'pending' });
+    assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response(JSON.stringify({ secondsRemaining: 1800 }), { status: 200 }) }), { kind: 'pending' });
+    assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response('{}', { status: 409 }) }), { kind: 'reconciliation' });
+    const ack = { kind: 'restored-current-period', refundedSeconds: 100, secondsRemaining: 1800, plan: 'trial' };
+    let sent: Record<string, unknown> = {};
+    const confirmed = await reportUsage(refund, { ...base, request: async (_url, options) => {
+      sent = JSON.parse(String(options?.body));
+      assert.ok(options?.signal, 'the request itself is bounded, not just the retry count');
+      return new Response(JSON.stringify(ack), { status: 200 });
+    } });
+    assert.equal(sent.serviceFailure, 'tts_error');
+    assert.deepEqual(confirmed, ack);
+  });
   test('reports zero seconds so an unusable session is released without being charged', async () => {
     const bodies: string[] = [];
     const request = async (_input: string | URL | Request, init?: RequestInit) => {

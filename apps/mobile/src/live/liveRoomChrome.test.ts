@@ -38,13 +38,14 @@ describe('quiet live-room chrome', () => {
   });
 
   test('the outlined circle has a 44pt target and visible, motion-free press feedback', () => {
-    assert.match(header, /width: HIT,[\s\S]{0,80}height: HIT/, 'the end control is smaller than the shared 44pt floor');
-    assert.match(header, /borderRadius: radius\.control/, 'the end control must share the Atelier control shape');
-    assert.match(header, /borderWidth: HAIRLINE/, 'the end control lost its quiet outline');
-    assert.match(header, /backgroundColor: paper\.card/, 'the resting control is not on the porcelain/card palette');
-    assert.match(header, /endPressed:[\s\S]{0,140}borderColor: accent\.primary/, 'pressing the icon gives no violet feedback');
-    assert.match(header, /endPressed:[\s\S]{0,180}backgroundColor: paper\.groundDeep/, 'pressed feedback depends on opacity alone');
-    assert.doesNotMatch(header, /\bAnimated\b|opacity:/, 'the header adds motion or opacity-only feedback to a simple exit');
+    assert.match(header, /<RoundButton kind="close"/, 'the exit is not the shared round button');
+    const parts = read('../components.tsx');
+    const round = parts.slice(parts.indexOf('export function RoundButton'), parts.indexOf('export function ColourCard'));
+    assert.match(round, /next \? HIT \+ space\(5\) : HIT/, 'the close disc is below the shared touch floor');
+    assert.match(round, /borderRadius: disc \/ 2/, 'the exit is not round');
+    assert.match(round, /<Press haptic="light"/, 'the exit loses the shared press feedback');
+    assert.match(round, /paper\.card/, 'the resting disc is not white');
+    assert.doesNotMatch(header, /\bAnimated\b|opacity:/, 'the header adds an independent animation');
     assert.match(header, /accessibilityHint="Opens a confirmation before ending the session"/, 'the icon does not explain its safe two-step exit');
   });
 

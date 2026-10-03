@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Luvani adaptive icon foreground</title>
+  <desc id="desc">The spoken L mark at two thirds of the master size, inside the Android adaptive icon safe zone, on a transparent layer.</desc>
+  <g transform="translate(512 512) scale(0.6667) translate(-512 -512)">
+    <path fill="#182019" d="M358 184c-53 0-96 43-96 96v348c0 117 95 212 212 212h181l126-103-52-126H493c-22 0-40-18-40-40V280c0-53-42-96-95-96Z"/>
+    <path fill="#D8FF54" d="m655 690 60 35-60 49Z"/>
+  </g>
+</svg>

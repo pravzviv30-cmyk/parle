@@ -12,11 +12,12 @@ import { createHash } from 'node:crypto';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema } from '../contract/schemas.ts';
+import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
 import { CurationSchema, type Curation } from '../curate/curate.ts';
 import { DrillBatchSchema, type DrillBatch } from '../drill/generate.ts';
 import { OwnWordsVerdictSchema } from './judge.ts';
+import { FixLineVerdictSchema } from './fixLineJudge.ts';
 import {
   BrainParseError,
   BrainRefusalError,
@@ -47,13 +48,16 @@ type ContractSchema =
   | typeof MemoryExtractionSchema
   | typeof DrillBatchSchema
   | typeof CurationSchema
-  | typeof OwnWordsVerdictSchema;
+  | typeof OwnWordsVerdictSchema
+  | typeof FixLineVerdictSchema;
 
 export interface OpenAiResponsesConfig {
   apiKey?: string;
   baseUrl?: string;
   /** Fast, inexpensive model used for the calls a learner waits through. */
   turnModel?: string;
+  /** Live turn/frame override; leaves curated practice and written judgments on turnModel. */
+  liveModel?: string;
   /** Stronger model used for the calls that run once the room has closed. */
   analystModel?: string;
   /** Per-activity effort and size. Defaults to the shared table, env applied. */
@@ -61,13 +65,21 @@ export interface OpenAiResponsesConfig {
 }
 
 /** The wiring half of the config: the two names, and where to send them. */
-type Wiring = Required<Pick<OpenAiResponsesConfig, 'apiKey' | 'baseUrl' | 'turnModel' | 'analystModel'>>;
+type Wiring = Required<Pick<OpenAiResponsesConfig, 'apiKey' | 'baseUrl' | 'turnModel' | 'liveModel' | 'analystModel'>>;
 
 type FetchResponse = Awaited<ReturnType<FetchLike>>;
 
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 export const DEFAULT_OPENAI_TURN_MODEL = 'gpt-5.6-luna';
+export const DEFAULT_OPENAI_LIVE_MODEL = 'gpt-6-luna';
 export const DEFAULT_OPENAI_ANALYST_MODEL = 'gpt-5.6-terra';
+
+/** One resolver for the brain, scripted SDK and startup probe; legacy overrides remain valid. */
+export function openAiLiveModel(env: Record<string, string | undefined> = process.env,
+  config: Pick<OpenAiResponsesConfig, 'liveModel' | 'turnModel'> = {}): string {
+  return config.liveModel?.trim() || env.OPENAI_LIVE_MODEL?.trim() || config.turnModel?.trim() ||
+    env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_LIVE_MODEL;
+}
 
 /**
  * Which of the two models answers is asked of routing.ts, not decided here.
@@ -209,8 +221,9 @@ export class OpenAiResponsesBrainClient implements LlmClient {
     this.config = {
       apiKey: config.apiKey ?? process.env.OPENAI_API_KEY ?? '',
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
-      turnModel: config.turnModel ?? (process.env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL),
-      analystModel: config.analystModel ?? (process.env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL),
+      turnModel: config.turnModel?.trim() || process.env.OPENAI_TURN_MODEL?.trim() || DEFAULT_OPENAI_TURN_MODEL,
+      liveModel: openAiLiveModel(process.env, config),
+      analystModel: config.analystModel?.trim() || process.env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
     };
     this.routing = config.routing ?? resolveRouting();
   }
@@ -275,7 +288,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       { cacheSeed: request.system, ...(request.signal === undefined ? {} : { signal: request.signal }) },
       request.system,
       [{ role: 'user', text: request.request }],
-      OwnWordsVerdictSchema,
+      request.judgeType === 'fix-line' ? FixLineVerdictSchema : OwnWordsVerdictSchema,
     );
     return { verdict: result.value, usage: result.usage };
   }
@@ -284,7 +297,8 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   private routeFor(activity: BrainActivity): { model: string; effort: BrainEffort | undefined; maxTokens: number } {
     const route = this.routing[activity];
     return {
-      model: isAnalystActivity(activity, this.routing) ? this.config.analystModel : this.config.turnModel,
+      model: isAnalystActivity(activity, this.routing) ? this.config.analystModel
+        : activity === 'turn' || activity === 'frame' ? this.config.liveModel : this.config.turnModel,
       effort: route.effort,
       maxTokens: route.maxTokens,
     };
@@ -335,7 +349,8 @@ export class OpenAiResponsesBrainClient implements LlmClient {
 
     let value: unknown;
     try {
-      value = schema.parse(JSON.parse(raw));
+      const decoded: unknown = JSON.parse(raw);
+      value = schema.parse(schema === TurnSchema ? withMissingGoalObservation(decoded) : decoded);
     } catch {
       // Billed all the same, so the usage rides on the error: the call the
       // meter must not miss is the one that produced nothing.

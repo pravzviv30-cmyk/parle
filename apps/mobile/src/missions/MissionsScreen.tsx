@@ -8,7 +8,9 @@
  *
  * One recommended mission leads, followed by a visible guided-pronunciation
  * alternative and five situation rows. Outcomes lead in English, with French
- * titles as supporting context. Speak/Type follows the learner into the room.
+ * titles as supporting context. Speaking is the default; a quiet "Type instead"
+ * sits under the one Start (2026-09-27, notebook Phase 3: the Speak/Type
+ * segmented pill left), and a learner who arrived typing stays typing.
  *
  * Every rule on this page lives in `chooserView.ts`: which mission is first,
  * which one carries the solid pill, what each card says underneath, whether the
@@ -19,20 +21,20 @@
 
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../nav/types.ts';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { missionStates, type MissionProgress } from '@luvani/core';
-import { accent, paper, space, type } from '../theme.ts';
-import { Card, GhostButton, Label, MicGlyph, OutlineButton, PillButton, TabBar, TintRow } from '../components.tsx';
-import { estimateMinutes } from '../home/estimate.ts';
+import { earnedMissionIds, missionStates, type MissionProgress } from '@luvani/core';
+import { colour, frenchText, paper, space, type } from '../theme.ts';
+import { Card, GhostButton, Label, Ledger, LedgerRow, MicGlyph, OutlineButton, PillButton, SceneMark, FrenchBlock, RoundButton } from '../components.tsx';
+import { minutesLine, missionMinutes } from '../home/estimate.ts';
+import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
-import { Art } from '../art/Art.tsx';
-import { heroArt } from '../art/maps.ts';
+import { Illustration } from '../art/flat/Illustration.tsx';
+import { sceneIllustration } from '../art/flat/scenes.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { lessonStart, TUTOR_OFFLINE } from '../tutor/gate.ts';
-import { missionTint } from './missionTint.ts';
 import { loadMissionCompletions } from './store.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -48,9 +50,11 @@ import {
 import { trackProductEvent } from '../analytics/track.ts';
 import { asSentences } from '../copy/spoken.ts';
 import { ListeningPreview } from './ListeningPreview.tsx';
+import { scopeGeneration } from '../storage/scope.ts';
 
 export function MissionsScreen() {
   const nav = useNavigation<{
+    setParams: (params: object) => void;
     goBack: () => void;
     canGoBack: () => boolean;
     navigate: (screen: string, params?: object) => void;
@@ -58,9 +62,14 @@ export function MissionsScreen() {
   const { recheck } = useLive();
 
   const [progress, setProgress] = useState<readonly MissionProgress[] | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
+  const [readAttempt, setReadAttempt] = useState(0);
   const route = useRoute<RouteProp<RootStackParamList, 'Missions'>>();
-  const [mode, setMode] = useState<'speak' | 'type'>(route.params?.textMode ? 'type' : 'speak');
+  // The mode the learner arrived in. Speaking unless a door said typing.
+  const typed = route.params?.textMode === true;
   const [spokenBefore, setSpokenBefore] = useState(true);
+  const [showExamples, setShowExamples] = useState(false);
+  useEffect(() => setShowExamples(false), [route.params?.focus]);
   /** A probe is in flight, so a tap on the lesson is never a dead press. */
   const [checking, setChecking] = useState(false);
 
@@ -69,30 +78,34 @@ export function MissionsScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadMissionCompletions(), loadDeck(), loadActivity()])
+      const scope = scopeGeneration();
+      setProgress(null);
+      setReadFailed(false);
+      void Promise.all([loadMissionCompletions(), loadDeck(), loadActivity({ strict: true })])
         .then(([completions, deck, activity]) => {
-          if (cancelled) return;
+          if (cancelled || scopeGeneration() !== scope) return;
           setProgress(missionStates(missionCompletionsFrom(completions), deck, Date.now()));
           setSpokenBefore(hasSpokenBefore(activity));
         })
-        .catch(() => {});
+        .catch(() => { if (!cancelled && scopeGeneration() === scope) setReadFailed(true); });
       return () => {
         cancelled = true;
       };
-    }, []),
+    }, [readAttempt]),
   );
 
   // A first run opens ON this screen, so there is nothing behind it to go back
   // to. Falling through to the tabs is the difference between a way out and a
   // dead end on the very first screen after signing up.
   const leave = () => {
+    if (route.params?.focus) { nav.setParams({ focus: undefined }); return; }
     if (nav.canGoBack()) nav.goBack();
     else nav.navigate('Tabs');
   };
 
-  const open = (card: ChooserCard) => {
+  const open = (card: ChooserCard, textMode = typed) => {
     void trackProductEvent({ name: 'mission_started', properties: { missionId: card.mission.id, entry: 'chooser' } });
-    nav.navigate(card.route.screen, { ...card.route.params, textMode: mode === 'type' });
+    nav.navigate(card.route.screen, { ...card.route.params, textMode });
   };
 
   /**
@@ -125,69 +138,64 @@ export function MissionsScreen() {
   const view = chooserView({ progress: progress ?? missionStates([], [], Date.now()), spokenBefore, focus });
   const [first, ...rest] = view.cards;
 
+  const header = <ScreenHeader back={{ onPress: leave }} title={focus ? undefined : "Scenes"} />;
+  if (progress === null) return <ScrollScreen header={header}><View style={st.scroll}>
+    <Text style={st.sub}>{readFailed ? 'Your scene history could not be read just now.' : 'Finding your scenes.'}</Text>
+    {readFailed && <GhostButton label="Try loading scenes again" onPress={() => setReadAttempt((n) => n + 1)} />}
+  </View></ScrollScreen>;
+  if (focus && first) {
+    return (
+      <ScrollScreen ground={colour.blue} header={header}
+        footer={<View style={{ gap: space(2) }}>
+          <Text style={[type.small, { color: paper.onInk }]}>Speaking asks for microphone access when needed. You tap the microphone for each turn. Speaking and typing in a live room use live minutes.</Text>
+          <PillButton tone="white" label={typed ? 'Start typing' : 'Start speaking'} onPress={() => open(first)} />
+          {!typed && <GhostButton label={TYPE_INSTEAD} color={paper.onInk} onPress={() => open(first, true)} />}
+        </View>}>
+        <Text style={[type.small, { color: paper.onInk }]}>{view.access}</Text>
+        <View style={{ gap: space(5), paddingTop: space(6), paddingBottom: space(6) }}>
+          <Text style={[type.small, { color: paper.onInk }]}>{first.mission.cefr}, {minutesLine(missionMinutes(first.mission))}</Text>
+          <Text style={[type.small, { color: paper.onInk }]}>The estimate is for this scene's steps. The live room uses minutes while open.</Text>
+          <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />
+          <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>{first.mission.titleEn}</Text>
+          <Text {...frenchText} style={[type.french, { color: paper.onInk }]}>{first.mission.title}</Text>
+          {first.status !== 'New' && <Text style={[type.small, { color: paper.onInk }]}>{first.status}</Text>}
+          <Text style={[type.heading, { color: paper.onInk }]}>{first.mission.canDoEn}</Text>
+          <Card style={{ gap: space(4) }}>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>One line to try</Text>
+            {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
+            {first.mission.referencePhrases.length > 1 && <GhostButton label={showExamples ? 'Hide other examples' : 'See other examples'} onPress={() => setShowExamples((open) => !open)} />}
+            {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
+            <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
+          </Card>
+
+        </View>
+      </ScrollScreen>
+    );
+  }
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
+    <ScrollScreen header={header}>
       <View style={st.scroll}>
-        <Text style={st.headline}>{view.headline}</Text>
         <Text style={st.sub}>{view.sub}</Text>
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
         {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
         <Text style={st.access}>{view.access}</Text>
-        <View style={st.mode}>
-          <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="Mission conversation mode" />
-        </View>
-
-        {first && (
-          <Card tone="feature" style={st.hero}>
-            <Label>{CHOOSER_START_HERE}</Label>
-            <Art name={heroArt(first.mission.place)} style={st.heroArt} />
-            <Text style={[type.cardTitle, { color: paper.ink }]}>{first.mission.titleEn}</Text>
-            <Text style={[type.frenchSm, { color: paper.inkSoft }]}>{first.mission.title}</Text>
-            <Text style={[type.small, { color: paper.inkSoft }]}>{first.mission.goalEn}</Text>
-            <Text style={[type.small, { color: paper.ink }]}>{first.status} · About {estimateMinutes({ kind: 'mission', beats: first.mission.beatIds.length })} min</Text>
-            <PillButton
-              label={mode === 'type' ? 'Start typed mission' : 'Start mission'}
-              icon={<MicGlyph size={20} color={paper.onInk} />}
-              accessibilityLabel={`${mode === 'type' ? 'Start typed mission' : 'Start mission'}. ${first.mission.titleEn}. ${first.status}`}
-              onPress={() => open(first)}
-            />
-            {/* A quiet way to hear the scene's authored lines first. Never a
-                second primary: the pill above is this card's one action. */}
-            <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
-          </Card>
-        )}
-
-        <Card tone="journal" style={st.warmup}>
-          <Label>Want a little more support?</Label>
-          <Text style={[type.body, { color: paper.inkSoft }]}>Listen to a café phrase, then try it yourself. The line stays on screen while you practise.</Text>
-          <OutlineButton label={LESSON_DOOR.title} icon={<WaveformGlyph size={20} color={paper.ink} />} disabled={checking} onPress={() => openLesson(mode === 'type')} />
-          <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
-        </Card>
-
-        <View style={st.rows}>
-          <Label>{CHOOSER_OTHER}</Label>
-          {rest.map((card) => (
-            <TintRow
-              key={card.id}
-              tint={missionTint(card.mission.place)}
-              glyph={<PlaceGlyph place={card.mission.place} color={accent.primary} />}
-              title={card.mission.titleEn}
-              gloss={`${card.mission.goalEn} · ${card.status}`}
+        {(['A0', 'A1'] as const).map((level) => <View key={level} style={st.rows}>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{level}</Text>
+          <Ledger accessibilityLabel={`${level} scenes`}>
+            {view.cards.filter((card) => card.mission.cefr === level).map((card) => <LedgerRow
+              key={card.id} glyph={<SceneMark state={earnedMissionIds(progress ?? []).has(card.mission.id) ? 'earned' : card.primary ? 'here' : 'ahead'} />}
+              title={card.mission.titleEn} gloss={`${card.mission.title}. ${card.status}`} meta={minutesLine(missionMinutes(card.mission))}
               accessibilityLabel={asSentences([card.mission.title, card.mission.titleEn, card.status])}
-              onPress={() => open(card)}
-            />
-          ))}
-        </View>
-
-        {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
-
-        {/* The scripted lesson, and its own typed way in. The lesson is the one
-            live screen that offers no quiet door until something breaks, so
-            without this link a learner who cannot speak reaches the typed
-            lesson only by first having the session fail. */}
+              onPress={() => nav.setParams({ focus: card.mission.id, textMode: typed })}
+            />)}
+          </Ledger>
+        </View>)}
         <View style={st.footer}>
+          <GhostButton label={LESSON_DOOR.title} disabled={checking} onPress={() => openLesson(typed)} />
+          <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
           <GhostButton label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
-          <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: mode === 'type' })} />
+          <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
+          {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
         </View>
       </View>
     </ScrollScreen>
@@ -195,7 +203,6 @@ export function MissionsScreen() {
 }
 
 const st = StyleSheet.create({
-  mode: { marginTop: space(4) },
   warmup: { marginTop: space(4), gap: space(3) },
   scroll: { paddingTop: space(2), paddingBottom: space(6) },
   headline: { ...type.display, color: paper.ink },

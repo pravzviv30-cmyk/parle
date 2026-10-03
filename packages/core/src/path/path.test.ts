@@ -54,7 +54,9 @@ describe('node state follows the deck, not a second store', () => {
   });
 
   test('all phrases known and nothing due is complete', () => {
-    const deck = ["phrase:sur place, s'il vous plaît", 'phrase:je vais prendre un croissant', "phrase:oui, c'est tout, merci", 'phrase:ça sera tout, merci'].map((k) => card(k, NOW + DAY));
+    // 2026-09-27: cafe:order grew a fifth phrase, the opener's "sur place, au
+    // comptoir", so "all phrases" is five now.
+    const deck = ["phrase:sur place, s'il vous plaît", "phrase:sur place, au comptoir, s'il vous plaît", 'phrase:je vais prendre un croissant', "phrase:oui, c'est tout, merci", 'phrase:ça sera tout, merci'].map((k) => card(k, NOW + DAY));
     const units = buildPath(deck, [], [], OPTS, NOW);
     assert.equal(units[0]!.nodes.find((n) => n.id === 'cafe:order')!.state, 'complete');
   });
@@ -62,7 +64,8 @@ describe('node state follows the deck, not a second store', () => {
   test('a completed node returns to needs-review when the scheduler wants it', () => {
     // Deliberately not how the reference design behaves: the deck stays the
     // single source of truth, so a node can come back.
-    const deck = ["phrase:sur place, s'il vous plaît", 'phrase:je vais prendre un croissant', "phrase:oui, c'est tout, merci", 'phrase:ça sera tout, merci'].map((k) => card(k, NOW - DAY));
+    // 2026-09-27: five phrases in cafe:order now; see the test above.
+    const deck = ["phrase:sur place, s'il vous plaît", "phrase:sur place, au comptoir, s'il vous plaît", 'phrase:je vais prendre un croissant', "phrase:oui, c'est tout, merci", 'phrase:ça sera tout, merci'].map((k) => card(k, NOW - DAY));
     const units = buildPath(deck, [], [], OPTS, NOW);
     const order = units[0]!.nodes.find((n) => n.id === 'cafe:order')!;
     // Both true at once, which is the point of keeping them apart.

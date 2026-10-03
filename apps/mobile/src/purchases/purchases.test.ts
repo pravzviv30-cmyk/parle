@@ -25,9 +25,11 @@ import {
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 const WEB = read('./adapter.ts');
+const CONTRACT = read('./contract.ts');
 const NATIVE = read('./adapter.native.ts');
 const PAYWALL = read('./Paywall.tsx');
 const RESTORE = read('./restore.ts');
+const SETTLEMENT = read('./storeSettlement.ts');
 const SUBSCRIPTION = read('./subscription.ts');
 const SETTINGS_SCREEN = read('../settings/SettingsScreen.tsx');
 
@@ -127,7 +129,11 @@ describe('the shared paywall â€” F250', () => {
       // Stage 3 (2026-09-25): the lesson hands this phase to its own page on
       // the scrolling frame, so its paywall is read there.
       const page = /<OutOfMinutesView\b/.test(branch) ? read('../live/OutOfMinutesView.tsx') : branch;
-      assert.match(page, /<Paywall userId=\{userId\}/, `${screen} omits the shared paywall`);
+      assert.match(branch, /<OutOfMinutesView label=\{live.status.label\} message=\{live.status.message\}/);
+      assert.match(page, /<Sheet visible title=\{label\} onClose=\{onExit\}/);
+      assert.match(page, /nav.navigate\('Wall', \{ entry: 'refused' \}\)/);
+      assert.match(page, /label="Back to my French" onPress=\{onExit\}/);
+      assert.doesNotMatch(page, /<Paywall/);
     }
   });
 });
@@ -159,18 +165,24 @@ describe('manage subscription and restore, on Settings as well as the paywall â€
     // The adapter and the billing refresh are spoken to in exactly one place,
     // so a second surface cannot half-restore by forgetting the server.
     assert.deepEqual(filesContaining(/purchases\.restore\(/), ['purchases/restore.ts']);
-    assert.deepEqual(filesContaining(/refreshBilling\(/), ['purchases/client.ts', 'purchases/restore.ts']);
+    assert.deepEqual(filesContaining(/refreshBilling\(/), ['purchases/client.ts', 'purchases/restore.ts', 'wall/WallScreen.tsx']);
+    // 3 Oct F704: accepted checkout recovery refreshes only the server, without reopening a store sheet.
+    const wall = readFileSync(new URL('../wall/WallScreen.tsx', import.meta.url), 'utf8');
+    const recovery = wall.slice(wall.indexOf('  const checkAcceptedPurchase ='), wall.indexOf('  const forward ='));
+    assert.match(recovery, /refreshBilling\(user.id, owner\)/);
+    assert.match(recovery, /confirmsPendingPurchase\(pendingPurchase, standing\)/);
+    assert.doesNotMatch(recovery, /purchases\.(?:purchase|restore)\(/);
 
     // Store first, server second, and the server only once the store said yes.
-    assert.match(RESTORE, /return settleStoreAction\(await purchases\.restore\(userId\)\)/);
-    assert.match(RESTORE, /if \(!action\.ok\) return \{ kind: action\.cancelled \? 'cancelled' : 'store-trouble' \}/);
+    assert.match(RESTORE, /const outcome = await settleStoreAction\(userId, \(\) => purchases\.restore\(userId\)\)/);
+    assert.match(SETTLEMENT, /if \(!action\.ok\) return \{ kind: action\.cancelled \? 'cancelled' : 'store-trouble' \}/);
     // A truthy refresh is no longer a grant. `(await refreshBilling()) ? done :
     // refresh-trouble` read `response.ok`, which is true for a learner with nothing
     // to restore, so owning nothing and having just subscribed produced the same
     // ending (F265). The server now says which, and these three lines are that.
-    assert.match(RESTORE, /const refresh = await refreshBilling\(\);/);
-    assert.match(RESTORE, /if \(refresh === null\) return \{ kind: 'refresh-trouble' \};/);
-    assert.match(RESTORE, /return refresh\.granted \? \{ kind: 'done', plan: refresh\.plan \} : \{ kind: 'nothing-granted' \};/);
+    assert.match(RESTORE, /\(\) => refreshBilling\(userId, owner\)/);
+    assert.match(SETTLEMENT, /if \(!current\(\) \|\| result === null\) return \{ kind: 'refresh-trouble' \};/);
+    assert.match(SETTLEMENT, /return result\.granted \? \{ kind: 'done', plan: result\.plan \} : \{ kind: 'nothing-granted' \};/);
     assert.doesNotMatch(
       RESTORE.replace(/\/\/[^\n]*/g, ''),
       /\(await refreshBilling\(\)\) \?/,
@@ -179,7 +191,7 @@ describe('manage subscription and restore, on Settings as well as the paywall â€
 
     // The paywall runs that function rather than a second copy of it.
     assert.match(PAYWALL, /import \{ restorePurchases, settleStoreAction \} from '\.\/restore\.ts'/);
-    assert.match(PAYWALL, /: await restorePurchases\(userId\)/);
+    assert.match(PAYWALL, /: await restorePurchases\(userId, 'inline'\)/);
     assert.match(PAYWALL, /action === 'restoring' \? RESTORE_BUSY/, 'the paywall stopped spelling the waiting line');
 
     // What each ending says, which is what the two surfaces share. A learner
@@ -202,7 +214,8 @@ describe('manage subscription and restore, on Settings as well as the paywall â€
   });
 
   test("manage opens the store's own sheet on a device and is unavailable on the web", async () => {
-    assert.match(WEB, /manage\(userId: string\): Promise<StoreAction>;/, 'manage is not on the adapter contract');
+    assert.match(CONTRACT, /manage\(userId: string\): Promise<StoreAction>;/, 'manage is not on the adapter contract');
+    assert.match(WEB, /export \* from '\.\/contract\.ts';/, 'the web adapter must retain its public contract exports');
     assert.doesNotMatch(WEB, /showManageSubscriptions/);
     assert.deepEqual(await purchases.manage('learner'), { ok: false, cancelled: false });
 

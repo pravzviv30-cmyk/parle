@@ -37,6 +37,13 @@
  * saying yes on a phone leaves the switch off on a tablet, which is the
  * conservative direction to be wrong in.
  *
+ * ## Withdrawal while storage is pending
+ *
+ * Off masks an older Yes immediately in this process, including after a failed
+ * write. Only a later durable On may clear that fence. Reads await queued writes
+ * and recheck the fence after storage returns. A failed Off still needs retry
+ * before relaunch; the UI receives the failure rather than claiming durability.
+ *
  * ## Every unreadable shape resolves to nothing
  *
  * A missing key, a half-written blob, a version this build does not know and a
@@ -53,7 +60,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PersistAck } from '../storage/ack.ts';
-import { userKey } from '../storage/scope.ts';
+import { userKey, scopeGeneration, writeInUserScope } from '../storage/scope.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = (): string => userKey('analytics');
@@ -79,6 +86,9 @@ interface StoredEnvelope {
 }
 
 let writeChain: Promise<unknown> = Promise.resolve();
+const deniedKeys = new Set<string>();
+const saveVersions = new Map<string, number>();
+let saveVersion = 0;
 
 /**
  * Run a write alone on the chain, with the account bound at enqueue.
@@ -92,12 +102,14 @@ let writeChain: Promise<unknown> = Promise.resolve();
  *
  * The account is bound when the work is requested, for the reason every store
  * here states: a sign-out while a write is queued must never redirect that
- * write into the next account's namespace. For a consent that is the sharpest
+ * write into the next account's namespace. Scope fencing also refuses an old queued
+ * write after a switch or reset, and reset waits any native write already dispatched. For a consent that is the sharpest
  * version of the rule, because it would be one person answering for another.
  */
-function serialized<T>(write: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(write: (key: string, owner: number) => Promise<T>): Promise<T> {
   const key = KEY();
-  const run = (): Promise<T> => write(key);
+  const owner = scopeGeneration();
+  const run = (): Promise<T> => write(key, owner);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -141,7 +153,11 @@ async function read(key: string): Promise<StoredConsent | null> {
  * account on a phone agreeing to something on another account's behalf.
  */
 export function loadConsent(): Promise<StoredConsent | null> {
-  return read(KEY());
+  const key = KEY();
+  return writeChain.then(async () => {
+    const answer = await read(key);
+    return deniedKeys.has(key) && answer !== null ? { allowed: false } : answer;
+  });
 }
 
 /**
@@ -158,10 +174,16 @@ export function loadConsent(): Promise<StoredConsent | null> {
  * `StoredConsent` cannot grow what lands on disk.
  */
 export function saveConsent(next: StoredConsent): Promise<PersistAck> {
-  return serialized(async (key) => {
-    const envelope: StoredEnvelope = { version: VERSION, consent: { allowed: next.allowed } };
+  const requestedKey = KEY();
+  const allowed = next.allowed === true;
+  const version = ++saveVersion;
+  saveVersions.set(requestedKey, version);
+  if (!allowed) deniedKeys.add(requestedKey);
+  return serialized(async (key, owner) => {
+    const envelope: StoredEnvelope = { version: VERSION, consent: { allowed } };
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(envelope));
+      if (!(await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify(envelope))))) return 'failed';
+      if (allowed && saveVersions.get(key) === version) deniedKeys.delete(key);
       return 'durable';
     } catch {
       // Storage full or unavailable. What the caller must not do is believe the

@@ -34,6 +34,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   buildOwnWordsJudgeRequest,
   parseOwnWordsVerdict,
+  priceUsage,
   type BrainJudgeRequest,
   type LlmUsage,
 } from '@luvani/brain/llm';
@@ -83,6 +84,18 @@ export interface DrillJudgeDeps {
   timeoutMs?: number;
 }
 
+/**
+ * The one line the server prints per judged attempt: which model answered and
+ * what it cost. It is built from the usage object alone, so it cannot carry the
+ * attempt. With Jev in front of the brain, the model name is how an operator
+ * sees which checks Jev settled and which went on to the brain.
+ */
+export function judgeUsageLine(usage: LlmUsage): string {
+  const priced = priceUsage(usage);
+  const cost = `$${priced.usd.toFixed(6)}${priced.exact ? '' : ' (estimated)'}`;
+  return `[luvani:judge] answered by ${usage.model ?? 'an unnamed model'}: ${usage.inputTokens} input, ${usage.outputTokens} output, ${cost}`;
+}
+
 function json(res: ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body);
   res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) });
@@ -90,7 +103,7 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 }
 
 /** The body, or null when it was too large or was not an object. */
-async function readJudgeBody(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+export async function readJudgeBody(req: IncomingMessage): Promise<Record<string, unknown> | null> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
@@ -159,6 +172,7 @@ export async function handleDrillJudge(req: IncomingMessage, res: ServerResponse
     typeof body.userId === 'string' ? body.userId : null,
   );
   if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+  if (typeof body.userId === 'string' && body.userId !== resolved.userId) return json(res, 403, { error: 'account changed' });
   if (!(await deps.limits(req, res, resolved.userId))) return;
 
   const fr = line(body.fr);

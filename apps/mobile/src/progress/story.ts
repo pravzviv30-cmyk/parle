@@ -163,7 +163,7 @@ interface Week {
 
 /** True when My French should draw the story at all. */
 export function hasStory(story: WeekStory): boolean {
-  return story.sentences.length > 0;
+  return story.sentences.some((line) => line !== IT_HAPPENED);
 }
 
 /**
@@ -343,7 +343,7 @@ function storyOf(week: Week): WeekStory {
   if (week.sessions.length > 0 && mostlyUnaided(week.sessions)) sentences.push(INDEPENDENCE);
 
   const places = placesEntered(week.completions);
-  if (places.length > 0) sentences.push(`This week you handled ${listed(places)}.`);
+  if (places.length > 0) sentences.push(`Scenes you practised this week: ${listed(places)}.`);
 
   const topic = topicTalkedAbout(week.packs);
   if (topic !== null) sentences.push(`You talked about ${topic} this week.`);

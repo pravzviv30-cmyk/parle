@@ -35,10 +35,9 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type ReviewCard } from '@luvani/core';
 
-import { Card, Label, OutlineButton } from '../components.tsx';
+import { Card, GhostButton, Label, Ledger, LedgerRow, OutlineButton } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { IconRowCard } from '../surface/IconRowCard.tsx';
 import { accent, paper, space, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
@@ -63,7 +62,7 @@ import {
 } from './store.ts';
 import { loadPackMarks, withMarks, type PackMark } from './marks.ts';
 import { useContinueArc } from '../purchases/useContinueArc.ts';
-import { scopeGeneration } from '../storage/scope.ts';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { MY_FRENCH_RETRY } from '../myfrench/copy.ts';
 
 /** The archive could not be read. Said as itself, never as an empty archive. */
@@ -84,9 +83,14 @@ export function ConversationsScreen({
   // with nothing: a feed drawn from an unanswered read would show an empty
   // archive to somebody who has had thirty conversations.
   const [archive, setArchive] = useState<Archive | null>(null);
+  const [archiveOwner, setArchiveOwner] = useState<number | null>(null);
+  const [archiveUserId, setArchiveUserId] = useState<string | null>(null);
   // Loading, read and unreadable are three facts. A failed read shows Retry
   // rather than an archive that looks empty; `attempt` re-runs the read.
   const [unread, setUnread] = useState(false);
+  const [unreadOwner, setUnreadOwner] = useState<number | null>(null);
+  const [unreadUserId, setUnreadUserId] = useState<string | null>(null);
+  const [remotePending, setRemotePending] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [packs, setPacks] = useState<readonly ConversationPack[]>([]);
   // Which filter the learner chose. `sessionsUnder` falls back to the whole
@@ -95,8 +99,14 @@ export function ConversationsScreen({
   // A direct link from My French opens the library on its conversation.
   const [showingLibrary, setShowingLibrary] = useState(openPackId !== undefined);
   const continueArc = useContinueArc();
+  const currentOwner = scopeGeneration();
+  const currentUserId = user?.id ?? null;
+  const archiveIsOwned = archiveOwner === currentOwner && archiveUserId === currentUserId && archiveUserId === activeUserId();
+  const visibleArchive = archiveIsOwned ? archive : null;
+  const visiblePacks = archiveIsOwned ? packs : [];
+  const visibleUnread = unread && unreadOwner === currentOwner && unreadUserId === currentUserId && unreadUserId === activeUserId();
 
-  useHardwareBack(showingLibrary, () => setShowingLibrary(false));
+  useHardwareBack(showingLibrary && archiveIsOwned, () => setShowingLibrary(false));
 
   // Rebuilt on every return: a conversation that just finished has to be on
   // this feed the moment the learner lands back here.
@@ -106,31 +116,36 @@ export function ConversationsScreen({
       // Bound to the account before the read: a result from a previous account
       // is dropped, never drawn for this one.
       const scope = scopeGeneration();
-      const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
+      const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope && (user?.id ?? null) === activeUserId();
+      setRemotePending(user !== null);
       const draw = (fetched: readonly ConversationPack[], deck: readonly ReviewCard[], marks: readonly PackMark[]) => {
         // This phone's marks folded in first, so the feed and the library
         // cannot disagree about a conversation that was already practised.
         const marked = withMarks(fetched, marks);
         setPacks(marked);
         setArchive(archiveFrom({ packs: marked, deck, now: Date.now() }));
+        setArchiveOwner(scope);
+        setArchiveUserId(user?.id ?? null);
         setUnread(false);
       };
       void Promise.all([loadConversationPacks(), loadDeck(), loadPackMarks()])
         .then(([stored, deck, marks]) => {
           if (!sameAccount()) return undefined;
           draw(stored, deck, marks);
-          if (user === null) return undefined;
+          if (user === null) { setRemotePending(false); return undefined; }
           // The cache first, then the server-owned truth. A closed app can miss
           // the original delivery, so this pull is the recovery path.
           return refreshConversationPacks(user, adapter).then((result) => {
+            if (sameAccount()) setRemotePending(false);
             if (sameAccount() && result.ok) draw(result.packs, deck, marks);
+            else if (sameAccount() && stored.length === 0) { setUnreadOwner(scope); setUnreadUserId(user?.id ?? null); setUnread(true); setShowingLibrary(false); }
           });
         })
         .catch(() => {
           // The learner's conversations are safe on their account either way,
           // but a failed read is not an empty archive. Say so and offer Retry,
           // unless this same account already has an archive on screen.
-          if (sameAccount()) setUnread(true);
+          if (sameAccount()) { setRemotePending(false); setUnreadOwner(scope); setUnreadUserId(user?.id ?? null); setUnread(true); setShowingLibrary(false); }
         });
       return () => {
         cancelled = true;
@@ -138,10 +153,10 @@ export function ConversationsScreen({
     }, [user, adapter, attempt]),
   );
 
-  if (showingLibrary) {
+  if (showingLibrary && !visibleUnread && visibleArchive !== null && (!remotePending || visiblePacks.length > 0)) {
     return (
       <ConversationPackLibrary
-        packs={packs}
+        packs={visiblePacks}
         initialPackId={openPackId}
         onBack={() => setShowingLibrary(false)}
         onReview={(pack) => nav.navigate('ConversationPractice', { packId: pack.id })}
@@ -161,6 +176,7 @@ export function ConversationsScreen({
         onDeleteOne={async (pack) => {
           if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
           const result = await deleteConversationPackForLearner(user, adapter, pack.id);
+          if (currentOwner !== scopeGeneration() || currentUserId !== activeUserId()) return { ok: false, message: 'Account changed. Reopen your conversations.' };
           if (result.ok) {
             setPacks(result.packs);
             return { ok: true };
@@ -170,6 +186,7 @@ export function ConversationsScreen({
         onDeleteAll={async () => {
           if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
           const result = await deleteAllConversationPacksForLearner(user, adapter);
+          if (currentOwner !== scopeGeneration() || currentUserId !== activeUserId()) return { ok: false, message: 'Account changed. Reopen your conversations.' };
           if (result.ok) {
             setPacks(result.packs);
             return { ok: true };
@@ -180,7 +197,7 @@ export function ConversationsScreen({
     );
   }
 
-  const shown = archive === null ? [] : sessionsUnder(archive, filter);
+  const shown = visibleArchive === null ? [] : sessionsUnder(visibleArchive, filter);
 
   return (
     <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: onBack }} />}>
@@ -188,14 +205,15 @@ export function ConversationsScreen({
         {CONVERSATIONS_TITLE}
       </Text>
       <Text style={st.purpose}>{CONVERSATIONS_PURPOSE}</Text>
+      {adapter.kind === 'supabase' && <GhostButton label="Saved conversation text" onPress={() => nav.navigate('SavedConversationText')} />}
 
-      {archive === null && !unread && (
+      {(visibleArchive === null || remotePending && visiblePacks.length === 0) && !visibleUnread && (
         <View style={st.block}>
           <ActivityIndicator color={paper.inkSoft} accessibilityLabel="Loading your conversations" />
         </View>
       )}
 
-      {archive === null && unread && (
+      {visibleUnread && visiblePacks.length === 0 && (
         <Card style={st.block}>
           <Text style={[type.body, { color: paper.ink }]}>{CONVERSATIONS_UNREAD}</Text>
           <View style={{ marginTop: space(3) }}>
@@ -210,15 +228,15 @@ export function ConversationsScreen({
         </Card>
       )}
 
-      {archive !== null && archive.filters.length > 0 && (
+      {visibleArchive !== null && visibleArchive.filters.length > 0 && (
         <View style={st.block}>
-          <SessionFilters filters={archive.filters} active={filter} onChange={setFilter} />
+          <SessionFilters filters={visibleArchive.filters} active={filter} onChange={setFilter} />
         </View>
       )}
 
-      {archive !== null && archive.vault !== null && (
+      {visibleArchive !== null && visibleArchive.vault !== null && (
         <View style={st.block}>
-          <VaultCard vault={archive.vault} />
+          <VaultCard vault={visibleArchive.vault} />
         </View>
       )}
 
@@ -228,7 +246,7 @@ export function ConversationsScreen({
             <View style={st.feedWords}>
               <Label color={paper.ink}>{FEED.label}</Label>
             </View>
-            {archive?.order != null && <Text style={st.order}>{archive.order}</Text>}
+            {visibleArchive?.order != null && <Text style={st.order}>{visibleArchive.order}</Text>}
           </View>
           <View style={st.feed}>
             {shown.map((session) => (
@@ -245,22 +263,24 @@ export function ConversationsScreen({
       {/* What a learner with no conversations reads instead of an archive.
           Gated on the model rather than on the feed's length, so it cannot
           appear for half a second while storage is still answering. */}
-      {archive?.opening != null && (
+      {!visibleUnread && !remotePending && visibleArchive?.opening != null && (
         <View style={st.block}>
-          <Text style={st.openingTitle}>{archive.opening.title}</Text>
-          <Text style={st.openingBody}>{archive.opening.body}</Text>
+          <Text style={st.openingTitle}>{visibleArchive.opening.title}</Text>
+          <Text style={st.openingBody}>{visibleArchive.opening.body}</Text>
         </View>
       )}
 
-      {packs.length > 0 && (
+      {visiblePacks.length > 0 && (
         <View style={st.block}>
-          <IconRowCard
-            glyph={<ChatGlyph color={accent.primary} />}
-            label={LIBRARY_LABEL}
-            line={LIBRARY_LINE}
-            accessibilityLabel={libraryDoorLabel()}
-            onPress={() => setShowingLibrary(true)}
-          />
+          <Ledger>
+            <LedgerRow
+              glyph={<ChatGlyph color={accent.primary} />}
+              label={LIBRARY_LABEL}
+              title={LIBRARY_LINE}
+              accessibilityLabel={libraryDoorLabel()}
+              onPress={() => setShowingLibrary(true)}
+            />
+          </Ledger>
         </View>
       )}
     </ScrollScreen>

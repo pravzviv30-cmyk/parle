@@ -148,11 +148,12 @@ describe('the layout primitives keep their promises — F306', () => {
 });
 
 describe('the chrome primitives hold their shape — F331, F334, F335', () => {
-  test('the tab header sets its title at display size, left, as a heading, with a purpose line beneath and nothing capped', () => {
+  test('the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped', () => {
     // TabHeader mounts in the scroll body, not the frame's header slot, so a
-    // fixed display title over a purpose line can scroll rather than pin. The
-    // title is the tab's name at display size, left, rolled as a heading; the
-    // purpose is one plain body line under it. Nothing caps or truncates either.
+    // title over a purpose line can scroll rather than pin. The title is the
+    // tab's name, left, rolled as a heading; the purpose is one plain body line
+    // under it. Nothing caps or truncates either. Its size is F602's, held in
+    // `every tab title is the working title at 30, and the greeting is one of them`.
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
     assert.match(header, /marginBottom: space\(5\)/, 'the header block does not space itself off the body beneath it');
     assert.match(
@@ -163,8 +164,8 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
     assert.match(
       header,
-      /type\.display,\s*\{ color: paper\.ink, flex: 1 \}/,
-      'the title is not the display type in ink, taking the row',
+      /type\.title,\s*\{ color: paper\.ink, flex: 1 \}/,
+      'the title is not the working title in ink, taking the row',
     );
     assert.match(
       header,
@@ -186,12 +187,13 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
   });
 
   test('the shared header keeps a slot at the touch floor on both sides, whether or not it holds a control', () => {
-    // Three slots always. The left is the chevron at the touch floor or an empty
-    // box its width; the right is the leave word at the floor or an empty box its
-    // width; the title sits in the flex centre between them, not half a hit target
-    // off it because one side was empty. The marginLeft:auto crutch is gone.
+    // Three slots always. The left is the round back button, a disc at the
+    // touch floor (components.tsx draws it at HIT), or an empty box its width;
+    // the right is the leave word at the floor or an empty box its width; the
+    // title sits in the flex centre between them, not half a hit target off it
+    // because one side was empty. The marginLeft:auto crutch is gone.
     const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
-    assert.match(header, /width: HIT, height: HIT/, 'the back chevron is not a slot at the touch floor');
+    assert.match(header, /<RoundButton kind="back"/, 'the back control is not the round button at the touch floor');
     assert.match(header, /<View style=\{\{ width: HIT \}\} \/>/, 'the left slot collapses when there is no back control');
     assert.match(
       header,
@@ -199,8 +201,28 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
       'the leave word is not a right slot at the touch floor',
     );
     assert.match(header, /<View style=\{\{ minWidth: HIT \}\} \/>/, 'the right slot collapses when there is no leave control');
-    assert.match(header, /flex: 1, alignItems: 'center'/, 'the title is not the centred flex slot between the two');
+    assert.match(header, /flex: 1, alignItems: 'flex-start'/, 'the title is not the centred flex slot between the two');
     assert.doesNotMatch(header, /marginLeft: 'auto'/, 'the header still shoves the leave word with marginLeft:auto');
+  });
+
+  test('the pushed header\'s way back is a 44 round white button', () => {
+    // Revamp B, F597: SNIPPETS header-pushed. The way back is the white disc at
+    // the touch floor with the ICONS.md back mark, drawn once in components.tsx,
+    // rather than a bare chevron this file lays out itself. The name still
+    // falls back to Back when the caller gives none.
+    const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
+    assert.match(
+      header,
+      /<RoundButton kind="back" onPress=\{back\.onPress\} accessibilityLabel=\{back\.label \?\? 'Back'\} \/>/,
+      'the pushed header does not go back through the round button, or lost its fallback name',
+    );
+    assert.doesNotMatch(header, /<ChevronLeft/, 'the header draws a bare chevron again beside the round button');
+    const round = readFileSync(join(SRC, 'components.tsx'), 'utf8');
+    const at = round.indexOf('export function RoundButton(');
+    assert.notEqual(at, -1, 'components.tsx has no RoundButton for the header to use');
+    const button = round.slice(at, round.indexOf('\nexport ', at + 1));
+    assert.match(button, /const disc = next \? HIT \+ space\(5\) : HIT;/, 'the back disc is not at the touch floor');
+    assert.match(button, /ground === 'white' \? paper\.card/, 'the back disc is not white');
   });
 
   test('a scroll screen under the tab bar pads its own bottom, and one that is not does not', () => {
@@ -220,6 +242,116 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     const design = readFileSync(join(SRC, '..', '..', '..', 'DESIGN.md'), 'utf8');
     assert.match(design, /TabHeader/, 'DESIGN.md does not name the tab header');
     assert.match(design, /Monogram/, 'DESIGN.md does not name the monogram');
+  });
+});
+
+/**
+ * A colour page is a whole ground, not paper with a colour laid on it — F601.
+ *
+ * The footer's hairline is the paper's rule. Drawn across a blue or sun page it
+ * is a cream scratch over the colour, so the frame draws it only on paper. And
+ * the clock above a blue, coral or ink page is dark on dark unless the page
+ * asks for a light bar, so the frame asks, once, rather than every colour page
+ * working around it. The paper mounts no bar of its own, which leaves App.tsx's
+ * one dark bar in charge everywhere else.
+ */
+describe('a colour ground is a whole page — F601', () => {
+  test('a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink', () => {
+    const source = layoutSource();
+    const screen = region(source, 'export function Screen(', 'export function ScrollScreen(');
+
+    // The rule is conditional on the paper ground, never unconditional.
+    assert.match(screen, /const onPaper = ground === paper\.ground;/, 'the frame does not ask whether it is on paper');
+    assert.match(
+      screen,
+      /\.\.\.\(onPaper \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\)/,
+      'the footer\'s hairline is not drawn only on paper',
+    );
+    assert.doesNotMatch(
+      screen,
+      /paddingTop: space\(3\), borderTopWidth: HAIRLINE/,
+      'the footer draws its paper rule on every ground again',
+    );
+
+    // The status bar comes from expo-status-bar, the same one App.tsx mounts.
+    assert.match(source, /import \{ StatusBar \} from 'expo-status-bar';/, 'the frame does not import the status bar');
+    assert.match(screen, /\{bar != null \? <StatusBar style=\{bar\} \/> : null\}/, 'the frame never mounts a status bar for its ground');
+
+    // The light grounds are named: blue, coral and ink take white words, so
+    // they take a white clock. Anything else off paper is dark, and paper
+    // mounts nothing.
+    const grounds = region(source, 'const LIGHT_BAR_GROUNDS', 'export function Screen(');
+    assert.match(
+      grounds,
+      /LIGHT_BAR_GROUNDS: readonly string\[\] = \[colour\.blue, colour\.coral, paper\.ink\];/,
+      'the light-bar grounds are not blue, coral and ink',
+    );
+    assert.match(grounds, /if \(ground === paper\.ground\) return null;/, 'the paper mounts a bar of its own over App.tsx\'s');
+    assert.match(
+      grounds,
+      /LIGHT_BAR_GROUNDS\.includes\(ground\) \? 'light' : 'dark'/,
+      'a light ground does not get a light bar, or sun and mint do not get a dark one',
+    );
+  });
+});
+
+/**
+ * A tab is a working screen, so its title is the working title — F602.
+ *
+ * Revamp B sets the 44 display size on the colour pages of the first run and
+ * nowhere a learner works. Every tab that names a subject opens on the left
+ * branch of the one header, so that branch is where the size is decided, once.
+ * Home's greeting is not an exception: it is the title Home hands the header.
+ * The centred branch (Profile) is F606's to decide and is not read here.
+ */
+describe('the tab title is the working title — F602', () => {
+  test('every tab title is the working title at 30, and the greeting is one of them', () => {
+    const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
+    const left = outsideTheCentredBranch(header);
+    assert.match(
+      left,
+      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, flex: 1 \}\]\}>/,
+      'the left title is not the working title in ink, rolled as a heading',
+    );
+    assert.doesNotMatch(left, /type\.display/, 'a left tab title is still set at the 44 display size');
+
+    // The working title is 30 at ExtraBold, and nothing else in the theme
+    // decides it: a screen cannot nudge it.
+    const theme = stripComments(readFileSync(join(SRC, 'theme.ts'), 'utf8'));
+    assert.match(
+      theme,
+      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 30,/,
+      'the working title is not 30 at ExtraBold',
+    );
+
+    // Every tab that names a subject takes the left branch: it opens on the
+    // one header and does not ask to be centred.
+    for (const tab of ['HomeTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
+      const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
+      if (tab === 'TutorTab.tsx') {
+        const unreadStart = body.indexOf("if (renderHistoryStatus !== 'ready') return <ScrollScreen");
+        assert.notEqual(unreadStart, -1, 'Speak no longer separates loading or unread history from a ready conversation');
+        const unreadEnd = body.indexOf('</ScrollScreen>;', unreadStart);
+        assert.notEqual(unreadEnd, -1, 'Speak has no end to its loading and unread branch');
+        const readyStart = body.indexOf('\n  return (', unreadEnd);
+        assert.notEqual(readyStart, -1, 'Speak has no ready render branch');
+        const unread = body.slice(unreadStart, unreadEnd);
+        const ready = body.slice(readyStart);
+        for (const [state, branch] of [['loading or unread', unread], ['ready', ready]] as const) {
+          assert.equal((branch.match(/<TabHeader\b/g) ?? []).length, 1, `Speak draws other than one header when ${state}`);
+          assert.match(branch, /<TabHeader title=\{tutorHeading\(tutorName\)\}/, `Speak loses its working title when ${state}`);
+        }
+        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 2, 'Speak gained a header outside its mutually exclusive render branches');
+      } else {
+        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 1, `${tab} does not open on exactly one tab header`);
+      }
+      assert.doesNotMatch(body, /<TabHeader\b[^>]*align="center"/, `${tab} centres its title, which only a tab that is a person does`);
+    }
+
+    // And the greeting is one of them: Home hands its greeting to the header
+    // as the title, so it is set at the same 30 as every other tab name.
+    const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
+    assert.match(home, /<TabHeader title=\{greeting\.title\}/, 'Home does not hand its greeting to the tab header as the title');
   });
 });
 
@@ -251,36 +383,14 @@ describe('the shared header may hold a title alone — F353', () => {
  * the title to wrap.
  */
 describe('the greeting word rises through a fixed slot — F418', () => {
-  test('the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418', () => {
+  test('the tab header is a static accessible heading with no swap API or animation — F418', () => {
     const source = layoutSource();
     const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
     const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
-
-    assert.match(props, /titleSwap\?: TitleSwap \| null;/, 'TabHeader takes no optional greeting swap');
-    for (const field of ['word: string;', 'next: string;', 'rest: string | null;', 'progress: Animated.Value;']) {
-      assert.ok(props.includes(field) || source.includes(field), `TitleSwap is missing \`${field}\``);
-    }
-    assert.match(header, /const fontScale = PixelRatio\.getFontScale\(\)/);
-    assert.match(
-      header,
-      /if \(fontScale >= 1\.6\) \{\s*return <Text accessibilityRole="header"/,
-      'a fixed-height animated line still clips accessibility text instead of standing down',
-    );
-    assert.match(
-      header,
-      /accessible\s+accessibilityRole="header"\s+accessibilityLabel=\{title\}/,
-      'the two visual layers are not exposed as one stable heading',
-    );
-    assert.match(
-      header,
-      /height: line, overflow: 'hidden', position: 'relative'/,
-      'the handoff does not live in one stable line-height slot',
-    );
-    assert.equal((header.match(/<Animated\.Text/g) ?? []).length, 2, 'the greeting needs exactly one outgoing and one incoming layer');
-    assert.match(header, /<View style=\{StyleSheet\.absoluteFill\} \{\.\.\.decorative\}>/, 'the visual layers are announced separately');
-    assert.doesNotMatch(header, /numberOfLines|ellipsizeMode|maxFontSizeMultiplier/, 'the header caps or truncates text');
-    assert.doesNotMatch(header, /Animated\.(timing|spring|loop|sequence|stagger|decay|parallel|delay)\b/, 'the shared frame starts the animation');
-    assert.doesNotMatch(header, /\.start\s*\(/, 'the shared frame owns a timer it cannot pause');
+    assert.doesNotMatch(props, /titleSwap\??:|TitleSwap/);
+    assert.doesNotMatch(header, /Animated|TitleSwapRow|\.interpolate\(|\.start\s*\(/);
+    assert.match(header, /<Text accessibilityRole="header"/);
+    assert.doesNotMatch(header, /numberOfLines|ellipsizeMode|maxFontSizeMultiplier|accessibilityLiveRegion/);
   });
 });
 
@@ -288,18 +398,12 @@ describe('the greeting word rises through a fixed slot — F418', () => {
  * The greeting and the learner's name move as one phrase — F427.
  */
 describe('the greeting word hugs the name — F427', () => {
-  test('the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427', () => {
+  test('the static tab heading keeps the complete greeting and name in one text node — F427', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
-
-    assert.match(
-      header,
-      /const join = \(word: string\) => \(swap\.rest == null \? word : `\$\{word\}\\u00A0\$\{swap\.rest\}`\);/,
-      'the name is not joined directly to each greeting as one phrase',
-    );
-    assert.equal((header.match(/\{join\(swap\.(?:word|next)\)\}/g) ?? []).length, 2, 'one greeting layer leaves the name behind');
-    assert.doesNotMatch(header, /swap\.widest|widths|setWidths|setNameTop|onLayout=/, 'the retired measured-name mechanism can still pause or jump');
-    assert.match(header, /outputRange: \[0, -line\]/, 'the outgoing phrase does not clear the line-height slot');
-    assert.match(header, /outputRange: \[line, 0\]/, 'the incoming phrase does not start one full line below');
+    const left = header.slice(header.indexOf('\n  return ('));
+    assert.equal((left.match(/\{title\}/g) ?? []).length, 1);
+    assert.match(left, /<Text accessibilityRole="header"[^>]*>\s*\{title\}\s*<\/Text>/);
+    assert.doesNotMatch(left, /swap\.|setWidths|setNameTop|onLayout=/);
   });
 });
 
@@ -307,25 +411,13 @@ describe('the greeting word hugs the name — F427', () => {
  * Both full-line layers share geometry without sharing a baseline — F428.
  */
 describe('the greeting travels by word, not by slot — F428', () => {
-  test("the name's travel is right on the frame the words change, not one layout later — F428", () => {
+  test('the static greeting wraps in normal flow without a measured or clipped motion slot — F428', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
-
-    assert.match(
-      header,
-      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[1, 0\] \}\)/,
-      'the outgoing full line does not fade through the handoff',
-    );
-    assert.match(
-      header,
-      /opacity: swap\.progress\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \[0, 1\] \}\)/,
-      'the incoming full line does not cross-fade with the outgoing one',
-    );
-    assert.doesNotMatch(
-      header,
-      /translateX|arrivingWidth|shownWidth|grow|measure\(/,
-      'a late layout measurement still controls the commit frame',
-    );
-    assert.match(header, /st\.swapLine/, 'the two complete phrases do not share identical geometry');
+    assert.doesNotMatch(header, /translateX|translateY|arrivingWidth|shownWidth|measure\(|st\.swapLine/);
+    assert.doesNotMatch(header, /height:|overflow:|position:|numberOfLines|allowFontScaling|maxFontSizeMultiplier/);
+    // The greeting is the left branch's title, set in the one title type from
+    // the theme (the working title since F602), never a style of its own.
+    assert.match(outsideTheCentredBranch(header), /type\.title/);
   });
 });
 

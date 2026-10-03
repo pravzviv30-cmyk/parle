@@ -4,21 +4,23 @@
  *
  * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
  * the fields above the keyboard, and draws the one back through `ScreenHeader`.
- * The Sign in pill and the provider outlines ride in the footer so a keyboard
- * cannot scroll them out of reach. The forgot-password ghost, the form message
- * and the "New here?" row stay in the body, so a field is still visible over an
- * SE-class keyboard rather than pinned under the buttons.
+ * Only the Sign in pill rides in the footer, so a keyboard cannot scroll the
+ * one ink action out of reach. The forgot-password link, the form message and
+ * the "Need an account?" row stay in the body, so a field is still visible over
+ * an SE-class keyboard rather than pinned under the buttons.
  *
- * The Apple outline sits above the Google one and is drawn only where the
- * platform offers it, which today means iOS. That order is Apple's own
- * guidance where its button appears at all, and it costs an Android or web
- * learner nothing, because there the button does not exist.
+ * Revamp B (F601): the same family as sign-up. The provider doors lead the
+ * body, above an "or" rule and the two fields. The Apple pill sits above the
+ * Google one and is drawn only where the platform offers it, which today means
+ * iOS. That order is Apple's own guidance where its button appears at all, and
+ * it costs an Android or web learner nothing, because there the button does not
+ * exist.
  */
 
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { accent, HAIRLINE, paper, radius, space, type, signal, HIT } from '../theme.ts';
-import { PillButton, OutlineButton, GhostButton, Field, GoogleMark, AppleMark } from '../components.tsx';
+import { View, Text, StyleSheet } from 'react-native';
+import { paper, space, type, HIT, HAIRLINE } from '../theme.ts';
+import { PillButton, GhostButton, Press, Field, GoogleMark, AppleMark, AlertGlyph, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail } from './validate.ts';
@@ -112,39 +114,46 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
     <ScrollScreen
       avoidKeyboard
       header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
-      footer={
-        <View style={{ gap: space(3) }}>
-          <PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />
-          {appleOffered && (
-            <OutlineButton
-              label={authButtonLabel('apple', pending === 'apple')}
-              onPress={() => void apple()}
-              disabled={busy}
-              icon={<AppleMark size={18} />}
-            />
-          )}
-          <OutlineButton
-            label={authButtonLabel('google', pending === 'google')}
-            onPress={() => void google()}
-            disabled={busy}
-            icon={<GoogleMark size={18} />}
-          />
-        </View>
-      }
+      footer={<PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />}
     >
-      {/* A compact feature heading keeps the form close to its introduction. */}
+      {/* A working title on the paper itself, then what is behind the door. */}
       <View style={st.head}>
-        <Text style={[type.frenchSm, { color: paper.inkSoft, marginBottom: space(2) }]}>Votre journal vous attend.</Text>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Welcome back</Text>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Welcome back</Text>
       </View>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{SIGN_IN_PURPOSE}</Text>
 
-      <View style={{ gap: space(4), marginTop: space(6) }}>
+      {/* The provider doors lead the form. Apple is an ink pill, drawn only where
+          the platform offers it; Google is the white pill beneath it. */}
+      <View style={st.doors}>
+        {appleOffered && (
+          <PillButton
+            label={authButtonLabel('apple', pending === 'apple')}
+            onPress={() => void apple()}
+            disabled={busy}
+            icon={<AppleMark color={paper.onInk} />}
+          />
+        )}
+        <PillButton
+          tone="white"
+          label={authButtonLabel('google', pending === 'google')}
+          onPress={() => void google()}
+          disabled={busy}
+          icon={<GoogleMark />}
+        />
+      </View>
+
+      <View style={st.or}>
+        <View style={st.rule} />
+        <Text style={[type.small, { color: paper.inkSoft }]}>or</Text>
+        <View style={st.rule} />
+      </View>
+
+      <View style={{ gap: space(4) }}>
         <Field
           label="Email"
           value={email}
           onChangeText={setEmail}
-          placeholder="you@example.com"
+          placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
           error={emailError}
@@ -162,31 +171,48 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
         />
       </View>
 
-      <GhostButton
-        label={authButtonLabel('sendReset', pending === 'sendReset')}
-        onPress={() => void forgot()}
-        disabled={busy}
-      />
+      {/* The reset link sits under the password it is about, at the right edge. */}
+      <View style={st.forgot}>
+        <GhostButton
+          label={authButtonLabel('sendReset', pending === 'sendReset')}
+          onPress={() => void forgot()}
+          disabled={busy}
+        />
+      </View>
 
+      {/* In ink, never red. A refusal carries the alert mark the fields use, so
+          the difference from a "check your email" line is not colour alone. */}
       {formMessage != null && (
-        <Text style={[type.body, { color: formOk ? signal.good : signal.correspondance, marginBottom: space(2) }]}>
-          {formMessage}
-        </Text>
+        <View style={st.message}>
+          {!formOk && (
+            <View style={st.messageMark}>
+              <AlertGlyph size={16} color={paper.ink} />
+            </View>
+          )}
+          <Text style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
+        </View>
       )}
 
       {/* The switch row stays in the body, not the footer: over an SE-class
           keyboard the footer pins to the keyboard's top and a field has to stay
           visible above it rather than this row. */}
-      <Pressable onPress={onCreateAccount} accessibilityRole="button" style={st.switchRow}>
+      <Press haptic="light" style={st.switchRow} accessibilityRole="button" onPress={onCreateAccount}>
         <Text style={[type.small, { color: paper.inkSoft }]}>
-          New here? <Text style={{ color: paper.ink, fontFamily: type.bodyStrong.fontFamily }}>Create an account</Text>
+          Need an account? <Text style={st.switchWord}>Create one</Text>
         </Text>
-      </Pressable>
+      </Press>
     </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  head: { backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(5) },
+  head: { paddingTop: space(2) },
+  doors: { gap: space(3), marginTop: space(6) },
+  or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(5) },
+  rule: { flex: 1, height: HAIRLINE, backgroundColor: paper.line },
+  forgot: { alignItems: 'flex-end', marginTop: space(2) },
+  message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginBottom: space(2) },
+  messageMark: { paddingTop: space(1) },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
+  switchWord: { color: paper.ink, fontFamily: type.bodyStrong.fontFamily, textDecorationLine: 'underline' },
 });

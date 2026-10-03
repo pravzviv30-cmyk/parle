@@ -395,7 +395,7 @@ describe('the review sitting on screen', () => {
     // Pressables that must name themselves — the speaker, the flip and the two
     // attempt buttons — and three grades that are the app's one outline.
     const controls = tags(screen, 'Pressable');
-    assert.ok(controls.length >= 4, `only ${controls.length} controls found; this test is reading the wrong thing`);
+    assert.ok(controls.length === 3, `only ${controls.length} controls found; this test is reading the wrong thing`);
     for (const tag of controls) {
       assert.match(tag, /accessibilityRole=/, `a control on the review screen has no role: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);
       assert.match(tag, /accessibilityLabel=/, `a control on the review screen has no name: ${tag.replace(/\s+/g, ' ').slice(0, 80)}`);

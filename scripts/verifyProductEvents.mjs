@@ -1,0 +1,56 @@
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+if (!process.env.PGLITE_MODULE) throw new Error('Set PGLITE_MODULE to the disposable PostgreSQL/WASM module path.');
+const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE).href);
+const db = new PGlite();
+const root = fileURLToPath(new URL('..', import.meta.url));
+const user = '22222222-2222-4222-8222-222222222222';
+const other = '33333333-3333-4333-8333-333333333333';
+const optedOut = '44444444-4444-4444-8444-444444444444';
+const trouble = '55555555-5555-4555-8555-555555555555';
+const paid = '66666666-6666-4666-8666-666666666666';
+const migration = '20261002192210_consented_product_funnel.sql';
+try {
+ await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql as 'select nullif(current_setting(''request.jwt.claim.sub'',true),'''')::uuid';`);
+ for (const file of ['202608220001_luvani_learning.sql','202608230001_session_usage_idempotency.sql','202608240001_claim_trial_null_fix.sql','202609100002_wall_product_events.sql',migration]) await db.exec(await readFile(`${root}/supabase/migrations/${file}`, 'utf8'));
+ for (const id of [user,other,optedOut,trouble,paid]) await db.query('insert into auth.users values($1)',[id]);
+ const claim = async (id, install, marker, allowed) => (await db.query('select public.claim_trial_with_evidence($1,$2,$3,$4) as allowed',[id,install.repeat(43),marker.repeat(43),allowed])).rows[0].allowed;
+ const count = async (id=user) => Number((await db.query("select count(*) as n from product_events where user_id=$1 and name='trial_started'",[id])).rows[0].n);
+ assert.equal(await claim(user,'a','b',true),true); assert.equal(await count(),1);
+ assert.equal(await claim(user,'a','b',true),true); assert.equal(await count(),1,'retry duplicated a first claim');
+ assert.equal(await claim(other,'a','c',true),false); assert.equal(await count(other),0,'another account used an installation');
+ assert.equal(await claim(optedOut,'d','e',false),true); assert.equal(await count(optedOut),0);
+ assert.equal(await claim(optedOut,'d','e',true),true); assert.equal(await count(optedOut),0,'later consent retroactively recorded an opted-out trial');
+ await db.query("insert into entitlements(user_id,plan,seconds_used) values($1,'regular',321)",[paid]);
+ assert.equal(await claim(paid,'f','g',true),true); assert.equal(await count(paid),0,'existing paid account emitted a trial');
+ await db.exec(`create function public.reject_test_event() returns trigger language plpgsql as $$ begin raise exception 'sink unavailable'; end; $$; create trigger fail_test_event before insert on product_events for each row execute function public.reject_test_event();`);
+ assert.equal(await claim(trouble,'h','i',true),true); assert.equal(await count(trouble),0);
+ assert.equal((await db.query('select seconds_used from entitlements where user_id=$1',[trouble])).rows[0].seconds_used,0,'evidence failure rolled back the trial');
+ await db.exec('drop trigger fail_test_event on product_events; drop function public.reject_test_event();');
+ const insert = async (name,properties) => db.query('insert into product_events(user_id,name,properties) values($1,$2,$3)',[user,name,JSON.stringify(properties)]);
+ for (const [name,properties] of [['restore_started',{entry:'wall'}],['restore_settled',{entry:'settings',outcome:'nothing-granted'}],['wall_left',{entry:'refused',outcome:'granted',destination:'speak'}],['minutes_refused',{plan:'trial',reason:'exhausted'}]]) await insert(name,properties);
+ for (const [name,properties] of [['restore_started',{entry:'wall',text:'bonjour'}],['restore_settled',{entry:'settings',outcome:['done']}],['wall_left',{entry:'refused',outcome:'granted'}],['trial_started',{plan:'trial'}],['minutes_refused',{plan:'trial',reason:'subscription-lapsed'}]]) await assert.rejects(insert(name,properties),/invalid/);
+ await db.exec(`grant usage on schema public,auth to authenticated,service_role; grant insert on product_events to authenticated,service_role; grant usage on sequence product_events_id_seq to authenticated,service_role;`);
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user]);
+ await db.exec('set role authenticated');
+ await insert('restore_started',{entry:'wall'});
+ for (const name of ['trial_started','minutes_refused']) await assert.rejects(insert(name,name==='trial_started'?{}:{plan:'trial',reason:'exhausted'}),/server-only/);
+ await assert.rejects(claim(user,'a','b',true),/permission denied/);
+ await db.exec('reset role; set role anon'); await assert.rejects(claim(user,'a','b',true),/permission denied/); await db.exec('reset role; set role service_role');
+ await insert('minutes_refused',{plan:'starter',reason:'insufficient-for-session'}); assert.equal(await claim(user,'a','b',true),true); await db.exec('reset role');
+ // Real functions inside a rollback, followed by retry; this is a single-connection harness.
+ await db.query('delete from auth.users where id=$1',[trouble]); await db.query('insert into auth.users values($1)',[trouble]);
+ await db.exec('begin'); assert.equal(await claim(trouble,'j','k',true),true); await db.exec('rollback'); assert.equal(await count(trouble),0);
+ assert.equal(await claim(trouble,'j','k',true),true); assert.equal(await count(trouble),1);
+ // Simulate a separate entitlement writer at the precise insert seam, not real concurrency.
+ await db.exec(`create function public.racing_entitlement_writer() returns trigger language plpgsql as $$ begin insert into public.entitlements(user_id,plan,seconds_used) values('${other}','starter',50); return new; end; $$; create trigger race_trial after insert on trial_installations for each row execute function public.racing_entitlement_writer();`);
+ await assert.rejects(claim(other,'l','m',true),/duplicate key/);
+ assert.equal(await count(other),0); assert.equal((await db.query('select * from trial_installations where installation_hash=$1',['l'.repeat(43)])).rows.length,0,'claim conflict leaked a marker');
+ await db.exec('drop trigger race_trial on trial_installations; drop function public.racing_entitlement_writer();');
+ await db.exec(await readFile(`${root}/supabase/rollback/20261002192210_down.sql`,'utf8'));
+ await assert.rejects(insert('restore_started',{entry:'wall'}),/unsupported/);
+ await db.exec(await readFile(`${root}/supabase/migrations/${migration}`,'utf8')); await insert('restore_started',{entry:'wall'});
+ await db.query('delete from auth.users where id=$1',[user]); assert.equal(await count(),0);
+ console.log('PASS: trial/retry/install refusal/opt-out/no retroactive opt-in/paid account/sink failure, event shapes, direct-client service-name refusal, role grants, rollback/retry, entitlement conflict rollback, migration rollback/reapply and account cascade. Actual simultaneous connections remain unverified.');
+} finally { await db.close(); }

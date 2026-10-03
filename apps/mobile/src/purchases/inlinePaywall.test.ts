@@ -144,38 +144,41 @@ describe('the inline paywall always leaves a way forward — Stage 3', () => {
     assert.match(FLAT, /<GhostButton label=\{privacy\} onPress=\{onPolicy\} \/>/, 'the privacy link is not wired');
     assert.match(FLAT, /<GhostButton label=\{terms\} onPress=\{onTerms\} \/>/, 'the terms link is not wired');
 
-    // Both live hosts draw this paywall: the conversation, and the guided
-    // lesson that Speak's pronunciation door opens. Stage 3 Fable review
-    // (2026-09-25) found only the conversation's branch had been made to
-    // scroll, so the lesson's Back could still fall off a small phone. The
-    // lesson keeps its still frame (F444) and hands this phase to its own page.
-    const branchIn = (screen: string, name: string): string => {
-      const at = screen.indexOf("live.status.phase === 'out-of-minutes'");
-      assert.notEqual(at, -1, `${name} no longer renders the out-of-minutes phase`);
-      return screen.slice(at, screen.indexOf("live.status.phase === 'error'", at));
-    };
-    assert.match(
-      branchIn(LESSON, 'the lesson'),
-      /return <OutOfMinutesView message=\{live\.status\.message\} userId=\{userId\} onExit=\{onExit\} \/>;/,
-      'the lesson draws its own out-of-minutes page instead of the one that scrolls',
-    );
-    for (const [name, page] of [['the conversation', branchIn(CONVO, 'the conversation')], ['the lesson', OUT_OF_MINUTES_PAGE]] as const) {
-      // The screen's Back is outside the paywall, so it is there in every state.
-      assert.ok(page.indexOf('<Paywall userId={userId} />') !== -1, `${name}: the out-of-minutes card lost the paywall`);
-      assert.ok(page.indexOf('</Card>') !== -1 && page.indexOf('</Card>') < page.indexOf('<OutlineButton label="Back" onPress={onExit} />'), `${name}: the free way out is inside the paywall card, or gone`);
-      // The card is taller now, so it scrolls on the shared frame: on a small
-      // phone at a large text size, Back must never be pushed off the screen.
-      assert.match(page, /return \(\s*<ScrollScreen center bottom="inset">/, `${name}: the out-of-minutes card cannot scroll, so Back can fall off a small screen`);
+    // F607 centralizes store work in the wall and preserves the free exit.
+    for (const source of [LESSON, CONVO]) {
+      const at = source.indexOf("live.status.phase === 'out-of-minutes'");
+      assert.ok(at >= 0);
+      assert.match(source.slice(at, at + 600), /<OutOfMinutesView label=\{live.status.label\} message=\{live.status.message\} userId=\{userId\} onExit=\{onExit\}/);
     }
+    assert.match(OUT_OF_MINUTES_PAGE, /<Sheet visible title=\{label\} onClose=\{onExit\}/);
+    assert.match(OUT_OF_MINUTES_PAGE, /nav.navigate\('Wall', \{ entry: 'refused' \}\)/);
+    assert.match(OUT_OF_MINUTES_PAGE, /label="Back to my French" onPress=\{onExit\}/);
+    assert.doesNotMatch(OUT_OF_MINUTES_PAGE, /<Paywall/);
+
+  });
+
+  test('the renewal and the no-adverts line both sit at the buy button', () => {
+    // 2026-09-27, notebook Phase 6-E: the trust line moved up from the documents
+    // under the restore to sit with the renewal, right under the pill, which is
+    // where the wall's plans page puts the same two lines.
+    const offer = FLAT.slice(FLAT.indexOf('const surface = view.surface;'));
+    const pill = offer.indexOf('<PillButton');
+    const renewal = offer.indexOf('{view.renewal}');
+    const trust = offer.indexOf('{view.trust}');
+    const restore = offer.indexOf('<GhostButton');
+    assert.ok(pill !== -1 && renewal !== -1 && trust !== -1 && restore !== -1, 'the offer lost its pill, renewal, trust line or restore');
+    assert.ok(pill < renewal && renewal < trust && trust < restore, 'the renewal and trust lines are not together under the buy button');
+    assert.doesNotMatch(offer, /<Legal trust=/, 'the offer says the trust line twice, or down by the documents');
   });
 
   test('buying and restoring are the same calls, and no entitlement or metering is read here', () => {
-    assert.match(PAYWALL, /await settleStoreAction\(await purchases\.purchase\(userId, surface\.product\.productId\)\)/, 'the buy call changed');
-    assert.match(PAYWALL, /: await restorePurchases\(userId\)/, 'the restore call changed');
+    assert.match(PAYWALL, /await settleStoreAction\(userId, \(\) => purchases\.purchase\(userId, surface\.product\.productId\)\)/, 'the buy call changed');
+    assert.match(PAYWALL, /: await restorePurchases\(userId, 'inline'\)/, 'the restore call changed');
     // What the component may import, and nothing about grants or minutes.
     const imports = [...PAYWALL.matchAll(/from '([^']+)'/g)].map((m) => m[1]!).sort();
     assert.deepEqual(imports, [
       '../components.tsx',
+      '../storage/scope.ts',
       '../theme.ts',
       './adapter.ts',
       './paywallView.ts',

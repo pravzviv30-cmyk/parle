@@ -111,6 +111,8 @@ import {
   evictOverflowPhrases,
   evictStalePatterns,
   repairProfile,
+  validMemoryControl,
+  withoutForgottenMemory,
   type LearnerProfile,
 } from './profile.ts';
 
@@ -196,7 +198,7 @@ export const PROFILE_DEVICE_FIELDS = ['ageStopAt'] as const;
  * hears it: taken whole from the evidence-heavier side, a forget made on the
  * lighter phone would be undone by the next sync. The union is sorted, so two
  * devices that forgot the same things in a different order agree byte for
- * byte, and the cap comes back on afterwards through the app's version chain.
+ * byte, and the app's version chain does not expire any marker by count.
  */
 export const PROFILE_UNION_FIELDS = ['forgottenFacts'] as const;
 
@@ -466,7 +468,8 @@ function finish(side: Side, deps: ProfileMergeDeps): MergedStoredProfile {
   const candidate: Record<string, unknown> = inKeyOrder({ ...kept, brain: side.brain });
   const upgraded = deps.upgrade(candidate, deps.now);
   const outer = upgraded === null || !isRecord(upgraded) ? candidate : upgraded;
-  return { ...outer, brain: settle(outer.brain) };
+  const forgotten = Array.isArray(outer.forgottenFacts) ? outer.forgottenFacts.filter((key): key is string => typeof key === 'string') : [];
+  return { ...outer, brain: settle(withoutForgottenMemory(settle(outer.brain), forgotten)) };
 }
 
 /**
@@ -493,6 +496,15 @@ function pickAnswer(field: string, a: Side, b: Side, cmp: number): unknown {
  * `aSavedAt`/`bSavedAt` are the envelope timestamps and only ever break a tie
  * on sessions and turns.
  */
+function mergeMemoryControl(held: LearnerProfile['memory'], a: LearnerProfile['memory'], b: LearnerProfile['memory']): LearnerProfile['memory'] {
+  const ac = validMemoryControl(a.control);
+  const bc = validMemoryControl(b.control);
+  const control = !ac ? bc : !bc ? ac : ac.changedAt === bc.changedAt
+    ? { changedAt: ac.changedAt, paused: ac.paused || bc.paused }
+    : ac.changedAt > bc.changedAt ? ac : bc;
+  return control ? { ...held, control, ...(control.paused ? { opener: null } : {}) } : held;
+}
+
 export function mergeLearnerProfiles(
   a: unknown,
   b: unknown,
@@ -505,7 +517,7 @@ export function mergeLearnerProfiles(
   return settle({
     version: 2,
     cefr: heavy.brain.cefr,
-    memory: heavy.brain.memory,
+    memory: mergeMemoryControl(heavy.brain.memory, sa.brain.memory, sb.brain.memory),
     preferences: heavy.brain.preferences,
     stats: heavy.brain.stats,
     errorPatterns: unionErrorPatterns(sa.brain.errorPatterns, sb.brain.errorPatterns),
@@ -549,7 +561,7 @@ export function mergeStoredProfiles(
   const brain: LearnerProfile = {
     version: 2,
     cefr: heavy.brain.cefr,
-    memory: heavy.brain.memory,
+    memory: mergeMemoryControl(heavy.brain.memory, sa.brain.memory, sb.brain.memory),
     preferences: heavy.brain.preferences,
     stats: heavy.brain.stats,
     errorPatterns: unionErrorPatterns(sa.brain.errorPatterns, sb.brain.errorPatterns),

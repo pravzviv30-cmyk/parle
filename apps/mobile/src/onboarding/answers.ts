@@ -114,6 +114,13 @@ export const AGE_REFUSAL_EXIT = 'Sign out';
  */
 export const AGE_RETURN_TITLE = 'Before we carry on';
 export const AGE_RETURN_SUB = 'Luvani is made for learners thirteen and up. Everything you have learned is still here.';
+/**
+ * The quiet line under it: how much is being asked, and nothing else. It says
+ * nothing about what comes after, because that depends on the answer, and a
+ * line on an age check that says which answer carries on leans the question
+ * one way. It has to be true whichever answer the learner gives (F636).
+ */
+export const AGE_RETURN_NOTE = 'It is one question.';
 
 /** What the pages are holding while the learner fills them in. */
 export interface OnboardingDraft {

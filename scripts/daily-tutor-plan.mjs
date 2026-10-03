@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 
 export const CAP = 25000;
 export const MODEL = 'eleven_flash_v2_5';
+// Frozen French-authored batches keep the language approved in their manifests.
+export const RECORDING_LANGUAGE = 'fr';
 export const GAIN_DB = -4;
 export const MULTIPLIERS = { alexandre: 1, emilie: 2, guillaume: 1, marie: 1, anatole: 1, sarah: 2 };
 export const hash = value => createHash('sha256').update(value).digest('hex');

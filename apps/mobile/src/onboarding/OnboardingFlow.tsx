@@ -64,11 +64,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { accent, HAIRLINE, paper, radius, space, type } from '../theme.ts';
-import { Card, PillButton, GhostButton, Field, ProgressDots, OptionCard } from '../components.tsx';
+import { paper, space, type } from '../theme.ts';
+import { Card, PillButton, GhostButton, Field, ProgressDots, OptionRow } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { Art } from '../art/Art.tsx';
-import { SCREEN_ART } from '../art/maps.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import type { StoredProfile } from '../profile/store.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
@@ -93,6 +91,7 @@ import {
 } from './answers.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
 import {
+  nameGreeting,
   MEET_AI,
   MEET_MIC,
   MEET_MORE,
@@ -259,9 +258,6 @@ export function OnboardingFlow({
           order to ask in. */}
       {page === 'age' && (
         <>
-          <View style={st.art}>
-            <Art name={SCREEN_ART.agePage} />
-          </View>
           <Text accessibilityRole="header" style={st.question}>
             {AGE_QUESTION}
           </Text>
@@ -279,19 +275,17 @@ export function OnboardingFlow({
 
       {page === 'name' && (
         <>
-          <View style={st.art}>
-            <Art name={SCREEN_ART.namePage} />
-          </View>
           <Text accessibilityRole="header" style={st.question}>
             {NAME_QUESTION}
           </Text>
-          <Text style={st.sub}>{`${persona.name} greets you by name.`}</Text>
+          <Text style={st.sub}>{nameGreeting(voice ?? existing?.tutorVoice)}</Text>
           <View style={{ marginTop: space(6) }}>
             {/* A visible label rather than a placeholder alone: a
                 placeholder disappears the moment somebody types, and it is
                 the only thing assistive tech had to go on here. */}
             <Field
               label={NAME_LABEL}
+              placeholder="e.g. James"
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -307,9 +301,6 @@ export function OnboardingFlow({
 
       {page === 'meet' && (
         <>
-          <View style={st.art}>
-            <Art name={SCREEN_ART.welcome} />
-          </View>
           <Text accessibilityRole="header" style={st.question}>
             {MEET_TITLE(persona)}
           </Text>
@@ -359,10 +350,10 @@ export function OnboardingFlow({
           <Text style={st.hint}>{VOICE_AI}</Text>
           <View style={st.voices}>
             {VOICE_STEP_OPTIONS.map((option) => (
-              <OptionCard
+              <OptionRow
                 key={option.value}
-                text={option.label}
-                gloss={option.gloss}
+                title={option.label}
+                detail={option.gloss}
                 selected={voice === option.value}
                 playing={playing === option.value}
                 onPress={() => setVoice(option.value)}
@@ -419,9 +410,11 @@ export function OnboardingFlow({
 }
 
 const st = StyleSheet.create({
-  page: { padding: space(5), marginBottom: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
-  art: { alignItems: 'center', marginBottom: space(5), backgroundColor: paper.card, borderRadius: radius.row, overflow: 'hidden' },
-  question: { ...type.display, color: paper.ink },
+  // Notebook Phase 4 (2026-09-27): each page sits on the paper itself. The
+  // feature panel, its ink outline and the three retired rasters (the cake,
+  // the wave, the welcome bubbles) are gone; the words and the order are not.
+  page: { paddingTop: space(3), marginBottom: space(4) },
+  question: { ...type.title, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   hint: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   lines: { gap: space(3), marginTop: space(4) },

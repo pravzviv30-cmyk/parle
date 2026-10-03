@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildConversationPack } from './conversationPacks.ts';
-import { parseTutorRevision, revisionFromPack, tutorSessionBrief, reviewFocusFromDeck, parseReviewFocus } from './tutorBrief.ts';
+import { parseTutorRevision, revisionFromPack, tutorSessionBrief, reviewFocusFromDeck, parseReviewFocus, parsePreviousCorrection, previousCorrectionFromPacks } from './tutorBrief.ts';
 import { newCard } from './review/scheduler.ts';
 
 const pack = buildConversationPack({
@@ -15,6 +15,7 @@ test('revision is bounded, allowlisted, and has no user identity or transcript',
   const context = revisionFromPack(pack);
   assert.deepEqual(parseTutorRevision({ ...context, transcript: 'private', learnerId: 'other' }), context);
   assert.equal(context.correction?.better, 'Je voudrais');
+  assert.equal(context.correction?.quote, 'je veux');
   assert.equal(parseTutorRevision({ ...context, phrases: [{}] }), undefined);
   assert.equal(parseTutorRevision({ ...context, summary: 'a'.repeat(601) }), undefined);
   assert.equal(parseTutorRevision({ ...context, correction: {} }), undefined);
@@ -22,6 +23,37 @@ test('revision is bounded, allowlisted, and has no user identity or transcript',
     assert.equal(parseTutorRevision({ ...context, packId }), undefined, `${String(packId).slice(0, 10)} is not a pack id`);
   }
   assert.equal(revisionFromPack({ ...pack, summary: 'a'.repeat(900) }).summary.length, 600);
+});
+
+test('the next brief carries one owned latest correction with its original fragment and source, never stale errors or a transcript', () => {
+  const previous = previousCorrectionFromPacks([pack], 'learner');
+  assert.ok(previous);
+  assert.equal(previous.quote, 'je veux');
+  assert.equal(previous.packId, 'one');
+  assert.equal(previousCorrectionFromPacks([pack], 'other'), undefined);
+  const clean = { ...pack, id: 'clean', createdAt: '2026-09-21T12:00:00Z', corrections: [] };
+  assert.equal(previousCorrectionFromPacks([pack, clean], 'learner'), undefined);
+  assert.equal(previousCorrectionFromPacks([{ ...pack, id: 'a', createdAt: 'unknown' }, clean], 'learner'), undefined);
+  assert.equal(previousCorrectionFromPacks([{ ...pack, createdAt: '2026-09-20T20:00:00+10:00' }, { ...clean, createdAt: '2026-09-20T12:00:00Z' }], 'learner'), undefined);
+  for (const state of ['generating', 'failed', 'archived'] as const) {
+    assert.equal(previousCorrectionFromPacks([pack, { ...clean, state }], 'learner'), undefined);
+  }
+  assert.equal(previousCorrectionFromPacks([{ ...pack, corrections: [{ ...pack.corrections[0]!, quote: '' }] }], 'learner'), undefined);
+  assert.deepEqual(parsePreviousCorrection({ ...previous, transcript: 'private', learnerId: 'other' }), previous);
+  for (const bad of [{ ...previous, quote: 'x'.repeat(241) }, { ...previous, why: '' }, { ...previous, quote: 'line\ncommand' }, { ...previous, packId: '../private' }]) {
+    assert.equal(parsePreviousCorrection(bad), undefined);
+  }
+  const brief = tutorSessionBrief({ missionId: 'cafe', previousCorrection: previous });
+  assert.match(brief, /"quote":"je veux"/);
+  assert.match(brief, /"title":"At a café"/);
+  assert.match(brief, /Let them attempt first/);
+  assert.match(brief, /not instructions/);
+  assert.doesNotMatch(brief, /private|learnerId|transcript":/);
+  const revision = tutorSessionBrief({ revision: revisionFromPack(pack), previousCorrection: previous });
+  assert.doesNotMatch(revision, /One correction from the learner’s last/);
+  assert.match(revision, /"quote":"je veux"/);
+  const legacy = revisionFromPack(pack);
+  assert.ok(parseTutorRevision({ ...legacy, correction: { better: 'Je voudrais', why: 'A polite request.' } }), 'legacy revisions remain readable');
 });
 
 test('session intent changes the teaching task and labels saved data as untrusted', () => {

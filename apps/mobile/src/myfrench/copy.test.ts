@@ -26,6 +26,7 @@ import {
   GOALS_ROW_LABEL,
   GOALS_ROW_OPEN,
   MY_FRENCH_COPY,
+  MY_FRENCH_UNREAD,
   MY_FRENCH_PURPOSE,
   MY_FRENCH_TITLE,
   SAVED_LABEL,
@@ -35,6 +36,10 @@ import {
 } from './copy.ts';
 
 describe('the words My French says — F575', () => {
+  test('a failed read does not certify the state of unread storage', () => {
+    assert.match(MY_FRENCH_UNREAD, /could not be loaded/);
+    assert.doesNotMatch(MY_FRENCH_UNREAD, /still saved|all saved/i);
+  });
   test('a learner reading this tab meets no count, no dash and no word that scolds', () => {
     for (const line of MY_FRENCH_COPY) {
       const banned = guiltIn(line);
@@ -57,7 +62,7 @@ describe('the words My French says — F575', () => {
     // Whole-app phase 2: the three-line headline and the slogan under it were
     // read on every visit. The tab is called what the bar calls it, and one
     // plain line says what is on it.
-    assert.equal(MY_FRENCH_TITLE, 'My French');
+    assert.equal(MY_FRENCH_TITLE, 'Progress');
     assert.equal(MY_FRENCH_PURPOSE, 'The French you have used and kept.');
     assert.ok(MY_FRENCH_PURPOSE.split(' ').length <= 8, 'the purpose line grew back into a slogan');
     assert.doesNotMatch(MY_FRENCH_PURPOSE, /Real conversations|independence/, 'the slogan is back');

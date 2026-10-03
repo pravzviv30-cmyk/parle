@@ -31,18 +31,19 @@ function literals(body: string): string[] {
 
 describe('the goal screen — Stage 4', () => {
   test('every read is bound to the account before it starts, and a result for another account is dropped', () => {
-    assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope;/);
+    assert.match(FLAT, /const scope = scopeGeneration\(\); const userId = user\?\.id \?\? null; const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope;/);
     assert.match(FLAT, /Promise\.all\(\[loadGoalSteps\(\), loadConversationPacks\(\), loadPracticeHistory\(\)\]\)/, 'the screen reads its trail from somewhere else');
     assert.match(FLAT, /if \(!sameAccount\(\)\) return;/, 'a read for the previous account can be drawn');
-    assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\(\(current\) => \(current === 'loaded' \? 'loaded' : 'unread'\)\)/, 'a failed read wipes a drawn trail or is silent');
+    assert.match(FLAT, /if \(sameAccount\(\)\) \{ setReadScope\(\{ generation: scope, userId \}\); setStatus\('unread'\); \}/, 'a failed read is silent or leaves stale trail visible');
+    assert.match(FLAT, /readScope\?\.generation === scopeGeneration\(\) && readScope\.userId === \(user\?\.id \?\? null\)/, 'the old account trail can render before the focus effect runs');
     assert.match(FLAT, /return \(\) => \{ cancelled = true; \};/, 'nothing cancels the reads when the screen goes');
   });
 
   test('loading, could-not-load and an empty trail are three different things on screen', () => {
     assert.match(FLAT, /useState<'loading' \| 'loaded' \| 'unread'>\('loading'\)/);
-    assert.match(FLAT, /status === 'loading' && /);
-    assert.match(FLAT, /status === 'unread' && /);
-    assert.match(FLAT, /status === 'loaded' && trail\.length === 0 && /, 'an empty trail is drawn before the read answered, or for a failed read');
+    assert.match(FLAT, /visibleStatus === 'loading' && /);
+    assert.match(FLAT, /visibleStatus === 'unread' && /);
+    assert.match(FLAT, /visibleStatus === 'loaded' && trail\.length === 0 && /, 'an empty trail is drawn before the read answered, or for a failed read');
     assert.match(FLAT, /\{GOAL_LOADING\}/);
     assert.match(FLAT, /\{GOAL_UNREAD\}/);
     assert.match(FLAT, /label=\{GOAL_RETRY\}/, 'a failed read has no way to try again');
@@ -60,7 +61,7 @@ describe('the goal screen — Stage 4', () => {
     assert.match(FLAT, /current === null && /, 'a goal the learner removed is still drawn');
     assert.match(FLAT, /\{GOAL_GONE\}/);
     assert.match(FLAT, /nav\.navigate\('TutorMemory'\)/, 'a gone goal has no way to where goals are written');
-    assert.match(FLAT, /<Text accessibilityRole="header" style=\{st\.goal\}>\{current\}<\/Text>/, 'the goal is not drawn in the learner\'s own words');
+    assert.match(FLAT, /title=\{current \?\? GOAL_LABEL\}/, 'the goal is not drawn in the learner\'s own words');
   });
 
   test('one primary pill opens the suggested mission with the goal step, and says what it costs under it', () => {
@@ -84,7 +85,7 @@ describe('the goal screen — Stage 4', () => {
   });
 
   test('the authored preview is mounted for the mission, with its context', () => {
-    assert.match(FLAT, /<ListeningPreview selection=\{\{ kind: 'mission', mission \}\} showContext \/>/);
+    assert.match(FLAT, /<ListeningPreview selection=\{\{ kind: 'mission', mission \}\} showContext ground="blue" \/>/);
     assert.match(FLAT, /import \{ ListeningPreview \} from '\.\.\/missions\/ListeningPreview\.tsx'/);
   });
 
@@ -118,7 +119,7 @@ describe('the goal screen — Stage 4', () => {
 
   test('a cold link has a way out', () => {
     assert.match(FLAT, /const leave = \(\) => \(nav\.canGoBack\(\) \? nav\.goBack\(\) : nav\.navigate\('Tabs'\)\);/);
-    assert.match(FLAT, /<ScrollScreen header=\{<ScreenHeader back=\{\{ onPress: leave \}\} \/>\}>/);
+    assert.match(FLAT, /<ScrollScreen header=\{<ScreenHeader back=\{\{ onPress: leave \}\} title=\{current \?\? GOAL_LABEL\} \/>\}>/);
   });
 });
 

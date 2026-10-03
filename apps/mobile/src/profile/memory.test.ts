@@ -14,12 +14,12 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { MAX_MEMORY_FACTS, applyExtractionToProfile, createProfile, type LearnerProfile, type RememberedFact } from '@luvani/brain/profile';
+import { parsePreviousCorrection } from '@luvani/core';
 
 import { createStoredProfile, type StoredProfile } from './store.ts';
 import { upgradeStored } from './upgrade.ts';
 import { SYNC_POLICIES } from '../sync/policy.ts';
 import {
-  MAX_FORGOTTEN_FACTS,
   MAX_LEARNER_GOALS,
   factKey,
   snapshotFor,
@@ -44,6 +44,20 @@ function learner(facts: readonly RememberedFact[] = [], over: Partial<StoredProf
 }
 
 describe('the tutor’s memory, edited by the learner', () => {
+  test('a previous correction is bounded ephemeral learning context, including while personal memory is paused', () => {
+    const correction = parsePreviousCorrection({ packId: 'one', title: 'At a café', quote: 'je veux', better: 'Je voudrais', betterEn: 'I would like', why: 'A polite request.' })!;
+    const profile = learner([fact('Likes jazz')]);
+    profile.brain.memory.control = { paused: true, changedAt: NOW };
+    const before = JSON.stringify(profile);
+    const snapshot = snapshotFor(profile, [], NOW, correction);
+    assert.deepEqual(snapshot.previousCorrection, correction);
+    assert.deepEqual(snapshot.memory.facts, []);
+    assert.equal(JSON.stringify(profile), before);
+    assert.equal(snapshotFor(profile, [], NOW, { ...correction, quote: '' }).previousCorrection, undefined);
+    const navigator = readFileSync(fileURLToPath(new URL('../nav/RootNavigator.tsx', import.meta.url)), 'utf8');
+    assert.match(navigator, /previousCorrectionFromPacks\(packs.value, owner\)/, 'the source pack must belong to the active learner');
+    assert.match(navigator, /Promise.allSettled\(\[loadDeck\(\), loadConversationPacks\(\)\]\)/);
+  });
   test("a forgotten fact stays forgotten across an extraction that mentions it, and a learner's goal is among the five facts that ride", () => {
     // F562. Forget one: the tombstone is written and the fact leaves the
     // brain in the same step, and nothing else about the learner moves.
@@ -70,9 +84,9 @@ describe('the tutor’s memory, edited by the learner', () => {
     // The context applies it at that one write, not in the navigator's
     // handler, whose deps must stay exactly [updateBrain] (F386).
     const context = readFileSync(fileURLToPath(new URL('../app/ProfileContext.tsx', import.meta.url)), 'utf8');
-    assert.match(context, /brain: withoutForgotten\(blob, current\.forgottenFacts\)/, 'updateBrain saves the recap’s brain without applying the tombstones');
+    assert.match(context, /brain: brainAfterRecap\(blob, current\)/, 'updateBrain saves the recap’s brain without applying the tombstones');
     const navigator = readFileSync(fileURLToPath(new URL('../nav/RootNavigator.tsx', import.meta.url)), 'utf8');
-    assert.match(navigator, /snapshot=\{snapshotFor\(profile, reviewDeck\)\}/, 'the session snapshot and current review focus are composed in memory.ts');
+    assert.match(navigator, /snapshot=\{snapshotFor\(profile, reviewDeck, Date.now\(\), previousCorrection\)\}/, 'the session snapshot, review focus and previous correction are composed in memory.ts');
     assert.ok(!navigator.includes('withLearnerName('), 'the navigator still folds the name in itself, beside the one snapshot');
 
     // Forget everything: every fact becomes a tombstone and the opener, which
@@ -106,11 +120,11 @@ describe('the tutor’s memory, edited by the learner', () => {
     assert.deepEqual(withoutLearnerGoal(goals, 'c').learnerGoals, ['b', 'd']);
     assert.equal(snapshotFor(learner()).memory.facts.length, 0, 'with no goal, nothing is appended');
 
-    // The tombstone list is bounded, newest kept.
+    // Forget markers never expire by count.
     let many = learner();
-    for (let i = 0; i < MAX_FORGOTTEN_FACTS + 5; i += 1) many = withFactForgotten(many, `fact ${i}`);
-    assert.equal(many.forgottenFacts.length, MAX_FORGOTTEN_FACTS);
-    assert.equal(many.forgottenFacts[0], factKey('fact 5'));
+    for (let i = 0; i < 85; i += 1) many = withFactForgotten(many, `fact ${i}`);
+    assert.equal(many.forgottenFacts.length, 85);
+    assert.equal(many.forgottenFacts[0], factKey('fact 0'));
     const fresh = learner();
     assert.equal(withFactForgotten(fresh, '   '), fresh, 'a blank forgets nothing');
   });

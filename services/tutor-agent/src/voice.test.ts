@@ -19,6 +19,7 @@ import {
   VOICE_SETTINGS,
   resolveTutorVoice,
   selectedVoiceVendor,
+  synthesisProbeRequest,
 } from './voice.ts';
 import { FISH_SETTINGS } from './voiceFish.ts';
 
@@ -98,8 +99,15 @@ describe('the voice configuration', () => {
     // catalogue key gets a new id and therefore a new cache.
     assert.equal(
       buildTTS().opts.voiceKey,
-      'elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
+      'elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true',
     );
+  });
+
+  test('live synthesis preflight omits the old French-only language request', () => {
+    const request = JSON.parse(synthesisProbeRequest(ELEVEN_VOICES.alexandre).body);
+    assert.equal(Object.hasOwn(request, 'language_code'), false);
+    assert.equal(request.model_id, 'eleven_multilingual_v2');
+    assert.deepEqual(request.voice_settings, VOICE_SETTINGS);
   });
 
   test('every delivery knob that is sent is in the cache key, so none can drift', () => {

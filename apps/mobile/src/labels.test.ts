@@ -98,7 +98,7 @@ const KEPT = [
   'New phrases',
   'Next step',
   'One sound to practise next',
-  'You',
+  // The leaderboard-only 'You' badge retired with that unreachable screen.
 ];
 
 /**
@@ -117,15 +117,15 @@ const KEPT = [
  */
 const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[] = [
   { words: 'Real progress', from: 'home/abilities.ts', name: 'REAL_PROGRESS_LABEL' },
-  { words: 'Practice together', from: 'tutor/gate.ts', name: 'ENTRY_MODES_LABEL' },
+  // 2026-09-27, Phase 3: 'Practice together' (tutor/gate.ts ENTRY_MODES_LABEL) left with the Tutor tab's
+  // three doors. Speak now leads with the tutor card and the level path, and its other ways in sit under
+  // "More ways to practise" (tutor/speakView.ts MORE_WAYS_LABEL), drawn as a heading, not a caps label.
   { words: 'Your next practice', from: 'practice/copy.ts', name: 'NEXT_PRACTICE_LABEL' },
   // Reworded by decision in whole-app phase 2 (2026-09-25): the approved My
   // French structure names the group "French you can use". Same constant, same
   // module, still drawn as a caps label by SituationsCard.
   { words: 'French you can use', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
-  { words: 'Your phrase shelf', from: 'myfrench/copy.ts', name: 'SHELF_LABEL' },
   { words: 'Your tutor', from: 'profile/frenchLife.ts', name: 'TUTOR_LABEL' },
-  { words: 'Your speaking rhythm', from: 'profile/frenchLife.ts', name: 'RHYTHM_LABEL' },
   { words: 'Your learning', from: 'profile/frenchLife.ts', name: 'LEARNING_LABEL' },
 ];
 
@@ -136,7 +136,7 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
  * the app takes, and a button word is not a caps label. These three are the
  * only components that turn the prop into `<Label>`.
  */
-const LABEL_PRIMITIVES = ['surface/HeroCard.tsx', 'surface/IconRowCard.tsx', 'surface/PhraseCard.tsx'];
+const LABEL_PRIMITIVES: string[] = [];
 
 describe('the caps micro-label — what it is allowed to be used for', () => {
   test('the retired kickers stay retired', () => {
@@ -179,7 +179,7 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     const header = readFileSync(join(SRC, 'layout.tsx'), 'utf8');
     assert.match(
       header,
-      /flex: 1, alignItems: 'center'/,
+      /flex: 1, alignItems: 'flex-start'/,
       'the shared header centre no longer expands, so it cannot push the leave word to the edge',
     );
     assert.match(
@@ -225,12 +225,34 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
   test('a label whose words live in a module is still drawn as a label', () => {
     // First the three primitives really do turn `label` into a caps label, so
     // `label={SHELF_LABEL}` below is a caps label and not a button word.
+    // 2026-09-27, notebook Phase 1: HeroCard and IconRowCard became wrappers
+    // that hand `label` to SceneBrief and LedgerRow in components.tsx. The
+    // promise is unchanged and is now followed through the hand-off: either the
+    // primitive draws `<Label>{label}</Label>` itself, or it forwards
+    // `label={label}` to a component whose own region draws it as a caps Label.
+    // Revamp B (F602): SceneBrief is the one blue card and takes no `label`
+    // any more. The label, the minutes and the tutor are one meta line, so a
+    // primitive handing its words to the brief is followed to `{meta}`.
+    const components = readFileSync(join(SRC, 'components.tsx'), 'utf8');
+    const regionOf = (name: string): string => {
+      const at = components.indexOf(`export function ${name}(`);
+      assert.notEqual(at, -1, `${name} is gone from components.tsx`);
+      const next = components.indexOf('\nexport ', at + 1);
+      return components.slice(at, next === -1 ? components.length : next);
+    };
+    const DRAWS_LABEL: Record<string, RegExp> = {
+      SceneBrief: /\{meta\}/,
+      LedgerRow: /<Label>\{label\}<\/Label>/,
+    };
     for (const where of LABEL_PRIMITIVES) {
       const source = readFileSync(join(SRC, where), 'utf8');
+      if (/<Label>\{label\}<\/Label>/.test(source)) continue;
+      const delegate = /<(SceneBrief|LedgerRow)\b[^>]*\blabel=\{label\}/.exec(source.replace(/\s+/g, ' '));
+      assert.ok(delegate, `${where} no longer draws its label prop as a caps Label, so the call sites below prove nothing`);
       assert.match(
-        source,
-        /<Label>\{label\}<\/Label>/,
-        `${where} no longer draws its label prop as a caps Label, so the call sites below prove nothing`,
+        regionOf(delegate[1]!),
+        DRAWS_LABEL[delegate[1]!]!,
+        `${where} hands its label to ${delegate[1]}, which no longer draws it as a caps Label`,
       );
     }
 

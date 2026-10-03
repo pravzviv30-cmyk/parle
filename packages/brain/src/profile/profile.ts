@@ -21,6 +21,24 @@ import { normalizeErrorTag } from './errorTag.ts';
 
 /** A remembered fact plus when it was noted — the eviction order. */
 export type RememberedFact = MemoryFact & { notedAt: string };
+/** Compatibility marker for the prompt that authored an opener, not a
+ * sensitivity classification or proof that learner-writable data is trusted. */
+export const PERSONAL_MEMORY_POLICY_VERSION = 1 as const;
+export interface MemoryControl { paused: boolean; changedAt: number }
+
+export function validMemoryControl(value: unknown): MemoryControl | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const control = value as Record<string, unknown>;
+  return typeof control.paused === 'boolean' && typeof control.changedAt === 'number'
+    && Number.isSafeInteger(control.changedAt) && control.changedAt >= 0
+    ? { paused: control.paused, changedAt: control.changedAt } : undefined;
+}
+export const memoryPaused = (profile: LearnerProfile): boolean => validMemoryControl(profile.memory.control)?.paused === true;
+export function withoutForgottenMemory(profile: LearnerProfile, forgotten: readonly string[]): LearnerProfile {
+  if (forgotten.length === 0) return profile;
+  const keys = new Set(forgotten.map(normalise));
+  return { ...profile, memory: { ...profile.memory, opener: null, facts: profile.memory.facts.filter((fact) => !keys.has(normalise(fact.en))) } };
+}
 
 export interface LearnerProfile {
   version: 2;
@@ -50,9 +68,11 @@ export interface LearnerProfile {
    * rides the session join credential.
    */
   memory: {
+    /** Learner-authored pause state; never changed by extraction or a recap. */
+    control?: MemoryControl;
     facts: RememberedFact[];
     /** Next session's spoken opener, referencing something real, or null. */
-    opener: { fr: string; en: string } | null;
+    opener: { fr: string; en: string; policyVersion?: typeof PERSONAL_MEMORY_POLICY_VERSION } | null;
     /**
      * What they asked to be called at onboarding, or null.
      *
@@ -149,6 +169,8 @@ export function repairProfile(stored: unknown): LearnerProfile {
   const migrated = migrateProfile(stored as unknown as LearnerProfile);
   const memory = migrated.memory;
   if (isRecord(memory) && Array.isArray(memory.facts)) {
+    const { control: rawControl, ...memoryFields } = memory;
+    const control = validMemoryControl(rawControl);
     // `opener` and `name` both arrived after version 2 shipped, so neither can
     // be assumed present. Filling them in beats bumping the version: the
     // learner keeps their error patterns, phrases and CEFR evidence, which is
@@ -159,10 +181,11 @@ export function repairProfile(stored: unknown): LearnerProfile {
     return {
       ...migrated,
       memory: {
-        ...memory,
+        ...memoryFields,
         facts: validRememberedFacts(memory.facts),
         opener: validOpener(memory.opener),
         name: validLearnerName(memory.name),
+        ...(control ? { control } : {}),
       },
     } as LearnerProfile;
   }
@@ -243,12 +266,19 @@ export function validLearnerName(value: unknown): string | null {
  * Dropped, never refused. A profile whose opener fails this gets the ordinary
  * greeting, which is exactly the session a first-time learner gets.
  */
-function validOpener(value: unknown): { fr: string; en: string } | null {
+function validOpener(value: unknown): LearnerProfile['memory']['opener'] {
   if (!isRecord(value)) return null;
   const fr = sayableText(value.fr, MAX_MEMORY_TEXT_CHARS);
   const en = sayableText(value.en, MAX_MEMORY_TEXT_CHARS);
   if (fr === null || en === null) return null;
-  return { fr, en };
+  return { fr, en, ...(value.policyVersion === PERSONAL_MEMORY_POLICY_VERSION ? { policyVersion: PERSONAL_MEMORY_POLICY_VERSION } : {}) };
+}
+
+/** Older stored greetings predate the approved memory rule. Keep their data,
+ * but speak the ordinary greeting until a current extraction authors a new one. */
+export function currentPolicyOpener(profile: LearnerProfile): { fr: string; en: string } | null {
+  return !memoryPaused(profile) && profile.memory.opener?.policyVersion === PERSONAL_MEMORY_POLICY_VERSION
+    ? { fr: profile.memory.opener.fr, en: profile.memory.opener.en } : null;
 }
 
 const FACT_KINDS: ReadonlySet<string> = new Set(['interest', 'life-event', 'goal', 'preference']);
@@ -302,6 +332,7 @@ export function applyExtractionToProfile(
   extraction: MemoryExtraction,
   now: string,
 ): LearnerProfile {
+  if (memoryPaused(profile)) return profile;
   const next = structuredClone(profile);
 
   const seen = new Set(next.memory.facts.map((f) => normalise(f.en)));
@@ -317,7 +348,7 @@ export function applyExtractionToProfile(
   }
 
   if (extraction.openerFr !== null && extraction.openerEn !== null) {
-    next.memory.opener = { fr: extraction.openerFr, en: extraction.openerEn };
+    next.memory.opener = { fr: extraction.openerFr, en: extraction.openerEn, policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   } else {
     // A session that surfaced nothing real clears the opener rather than
     // letting a stale one greet the learner twice.

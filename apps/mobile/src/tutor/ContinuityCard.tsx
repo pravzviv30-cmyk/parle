@@ -16,8 +16,7 @@
  * `continuity.ts` answers null and the tab draws nothing.
  */
 
-import { TintRow } from '../components.tsx';
-import { CONTINUITY_TINT } from './doorTint.ts';
+import { LedgerRow } from '../components.tsx';
 import { continuityRow, type ContinuityRoute } from './dashboard.ts';
 import type { Thread } from './threads.ts';
 import { TutorMark } from './TutorMark.tsx';
@@ -44,8 +43,7 @@ export function ContinuityCard({
 }) {
   const row = continuityRow({ headline, line, thread, continueAllowed });
   return (
-    <TintRow
-      tint={CONTINUITY_TINT}
+    <LedgerRow
       glyph={<TutorMark />}
       title={headline}
       gloss={row.gloss}

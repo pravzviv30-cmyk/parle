@@ -170,6 +170,7 @@ const CONTRACT = [
   `topicShift. Null on almost every turn. When the learner plainly steers the conversation to a different subject than the one you were on (their own trip, their job, a new interest), name where they went: a short noun phrase, en and fr. Follow them there in your reply either way, and never pull them back to the old topic. This field only lets the app remember what you actually talked about.`,
   ``,
   `scene. beat: the current flexible scene aim. beatDone when that aim has naturally been met or the learner has clearly steered elsewhere. sceneDone only at a natural ending.`,
+  `scene.goalMet observes the exact CURRENT beat's goal in the app context, before any progression. True only when the learner's LAST actual reply meaningfully does that specific job in French (mixed is allowed when the French itself does the job). Mere greeting plus an English answer is insufficient. False for an unsuccessful relevant attempt; null for uncertainty, unclear transcription, no actual attempt or a different topic. Topic steering, a modelled answer, silence and requested help never count as goal success. Do not require a memorised phrase or perfect grammar when the meaning works. This observation is distinct from beatDone, taskAchieved and sceneDone.`,
 ].join('\n');
 
 /**

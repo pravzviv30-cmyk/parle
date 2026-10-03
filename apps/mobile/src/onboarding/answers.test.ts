@@ -28,6 +28,7 @@ import {
   AGE_QUESTION,
   AGE_REFUSAL,
   AGE_REFUSAL_EXIT,
+  AGE_RETURN_NOTE,
   AGE_SUB,
   NAME_LABEL,
   NAME_QUESTION,
@@ -41,7 +42,7 @@ import {
   pageBefore,
 } from './answers.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
-import { freshPreAccountDraft, loadPreAccountDraft } from './preAccountDraft.ts';
+import { PRE_ACCOUNT_PAGES, freshPreAccountDraft, loadPreAccountDraft } from './preAccountDraft.ts';
 import { createStoredProfile, completeProfile } from '../profile/store.ts';
 import { DAILY_GOAL_ROW } from '../profile/dailyGoal.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
@@ -59,6 +60,8 @@ function stripComments(source: string): string {
 
 const FLOW = stripComments(read('./OnboardingFlow.tsx'));
 const PRE_ACCOUNT_FLOW = stripComments(read('./PreAccountOnboarding.tsx'));
+/** The pre-account page list lives with the draft that resumes on it. */
+const PRE_ACCOUNT_DRAFT = stripComments(read('./preAccountDraft.ts'));
 const RULES = stripComments(read('./answers.ts'));
 const AGE_GATE = stripComments(read('./AgeGateScreen.tsx'));
 const REFUSAL = stripComments(read('./AgeRefusal.tsx'));
@@ -136,7 +139,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     // which is the rule the reminder row already keeps: a name spelled in two
     // places is a name that comes to mean two things. So the claim splits in
     // two, and together they are the same claim as before.
-    assert.equal(DAILY_GOAL_ROW, 'Speaking target', 'the target row has no name a learner could find it by');
+    assert.equal(DAILY_GOAL_ROW, 'Flexible practice routine', 'the routine row has no plain name a learner could find it by');
     assert.ok(
       PROFILE_TAB.includes('DAILY_GOAL_ROW'),
       'profile spells the row name itself, or has no row for the goal at all',
@@ -159,7 +162,7 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     // with the same component the Profile sheet uses. So the guard is re-pointed
     // at the fact that still carries it — every option card in this flow belongs
     // to the voice step, and none of them asks a question about the learner.
-    const cards = [...FLOW.matchAll(/<OptionCard/g)].map((m) => m.index ?? -1);
+    const cards = [...FLOW.matchAll(/<OptionRow/g)].map((m) => m.index ?? -1);
     const voicePageAt = FLOW.indexOf("{page === 'voice' && (");
     assert.ok(voicePageAt > 0, 'the voice step is no longer rendered by name');
     for (const index of cards) {
@@ -311,8 +314,8 @@ describe('the Meet page reads as a paragraph, not a plaque — F359', () => {
     );
     assert.match(
       FLOW,
-      /question:\s*\{[^}]*\.\.\.type\.display/,
-      'the Meet title must use the shared editorial display scale',
+      /question:\s*\{[^}]*\.\.\.type\.title/,
+      'the recovery question must use the shared working title',
     );
   });
 });
@@ -416,6 +419,50 @@ describe('the age gate is a gate on screen, not only in the rule', () => {
   });
 });
 
+describe('the return gate is drawn as a working screen — F601', () => {
+  test('the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out', () => {
+    // A working title on paper, not a display headline: this is a check, not a story page.
+    assert.match(AGE_GATE, /question: \{ \.\.\.type\.title, color: paper\.ink/, 'the age check title is not a working title');
+    assert.doesNotMatch(AGE_GATE, /type\.display/, 'the age check still sets its title at display size');
+
+    // One quiet line says how much is being asked, and says nothing about why.
+    assert.equal(AGE_RETURN_NOTE, 'It is one question.');
+    assert.match(AGE_GATE, /<QuietLine>\{AGE_RETURN_NOTE\}<\/QuietLine>/, 'the quiet line is not on the age check');
+    assert.doesNotMatch(AGE_RETURN_NOTE, /[—–·]/, 'the quiet line carries a dash or a middot');
+    assert.doesNotMatch(AGE_RETURN_NOTE, /\b(said|told|heard|caught|because|sorry|wrong|must)\b/i, 'the quiet line says what happened, or scolds');
+
+    // Both answers ride in the footer, the quiet no above the one ink pill,
+    // and both go once the learner has said they are younger.
+    const answers = AGE_GATE.slice(AGE_GATE.indexOf('const answers = '), AGE_GATE.indexOf('return ('));
+    assert.match(answers, /^const answers = oldEnough !== false && \(/, 'the answers do not leave once the learner says they are younger');
+    const deny = answers.indexOf('<GhostButton label={AGE_DENY}');
+    const confirm = answers.indexOf('<PillButton');
+    assert.ok(deny > 0 && confirm > deny, 'the quiet no is not above the one ink pill');
+    assert.match(answers.slice(confirm), /label=\{AGE_CONFIRM\}/, 'the pill is not the confirmation');
+    assert.match(AGE_GATE, /<ScrollScreen footer=\{answers \|\| undefined\}>/, 'the answers are not pinned in the footer');
+    assert.equal((AGE_GATE.match(/<PillButton\b/g) ?? []).length, 1, 'the age check offers more than one pill');
+
+    // The refusal is unchanged: no footer, and the one way out is sign out.
+    assert.match(AGE_GATE, /\{refusal !== null && <AgeRefusal text=\{refusal\} onSignOut=\{onSignOut\} \/>\}/, 'a refused learner has no way out');
+    assert.ok(!REFUSAL.includes('PillButton'), 'the refusal offers a second chance');
+  });
+
+  test("the age check's quiet line is true whichever answer the learner gives", () => {
+    // F636. The line used to read "One question, then you carry on where you
+    // were." A learner who taps "I am younger than that" does not carry on: the
+    // refusal comes and the only way out is sign out. So the line was false on
+    // the very screen that refused them, and before the answer it told a child
+    // which answer lets them through, which leans on a question that has to be
+    // neutral. The quiet line says how much is asked and nothing about after.
+    assert.doesNotMatch(AGE_RETURN_NOTE, /carry on|then you|continue|where you were/i, 'the quiet line says which answer carries on');
+
+    // And once they have said they are younger it leaves with the answers, so
+    // the refusal is the only line under the sub.
+    const note = AGE_GATE.match(/\{(oldEnough !== false) && \(\s*<View style=\{st\.note\}>\s*<QuietLine>\{AGE_RETURN_NOTE\}<\/QuietLine>/);
+    assert.ok(note, 'the quiet line stays on screen above the refusal');
+  });
+});
+
 describe('the onboarding doc counts the screens the code shows', () => {
   test('the onboarding doc claims the same pre-account page count the flow renders', () => {
     // A count written in prose rots the first time somebody adds a page, and a
@@ -423,23 +470,23 @@ describe('the onboarding doc counts the screens the code shows', () => {
     // instead of the code.
     const claim = DOC.match(/Pre-account onboarding renders \*\*(\d+) pages\*\*: ([^.]+)\./);
     assert.ok(claim, 'docs/ONBOARDING.md no longer says how many pages pre-account onboarding renders');
-    const preAccountPages = ['welcome', 'situations', 'life', 'voice', 'ready'];
+    const preAccountPages: readonly string[] = PRE_ACCOUNT_PAGES;
     assert.equal(Number(claim[1]), preAccountPages.length, `the doc claims ${claim[1]} pages and the pre-account flow holds ${preAccountPages.length}`);
     assert.deepEqual(
-      [...(claim[2] ?? '').matchAll(/`([a-z]+)`/g)].map((m) => m[1]),
+      [...(claim[2] ?? '').matchAll(/`([a-z-]+)`/g)].map((m) => m[1]),
       preAccountPages,
       'the doc names different pages, or names them in a different order',
     );
-    assert.match(PRE_ACCOUNT_FLOW, /PRE_ACCOUNT_PAGES = \['welcome', 'situations', 'life', 'voice', 'ready'\]/, 'the five pages in the doc are not the five the pre-account flow renders');
+    assert.match(PRE_ACCOUNT_DRAFT, /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'\]/, 'the six pages in the doc are not the six the pre-account flow renders');
 
-    // Sign-up and the mission chooser follow the five pages. The age gate is
-    // part of Ready rather than a sixth marketing screen.
+    // Sign-up and the first scene's microphone primer follow the six pages.
+    // The age gate is part of the save page rather than a seventh screen.
     const screens = DOC.match(/crosses \*\*(\d+) screens\*\*/);
     assert.ok(screens, 'the doc stopped counting the screens before the first scene');
     assert.equal(
       Number(screens[1]),
       preAccountPages.length + 2,
-      'the doc counts screens that no longer match the pages plus the welcome, the sign-up and the chooser',
+      'the doc counts screens that no longer match the pages plus the sign-up and the first scene',
     );
 
     // And it stays honest about what the count is standing in for. Wall-clock
@@ -476,15 +523,15 @@ describe('the first run asks about usage data once, and off is the answer until 
       'the pre-account flow asks about usage data more than once, or not at all',
     );
     assert.match(
-      PRE_ACCOUNT_FLOW,
-      /PRE_ACCOUNT_PAGES = \['welcome', 'situations', 'life', 'voice', 'ready'\]/,
+      PRE_ACCOUNT_DRAFT,
+      /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'\]/,
       'the switch was given a page of its own, which is a screen bought with a learner’s time',
     );
 
-    const ready = PRE_ACCOUNT_FLOW.indexOf("page === 'ready' &&");
+    const ready = PRE_ACCOUNT_FLOW.indexOf("page === 'save' &&");
     const privacy = PRE_ACCOUNT_FLOW.indexOf('Learning history does not include raw audio by default.');
     const row = PRE_ACCOUNT_FLOW.indexOf('<SwitchRow');
-    assert.ok(ready > 0 && privacy > ready, 'the privacy line is no longer on the ready page');
+    assert.ok(ready > 0 && privacy > ready, 'the privacy line is no longer on the save page');
     assert.ok(row > privacy, 'the switch is asked before the line that says what the app keeps, or on another page');
 
     // The words are the module’s, not this screen’s. A row that spelled its
@@ -511,7 +558,9 @@ describe('the first run asks about usage data once, and off is the answer until 
     assert.match(PRE_ACCOUNT_FLOW, /value=\{draft\.analyticsConsent\}/, 'the switch draws something other than the draft');
     assert.match(PRE_ACCOUNT_FLOW, /onChange=\{setConsent\}/, 'the switch is not wired to anything');
     const setter = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const setConsent'));
-    assert.match(setter.slice(0, 400), /onDraftChange\(next\)/, 'a flip is kept in memory and never handed to the draft');
+    assert.match(setter.slice(0, 400), /keep\(\{ analyticsConsent: allowed \}\)/, 'a flip is kept in memory and never handed to the draft');
+    const keep = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const keep ='));
+    assert.match(keep.slice(0, 300), /onDraftChange\(next\)/, 'the one door answers go through does not reach the draft');
   });
 
   test('the draft carries the answer and a missing one reads as no', async () => {
@@ -575,7 +624,7 @@ describe('the first run asks about usage data once, and off is the answer until 
     // the app, so nothing a learner does in the next seconds is counted against
     // an answer that has not landed.
     const preWrite = APP.indexOf('await saveConsent({ allowed: draft.analyticsConsent })');
-    const release = APP.indexOf('done(withChosenVoice(built, draft.tutorVoice))');
+    const release = APP.indexOf('done(built)');
     assert.ok(preWrite > 0, 'the pre-account bootstrap never writes the usage-data answer');
     assert.ok(release > preWrite, 'the app is released before the answer reaches the disk');
 
@@ -623,4 +672,10 @@ describe('the first run asks about usage data once, and off is the answer until 
       'App.tsx writes a consent for a page that never asked, which is how a stored yes is silently withdrawn',
     );
   });
+});
+
+ test("the recovery route's voice step is option rows that still sound their sample", () => {
+  assert.doesNotMatch(FLOW, /<OptionCard/);
+  assert.match(FLOW, /<OptionRow[\s\S]*?title=\{option.label\}[\s\S]*?detail=\{option.gloss\}[\s\S]*?selected=\{voice === option.value\}[\s\S]*?playing=\{playing === option.value\}[\s\S]*?onPress=\{\(\) => setVoice\(option.value\)\}[\s\S]*?onHear=\{\(\) => hearVoice\(option.value\)\}/);
+  assert.match(FLOW, /question: \{ \.\.\.type.title/);
 });

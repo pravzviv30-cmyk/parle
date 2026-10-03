@@ -113,20 +113,19 @@ describe('the reminder store — whose reminder it is', () => {
     assert.throws(() => loadReminder(), /no signed-in user/, 'a signed-out read resolved to some shared key');
     assert.throws(() => saveReminder({ enabled: true, time: 'lunch' }), /no signed-in user/);
 
-    // A write already queued when the account changes belongs to the account
-    // that asked for it. The chain defers the write by a microtask, so the
-    // switch below really does land in the middle of it.
+    // A queued write is refused when its account scope changes before the
+    // chain drains. It cannot land in either learner's namespace.
     setActiveUser(mine);
     const inFlight = saveReminder({ enabled: true, time: 'lunch' });
     setActiveUser(theirs);
-    assert.equal(await inFlight, 'durable');
+    assert.equal(await inFlight, 'failed');
     assert.deepEqual(
       await loadReminder(),
       { enabled: false, time: 'night' },
       "a queued write followed the account switch into somebody else's namespace",
     );
     setActiveUser(mine);
-    assert.deepEqual(await loadReminder(), { enabled: true, time: 'lunch' });
+    assert.deepEqual(await loadReminder(), { enabled: true, time: 'morning' });
 
     // And a data reset reaches it. Run end to end rather than asserted against
     // the list, because a suffix in USER_KEY_SUFFIXES and a key a reset really
@@ -145,6 +144,24 @@ describe('the reminder store — whose reminder it is', () => {
 });
 
 describe('the reminder store — which way a bad blob falls', () => {
+  test('strict owned reads leave a missing choice absent and refuse unknown bytes', async () => {
+    const disk = installDisk();
+    const uid = nextUid();
+    setActiveUser(uid);
+    const key = `luvani.u.${uid}.reminder`;
+    assert.equal(await loadReminder({ strict: true }), null, 'a genuinely absent reminder should remain a valid no-choice state');
+    disk.map.set(key, '{"version":1,"reminder":{"enabled":false,"time":"night"}}');
+    assert.deepEqual(await loadReminder({ strict: true }), { enabled: false, time: 'night' });
+    for (const raw of ['', '{', '{"version":2,"reminder":{"enabled":false,"time":"night"}}', '{"version":1,"reminder":{"enabled":"false","time":"night"}}']) {
+      disk.map.set(key, raw);
+      await assert.rejects(loadReminder({ strict: true }), `strict read accepted ${raw} as Off`);
+      assert.equal(disk.map.get(key), raw, 'a failed read rewrote the learner’s choice');
+    }
+    (AsyncStorage as unknown as Record<string, unknown>).getItem = async () => { throw new Error('native read refused'); };
+    await assert.rejects(loadReminder({ strict: true }), /native read refused/);
+    setActiveUser(null);
+  });
+
   test('an unreadable reminder reads as off, never as on', async () => {
     // Every one of these is a reminder this build cannot read. Reading any of
     // them as on would schedule a daily notification the learner never asked

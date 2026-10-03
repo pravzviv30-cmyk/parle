@@ -23,7 +23,9 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onUserScopeReset, userKey } from '../storage/scope.ts';
+import type { PersistAck } from '../storage/ack.ts';
+import { readOwnedCache } from '../storage/ownedRead.ts';
+import { onUserScopeReset, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -61,11 +63,13 @@ type WriteOrigin = 'local' | 'adopted';
 
 let writeChain: Promise<unknown> = Promise.resolve();
 
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+interface Bound { key: string; generation: number }
+
+function serialized<T>(mutation: (bound: Bound) => Promise<T>): Promise<T> {
   // Bind the account when the work is requested. A sign-out while a background
   // write is queued must never redirect that write into the next account.
-  const key = KEY();
-  const run = () => mutation(key);
+  const bound = { key: KEY(), generation: scopeGeneration() };
+  const run = () => mutation(bound);
   const next = writeChain.then(run, run);
   writeChain = next.catch(() => {});
   return next;
@@ -117,18 +121,16 @@ function ordered(items: readonly BookmarkItem[]): BookmarkItem[] {
     .slice(-MAX_BOOKMARKS);
 }
 
+function readableBookmarks(value: unknown): value is StoredBookmarks {
+  if (typeof value !== 'object' || value === null) return false;
+  const stored = value as Partial<StoredBookmarks>;
+  return [1, VERSION].includes(stored.version ?? 0) && Array.isArray(stored.items) && stored.items.every(isItem);
+}
+
 async function readItems(key: string): Promise<BookmarkItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Partial<StoredBookmarks> | null;
-    if (!parsed || ![1, VERSION].includes(parsed.version ?? 0) || !Array.isArray(parsed.items)) return [];
-    return parsed.items.filter(isItem);
-  } catch {
-    // A corrupt store reads as nothing saved. Every situation is still one tap
-    // away in the pool, so this costs a shortcut and never the content.
-    return [];
-  }
+  const raw = await AsyncStorage.getItem(key);
+  const parsed = readOwnedCache(raw, readableBookmarks);
+  return parsed === null ? [] : parsed.items;
 }
 
 /**
@@ -136,21 +138,18 @@ async function readItems(key: string): Promise<BookmarkItem[]> {
  * this account has never written one.
  */
 async function persistedItems(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  return readOwnedCache(await AsyncStorage.getItem(key), readableBookmarks);
 }
 
-async function saveItems(key: string, items: readonly BookmarkItem[], origin: WriteOrigin): Promise<void> {
+async function saveItems(bound: Bound, items: readonly BookmarkItem[], origin: WriteOrigin): Promise<PersistAck> {
   try {
-    await AsyncStorage.setItem(key, JSON.stringify({ version: VERSION, items: [...items] } satisfies StoredBookmarks));
+    const written = await writeInUserScope(bound.generation, () =>
+      AsyncStorage.setItem(bound.key, JSON.stringify({ version: VERSION, items: [...items] } satisfies StoredBookmarks)));
+    if (!written) return 'failed';
     if (origin === 'local') markDirty('bookmarks');
+    return 'durable';
   } catch {
-    // Storage full or unavailable. The situation the learner tapped is still on
-    // the screen they tapped it from.
+    return 'failed';
   }
 }
 
@@ -167,10 +166,11 @@ export function loadBookmarks(): Promise<BookmarkItem[]> {
 
 /** Save or un-save one situation. The newer decision replaces the older one. */
 export function setBookmark(scenarioId: string, saved: boolean, now = Date.now()): Promise<void> {
-  return serialized(async (key) => {
+  return serialized(async (bound) => {
     const item: BookmarkItem = { scenarioId, at: now, saved };
     if (!isItem(item)) return;
-    await saveItems(key, ordered([...(await readItems(key)), item]), 'local');
+    const existing = await readItems(bound.key);
+    if (await saveItems(bound, ordered([...existing, item]), 'local') !== 'durable') throw new Error('Bookmark was not saved');
   });
 }
 
@@ -186,12 +186,11 @@ export function setBookmark(scenarioId: string, saved: boolean, now = Date.now()
  * push.
  */
 function adoptBookmarks(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const folded = fold(await persistedItems(key));
-    if (typeof folded !== 'object' || folded === null) return 'declined';
-    const envelope = folded as Partial<StoredBookmarks>;
-    if (envelope.version !== VERSION || !Array.isArray(envelope.items)) return 'declined';
-    await saveItems(key, ordered(envelope.items.filter(isItem)), 'adopted');
+  return serialized(async (bound) => {
+    if (scopeGeneration() !== bound.generation) throw new Error('Bookmark account changed before adoption');
+    const folded = fold(await persistedItems(bound.key));
+    if (!readableBookmarks(folded) || folded.version !== VERSION) return 'declined';
+    if (await saveItems(bound, ordered(folded.items), 'adopted') !== 'durable') throw new Error('Bookmark adoption was not durable');
     return 'adopted';
   });
 }

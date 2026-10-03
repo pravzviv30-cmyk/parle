@@ -19,6 +19,7 @@
  * tutor-agent workspace, exactly as speechace.ts is.
  */
 
+import { typedOnly } from './sessionCapabilities.ts';
 type Env = Record<string, string | undefined>;
 
 // ─────────────────────────────────────────────── reading a .env file
@@ -123,7 +124,19 @@ export function bootPlan(env: Env = process.env): BootStep[] {
       args: ['run', 'dev', '--workspace=@luvani/token-server'],
       port: TOKEN_PORT,
       ready: { kind: 'http', url: `http://127.0.0.1:${TOKEN_PORT}/health`, timeoutMs: 15_000, fatalOnTimeout: true },
-      identify: (p) => p.status === 200 && p.body.includes('"ok":true'),
+      identify: (p) => {
+        if (p.status !== 200) return false;
+        try {
+          const health = JSON.parse(p.body);
+          if (health.ok !== true) return false;
+          const modes = health.supportedModes;
+          // Older full runtimes predate capability reporting. They cannot be
+          // reused for an explicitly typing-only boot.
+          if (!Array.isArray(modes)) return !typedOnly(env);
+          const expected = typedOnly(env) ? ['lesson-text', 'convo-text'] : ['lesson', 'lesson-text', 'convo', 'convo-text'];
+          return modes.length === expected.length && expected.every((mode) => modes.includes(mode));
+        } catch { return false; }
+      },
     },
     {
       id: 'agent',
@@ -244,11 +257,12 @@ export function envGaps(agentEnv: Env, tokenEnv: Env): EnvGap[] {
     need(tokenEnv, name, TOKEN_FILE, 'the token server cannot sign a join token without it.');
     need(agentEnv, name, AGENT_FILE, 'the agent cannot register with LiveKit without it.');
   }
-  need(agentEnv, 'DEEPGRAM_API_KEY', AGENT_FILE, 'nothing would transcribe the learner.');
+  if (typedOnly(agentEnv) !== typedOnly(tokenEnv)) gaps.push({ name: 'LUVANI_TYPED_ONLY', file: TOKEN_FILE, why: 'must match the agent, so spoken sessions are never offered by a typing-only runtime.' });
+  if (!typedOnly(agentEnv)) need(agentEnv, 'DEEPGRAM_API_KEY', AGENT_FILE, 'nothing would transcribe the learner.');
   // One voice key, and it is the selected vendor's. Asking for the other one
   // would refuse to boot a stack that runs.
   const voiceKeyName = voiceVendorOf(agentEnv) === 'fish' ? 'FISH_API_KEY' : 'ELEVEN_API_KEY';
-  need(agentEnv, voiceKeyName, AGENT_FILE, 'the tutor would have no voice.');
+  if (!typedOnly(agentEnv)) need(agentEnv, voiceKeyName, AGENT_FILE, 'the tutor would have no voice.');
 
   const brain = brainOf(agentEnv);
   if (brain === 'groq') {
@@ -257,15 +271,10 @@ export function envGaps(agentEnv: Env, tokenEnv: Env): EnvGap[] {
     need(agentEnv, 'ANTHROPIC_API_KEY', AGENT_FILE, 'TUTOR_LLM is anthropic, so the brain has no credential.');
   } else if (brain === 'openai') {
     need(agentEnv, 'OPENAI_API_KEY', AGENT_FILE, 'TUTOR_LLM=openai selects it, so the brain has no credential.');
-  } else if (brain === 'claude-cli') {
-    // The subscription needs no key. It needs the binary, which is checked by
-    // the supervisor against the filesystem rather than against an env file.
-    // Groq is still here because it is still answering the realtime turns.
-    need(agentEnv, 'GROQ_API_KEY', AGENT_FILE, 'TUTOR_LLM=claude-cli still answers realtime turns on Groq.');
+  } else if (brain === 'claude-cli' || brain === 'claude-cli-all') {
+    // The SDK lesson LLM remains Groq even for the all-CLI conversation brain.
+    need(agentEnv, 'GROQ_API_KEY', AGENT_FILE, `${brain} still uses Groq for scripted lessons.`);
   }
-  // claude-cli-all wants nothing at all: the subscription takes the realtime
-  // turn too, so Groq drops out and no credential is left to ask for. Naming a
-  // gap here would stop a boot that would have worked.
   return gaps;
 }
 

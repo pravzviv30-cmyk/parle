@@ -370,11 +370,11 @@ describe('the profile version chain', () => {
       assert.deepEqual(upgraded.learnerGoals, [], `${JSON.stringify(junk)} is not a list of goals this app wrote`);
     }
 
-    // Capped: the newest forty forgets and the last three goals.
+    // Forget markers survive without expiry; goals retain the last-three limit.
     const many = upgradeStored(v8(Array.from({ length: 50 }, (_, i) => `fact ${i}`), ['a', 'b', 'c', 'd']), NOW);
     assert.ok(many);
-    assert.equal(many.forgottenFacts.length, 40);
-    assert.equal(many.forgottenFacts[0], 'fact 10', 'the oldest forgets are not the ones that go');
+    assert.equal(many.forgottenFacts.length, 50);
+    assert.equal(many.forgottenFacts[0], 'fact 0', 'an old forget must never be evicted');
     assert.deepEqual(many.learnerGoals, ['b', 'c', 'd']);
 
     for (const blob of [...everyOlderVersion(undefined), v6(OTHER_VOICE), { ...v6(OTHER_VOICE), version: 7, preferTyping: true }]) {

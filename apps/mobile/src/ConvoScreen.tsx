@@ -1,3 +1,27 @@
+import {
+  COACH_MARK_TEXT,
+  coachMarksAfter,
+  coachMarksAt,
+  dismissCoachMark,
+  type CoachMarkState,
+} from './tutor/coachMarks.ts';
+import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
+import { loadMissionCompletions, recordMissionCompletion } from './missions/store.ts';
+import { recordScenarioProgress } from './missions/progressStore.ts';
+import { markPackContinued } from './conversationPacks/marks.ts';
+import { recordRevisitStarted } from './practice/historyStore.ts';
+import { recordGoalStepStarted } from './goals/store.ts';
+import { replayNote, missionCompletionsFrom, type MissionReplay } from './missions/chooserView.ts';
+import { trackProductEvent } from './analytics/track.ts';
+import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
+import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
+import { prepareWalk } from './walk/lifecycle.ts';
+import { walkObserver } from './walk/observer.ts';
+import { WalkRoom } from './walk/WalkRoom.tsx';
+import { onUserScopeReset } from './storage/scope.ts';
+import { currentCanDoQuote, readMissionTasks, sessionSettlementCopy, type CurrentMissionFinish } from '@luvani/core';
+import { firstEarnedFinish } from './recap/evidence.ts';
+import type { MissionCompletion } from '@luvani/core';
 /**
  * The free-conversation driver and surface.
  *
@@ -11,12 +35,14 @@
  * does not need a score-like marker advancing above them.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Animated, Platform, KeyboardAvoidingView } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, AppState, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreventRemove } from '@react-navigation/native';
 import {
   conversationXp,
+  missionStates,
+  isEarned,
   getMission,
   phraseKeyOf,
   type ConvoPhrase,
@@ -35,6 +61,9 @@ import {
   EarGlyph,
   HelpGlyph,
   fitDisplay,
+  ControlTile,
+  Press,
+  ChevronRight,
 } from './components.tsx';
 import { SupportBlock } from './SessionView.tsx';
 import { ConfirmSheet, ScrollScreen } from './layout.tsx';
@@ -43,6 +72,7 @@ import { RecapScreen, type RecapPracticePhrase } from './RecapScreen.tsx';
 import { mergeExercises } from './drill/store.ts';
 import { bankPractice, journalDrills, journalPractice } from './live/journal.ts';
 import { saveRecapKeepsake } from './live/recapKeepsake.ts';
+import { keepsakeLines } from './live/keepsake.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
@@ -65,9 +95,15 @@ import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { tutorVoiceOf } from './tutor/tutorVoice.ts';
-import { OPEN_MIC_LABEL, sceneControls, typedTurn } from './tutor/sceneControls.ts';
+import { OPEN_MIC_LABEL, sceneControls, simplerLabel, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
+import { visibleMissionTasks } from './tutor/missionTasks.ts';
+import { MissionTaskList } from './tutor/MissionTaskList.tsx';
 import { recapWait } from './tutor/recapWait.ts';
+import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
+import { RoomWait } from './live/RoomWait.tsx';
+import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
+import { waitingNote } from './tutor/waitingView.ts';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
 
 /**
@@ -121,25 +157,7 @@ const RECAP_WAIT_MS = 15_000;
  * stops looking authored.
  */
 const CHOOSING_ORB = 170;
-const SCENE_ORB = 88;
-import {
-  COACH_MARK_TEXT,
-  coachMarksAfter,
-  coachMarksAt,
-  dismissCoachMark,
-  type CoachMarkState,
-} from './tutor/coachMarks.ts';
-import { loadSeenCoachMarks, markCoachMarkSeen } from './tutor/store.ts';
-import { recordMissionCompletion } from './missions/store.ts';
-import { recordScenarioProgress } from './missions/progressStore.ts';
-import { markPackContinued } from './conversationPacks/marks.ts';
-import { recordRevisitStarted } from './practice/historyStore.ts';
-import { recordGoalStepStarted } from './goals/store.ts';
-import { replayNote, type MissionReplay } from './missions/chooserView.ts';
-import { trackProductEvent } from './analytics/track.ts';
-import { MOMENT_ANSWER_MS, momentAnswer } from './practice/statusLine.ts';
-import { settleIn, useReduceMotion } from './motion.ts';
-import { Paywall } from './purchases/Paywall.tsx';
+const SCENE_ORB = 120;
 
 /**
  * The browser wants a gesture before it will play the tutor.
@@ -179,9 +197,9 @@ function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: 
  * so continuing is chosen and never assumed. Leaving is the ghost, and the
  * standing end control in the header still works, as it must in any metered room.
  *
- * Motion is the app's one settle: transform and opacity, native driver, and the
- * final frame under reduce motion. The arrival is the flourish; the sentence is
- * the point, and nobody waits through a flourish to read that they did it.
+ * Still, since the notebook redesign (Phase 4, 2026-09-27): only the orb and
+ * the highlighter move in this app, so the card arrives in place. The sentence
+ * was always the point, and nobody waits through a flourish to read it.
  */
 function MissionWin({
   card,
@@ -192,41 +210,26 @@ function MissionWin({
   onKeep: () => void;
   onFinish: () => void;
 }) {
-  const settle = useRef(new Animated.Value(0)).current;
-  const reduced = useReduceMotion();
-  useEffect(() => {
-    const animation = settleIn(settle, reduced);
-    return () => animation?.stop();
-  }, [settle, reduced]);
-
   return (
-    <Animated.View
-      style={[
-        st.win,
-        {
-          opacity: settle,
-          transform: [{ translateY: settle.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-        },
-      ]}
-    >
+    <View style={st.win}>
       <Card>
         <Text
           accessibilityLiveRegion="polite"
-          style={[fitDisplay(card.line), { color: paper.ink, textAlign: 'center' }]}
+          style={[fitDisplay(card.line), { color: paper.ink, textAlign: 'left' }]}
         >
           {card.line}
         </Text>
         <View style={st.winPrimary}>
           <PillButton label={card.keepLabel} onPress={onKeep} />
         </View>
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}>
+        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'left', marginTop: space(2) }]}>
           {card.keepSub}
         </Text>
         <View style={st.winSecondary}>
           <GhostButton label={card.finishLabel} onPress={onFinish} />
         </View>
       </Card>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -237,6 +240,7 @@ export function ConvoScreen({
   onExit,
   onPractice,
   startInTextMode = false,
+  walkMode = false,
   seedTopic,
   continuationPackId,
   missionId,
@@ -253,6 +257,7 @@ export function ConvoScreen({
   onPractice?: (phrase: RecapPracticePhrase) => void;
   /** "Can't speak right now": the same tutor, typed. */
   startInTextMode?: boolean;
+  walkMode?: boolean;
   /**
    * What the learner asked to talk about again, from a topic card. It rides the
    * start body into the join token, the same channel mode and the snapshot use.
@@ -321,6 +326,7 @@ export function ConvoScreen({
   // does not change that — the tutor speaks, and the circle is one tap away.
   const [typingOpen, setTypingOpen] = useState(prefersTyping(profile));
   const live = useLiveSession(userId, 'convo-01', replay?.startRung, {
+    noTypedRecovery: walkMode,
     mode: openedTyped ? 'convo-text' : 'convo',
     snapshot,
     seedTopic,
@@ -331,10 +337,28 @@ export function ConvoScreen({
 
   // Connect on mount, and again only in the one case a session has to be built
   // from cold to be typed. The hook tears the room down on unmount.
+  const [walkRefused, setWalkRefused] = useState(false);
+  const walkClose = useRef<() => void>(() => {});
   useEffect(() => {
-    void live.start();
+    if (!walkMode) { void live.start(); return; }
+    const gate = prepareWalk(walkObserver(), {
+      start: live.start,
+      end: () => { void live.leave().finally(onExit); },
+    });
+    let current = true;
+    walkClose.current = gate.close;
+    const reset = onUserScopeReset(gate.close);
+    const app = AppState.addEventListener('change', state => { if (state === 'active') gate.check(); });
+    void gate.started.then(started => { if (current && !started) setWalkRefused(true); });
+    return () => { current = false; app.remove(); reset(); gate.close(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openedTyped]);
+  }, [openedTyped, walkMode]);
+  const walkMicAsked = useRef(false);
+  useEffect(() => {
+    if (!walkMode || walkMicAsked.current || live.status.phase !== 'live' || live.convo === null) return;
+    walkMicAsked.current = true;
+    void live.openMic().then(opened => { if (!opened) walkClose.current(); });
+  }, [walkMode, live.status.phase, live.convo, live.openMic]);
 
   // Retire a remembered pack only once this route has become a real room. The
   // ref is raised before the async write so a second view cannot queue a second
@@ -343,7 +367,7 @@ export function ConvoScreen({
   useEffect(() => {
     if (continuationMarkedRef.current || continuationPackId === undefined || live.convo === null) return;
     continuationMarkedRef.current = true;
-    void markPackContinued(continuationPackId, Date.now());
+    void markPackContinued(continuationPackId, Date.now()).catch(() => {});
   }, [continuationPackId, live.convo]);
 
   // The same moment, recorded in the account's practice history: a tutor
@@ -525,7 +549,9 @@ export function ConvoScreen({
    * not the metered seconds and is never shown as those.
    */
   const openedAtRef = useRef<number | null>(null);
-  if (openedAtRef.current === null && live.convo !== null) openedAtRef.current = Date.now();
+  useEffect(() => {
+    if (roomOpen && openedAtRef.current === null) openedAtRef.current = Date.now();
+  }, [roomOpen]);
   useEffect(() => {
     // A stopped session hands nothing on and earns nothing. The recap is where
     // both used to happen on the same tick as the emergency number arriving.
@@ -573,7 +599,16 @@ export function ConvoScreen({
   // off a single render, which is why the rules are in tutor/missionWin.ts and
   // tutor/coachMarks.ts and only the wiring is here.
 
+  const priorCompletions = useRef<readonly MissionCompletion[] | null>(null);
+  const [firstEarned, setFirstEarned] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void loadMissionCompletions({ strict: true }).then(rows => { if (!cancelled) priorCompletions.current = missionCompletionsFrom(rows); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [userId]);
   const [win, setWin] = useState<WinState>(NO_WIN);
+  const winSession = useRef<string | null>(null);
+  const [currentFinish, setCurrentFinish] = useState<CurrentMissionFinish | null>(null);
   /**
    * The learner pressed the door that promises a recap, and is waiting for it.
    *
@@ -584,26 +619,34 @@ export function ConvoScreen({
    */
   const [finishing, setFinishing] = useState(false);
 
+  const recapBailLeave = useRef<() => void>(() => {});
+  useLayoutEffect(() => { recapBailLeave.current = leaveNow; });
+
   // A recap that never comes must not leave them holding a dead screen. The
   // ceiling is generous because the agent is assembling a recap and folding a
   // profile at this point, and short of it the fallback is the ordinary exit,
   // which still banks what they said.
   useEffect(() => {
     if (!finishing || live.recap) return;
-    const bail = setTimeout(() => leaveNow(), RECAP_WAIT_MS);
+    const bail = setTimeout(() => recapBailLeave.current(), RECAP_WAIT_MS);
     return () => clearTimeout(bail);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishing, live.recap]);
   useEffect(() => {
     // Nothing is completed by a session that was stopped, and a mission written
     // down here is a congratulation the learner meets later on another screen.
     if (stopped) return;
-    const step = winAfterTurn(win, live.convo, missionId);
+    const changedSession = winSession.current !== live.sessionId;
+    if (changedSession) { winSession.current = live.sessionId; setCurrentFinish(null); }
+    const currentWin = changedSession ? NO_WIN : win;
+    const step = winAfterTurn(currentWin, live.convo, missionId);
     // Written at the flip and nowhere else, with the rung the winning view
     // carried. Independence is decided by code from that rung, so a record
     // that guessed it later would be a fabricated claim about how much help
     // this learner needed.
     if (step.record) {
+      const currentTasks = readMissionTasks(live.convo?.missionTasks, step.record.id);
+      setCurrentFinish(live.sessionId && currentTasks?.items.every(item => item.achieved) ? { sessionId: live.sessionId, missionId: step.record.id, rung: step.record.rung } : null);
+      setFirstEarned(firstEarnedFinish(priorCompletions.current, step.record));
       void recordMissionCompletion(step.record.id, step.record.rung);
       void trackProductEvent({
         name: 'mission_completed',
@@ -611,7 +654,7 @@ export function ConvoScreen({
       });
     }
     if (step.state !== win) setWin(step.state);
-  }, [live.convo, win, missionId, stopped]);
+  }, [live.convo, live.sessionId, win, missionId, stopped]);
 
   const [marks, setMarks] = useState<CoachMarkState>(() => coachMarksAt([]));
   useEffect(() => {
@@ -808,12 +851,20 @@ export function ConvoScreen({
     return (
       <RecapScreen
         recap={live.recap.recap}
+        settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
+        completedMissionId={win.seen ? missionId : undefined}
+        firstEarned={firstEarned}
+        evidenceQuote={currentCanDoQuote(live.canDoEvidence, currentFinish, live.turns)}
+        lines={keepsakeLines(live.turns)}
         onDone={leaveNow}
         onPractice={onPractice === undefined ? undefined : practiseAfterRecap}
         onSave={saveRecapKeepsake}
+        conversationText={{ ownerId: userId, conversation: live.sessionId && live.conversationText ? { sessionId: live.sessionId, title: live.recap.recap.topics[0]?.en ?? 'Your conversation', lines: live.conversationText } : null }}
       />
     );
   }
+
+  if (walkRefused) return <RoomWait title="Walk mode is unavailable" body="The audio interruption check could not start. Return to Tutor for an ordinary scene." stage="No Walk session started" leaveLabel="Back to Tutor" onLeave={leaveNow} />;
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
     // The longest silence in the product, and it used to be one unchanging
@@ -823,43 +874,11 @@ export function ConvoScreen({
     // waiting on a token stands down rather than opening a room for a screen
     // that has gone. See live/connectingView.ts and live/startOwnership.ts.
     const connecting = connectingView(connectingMs);
-    return (
-      <View style={st.center}>
-        <ActivityIndicator color={paper.inkSoft} />
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[type.small, { color: paper.inkSoft, marginTop: space(3), textAlign: 'center' }]}
-        >
-          {connecting.headline}
-        </Text>
-        <View style={st.terminalAction}>
-          <GhostButton label={connecting.leaveLabel} onPress={leaveNow} />
-        </View>
-      </View>
-    );
+    return <RoomWait title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'out-of-minutes') {
-    // One white card, the store's own words inside it: the paywall carries the
-    // title, body and price, so nothing here restates a number off the wire.
-    // Back is the quiet outline, because a second solid pill would ask the
-    // learner which one is the point.
-    return (
-      <ScrollScreen center bottom="inset">
-        <Card style={st.outOfMinutes}>
-          <Label color={paper.inkSoft}>You are out of minutes</Label>
-          <Text style={[type.cardTitle, { color: paper.ink, marginTop: space(2) }]}>{live.status.message}</Text>
-          <Paywall userId={userId} />
-        </Card>
-        <View style={st.terminalAction}>
-          <OutlineButton label="Back" onPress={onExit} />
-        </View>
-        {/* Stage 3: the paywall always says something now (an offer with its
-            terms and documents, or a store-unavailable block with a restore),
-            so the card is taller and scrolls on the shared frame. Back stays
-            outside the paywall, so a free way out is always on the screen. */}
-      </ScrollScreen>
-    );
+    return <OutOfMinutesView label={live.status.label} message={live.status.message} userId={userId} onExit={onExit} />;
   }
 
   if (live.status.phase === 'error') {
@@ -875,13 +894,21 @@ export function ConvoScreen({
     return (
       <LiveErrorView
         failure={live.status.failure}
-        message={live.status.message}
+        message={walkMode ? "Walk mode cannot continue. Return to Tutor to try another scene or start a typed conversation." : live.status.message}
         diagnostics={live.diagnostics}
+        settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
+        restartAsText={live.settlement !== null}
+        retryBlocked={live.settlement?.kind === 'pending' || live.settlement?.kind === 'reconciliation'}
         onBack={leaveNow}
-        onType={typedDoorFor(live.status.failure, { typing }) ? goQuiet : null}
+        onType={!walkMode && typedDoorFor(live.status.failure, { typing }) ? goQuiet : null}
       />
     );
   }
+
+  if (walkMode) return <WalkRoom tutor={tutorName} speaking={live.tutorSpeaking} micOpen={live.micOpen} finishing={finishing}
+    safety={safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
+    onExit={leaveNow} onMic={live.openMic} onHear={() => live.sendHear('scene')} onSlower={live.sendSlower}
+    onFinish={() => { setFinishing(true); live.requestRecap(); }} />;
 
   const view = live.convo;
 
@@ -907,6 +934,7 @@ export function ConvoScreen({
           {/* The outlined end control stays in the safe-area header and opens
               the same confirmation as the system back gesture. */}
           <LiveRoomHeader
+            french={missionId ? getMission(missionId)?.title : undefined}
             onEnd={() => setConfirming(true)}
             accessibilityLabel="End conversation"
             status={
@@ -978,8 +1006,9 @@ export function ConvoScreen({
           {choosing.showTranscript ? (
             <Transcript
               turns={live.turns}
-              tutorName={tutorNameOf(profile)}
+              tutorName={tutorName}
               tutorSpeaking={live.tutorSpeaking && !typing}
+          announceReply={typing}
             />
           ) : null}
 
@@ -994,7 +1023,7 @@ export function ConvoScreen({
                 onChangeText={changeDraft}
                 onSubmitEditing={sendDraft}
                 onKeyPress={keyDraft}
-                placeholder="Type what you want to talk about"
+                placeholder="e.g. Planning a weekend in Paris"
                 placeholderTextColor={paper.inkFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -1005,16 +1034,16 @@ export function ConvoScreen({
                 onBlur={() => setFocusedInput(null)}
                 style={[st.typeInput, focusedInput === 'topic' && st.typeInputFocused]}
               />
-              <Pressable
+              <Press
                 onPress={sendDraft}
                 accessibilityRole="button"
                 accessibilityLabel="Send your topic"
                 disabled={!draft.trim() || live.tutorSpeaking}
                 accessibilityState={{ disabled: !draft.trim() || live.tutorSpeaking }}
-                style={({ pressed }) => [st.typeSend, (!draft.trim() || live.tutorSpeaking) && { opacity: 0.45 }, pressed && { opacity: 0.88 }]}
+                style={st.typeSend}
               >
-                <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
-              </Pressable>
+                <ChevronRight size={22} color={paper.onInk} />
+              </Press>
             </View>
           ) : choosing.showQuietDoor ? (
             // The quiet twin, offered where a learner finds out they need it:
@@ -1052,20 +1081,8 @@ export function ConvoScreen({
     // own banner — never runs, and a redirect published during startScene used
     // to vanish. See tutor/waitingView.ts.
     const waiting = waitingView({ waitingForTutor: live.waitingForTutor, safety, tutorName });
-    return (
-      <View style={st.center}>
-        {waiting.banner ? (
-          <View style={st.waitingBanner}>
-            <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} />
-          </View>
-        ) : null}
-        <ActivityIndicator color={paper.inkSoft} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{waiting.headline}</Text>
-        <View style={st.terminalAction}>
-          <GhostButton label={waiting.leaveLabel} onPress={leaveNow} />
-        </View>
-      </View>
-    );
+    return <RoomWait title={waiting.headline} body={waitingNote(tutorName)} leaveLabel={waiting.leaveLabel} onLeave={leaveNow}
+      banner={waiting.banner ? <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} /> : undefined} />;
   }
 
   // Finish promised a recap. Until it lands, this is what the promise looks
@@ -1075,23 +1092,8 @@ export function ConvoScreen({
   // See tutor/recapWait.ts.
   const finishWait = recapWait({ finishing, recapArrived: live.recap !== null });
   if (finishWait) {
-    return (
-      <View style={st.center}>
-        <ActivityIndicator color={paper.inkSoft} />
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}
-        >
-          {finishWait.headline}
-        </Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
-          {finishWait.note}
-        </Text>
-        <View style={st.terminalAction}>
-          <GhostButton label={finishWait.leaveLabel} onPress={leaveNow} />
-        </View>
-      </View>
-    );
+    return <RoomWait title={finishWait.headline} body={finishWait.note}
+      leaveLabel={finishWait.leaveLabel} onLeave={leaveNow} />;
   }
 
   const listening = !live.tutorSpeaking;
@@ -1131,6 +1133,7 @@ export function ConvoScreen({
               person speaking. The compact end control still opens the shared
               confirmation and leaving still delivers the recap already earned. */}
           <LiveRoomHeader
+            french={missionId ? getMission(missionId)?.title : undefined}
             title={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? `Talk with ${tutorName}`}
             onEnd={() => setConfirming(true)}
             accessibilityLabel="End conversation"
@@ -1158,6 +1161,8 @@ export function ConvoScreen({
           ) : null}
         </View>
 
+        <MissionTaskList items={visibleMissionTasks(view, missionId)} />
+
         {/* The tutor, as an object. Toward the top, and the only thing on the
             screen that moves. */}
 
@@ -1172,8 +1177,9 @@ export function ConvoScreen({
         <Transcript
           turns={live.turns}
           onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}
-          tutorName={tutorNameOf(profile)}
+          tutorName={tutorName}
           tutorSpeaking={live.tutorSpeaking && !typing}
+          announceReply={typing}
         />
 
         {card ? (
@@ -1189,7 +1195,7 @@ export function ConvoScreen({
         ) : (
           <>
             {view.supportView.kind !== 'none' ? (
-              <ScrollView style={st.support} keyboardShouldPersistTaps="handled">
+              <ScrollView style={st.support} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
                 <SupportBlock
                   support={view.supportView}
                   // Replays come from the agent in the premium voice, and only while
@@ -1226,21 +1232,23 @@ export function ConvoScreen({
             {/* One contextual note at a time, dismissed by tapping it, and
                 nothing underneath it stops working while it is up. */}
             {marks.showing ? (
-              <Pressable
+              <Press
                 onPress={closeMark}
                 accessibilityRole="button"
                 accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`}
-                style={({ pressed }) => [st.mark, pressed && { opacity: 0.7 }]}
+                style={st.mark}
               >
-                <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>
+                <Text style={[type.small, { color: paper.onInk }]}>
                   {COACH_MARK_TEXT[marks.showing]}
                 </Text>
-              </Pressable>
+              </Press>
             ) : null}
 
             {controls.showInput ? (
               <View style={st.typeRow}>
                 <TextInput
+                  multiline
+                  scrollEnabled
                   value={draft}
                   onChangeText={changeDraft}
                   onSubmitEditing={sendDraft}
@@ -1254,18 +1262,18 @@ export function ConvoScreen({
                   accessibilityLabel="Type your reply"
                   onFocus={() => setFocusedInput('reply')}
                   onBlur={() => setFocusedInput(null)}
-                  style={[st.typeInput, focusedInput === 'reply' && st.typeInputFocused]}
+                  style={[st.typeInput, { maxHeight: 100 }, focusedInput === 'reply' && st.typeInputFocused]}
                 />
-                <Pressable
+                <Press
                   onPress={sendDraft}
                   disabled={draft.trim().length === 0 || !listening}
                   accessibilityState={{ disabled: draft.trim().length === 0 || !listening }}
                   accessibilityRole="button"
                   accessibilityLabel="Send your reply"
-                  style={({ pressed }) => [st.typeSend, pressed && { opacity: 0.88 }]}
+                  style={st.typeSend}
                 >
-                  <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
-                </Pressable>
+                  <ChevronRight size={22} color={paper.onInk} />
+                </Press>
               </View>
             ) : null}
 
@@ -1277,77 +1285,14 @@ export function ConvoScreen({
               ) : <VoiceOrb state={orbState} size={SCENE_ORB} />}
             </View>}
 
+            <View style={{ flexDirection: 'row', alignSelf: 'stretch', gap: space(2), marginTop: space(3) }}>
+              <ControlTile label="Help me out" glyph={<HelpGlyph size={24} color={paper.ink} />} disabled={!listening} onPress={() => { closeMark(); live.sendHelp(); }} accessibilityLabel="Ask for help with this line" />
+              {!typing && <ControlTile label="Simpler" glyph={<SpeakerSlowGlyph size={24} color={paper.ink} />} disabled={!listening} accessibilityLabel={simplerLabel(tutorName)} onPress={() => { closeMark(); live.sendSlower(); }} />}
+              {controls.showTypeInstead && <ControlTile label="Type instead" glyph={<KeyboardGlyph size={24} color={paper.ink} />} onPress={() => { closeMark(); goQuiet(); }} accessibilityLabel="Type your reply instead of saying it" />}
+            </View>
             <View style={st.helpRow}>
-              <Pressable
-                onPress={() => {
-                  closeMark();
-                  live.sendHelp();
-                }}
-                disabled={!listening}
-                accessibilityRole="button"
-                accessibilityLabel="Ask for help with this line"
-                style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
-              >
-                <HelpGlyph size={15} />
-                <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Help me out</Text>
-              </Pressable>
-              {/* Not disabled while the tutor talks, unlike the rest of this row.
-                  Everything else here asks for a line and would talk over them;
-                  this one only asks the clock to wait, and the learner who most
-                  needs it is the one who can already see their turn coming. */}
-              <Pressable
-                onPress={askForAMoment}
-                accessibilityRole="button"
-                accessibilityLabel="Give me a moment"
-                style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
-              >
-                <Text style={[type.small, { color: paper.inkSoft }]}>Give me a moment</Text>
-              </Pressable>
-              {!typing ? (
-                <>
-                  <Pressable
-                    onPress={() => {
-                      closeMark();
-                      live.sendSlower();
-                    }}
-                    disabled={!listening}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Ask ${tutorName} to slow down`}
-                    style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
-                  >
-                    <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Slower</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      closeMark();
-                      live.sendEnglish();
-                    }}
-                    disabled={!listening}
-                    accessibilityRole="button"
-                    accessibilityLabel="Ask for it in English"
-                    style={({ pressed }) => [st.helpItem, !listening && st.helpItemOff, pressed && listening && { opacity: 0.6 }]}
-                  >
-                    <Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>In English</Text>
-                  </Pressable>
-                </>
-              ) : null}
-              {/* The quiet twin, offered where a learner finds out they need it.
-                  It opens the box in place: `say` is already a full typed turn
-                  agent-side, so nothing here rebuilds the session or costs the
-                  learner the scene they are standing in. */}
-              {controls.showTypeInstead ? (
-                <Pressable
-                  onPress={() => {
-                    closeMark();
-                    goQuiet();
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Type your reply instead of saying it"
-                  style={({ pressed }) => [st.helpItem, pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={[type.small, { color: paper.inkSoft }]}>Type instead</Text>
-                </Pressable>
-              ) : null}
+              <GhostButton label="Give me a moment" onPress={askForAMoment} />
+              {!typing && <GhostButton label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
             </View>
           </View>
           </>
@@ -1392,7 +1337,9 @@ const st = StyleSheet.create({
   // Once the thread opens it takes the room, and the head above it gives way
   // rather than pushing anything off the bottom.
   chooseHeadShrink: { flexGrow: 0, flexShrink: 1 },
-  chooseTop: { alignItems: 'center', padding: space(4), alignSelf: 'stretch', backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  // Plain paper since the notebook redesign: the question and the circle sit on
+  // the page, with no feature panel and no ink outline around them.
+  chooseTop: { alignItems: 'center', padding: space(4), alignSelf: 'stretch' },
   chooseOrb: { alignItems: 'center', marginTop: space(5), marginBottom: space(5) },
   chooseOrbTight: { alignItems: 'center', marginTop: space(2), marginBottom: space(5) },
   // The circle is well past the touch floor already; the floor is here so it
@@ -1416,11 +1363,13 @@ const st = StyleSheet.create({
   typeInputFocused: { borderColor: paper.ink },
   typeSend: {
     minHeight: HIT,
-    paddingHorizontal: space(4),
+    width: HIT,
+    height: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: accent.primary,
-    borderRadius: radius.control,
+    backgroundColor: paper.ink,
+    borderRadius: radius.pill,
+    minWidth: HIT,
   },
   helpRow: {
     marginTop: space(3),
@@ -1434,7 +1383,7 @@ const st = StyleSheet.create({
   // screen keeps its shape and the win does not shove the thread off the top.
   win: { paddingBottom: space(3) },
   winPrimary: { marginTop: space(5), alignSelf: 'stretch' },
-  winSecondary: { marginTop: space(3), alignItems: 'center' },
+  winSecondary: { marginTop: space(3), alignItems: 'flex-start' },
   // A note, not a dialogue: no border, no shadow, nothing to answer. The touch
   // floor is here because the whole strip is what dismisses it.
   mark: {
@@ -1444,7 +1393,7 @@ const st = StyleSheet.create({
     paddingHorizontal: space(4),
     paddingVertical: space(2),
     marginBottom: space(2),
-    backgroundColor: paper.groundDeep,
+    backgroundColor: paper.ink,
     borderRadius: radius.chip,
   },
   // Off, and it looks it. `components.tsx` argues this at length for the shared

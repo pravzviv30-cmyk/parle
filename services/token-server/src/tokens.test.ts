@@ -363,6 +363,7 @@ describe('entitlement store', () => {
   test('the same session report is consumed only once', async () => {
     const store = new InMemoryEntitlementStore();
     const sessionId = '123e4567-e89b-42d3-a456-426614174000';
+    assert.equal(await store.recordSessionGrant('u1', sessionId, await store.get('u1')), true);
     await store.consume('u1', 300, sessionId);
     const duplicate = await store.consume('u1', 300, sessionId);
     assert.equal(duplicate.secondsUsed, 300);

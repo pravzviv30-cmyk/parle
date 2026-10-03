@@ -25,11 +25,13 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
-  Profile: undefined;
+  Profile: { sheet?: 'tutorVoice' } | undefined;
   AddFriends: { username?: string } | undefined;
   SocialSettings: undefined;
-  DailyPractice: { id: string };
+  DailyPractice: { id: string; mode?: 'shadowing' };
   DailyLibrary: undefined;
+  Postcards: undefined;
+  WeekWrapped: undefined;
   Tabs: undefined;
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it
@@ -63,6 +65,7 @@ export type RootStackParamList = {
    * real, and it never rides to the agent; a goal is not a seed topic.
    */
   Convo: {
+    walkMode?: boolean;
     textMode?: boolean;
     seedTopic?: { fr: string; en: string };
     missionId?: string;
@@ -78,6 +81,14 @@ export type RootStackParamList = {
    * INSTEAD of the navigator and so has nothing to navigate to.
    */
   Missions: { focus?: string; textMode?: boolean } | undefined;
+  /**
+   * The first scene after a brand-new account, behind a microphone primer
+   * (notebook Phase 5). `missionId` is the scene the plan put first, a plain
+   * string; an id this build does not know opens the default first scene. The
+   * primer hands over to `Convo` with the same id, so the live session is the
+   * ordinary one.
+   */
+  FirstScene: { missionId: string };
   /**
    * One node of the practice path, or the whole deck when omitted. The node
    * is plain data — id, title and phrase keys — so navigation state stays
@@ -207,5 +218,6 @@ export type RootStackParamList = {
    * longer here simply opens the list.
    */
   Conversations: { packId?: string } | undefined;
+  SavedConversationText: undefined;
   ConversationPractice: { packId: string };
 };

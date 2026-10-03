@@ -1,49 +1,65 @@
+import { PrivatePractice } from './recap/PrivatePractice.tsx';
+import { OnceConfetti } from './recap/OnceConfetti.tsx';
+import { OnceCount } from './recap/OnceCount.tsx';
+import { Illustration } from './art/flat/Illustration.tsx';
+import { sceneIllustration } from './art/flat/scenes.ts';
+import { recapCanDo } from './recap/evidence.ts';
+import { postcardIllustration } from './recap/postcardArt.ts';
+import { SaveTextChoice } from './conversationPacks/SaveTextChoice.tsx';
+import { FixLineSheet } from './drill/FixLineSheet.tsx';
+import type { ConversationText } from '@luvani/core';
 /**
- * The free-conversation end card, sibling of SummaryScreen (F552, F584).
+ * The conversation's end card, as a keepsake (F552, F584; notebook Phase 4, B1).
  *
- * It used to list everything: twelve phrases, four fixes, every win. It is a
- * closure now, decided in `conversationPacks/closure.ts` and drawn by
- * `ConversationPackCard`: what went well, three phrases worth keeping, one
- * repair, one thing to tune, and the next situation, waiting on Home.
+ * The end of a conversation is where a learner decides whether to come back,
+ * so since 2026-09-27 it is something kept rather than something scored. It
+ * reads, in order: the lines the learner said, one phrase kept (on the screen's
+ * one highlighter, saved to Progress before the card calls it saved), one
+ * sound (a word first, the notation on request), and "Next time: <the spine's
+ * next scene>". Only after all of that does it offer a daily reminder at the
+ * time the learner chose, and the phone's notification dialog is raised only
+ * when they accept that offer: never before the first win, and never by the
+ * card opening. Every one of those decisions is `live/keepsake.ts`'s.
  *
- * Revamp A changed two things about the head of it. The postcard is the
- * registry's raster scene rather than the vector drawing, so the end of a
- * conversation and the end of a lesson show the same picture at the same size,
- * and the line under the headline is `tutor/recapLine.ts` in words. The digits
- * it replaces were the app's only percentage: "6 turns · 70% on your own", on
- * the screen a learner reaches at the moment they decide whether they are any
- * good at this.
+ * Everything else the closure chose (what went well, the other phrases, the
+ * small fix, a focus that is not a sound) is one tap away under a closed More,
+ * drawn after Done so opening it never pushes the way out down the screen.
  *
- * Whole-app Stage 3A (2026-09-25) set the reading order: what went well, one
- * thing to try, the phrase to practise, Done. The other phrases, the small fix
- * and the next step are all still here, one tap away under a closed More. A
- * sound focus leads with the drill's two words; its notation is a detail the
- * learner opens.
- *
- * The closure is built from the live recap the moment it arrives, so the
- * card never waits on a disk, and the focus and the next situation fill in
- * once the three reads answer. The one visible keepsake is persisted exactly
- * before this card calls it saved; the rest of practice is still the curated
- * few that ConvoScreen banks when the agent delivers them.
+ * The postcard, the feature-paper header and the tinted panels left with the
+ * notebook redesign, and the card sits on the shared frame rather than
+ * measuring the safe area itself.
  */
 
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { missionStates, type RecapPayload } from '@luvani/core';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from './auth/useAuth.tsx';
+import { scopeGeneration } from './storage/scope.ts';
+import { recapPages, adjacentRecapPage, type RecapPage } from './recap/pages.ts';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
-import { accent, HAIRLINE, HIT, paper, radius, signal, space, type } from './theme.ts';
-import { BookmarkGlyph, Card, GhostButton, Label, OutlineButton, PillButton, TintPanel } from './components.tsx';
-import { Art } from './art/Art.tsx';
-import { SCREEN_ART } from './art/maps.ts';
-import { ConversationPackCard, NEXT_WAITING } from './conversationPacks/ConversationPackCard.tsx';
+import { HAIRLINE, HIT, paper, signal, space, type, frenchText, onColour, colour } from './theme.ts';
+import { BookmarkGlyph, Card, GhostButton, Highlight, Label, OutlineButton, PillButton, ProgressDots, RoundButton, HeroNumber } from './components.tsx';
+import { ScreenHeader, ScrollScreen } from './layout.tsx';
+import { arrived } from './motion/haptics.ts';
 import { SOUND_DETAIL, exampleFirstHeading } from './tutor/soundExample.ts';
+import { MouthGuide } from './practice/MouthGuide.tsx';
 import { MAX_CLOSURE_PHRASES, closureFromRecap, type ClosureContext } from './conversationPacks/closure.ts';
 import { missionCompletionsFrom } from './missions/chooserView.ts';
 import { loadMissionCompletions } from './missions/store.ts';
 import { loadDeck } from './review/store.ts';
 import { loadSoundChecks } from './soundcheck/store.ts';
 import { recapLine } from './tutor/recapLine.ts';
+import { loadReminder, saveReminder } from './reminders/store.ts';
+import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission, scheduleReminder } from './reminders/schedule.ts';
+import type { ReminderPermission, StoredReminder } from './reminders/reminder.ts';
+import {
+  KEEPSAKE_COPY,
+  acceptReminderOffer,
+  nextTimeLine,
+  reminderAnswerLine,
+  reminderOffer,
+  type ReminderAnswer,
+} from './live/keepsake.ts';
 
 export interface RecapPracticePhrase {
   fr: string;
@@ -53,33 +69,79 @@ export interface RecapPracticePhrase {
 
 export function RecapScreen({
   recap,
+  completedMissionId,
+  firstEarned = false,
+  lines,
   onDone,
   onPractice,
   onSave,
+  conversationText,
+  settlementMessage,
+  evidenceQuote,
 }: {
   recap: RecapPayload;
+  settlementMessage?: string | null;
+  /** Already checked against this session’s independent finish and learner source. */
+  evidenceQuote?: string | null;
+  completedMissionId?: string;
+  firstEarned?: boolean;
+  /** The learner's own lines from this conversation, from `keepsakeLines`. */
+  lines: readonly string[];
   onDone: () => void;
   /** Opens the existing own-words drill with a phrase this conversation earned. */
   onPractice?: (phrase: RecapPracticePhrase) => void;
   /** Persists the exact keepsake phrase and answers only when the write is durable. */
   onSave: (phrase: RecapPracticePhrase) => Promise<boolean>;
+  conversationText?: { ownerId: string; conversation: ConversationText | null };
 }) {
-  const insets = useSafeAreaInsets();
-  // Null until the reads answer: the closure draws at once from the recap,
-  // and the focus and the next situation arrive a beat later.
+  const { user, adapter } = useAuth();
+  const ownerScope = useRef(scopeGeneration()).current;
+  // Null until the reads answer: the keepsake draws at once from the recap,
+  // and the sound and "Next time" arrive a beat later.
+  const [page, setPage] = useState<RecapPage>('result');
+  const [fixingLine, setFixingLine] = useState(false);
   const [context, setContext] = useState<ClosureContext | null>(null);
+  const [contextRead, setContextRead] = useState(0);
+  const [contextFailed, setContextFailed] = useState(false);
+  // What the reminder offer is decided from. Both are reads: nothing on the
+  // way in raises a dialog, and no offer is drawn until both have answered.
+  const [stored, setStored] = useState<StoredReminder | null>(null);
+  const [permission, setPermission] = useState<ReminderPermission | null>(null);
+  const [reminder, setReminder] = useState<'offered' | 'asking' | 'declined' | ReminderAnswer>('offered');
+
+  // Arriving somewhere earned: once, when the card first draws.
+  useEffect(() => {
+    arrived();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([loadMissionCompletions(), loadDeck(), loadSoundChecks()])
+    setContext(null);
+    setContextFailed(false);
+    void Promise.all([loadMissionCompletions(), loadDeck(), loadSoundChecks({ strict: true })])
       .then(([completions, deck, checks]) => {
         if (cancelled) return;
         setContext({ progress: missionStates(missionCompletionsFrom(completions), deck, Date.now()), deck, checks });
       })
       .catch(() => {
-        // A disk that will not answer leaves the recap as it arrived. Nothing
-        // on it is a claim about the learner that a failed read could falsify.
+        if (!cancelled) setContextFailed(true);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, [contextRead]);
+
+  useEffect(() => {
+    if (!REMINDERS_AVAILABLE) return;
+    let cancelled = false;
+    void Promise.all([loadReminder({ strict: true }), reminderPermission()])
+      .then(([saved, allowed]) => {
+        if (cancelled) return;
+        setStored(saved);
+        setPermission(allowed);
+      })
+      // An unreadable reminder offers nothing rather than guessing.
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -92,14 +154,15 @@ export function RecapScreen({
   // the original three-phrase ceiling across the keepsake and the rows below.
   const keptPhrase = closureFromRecap(recap, null).phrases[0] ?? null;
   const otherPhrases = closure.phrases.filter((phrase) => phrase.key !== keptPhrase?.key).slice(0, MAX_CLOSURE_PHRASES - 1);
-  // Stage 3A: the lead is what went well and one focus. A sound focus is said
-  // with the drill's own two words first; the notation is an optional detail.
-  const leadFocus =
-    closure.focus !== null && closure.focus.kind === 'sound'
-      ? { ...closure.focus, acoustic: { ...closure.focus.acoustic, heading: exampleFirstHeading(closure.focus.acoustic, closure.focus.example) } }
-      : closure.focus;
-  const leadClosure = { ...closure, summary: '', phrases: [], repair: null, nextMission: null, focus: leadFocus };
-  const hasMore = otherPhrases.length > 0 || closure.repair !== null || closure.nextMission !== null;
+  // The one sound, when the learner's checks name one. A focus that is not a
+  // sound (the tutor's own line, a cadence) waits under More.
+  const sound = closure.focus !== null && closure.focus.kind === 'sound' ? closure.focus : null;
+  const otherFocus = closure.focus !== null && closure.focus.kind !== 'sound' ? closure.focus : null;
+  const nextTime = context === null ? null : nextTimeLine(context.progress);
+  // The first-win gate: a recap with nothing in it offers nothing.
+  const won = lines.length > 0 || keptPhrase !== null;
+  const offer = reminderOffer({ available: REMINDERS_AVAILABLE, won, stored, permission });
+  const hasMore = closure.didWell.length > 0 || otherPhrases.length > 0 || otherFocus !== null;
   const [more, setMore] = useState(false);
   const [soundDetail, setSoundDetail] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
@@ -131,37 +194,135 @@ export function RecapScreen({
     };
   }, [keptPhrase?.en, keptPhrase?.fr, keptPhrase?.key, onSave, situation]);
 
+  /**
+   * The learner said yes to the reminder. This is the only place on the card
+   * the phone's notification dialog can be raised, and only when the offer
+   * says a dialog is the honest next step.
+   */
+  const acceptReminder = () => {
+    if (offer === null || reminder !== 'offered') return;
+    setReminder('asking');
+    void acceptReminderOffer(offer, { ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder }).then(setReminder);
+  };
+
   const saveLine =
     saveState === 'saved'
-      ? 'Saved to My French'
+      ? 'Saved to Progress'
       : saveState === 'failed'
         ? 'Not saved yet'
-        : 'Saving to My French';
+        : 'Saving to Progress';
 
-  return (
-    <View style={[st.root, { paddingTop: insets.top + space(2) }]}>
-      <ScrollView contentContainerStyle={[st.scroll, { paddingBottom: insets.bottom + space(8) }]} showsVerticalScrollIndicator={false}>
-        {/* ── something arrived in the mail ──────────────────────────── */}
-        <View style={st.header}>
-          <Art name={SCREEN_ART.recap} />
-          <View style={st.headerText}>
-            <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>
-              {recap.headline}
-            </Text>
-            {keptPhrase !== null ? (
-              <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center' }]}>{situation}</Text>
-            ) : null}
-            {/* How it went, in a sentence. See tutor/recapLine.ts for why the
-                old score-like arithmetic is gone. */}
-            <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center' }]}>{recapLine(recap.stats)}</Text>
-          </View>
-        </View>
+  const mission = completedMissionId ? getMission(completedMissionId) : undefined;
+  const canDo = context === null ? null : recapCanDo(context.progress, completedMissionId);
+  const savableText = ownerScope === scopeGeneration() && adapter.kind === 'supabase'
+    && conversationText?.ownerId === user?.id && (conversationText?.conversation?.lines.length ?? 0) > 0;
+  const pages = recapPages({
+    lines: lines.length > 0, phrase: keptPhrase !== null, repair: closure.repair !== null,
+    sound: sound !== null, ability: canDo !== null,
+    next: keptPhrase !== null || nextTime !== null || savableText || offer !== null || hasMore,
+  });
+  const pageIndex = Math.max(0, pages.indexOf(page));
+  const currentPage = pages[pageIndex]!;
+  const nextPage = adjacentRecapPage(pages, currentPage, 1);
+  const previousPage = adjacentRecapPage(pages, currentPage, -1);
+  const canPractise = keptPhrase !== null && saveState === 'saved' && onPractice !== undefined;
+  const ground = currentPage === 'result' ? 'coral' : currentPage === 'sound' ? 'sun' : currentPage === 'ability' ? 'mint' : undefined;
+  return (<>
+    <ScrollScreen bottom="inset" ground={ground ? colour[ground] : paper.ground}
+      header={<View style={{ flexDirection: 'row', gap: space(4), alignItems: 'center' }}>
+        <RoundButton kind="close" accessibilityLabel="Finish conversation" onPress={onDone} tone="white" />
+        <ProgressDots total={pages.length} index={pageIndex} ground={ground ?? 'paper'} />
+      </View>}
+      footer={<View style={{ gap: space(2) }}>
+        {nextPage === null && canPractise
+          ? <PillButton label="Practise this phrase" onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />
+          : <PillButton tone={currentPage === 'result' ? 'white' : 'ink'} label={nextPage === null ? 'Finish conversation' : 'Next'}
+              onPress={() => nextPage === null ? onDone() : setPage(nextPage)} />}
+        {nextPage !== null || canPractise ? <GhostButton label="Finish conversation" color={ground === 'coral' ? paper.onInk : paper.ink} onPress={onDone} /> : null}
+        {previousPage !== null && <GhostButton label="Previous" color={paper.ink} onPress={() => setPage(previousPage)} />}
+      </View>}>
+      <View style={st.stack}>
+        {contextFailed && <Card>
+          <Text accessibilityLiveRegion="polite" style={type.body}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
+          <GhostButton label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
+        </Card>}
+        <OnceConfetti active={currentPage === 'ability' && firstEarned && canDo !== null} />
+        {lines.length > 0 && <View style={currentPage === 'result' ? undefined : {display:'none'}}><OnceCount value={lines.length} /></View>}
+        {currentPage === 'result' && <View style={st.head}>
+          {mission ? <Illustration name={sceneIllustration(mission.id)} /> : lines.length > 0 ? <Illustration name="celebrate-first-line" /> : <Illustration name="state-waiting" />}
+          <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>
+            {recap.headline}
+          </Text>
+          {keptPhrase !== null ? <Text style={[type.body, { color: onColour.coral }]}>{situation}</Text> : null}
+          {/* How it went, in a sentence. See tutor/recapLine.ts for why the
+              old score-like arithmetic is gone. */}
+          <Text style={[type.body, { color: onColour.coral }]}>{recapLine(recap.stats)}</Text>
+          {settlementMessage && <Text accessibilityLiveRegion="polite" style={[type.body, { color: onColour.coral }]}>{settlementMessage}</Text>}
+        </View>}
 
-        {/* What went well, and the one thing to try. */}
-        <ConversationPackCard closure={leadClosure} />
-
-        {closure.focus !== null && closure.focus.kind === 'sound' && (
+        {currentPage === 'lines' && <View style={{ gap: space(5) }}>
+        {/* Your lines: what the learner actually said, in their own French. */}
+        {lines.length > 0 && (
           <View>
+            <Label>{KEEPSAKE_COPY.lines}</Label>
+            <View style={st.lines}>
+              {lines.map((line) => (
+                <Text {...frenchText} key={line} style={[type.french, st.line, { color: paper.ink }]}>
+                  {line}
+                </Text>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {closure.repair !== null && <Card style={st.kept}>
+          <Label>One change to try</Label>
+          <Text style={type.small}>Your words</Text>
+          <Text {...frenchText} style={type.frenchSm}>{closure.repair.quote}</Text>
+          <Text style={type.small}>A natural alternative</Text>
+          <Text {...frenchText} style={type.french}>{closure.repair.better}</Text>
+          <Text style={type.body}>{closure.repair.betterEn}</Text>
+          <Text style={type.small}>{closure.repair.why}</Text>
+          <GhostButton label="Try this version" onPress={() => setFixingLine(true)} />
+        </Card>}
+
+        {/* One phrase kept, on the screen's one highlighter. */}
+        {keptPhrase !== null ? (
+          <View style={st.keptStack}>
+            <Card style={st.kept}>
+              <Label>{KEEPSAKE_COPY.kept}</Label>
+              <Highlight text={keptPhrase.fr} />
+              <Text style={[type.body, { color: paper.inkSoft }]}>{keptPhrase.en}</Text>
+              <View style={st.savedLine}>
+                <BookmarkGlyph size={18} color={saveState === 'saved' ? signal.good : paper.ink} />
+                <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{saveLine}</Text>
+              </View>
+            </Card>
+            {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
+            {onPractice !== undefined ? (
+              <GhostButton
+                label="Practise this phrase"
+                disabled={saveState !== 'saved'}
+                onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })}
+                accessibilityLabel={`Practise ${keptPhrase.fr}`}
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        </View>}
+
+        {currentPage === 'sound' && <View>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>From a saved sound check</Text>
+        {sound && <Text style={[type.small, { color: paper.ink }]}>This check concerns its recorded reference line, not your pronunciation overall. {getMission(sound.missionId)?.titleEn ?? 'A previous scene'}.</Text>}
+
+        {/* One sound, met as a word; the notation is a detail the learner opens. */}
+        {sound !== null && (
+          <View>
+            <Label>{KEEPSAKE_COPY.sound}</Label>
+            <MouthGuide ipa={sound.ipa} />
+            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{exampleFirstHeading(sound.acoustic, sound.example)}</Text>
+            <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>{sound.acoustic.cue}</Text>
             <Pressable
               onPress={() => setSoundDetail((open) => !open)}
               accessibilityRole="button"
@@ -170,44 +331,63 @@ export function RecapScreen({
             >
               <Text style={[type.small, { color: paper.ink }]}>{soundDetail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
             </Pressable>
-            {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>{closure.focus.acoustic.heading}</Text>}
+            {soundDetail && <Text style={[type.notation, { color: paper.inkSoft }]}>{sound.acoustic.heading}</Text>}
+            {sound.example !== null && <PrivatePractice key={sound.example} french={sound.example} />}
           </View>
         )}
 
-        {keptPhrase !== null ? (
-          <View style={st.keptStack}>
-            <Label>A phrase to take with you</Label>
-            <TintPanel tint="lilac" style={st.keptCard}>
-              <View style={st.keptCopy}>
-                <Text style={[type.frenchLg, { color: paper.ink }]}>{keptPhrase.fr}</Text>
-                <Text style={[type.body, { color: paper.inkSoft }]}>{keptPhrase.en}</Text>
-              </View>
-              <View style={st.keptMark}>
-                <BookmarkGlyph size={22} color={signal.good} />
-              </View>
-            </TintPanel>
+        </View>}
 
-            <TintPanel tint="rose" style={st.savedLine}>
-              <BookmarkGlyph size={18} color={paper.ink} />
-              <Text accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: paper.ink }]}>{saveLine}</Text>
-            </TintPanel>
+        {currentPage === 'ability' && <View style={{ gap: space(4) }}>
+          <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{canDo}</Text>
+          {canDo !== null && mission && <>
+            <Illustration name={postcardIllustration(mission.id)} />
+            <Text style={[type.body, { color: paper.ink }]}>{firstEarned ? 'Your first independent finish here.' : 'A can-do you have earned.'}</Text>
+            {evidenceQuote && <View style={{ gap: space(2) }}>
+              <Text style={[type.body, { color: paper.inkSoft }]}>Your line</Text>
+              <Text accessibilityLanguage="fr" style={[type.title, { color: paper.ink }]}>{evidenceQuote}</Text>
+            </View>}
+          </>}
+        </View>}
 
-            {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
-            {onPractice !== undefined ? (
-              <PillButton
-                label="Practise this phrase"
-                onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })}
-                accessibilityLabel={`Practise ${keptPhrase.fr}`}
-              />
-            ) : null}
+        {currentPage === 'next' && <View style={{ gap: space(4) }}>
+        {keptPhrase !== null && <View style={{ gap: space(2) }}>
+          <Text style={type.heading}>Your next practice</Text>
+          <Text style={type.body}>Try the line you kept from {situation}. You can also finish and return later.</Text>
+          <Text {...frenchText} style={type.french}>{keptPhrase.fr}</Text>
+          <Text style={type.small}>{saveLine}</Text>
+          {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
+        </View>}
+        {conversationText && <SaveTextChoice {...conversationText} />}
+        {/* Next time: the spine's next scene, the reason to come back. */}
+        {nextTime !== null && <Text style={[type.heading, { color: paper.ink }]}>{nextTime}</Text>}
+
+        {/* Only now, a reminder at the learner's chosen time. Accepting it is
+            the one thing on this card that may raise the phone's dialog. */}
+        {offer !== null && reminder !== 'declined' && (
+          <View style={st.offer}>
+            {reminder === 'offered' || reminder === 'asking' ? (
+              <>
+                <Text style={[type.bodyStrong, { color: paper.ink }]}>{offer.title}</Text>
+                <Text style={[type.small, { color: paper.inkSoft }]}>{offer.body}</Text>
+                <View style={st.offerActions}>
+                  <OutlineButton label={offer.accept} disabled={reminder === 'asking'} onPress={acceptReminder} />
+                  <GhostButton label={offer.decline} disabled={reminder === 'asking'} onPress={() => setReminder('declined')} />
+                </View>
+              </>
+            ) : (
+              <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>
+                {reminderAnswerLine(reminder, offer)}
+              </Text>
+            )}
           </View>
-        ) : null}
+        )}
 
-        <GhostButton label="Finish conversation" onPress={onDone} />
+
 
         {/* Everything else the closure chose, one tap away and closed by
-            default: the other phrases, the small fix and the next step. Drawn
-            after Done so opening it never pushes the way out down the screen. */}
+            default. Drawn after Done so opening it never pushes the way out
+            down the screen. */}
         {hasMore && (
           <View>
             <Pressable
@@ -221,6 +401,18 @@ export function RecapScreen({
             </Pressable>
             {more && (
               <View style={st.more}>
+                {closure.didWell.length > 0 && (
+                  <View>
+                    <Label>Your wins</Label>
+                    <Card style={st.section}>
+                      <View style={{ gap: space(2.5) }}>
+                        {closure.didWell.map((win) => (
+                          <Text key={win} style={[type.french, { color: paper.ink }]}>« {win} »</Text>
+                        ))}
+                      </View>
+                    </Card>
+                  </View>
+                )}
                 {otherPhrases.length > 0 && (
                   <View>
                     <Label>New phrases</Label>
@@ -236,24 +428,19 @@ export function RecapScreen({
                     </Card>
                   </View>
                 )}
-                {closure.repair !== null && (
+                {otherFocus !== null && (
                   <View>
-                    <Label color={signal.correspondance}>Small fixes</Label>
+                    <Label>One thing to tune</Label>
                     <Card style={st.section}>
-                      <Text style={[type.small, { color: paper.inkSoft }]}>« {closure.repair.quote} »</Text>
-                      <Text style={[type.french, { color: paper.ink, marginTop: space(1) }]}>{closure.repair.better}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{closure.repair.betterEn}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{closure.repair.why}</Text>
-                    </Card>
-                  </View>
-                )}
-                {closure.nextMission !== null && (
-                  <View>
-                    <Label color={signal.correspondance}>Next step</Label>
-                    <Card style={st.section}>
-                      <Text style={[type.title, { color: paper.ink }]}>{closure.nextMission.mission.title}</Text>
-                      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(0.5) }]}>{closure.nextMission.mission.titleEn}</Text>
-                      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{NEXT_WAITING}</Text>
+                      {otherFocus.kind === 'clarity' ? (
+                        <Text style={[type.bodyStrong, { color: paper.ink }]}>{otherFocus.line}</Text>
+                      ) : (
+                        <>
+                          <Text style={[type.french, { color: paper.ink }]}>{otherFocus.fr}</Text>
+                          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{otherFocus.en}</Text>
+                          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{otherFocus.note}</Text>
+                        </>
+                      )}
                     </Card>
                   </View>
                 )}
@@ -261,51 +448,27 @@ export function RecapScreen({
             )}
           </View>
         )}
-      </ScrollView>
-    </View>
+        </View>}
+      </View>
+    </ScrollScreen>
+    {fixingLine && closure.repair !== null && <FixLineSheet repair={closure.repair} onClose={() => setFixingLine(false)} />}
+    </>
   );
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: paper.ground },
-  scroll: { flexGrow: 1, alignSelf: 'stretch', maxWidth: 760, marginHorizontal: 'auto', paddingHorizontal: space(5), paddingTop: space(3), gap: space(5) },
-  header: { alignItems: 'center', padding: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
-  headerText: { alignItems: 'center', gap: space(2), marginTop: space(4) },
+  stack: { paddingTop: space(3), paddingBottom: space(8), gap: space(6) },
+  head: { gap: space(2) },
+  lines: { marginTop: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
+  line: { paddingVertical: space(2.5), borderBottomWidth: HAIRLINE, borderBottomColor: paper.line },
   keptStack: { gap: space(3) },
-  keptCard: {
-    minHeight: 132,
-    borderRadius: radius.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-    padding: space(5),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(4),
-  },
-  keptCopy: { flex: 1, gap: space(1) },
-  keptMark: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.row,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.lineOnCard,
-  },
+  kept: { gap: space(2) },
+  savedLine: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  offer: { gap: space(2), paddingTop: space(4), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
+  offerActions: { gap: space(1) },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.6 },
   more: { gap: space(7), marginTop: space(3) },
   section: { marginTop: space(2) },
   divider: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard, paddingTop: space(3) },
-  savedLine: {
-    minHeight: 48,
-    alignSelf: 'center',
-    paddingHorizontal: space(5),
-    borderRadius: radius.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space(2),
-  },
 });

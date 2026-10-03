@@ -34,7 +34,7 @@ import {
 
 import type { PersistAck } from '../storage/ack.ts';
 import { cleanActiveMs } from '../progress/activeTime.ts';
-import { scopeGeneration, userKey } from '../storage/scope.ts';
+import { scopeGeneration, userKey, setItemInUserScope } from '../storage/scope.ts';
 import type { PlannedPracticeGrade } from '../review/store.ts';
 import { isEventId, isPracticeEvent, mintPracticeId, type SessionCompletedEvent } from './history.ts';
 
@@ -261,7 +261,7 @@ async function readDoc(key: string): Promise<StoredDoc | 'unreadable'> {
 async function writeDoc(bound: Bound, doc: StoredDoc): Promise<PersistAck> {
   if (scopeGeneration() !== bound.generation) return 'failed';
   try {
-    await AsyncStorage.setItem(bound.key, JSON.stringify(doc));
+    await setItemInUserScope(bound.generation, bound.key, JSON.stringify(doc));
     return 'durable';
   } catch {
     return 'failed';

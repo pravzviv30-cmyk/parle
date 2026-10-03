@@ -174,7 +174,7 @@ describe('the model that actually answered is stamped on the usage', () => {
 
     const { usage } = await client.turn(TURN);
 
-    assert.equal(usage.model, 'gpt-5.6-luna', 'without this the meter prices an OpenAI turn at Claude Sonnet rates');
+    assert.equal(usage.model, 'gpt-6-luna', 'without this the meter prices an OpenAI turn at Claude Sonnet rates');
   });
 
   test('an anthropic turn carries its route model', async () => {

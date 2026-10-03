@@ -1,0 +1,93 @@
+/** Actual disposable SQL, sequential only. No deployment, vendor or account key. */
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import assert from 'node:assert/strict';
+import { buildConversationPack } from '@luvani/core';
+if (!process.env.PGLITE_MODULE) throw new Error('Set PGLITE_MODULE to the disposable PostgreSQL/WASM module.');
+const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE).href);
+const db = new PGlite();
+const user = '11111111-1111-4111-8111-111111111111', other = '22222222-2222-4222-8222-222222222222', session = '33333333-3333-4333-8333-333333333333';
+const fingerprint = 'a'.repeat(64), migration = '20261002212536_kept_phrase_audio_budget.sql';
+const pack = buildConversationPack({ id: session, sessionId: session, learnerId: user, createdAt: '2026-10-02T12:00:00Z', title: { fr: 'Au café', en: 'At the café' }, summary: 'An order.', keyPhrases: [{ fr: 'Un café, merci.', frWritten: null, en: 'A coffee, thanks.' }], corrections: [{ quote: 'Je suis vingt ans.', better: 'J’ai vingt ans.', betterEn: 'I’m twenty.', why: 'Use avoir for age.' }] });
+const reserve = async (owner=user, kind='phrase', index=0, hash=fingerprint) => (await db.query('select public.reserve_phrase_audio($1,$2,$3,$4,$5,$6) as value',[owner,session,kind,index,'alexandre',hash])).rows[0].value;
+const spent = async () => ({ global: Number((await db.query('select global_spent_micro_usd as n from phrase_audio_policy')).rows[0].n), owner: Number((await db.query('select trial_spent_micro_usd as n from phrase_audio_budgets where user_id=$1',[user])).rows[0]?.n ?? 0) });
+try {
+ await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key); create table public.session_usage(session_id uuid primary key,user_id uuid references auth.users(id) on delete cascade); create table public.conversation_packs(id uuid primary key,session_id uuid unique,user_id uuid references auth.users(id) on delete cascade,state text,payload jsonb); create table public.entitlements(user_id uuid primary key references auth.users(id) on delete cascade,plan text,period_end timestamptz,lapsed_from_paid boolean not null default false);`);
+ for (const table of ['learner_state','product_events','billing_events','social_profiles','social_blocks','social_reports','social_notices','social_reactions']) await db.exec(`create table public.${table}(user_id uuid,value text)`);
+ for (const table of ['social_edges','social_challenges']) await db.exec(`create table public.${table}(sender uuid,recipient uuid,value text)`);
+ await db.exec(await readFile(new URL('../supabase/migrations/20261002171317_opt_in_conversation_text.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL(`../supabase/migrations/${migration}`,import.meta.url),'utf8'));
+ await db.query('insert into auth.users values($1),($2)',[user,other]);
+ await db.query("insert into entitlements(user_id,plan) values($1,'trial'),($2,'trial')",[user,other]);
+ await db.query("insert into conversation_packs values($1,$1,$2,'ready',$3)",[session,user,pack]);
+ await db.query('insert into session_usage values($1,$2)',[session,user]);
+ assert.equal(await reserve(),null,'defaults must be disabled');
+ await db.exec('update phrase_audio_policy set enabled=true,trial_cap_micro_usd=1000,paid_cap_micro_usd=1000,global_cap_micro_usd=10000');
+ assert.equal(await reserve(),null,'no verified voice rate');
+ await db.query("insert into phrase_audio_rates(voice,fingerprint,micro_usd_per_utf8_byte,fixed_call_micro_usd,verified_at,expires_at) values('alexandre',$1,2.5,10,now(),now()+interval '1 day')",[fingerprint]); // invented fixture, NOT an actual rate
+ assert.equal(await reserve(user,'phrase',0,'b'.repeat(64)),null);
+ assert.equal(await reserve(other),null,'another owner cannot dispatch');
+ for (const [kind,index] of [['arbitrary',0],['phrase',-1],['phrase',64],['phrase',1],['correction',1]]) assert.equal(await reserve(user,kind,index),null);
+ assert.deepEqual(await spent(),{global:0,owner:0});
+ await db.exec("update phrase_audio_rates set expires_at=now()-interval '1 second',verified_at=now()-interval '2 days'"); assert.equal(await reserve(),null);
+ await db.exec("update phrase_audio_rates set verified_at=now(),expires_at=now()+interval '1 day'");
+ const cost = 10 + Math.ceil(Buffer.byteLength(pack.keyPhrases[0].fr,'utf8')*2.5);
+ const revision=(await db.query('select revision from phrase_audio_rates')).rows[0].revision;
+ const windowStart=(await db.query('select to_jsonb(global_window_start) as global_window_start from phrase_audio_policy')).rows[0].global_window_start;
+ const dispatch=async (rev=revision)=> (await db.query('select phrase_audio_dispatch_allowed($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) as value',[user,session,'phrase',0,'alexandre',fingerprint,rev,pack.keyPhrases[0].fr,'trial',windowStart,null])).rows[0].value;
+ const first=await reserve(); assert.equal(Date.parse(first.globalWindowStart),Date.parse(windowStart)); assert.deepEqual({...first,globalWindowStart:undefined},{fr:pack.keyPhrases[0].fr,payload:pack,fingerprint,rateRevision:revision,bucket:'trial',globalWindowStart:undefined,paidWindowStart:null});
+ assert.equal(await dispatch(),true);
+ await db.exec('update phrase_audio_rates set fixed_call_micro_usd=10'); assert.equal(await dispatch(),false,'even an identical rate update must invalidate old reservations');
+ const changedRevision=(await db.query('select revision from phrase_audio_rates')).rows[0].revision; assert.notEqual(changedRevision,revision); assert.equal(await dispatch(changedRevision),true);
+ await db.exec("update conversation_packs set state='archived'"); assert.equal(await dispatch(changedRevision),false); await db.exec("update conversation_packs set state='ready'; delete from session_usage"); assert.equal(await dispatch(changedRevision),false); await db.query('insert into session_usage values($1,$2)',[session,user]);
+ await db.exec('update entitlements set lapsed_from_paid=true'); assert.equal(await dispatch(changedRevision),false); await db.exec("update entitlements set lapsed_from_paid=false,plan='starter',period_end=now()+interval '1 day'"); assert.equal(await dispatch(changedRevision),false,'trial reservation cannot authorize new paid bucket'); await db.exec("update entitlements set plan='trial',period_end=null");
+ await db.exec('update phrase_audio_policy set global_cap_micro_usd=0'); assert.equal(await dispatch(changedRevision),false); await db.exec('update phrase_audio_policy set global_cap_micro_usd=10000');
+ assert.deepEqual(await spent(),{global:cost,owner:cost});
+ await reserve(); assert.deepEqual(await spent(),{global:2*cost,owner:2*cost},'a replay must reserve again, never a free dispatch');
+ await db.exec("update phrase_audio_policy set global_window_start=now()-interval '30 days'+interval '1 second'"); assert.equal(await dispatch(changedRevision),false,'old global period never authorizes fresh-period spend'); assert.equal(await reserve(),null,'last 30 seconds refuse reservation'); await db.query('update phrase_audio_policy set global_window_start=$1',[windowStart]);
+ const before=await spent(); await db.exec('begin'); await reserve(); await db.exec('rollback'); assert.deepEqual(await spent(),before,'transaction rollback must roll both counters back');
+ await db.query('update phrase_audio_policy set trial_cap_micro_usd=$1',[2*cost]); assert.equal(await reserve(),null,'trial cap refuses without refund');
+ await db.exec('update phrase_audio_policy set trial_cap_micro_usd=1000');
+ await db.query('update phrase_audio_policy set global_cap_micro_usd=$1',[2*cost]); assert.equal(await reserve(),null,'global cap refuses');
+ await db.exec('update phrase_audio_policy set global_cap_micro_usd=10000');
+ for (const mismatch of [{...pack,state:'archived'},{...pack,learnerId:other},{...pack,id:other},{...pack,sessionId:other},{...pack,keyPhrases:[{fr:42}]}]) {
+  await db.query('update conversation_packs set payload=$1',[mismatch]); assert.equal(await reserve(),null);
+ }
+ await db.query('update conversation_packs set payload=$1,state=\'archived\'',[pack]); assert.equal(await reserve(),null);
+ await db.exec("update conversation_packs set state='ready'; delete from session_usage"); assert.equal(await reserve(),null);
+ await db.query('insert into session_usage values($1,$2)',[session,user]);
+ await db.exec("update entitlements set plan='trial',lapsed_from_paid=true"); assert.equal(await reserve(),null,'lapsed paid cannot spend trial');
+ await db.exec("update entitlements set plan='starter',lapsed_from_paid=false,period_end=now()-interval '1 day'"); assert.equal(await reserve(),null);
+ await db.exec("update entitlements set period_end='infinity'"); assert.equal(await reserve(),null);
+ await db.exec("update entitlements set period_end=now()+interval '1 day'"); await reserve();
+ const paid=Number((await db.query('select paid_spent_micro_usd as n from phrase_audio_budgets where user_id=$1',[user])).rows[0].n); assert.equal(paid,cost);
+ await db.exec("update entitlements set plan='regular',period_end=now()+interval '60 days'; update phrase_audio_policy set paid_cap_micro_usd="+cost); assert.equal(await reserve(),null,'plan/renewal does not reset paid spend');
+ await db.exec("update phrase_audio_budgets set paid_window_start=now()-interval '31 days'; update phrase_audio_policy set global_window_start=now()-interval '31 days',global_cap_micro_usd="+cost); await reserve();
+ assert.equal((await spent()).global,cost); assert.equal(Number((await db.query('select paid_spent_micro_usd as n from phrase_audio_budgets where user_id=$1',[user])).rows[0].n),cost);
+ const snapshot=(await db.query('select public.export_account_data($1) as value',[user])).rows[0].value;
+ assert.equal(Object.keys(snapshot).length,15); assert.equal(snapshot.phrase_audio_budgets[0].user_id,user); assert.equal(snapshot.phrase_audio_budgets[0].trial_spent_micro_usd,2*cost);
+ assert.deepEqual((await db.query('select public.export_account_data($1) as value',[other])).rows[0].value.phrase_audio_budgets,[]);
+ for (const role of ['anon','authenticated']) {
+  await db.exec(`set role ${role}`); await assert.rejects(reserve(),/permission denied/); await assert.rejects(db.query('select * from phrase_audio_budgets'),/permission denied/); await assert.rejects(db.query('update phrase_audio_policy set enabled=true'),/permission denied/); await db.exec('reset role');
+ }
+ await db.exec('set role service_role'); assert.equal(await reserve(),null,'service role executes, but exhausted cap still refuses'); await db.exec('reset role');
+ const policyBefore=(await db.query('select * from phrase_audio_policy')).rows[0];
+ const budgetBefore=(await db.query('select * from phrase_audio_budgets where user_id=$1',[user])).rows[0];
+ const approvedSql=await readFile(new URL('../supabase/migrations/20261003001510_approved_phrase_audio_caps.sql',import.meta.url),'utf8');
+ await db.exec(approvedSql);
+ const approved=(await db.query('select * from phrase_audio_policy')).rows[0];
+ assert.equal(approved.enabled,false);assert.equal(Number(approved.trial_cap_micro_usd),20000);assert.equal(Number(approved.paid_cap_micro_usd),200000);assert.equal(Number(approved.global_cap_micro_usd),10000000);
+ assert.equal(approved.global_spent_micro_usd,policyBefore.global_spent_micro_usd);assert.deepEqual(approved.global_window_start,policyBefore.global_window_start);
+ assert.deepEqual((await db.query('select * from phrase_audio_budgets where user_id=$1',[user])).rows[0],budgetBefore);
+ for (const [column,above] of [['trial_cap_micro_usd',20001],['paid_cap_micro_usd',200001],['global_cap_micro_usd',10000001]]) await assert.rejects(db.exec(`update phrase_audio_policy set ${column}=${above}`),/check constraint/);
+ assert.equal(await reserve(),null,'cap approval must not enable synthesis');
+ await db.exec(await readFile(new URL('../supabase/rollback/20261003001510_down.sql',import.meta.url),'utf8'));
+ assert.equal((await db.query('select enabled from phrase_audio_policy')).rows[0].enabled,false);
+ await db.exec(approvedSql);assert.deepEqual((await db.query('select * from phrase_audio_budgets where user_id=$1',[user])).rows[0],budgetBefore);
+ assert.equal((await db.query('select global_spent_micro_usd as n from phrase_audio_policy')).rows[0].n,policyBefore.global_spent_micro_usd);
+ await db.query('delete from auth.users where id=$1',[user]); assert.equal((await db.query('select count(*)::integer as n from phrase_audio_budgets')).rows[0].n,0); assert.equal((await spent()).global,cost,'global aggregate survives without owner identifiers');
+ await db.exec(await readFile(new URL('../supabase/rollback/20261002212536_down.sql',import.meta.url),'utf8'));
+ assert.equal(Object.keys((await db.query('select export_account_data($1) as value',[other])).rows[0].value).length,14);
+ await db.exec(await readFile(new URL(`../supabase/migrations/${migration}`,import.meta.url),'utf8')); assert.equal(await reserve(other),null,'reapply stays dark');
+ console.log('PASS: disabled defaults; verified rate/fingerprint expiry; source/owner/completion; permanent account/global reservations; paid/lapsed/plan/30-day periods; transaction rollback; service-only grants; bounded export and account cascade; rollback/reapply. Single-connection sequential SQL only, not concurrent or hosted proof.');
+} finally { await db.close(); }

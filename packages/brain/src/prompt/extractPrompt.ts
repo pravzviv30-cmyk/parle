@@ -12,6 +12,7 @@
 
 import type { ChatMessage } from '../llm/client.ts';
 import type { MemoryFact } from '../contract/types.ts';
+import { PERSONAL_MEMORY_RULE } from './memoryPolicy.ts';
 
 export interface ExtractionInput {
   /** The session transcript, as the engine recorded it. */
@@ -24,6 +25,7 @@ const INSTRUCTION = [
   `The session below has ended. Answer one question: what important information have we learned about the learner as a real person?`,
   ``,
   `Rules:`,
+  PERSONAL_MEMORY_RULE,
   `- Facts only about their actual life: interests they showed, events coming up, goals, preferences about how they like to practise. Kinds: interest, life-event, goal, preference.`,
   `- The scene was fiction and they were playing a part. Nothing that happened inside the scene is a fact about them. What they volunteered around it is: the topic they chose, an aside about their week, a question about their own trip to Paris.`,
   `- When you are not sure a thing is real, leave it out. An invented fact is far worse than a missed one.`,

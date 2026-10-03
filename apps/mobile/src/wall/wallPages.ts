@@ -1,29 +1,36 @@
 /**
  * Which pages the wall has this time, and why the number is not a constant.
  *
+ * 2026-09-27, notebook Phase 6-E: at most two pages, what you get and then the
+ * plans. The map and French pages left the wall.
+ *
  * Three reasons the list is computed rather than written down:
  *
- * 1. Page four cannot exist without a store. The web adapter answers
+ * 1. The plans page cannot exist without a store. The web adapter answers
  *    `{ available: false }` unconditionally and a build with no RevenueCat key
- *    answers the same, so a hardcoded four would draw a fourth dot onto a page
- *    that is never coming. Three pages standing alone is also what lets all of
- *    this ship and be reviewed before the first key is set.
+ *    answers the same, so a hardcoded two would draw a second dot onto a page
+ *    that is never coming. The first page standing alone is also what lets all
+ *    of this ship and be reviewed before the first key is set.
  * 2. Somebody who came to buy should not be sold to. The Settings row opens the
- *    plans directly, and walking them through their own progress first would be
- *    a sales pitch delivered to a decided customer.
+ *    plans directly.
  * 3. `ProgressDots` takes a total. A total that lies is worse than no dots, and
- *    a learner counting four dots on a three page flow has been told the wall is
+ *    a learner counting two dots on a one page flow has been told the wall is
  *    longer than it is at exactly the moment they are deciding whether to
  *    continue.
  *
- * Nothing is dropped for want of data. The wall varies its tail and never its
- * opening or its middle: page one is four rows for everybody and page two has a
- * start line for a learner with nothing yet. The designs that varied the opening
- * handed their weakest screen to the learner they most needed to convince.
+ * Nothing is dropped for want of data, and nothing varies by what the learner
+ * has done: the first page is the same for everybody.
  */
 
-/** The pages, in the order they are ever drawn. */
-export type WallPage = 'map' | 'french' | 'yours' | 'plans';
+/**
+ * The pages, in the order they are ever drawn.
+ *
+ * `map` and `french` are retired and never drawn. They stay in the union only
+ * because it must name exactly the pages the `wall_page_seen` event can carry
+ * (`analytics/track.ts`, held by the agreement test in `wallPages.test.ts`), and
+ * the two should narrow together, in one change, by whoever owns the funnel.
+ */
+export type WallPage = 'yours' | 'plans';
 
 /**
  * How the wall was reached.
@@ -35,8 +42,8 @@ export type WallPage = 'map' | 'french' | 'yours' | 'plans';
  */
 export type WallEntry = 'path-complete' | 'refused' | 'settings' | 'recap';
 
-/** The value pages, in order. Page four is decided separately, by the store. */
-const VALUE_PAGES: readonly WallPage[] = ['map', 'french', 'yours'];
+/** The value page. The plans page is decided separately, by the store. */
+const VALUE_PAGES: readonly WallPage[] = ['yours'];
 
 export function wallPages(input: { entry: WallEntry; storeHasPlans: boolean }): readonly WallPage[] {
   if (input.entry === 'settings') {
@@ -72,9 +79,9 @@ export function canBuy(pages: readonly WallPage[]): boolean {
 /**
  * The last page's forward action, which differs by whether there is one.
  *
- * With a store the value pages lead to the plans. Without one the wall ends on
- * page three, and the honest last word is the free promise it just made rather
- * than a button to nowhere.
+ * With a store the first page leads to the plans. Without one the wall ends on
+ * the first page, and the honest last word is the free promise it just made
+ * rather than a button to nowhere.
  */
 export function endsOnPlans(pages: readonly WallPage[]): boolean {
   return pages[pages.length - 1] === 'plans';

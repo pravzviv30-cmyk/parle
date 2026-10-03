@@ -80,23 +80,31 @@ describe('the first-win chooser — what a learner who has never spoken is shown
       assert.ok(card.route.params.missionId.length > 0, 'a card nobody can open is a card that is not offered');
     }
 
-    // And the screen is where a first run actually lands.
+    // 2026-09-27 (notebook Phase 3, B1): a first run lands on Today, whose one
+    // Start goes straight into the next scene; the chooser stays a stack
+    // screen, reached from every row on Speak's level path.
     const navigator = stripComments(read('../nav/RootNavigator.tsx'));
     assert.match(navigator, /<Stack\.Screen name="Missions"/, 'the chooser is not a stack screen yet');
-    assert.match(navigator, /initialRouteName=/, 'nothing can open the app anywhere but the tabs');
+    assert.match(navigator, /initialRouteName=\{wallPreviewEnabled\(\) \? 'Wall' : 'Tabs'\}/, 'a first run still opens on the chooser instead of Today');
+    assert.doesNotMatch(navigator, /\? 'Missions'/, 'the navigator can still open the app on the chooser');
+    const speak = stripComments(read('../tutor/speakView.ts'));
+    assert.match(speak, /route: \{ screen: 'Missions', params: \{ focus: mission\.id \} \}/, "Speak's path rows no longer reach the chooser");
     const app = stripComments(read('../../App.tsx'));
     assert.ok(app.includes('justOnboarded'), 'a brand new profile has no way to say it just finished');
     assert.ok(!app.includes("userKey('justOnboarded')"), 'the first-run flag is persisted, so a reinstall is the only way out of it');
   });
 
-  test('a first-ever learner reaches the chooser on web as well as on native', () => {
+  // 2026-09-27, notebook redesign Phase 3: a first run lands on Today, whose Start goes straight into the
+  // next scene; the chooser stays reachable from Speak's level path and keeps its web URL below.
+  test('a first-ever learner reaches Today on web as well as on native, never the chooser', () => {
     const app = stripComments(read('../../App.tsx'));
     assert.match(app, /useNavigationContainerRef<RootStackParamList>/, 'the web URL can still overrule the first-run route');
-    assert.match(app, /onReady=\{\(\) => \{ openFirstMissionChooser\(\); openPendingInvite\(\); \}\}/, 'initial linking must settle before chooser and explicit invitation navigation');
-    assert.match(app, /navigationRef\.resetRoot\([\s\S]*name:\s*'Missions'/, 'the ready navigator never replaces the URL-selected Home route');
+    assert.match(app, /onReady=\{\(\) => \{ openFirstRun\(\); openPendingInvite\(\); \}\}/, 'initial linking must settle before the first-run and explicit invitation navigation');
+    assert.match(app, /navigationRef\.resetRoot\([\s\S]*name:\s*'Tabs'/, 'the ready navigator never replaces a stale URL with Today');
+    assert.doesNotMatch(app, /resetRoot\([^)]*'Missions'/, 'a first run is sent to the ten-way chooser again');
 
     const links = stripComments(read('../nav/theme.ts'));
-    assert.match(links, /Missions:\s*'missions'/, 'the first-run destination has no web URL');
+    assert.match(links, /Missions:\s*'missions'/, 'the chooser, reached from Speak, has no web URL');
   });
 
   test('every mission card routes to a conversation carrying its mission id', () => {
@@ -179,7 +187,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.equal(guiltIn(CHOOSER_ACCESS), undefined);
     const screen = stripComments(read('./MissionsScreen.tsx'));
     assert.match(screen, /\{view\.access\}/, 'the chooser never draws the access line');
-    assert.ok(screen.indexOf('{view.access}') < screen.indexOf('{first && ('), 'the access line is only said after a situation is already on offer');
+    assert.ok(screen.indexOf('{view.access}') < screen.indexOf('{first.mission.title}'), 'the access line is only said after a situation is already on offer');
   });
 
   test('talk freely is still a door, and not the first one for a beginner', () => {
@@ -203,8 +211,15 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.ok(!doors.includes('Pronunciation lesson'), 'the scripted lesson is a way into the tutor tab again');
 
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
-    assert.match(tab, /DOORS\.map\(/, 'the tab draws its own order instead of the one that was decided');
-    assert.ok(tab.includes("open(mode === 'type', next.params)"), 'the recommendation supports the visible Type selection');
+    // 2026-09-27 (notebook Phase 3): Speak's "More ways to practise" are
+    // worded and ordered by speakView.ts, which reads tutorDoors(); the
+    // everyday door left because every path row opens this chooser.
+    assert.match(tab, /MORE_WAYS\.map\(/, 'the tab draws its own order instead of the one that was decided');
+    // The Start opens in the learner's standing mode and a quiet link offers
+    // the other one, both on the same recommendation (2026-09-27 follow-up).
+    assert.match(tab, /heldBack\?\.textMode \?\? modes\.textMode/, 'a fresh start loses the standing mode');
+    assert.match(tab, /heldBack \? pendingStart\.current : next\.params/, 'a retry loses the original scene');
+    assert.ok(tab.includes('open(modes.other.textMode, next.params)'), 'the recommendation loses its other mode');
   });
 });
 
@@ -241,8 +256,8 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
     // An outline, not a pill. The screen's one solid action is the hero card's
     // "Start this one", and a second filled button beside it would be two
     // primary actions on a screen whose whole job is one choice.
-    const footer = SCREEN.slice(SCREEN.indexOf('<OutlineButton'));
-    assert.match(footer, /<OutlineButton/, 'the lesson door is not the app\'s outline button');
+    const footer = SCREEN.slice(SCREEN.indexOf('<View style={st.footer}>'));
+    assert.match(footer, /<GhostButton/, 'the lesson door is not the app\'s outline button');
     assert.doesNotMatch(footer, /<PillButton/, 'the lesson door took the screen\'s second pill');
     assert.equal(
       (SCREEN.match(/<PillButton\b/g) ?? []).length,
@@ -253,15 +268,19 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
     // Last, after the six. The order is the argument: a beginner meets the
     // open situations before a script where every line is written out.
     assert.ok(
-      SCREEN.indexOf('LESSON_DOOR.title') < SCREEN.indexOf('{rest.map('),
+      SCREEN.indexOf('LESSON_DOOR.title') > SCREEN.indexOf('view.cards.filter'),
       'the pronunciation warm-up must be discoverable before the long mission list',
     );
 
     // And it left the tab it used to live on, all of it: the door, the quiet
     // link and the handler. A door drawn in two places is a door that disagrees
     // with itself the first time one of them is edited.
+    // 2026-09-27 (notebook Phase 3): Speak leads with the tutor and the level
+    // path, and its "More ways to practise" are the open conversation, a real
+    // moment and memory. The lesson is this screen's door (and Practice's day
+    // one), so Speak no longer draws a second one.
     const tab = stripComments(read('../tabs/TutorTab.tsx'));
-    assert.match(tab, /title="Practise pronunciation"/, 'pronunciation is also reachable directly from Tutor');
+    assert.doesNotMatch(tab, /Practise pronunciation/, 'the lesson is drawn as a door on Speak as well as here');
   });
 
   test('a tap on the lesson is acknowledged, never doubled, and refused by nothing', () => {
@@ -281,7 +300,8 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
       'nothing on the chooser says a probe is running, so the tap looks dead for a second and a half',
     );
     // Both controls go through it, the spoken one and the quiet one.
-    assert.match(SCREEN, /openLesson\(mode === 'type'\)/, 'the lesson button honours the selected mode');
+    // 2026-09-27: the Speak/Type pill left; the arrival mode is the mode.
+    assert.match(SCREEN, /openLesson\(typed\)/, 'the lesson button honours the mode the learner arrived in');
     assert.match(SCREEN, /openLesson\(true\)/, 'the quiet control on the lesson door skips the probe');
   });
 
@@ -310,13 +330,22 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
 });
 
 describe('the chooser — what each card says about where the learner is', () => {
-  test('a mission whose phrases fall due says so before it says anything else', () => {
+  test('available, next, practised and independently used are distinct states', () => {
+    const fresh = chooserView({ progress: missionStates([], [], NOW), spokenBefore: false });
+    assert.equal(fresh.cards[0]?.status, 'Next scene');
+    assert.equal(fresh.cards[1]?.status, 'Available scene');
+    const helped = chooserView({ progress: missionStates([{ id: 'mission:cafe', at: NOW - 2, rung: 1 }], [], NOW), spokenBefore: true });
+    assert.equal(helped.cards.find((card) => card.id === 'mission:cafe')?.status, 'Practised with support');
+    const independent = chooserView({ progress: missionStates([{ id: 'mission:cafe', at: NOW - 2, rung: 4 }], [], NOW), spokenBefore: true });
+    assert.equal(independent.cards.find((card) => card.id === 'mission:cafe')?.status, 'Independently used');
+  });
+  test('a due review keeps independent evidence and offers that scene first', () => {
     const done: MissionCompletion[] = [{ id: 'mission:cafe', at: NOW - 86_400_000, rung: 4 }];
     const deck = cardsFor('mission:cafe', NOW - 86_400_000);
     const view = chooserView({ progress: missionStates(done, deck, NOW), spokenBefore: true });
     const cafe = view.cards.find((c) => c.id === 'mission:cafe')!;
     assert.equal(cafe.state, 'needs-review');
-    assert.equal(cafe.status, 'Ready to come back to');
+    assert.equal(cafe.status, 'Independently used, ready to review');
     assert.equal(view.cards[0]?.id, 'mission:cafe', 'what the scheduler wants back is what is offered first');
   });
 
@@ -337,9 +366,19 @@ describe('the chooser — what each card says about where the learner is', () =>
   });
 
   test('help still shows in the words, without turning into a grade', () => {
-    assert.equal(missionStatus('complete', 'with-help'), 'You did this one with help');
-    assert.equal(missionStatus('complete', 'on-your-own'), 'You did this one on your own');
-    assert.equal(missionStatus('new', 'new'), 'Ready when you are');
+    assert.equal(missionStatus('complete', 'with-help'), 'Practised with support');
+    assert.equal(missionStatus('complete', 'on-your-own', true), 'Independently used');
+    // 2026-09-27 (notebook Phase 3): "Ready when you are" is retired. A new
+    // scene says only that it is new; the level and the minutes beside it say
+    // the rest.
+    assert.equal(missionStatus('new', 'new'), 'Available scene');
+    assert.equal(missionStatus('in-progress', 'new'), 'Practised with support');
+    for (const state of ['new', 'in-progress', 'complete', 'needs-review'] as const) {
+      for (const independence of ['new', 'with-help', 'getting-there', 'mostly-yours', 'on-your-own'] as const) {
+        assert.doesNotMatch(missionStatus(state, independence), /Ready when you are/);
+      }
+    }
+    assert.doesNotMatch(stripComments(read('./chooserView.ts')), /Ready when you are/, 'the chooser still spells the retired line');
   });
 
   test('the tutor tab is offered the mission worth continuing, and never one nobody started', () => {
@@ -504,4 +543,9 @@ describe('walking back into a scene you have already finished', () => {
     assert.ok(!/\d/.test(LESS_HELP), 'the note carries a number');
     assert.ok(!/[—%]/.test(LESS_HELP), 'the note carries an em dash or a percentage');
   });
+});
+
+test('the first-line promise gives help without an unmeasured deadline', () => {
+  assert.match(PROMISE, /tutor.*help.*first useful French line/i);
+  assert.doesNotMatch(PROMISE, /\d|minute|second|within|next two|next one/i);
 });

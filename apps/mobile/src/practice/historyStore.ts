@@ -14,7 +14,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, scopeGeneration, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import {
   isEventId,
@@ -47,14 +47,13 @@ function serialized<T>(mutation: (bound: Bound) => Promise<T>): Promise<T> {
   return next;
 }
 
-/** The raw parsed blob, or null when absent or unparseable. */
+/** The raw parsed blob, or null only when absent. Unreadable history is unknown. */
 async function persisted(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(key);
+  if (raw === null) return null;
+  const parsed: unknown = JSON.parse(raw);
+  if (readPracticeHistory(parsed) === null) throw new Error('Practice history could not be read');
+  return parsed;
 }
 
 async function readStored(key: string): Promise<StoredPracticeHistory | 'newer' | 'unreadable'> {
@@ -65,34 +64,35 @@ async function readStored(key: string): Promise<StoredPracticeHistory | 'newer' 
   } catch {
     return 'unreadable';
   }
-  if (!raw) return empty;
+  if (raw === null) return empty;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw) as unknown;
   } catch {
-    return empty;
+    return 'unreadable';
   }
   const version = typeof parsed === 'object' && parsed !== null ? (parsed as { version?: unknown }).version : undefined;
   if (typeof version === 'number' && version > PRACTICE_HISTORY_VERSION) return 'newer';
-  return readPracticeHistory(parsed) ?? empty;
+  return readPracticeHistory(parsed) ?? 'unreadable';
 }
 
 /** Write only if the scope this work was bound under still stands. */
 async function write(bound: Bound, value: StoredPracticeHistory, origin: 'local' | 'adopted'): Promise<PersistAck> {
-  if (scopeGeneration() !== bound.generation) return 'failed';
   try {
-    await AsyncStorage.setItem(bound.key, JSON.stringify(value));
+    const written = await writeInUserScope(bound.generation, () => AsyncStorage.setItem(bound.key, JSON.stringify(value)));
+    if (!written) return 'failed';
   } catch {
     return 'failed';
   }
-  if (origin === 'local' && scopeGeneration() === bound.generation) markDirty(PRACTICE_HISTORY_SUFFIX);
+  if (origin === 'local') markDirty(PRACTICE_HISTORY_SUFFIX);
   return 'durable';
 }
 
 /** Every readable event for the signed-in account, one per (kind, id), oldest first. */
 export async function loadPracticeHistory(): Promise<PracticeEvent[]> {
   const stored = await readStored(KEY());
-  return typeof stored === 'string' ? [] : uniquePracticeEvents(stored.events);
+  if (typeof stored === 'string') throw new Error('Practice history could not be read');
+  return uniquePracticeEvents(stored.events);
 }
 
 /**
@@ -117,6 +117,7 @@ export function recordPracticeEventOutcome(event: PracticeEvent): Promise<Practi
   return serialized(async (bound) => {
     const stored = await readStored(bound.key);
     if (stored === 'newer' || stored === 'unreadable') return 'failed';
+    if (scopeGeneration() !== bound.generation) return 'failed';
     if (stored.events.some((held) => held.kind === event.kind && held.id === event.id)) return 'durable';
     const next = withPracticeEvents(stored, [event]);
     if (!next.events.some((held) => held.kind === event.kind && held.id === event.id)) return 'aged-out';
@@ -143,6 +144,7 @@ export function hasRecordedSitting(sittingId: string): Promise<boolean | null> {
   return serialized(async (bound) => {
     const stored = await readStored(bound.key);
     if (stored === 'newer' || stored === 'unreadable') return null;
+    if (scopeGeneration() !== bound.generation) return null;
     return stored.events.some((held) => held.kind === 'session-completed' && held.id === sittingId);
   });
 }
@@ -166,9 +168,10 @@ export function recordWarmupCompleted(input: { warmupId: string; packId: string;
  */
 function adoptPracticeHistory(fold: SyncFold): Promise<SyncAdoption> {
   return serialized(async (bound) => {
+    if (scopeGeneration() !== bound.generation) throw new Error('Practice history account changed before adoption');
     const folded = readPracticeHistory(fold(await persisted(bound.key)));
     if (folded === null) return 'declined';
-    await write(bound, folded, 'adopted');
+    if (await write(bound, folded, 'adopted') !== 'durable') throw new Error('Practice history adoption was not durable');
     return 'adopted';
   });
 }

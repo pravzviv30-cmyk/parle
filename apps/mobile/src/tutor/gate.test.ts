@@ -204,10 +204,14 @@ describe('the three ways into a conversation — what a learner meets instead of
       { probe: false, screen: 'RealMoment' },
       'rehearsing something does not open the screen that asks what the real moment is',
     );
-    // And the tab reads the answer rather than keeping a second copy of it.
-    assert.match(tab, /entryStart\(key\)/, 'the tab decides where a row goes instead of reading it from gate.ts');
-    assert.match(tab, /if \(start\.probe\) \{\s*open\(mode === 'type'\);/, 'open conversation probes in the selected mode');
-    assert.match(tab, /nav\.navigate\(start\.screen, \{ textMode: mode === 'type' \}\)/, 'secondary doors preserve the selected mode');
+    // And Speak reads the answer rather than keeping a second copy of it.
+    // 2026-09-27 (notebook Phase 3): the rows are "More ways to practise",
+    // built in speakView.ts from this door model; the open conversation probes
+    // spoken, like the one Start, and the other rows push their screen.
+    const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
+    assert.match(view, /entryStart\(key\)/, 'Speak decides where a row goes instead of reading it from gate.ts');
+    assert.match(tab, /if \(way\.screen === null\) \{ open\(modes\.textMode\); return; \}/, 'the open conversation does not probe in the preferred mode');
+    assert.match(tab, /nav\.navigate\(way\.screen\)/, 'a secondary way in does not open its own screen');
   });
 
   test('the tab opens its rows with nothing standing in front of them', () => {
@@ -217,17 +221,18 @@ describe('the three ways into a conversation — what a learner meets instead of
     assert.ok(!tab.includes('hasSeenTutorIntro'), 'the tab still reads the intro flag to decide what to show');
     assert.doesNotMatch(tab, /if\s*\(\s*!seenIntro\s*\)/, 'the intro is still the first thing on the tab');
     assert.ok(!tab.includes('<TutorIntro'), 'the explainer is back in front of the tab');
-    assert.ok(tab.includes('tutorDoors()'), 'the tab decides its own rows again');
+    const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
+    assert.ok(view.includes('tutorDoors()') && tab.includes('MORE_WAYS.map('), 'the tab decides its own rows again');
   });
 
   test('the explainer is still reachable, and still teaches the circle', () => {
     // Demoted, not deleted, twice over: off the front of the tab with F404 and
     // off the tab altogether with F573, because a page with one circle on it
     // does not also need a link about circles. It is the only place in the app
-    // that says what the three colours mean, so it is asserted to be somewhere
+    // that says what the circle's states mean, so it is asserted to be somewhere
     // rather than in a named file: whichever screen holds it, it is reachable.
     assert.equal(TUTOR_INTRO_LINK, 'How the voice circle works');
-    const holders = sourceFiles().filter((file) => file.body.includes('TUTOR_INTRO_LINK'));
+    const holders = sourceFiles().filter((file) => file.body.includes('label={CONNECTION_HELP_ROW}'));
     assert.ok(holders.length > 0, 'nothing in the app links to the explainer any more, so the circle is never explained');
     for (const holder of holders) {
       assert.ok(
@@ -237,8 +242,10 @@ describe('the three ways into a conversation — what a learner meets instead of
     }
     const intro = stripComments(read('./TutorIntro.tsx'));
     assert.ok(intro.includes('OrbWalkthrough'), 'the intro lost the page that teaches the circle');
-    assert.ok(intro.includes('Amber, it is thinking'), 'the intro stopped naming the thinking colour');
-    assert.ok(intro.includes('Green, your turn'), 'the intro stopped saying green means you speak');
+    // Revamp B (F595): the states are named in words, not colours, because the
+    // orb now carries a glyph and a caption for each one.
+    assert.ok(intro.includes("'It is thinking'"), 'the intro stopped saying what the thinking state means');
+    assert.ok(intro.includes("'Your turn'"), 'the intro stopped saying the listening state means you speak');
   });
 
   test('the two formatters are still the only place a numeral becomes words', () => {

@@ -19,20 +19,19 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
-import { accent, HAIRLINE, HIT, paper, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, HIT, paper, signal, space, type } from './theme.ts';
 import { SOUND_DETAIL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
 import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
-import { Art } from './art/Art.tsx';
-import { SCREEN_ART } from './art/maps.ts';
 import { saveTextFile } from './progress/saveFile.ts';
 
 export function SummaryScreen({
   lesson,
   summary,
   report,
+  historySaveFailed = false,
   onAgain,
   onReview,
   onDone,
@@ -41,6 +40,8 @@ export function SummaryScreen({
   summary: SessionSummary;
   /** Progress across all stored sessions. Null until there is enough history. */
   report?: ProgressReport | null;
+  /** Native storage did not confirm the history write; never present a saved total. */
+  historySaveFailed?: boolean;
   onAgain: () => void;
   /** Opens the review deck, while today's words are still warm. Optional: no prop, no button. */
   onReview?: () => void;
@@ -77,21 +78,21 @@ export function SummaryScreen({
     <ScrollScreen header={<ScreenHeader back={{ onPress: onDone }} />}>
       <View style={st.scroll}>
         <View style={st.head}>
-          <View style={st.postcard}>
-            <Art name={SCREEN_ART.recap} />
-          </View>
           {/* The end card leads with the scene's own name, set at display size
-              and centred over the postcard the way the mockup draws it. Digits
-              are welcome from here down: the no-numbers rule holds mid-session,
-              and a card that cannot say how long it took would be coy. */}
-          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>
+              on the paper itself (notebook Phase 4: the postcard and the
+              feature panel retired). Digits are welcome from here down: the
+              no-numbers rule holds mid-session, and a card that cannot say how
+              long it took would be coy. */}
+          <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>
             {lesson.title}
           </Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
             {summary.turnsCompleted} turns practised · {mins > 0 ? `${mins} min ` : ''}
             {secs}s
           </Text>
         </View>
+
+        {historySaveFailed && <Text accessibilityRole="alert" style={[type.body, { color: paper.inkSoft }]}>Your lesson history could not be confirmed as saved. This practice card is available until you leave; totals from your saved history are not shown.</Text>}
 
         {/* ── what went well ────────────────────────────────────────── */}
         <View>
@@ -273,8 +274,7 @@ export function SummaryScreen({
 
 const st = StyleSheet.create({
   scroll: { paddingTop: space(3), paddingBottom: space(8), gap: space(7) },
-  head: { alignItems: 'stretch', padding: space(5), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
-  postcard: { alignItems: 'center', marginBottom: space(4) },
+  head: { alignItems: 'stretch' },
   divider: {
     height: HAIRLINE,
     backgroundColor: paper.lineOnCard,

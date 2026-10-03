@@ -1,3 +1,5 @@
+import { classifyFailure } from './failure.ts';
+import { unjoinedLease } from './unjoinedLease.ts';
 /**
  * What the live hook does with the messages it is sent, held to its own source.
  *
@@ -33,7 +35,8 @@ import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RoomEvent } from 'livekit-client';
-import { DEFAULT_TUTOR_VOICE, decodeClientMessage, encodeMessage, isTutorVoiceKey, type RecapPayload, type ServerMessage } from '@luvani/core';
+import { ConversationTextRecorder, DEFAULT_TUTOR_VOICE, decodeClientMessage, encodeMessage, isTutorVoiceKey, type RecapPayload, type ServerMessage } from '@luvani/core';
+import { attachCorrectionReason } from './correctionReason.ts';
 import { createProfile } from '@luvani/brain/profile';
 
 import { setActiveUser } from '../storage/scope.ts';
@@ -393,8 +396,16 @@ function switchWorld(
     setRecap: (r: unknown) => seen.recaps.push(r),
     setStatus: (s: unknown) => seen.statuses.push(s),
     setNotice: (n: string | null) => seen.notices.push(n),
+    terminalFailureRef: { current: false },
+    setSettlement: noop,
+    setCanDoEvidence: noop,
+    attachCorrectionReason,
+    evidenceSessionRef: { current: null },
+    grant: { sessionId: '11111111-1111-4111-8111-111111111111' },
+    missionId: 'mission:premier-cafe',
     setSafety: (s: SafetyDecision | null) => seen.safety.push(s),
     safetyRef,
+    conversationTextRef: { current: new ConversationTextRecorder() },
     noticeTimer: { current: null as unknown },
     // Real, because "is this session stopped" must be one reading of the frame
     // and not the hook's own second opinion about it.
@@ -409,6 +420,7 @@ function switchWorld(
     // case, and both are real: which failures a learner can feel depends on the
     // mode they were granted AND on whether they have since taken the quiet
     // door, and the classification is the same one failure.ts publishes.
+    noTypedRecovery: false,
     mode: session.mode ?? 'convo',
     voicelessRef: { current: session.voiceless ?? false },
     modeCarriesAudio,
@@ -701,6 +713,7 @@ const SESSION_ID = '55555555-5555-4555-8555-000000000003';
  * lease question has to be answered for it too.
  */
 const EVERY_FAILURE = Object.keys({
+  'voice-unavailable': true,
   'mic-denied': true,
   'mic-missing': true,
   'mic-in-use': true,
@@ -844,6 +857,9 @@ describe('the tutor that never arrived — F196', () => {
         grant: { token: 'jwt', livekitUrl: 'wss://example', sessionId: SESSION_ID },
         leave: () => {
           left.push(1);
+          const lease = unjoinedLease(SESSION_ID, id => { abandoned.push([UID, id]); });
+          if (failure !== 'agent-absent') lease.observeTutor();
+          lease.release();
           return Promise.resolve();
         },
         fail: (f: LiveFailure) => failed.push(f),
@@ -871,6 +887,8 @@ describe('the tutor that never arrived — F196', () => {
       sessionId: SESSION_ID,
       TOKEN_SERVER: 'https://tokens.example',
       authHeaders: () => Promise.resolve({ authorization: 'Bearer account-token' }),
+      loadConsent: async () => null,
+      analyticsAllowed: () => false,
       fetch: (url: string, init: Record<string, unknown>) => {
         calls.push({ url, init });
         return Promise.resolve({ status: 200 });
@@ -912,6 +930,8 @@ describe('the tutor that never arrived — F196', () => {
       sessionId: SESSION_ID,
       TOKEN_SERVER: 'https://tokens.example',
       authHeaders: () => Promise.resolve({}),
+      loadConsent: async () => null,
+      analyticsAllowed: () => false,
       fetch: () => Promise.reject(new TypeError('Failed to fetch')),
       trace: () => {},
     });
@@ -927,14 +947,18 @@ describe('a grant that never reached a tutor hands its lease back — F165', () 
     // Both used to keep the lease, and the learner was refused their own next
     // session for half an hour by one that never happened.
 
-    // The release helper, lifted and run. `heldSessionId` is a local the helper
-    // both reads and clears, so calling it twice proves it hands a lease back
-    // once and then has nothing left to hand.
+    // The production release helper runs against the real attempt-owned lease.
+    // Calling it twice must still abandon an unjoined grant exactly once.
     const RELEASE = fragment(hook, 'const releaseHeldLease = (): void => {');
     const released = (held: string | null, agentJoined: boolean, heardAgent: boolean): unknown[][] => {
       const abandoned: unknown[][] = [];
-      run(`let heldSessionId = seedHeld;\n${RELEASE}\nreleaseHeldLease();\nreleaseHeldLease();`, {
-        seedHeld: held,
+      run(`${RELEASE}\nreleaseHeldLease();\nreleaseHeldLease();`, {
+        ownedLease: held === null ? null : (() => {
+          const lease = unjoinedLease(held, id => { abandoned.push([UID, id]); });
+          if (agentJoined || heardAgent) lease.observeTutor();
+          return lease;
+        })(),
+        leaseRef: { current: null },
         diagRef: { current: { agentJoined } },
         heardAgentRef: { current: heardAgent },
         userId: UID,
@@ -976,7 +1000,7 @@ describe('a grant that never reached a tutor hands its lease back — F165', () 
       'a start walked away from after its grant keeps the lease it took',
     );
     // The sessionId it hands back is the grant's own, taken the moment it arrives.
-    assert.match(hook, /heldSessionId = grant\.sessionId;/, 'the release has no sessionId to name, so it frees nothing');
+    assert.match(hook, /ownedLease = unjoinedLease\(grant\.sessionId,/, 'the release has no sessionId to name, so it frees nothing');
   });
 });
 
@@ -1001,6 +1025,7 @@ describe('the quiet door, mid-session — F200', () => {
 
     const switched = run(SWITCH_TO_TEXT, {
       roomRef,
+      terminalFailureRef: { current: false },
       voicelessRef,
       setVoiceless: (v: boolean) => voiceless.push(v),
       diagRef,
@@ -1051,6 +1076,7 @@ describe('the quiet door, mid-session — F200', () => {
     // speaking into it: the frame still goes, and the switch still happened.
     const stubborn: unknown[] = [];
     const refused = run(SWITCH_TO_TEXT, {
+      terminalFailureRef: { current: false },
       roomRef: {
         current: {
           localParticipant: { setMicrophoneEnabled: () => Promise.reject(new Error('device busy')) },
@@ -1075,6 +1101,8 @@ describe('the quiet door, mid-session — F200', () => {
       roomRef: { current: null },
       voicelessRef: { current: false },
       setVoiceless: () => {},
+      startGenRef: { current: 1 },
+      noTypedRecovery: false,
       diagRef: { current: { micPublished: false } },
       setMicOpen: () => {},
       send: (m: unknown) => orphan.push(m),
@@ -1098,6 +1126,8 @@ describe('the quiet door, mid-session — F200', () => {
           },
         },
       },
+      startGenRef: { current: 1 },
+      noTypedRecovery: false,
       diagRef: { current: { micPublished: false } },
       trace: () => {},
       setMicOpen: () => {},
@@ -1252,6 +1282,8 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
 
   const world = (chosen: string | undefined): Record<string, unknown> => ({
     userId: 'u1',
+    consent: null,
+    analyticsAllowed: () => false,
     lessonId: 'convo-01',
     startRung: undefined,
     mode: 'convo',
@@ -1313,7 +1345,7 @@ describe('the session id the hook exposes, for source-linked history', () => {
     const start = HOOK.slice(startAt, HOOK.indexOf('const room = new Room();', startAt));
     const cleared = start.indexOf('setSessionId(null);');
     const fetched = start.indexOf('/session/start');
-    const granted = start.indexOf('heldSessionId = grant.sessionId;');
+    const granted = start.indexOf('ownedLease = unjoinedLease(grant.sessionId,');
     const published = start.indexOf('setSessionId(typeof grant.sessionId');
     assert.ok(cleared > 0 && cleared < fetched, 'a new start does not clear the last session id before asking for a grant');
     assert.ok(published > granted, 'the id is published before the grant arrives');
@@ -1349,4 +1381,52 @@ describe('the session id the hook exposes, for source-linked history', () => {
     const returned = HOOK.slice(HOOK.lastIndexOf('  return {'));
     assert.match(returned, /\n\s+sessionId,\n/, 'the hook does not return the session id');
   });
+});
+
+
+test('a terminal service failure keeps settlement pending until the server acknowledgement', () => {
+  const { world, seen } = switchWorld();
+  const settlements: unknown[] = [];
+  world.setSettlement = (value: unknown) => settlements.push(value);
+  deliver(world, { t: 'error', message: 'Tutor stopped', kind: 'llm_error', recoverable: false, terminal: true });
+  assert.deepEqual(settlements, [{ kind: 'pending' }]);
+  assert.equal(seen.left, 0, 'leaving early would lose the worker acknowledgement');
+  const ack = { kind: 'not-charged' as const, refundedSeconds: 0, secondsRemaining: 1800, plan: 'trial' as const };
+  deliver(world, { t: 'settlement', result: ack });
+  assert.deepEqual(settlements, [{ kind: 'pending' }, ack]);
+  assert.equal(seen.timers.length, 0, 'settlement must not disappear like a transient notice');
+  assert.equal(run(SWITCH_TO_TEXT, { roomRef: { current: {} }, terminalFailureRef: { current: true } }), false, 'a closed failed room cannot be reused for typing');
+});
+
+
+test('optional can-do wire evidence is fenced by current issued session, mission, reset and terminal stop', () => {
+  const built = switchWorld();const received: unknown[] = [];
+  const evidenceSessionRef = { current: '11111111-1111-4111-8111-111111111111' as string | null };
+  const terminalFailureRef = { current: false };
+  const world = { ...built.world, evidenceSessionRef, terminalFailureRef, setCanDoEvidence: (value: unknown) => received.push(value) };
+  const evidence = { sessionId: evidenceSessionRef.current, missionId: 'mission:premier-cafe', sourceId: 'accepted-1', beatId: 'greet-and-order', quote: 'Un café, merci.' };
+  deliver(world, {t:'can-do-evidence', evidence});assert.equal(received.length,1);
+  deliver(world, {t:'can-do-evidence', evidence:{...evidence,sessionId:'other'}});
+  deliver(world, {t:'can-do-evidence', evidence:{...evidence,missionId:'other'}});assert.equal(received.length,1);
+  terminalFailureRef.current = true;deliver(world, {t:'can-do-evidence',evidence});assert.equal(received.length,1);
+  terminalFailureRef.current = false;evidenceSessionRef.current = null;deliver(world, {t:'can-do-evidence',evidence});assert.equal(received.length,1);
+  const reset = fragment(hook, 'useEffect(() => onUserScopeReset(() => {');
+  assert.ok(reset.includes('setCanDoEvidence(null)'));assert.ok(reset.includes('evidenceSessionRef.current = null'));
+});
+
+ test('Walk closes a typed-recoverable blocking failure instead of keeping the meter running', () => {
+  const walk = switchWorld(); walk.world.noTypedRecovery = true;
+  deliver(walk.world, { t: 'error', message: 'recognition unavailable', kind: 'stt_error', recoverable: false });
+  assert.equal(walk.seen.left, 1); assert.deepEqual(walk.seen.failed, ['tutor-deaf']);
+});
+
+ test('Walk microphone failure is acknowledged and ends the unusable room', async () => {
+  const failed: LiveFailure[] = []; let left = 0; const notices: string[] = [];
+  const result = await run(`${OPEN_MIC}`, {
+    roomRef: { current: { localParticipant: { isMicrophoneEnabled: false, setMicrophoneEnabled: async () => { throw new Error('Permission denied'); } } } },
+    startGenRef: { current: 1 }, noTypedRecovery: true, trace: () => {},
+    leave: async () => { left++; }, fail: (failure: LiveFailure) => failed.push(failure), classifyFailure,
+    setNotice: (text: string) => notices.push(text), noticeTimer: { current: null },
+  });
+  assert.equal(result, false); assert.equal(left, 1); assert.equal(failed.length, 1); assert.deepEqual(notices, []);
 });

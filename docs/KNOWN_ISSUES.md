@@ -951,7 +951,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the primary control, so it now reads as one.
 - verified-by: `a closed microphone offers a control, not a hairline`
 - verified-by: `the orb only goes quiet when there is nothing to tap`
-- verified-by: `every orb state is legible as a mark against the ground`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
 
 ### J2 — Two of the three traffic lights fail the contrast floor for a mark
 - severity: P1
@@ -964,9 +964,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reads amber, red still reads red, and both stay far from rung one's yellow. Separately
   the captions leave the state colour for ink, because 3 is the floor for a mark and 4.5
   is the floor for words, and "Speak" in green measured 3.64.
-- verified-by: `every orb state is legible as a mark against the ground`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
 - verified-by: `an orb caption is words, so it is held to the floor for words`
-- verified-by: `the three traffic lights stay far apart, and none of them is rung one`
+- verified-by: `the three traffic lights stay far apart, and none of them is the rung fill`
 
 ### J3 — The intro teaches the thinking colour by the wrong name
 - severity: P2
@@ -975,7 +975,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the page that teaches the voice circle called amber "Yellow", while rung one's
   actual yellow lives one screen away in the same app. The same file's header said three
   pages and listed four.
-- verified-by: `the intro names the thinking colour what the theme calls it`
+- verified-by: `the intro names the orb states in words, never by colour`
 - verified-by: `the intro header counts its own pages`
 
 ### J4 — The icon-only tab bar never tells a screen reader the screen changed
@@ -1009,7 +1009,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the rule widened rather than moved. The same contract test in
   surfaceContract.test.ts now covers raster scenes as well as every `<Svg>`, and was renamed for
   it; the icon layer this entry was filed about keeps its own copy in glyphs.test.ts.
-- verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
+- note: revamp B (2026-09-30, F599): the raster scenes retired, so the same test now holds every
+  `<Svg>`, the flat drawings included, and refuses any import of `Image`; renamed for it.
+- verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
 - verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
 
 ### J7 — Four scene animations keep running on screens nobody is looking at
@@ -1020,7 +1022,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   sites passed it. Bottom-tab screens stay mounted after their first visit, so Home's
   bubbles, Tutor's bubbles and both of Leaderboard's empty states loop for the rest of
   the session behind whatever the learner is actually doing.
-- verified-by: `a scene on a tab that is not focused stops moving`
+- note: 2026-09-27 notebook final sweep: decorative scene motion is deleted rather than paused;
+  the successor checks all illustration sources and the daily card contain no animation.
+- verified-by: `decorative scenes are static even when a mounted tab is not focused`
 
 ### J8 — The lesson header says the position twice, once as a number
 - severity: P2
@@ -1127,17 +1131,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### E2 — A dead voice key blocks the two modes that need no voice
 - severity: P2
-- status: [ ]
-- where: services/tutor-agent/src/preflight.ts:180
-- note: also found by running it. `lesson-text` and `convo-text` make no TTS call
-  at all — `say()` returns early when voiceless — yet the worker refuses to boot
-  on a rejected ElevenLabs key, so a stale *voice* credential locks out the two
-  modes built for the learner who cannot use their voice. Refusing to start is
-  the right default for a worker that serves all four modes, and a worker that
-  boots into a half-usable state is its own kind of trap, so this is a design
-  decision rather than a bug: either the worker advertises which modes it can
-  serve, or a text-only worker becomes a separate registration. Filed rather than
-  fixed because picking between those is not a call to make in passing.
+- status: [x]
+- where: services/shared/sessionCapabilities.ts
+- note: 2 October 2026: explicit paired `LUVANI_TYPED_ONLY=1` recovery serves only
+  lesson-text/convo-text without speech keys, probes, VAD/STT/TTS clients or room
+  audio. Transport and the selected brain remain required; both CLI options also
+  require/probe Groq for their actual SDK lesson dependency and check the CLI
+  binary on direct startup. The token API advertises its capabilities and refuses
+  speech before a trial/lease/grant; the client offers typing for that precise
+  reply. The dev supervisor verifies paired flags and reused token capabilities.
+  Independently deployed processes have no automatic handshake: matching flags
+  and real startup are release checks. An unsupported signed job reports zero
+  use before rejection, releasing its lease on successful cleanup. Failed cleanup
+  still needs lease expiry/reconciliation; an already claimed trial is not undone.
+  Independent authorized Sol review accepted code; 3,908-test gate green. No real
+  LiveKit/native recovery session or vendor request was performed.
 - verified-by: `a worker with no usable voice can still serve the typed modes`
 
 ### E3 — The French tutor spoke with an American voice, and every check passed
@@ -1369,7 +1377,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: packages/core/src/missions/missions.ts:1
 - note: the catalogue record (id, titles, place, cefr, roles, goal, win line, beat ids, phrase keys, reference phrases, path unit) plus `missionStates` projecting display state from completion records, the review deck and the drill bank — the `lessonDone` precedent, never a second phrase store. Independence is decided by code from the rung the win was earned at. Four new path units (`journee`, `chemin`, `marche`, `hotel`) with drill fixtures so no node opens onto nothing.
-- verified-by: `six missions exist and each names the path unit that practises it`
+- note: notebook redesign (2026-09-27): a seventh mission joined, the three-line opener
+  `mission:premier-cafe` (A0, café unit, now `FIRST_MISSION`), so the count test was renamed with it.
+- verified-by: `seven missions exist and each names the path unit that practises it`
 - verified-by: `a completed mission whose phrases fall due reads needs-review, never complete`
 - verified-by: `independence comes from the rung the win was earned at, not from the model`
 - verified-by: `every authored path phrase can be drilled the day it appears`
@@ -1522,7 +1532,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F57 — The two-minute promise is shown to learners and has never been timed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/missions/chooserView.ts:36
 - note: the contract says the one-minute claim is verified by stopwatch against `npm run dev`
   and that the round log must say what was measured. The mechanism under it is proven by test
@@ -1545,7 +1555,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   stays open for a person, at their own pace, with a watch.
   F36's lesson applies to a number as much as it did to a diagnosis: the record is what a
   later session trusts, so an unmeasured claim recorded as measured is worse than no record.
-- verified-by: `the record of the first-win promise names the time a stopwatch actually measured`
+  RE-SCOPED 2 October 2026: the first-line copy now promises tutor help without a
+  deadline. The old stopwatch claim is retired, not declared measured. Human first-run
+  timing remains part of the device/human release pass in IMPLEMENTATION_EVIDENCE.md.
+- verified-by: `the first-line promise gives help without an unmeasured deadline`
 
 ### F58 — On web, a first-ever learner lands on Home instead of the chooser
 - severity: P2
@@ -1573,7 +1586,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `/missions`, used Back to reach `/home`, reloaded without repeating the reset, then returned
   to Missions and Back normally. That run proves the navigation behavior, not Supabase auth,
   native behavior or the still-unrun five-viewport matrix.
-- verified-by: `a first-ever learner reaches the chooser on web as well as on native`
+- note: notebook redesign (2026-09-27): a first run now lands on Today, whose one Start opens the
+  next scene directly, and the chooser is reached from Speak's level path. The fix this entry is
+  about still holds and is still tested: the root is reset in `onReady`, after the web URL has
+  resolved, so the URL cannot overrule the first-run route. Only the destination moved, to Tabs.
+- verified-by: `a first-ever learner reaches Today on web as well as on native, never the chooser`
 
 ### F59 — A client behind the trusted proxy can choose its own rate-limit address
 - severity: P1
@@ -1814,7 +1831,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F80 — Four live vendor credentials sit in git history on two local branches
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/.env.bak-before-cli-all:11
 - note: found by the F62 scanner on its first history run, which is the argument for having
   built it. Commit 576bc53 ("WIP: epitaxy pre-switch from codex/freeform-tutor-v2", 2026-08-21)
@@ -1845,6 +1862,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   access in that window — including any folder-level backup or cloud sync of
   Documents/StartUps — could hold a copy. Rotating Groq, Deepgram, ElevenLabs and the
   LiveKit secret is what closes this, and only that.
+- update 2026-10-03: founder privately saved replacement credentials, confirmed local Luvani is the only consumer, and confirmed revocation of older keys at all four dashboards. Read-only Groq/Deepgram/ElevenLabs authentication returns HTTP200 after retirement; final LiveKit worker/token settings match and both authenticate. LiveKit dashboard now retains only the final “Luvani 2 Key”; the intermediate replacement exposed in a tool log and the unnamed older key are absent. Historical objects were already pruned in August, so old-value invalidation cannot be independently replayed; external retirement is founder-confirmed, not proved by the repository test below. History scan's sole current finding is a fabricated JWT regression fixture from 9317ec2c, explicitly allowed in its current source, not one of these vendor credentials. No branch deletion or history rewrite in this continuation.
+- verified-by: `the scanner finds each planted credential shape and never prints the matched value`
 - verified-by: `the history walker names the commit and line that introduced a secret`
 - verified-by: `the scanner finds each planted credential shape and never prints the matched value`
 
@@ -2889,7 +2908,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: illustrations/scenes/empty.tsx says NothingDue serves the empty review deck and
   the empty drill bank; the drill's empty branch renders a bare Card, breaking the
   file's own promise. Draw the scene, keep the copy.
-- verified-by: `the empty drill bank draws the nothing due scene`
+- note: 2026-09-27 notebook final sweep: the empty-table raster is retired. Its successor
+  verifies the same empty-bank explanation and Done footer remain without decorative art.
+- verified-by: `the empty drill bank keeps its explanation and next action without retired art`
 
 ### F159 — A friend search that slugs to nothing still says something
 - severity: P2
@@ -3381,7 +3402,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F208 — A stopped session still pays a model for work nobody will receive
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:1049
 - note: `closeAfterStop` deliberately does not await `finish()`, so after a safety stop the agent
   still runs extract, curate and drill generation, and publishes their results into a room that
@@ -3390,6 +3411,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   true of the device and not of the worker. Either the work is skipped on a stop or the doc
   stops claiming it. Found by tutor-behaviour-engineer, correctly left as a founder and
   policy decision rather than changed unilaterally.
+- note: 2 October 2026: safety stops now return before extraction, curation, drills and pack writes. The founder separately approved background recap/pack preparation for ordinary learner exits, with live replies cancelled. One shared finish promise prevents duplicate work. Both stop-policy tests pass; independent gpt-6-sol review found no code blocker. LiveKit interruption and worker lifetime still need live verification.
 - verified-by: `a stopped session starts no post-session model work`
 
 ### F209 — The pipeline log prefixes have two homes and no way to keep them equal
@@ -3507,7 +3529,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the stamp is the filled green chip on each situation row, and the row is
   drawn by myfrench/SituationsCard.tsx; the screen-side claim is proved in
   tabs/MyFrenchTab.test.ts and the unaided rule in myfrench/situations.test.ts.
-- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
+- note: notebook redesign (2026-09-27): the tinted situation rows and their green chip left My
+  French. A stamp now reads as an earned can-do on the level path, drawn from core's spine over the
+  learner's progress, and only a scene handled on the learner's own earns one.
+- verified-by: `the level is the spine's, with the can-dos earned and "here" on the next scene, and no rank anywhere`
 - verified-by: `only a scene handled with nothing handed over is filled`
 
 ### F219 — Core names a card's first return
@@ -4084,7 +4109,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F263 — A billing event whose projection fails is dropped permanently
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:232
 - note: latent while RevenueCat is unconfigured; **raise to P0 before any `REVENUECAT_*` value is
   set**. `recordBillingEvent` is a PostgREST RPC and commits on its own, claiming the event id
@@ -4097,11 +4122,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `EXPIRATION`, `PRODUCT_CHANGE`, `BILLING_ISSUE` and `TRANSFER` have no client path at all, so a
   dropped renewal lapses a subscriber whose card is still being charged. The claim must be recorded
   only after the effect succeeds, or the two must share one transaction.
+- note: 2 October 2026: event completion and allowance projection share the new service-only SQL transaction. Failed vendor calls and rolled-back effects leave the event retryable. Named test and disposable database proof pass; independent gpt-6-sol review accepted the code fix. Not deployed or proven against real RevenueCat deliveries.
 - verified-by: `a webhook whose projection fails does not consume the event id`
 
 ### F264 — Entitlement refresh reads and writes without holding anything
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/billing/revenuecat.ts:143
 - note: latent while RevenueCat is unconfigured; **raise to P1 before it is configured**.
   `store.get()` and `store.save()` are each atomic, but the pair is not, and `projectSubscriber`
@@ -4112,6 +4138,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `secondsUsed: 0` outright; if a Postgres `timestamptz` round-trip ever moves that value by a
   millisecond, every refresh resets the meter. The existing test compares two hand-built in-memory
   dates that have never been near a database, so it cannot see this.
+- note: 2 October 2026: DB-issued refresh tickets fence delayed responses; projection locks the entitlement row used by the debit. Same-second expiry preserves usage; older active expiry cannot shorten the paid period. Named test and disposable SQL interleavings pass; independent gpt-6-sol review accepted the fix. Simultaneous live transactions remain unverified.
 - verified-by: `a refresh cannot revert a debit that landed while it was in flight`
 
 ### F265 — A refresh that granted nothing still tells the learner their minutes are ready
@@ -4143,7 +4170,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F266 — Client and server billing configuration are never checked against each other
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/config.ts:62
 - note: latent while RevenueCat is unconfigured; **raise to P0 before it is configured**. Each side
   is genuinely dark alone: the server 503s both billing routes without its five `REVENUECAT_*`
@@ -4154,11 +4181,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   with no note tying them together and no test asserting the pairing. This is the single
   configuration most likely to charge somebody for nothing, and it is the one the phase's "dark
   until configured" claim does not cover.
+- note: 2 October 2026: authenticated readiness requires the migration version and matching entitlement/product IDs before store actions. Wall uses the actual account; SDK identity is serialized through sheets; original scope is checked before and after purchase/restore and refresh. Named readiness, settlement and queue tests pass; independent gpt-6-sol review accepted the code fix. Real store and live configuration still need verification.
 - verified-by: `a client configured for purchases refuses to run against a server that is not`
 
 ### F267 — The billing webhook is the one endpoint with no rate limit
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:215
 - note: latent while RevenueCat is unconfigured. `/billing/refresh` beside it takes both an IP and a
   per-user limit, and `/account/delete` and `/account/export` take theirs, but `/billing/webhook`
@@ -4166,11 +4194,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   defence-in-depth gap rather than an open door — but it is also the endpoint that writes to
   `billing_events` on every call, and an unauthenticated flood still costs a signature check and a
   round trip per request.
+- note: 2 October 2026: webhook takes its dedicated IP rate limit before secret/body processing. The named endpoint inventory check passes and independent gpt-6-sol review accepted it. Real RevenueCat retry traffic and deployed Upstash behavior are not claimed verified.
 - verified-by: `every write endpoint carries a rate limit`
 
 ### F268 — Export is not gated on recent authentication, and deletion is
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:397
 - note: `/account/delete` requires `signedInRecently` within five minutes; `/account/export` has no
   equivalent check. Both correctly resolve the owner from the bearer alone and neither can be
@@ -4178,11 +4207,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   delete the account and can pull the learner's email, every `learner_state` row, every product
   event and the whole entitlement and billing history in one GET. In a phase about privacy, gating
   the destructive action and leaving the confidentiality-sensitive one open is the wrong way round.
+- note: 2 October 2026: export and deletion require the requesting verified JWT real-authentication proof within five minutes, alongside the account check. A token refresh or another account sign-in cannot renew that proof. Named tests pass; independent gpt-6-sol review accepted the code fix. Actual provider journeys still need end-to-end verification.
 - verified-by: `an export needs a recent sign-in just as a deletion does`
 
 ### F269 — The account export is left in a shared cache directory for ever
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/progress/saveFile.native.ts:9
 - note: `downloadAccountData` writes `luvani-account-data.json` into `FileSystem.cacheDirectory` and
   shares it, and nothing ever deletes it. `clearActiveUserData` sweeps the AsyncStorage keys and the
@@ -4193,11 +4223,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   path: when `Sharing.isAvailableAsync()` is false the write happens, no sheet opens, and the
   function still resolves `{ok: true}` — the learner sees the button flick back to idle and gets
   nothing, with no error.
+- note: 2 October 2026: sharing availability is checked before writing; each unique export is removed after sharing. Refused removal remains tracked, startup discovers bounded export names after restart, and account deletion awaits cleanup and surfaces failure. Failed startup sweeps can retry in session. Named and restart/retry tests pass; independent gpt-6-sol review accepted code-level closure. Native filesystem/share-sheet/kill-relaunch QA remains outstanding.
 - verified-by: `an exported account file does not outlive the account`
 
 ### F270 — The export tells the learner the antifraud marker is unlinkable, and it is not
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/accountExport.ts:83
 - note: the export's own explanatory note says the free-trial antifraud marker is "deliberately not
   linkable back to an account". `trial_installations.first_user_hash` is
@@ -4206,6 +4237,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   row straight up. It is pseudonymous, not unlinkable. `PRIVACY_AND_SAFETY.md:253` repeats the
   sentence. This matters more than a wording slip because the row deliberately survives account
   deletion, so the claim is doing real work in an answer to a data-subject request.
+- note: 2 October 2026: export and privacy documentation now describe retained markers as pseudonymous and potentially linkable by the service. Named test passes; independent gpt-6-sol review accepted the correction.
 - verified-by: `the export describes the antifraud marker as pseudonymous rather than unlinkable`
 
 ### F271 — Phase 8 landed outside the discipline the rest of the ledger is held to
@@ -4825,8 +4857,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   state, announce and the badge are untouched; the bar stays on `paper.ground` with one hairline and
   no shadow or absolute position. `DESIGN.md` is updated to match.
 - verified-by: `every tab cell shows its label, and the label scales and wraps rather than truncating — F313`
-- verified-by: `the active tab is told by ink and weight, and a screen reader still hears selected — F313`
-- verified-by: `the bar is an inset dock without becoming another floating shadow — F313`
+- note: revamp B (2026-09-30, F600): active is the brand blue at Outfit Bold rather than ink at
+  Medium, and the bar is white rather than paper; both tests were renamed for it, and the hairline,
+  the wrapping labels and the refused shadow are unchanged.
+- verified-by: `the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313`
+- note: notebook redesign (2026-09-27): the bar is flat on the paper with a top hairline, no inset dock
+  and no selected wash; it still carries no shadow, so the tick follows the renamed test.
+- verified-by: `the bar is white with a top hairline, and never a floating shadow — F313`
 - verified-by: `the design doc no longer calls the tabs icon-only — F313`
 
 ### F314 — The in-place end cards stand on the primitive too
@@ -4916,10 +4953,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Porcelain (B): ground `#F4F2F7`, groundDeep `#E6E2EE`, line `#DAD5E3`, lineOnCard `#E9E5F0`; steps held
   by ΔE, not by matching four siblings.
 - verified-by: `nothing asks for a paper by place any more`
-- verified-by: `the ground is pinned, and there is only one`
+- verified-by: `the B paper is pinned: one ground, one white, one ink, one hairline`
 - verified-by: `the card still reads as a card, and the hairlines still read on the ground`
-- verified-by: `faint ink is a mark on the inactive tab, so it clears 3 on the ground`
-- verified-by: `ink, soft ink, the fix colour and the violet all hold on the ground`
+- verified-by: `faint ink is soft ink now: B has no third ink, so it clears the text floor on the ground and on a card`
+- verified-by: `ink, soft ink, the fix colour and the primary ink all hold on the ground`
 
 ### F322 — Signals re-saturated and held to the floor for what they are
 - severity: P1
@@ -4928,11 +4965,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `good #437A62`, `live #A9564F`, `correspondance #8B5578` are greys with a hue. Green and magenta
   are words, held to 4.5 on the ground and a card; red is a mark only, held to 3. New values: `#12784A`,
   `#DE3B2D`, `#B4008A`. The green's `onInk` glyph on the live SpeakCircle gets its own floor.
-- verified-by: `green and the fix colour are words, so they clear 4.5 on the ground and on a card`
-- verified-by: `the tutor's red is a mark, so it clears 3 on the ground`
-- verified-by: `the mic glyph still reads on a live green circle`
-- verified-by: `no two signals come within a Delta-E of 30, and none reads as a rung`
-- verified-by: `no accent comes within a Delta-E of 30 of any signal or rung`
+- verified-by: `good and the fix colour are ink, so the words that carry them clear the floor by being ink`
+- verified-by: `the tutor's coral is a mark, so it clears 3 on the ground and on a card`
+- verified-by: `the mic glyph still reads on a live ink circle`
+- verified-by: `the one signal mark stays 30 from ink, the rung fill, the ground and the card`
+- verified-by: `the brand blue never reads as an orb state, the highlighter, the rung fill or the tutor's mark`
 
 ### F323 — The voice circle's traffic lights come back to full colour
 - severity: P1
@@ -4942,8 +4979,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   at 3.27 on the ground; speaking and yourTurn alias F322's red and green; ready stays the violet. The
   rung-one separation floor rises from 20 to 30 (measured 43.2). Captions stay ink; the amber ceiling
   tripwire is dropped (it was a ceiling, not a floor).
-- verified-by: `every orb state is legible as a mark against the ground`
-- verified-by: `the three traffic lights stay far apart, and none of them is rung one`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
+- verified-by: `the three traffic lights stay far apart, and none of them is the rung fill`
 - verified-by: `an orb caption is words, so it is held to the floor for words`
 
 ### F324 — Support colours run hot to cool again as help is withdrawn
@@ -4955,8 +4992,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the floors are ink ≥ 4.5 on each fill, ΔE ≥ 30 from the ground and from each other, and b\* strictly
   decreasing. Say in the test comment why rung fills are not held to 3 against the ground.
 - verified-by: `a rung numeral in ink clears 4.5 on its own fill`
-- verified-by: `support cools as help is withdrawn: each rung is bluer than the last and rung four is ink`
-- verified-by: `no rung reads as another rung, as the ground, or as ink`
+- verified-by: `rungs one to three share the one skeleton fill and rung four is ink`
+- verified-by: `the rung fill lifts off the ground and the card, and never reads as ink, a signal, an orb state or the highlighter`
 
 ### F325 — The active tab takes the identity violet
 - severity: P1
@@ -4966,8 +5003,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   one line. Focused glyph and label take `accent.primary` (6.64 on the Porcelain ground at 11pt);
   inactive stays `inkFaint`/`inkSoft`. The pill lettering floor (`onInk` on `accent.primary`, 6.94) has
   never been asserted and is added with the button it belongs to.
-- verified-by: `the active tab is set in the identity violet`
-- verified-by: `pill lettering clears 4.5 on the primary violet`
+- note: revamp B (2026-09-30, F600): the active tab takes the brand blue, glyph and word, and the rest
+  soft ink; the test was renamed for it.
+- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+- verified-by: `pill lettering clears 4.5 on the primary ink, the brand blue and the coral`
 
 ### F326 — The micro-label and the primary are one violet
 - severity: P2
@@ -4976,7 +5015,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `accent.label` was the house paper's accent and is now simply `accent.primary`. Replaces the
   "every room shares the same identity accent" assertion. P2 because the value does not change; the
   assertion is a tripwire against a second identity colour creeping back.
-- verified-by: `the micro-label and the primary are one violet`
+- verified-by: `the micro-label and the primary are one ink`
 
 ### F327 — DESIGN.md records the palette the app ships
 - severity: P1
@@ -5029,7 +5068,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `space(2)`; `trailing` on the title row; children under the purpose; `marginBottom: space(5)`. It mounts
   in the scroll body, not the frame's `header` slot, because a fixed display title plus a purpose line is
   taller than the screen at AX5.
-- verified-by: `the tab header sets its title at display size, left, as a heading, with a purpose line beneath and nothing capped`
+- verified-by: `the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped`
 - verified-by: `DESIGN.md names the tab header and the monogram`
 
 ### F332 — The learner's initial is one drawn thing
@@ -5040,7 +5079,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   one. palette.ts calls the violet "the primary action and the monogram", so the fill is the design.
   `Monogram({ initial, size = HIT })`: `accent.primary` disc, `paper.onInk` initial in `font.serif` at
   `size * 0.44`, spread `decorative`.
-- verified-by: `the monogram is one filled violet disc with a warm-white initial, and it is hidden from assistive tech`
+- note: notebook redesign (2026-09-27): the monogram became an ink initial on the deeper paper, because
+  the accent no longer fills an avatar; it is still hidden from assistive tech.
+- verified-by: `the monogram is a white initial on an ink disc, and it is hidden from assistive tech`
 
 ### F333 — A pill and a ghost can carry a name for assistive tech
 - severity: P1
@@ -5163,7 +5204,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Profile, leaving the friends copy for LeaderboardTab. So the Leaderboard drew the learner's own initial in
   sans, not hidden from assistive tech, while Home and Profile drew it in serif. Deleted the friends copy;
   `LeaderboardTab` imports the one `Monogram` from `components.tsx` with `initial={row.name.charAt(0)…}`.
-- verified-by: `the app exports one Monogram, and the leaderboard borrows it`
+  2 October: the unreachable LeaderboardTab was retired. Profile still borrows
+  the one shared Monogram; the proof follows its live caller.
+- verified-by: `the app exports one Monogram, and Profile borrows it`
 
 ### F345 — Practice decides what goes first in one pure rule
 - severity: P1
@@ -5209,9 +5252,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: conversation practice (2026-09): the card's one control became the recommended action (a short
   practice, a resume, or the first conversation), so the pill test was renamed. It still pins exactly
   one PillButton on the tab and that it is the card's action; the first conversation is one branch of it.
-- verified-by: `the tab counts nothing a learner could read as a score`
-- verified-by: `the tab keeps exactly one primary pill, and it is the recommended action`
-- verified-by: `the blocks arrive in the order the mockup draws them`
+- note: notebook redesign (2026-09-27): Practice now leads with the sound to tune, so the next step is
+  no longer the first block; it sits under the sound. On day one the one pill is the bonjour lesson,
+  drawn inside the sound block, and on every other day it is the recommended card's. The count of one
+  pill and the ban on anything that counts are unchanged.
+- verified-by: `nothing on the page counts, tints or highlights`
+- verified-by: `the tab keeps exactly one primary pill, whichever day it is`
+- verified-by: `the page puts the short action before the optional sound guide`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F347 — A situation's row action and the next-situation words are decided in one module
 - severity: P1
@@ -5241,9 +5290,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   core's suggestion is simply the first row under "Next places", and the chooser is no longer a
   door on this tab at all — it is the Tutor tab's everyday mission — so that half of the title is
   retired rather than repointed; the ban on a count is what survives and is tested.
-- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
+- note: notebook redesign (2026-09-27): the place rows and their Start or Refine actions left My French.
+  The page is the level path, the phrase bank, the sounds map and the conversations, each drawn only
+  once it has something true to show, and a first visit reads one line instead of empty blocks. The
+  ban on a `<Stat` count stands. Opening a scene is now Speak’s path row, and the next scene is the
+  “here” mark on the level path.
+- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
 - verified-by: `the place core suggests is the first one a learner sees under Next places`
-- verified-by: `a finished place refines its sounds, and a new one opens the scene, in the module’s words`
+- verified-by: `a first visit reads one line on what will collect here, and nothing empty`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `the Profile card is the one importer of the story, and the rhythm rail names no number`
 
@@ -5341,8 +5395,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: SignUp/SignIn keep the primary pill inside their own ScrollView (scrolls away under a keyboard) and
   draw their own back with a `space(6)` gutter. Adopt `ScrollScreen avoidKeyboard`, `ScreenHeader back`, the
   primary pill + Google outline in the footer; the switch row stays at the body's end so a field is visible
-  over an SE keyboard. Add both to `PUSHED_ONE_BACK`.
-- verified-by: `the auth screens pin their pills in the frame's footer — F357`
+  over an SE keyboard. Add both to `PUSHED_ONE_BACK`. Revamp B (F601) moved the provider doors to the top
+  of the body, Apple's ink pill above Google's white one, and the footer keeps only the one ink pill; the
+  test was renamed to say so.
+- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
 - verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
 
 ### F358 — The step dots and the station line are one spoken element
@@ -5396,10 +5452,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   and orb.thinking, 20 off every rung and lighter than every mark (max mark L* 84, min tint L* 86), and no two
   tints within 10. Sky vs rung 3 is 26, which is why the rung floor is 20 rather than 30. DESIGN.md gains a
   Tints table.
-- verified-by: `ink clears the text floor on every tint, and every tint reads as a disc — F362`
-- verified-by: `no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362`
-- verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
-- verified-by: `every situation has one tint, every tint has a situation — F362`
+- note: 2026-09-27 notebook final sweep: all tint tokens, role tables and wrappers are deleted.
+  Contrast/separation tests for that absent palette are superseded by checks refusing both the
+  old palette values and any production token, role-table or wrapper use.
+- verified-by: `the palette exports no retired tint tokens or raw tint colours`
+- verified-by: `no source retains a tint token, role table or tinted primitive`
 - verified-by: `DESIGN.md records the palette the app ships`
 
 ### F363 — The next situation shows its place and its goal, once, on Home and on My French
@@ -5452,8 +5509,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: conversation practice (2026-09): the one pill is now the recommended action, whose branches are
   a short practice, a resume, and the first conversation. The count of one is untouched; the test was
   renamed and still asserts one PillButton, wired to the recommended action and nothing else.
-- verified-by: `the tab keeps exactly one primary pill, and it is the recommended action`
+- note: notebook redesign (2026-09-27): the one pill is built once from the recommended action and
+  drawn in one of two places. On day one it is the bonjour sound lesson inside the sound block, and
+  the card is not drawn; on every other day it is the card's control. The count of one is untouched.
+- verified-by: `the tab keeps exactly one primary pill, whichever day it is`
+- verified-by: `day one's one pill is the bonjour sound lesson, with its live-minutes line, in the recommendation`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F366 — My French opens on the evidence, and draws nothing at zero
 - severity: P1
@@ -5468,7 +5531,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   product event has always carried, and `<Stat` is banned on the tab outright. The tick points at
   the test that pins that ban, and the module's own rule is still held by the F366 test above it.
 - verified-by: `nothing is drawn at zero, and each fact appears only once it is real — F366`
-- verified-by: `the tab imports nothing it no longer draws`
+- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
 - verified-by: `a stat can sit three to a row — F366`
 
 ### F367 — Profile says the learner's level under their name
@@ -5483,7 +5546,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   rank under the name ranks somebody who came to change a setting — so the tick points at the
   header test that removed it. levelName itself is unchanged and still tested in
   progress/evidence.test.ts.
-- verified-by: `the level name is said only once something has been earned — F367`
+- note: notebook redesign (2026-09-27): the founder retired the Beginner-to-Veteran rank names from every
+  screen; CEFR can-do lines replace them and XP stays internal. `levelName` is gone, so the tick points
+  at the tests that keep any rank name off the stats and out of the module.
+- verified-by: `no rank name appears in the stats at any amount of XP — F367`
+- verified-by: `the module no longer offers a level name to borrow — F367`
 - verified-by: `profile opens centred on the learner and draws its tutor as the orb, never a face`
 
 ### F368 — The daily goal and the correction dial are chosen in place
@@ -5495,10 +5562,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   profile/dailyGoal.ts carries GOALS, DAILY_GOAL_ROW, dailyGoalOf and goalLine. Strictness reuses
   STRICTNESS_OPTIONS and withStrictness. Name, voice and reminder time keep their sheets. OnboardClock
   leaves the illustration barrel with the sheet that drew it (J14).
-- verified-by: `the speaking target is a three-way choice with the chosen gloss beneath, written through withDailyGoal — F368`
+- verified-by: `the routine can be set or cleared through the same profile write without changing live allowances`
 - verified-by: `the profile tab turns the strictness dial and the store keeps the choice`
-- verified-by: `the tab bar can name itself and stand with nothing chosen — F368`
+- verified-by: `the segmented control is a sand track with a white chosen segment, never ink capsules, and every segment keeps the touch floor`
 - verified-by: `every scene the barrel exports is drawn somewhere`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F369 — Profile's footer says which build this is
 - severity: P2
@@ -5675,7 +5744,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Home and Tutor render fully at the same size, so the difference is this tab's own layout: the content
   sits in a `flexGrow: 1` wrapper inside ScrollScreen where Tutor uses none. A learner at that size loses
   the whole tab. Filed from the walk, not yet repaired; P4-1 fails on iOS because of it.
-- verified-by: `my french lays its list out the way the other tabs do, with no wrapper that can swallow it — F383`
+- verified-by: `the page grows with the reading size instead of clipping`
 
 ### F384 — Every job process re-asked the vendors before the tutor could answer
 - severity: P1
@@ -5735,8 +5804,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   so the test this named was retitled rather than deleted. The behaviour it checked, that the greeting
   takes turns on a 3750ms clock and rests on a French word, is still checked under the new title; the
   cycle length is deliberately unchanged.
-- verified-by: `the greeting pool is wide, time-appropriate, and rests on the hour's French word — F417`
-- verified-by: `a learner who skipped their name is greeted by the word alone — F387`
+- note: notebook redesign (2026-09-27): the greeting no longer takes turns. The design contract lets only
+  the orb and the highlighter move, so the pool, the clock and the rotation hook are retired, and the
+  greeting is one still line: the hour's French word, the first name, a full stop ("Bonsoir, Praveen.").
+  A learner with no name reads the word and a full stop ("Bonsoir."), never a bare comma and never
+  "you". The rule is still a pure module and still clean of digits, em dashes and banned words.
+- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F388 — Home's title fades through TabHeader and holds still for reduce motion and screen readers
 - severity: P1
@@ -5755,7 +5829,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `titleAccessibilityLabel` left `TabHeader` and this test was retitled rather than deleted. What it
   checked is unchanged and stricter: Home still opens on the greeting alone, still holds still for
   reduce motion, and a screen reader still hears it once. See F420.
-- verified-by: `home opens on the swiping greeting alone, held still for reduce motion and read once by a screen reader — F420`
+- note: notebook redesign (2026-09-27): the title no longer moves for anyone, so there is no fade or
+  swipe to hold still. Today draws one static TabHeader title from the greeting rule, with no timer,
+  no `Animated`, and no live region, which is what reduce motion and a screen reader were owed.
+- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F389 — A word and a situation for every day, authored in core
@@ -5789,7 +5866,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: F422 rewrote the pool above the phrasebook bar, F423 pitched it at the learner's tier, and
   F425 turned the one drawing into twenty. The test was retitled to say so; every assertion it made
   about the card drawing its word from core and pausing its scene still holds.
-- verified-by: `home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391`
+- note: 2026-09-27 notebook final sweep: tier selection and all daily text remain covered;
+  the successor requires audio before the French and rejects the removed decorative scene.
+- verified-by: `home draws tier-selected daily French with audio first and no decorative scene — F391`
 
 ### F392 — Today's situation card starts a spoken session through the tutor's gate
 - severity: P1
@@ -5800,10 +5879,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `recheck()` then `tutorGate(answered, false)`, navigates `Convo` with `seedTopic: seedTopicOf(scenario)` on
   go, and draws `TUTOR_OFFLINE.body` with "Check again" on heldBack. No "Listen to accent", no "Immersive
   audio", no level pill, and the Demo label lives in this card's eyebrow row only when `!live`.
-- verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
-- verified-by: `home's one pill is the mission hero's, and the situation card keeps none`
+- verified-by: `the brief keeps its connection check and its held-back answer — F392`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 - note (2026-09-12): the tab's one pill moved to the mission hero with F544; the card keeps the probe and
   the seed topic, and its action is an outline button.
+- note: notebook redesign (2026-09-27): Today's hero is a scene brief for the spine's next scene, and its
+  one pill is "Start". The Start still re-probes and goes through `tutorGate`, but it opens in the
+  learner's standing mode (spoken, or typed if they prefer typing), with the other mode as a quiet
+  link. A held-back start still shows `TUTOR_OFFLINE.body` and the same start as the retry. The day's
+  scene, with its seed topic, is offered only once the whole spine is earned.
 
 ### F393 — Bookmarks are a per-item store that can un-save
 - severity: P1
@@ -5825,7 +5909,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the saved block kept its gate and its seed topic and moved into the new page
   order, third of four, so the screen-side claim is proved in tabs/MyFrenchTab.test.ts.
 - verified-by: `saved situations drop unknown ids, read newest first, and draw nothing when none is saved — F394`
-- verified-by: `the saved situations arrive only when the learner saved one, and open the scene they name`
+- verified-by: `saved scenes, goals and the daily collection keep their gates and their doors`
 
 ### F395 — A sitting records how long it took
 - severity: P1
@@ -5878,7 +5962,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   founder's overturn of absent-at-zero, so this entry's test is retitled rather than dropped: the colour
   grammar, the token rule and the score refusal it existed for are all still asserted, and more strictly.
   The gate moved down a level, from the part to the field.
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- note: 2026-09-27 notebook final sweep: `progress/MomentumCards.tsx` had had no renderer since the
+  Phase 3 Today rebuild and is deleted, with `WeekRail` and the inline details. The colour grammar it
+  was held to is retired with it; the successor bans the block's return and any days-active count.
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F399 — Next step is a row, and the next-situation card leaves Home for My French
 - severity: P1
@@ -5888,9 +5975,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `<NextStepRow` for `suggestedMission`, the link goes to the Practice tab, the row goes to `Missions
   { focus }`, and Home no longer draws `<NextSituationCard`, the "Talk to" outline, or `SpeakBubbles`. My
   French still draws the card with its pill. `portfolio.test.ts`'s Home assertions change to say exactly this.
-- verified-by: `home draws the hero from homeMission's words and leaves the next-situation card to my french — F399, F543`
+- verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - note (2026-09-12): the next-step row retired with F543; the mission hero is the next step now, and the
   next-situation card still belongs to My French.
+- note: notebook redesign (2026-09-27): the hero is now a scene brief for the spine's next scene, with
+  every field (level, French title, can-do, lines, minutes, tutor) read from homeMission.ts, and no
+  picture, reason line or rank. The next-situation card is on neither tab now: the next scene is the
+  "here" mark on the level path.
 
 ### F400 — The footer note, and the two home cards nothing draws any more
 - severity: P1
@@ -5899,7 +5990,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: `SproutGlyph` and "No pressure of perfection. Speak at your own pace." closes the scroll.
   `TodayRow.tsx` and `PhrasebookCard.tsx` are deleted and added to J14's `RETIRED` list; `progress/today.ts`
   and its tests stay.
-- verified-by: `home closes on the sprout note and imports nothing it does not draw — F400`
+- verified-by: `every word Today spells is plain, and every import is used — F400`
 
 ### F401 — Where a learner left a scene is a store, cleared by finishing it
 - severity: P1
@@ -5961,12 +6052,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   centred `PillButton` "Open conversation" under it, no "Free improvisation". Footer keeps `open(true)`, the
   intro link with `HelpGlyph`, and `MICROPHONE_NOTICE`. `doors.map(` and `open(true)` stay so chooserView's
   guard holds.
-- verified-by: `the tutor tab draws shared rows and one explicit primary action`
+- verified-by: `the level path from the spine, then every scene as a ledger row that opens its brief`
 - note (2026-09-12): the doors grew to six with F547 and the test was rewritten under that title; the tab
   still draws exactly what the door model says.
 - note: revamp A (2026-09): the doors became three tinted rows with the remembers row under them and no
   pill at all, and the test was rewritten under that title in tabs/TutorTab.test.ts; the tab still
   draws exactly what the door model says.
+- note: notebook redesign (2026-09-27): the door model left the tab (`tutorDoors`, `DOORS` and the tinted
+  rows are banned there now). Speak leads with the tutor card and one Start, then the level path, then
+  every scene as a shared ledger row. The rows are still drawn from a model rather than spelled on
+  the screen: `speakPath(progress)` in tutor/speakView.ts.
 
 ### F406 — The surface guards are changed on purpose, each with its reason
 - severity: P1
@@ -5991,7 +6086,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   one-pill rule rewritten as one pill per door with Tutor named, the French flourish sentence widened to the
   rotating greeting and the daily situation, `WordSprout` in the scenes table, TodayRow and PhrasebookCard
   noted as retired, and the green bar rule.
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 
 ### F408 — The storage doc names the two new stores and the duration
 - severity: P1
@@ -6064,6 +6162,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   set of distinct days, no chain, no loss state, absent at zero) lives only in `momentum.ts` and its suite.
   The next reader of that commitment, human or agent, will flag the tile as a violation. One paragraph
   recording the third decision closes it.
+- note: 2026-09-27, notebook redesign: the Days active tile left Today; nothing renders
+  `progress/MomentumCards.tsx`. PRODUCT.md:96-117 now records the tile as history and states its five
+  properties as the rule for any days count that returns. guilt.test.ts assertions unchanged and
+  passing; header comment dated.
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
 
 ### F415 — The voice circle draws its caption on top of the card's own
@@ -6076,7 +6178,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   what noticed. The card owns the words here, because it says two lines and the orb only ever says one.
 - note: revamp A (2026-09): the orb's card became the page, so the same assertion is filed one word
   along in tabs/TutorTab.test.ts.
-- verified-by: `the tutor's circle lets the page do the talking — F415`
+- note: notebook redesign (2026-09-27): the moving voice circle left Speak. The tutor card draws a still,
+  decorative orb mark with no caption of its own, so there is no second caption left to overlap, and
+  the test named below fails if `<VoiceOrb` comes back to the tab.
+- verified-by: `what left Speak stays gone`
 
 ### F416 — A frame that never lands leaves the greeting invisible for good
 - severity: P1
@@ -6091,7 +6196,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The native completion now owns the normal commit, while an idempotent watchdog advances a suspended
   surface that never reports completion. The arriving phrase stays visible until React commits it as current;
   a layout effect then resets progress before paint. The teardown also lands progress back at rest.
-- verified-by: `the greeting commits on the final frame, survives suspension and resets after layout — F416`
+- note: notebook redesign (2026-09-27): the greeting no longer animates, and `useGreetingRotation.ts` is
+  deleted, so there is no frame to wait on and no opacity that can be left at 0. The test named below
+  fails if the hook ships again or if Today carries a timer, `Animated`, or a title swap.
+- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
 
 ### F417 — The greeting pool is wide and knows the hour
 - severity: P1
@@ -6108,8 +6216,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   GREETING_CYCLE_MS 3900`. Every line still passes `guiltIn`, carries no digit, no em dash, and
   never says "you". At 08:00 no Bonsoir or Evening; at 20:00 no Bonjour or Morning; at 02:00 the
   evening pool; exactly one rest word at every hour of the day.
-- verified-by: `the greeting pool is wide, time-appropriate, and rests on the hour's French word — F417`
-- verified-by: `a learner who skipped their name is greeted by the word alone — F387`
+- note: notebook redesign (2026-09-27): the pool is retired with the rotation. What survives is the hour:
+  Bonjour from 05:00 to 17:59 and Bonsoir from 18:00 through the small hours, checked at every hour
+  and at the edges, with an unreadable clock landing on Bonjour. `GREETINGS`, the timing constants,
+  `greetingPool` and `greetingRest` are no longer exported. The no-name line is the word and a full stop.
+- verified-by: `the greeting is the hour's French word, still, with a name and a full stop — F417`
+- verified-by: `a learner who skipped their name is greeted by the word alone, with no bare comma — F387`
 
 ### F418 — The header holds two complete greeting layers in one stable slot
 - severity: P1
@@ -6120,7 +6232,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `Animated.Text` layers containing the complete greeting and name. Their opacity curves overlap;
   one rises a full line while the other enters from the full line below. At font scale 1.6 and above,
   the motion slot stands down and the full title renders in normal flow. The frame starts nothing.
-- verified-by: `the tab header clips the moving word to one line, keeps the name in flow, and starts nothing — F418`
+- note: 2026-09-27 notebook final sweep: title swapping is removed from the frame API.
+  The successor rejects animation and verifies an uncapped accessible static heading.
+- verified-by: `the tab header is a static accessible heading with no swap API or animation — F418`
 - verified-by: `the screen primitives never drive movement themselves, and never cap font scaling — F388`
 
 ### F419 — The eased native handoff has a suspension watchdog
@@ -6134,7 +6248,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   effect resets progress after the arriving phrase becomes current. Reduce motion: `swap` is null and nothing
   runs. Unfocused: nothing runs, `progress` rests at 0 with the current word. Teardown: clear the
   one timer, stop the timing, `progress.setValue(0)`.
-- verified-by: `the greeting commits on the final frame, survives suspension and resets after layout — F416`
+- note: notebook redesign (2026-09-27): the handoff and its watchdog are gone with the hook, because the
+  greeting no longer moves. Nothing is left to suspend. The test named below fails if the hook ships
+  again or if Today carries a timer or `Animated`.
+- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
 
 ### F420 — Home wires the two-part greeting
 - severity: P1
@@ -6145,7 +6262,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `accessibilityLiveRegion`, `setTimeout`, `Animated.timing` or `...type.display` in the tab.
   `useGreetingRotation({ firstName, focused })` and `firstNameOf(profile.name)` unchanged. The
   `greetingRest` import leaves the tab because the hook now owns the clock.
-- verified-by: `home opens on the swiping greeting alone, held still for reduce motion and read once by a screen reader — F420`
+- note: notebook redesign (2026-09-27): Today wires a one-part, still greeting:
+  `homeGreeting(firstName, now)` gives the header its title and its hour's subline, and
+  `useGreetingRotation`, `titleSwap` and `greetingRest` are gone. Still one header, no `<Monogram`, no
+  live region, no timer and no `...type.display` in the tab.
+- verified-by: `the greeting is static: the hour's French word, the first name, a full stop, and no rotation`
 
 ### F421 — Demo mode leaves the situation card
 - severity: P1
@@ -6160,9 +6281,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   which draws no demo label of any kind — TUTOR_OFFLINE.label survives only on the Tutor tab and
   in the navigator — so the tap's honest answer is proved on the hero and the removal is held by
   the DESIGN.md contract test.
-- verified-by: `a start that could not happen is answered on the card that asked, however it failed`
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
-- verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
+- verified-by: `the brief keeps its connection check and its held-back answer — F392`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 
 ### F422 — The word pool clears the phrasebook bar and is tiered
 - severity: P1
@@ -6190,7 +6314,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   tier on the same `now` as the situation and the scene. A brand new learner gets a tier 1 word
   on day one; the day after a promotion the tier changes and the sequence re-phases.
 - verified-by: `the learner's level picks the tier by one rule, and the tier picks the word by the day — F423`
-- verified-by: `home draws the word of the day from the learner's tier under a paused, decorative daily scene — F391`
+- note: 2026-09-27 notebook final sweep: tier selection and all daily text remain covered;
+  the successor requires audio before the French and rejects the removed decorative scene.
+- verified-by: `home draws tier-selected daily French with audio first and no decorative scene — F391`
 
 ### F424 — The situations say what people say, in both languages, and keep their ids
 - severity: P1
@@ -6220,11 +6346,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `fill="none"` but for tiny accents, one oversized object, at most two loops, transform and
   opacity only. All twenty exported from `illustrations/index.ts` and each reached as `<Name` in
   the chooser, which is what J14 needs; J7's alternation gains `WordScene`.
-- verified-by: `twenty daily scenes rotate by the day, each reached from the chooser and paused from the card — F425`
+- note: 2026-09-27 notebook final sweep: all twenty daily drawings, their chooser and unused card
+  are deleted. The successor checks the files remain absent and both daily surfaces are picture-free.
+- verified-by: `daily cards and the library contain no pictures or scene selection`
 - verified-by: `every scene the barrel exports is drawn somewhere`
 - verified-by: `every scene hides itself from a screen reader`
 - verified-by: `every scene draws at the one stroke weight`
-- verified-by: `a scene on a tab that is not focused stops moving`
+- note: 2026-09-27 notebook final sweep: decorative scene motion is deleted rather than paused;
+  the successor checks all illustration sources and the daily card contain no animation.
+- verified-by: `decorative scenes are static even when a mounted tab is not focused`
 
 ### F426 — The guards, the docs and the older ledger lines changed on purpose
 - severity: P1
@@ -6239,7 +6369,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   Demo mode left the situation card. `docs/DEVICE_VERIFICATION.md` rewrites P5-1 for the swipe
   and the still name and returns it to `not run` because the web walk measured a fade; P5-2 names
   Bonjour by day, Bonsoir by evening, and the daily scene. Nine rows stay nine so F410 passes.
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 - verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
 
@@ -6254,7 +6387,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The final design joins the name to both outgoing and incoming greetings before drawing them. Each
   complete phrase therefore has exactly one word-space, and the phrase moves as one object without
   measuring either word or correcting the name separately. The header still starts nothing.
-- verified-by: `the greeting word hugs the name, and the name travels with the swipe rather than jumping — F427`
+- note: 2026-09-27 notebook final sweep: the moving greeting is removed. The successor
+  verifies the complete greeting and name are a single static text node, with no measured split.
+- verified-by: `the static tab heading keeps the complete greeting and name in one text node — F427`
 
 ### F428 — The name jumps at every greeting commit because its travel is measured one render late
 - severity: P1
@@ -6273,7 +6408,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the complete greeting and name in identical absolute geometry, so no previous pair's width can
   affect the commit frame. They remain a full line apart throughout the handoff, their opacity
   curves overlap, and the hook resets only after layout.
-- verified-by: `the name's travel is right on the frame the words change, not one layout later — F428`
+- note: 2026-09-27 notebook final sweep: no moving greeting geometry remains. The successor
+  requires normal-flow wrapping and refuses clipping, measurements and animation slots.
+- verified-by: `the static greeting wraps in normal flow without a measured or clipped motion slot — F428`
 
 ### F429 — The docs and the runbook still describe the header F427 replaced
 - severity: P2
@@ -6287,7 +6424,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   a designed fail, and `surfaceContract.test.ts` pins that phrase. `home/greeting.ts` has a
   half-edited sentence. All four describe the shape F428 settles, and the F407 and F410 tests pin the
   new description and refuse the old.
-- verified-by: `the design doc describes the greeting, the daily situation and the tutor's pills as the tabs draw them — F407`
+- note: 2026-09-27 notebook final sweep: the animated greeting and daily scenes are retired.
+  The successor checks documentation against the static header, picture-free daily card and
+  Speak's single primary rather than requiring the deleted animation vocabulary.
+- verified-by: `the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
 ### F430 — A word-of-the-day note reads "everybody s ticket"
@@ -6398,7 +6538,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   fraction, percentage, track, fill or progressbar semantics. `accent.` exactly once and never in the
   stylesheet; no `hasMomentum`, no `return null`, no `Math.`, `toFixed`, `.length`, `<PillButton`,
   `numberOfLines`, raw `fontSize`, numeric `width`, `paddingBottom`; imports only `type Momentum`.
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- note: 2026-09-27 notebook final sweep: the block is deleted (no renderer since the Phase 3 Today
+  rebuild). Every promise above was about a file that no longer exists; the successor holds that
+  nothing renders it, its inline details or the week rail, and that no screen draws a days count.
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 - verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
 
 ### F437 — A badge glyph for the Recall tile
@@ -6411,8 +6554,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   animation.
 - note: revamp A (2026-09): the assistive-tech contract widened to raster scenes and was renamed for it;
   the badge glyph itself is untouched.
-- verified-by: `every drawing and every raster scene in the app is hidden from assistive technology`
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- note: 2026-09-27 notebook final sweep: `MomentumCards.tsx`, its only caller, is deleted. The glyph's
+  assistive-tech contract is still held below; the successor to the block's test bans its return.
+- note: revamp B (2026-09-30, F599): the assistive-tech contract was renamed again when the raster
+  scenes retired; the badge glyph is still one of the drawings it holds.
+- verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F438 — Home wires the phrase bank link and tells the truth in its header
 - severity: P1
@@ -6425,7 +6572,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   returning learner meets the start lines for a frame before their own numbers arrive. The header's
   "What is deliberately absent" paragraph stops claiming every count is absent at zero and names the
   one percentage Home now shows, recall over reviews, and the date it was decided.
-- verified-by: `home wires the phrase bank link to the review deck and keeps the next step outside every momentum gate — F438`
+- note: 2026-09-27 notebook final sweep: the block and its phrase-bank link are deleted. What survives
+  is Today's own recall action and Practice opening the same deck, and the hero outside every count;
+  the successor holds exactly that and refuses the block, the rail and the details on Today.
+- verified-by: `Today's one recall action opens the review deck, Practice opens the same deck, and the hero sits outside every count — F438`
 - verified-by: `the Pass 5 runbook expects the next step row on a fresh account — F413`
 
 ### F439 — The guards and the closed entries change on purpose, each with the founder's reason
@@ -6443,8 +6593,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `/worded as a start/`. F410's descriptor string is reworded, pattern unchanged. The closed F396 and
   F398 entries have their `verified-by` lines retitled to follow, and F396's note records the
   overturn and the date.
+- note: 2026-09-27 notebook final sweep: F436's test went with the deleted block; its successor bans
+  the block's return. F432's, F414's and F410's tests are unchanged.
 - verified-by: `a learner with no progress meets all four cards, worded as a start — F432`
-- verified-by: `progress draws four momentum cards, keeps the target gentle and uses the accent once — F436`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
@@ -6458,8 +6610,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `/worded as a start/`. DESIGN.md's Home row describes four cards there from the first day. P5-4 and
   P5-5 are rewritten, eleven rows, all `not run`, `fresh account` and `next step row` still present,
   `no next step` absent. `scheduler.ts` says lapses are shown only in aggregate on Home.
+- note: 2026-09-27 notebook final sweep: the block is deleted, so the docs no longer describe it. The
+  DESIGN.md half of this entry (the `| Progress |` route row and the Home row's "one level down") is
+  not repointed: the docs rewrite that follows the sweep pins the new Structure section. The
+  successor holds that nothing renders the block, its details or the rail, and that no screen draws
+  a days-active count; PRODUCT.md:96-117 records the tile as history and its properties as the rule.
 - verified-by: `PRODUCT.md records why days active is not the streak it refused — F414`
-- verified-by: `the design doc describes the momentum block as four cards there from the first day — F440`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 - verified-by: `the device runbook carries the Pass 5 checks — F410`
 
 ### F441 — The scheduler's lapses comment described the recall formula decision 7 replaced
@@ -6502,8 +6659,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a count with nothing behind it is left out of the rail rather than drawn as nought`
 - verified-by: `the filter row waits until there are enough cards for it to do any work`
 - verified-by: `a filter that would select everything, or nothing, is not drawn`
-- verified-by: `the tab counts nothing a learner could read as a score`
-- verified-by: `the path, the archive and the suggestion card are gone, and nothing here re-grows them`
+- verified-by: `nothing on the page counts, tints or highlights`
+- note: notebook redesign (2026-09-27): Practice now leads with the sound to tune. The retired test's whole
+  ban (the path, the archive and the suggestion card) was carried into a successor on the new page, so the
+  suggestion card still cannot come back.
+- verified-by: `the path, the archive and the suggestion card stay gone from the sound-led page — F442`
 - verified-by: `the header says where the page came from, and none of those words live here`
 - verified-by: `the design doc describes Practice as the archive the tab actually draws — F442`
 
@@ -6616,7 +6776,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   that order is grouped by theme; it deals a shuffled one instead. The claim this entry is
   actually about, that the pool is authored and the button reaches no model, is unchanged
   and is what the successors below check.
-- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- note: notebook redesign (2026-09-27): Today now leads with the spine's next scene, and the day's pick
+  from the authored pool is offered only to a learner who has earned the whole spine. When it is, it
+  is still `dailyPick` over the learner's tier of the authored pool, with no model call.
+- verified-by: `a learner who has earned the whole spine meets the day's scene`
 - verified-by: `the same local day always picks the same word and situation, and midnight changes both — F390`
 - verified-by: `every theme carries a real share, and every tier can be lived in`
 
@@ -6680,7 +6843,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the pitch outlived the card it was built for. home/homeMission.ts reads
   scenariosForLevel through the learner's one level standing, and every tier is still deep enough
   to live in, which is what daily.test.ts holds.
-- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- note: notebook redesign (2026-09-27): a beginner on Today now meets the spine's next scene, which starts
+  at A0, and the day's scene only once the whole spine is earned. That scene is still read through
+  `scenariosForLevel` at the learner's level index, and Today still hands the rule `standing.index`.
+  The test below exercises the beginner tier only; no current test runs the hero at a higher tier.
+- verified-by: `a learner who has earned the whole spine meets the day's scene`
 - verified-by: `every theme carries a real share, and every tier can be lived in`
 
 ### F452 — The voice circle kept breathing behind every other tab
@@ -6698,7 +6865,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a circle on a tab that is not on top holds its final frame`
 - verified-by: `any one reason is enough, and no reason means it moves`
 - verified-by: `the orb takes a paused prop, keys its effect on it, and rests through orbRests`
-- verified-by: `the voice circle stops breathing when the tab is not the one on top`
+- note: notebook redesign (2026-09-27): the breathing circle left Speak, and nothing on the tab animates
+  now (`<VoiceOrb` and `Animated` are banned there). The tutor's voice sample is the tab's one sound,
+  and it pauses when the tab loses focus. The orbRest tests above still hold the circle where it is drawn.
+- verified-by: `what left Speak stays gone`
 
 ### F453 — A disk that would not answer left Home and Tutor holding nothing, silently
 - severity: P1
@@ -6718,9 +6888,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   throw, and `dailyPick` throws on an empty pool by design.
 - note: revamp A (2026-09): the Tutor tab's resume door became the remembers row, so the same failure is
   asserted one noun along in tabs/TutorTab.test.ts.
-- verified-by: `a storage read that fails still leaves today on the page, and claims nothing about the learner`
+- verified-by: `a storage read that fails offers local practice and retry without guessing a scene`
 - verified-by: `a learner with no readable standing meets the gentlest tier, not an empty card`
 - verified-by: `a disk that will not answer takes the memory row and nothing else off the tab`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
 
 ### F454 — A probe that threw would have retired the one pill on Home
 - severity: P2
@@ -6731,7 +6903,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   back. TutorTab had diagnosed this in its own file twelve lines from the defect and fixed
   only one of its two doors. Both are handled now, and so is the drill sitting, which had
   a bare spinner with no header and no way out behind the same class of read.
-- verified-by: `a start that could not happen is answered on the card that asked, however it failed`
+- verified-by: `the brief keeps its connection check and its held-back answer — F392`
 - verified-by: `a probe that threw lets go of the checking flag instead of retiring the tab`
 
 ### F455 — The bookmark tap said nothing for two storage round-trips, then lied if it failed
@@ -6747,8 +6919,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   is the thing they already pressed. Nobody is told they did anything wrong, because they
   did not. While in there, the fold that answered "is this saved" stopped being rebuilt on
   every render to answer one boolean.
+- note: notebook redesign (2026-09-27): the fold-once check (`useMemo` over `bookmarkDecisions`, and no
+  bookmark chain on Today) now lives inside the bookmark tap test named first below, so its own line
+  is folded into that one.
 - verified-by: `the bookmark tap says it is working, and says when the write did not take`
-- verified-by: `the saved list is folded once per read, not twice per render`
 - verified-by: `the bookmark button says the write is running, and says when it did not take`
 - verified-by: `the fold is asked for once and answered many times`
 
@@ -6796,8 +6970,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   better than one that appears first and is replaced under somebody.
 - note: revamp A (2026-09): Home's situation card folded into the mission hero and the pitch went with
   it, so the claim is proved in home/homeMission.test.ts against the learner's own tier.
-- verified-by: `home's situation card opens the conversation through tutorGate with the daily seed topic, and drops the accent and level chrome — F392`
-- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- note: notebook redesign (2026-09-27): a beginner on Today no longer meets a day's scene at all. The hero
+  is the spine's next scene, which starts at A0, and the day's scene is offered only once the whole
+  spine is earned, picked from the learner's tier. Today still hands the rule the one level standing
+  (`levelIndex: standing.index`). The pick is exercised at the beginner tier only.
+- verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
+- verified-by: `a learner who has earned the whole spine meets the day's scene`
 
 ### F458 — The lesson counted the learner's position out loud to a screen reader
 - severity: P1
@@ -6833,7 +7011,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F460 — Seven live-session findings from the 2026-09-07 audit, unfixed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tutor/Transcript.tsx:169
 - note: the audit that produced F452 to F455, F458 and F459 found seven more inside the
   conversation. The agent sent at them died on a session rate limit before writing a line,
@@ -6858,6 +7036,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   7. `ConvoScreen.tsx:107` has a second import block sitting after executable code. Legal,
      and it hides sixteen imports from anyone reading the header.
 - verified-by: `the live surfaces sit inside the one frame, F444`
+- update 2026-10-03: title clipping was already removed in B. Remaining source fixes use a single backward history walk, committed opening time, a fixed recap deadline invoking the latest committed leave callback, one tutor name and a consolidated import header. Only the latest typed tutor row has Android live-region updates; iOS announces that one row once per ID. Native screen-reader behavior still requires device QA.
+- verified-by: `conversation opening and recap timeout use committed state without resetting the deadline`
+- verified-by: `the conversation announces only its newest typed tutor reply`
 
 ### F461 — The tab bar labels collide and spill at the largest text size
 - severity: P2
@@ -6936,9 +7117,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   went with the pill it chose, and the ladder is now the two groups of places — so the
   primary-branch claims are re-pointed: the tab draws no primary at all, and the one line is still
   dealt by oneLine.ts or not dealt.
-- verified-by: `every judgement this screen used to make now lives in a module`
-- verified-by: `the phrase shelf opens the phrasebook and the one-line card lives there`
-- verified-by: `a learner meets a page of doors and no task, so there is nothing on it to fail`
+- note: notebook redesign (2026-09-27): the phrase is still My French's unit, but the ladder no longer
+  orders it here. The page draws a phrase bank of the newest kept phrases with their audio, chosen by
+  `phraseBankFrom` in myfrench/notebook.ts, with one door to the whole Phrasebook, where the one-line
+  card still lives. The page still draws no pill and no task.
+- verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
+- verified-by: `the phrasebook opens on one line right now and closes on the cadence set`
+- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
 - verified-by: `an empty deck deals nothing at all`
 - verified-by: `the featured phrase is the phrase Home calls first, by construction`
 - verified-by: `a first return outranks a due phrase the learner already uses`
@@ -6954,7 +7139,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): myfrench/sounds.ts is unchanged and still tested; the screen-side half of
   the claim moved into the sweep that names `function checkLine` and `function latestCheck` by
   hand in tabs/MyFrenchTab.test.ts.
-- verified-by: `every judgement this screen used to make now lives in a module`
+- note: notebook redesign (2026-09-27): My French no longer draws a sound sentence. Its sound block is a
+  map over the inventory, from `soundsMapFrom`, and a door whose target and label come from
+  `soundFingerprint` and `soundDoorLabel`. The screen-side guard now bans the tab from branching on
+  any check kind, since measured evidence belongs to sounds.ts and notebook.ts. It no longer names
+  `checkLine` or `latestCheck` by hand.
+- verified-by: `the sounds map lays the inventory out example word first, and marks only what a measured check called out`
 - verified-by: `every kind of check has a sentence, and none of them is a number`
 
 ### F465 — A stored pronunciation focus could still say "today" months later
@@ -7010,8 +7200,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the counting clause has no subject to defend any more. What replaced it is stricter and is what
   the tick now names: no digit reaches that page at all, and the two headings over the rows count
   nothing and lock nothing.
-- verified-by: `no two tints read as one, and nothing letters or signals in a tint — F362`
-- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
+- note: notebook redesign (2026-09-27): the tinted place rows left My French; the page is plain ledger
+  rows with no tint, no `TintRow`, no `missionTint(` and no `<Stat` count. The tint rule itself still
+  stands where tints are drawn, under the F362 test.
+- note: 2026-09-27 notebook final sweep: the tint palette and role tables are removed;
+  the successor forbids their reintroduction anywhere in production source.
+- verified-by: `no source retains a tint token, role table or tinted primitive`
+- verified-by: `the page is ledger rows and nothing louder: no pill, no tint, no retired row`
 - verified-by: `only a scene handled with nothing handed over is filled`
 - verified-by: `every combination says something, and nothing says it is locked`
 - verified-by: `a chip is short enough to sit beside a title`
@@ -7061,8 +7256,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   nothing stops the last one when the learner leaves. That is F304 on a different surface, and
   it is filed rather than merely fixed because four components on this tab can start a voice
   and a fifth could be added without thinking about it. The source walk holds all of them.
-- verified-by: `anything that starts a voice also stops one when it goes`
-- verified-by: `every control that plays says what it will play`
+- note: notebook redesign (2026-09-27): the Phase 3 review found the claim reopened. The phrase bank
+  and Practice's recording stopped only on unmount, and tabs stay mounted, so a voice outlived a tab
+  switch; a stopped recording could also start after its load finished. Both now stop on focus loss
+  and on backgrounding, a load that was stopped never plays, and the new test fails if leaving does
+  not stop playback.
+- verified-by: `anything that starts a voice also stops one when it goes, and says what it will play`
+- verified-by: `leaving the tab or the app stops a voice or a recording that My French or Practice started`
+- verified-by: `a recording stopped before it finished loading never starts`
 - verified-by: `nothing here listens, records or scores`
 
 ### F471 — An opted-out learner emits nothing, and a learner who was never asked is opted out
@@ -7447,7 +7648,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F495 — A Google or Apple account can never finish deleting on the web build
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/supabaseAdapter.ts:153
 - note: found while sweeping this change and filed rather than fixed, because the file is outside it.
   `reauthenticateForDeletion` on web calls `startGoogleSignIn`, which is an unconditional
@@ -7456,6 +7657,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   whether this session was just re-proved. `deleteAccount()` is never reached and the branch's own
   sentence, "Finish signing in with Google, then return here and delete the account again.", promises a
   second attempt that completes. The Apple branch is identical. Native is unaffected.
+- note: 2 October 2026: verified SDK JWT claims can confirm an already-recent Google/Apple web authentication before opening another redirect. The five-minute proof and expired/refresh-only refusal tests pass; independent gpt-6-sol review accepted the code fix. Real web OAuth return remains unverified.
 - verified-by: `a reauthentication that already happened is not asked for again`
 
 ### F496 — The warning that the phone still holds a copy is set on a screen that has already gone
@@ -7511,11 +7713,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   purchase record survives, and the two-things count above it is scoped to our own systems, so one
   sentence changes when the call lands. Calling the processor's delete API is server work and a founder
   decision, filed separately as F499.
-- verified-by: `the notice says the purchase record outlives a deleted account`
+- verified-by: `the notice distinguishes a purchase erasure request from store cancellation`
 
 ### F499 — Nothing calls the purchase processor's delete API, so the record is disclosed rather than removed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/accountDeletion.ts:1
 - note: split out of F498, which closed the disclosure half. The notice now tells a learner plainly that
   the company which took the payment keeps its own record and that deleting the Luvani account does not
@@ -7525,6 +7727,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   and because the founder has not chosen between calling the API and standing on the disclosure. F498's
   test asserts that `accountDeletion.ts` mentions nothing of the processor, so whoever implements this
   gets a failure naming the sentence in the notice that has to change with it.
+- continuation: On 2 October 2026 the founder authorized processor erasure. The server now requires a successful queued RevenueCat DELETE (200 or already absent 404) before identity deletion; missing configuration and refusal keep the account available for retry. The notice distinguishes an accepted asynchronous erasure request from store subscription cancellation. Independent gpt-6-sol review accepted the code after 32 focused tests; actual vendor completion and native store cancellation remain unverified.
 - verified-by: `account deletion asks the purchase processor to erase its record too`
 
 ### F500 — The first run still carries the flat denial in the one line everybody reads
@@ -7688,7 +7891,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F509 — The live session's English is synthesised with no French around it
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/voice.ts:196
 - note: the opener, the scene-setting narration and every coaching line are English, and each
   reaches the vendor as its own request because the framework's sentence adapter splits on
@@ -7714,8 +7917,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   What stays open here is the generated half and the vendor's actual normalizer behaviour, which
   needs an ear: no schema in this repo can forbid a digit in a generated English field, because
   `contract/schemas.ts:13-17` records that no regex or refinement survives the trip to the API.
-- verified-by: `the tutor's English lines are spoken by a voice verified for English`
 
+
+- note 2026-10-03: Generated English normalization was tested with six Alexandre time/money/French-control A/B clips. Founder preferred automatic language detection and confirmed French natural. Live requests now omit the French pin and invalidate both cache identities. All six chooser previews were refreshed through the live seam and heard by the founder; frozen French-only batches stay unchanged. This closes the scoped configuration/listening defect, not every possible English pronunciation. Mixed-language ASR is separately investigated and held in F695.
+- verified-by: `live synthesis preflight omits the old French-only language request`
+- verified-by: `approved live language detection invalidates French-pinned saved audio while recording batches stay French`
 
 ### F510 — Retiring a voice threw away the whole pre-account draft
 - severity: P1
@@ -7881,20 +8087,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   second was spent in, which is why the list lives beside the wall it justifies rather than in
   `PLANS`. It is not enforcement either: a learner who reaches a held back room is stopped by the
   402 at the door.
-- verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
-- verified-by: `a learner who walked all four is opened on what is still closed, with the wins below as the proof`
-- verified-by: `a half walked path is four rows too, two of each kind`
-- verified-by: `one finish at the lowest rung lights the room`
-- verified-by: `the row reads timesFinished and never the review state or the independence`
-- verified-by: `their own line wins, and the most used one wins among those`
-- verified-by: `a phrase with no conversational use behind it does not count as theirs`
-- verified-by: `another room's phrase is never borrowed to fill a row`
-- verified-by: `an unwalked room quotes nothing at all, because they have not been there`
-- verified-by: `a sound is never quoted as something the learner said, however often it was used`
-- verified-by: `rung 1 is the one line that needs the name, and without a profile the row withholds it`
+- note: 2026-09-27 notebook final sweep: the map page, its model and its learner-quote projection
+  are deleted. The old map-row tests have no surviving renderer to exercise; their successor
+  proves the sources and renderer stay absent and analytics accepts only the two current pages.
+  The live welcome-path partition and ordering tests below are preserved, not aliased.
+- verified-by: `the retired map and French wall pages have no source, renderer or analytics page`
+- verified-by: `no door ever draws more than two pages, or the retired map and French pages`
 - verified-by: `every situation is either on the path or beyond it, and none is both`
 - verified-by: `the path climbs, rather than putting both A1 rooms first`
-- verified-by: `nothing a row carries mentions a plan, a price or a lock`
 
 ### F517 — Every decision the wall makes had nowhere to live but a screen
 - severity: P2
@@ -7924,12 +8124,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `no line counts the situations on the path`
 - verified-by: `the plans page says what a subscription is, which Apple asks for and a learner is owed`
 - verified-by: `a real mission phrase would be refused by the guilt list, which is why it is not scanned`
-- verified-by: `with a store there are four pages, and the price is last`
-- verified-by: `with no store there are three, and the wall ends on the free promise`
+- note: notebook redesign (2026-09-27): the wall became two pages, what you get and then the plans,
+  priced as conversations a week from each plan's minutes. With no store it is one page that still
+  ends on the free promise. The page tests were renamed with it.
+- verified-by: `with a store there are two pages, what you get and then the price`
+- verified-by: `with no store there is one page, and the wall ends on the free promise`
 - verified-by: `somebody who came to buy is not sold to`
 - verified-by: `the value pages never vary by what the learner has done`
-- verified-by: `a learner with none is an invitation rather than a nought`
-- verified-by: `page two counts nothing for itself`
+- note: 2026-09-27 notebook final sweep: the French-evidence wall page and projection are gone;
+  their two tests are superseded by a source/renderer/analytics retirement check, not by aliases.
+- verified-by: `the retired map and French wall pages have no source, renderer or analytics page`
 - verified-by: `WallPage and wall_page_seen name exactly the same pages`
 - verified-by: `WallEntry and wall_shown name exactly the same doors`
 
@@ -8018,10 +8222,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   The problem is named as a situation and never as a feeling, which was the founder's explicit
   setting. `goalEn` is the catalogue's own sentence about what happens in that room, so nothing on
   the page describes the learner, and a test refuses a line that starts to.
-- verified-by: `a learner who walked all four is opened on what is still closed, with the wins below as the proof`
-- verified-by: `the closed rooms carry no borrowed French, because they have never been walked`
-- verified-by: `a learner who walked nothing still gets four rows naming four things they could do`
-- verified-by: `a half walked path is four rows too, two of each kind`
+- note: 2026-09-27 notebook final sweep: the map and its row-order projection have been deleted.
+  The successor verifies they cannot return, and every door is bounded to the two current pages.
+- verified-by: `the retired map and French wall pages have no source, renderer or analytics page`
+- verified-by: `no door ever draws more than two pages, or the retired map and French pages`
 
 ### F521 — The wall was soft and never said so
 - severity: P2
@@ -8084,6 +8288,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   number is a scarcity mechanic. So the seconds never reach a screen: `planStatus.ts` folds them
   into one of three bands said in words, and the card draws the plan's label, its period and that
   band. A numeral on the card is the defect.
+- note: notebook redesign (2026-09-27): one carve-out, reviewed by Fable. The paywall now says the
+  minutes left and the reset date once, rounded down and still (`wall/wallAccount.ts`), because a
+  learner choosing what to buy is owed the size of what is left. It is not a falling countdown, which
+  is what this item refuses, and the plan card keeps its bands.
 - verified-by: `plan status is one of three bands in words, and no numeral reaches the card`
 
 ### F542 — The tutor's circle says ready when the account cannot start
@@ -8107,7 +8315,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   expectation in words when there is not.
 - note: revamp A (2026-09): the hero grew a resume ahead of the day's scene, so the same test was
   rewritten under a title that names all three cases in home/homeMission.test.ts.
-- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- note: notebook redesign (2026-09-27): Today now opens on a scene brief for the spine's next scene: the
+  level, the French title, the can-do, two or three lines to say and the minutes. A first run meets
+  the opener, "Le premier café", at about three minutes. Today's phrase sits below the brief. The
+  reason line is gone.
+- verified-by: `a first run leads with the opener, as a brief: level, French title, can-do, lines and about three minutes`
 
 ### F544 — Home's pill lived in the situation card
 - severity: P2
@@ -8116,7 +8328,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the pill budget names `home/SituationCard.tsx` as the one file on Home that may draw a pill.
   The hero is the one way into a spoken conversation now, so the pill moves there and the daily
   situation keeps its bookmark and an outline. The budget, the Home test and DESIGN.md move with it.
-- verified-by: `home's one pill is the mission hero's, and the situation card keeps none`
+- note: notebook redesign (2026-09-27): the hero's pill is still Today's one pill outside the review
+  template, and it now reads "Start". It opens the scene in the learner's standing mode, with the
+  other mode as a quiet link under it.
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 
 ### F545 — Nothing on Home says what the learner can already do
 - severity: P2
@@ -8147,7 +8362,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   chat, so a second pill for the same door was a second answer to one question.
 - note: revamp A (2026-09): the three entry modes are unchanged and the fourth door went to the chooser;
   the resume card's pill went too, so the tab now keeps none and the test is named for that.
-- verified-by: `the tutor tab draws shared rows and one explicit primary action`
+- note: notebook redesign (2026-09-27): Speak has one Start, into the next scene, which is the everyday
+  mission. The other two ways in (the open conversation and rehearsing something specific) are rows
+  under "More ways to practise", beside the tutor's memory, drawn only after a first finished scene. The open conversation still goes
+  through the tutor probe in the learner's preferred mode.
+- verified-by: `"More ways to practise" appears only after a first finished scene`
 
 ### F548 — A learner cannot bring a real situation to the tutor
 - severity: P2
@@ -8341,20 +8560,25 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F567 — Restore has no funnel event, and a return from the wall is invisible
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/analytics/track.ts:21
 - note: after the other session's Phase 1 lands. Restore started and settled, and the return from the
   wall, join the union, the parser and the trigger in one change.
 - verified-by: `restore and the return from the wall each carry one event the parser and the trigger accept`
 
+- note: 2 October 2026, Report 45: independently accepted by the authorized gpt-6-sol reviewer at code level. Twelve reviewer checks and disposable actual-SQL proof pass. New events require migration 20261002192210, not applied live; native store and simultaneous database connections remain unverified.
+
 ### F568 — The server sees the trial start and the minutes run out, and tells nobody
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:314
 - note: after the other session's Phase 1 lands. The first trial claim and every refusal over minutes
   happen on the server, which is the only honest place to record them; the app can only guess. They
   are written as product events by the server itself, which has no precedent and so gets its own helper.
 - verified-by: `the first trial claim and every refusal over minutes are recorded as product events`
+
+- note: 2 October 2026, Report 45: independently accepted by the authorized gpt-6-sol reviewer at code level. Twelve reviewer checks and disposable actual-SQL proof pass. New events require migration 20261002192210, not applied live; native store and simultaneous database connections remain unverified.
+- note: Trial means a newly claimed entitlement, not a joined room. Literal current device consent is required. The isolated trial-evidence savepoint cannot undo money; client endpoints/roles cannot forge service facts. Exhausted and insufficient-for-session evidence is best effort; outages can lose it, while lapse and antifraud refusals are distinct.
 
 ### F569 — Cards, tinted rows and the hero are primitives, not per-screen styles
 - severity: P2
@@ -8363,8 +8587,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. A white card lifts on one named whisper of shadow at radius twenty; a tinted row is one
   pressable with a white disc, a title, a gloss and a chevron; the hero card and the phrase card are
   their own files under `surface/`. Screens compose these and style nothing of their own.
-- verified-by: `a tinted row is a pressable at the touch floor with a white disc, a title, a gloss and a chevron, and it names itself once`
-- verified-by: `a card lifts off the ground with the one soft shadow and the wider radius`
+- note: notebook redesign (2026-09-27): tinted rows became ledger rows (one pressable at 56pt, an ink glyph
+  with no disc, a title, a gloss, meta and a chevron, named once), and the card lost its offset shadow.
+  `TintRow` stays as a deprecated wrapper that draws the ledger row until its call sites move.
+- verified-by: `a ledger row is one pressable at 60 with an ink glyph and no disc, a title, a gloss, meta and a chevron, and it names itself once`
+- verified-by: `the one card is white at the card radius with no hairline, no outline and no shadow`
 
 ### F570 — Raster art ships decorative, sized once, and every key is drawn
 - severity: P2
@@ -8373,8 +8600,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The watercolour scenes are PNGs under `assets/art`, named once in a registry with their
   point size, drawn through one component that hides them from assistive technology, and held to a
   byte budget. Nothing ships that nothing draws, and nothing is drawn that is not registered.
-- verified-by: `every raster scene is decorative and every asset the registry names exists on disk under budget`
-- verified-by: `every art key the registry names is drawn somewhere and nothing in the folder is unregistered`
+- note: revamp B (2026-09-30, F599): the watercolours retired and the promise moved to the flat
+  drawings. The registry test now holds each one decorative, at its catalogue size, and registered in
+  both directions, and J14 holds that every one reaches a screen; both lines were renamed for it.
+- verified-by: `the flat registry names all 29 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 
 ### F571 — Home opens on the hour's line and tonight's scene with a time in minutes
 - severity: P2
@@ -8383,9 +8613,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The greeting carries the hour's question beneath it, the hero is tonight's daily scene
   (a part-way mission first, the café before anything), drawn on a white card with its place's art and
   the one sanctioned numeral line, "Ready for N min", estimated from the scene's length.
+- note: notebook redesign (2026-09-27): the hour's line stays under a still greeting. The hero is now a
+  scene brief for the spine's next scene, with no picture, and the minutes line reads "About N min". A
+  three-line daily scene is still seven minutes, and the scripted opener is about three, derived from
+  its script.
 - verified-by: `every hour has exactly one subline`
-- verified-by: `a three-line scene is ready for seven minutes`
-- verified-by: `home leads with tonight's scene, a resume before it, the café before anything`
+- verified-by: `a three-line daily scene is about seven minutes, and an open mission is longer per beat`
+- verified-by: `a first run leads with the opener, as a brief: level, French title, can-do, lines and about three minutes`
 
 ### F572 — Real progress is one sentence, and the rest lives one level down
 - severity: P2
@@ -8393,9 +8627,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/home/abilities.ts:1
 - note: revamp A. The abilities become one joined can-do sentence on a white row; tapping it pushes a
   Progress screen that keeps the week story, the momentum cards and the word of the day.
+- note: 2026-09-27 notebook final sweep: the Progress screen became inline details on Today in Phase 3
+  and then nothing rendered them; `ProgressScreen.tsx`, `progressView.ts` and `MomentumCards.tsx` are
+  deleted. Today says the week in at most two sentences (`home/todayView.ts`) and today's phrase on
+  the daily card. The sentence tests stay; the successor bans the deleted screen's return.
 - verified-by: `two stamps join with and, no comma`
 - verified-by: `before any stamp the card says where progress starts and never a count`
-- verified-by: `the progress screen keeps the momentum, the week story and the word of the day`
+- verified-by: `nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440`
 
 ### F573 — Tutor is the orb, the remembers row and three tinted ways in
 - severity: P2
@@ -8403,7 +8641,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/tabs/TutorTab.tsx:1
 - note: revamp A. The speak card, the resume card, the folded situations and the lesson door leave the
   tab; the lesson becomes a door on the chooser and the intro link moves to Settings.
-- verified-by: `the tutor tab draws shared rows and one explicit primary action`
+- note: notebook redesign (2026-09-27): Speak is now the tutor card (name, voice, signature line, a
+  sample and a way to change voice), one Start, and the level path. The moving orb and the three
+  tinted ways in are gone; the remembers row stays.
+- verified-by: `the tutor card carries the voice from the catalogue, its sample, and a way to change it`
 - verified-by: `the pronunciation lesson is a door on the chooser`
 
 ### F574 — Practice is one next practice and three rows, with the archive in Conversations
@@ -8416,7 +8657,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: conversation practice (2026-09): the per-branch controls became one recommended action chosen by
   practice/practiceCard.ts over the balanced selector. The card is still one French line, its meaning,
   a speaker and one action; the renamed test pins the line, gloss, speaker and the single action.
-- verified-by: `the recommended card says one French line and one action, both from the practice model`
+- verified-by: `the recommended card previews one French line the sitting will not ask for`
 - verified-by: `the conversations screen carries the feed, the filters and the delete flow`
 
 ### F575 — My French is the tinted situation rows and the phrase shelf
@@ -8426,8 +8667,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. Stamped missions first under "You can now...", the rest under "Next places", then the
   phrase shelf, the saved shelf and the conversations row; the lanes, the stat row and the one-line
   card go, the one-line card and the cadence set living on in a pushed Phrasebook.
-- verified-by: `my french draws one tinted row per mission, stamped ones first, and no count`
-- verified-by: `the phrase shelf opens the phrasebook and the one-line card lives there`
+- note: notebook redesign (2026-09-27): My French is now the level path with the can-dos earned, the
+  phrase bank, the sounds map and the conversations, in that order. The tinted situation rows are
+  gone, and the phrase shelf became the phrase bank, still with one door to the Phrasebook.
+- verified-by: `the blocks run level, phrase bank, sounds map, conversations, in that order`
+- verified-by: `the phrase bank is the newest kept phrases with audio, and one door to all of them`
 
 ### F576 — Profile is the centred name, the tutor card, the rhythm and the learning card
 - severity: P2
@@ -8444,9 +8688,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/progress/momentum.ts:392
 - note: revamp A. The founder chose the identity violet for the calendar record; the rule that a state
   mark is never violet now exempts a calendar, and the orb's traffic lights stay the only state marks.
+- note: 2026-09-27 notebook final sweep: the labelled violet dots are gone. Profile says the week as
+  one sentence (Phase 4, B2) and `WeekRail` is deleted from components.tsx, so the calendar exemption
+  has nothing left to exempt; the Monday-to-Sunday model and its sentence stay tested. The successor
+  refuses the rail's return.
 - verified-by: `the rhythm week starts on Monday and ends on Sunday whatever today is`
 - verified-by: `the rhythm sentence counts in words and passes the guilt list`
-- verified-by: `the week rail labels every dot and stays hidden from assistive technology`
+- verified-by: `the retired week rail is not exported and leaves no mark style behind`
 
 ### F578 — Own words is a drill kind whose verdict arrives from outside
 - severity: P2
@@ -8483,7 +8731,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/DrillScreen.tsx:1
 - note: revamp A. Typed only for now, with the hint to say it aloud first; spoken attempts through a
   transcription endpoint are a filed follow-up. Offline, the line is revealed and nothing is graded.
-- verified-by: `own-words asks for the learner's own French and never a recording`
+- verified-by: `own-words checks the learner's own French as editable text`
 - verified-by: `a null verdict reveals the line and writes no grade`
 - verified-by: `the judge is asked once per Check`
 
@@ -8545,7 +8793,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The founder reversed the rings-over-sphere choice. The gradient is the one state
   colour thinned by opacity, so no new palette token and the mark floor holds; movement stays
   transform and opacity on the native driver.
-- verified-by: `the still glyph uses one state colour for two mist washes and three quiet rings`
+- verified-by: `the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking`
 - verified-by: `reduce motion and a state with nothing to animate rest for their own reasons`
 
 ### F589 — The glyph set is one pen: every icon at one stroke, decorative
@@ -8558,23 +8806,30 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F590 — Own words is typed only; a spoken attempt has no way in
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:1
 - note: revamp A follow-up, the founder's call for now. "Say it in your own words" takes a typed
   attempt with a hint to say it aloud first. A spoken attempt needs a transcription endpoint on
   the token server (the vendor the live tutor already uses), the existing recording flow from
   the sound check, and the typed field kept as the fallback for learners who prefer it and for
   offline. Nothing recorded is kept.
+- continuation: 2 October 2026, code-level closure independently accepted by the
+  founder-authorized gpt-6-sol reviewer. Temporary takes are transcribed once,
+  editable before Check, and removed after upload or refusal. Auth/scope/beat
+  guards refuse late account/card work; unavailable service leaves typing and
+  no grade. 47 focused tests and both workspace typechecks passed. Real native
+  microphone, filesystem deletion and Deepgram service checks remain unverified.
 - verified-by: `a spoken attempt is transcribed once, judged, and never stored`
 
 ### F591 — Own words is a door, not yet a rung
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/drill/session.ts:1
 - note: revamp A follow-up. The own-words kind is opened directly from the Practice row on a
   scoped sitting. Making it the fifth rung of the drill ladder (earned after the spoken rung
   on a phrase's fifth successful sitting) is a pedagogy change for learning-science-engineer,
   with the stage table, stageForReps and the mix tested together.
+- continuation: On 2 October 2026 the stage table, five-sitting replay, miss/reveal behavior and persisted exercise bank were implemented. A cap repair reserves only shipped authored formats and retains fresh pack exercises; failed disk writes report failure so the source pack can retry. Independent gpt-6-sol review accepted the code and focused persistence/merge/account-scope tests. Native spoken-session behavior remains unverified.
 - verified-by: `own-words is the last rung and is earned on the fifth sitting`
 
 ### F592 — The raster art decodes at file size on Android until it is measured
@@ -8604,3 +8859,875 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   My French already used the safe shape. The contract now walks every tab and refuses `flexGrow`
   or padding on any surviving `scroll` wrapper, so the AX5 failure cannot return one tab at a time.
 - verified-by: `no tab hangs a growing wrapper inside the scroll frame — F594`
+
+### F595 — The palette is the notebook's, not revamp B's
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/palette.ts:11
+- note: Stage 1 of revamp B. `palette.ts` takes STYLE §4 and §7: paper #FFF6E9, white cards, ink #16123A, ink2 #5C5A74, one hairline #EADFCB, skeleton #EFE6D6, `accent.brand` and a new `colour{blue,coral,sun,mint}`, the orb as coral, mint, sun and ink with a new `onOrb` glyph pairing because mint and sun fail 3:1 as marks on paper, `signal.good` and `signal.correspondance` as ink, rungs one to three on the skeleton fill. Old names stay as aliases. `palette.test.ts` is rewritten pair by pair at the same floors, never weakened; DESIGN.md's colour tables, app.json's two launch backgrounds, the orb's bars and TutorIntro's state words follow, so no forbidden pair and no colour name ships at any commit.
+- verified-by: `the B paper is pinned: one ground, one white, one ink, one hairline`
+- verified-by: `every orb state carries a glyph that clears the text floor on its own fill`
+- verified-by: `rungs one to three share the one skeleton fill and rung four is ink`
+- verified-by: `the brand blue never reads as an orb state, the highlighter, the rung fill or the tutor's mark`
+- verified-by: `DESIGN.md records the palette the app ships`
+- verified-by: `the splash and the icon background are the ground`
+- verified-by: `no six-digit hex is written anywhere in source but palette.ts`
+- verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
+- verified-by: `the intro names the orb states in words, never by colour`
+
+### F596 — The app is set in Fraunces and DM Sans, not Outfit
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:27
+- note: Stage 1 of revamp B. `theme.ts` names the five Outfit cuts (400 to 800) with the old font names kept as aliases, the STYLE §3 scale by token (hero 112, display 44, title 30, heading 20, frenchLg 28, french 20, body 17, label 16 sentence case, small 14, tab 12) with the French tokens kept by name in Outfit 600 and frenchLg still larger than heading, and radii card 24, feature 28, tile 20, field 16, pill 999. `App.tsx` loads exactly those five files and the Fraunces and DM Sans files leave the bundle; Acknowledgements credits Outfit under the OFL. `theme.test.ts` is rewritten to the new values and gains a check that the theme, the loader and the fonts folder agree.
+- verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
+- verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
+- verified-by: `the theme names the five Outfit cuts App.tsx loads, and the bundle carries no other face`
+- verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`
+
+### F597 — The shared parts are the notebook's: static presses, hairline cards, ink chips, a gradient orb, and no B parts to paste
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:957
+- note: Stage 2a of revamp B. `motion.ts` gains the one spring (`pressTo`, 0.97, stiffness 439, damping 29.3, mass 1, native driver off on the web, instant under reduced motion) and `components.tsx` gains `Press` with a `haptic` prop over new `pressed()` and `soft()` haptics; the 0.985 statics go. `Card`, `Label`, `PillButton` (with a white tone), `GhostButton`, `Monogram`, `Highlight` (still, marked as French), `Field`, `TabBar<K>` (the SNIPPETS segmented) and `ProgressDots` (the story segments) are restyled in place; `RoundButton`, `ColourCard`, `StatTile`, `HeroNumber`, `OptionRow`, `Sheet`, `Skeleton`, `QuietLine`, `FrenchBlock`, `CloseGlyph` and `CheckGlyph` are appended; the orb becomes SNIPPETS' two rings, a core and one mark per state, with `onOrb.ready` unchanged; `ScreenHeader` takes the round back button. `palette.ts` gains the STYLE §4 colours these parts draw (`paper.field`, `lilac`, `textOn`, `onColour`, `segmentPending`) and `theme.ts` gains `type.stat` and `frenchText`. A punctuation ratchet bans the middot and both dashes in learner-facing strings with an allowlist of the fifteen files that fail today.
+- verified-by: `every tappable part presses through one spring: 0.97, stiffness 439, damping 29.3, released on lift, instant under reduced motion`
+- verified-by: `the one spring is the press, it lives in motion.ts at the STYLE numbers, and it crosses to the native driver everywhere but the web`
+- verified-by: `no pressed style scales by hand: the 0.985 statics are gone`
+- verified-by: `a press is a light impact, a choice is a selection tick, a hint is soft, and the web half stays silent`
+- verified-by: `the one card is white at the card radius with no hairline, no outline and no shadow`
+- verified-by: `one ink pill at 56, white on blue or coral; the second action is an underlined ink link at the touch floor; a label is the meta line`
+- verified-by: `the monogram is a white initial on an ink disc, and it is hidden from assistive tech`
+- verified-by: `the highlighter is a still band behind one French line, marked as French, and moves nothing`
+- verified-by: `the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking`
+- verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
+- verified-by: `the segmented control is a sand track with a white chosen segment, never ink capsules, and every segment keeps the touch floor`
+- verified-by: `the B parts are appended after the stylesheet, draw from tokens, cap no words, build no pill and spell no hex`
+- verified-by: `a round button is a 44 disc for back and close and a 64 disc for next, with the ICONS.md mark`
+- verified-by: `a colour card is one ground with its words in the palette's colours for it, and a stat tile and a hero number each read as one phrase`
+- verified-by: `an option row says its choice twice and marks it with the blue check or the field ring`
+- verified-by: `a sheet rises from the bottom under an ink scrim, is modal, and closes from the scrim`
+- verified-by: `a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line`
+- verified-by: `a French block leads with the French, marks it as French, glosses under it, and offers to hear or to stop`
+- verified-by: `the pushed header's way back is a 44 round white button`
+- verified-by: `the STYLE colours the parts draw are in the palette: the field border, the secondary on each ground, the pending segments, and lilac is drawn only by the flat illustrations`
+- verified-by: `DESIGN.md records the palette the app ships`
+- verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+### F598 — The glyphs are the notebook's pen at 2.2, not ICONS.md's at 2
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/glyphs.tsx:42
+- note: Stage 2b of revamp B. `STROKE` becomes 2. Every existing glyph export keeps its name and file and takes its ICONS.md path where one exists (next, back, chevron-right, mic, speaker, lifebuoy, check-circle, clock, language, book, repeat-one, waveform, home, practice, progress, friends, user, and the filled apple and google brand marks); `TutorIcon` becomes the same microphone as `MicGlyph`; the drawings ICONS.md has no match for are kept at the new stroke and listed for retirement with their callers. Fourteen marks the Round 1 boards draw and nothing covered are added to `glyphs.tsx`; `close` and `check` sit in `components.tsx` beside the parts that draw them, to keep the import edge one-way.
+- verified-by: `the one pen is ICONS.md's: STROKE is 2`
+- verified-by: `every glyph is an ICONS.md mark at the one stroke weight or a kept drawing on the retire list, and the tab and the control share one microphone`
+- verified-by: `the brand marks are the only filled glyphs, and they are filled in the mark's own colour`
+- verified-by: `every glyph draws in the one stroke weight and hides from assistive technology`
+
+### F599 — The place scenes are watercolour PNGs, and the B drawings are not in the app
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/art/registry.ts:38
+- note: Stage 2c of revamp B. `scripts/illustrations.mjs` converts the 23 place, state, celebrate and postcard drawings in ILLUSTRATIONS.md into react-native-svg components under `art/flat/`, every hex mapped to a palette token (`lilac` added for illustrations only), with one generated registry, one `Illustration` renderer that spreads `decorative`, and a `sceneIllustration` map keyed by mission id. The missions chooser and the onboarding plan draw one flat scene each in place of the PNGs; then the twelve PNGs, `Art.tsx`, `registry.ts` and `maps.ts` retire and nothing imports `Image`. The six mouth guides wait for Round 3. Drawings no screen reaches yet sit on an exact not-yet-drawn list that Stages 3 and 4 shrink.
+- verified-by: `the flat registry names all 29 drawings, each generated, decorative, still, at its ILLUSTRATIONS.md sizes, and coloured only by tokens`
+- verified-by: `the watercolours are gone: no PNG under assets/art, no Art, no registry, no maps, and nothing imports Image`
+- verified-by: `every scene has a flat drawing of its own, and no two scenes share one`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+- verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
+- verified-by: `the chooser's first card draws its scene through the one illustration at the hero-spot size, and sizes nothing itself`
+- verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
+
+### F600 — The tab bar is paper and ink with Today and My French, not white with a blue Home and Progress
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx:35
+- note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
+- verified-by: `the bar is white with a top hairline, and never a floating shadow`
+- verified-by: `the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected`
+- verified-by: `the five words are Home, Speak, Practice, Progress and Friends, and no route name changed`
+- verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
+- verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
+
+
+### F601 — The first run is the notebook's paper: no blue or sun pages, ledger answers with a Chosen word, a middot on the account button, and a card around the password form
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:305
+- note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list. The recovery route's `OnboardingFlow.tsx` was left unchanged, because swapping its `OptionCard` for `OptionRow` would take the voice samples off; that deferral is F634.
+- verified-by: `a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink`
+- verified-by: `a field error sits beside the alert mark in ink, and is still announced`
+- verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
+- verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
+- verified-by: `a can-do reads as one sentence after "You'll be able to"`
+- verified-by: `the first two pages are blue: story segments, a display headline, the exchange in white and ink, and a round next`
+- verified-by: `the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt`
+- verified-by: `the one-tap answers are option rows that carry their choice as state, never ledger rows with a Chosen word`
+- verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
+- verified-by: `the save page asks with one ink pill and no middot, and the refusal is its own calm page with the frame drawing`
+- verified-by: `the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing`
+- verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
+- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
+- verified-by: `choosing a new password is a working title on paper, with no card and no middot in its header`
+- verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+- verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
+
+### F602 — Home is a white brief on paper with caps meta, a ledger row shape and a blank while loading, not the blue next-scene card, white lists and a sand skeleton
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx:124
+- note: Stage 3, area 2 of revamp B. The tab title is the working title at 30; `SceneBrief` is restyled in place as the one blue next-scene card (meta line, French title, English, can-do sentence, one line, the caller's white Start); `Ledger` and `LedgerRow` become SNIPPETS' white list with hairlines between rows. Home shows sand blocks until storage answers, then leads with exactly one colour card: the blue scene brief with "Start speaking", the blue recall card, or the sun plans card when the trial's minutes are used, read through the same billing call Speak makes. Day one lists where the learner starts with scene marks; afterwards the week sentences with no label, under a slot comment for F609's lifetime count. The review row is a white list row, and today's phrase is a white card with a play disc and "Practise it". There is no weekly day count, no weekday, no rate and no tag.
+- verified-by: `every tab title is the working title at 30, and the greeting is one of them`
+- verified-by: `the scene brief is the one blue card: a meta line, the French title, the English, the can-do sentence, one line to say, and the caller's white Start`
+- verified-by: `a ledger is a white card of rows split by hairlines, each at 60 with a 16 title, a soft detail and a chevron`
+- verified-by: `a scene's minutes read in full, and its meta line joins the label, the minutes and the tutor`
+- verified-by: `the used free minutes lead Home with the plans card, ahead of review and the scene`
+- verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
+- verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
+- verified-by: `Today leads with one colour card: the next scene, the recall card, or the plans card when the free minutes are used`
+- verified-by: `day one lists where the learner starts with a sun dot on the first scene; afterwards the week sentences with no label and a slot for the lifetime count`
+- verified-by: `a Home that has not read its storage yet draws still sand blocks shaped like the page`
+- verified-by: `today's phrase is a white card: the French with a play disc, the English, and Practise it`
+- verified-by: `Home names no weekday, counts no days this week, shows no rate and draws no tag`
+- verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
+
+### F603 — Speak and the live scene are the notebook's: a ledger path, a composite chooser, a centred room with a spinner, text-link controls under a small orb, and a confirm card in the middle
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/ConvoScreen.tsx:1109
+- note: Stage 3, area 3 of revamp B. `ConfirmSheet` becomes a bottom sheet over the ink scrim with staying as the pill; `ControlTile` is appended and `RoundButton` can carry a hint. Speak leads with the tutor card, or what the tutor remembers, then the blue next-scene brief with a white Start (or the offline picture and card), then one path card of the current level's scenes that opens the list. Missions is a list grouped by level with scene marks that opens each brief, and a named scene opens as the blue brief page. The room has a round close with the French title, white and ink bubbles, a 120 orb, three white control tiles with "Give me a moment" and "In English" kept as quiet links, an ink coach mark, the typed field with an ink send disc, and the completion card left-aligned. Connecting and waiting are one full page with the thinking orb and the real stage line and no invented ticks. The guided lesson wears the same frame. Errors draw their state picture with one ink pill; the safety stop, tutor intro and real moment are restyled with their words and gates kept. Four files leave the punctuation allowlist, `state-offline` leaves the not-yet-drawn list, and the place scenes wait on a named list F611 empties. Scoring stays off (F623); no task ticks and no "Why?" link.
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `revamp B Speak preserves real gates, one primary action and the authored scene path`
+- verified-by: `revamp B room controls keep typing, help and leave alongside the real waiting and error states`
+- verified-by: `hear it hides when there is no line the tutor would vouch for`
+- verified-by: `type instead sends a typed turn through the ordinary path mid-scene`
+- verified-by: `the next conversation is the next scene on the spine`
+- verified-by: `both live screens draw the connecting wait from the view model, door included`
+
+### F604 — Practice still wears the notebook: hairline ledgers, a striped review card, the old speak ring, the pen's reward mark and empty states with no drawing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx:304
+- note: Stage 3 of revamp B, the Practice area, 23 boards. Pass 0 finishes the shared parts every area draws. `Ledger` and `LedgerRow` become SNIPPETS' white list, `SpeakCircle` becomes the mint orb, `ScreenHeader` takes a left title, a trailing line and no rule, and `TabBar` gains the underline look. Practice then leads with the sun card, one white recommended card and one list. Review loses its stripe, gains Show me, and gets three equal grades. The drill names its exercise in the header, marks a verdict with a mint tick, and offers the existing typed twin as the primary when there is no microphone. The sound check, phrasebook, library, light day and conversations screens move to the B parts with their own words. The empty states draw `state-notebook` and `state-microphone`. `surface/PhraseCard.tsx` retires. Fix your line, spoken own words, Shadowing and the light day's "counts as a day" are slots, not builds.
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare`
+- verified-by: `the tab keeps exactly one primary pill, whichever day it is`
+- verified-by: `a measured fact appears only when a check measured it`
+- verified-by: `a due production item requires retrieval before its answer is revealed`
+- verified-by: `the review sitting has no microphone and takes no recording`
+- verified-by: `revamp B retrieval and drills preserve attempted recall, honest scoring and the typed twin`
+
+- note: 3 October 2026: the founder-authorised UX reviews supersede the earlier layout/copy assertion. The replacement test retains the underlying useful action, truthful evidence and allowance rule.
+
+### F605 — Progress is the notebook's long ledger titled My French, not one blue level card and one list that counts only things kept
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx:211
+- note: Stage 3 of revamp B, the Progress area: ProgressDayOne, ProgressPopulated and GoalStep. A pure `myfrench/progressRows.ts` decides the tab's doors (phrases, sounds, conversations, each goal, each saved scene) and says them in counts of things kept, never days. `myfrench/LevelCard.tsx` draws the level as the one blue card, with mint, sun and ring marks and the next level's scene count, and opens the scenes. The tab draws the card and one list, plus a day-one card with the one pill, under the title Progress. The inline phrase bank, sounds map and daily and browse rows leave the tab. GoalStep moves to a title, one blue card with a white pill, and a white trail. Postcards, Your week in French, the one weekly line and the lifetime count are slots for F612, F613, F608 and F609.
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `Progress counts kept material and leaves empty shelves absent`
+- verified-by: `Progress keeps each goal and saved scene attached to its own destination`
+- verified-by: `one primary pill opens the suggested mission with the goal step, and says what it costs under it`
+- verified-by: `a lifetime total has no zero, target, reset or penalty for a quiet week`
+- verified-by: `the weekly sentence uses local Monday boundaries and never counts a future date`
+- verified-by: `revamp B Progress opens evidence-based materials, a weekly story and earned postcards without starting audio`
+
+### F606 — Profile and Settings draw their choices as full-screen pages, Profile still counts days this week, and deleting an account never mentions the store subscription
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:229
+- note: Stage 3 of revamp B, Profile, Settings and Legal, 12 boards. The name, voice, reminder-time and clear-memory choices rise as bottom sheets over the screen that opened them, through `Sheet`, `OptionRow` (which gains an optional hear control) and `ConfirmSheet` (drawn through `Sheet`). Selecting chooses and Done closes. Settings rows press through `Press` as SNIPPETS list rows. Switches are brand blue when on. The segmented choice ticks once. Profile stops drawing the this-week rhythm sentence and leaves a slot for F609's lifetime count. The delete page keeps its account as the one pill, puts the permanent step in a link, and adds one sentence reviewed by privacy-safety: a store subscription is cancelled in the store. Legal screens change chrome only. The Pause memory switch is a slot.
+
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `revamp B Profile choices stay over Profile and keep a lifetime count without a weekly rail`
+- verified-by: `the reminder time is chosen from the presets the module owns, on a sheet that takes the screen`
+- verified-by: `revamp B reminder and deletion controls retain explicit choices and explain store cancellation`
+- verified-by: `a lifetime total has no zero, target, reset or penalty for a quiet week`
+
+### F607 — The plans are one ruled card, a purchase ends on a line of text, and the out-of-minutes screens sell inline in notebook cards
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx:192
+- note: Stage 3 of revamp B, the Plans area: WallYours, WallPlans, WallSuccess, WallUnavailable and OutOfMinutes. What stays yours becomes the sun page with one white card of iconed rows, which needs `MouthGlyph` ported. Each plan becomes its own card, the chosen one on the blue ground with a white check. A finished purchase becomes the mint page, with the bought plan's catalogue minutes as the hero and one way to start speaking. The unavailable state draws `state-offline`, Try again and the one restore. Both out-of-minutes branches draw one shared sheet, titled by the refusal's own label, that opens the wall at the declared `refused` door instead of selling inline. The purchase label joins plan and price with a comma. Every number is read from the catalogue or the store. The board's Max figures (450 minutes, about 10 a week) disagree with `meter.ts` (300, about 7) and are flagged for the founder, not shipped.
+- continuation: Code-level implementation independently accepted on 2 October 2026 after 229 focused area checks. The original board slots are superseded by approved implemented follow-ons: lifetime Profile, weekly Progress, counted light-day practice, local shadowing and Max at 300 minutes. The checks below are the actual passing behavior tests and area contracts, replacing proposed names that did not exist. Source contracts are not rendered-device proof; native layout, focus, screen-reader, microphone and store QA remain explicit release HOLDs.
+- verified-by: `the price is the store's own string, character for character`
+- verified-by: `the allowance is the catalogue's, in whole minutes`
+- verified-by: `the cards use the selected state this app already uses, not a radio`
+- verified-by: `a finished purchase names only the refreshed server plan and its catalogue allowance`
+- verified-by: `revamp B out-of-minutes surfaces open the central wall without selling in the room`
+- verified-by: `180 minutes a month is about four ten-minute conversations a week, and Max about seven`
+
+### F616 — Live pronunciation scoring is off, and the only scorer wired is a vendor nobody chose
+- severity: P1
+- status: [x]
+- where: services/shared/pronunciation.ts:1
+- note: captured audio never reaches a scorer (`LUVANI_AUDIO_SCORING` unset), so every live end card reads `unavailable`; the one adapter is Speechace and the founder chose TonePerfect on 2026-09-29. Add a vendor-neutral router chosen by `LUVANI_SCORING_VENDOR` (TonePerfect when its key is set, Speechace otherwise, a named vendor without its key scores nothing), a TonePerfect adapter that goes through `phoneMap` into the same `PhonemeObservation[]`, one shared 5 s deadline, one random Idempotency-Key per call reused on the single retry, and a failure policy where a timeout, refusal, outage or unassessable answer is no score and never a low one. The real response is committed as `services/tutor-agent/src/fixtures/toneperfect-fr.json`; all 18 returned symbols map with none unmapped, and the tutor's own recording deterministically yields no focus. The model is marked experimental. Live-session scoring stays off by the founder's decision of 2026-09-29 until scoring runs off the reply path (see the follow-up entry).
+- verified-by: `TonePerfect is chosen whenever its key is set and nothing says otherwise`
+- verified-by: `LUVANI_SCORING_VENDOR picks the vendor by name, and the audio goes to that vendor's endpoint`
+- verified-by: `a vendor named without its key scores nothing rather than sending audio elsewhere`
+- verified-by: `with no vendor configured, the audio goes nowhere`
+- verified-by: `the request carries the audio, the line, the language and a bearer key, and never the key in the URL`
+- verified-by: `every attempt gets its own Idempotency-Key, and a retry reuses it`
+- verified-by: `a 5xx is retried once inside the same deadline; a 4xx is not retried`
+- verified-by: `an unassessable response means no score, not a low one`
+- verified-by: `a refusal, an outage, a hang and a malformed body all leave the turn unscored`
+- verified-by: `no request is made without a key or without audio`
+- verified-by: `the saved TonePerfect response parses into one observation per scored phone`
+- verified-by: `every symbol TonePerfect returned is in the French inventory, none unmapped`
+- verified-by: `what the learner said instead is kept as the substitution`
+- verified-by: `the fixture is deterministic: same ranking, same weakest sound, no focus to name`
+- verified-by: `a TonePerfect response with a genuinely weak sound reaches a focus point and its drill`
+- verified-by: `the Speechace request honours the shared deadline`
+- verified-by: `nothing in this suite reaches the network`
+- verified-by: `an inline TONEPERFECT_API_KEY assignment is caught as a server-only credential`
+- verified-by: `scoring stays off until it is deliberately turned on`
+
+### F623 — Live pronunciation scoring sits on the reply path and would add three to four seconds a turn
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/tutor.ts:482
+- note: `scoreUtterance` is awaited in `onUserTurnCompleted` before the brain replies, and `grade()` reads the turn's mean at `packages/core/src/session/session.ts:286`, so a live scene would wait for the scorer (3.4 s for a 1.7 s clip in the one TonePerfect call) on top of the brain (4.5 to 5.4 s). By the founder's decision of 2026-09-29, live-session scoring stays off (`LUVANI_AUDIO_SCORING` unset) while drills and sound checks score through the token server. The fix runs scoring alongside the reply and lets the grade read the score when it lands; it touches core session code, which has no specialist by design, so it needs its own contract in Round 2.
+- verified-by: `a live turn's reply never waits for the pronunciation score`
+
+### F624 — Drill and sound-check audio went to TonePerfect labelled as WAV whatever it was
+- severity: P2
+- status: [x]
+- where: services/shared/toneperfect.ts:64
+- note: found by the Stage 5 judge. Drills and sound checks record with expo-audio's high-quality preset, which is AAC in an .m4a container on a phone and WebM on the web, and `/drill/score` forwards those bytes unchanged, but every upload was typed `audio/wav` and named `utterance.wav`. A vendor that trusts the label would refuse the attempt, and a refusal is no score, so drills would have gone quietly unscored. `sniffAudio` now reads the container from its first bytes (WAV, M4A, WebM, OGG, MP3, else `application/octet-stream`) and the upload carries that type and a matching filename.
+- verified-by: `a drill recording is sent to TonePerfect labelled with the format it was recorded in`
+
+### F625 — The drill judge sends a learner's French to the language model and to TypeSafe, and the policy names neither
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:152
+- note: found by the privacy-safety-engineer during Stage 5; it came in with the Jev merge and predates revamp B. `POST /drill/judge` (`services/token-server/src/server.ts:478`) hands the learner's own-words drill attempt and the target to the language model vendor, while the policy's vendor section ends "Nothing more about that session reaches any of them after that" and names no drill judging at all. When `TYPESAFE_API_KEY` is set, `brainClientFromEnv` (`packages/brain/src/llm/factory.ts`) wraps the brain in `JevFirstBrainClient`, so the same attempt also reaches TypeSafe first, and neither the policy nor `docs/PRIVACY_AND_SAFETY.md` names TypeSafe at all. `docs/PRIVACY_AND_SAFETY.md` does not describe the route either. The fix is a sentence in both naming the language model and TypeSafe, owned by privacy-safety-engineer, plus the regenerated legal HTML; no code changes. It must land before production.
+- verified-by: `the policy says a drill answer in your own words is read by the language model and by TypeSafe`
+
+### F626 — A drill score request puts the learner's id and the line in the URL
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/speech/scoreAttempt.ts:30
+- note: found by the privacy-safety-engineer during Stage 5; it predates revamp B. `scoreRecordedAttempt` calls `/drill/score?userId=…&reference=…`, and a query string is what proxies, hosting access logs and crash reports record by default. The line can be the learner's own corrected sentence (`packExercisesFor`), so it is personal. Move both into request headers or a small JSON envelope, and have the server refuse the old query form; the server change belongs to backend-engineer and the call site to practice-ux-engineer.
+- verified-by: `a drill score request carries no learner id or line in its URL`
+
+### F627 — The busy-auth pin still asks a disabled ghost for inkFaint, so F152 fails on the contract's inkSoft
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/busyLabel.test.ts:140
+- note: found by the Stage 2 pass A judge. Revamp B stage 2 (F597) made GhostButton default to `color = paper.ink` and draw `disabled ? paper.inkSoft : color`, as the contract says. The pin still matched `/disabled \? paper\.inkFaint/`, so the F152 test failed and the ticked P1 F152 reopened in the gate. Forgot password passes no colour, so it is ink when live and soft ink when busy, which is the intent. The pin now matches `/disabled \? paper\.inkSoft : color/` and a second pin, `/color = paper\.ink,/`, keeps the live and busy colours apart. components.tsx needed no change.
+- verified-by: `forgot password cannot be tapped while the screen is busy`
+
+### F628 — The F152 hand-off pin still asks GhostButton for the opacity flash the press spring replaced
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:922
+- note: found by the Stage 2 pass A judge. F597 moved GhostButton onto `<Press haptic="light" style={s.ghost} disabled={disabled} ...>` and deleted its opacity pressed state, as the contract says. A disabled Pressable never fires onPressIn, so a disabled ghost neither shrinks nor flashes. The pins still matched `/pressed && !disabled/` and `/disabled \? paper\.inkFaint/`, so the test failed. They now match `/<Press haptic="light"[^>]*disabled=\{disabled\}/` and `/disabled \? paper\.inkSoft : color/`. components.tsx needed no change.
+- verified-by: `a ghost button can be turned off, and looks it`
+
+### F629 — F309's chevron allowlist does not know the shared header's back mark now lives in RoundButton
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/surfaceContract.test.ts:1014
+- note: found by the Stage 2 pass A judge. F597 moved ScreenHeader's way back into `RoundButton kind="back"` in components.tsx, which draws `<ChevronLeft size={24} ...>`, and layout.tsx no longer draws a chevron. CHEVRON_ALLOW was still `['layout.tsx', 'friends/AddFriendsScreen.tsx']`, so the F309 test failed and the ticked P1s F309 and F357 reopened. 'layout.tsx' is replaced by 'components.tsx', commented as RoundButton's back mark, which ScreenHeader draws. The same ADOPTERS loop now also refuses any `<RoundButton>` tag with `kind="back"`, whatever the attribute order, because the round back carries its own chevron and its own default Back: without that, a screen could put a second way back beside ScreenHeader with no chevron and no literal Back, and the test would stay green.
+- verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
+
+### F630 — F409 counts a Pressable in LedgerRow, which now presses through one Press
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.test.ts:486
+- note: found by the Stage 2 pass A judge. F597 made LedgerRow `<Press haptic="light" style={ls.row} disabled={disabled} ...>`, which renders one Pressable, so the row is still one target. The pin counted `/<Pressable\b/` in the LedgerRow region, got 0 instead of 1, and the F409 test failed, reopening the ticked P1s F409 and F436. It now counts `/<Press\b/` with the expected value kept at 1, and `assert.doesNotMatch(ledger, /<Pressable\b/)` keeps a second target beside the spring failing.
+- verified-by: `home and tutor wrap every line, cap no reading size, and keep every row at the touch floor — F409`
+
+### F631 — Home's touch-floor walk reads only Pressable tags, so it goes blind when rows move onto Press
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.test.ts:466
+- note: found by the Stage 2 pass A judge; not a defect of revamp B stage 2. The F409 loop checks that every tappable row under home/ declares minHeight: HIT, but it walks only `tags(body, 'Pressable')`. Stage 3 moves Home onto the B parts, which press through `Press`. A `<Press style={st.row}>` with no floor would then pass unseen. Walk `tags(body, 'Press')` as well; `<Press\b` does not match `<Pressable`.
+- verified-by: `every tappable row on Home declares the touch floor, whether it presses through Pressable or Press`
+
+### F632 — Seven lines still send the learner to My French, which the tab bar now calls Progress
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/settings/sections.ts:114
+- note: found by the Stage 2 pass B judge. F600 renamed the tab to Progress and F605 retitles the screen, but RecapScreen.tsx:178,181, settings/sections.ts:114, conversationPacks/ConversationPackLibrary.tsx:204, daily/DailyCard.tsx:59, profile/tutorMemory.ts:54 and tutor/TutorIntro.tsx:115 still tell the learner their phrases are saved in or managed in My French. After F605, no tab or title says My French, so a learner who looks for it finds nothing. Reword each one to Progress, or to the phrasebook where that is the real destination, in the same change as F605.
+- verified-by: `no learner-facing string names My French once the tab and its title say Progress`
+
+### F633 — The under-13 refusal is said to last the session, but leaving through "I have an account" and back starts it fresh
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:252
+- note: `underAge` is `useState(false)` inside PreAccountOnboarding, so it lives only while that screen is mounted. Refuse on save, go back five pages to hear-it, tap "I have an account" (App.tsx:530 discards the draft), tap SignIn's back (auth/AuthFlow.tsx:39 remounts the welcome with `underAge` false), walk the six pages, and "I am 13 or older, create account" is offered again in the same launch. Yet PreAccountOnboarding.tsx:18 and :252-255, firstRun.test.ts:238 and docs/ONBOARDING.md:37 and :129-130 say it stays for the session or until the app is closed. Not a regression (before F601 any page move reset it), but the words overclaim a minors safeguard. Fix the words to say that moving between the pages does not undo it, that leaving through "I have an account" starts the first run fresh, and that closing the app reopens the save page with the question asked again, the same close-the-app escape the age gate keeps for a mis-tap (corrected by F638: this note first said closing the app starts the first run fresh, which it does not). Whether it should hold for the whole launch is the founder's call, filed as F637.
+- verified-by: `the onboarding doc says what undoes the under-13 refusal, and promises no more than the screen holds`
+
+### F634 — OnboardingFlow's OptionCard was to become OptionRow in F601, and was left without a word
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:351
+- note: F601's contract says "`OptionCard` becomes `OptionRow`. Nothing else changes." It was not built. A straight swap is not possible: OptionRow has no hear control, and the voice step's cards carry `onHear` and `playing={playing === option.value}`, which F355's test pins, so the swap would take the voice samples off the recovery route. The same file keeps `question: { ...type.display }` at :415, against F601's done-when that `type.display` appears in onboarding/ only on hear-it, first-line and FirstScene. Done when OptionRow can carry a sample (a design-system change) and the voice step uses it with F355 still passing, and the question is a working title.
+- verified-by: `the recovery route's voice step is option rows that still sound their sample`
+
+### F635 — The microphone refusal tells an Android learner to find a switch Android does not have
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/micPrimer.ts:57
+- note: `PRIMER_REFUSED_HOW` reads "In Settings, open Luvani and switch on Microphone, then come back here." That is iOS. `PHONE_SETTINGS_AVAILABLE` is also true on Android (settings/phoneSettings.native.ts:57), where `Linking.openSettings` opens Luvani's app page and the microphone is an allow choice under Permissions, not a switch. The words came from the F601 contract, so this is a copy fix, not a build miss. Use "In Settings, allow Luvani to use the microphone, then come back here." and move the value pin in micPrimer.test.ts. No Platform branch in the view model.
+- verified-by: `the microphone refusal says how to turn it back on in words that are true on iOS and Android`
+
+### F636 — The age check's quiet line promises "you carry on", which is true for only one answer
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/answers.ts:118
+- note: `AGE_RETURN_NOTE` was "One question, then you carry on where you were." A learner who taps "I am younger than that" does not carry on; they get AgeRefusal and sign out, and AgeGateScreen drew the line with no condition, so it sat directly above the refusal and was false on the screen that refused them. On an age screen a line that says which answer continues also leans away from a neutral question (FTC COPPA guidance: an age screen should not encourage a false age). Raised to P1 by the F601 judge: a known-false line on the minors gate. Fixed in F601: the line is now "It is one question.", true for both answers, and AgeGateScreen draws it only while `oldEnough !== false`, so once refused the refusal is the only line under the sub. The equality pin in answers.test.ts moved to the new value. AGE_RETURN_TITLE, AGE_RETURN_SUB, AgeRefusal and the footer are unchanged; whether a stated 13+ yes or no is itself a neutral screen is for the founder and legal.
+- verified-by: `the age check's quiet line is true whichever answer the learner gives`
+
+### F637 — Founder question: should the under-13 refusal hold for the whole launch, across the sign-in detour
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/AuthFlow.tsx:39
+- note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
+- verified-by: `the under-13 refusal holds across the sign-in detour for the rest of the launch`
+
+### F638 — The under-13 refusal's words say closing the app starts the first run fresh, but a relaunch reopens the save page with the pill live
+- severity: P1
+- status: [x]
+- where: docs/ONBOARDING.md:130
+- note: found by the F601 judge, confirming the privacy-safety review. F633's fix wrote "closing the app, or leaving through \"I have an account\", starts the first run fresh" into docs/ONBOARDING.md and the comment in onboarding/PreAccountOnboarding.tsx, and firstRun.test.ts pinned it. Closing the app does not start the first run fresh: "Save my plan" writes page 'save' to the draft, which App.tsx saves to the device, and "I am younger than that" writes nothing, so a relaunch reopens the save page with the question asked again. That matches HEAD and the age gate's close-the-app escape, so the words are the defect, not the code. Whether a refusal should clear the draft is a founder question (F639). Superseded by F639: a refusal now clears the draft, so a relaunch starts at the first page with nothing kept.
+- verified-by: `the onboarding doc says a relaunch after the under-13 refusal starts at the first page with nothing kept`
+
+### F639 — Founder question: should an under-13 refusal clear the saved first-run draft, so a relaunch starts at the first page and keeps no first name
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:662
+- note: found by the privacy-safety review of F601. The refusal writes nothing, so the draft saved by go('save') keeps page 'save' and any first name the child typed on the device (never sent), and a relaunch reopens the save page with the pill live. Clearing the draft on refusal removes data about a minor rather than storing any. It overlaps F637, so decide both together. A founder and legal call, not a build miss. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
+- verified-by: `a refusal on the save page clears the saved draft, so a relaunch starts at the first page and keeps no first name`
+
+### F640 — The canvas sells Max as 450 minutes a month, but the plan the code sells is 300 at $29
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/meter.ts:50
+- note: founder decision, 2026-09-30. The approved canvas sells Max as "450 minutes a month, about 10 conversations a week". `PLANS.regular` grants `300 * 60`, which the wall rounds down to about 7. Store prices, Starter (180 minutes) and the free trial (30 minutes) do not change. Filed and not built, because at $29 the 450 minutes are the allowance 202609100001 removed for losing money. Measured from DEFAULT_COST_MODEL at full use, 450 minutes cost $26.01 to serve against $24.65 net after the 15% Small Business fee, a worst-case margin of -5.5% (-28.1% at the standard 30% rate, +10.3% before any store fee). 300 minutes leave 29.7%. Setting the constant to 450 at $29 fails four margin floors in meter.test.ts. Those floors stay unless the founder signs off on the negative number. Two more things block it. Nine files under supabase/ (five migrations, four rollbacks) hold 18000, and a new forward migration has to replace consume_entitlement (data-engineer's work). And PLANS at 450 against a database that clamps seconds_used at 18000 would leave every Max learner with 150 minutes forever, which is unlimited Max. The founder needs to pick one of three: 450 at $39, the plan before 10 September (21.5% worst case after the Small Business fee, every floor passes, and the App Store tier moves too); 300 at $29, with the canvas saying about 7; or 450 at $29, with -5.5% written into the contract. The wall's minutes and conversation count come from the catalogue, so no copy changes. Only the wall test's pin moves from 7 to 10. Answered by the founder on 2026-09-30, once the loss was shown: 300 minutes at $29 stays, so nothing in code or data changes, and the Plans screens (F607) show 300 minutes and about 7 conversations a week. The two tests below keep the plan and its margin where the founder left them.
+- verified-by: `both paid plans clear twenty percent worst-case margin after the small business store fee`
+- verified-by: `the atomic debit uses the same plan limits as core`
+
+### F641 — A sign-in and sign-out in the same launch ends the under-13 refusal, offers the pill again and saves the first-run draft again
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/AuthFlow.tsx:60
+- note: found by the judge of the F637/F639 stage, confirming the privacy-safety review. The refusal lives in AuthFlow's `useState(false)`, and Gate (App.tsx) unmounts AuthFlow while anyone is signed in. Refuse on save, then 'I have an account', then Google or Apple, which creates a new account. OnboardingFlow asks the age question, 'younger' signs out through AgeRefusal, and a new AuthFlow opens on hear-it with the pill live after six pages. keep writes the draft, first name included, back to the device. The founder's answer (2026-09-30) was the whole launch, and ONBOARDING.md and PRIVACY_AND_SAFETY.md say nothing is saved again in that launch. Move the refusal up to Gate, which stays mounted for the launch and already holds state that crosses the auth door (`preAccountDraft`, `localCopyKept`). Use `const [preAccountRefused, setPreAccountRefused] = useState(false)` and a `refusePreAccount` that sets it and calls `discardPreAccountDraft`. Pass `refused` and `onRefuse` to AuthFlow as required props, and drop AuthFlow's own useState. Keep it in memory only. Pin that nothing calls `setPreAccountRefused(false)` and that the value never reaches a storage call. Also check `refused` before `onCreateAccount(draft)` in AuthFlow's save-page handler, so the write never runs ahead of the one door. Replace 'Signing in ends the first run, and the refusal with it' with 'Signing in and out again does not end it; only closing the app does' in docs/ONBOARDING.md, docs/PRIVACY_AND_SAFETY.md and AuthFlow's header comment, and move the regex pins in authFlow.test.ts and firstRun.test.ts with them. Tradeoff to state: on a shared phone, an adult who signs out later in that launch lands on the refusal page until the app is reopened. If the lead would rather let a sign-in end the refusal, that narrows the founder's answer and has to go back to the founder. The four sentences above must then say 'until someone signs in or the app is closed'.
+- note (fix, auth-engineer): built as filed. Gate holds `preAccountRefused`, set only by `refusePreAccount`, which also runs `discardPreAccountDraft`; AuthFlow takes `refused` and `onRefuse` as required props and keeps no copy; the save page's handler writes the draft only when not refused. The tradeoff is stated in Gate's comment, docs/ONBOARDING.md and docs/PRIVACY_AND_SAFETY.md. policy.test.ts's pin on `onRefuse={discardPreAccountDraft}` moved to `onRefuse={refusePreAccount}` plus the discard inside it, same intent.
+- verified-by: `the under-13 refusal outlasts a sign-in and sign-out in the same launch, and is still memory only`
+- verified-by: `the onboarding and privacy docs say a sign-in and sign-out does not end the under-13 refusal before an account`
+
+- note (independent review, 2026-10-02): user-authorized gpt-6-sol reviewed the real diff and accepted the launch-held refusal plus the serialized draft clear. The delayed storage regression proves that an already issued save finishes before removal and queued answers are invalidated. Native launch/relaunch still needs device evidence.
+- verified-by: `refusal clears a pending draft and wins over already queued answers — F641`
+
+### F642 — The privacy notice says the app asks the age question once, but a relaunch after a refusal before an account asks again
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/legal/policy.ts:214
+- note: found by the judge of the F637/F639 stage. policy.ts:135 says 'the app asks once' and :214 says 'The app asks once, in plain words, and takes the answer.' PRIVACY_AND_SAFETY.md:560 says 'Onboarding asks once'. Since the founder's 2026-09-30 decision, a relaunch after an under-13 answer before an account asks again, and the doc's Not true yet table says so. Proposed wording, which needs founder sign-off because it is legal copy: :135 'Your answer to the age question. It is a gate rather than a detail we file, and Luvani is for learners of thirteen and over.' :214 'Luvani is for learners of thirteen and over. The app asks in plain words and takes the answer.' Regenerate dist/privacy.html through html.ts, and change PRIVACY_AND_SAFETY.md:560 to match.
+- verified-by: `the privacy notice's age section does not promise the question is asked only once`
+
+### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/WallYoursPage.tsx:68
+- note: found by the F602 judge. `Ledger` now draws one hairline between its rows (components.tsx), but `WallYoursPage.tsx` (`st.ruled`) and `myfrench/PhraseBank.tsx` still give each row its own bottom border, so inside the white card they show two rules between rows and a stray rule under the last. The Wall's Yours page is where Home's "See the plans" lands. Take the row's own border off so the list's rule is the only one: the Wall in F607, PhraseBank in F605 (or leave it if F605 stops drawing it).
+- verified-by: `a row inside the white list draws no rule of its own, so the list's hairline is the only one between rows`
+
+### F651 — A trial with under two minutes left leads Home with Start, and only the token server says there is not enough time
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/nextAction.ts:1
+- note: found by the revenue review of F602. `homeActionFor` leads with the plans card only when the trial's reason is `exhausted`. A trial with 1 to 119 seconds left reports `insufficient-for-session`, so Home leads with the blue Start and the server then refuses the session honestly. Decide in F607 whether that state leads with the plans card too, and walk the boundary loop over `Object.keys(PLANS)` rather than a hand-written list so a new plan is covered.
+- verified-by: `a trial with too little time for a session leads Home the way the plans pass decides, and every plan in the catalogue is walked`
+
+### F652 — Closing Fix your line during authentication can start a recording upload after exit
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/speech/transcribeAttempt.ts:8
+- note: The authorized Sol reviewer found that session disposal only fenced the returned transcript. A take waiting for authHeaders could still POST after the sheet closed or the app backgrounded. The repaired session passes cancellation and its current ticket through transcription; the client races cancellation/12s deadline across auth, checks before sending, aborts in-flight fetch, and retains caller-finally cleanup. Held headers, held upload and stalled auth deadline tests pass. No spoken accuracy or native proof is implied.
+- verified-by: `closing a correction sheet during authentication starts no late audio upload and discards the take`
+
+### F653 — Saved-audio manifest cancellation can replace its database deadline
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudioSource.ts:11
+- note: Sol found that a supplied cancellation signal replaced the helper's 5s timeout. Both now combine via a shared Node AbortSignal.any deadline for the two reads. The held-read regression observes TimeoutError without mutating caller cancellation. Sol independently ran the ten bounded source/config checks and accepted this repair. This helper does not authorize billed generation.
+- verified-by: `a caller-cancelled saved-audio lookup still has a database deadline`
+
+### F654 — An accepted uppercase saved-audio locator is not used in its canonical form
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudioSource.ts:8
+- note: Sol found that the strict public parser lowercased UUIDs but the manifest helper ignored its parsed value. The canonical parsed locator now governs both owner-scoped reads, identity comparisons and index selection; no case-insensitive phrase matching is introduced. Sol independently ran the ten bounded source/config checks and accepted the uppercase-locator regression.
+- verified-by: `a valid uppercase saved-audio locator resolves its canonical owned pack`
+
+### F655 — dynamic tutor-audio redirects could forward server secrets
+- severity: P1
+- status: [x]
+- where: services/token-server/src/phraseAudio.ts
+- note: found by authorized independent Sol review, 2 October 2026. Provider and database fetches followed redirects with custom secret headers. Refuse redirects at every new credential-bearing request.
+- verified-by: `saved tutor audio refuses credential-bearing redirects before another origin can receive them`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F656 — source deletion or subscription lapse after reservation could still dispatch saved audio
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudio.ts
+- note: found by authorized independent Sol review, 2 October 2026. Recheck owned ready/completed source, exact selected French and current entitlement immediately before dispatch; document the unavoidable post-check race.
+- verified-by: `saved audio dispatch gate refuses changed source completion and entitlement`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F657 — a higher verified rate could dispatch against an earlier cheaper reservation
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261002212536_kept_phrase_audio_budget.sql
+- note: found by authorized independent Sol review, 2 October 2026. Matching fingerprints do not version billing bounds. Change rate revision on every update; carry it in reservation and require it at dispatch.
+- verified-by: `a changed saved-audio billing revision cannot use an older reservation`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F658 — tiny response chunks could grow saved-audio overhead beyond its byte bound
+- severity: P2
+- status: [x]
+- where: services/token-server/src/phraseAudio.ts
+- note: found by authorized independent Sol review, 2 October 2026. Use one bounded PCM buffer and nonblocking reader cleanup.
+- verified-by: `saved tutor audio bounds fragmented PCM and does not await stalled cleanup`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F659 — A saved-audio reservation can dispatch after its charged budget period ends
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261002212536_kept_phrase_audio_budget.sql:103
+- note: found by independent Sol revision review. Bind dispatch to the reserved global/paid window starts and deadline, with headroom for its bounded request. Refuse late calls without refunds.
+- verified-by: `saved tutor audio refuses dispatch outside its reserved budget period`
+- note (verification): authorized Sol independently reran 27 focused checks, token-server typecheck and the actual disposable sequential SQL proof; accepted the bounded backend repair. Hosted concurrency and real vendor/billing timing remain unverified.
+
+### F660 — A kept-audio URI can return after auth changes but before storage scope updates
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/phrases/phraseAudioClient.ts:39
+- note: found by independent Sol mobile review. Recheck auth session ownership after cache reads, generated response and disk writes, before returning a URI; remove newly committed audio on failed ownership.
+- verified-by: `auth changes before scope updates cannot return cached or newly generated tutor audio`
+- note (verification): authorized Sol independently ran 46 mobile and 27 server checks, mobile typecheck and the disposable sequential SQL proof, accepting the bounded repair. Physical playback/files, hosted concurrency and actual voice billing remain unverified.
+
+### F661 — Untagged TTS frames and opening speech can masquerade as a scene reply's latency
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:207
+- note: found by authorized independent Sol design review for Report 34. The first-audio hook marks the current mutable record and every speaking transition rotates it. Remove false attribution and measure confirmed spoken scene EOU-to-guarded-say through immutable per-input records. Report first audio and phone audibility as unmeasured until a supported correlated/device seam is verified.
+- verified-by: `queued scene timing keeps its own speech end and omits failed or missing samples`
+- verified-by: `only a confirmed spoken scene reply owns its latency record`
+- note (verification): authorized Sol independently ran 161 scene/conversation/safety checks and tutor-agent typecheck after F662 repair. Worker dispatch only; no first-audio or phone-audible latency is claimed.
+
+### F662 — A delayed turn callback can borrow the next utterance's end time
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/sceneReplyTiming.ts:72
+- note: found and reproduced by authorized independent Sol review. EOU at 100ms, next speech starts and ends at 200ms, first callback begins and dispatches at 240ms: the collector reports 40ms for the first input rather than 140ms. Preserve an ambiguity marker across a new speech start or multiple end marks until the pending callback consumes it; censor instead of assigning the newer EOU.
+- verified-by: `ambiguous speech boundaries are missing rather than falsely fast samples`
+- note (verification): the regression was reproduced red before repair. Authorized Sol independently accepted the pending-boundary count/ambiguity fence, third-boundary censoring, typed invalidation and fresh recovery after 161 scoped tests and tutor-agent typecheck.
+### F663 — A voice-only model migration also moves written judges through the shared fast-model default
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:289
+- note: found by authorized independent Sol review. The founder requested GPT-6 Luna for the voice tutor. Shared turnModel also serves curate and judge, so the initial change unintentionally moves own-words and Fix your line judging without calibration. Add a live-only model setting while preserving the fast written model and analyst roles. Preflight and SDK must use the same live resolver; keep legacy explicit overrides compatible.
+- verified-by: `a live-only Luna migration preserves curated practice and written judges on their existing model`
+- review: Authorized independent gpt-6-sol accepted the live-only repair, 114 focused tests and brain/worker typechecks. Live turn/frame use GPT-6 Luna; curate/judge retain GPT-5.6 Luna; extraction/drills retain Terra. No worker restart, deployment or teaching/latency proof claimed.
+
+### F664 — A blank live override can disagree with preflight and send an empty model
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:80
+- note: The factory passes the environment's live model as config, where null coalescing accepts an empty or whitespace string. Preflight trims the same setting and reports the valid default instead. Normalize config overrides in the canonical resolver so both paths choose the same actual model.
+- verified-by: `blank live config matches the worker preflight model rather than sending an empty model`
+- review: Independent Sol accepted resolver trimming and override priority; 90 scoped tests and brain/worker typechecks passed.
+
+### F665 — Blank written and analyst overrides pass preflight but send empty runtime models
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts:224
+- note: Found and reproduced by independent Sol review of F664. Factory passes blank environment values as constructor config, bypassing its trimmed process-env fallback. Normalize config turn/analyst values too so preflight and actual Responses requests agree for all three roles.
+- verified-by: `factory blank model overrides preserve all three preflight defaults on actual requests`
+- review: Independent Sol accepted the actual factory/request regression, 91 scoped tests and both affected typechecks. All three blank override paths now agree with startup defaults.
+
+### F666 — Failed-session settlement lacks a capped, idempotent refund proof
+- severity: P1
+- status: [x]
+- where: services/token-server/src/store.ts
+- note: Report 2 change 36, founder-approved policy. Record actual charged delta, not requested seconds; restore it once on a service-owned failure. A failure-before-debit tombstone blocks late charging; owner mismatch cannot credit anyone.
+- verified-by: `a failed session returns only its actual charge once and blocks a late debit`
+
+### F667 — A late session report can debit a renewed allowance
+- severity: P1
+- status: [x]
+- where: services/token-server/src/server.ts:402
+- note: Bind signed session IDs to a service-owned issued allowance epoch before returning credentials; every callable non-null consume path checks it. Failure or ordinary reports from an old epoch cannot consume the next period. Use one entitlement-first lock order and drain old writers on deployment.
+- verified-by: `a session from an earlier allowance cannot consume or refund a new period`
+
+### F668 — File-backed session idempotency disappears on restart
+- severity: P1
+- status: [x]
+- where: services/token-server/src/store.ts:187
+- note: Balance and refund/charge/grant proof must be persisted in the same atomic file replacement. A restart must preserve both debit and failure tombstones. Do not acknowledge a refund when its durable write failed.
+- verified-by: `a restarted file store preserves the failed-session tombstone and restored balance`
+
+### F669 — Refund intent is not confirmed settlement
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/usage.ts
+- note: Return a typed server acknowledgement; transport failures remain pending/reconcilable and never claim usable minutes restored. Historical reversals must not be described as current-period credit.
+- verified-by: `a failed refund request stays pending until an explicit settlement acknowledgement`
+
+### F670 — Ordinary exits and recoverable errors must not become service refunds
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:328
+- note: Only recognized terminal live SDK failures with the learner present can mark a service-failure end. Exclude recoverable/quiet-irrelevant errors, errors after finish, manual leave, safety, time limits and post-session enrichment. A terminal typed fallback starts a new grant rather than reusing the closed room.
+- verified-by: `only an unrecoverable live pipeline failure can end a session for refund`
+
+### F671 — A refund can falsely restore an expired paid allowance
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261002233520_failed_session_refunds.sql:97
+- note: Independent Sol review: refund must apply the existing lazy paid-lapse transition while holding the entitlement lock before classifying the issued epoch. Without it, an expired paid allowance is described as usable restored minutes until the next read lapses it.
+- verified-by: `an expired paid refund without an intervening entitlement read is historical`
+
+### F672 — Missing legacy refund proof never reaches reconciliation
+- severity: P2
+- status: [x]
+- where: services/token-server/src/store.ts:442
+- note: Sol review: only a controlled missing-grant/legacy-charge SQL error may become a typed 409 reconciliation acknowledgement; transient database/transport errors remain pending. Do not acknowledge a restoration or guess legacy credit.
+- verified-by: `the agent-authenticated settlement route distinguishes reconciliation from retryable failure`
+
+### F673 — Synchronous failure publishing can skip terminal settlement
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:369
+- note: Sol review: the notice publisher is evaluated before Promise.resolve, so a synchronous encode/publish failure bypasses the settlement finally. Invoke inside the promise chain and await the finish path before disconnecting. Optional chaining itself is safe when no local participant exists.
+- verified-by: `terminal settlement still runs if publishing its failure notice throws`
+
+### F674 — Concurrent scripted finishes can disconnect before settlement acknowledgement
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts:563
+- note: A second terminal SDK callback can reach finish while the first awaits settlement; an ended-only no-op lets the second disconnect before the first acknowledgement. Share the in-flight finish promise, as the conversation worker already does.
+- verified-by: `concurrent scripted finishes await one acknowledged service settlement`
+
+### F675 — A corrupted refund ledger must not reset the local allowance
+- severity: P2
+- status: [x]
+- where: services/token-server/src/store.ts:291
+- note: A missing development fixture may start empty; an existing malformed ledger must fail closed rather than forget grant/charge/refund tombstones. Critical persistence failures must reject without acknowledging a refund.
+- verified-by: `a corrupt refund ledger fails closed and a failed write cannot acknowledge a refund`
+
+### F676 — Approved phrase-audio spending limits need hard ceilings
+- severity: P2
+- status: [x]
+- where: supabase/migrations/20261003001510_approved_phrase_audio_caps.sql
+- note: Founder approved $0.02 lifetime trial, $0.20 paid account per anchored thirty days and $10 global per anchored thirty days. Apply upper-bound constraints without resetting spends/anchors, force generation off and seed no vendor rates. Approval alone does not verify actual chosen-voice billing or playback.
+- verified-by: `approved phrase audio caps remain hard ceilings with generation disabled`
+
+### F677 — Terminal typing recovery must name the new session
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/LiveErrorView.tsx
+- note: Sol review: a terminal room has ended, so its typing door starts a new grant. Label it Start a typed conversation rather than Continue by typing; keep pending/reconciliation blocked. Healthy quiet transitions retain the same-room label and flow.
+- verified-by: `terminal typing recovery names a new conversation while healthy quiet mode continues`
+
+### F678 — Can-do quotes must not claim evidence from an assisted replay
+- severity: P2
+- status: [x]
+- where: packages/core/src/canDoEvidence.ts
+- note: Sol design review: lifetime earned progress can stay earned after an assisted replay. Optional quoted proof must require this session's independent first complete mission win and exact accepted worker source; arbitrary history or last-line guesses are not evidence. Jev probability validation, public recipient disclosure and real French calibration are required before enabling.
+- verified-by: `can-do evidence is bound to the current independent finish and exact accepted learner source`
+
+
+### F679 — Correction-specific Jev passes must never use the paraphrase question
+- severity: P2
+- status: [x]
+- where: services/token-server/src/fixLineObserver.ts
+- note: Report 2 requires a distinct Noul on original, better and retry, at 0.9. Only an accepted repair skips the brain; below threshold, malformed, provider failure or timeout must preserve the existing brain request. The feature needs a reviewed real-French artifact before activation and a separate public recipient purpose. Unit fixtures are not calibration.
+- verified-by: `a correction-specific Noul may remove one brain call but never change its fallback request`
+
+### F680 — Live correction reasons need exact provenance and authored copy
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/correctionReason.ts
+- note: Report 2 and independent Sol design review require closed authored reasons, a calibrated Choice probability, exact published correction identity and confirmed input source. Never explain an invented quote or reuse a late result for a newer correction. No threshold artifact exists, so the new purpose stays dark.
+- verified-by: `authored correction reasons require exact current learner recast provenance`
+
+### F681 — A cancelled TypeSafe request must not retry after its wait
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/typesafe.ts:167
+- note: Independent Sol design review found systemOne waits after 429/529 and then invokes send without an explicit cancellation check. An optional request cancelled during the wait must dispatch no second request, even with a transport that ignores AbortSignal.
+- verified-by: `an aborted TypeSafe retry wait sends no second request`
+
+### F682 — Optional usage arriving after finish needs a session-linked correction
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:1162
+- note: Independent Sol reproduced the accounting window: a cancelled optional provider can return after the one-time session summary. Its usage mutates in-memory counters but the operator's final total omitted it. Emit a session/activity-linked late total without learner text or a stale wire result. Learner minute charging is unaffected.
+- verified-by: `late optional reason usage updates the session-linked total after finish`
+
+### F683 — Recognition confidence is lost before the tutor sees the transcript
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2088
+- note: Report 35 asks to read recognition confidence. SDK final SpeechEvents carry it but session transcription events do not. Both public sttNode hooks must observe numeric confidence without retaining words, changing decisions or interrupting recognition. Missing/invalid confidence remains unavailable rather than zero.
+- verified-by: `both live agent hooks observe final recognition confidence without changing events`
+
+### F684 — The voice lifecycle harness reads the old balance-file shape
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/verify/voiceLifecycle.ts:533
+- note: The no-vendor live token/room run passed admission and lease checks but three balance assertions read undefined. FileEntitlementStore now writes version 2 with nested entitlements. The harness must read actual current and legacy balances and reject unsupported/corrupt shapes, preserving its debit assertions and explicit agent skips.
+- verified-by: `the lifecycle proof reads the actual versioned balance file and rejects corrupt snapshots`
+
+### F685 — Recap has no private tutor-versus-practice comparison
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx
+- note: Report 2 item 11 needs the selected tutor beside a fresh clearly labelled learner practice clip, without keeping live audio. Founder approved a fresh local take deleted on exit. Pending permission, recorder preparation and stop must also be invalidated and their late files removed on account reset, blur, background and unmount.
+- verified-by: `a recap clip arriving after exit is discarded and cannot become playable`
+
+### F686 — Walk mode needs an explicit start and terminal interruption boundary
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/walk
+- note: Report2 asks for hands-free background conversation on ink, without a typed twin. Founder approved lock continuation within existing caps, ending on phone call/audio interruption. Reuse the live grant and departure paths; unsupported platforms/native module failures must refuse before any grant, subscribe before start, never resume after interruption. Keep default dark until native/backend baseline passes.
+- verified-by: `Walk subscribes before starting and an interruption ends exactly once`
+
+### F687 — Exiting after room connection but before tutor arrival strands the lease
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts
+- note: Independent Walk review found leave/unmount clear the absent-tutor watchdog after start returns, but lease release is local to start. Retain attempt-owned lease cleanup through exit; observe tutor arrival before UI ownership checks and around disconnect. Never release a joined worker or newer grant, or an unsuccessfully disconnected room. Client-only observation still has a distributed race with a server join after final observation.
+- verified-by: `a tutor arriving during held disconnect keeps its own lease`
+
+### F688 — Guarded scene replies still have no exact correlated worker first-frame observation
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts
+- note: Report34 needs first-audio timing. Existing numeric EOU-to-say is narrower. Independent SDK review identified public default ttsNode's ordered frame stream as an exact worker boundary. Per-reply ALS token and returned handle identity must prove attribution; opener/replay/unknown audio cannot be assigned to a mutable current turn. Experiment remains dark until actual queued SDK correlation proof. No claim of phone audibility or unguarded partial model streaming.
+- verified-by: `a first frame is attributed only to its guarded dispatch scope`
+
+### F689 — Native microphone permission promises sound assessment while live scoring is off
+- severity: P2
+- status: [x]
+- where: apps/mobile/app.json
+- note: Simulator preparation found the microphone permission says it identifies sounds to work on, even when this build has live scoring disabled. Describe spoken conversations and deliberately requested practice recording instead; no new permission, vendor recipient or recording behavior.
+- verified-by: `the microphone permission describes conversation and private practice without claiming live sound assessment`
+
+### F690 — Quiet-door wiring proof predates the explicit Walk route
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/typedDoor.test.ts
+- note: Full gate finds F201's source assertion expects an ungated typed-error button and a dependency list without Walk mode. Preserve every ordinary quiet-door outcome and single cold-start boundary; assert the exact Walk exclusion and explicit stable route dependency rather than accepting arbitrary new conditions. No quiet-door runtime policy change.
+- verified-by: `the quiet door mid-scene keeps the scene and is never refused by the lease`
+
+### F691 — Simulator launch surface stays above a ready native app
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx
+- note: Expo57 simulator renders Home in accessibility but keeps the native launch image visibly above it. Explicitly release the native splash once bundled Outfit is ready, using the versioned Expo API; verify in simulator. No extra onboarding or new delay.
+- verified-by: `a ready native app releases its launch screen after Outfit loads`
+
+### F692 — Native purchases resolves its shared runtime constant back to itself
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/adapter.native.ts
+- note: Native Metro reports adapter.native.ts importing itself via ./adapter.ts, so PAID_PLANS may be undefined. Move the shared contract/constants to a platform-neutral filename, retaining the web adapter's public exports and exact purchase gates.
+- verified-by: `native purchases gets its paid plans from a platform-neutral contract`
+
+### F693 — Native practice exit reads an already released recorder and strands its file
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/daily/DailyPracticeScreen.tsx:80
+- note: Actual simulator record/finish/back throws at recorder.isRecording because Expo's passive hook cleanup has released the shared object. Recap uses the same pattern. Delete owned files independently of native getter availability; capture the prepared URI, clean up before Expo passive release, and discard late completion without duplicate stops or unhandled rejection.
+- verified-by: `daily practice exit deletes its held take even after Expo releases the recorder`
+- verified-by: `recap practice exit deletes its held take even after Expo releases the recorder`
+
+### F694 — Approved live language detection must not alter frozen French recordings
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/voiceConfiguration.ts
+- note: Founder listened to six bounded Alexandre samples on 3 October and preferred automatic language detection for English time/money while retaining natural French. Omit the live French request pin, invalidate live and saved-phrase cache identities, and keep the existing French-only recording batches' explicit language and manifest identities. This listening evidence covers Alexandre, not every catalogue voice or learner ASR.
+- note: The independent reviewer found the six bilingual chooser clips also needed the new live configuration. They were regenerated through buildTTS in 12 capped requests/316 characters, then the founder listened and confirmed all six clear French/intelligible English/natural French accent. Only these six previews and their real manifest changed; daily/onboarding French-only recordings stayed frozen. Digits/time/money A/B evidence remains Alexandre-only.
+- verified-by: `approved live language detection invalidates French-pinned saved audio while recording batches stay French`
+- verified-by: `live synthesis preflight omits the old French-only language request`
+
+### F695 — Mixed-language recognition needs an isolated candidate, not a global switch
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts
+- note: Bounded synthetic prerecorded/streaming Nova-3 comparisons corrupt French money or mixed English despite high confidence. Flux French/English hints preserve the French control and both languages, but still misread an English time/date. Prepare a default-off conversation-only review option; preserve Nova-3 phase language behavior, scripted lessons and typing. No automatic activation or claim of beginner calibration, room interruption or end-to-end timing. Real learner calibration remains a release hold.
+- note: Sol independently accepted the default-off source after 23 focused checks and tutor types. Strict opt-in is conversation-only; phase language updates are skipped only for Flux, whose hints remain bilingual. Actual beginner/room/EOT/interruption/number calibration remains held; no runtime configuration was changed.
+- verified-by: `ordinary recognition retains Nova-3 and its explicit phase language`
+- verified-by: `only an explicit conversation review uses Flux French and English hints`
+- verified-by: `the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints`
+
+### F696 — Recorded onboarding must describe playback and keep learner pacing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt`
+- verified-by: `the authored teaching preview connects attempt, useful feedback, model retry and saved practice without assessing playback`
+
+### F697 — The starting plan must explain real adaptation and allow no routine target
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/plan.ts
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an explicitly unset routine survives account creation without restoring the suggested minutes`
+- verified-by: `the plan bounds its beginner coverage without claiming a placement, completion date or promised level`
+
+### F698 — Practice must lead with usable work and distinguish authored sound guidance
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/PracticeTab.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `the page puts the short action before the optional sound guide`
+
+### F699 — Home and Progress must recommend usable work and name their evidence
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an unavailable live tutor leads to an owned review or local phrase practice`
+- verified-by: `a failed conversation history slice leaves progress unread, never zero`
+
+### F700 — Recap must omit empty pages without losing durable work or exact retry
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `recap page navigation leaves saving independent and retries the exact kept phrase only after durable save`
+
+### F701 — Privacy and preference controls need precise scope and recoverable reads
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/settings/SettingsScreen.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `memory and Settings put practical controls before processing details without inventing support`
+- verified-by: `an unread choice stays unknown until an owned retry succeeds`
+
+### F702 — Plan recovery must offer free practice and show actual billing scope
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `unavailable plans return to free practice once and retain an accepted consented exit event`
+
+### F703 — Product measurements must distinguish real learning within existing consent
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/analytics/track.ts
+- note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `the research protocol defines evidence windows and denominators without adding pre-account tracking or a live experiment`
+
+### F704 — A confirmed purchase must not offer another Buy after an unreadable allowance refresh
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx
+- note: Independent review found that a confirmed purchase or restore could return to enabled plan buying when the follow-up allowance read failed. Keep the confirmed grant separate from that read, block further store actions, and offer a truthful refresh and free-practice exit without guessed totals.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `a confirmed purchase or restore blocks another store action when the separate allowance read is unavailable`
+- verified-by: `reopening with a persisted checkout or an unread fence cannot open a second purchase`
+- verified-by: `an unchanged same-tier subscription cannot clear an interrupted checkout fence`
+
+### F705 — Owned recommendations need a render-time account fence and truthful failed history reads
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tabs/TutorTab.tsx, apps/mobile/src/tabs/MyFrenchTab.tsx, apps/mobile/src/tabs/PracticeTab.tsx
+- note: Independent review found that focus-effect cleanup alone allowed one render of the prior learner's work after a scope change. Practice also accepted a stale rejection, and Progress converted an unread history slice to zero. Require a matching read owner at render and an all-or-fail history read with retry.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an account switch hides ready evidence before the next focus effect clears it`
+- verified-by: `Practice refuses a stale failure as well as a stale success`
+- verified-by: `a failed conversation history slice leaves progress unread, never zero`
+
+### F706 — Queued bookmark writes must not recreate data after account cleanup
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/bookmarks/store.ts
+- note: Independent review found captured-key bookmark mutations were not fenced or registered with scoped writes. A held old write could recreate a deleted key after cleanup; failed sync adoption could be acknowledged. Bind queue generation, register native writes, and acknowledge only durable adoption.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `bookmarks/store.ts: a dispatched native save cannot recreate erased account data`
+- verified-by: `sync/registry.ts: a dispatched native save cannot recreate erased account data`
+- verified-by: `a dispatched checkout fence drains before account deletion and never reaches the next account`
+
+### F707 — A partial recap must not add a blank next page for unavailable conversation text
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx
+- note: A props object with null conversation text is not next-page content. Use actual owned savable text or another visible next action; a partial recap with nothing else should finish on its cover.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `a partial recap with no actionable content never adds an empty next page`
+
+### F708 — A localized store price needs a verified billing period before claiming per month
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/wall/WallPlansPage.tsx, apps/mobile/src/purchases/adapter.native.ts
+- note: Independent review found localized prices were present but the runtime product period was not checked before monthly copy. Reject incompatible store periods or project verified period data; sandbox verification remains separate.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `monthly plan copy is reachable only from a verified monthly native package`
+
+### F709 — Constituent owned stores must expose unreadable work to screen recovery
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/review/store.ts, apps/mobile/src/practice/historyStore.ts, apps/mobile/src/progress/store.ts
+- note: Screen retries cannot distinguish empty work if their loaders swallow corrupt bytes, refused reads or unsupported versions. Preserve legitimate absent defaults and valid legacy migrations, reject unknown owned data, do not overwrite it through sync adoption, and clear rejected caches so retry can recover.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `absent continuity keys are empty, while malformed or refused existing reads reject`
+- verified-by: `unread continuity bytes are not replaced by local writes or a sync fold`
+- verified-by: `the owned review deck distinguishes absent from corrupt or refused bytes and a failed cache read can retry`
+- verified-by: `unread optional launch history and phrase recovery cannot trap the app or fabricate a backfill`
+
+### F710 — An empty OAuth account must confirm ownership of an anonymous plan
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx
+- note: An empty account read proves nothing is available to overwrite, not that OAuth created a new identity. Review the exact on-phone plan under the authenticated account before applying its profile, reminder or usage-data choice; allow starting a new plan and prevent a scope change during bootstrap from applying it elsewhere.
+
+- note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
+- verified-by: `an existing empty OAuth account must confirm the on-phone draft before any preference or profile adoption`
+- verified-by: `a scope change during draft adoption cannot apply the plan or reminder to the next account`
+
+### F711 — The landing audit finds new dependency advisories outside the recorded decisions
+- severity: P1
+- status: [x]
+- where: package-lock.json, package.json, services/token-server/src/ciContract.test.ts
+- note: The 3 October online audit found brace-expansion 5.0.9 plus unpatched braces 3.0.3 and node-forge 1.4.0. Apply the compatible brace-expansion 5.0.12 patch. Record the two unpatched Expo build/development roots as temporary exceptions with actual reachability and upstream limitations, not as fixed vulnerabilities. Preserve the Metro image-size removal proof, exact reviewed versions, service/runtime boundaries and audit refusal of unknown or stale roots. Independent GPT-6 Sol review accepted that distinction; final source and online audit proof are still required.
+- note: 3 October 2026: exact-lockfile `npm ci` succeeds, all 11 CI contracts pass, and the online `audit:ci` exits zero under the recorded decisions (0 critical, 21 high and 12 moderate inherited advisories). Only brace-expansion changed in the lockfile. The two new tooling exceptions remain vulnerabilities with no published patch; this closure records their bounded handling, not a zero-vulnerability or release claim.
+- verified-by: `the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns`
+- verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
+- verified-by: `unpatched build-tool exceptions cannot enter a service runtime or an app update dependency`

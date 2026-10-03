@@ -253,6 +253,7 @@ describe('the weekly story', () => {
     // words and leaned on the tutor throughout is still a week that happened.
     const thin = story([session({ endedAt: NOON - DAY, unassistedRate: 0 })]);
     assert.equal(thin.sentences.length, 1, 'a thin week gets one sentence, never none and never a scold');
+    assert.equal(hasStory(thin), false, 'an activity-only week does not become an achievement story');
     assert.equal(guiltIn(thin.sentences[0]!), undefined);
   });
 
@@ -342,7 +343,7 @@ describe('the weekly story', () => {
         session({ endedAt: NOON - 2 * DAY, unassistedRate: 0.2, words: ['merci'] }),
         session({ endedAt: NOON - DAY, unassistedRate: 0.1, words: ['bonjour'] }),
       ]);
-    assert.ok(hasStory(helped), 'a week with help in it still happened');
+    assert.ok(hasStory(helped), 'words actually produced remain a useful story even with support');
     assert.ok(
       !helped.sentences.some((line) => line.includes('on your own')),
       'independence has to be earned before it is claimed',
@@ -453,12 +454,12 @@ describe('the weekly story', () => {
       ],
       packs: [pack(NOON - 2 * DAY, ['Ordering coffee'])],
     });
-    assert.deepEqual(talked.sentences, ['This week you handled the café and the hotel.', 'You talked about ordering coffee this week.']);
+    assert.deepEqual(talked.sentences, ['Scenes you practised this week: the café and the hotel.', 'You talked about ordering coffee this week.']);
 
     // The place is an authored noun, never the mission's own title, which
     // carries the word this file may never print.
     const home = story([], { completions: [{ id: 'mission:journee', at: NOON - DAY }] });
-    assert.deepEqual(home.sentences, ['This week you handled a chat at home.']);
+    assert.deepEqual(home.sentences, ['Scenes you practised this week: a chat at home.']);
     assert.ok(!home.sentences[0]!.toLowerCase().includes('day'));
 
     // A topic the sentence rules refuse is skipped whole, and the next one is

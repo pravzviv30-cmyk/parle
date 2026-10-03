@@ -20,13 +20,13 @@
  * phraseKey reuses the deck's identity scheme (phrase:<fr lowercased>, the
  * same key the mobile review store writes), so drilling here reschedules the
  * very card the flashcard deck shows. One phrase, "un café, s'il vous plaît",
- * is deliberately authored at all four ramp stages as the reference ladder.
+ * is deliberately authored at all five ramp stages as the reference ladder.
  *
  * The mission sections below exist because a path node with nothing behind it is
  * a door onto an empty room, which path.ts:183 records as a bug that shipped
  * rather than a theoretical one. Every phrase an authored mission leaves behind
  * gets one recognition exercise and one production exercise, so the ramp has
- * somewhere to walk it. No mission phrase is authored at all four stages: that
+ * somewhere to walk it. No other mission phrase is authored at all five stages: that
  * ladder belongs to the café line, and a second one would give the bank two
  * centres of gravity. pickForStage falls back to the nearest easier stage, so a
  * phrase with no spoken exercise gets its typed one rather than nothing.
@@ -266,6 +266,13 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
   // ---- repeat-this, each with its silent twin -----------------------------
 
   {
+    kind: 'own-words', id: 'own-cafe', phraseKey: "phrase:un café, s'il vous plaît",
+    difficulty: 'production', fr: "Un café, s'il vous plaît", en: 'A coffee, please',
+    situation: 'You are at a café counter. Ask politely for a coffee.',
+    mustKeep: ['coffee', 'please'], accepted: [],
+  },
+
+  {
     kind: 'repeat-this',
     id: 'rt-un-cafe',
     phraseKey: "phrase:un café, s'il vous plaît",
@@ -444,6 +451,116 @@ export const DRILL_FIXTURES: readonly DrillExercise[] = [
     // Ça sera is what gets said; ce sera is what gets written. Ears differ on
     // which they caught, and neither deserves a correction.
     accepted: ['Ça sera tout, merci', 'Ce sera tout, merci'],
+  },
+
+  // ---- le premier café --------------------------------------------
+  // 2026-09-27: the three lines of the first scene, mission:premier-cafe,
+  // copied from the approved first-coffee situation in
+  // `daily/scenes/cafeAndFood.ts`. Each gets the same three kinds the card
+  // question has (options, best sentence, tiles), because they sit in the same
+  // café unit and a beginner meets them first. Every distractor is French a
+  // learner could say without harm; the point is choosing the one that fits.
+
+  {
+    kind: 'fill-blank',
+    id: 'fb-premier-prendre',
+    phraseKey: 'phrase:bonjour, je vais prendre un café',
+    difficulty: 'recognition',
+    sentence: 'Bonjour, je vais ___ un café',
+    options: ['prendre', 'porter', 'donner'],
+    accepted: ['prendre'],
+    en: 'Hello, I will have a coffee',
+  },
+  {
+    kind: 'best-sentence',
+    id: 'bs-premier-order',
+    phraseKey: 'phrase:bonjour, je vais prendre un café',
+    difficulty: 'recognition',
+    prompt: 'It is early morning at the counter. Greet the barista and order a coffee.',
+    // Bonsoir is the right words at the wrong hour, and the bare order skips
+    // the greeting. Both are understood; only one sounds right at eight.
+    candidates: [
+      { fr: 'Bonsoir, je vais prendre un café', en: 'Good evening, I will have a coffee' },
+      { fr: 'Un café', en: 'A coffee' },
+      { fr: 'Bonjour, je vais prendre un café', en: 'Hello, I will have a coffee' },
+    ],
+    correctIndex: 2,
+  },
+  {
+    kind: 'tap-translate',
+    id: 'tt-premier-order',
+    phraseKey: 'phrase:bonjour, je vais prendre un café',
+    difficulty: 'recognition',
+    en: 'Hello, I will have a coffee',
+    // Bonsoir and thé are the near misses: the right shape, the wrong word.
+    tokens: ['bonjour', 'je', 'vais', 'prendre', 'un', 'café', 'bonsoir', 'thé'],
+    accepted: ['bonjour, je vais prendre un café'],
+  },
+  {
+    kind: 'fill-blank',
+    id: 'fb-premier-comptoir',
+    phraseKey: "phrase:sur place, au comptoir, s'il vous plaît",
+    difficulty: 'recognition',
+    sentence: "Sur place, au ___, s'il vous plaît",
+    options: ['comptoir', 'bureau', 'marché'],
+    accepted: ['comptoir'],
+    en: 'Here at the counter, please',
+  },
+  {
+    kind: 'best-sentence',
+    id: 'bs-premier-where',
+    phraseKey: "phrase:sur place, au comptoir, s'il vous plaît",
+    difficulty: 'recognition',
+    prompt: 'The barista asks if it is to have here or to take away. You want to drink it standing at the counter.',
+    candidates: [
+      { fr: "À emporter, s'il vous plaît", en: 'To take away, please' },
+      { fr: "Sur place, au comptoir, s'il vous plaît", en: 'Here at the counter, please' },
+      { fr: "Dans la rue, s'il vous plaît", en: 'In the street, please' },
+    ],
+    correctIndex: 1,
+  },
+  {
+    kind: 'tap-translate',
+    id: 'tt-premier-where',
+    phraseKey: "phrase:sur place, au comptoir, s'il vous plaît",
+    difficulty: 'recognition',
+    en: 'Here at the counter, please',
+    tokens: ['sur', 'place', 'au', 'comptoir', "s'il", 'vous', 'plaît', 'à', 'emporter'],
+    // Au comptoir already says here, so the shorter answer is right too.
+    accepted: ["sur place, au comptoir, s'il vous plaît", "au comptoir, s'il vous plaît"],
+  },
+  {
+    kind: 'fill-blank',
+    id: 'fb-premier-combien',
+    phraseKey: 'phrase:je vous dois combien ?',
+    difficulty: 'recognition',
+    sentence: 'Je vous dois ___ ?',
+    options: ['combien', 'comment', 'quand'],
+    accepted: ['combien'],
+    en: 'How much is that?',
+  },
+  {
+    kind: 'best-sentence',
+    id: 'bs-premier-combien',
+    phraseKey: 'phrase:je vous dois combien ?',
+    difficulty: 'recognition',
+    prompt: 'Your coffee is on the counter. Find out what you owe.',
+    candidates: [
+      { fr: 'Je vous dois combien ?', en: 'How much is that?' },
+      { fr: 'Combien de cafés ?', en: 'How many coffees?' },
+      { fr: "C'est gratuit ?", en: 'Is it free?' },
+    ],
+    correctIndex: 0,
+  },
+  {
+    kind: 'tap-translate',
+    id: 'tt-premier-combien',
+    phraseKey: 'phrase:je vous dois combien ?',
+    difficulty: 'recognition',
+    en: 'How much is that?',
+    // Spoken French moves the question word freely, so both orders are right.
+    tokens: ['je', 'vous', 'dois', 'combien', 'comment', 'tu'],
+    accepted: ['je vous dois combien', 'combien je vous dois'],
   },
 
   // ---- à la réception --------------------------------------------

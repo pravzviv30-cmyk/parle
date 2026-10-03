@@ -145,7 +145,9 @@ describe('a provider error, translated — F153', () => {
 
     assert.match(deletionFailure(401), /sign in again/i);
     assert.match(deletionFailure(429), /minute|soon|again/i);
-    assert.match(deletionFailure(503), /nothing/i);
+    assert.doesNotMatch(deletionFailure(429), /nothing was changed/i, 'an earlier attempt may have queued processor erasure');
+    assert.match(deletionFailure(503), /try again later/i);
+    assert.doesNotMatch(deletionFailure(503), /nothing was changed/i, 'a processor may already have accepted a queued erasure');
 
     // And the adapter never reads a sentence out of the response at all. This
     // is the leak itself: the token server's JSON body used to be rendered.
@@ -302,7 +304,7 @@ describe('the words are true at the window the server keeps — F163, F164, F166
       `"${refused}" promises a wait shorter than the day the server holds the door shut for`,
     );
     assert.match(refused, /\bday\b/i, 'the line does not say how long the door is shut, so a learner keeps tapping');
-    assert.match(refused, /nothing was changed/i, 'a refused deletion must say the account is untouched');
+    assert.doesNotMatch(refused, /nothing was changed/i, 'a retry may follow an already accepted processor erasure');
 
     // The provider's own rate limit is a project setting this repo does not
     // hold, so that line names no duration at all rather than inventing one.
@@ -374,7 +376,8 @@ describe('the words are true at the window the server keeps — F163, F164, F166
         written.startsWith("'") ||
           written.startsWith('friendly(') ||
           written.startsWith('deletionFailure(') ||
-          fromFriendly.has(written),
+          fromFriendly.has(written) ||
+          fromFriendly.has(/^([A-Za-z][A-Za-z0-9]*)\(/.exec(written)?.[1] ?? ''),
         `supabaseAdapter.ts builds a learner-facing sentence of its own: "${written}"`,
       );
     }

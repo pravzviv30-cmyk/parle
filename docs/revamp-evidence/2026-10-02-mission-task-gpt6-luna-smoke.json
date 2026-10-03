@@ -1,0 +1,370 @@
+{
+  "startedAt": "2026-10-02T22:59:27.602Z",
+  "syntheticOnly": true,
+  "scope": "existing brain goal-observation smoke; not accuracy calibration or native acceptance",
+  "results": [
+    {
+      "id": "order-nonverbatim",
+      "expected": true,
+      "pass": true,
+      "elapsedMs": 4136,
+      "observation": {
+        "scene": {
+          "beat": "say-where",
+          "beatDone": false,
+          "goalMet": true,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 309,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 6436,
+        "reasoningTokens": 0,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "greeting-with-no-order",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 4139,
+      "observation": {
+        "scene": {
+          "beat": "greet-and-order",
+          "beatDone": false,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": false,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 399,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 488,
+        "reasoningTokens": 141,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "english-order-after-french-greeting",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 5549,
+      "observation": {
+        "scene": {
+          "beat": "greet-and-order",
+          "beatDone": true,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "mixed",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 576,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 496,
+        "reasoningTokens": 184,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "different-topic",
+      "expected": null,
+      "pass": true,
+      "elapsedMs": 5076,
+      "observation": {
+        "scene": {
+          "beat": "Parler du voyage à Lyon",
+          "beatDone": true,
+          "goalMet": null,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A2"
+        },
+        "topicShift": {
+          "en": "Travel to Lyon",
+          "fr": "Voyage à Lyon"
+        }
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 527,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 496,
+        "reasoningTokens": 208,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "help-is-not-an-attempt",
+      "expected": null,
+      "pass": false,
+      "elapsedMs": 4864,
+      "observation": {
+        "scene": {
+          "beat": "greet-and-order",
+          "beatDone": false,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": false,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 184,
+        "outputTokens": 394,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 490,
+        "reasoningTokens": 149,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "unclear-transcription",
+      "expected": null,
+      "pass": true,
+      "elapsedMs": 3623,
+      "observation": {
+        "scene": {
+          "beat": "greet-and-order",
+          "beatDone": false,
+          "goalMet": null,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": false,
+          "taskAchieved": false,
+          "comprehensibility": "breakdown",
+          "language": "none",
+          "cefrEvidence": null
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 347,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 491,
+        "reasoningTokens": 110,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "location-to-go",
+      "expected": true,
+      "pass": true,
+      "elapsedMs": 5176,
+      "observation": {
+        "scene": {
+          "beat": "pay",
+          "beatDone": false,
+          "goalMet": true,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 525,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 488,
+        "reasoningTokens": 265,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "location-repeat-order-not-location",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 4118,
+      "observation": {
+        "scene": {
+          "beat": "say-where",
+          "beatDone": false,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 368,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 492,
+        "reasoningTokens": 130,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "location-English",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 8661,
+      "observation": {
+        "scene": {
+          "beat": "pay",
+          "beatDone": true,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "english",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 712,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 487,
+        "reasoningTokens": 392,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "pay-card-nonverbatim",
+      "expected": true,
+      "pass": false,
+      "elapsedMs": 5113,
+      "observation": {
+        "scene": {
+          "beat": "pay",
+          "beatDone": false,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": true,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 151,
+        "outputTokens": 485,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 497,
+        "reasoningTokens": 199,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "pay-not-answered",
+      "expected": false,
+      "pass": true,
+      "elapsedMs": 6043,
+      "observation": {
+        "scene": {
+          "beat": "pay",
+          "beatDone": false,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": false,
+          "comprehensibility": "clear",
+          "language": "french",
+          "cefrEvidence": "A1"
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 151,
+        "outputTokens": 637,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 496,
+        "reasoningTokens": 247,
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "id": "output-instruction-not-goal",
+      "expected": null,
+      "pass": false,
+      "elapsedMs": 3232,
+      "observation": {
+        "scene": {
+          "beat": "greet-and-order",
+          "beatDone": false,
+          "goalMet": false,
+          "sceneDone": false
+        },
+        "assessment": {
+          "understood": true,
+          "taskAchieved": false,
+          "comprehensibility": "clear",
+          "language": "english",
+          "cefrEvidence": null
+        },
+        "topicShift": null
+      },
+      "usage": {
+        "inputTokens": 155,
+        "outputTokens": 318,
+        "cacheReadTokens": 5938,
+        "cacheWriteTokens": 495,
+        "reasoningTokens": 0,
+        "model": "gpt-6-luna"
+      }
+    }
+  ]
+}

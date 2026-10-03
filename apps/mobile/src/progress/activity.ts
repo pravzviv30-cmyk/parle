@@ -15,9 +15,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mergeActiveDays } from './activeDays.ts';
-import { totalXp, type DatedXp } from '@luvani/core';
+import { localDayKey, totalXp, type DatedXp } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
-import { onUserScopeReset, scopeGeneration, userKey } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration, writeInUserScope, userKey } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 
 export type ActivityKind = 'lesson' | 'convo' | 'drill' | 'review';
@@ -143,14 +143,25 @@ function isStored(value: unknown): value is Stored {
   );
 }
 
-async function read(key: string): Promise<Stored> {
+function validActiveDays(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every(day =>
+    typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day) &&
+    Number.isFinite(Date.parse(day)) && new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) === day));
+}
+
+async function read(key: string, strict = false): Promise<Stored> {
   try {
     const raw = await AsyncStorage.getItem(key);
-    if (!raw) return empty();
+    if (raw === null) return empty();
     const parsed: unknown = JSON.parse(raw);
-    if (!isStored(parsed)) return empty();
+    if (!isStored(parsed)) {
+      if (strict) throw new Error('Activity history is unreadable');
+      return empty();
+    }
+    if (strict && (!parsed.entries.every(isEntry) || !validActiveDays(parsed.activeDays))) throw new Error('Activity history is unreadable');
     return { ...parsed, entries: parsed.entries.filter(isEntry) };
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return empty();
   }
 }
@@ -170,21 +181,24 @@ let chain: Promise<unknown> = Promise.resolve();
  * It returns the mutation's own answer rather than void, because the sync
  * adopter has to tell the engine whether it took the fold or declined it.
  */
-function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
+function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Promise<T> {
   const key = KEY();
-  const run = () => mutation(key);
+  const owner = scopeGeneration();
+  const run = () => mutation(key, owner);
   const next = chain.then(run, run);
   chain = next.catch(() => {});
   return next;
 }
 
 function mutate(change: (stored: Stored) => Stored | null, origin: WriteOrigin = 'local'): Promise<void> {
-  return serialized(async (key) => {
-    const next = change(await read(key));
+  return serialized(async (key, owner) => {
+    let current: Stored;
+    try { current = await read(key, true); } catch { return; }
+    const next = change(current);
     if (next === null) return;
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(next));
-      if (origin === 'local') markDirty('activity');
+      const saved = await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify(next)));
+      if (saved && origin === 'local') markDirty('activity');
     } catch {
       // Storage unavailable. The sitting still happened; the ladder catches up
       // next time rather than blocking anyone.
@@ -202,12 +216,8 @@ function mutate(change: (stored: Stored) => Stored | null, origin: WriteOrigin =
  * standing in for bytes that are not there.
  */
 async function persisted(key: string): Promise<unknown> {
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as unknown) : null;
-  } catch {
-    return null;
-  }
+  const raw = await AsyncStorage.getItem(key);
+  return raw === null ? null : (JSON.parse(raw) as unknown);
 }
 
 function prune(entries: readonly ActivityEntry[], now: number): ActivityEntry[] {
@@ -250,14 +260,16 @@ export async function recordActivity(
  * Null when the disk cannot be read.
  */
 export function claimActivityInstant(kind: ActivityKind, xp: number, at: number): Promise<number | null> {
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     let raw: string | null;
     try {
       raw = await AsyncStorage.getItem(key);
     } catch {
       return null;
     }
-    const parsed = raw ? parseStored(raw) : empty();
+    if (owner !== scopeGeneration()) return null;
+    let parsed: Stored;
+    try { parsed = raw === null ? empty() : parseStored(raw); } catch { return null; }
     const taken = new Set(parsed.entries.filter((e) => e.kind === kind && e.xp === xp).map((e) => e.at));
     let free = Math.floor(at);
     while (taken.has(free)) free += 1;
@@ -273,7 +285,7 @@ export function claimActivityInstant(kind: ActivityKind, xp: number, at: number)
  * landed) or this write landed; `failed` when the disk refused, could not be
  * read, or the account changed or was reset since the call. A failed write
  * raises no dirty flag. `xp <= 0` records nothing and is honestly `durable`.
- * Ordinary `recordActivity` is unchanged.
+ * Ordinary `recordActivity` uses the same scoped native-write barrier.
  */
 export function recordActivityOnce(
   kind: ActivityKind,
@@ -283,15 +295,16 @@ export function recordActivityOnce(
 ): Promise<PersistAck> {
   if (!Number.isFinite(xp) || !Number.isFinite(at)) return Promise.resolve('failed');
   if (xp <= 0) return Promise.resolve('durable');
-  const generation = scopeGeneration();
-  return serialized(async (key) => {
+  return serialized(async (key, owner) => {
     let raw: string | null;
     try {
       raw = await AsyncStorage.getItem(key);
     } catch {
       return 'failed';
     }
-    const stored = raw ? parseStored(raw) : empty();
+    let stored: Stored;
+    try { stored = raw === null ? empty() : parseStored(raw); } catch { return 'failed'; }
+    if (owner !== scopeGeneration()) return 'failed';
     if (stored.entries.some((e) => e.at === at && e.kind === kind && e.xp === xp)) return 'durable';
     const entry = entryOf(at, kind, xp, detail);
     const entries = [...stored.entries, entry];
@@ -301,34 +314,53 @@ export function recordActivityOnce(
       activeDays: mergeActiveDays(entries, stored.activeDays),
       entries: prune(entries, Math.max(at, Date.now())),
     };
-    if (scopeGeneration() !== generation) return 'failed';
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(next));
+      const saved = await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify(next)));
+      if (!saved) return 'failed';
     } catch {
       return 'failed';
     }
-    if (scopeGeneration() === generation) markDirty('activity');
+    markDirty('activity');
     return 'durable';
   });
 }
 
 function parseStored(raw: string): Stored {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!isStored(parsed)) return empty();
-    return { ...parsed, entries: parsed.entries.filter(isEntry) };
-  } catch {
-    return empty();
-  }
+  const parsed: unknown = JSON.parse(raw);
+  if (!isStored(parsed) || !parsed.entries.every(isEntry) || !validActiveDays(parsed.activeDays)) throw new Error('Activity history is unreadable');
+  return parsed;
 }
 
-export async function loadActivity(): Promise<ActivityEntry[]> {
-  return (await read(KEY())).entries;
+export async function loadActivity(options?: { strict: boolean }): Promise<ActivityEntry[]> {
+  return (await read(KEY(), options?.strict)).entries;
 }
 
 export async function loadActiveDays(): Promise<string[]> {
-  const stored = await read(KEY());
+  const raw = await AsyncStorage.getItem(KEY());
+  if (raw === null) return [];
+  const stored: unknown = JSON.parse(raw);
+  if (!isStored(stored) || !validActiveDays(stored.activeDays)) throw new Error('Unreadable activity history');
+  if (!stored.entries.every(isEntry)) throw new Error('Unreadable activity history');
   return mergeActiveDays(stored.entries, stored.activeDays);
+}
+
+/** A completed light practice adds its date, never XP or an assessment. */
+export function recordActiveDay(at = Date.now()): Promise<PersistAck> {
+  if (!Number.isFinite(new Date(at).getTime())) return Promise.resolve('failed');
+  const day = localDayKey(at);
+  return serialized(async (key, owner) => {
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      const parsed: unknown = raw === null ? empty() : JSON.parse(raw);
+      if (!isStored(parsed) || !parsed.entries.every(isEntry) || !validActiveDays(parsed.activeDays)) return 'failed';
+      const stored = parsed;
+      const activeDays = mergeActiveDays(stored.entries, stored.activeDays, [day]);
+      const saved = await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify({ ...stored, version: 2, activeDays })));
+      if (!saved) return 'failed';
+      markDirty('activity');
+      return 'durable';
+    } catch { return 'failed'; }
+  });
 }
 
 /** All-time XP, with the daily cap applied by core. */
@@ -388,8 +420,10 @@ export async function backfillFrom(sessions: readonly { endedAt: number }[], bas
  * learner's whole pre-log history a second time.
  */
 function adoptActivity(fold: SyncFold): Promise<SyncAdoption> {
-  return serialized(async (key) => {
-    const current = await persisted(key);
+  return serialized(async (key, owner) => {
+    let current: unknown;
+    try { current = await persisted(key); } catch { return 'declined'; }
+    if (current !== null && (!isStored(current) || !current.entries.every(isEntry) || !validActiveDays(current.activeDays))) return 'declined';
     const wasBackfilled = isStored(current) && current.backfilled === true;
     const folded = fold(current);
     if (!isStored(folded)) return 'declined';
@@ -400,11 +434,8 @@ function adoptActivity(fold: SyncFold): Promise<SyncAdoption> {
       backfilled: wasBackfilled || folded.backfilled === true,
     };
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      // Storage unavailable. The next cycle hands the same fold back.
-    }
-    return 'adopted';
+      return await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify(next))) ? 'adopted' : 'declined';
+    } catch { return 'declined'; }
   });
 }
 

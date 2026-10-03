@@ -18,7 +18,7 @@ import { PLANS, type Plan, type PlanSpec } from '@luvani/core';
 
 import type { PaidPlan, StoreOffering, StoreProduct } from '../purchases/adapter.ts';
 import { WALL_LEAVE, PLANS_TRUST } from './wallCopy.ts';
-import { wallPlanRows } from './wallPlans.ts';
+import { CONVERSATION_MINUTES, conversationsAWeek, wallPlanRows, wallTrial } from './wallPlans.ts';
 
 const read = (relative: string): string =>
   readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -154,15 +154,111 @@ describe('the wall says out loud that it is soft', () => {
   });
 });
 
+/**
+ * 2026-09-27, notebook Phase 6-E: speaking time in units a learner can picture.
+ *
+ * Minutes a month is a number nobody can feel. A conversation is, so each plan
+ * also reads as conversations a week, at a conversation length the page states
+ * out loud. The count is derived here from the catalogue the server sent and is
+ * always rounded down: the page may undersell a plan and may never oversell one.
+ */
+describe('plans read as conversations a week', () => {
+  test('180 minutes a month is about four ten-minute conversations a week, and Max about seven', () => {
+    assert.equal(CONVERSATION_MINUTES, 10, 'the stated conversation length moved, so every count on the page moved with it');
+    const rows = wallPlanRows(offering(product('starter', '£14.99'), product('regular', '£24.99')), CATALOGUE);
+    assert.ok(rows);
+    // Starter: 180 min over 30 days is 180 * 7 / (30 * 10) = 4.2 a week, so four.
+    // Max: 300 min over 30 days is 300 * 7 / (30 * 10) = 7.0 a week, so seven.
+    assert.deepEqual(rows.map((row) => row.perWeek), [4, 7]);
+  });
+
+  test('the count is rounded down, so it never promises more than the minutes buy', () => {
+    for (let minutes = 0; minutes <= 900; minutes += 5) {
+      for (const days of [7, 28, 30, 31]) {
+        const perWeek = conversationsAWeek(minutes, days);
+        const exact = (minutes * 7) / (days * CONVERSATION_MINUTES);
+        if (perWeek === null) {
+          assert.ok(exact < 1, `${minutes} min over ${days} days buys ${exact} a week and the page said nothing`);
+          continue;
+        }
+        assert.ok(perWeek <= exact, `${minutes} min over ${days} days is ${exact} a week and the page said ${perWeek}`);
+        assert.ok(perWeek + 1 > exact, `${minutes} min over ${days} days is ${exact} a week and the page undersold it as ${perWeek}`);
+      }
+    }
+    assert.equal(conversationsAWeek(180, null), null, 'a plan with no period has no week to count in');
+    assert.equal(conversationsAWeek(180, 0), null);
+  });
+
+  test('the trial is shown in minutes, and is about three conversations', () => {
+    assert.deepEqual(wallTrial(CATALOGUE), { minutes: 30, conversations: 3 });
+    assert.equal(wallTrial(null), null, 'with no catalogue the trial was guessed');
+  });
+
+  test('no catalogue means no conversation count, rather than one guessed', () => {
+    const rows = wallPlanRows(offering(product('starter', '£14.99')), null);
+    assert.equal(rows?.[0]?.perWeek, null);
+  });
+});
+
+describe('the wall is a page of the notebook', () => {
+  test('the plans are separate chosen and unchosen cards with no highlighter or recommendation', () => {
+    const page = code('./WallPlansPage.tsx');
+    assert.equal((page.match(/rows.map\(/g) ?? []).length, 1);
+    assert.match(page, /<Press\s+haptic="selection"/);
+    assert.match(page, /style=\{\[st.row, chosen \? st.chosen : st.unchosen\]\}/);
+    assert.match(page, /chosen: \{ backgroundColor: colour.blue \}/);
+    assert.match(page, /unchosen: \{ backgroundColor: paper.card, borderWidth: 1, borderColor: paper.field \}/);
+    assert.match(page, /chosen && <CheckGlyph/);
+    assert.doesNotMatch(page, /recommended|best value|most popular|markDot|<Highlight|shadow/);
+  });
+
+  test('what you get is one card and ruled rows, with no place art', () => {
+    const page = code('./WallYoursPage.tsx');
+    const screen = code('./WallScreen.tsx');
+    assert.equal((page.match(/<Ledger\b/g) ?? []).length, 1);
+    assert.match(page, /YOURS_ROWS.map/);
+    assert.match(page, /ADDS_ROWS.map/);
+    assert.doesNotMatch(page, /st.ruled|borderBottomWidth|<Art|<Illustration/);
+    assert.match(screen, /ground=\{page === 'yours' \? colour.sun : paper.ground\}/);
+  });
+
+  test('each plan says its conversations a week and its minutes, and the price is the store\'s', () => {
+    const page = code('./WallPlansPage.tsx');
+    assert.match(page, /row\.perWeek/, 'a plan does not say how many conversations a week it buys');
+    assert.match(page, /row\.minutes/, 'a plan does not say its minutes');
+    assert.match(page, /\{row\.price\}/, 'the price is not the store\'s own string');
+  });
+
+  test('the renewal and the no-adverts line sit at the button', () => {
+    // The pill is the frame's, in the footer, and the two lines a buyer is owed
+    // right beside it ride in the same footer rather than somewhere up the page.
+    const page = code('./WallPlansPage.tsx');
+    const at = page.indexOf('export function WallPlansAtButton(');
+    assert.notEqual(at, -1, 'there is no small print for the button');
+    const button = page.slice(at);
+    const body = page.slice(0, at);
+    assert.match(button, /\{PLANS_RENEWAL\}/);
+    assert.match(button, /\{PLANS_TRUST\}/);
+    assert.doesNotMatch(body, /\{PLANS_RENEWAL\}|\{PLANS_TRUST\}/, 'the renewal or the trust line is up the page, away from the button');
+
+    const screen = code('./WallScreen.tsx');
+    const footer = screen.slice(screen.lastIndexOf('footer={'));
+    const pill = footer.indexOf('<PillButton');
+    const print = footer.indexOf('<WallPlansAtButton');
+    assert.ok(pill !== -1 && print !== -1, 'the footer does not hold both the pill and its small print');
+    assert.ok(pill < print, 'the small print is above the button rather than beside it');
+    assert.match(footer, /page === 'plans' && <WallPlansAtButton/, 'the small print shows on a page that sells nothing');
+  });
+});
+
 describe('a chosen plan says so to a screen reader', () => {
   test('the cards use the selected state this app already uses, not a radio', () => {
     const page = code('./WallPlansPage.tsx');
-    // OptionCard and TabBar both announce a chosen thing with a button role and a
-    // `selected` state. `accessibilityRole="radio"` with `checked` is not mapped
-    // by React Native Web, so both cards reported no state at all and a screen
-    // reader could not tell which plan was picked. Caught in a browser, not here.
+    assert.match(page, /accessibilityRole="button"/);
     assert.match(page, /accessibilityState=\{\{ selected: chosen \}\}/);
-    assert.doesNotMatch(page, /accessibilityRole="radio"/, 'the plan cards went back to a role that announces nothing');
-    assert.match(page, /accessibilityLabel=\{row\.name\}/, 'a plan card has no name for a screen reader');
+    assert.match(page, /aria-selected=\{chosen\}/);
+    assert.match(page, /accessibilityLabel=\{\[row.name,/);
+    assert.match(page, /`\$\{row.price\} per month`\].filter\(Boolean\)/, 'the spoken price includes its billing period');
+    assert.doesNotMatch(page, /accessibilityRole="radio"|checked:|markDot/);
   });
 });

@@ -1,13 +1,35 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+/**
+ * The way into Profile from a tab header: the learner's initial.
+ *
+ * Notebook Phase 4 (2026-09-27): the shared `Monogram`, an ink initial on
+ * `groundDeep` with no ring. It used to hand-roll its own disc in the old
+ * feature green under an ink outline. The Monogram is decorative, so the one
+ * name a screen reader hears is this button's own.
+ */
+
+import { Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { paper, accent, HIT, HAIRLINE, type } from '../theme.ts';
+import { Monogram } from '../components.tsx';
+import { HIT } from '../theme.ts';
 
 export function ProfileButton() {
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile } = useProfile();
-  return <Pressable accessibilityRole="button" accessibilityLabel="Open profile and settings" onPress={() => nav.navigate('Profile')} style={({ pressed }) => [s.avatar, pressed && { opacity: 0.7 }]}>
-    <Text style={[type.bodyStrong, { color: paper.ink }]}>{Array.from(profile.name?.trim() || 'You')[0]!.toLocaleUpperCase()}</Text>
-  </Pressable>;
+  const initial = Array.from(profile.name?.trim() || 'You')[0]!.toLocaleUpperCase();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open profile and settings"
+      onPress={() => nav.navigate('Profile')}
+      style={({ pressed }) => [s.hit, pressed && s.pressed]}
+    >
+      <Monogram initial={initial} size={HIT} />
+    </Pressable>
+  );
 }
-const s = StyleSheet.create({ avatar: { width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center', borderWidth: HAIRLINE, borderColor: paper.ink, backgroundColor: accent.feature, flexShrink: 0 } });
+
+const s = StyleSheet.create({
+  hit: { width: HIT, height: HIT, flexShrink: 0 },
+  pressed: { opacity: 0.7 },
+});

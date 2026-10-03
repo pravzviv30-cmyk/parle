@@ -11,13 +11,11 @@ import type { SocialSettings } from './socialModel.ts';
 import { FRIENDS_START } from './friendsView.ts';
 
 const SETTINGS: { key: keyof SocialSettings; title: string; sub: string }[] = [
-  { key: 'showScore', title: 'Show my weekly score', sub: 'Only accepted friends can see your learning points.' },
   { key: 'shareMilestones', title: 'Share learning milestones', sub: 'Share weekly practice milestones with accepted friends. Off by default.' },
   { key: 'requests', title: 'Friend requests', sub: 'Show a badge when someone asks to join your circle.' },
   { key: 'invitations', title: 'Challenge invitations', sub: 'Include invitations in the Friends update badge.' },
   { key: 'completions', title: 'Completed challenges', sub: 'Include completed challenges in the Friends update badge.' },
   { key: 'milestones', title: 'Friends’ milestones', sub: 'Include shared milestones in the Friends update badge.' },
-  { key: 'results', title: 'Weekly results', sub: 'Include your completed week in the Friends update badge.' },
 ];
 export function SocialSettingsScreen() {
   const goBack = useBackToHome();

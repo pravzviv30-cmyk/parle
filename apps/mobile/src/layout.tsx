@@ -11,26 +11,24 @@
  * both. `ConfirmSheet` is the one way to ask before leaving something metered.
  *
  * Nothing here drives movement and nothing here draws its own glyphs: timing
- * belongs to whoever owns the value and the pen already drew the chevron. The
+ * belongs to whoever owns the value and the pen already drew the back mark. The
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
 import { type ReactNode } from 'react';
 import {
-  Animated,
   View,
   ScrollView,
   Text,
   Pressable,
   Platform,
-  PixelRatio,
   useWindowDimensions,
   KeyboardAvoidingView,
-  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, Card, PillButton, OutlineButton } from './components.tsx';
-import { accent, decorative, paper, radius, space, type, HAIRLINE, HIT } from './theme.ts';
+import { StatusBar } from 'expo-status-bar';
+import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
+import { colour, paper, space, type, HAIRLINE, HIT } from './theme.ts';
 import { screenInsets } from './responsiveLayout.ts';
 
 /** Where the bottom of a screen ends. */
@@ -56,10 +54,32 @@ type ScreenProps = {
 };
 
 /**
+ * The grounds whose words are white, so the clock and battery above them must
+ * be white too. Blue and coral are the two colour pages that take white words
+ * (palette.ts `textOn`), and ink is the dark live ground.
+ */
+const LIGHT_BAR_GROUNDS: readonly string[] = [colour.blue, colour.coral, paper.ink];
+
+/**
+ * The status bar a ground asks for, or null for the paper, where the app's one
+ * dark bar in App.tsx already governs. The OS stacks status bar styles, so a
+ * colour page's style lifts again when the page unmounts.
+ */
+function barStyleFor(ground: string): 'light' | 'dark' | null {
+  if (ground === paper.ground) return null;
+  return LIGHT_BAR_GROUNDS.includes(ground) ? 'light' : 'dark';
+}
+
+/**
  * The still root. A full-height View on the page's paper, with the safe-area
  * top inset already paid and the bottom chosen by `bottom`. Header and footer
  * sit outside any scroll region and share the body's horizontal pad, so a back
  * arrow lines up with the content beneath it.
+ *
+ * The footer's hairline is a paper rule, so it is drawn only on the paper
+ * ground: across a blue or sun page it would be a cream scratch over the
+ * colour. A colour ground also sets the status bar, light on blue, coral and
+ * ink and dark on sun and mint, so the clock stays legible on it (F601).
  */
 export function Screen({
   children,
@@ -76,6 +96,8 @@ export function Screen({
   const horizontal = screenInsets(width, insets.left, insets.right, padded);
   const bottomPad =
     bottom === 'tab' ? space(3) : bottom === 'inset' ? insets.bottom + space(4) : 0;
+  const onPaper = ground === paper.ground;
+  const bar = barStyleFor(ground);
 
   const root = (
     <View
@@ -87,9 +109,21 @@ export function Screen({
         paddingBottom: bottomPad,
       }}
     >
+      {bar != null ? <StatusBar style={bar} /> : null}
       {header != null ? <View style={horizontal}>{header}</View> : null}
       <View style={{ flex: 1, minHeight: 0, ...horizontal }}>{children}</View>
-      {footer != null ? <View style={{ ...horizontal, paddingTop: space(3), borderTopWidth: HAIRLINE, borderTopColor: paper.line, backgroundColor: ground }}>{footer}</View> : null}
+      {footer != null ? (
+        <View
+          style={{
+            ...horizontal,
+            paddingTop: space(3),
+            ...(onPaper ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null),
+            backgroundColor: ground,
+          }}
+        >
+          {footer}
+        </View>
+      ) : null}
     </View>
   );
 
@@ -161,46 +195,42 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode; divider?: boolean } & (
+type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean } & (
   | { back?: { onPress: () => void; label?: string }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
 
 /**
- * The one header row. A back arrow on the left or a leave word on the right,
- * with an optional node in the centre — a title, a dot rail, a small label.
+ * The one header row. The round back button on the left or a leave word on the
+ * right, with an optional node in the centre — a title, a dot rail, a small
+ * label. The way back is SNIPPETS' header-pushed disc: white, at the touch
+ * floor, with the ICONS.md back mark, on paper or a colour ground alike.
  */
 export function ScreenHeader(props: ScreenHeaderProps) {
   const { title } = props;
   const back = props.back;
   const leave = props.leave;
-  // Three slots always, so the centre is the centre. The left holds the chevron
-  // or an empty box its width; the right holds the leave word or an empty box its
+  // Three slots always, so the centre is the centre. The left holds the round
+  // back button or an empty box its width; the right holds the leave word or an empty box its
   // width; the title sits in the flex centre between two equal touch floors, not
   // half a hit target off it because one side happened to be empty.
   return (
-    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === false ? 0 : HAIRLINE, borderBottomColor: paper.ink, marginBottom: space(4), paddingBottom: space(2) }}>
+    <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
-        <Pressable
-          onPress={back.onPress}
-          accessibilityRole="button"
-          accessibilityLabel={back.label ?? 'Back'}
-          style={{ width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center', borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.control, backgroundColor: paper.card }}
-        >
-          <ChevronLeft />
-        </Pressable>
+        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} />
       ) : (
         <View style={{ width: HIT }} />
       )}
-      <View style={{ flex: 1, alignItems: 'center' }}>
+      <View style={{ flex: 1, alignItems: 'flex-start', gap: space(1), marginHorizontal: space(2) }}>
         {typeof title === 'string' || typeof title === 'number' ? (
           // A bare string under a View is a raw text node — Fabric drops it and
           // logs. A caller that wants a status line passes its own <Text> (with
           // a live region); this only keeps a plain string title from vanishing.
-          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{title}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{title}</Text>
         ) : (
           title ?? <Text style={[type.label, { color: paper.ink }]}>Luvani</Text>
         )}
+        {props.trailing}
       </View>
       {leave != null ? (
         <Pressable
@@ -231,27 +261,11 @@ export function ScreenHeader(props: ScreenHeaderProps) {
  * `progress` runs 0 to 1 across one swipe and is driven by whoever owns the
  * timing. The frame is handed the value; it never starts it.
  */
-export interface TitleSwap {
-  /** The word showing now, comma included: 'Salut,' */
-  word: string;
-  /** The word rising in behind it. */
-  next: string;
-  /** The name, or null when the learner skipped it. */
-  rest: string | null;
-  /** 0 at rest, 1 when the swipe is complete. Somebody else drives it. */
-  progress: Animated.Value;
-}
-
 type TabHeaderProps = {
   /** The tab's name, set large. */
   title: string;
   /** One plain line saying what the tab is for. Home is the one tab without one. */
   purpose?: string;
-  /**
-   * Draw the title as a moving word in a fixed slot with a still name beside
-   * it. Given nothing, the title is the plain line it has always been.
-   */
-  titleSwap?: TitleSwap | null;
   /** An optional control on the title row — the learner's monogram on Home. */
   trailing?: ReactNode;
   /**
@@ -266,14 +280,18 @@ type TabHeaderProps = {
 };
 
 /**
- * The one tab header. A tab opens with its name set at display size and left,
- * a plain purpose line beneath it where it has one, and an optional control on
- * the title row.
+ * The one tab header. A tab opens with its name set at the working title size
+ * (`type.title`, 30 at ExtraBold) and left, a plain purpose line beneath it
+ * where it has one, and an optional control on the title row. Revamp B (F602):
+ * the 44 display size is for the colour pages of the first run, and a tab is a
+ * working screen, so its title is the one working title. Home's greeting is one
+ * of these titles, not a headline of its own. The centred branch below keeps
+ * the display size until Profile's own pass (F606) decides it.
  *
  * It is the FIRST child of a tab's scroll body, not the frame's `header` slot:
- * a fixed display title over a purpose line is taller than the screen at the
- * largest reading size, so it has to scroll with the content rather than pin
- * to the top. Nothing here caps the reading size or truncates the title.
+ * a title over a purpose line is taller than the screen at the largest reading
+ * size, so it has to scroll with the content rather than pin to the top.
+ * Nothing here caps the reading size or truncates the title.
  *
  * Two of the props are optional for reasons Home gave them.
  *
@@ -282,12 +300,10 @@ type TabHeaderProps = {
  * greeting alone, so the line is absent rather than empty. A tab that passes
  * one is drawn exactly as it was.
  *
- * `titleSwap` is the only way a title can move without `type.display` leaving
- * this file. Home's greeting changes through the day, and the alternative was a
- * tab spreading the display line into a stylesheet of its own, which is how
- * five tabs end up with five slightly different titles. Given a swap, the row
- * is `TitleSwapRow` below; given nothing, it is the plain `Text` it has always
- * been, which is what the other four tabs still render.
+ * The title's type lives only here. Home's greeting changes through the day,
+ * and the alternative was a tab spreading a title style into a stylesheet of
+ * its own, which is how five tabs end up with five slightly different titles.
+ * The greeting is a still line (F418): the plain `Text` every tab renders.
  *
  * `align` is the third, and it is deliberately not a free choice. Four tabs
  * name a subject and read left, because a left edge is where the eye starts a
@@ -303,10 +319,10 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, titleSwap, trailing, leading, align = 'left', children }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children }: TabHeaderProps) {
   if (align === 'center') {
     return (
-      <View style={{ marginBottom: space(5), alignItems: 'center', backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(5) }}>
+      <View style={{ marginBottom: space(5), alignItems: 'center', paddingVertical: space(2) }}>
         {leading != null ? leading : null}
         <Text
           accessibilityRole="header"
@@ -329,13 +345,9 @@ export function TabHeader({ title, purpose, titleSwap, trailing, leading, align 
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        {titleSwap != null ? (
-          <TitleSwapRow title={title} swap={titleSwap} />
-        ) : (
-          <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>
-            {title}
-          </Text>
-        )}
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, flex: 1 }]}>
+          {title}
+        </Text>
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (
@@ -367,36 +379,6 @@ export function TabHeader({ title, purpose, titleSwap, trailing, leading, align 
  * renamed itself every few seconds and announced each one is the most hostile
  * thing this app could do to somebody listening to it.
  */
-function TitleSwapRow({ title, swap }: { title: string; swap: TitleSwap }) {
-  const fontScale = PixelRatio.getFontScale();
-  if (fontScale >= 1.6) {
-    return <Text accessibilityRole="header" style={[type.display, { color: paper.ink, flex: 1 }]}>{title}</Text>;
-  }
-  const line = type.display.lineHeight * fontScale;
-  const join = (word: string) => (swap.rest == null ? word : `${word}\u00A0${swap.rest}`);
-  return (
-    <View
-      accessible
-      accessibilityRole="header"
-      accessibilityLabel={title}
-      style={{ flex: 1, height: line, overflow: 'hidden', position: 'relative' }}
-    >
-      <View style={StyleSheet.absoluteFill} {...decorative}>
-        <Animated.Text style={[type.display, st.swapLine, {
-          color: paper.ink,
-          opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-          transform: [{ translateY: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -line] }) }],
-        }]}>{join(swap.word)}</Animated.Text>
-        <Animated.Text style={[type.display, st.swapLine, {
-          color: paper.ink,
-          opacity: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
-          transform: [{ translateY: swap.progress.interpolate({ inputRange: [0, 1], outputRange: [line, 0] }) }],
-        }]}>{join(swap.next)}</Animated.Text>
-      </View>
-    </View>
-  );
-}
-
 type ConfirmSheetProps = {
   visible: boolean;
   title: string;
@@ -410,8 +392,16 @@ type ConfirmSheetProps = {
 /**
  * The one leave-confirmation. It asks before a learner abandons something the
  * meter is counting. The safe answer, staying, is the solid pill and comes
- * first; the leaving answer is the quiet outline, so the primary action on the
- * sheet is the one that keeps the room.
+ * first; the leaving answer is the quiet link under it, so the primary action
+ * on the sheet is the one that keeps the room.
+ *
+ * Revamp B (F603): it is the shared bottom `Sheet`, rising under the ink scrim,
+ * rather than a card of its own in the middle of the screen. The props are the
+ * same, so its callers change nothing. The sheet's own ways out all land on
+ * `onCancel`: a tap on the scrim and the screen reader's escape both keep the
+ * learner in the room, because staying is the answer that costs nothing. Only
+ * the link leaves. The sheet announces its title as it rises, so the question
+ * is still heard the moment it is asked.
  */
 export function ConfirmSheet({
   visible,
@@ -422,37 +412,11 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
 }: ConfirmSheetProps) {
-  if (!visible) return null;
   return (
-    <View style={st.overlay} accessibilityViewIsModal>
-      <View style={st.scrim} />
-      <Card style={st.sheet}>
-        <Text
-          accessibilityRole="header"
-          accessibilityLiveRegion="polite"
-          style={[type.title, { color: paper.ink }]}
-        >
-          {title}
-        </Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{body}</Text>
-        <View style={{ marginTop: space(4), gap: space(2) }}>
-          <PillButton label={cancelLabel} onPress={onCancel} />
-          <OutlineButton label={confirmLabel} onPress={onConfirm} />
-        </View>
-      </Card>
-    </View>
+    <Sheet visible={visible} title={title} onClose={onCancel}>
+      <Text style={[type.body, { color: paper.inkSoft }]}>{body}</Text>
+      <PillButton label={cancelLabel} onPress={onCancel} />
+      <GhostButton label={confirmLabel} onPress={onConfirm} />
+    </Sheet>
   );
 }
-
-const st = StyleSheet.create({
-  swapLine: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: space(6),
-  },
-  // The fade lives on its own layer so the sheet above it stays at full ink.
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: paper.ink, opacity: 0.32 },
-  sheet: { width: '100%', maxWidth: 420 },
-});

@@ -29,10 +29,10 @@ export const CONVERSATIONS_TITLE = 'Your conversations';
 export const CONVERSATIONS_PURPOSE = 'Return to any of them.';
 
 /** Over the door into the library. */
-export const LIBRARY_LABEL = 'Your saved conversations';
+export const LIBRARY_LABEL = 'Practice from conversations';
 
 /** What is behind that door, named rather than implied. */
-export const LIBRARY_LINE = 'Open one for its phrases, continue talking, or delete it.';
+export const LIBRARY_LINE = 'Curated phrases and corrections to practise, revisit or delete.';
 
 /** What a screen reader hears on the door, which is both lines as one sentence. */
 export function libraryDoorLabel(): string {

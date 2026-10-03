@@ -160,7 +160,10 @@ describe('the pace dial — the second thing the engine already reads', () => {
         `"${line}" scolds, or reads as something about the learner rather than the tutor`,
       );
     }
-    assert.equal(PACE_ROW, 'Tutor speaks slower', 'the row no longer names the tutor as the thing that changes');
+    // 2026-09-27, notebook Phase 4 (report change 25): "slower" promised a
+    // slower voice the cache never plays, so the row says what changes.
+    assert.equal(PACE_ROW, 'Tutor speaks more simply', 'the row no longer names the tutor as the thing that changes');
+    assert.doesNotMatch(PACE_ROW, /slow/i, 'the row promises a slower voice again');
     // What it promises is the prompt, not the waveform: the audio plays at the
     // speed the cache holds, so a claim about speech would be one the pipeline
     // does not keep.

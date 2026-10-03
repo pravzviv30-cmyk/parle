@@ -1,21 +1,35 @@
+import { WALK_AVAILABLE } from '../walk/observer.ts';
 /**
- * The Tutor landing page — a calm moment before a live conversation.
+ * Speak: who is teaching, the next conversation, and the path from A0 to A1.
  *
- * A history-backed recommendation, an explicit Speak/Type choice and one main
- * start action. Supporting rows lead to missions, open conversation, rehearsal,
- * guided pronunciation and memory controls. The guide explains the AI tutor.
- * Recommendation rules live in nextConversation.ts; connection checks preserve
- * the exact requested start so retry never silently changes the conversation.
+ * Rebuilt 2026-09-27 (notebook Phase 3, B1). The tab leads with the tutor card
+ * (the name and sound line from the voice catalogue, the voice sample's French
+ * line as the signature, a play control, and a link to change the voice), then
+ * the one Start for the next conversation with a quiet "Type instead" under
+ * it, then the path from the CEFR spine: every scene as a ledger row grouped by
+ * level, with its minutes, opening its brief in the chooser, and the "here" row
+ * carrying the highlighter. Phase 4 (B1) drew the path once, where it had been
+ * a level path and then the same can-do lines again as rows, and left offline
+ * Speak saying "unavailable" once rather than twice.
+ * "More ways to practise" (the open conversation, a real moment, and memory)
+ * appears only after a first finished scene.
+ *
+ * Every decision lives in `tutor/speakView.ts` and `tutor/nextConversation.ts`.
+ * Connection checks preserve the exact requested start, spoken or typed, so a
+ * retry never silently changes the conversation. Nothing on this tab moves.
  */
 
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { missionStates, type MissionProgress } from '@luvani/core';
+import { memoryPaused } from '@luvani/brain/profile';
+import { todayItems } from '../daily/catalogue.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { ownedReadStatus } from './ownedRead.ts';
 
-import { Card, GhostButton, Label, OutlineButton, PillButton, TabBar, TintRow } from '../components.tsx';
-import { ChatGlyph, CoffeeCupGlyph, DocumentGlyph, WaveformGlyph } from '../glyphs.tsx';
+import { Card, GhostButton, Highlight, Label, Ledger, LedgerRow, OutlineButton, PillButton, TutorCard, SceneBrief, SceneMark, Press, canDoSentence } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -30,47 +44,34 @@ import { threadFrom, type Thread } from '../tutor/threads.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { MICROPHONE_NOTICE, missionCompletionsFrom } from '../missions/chooserView.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
-import { settleIn, useReduceMotion } from '../motion.ts';
 import { loadDeck } from '../review/store.ts';
-import { accent, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
-import { TUTOR_PURPOSE, tutorHeading } from '../tutor/dashboard.ts';
-import { launchAccessibilityLabel, launchLabel, launchNotice, orbStatusLabel, tutorOrbState } from '../tutor/orbState.ts';
-import { DOOR_TINT } from '../tutor/doorTint.ts';
-import {
-  ENTRY_MODES_LABEL,
-  TUTOR_OFFLINE,
-  entryStart,
-  tutorDoors,
-  tutorGate,
-  type EntryModeKey,
-} from '../tutor/gate.ts';
+import { frenchText, HIT, paper, space, type } from '../theme.ts';
+import { sceneMeta } from '../home/estimate.ts';
+import { Illustration } from '../art/flat/Illustration.tsx';
+import { tutorHeading } from '../tutor/dashboard.ts';
+import { launchAccessibilityLabel, launchLabel, launchNotice, tutorOrbState } from '../tutor/orbState.ts';
+import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { ContinuityCard } from '../tutor/ContinuityCard.tsx';
 import { continuityFrom, continuityHeadline, type Continuity } from '../tutor/continuity.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
+import { tutorVoiceOf } from '../tutor/tutorVoice.ts';
+import { voiceSample } from '../tutor/voiceSamples.ts';
 import { nextConversation } from '../tutor/nextConversation.ts';
 import { prefersTyping } from '../profile/typing.ts';
-import { LESSON_MINUTES } from '../copy/access.ts';
-
-/**
- * The three rows, built once.
- *
- * `tutorDoors()` takes no arguments and reads nothing, so there is nothing for
- * a memo to depend on and nothing for a render to rebuild. It used to be asked
- * for the resumable scene, the size of the catalogue and a lesson title, and
- * every one of those has left this tab.
- */
-const DOORS = tutorDoors();
-
-/** UI 4's focal control, softened and kept comfortably inside a phone width. */
-const TUTOR_ORB_SIZE = 96;
-
-/** One line-art mark per way in, using the shared ink colour. */
-const GLYPH: Record<EntryModeKey, ReactNode> = {
-  everyday: <CoffeeCupGlyph color={accent.primary} />,
-  free: <ChatGlyph color={accent.primary} />,
-  rehearse: <DocumentGlyph color={accent.primary} />,
-};
+import {
+  CHANGE_VOICE,
+  HERE_MARK,
+  MORE_WAYS,
+  MORE_WAYS_LABEL,
+  PATH_LABEL,
+  moreWaysOpen,
+  speakPath,
+  pathCard,
+  startModes,
+  startNote,
+  tutorCardFacts,
+  type MoreWay,
+} from '../tutor/speakView.ts';
 
 export function TutorTab() {
   const focused = useIsFocused();
@@ -78,83 +79,85 @@ export function TutorTab() {
   const { live, recheck } = useLive();
   const { profile } = useProfile();
   const tutorName = tutorNameOf(profile);
-  const reduced = useReduceMotion();
-  const entry = useRef(new Animated.Value(0)).current;
+  const voiceKey = tutorVoiceOf(profile);
+  const card = tutorCardFacts(voiceKey);
+  // Profile's standing "Prefer typing" decides which way the Start opens.
+  const modes = startModes(prefersTyping(profile));
 
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
   // Another screen's recheck can bring the tutor back; a refusal from here is then stale.
   useEffect(() => { if (live) setHeldBack(null); }, [live]);
   const [checking, setChecking] = useState(false);
-  const [mode, setMode] = useState<'speak' | 'type'>(() => prefersTyping(profile) ? 'type' : 'speak');
   const [progress, setProgress] = useState<readonly MissionProgress[]>(() => missionStates([], [], Date.now()));
+  const [historyStatus, setHistoryStatus] = useState<'loading' | 'ready' | 'unread'>('loading');
+  const [historyReadOwner, setHistoryReadOwner] = useState(() => scopeGeneration());
+  const [historyReadyOwner, setHistoryReadyOwner] = useState<number | null>(null);
+  const [historyAttempt, setHistoryAttempt] = useState(0);
   const pendingStart = useRef<object>({});
   const starting = useRef(false);
   /** What the tutor remembers, from a real record only, or null. */
   const [continuity, setContinuity] = useState<Continuity | null>(null);
   /** The one thread to pick up, or null. */
   const [thread, setThread] = useState<Thread | null>(null);
-  /** The plan the server answered, for the one row that is the plan's. */
+  /** The plan the server answered, for the continuation rule. */
   const [plan, setPlan] = useState<{ tier: PlanTier; lapsed: boolean }>({ tier: 'unknown', lapsed: false });
-  // Core's answer to "may a session start", read from the server on focus, or
-  // null when nobody could ask. The circle reads it through `tutor/orbState.ts`
-  // and a null reads as ready there on purpose: the server refuses a start it
-  // cannot afford, and a circle that went quiet because a status read failed
-  // would refuse a learner the server would have let in.
+  // Core's answer to "may a session start", or null when nobody could ask; a
+  // null reads as ready, because the server refuses a start it cannot afford.
   const [canStart, setCanStart] = useState<boolean | null>(null);
   const { user } = useAuth();
 
-  // The page settles in when the tab is opened. The voice orb carries its own
-  // slower breathing loop; this is only the page arriving, and it lands on the
-  // final frame immediately for learners who reduce motion.
-  useEffect(() => {
-    if (!focused) return;
-    entry.setValue(0);
-    const animation = settleIn(entry, reduced);
-    return () => animation?.stop();
-  }, [entry, focused, reduced]);
+  // The voice sample: one player, the bundled clip for the chosen voice. The
+  // same control stops it, a clip that ends lets go of "Stop", and leaving the
+  // tab takes the sound with it, because a bottom tab is never unmounted.
+  const player = useAudioPlayer();
+  const status = useAudioPlayerStatus(player);
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => { if (status.didJustFinish) setPlaying(false); }, [status.didJustFinish]);
+  useEffect(() => { if (!focused) { player.pause(); setPlaying(false); } }, [focused, player]);
+  const hear = () => {
+    if (playing) {
+      player.pause();
+      setPlaying(false);
+      return;
+    }
+    player.replace(voiceSample(voiceKey));
+    player.play();
+    setPlaying(true);
+  };
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const scope = scopeGeneration();
+      setHistoryReadOwner(scope);
+      setHistoryReadyOwner(null);
+      setHistoryStatus('loading');
       void Promise.all([loadMissionCompletions(), loadDeck(), loadScenarioProgress(), loadConversationPacks(), loadPackMarks(), loadTopics()])
         .then(([completions, deck, scenes, packs, marks, topics]) => {
-          if (cancelled) return;
-          // One projection of where every scene stands, handed to the memory
-          // line and to the thread, so the two cannot disagree.
+          if (cancelled || scopeGeneration() !== scope) return;
+          // One projection of where every scene stands, handed to the path,
+          // the memory line and the thread, so they cannot disagree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, Date.now());
           setProgress(progress);
-          setContinuity(continuityFrom({ brain: profile.brain, packs, records: scenes, progress }));
+          setContinuity(continuityFrom({ brain: memoryPaused(profile.brain) ? null : profile.brain, packs, records: scenes, progress }));
           setThread(threadFrom({ records: scenes, progress, packs, marks, topics }));
+          setHistoryReadyOwner(scope);
+          setHistoryStatus('ready');
         })
-        // A disk that will not answer takes the remembers row with it and
-        // nothing else. The circle and the three ways in are all on this page
-        // without reading anything, so the tab stays a way into French rather
-        // than becoming a message about storage. Nothing is cleared here on
-        // purpose: a re-read that failed is not evidence that the thread the
-        // learner walked away from is gone.
-        //
-        // `.catch` at the end of the chain rather than a second argument to
-        // `.then`, because a throw inside the handler above rejects the promise
-        // `.then` returns and an onRejected passed alongside it never sees it.
-        .catch(() => {});
+        // A disk that will not answer takes nothing away: the path keeps what
+        // it last read, and a re-read that failed is not evidence that a
+        // thread is gone. `.catch` at the end of the chain, so a throw inside
+        // the handler above is caught too.
+        .catch(() => { if (!cancelled && scopeGeneration() === scope) setHistoryStatus('unread'); });
       return () => {
         cancelled = true;
       };
-    }, [profile]),
+    }, [profile, historyAttempt]),
   );
 
   /**
-   * The conversation, probed before it opens.
-   *
-   * The rejection path is the whole reason this is not three lines. `checking`
-   * disables the circle, every row and the quiet link at the foot, so a probe
-   * that ever threw would not fail one tap: it would retire the tab for the
-   * rest of the session with nothing on screen saying why.
-   *
-   * `.catch` at the end of the chain rather than a second argument to `.then`,
-   * because a throw inside the fulfilment handler rejects the promise `.then`
-   * returns and an onRejected passed beside it never sees that throw. The
-   * handler navigates, so it is a real thrower.
+   * The conversation, probed before it opens. `checking` disables every
+   * control that starts something, so the rejection path lets go of it too.
    */
   const open = (textMode: boolean, params: object = {}) => {
     // A second tap while the connection check runs cannot open a second room.
@@ -176,25 +179,26 @@ export function TutorTab() {
         nav.navigate(decision.screen, { ...params, ...decision.params });
       })
       .catch(() => {
-        // A probe that threw is a probe that did not answer, so the start is
-        // held back rather than lost: the flag goes down, the tab is live
-        // again, and the retry is the same start the learner asked for.
+        // A probe that threw did not answer, so the start is held back rather
+        // than lost, and the retry is the same start.
         setChecking(false);
         starting.current = false;
         setHeldBack({ textMode });
       });
   };
 
-  // The plan, on its own read. Not folded into the storage effect above,
-  // because that effect's rejection path is pinned to the disk: a status the
-  // server would not give must not look like a thread the learner lost.
+  // The plan, on its own read, so a status the server would not give never
+  // looks like a thread the learner lost.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      const scope = scopeGeneration();
+      setCanStart(null);
+      setPlan({ tier: 'unknown', lapsed: false });
       if (!live || user === null) return;
       void fetchBillingStatus(user.id)
         .then((status) => {
-          if (cancelled) return;
+          if (cancelled || scopeGeneration() !== scope) return;
           setCanStart(status === null ? null : status.canStart);
           setPlan(status === null ? { tier: 'unknown', lapsed: false } : { tier: status.plan, lapsed: status.lapsed });
         })
@@ -206,145 +210,141 @@ export function TutorTab() {
   );
 
   const orb = tutorOrbState({ live, checking, canStart });
+  const offlineShown = !live || heldBack !== null;
+  const note = startNote(orb, offlineShown);
   const next = nextConversation(progress, thread, capabilitiesFor(plan.tier, plan.lapsed).continueArc);
-  const purpose = continuity ? TUTOR_PURPOSE : 'Your AI tutor helps you find the words, one conversation at a time.';
+  const path = pathCard(speakPath(progress));
+  const currentScope = scopeGeneration();
+  const renderHistoryStatus = ownedReadStatus(historyStatus, historyReadOwner, historyReadyOwner, currentScope);
 
-  // Where a row leads is `gate.ts`'s answer, not this screen's. The open chat
-  // runs the same probe the circle runs, because it opens the same room; the
-  // other two push a screen that needs no server at all.
-  const enter = (key: EntryModeKey) => {
-    const start = entryStart(key);
-    if (start.probe) {
-      open(mode === 'type');
-      return;
-    }
-    nav.navigate(start.screen, { textMode: mode === 'type' });
+  // The open conversation probes like the Start; the other two push a screen.
+  const more = (way: MoreWay) => {
+    if (way.screen === null) { open(modes.textMode); return; }
+    nav.navigate(way.screen);
   };
 
-  const entryStyle = {
-    opacity: entry,
-    transform: [{ translateY: entry.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-  };
+  const primary = <PillButton tone={offlineShown ? 'ink' : 'white'}
+    label={offlineShown ? (checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry) : launchLabel({ checking, live, mode: modes.mode })}
+    accessibilityLabel={offlineShown ? TUTOR_OFFLINE.retry : launchAccessibilityLabel({ checking, live, mode: modes.mode, tutorName })}
+    disabled={checking} onPress={() => open(heldBack?.textMode ?? modes.textMode, heldBack ? pendingStart.current : next.params)} />;
+
+  if (renderHistoryStatus !== 'ready') return <ScrollScreen bottom="tab">
+    <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
+    <Card style={st.offline}>
+      <Text style={[type.body, { color: paper.ink }]}>{renderHistoryStatus === 'loading' ? 'Finding your next conversation.' : 'Your conversation history could not be read just now.'}</Text>
+      {renderHistoryStatus === 'unread' && <GhostButton label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
+      <GhostButton label="Practise today's phrase on this phone" onPress={() => nav.navigate('DailyPractice', { id: todayItems(0, Date.now()).phrase.id })} />
+    </Card>
+  </ScrollScreen>;
 
   return (
     <ScrollScreen bottom="tab">
-      <Animated.View style={entryStyle}>
-        <TabHeader title={tutorHeading(tutorName)} purpose={purpose} trailing={<ProfileButton />} />
+      <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
 
-        {/* The recommendation uses the established chartreuse feature surface. */}
-        <View style={st.studio}>
-        <View style={st.studioHead}>
-          <Label>{next.label}</Label>
-          <Text style={[type.cardTitle, { color: paper.ink }]}>{next.title}</Text>
-          <Text style={[type.body, { color: paper.inkSoft }]}>{next.body}</Text>
-        </View>
-        {/* The circle reports the tutor's state; it is not a second start.
-            The pill below is the one launch (Stage 3A), so a screen reader
-            hears the state here and the action there. */}
-        <View style={st.orb} accessible accessibilityLabel={orbStatusLabel(orb, tutorName)}>
-          <VoiceOrb
-            state={orb.state}
-            size={TUTOR_ORB_SIZE}
-            announce={false}
-            withCaption={false}
-            paused={!focused}
+      {/* What the tutor remembers, from a real record only. */}
+      {continuity !== null && (
+        <View style={st.remembers}>
+          <ContinuityCard
+            headline={memoryPaused(profile.brain) ? 'Continue your French' : continuityHeadline(tutorName)}
+            line={continuity.line}
+            thread={thread}
+            continueAllowed={capabilitiesFor(plan.tier, plan.lapsed).continueArc}
+            disabled={checking}
+            onPress={(route) => {
+              // Carry the pack's identity into the room; ConvoScreen marks it
+              // only after the first live view arrives.
+              if (route.screen === 'Convo' && route.markPack !== null) {
+                nav.navigate(route.screen, { ...route.params, continuationPackId: route.markPack, textMode: false });
+                return;
+              }
+              nav.navigate(route.screen, route.screen === 'Convo' ? { ...route.params, textMode: false } : route.params);
+            }}
           />
-          {orb.state !== 'ready' && <Text style={st.orbSubline}>{orb.subline}</Text>}
         </View>
-        <Text style={st.studioFoot}>{next.detail}</Text>
-        <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="How you want to practise" />
-        <PillButton label={launchLabel({ checking, live, mode })} accessibilityLabel={launchAccessibilityLabel({ checking, live, mode, tutorName })} disabled={checking} onPress={() => open(mode === 'type', next.params)} />
-        <Text style={st.notice}>{launchNotice(mode)}</Text>
-        </View>
+      )}
 
-        {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
+      {continuity === null && <TutorCard
+        name={card.name} voice={card.voice} signature={card.signature} onHear={hear}
+        playing={playing} onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}
+        changeLabel={CHANGE_VOICE}
+      />}
+      <View style={st.start}>
+        {!offlineShown && <SceneBrief
+          meta={next.minutes === null ? `${next.label}, with ${tutorName}` : sceneMeta(next.label, next.minutes, tutorName)}
+          french={next.french ?? undefined} title={next.title}
+          canDo={next.canDo ? canDoSentence(next.canDo) : next.body}
+          line={next.lines[0] ? { fr: next.lines[0] } : undefined}
+          note={next.minutes === null ? undefined : "The estimate is for this scene's steps. The live room uses minutes while open."}
+          action={<>
+            {note !== null && <Text style={[type.small, { color: paper.onInk }]}>{note}</Text>}
+            {primary}
+            <Text style={[type.small, { color: paper.onInk }]}>Speaking and typing in a live room use live minutes. Tap the microphone when it is your turn.</Text>
+          </>}
+          secondary={<GhostButton label={modes.other.label} color={paper.onInk} disabled={checking} onPress={() => open(modes.other.textMode, next.params)} />}
+        />}
+      </View>
 
-        {(!live || heldBack !== null) && (
-          <Card style={st.offline}>
-            <Label>{TUTOR_OFFLINE.label}</Label>
-            <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
-            {heldBack !== null && (
-              <>
-                <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{TUTOR_OFFLINE.body}</Text>
-                <View style={{ marginTop: space(3) }}>
-                  <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode, pendingStart.current)} />
-                </View>
-              </>
-            )}
-            <GhostButton label="Try guided practice" onPress={() => nav.navigate('Lesson', { textMode: mode === 'type' })} />
+      {WALK_AVAILABLE && <GhostButton label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
+
+      {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
+
+      {offlineShown && (
+        <Card style={st.offline}>
+          <Illustration name="state-offline" fit="small" style={{ alignSelf: 'center' }} />
+          <Label>{TUTOR_OFFLINE.label}</Label>
+          <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
+          {heldBack !== null && (
+            <>
+              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Try connecting again, or practise today's phrase on this phone.</Text>
+
+            </>
+          )}
+          {primary}
+          <GhostButton label="Practise today's phrase on this phone" onPress={() => nav.navigate('DailyPractice', { id: todayItems(0, Date.now()).phrase.id })} />
+        </Card>
+      )}
+
+      <View style={st.path}>
+        <Press haptic="light" onPress={() => nav.navigate('Missions')} accessibilityLabel={`${PATH_LABEL}, ${path.level}. See every scene`}>
+          <Card style={{ gap: space(4) }}>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PATH_LABEL}, {path.level}</Text>
+            {path.rows.map((row) => <View key={row.missionId} style={{ flexDirection: 'row', gap: space(3), alignItems: 'center' }}>
+              <SceneMark state={row.state} />
+              <View style={{ flex: 1 }}><Text style={[type.bodyStrong, { color: paper.ink }]}>{row.title}</Text><Text {...frenchText} style={[type.french, { color: paper.ink }]}>{row.french}</Text><Text style={[type.small, { color: paper.inkSoft }]}>{row.progressLabel}</Text></View>
+            </View>)}
+            {path.rest !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{path.rest}</Text>}
+            <Text style={[type.small, { color: paper.inkSoft }]}>See every scene</Text>
           </Card>
-        )}
+        </Press>
+      </View>
 
-        {/* What the tutor remembers, from a real record only. Absent for a
-            learner with nothing behind them, because the fold answers null. */}
-        {continuity !== null && (
-          <View style={st.remembers}>
-            <ContinuityCard
-              headline={continuityHeadline(tutorName)}
-              line={continuity.line}
-              thread={thread}
-              continueAllowed={capabilitiesFor(plan.tier, plan.lapsed).continueArc}
-              disabled={checking}
-              onPress={(route) => {
-                // Carry the pack's identity into the room instead of retiring
-                // it on this tap. ConvoScreen writes the mark only after the
-                // first live view arrives, so an offline gate or failed join
-                // leaves the remembered thread exactly where it was.
-                if (route.screen === 'Convo' && route.markPack !== null) {
-                  nav.navigate(route.screen, { ...route.params, continuationPackId: route.markPack, textMode: mode === 'type' });
-                  return;
-                }
-                nav.navigate(route.screen, route.screen === 'Convo' ? { ...route.params, textMode: mode === 'type' } : route.params);
-              }}
-            />
-          </View>
-        )}
-
-        {/* Supporting destinations share the existing compact navigation rows. */}
-        <View style={st.doors}>
-          <Label>{ENTRY_MODES_LABEL}</Label>
-          {DOORS.map((door) => (
-            <View key={door.key} style={st.row}>
-              <TintRow
-                tint={DOOR_TINT[door.key]}
-                glyph={GLYPH[door.key]}
-                title={door.key === 'rehearse' ? `${door.label} · Max` : door.label}
-                gloss={door.gloss}
-                disabled={checking}
-                onPress={() => enter(door.key)}
-              />
-            </View>
-          ))}
-          <TintRow tint="sky" glyph={<WaveformGlyph color={accent.primary} />} title="Practise pronunciation" gloss={`A guided café lesson with lines to listen to and repeat. ${LESSON_MINUTES}`} onPress={() => nav.navigate('Lesson', { textMode: mode === 'type' })} />
-          <TintRow tint="lilac" glyph={<DocumentGlyph color={accent.primary} />} title="What your tutor remembers" gloss="Review remembered details, your goals and correction style." onPress={() => nav.navigate('TutorMemory')} />
+      {moreWaysOpen(progress) && (
+        <View style={st.path}>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{MORE_WAYS_LABEL}</Text>
+          <Ledger>
+            {MORE_WAYS.map((way) => (
+              <LedgerRow key={way.key} title={way.title} gloss={way.gloss} disabled={checking} onPress={() => more(way)} />
+            ))}
+          </Ledger>
         </View>
+      )}
 
-        <View style={st.quiet}>
-          <GhostButton label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
-          <Text style={st.notice}>{MICROPHONE_NOTICE}</Text>
-        </View>
-      </Animated.View>
+      <View style={st.quiet}>
+        <GhostButton label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
+        <Text style={st.notice}>{MICROPHONE_NOTICE}</Text>
+      </View>
     </ScrollScreen>
   );
 }
 
 const st = StyleSheet.create({
-  studio: { backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card, padding: space(4), gap: space(2) },
-  studioHead: { gap: space(1) },
-  studioNote: { ...type.frenchSm, color: paper.inkSoft },
-  studioFoot: { ...type.small, color: paper.ink, textAlign: 'center', borderTopWidth: HAIRLINE, borderTopColor: paper.ink, paddingTop: space(3) },
-  orb: { alignItems: 'center', alignSelf: 'center', minWidth: TUTOR_ORB_SIZE, minHeight: TUTOR_ORB_SIZE, paddingVertical: space(1) },
-  orbSubline: { ...type.small, color: paper.inkSoft, marginTop: space(1), textAlign: 'center' },
+  start: { marginTop: space(5), gap: space(2) },
   checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
   offline: { marginTop: space(4) },
-  // The remembers row stands on its own above the heading, so it carries the
-  // gap the list below gets from its container.
+  path: { marginTop: space(6), gap: space(3) },
+  group: { gap: space(1) },
+  // The remembers row stands on its own, at the touch floor.
   remembers: { marginTop: space(5), minHeight: HIT },
-  doors: { marginTop: space(5), gap: space(2) },
-  // The touch floor, declared where the row is placed rather than left to the
-  // component that draws it. A row this tab hands to `TintRow` can never fall
-  // under 44pt, whatever a future restyle does to the shared one.
-  row: { minHeight: HIT },
   quiet: { marginTop: space(6), gap: space(1) },
   notice: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(2) },
 });

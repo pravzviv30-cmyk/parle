@@ -1,0 +1,1265 @@
+{
+ "language": "fr",
+ "locale": "fr-FR",
+ "text": "Bonjour, je vais prendre un café.",
+ "status": "completed",
+ "assessable": true,
+ "reason": null,
+ "model_version": "multilingual-native-v1-fr-6de7a5ee5bb6",
+ "scores": {
+  "overall": 99.1,
+  "pronunciation": 99.1,
+  "fluency": 100.0,
+  "integrity": 100.0,
+  "rhythm": 100.0,
+  "tone": null
+ },
+ "words": [
+  {
+   "index": 0,
+   "text": "bonjour",
+   "word": "bonjour",
+   "expected_ipa": "bɔ̃ʒuʁ",
+   "score": 92.1,
+   "start_ms": 0,
+   "end_ms": 394,
+   "decision": "no_correction",
+   "omission_suspected": false,
+   "phonemes": [
+    {
+     "expected": "b",
+     "phone": "b",
+     "dimension": "phoneme",
+     "heard": "b",
+     "score": 87.9,
+     "start_ms": 0,
+     "end_ms": 71,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ɔ̃",
+     "phone": "ɔ̃",
+     "dimension": "phoneme",
+     "heard": "ɔ̃",
+     "score": 93.4,
+     "start_ms": 71,
+     "end_ms": 142,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʒ",
+     "phone": "ʒ",
+     "dimension": "phoneme",
+     "heard": "ʒ",
+     "score": 94.2,
+     "start_ms": 142,
+     "end_ms": 222,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "u",
+     "phone": "u",
+     "dimension": "phoneme",
+     "heard": "ɔ",
+     "score": 76.0,
+     "start_ms": 222,
+     "end_ms": 303,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʁ",
+     "phone": "ʁ",
+     "dimension": "phoneme",
+     "heard": "ʁ",
+     "score": 96.3,
+     "start_ms": 303,
+     "end_ms": 394,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    }
+   ],
+   "phones": [
+    {
+     "expected": "b",
+     "phone": "b",
+     "dimension": "phoneme",
+     "heard": "b",
+     "score": 87.9,
+     "start_ms": 0,
+     "end_ms": 71,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ɔ̃",
+     "phone": "ɔ̃",
+     "dimension": "phoneme",
+     "heard": "ɔ̃",
+     "score": 93.4,
+     "start_ms": 71,
+     "end_ms": 142,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʒ",
+     "phone": "ʒ",
+     "dimension": "phoneme",
+     "heard": "ʒ",
+     "score": 94.2,
+     "start_ms": 142,
+     "end_ms": 222,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "u",
+     "phone": "u",
+     "dimension": "phoneme",
+     "heard": "ɔ",
+     "score": 76.0,
+     "start_ms": 222,
+     "end_ms": 303,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʁ",
+     "phone": "ʁ",
+     "dimension": "phoneme",
+     "heard": "ʁ",
+     "score": 96.3,
+     "start_ms": 303,
+     "end_ms": 394,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "text": "je",
+   "word": "je",
+   "expected_ipa": "ʒə",
+   "score": 99.4,
+   "start_ms": 394,
+   "end_ms": 505,
+   "decision": "no_correction",
+   "omission_suspected": false,
+   "phonemes": [
+    {
+     "expected": "ʒ",
+     "phone": "ʒ",
+     "dimension": "phoneme",
+     "heard": "ʒ",
+     "score": 96.6,
+     "start_ms": 394,
+     "end_ms": 455,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ə",
+     "phone": "ə",
+     "dimension": "phoneme",
+     "heard": "ə",
+     "score": 99.4,
+     "start_ms": 455,
+     "end_ms": 505,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    }
+   ],
+   "phones": [
+    {
+     "expected": "ʒ",
+     "phone": "ʒ",
+     "dimension": "phoneme",
+     "heard": "ʒ",
+     "score": 96.6,
+     "start_ms": 394,
+     "end_ms": 455,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ə",
+     "phone": "ə",
+     "dimension": "phoneme",
+     "heard": "ə",
+     "score": 99.4,
+     "start_ms": 455,
+     "end_ms": 505,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "text": "vais",
+   "word": "vais",
+   "expected_ipa": "vɛ",
+   "score": 92.5,
+   "start_ms": 505,
+   "end_ms": 627,
+   "decision": "no_correction",
+   "omission_suspected": false,
+   "phonemes": [
+    {
+     "expected": "v",
+     "phone": "v",
+     "dimension": "phoneme",
+     "heard": "v",
+     "score": 98.4,
+     "start_ms": 505,
+     "end_ms": 556,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ɛ",
+     "phone": "ɛ",
+     "dimension": "phoneme",
+     "heard": "e",
+     "score": 78.8,
+     "start_ms": 556,
+     "end_ms": 627,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    }
+   ],
+   "phones": [
+    {
+     "expected": "v",
+     "phone": "v",
+     "dimension": "phoneme",
+     "heard": "v",
+     "score": 98.4,
+     "start_ms": 505,
+     "end_ms": 556,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ɛ",
+     "phone": "ɛ",
+     "dimension": "phoneme",
+     "heard": "e",
+     "score": 78.8,
+     "start_ms": 556,
+     "end_ms": 627,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    }
+   ]
+  },
+  {
+   "index": 3,
+   "text": "prendre",
+   "word": "prendre",
+   "expected_ipa": "pʁɑ̃dʁ",
+   "score": 92.1,
+   "start_ms": 627,
+   "end_ms": 980,
+   "decision": "no_correction",
+   "omission_suspected": false,
+   "phonemes": [
+    {
+     "expected": "p",
+     "phone": "p",
+     "dimension": "phoneme",
+     "heard": "p",
+     "score": 96.8,
+     "start_ms": 627,
+     "end_ms": 697,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʁ",
+     "phone": "ʁ",
+     "dimension": "phoneme",
+     "heard": "ʁ",
+     "score": 88.3,
+     "start_ms": 697,
+     "end_ms": 758,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ɑ̃",
+     "phone": "ɑ̃",
+     "dimension": "phoneme",
+     "heard": "ɑ̃",
+     "score": 99.3,
+     "start_ms": 758,
+     "end_ms": 829,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "d",
+     "phone": "d",
+     "dimension": "phoneme",
+     "heard": "d",
+     "score": 91.8,
+     "start_ms": 829,
+     "end_ms": 920,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʁ",
+     "phone": "ʁ",
+     "dimension": "phoneme",
+     "heard": "a",
+     "score": 62.2,
+     "start_ms": 920,
+     "end_ms": 980,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    }
+   ],
+   "phones": [
+    {
+     "expected": "p",
+     "phone": "p",
+     "dimension": "phoneme",
+     "heard": "p",
+     "score": 96.8,
+     "start_ms": 627,
+     "end_ms": 697,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʁ",
+     "phone": "ʁ",
+     "dimension": "phoneme",
+     "heard": "ʁ",
+     "score": 88.3,
+     "start_ms": 697,
+     "end_ms": 758,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ɑ̃",
+     "phone": "ɑ̃",
+     "dimension": "phoneme",
+     "heard": "ɑ̃",
+     "score": 99.3,
+     "start_ms": 758,
+     "end_ms": 829,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "d",
+     "phone": "d",
+     "dimension": "phoneme",
+     "heard": "d",
+     "score": 91.8,
+     "start_ms": 829,
+     "end_ms": 920,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "ʁ",
+     "phone": "ʁ",
+     "dimension": "phoneme",
+     "heard": "a",
+     "score": 62.2,
+     "start_ms": 920,
+     "end_ms": 980,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    }
+   ]
+  },
+  {
+   "index": 4,
+   "text": "un",
+   "word": "un",
+   "expected_ipa": "œ̃",
+   "score": 99.4,
+   "start_ms": 980,
+   "end_ms": 1071,
+   "decision": "no_correction",
+   "omission_suspected": false,
+   "phonemes": [
+    {
+     "expected": "œ̃",
+     "phone": "œ̃",
+     "dimension": "phoneme",
+     "heard": "ɛ̃",
+     "score": 98.8,
+     "start_ms": 980,
+     "end_ms": 1071,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    }
+   ],
+   "phones": [
+    {
+     "expected": "œ̃",
+     "phone": "œ̃",
+     "dimension": "phoneme",
+     "heard": "ɛ̃",
+     "score": 98.8,
+     "start_ms": 980,
+     "end_ms": 1071,
+     "operation": "S",
+     "diagnosis_status": "experimental"
+    }
+   ]
+  },
+  {
+   "index": 5,
+   "text": "café",
+   "word": "café",
+   "expected_ipa": "kafe",
+   "score": 96.7,
+   "start_ms": 1071,
+   "end_ms": 1718,
+   "decision": "no_correction",
+   "omission_suspected": false,
+   "phonemes": [
+    {
+     "expected": "k",
+     "phone": "k",
+     "dimension": "phoneme",
+     "heard": "k",
+     "score": 88.0,
+     "start_ms": 1071,
+     "end_ms": 1152,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "a",
+     "phone": "a",
+     "dimension": "phoneme",
+     "heard": "a",
+     "score": 96.3,
+     "start_ms": 1152,
+     "end_ms": 1233,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "f",
+     "phone": "f",
+     "dimension": "phoneme",
+     "heard": "f",
+     "score": 98.1,
+     "start_ms": 1233,
+     "end_ms": 1334,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "e",
+     "phone": "e",
+     "dimension": "phoneme",
+     "heard": "e",
+     "score": 93.8,
+     "start_ms": 1334,
+     "end_ms": 1718,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    }
+   ],
+   "phones": [
+    {
+     "expected": "k",
+     "phone": "k",
+     "dimension": "phoneme",
+     "heard": "k",
+     "score": 88.0,
+     "start_ms": 1071,
+     "end_ms": 1152,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "a",
+     "phone": "a",
+     "dimension": "phoneme",
+     "heard": "a",
+     "score": 96.3,
+     "start_ms": 1152,
+     "end_ms": 1233,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "f",
+     "phone": "f",
+     "dimension": "phoneme",
+     "heard": "f",
+     "score": 98.1,
+     "start_ms": 1233,
+     "end_ms": 1334,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    },
+    {
+     "expected": "e",
+     "phone": "e",
+     "dimension": "phoneme",
+     "heard": "e",
+     "score": 93.8,
+     "start_ms": 1334,
+     "end_ms": 1718,
+     "operation": "M",
+     "diagnosis_status": "experimental"
+    }
+   ]
+  }
+ ],
+ "heard": {
+  "phonetic_transcription": "bɔ̃ʒwɔʁʒəvepʁɑ̃daɛ̃kafe",
+  "transcript": null
+ },
+ "warnings": [],
+ "raw": {
+  "lang": "fr",
+  "language": "French",
+  "text": "Bonjour, je vais prendre un café.",
+  "assessable": true,
+  "warning": null,
+  "duration": 1.72,
+  "utterance_score": 99.1,
+  "overall_from": [
+   "accuracy",
+   "completeness",
+   "extra_speech"
+  ],
+  "scores": {
+   "accuracy": 99.1,
+   "accuracy_percentile": 69.1,
+   "accuracy_percentile_raw": 65.06,
+   "completeness": 100.0,
+   "extra_speech": 5.0,
+   "match": 75.0,
+   "fluency": 100.0,
+   "rhythm": 100.0
+  },
+  "prosody": {
+   "fluency": 100.0,
+   "pause_ratio": 0.0,
+   "phones_per_sec": 11.06,
+   "pauses": 0,
+   "speech_s": 1.72,
+   "duration_spread": 0.33,
+   "rhythm": 100.0
+  },
+  "quality": {
+   "rms": 0.07449,
+   "peak": 0.426,
+   "clipping": 0.0,
+   "duration": 1.718,
+   "speech_frac": 0.2706,
+   "confidence": 0.8259
+  },
+  "n_phones": 19,
+  "n_scored": 19,
+  "n_missing": 0,
+  "words": [
+   {
+    "word": "bonjour",
+    "ipa": "bɔ̃ʒuʁ",
+    "score": 92.1,
+    "native_percentile": 58.1,
+    "produced": 1.0,
+    "missing": false,
+    "phones": [
+     {
+      "phone": "b",
+      "start": 0.0,
+      "end": 0.071,
+      "known": true,
+      "op": "M",
+      "heard": "b",
+      "produced": true,
+      "score": 87.9,
+      "native_percentile": 51.8,
+      "margin_z": 0.3,
+      "gop_z": 0.42,
+      "weakness": 46.8,
+      "flagged": false
+     },
+     {
+      "phone": "ɔ̃",
+      "start": 0.071,
+      "end": 0.142,
+      "known": true,
+      "op": "M",
+      "heard": "ɔ̃",
+      "produced": true,
+      "score": 93.4,
+      "native_percentile": 65.4,
+      "margin_z": 0.16,
+      "gop_z": 0.86,
+      "weakness": 48.6,
+      "flagged": false
+     },
+     {
+      "phone": "ʒ",
+      "start": 0.142,
+      "end": 0.222,
+      "known": true,
+      "op": "M",
+      "heard": "ʒ",
+      "produced": true,
+      "score": 94.2,
+      "native_percentile": 68.2,
+      "margin_z": 0.63,
+      "gop_z": 0.69,
+      "weakness": 68.7,
+      "flagged": false
+     },
+     {
+      "phone": "u",
+      "start": 0.222,
+      "end": 0.303,
+      "known": true,
+      "op": "S",
+      "heard": "ɔ",
+      "produced": true,
+      "score": 76.0,
+      "native_percentile": 28.7,
+      "margin_z": -1.05,
+      "gop_z": -0.14,
+      "weakness": 20.3,
+      "flagged": false
+     },
+     {
+      "phone": "ʁ",
+      "start": 0.303,
+      "end": 0.394,
+      "known": true,
+      "op": "M",
+      "heard": "ʁ",
+      "produced": true,
+      "score": 96.3,
+      "native_percentile": 76.6,
+      "margin_z": 1.01,
+      "gop_z": 0.58,
+      "weakness": 89.3,
+      "flagged": false
+     }
+    ]
+   },
+   {
+    "word": "je",
+    "ipa": "ʒə",
+    "score": 99.4,
+    "native_percentile": 85.1,
+    "produced": 1.0,
+    "missing": false,
+    "phones": [
+     {
+      "phone": "ʒ",
+      "start": 0.394,
+      "end": 0.455,
+      "known": true,
+      "op": "M",
+      "heard": "ʒ",
+      "produced": true,
+      "score": 96.6,
+      "native_percentile": 77.8,
+      "margin_z": 0.56,
+      "gop_z": 1.19,
+      "weakness": 61.9,
+      "flagged": false
+     },
+     {
+      "phone": "ə",
+      "start": 0.455,
+      "end": 0.505,
+      "known": true,
+      "op": "M",
+      "heard": "ə",
+      "produced": true,
+      "score": 99.4,
+      "native_percentile": 92.4,
+      "margin_z": 1.41,
+      "gop_z": 1.05,
+      "weakness": 97.8,
+      "flagged": false
+     }
+    ]
+   },
+   {
+    "word": "vais",
+    "ipa": "vɛ",
+    "score": 92.5,
+    "native_percentile": 59.3,
+    "produced": 1.0,
+    "missing": false,
+    "phones": [
+     {
+      "phone": "v",
+      "start": 0.505,
+      "end": 0.556,
+      "known": true,
+      "op": "M",
+      "heard": "v",
+      "produced": true,
+      "score": 98.4,
+      "native_percentile": 84.6,
+      "margin_z": 1.17,
+      "gop_z": 0.71,
+      "weakness": 97.4,
+      "flagged": false
+     },
+     {
+      "phone": "ɛ",
+      "start": 0.556,
+      "end": 0.627,
+      "known": true,
+      "op": "S",
+      "heard": "e",
+      "produced": true,
+      "score": 78.8,
+      "native_percentile": 34.1,
+      "margin_z": -0.45,
+      "gop_z": -0.26,
+      "weakness": 30.3,
+      "flagged": false
+     }
+    ]
+   },
+   {
+    "word": "prendre",
+    "ipa": "pʁɑ̃dʁ",
+    "score": 92.1,
+    "native_percentile": 58.3,
+    "produced": 1.0,
+    "missing": false,
+    "phones": [
+     {
+      "phone": "p",
+      "start": 0.627,
+      "end": 0.697,
+      "known": true,
+      "op": "M",
+      "heard": "p",
+      "produced": true,
+      "score": 96.8,
+      "native_percentile": 78.5,
+      "margin_z": 0.75,
+      "gop_z": 0.71,
+      "weakness": 80.3,
+      "flagged": false
+     },
+     {
+      "phone": "ʁ",
+      "start": 0.697,
+      "end": 0.758,
+      "known": true,
+      "op": "M",
+      "heard": "ʁ",
+      "produced": true,
+      "score": 88.3,
+      "native_percentile": 52.6,
+      "margin_z": 0.34,
+      "gop_z": 0.43,
+      "weakness": 50.7,
+      "flagged": false
+     },
+     {
+      "phone": "ɑ̃",
+      "start": 0.758,
+      "end": 0.829,
+      "known": true,
+      "op": "M",
+      "heard": "ɑ̃",
+      "produced": true,
+      "score": 99.3,
+      "native_percentile": 91.3,
+      "margin_z": 0.99,
+      "gop_z": 1.14,
+      "weakness": 86.6,
+      "flagged": false
+     },
+     {
+      "phone": "d",
+      "start": 0.829,
+      "end": 0.92,
+      "known": true,
+      "op": "M",
+      "heard": "d",
+      "produced": true,
+      "score": 91.8,
+      "native_percentile": 59.5,
+      "margin_z": 0.81,
+      "gop_z": 0.07,
+      "weakness": 74.2,
+      "flagged": false
+     },
+     {
+      "phone": "ʁ",
+      "start": 0.92,
+      "end": 0.98,
+      "known": true,
+      "op": "S",
+      "heard": "a",
+      "produced": true,
+      "score": 62.2,
+      "native_percentile": 9.6,
+      "margin_z": -3.27,
+      "gop_z": -1.33,
+      "weakness": 1.3,
+      "flagged": false
+     }
+    ]
+   },
+   {
+    "word": "un",
+    "ipa": "œ̃",
+    "score": 99.4,
+    "native_percentile": 86.2,
+    "produced": 1.0,
+    "missing": false,
+    "phones": [
+     {
+      "phone": "œ̃",
+      "start": 0.98,
+      "end": 1.071,
+      "known": true,
+      "op": "S",
+      "heard": "ɛ̃",
+      "produced": true,
+      "score": 98.8,
+      "native_percentile": 86.2,
+      "margin_z": 0.92,
+      "gop_z": 0.99,
+      "weakness": 86.2,
+      "flagged": false
+     }
+    ]
+   },
+   {
+    "word": "café",
+    "ipa": "kafe",
+    "score": 96.7,
+    "native_percentile": 69.7,
+    "produced": 1.0,
+    "missing": false,
+    "phones": [
+     {
+      "phone": "k",
+      "start": 1.071,
+      "end": 1.152,
+      "known": true,
+      "op": "M",
+      "heard": "k",
+      "produced": true,
+      "score": 88.0,
+      "native_percentile": 52.1,
+      "margin_z": 0.23,
+      "gop_z": 0.5,
+      "weakness": 40.3,
+      "flagged": false
+     },
+     {
+      "phone": "a",
+      "start": 1.152,
+      "end": 1.233,
+      "known": true,
+      "op": "M",
+      "heard": "a",
+      "produced": true,
+      "score": 96.3,
+      "native_percentile": 76.4,
+      "margin_z": 0.88,
+      "gop_z": 0.72,
+      "weakness": 80.2,
+      "flagged": false
+     },
+     {
+      "phone": "f",
+      "start": 1.233,
+      "end": 1.334,
+      "known": true,
+      "op": "M",
+      "heard": "f",
+      "produced": true,
+      "score": 98.1,
+      "native_percentile": 83.4,
+      "margin_z": 0.87,
+      "gop_z": 0.81,
+      "weakness": 87.7,
+      "flagged": false
+     },
+     {
+      "phone": "e",
+      "start": 1.334,
+      "end": 1.718,
+      "known": true,
+      "op": "M",
+      "heard": "e",
+      "produced": true,
+      "score": 93.8,
+      "native_percentile": 66.9,
+      "margin_z": 1.82,
+      "gop_z": -0.22,
+      "weakness": 98.4,
+      "flagged": false
+     }
+    ]
+   }
+  ],
+  "phones": [
+   {
+    "phone": "b",
+    "start": 0.0,
+    "end": 0.071,
+    "known": true,
+    "op": "M",
+    "heard": "b",
+    "produced": true,
+    "score": 87.9,
+    "native_percentile": 51.8,
+    "margin_z": 0.3,
+    "gop_z": 0.42,
+    "weakness": 46.8,
+    "flagged": false
+   },
+   {
+    "phone": "ɔ̃",
+    "start": 0.071,
+    "end": 0.142,
+    "known": true,
+    "op": "M",
+    "heard": "ɔ̃",
+    "produced": true,
+    "score": 93.4,
+    "native_percentile": 65.4,
+    "margin_z": 0.16,
+    "gop_z": 0.86,
+    "weakness": 48.6,
+    "flagged": false
+   },
+   {
+    "phone": "ʒ",
+    "start": 0.142,
+    "end": 0.222,
+    "known": true,
+    "op": "M",
+    "heard": "ʒ",
+    "produced": true,
+    "score": 94.2,
+    "native_percentile": 68.2,
+    "margin_z": 0.63,
+    "gop_z": 0.69,
+    "weakness": 68.7,
+    "flagged": false
+   },
+   {
+    "phone": "u",
+    "start": 0.222,
+    "end": 0.303,
+    "known": true,
+    "op": "S",
+    "heard": "ɔ",
+    "produced": true,
+    "score": 76.0,
+    "native_percentile": 28.7,
+    "margin_z": -1.05,
+    "gop_z": -0.14,
+    "weakness": 20.3,
+    "flagged": false
+   },
+   {
+    "phone": "ʁ",
+    "start": 0.303,
+    "end": 0.394,
+    "known": true,
+    "op": "M",
+    "heard": "ʁ",
+    "produced": true,
+    "score": 96.3,
+    "native_percentile": 76.6,
+    "margin_z": 1.01,
+    "gop_z": 0.58,
+    "weakness": 89.3,
+    "flagged": false
+   },
+   {
+    "phone": "ʒ",
+    "start": 0.394,
+    "end": 0.455,
+    "known": true,
+    "op": "M",
+    "heard": "ʒ",
+    "produced": true,
+    "score": 96.6,
+    "native_percentile": 77.8,
+    "margin_z": 0.56,
+    "gop_z": 1.19,
+    "weakness": 61.9,
+    "flagged": false
+   },
+   {
+    "phone": "ə",
+    "start": 0.455,
+    "end": 0.505,
+    "known": true,
+    "op": "M",
+    "heard": "ə",
+    "produced": true,
+    "score": 99.4,
+    "native_percentile": 92.4,
+    "margin_z": 1.41,
+    "gop_z": 1.05,
+    "weakness": 97.8,
+    "flagged": false
+   },
+   {
+    "phone": "v",
+    "start": 0.505,
+    "end": 0.556,
+    "known": true,
+    "op": "M",
+    "heard": "v",
+    "produced": true,
+    "score": 98.4,
+    "native_percentile": 84.6,
+    "margin_z": 1.17,
+    "gop_z": 0.71,
+    "weakness": 97.4,
+    "flagged": false
+   },
+   {
+    "phone": "ɛ",
+    "start": 0.556,
+    "end": 0.627,
+    "known": true,
+    "op": "S",
+    "heard": "e",
+    "produced": true,
+    "score": 78.8,
+    "native_percentile": 34.1,
+    "margin_z": -0.45,
+    "gop_z": -0.26,
+    "weakness": 30.3,
+    "flagged": false
+   },
+   {
+    "phone": "p",
+    "start": 0.627,
+    "end": 0.697,
+    "known": true,
+    "op": "M",
+    "heard": "p",
+    "produced": true,
+    "score": 96.8,
+    "native_percentile": 78.5,
+    "margin_z": 0.75,
+    "gop_z": 0.71,
+    "weakness": 80.3,
+    "flagged": false
+   },
+   {
+    "phone": "ʁ",
+    "start": 0.697,
+    "end": 0.758,
+    "known": true,
+    "op": "M",
+    "heard": "ʁ",
+    "produced": true,
+    "score": 88.3,
+    "native_percentile": 52.6,
+    "margin_z": 0.34,
+    "gop_z": 0.43,
+    "weakness": 50.7,
+    "flagged": false
+   },
+   {
+    "phone": "ɑ̃",
+    "start": 0.758,
+    "end": 0.829,
+    "known": true,
+    "op": "M",
+    "heard": "ɑ̃",
+    "produced": true,
+    "score": 99.3,
+    "native_percentile": 91.3,
+    "margin_z": 0.99,
+    "gop_z": 1.14,
+    "weakness": 86.6,
+    "flagged": false
+   },
+   {
+    "phone": "d",
+    "start": 0.829,
+    "end": 0.92,
+    "known": true,
+    "op": "M",
+    "heard": "d",
+    "produced": true,
+    "score": 91.8,
+    "native_percentile": 59.5,
+    "margin_z": 0.81,
+    "gop_z": 0.07,
+    "weakness": 74.2,
+    "flagged": false
+   },
+   {
+    "phone": "ʁ",
+    "start": 0.92,
+    "end": 0.98,
+    "known": true,
+    "op": "S",
+    "heard": "a",
+    "produced": true,
+    "score": 62.2,
+    "native_percentile": 9.6,
+    "margin_z": -3.27,
+    "gop_z": -1.33,
+    "weakness": 1.3,
+    "flagged": false
+   },
+   {
+    "phone": "œ̃",
+    "start": 0.98,
+    "end": 1.071,
+    "known": true,
+    "op": "S",
+    "heard": "ɛ̃",
+    "produced": true,
+    "score": 98.8,
+    "native_percentile": 86.2,
+    "margin_z": 0.92,
+    "gop_z": 0.99,
+    "weakness": 86.2,
+    "flagged": false
+   },
+   {
+    "phone": "k",
+    "start": 1.071,
+    "end": 1.152,
+    "known": true,
+    "op": "M",
+    "heard": "k",
+    "produced": true,
+    "score": 88.0,
+    "native_percentile": 52.1,
+    "margin_z": 0.23,
+    "gop_z": 0.5,
+    "weakness": 40.3,
+    "flagged": false
+   },
+   {
+    "phone": "a",
+    "start": 1.152,
+    "end": 1.233,
+    "known": true,
+    "op": "M",
+    "heard": "a",
+    "produced": true,
+    "score": 96.3,
+    "native_percentile": 76.4,
+    "margin_z": 0.88,
+    "gop_z": 0.72,
+    "weakness": 80.2,
+    "flagged": false
+   },
+   {
+    "phone": "f",
+    "start": 1.233,
+    "end": 1.334,
+    "known": true,
+    "op": "M",
+    "heard": "f",
+    "produced": true,
+    "score": 98.1,
+    "native_percentile": 83.4,
+    "margin_z": 0.87,
+    "gop_z": 0.81,
+    "weakness": 87.7,
+    "flagged": false
+   },
+   {
+    "phone": "e",
+    "start": 1.334,
+    "end": 1.718,
+    "known": true,
+    "op": "M",
+    "heard": "e",
+    "produced": true,
+    "score": 93.8,
+    "native_percentile": 66.9,
+    "margin_z": 1.82,
+    "gop_z": -0.22,
+    "weakness": 98.4,
+    "flagged": false
+   }
+  ],
+  "heard": "bɔ̃ʒwɔʁʒəvepʁɑ̃daɛ̃kafe",
+  "heard_match": 0.75,
+  "weakest": [
+   {
+    "phone": "ʁ",
+    "score": 62.2,
+    "weakness": 1.3
+   },
+   {
+    "phone": "u",
+    "score": 76.0,
+    "weakness": 20.3
+   },
+   {
+    "phone": "ɛ",
+    "score": 78.8,
+    "weakness": 30.3
+   },
+   {
+    "phone": "k",
+    "score": 88.0,
+    "weakness": 40.3
+   },
+   {
+    "phone": "b",
+    "score": 87.9,
+    "weakness": 46.8
+   }
+  ],
+  "flagged": [],
+  "flagged_phones": [],
+  "localisation": {
+   "statistic": "margin percentile (no flag model)",
+   "level": "word",
+   "phone_statistic_note": "ranking only; not a grade"
+  },
+  "model": {
+   "kind": "native-contrast + GOP fusion, zero human labels",
+   "n_native_phones": 108197,
+   "voices": [],
+   "prompts": 0
+  }
+ },
+ "model": {
+  "id": "multilingual-native-v1-fr-6de7a5ee5bb6",
+  "sha256": "6de7a5ee5bb67baacc6aa9926ec8d1799153de2bda16d7398fe85b3a33ffe095",
+  "experimental": true,
+  "calibration": "native_reference_per_unit",
+  "score_semantics": "0–100 pronunciation quality on a native-reference display scale",
+  "vendor_scale_calibrated": false,
+  "limitations": [
+   "Experimental legacy native-reference scores; some G2P consonants/glides remain unassessed."
+  ]
+ },
+ "duration_seconds": 1.72,
+ "task": "general"
+}

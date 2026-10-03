@@ -1,0 +1,64 @@
+/** Actual disposable PostgreSQL/WASM transactions. Sequential, not concurrency proof. */
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import assert from 'node:assert/strict';
+if (!process.env.PGLITE_MODULE) throw new Error('Set PGLITE_MODULE to the disposable PostgreSQL module.');
+const { PGlite } = await import(pathToFileURL(process.env.PGLITE_MODULE).href);
+const db = new PGlite();
+const user='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222';
+const sid=n=>`33333333-3333-4333-8333-${String(n).padStart(12,'0')}`;
+const migration='20261002233520_failed_session_refunds.sql';
+const sql=async name=>await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');
+const get=async()=> (await db.query('select * from public.entitlements where user_id=$1',[user])).rows[0];
+const grant=async id=>{const e=await get();return (await db.query('select public.record_session_grant($1,$2,$3,$4,$5) as value',[user,id,e.plan,e.seconds_used,e.period_end])).rows[0].value;};
+const consume=async(id,seconds=100,owner=user)=>(await db.query('select to_jsonb(public.consume_entitlement($1,$2,$3)) as value',[owner,seconds,id])).rows[0].value;
+const refund=async(id,owner=user)=>(await db.query("select public.refund_failed_session($1,$2,'tts_error') as value",[owner,id])).rows[0].value;
+try {
+ await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql as 'select null::uuid';`);
+ for(const name of ['202608220001_luvani_learning.sql','202608230001_session_usage_idempotency.sql','202608240001_claim_trial_null_fix.sql','202608250001_consume_entitlement_null_fix.sql','202608300001_billing_events.sql','202608300002_paid_period_lapse.sql','202608300003_paid_lapse_marker.sql','202609100001_max_allowance_three_hundred.sql','20261002154637_atomic_billing_projection.sql']) await db.exec(await sql(name));
+ await db.exec('create table public.conversation_packs(id uuid primary key,session_id uuid unique,user_id uuid references auth.users(id) on delete cascade,state text,payload jsonb);');
+ for(const table of ['social_profiles','social_blocks','social_reports','social_notices','social_reactions']) await db.exec(`create table public.${table}(user_id uuid,value text)`);
+ for(const table of ['social_edges','social_challenges']) await db.exec(`create table public.${table}(sender uuid,recipient uuid,value text)`);
+ await db.exec(await sql('20261002171317_opt_in_conversation_text.sql'));
+ await db.exec(await sql('20261002212536_kept_phrase_audio_budget.sql'));
+ await db.query('insert into auth.users values($1),($2)',[user,other]);
+ await db.query("insert into public.entitlements(user_id,plan,seconds_used) values($1,'trial',1790),($2,'trial',0)",[user,other]);
+ await db.exec(await sql(migration));
+ await assert.rejects(consume(sid(99)),/grant owner/);
+ await assert.rejects(consume(null),/unbound debits/);
+ await consume(null,0);
+ assert.equal(await grant(sid(1)),true);
+ assert.equal((await consume(sid(1))).seconds_used,1800);
+ const first=await refund(sid(1));assert.equal(first.refundedSeconds,10);assert.equal(first.kind,'restored-current-period');
+ assert.equal((await get()).seconds_used,1790);assert.deepEqual(await refund(sid(1)),first);
+ await consume(sid(1));assert.equal((await get()).seconds_used,1790);
+ await assert.rejects(refund(sid(1),other),/owner|account/);
+ await grant(sid(2));assert.equal((await refund(sid(2))).kind,'not-charged');await consume(sid(2));assert.equal((await get()).seconds_used,1790);
+ await db.query("update public.entitlements set plan='starter',period_end='2027-01-01',seconds_used=0 where user_id=$1",[user]);
+ await grant(sid(3));await consume(sid(3));
+ await grant(sid(4));
+ await db.query("update public.entitlements set period_end='2027-02-01',seconds_used=70 where user_id=$1",[user]);
+ await consume(sid(4));assert.equal((await get()).seconds_used,70,'late ordinary debit cannot consume renewed allowance');
+ assert.equal((await refund(sid(4))).kind,'not-charged');assert.equal((await get()).seconds_used,70);
+ assert.equal((await refund(sid(3))).kind,'historical-reversal');assert.equal((await get()).seconds_used,70,'old charge reversal does not mint new-period credit');
+ const e=await get();assert.equal((await db.query('select record_session_grant($1,$2,$3,$4,$5) as value',[user,sid(5),e.plan,e.seconds_used-1,e.period_end])).rows[0].value,false);
+ await grant(sid(6));await db.query('insert into public.session_usage(session_id,user_id,seconds) values($1,$2,20)',[sid(6),user]);await assert.rejects(refund(sid(6)),/legacy charge/);
+ // No read has lazily lapsed this expired paid allowance before refund.
+ await db.query("update public.entitlements set plan='starter',period_end=now()-interval '2 days',seconds_used=0 where user_id=$1",[other]);
+ const expired=(await db.query('select * from entitlements where user_id=$1',[other])).rows[0];
+ await db.query('select record_session_grant($1,$2,$3,$4,$5)',[other,sid(7),expired.plan,expired.seconds_used,expired.period_end]);
+ await db.query('update entitlements set seconds_used=80 where user_id=$1',[other]);
+ await db.query('insert into session_usage(session_id,user_id,seconds,charged_seconds,usage_epoch) values($1,$2,80,80,$3)',[sid(7),other,expired.usage_epoch]);
+ const expiredAck=await refund(sid(7),other);
+ assert.equal(expiredAck.kind,'historical-reversal','expired paid refund without an intervening entitlement read is historical');
+ assert.equal(expiredAck.plan,'trial');assert.equal(expiredAck.secondsRemaining,0);
+ const archive=(await db.query('select export_account_data($1) as value',[user])).rows[0].value;
+ assert.equal(Object.keys(archive).length,16);assert.equal(archive.session_grants.length,5);
+ for(const role of ['anon','authenticated']) {await db.exec(`set role ${role}`);await assert.rejects(refund(sid(1)),/permission denied/);await assert.rejects(db.query('select * from session_grants'),/permission denied/);await db.exec('reset role');}
+ await db.exec('set role service_role');assert.equal((await refund(sid(1))).kind,'historical-reversal');await db.exec('reset role');
+ await db.exec(await readFile(new URL('../supabase/rollback/20261002233520_down.sql',import.meta.url),'utf8'));
+ assert.equal(Object.keys((await db.query('select export_account_data($1) as value',[user])).rows[0].value).length,15);
+ await db.exec(await sql(migration));await assert.rejects(consume(sid(100)),/grant owner/);
+ await db.query('delete from auth.users where id=$1',[user]);assert.equal((await db.query('select count(*)::integer as n from session_grants where user_id=$1',[user])).rows[0].n,0);
+ console.log('PASS: actual capped delta, duplicate/before/after refund, ownership, old/new epoch, direct RPC fences, stale grant snapshot, legacy reconciliation, service-only privileges, bounded owned export, rollback/reapply and account cascade. Sequential SQL; not hosted/concurrent proof.');
+} finally {await db.close();}

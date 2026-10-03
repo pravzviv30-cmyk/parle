@@ -167,7 +167,7 @@ describe('an attempt recording does not outlive the attempt — F115', () => {
       assert.ok(scoring > 0, `${screen} no longer scores anything; this test is reading the wrong file`);
       assert.equal(
         count(body, 'consumeRecording('),
-        scoring,
+        scoring + count(body, 'transcribeRecordedAttempt('),
         `${screen} scores a recording somewhere that never discards it`,
       );
       assert.ok(count(body, 'discardRecording(') > 0, `${screen} has no path that discards an unscored take`);

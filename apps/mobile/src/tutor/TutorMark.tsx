@@ -10,10 +10,13 @@
  * Decorative on purpose: every row that draws it already says whose it is in
  * words, and an unlabelled image announced beside those words is one thing read
  * twice.
+ *
+ * Notebook Phase 1: a row's mark sits on no disc, so the orb is drawn straight
+ * on the page. The box keeps the disc token's size so rows do not reflow.
  */
 
 import { View, StyleSheet } from 'react-native';
-import { DISC, decorative, orb, paper } from '../theme.ts';
+import { DISC, decorative, orb } from '../theme.ts';
 import { OrbGlyph } from './OrbGlyph.tsx';
 
 export function TutorMark() {
@@ -28,8 +31,6 @@ const st = StyleSheet.create({
   disc: {
     width: DISC,
     height: DISC,
-    borderRadius: DISC / 2,
-    backgroundColor: paper.card,
     alignItems: 'center',
     justifyContent: 'center',
   },

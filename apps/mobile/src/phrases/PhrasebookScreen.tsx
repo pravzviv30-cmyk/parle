@@ -1,3 +1,4 @@
+import { Illustration } from '../art/flat/Illustration.tsx';
 /**
  * Your phrases — every line that has become the learner's, as a route (F575).
  *
@@ -34,17 +35,23 @@
  * another tab is F304.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { Art } from '../art/Art.tsx';
-import { SCREEN_ART } from '../art/maps.ts';
-import { Card, Label } from '../components.tsx';
+import { Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import * as tutorVoice from '../speech/tutorVoice.ts';
-import { accent, paper, radius, shadow, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { useRecordedLine } from '../practice/recordedPlayer.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
+import { DAILY_ITEMS } from '../daily/catalogue.ts';
+import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
+import { dailyTutorVoice, tutorAudioForFrench } from '../daily/tutorAudio.ts';
+import { tutorVoice, type ConversationPack } from '@luvani/core';
+import { sourceForKeptFrench } from './phraseAudioSource.ts';
+import { useKeptPhraseAudio } from './useKeptPhraseAudio.ts';
+import { accent, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { CadenceCard } from '../myfrench/CadenceCard.tsx';
@@ -57,48 +64,83 @@ import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { CADENCE_NOTE, PHRASEBOOK_TITLE, cadenceToggleLabel, hasCadence, speakerLabel } from './phrasebookView.ts';
 
 export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
+  const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const [book, setBook] = useState<Phrasebook | null>(null);
+  const [bookScope, setBookScope] = useState<number | null>(null);
+  const [unread, setUnread] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [sourcePacks, setSourcePacks] = useState<ConversationPack[]>([]);
   const [oneLine, setOneLine] = useState<OneLine | null>(null);
   const [cadence, setCadence] = useState<Cadence | null>(null);
   // Which line is sounding, so its own button offers to stop it and no other
   // button claims to. Null is silence.
-  const [playing, setPlaying] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const { profile } = useProfile();
+  const selectedVoice = dailyTutorVoice(profile.tutorVoice);
+  const voiceRef = useRef(selectedVoice);
+  voiceRef.current = selectedVoice;
+  const owner = scopeGeneration();
+  const visibleBook = bookScope === owner ? book : null;
+  const recorded = useRecordedLine({ isCurrent: () => owner === scopeGeneration() && selectedVoice === voiceRef.current });
+  const keptAudio = useKeptPhraseAudio(selectedVoice);
+  const dynamicAudio = process.env.EXPO_PUBLIC_LUVANI_KEPT_PHRASE_AUDIO === '1';
+  const sourceFor = (french: string) => dynamicAudio ? sourceForKeptFrench(french, sourcePacks, activeUserId()) : null;
+  const canHear = (phrase: SavedPhrase) => assetFor(phrase.front) !== undefined || sourceFor(phrase.front) !== null;
+  const audioPlaying = (phrase: SavedPhrase) => (playingId === phrase.id && recorded.playing === assetFor(phrase.front)) || keptAudio.playingId === phrase.id;
+  const audioNote = (phrase: SavedPhrase) => keptAudio.loadingId === phrase.id ? 'Preparing tutor audio…' : keptAudio.failedId === phrase.id || !canHear(phrase) ? 'Tutor audio is not ready for this phrase yet.' : voiceLabel;
+  const assetFor = (french: string) => tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, french, selectedVoice);
+  const voiceLabel = `${tutorVoice(selectedVoice).persona.name}'s voice`;
   // Bumped after a grade, so the page re-reads the deck it has just written to.
   const [graded, setGraded] = useState(0);
   // The authored connectors are an optional collection, closed on every visit.
   const [cadenceOpen, setCadenceOpen] = useState(false);
 
-  useEffect(() => () => tutorVoice.stop(), []);
+  useEffect(() => {
+    recorded.stop();
+    setPlayingId(null);
+  }, [selectedVoice, owner, recorded.stop]);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      void Promise.all([loadDeck(), loadTopics(), loadConversationPacks().catch(() => [])])
+      const account = scopeGeneration();
+      setBook(null); setBookScope(null); setOneLine(null); setCadence(null); setSourcePacks([]); setUnread(false);
+      void Promise.all([loadDeck(), loadTopics(), loadConversationPacks()])
         .then(([deck, topics, packs]) => {
-          if (cancelled) return;
+          if (cancelled || account !== scopeGeneration()) return;
           const now = Date.now();
           setBook(buildPhrasebook(deck, topics, now, packs));
+          setBookScope(account);
+          setSourcePacks(packs);
           setOneLine(oneLineFrom({ deck, now }));
           setCadence(cadenceFrom({ deck }));
         })
         .catch(() => {
-          // Nothing to draw and nothing to say about a disk. The learner's
-          // lines are on their account and the screen simply waits.
+          if (!cancelled && account === scopeGeneration()) setUnread(true);
         });
       return () => {
         cancelled = true;
       };
-    }, [graded]),
+    }, [graded, attempt, owner]),
   );
 
-  const say = (french: string) => {
-    if (playing === french) {
-      tutorVoice.stop();
-      setPlaying(null);
+  const say = (phrase: SavedPhrase) => {
+    const asset = assetFor(phrase.front);
+    if (asset === undefined) {
+      const source = sourceFor(phrase.front);
+      if (!source) return;
+      recorded.stop(); setPlayingId(null);
+      void keptAudio.hear(phrase.id, phrase.front, source);
       return;
     }
-    setPlaying(french);
-    tutorVoice.speak(french, { onDone: () => setPlaying(null) });
+    keptAudio.stop();
+    if (playingId === phrase.id && recorded.playing === asset) {
+      recorded.stop();
+      setPlayingId(null);
+      return;
+    }
+    setPlayingId(phrase.id);
+    recorded.play(asset);
   };
 
   return (
@@ -107,18 +149,21 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
         <Text accessibilityRole="header" style={st.title}>
           {PHRASEBOOK_TITLE}
         </Text>
-        <Art name={SCREEN_ART.phrasebook} compact style={st.art} />
       </View>
+
+      {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><GhostButton label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
+
+      {visibleBook !== null && !hasPhrases(visibleBook) && <Card><Illustration name="state-notebook" fit="small" /><Text style={[type.body, { color: paper.ink }]}>Your first kept phrase lands here.</Text><PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>}
 
       {/* The one card this visit deals, at the top, so the thing worth doing is
           never below a list of things already done. */}
-      {oneLine !== null && <OneLineCard line={oneLine} onGraded={() => setGraded((n) => n + 1)} />}
+      {visibleBook !== null && oneLine !== null && <OneLineCard line={oneLine} onGraded={() => setGraded((n) => n + 1)} />}
 
-      {book !== null && hasPhrases(book) && (
+      {visibleBook !== null && hasPhrases(visibleBook) && (
         <View style={st.block}>
           <Label>{LEDGER.rowsLabel}</Label>
           <View style={st.groups}>
-            {book.groups.map((group) => (
+            {visibleBook.groups.map((group) => (
               <Card key={group.id}>
                 <Label color={paper.inkSoft}>{group.title}</Label>
                 <View style={st.rows}>
@@ -127,8 +172,10 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
                       key={phrase.id}
                       phrase={phrase}
                       first={index === 0}
-                      playing={playing === phrase.front}
-                      onHear={() => say(phrase.front)}
+                      playing={audioPlaying(phrase)}
+                      audioLabel={audioNote(phrase)}
+                      source={group.id === 'lessons' ? null : group.title}
+                      onHear={canHear(phrase) ? () => say(phrase) : undefined}
                     />
                   ))}
                 </View>
@@ -141,18 +188,20 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
       {/* Saved but not yet recalled, apart from the lines above and under a
           name that claims nothing about holding them. A saved phrase used to
           vanish here, because the list above is recalled lines only. */}
-      {book !== null && hasSaved(book) && (
+      {visibleBook !== null && hasSaved(visibleBook) && (
         <View style={st.block}>
           <Label>{SAVED_TITLE}</Label>
           <Text style={st.savedNote}>{SAVED_NOTE}</Text>
           <Card style={st.savedCard}>
-            {book.saved.map((phrase, index) => (
+            {visibleBook.saved.map((phrase, index) => (
               <PhraseRow
                 key={phrase.id}
                 phrase={phrase}
                 first={index === 0}
-                playing={playing === phrase.front}
-                onHear={() => say(phrase.front)}
+                playing={audioPlaying(phrase)}
+                audioLabel={audioNote(phrase)}
+                source={phrase.source ?? null}
+                onHear={canHear(phrase) ? () => say(phrase) : undefined}
               />
             ))}
           </Card>
@@ -162,7 +211,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
       {/* Authored, so it is here on a first morning too, but it is an optional
           collection now (Stage 3): one quiet row, closed until asked for, so
           the learner's own lines lead and the glossary never outweighs them. */}
-      {hasCadence(cadence) && (
+      {visibleBook !== null && hasCadence(cadence) && (
         <View style={st.block}>
           <Pressable
             onPress={() => setCadenceOpen((open) => !open)}
@@ -193,6 +242,8 @@ function PhraseRow({
   phrase,
   first,
   playing,
+  audioLabel,
+  source,
   onHear,
 }: {
   /** A recalled phrase or a saved one; the row reads only the words, never a shelf. */
@@ -200,22 +251,26 @@ function PhraseRow({
   /** The first row in a card carries no rule above it. */
   first: boolean;
   playing: boolean;
-  onHear: () => void;
+  audioLabel: string;
+  source: string | null;
+  onHear?: () => void;
 }) {
   return (
     <View style={[st.row, !first && st.ruled]}>
       <View style={st.words}>
         <Text style={[type.french, { color: paper.ink }]}>{phrase.front}</Text>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{phrase.back}</Text>
+        {source !== null && <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>From {source}</Text>}
+        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{audioLabel}</Text>
       </View>
-      <Pressable
+      {onHear !== undefined && <Pressable
         onPress={onHear}
         accessibilityRole="button"
         accessibilityLabel={speakerLabel(phrase.front, playing)}
         style={({ pressed }) => [st.speaker, pressed && st.speakerPressed]}
       >
         <SpeakerGlyph color={accent.primary} />
-      </Pressable>
+      </Pressable>}
     </View>
   );
 }
@@ -223,7 +278,9 @@ function PhraseRow({
 const st = StyleSheet.create({
   // The title and the scene share a row, both sitting on the same baseline, so
   // the drawing reads as part of the heading rather than as a banner over it.
-  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3), marginTop: space(2), padding: space(4), backgroundColor: accent.feature, borderWidth: HAIRLINE, borderColor: paper.ink, borderRadius: radius.card },
+  // On the page itself (notebook Phase 4, 2026-09-27): no feature paper and no
+  // ink outline, so the heading is a heading rather than a panel.
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(3), marginTop: space(2) },
   title: { ...type.display, color: paper.ink, flexGrow: 1, flexBasis: 160, minWidth: 0 },
   // Placement only. The size is the registry's, never a number written here.
   art: { flexShrink: 0 },
@@ -240,17 +297,18 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },
   ruled: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   words: { flex: 1, minWidth: 0 },
-  // The identity violet on a white disc with the one shadow a card is allowed,
-  // which is what makes it read as a button on a white card. It is the thing
-  // you press, not a state being reported.
+  // The ink speaker on a white disc under a paper hairline, which is what makes
+  // it read as a button on a white card now the whisper has retired. It is the
+  // thing you press, not a state being reported.
   speaker: {
     width: HIT,
     height: HIT,
     borderRadius: HIT / 2,
     backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.whisper,
   },
   speakerPressed: { backgroundColor: paper.groundDeep },
 });

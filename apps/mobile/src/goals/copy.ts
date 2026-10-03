@@ -36,7 +36,7 @@ export const GOAL_TRAIL_EMPTY = 'Conversations you open from here will show up h
 export const GOAL_LOADING = 'Finding what you did with this goal.';
 
 /** The read failed. Not the same as having nothing. */
-export const GOAL_UNREAD = 'This could not be loaded just now. Everything is still saved.';
+export const GOAL_UNREAD = 'Your goal activity could not be loaded just now.';
 
 /** The one way on from a failed read. */
 export const GOAL_RETRY = 'Try loading it once more';

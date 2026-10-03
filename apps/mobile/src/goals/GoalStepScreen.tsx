@@ -24,12 +24,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { MISSIONS, type ConversationPack } from '@luvani/core';
 
-import { GhostButton, Label, PillButton } from '../components.tsx';
+import { ColourCard, GhostButton, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { IconRowCard } from '../surface/IconRowCard.tsx';
-import { accent, paper, space, type } from '../theme.ts';
+import { accent, onColour, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
+import { useAuth } from '../auth/useAuth.tsx';
 import { NEEDS_CONNECTION_AND_MINUTES } from '../copy/access.ts';
 import { ListeningPreview } from '../missions/ListeningPreview.tsx';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
@@ -69,6 +69,7 @@ export function GoalStepScreen() {
   }>();
   const route = useRoute<RouteProp<RootStackParamList, 'GoalStep'>>();
   const { profile } = useProfile();
+  const { user } = useAuth();
   // The route carries an opaque key, never the goal's words: on the web a
   // route's params are the address bar. A cold link with no key, or a goal
   // since removed, finds nothing and reads as a goal that is gone.
@@ -81,6 +82,7 @@ export function GoalStepScreen() {
   const [packs, setPacks] = useState<readonly ConversationPack[]>([]);
   const [history, setHistory] = useState<readonly PracticeEvent[]>([]);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'unread'>('loading');
+  const [readScope, setReadScope] = useState<{ generation: number; userId: string | null } | null>(null);
   const [attempt, setAttempt] = useState(0);
   // The step whose report is being written, so a second tap cannot queue a second write.
   const [reporting, setReporting] = useState<string | null>(null);
@@ -92,29 +94,38 @@ export function GoalStepScreen() {
       // Bound to the account before any read, so a result from the previous
       // account is dropped rather than drawn for this one.
       const scope = scopeGeneration();
+      const userId = user?.id ?? null;
       const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
+      setStatus('loading');
+      setReadScope(null);
       void Promise.all([loadGoalSteps(), loadConversationPacks(), loadPracticeHistory()]).then(
         ([storedSteps, storedPacks, events]) => {
           if (!sameAccount()) return;
           setSteps(storedSteps);
           setPacks(storedPacks);
           setHistory(events);
+          setReadScope({ generation: scope, userId });
           setStatus('loaded');
         },
         () => {
-          if (sameAccount()) setStatus((current) => (current === 'loaded' ? 'loaded' : 'unread'));
+          if (sameAccount()) {
+            setReadScope({ generation: scope, userId });
+            setStatus('unread');
+          }
         },
       );
       return () => {
         cancelled = true;
       };
-    }, [attempt]),
+    }, [attempt, user]),
   );
 
   const leave = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
   const next = nextTaskForGoal(current ?? '', { missions: MISSIONS });
   const mission = next === null ? null : missionOfTask(goalTaskOf(next.task));
   const trail = goalEvidence(goalKey, steps, packs, history, profile.learnerGoals);
+  const visibleStatus = readScope?.generation === scopeGeneration() && readScope.userId === (user?.id ?? null)
+    ? status : 'loading';
 
   const report = (row: GoalTrailRow) => {
     if (reporting !== null) return;
@@ -133,14 +144,17 @@ export function GoalStepScreen() {
         if (scopeGeneration() === scope) setSteps(stored);
       })
       .catch(() => {
-        if (scopeGeneration() === scope) setRefused(row.stepId);
+        if (scopeGeneration() === scope) {
+          setReadScope({ generation: scope, userId: user?.id ?? null });
+          setStatus('unread');
+          setRefused(row.stepId);
+        }
       })
       .finally(() => setReporting(null));
   };
 
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
-      <Label>{GOAL_LABEL}</Label>
+    <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} title={current ?? GOAL_LABEL} />}>
 
       {current === null && (
         <View style={st.block}>
@@ -151,29 +165,32 @@ export function GoalStepScreen() {
 
       {current !== null && (
         <>
-          <Text accessibilityRole="header" style={st.goal}>{current}</Text>
 
           {next !== null && mission !== null && (
-            <View style={st.block}>
-              <Label>{GOAL_NEXT_LABEL}</Label>
+            <ColourCard ground="blue" style={st.block}>
+              <Label color={paper.onInk}>{GOAL_NEXT_LABEL}</Label>
               <Text style={st.next}>{nextLine(mission, next.fit)}</Text>
-              <ListeningPreview selection={{ kind: 'mission', mission }} showContext />
+              <Text style={st.cost}>This is a scene from the current beginner catalogue. Your AI tutor can use your goal for context; it is not a tailored course or a promise of real-world ability.</Text>
+              <ListeningPreview selection={{ kind: 'mission', mission }} showContext ground="blue" />
               <View style={st.primary}>
                 <PillButton
+                  tone="white"
                   label={GOAL_START}
                   onPress={() => nav.navigate('Convo', { missionId: mission.id, goalRef: routeKey, goalTask: goalTaskOf(next.task) })}
                 />
               </View>
               <Text style={st.cost}>{NEEDS_CONNECTION_AND_MINUTES}</Text>
-            </View>
+            </ColourCard>
           )}
 
           <View style={st.block}>
             <Label>{GOAL_TRAIL_LABEL}</Label>
+            <Text style={st.soft}>You can change or remove this goal in tutor memory. The French you have saved and practised stays with you.</Text>
+            <GhostButton label="Edit this goal" onPress={() => nav.navigate('TutorMemory')} />
 
-            {status === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{GOAL_LOADING}</Text>}
+            {visibleStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{GOAL_LOADING}</Text>}
 
-            {status === 'unread' && (
+            {visibleStatus === 'unread' && (
               <View style={st.rows}>
                 <Text style={st.soft}>{GOAL_UNREAD}</Text>
                 <GhostButton
@@ -187,22 +204,24 @@ export function GoalStepScreen() {
               </View>
             )}
 
-            {status === 'loaded' && trail.length === 0 && <Text style={st.soft}>{GOAL_TRAIL_EMPTY}</Text>}
+            {visibleStatus === 'loaded' && trail.length === 0 && <Text style={st.soft}>{GOAL_TRAIL_EMPTY}</Text>}
 
-            {status === 'loaded' && trail.length > 0 && (
+            {visibleStatus === 'loaded' && trail.length > 0 && (
               <View style={st.rows}>
                 {trail.map((row) => {
                   const practice = row.practice !== null ? GOAL_PRACTICE_LINE[row.practice] : null;
                   return (
                     <View key={row.stepId} style={st.row}>
-                      <IconRowCard
-                        glyph={<DocumentGlyph color={accent.primary} />}
-                        label={row.pack.title.en}
-                        line={rehearsedOn(row.at)}
-                        note={practice}
-                        accessibilityLabel={[row.pack.title.en, rehearsedOn(row.at), practice].filter(Boolean).join(' ')}
-                        onPress={() => nav.navigate('Conversations', { packId: row.pack.id })}
-                      />
+                      <Ledger>
+                        <LedgerRow
+                          glyph={<DocumentGlyph color={accent.primary} />}
+                          title={row.pack.title.en}
+                          gloss={rehearsedOn(row.at)}
+                          note={practice}
+                          accessibilityLabel={[row.pack.title.en, rehearsedOn(row.at), practice].filter(Boolean).join(' ')}
+                          onPress={() => nav.navigate('Conversations', { packId: row.pack.id })}
+                        />
+                      </Ledger>
                       {row.usedOutside ? (
                         <Text style={st.said}>{USED_OUTSIDE_SAID}</Text>
                       ) : (
@@ -228,10 +247,10 @@ export function GoalStepScreen() {
 
 const st = StyleSheet.create({
   goal: { ...type.cardTitle, color: paper.ink, marginTop: space(2) },
-  next: { ...type.bodyStrong, color: paper.ink },
+  next: { ...type.bodyStrong, color: paper.onInk },
   soft: { ...type.body, color: paper.inkSoft },
   said: { ...type.small, color: paper.ink },
-  cost: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
+  cost: { ...type.small, color: onColour.blue, textAlign: 'center' },
   block: { marginTop: space(5), gap: space(3) },
   primary: { marginTop: space(2) },
   rows: { gap: space(4) },

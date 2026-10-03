@@ -1,10 +1,10 @@
 /**
  * The colour contract.
  *
- * There is one ground now — Porcelain — not five papers keyed by place, and the
- * signals and traffic lights are saturated back up to full colour. Every raw
- * value lives in `palette.ts`, which imports nothing, so this suite can hold the
- * whole palette to a numeric contract rather than to a comment somebody will
+ * Luvani, bright (revamp B): one warm paper ground, white cards, one deep ink
+ * and four saturated colours, blue, coral, sun and mint. Every raw value lives
+ * in `palette.ts`, which imports nothing, so this suite can hold the whole
+ * palette to a numeric contract rather than to a comment somebody will
  * contradict with an eyedropper.
  *
  * The contract has three floors, and which one a colour is held to is the whole
@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, accent, signal, orb, rungColor, tint } from './palette.ts';
+import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -117,6 +117,23 @@ describe('every raw colour lives in palette.ts — F320', () => {
     // And theme.ts really does re-export the five colour objects from palette.
     assert.match(theme, /export\s*\{[^}]*\bpaper\b[^}]*\}\s*from\s*'\.\/palette\.ts'/);
   });
+
+  test('no six-digit hex is written anywhere in source but palette.ts', () => {
+    // The whole app repaints through the tokens alone, which is only true while
+    // no screen spells a colour of its own. So every production file under src,
+    // and App.tsx beside it, is walked with its comments stripped; a comment may
+    // name a colour, code may not.
+    const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const files = [...walk(SRC), join(SRC, '..', 'App.tsx')];
+    assert.ok(files.length > 50, `the walk found ${files.length} files, so it is reading the wrong folder`);
+    for (const file of files) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      if (file === join(SRC, 'palette.ts')) continue;
+      const rel = file.slice(join(SRC, '..').length + 1);
+      const hexes = strip(readFileSync(file, 'utf8')).match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+      assert.deepEqual(hexes, [], `${rel} writes raw hex: ${hexes.join(', ')}; every colour lives in palette.ts`);
+    }
+  });
 });
 
 describe('one ground, pinned — F321', () => {
@@ -140,14 +157,25 @@ describe('one ground, pinned — F321', () => {
     }
   });
 
-  test('the ground is pinned, and there is only one', () => {
-    // Porcelain (B), the founder's pick. Pinned by value so a re-tint is a
-    // deliberate edit to this line, not a drift, and there is exactly one of it.
-    assert.equal(paper.ground, '#F7F3E8');
-    assert.equal(paper.groundDeep, '#E6DECD');
-    assert.equal(paper.line, '#B8BCAD');
-    assert.equal(paper.lineOnCard, '#DADBCF');
-    assert.equal(paper.card, '#FFFEFA');
+  test('the B paper is pinned: one ground, one white, one ink, one hairline', () => {
+    // STYLE section 4, the founder's revamp B. Pinned by value so a re-tint is a
+    // deliberate edit to this line, not a drift. B has one ground, one white,
+    // one ink, one soft ink and one hairline, so the old names that asked for a
+    // second of any of them are aliases of the one, and pinned as aliases.
+    assert.equal(paper.ground, '#FFF6E9');
+    assert.equal(paper.skeleton, '#EFE6D6');
+    assert.equal(paper.groundDeep, paper.skeleton, 'groundDeep is a second wash; B has only the skeleton');
+    assert.equal(paper.card, '#FFFFFF');
+    assert.equal(paper.ink, '#16123A');
+    assert.equal(paper.inkSoft, '#5C5A74');
+    assert.equal(paper.inkFaint, paper.inkSoft, 'inkFaint is a third ink; B has two');
+    assert.equal(paper.line, '#EADFCB');
+    assert.equal(paper.lineOnCard, paper.line, 'lineOnCard is a second hairline; B has one');
+    assert.equal(paper.onInk, '#FFFFFF');
+    // Revamp B stage 2: the input border and the unchosen ring. A mark, so it
+    // is held to the mark floor on the white it sits on, and never letters words.
+    assert.equal(paper.field, '#8A8499');
+    assert.ok(contrast(paper.field, CARD) >= MARK, `the field border is ${contrast(paper.field, CARD).toFixed(2)} on a card, under the ${MARK} floor for a mark`);
   });
 
   test('the card still reads as a card, and the hairlines still read on the ground', () => {
@@ -161,23 +189,32 @@ describe('one ground, pinned — F321', () => {
     assert.ok(deltaE(CARD, paper.lineOnCard) >= 6, `the card hairline is only ${deltaE(CARD, paper.lineOnCard).toFixed(1)} off the card`);
   });
 
-  test('faint ink is a mark on the inactive tab, so it clears 3 on the ground', () => {
-    // inkFaint went from #94849F (2.91, under the mark floor) to #8A7996 so the
-    // inactive tab glyph reads. It is a mark, not words, so 3 is its floor.
+  test('faint ink is soft ink now: B has no third ink, so it clears the text floor on the ground and on a card', () => {
+    // inkFaint letters placeholders and counts as well as the inactive tab
+    // glyph, so it is words as often as it is a mark. B has no third ink, and
+    // aliasing it to soft ink is the one value that keeps every existing use
+    // above the floor for words, which is stricter than the mark floor it used
+    // to be held to.
+    assert.equal(paper.inkFaint, paper.inkSoft, 'inkFaint drifted off soft ink into a third ink');
     assert.ok(
-      contrast(paper.inkFaint, GROUND) >= MARK,
-      `inkFaint is ${contrast(paper.inkFaint, GROUND).toFixed(2)} on the ground, under the ${MARK} floor for a mark`,
+      contrast(paper.inkFaint, GROUND) >= TEXT,
+      `inkFaint is ${contrast(paper.inkFaint, GROUND).toFixed(2)} on the ground, under the ${TEXT} floor for words`,
+    );
+    assert.ok(
+      contrast(paper.inkFaint, CARD) >= TEXT,
+      `inkFaint is ${contrast(paper.inkFaint, CARD).toFixed(2)} on a card, under the ${TEXT} floor for words`,
     );
   });
 
-  test('ink, soft ink, the fix colour and the violet all hold on the ground', () => {
+  test('ink, soft ink, the fix colour and the primary ink all hold on the ground', () => {
     assert.ok(contrast(INK, GROUND) >= 7, `ink is ${contrast(INK, GROUND).toFixed(2)} on the ground`);
     assert.ok(contrast(INK, paper.groundDeep) >= 7, `ink is ${contrast(INK, paper.groundDeep).toFixed(2)} on a chip fill`);
     assert.ok(contrast(paper.inkSoft, GROUND) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, GROUND).toFixed(2)} on the ground`);
     assert.ok(contrast(signal.correspondance, GROUND) >= TEXT, `the fix colour is ${contrast(signal.correspondance, GROUND).toFixed(2)} on the ground`);
-    assert.ok(contrast(accent.primary, GROUND) >= TEXT, `the violet is ${contrast(accent.primary, GROUND).toFixed(2)} on the ground`);
-    assert.ok(contrast(accent.primary, paper.groundDeep) >= 4, `the violet is ${contrast(accent.primary, paper.groundDeep).toFixed(2)} on a chip fill`);
+    assert.ok(contrast(accent.primary, GROUND) >= TEXT, `the primary ink is ${contrast(accent.primary, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(accent.primary, paper.groundDeep) >= 4, `the primary ink is ${contrast(accent.primary, paper.groundDeep).toFixed(2)} on a chip fill`);
     assert.ok(contrast(accent.label, GROUND) >= TEXT, `the label accent is ${contrast(accent.label, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(accent.brand, GROUND) >= TEXT, `the brand blue is ${contrast(accent.brand, GROUND).toFixed(2)} on the ground`);
   });
 
   test('soft ink clears 4.5 on a card as well as on the ground', () => {
@@ -190,194 +227,113 @@ describe('one ground, pinned — F321', () => {
   });
 });
 
-describe('signals are re-saturated and held to what they are — F322', () => {
-  test('green and the fix colour are words, so they clear 4.5 on the ground and on a card', () => {
-    for (const [name, hex] of [['green', signal.good], ['the fix colour', signal.correspondance]] as const) {
+describe('signals are held to what they are — F322', () => {
+  test('good and the fix colour are ink, so the words that carry them clear the floor by being ink', () => {
+    // Both are set as words in about two dozen places. B carries meaning in the
+    // words and puts colour only on marks, so both signals are the ink itself.
+    assert.equal(signal.good, paper.ink, 'signal.good is a colour again, so the words it letters are held to that colour');
+    assert.equal(signal.correspondance, paper.ink, 'the fix colour is a colour again, so the words it letters are held to that colour');
+    for (const [name, hex] of [['good', signal.good], ['the fix colour', signal.correspondance]] as const) {
       assert.ok(contrast(hex, GROUND) >= TEXT, `${name} is ${contrast(hex, GROUND).toFixed(2)} on the ground`);
       assert.ok(contrast(hex, CARD) >= TEXT, `${name} is ${contrast(hex, CARD).toFixed(2)} on a card`);
     }
   });
 
-  test('the tutor\'s red is a mark, so it clears 3 on the ground', () => {
-    // Red is the orb reporting "the tutor is speaking" and never carries words,
+  test('the tutor\'s coral is a mark, so it clears 3 on the ground and on a card', () => {
+    // Coral is the orb reporting "the tutor is speaking" and never carries words,
     // so it is held to the mark floor. The caption beside it is ink.
-    assert.ok(contrast(signal.live, GROUND) >= MARK, `the red is ${contrast(signal.live, GROUND).toFixed(2)} on the ground`);
+    assert.equal(signal.live, colour.coral, 'the tutor\'s mark is no longer the coral');
+    assert.ok(contrast(signal.live, GROUND) >= MARK, `the coral is ${contrast(signal.live, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(signal.live, CARD) >= MARK, `the coral is ${contrast(signal.live, CARD).toFixed(2)} on a card`);
   });
 
-  test('the mic glyph still reads on a live green circle', () => {
+  test('the mic glyph still reads on a live ink circle', () => {
     // The SpeakCircle fills with signal.good while the learner's mic is open and
-    // draws the microphone in onInk. The glyph is a mark on that fill.
-    assert.ok(contrast(paper.onInk, signal.good) >= MARK, `the mic glyph is ${contrast(paper.onInk, signal.good).toFixed(2)} on the live green`);
+    // draws the microphone in onInk. signal.good is ink in B, so the fill is an
+    // ink disc until the stage that redraws the circle; the glyph is a mark on it.
+    assert.ok(contrast(paper.onInk, signal.good) >= MARK, `the mic glyph is ${contrast(paper.onInk, signal.good).toFixed(2)} on the live fill`);
   });
 
-  test('no two signals come within a Delta-E of 30, and none reads as a rung', () => {
-    const sigs = Object.entries(signal);
-    for (let i = 0; i < sigs.length; i += 1) {
-      for (let j = i + 1; j < sigs.length; j += 1) {
-        const d = deltaE(sigs[i]![1], sigs[j]![1]);
-        assert.ok(d >= APART, `${sigs[i]![0]} and ${sigs[j]![0]} are only ${d.toFixed(0)} apart`);
-      }
-    }
-    for (const [sName, s] of sigs) {
-      for (const rung of [1, 2, 3] as const) {
-        const d = deltaE(s, rungColor[rung]);
-        assert.ok(d >= APART, `${sName} is only ${d.toFixed(0)} from rung ${rung}, so a state reads as a rung`);
-      }
-    }
-  });
-
-  test('no accent comes within a Delta-E of 30 of any signal or rung', () => {
-    // Green means go and red means listen; a label the colour of either makes the
-    // app lie. The rungs and the orb's amber are held off the accent too, because
-    // the same violet is the only accent everywhere now.
+  test('the one signal mark stays 30 from ink, the rung fill, the ground and the card', () => {
+    // good and the fix colour are both ink now, so holding every signal 30 from
+    // every other is impossible by design. The one signal that is still a
+    // colour, the tutor's coral, is held 30 from everything it could be taken
+    // for: the ink the other two signals are, the rung fill, and the paper.
     const rivals: Record<string, string> = {
-      good: signal.good,
-      live: signal.live,
-      correspondance: signal.correspondance,
-      rung1: rungColor[1],
-      rung2: rungColor[2],
-      rung3: rungColor[3],
-      thinking: orb.thinking,
+      ink: paper.ink,
+      'the rung fill': rungColor[1],
+      'the ground': GROUND,
+      'a card': CARD,
     };
-    for (const a of new Set([accent.primary, accent.label])) {
-      for (const [name, hex] of Object.entries(rivals)) {
-        const d = deltaE(a, hex);
-        assert.ok(d >= APART, `the accent is only ${d.toFixed(0)} from ${name}`);
-      }
+    for (const [name, hex] of Object.entries(rivals)) {
+      const d = deltaE(signal.live, hex);
+      assert.ok(d >= APART, `the tutor's mark is only ${d.toFixed(0)} from ${name}`);
+    }
+  });
+
+  test('the brand blue never reads as an orb state, the highlighter, the rung fill or the tutor\'s mark', () => {
+    // Mint means your turn and coral means listen; a brand moment the colour of
+    // either makes the app lie. The primary and the labels are ink, and ink is
+    // not a state, so the one colour accent that could be taken for one is the
+    // brand blue, and it is held 30 from every state, the pen and the rung fill.
+    assert.equal(accent.primary, paper.ink, 'the primary action is no longer ink');
+    assert.equal(accent.label, paper.ink, 'the labels are no longer ink');
+    const rivals: Record<string, string> = {
+      'orb.speaking': orb.speaking,
+      'orb.yourTurn': orb.yourTurn,
+      'orb.thinking': orb.thinking,
+      highlight,
+      'the rung fill': rungColor[1],
+      'the tutor\'s mark': signal.live,
+    };
+    for (const [name, hex] of Object.entries(rivals)) {
+      const d = deltaE(accent.brand, hex);
+      assert.ok(d >= APART, `the brand blue is only ${d.toFixed(0)} from ${name}`);
     }
   });
 });
 
-describe('a tint is paper under ink art, never a mark — F362', () => {
-  // A tint is a surface: the disc behind a mission's drawing and nothing else.
-  // So it is held to a paper's floors, not a mark's and not an accent's. A blue
-  // that clears thirty from rung three's blue cannot also read as a disc on the
-  // ground (every such blue sits under eight from it), which is why the rung
-  // floor here is twenty, with the lightness rule making sure no tint can be
-  // mistaken for a fill that means something.
-  const surfaces: Record<string, string> = {
-    ground: paper.ground,
-    groundDeep: paper.groundDeep,
-    card: paper.card,
-    lineOnCard: paper.lineOnCard,
-  };
-  const marks: Record<string, string> = {
-    good: signal.good,
-    live: signal.live,
-    correspondance: signal.correspondance,
-    thinking: orb.thinking,
-    accent: accent.primary,
-  };
-  // Outlined surfaces carry their boundary in ink; the tint supplies context.
-  const DISC = 5;
-  const RUNG_APART = 20;
-  const TWIN = 10;
+describe('retired palette aliases stay absent', () => {
 
-  test('ink clears the text floor on every tint, and every tint reads as a disc — F362', () => {
-    for (const [name, hex] of Object.entries(tint)) {
-      assert.ok(contrast(INK, hex) >= TEXT, `ink is ${contrast(INK, hex).toFixed(2)} on ${name}`);
-      for (const [surface, sh] of Object.entries(surfaces)) {
-        const d = deltaE(hex, sh);
-        assert.ok(d >= DISC, `${name} is only ${d.toFixed(1)} off the ${surface}, so it does not read as a disc`);
-      }
-    }
-  });
-
-  test('feature paper carries dark text and remains distinct from voice states', () => {
-    assert.ok(contrast(INK, accent.feature) >= 7);
-    assert.ok(contrast(paper.inkSoft, accent.feature) >= TEXT);
+  test('the retired feature alias is absent from the palette', () => {
+    assert.ok(!Object.hasOwn(accent, 'feature'), 'the retired accent.feature alias must not return');
+    assert.ok(contrast(INK, paper.card) >= 7);
+    assert.ok(contrast(paper.inkSoft, paper.card) >= TEXT);
     assert.ok(contrast(accent.primary, paper.onInk) >= TEXT);
-    for (const value of Object.values(orb)) assert.ok(deltaE(accent.feature, value) >= APART);
+    for (const value of Object.values(orb)) assert.ok(deltaE(paper.card, value) >= APART);
   });
 
-  test('inkSoft clears 4.5 on every tint', () => {
-    // Revamp A puts running words on a tint for the first time: a tinted row is
-    // a title in ink over a gloss in soft ink, and a disabled row says so by
-    // stepping its title down to soft ink too. Ink on a tint was already held
-    // above; soft ink never was, because until now nothing set a word in it on
-    // one. It passes today on all six, and this pins it, so a re-tint cannot
-    // clear the floor for ink alone and leave every gloss in the app under it.
-    for (const [name, hex] of Object.entries(tint)) {
-      const r = contrast(paper.inkSoft, hex);
-      assert.ok(r >= TEXT, `inkSoft is ${r.toFixed(2)} on ${name}, under the ${TEXT} floor for words`);
-    }
-  });
-
-  test('no tint comes within thirty of a signal or the accent, within twenty of a rung, or as dark as any mark — F362', () => {
-    const everyMark = [...Object.values(marks), rungColor[1], rungColor[2], rungColor[3]];
-    const maxMarkL = Math.max(...everyMark.map((h) => lab(h).l));
-    for (const [name, hex] of Object.entries(tint)) {
-      for (const [mark, mh] of Object.entries(marks)) {
-        const d = deltaE(hex, mh);
-        assert.ok(d >= APART, `${name} is only ${d.toFixed(0)} from ${mark}`);
-      }
-      for (const rung of [1, 2, 3, 4] as const) {
-        const d = deltaE(hex, rungColor[rung]);
-        assert.ok(d >= RUNG_APART, `${name} is only ${d.toFixed(0)} from rung ${rung}'s fill`);
-      }
-      assert.ok(lab(hex).l > maxMarkL, `${name} is as dark as a mark (L* ${lab(hex).l.toFixed(0)} against ${maxMarkL.toFixed(0)})`);
-    }
-  });
-
-  test('no two tints read as one, and nothing letters or signals in a tint — F362', () => {
-    const entries = Object.entries(tint);
-    for (let i = 0; i < entries.length; i++) {
-      for (let j = i + 1; j < entries.length; j++) {
-        const d = deltaE(entries[i]![1], entries[j]![1]);
-        assert.ok(d >= TWIN, `${entries[i]![0]} and ${entries[j]![0]} are only ${d.toFixed(1)} apart`);
-      }
-    }
-
-    // The source walk. A tint is a SURFACE: the disc under a place's line art,
-    // or the ground under a row about one place (F467, the founder's call). It
-    // is never lettering, never a stroke, never a border and never a mark that
-    // reports state, and the hex is still reachable from four files only, so a
-    // screen names a place and never a colour.
-    //
-    // The ban used to read `(?:color|stroke|fill|borderColor)` with no `i` and
-    // no boundary, which quietly matched nothing in `backgroundColor` — so a
-    // tint ground passed by accident rather than by permission. Now the
-    // permission is explicit and the ban is real: the lookbehind lets
-    // `backgroundColor` through and holds `borderColor`, `tintColor` and a bare
-    // `color` however they are cased.
-    const LETTERS_IN_A_TINT = /(?<!background)(?:[Cc]olor|stroke|fill)\s*[:=]\s*\{?\s*tint[.[]/;
-
-    // The refutations first, so a regex that stopped catching anything fails
-    // here rather than going quietly green over the whole app.
-    for (const forbidden of ['color: tint.sage', 'borderColor: tint.sky', 'stroke={tint.rose}', 'fill: tint.lilac']) {
-      assert.match(forbidden, LETTERS_IN_A_TINT, `"${forbidden}" is lettering or a stroke in a tint and must be caught`);
-    }
-    for (const permitted of ['backgroundColor: tint.sage', 'backgroundColor: tint[name]']) {
-      assert.doesNotMatch(permitted, LETTERS_IN_A_TINT, `"${permitted}" is a surface, which is what a tint is`);
-    }
-
-    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx', 'missions/missionTint.ts', 'nav/tabSurface.ts']);
-    for (const file of walk(SRC)) {
-      if (/\.test\.tsx?$/.test(file)) continue;
-      const rel = file.slice(SRC.length);
-      const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-      const reaches = /\btint\.[a-z]+\b|\btint\[/.test(source);
-      if (reaches && !allowed.has(rel)) {
-        assert.fail(`${rel} reaches a tint directly; a screen names a place, and the primitive names the colour`);
-      }
-      assert.doesNotMatch(source, LETTERS_IN_A_TINT, `${rel} letters or signals in a tint`);
-    }
+  test('the palette exports no retired tint tokens or raw tint colours', () => {
+    const source = readFileSync(join(SRC, 'palette.ts'), 'utf8');
+    assert.doesNotMatch(source, /export\s+(?:const\s+tint|type\s+TintName)\b/);
+    assert.doesNotMatch(source, /#(?:FEE7DB|F8D8DF|E4D3EE|CFF3EB|E8EED5|D5EFFE)\b/i);
   });
 });
 
 describe('the voice circle is legible — F323', () => {
-  test('every orb state is legible as a mark against the ground', () => {
-    // A mark that reports state is a graphical object and clears 3 against the
-    // ground it sits on. All four states, red and amber included, now do.
-    for (const [name, hex] of Object.entries(orb)) {
-      const r = contrast(hex, GROUND);
-      assert.ok(r >= MARK, `orb.${name} is ${r.toFixed(2)} on the ground, below the ${MARK} floor for a mark`);
+  test('every orb state carries a glyph that clears the text floor on its own fill', () => {
+    // Mint and sun are far too light to be a mark on paper (1.85 and 1.43), so
+    // the fill is never the only thing that says the state. Each state carries a
+    // glyph, the bars and the embedded status, in the colour onOrb pairs with
+    // it, and that glyph is held to the floor for words on its own fill. The
+    // coral and the ink ready disc still clear the mark floor on the ground.
+    assert.deepEqual(Object.keys(onOrb), Object.keys(orb), 'an orb state has no glyph colour, or a glyph colour has no state');
+    for (const state of Object.keys(orb) as (keyof typeof orb)[]) {
+      const r = contrast(onOrb[state], orb[state]);
+      assert.ok(r >= TEXT, `the glyph on orb.${state} is ${r.toFixed(2)}, below the ${TEXT} floor for words`);
     }
+    assert.ok(contrast(orb.ready, GROUND) >= MARK, `the ready orb is ${contrast(orb.ready, GROUND).toFixed(2)} on the ground`);
+    assert.ok(contrast(orb.speaking, GROUND) >= MARK, `the speaking orb is ${contrast(orb.speaking, GROUND).toFixed(2)} on the ground`);
   });
 
-  test('the three traffic lights stay far apart, and none of them is rung one', () => {
-    // rung one's yellow lives one screen away, so the separation from it is held
-    // to the full 30 now (it was 20). The three lights stay 30 from each other.
+  test('the three traffic lights stay far apart, and none of them is the rung fill', () => {
+    // The rung fill lives one screen away, so the separation from it is held to
+    // the full 30. The three lights stay 30 from each other, and each is the B
+    // colour STYLE section 7 gives it.
+    assert.equal(orb.speaking, colour.coral, 'the tutor speaking is no longer coral');
+    assert.equal(orb.yourTurn, colour.mint, 'your turn is no longer mint');
+    assert.equal(orb.thinking, colour.sun, 'thinking is no longer sun');
+    assert.equal(orb.ready, paper.ink, 'ready is no longer ink');
     const lights = [orb.speaking, orb.yourTurn, orb.thinking];
     for (let i = 0; i < lights.length; i += 1) {
       for (let j = i + 1; j < lights.length; j += 1) {
@@ -385,7 +341,7 @@ describe('the voice circle is legible — F323', () => {
       }
       assert.ok(
         deltaE(lights[i]!, rungColor[1]) >= APART,
-        `a traffic light is only ${deltaE(lights[i]!, rungColor[1]).toFixed(0)} from rung one's yellow`,
+        `a traffic light is only ${deltaE(lights[i]!, rungColor[1]).toFixed(0)} from the rung fill`,
       );
     }
   });
@@ -398,12 +354,81 @@ describe('the voice circle is legible — F323', () => {
   });
 });
 
-describe('support colours run hot to cool again — F324', () => {
+/**
+ * The STYLE colours the B parts draw — revamp B stage 2, F597.
+ *
+ * Stage 1 shipped the four colours and nothing else, so an unused value could
+ * not be built to. Stage 2 is the stage that first draws each of these: the
+ * field border and the unchosen ring, the secondary line on each ground, the
+ * pending story segments, and the lilac the flat drawings use. Each is pinned
+ * by value, each word pairing is held to the floor for words, and the lilac is
+ * held to the drawings by a walk, because ILLUSTRATIONS.md allows it there and
+ * nowhere else.
+ */
+describe('the STYLE colours the parts draw — F597', () => {
+  test('the STYLE colours the parts draw are in the palette: the field border, the secondary on each ground, the pending segments, and lilac is drawn only by the flat illustrations', () => {
+    // The nine new values, STYLE section 4 and SNIPPETS, by value.
+    assert.equal(paper.field, '#8A8499');
+    assert.equal(lilac, '#B9A7FF');
+    assert.equal(onColour.blue, '#E4E1FF');
+    assert.equal(onColour.sun, '#3E3A56');
+    assert.equal(onColour.mint, '#3E3A56');
+    assert.equal(onColour.ink, '#C9C6DE');
+    assert.equal(segmentPending.blue, '#7F78EB');
+    assert.equal(segmentPending.coral, '#E47F6F');
+    assert.equal(segmentPending.sun, '#D0A43C');
+    assert.equal(segmentPending.mint, '#2AAB7B');
+
+    // The secondary line is words, so it clears 4.5 on its own ground. Coral
+    // has one text colour, white.
+    for (const [ground, fill] of [
+      ['blue', colour.blue],
+      ['coral', colour.coral],
+      ['sun', colour.sun],
+      ['mint', colour.mint],
+      ['ink', paper.ink],
+    ] as const) {
+      const r = contrast(onColour[ground], fill);
+      assert.ok(r >= TEXT, `the secondary line on ${ground} is ${r.toFixed(2)}, under the ${TEXT} floor for words`);
+    }
+    assert.equal(onColour.coral, paper.onInk, 'coral grew a second text colour; STYLE gives it white only');
+
+    // The words on each ground are STYLE's column: white on blue and coral,
+    // ink on sun and mint, never the forbidden other way round.
+    assert.deepEqual(
+      { ...textOn },
+      { blue: paper.onInk, coral: paper.onInk, sun: paper.ink, mint: paper.ink },
+      'the text on a colour ground is not STYLE section 4\'s pairing',
+    );
+    for (const ground of ['blue', 'coral', 'sun', 'mint'] as const) {
+      const r = contrast(textOn[ground], colour[ground]);
+      assert.ok(r >= TEXT, `the words on ${ground} are ${r.toFixed(2)}, under the ${TEXT} floor`);
+    }
+
+    // On paper the pending segment is the one hairline, not a sixth value.
+    assert.equal(segmentPending.paper, paper.line, 'the pending segment on paper is a second hairline');
+    assert.deepEqual(Object.keys(segmentPending).sort(), ['blue', 'coral', 'mint', 'paper', 'sun'], 'a ground has no pending segment colour');
+
+    // ILLUSTRATIONS.md: "lilac #B9A7FF is allowed here and nowhere else".
+    const strip = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const drawers: string[] = [];
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      if (!/\blilac\b/.test(strip(readFileSync(file, 'utf8')))) continue;
+      if (rel === 'palette.ts' || rel === 'theme.ts' || rel.startsWith('art/flat/')) continue;
+      drawers.push(rel);
+    }
+    assert.deepEqual(drawers, [], `lilac is drawn outside the flat illustrations: ${drawers.join(', ')}`);
+  });
+});
+
+describe('the rungs share one fill, and the words say which rung — F324', () => {
   // A rung colour is a FILL under an ink numeral, not a state mark. That is why
   // it is NOT held to 3 against the ground the way an orb light is: nothing reads
   // it against the ground, an ink numeral reads against it. So its floor is that
-  // ink clears the text floor on the fill, plus that no rung is mistaken for
-  // another rung, for the ground, or for ink.
+  // ink clears the text floor on the fill, plus that the fill lifts off the paper
+  // and is never mistaken for ink, a signal, an orb state or the highlighter.
   test('a rung numeral in ink clears 4.5 on its own fill', () => {
     for (const rung of [1, 2, 3] as const) {
       const r = contrast(INK, rungColor[rung]);
@@ -413,41 +438,143 @@ describe('support colours run hot to cool again — F324', () => {
     assert.ok(contrast(paper.onInk, rungColor[4]) >= TEXT, `the numeral on rung four is ${contrast(paper.onInk, rungColor[4]).toFixed(2)} on its ink fill`);
   });
 
-  test('support cools as help is withdrawn: each rung is bluer than the last and rung four is ink', () => {
-    assert.ok(lab(rungColor[1]).b > lab(rungColor[2]).b, 'rung two is not cooler than rung one');
-    assert.ok(lab(rungColor[2]).b > lab(rungColor[3]).b, 'rung three is not cooler than rung two');
+  test('rungs one to three share the one skeleton fill and rung four is ink', () => {
+    // B puts no fourth, fifth and sixth colour on the rungs: the numeral and the
+    // words in rungLabel say which rung it is. Rung four is still plain ink, no
+    // line left to follow.
+    for (const rung of [1, 2, 3] as const) {
+      assert.equal(rungColor[rung], paper.skeleton, `rung ${rung} is not the skeleton fill`);
+    }
     assert.equal(rungColor[4], INK, 'rung four is no longer plain ink');
   });
 
-  test('no rung reads as another rung, as the ground, or as ink', () => {
-    const rungs = { 1: rungColor[1], 2: rungColor[2], 3: rungColor[3] } as const;
-    const entries = Object.entries(rungs);
-    for (let i = 0; i < entries.length; i += 1) {
-      for (let j = i + 1; j < entries.length; j += 1) {
-        assert.ok(deltaE(entries[i]![1], entries[j]![1]) >= APART, `rung ${entries[i]![0]} reads as rung ${entries[j]![0]}`);
-      }
-    }
-    for (const [name, hex] of entries) {
-      assert.ok(deltaE(hex, GROUND) >= APART, `rung ${name}'s fill is only ${deltaE(hex, GROUND).toFixed(0)} off the ground`);
-      assert.ok(deltaE(hex, INK) >= APART, `rung ${name} reads as ink`);
+  test('the rung fill lifts off the ground and the card, and never reads as ink, a signal, an orb state or the highlighter', () => {
+    // The fill is a quiet step off the paper, held to the same floors as the
+    // card and the pressed wash: 5 off the ground, 6 off a card. Everything that
+    // means something else is held the full 30 away.
+    const fill = rungColor[1];
+    assert.ok(deltaE(fill, GROUND) >= 5, `the rung fill is only ${deltaE(fill, GROUND).toFixed(1)} off the ground`);
+    assert.ok(deltaE(fill, CARD) >= 6, `the rung fill is only ${deltaE(fill, CARD).toFixed(1)} off a card`);
+    const rivals: Record<string, string> = {
+      ink: INK,
+      "the tutor's mark": signal.live,
+      'orb.speaking': orb.speaking,
+      'orb.yourTurn': orb.yourTurn,
+      'orb.thinking': orb.thinking,
+      highlight,
+    };
+    for (const [name, hex] of Object.entries(rivals)) {
+      const d = deltaE(fill, hex);
+      assert.ok(d >= APART, `the rung fill is only ${d.toFixed(0)} from ${name}`);
     }
   });
 });
 
-describe('the identity violet does its jobs — F325, F326', () => {
-  test('pill lettering clears 4.5 on the primary violet', () => {
-    // The pill and the active tab are both onInk on accent.primary. This floor
-    // has always been met and was never asserted; it is asserted with them now.
+describe('the identity ink does its jobs — F325, F326', () => {
+  test('pill lettering clears 4.5 on the primary ink, the brand blue and the coral', () => {
+    // The pill and the active tab are both onInk on accent.primary, and B puts a
+    // white button on a blue or coral ground. White on each is words.
     assert.ok(
       contrast(paper.onInk, accent.primary) >= TEXT,
-      `pill lettering is ${contrast(paper.onInk, accent.primary).toFixed(2)} on the primary violet`,
+      `pill lettering is ${contrast(paper.onInk, accent.primary).toFixed(2)} on the primary ink`,
+    );
+    assert.ok(
+      contrast(paper.onInk, accent.brand) >= TEXT,
+      `white is ${contrast(paper.onInk, accent.brand).toFixed(2)} on the brand blue`,
+    );
+    assert.ok(
+      contrast(paper.onInk, colour.coral) >= TEXT,
+      `white is ${contrast(paper.onInk, colour.coral).toFixed(2)} on the coral`,
     );
   });
 
-  test('the micro-label and the primary are one violet', () => {
-    // There is one identity colour. This is the tripwire against a second one
-    // creeping back in as a "lighter label" the way #8A5BBF once did.
+  test('the micro-label and the primary are one ink', () => {
+    // There is one identity ink. This is the tripwire against a second one
+    // creeping back in as a "lighter label" the way #8A5BBF once did. The brand
+    // is the blue, and it is pinned to it so a second brand cannot creep in.
     assert.equal(accent.label, accent.primary);
+    assert.equal(accent.brand, colour.blue);
+  });
+});
+
+/**
+ * One highlighter — notebook Phase 1, added 2026-09-27.
+ *
+ * The chartreuse used to be feature paper: the ground of heroes, tiles, the
+ * avatar, the active tab and a title panel on half the screens. It is now one
+ * pen, drawn behind a French line, on the "you are here" stop of the level path,
+ * and in the brand mark (an SVG asset, outside this source tree). So the value
+ * is held to a mark's floors, and where it may be spelled is held by a walk.
+ */
+describe('one highlighter — notebook Phase 1', () => {
+  test('the highlighter carries ink and never reads as a state, a rung or the page', () => {
+    assert.equal(highlight, '#D8FF54', 'the highlighter moved off the brand chartreuse');
+    assert.ok(contrast(INK, highlight) >= 7, `ink is ${contrast(INK, highlight).toFixed(2)} on the highlighter`);
+    assert.ok(contrast(paper.inkSoft, highlight) >= TEXT, `soft ink is ${contrast(paper.inkSoft, highlight).toFixed(2)} on the highlighter`);
+    const rivals: Record<string, string> = {
+      ...Object.fromEntries(Object.entries(signal)),
+      ...Object.fromEntries(Object.entries(orb).map(([k, v]) => [`orb.${k}`, v])),
+      rung1: rungColor[1],
+      rung2: rungColor[2],
+      rung3: rungColor[3],
+      ground: paper.ground,
+      card: paper.card,
+      groundDeep: paper.groundDeep,
+    };
+    for (const [name, hex] of Object.entries(rivals)) {
+      const d = deltaE(highlight, hex);
+      assert.ok(d >= APART, `the highlighter is only ${d.toFixed(0)} from ${name}`);
+    }
+  });
+
+  test('the highlighter is spelled in three files, and inside components.tsx only by its two hosts', () => {
+    const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const allowed = new Set(['palette.ts', 'theme.ts', 'components.tsx']);
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      const raw = readFileSync(file, 'utf8');
+      if (rel !== 'palette.ts') {
+        assert.doesNotMatch(raw, /#D8FF54/i, `${rel} writes the highlighter as a hex; it lives in palette.ts`);
+      }
+      if (!allowed.has(rel)) {
+        assert.doesNotMatch(strip(raw), /\bhighlight\b/, `${rel} reaches for the highlighter; only Highlight and LevelPath may draw it`);
+      }
+    }
+
+    // Inside the component file: the import, the band behind a French line, and
+    // the "you are here" stop. Every other region of the file is refused.
+    const components = strip(readFileSync(join(SRC, 'components.tsx'), 'utf8'));
+    const region = (marker: string): [number, number] => {
+      const from = components.indexOf(marker);
+      assert.notEqual(from, -1, `${marker} is missing from components.tsx`);
+      const next = components.indexOf('\nexport ', from + marker.length);
+      return [from, next === -1 ? components.length : next];
+    };
+    const hosts = [region('export function Highlight('), region('export function LevelPath(')];
+    const importEnd = components.indexOf("from './theme.ts';");
+    let uses = 0;
+    for (const m of components.matchAll(/\bhighlight\b/g)) {
+      const at = m.index;
+      if (at < importEnd) continue;
+      uses += 1;
+      assert.ok(
+        hosts.some(([from, to]) => at >= from && at < to),
+        `components.tsx draws the highlighter outside Highlight and LevelPath: ${components.slice(Math.max(0, at - 60), at + 20).replace(/\s+/g, ' ')}`,
+      );
+    }
+    assert.ok(uses >= 2, 'neither host draws the highlighter, so this walk is guarding nothing');
+  });
+
+  test('no source uses the retired accent.feature alias', () => {
+    const retired = /\baccent\s*(?:\.\s*feature\b|\[\s*['"]feature['"]\s*\])/;
+    for (const spelling of ['accent.feature', "accent['feature']", 'accent [ "feature" ]']) assert.match(spelling, retired);
+    for (const file of walk(SRC)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const rel = file.slice(SRC.length);
+      const body = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(body, retired, `${rel} uses the retired feature alias`);
+    }
   });
 });
 
@@ -456,10 +583,20 @@ describe('the recorded palette matches the code — F327, F328', () => {
   const tokens: Record<string, string> = {};
   for (const [k, v] of Object.entries(paper)) tokens[`paper.${k}`] = v;
   for (const [k, v] of Object.entries(accent)) tokens[`accent.${k}`] = v;
+  // 2026-09-27: the highlighter is a token of its own, recorded like the rest.
+  tokens.highlight = highlight;
+  // Revamp B: the four colours and the orb's glyph pairing, recorded like the rest.
+  for (const [k, v] of Object.entries(colour)) tokens[`colour.${k}`] = v;
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
+  for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;
   for (const k of [1, 2, 3, 4] as const) tokens[`rungColor[${k}]`] = rungColor[k];
-  for (const [k, v] of Object.entries(tint)) tokens[`tint.${k}`] = v;
+  // Revamp B stage 2: what sits on each colour ground, the pending story
+  // segments, and the illustrations' lilac, recorded like the rest.
+  tokens.lilac = lilac;
+  for (const [k, v] of Object.entries(textOn)) tokens[`textOn.${k}`] = v;
+  for (const [k, v] of Object.entries(onColour)) tokens[`onColour.${k}`] = v;
+  for (const [k, v] of Object.entries(segmentPending)) tokens[`segmentPending.${k}`] = v;
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be

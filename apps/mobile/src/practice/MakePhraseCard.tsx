@@ -1,7 +1,7 @@
 /**
  * Make this phrase yours (F554, F557, F581).
  *
- * One tinted row. The phrase, its meaning and where it came from used to be
+ * One ledger row (notebook Phase 3: the tints retired). The phrase, its meaning and where it came from used to be
  * printed here beside two buttons; they belong in the sitting the row opens,
  * where the learner is actually going to work on them.
  *
@@ -19,10 +19,9 @@
  */
 
 import { QuoteGlyph } from '../glyphs.tsx';
-import { TintRow } from '../components.tsx';
-import { accent } from '../theme.ts';
+import { LedgerRow } from '../components.tsx';
+import { paper } from '../theme.ts';
 import { MADE_FROM, type PhraseToOwn } from './madeFrom.ts';
-import { MADE_FROM_TINT } from './madeFromTint.ts';
 
 /** What the row asks the tab to open. The tab navigates; the row decides nothing else. */
 export interface OwnWordsNode {
@@ -49,9 +48,8 @@ export function MakePhraseCard({
   onSave?: () => void;
 }) {
   return (
-    <TintRow
-      tint={MADE_FROM_TINT.phrase}
-      glyph={<QuoteGlyph color={accent.primary} />}
+    <LedgerRow
+      glyph={<QuoteGlyph color={paper.ink} />}
       title={MADE_FROM.phrase.label}
       gloss={MADE_FROM.phrase.gloss}
       onPress={() =>

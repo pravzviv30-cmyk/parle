@@ -89,7 +89,7 @@ describe('the listening preview control — Stage 4 item 4', () => {
       /const silence = useCallback\(\(\) => \{ ticket\.current \+= 1; releaseDailyPlayback\(player\); stopOwnVoice\(\); \}, \[player, stopOwnVoice\]\);/,
       'leaving stops only one of the two sources',
     );
-    assert.match(FLAT, /<GhostButton label=\{PREVIEW_COPY\.stop\} onPress=\{silence\} \/>/);
+    assert.match(FLAT, /<GhostButton label=\{PREVIEW_COPY\.stop\} color=\{ink\} onPress=\{silence\} \/>/);
   });
 
   test('it stops the device voice only when it started it — Stage 4 review (2026-09-25)', () => {
@@ -114,7 +114,7 @@ describe('the listening preview control — Stage 4 item 4', () => {
   test('it does not repeat the host’s own description unless asked — Stage 4 review (2026-09-25)', () => {
     // On the chooser's hero the context line is the goal line drawn just
     // above it, so the host opts in rather than out.
-    assert.match(FLAT, /export function ListeningPreview\(\{ selection, showContext = false \}: \{ selection: PreviewSelection; showContext\?: boolean \}\)/);
+    assert.match(FLAT, /export function ListeningPreview\(\{ selection, showContext = false, ground = 'white' \}: \{ selection: PreviewSelection; showContext\?: boolean; ground\?: 'white' \| 'blue' \}\)/);
     assert.equal((CONTROL.match(/preview\.context/g) ?? []).length, 1);
     assert.match(FLAT, /\{showContext && <Text[^>]*>\{preview\.context\}<\/Text>\}/, 'the context line is drawn whether or not the host already says it');
   });
@@ -140,12 +140,13 @@ describe('the listening preview control — Stage 4 item 4', () => {
 
 describe('the chooser offers it on the one situation already picked out', () => {
   const SCREEN = stripComments(read('./MissionsScreen.tsx'));
-  const hero = SCREEN.slice(SCREEN.indexOf('<Card tone="feature" style={st.hero}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('style={st.hero}')));
+  // 2026-09-27, notebook Phase 4 (B1): the card dropped the deprecated `tone="feature"`.
+  const hero = SCREEN.slice(SCREEN.indexOf('<Card style={{ gap: space(4) }}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('<Card style={{ gap: space(4) }}>')));
 
   test('mounted inside the Start here card, after its one pill, for that mission', () => {
     assert.ok(hero.length > 0, 'the hero card moved; this test is stale');
     assert.match(hero, /<ListeningPreview selection=\{\{ kind: 'mission', mission: first\.mission \}\} \/>/);
-    assert.ok(hero.indexOf('<PillButton') < hero.indexOf('<ListeningPreview'), 'the preview sits before the card’s one action');
+    assert.match(SCREEN, /if \(focus && first\)/, 'the listening preview must belong to the selected scene brief');
     assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 1, 'the chooser grew a second primary pill');
   });
 });
@@ -156,20 +157,20 @@ describe('both lesson doors that can open a live lesson say so', () => {
     const SCREEN = stripComments(read('./MissionsScreen.tsx'));
     const FLAT_SCREEN = SCREEN.replace(/\s+/g, ' ');
     // Beside the outline in the support card, and under the quiet typed door.
-    const card = SCREEN.slice(SCREEN.indexOf('<Card tone="journal" style={st.warmup}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('st.warmup}>')));
-    assert.match(card, /label=\{LESSON_DOOR\.title\}/);
-    assert.match(card, /\{LESSON_DOOR\.minutes\}/, 'the lesson outline says nothing about live minutes');
     const footer = SCREEN.slice(SCREEN.indexOf('<View style={st.footer}>'));
+    assert.match(footer, /label=\{LESSON_DOOR\.title\}/);
+    assert.match(footer, /\{LESSON_DOOR\.minutes\}/, 'the spoken lesson door hides its minutes');
     assert.match(footer, /accessibilityLabel=\{`\$\{LESSON_DOOR\.quiet\}\. \$\{LESSON_DOOR\.minutes\}`\}/, 'the typed lesson door hides that it can use live minutes');
     assert.ok(FLAT_SCREEN.includes('{LESSON_DOOR.minutes}'));
   });
 
-  test('Speak’s pronunciation row says it, and the offline guided practice does not', () => {
+  // Rewritten 2026-09-27 (notebook Phase 3, B1): Speak no longer draws its own
+  // pronunciation row. The live lesson's doors are the chooser's two above, and
+  // they still say it uses live minutes; the offline fallback is a bundled
+  // local phrase whose route requires no service or minutes.
+  test('Speak draws no second lesson door, and the offline local practice needs no minutes', () => {
     const tab = stripComments(read('../tabs/TutorTab.tsx')).replace(/\s+/g, ' ');
-    assert.match(tab, /title="Practise pronunciation" gloss=\{`A guided café lesson with lines to listen to and repeat\. \$\{LESSON_MINUTES\}`\}/);
-    // Drawn only while the tutor is unavailable, when the lesson runs on the phone.
-    assert.match(tab, /<GhostButton label="Try guided practice" onPress=\{\(\) => nav\.navigate\('Lesson', \{ textMode: mode === 'type' \}\)\} \/>/);
-    const offline = tab.slice(tab.indexOf('{(!live || heldBack !== null) && ('), tab.indexOf('Try guided practice'));
-    assert.ok(!offline.includes('LESSON_MINUTES'), 'the offline lesson, which uses no minutes, is said to use them');
+    assert.doesNotMatch(tab, /Practise pronunciation|LESSON_MINUTES/, 'Speak draws a lesson door the chooser already draws');
+    assert.match(tab, /<GhostButton label="Practise today's phrase on this phone" onPress=\{\(\) => nav\.navigate\('DailyPractice', \{ id: todayItems\(0, Date\.now\(\)\)\.phrase\.id \}\)\} \/>/);
   });
 });

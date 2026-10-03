@@ -60,3 +60,19 @@ export function footerFolds(fontScale: number): boolean {
 export function showsActionRow(fontScale: number, opened: boolean): boolean {
   return !footerFolds(fontScale) || opened;
 }
+
+/**
+ * Where the turn's note is drawn, or null when there is none to draw.
+ *
+ * Notebook Phase 4 (2026-09-27). Most lesson notes are about a sound (the nasal
+ * in "bonjour", the silent "t" in "croissant"), and at the foot of the scroll
+ * body a learner looking at the microphone never met them. So the note sits
+ * directly above the mic footer while the learner holds the floor. At the large
+ * reading sizes the footer has already folded to give the body room (F462), and
+ * a note in it would take that room straight back, so there it stays in the
+ * body. A broken font-scale read is not a large reading size, as above.
+ */
+export function soundNoteIn(fontScale: number, note: string | null | undefined, listening: boolean): 'footer' | 'body' | null {
+  if (!listening || note == null || note.trim().length === 0) return null;
+  return footerFolds(fontScale) ? 'body' : 'footer';
+}

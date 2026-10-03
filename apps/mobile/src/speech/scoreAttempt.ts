@@ -26,10 +26,19 @@ export async function scoreRecordedAttempt(
     const body = Platform.OS === 'web' ? await (await fetch(uri)).blob() : await new File(uri).bytes();
     const size = body instanceof Uint8Array ? body.byteLength : body.size;
     if (size === 0 || size > MAX_SCORE_BYTES) return null;
-    const res = await fetch(
-      `${TOKEN_SERVER}/drill/score?userId=${encodeURIComponent(userId)}&reference=${encodeURIComponent(reference)}`,
-      { method: 'POST', headers: { 'content-type': 'application/octet-stream', ...(await authHeaders()) }, body },
-    );
+    // The learner and the line ride in headers, never the URL (F626): a query
+    // string is what proxies, access logs and crash reports keep. Encoded,
+    // because a header must be ASCII and French has accented letters.
+    const res = await fetch(`${TOKEN_SERVER}/drill/score`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-luvani-user': encodeURIComponent(userId),
+        'x-luvani-reference': encodeURIComponent(reference),
+        ...(await authHeaders()),
+      },
+      body,
+    });
     if (!res.ok) return null;
     const data = (await res.json()) as Partial<AttemptScore>;
     if (!Array.isArray(data.observations) || typeof data.report !== 'object' || data.report === null) return null;

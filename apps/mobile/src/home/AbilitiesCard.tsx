@@ -18,18 +18,17 @@
 
 import { StyleSheet, View } from 'react-native';
 
-import { BadgeGlyph } from '../components.tsx';
-import { IconRowCard } from '../surface/IconRowCard.tsx';
+import { BadgeGlyph, LedgerRow } from '../components.tsx';
 import { signal, space } from '../theme.ts';
 import type { CanDo } from './abilities.ts';
 
 export function AbilitiesCard({ can, onOpen }: { can: CanDo; onOpen: () => void }) {
   return (
     <View style={st.card}>
-      <IconRowCard
+      <LedgerRow
         glyph={<BadgeGlyph size={24} color={signal.good} />}
         label={can.label}
-        line={can.line}
+        title={can.line}
         onPress={onOpen}
         accessibilityLabel={can.spoken}
       />

@@ -73,15 +73,15 @@ export function SafetyStopView({
   // stays at space(8) horizontal: the frame's space(5) is the tab measure, and a
   // crisis sentence wants the narrower column.
   return (
-    <ScrollScreen padded={false} center>
+    <ScrollScreen padded={false}>
       <View style={st.body}>
         <View
           accessibilityRole="alert"
           accessibilityLiveRegion={surface.politeness}
           accessibilityLabel={surface.announce}
         >
-          <Text style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{surface.message}</Text>
-          <Text style={[type.body, { color: paper.inkSoft, textAlign: 'center', marginTop: space(4) }]}>
+          <Text style={[type.title, { color: paper.ink, textAlign: 'left' }]}>{surface.message}</Text>
+          <Text style={[type.body, { color: paper.inkSoft, textAlign: 'left', marginTop: space(4) }]}>
             {surface.ended}
           </Text>
         </View>

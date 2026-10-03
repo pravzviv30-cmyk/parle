@@ -28,7 +28,7 @@
  * three-claim slogan under it from routine visits: three lines of heading a
  * learner read every time before anything of their own.
  */
-export const MY_FRENCH_TITLE = 'My French';
+export const MY_FRENCH_TITLE = 'Progress';
 
 /** The line under it: one plain sentence about what is on the page. */
 export const MY_FRENCH_PURPOSE = 'The French you have used and kept.';
@@ -90,7 +90,7 @@ export const GOALS_ROW_LABEL = 'Your goal';
 export const GOALS_ROW_OPEN = 'Open your goal';
 
 /** The page could not read what is saved on this phone. Not the same as having nothing. */
-export const MY_FRENCH_UNREAD = 'Your French could not be loaded just now. It is all still saved.';
+export const MY_FRENCH_UNREAD = 'Your French could not be loaded just now.';
 
 /** The one action on that state. */
 export const MY_FRENCH_RETRY = 'Try again';

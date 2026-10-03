@@ -10,9 +10,9 @@ import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { OwnWordsVerdictSchema } from '@luvani/brain/llm';
+import { JevFirstBrainClient, MockLlmClient, OwnWordsVerdictSchema, type JevAnswer } from '@luvani/brain/llm';
 
-import { handleDrillJudge, JUDGE_BODY_LIMIT_BYTES, type DrillJudgeDeps } from './drillJudge.ts';
+import { handleDrillJudge, judgeUsageLine, JUDGE_BODY_LIMIT_BYTES, type DrillJudgeDeps } from './drillJudge.ts';
 
 const ATTEMPT = 'Un café pour moi, merci beaucoup.';
 
@@ -75,6 +75,16 @@ function deps(overrides: Partial<DrillJudgeDeps> = {}): DrillJudgeDeps & { seen:
 }
 
 describe('the own-words judge endpoint — F580', () => {
+  test('a mismatched learner assertion cannot send another account’s attempt to the judge', async () => {
+    let judged = 0;
+    const d = deps({ client: { judge: async () => { judged++; throw new Error('must not run'); } } });
+    const r = response();
+    await handleDrillJudge(request({ ...CARD, userId: 'previous-learner' }), r.res, d);
+    assert.equal(r.status(), 403);
+    assert.equal(judged, 0);
+    assert.deepEqual(d.seen.usage, []);
+    assert.ok(!JSON.stringify(r.body()).includes(ATTEMPT));
+  });
   test('an attempt is judged by the brain and the verdict is returned whole', async () => {
     const { res, status, body } = response();
     const d = deps();
@@ -231,3 +241,54 @@ function recordingBrain(record: (request: string) => void): DrillJudgeDeps['clie
     },
   };
 }
+
+describe('the own-words judge with Jev in front', () => {
+  /** Jev answers that clear every pass bar in jevJudge.ts. */
+  const CLEAN: Record<string, JevAnswer> = {
+    meaning_kept: { type: 'noul', noul: 0.97 },
+    comprehensible: { type: 'noul', noul: 0.96 },
+    in_french: { type: 'noul', noul: 0.99 },
+    natural: { type: 'choice', choice: 'yes', probabilities: { yes: 0.95, awkward: 0.04, no: 0.01 }, confidence: 0.9 },
+  };
+  const JEV_USAGE = { inputTokens: 858, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0, model: 'jev-1.13.0' };
+
+  test('a clean attempt is settled by Jev through the real handler, and the brain is never asked', async () => {
+    const { res, status, body } = response();
+    const brain = new MockLlmClient({ verdicts: [VERDICT] });
+    const jev = { systemOne: async () => ({ model: 'jev-1.13.0', answers: CLEAN, usage: JEV_USAGE }) };
+    const d = deps({ client: new JevFirstBrainClient({ brain, jev }) });
+
+    await handleDrillJudge(request(CARD), res, d);
+
+    assert.equal(status(), 200);
+    assert.deepEqual(body(), {
+      verdict: { meaningKept: true, comprehensible: true, natural: 'yes', betterLine: null, note: '' },
+    });
+    assert.equal(brain.judgeRequests.length, 0);
+    assert.deepEqual(d.seen.usage, [JEV_USAGE], 'the meter learns Jev answered, and what it cost');
+  });
+
+  test('Jev being down leaves the learner with the brain’s verdict, not a 503', async () => {
+    const { res, status, body } = response();
+    const brain = new MockLlmClient({ verdicts: [VERDICT] });
+    const jev = { systemOne: async () => Promise.reject(new Error('TypeSafe System One request failed with status 529')) };
+
+    await handleDrillJudge(request(CARD), res, deps({ client: new JevFirstBrainClient({ brain, jev }) }));
+
+    assert.equal(status(), 200);
+    assert.deepEqual(body(), { verdict: VERDICT });
+    assert.equal(brain.judgeRequests.length, 1);
+  });
+
+  test('the log line names who answered and what it cost, and carries nothing of the attempt', () => {
+    const line = judgeUsageLine(JEV_USAGE);
+    assert.equal(line, '[luvani:judge] answered by jev-1.13.0: 858 input, 20 output, $0.000036');
+    assert.doesNotMatch(line, /café|merci/);
+  });
+
+  test('a usage with no model is logged as an estimate rather than priced quietly', () => {
+    const line = judgeUsageLine({ inputTokens: 40, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 });
+    assert.match(line, /answered by an unnamed model/);
+    assert.match(line, /\(estimated\)$/);
+  });
+});

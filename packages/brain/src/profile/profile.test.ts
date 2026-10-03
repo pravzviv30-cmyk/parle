@@ -370,7 +370,7 @@ describe('memory — what the tutor knows about the person', () => {
       '2026-08-17T10:00:00Z',
     );
     assert.equal(profile.memory.facts.length, 1, 'near-duplicates collapse on the normalised sentence');
-    assert.deepEqual(profile.memory.opener, { fr: 'Alors, le métro ?', en: 'So, the metro?' });
+    assert.deepEqual(profile.memory.opener, { fr: 'Alors, le métro ?', en: 'So, the metro?', policyVersion: 1 });
 
     // Half an opener is no opener: the next session must never speak French
     // the screen cannot gloss.

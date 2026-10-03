@@ -46,7 +46,7 @@ export interface ClosureContext {
 
 export type ClosureFocus =
   /** `example` is the inventory's word for the sound, so the card can lead with a word. */
-  | { kind: 'sound'; acoustic: Acoustic; missionId: string; example: string | null }
+  | { kind: 'sound'; ipa: string; acoustic: Acoustic; missionId: string; example: string | null }
   | { kind: 'clarity'; line: string }
   | { kind: 'cadence'; fr: string; en: string; note: string };
 
@@ -95,7 +95,7 @@ export function soundFocus(checks: readonly SoundCheckEvidence[]): { acoustic: A
 function focusFor(parts: ClosureParts, ctx: ClosureContext | null): ClosureFocus | null {
   if (ctx !== null) {
     const sound = soundFocus(ctx.checks);
-    if (sound !== null) return { kind: 'sound', acoustic: sound.acoustic, missionId: sound.missionId, example: soundExampleWord(sound.ipa) };
+    if (sound !== null) return { kind: 'sound', ipa: sound.ipa, acoustic: sound.acoustic, missionId: sound.missionId, example: soundExampleWord(sound.ipa) };
   }
   const clarity = parts.clarity?.trim() ?? '';
   if (clarity.length > 0) return { kind: 'clarity', line: clarity };

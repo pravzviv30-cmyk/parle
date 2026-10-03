@@ -1,59 +1,38 @@
 /**
- * Pronunciation assessment.
+ * Pronunciation assessment: the Speechace adapter.
  *
- * Speechace is the primary because it natively supports French (FR and CA) with
- * phoneme, syllable and lexical-stress scoring. Azure's Pronunciation Assessment
- * is the cost fallback, but note the asymmetry before swapping: Azure returns
- * fr-FR phoneme *scores* without phoneme *names* (names and syllable grouping are
- * en-US only), so an Azure path needs our own alignment layer mapping scores back
- * onto the reference text's expected phonemes.
+ * Speechace natively supports French (FR and CA) with phoneme, syllable and
+ * lexical-stress scoring. Since 2026-09-29 it is the alternative rather than
+ * the default: TonePerfect scores unless `LUVANI_SCORING_VENDOR=speechace` says
+ * otherwise, and pronunciation.ts is where that choice is made. Azure's
+ * Pronunciation Assessment is the cost fallback nobody has built, and note the
+ * asymmetry before adding it: Azure returns fr-FR phoneme *scores* without
+ * phoneme *names* (names and syllable grouping are en-US only), so an Azure
+ * adapter needs our own alignment layer mapping scores back onto the reference
+ * text's expected phonemes.
  *
- * Everything here is behind one narrow interface for exactly that reason — the
- * differentiator should not be welded to a single vendor.
+ * Everything here sits behind the one narrow interface in pronunciation.ts for
+ * exactly that reason: the differentiator should not be welded to a single vendor.
  */
 
 import type { PhonemeObservation } from '@luvani/core';
 import { toInventoryIpa } from './phoneMap.ts';
-
-export interface ScoreRequest {
-  /** The text the learner was supposed to say. Accuracy scoring is meaningless without it. */
-  reference: string;
-  /** Raw audio for the utterance. Absent until the audio tap is wired. */
-  audio?: Uint8Array;
-  /** 'fr-fr' or 'fr-ca'. */
-  dialect?: 'fr-fr' | 'fr-ca';
-}
+import type { ScoreDeps, ScoreFetch, ScoreRequest } from './pronunciation.ts';
 
 const ENDPOINT = 'https://api.speechace.co/api/scoring/text/v9/json';
 
 /**
- * Just enough of `fetch` to send a multipart POST and read a JSON body.
+ * Score one utterance with Speechace, or return nothing.
  *
- * Injectable for the same reason preflight.ts takes one: everything downstream
- * of this call is well covered, and everything upstream is too, but the request
- * itself — the reference text, the audio part, the dialect — was the one link
- * in the pronunciation claim that no test had ever looked at. A score the
- * learner sees is only honest if their voice actually reached the scorer.
+ * Called through `scoreUtterance` in pronunciation.ts, which owns the vendor
+ * choice and the deadline; this only has to honour the signal it is handed.
+ * Returning `[]` rather than throwing is the same promise the router makes: an
+ * outage is text-only grading, never an invented penalty.
  */
-export type ScoreFetch = (
-  url: string,
-  init: { method: string; body: FormData },
-) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
-
-/**
- * Score one utterance, or return nothing.
- *
- * Returning `[]` rather than throwing is deliberate. `grade()` in the session
- * engine treats an absent score as "do not invent a penalty", so a scorer outage
- * degrades the session to text-only grading instead of ending it. A learner
- * mid-conversation should never be interrupted because a third-party API is down.
- */
-export async function scoreUtterance(
-  req: ScoreRequest,
-  fetchFn: ScoreFetch = globalThis.fetch as unknown as ScoreFetch,
-): Promise<PhonemeObservation[]> {
-  const key = process.env.SPEECHACE_API_KEY;
-  if (!key || !req.audio) return [];
+export async function scoreWithSpeechace(req: ScoreRequest, deps: ScoreDeps = {}): Promise<PhonemeObservation[]> {
+  const key = (deps.env ?? process.env).SPEECHACE_API_KEY?.trim();
+  if (!key || !req.audio || req.audio.length === 0) return [];
+  const fetchFn = deps.fetchFn ?? (globalThis.fetch as unknown as ScoreFetch);
 
   try {
     const dialect = req.dialect ?? 'fr-fr';
@@ -65,13 +44,15 @@ export async function scoreUtterance(
     // The key rides in the query string, never in the multipart body — the body
     // is the part that gets logged when a vendor call is being debugged.
     const url = `${ENDPOINT}?key=${encodeURIComponent(key)}&dialect=${dialect}`;
-    const res = await fetchFn(url, { method: 'POST', body: form });
+    const res = await fetchFn(url, { method: 'POST', body: form, ...(deps.signal ? { signal: deps.signal } : {}) });
     if (!res.ok) {
       console.warn(`[speechace] ${res.status} — falling back to text-only grading`);
       return [];
     }
     return parseSpeechace(await res.json());
   } catch (err) {
+    // A fired deadline is the router's to report, and it already has.
+    if (deps.signal?.aborted) return [];
     console.warn('[speechace] request failed — falling back to text-only grading', err);
     return [];
   }

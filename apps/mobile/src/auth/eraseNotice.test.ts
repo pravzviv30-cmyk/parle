@@ -260,3 +260,40 @@ describe('the device that kept a copy says so, on the far side of the sign-out â
     );
   });
 });
+
+describe('the erase notice wears revamp B â€” F601', () => {
+  test('the erase notice is a working title, what to do in one strong line, and one ink pill', () => {
+    const screen = read('EraseNoticeScreen.tsx');
+
+    // A working title, not a display line. This is a paper page that says one
+    // thing, and the display size is for the colour pages of the first run.
+    assert.match(
+      screen,
+      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink \}\]\}>\s*\{ERASE_NOTICE_TITLE\}\s*<\/Text>/,
+      'the notice title is not a working title in ink, rolled as a heading',
+    );
+    assert.doesNotMatch(screen, /type\.display/, 'the notice still sets a display headline');
+
+    // What happened and what to do, in the one announced line at body weight.
+    // Exactly one: a second line would split the instruction from its reason.
+    assert.equal((screen.match(/<TroubleLine\b/g) ?? []).length, 1, 'the notice draws a different number of lines than one');
+    assert.match(screen, /<TroubleLine message=\{ERASE_NOTICE_BODY\} strong \/>/, 'the instruction is not the one strong line');
+    const title = screen.indexOf('{ERASE_NOTICE_TITLE}');
+    const line = screen.indexOf('<TroubleLine message=');
+    assert.ok(title >= 0 && line > title, 'the instruction is drawn above the title it belongs under');
+
+    // One ink pill, in the footer, and no other control: no back, no link, no
+    // second button. A paper page, so no ground of its own.
+    const pills = screen.match(/<PillButton\b/g) ?? [];
+    assert.equal(pills.length, 1, 'the notice draws a different number of pills than one');
+    assert.doesNotMatch(screen, /tone="white"/, 'the pill is white on paper; on paper the one pill is ink');
+    assert.match(
+      screen,
+      /<ScrollScreen footer=\{<PillButton label=\{ERASE_NOTICE_DISMISS\} onPress=\{onDismiss\} \/>\}>/,
+      'the pill is not pinned in the frame\'s footer, or the page paints a ground of its own',
+    );
+    for (const other of ['<GhostButton', '<OutlineButton', '<Press', '<Pressable', '<RoundButton', '<ScreenHeader']) {
+      assert.ok(!screen.includes(other), `the notice grew a second control: ${other}`);
+    }
+  });
+});

@@ -68,3 +68,6 @@ supabase/.temp/
 artifacts/daily-tutor-batch-*/*.pcm
 artifacts/daily-tutor-batch-*/generation.lock
 artifacts/daily-tutor-batch-*/manifest.json.tmp
+artifacts/onboarding-audio/*.pcm
+artifacts/onboarding-audio/generation.lock
+artifacts/onboarding-audio/manifest.json.tmp

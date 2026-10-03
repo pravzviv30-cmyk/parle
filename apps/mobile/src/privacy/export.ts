@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
-import { USER_KEY_SUFFIXES } from '../storage/scope.ts';
+import { scopeGeneration, USER_KEY_SUFFIXES } from '../storage/scope.ts';
 import { saveTextFile } from '../progress/saveFile.ts';
 
 export interface ExportDependencies {
@@ -29,6 +29,8 @@ export async function downloadAccountData(
   adapter: AuthAdapter,
   dependencies: ExportDependencies = {},
 ): Promise<AccountExportResult> {
+  const owner = scopeGeneration();
+  const current = async () => owner === scopeGeneration() && (await adapter.getSession())?.id === user.id;
   const request = dependencies.request ?? fetch;
   const readDevice = dependencies.readDevice ?? ((keys) => AsyncStorage.multiGet([...keys]));
   const save = dependencies.save ?? saveTextFile;
@@ -36,6 +38,7 @@ export async function downloadAccountData(
   const keys = USER_KEY_SUFFIXES.map((suffix) => `luvani.u.${user.id}.${suffix}`);
 
   try {
+    if (!await current()) return { ok: false, message: 'Sign in again, then ask for your data.' };
     const [devicePairs, token] = await Promise.all([readDevice(keys), adapter.getAccessToken()]);
     let serverData: unknown = null;
     if (adapter.kind === 'supabase') {
@@ -46,7 +49,9 @@ export async function downloadAccountData(
       if (!response.ok) {
         return {
           ok: false,
-          message: response.status === 429
+          message: response.status === 401 || response.status === 403
+            ? 'Sign in again to confirm it is you, then download your data.'
+            : response.status === 429
             ? 'That needs a short pause. Try the export again later.'
             : 'Your data could not be prepared just now. Nothing was changed.',
         };
@@ -67,9 +72,32 @@ export async function downloadAccountData(
         ? ['This development account exists only on this device, so there is no server copy.']
         : [],
     };
+    if (!await current()) return { ok: false, message: 'The account changed. Ask for your data again.' };
     await save('luvani-account-data.json', `${JSON.stringify(payload, null, 2)}\n`, 'application/json');
     return { ok: true };
   } catch {
     return { ok: false, message: 'Your data could not be prepared just now. Nothing was changed.' };
+  }
+}
+
+
+/** The learner explicitly confirms this sensitive export before reauthentication. */
+export async function downloadVerifiedAccountData(
+  user: AuthUser,
+  adapter: AuthAdapter,
+  secret?: string,
+  dependencies: ExportDependencies = {},
+): Promise<AccountExportResult> {
+  const owner = scopeGeneration();
+  try {
+    if ((await adapter.getSession())?.id !== user.id) return { ok: false, message: 'Sign in again, then ask for your data.' };
+    if (adapter.kind === 'supabase') {
+      const confirmed = await adapter.reauthenticateForDeletion(secret, 'export');
+      if (!confirmed.ok) return confirmed;
+    }
+    if (owner !== scopeGeneration()) return { ok: false, message: 'The account changed. Ask for your data again.' };
+    return downloadAccountData(user, adapter, dependencies);
+  } catch {
+    return { ok: false, message: 'Your sign-in could not be confirmed. Try again.' };
   }
 }

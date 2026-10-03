@@ -76,7 +76,7 @@ export function seedFor(kind: RealMomentKind, detail: string): { fr: string; en:
 export const REAL_MOMENT_TITLE = 'Prepare for a real moment';
 export const REAL_MOMENT_SUB = 'Something coming up? Rehearse it in French with your tutor, at your own pace.';
 export const DETAIL_LABEL = 'What do you need to say? (optional)';
-export const DETAIL_PLACEHOLDER = 'Who is there, and what you want to say';
+export const DETAIL_PLACEHOLDER = 'e.g. Asking a waiter for a table by the window';
 export const REHEARSE_ACTION = 'Start my rehearsal';
 export const REHEARSE_AGAIN_LABEL = 'Rehearse again';
 export const MAX_ONLY_LINE = 'Personal rehearsals are included with Max. Everyday missions and open conversations are available separately.';

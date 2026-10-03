@@ -20,10 +20,13 @@
  * happened, and on Settings we know only that the store was asked.
  */
 
+import { trackProductEvent } from '../analytics/track.ts';
 import type { Plan } from '@luvani/core';
 
 import { purchases, type StoreAction } from './adapter.ts';
 import { refreshBilling } from './client.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { ownedStoreSettlement } from './storeSettlement.ts';
 
 /**
  * What became of it, in the four ways it can end.
@@ -55,14 +58,16 @@ export type RestoreOutcome =
  * only in the question put to the store. Everything after it is identical, and
  * was identical when it was written twice.
  */
-export async function settleStoreAction(action: StoreAction): Promise<RestoreOutcome> {
-  if (!action.ok) return { kind: action.cancelled ? 'cancelled' : 'store-trouble' };
-  const refresh = await refreshBilling();
-  if (refresh === null) return { kind: 'refresh-trouble' };
-  return refresh.granted ? { kind: 'done', plan: refresh.plan } : { kind: 'nothing-granted' };
+export async function settleStoreAction(userId: string, operation: () => Promise<StoreAction>): Promise<RestoreOutcome> {
+  const owner = scopeGeneration();
+  return ownedStoreSettlement(operation, () => refreshBilling(userId, owner), () => owner === scopeGeneration());
 }
 
 /** Ask the store what this account owns, then ask the server what it is worth. */
-export async function restorePurchases(userId: string): Promise<RestoreOutcome> {
-  return settleStoreAction(await purchases.restore(userId));
+export async function restorePurchases(userId: string, entry: 'settings' | 'wall' | 'inline' = 'settings'): Promise<RestoreOutcome> {
+  const expected = { userId, generation: scopeGeneration() };
+  const started = trackProductEvent({ name: 'restore_started', properties: { entry } }, expected);
+  const outcome = await settleStoreAction(userId, () => purchases.restore(userId));
+  void started.then(() => trackProductEvent({ name: 'restore_settled', properties: { entry, outcome: outcome.kind } }, expected));
+  return outcome;
 }

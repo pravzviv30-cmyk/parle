@@ -9,10 +9,11 @@
 import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
-import { accent, paper, radius, rungLabel, space, type, HAIRLINE, HIT } from './theme.ts';
-import { Card, GhostButton, Label, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay } from './components.tsx';
+import { accent, paper, radius, rungLabel, space, type, HAIRLINE, HIT, frenchText } from './theme.ts';
+import { Card, GhostButton, Label, OptionCard, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay, Press, ChevronRight, ControlTile } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
-import { MORE_HINT, MORE_LABEL, showsActionRow } from './lessonFooter.ts';
+import { KeyboardGlyph } from './glyphs.tsx';
+import { MORE_HINT, MORE_LABEL, showsActionRow, soundNoteIn } from './lessonFooter.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
@@ -57,7 +58,7 @@ export function SupportBlock({
             as a block you read from its left edge, and a long sentence centred
             on a phone leaves both ends ragged. Nothing is clipped; fitDisplay
             steps the serif down by length rather than cutting it. */}
-        <Text style={[fitDisplay(support.line), { color: paper.ink, marginTop: space(2) }]}>
+        <Text {...frenchText} style={[fitDisplay(support.line), { color: paper.ink, marginTop: space(2) }]}>
           {support.line}
         </Text>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>
@@ -81,7 +82,7 @@ export function SupportBlock({
             onPress={onHearLine}
             accessibilityRole="button"
             accessibilityLabel="Hear the line again"
-            style={({ pressed }) => [st.hear, pressed && { opacity: 0.6 }]}
+            style={st.hear}
           >
             <EarGlyph size={15} color={paper.inkSoft} />
             <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
@@ -206,6 +207,9 @@ export function SessionView(props: SessionViewProps) {
   // `lessonFooter.ts`; this only reads the size and remembers the tap.
   const [moreOpen, setMoreOpen] = useState(false);
   const actionRow = showsActionRow(PixelRatio.getFontScale(), moreOpen);
+  // The turn's sound note sits above the mic footer, or in the body once the
+  // footer has folded at the large reading sizes. `lessonFooter.ts` decides.
+  const notePlace = soundNoteIn(PixelRatio.getFontScale(), prompt.turn.note, listening);
 
   const sendDraft = () => {
     const text = draft.trim();
@@ -225,6 +229,11 @@ export function SessionView(props: SessionViewProps) {
   // in the frame's footer rather than scrolling with the thread above them.
   const footer = (
     <>
+      {notePlace === 'footer' && (
+        <View style={st.soundNote}>
+          <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
+        </View>
+      )}
       <View style={st.rungRow}>
         {/* The rung is named once in words here; the bullets to the left mark it
             in colour. A bare colour dot beside both was a third telling that
@@ -244,6 +253,8 @@ export function SessionView(props: SessionViewProps) {
         {props.onType ? (
           <View style={st.typeRow}>
             <TextInput
+              multiline
+              scrollEnabled
               value={draft}
               onChangeText={changeDraft}
               onSubmitEditing={sendDraft}
@@ -254,17 +265,18 @@ export function SessionView(props: SessionViewProps) {
               autoCapitalize="none"
               autoCorrect={false}
               accessibilityLabel="Type your answer in French"
-              style={[type.body, st.input]}
+              style={[type.body, st.input, { maxHeight: 100 }]}
             />
-            <Pressable
+            <Press
               onPress={sendDraft}
               disabled={draft.trim().length === 0 || !listening}
               accessibilityRole="button"
               accessibilityLabel="Send your answer"
-              style={({ pressed }) => [st.send, (draft.trim().length === 0 || !listening) && st.sendEmpty, pressed && { opacity: 0.6 }]}
+              accessibilityState={{ disabled: draft.trim().length === 0 || !listening }}
+              style={st.send}
             >
-              <Text style={[type.button, { color: paper.onInk }]}>Send</Text>
-            </Pressable>
+              <ChevronRight size={22} color={paper.onInk} />
+            </Press>
           </View>
         ) : (
           <>
@@ -286,17 +298,9 @@ export function SessionView(props: SessionViewProps) {
 
         {actionRow ? (
           <View style={st.actions}>
-            <Pressable
-              onPress={props.onHelp}
-              disabled={!listening}
-              accessibilityRole="button"
-              accessibilityLabel="Ask for help with this line"
-              style={({ pressed }) => [st.help, pressed && { opacity: 0.6 }]}
-            >
-              <HelpGlyph size={15} />
-              <Text style={[type.small, { color: paper.inkSoft }]}>Help me out</Text>
-            </Pressable>
-            {!props.onType && props.onSwitchToType && <GhostButton label="Type instead" onPress={props.onSwitchToType} />}
+            <ControlTile label="Help me out" glyph={<HelpGlyph size={22} />} onPress={props.onHelp}
+              disabled={!listening} accessibilityLabel="Ask for help with this line" />
+            {!props.onType && props.onSwitchToType && <ControlTile label="Type instead" glyph={<KeyboardGlyph size={22} />} onPress={props.onSwitchToType} />}
           </View>
         ) : (
           <Pressable
@@ -304,7 +308,7 @@ export function SessionView(props: SessionViewProps) {
             accessibilityRole="button"
             accessibilityLabel={MORE_HINT}
             accessibilityState={{ expanded: false }}
-            style={({ pressed }) => [st.more, pressed && { opacity: 0.6 }]}
+            style={st.more}
           >
             <Text style={[type.small, { color: paper.ink }]}>{MORE_LABEL}</Text>
           </Pressable>
@@ -384,7 +388,7 @@ export function SessionView(props: SessionViewProps) {
           </View>
         ) : null}
 
-        {prompt.turn.note && listening && (
+        {notePlace === 'body' && (
           <View style={st.note}>
             <Text style={[type.small, { color: paper.inkSoft }]}>{prompt.turn.note}</Text>
           </View>
@@ -413,11 +417,12 @@ const st = StyleSheet.create({
   // on that fill, and faint lettering on violet never did (F330).
   send: {
     minHeight: HIT,
-    paddingHorizontal: space(4),
+    width: HIT,
+    height: HIT,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: accent.primary,
-    borderRadius: radius.control,
+    backgroundColor: paper.ink,
+    borderRadius: HIT / 2,
   },
   sendEmpty: { backgroundColor: paper.inkFaint },
   // The chip the action row folds into at the accessibility reading sizes.
@@ -425,7 +430,8 @@ const st = StyleSheet.create({
     minHeight: HIT,
     alignSelf: 'center',
     marginTop: space(2),
-    paddingHorizontal: space(4),
+    width: HIT,
+    height: HIT,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: paper.groundDeep,
@@ -459,6 +465,9 @@ const st = StyleSheet.create({
   },
   heard: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
   note: { borderTopWidth: HAIRLINE, borderTopColor: paper.line, paddingTop: space(3) },
+  // Above the rung row, on the page: a note, not a card, and no rule of its own
+  // because the rung row under it already draws one.
+  soundNote: { paddingTop: space(2), paddingBottom: space(1) },
   rungRow: {
     flexDirection: 'row',
     alignItems: 'center',

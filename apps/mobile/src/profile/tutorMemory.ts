@@ -4,7 +4,7 @@
  * the copy sweeps read these constants rather than the JSX.
  */
 
-import type { RememberedFact } from '@luvani/brain/profile';
+import { memoryPaused, type RememberedFact } from '@luvani/brain/profile';
 
 import { visibleFacts } from './memory.ts';
 import type { StoredProfile } from './store.ts';
@@ -44,19 +44,28 @@ export const KIND_GLOSS: Record<RememberedFact['kind'], string> = {
 
 export const FORGET_ONE = 'Forget this';
 export const FORGET_ALL = 'Clear remembered details';
-export const NOTHING_YET = 'Nothing yet. What you mention about your life in a conversation lands here.';
+export const NOTHING_YET = 'Nothing yet. Everyday interests and plans can help your tutor remember what matters for your French.';
+export const MEMORY_PAUSE_TITLE = 'Pause personal memory';
+export const MEMORY_PAUSE_SUB = 'From your next conversation, remembered details and goals stay out of the tutor’s context, and no new details are added to personal memory. Your name and French progress still help the tutor.';
+export const MEMORY_PAUSED_EMPTY = 'Personal memory is paused. You can resume it here when you are ready.';
+export function memoryEmptyLine(profile: StoredProfile): string {
+  return memoryPaused(profile.brain) ? MEMORY_PAUSED_EMPTY : NOTHING_YET;
+}
+
 export const GOALS_LABEL = 'What you want from French';
-export const GOALS_SUB = 'Up to three lines, in your own words. Your tutor keeps them in mind.';
-export const GOAL_PLACEHOLDER = 'Order at a bakery without switching to English';
+export const GOALS_SUB = 'Up to three lines, in your own words. Your tutor keeps them in mind when personal memory is on.';
+export const GOAL_PLACEHOLDER = 'e.g. Order at a bakery without switching to English';
 export const ADD_GOAL = 'Add this goal';
 export const REMOVE_GOAL = 'Remove';
 /** One plain sentence on what leaves the phone. Names the slice the agent sends. */
-export const WHAT_LEAVES = 'Recent remembered details and your goals help personalise new conversations. Your tutor also uses your name, learning progress and preferences. You can edit or remove details here; saved conversations are managed separately in My French.';
+export const WHAT_LEAVES = 'Recent remembered details and your goals help personalise new conversations unless you pause personal memory. Your tutor also uses your name, learning progress and preferences. You can edit or remove details here; saved conversations are managed separately in Progress.';
+export const MEMORY_SCOPE = 'Use memory for French goals and everyday interests, family and travel. Keep sensitive personal details out of goals and notes.';
 
 /** Every line the card and the screen spell themselves, for the copy sweeps. */
 export const TUTOR_MEMORY_COPY: readonly string[] = [
   PARTNER_LINE, MEMORY_ROW_SUB, ...Object.values(KIND_GLOSS), FORGET_ONE, FORGET_ALL, NOTHING_YET,
-  GOALS_LABEL, GOALS_SUB, GOAL_PLACEHOLDER, ADD_GOAL, REMOVE_GOAL, WHAT_LEAVES,
+  MEMORY_PAUSE_TITLE, MEMORY_PAUSE_SUB, MEMORY_PAUSED_EMPTY,
+  GOALS_LABEL, GOALS_SUB, GOAL_PLACEHOLDER, ADD_GOAL, REMOVE_GOAL, WHAT_LEAVES, MEMORY_SCOPE,
 ];
 
 /**

@@ -20,7 +20,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { TabBar } from '../components.tsx';
-import { tapSettled } from '../motion/haptics.ts';
 
 export function ChoiceRow<K extends string>({
   title,
@@ -50,10 +49,7 @@ export function ChoiceRow<K extends string>({
         <TabBar
           tabs={options}
           active={active}
-          onChange={(key) => {
-            tapSettled();
-            onChange(key);
-          }}
+          onChange={onChange}
           accessibilityLabel={accessibilityLabel}
         />
       </View>

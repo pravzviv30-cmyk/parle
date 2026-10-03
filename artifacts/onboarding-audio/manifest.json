@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "fingerprint": "0d2226a059ebc85b024e00cda4771939d1117299ffa9824553d7152a5aa854a2",
+  "config": {
+    "model": "eleven_flash_v2_5",
+    "gainDb": -4,
+    "settings": {
+      "stability": 0.4,
+      "similarity_boost": 0.8,
+      "style": 0.3,
+      "use_speaker_boost": true
+    },
+    "language": "fr",
+    "voice": "alexandre",
+    "voiceId": "c365oriviHmAhyLhpuN6",
+    "format": "pcm_22050",
+    "encoding": "aac_64000",
+    "cap": 300
+  },
+  "entries": [
+    {
+      "id": "onboarding:tutor-question",
+      "text": "Bonjour ! Qu'est-ce que je vous sers ?"
+    },
+    {
+      "id": "onboarding:tutor-follow-up",
+      "text": "Sur place ou à emporter ?"
+    },
+    {
+      "id": "onboarding:tutor-close",
+      "text": "Très bien. Et voilà !"
+    }
+  ],
+  "estimatedCredits": 23,
+  "before": {
+    "used": 25909,
+    "limit": 33207,
+    "nextReset": 1790891652
+  },
+  "createdAt": "2026-09-27T15:26:46.228Z",
+  "status": "complete",
+  "clips": {
+    "alexandre:onboarding:tutor-question": {
+      "id": "onboarding:tutor-question",
+      "text": "Bonjour ! Qu'est-ce que je vous sers ?",
+      "voice": "alexandre",
+      "file": "alexandre/f08a9391c74035a9e9c9ea7f.m4a",
+      "raw": "39a8c11453f985fbef49fa08.pcm",
+      "reserve": 38,
+      "status": "complete",
+      "cost": 10,
+      "rawSha256": "7fe5bcbad5753de4150bb5a9687321e81cb02f0102e9d01289655bdd79b8c84c",
+      "seconds": 1.9969160997732427,
+      "sha256": "c05d508ecb5542ca9ad8cc198d7dd03693daf62634f393ceb065b2533648b540",
+      "bytes": 18101
+    },
+    "alexandre:onboarding:tutor-follow-up": {
+      "id": "onboarding:tutor-follow-up",
+      "text": "Sur place ou à emporter ?",
+      "voice": "alexandre",
+      "file": "alexandre/2ab6a29c25e5ddab61a0e3fc.m4a",
+      "raw": "c82f702dc0115ac21da19af8.pcm",
+      "reserve": 25,
+      "status": "complete",
+      "cost": 6,
+      "rawSha256": "5c06dd198bebf0f25e9b63bd5b4108c720dd61edf62e91effca545bc85f60406",
+      "seconds": 1.3467573696145125,
+      "sha256": "e6704679f4348e9fbc0f0377228097c29d6977bd1f4c04ecd92c294162f5b8d8",
+      "bytes": 12207
+    },
+    "alexandre:onboarding:tutor-close": {
+      "id": "onboarding:tutor-close",
+      "text": "Très bien. Et voilà !",
+      "voice": "alexandre",
+      "file": "alexandre/56d79e4015e3abfbc000bde4.m4a",
+      "raw": "805235c0297578b9f272717e.pcm",
+      "reserve": 21,
+      "status": "complete",
+      "cost": 5,
+      "rawSha256": "7f5c3fc484cc6d88a8e0bc8a982466d92222fd601dc478c2131f3c2d7d33c758",
+      "seconds": 1.207437641723356,
+      "sha256": "f555746fdf2f0388fcc422a5c7a1ffda06056d799b876ab2fe8e6ed313043753",
+      "bytes": 11295
+    }
+  },
+  "accountedCredits": 21,
+  "completedAt": "2026-09-27T15:26:50.614Z"
+}

@@ -7,37 +7,28 @@
  * speaking rhythm and kept its name so every test that reads it by name still
  * reads the thing it was written about.
  *
- * Four of the five lines below are headings, and a heading here is a caps
+ * Three of the four lines below are headings, and a heading here is a caps
  * `Label` over a card. There are exactly three of them on the tab now, one per
  * card, because a fourth over a row that reads Settings would say the same
  * word twice.
+ *
+ * Notebook Phase 4 copy pass (2026-09-27): the tagline under the name ("Your
+ * French journey, your way.") became a plain line about what the tab holds,
+ * and the caption under the week left with the rail. The week is one sentence
+ * now, `rhythmSentence` from `progress/momentum.ts`, and it needs no caption.
  */
 
-/** Under the learner's own name, in the centred header. */
-export const PROFILE_PURPOSE = 'Your French journey, your way.';
+/** Under the learner's own name, in the centred header: what this tab holds. */
+export const PROFILE_PURPOSE = 'Your tutor and how you like to practise.';
 
 /** Over the card that holds the tutor and what the tutor remembers. */
 export const TUTOR_LABEL = 'Your tutor';
 
-/** Over the tinted panel that draws the week. */
+/** Over the card that says the week in one sentence. */
 export const RHYTHM_LABEL = 'Your speaking rhythm';
-
-/**
- * Under the week. A stance, not a score.
- *
- * The calendar is evidence, never a chain to protect. It keeps what happened
- * and gives the learner permission to return on their own terms.
- */
-export const WEEK_CAPTION = 'Every conversation stays. Return when it suits you.';
 
 /** Over the card of standing choices about how a conversation goes. */
 export const LEARNING_LABEL = 'Your learning';
 
-/** Every line the tab and its rhythm card spell themselves, for the copy sweeps. */
-export const FRENCH_LIFE_COPY: readonly string[] = [
-  PROFILE_PURPOSE,
-  TUTOR_LABEL,
-  RHYTHM_LABEL,
-  WEEK_CAPTION,
-  LEARNING_LABEL,
-];
+/** Every line the tab spells itself, for the copy sweeps. */
+export const FRENCH_LIFE_COPY: readonly string[] = [PROFILE_PURPOSE, TUTOR_LABEL, RHYTHM_LABEL, LEARNING_LABEL];

@@ -1,7 +1,7 @@
 /**
  * Replay a moment (F554, F582).
  *
- * One tinted row, not a card. The moment itself — what the learner said, the
+ * One ledger row, not a card (notebook Phase 3: the tints retired). The moment itself — what the learner said, the
  * better way and why — moved into the sitting it opens, where `MomentCard`
  * draws it above the exercise; a row that reprinted all four lines on Practice
  * made the tab a wall of prose and said the same thing twice.
@@ -15,17 +15,15 @@
  */
 
 import { ReplayGlyph } from '../glyphs.tsx';
-import { TintRow } from '../components.tsx';
-import { accent } from '../theme.ts';
+import { LedgerRow } from '../components.tsx';
+import { paper } from '../theme.ts';
 import { speak } from '../speech/tutorVoice.ts';
 import { MADE_FROM, type Replay } from './madeFrom.ts';
-import { MADE_FROM_TINT } from './madeFromTint.ts';
 
 export function ReplayMomentCard({ replay, onTry }: { replay: Replay; onTry: () => void }) {
   return (
-    <TintRow
-      tint={MADE_FROM_TINT.replay}
-      glyph={<ReplayGlyph color={accent.primary} />}
+    <LedgerRow
+      glyph={<ReplayGlyph color={paper.ink} />}
       title={MADE_FROM.replay.label}
       gloss={MADE_FROM.replay.gloss}
       accessibilityLabel={`${MADE_FROM.replay.label}, ${MADE_FROM.replay.listen}`}

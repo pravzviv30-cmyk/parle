@@ -91,18 +91,11 @@ function writtenBefore(source: string, first: string, second: string): boolean {
 
 /** The body of one `if (sheet === '<name>') {` branch, braces matched. */
 function sheetBranch(source: string, name: string): string {
-  const start = source.indexOf(`if (sheet === '${name}')`);
-  assert.ok(start >= 0, `Profile has no ${name} sheet at all`);
-  const open = source.indexOf('{', start);
-  let depth = 0;
-  for (let i = open; i < source.length; i += 1) {
-    if (source[i] === '{') depth += 1;
-    else if (source[i] === '}') {
-      depth -= 1;
-      if (depth === 0) return source.slice(start, i + 1);
-    }
-  }
-  throw new Error(`the ${name} sheet is never closed`);
+  const start = source.indexOf(`<BottomSheet visible={sheet === '${name}'}`);
+  assert.ok(start >= 0, `Profile has no ${name} sheet`);
+  const end = source.indexOf('</BottomSheet>', start);
+  assert.ok(end > start, 'the sheet is not closed');
+  return source.slice(start, end + '</BottomSheet>'.length);
 }
 
 const VOICE_SHEET = sheetBranch(TAB, 'tutorVoice');
@@ -226,7 +219,7 @@ describe('the voice on the Profile tab', () => {
       2,
       'the pace row at the foot of the sheet is not named once for the eye and once for a screen reader',
     );
-    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'));
+    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'), TAB.indexOf('</ScrollScreen>'));
     assert.ok(!learning.includes('PACE_ROW'), 'the pace switch is on the learning card as well as on the sheet, so one value has two switches');
   });
 

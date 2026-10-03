@@ -1,11 +1,13 @@
 /**
- * The tutor's voice circle.
+ * The tutor's voice circle (SNIPPETS orb).
  *
- * A centred state-coloured voice surface, three quiet rings, and a white waveform
- * drawn directly on the colour. There is deliberately no microphone icon and
- * no frosted capsule inside the orb. On the Tutor landing page the short state
- * label sits directly under the bars; in a live room the existing caption can
- * remain under the orb.
+ * Two rings and a core in the state colour, and one mark per state inside the
+ * core, in the glyph colour `onOrb` pairs with that fill: the seven bars while
+ * the tutor speaks, which are the waveform; a microphone whenever it is your
+ * turn to talk or the room is getting ready; three dots while the tutor
+ * thinks. White on coral and ink, ink on mint and sun. On the Tutor landing page
+ * the short state label sits directly under the mark; in a live room the
+ * existing caption can remain under the orb.
  *
  * The SVG in `OrbGlyph` is still. This wrapper animates only opacity and
  * transform with core Animated and the native driver. The waveform is a small
@@ -15,8 +17,9 @@
 
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { decorative, orb, paper, space, type } from '../theme.ts';
+import { decorative, onOrb, orb, paper, space, type } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
+import { MicGlyph } from '../components.tsx';
 import { orbRests } from './orbRest.ts';
 import { OrbGlyph } from './OrbGlyph.tsx';
 
@@ -25,13 +28,17 @@ export type OrbState = 'ready' | 'idle' | 'connecting' | 'speaking' | 'listening
 /** The whole ring field when a caller does not choose a size. */
 const ORB_DEFAULT = 132;
 
-/** Seven bars, echoing the simple voice mark in UI 4 rather than a mic icon. */
+/** Seven bars: the speaking orb's waveform, the middle one the tallest. */
 const BAR_HEIGHTS = [0.1, 0.17, 0.27, 0.38, 0.27, 0.17, 0.1] as const;
 
 interface Look {
-  /** One state colour drives every wash in the glyph. */
+  /** One state colour draws both rings and the core. */
   colour: string;
-  /** Whether the direct white bars wait or respond. */
+  /** What sits on that colour: the mark and the embedded status. */
+  glyph: string;
+  /** The one mark in the core: bars while speaking, a microphone when it is your turn, dots while thinking. */
+  mark: 'bars' | 'mic' | 'dots';
+  /** Whether the bars wait or respond. Only the speaking orb's waveform moves. */
   bars: 'still' | 'moving';
   /** Scale travel from the resting frame. */
   amplitude: number;
@@ -46,6 +53,8 @@ interface Look {
 const LOOKS: Record<OrbState, Look> = {
   ready: {
     colour: orb.ready,
+    glyph: onOrb.ready,
+    mark: 'mic',
     bars: 'still',
     amplitude: 0.025,
     period: 3000,
@@ -54,6 +63,8 @@ const LOOKS: Record<OrbState, Look> = {
   },
   idle: {
     colour: paper.inkSoft,
+    glyph: paper.onInk,
+    mark: 'mic',
     bars: 'still',
     amplitude: 0,
     period: 0,
@@ -62,7 +73,9 @@ const LOOKS: Record<OrbState, Look> = {
   },
   connecting: {
     colour: orb.ready,
-    bars: 'moving',
+    glyph: onOrb.ready,
+    mark: 'mic',
+    bars: 'still',
     amplitude: 0.025,
     period: 1150,
     shimmer: false,
@@ -70,6 +83,8 @@ const LOOKS: Record<OrbState, Look> = {
   },
   speaking: {
     colour: orb.speaking,
+    glyph: onOrb.speaking,
+    mark: 'bars',
     bars: 'moving',
     amplitude: 0.045,
     period: 780,
@@ -78,7 +93,9 @@ const LOOKS: Record<OrbState, Look> = {
   },
   listening: {
     colour: orb.yourTurn,
-    bars: 'moving',
+    glyph: onOrb.yourTurn,
+    mark: 'mic',
+    bars: 'still',
     amplitude: 0.035,
     period: 1120,
     shimmer: false,
@@ -86,6 +103,8 @@ const LOOKS: Record<OrbState, Look> = {
   },
   thinking: {
     colour: orb.thinking,
+    glyph: onOrb.thinking,
+    mark: 'dots',
     bars: 'still',
     amplitude: 0,
     period: 900,
@@ -94,6 +113,8 @@ const LOOKS: Record<OrbState, Look> = {
   },
   error: {
     colour: paper.inkSoft,
+    glyph: paper.onInk,
+    mark: 'mic',
     bars: 'still',
     amplitude: 0,
     period: 0,
@@ -229,23 +250,38 @@ export function VoiceOrb({
       </Animated.View>
 
       <Animated.View pointerEvents="none" style={[st.signal, { opacity: dim }]} {...decorative}>
-        <View style={[st.bars, { gap: barGap, height: size * 0.4 }]}>
-          {BAR_HEIGHTS.map((height, index) => (
-            <Animated.View
-              key={`${height}-${index}`}
-              style={[
-                st.bar,
-                {
-                  width: barWidth,
-                  height: Math.max(5, size * height),
-                  borderRadius: barWidth / 2,
-                  transform: [{ scaleY: barScales[index]! }],
-                },
-              ]}
-            />
-          ))}
-        </View>
-        {embeddedLabel !== undefined ? <Text style={st.embeddedLabel}>{embeddedLabel}</Text> : null}
+        {look.mark === 'bars' ? (
+          <View style={[st.bars, { gap: barGap, height: size * 0.4 }]}>
+            {BAR_HEIGHTS.map((height, index) => (
+              <Animated.View
+                key={`${height}-${index}`}
+                style={[
+                  {
+                    backgroundColor: look.glyph,
+                    width: barWidth,
+                    height: Math.max(5, size * height),
+                    borderRadius: barWidth / 2,
+                    transform: [{ scaleY: barScales[index]! }],
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        ) : null}
+        {look.mark === 'mic' ? <MicGlyph size={size * (32 / 120)} color={look.glyph} /> : null}
+        {look.mark === 'dots' ? (
+          <View style={[st.dots, { gap: size * (6 / 120) }]}>
+            {[0, 1, 2].map((dot) => (
+              <View
+                key={dot}
+                style={{ width: size * (8 / 120), height: size * (8 / 120), borderRadius: size * (4 / 120), backgroundColor: look.glyph }}
+              />
+            ))}
+          </View>
+        ) : null}
+        {embeddedLabel !== undefined ? (
+          <Text style={[st.embeddedLabel, { color: look.glyph }]}>{embeddedLabel}</Text>
+        ) : null}
       </Animated.View>
 
       {withCaption ? <Text style={st.caption}>{look.caption}</Text> : null}
@@ -257,10 +293,9 @@ const st = StyleSheet.create({
   root: { alignItems: 'center', justifyContent: 'center' },
   signal: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' },
   bars: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  bar: { backgroundColor: paper.onInk },
+  dots: { flexDirection: 'row', alignItems: 'center' },
   embeddedLabel: {
     ...type.bodyStrong,
-    color: paper.onInk,
     position: 'absolute',
     bottom: '16%',
     textAlign: 'center',

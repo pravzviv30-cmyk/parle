@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
-import { USER_KEY_SUFFIXES } from '../storage/scope.ts';
-import { downloadAccountData } from './export.ts';
+import { setActiveUser, USER_KEY_SUFFIXES } from '../storage/scope.ts';
+import { downloadAccountData, downloadVerifiedAccountData } from './export.ts';
 
 const user: AuthUser = { id: 'learner-1', email: 'l@example.com', provider: 'password' };
 
@@ -77,4 +77,40 @@ test('a signed-out server export fails before sending a request', async () => {
   });
   assert.deepEqual(result, { ok: false, message: 'Sign in again, then ask for your data.' });
   assert.equal(requested, false);
+});
+
+
+test('a changed account cannot share an earlier account export', async () => {
+  setActiveUser(user.id);
+  let saved = false;
+  const result = await downloadAccountData(user, adapter('supabase', 'token'), {
+    readDevice: async keys => keys.map(key => [key, null] as const),
+    request: (async () => { setActiveUser('other-account'); return new Response('{}'); }) as typeof fetch,
+    save: async () => { saved = true; },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(saved, false);
+});
+
+test('a refused export reauthentication sends no request and writes no file', async () => {
+  const auth = adapter('supabase', 'token');
+  let requested = false;
+  let saved = false;
+  auth.reauthenticateForDeletion = async (secret, purpose) => {
+    assert.equal(secret, 'entered-password'); assert.equal(purpose, 'export');
+    return { ok: false, message: 'Please check your password.' };
+  };
+  assert.deepEqual(await downloadVerifiedAccountData(user, auth, 'entered-password', {
+    request: (async () => { requested = true; return new Response('{}'); }) as typeof fetch,
+    save: async () => { saved = true; },
+  }), { ok: false, message: 'Please check your password.' });
+  assert.equal(requested, false); assert.equal(saved, false);
+});
+
+test('a stale sign-in export asks for confirmation instead of hiding the recovery', async () => {
+  const result = await downloadAccountData(user, adapter('supabase', 'token'), {
+    readDevice: async () => [], request: (async () => new Response('', { status: 403 })) as typeof fetch,
+    save: async () => { assert.fail('refused export shared a file'); },
+  });
+  assert.deepEqual(result, { ok: false, message: 'Sign in again to confirm it is you, then download your data.' });
 });

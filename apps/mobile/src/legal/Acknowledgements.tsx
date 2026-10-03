@@ -36,16 +36,10 @@ interface Notice {
 const NOTICES: readonly Notice[] = [
   { name: 'toqr', by: 'Phil Pluckthun', licence: 'MIT License', note: 'Creates invitation QR codes on your device.' },
   {
-    name: 'Fraunces',
-    by: 'Phaedra Charles, Flavia Zimbardi and the Fraunces project authors',
+    name: 'Outfit',
+    by: 'The Outfit Project Authors',
     licence: 'SIL Open Font License 1.1',
-    note: 'The serif. Every French line you read is set in it.',
-  },
-  {
-    name: 'DM Sans',
-    by: 'Colophon Foundry, Jonny Pinhorn and Indian Type Foundry',
-    licence: 'SIL Open Font License 1.1',
-    note: 'Everything else on the screen.',
+    note: 'Every word on the screen, French and English alike.',
   },
   {
     name: 'LiveKit',

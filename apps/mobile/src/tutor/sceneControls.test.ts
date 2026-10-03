@@ -4,7 +4,8 @@ import { describe, test } from 'node:test';
 import type { ConvoSupportView } from '@luvani/core';
 
 import { TAP_TO_TALK } from './choosingView.ts';
-import { OPEN_MIC_LABEL, hasSayableSupportLine, sceneControls, typedTurn } from './sceneControls.ts';
+import { OPEN_MIC_LABEL, SIMPLER, hasSayableSupportLine, sceneControls, simplerLabel, typedTurn } from './sceneControls.ts';
+import { PACE_ROW } from './pace.ts';
 
 const fullLine: ConvoSupportView = {
   kind: 'full-line',
@@ -140,5 +141,35 @@ describe('the screen actually wires it — F274', () => {
   test('a closed microphone is never drawn as listening', () => {
     // The half that made the other half invisible.
     assert.match(screen(), /controls\.showOpenMic\s*\n?\s*\? 'ready'/);
+  });
+});
+
+/**
+ * "Slower" becomes "Simpler" — notebook Phase 4 (B1), report change 25.
+ *
+ * The control never slowed anything: the voice plays at the speed the cache
+ * holds, and what the tap changes is the prompt, shorter sentences and simpler
+ * words (tutor/pace.ts says the same about the Profile switch). So the label
+ * says what it does. The agent reads the wire tag `{ t: 'slower' }` and never a
+ * label, so the tag stays; this is checked against the agent's own source
+ * rather than assumed.
+ */
+describe('the simpler control', () => {
+  const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
+
+  test('is labelled Simpler, says what it asks for, and still sends the slower tag the agent reads', () => {
+    assert.equal(SIMPLER, 'Simpler');
+    assert.equal(simplerLabel('Céline'), 'Ask Céline to say it more simply');
+    const screen = read('../ConvoScreen.tsx');
+    assert.ok(screen.includes('label="Simpler"'), 'the scene control is not labelled Simpler');
+    assert.ok(!screen.includes('>Slower</Text>'), 'the scene control still promises a slower voice');
+    assert.match(screen, /accessibilityLabel=\{simplerLabel\(tutorName\)\}/, 'a screen reader still hears a promise about speed');
+    assert.match(screen, /live\.sendSlower\(\);/, 'the control stopped sending the tag the agent acts on');
+    // The agent decides on the tag, never on the words on the button.
+    const agent = read('../../../../services/tutor-agent/src/convo.ts');
+    assert.match(agent, /msg\.t === 'slower'/, 'the agent no longer reads the slower tag; this test is stale');
+    assert.doesNotMatch(agent, /'Slower'|"Slower"|'Simpler'|"Simpler"/, 'the agent reads a button label, which a relabel would break');
+    // And the Profile switch that sets the same thing says the same thing.
+    assert.equal(PACE_ROW, 'Tutor speaks more simply');
   });
 });

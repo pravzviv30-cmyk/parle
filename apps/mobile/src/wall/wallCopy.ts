@@ -89,7 +89,16 @@ export const YOURS_TITLE = 'All of this stays yours';
 /** The founder's free promise, in their words. */
 export const YOURS_SUB = 'You can keep practising what you learned for free.';
 
-export const YOURS_BANK = 'Your phrase bank, with every line you have said';
+/**
+ * What the phrase bank actually holds (2026-09-27, report change 23).
+ *
+ * It used to say "every line you have said", which was not true. The bank is
+ * the review deck: the phrases each lesson's recap and each conversation's pack
+ * picked out (`review/store.ts`, `addFromSummary` and `addPhrases`). No
+ * transcript is kept, and a Conversation Pack is curated learning data, never a
+ * readable transcript (`docs/STATE_AND_STORAGE.md`).
+ */
+export const YOURS_BANK = 'Your phrase bank, with the phrases picked out of your conversations';
 export const YOURS_REVIEW = 'Flashcards and review, for as long as you want them';
 export const YOURS_RECAPS = 'Every lesson recap you have earned';
 export const YOURS_DRILLS = 'Pronunciation drills and sound practice';
@@ -130,8 +139,6 @@ export const YOURS_ONLY = 'That is all yours already. Nothing to do.';
 export const PLANS_TITLE = 'Keep having new real conversations';
 export const PLANS_SUB = 'The speaking time each month is the only difference between them.';
 
-/** Above the minutes a plan buys. The number itself comes off the wire. */
-export const PLANS_TIME = 'Speaking time a month';
 /** What both plans include, said once above the two columns rather than twice inside them. */
 export const PLANS_BOTH = 'Both open every situation, and both let you talk freely about anything.';
 
@@ -161,6 +168,61 @@ export const PLANS_RENEWAL = 'Plans renew every month until you cancel. You can 
  * says either out loud.
  */
 export const PLANS_TRUST = 'No adverts, and nothing you made goes away if you stop.';
+
+// ── speaking time, in units a learner can picture ──────────────────────────────
+//
+// 2026-09-27, notebook Phase 6-E. Minutes a month is a number nobody can feel,
+// and a conversation is one anybody can. These are the only sentences on the
+// wall with a number in them, so each is a function of the number rather than a
+// string holding one: every digit printed is one it was handed, from the
+// catalogue, from the server's own answer, or from the one stated conversation
+// length in `wallPlans.ts`. `wallCopy.test.ts` calls every function exported
+// here and holds that to be true.
+
+const count = (n: number, one: string): string => `${n} ${n === 1 ? one : `${one}s`}`;
+
+/** The headline of a plan row: its minutes as conversations a week, rounded down. */
+export function perWeekLine(conversations: number): string {
+  return `For example, about ${count(conversations, 'conversation')} a week`;
+}
+
+/** The allowance underneath, in the server's own minutes. */
+export function minutesAMonth(minutes: number): string {
+  return `${count(minutes, 'live minute')} a month`;
+}
+
+/** The unit, stated once, so "a conversation" is a length and not a feeling. */
+export function conversationLength(minutes: number): string {
+  return `The examples assume ${count(minutes, 'minute')} per conversation. Actual lengths vary. Connected typing also uses live minutes.`;
+}
+
+/** The trial, said in minutes, with what those minutes are in conversations. */
+export function trialAllowance(minutes: number, conversations: number): string {
+  return conversations >= 1
+    ? `Your free trial is ${count(minutes, 'minute')}, about ${count(conversations, 'conversation')}.`
+    : `Your free trial is ${count(minutes, 'minute')}.`;
+}
+
+/** What is left on the account, rounded down, with what that is in conversations. */
+export function minutesLeft(minutes: number, conversations: number): string {
+  return conversations >= 1
+    ? `${count(minutes, 'minute')} left, about ${count(conversations, 'conversation')}.`
+    : `${count(minutes, 'minute')} left.`;
+}
+
+/** When a paid plan's minutes start fresh, as a day and a month. */
+export function startsFresh(date: string): string {
+  return `They start fresh on ${date}.`;
+}
+
+/** Above the account's own lines on the plans page. */
+export const ACCOUNT_LABEL = 'Your speaking time';
+/** Under a minute is still some, so it is not said as none. */
+export const ACCOUNT_UNDER_A_MINUTE = 'Less than a minute left.';
+/** `purchases/planStatus.ts` says the same, in the same words, on the Settings card. */
+export const ACCOUNT_NONE_LEFT = 'No speaking time left for now.';
+/** A period whose end has already passed renews on the server's next read. */
+export const ACCOUNT_FRESH_NOW = 'They start fresh about now.';
 
 // ── every ending, in the words each surface needs ──────────────────────────────
 
@@ -210,7 +272,6 @@ export const WALL_COPY: readonly string[] = [
   YOURS_ONLY,
   PLANS_TITLE,
   PLANS_SUB,
-  PLANS_TIME,
   PLANS_BOTH,
   PLANS_CHOOSE,
   PLANS_RESTORE,
@@ -218,6 +279,10 @@ export const WALL_COPY: readonly string[] = [
   PLANS_TERMS,
   PLANS_RENEWAL,
   PLANS_TRUST,
+  ACCOUNT_LABEL,
+  ACCOUNT_UNDER_A_MINUTE,
+  ACCOUNT_NONE_LEFT,
+  ACCOUNT_FRESH_NOW,
   WALL_LEAVE,
   WALL_NEXT,
   WALL_DONE,

@@ -18,13 +18,19 @@ function paidPlan(value: unknown): value is 'starter' | 'regular' {
   return value === 'starter' || value === 'regular';
 }
 
+function allowedEnum(value: unknown, choices: readonly string[]): boolean {
+  return typeof value === 'string' && choices.includes(value);
+}
+
 function nonNegativeCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100_000;
 }
 
 /** Analytics is an allowlist of product facts, never learner content. */
-export function parseProductEvent(value: unknown): ProductEvent | null {
-  if (typeof value !== 'object' || value === null) return null;
+export const SERVER_EVENT_NAMES = ['trial_started', 'minutes_refused'] as const;
+
+export function parseProductEvent(value: unknown, source: 'client' | 'server' = 'client'): ProductEvent | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const candidate = value as Record<string, unknown>;
   if (typeof candidate.properties !== 'object' || candidate.properties === null || Array.isArray(candidate.properties)) return null;
   const properties = candidate.properties as Record<string, unknown>;
@@ -39,7 +45,7 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
     if (typeof properties.personalisedGreeting !== 'boolean') return null;
   } else if (candidate.name === 'mission_started') {
     if (!exactKeys(properties, ['missionId', 'entry'])) return null;
-    if (!missionId(properties.missionId) || !['chooser', 'home', 'my-french'].includes(String(properties.entry))) return null;
+    if (!missionId(properties.missionId) || !allowedEnum(properties.entry, ['chooser', 'home', 'my-french'])) return null;
   } else if (candidate.name === 'mission_completed') {
     if (!exactKeys(properties, ['missionId', 'rung'])) return null;
     if (
@@ -51,7 +57,7 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
     if (!exactKeys(properties, ['missionId', 'kind'])) return null;
     if (
       !missionId(properties.missionId) ||
-      !['assessed-clear', 'assessed-focus', 'self-guided', 'unavailable'].includes(String(properties.kind))
+      !allowedEnum(properties.kind, ['assessed-clear', 'assessed-focus', 'self-guided', 'unavailable'])
     ) return null;
   } else if (candidate.name === 'my_french_opened') {
     if (!exactKeys(properties, ['situationsDone', 'linesKept'])) return null;
@@ -59,13 +65,13 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
   } else if (candidate.name === 'wall_shown') {
     if (!exactKeys(properties, ['entry', 'pages'])) return null;
     if (
-      !['path-complete', 'refused', 'settings', 'recap'].includes(String(properties.entry)) ||
+      !allowedEnum(properties.entry, ['path-complete', 'refused', 'settings', 'recap']) ||
       !nonNegativeCount(properties.pages)
     ) return null;
   } else if (candidate.name === 'wall_page_seen') {
     if (!exactKeys(properties, ['page', 'index'])) return null;
     if (
-      !['map', 'french', 'yours', 'plans'].includes(String(properties.page)) ||
+      !allowedEnum(properties.page, ['map', 'french', 'yours', 'plans']) ||
       !nonNegativeCount(properties.index)
     ) return null;
   } else if (candidate.name === 'plan_selected') {
@@ -78,8 +84,21 @@ export function parseProductEvent(value: unknown): ProductEvent | null {
     if (!exactKeys(properties, ['plan', 'outcome'])) return null;
     if (
       !paidPlan(properties.plan) ||
-      !['done', 'nothing-granted', 'cancelled', 'store-trouble', 'refresh-trouble'].includes(String(properties.outcome))
+      !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'store-trouble', 'refresh-trouble'])
     ) return null;
+  } else if (candidate.name === 'restore_started' || candidate.name === 'restore_settled') {
+    const settled = candidate.name === 'restore_settled';
+    if (!exactKeys(properties, settled ? ['entry', 'outcome'] : ['entry'])) return null;
+    if (!allowedEnum(properties.entry, ['settings', 'wall', 'inline'])) return null;
+    if (settled && !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'store-trouble', 'refresh-trouble'])) return null;
+  } else if (candidate.name === 'wall_left') {
+    if (!exactKeys(properties, ['entry', 'outcome', 'destination'])) return null;
+    if (!allowedEnum(properties.entry, ['path-complete', 'refused', 'settings', 'recap']) || !allowedEnum(properties.outcome, ['granted', 'unchanged']) || !allowedEnum(properties.destination, ['back', 'speak'])) return null;
+  } else if (candidate.name === 'trial_started') {
+    if (source !== 'server' || !exactKeys(properties, [])) return null;
+  } else if (candidate.name === 'minutes_refused') {
+    if (source !== 'server' || !exactKeys(properties, ['plan', 'reason'])) return null;
+    if (!allowedEnum(properties.plan, ['trial', 'starter', 'regular']) || !allowedEnum(properties.reason, ['exhausted', 'insufficient-for-session'])) return null;
   } else {
     return null;
   }

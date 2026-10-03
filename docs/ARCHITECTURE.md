@@ -23,7 +23,7 @@ apps/mobile/        Expo → iOS, Android and web from one codebase
 services/tutor-agent/    LiveKit Agents worker. The live voice pipeline
 services/token-server/   Credentials, the metering gate, drill scoring
 services/brain-playground/  Terminal chat and the AI-quality evals
-services/shared/         Vendor adapters (Speechace). Not a workspace
+services/shared/         Vendor adapters (Speechace, TonePerfect). Not a workspace
 ```
 
 ## Who owns what

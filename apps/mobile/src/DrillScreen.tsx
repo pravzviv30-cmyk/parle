@@ -56,23 +56,25 @@ import {
   type TranslationExercise,
   drillXp,
 } from '@luvani/core';
-import { HAIRLINE, HIT, font, paper, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, HIT, colour, font, paper, radius, signal, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
-import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, TintPanel, fitDisplay } from './components.tsx';
+import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { Art } from './art/Art.tsx';
-import { SCREEN_ART } from './art/maps.ts';
 import { addPhrases, gradeCards, loadDeck } from './review/store.ts';
-import { RewardMark } from './illustrations.tsx';
+import { Illustration } from './art/flat/Illustration.tsx';
+import { CheckGlyph } from './components.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
 import { MomentCard, type DrillMoment } from './drill/MomentCard.tsx';
 import { loadTopics } from './topics/store.ts';
+import { drillTitle } from './drill/title.ts';
 import { DRILL_UNREAD, sittingTitle, topicGroups } from './practice/mix.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 import { scoreRecordedAttempt } from './speech/scoreAttempt.ts';
 import { consumeRecording, discardRecording } from './speech/discardRecording.ts';
+import { transcribeRecordedAttempt } from './speech/transcribeAttempt.ts';
+import { SpokenAttempt } from './drill/SpokenAttempt.tsx';
 import { judgeOwnWords } from './speech/judgeAttempt.ts';
 import { MADE_FROM } from './practice/madeFrom.ts';
 import { hasAnsweredWork, sittingStatement } from './practice/sittingOutcome.ts';
@@ -90,20 +92,10 @@ import {
   OWN_WORDS_ANOTHER,
   OWN_WORDS_FIELD_LABEL,
   OWN_WORDS_HINT,
+  TRANSCRIPTION_UNAVAILABLE,
   OWN_WORDS_LABEL,
   OWN_WORDS_PROMPT,
 } from './drill/ownWordsCopy.ts';
-
-/**
- * The paper under a word the learner is putting into a sentence.
- *
- * Named rather than reached for: the house lilac is the one tint a surface may
- * take when it is not about a place, which is the reading Transcript already
- * gives it for the learner's own bubble. A chip here holds the learner's own
- * words a moment before they say them, so it is the same paper for the same
- * reason, and the hex stays where `palette.test.ts` keeps it.
- */
-const WORD_TINT = 'lilac';
 
 /** How long a feedback line holds the floor before the next exercise deals. */
 const FEEDBACK_MS = 1600;
@@ -172,16 +164,15 @@ function verdictColor(verdict: SettledVerdict): string {
 // and fill-blank options are bare words by authored design.
 
 /**
- * A single-word option, as a chip on the house lilac.
+ * A single-word option, as a chip.
  *
  * It was a full-width row with a chevron, which read as navigation: four doors
  * stacked down the screen rather than four words to choose between. Revamp A
  * draws the bare-word options as chips in the tap-translate pool's anatomy,
- * because they are the same thing — a word you put into a sentence.
+ * because they are the same thing: a word you put into a sentence.
  *
- * `TintPanel` lays the paper, because a screen names a tint and never a colour
- * (palette.test.ts), and the press is an opacity step rather than a second
- * paper: there is exactly one tint under one surface.
+ * Notebook Phase 4 (2026-09-27): the chip is plain white paper under a paper
+ * hairline, with no tint, and the press is an opacity step.
  */
 function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
   return (
@@ -192,9 +183,9 @@ function WordChoice({ word, onPress, locked }: { word: string; onPress: () => vo
       accessibilityLabel={word}
       style={({ pressed }) => pressed && ds.chipPressed}
     >
-      <TintPanel tint={WORD_TINT} style={ds.choice}>
+      <View style={ds.choice}>
         <Text style={[type.french, { color: paper.ink }]}>{word}</Text>
-      </TintPanel>
+      </View>
     </Pressable>
   );
 }
@@ -433,9 +424,9 @@ function TapTranslateView({
               accessibilityState={{ disabled: used }}
               style={({ pressed }) => pressed && !used && ds.chipPressed}
             >
-              <TintPanel tint={WORD_TINT} style={[ds.token, used && ds.tokenUsed]}>
+              <View style={[ds.token, used && ds.tokenUsed]}>
                 <Text style={[type.french, { color: used ? paper.inkSoft : paper.ink }]}>{token}</Text>
-              </TintPanel>
+              </View>
             </Pressable>
           );
         })}
@@ -648,14 +639,15 @@ function RepeatThisView({
             {/* The speak circle in its muted state: nothing records here, and
                 the red fill must keep meaning "the microphone is on". */}
             <View style={ds.speakBlock}>
-              <SpeakCircle muted accessibilityLabel="Say the line out loud" />
+              <Illustration name="state-microphone" fit="small" />
               <Text style={[type.label, { color: paper.ink }]}>Speak</Text>
             </View>
 
             {/* Without a microphone the learner's word is the grade. Saying so
                 out loud in the control's own copy keeps the report honest. */}
             <View style={ds.saidIt}>
-              <PillButton label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
+              <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
+              <GhostButton label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
             </View>
           </>
         ) : (
@@ -712,6 +704,8 @@ interface OwnWordsOutcome {
   reveal: string | null;
   /** They said it their own way: offer to keep the phrase. */
   keep: boolean;
+  /** The learner's checked words, held only on this screen for comparison. */
+  attempt: string | null;
 }
 
 /**
@@ -719,9 +713,8 @@ interface OwnWordsOutcome {
  *
  * The one drill kind with no right string. The situation sets the scene, the
  * English says what has to get across, and the field takes whatever French the
- * learner has. Nothing here listens: there is no microphone on this card and
- * no recording leaves this screen, because reading a paraphrase is a text job
- * and a spoken one would be a claim about pronunciation nobody has earned.
+ * learner has. A temporary take can supply editable text. Checking meaning
+ * still uses the text judge, and never claims a pronunciation score.
  *
  * It borrows `TypedAnswer` rather than growing a field of its own, which is
  * also what keeps the drill's Check at exactly two shared pills.
@@ -731,6 +724,8 @@ function OwnWordsView({
   typed,
   onChange,
   onCheck,
+  onTake,
+  quiet = false,
   busy,
   outcome,
   onKeep,
@@ -741,6 +736,8 @@ function OwnWordsView({
   typed: string;
   onChange: (t: string) => void;
   onCheck: () => void;
+  onTake: (uri: string | null) => void;
+  quiet?: boolean;
   /** A judge is reading it. The field and the pill are off until it answers. */
   busy: boolean;
   outcome: OwnWordsOutcome | null;
@@ -748,30 +745,37 @@ function OwnWordsView({
   keeping: boolean;
   kept: boolean;
 }) {
+  const [typing, setTyping] = useState(!CAN_RECORD || quiet);
+  const typeInstead = useCallback(() => setTyping(true), []);
   return (
     <View style={{ gap: space(4) }}>
-      <Card tone="feature" style={ds.promptCard}>
+      <Card style={ds.promptCard}>
         <Label>{kindTag(exercise)}</Label>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{exercise.situation}</Text>
         <Text style={[type.title, { color: paper.ink, marginTop: space(5), marginBottom: space(5) }]}>{exercise.en}</Text>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{OWN_WORDS_HINT}</Text>
       </Card>
-      <TypedAnswer
+      {!typing && typed === '' && outcome === null && <SpokenAttempt onTake={onTake} onTyping={typeInstead} busy={busy} />}
+      {(typing || typed !== '' || outcome !== null) && <TypedAnswer
         typed={typed}
         onChange={onChange}
         onSubmit={onCheck}
         locked={busy}
         placeholder={OWN_WORDS_PROMPT}
         accessibilityLabel={OWN_WORDS_FIELD_LABEL}
-      />
+      />}
       {busy && <ActivityIndicator color={paper.inkSoft} />}
       {outcome !== null && (
         <Card style={ds.outcome}>
+          {outcome.attempt !== null && <View style={{ gap: space(1) }}>
+            <Label>Your words</Label>
+            <Text style={[type.body, { color: paper.ink }]}>{outcome.attempt}</Text>
+          </View>}
           <View style={ds.outcomeRow}>
             {/* Same rule as the feedback beat: no mark on a miss. A drawing
                 scolds louder than a word, and this card is read for longer. */}
             {outcome.verdict !== null && outcome.verdict !== 'miss' && (
-              <RewardMark size={26} kind={outcome.verdict} />
+              <View style={ds.verdictMark}><CheckGlyph size={18} color={paper.ink} /></View>
             )}
             <Text
               style={[
@@ -890,6 +894,9 @@ export function DrillScreen({
   // been kept. Separate from `feedback` because this card is read, not flashed.
   const [ownWords, setOwnWords] = useState<OwnWordsOutcome | null>(null);
   const [judging, setJudging] = useState(false);
+  const attemptBusy = useRef(false);
+  const attemptAlive = useRef(true);
+  useEffect(() => { attemptAlive.current = true; return () => { attemptAlive.current = false; }; }, []);
   const [keeping, setKeeping] = useState(false);
   const [kept, setKept] = useState(false);
 
@@ -1084,6 +1091,7 @@ export function DrillScreen({
         if (until !== null && Date.parse(until) > now) {
           // Still inside the "can't speak now" hour: open silent, unasked.
           built = suppressMic(built);
+          micSuppressedRef.current = true;
         } else if (until !== null) {
           // The window lapsed; clear it so spoken drills return next sitting.
           void setMicSuppressed(null);
@@ -1215,14 +1223,19 @@ export function DrillScreen({
    * into the summary: core records an id, a phrase key and an outcome.
    */
   const checkOwnWords = useCallback(() => {
-    if (!session || session.finished || judging) return;
+    if (!session || session.finished || judging || attemptBusy.current) return;
     const current = session.queue[0];
     if (!current || current.kind !== 'own-words') return;
     const attempt = typed.trim();
     if (attempt === '') return;
     clock.touch();
+    const owner = scopeGeneration();
+    const beat = beatRef.current;
+    attemptBusy.current = true;
     setJudging(true);
-    void judgeOwnWords(userId, current, attempt).then((verdict) => {
+    void judgeOwnWords(userId, current, attempt, owner).then((verdict) => {
+      attemptBusy.current = false;
+      if (!attemptAlive.current || owner !== scopeGeneration() || beat !== beatRef.current) return;
       setJudging(false);
       if (verdict === null) {
         setOwnWords({
@@ -1233,6 +1246,7 @@ export function DrillScreen({
           another: null,
           reveal: current.fr,
           keep: false,
+          attempt,
         });
         return;
       }
@@ -1249,6 +1263,7 @@ export function DrillScreen({
         another: decided === 'good' ? verdict.betterLine : null,
         reveal: decided === 'reveal' ? current.fr : null,
         keep: decided === 'good',
+        attempt,
       });
       setTyped('');
       if (next.finished) persistGrades(next);
@@ -1256,6 +1271,25 @@ export function DrillScreen({
       setSession(next);
     });
   }, [session, judging, typed, userId, persistGrades, savePractice, clock]);
+
+  const recordOwnWords = useCallback((uri: string | null) => {
+    if (attemptBusy.current || !session || session.finished || session.queue[0]?.kind !== 'own-words') return discardRecording(uri);
+    const owner = scopeGeneration();
+    const exercise = session.queue[0];
+    const beat = beatRef.current;
+    attemptBusy.current = true;
+    setJudging(true);
+    void consumeRecording(uri, path => transcribeRecordedAttempt(userId, path, owner)).then(transcript => {
+      if (!attemptAlive.current || owner !== scopeGeneration() || beat !== beatRef.current) return;
+      if (transcript !== null) setTyped(transcript);
+      else setOwnWords({ exercise, verdict: null, message: TRANSCRIPTION_UNAVAILABLE, note: null, another: null, reveal: null, keep: false, attempt: null });
+    }).catch(() => {
+      if (attemptAlive.current && owner === scopeGeneration() && beat === beatRef.current) setOwnWords({ exercise, verdict: null, message: TRANSCRIPTION_UNAVAILABLE, note: null, another: null, reveal: null, keep: false, attempt: null });
+    }).finally(() => {
+      attemptBusy.current = false;
+      if (attemptAlive.current && owner === scopeGeneration() && beat === beatRef.current) setJudging(false);
+    });
+  }, [session, userId]);
 
   /** Keep the phrase they just said their own way. The one write this card makes. */
   const keepPhrase = useCallback(
@@ -1411,7 +1445,8 @@ export function DrillScreen({
   const header = (
     <ScreenHeader
       leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }}
-      title={progress !== null ? (
+      title={session?.queue[0]?.kind ? drillTitle(session.queue[0].kind) : heading}
+      trailing={progress !== null ? (
         <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{progress.label}</Text>
       ) : undefined}
     />
@@ -1486,10 +1521,13 @@ export function DrillScreen({
       <DrillClock.Provider value={clock}>
       <ScrollScreen avoidKeyboard header={header}>
         <OwnWordsView
+          key={holding.exercise.id}
           exercise={holding.exercise}
           typed={typed}
           onChange={setTyped}
           onCheck={checkOwnWords}
+          onTake={recordOwnWords}
+          quiet={micSuppressedRef.current}
           busy={judging}
           outcome={holding}
           onKeep={() => keepPhrase(holding.exercise)}
@@ -1564,9 +1602,6 @@ export function DrillScreen({
             cleared table — the same scene and spacing the review deck uses,
             because these two screens say the same thing. The size is the art
             registry's, never a width written here. */}
-        <View style={{ alignItems: 'center', marginBottom: space(5) }}>
-          <Art name={SCREEN_ART.emptyDeck} />
-        </View>
         <Card>
           <Text style={[type.title, { color: paper.ink }]}>Nothing to review.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
@@ -1631,9 +1666,8 @@ export function DrillScreen({
               {/* No mark on a miss, and that is the rule rather than an
                   oversight: a mid-session message may not scold, and a drawing
                   scolds louder than a word. A miss keeps the line it always
-                  had, alone. The mark unmounts between beats, so its arrival
-                  replays on every verdict without a key to force it. */}
-              {feedback.verdict !== 'miss' && <RewardMark size={26} kind={feedback.verdict} />}
+                  had, alone. The mark is still and unmounts between beats. */}
+              {feedback.verdict !== 'miss' && <View style={ds.verdictMark}><CheckGlyph size={18} color={paper.ink} /></View>}
               <Text style={[type.bodyStrong, { color: verdictColor(feedback.verdict), textAlign: 'center' }]}>
                 {feedback.message}
               </Text>
@@ -1684,10 +1718,13 @@ export function DrillScreen({
       )}
       {exercise.kind === 'own-words' && (
         <OwnWordsView
+          key={exercise.id}
           exercise={exercise}
           typed={typed}
           onChange={setTyped}
           onCheck={checkOwnWords}
+          onTake={recordOwnWords}
+          quiet={micSuppressedRef.current}
           busy={judging}
           outcome={ownWords}
           onKeep={() => keepPhrase(exercise)}
@@ -1703,18 +1740,22 @@ export function DrillScreen({
 const ds = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'center', paddingHorizontal: space(2) },
+  verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: colour.mint, alignItems: 'center', justifyContent: 'center' },
   verdictRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
   exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
   promptCard: { minHeight: 260, justifyContent: 'space-between' },
 
-  // The chip anatomy, for choices that are bare words. The paper comes from
-  // TintPanel, so nothing here names a colour.
+  // The chip anatomy, for choices that are bare words: white paper under a
+  // paper hairline, the notebook's one surface, with no tint.
   choice: {
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3.5),
@@ -1738,7 +1779,7 @@ const ds = StyleSheet.create({
     paddingVertical: space(3),
     paddingHorizontal: space(4),
     color: paper.ink,
-    fontFamily: font.sans,
+    fontFamily: font.regular,
     fontSize: 16,
   },
 
@@ -1771,6 +1812,9 @@ const ds = StyleSheet.create({
     minHeight: HIT,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     borderRadius: radius.chip,
     paddingVertical: space(2),
     paddingHorizontal: space(3),
@@ -1785,8 +1829,10 @@ const ds = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2.5),
     backgroundColor: paper.card,
-    borderWidth: 1.5,
-    borderColor: paper.ink,
+    // A paper hairline, not an ink outline (notebook Phase 4, 2026-09-27):
+    // the ink is kept for the one primary pill.
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
     borderRadius: radius.pill,
     paddingHorizontal: space(5),
   },

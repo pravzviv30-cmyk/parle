@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ATTEMPT_AUDIO_NOT_SWEPT,
   clearActiveUserData,
+  onUserScopeCleanup,
   migrateLegacyStores,
   onUserScopeReset,
   RETIRED_DEVICE_KEYS,

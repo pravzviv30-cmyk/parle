@@ -24,7 +24,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { FOLD_SCALE, MORE_HINT, MORE_LABEL, footerFolds, showsActionRow } from './lessonFooter.ts';
+import { FOLD_SCALE, MORE_HINT, MORE_LABEL, footerFolds, showsActionRow, soundNoteIn } from './lessonFooter.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -83,5 +83,40 @@ describe('the lesson at the largest reading size — F462', () => {
     const bodyAt = view.indexOf('<SupportBlock');
     assert.ok(footerAt !== -1 && bodyAt !== -1, 'the lesson no longer has a footer or a support block; this test is stale');
     assert.ok(bodyAt > footerAt, 'the say-this card moved into the footer, where it cannot be scrolled to');
+  });
+});
+
+/**
+ * The sound note above the microphone — notebook Phase 4 (B1), 2026-09-27.
+ *
+ * Each lesson turn can carry a note, and most of them are about a sound: the
+ * nasal in "bonjour", the silent "t" in "croissant", the two R sounds in "par
+ * carte". It used to sit at the very end of the scroll body, under the line to
+ * say and the transcript, where a learner looking at the microphone never saw
+ * it. Sound is the notebook's signature, so the note sits directly above the
+ * mic footer while the learner has the floor. At the large reading sizes the
+ * footer already folds (F462), so there the note stays in the body rather than
+ * growing the footer back into the squeeze it was folded to avoid.
+ */
+describe('the sound note sits above the mic footer', () => {
+  test('above the microphone while the learner has the floor, in the body at the large reading sizes', () => {
+    const note = 'The "u" in "sur" needs rounded lips.';
+    assert.equal(soundNoteIn(1, note, true), 'footer', 'the sound note is not above the microphone');
+    assert.equal(soundNoteIn(FOLD_SCALE - 0.01, note, true), 'footer');
+    assert.equal(soundNoteIn(FOLD_SCALE, note, true), 'body', 'the note grows a footer that folded to give the body room');
+    assert.equal(soundNoteIn(1, note, false), null, 'the note is drawn while the tutor holds the floor');
+    assert.equal(soundNoteIn(1, undefined, true), null);
+    assert.equal(soundNoteIn(1, '   ', true), null, 'an empty note draws an empty line');
+    assert.equal(soundNoteIn(Number.NaN, note, true), 'footer', 'an unreadable font scale moved the note');
+
+    // The screen's half: the rule is asked once, the footer draws the note
+    // above the rung row and the circle, and the body draws it only when told.
+    assert.match(view, /const notePlace = soundNoteIn\(PixelRatio\.getFontScale\(\), prompt\.turn\.note, listening\);/);
+    const footer = view.slice(view.indexOf('const footer = ('), view.indexOf('return (', view.indexOf('const footer = (')));
+    const noteAt = footer.indexOf("notePlace === 'footer'");
+    assert.notEqual(noteAt, -1, 'the footer never draws the sound note');
+    assert.ok(noteAt < footer.indexOf('st.rungRow') && noteAt < footer.indexOf('<SpeakCircle'), 'the sound note is not above the mic footer');
+    assert.match(view, /notePlace === 'body'/, 'at the large sizes the note has nowhere to go');
+    assert.doesNotMatch(view, /prompt\.turn\.note && listening/, 'the note is still drawn at the foot of the body on its own condition');
   });
 });

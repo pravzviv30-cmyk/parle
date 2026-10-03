@@ -14,7 +14,7 @@ export function socialUpdateCount(s: SocialSnapshot): number {
   if (!s.settings.enabled) return 0;
   return (s.settings.requests ? s.requests.filter(r => r.direction === 'incoming').length : 0)
     + (s.settings.invitations ? s.challenges.filter(c => c.status === 'pending' && c.incoming).length : 0)
-    + s.notices.filter(n => !n.read && (n.kind === 'completion' ? s.settings.completions : n.kind === 'milestone' ? s.settings.milestones : n.kind === 'result' ? s.settings.results : true)).length;
+    + s.notices.filter(n => !n.read && (n.kind === 'completion' ? s.settings.completions : n.kind === 'milestone' ? s.settings.milestones : n.kind === 'result' ? false : true)).length;
 }
 export const REACTIONS = ['Bravo!', 'Bien joué!', 'Nicely done'] as const;
 export function rankedFriends(people: readonly SocialPerson[]): (SocialPerson & { rank: number })[] {
@@ -29,9 +29,10 @@ export function utcWeek(now: number): { start: number; end: number; key: string 
 export function socialPreview(snapshot: SocialSnapshot): string {
   if (!snapshot.settings.enabled) return 'Invite someone you know and make room for French together.';
   if (!snapshot.friends.length) return 'Your circle starts with one friend.';
-  const ranked = rankedFriends([snapshot.self, ...snapshot.friends]);
-  const mine = ranked.find(p => p.id === snapshot.self.id);
-  if (!mine || mine.points === 0) return `${snapshot.friends.length} friends learning alongside you.`;
-  const tied = ranked.filter(p => p.rank === mine.rank).length > 1;
-  return `You are ${tied ? 'joint ' : ''}${mine.rank === 1 ? 'first' : `ranked ${mine.rank}`} among ${ranked.length} this week.`;
+  return `${snapshot.friends.length} ${snapshot.friends.length === 1 ? 'friend' : 'friends'} learning alongside you.`;
+}
+
+/** Order by name, including friends whose activity is private; never mutate the snapshot. */
+export function friendsByName(people: readonly SocialPerson[]): SocialPerson[] {
+  return [...people].sort((a, b) => a.name.localeCompare(b.name) || a.username.localeCompare(b.username));
 }

@@ -13,10 +13,12 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import ts from 'typescript';
 import { PAGES } from './onboarding/answers.ts';
 import { FIRST_RUN_SURFACES } from './onboarding/disclosure.ts';
+import { MORE_WAYS, startModes } from './tutor/speakView.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 const APP = join(SRC, '..');
@@ -67,10 +69,20 @@ describe('the tutor intro teaches what the app actually does — J3', () => {
   // the comments the rest of this file deliberately strips.
   const introRaw = readFileSync(join(SRC, 'tutor', 'TutorIntro.tsx'), 'utf8');
 
-  test('the intro names the thinking colour what the theme calls it', () => {
-    // It said "Yellow", and rung one's actual yellow lives one screen away.
-    assert.match(intro, /Amber, it is thinking/);
-    assert.doesNotMatch(intro, /Yellow, it is thinking/);
+  test('the intro names the orb states in words, never by colour', () => {
+    // It said "Yellow", and rung one's actual yellow lived one screen away; then
+    // it said "Amber" to match the theme. Revamp B (F595) repaints the orb coral,
+    // mint, sun and ink, each with a glyph and a caption, so the state is carried
+    // by the words and the glyph. A colour named in a title teaches the one cue a
+    // colour-blind learner cannot see, and goes stale the next time a token moves.
+    assert.match(intro, /title: `\$\{persona\.name\} is talking`/, 'the speaking row no longer says who is talking');
+    assert.match(intro, /title: 'Your turn'/, 'the listening row no longer says it is the learner\'s turn');
+    assert.match(intro, /title: 'It is thinking'/, 'the thinking row no longer says the tutor is thinking');
+    assert.doesNotMatch(
+      intro,
+      /[`'](Red|Green|Amber|Yellow|Violet|Coral|Mint|Sun|Blue)\b/,
+      'the intro names an orb state by its colour again',
+    );
   });
 
   test('the intro header counts its own pages', () => {
@@ -113,10 +125,11 @@ describe('the touch floor is a floor — J5', () => {
 });
 
 describe('drawings are drawings — J6', () => {
-  test('every drawing and every raster scene in the app is hidden from assistive technology', () => {
+  test('every drawing in the app is hidden from assistive technology, and nothing imports Image', () => {
     // theme.ts exports `decorative` for this and motion.test.ts already enforces
     // it on illustrations. The icon layer never spread it, so the microphone,
     // the ear and every chevron reached a screen reader as unlabelled images.
+    // The flat drawings under art/flat/ are Svgs too, so this walk holds them.
     for (const { path, body } of SOURCES) {
       for (const tag of body.match(/<Svg[^>]*>/g) ?? []) {
         assert.ok(
@@ -128,9 +141,10 @@ describe('drawings are drawings — J6', () => {
 
     // Revamp A brought raster scenes into a world that had only ever drawn
     // vectors, and an unlabelled <Image> is announced as "image" by every
-    // screen reader there is — the same defect J6 closed for the SVG layer.
-    // So the rule is held twice: one file may reach for `Image` at all, and
-    // every tag it draws is hidden the three ways `decorative` spells it.
+    // screen reader there is: the same defect J6 closed for the SVG layer.
+    // Revamp B (F599) drew them again as vectors and retired the one renderer
+    // that was allowed `Image`, so now no file may import it at all. The tag
+    // walk is kept, so a picture that comes back is still caught unhidden.
     const importers: string[] = [];
     for (const { path, body } of SOURCES) {
       for (const tag of body.match(/<Image(?=[\s>])[^>]*>/g) ?? []) {
@@ -146,22 +160,14 @@ describe('drawings are drawings — J6', () => {
     }
     assert.deepEqual(
       [...new Set(importers)],
-      ['art/Art.tsx'],
-      'something other than the one art renderer imports Image, so a picture can reach the screen without the registry or the decorative spread',
+      [],
+      'a file imports Image again, so a bitmap can reach the screen outside the flat drawings and without the decorative spread',
     );
   });
 });
 
-describe('two shadows, both named — F569', () => {
-  test('the whisper and the live glow are the only two shadows, and both are named', () => {
-    // Revamp A lifts the white card off the porcelain with one soft shadow, and
-    // a soft shadow is the easiest thing in a design system to copy onto a row,
-    // a pill, the tab bar and a header until the whole app floats. So there are
-    // exactly two in the codebase: `shadow.whisper` in theme.ts, spread by name
-    // and never written out, and the live microphone's green glow in
-    // `SpeakCircle`, which predates the revamp and is the one shadow that
-    // reports something. Anywhere else, a raw shadow number is the drift.
-    // Read by exact path, not by suffix: `named('theme.ts')` finds `nav/theme.ts`.
+describe('only the live microphone casts a shadow — F569', () => {
+  test('the live glow is the only shadow and no source uses the retired whisper', () => {
     const exact = (name: string) => SOURCES.find((f) => rel(f.path) === name)!.body;
     const glow = (() => {
       const body = exact('components.tsx');
@@ -177,24 +183,20 @@ describe('two shadows, both named — F569', () => {
 
     const offenders: string[] = [];
     for (const { path, body } of SOURCES) {
-      for (const line of body.split('\n')) {
-        if (!/\bshadowOpacity\b|\belevation:/.test(line)) continue;
-        if (rel(path) === 'theme.ts') continue;
-        if (rel(path) === 'components.tsx' && glow.includes(line.trim())) continue;
-        offenders.push(`${rel(path)}  ${line.trim()}`);
+      assert.doesNotMatch(body, /\bshadow\s*(?:\.\s*whisper\b|\[\s*['"]whisper['"]\s*\])/, `${rel(path)} uses the retired whisper`);
+      const outsideGlow = rel(path) === 'components.tsx' ? body.replace(glow, '') : body;
+      for (const line of outsideGlow.split('\n')) {
+        if (/\b(?:shadowColor|shadowOffset|shadowOpacity|shadowRadius|elevation|boxShadow)\s*:/.test(line)) {
+          offenders.push(`${rel(path)}  ${line.trim()}`);
+        }
       }
     }
-    assert.deepEqual(offenders, [], `A third shadow, written in numbers rather than named:\n${offenders.join('\n')}`);
-
-    // And the whisper really is the token, not a copy of it: every card-like
-    // surface reaches it by name.
-    assert.match(exact('theme.ts'), /whisper: \{/, 'theme.ts no longer names the whisper');
-    assert.match(exact('components.tsx'), /\.\.\.shadow\.whisper/, 'the card no longer spreads the named whisper');
+    assert.deepEqual(offenders, [], `Only the live microphone may cast a shadow:\n${offenders.join('\n')}`);
   });
 });
 
 describe('nothing animates where nobody is looking — J7', () => {
-  test('a scene on a tab that is not focused stops moving', () => {
+  test('decorative scenes are static even when a mounted tab is not focused', () => {
     // Bottom tabs stay mounted after their first visit, so an unpaused loop
     // here runs for the rest of the session behind whatever the learner is
     // actually doing. DESIGN.md says scenes stop; four of them did not.
@@ -208,59 +210,13 @@ describe('nothing animates where nobody is looking — J7', () => {
     // The scene names are the barrel's own, read out of it rather than copied
     // here, because a list typed into a test is a list that stops matching the
     // app the day somebody adds the twenty-first drawing.
-    const DAILY = [
-      'WordSprout', 'WordKettle', 'WordCroissant', 'WordCandle', 'WordCasserole', 'WordTeapot',
-      'WordUmbrella', 'WordCloud', 'WordKite', 'WordLeaves', 'WordSnowflake', 'WordPostbox',
-      'WordBicycle', 'WordFountain', 'WordPigeon', 'WordLantern', 'WordShutters', 'WordSnail',
-      'WordCat', 'WordSailboat',
-    ];
-    const exported = [...named('illustrations/index.ts').matchAll(/export \{([^}]*)\}/g)]
-      .flatMap((m) => m[1]!.split(','))
-      .map((n) => n.trim())
-      .filter((n) => /^[A-Z]/.test(n));
-    for (const name of DAILY) {
-      assert.ok(exported.includes(name), `${name} is no longer offered by the illustration barrel, so the daily pack has shrunk`);
+    const illustrations = SOURCES.filter(({ path }) => rel(path).startsWith('illustrations/'));
+    assert.ok(illustrations.length > 0);
+    for (const { path, body } of illustrations) {
+      assert.doesNotMatch(body, /\bAnimated\b|useSceneMotion|arriveStyle|\.interpolate\(/, `${rel(path)} animates a decorative scene`);
     }
-    // `WordScene` is the chooser itself rather than a drawing, and it is the
-    // one thing a card renders in place of a scene, so it is held to the same
-    // rule as the twenty it picks from.
-    const SCENE = [...new Set([...exported, 'WordScene'])].join('|');
-    const SURFACES = [
-      'daily/DailyCard.tsx',
-      'progress/WordOfDayCard.tsx',
-      'progress/WordScene.tsx',
-      'missions/MissionsScreen.tsx',
-    ];
-    let drawn = 0;
-    for (const name of SURFACES) {
-      const body = named(name);
-      const scenes = body.match(new RegExp(`<(${SCENE})\\b[^/>]*\\/>`, 'g')) ?? [];
-      drawn += scenes.length;
-      for (const scene of scenes) {
-        assert.ok(scene.includes('paused='), `${name} loops a scene off-screen: ${scene}`);
-      }
-    }
-    assert.ok(drawn > 0, 'none of these surfaces renders a scene any more; this test is stale');
-    // And the chooser draws every one of the twenty, so a key added without a
-    // drawing, or a case that forgets to pass `paused` down, fails here too.
-    const chooser = named('progress/WordScene.tsx');
-    for (const name of DAILY) {
-      assert.match(
-        chooser,
-        new RegExp(`<${name}\\b[^/>]*paused=`),
-        `the word-of-the-day chooser draws ${name} without telling it to stop when the screen is not on top`,
-      );
-    }
-    // Only a screen can ask whether it is focused: the hook throws outside a
-    // navigator, so a card takes `paused` as a prop from the screen above it.
-    // Progress is a pushed screen and asks for itself; the two tabs still ask
-    // because a bottom tab is never unmounted.
-    for (const name of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'daily/DailyCarousel.tsx']) {
-      assert.ok(
-        named(name).includes('useIsFocused'),
-        `${name} passes paused without knowing whether it is focused`,
-      );
-    }
+    const daily = named('daily/DailyCard.tsx');
+    assert.doesNotMatch(daily, /WordScene|sceneForDaily|\bAnimated\b/);
   });
 });
 
@@ -386,11 +342,16 @@ describe('nothing ships that nothing renders — J14', () => {
   // `<HeroCafe` in `MissionArt.tsx` and calls it drawn. So the components are on
   // this list too, which is the only check in the file that would have caught
   // the chain from either end.
+  //
+  // And `Art`, the watercolour renderer, which revamp B (F599) retired with
+  // the PNGs it drew: the flat drawings reach a screen through `Illustration`,
+  // and a second renderer beside it is the same coin toss again.
   const RETIRED = [
     'Chip', 'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard',
     'RecapPostcard', 'OnboardCake', 'NothingDue', 'Phrasebook',
     'MissionDisc', 'MissionArt',
     'HeroCafe', 'StreetCorner', 'MarketStall', 'FrontDesk', 'EveningIn',
+    'Art',
   ];
 
   test('the components and scenes nothing imported are gone', () => {
@@ -406,7 +367,12 @@ describe('nothing ships that nothing renders — J14', () => {
       .flatMap((m) => m[1]!.split(','))
       .map((n) => n.trim())
       .filter(Boolean);
-    assert.ok(exported.length > 0, 'the illustration barrel exports nothing; this test is stale');
+    // Revamp B retired the last pen scene with the unreachable leaderboard.
+    // An empty barrel is valid only when no runtime caller still imports it.
+    if (exported.length === 0) {
+      const callers = SOURCES.filter(({ body }) => /import(?!\s+type\b)[^;]*from ['"][^'"]*illustrations(?:\.tsx|\/index\.ts)['"]/.test(body));
+      assert.deepEqual(callers.map(({ path }) => rel(path)), [], 'a caller still expects a retired runtime illustration');
+    }
     // The barrel and the one-line shim in front of it re-export every name they
     // carry, so a file that only passes a scene along is not a file that draws
     // one. Counting them made this test unfalsifiable: every export reached
@@ -439,39 +405,52 @@ describe('nothing ships that nothing renders — J14', () => {
     }
   });
 
-  test('every raster scene the registry ships reaches a screen', () => {
-    // The same promise as the walk above, for the layer that replaced four of
-    // those scenes. `registry.test.ts` holds the disk side of it — both
-    // densities present, both inside the byte budget — and this is the side
-    // that matters to a learner: a picture that ships in the download and
-    // reaches no screen is weight nobody sees.
+  test('every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks', () => {
+    // The same promise as the walk above, for the drawings revamp B (F599)
+    // generated from ILLUSTRATIONS.md. `art/registry.test.ts` holds the
+    // files themselves (generated, decorative, still, token-coloured); this is
+    // the side that matters to a learner: a drawing that ships and reaches no
+    // screen is weight nobody sees.
     //
-    // A key is reached through one of the three maps in `art/maps.ts` (by
-    // place, by tab, by screen) or drawn by name at a call site. Reaching it
-    // through a map is the normal way, which is why the maps themselves are
-    // checked below: a map nobody reads would make every key it names look
-    // reached.
-    const registry = named('art/registry.ts');
-    const keys = [...registry.matchAll(/^ {2}'?([a-z][a-z-]*)'?: \{ source: require\(/gm)].map((m) => m[1]!);
-    assert.equal(keys.length, 13, `the registry reads as ${keys.length} entries; this walk is stale`);
+    // A name is reached one of two ways. Drawn by name at a call site, as
+    // `<Illustration name="state-offline"` or `name={'state-offline'}`. Or it
+    // is a scene's drawing in `art/flat/scenes.ts`, and some screen asks that
+    // map with `sceneIllustration(`, which is how the place drawings arrive:
+    // the map is only a way in if somebody reads it.
+    const flat = (path: string) => rel(path).startsWith('art/flat/');
+    const names = [...named('art/flat/index.ts').matchAll(/^ {2}'([a-z][a-z0-9-]*)': \{ draw: /gm)].map((m) => m[1]!);
+    assert.equal(names.length, 29, 'the flat registry no longer names the 23 Round 1 drawings, so this test is reading the wrong thing');
 
-    const maps = named('art/maps.ts');
-    const mapped = new Set([...maps.matchAll(/:\s*'([a-z][a-z-]*)'/g)].map((m) => m[1]!));
-    for (const key of keys) {
-      const drawn = SOURCES.some(
+    const sceneMapRead = SOURCES.some(({ path, body }) => !flat(path) && /\bsceneIllustration\(/.test(body));
+    const byScene = new Set([...named('art/flat/scenes.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map((m) => m[1]!));
+    const postcardRead = SOURCES.some(({path,body}) => !flat(path) && /\bpostcardIllustration\(/.test(body));
+    const byPostcard = new Set([...named('recap/postcardArt.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map(m=>m[1]!));
+    const mouthRead = SOURCES.some(({path,body}) => !flat(path) && /<MouthGuide\b/.test(body));
+    const byMouth = new Set([...named('practice/mouthGuide.ts').matchAll(/:\s*'([a-z][a-z0-9-]*)'/g)].map(m=>m[1]!));
+    const reached = (name: string) =>
+      (mouthRead && byMouth.has(name)) ||
+      (postcardRead && byPostcard.has(name)) ||
+      (sceneMapRead && byScene.has(name)) ||
+      SOURCES.some(
         ({ path, body }) =>
-          rel(path) !== 'art/registry.ts' &&
-          new RegExp(`<(Art|HeaderArt) name=(?:"${key}"|\\{'${key}'\\})`).test(body),
+          !flat(path) && new RegExp(`<Illustration\\b[^>]*\\bname=(?:"${name}"|\\{'${name}'\\})`).test(body),
       );
-      assert.ok(mapped.has(key) || drawn, `${key} is registered and ships, and no map names it and no screen draws it`);
-    }
 
-    for (const [, name] of maps.matchAll(/export (?:const|function) (\w+)/g)) {
-      const readers = SOURCES.filter(
-        ({ path, body }) => rel(path) !== 'art/maps.ts' && new RegExp(`\\b${name}\\b`).test(body),
-      );
-      assert.ok(readers.length > 0, `art/maps.ts exports ${name} and no screen reads it`);
-    }
+    // Drawn by nothing yet, on purpose: Round 1 converted the whole set before
+    // the screens that draw them are rebuilt. Stages 3 and 4 strike a name here
+    // in the same change that draws it, and a name drawn but left on the list
+    // fails as surely as a name dropped without being drawn, so the list only
+    // ever shrinks. It ends empty.
+    const UNDRAWN_YET: string[] = [
+    ];
+    assert.deepEqual(
+      names.filter((name) => !reached(name)).sort(),
+      [...UNDRAWN_YET].sort(),
+      'the drawings no screen reaches are not exactly the not-yet-drawn list: strike a name once a screen draws it, and never add one',
+    );
+    // The seven place drawings reach a screen today, so none of them may ever
+    // go back on the list: a screen that drops one has lost its picture.
+    assert.deepEqual(UNDRAWN_YET.filter((name) => name.startsWith('place-')), [], 'a place drawing went back on the not-yet-drawn list');
   });
 });
 
@@ -657,7 +636,8 @@ describe('a form says out loud what it shows — F109', () => {
  * page and the count comes from PAGES rather than from a number typed here.
  */
 const FIRST_RUN: readonly { where: string; headings: number }[] = [
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 5 },
+  // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 6 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
@@ -711,21 +691,23 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       );
 
       // Every picture on these screens comes through the one renderer, which
-      // is the only file allowed to reach for `Image` and spreads `decorative`
-      // over every tag it draws. A screen that drew its own would be an
-      // unlabelled "image" announced before the heading above.
-      const pictures = (body.match(/<(Art|HeaderArt)\b/g) ?? []).length;
+      // spreads `decorative` over the box and draws a drawing that spreads it
+      // again. A screen that drew its own would be an unlabelled "image"
+      // announced before the heading above. Revamp B (F599): the renderer is
+      // `Illustration` now, and the watercolour one it replaced is retired.
+      assert.doesNotMatch(body, /<(Art|HeaderArt)\b/, `${where} draws a retired watercolour`);
+      const pictures = (body.match(/<Illustration\b/g) ?? []).length;
       if (pictures > 0) {
         assert.match(
           body,
-          /import \{ (Art|HeaderArt) \} from '\.\.\/art\/(Art|HeaderArt)\.tsx'/,
-          `${where} draws a picture that does not come from the one art renderer`,
+          /import \{ Illustration \} from '\.\.\/art\/flat\/Illustration\.tsx'/,
+          `${where} draws a picture that does not come from the one illustration renderer`,
         );
       }
     }
-    const renderer = named('art/Art.tsx');
-    for (const promise of ['accessible={false}', '{...decorative}']) {
-      assert.ok(renderer.includes(promise), `art/Art.tsx no longer draws with ${promise}, so every first-run picture is announced`);
+    const renderer = named('art/flat/Illustration.tsx');
+    for (const promise of ['{...decorative}', "pointerEvents: 'none'"]) {
+      assert.ok(renderer.includes(promise), `art/flat/Illustration.tsx no longer draws with ${promise}, so every first-run picture is announced or takes a touch`);
     }
 
     // And the vector scenes the raster replaced are gone from the first run,
@@ -739,13 +721,12 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
         `${where} draws a vector scene as well as the registered picture, so two drawings answer for one page`,
       );
     }
-    const intro = named('tutor/TutorIntro.tsx');
-    const scenes = /import \{ ([^}]*) \} from '\.\.\/illustrations\.tsx'/.exec(intro);
-    assert.ok(scenes, 'the tutor intro no longer draws the two scenes this check is about; delete it rather than leaving it stale');
-    assert.deepEqual(
-      scenes![1]!.split(',').map((n) => n.trim()),
-      ['SpeakBubbles', 'OnboardWave'],
-      'the tutor intro draws a different set of authored scenes; say which and why, because everything else on the first run is raster',
+    // 2026-09-27, Phase 4 (B1): the tutor intro's clip-art left with the notebook redesign; it keeps the
+    // orb-colour teaching and draws no authored scene at all, so any illustrations import is a regression.
+    assert.doesNotMatch(
+      named('tutor/TutorIntro.tsx'),
+      /from '(\.\.\/)+illustrations/,
+      'the tutor intro draws a clip-art scene again; the orb is its only picture',
     );
   });
 
@@ -847,6 +828,8 @@ describe('a tap that starts with a network probe — F154', () => {
     ['the real moment\'s start', 'tutor/RealMomentScreen.tsx', 'const open = ('],
     ['the first conversation', 'tabs/PracticeTab.tsx', 'const startFirst = ('],
     ['the chooser\'s pronunciation lesson', 'missions/MissionsScreen.tsx', 'const openLesson = ('],
+    // 2026-09-27, Phase 3: day one on Practice leads with the "bonjour" sound lesson, a live-capable door.
+    ['Practice\'s day-one sound lesson', 'tabs/PracticeTab.tsx', 'const openLesson = ('],
   ] as const;
 
   const bodyOf = (file: string, opens: string): string => {
@@ -865,7 +848,8 @@ describe('a tap that starts with a network probe — F154', () => {
     for (const [name, file, opens] of PROBING) {
       const body = bodyOf(file, opens);
       assert.match(body, /recheck\(\)/, `${name} no longer probes, so this test is stale`);
-      assert.match(body, /if \(checking\) return;/, `${name} lets a second tap queue a second navigation`);
+      const guard = file === 'tabs/PracticeTab.tsx' ? /if \(checking \|\| !ownsReadNow\(\)\) return;/ : /if \(checking\) return;/;
+      assert.match(body, guard, `${name} lets a second tap or a stale account queue navigation`);
       assert.match(body, /setChecking\(false\)/, `${name} never lets go, so one probe disables the tab for good`);
     }
 
@@ -877,9 +861,11 @@ describe('a tap that starts with a network probe — F154', () => {
       assert.match(source, /\{TUTOR_OFFLINE\.checking\}/, `nothing on ${file} says a probe is running`);
       assert.match(
         source,
-        // The paren is optional: Practice wraps its receipt in the frame's
-        // header slot and Tutor draws it inline, and both are the same claim.
-        /\{checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/,
+        // Practice also gates the receipt by the owner of the read, so the
+        // previous account's pending probe cannot speak on a new account.
+        file === 'tabs/PracticeTab.tsx'
+          ? /\{ownerMatches && checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/
+          : /\{checking && \(?\s*<Text[\s\S]{0,240}accessibilityLiveRegion="polite"[\s\S]{0,240}TUTOR_OFFLINE\.checking/,
         `${file}'s acknowledgement is either not a live region or not tied to the flag, so it is invisible to a screen reader or never goes away`,
       );
     }
@@ -890,10 +876,22 @@ describe('a tap that starts with a network probe — F154', () => {
     // with the lesson it opened; this is the assertion that the remaining one
     // did not leave with it, because it is the way out for a learner who cannot
     // speak aloud right now and there is no second one.
+    // Notebook redesign (2026-09-27, Phase 3): the Speak/Type toggle became one
+    // Start in the learner's standing mode and a quiet link to the other one.
+    // For a speaker that link is "Type instead"; for a typist the Start itself
+    // types. Either way a learner who cannot speak aloud has a way through, and
+    // both halves are pinned: the drawn link and the mode model behind it.
+    const tutor = named('tabs/TutorTab.tsx');
+    assert.match(tutor, /const modes = startModes\(prefersTyping\(/, 'Speak no longer reads the learner\'s standing typing choice');
     assert.match(
-      named('tabs/TutorTab.tsx'),
-      /<TabBar tabs=\{\[\{ key: 'speak', label: 'Speak' \}, \{ key: 'type', label: 'Type' \}\]\}/,
+      tutor,
+      /<GhostButton label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode, next\.params\)\}/,
       'the quiet door is gone, and a learner who cannot speak aloud has no way through',
+    );
+    assert.deepEqual(
+      [startModes(false).other, startModes(true).textMode],
+      [{ label: 'Type instead', textMode: true }, true],
+      'a speaker is not offered typing, or a typist does not start typing',
     );
   });
 
@@ -911,6 +909,7 @@ describe('a tap that starts with a network probe — F154', () => {
     // the second and a half it exists to cover.
     for (const [name, file, opens] of PROBING) {
       const body = bodyOf(file, opens);
+      const guard = file === 'tabs/PracticeTab.tsx' ? 'if (checking || !ownsReadNow()) return;' : 'if (checking) return;';
       assert.ok(
         body.includes('setChecking(true)'),
         `${name} never raises the checking flag, so the tap it starts says nothing for as long as the probe runs`,
@@ -918,7 +917,7 @@ describe('a tap that starts with a network probe — F154', () => {
       assert.ok(body.includes('recheck()'), `${name} no longer probes, so this test is stale`);
       writtenBefore(
         body,
-        'if (checking) return;',
+        guard,
         'setChecking(true)',
         `${name} raises the flag before it has checked whether one is already up`,
       );
@@ -948,8 +947,11 @@ describe('a ghost control can be busy — F152 hand-off', () => {
   test('a ghost button can be turned off, and looks it', () => {
     assert.match(ghost, /disabled\?: boolean/, 'GhostButton cannot be disabled');
     assert.match(ghost, /disabled=\{disabled\}/, 'GhostButton stays tappable while disabled');
-    assert.match(ghost, /pressed && !disabled/, 'a disabled GhostButton still flashes when pressed');
-    assert.match(ghost, /disabled \? paper\.inkFaint/, 'a disabled GhostButton looks live');
+    // F628. Revamp B: the opacity flash went, and the ghost presses through the
+    // spring. The disabled flag reaches that one Press, and a disabled Pressable
+    // never fires onPressIn, so a disabled ghost neither shrinks nor flashes.
+    assert.match(ghost, /<Press haptic="light"[^>]*disabled=\{disabled\}/, 'a disabled GhostButton still springs when pressed');
+    assert.match(ghost, /disabled \? paper\.inkSoft : color/, 'a disabled GhostButton looks live');
   });
 });
 
@@ -1010,6 +1012,8 @@ const ADOPTERS = [
   // screen are new pushed routes, held to the frame from the day they land.
   'soundcheck/SoundJourneyScreen.tsx',
   'goals/GoalStepScreen.tsx',
+  // 2026-09-27, Phase 5: the first scene's microphone primer, pushed over Today on a first run.
+  'onboarding/FirstSceneScreen.tsx',
 ];
 
 /**
@@ -1025,21 +1029,23 @@ const ADOPTERS = [
  */
 const SAFE_AREA_ALLOW = [
   'layout.tsx',
+  'components.tsx', // Sheet's native Modal is outside its caller's frame and owns its inset.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
   'auth/SetNewPasswordScreen.tsx',
   'friends/AddFriendsScreen.tsx',
-  'tabs/LeaderboardTab.tsx',
 ];
 
 /**
- * The only files that may still draw a chevron by hand. `layout.tsx` draws the
- * one every adopted screen now borrows; the rest are the not-yet-adopted
+ * The only files that may still draw a chevron by hand. `components.tsx` draws
+ * the one every adopted screen now borrows; the rest are the not-yet-adopted
  * friends screen. The auth and onboarding screens gave theirs up in Pass 3.
  */
 const CHEVRON_ALLOW = [
-  'layout.tsx',
+  // F629. Revamp B: RoundButton's back mark, which ScreenHeader draws. The
+  // frame's header no longer lays out a chevron of its own.
+  'components.tsx',
   'friends/AddFriendsScreen.tsx',
 ];
 
@@ -1101,6 +1107,7 @@ describe('one way back, and it is the shared header — F309', () => {
     // Stage 4 (2026-09-25): both new routes are pushed, with one way back.
     'soundcheck/SoundJourneyScreen.tsx',
     'goals/GoalStepScreen.tsx',
+    'onboarding/FirstSceneScreen.tsx',
   ];
 
   test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {
@@ -1124,6 +1131,15 @@ describe('one way back, and it is the shared header — F309', () => {
       assert.ok(
         !body.includes('accessibilityLabel="Back"'),
         `${name} builds its own Back pressable instead of routing through the shared header`,
+      );
+      // F629. The round back is a public part now, and it carries its own
+      // chevron and its own default Back, so neither check above sees it. Only
+      // ScreenHeader draws it; a screen that draws one too has two ways back.
+      const roundBacks = tags(body, 'RoundButton').filter((tag) => /\bkind=(?:"back"|\{\s*['"]back['"]\s*\})/.test(tag));
+      assert.equal(
+        roundBacks.length,
+        0,
+        `${name} draws its own round back beside the shared header, so the screen has two ways back: ${roundBacks.join(' ')}`,
       );
     }
     // And the hand-rolled chevron survives nowhere but the frame and the
@@ -1151,6 +1167,16 @@ describe('one way back, and it is the shared header — F309', () => {
     // sees one — the two Checks, "I said it", and a Done on each of the three
     // terminal cards.
     const BRANCHED: Record<string, number> = { 'DrillScreen.tsx': 6 };
+    // The two auth screens are the other pinned case. They are one thing to do,
+    // have an account, and revamp B's approved board (F601) draws two provider
+    // doors above the form: Apple's ink pill, only where the platform offers it,
+    // and Google's white one. A door is a way to that same one thing, not a
+    // second thing, so it is set aside by the mark it carries and the screen is
+    // still allowed one primary: the form's own pill, which the F357 test below
+    // holds in the footer. The doors are pinned at exactly two, so a third door,
+    // or a pill that is not a door, still counts against the one.
+    const DOORS = ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx'];
+    const isDoor = (tag: string) => /\bicon=\{\s*<(?:AppleMark|GoogleMark)\b/.test(tag);
     for (const name of PUSHED_ONE_BACK) {
       const body = named(name);
       assert.equal(
@@ -1158,7 +1184,12 @@ describe('one way back, and it is the shared header — F309', () => {
         1,
         `${name} lost its one way out in the restyle, or grew a second`,
       );
-      const pills = (body.match(/<PillButton\b/g) ?? []).length;
+      const all = tags(body, 'PillButton');
+      const doors = DOORS.includes(name) ? all.filter(isDoor) : [];
+      if (DOORS.includes(name)) {
+        assert.equal(doors.length, 2, `${name} draws ${doors.length} provider doors; it draws Apple and Google, and nothing else`);
+      }
+      const pills = all.length - doors.length;
       const allowed = BRANCHED[name] ?? 1;
       assert.ok(
         pills <= allowed,
@@ -1250,22 +1281,27 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
     }
   });
 
-  test('the active tab is told by ink and weight, and a screen reader still hears selected — F313', () => {
+  test('the active tab is told by the brand blue and weight 700, and a screen reader still hears selected — F313', () => {
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
-    assert.match(tabbar, /fontFamily: type\.button\.fontFamily/, 'the active tab is not marked by the heavier weight');
+    // 2026-09-30, revamp B (F600): the heavier weight is Outfit Bold, 700,
+    // beside the brand blue, over the tab label token's SemiBold.
+    assert.match(tabbar, /fontFamily: font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
-  test('the bar is an inset dock without becoming another floating shadow — F313', () => {
+  test('the bar is white with a top hairline, and never a floating shadow — F313', () => {
+    // 2026-09-27, notebook Phase 1: the inset dock becomes a flat bar, per the
+    // design contract. The floating rules are kept whole and the dock's own
+    // corner, margin and ink outline are refused alongside them. 2026-09-30,
+    // revamp B (F600): the bar is SNIPPETS' white, over the one hairline.
     const from = tabbar.indexOf('bar: {');
     assert.notEqual(from, -1, 'the bar style is gone; this test is reading the wrong thing');
     const barStyle = tabbar.slice(from, tabbar.indexOf('},', from) + 1);
-    assert.match(barStyle, /backgroundColor: paper\.card/, 'the dock has no opaque surface of its own');
-    assert.match(barStyle, /borderWidth: HAIRLINE/, 'the dock has no rule separating it from the page');
-    assert.match(barStyle, /borderRadius: radius\.card/, 'the dock is not visibly inset from the page edge');
-    assert.match(barStyle, /marginHorizontal: space\(2\)/, 'the dock still runs edge to edge');
-    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'"]) {
-      assert.ok(!barStyle.includes(floating), `the dock carries ${floating}, so it competes with the content cards`);
+    assert.match(barStyle, /backgroundColor: paper\.card/, 'the bar is not the opaque white surface of its own');
+    assert.match(barStyle, /borderTopWidth: HAIRLINE/, 'the bar has no rule separating it from the page');
+    assert.match(barStyle, /borderTopColor: paper\.line/, 'the rule is not the paper hairline');
+    for (const floating of ['shadowOpacity', 'shadowRadius', 'elevation', "position: 'absolute'", 'borderRadius', 'marginHorizontal', 'borderColor: paper.ink']) {
+      assert.ok(!barStyle.includes(floating), `the bar carries ${floating}, so it is a dock or it competes with the content`);
     }
   });
 
@@ -1275,22 +1311,25 @@ describe('the tab bar shows a word, and it is a grounded dock — F313', () => {
   });
 });
 
-describe('the active tab wears the identity violet — F325', () => {
+describe('the active tab wears the brand blue — F325', () => {
   const tabbar = named('nav/LuvaniTabBar.tsx');
 
-  test('the active tab is set in the identity violet', () => {
-    // Phase 1 marked the active tab in ink-on-ink, which read as no interactive
-    // layer at all. The focused glyph and label both take accent.primary now;
-    // the inactive ones stay inkFaint glyph and inkSoft label.
+  test('the active tab is set in the brand blue, and the rest in soft ink', () => {
+    // 2026-09-30, revamp B (F600). The identity colour on the bar was the ink
+    // for a whole redesign; SNIPPETS gives the selected tab the brand blue,
+    // glyph and word together, at Outfit Bold. The rest are soft ink, glyph and
+    // word alike, because a word is held to the text floor (6.6 on white) and
+    // faint ink is now only an alias of it. The same three pins as
+    // nav/tabBar.test.ts, read here with the rest of the surface.
     assert.match(
       tabbar,
-      /color=\{focused \? accent\.primary : paper\.inkSoft\}/,
-      'the active tab glyph is not set in the identity violet',
+      /color=\{focused \? accent\.brand : paper\.inkSoft\}/,
+      'the active tab glyph is not the brand blue, or the inactive one is not soft ink',
     );
     assert.match(
       tabbar,
-      /focused \? \{ color: accent\.primary, fontFamily: type\.button\.fontFamily \}/,
-      'the active tab label is not set in the identity violet at the heavier weight',
+      /focused \? \{ color: accent\.brand, fontFamily: font\.bold \}/,
+      'the active tab label is not the brand blue at the heavier weight, Outfit Bold',
     );
     assert.match(tabbar, /\{ color: paper\.inkSoft \}/, 'the inactive tab label is no longer soft ink');
   });
@@ -1318,7 +1357,7 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     const src = stripComments(readFileSync(join(SRC, 'soundcheck', 'SoundCheckScreen.tsx'), 'utf8'));
     assert.match(
       src,
-      /header=\{!noCheck && phase !== 'result' \?/,
+      /header=\{!noCheck && shownPhase !== 'result' \?/,
       'the sound-check chevron is not gated off the terminal cards, so a terminal card shows two doors',
     );
   });
@@ -1458,7 +1497,7 @@ describe('faint ink is a mark, not a word — F330, F338', () => {
   // kept as a comfort, and a Send that goes back to faint ink fails here.
   const OFF_CONTROL = new Set([
     '<Text style={[type.bodyStrong, { color: disabled ? paper.inkFaint : color }]}>{label}</Text>',
-    'const iconColor = active ? paper.onInk : muted ? paper.inkFaint : signal.good;',
+    'const iconColor = muted ? paper.inkFaint : paper.ink;',
     'color: active ? (rung === 4 ? paper.onInk : paper.ink) : paper.inkFaint,',
     '<Text style={[type.french, { color: used ? paper.inkFaint : paper.ink }]}>{token}</Text>',
     '<Text style={[type.bodyStrong, { color: locked ? paper.inkFaint : paper.ink }]}>{node.title}</Text>',
@@ -1468,7 +1507,8 @@ describe('faint ink is a mark, not a word — F330, F338', () => {
     // because "Give me a moment" and "Type your reply instead" stay live: they
     // are the two ways out of a turn that is going badly.
     '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Help me out</Text>',
-    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Slower</Text>',
+    // 2026-09-27, Phase 4 (B1): "Slower" is labelled "Simpler", which is what it does; the wire tag is unchanged.
+    '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>Simpler</Text>',
     '<Text style={[type.small, { color: listening ? paper.inkSoft : paper.inkFaint }]}>In English</Text>',
   ]);
 
@@ -1507,11 +1547,16 @@ describe('the five tabs open the same way — F336', () => {
   test('every tab opens with the one tab header and draws no headline of its own', () => {
     for (const name of TABS) {
       const body = named(name);
+      const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : 1;
       assert.equal(
         (body.match(/<TabHeader\b/g) ?? []).length,
-        1,
-        `${name} does not open with exactly one TabHeader`,
+        expectedHeaders,
+        `${name} lacks the header in a reachable render branch`,
       );
+      if (name === 'tabs/TutorTab.tsx') {
+        assert.match(body, /if \(renderHistoryStatus !== 'ready'\) return <ScrollScreen/, 'Speak must have a separate loading and unread branch');
+        assert.match(body, /<TabHeader title=\{tutorHeading\(tutorName\)\}/g, 'Speak must name its tutor in both render branches');
+      }
       assert.doesNotMatch(
         body,
         /\.\.\.type\.display/,
@@ -1617,33 +1662,34 @@ describe('the tabs and the drill use the app buttons — F339', () => {
     // than a card with a button in it. The rule this test has always held is
     // unchanged — the tutor draws the app's components and hand-rolls nothing —
     // and it is read off what is actually there.
+    // Notebook redesign (2026-09-27, Phase 3): the tinted rows became the
+    // ledger. Speak leads with the tutor card and the level path, and its other
+    // ways in sit under "More ways to practise", drawn one way. The rule is the
+    // same: the tutor draws the app's components and hand-rolls nothing.
     const tutor = named('tabs/TutorTab.tsx');
-    const doors = tutor.slice(tutor.indexOf('DOORS.map('), tutor.indexOf('))}', tutor.indexOf('DOORS.map(')));
-    assert.ok(doors.length > 0, 'the tutor no longer maps its doors');
-    assert.match(doors, /<TintRow\b/, 'a door is not drawn as the shared tinted row');
-    assert.doesNotMatch(doors, /<Pressable\b/, 'a door is hand-rolled as a Pressable instead of the shared row');
+    const ways = tutor.slice(tutor.indexOf('MORE_WAYS.map('), tutor.indexOf('))}', tutor.indexOf('MORE_WAYS.map(')));
+    assert.ok(ways.length > 0, 'the tutor no longer maps its other ways in');
+    assert.match(ways, /<LedgerRow\b/, 'a way in is not drawn as the shared ledger row');
+    assert.doesNotMatch(ways, /<Pressable\b/, 'a way in is hand-rolled as a Pressable instead of the shared row');
+    assert.equal((ways.match(/<LedgerRow\b/g) ?? []).length, 1, 'the ways in are drawn more than one way, so two rows could drift apart');
+    assert.match(ways, /way\.title/, 'a way in names itself instead of reading its words from the model');
+    assert.match(ways, /way\.gloss/, 'the ways in lost their gloss line');
 
-    // Three rows, and three is the door model's number rather than one typed
-    // here: the tab maps `DOORS` through one `<TintRow`, so the count that
-    // reaches a learner is the length of `tutorDoors()`. A fourth way in has to
-    // be a fourth entry mode with a tint and a gloss, not a row bolted on here.
+    // The ways in are the model's, not typed here: gate.ts's doors minus the
+    // everyday door (the level path is that door now), plus what the tutor
+    // remembers. A new way in is a model entry, not a row bolted on here.
     const keys = [...named('tutor/gate.ts').matchAll(/\{ key: '(\w+)', label: '/g)].map((m) => m[1]!);
-    assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'the tutor no longer offers exactly the three ways in');
-    const tints = [...named('tutor/doorTint.ts').matchAll(/^ {2}(\w+): '(\w+)',$/gm)].map((m) => m[1]!);
-    assert.deepEqual(tints, keys, 'a way in has no paper of its own, so the tab would have to pick a colour itself');
-    assert.equal(
-      (doors.match(/<TintRow\b/g) ?? []).length,
-      1,
-      'the doors are drawn more than one way, so two of the three rows could drift apart',
-    );
+    assert.deepEqual(keys, ['everyday', 'free', 'rehearse'], 'gate.ts no longer offers exactly the three ways in');
+    assert.deepEqual(MORE_WAYS.map((way) => way.key), ['free', 'rehearse', 'memory'], 'the other ways in on Speak drifted from the model');
 
-    // The six situations are not on this tab at all: they are the chooser's,
-    // and "Everyday mission" is the door to it. A list here would be six things
-    // pulling at the eye beside the one circle that matters.
-    assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'the six situations are listed on the tutor tab again instead of behind the everyday door');
-    assert.match(doors, /door\.gloss/, 'the doors lost their gloss line');
-    assert.match(doors, /door\.label/, 'a door names itself instead of reading its word from gate.ts');
-    assert.match(doors, /DOOR_TINT\[door\.key\]/, 'a door picks its own colour instead of reading it from doorTint.ts');
+    // The scenes are on this tab on purpose now: the level path is the spine.
+    // They come from the path model, never from a hand-typed catalogue list.
+    // 2026-09-27, Phase 4 (B1): the path is drawn once, as the scene rows, so
+    // Speak reads the model and draws no second LevelPath above them.
+    assert.match(tutor, /speakPath\(progress\)/, 'Speak no longer reads its rows from the path model');
+    assert.doesNotMatch(tutor, /<LevelPath\b/, 'Speak draws the path twice again, as a LevelPath above the rows');
+    assert.doesNotMatch(tutor, /MISSIONS\.map\(/, 'Speak lists the catalogue by hand instead of reading the level path');
+    assert.doesNotMatch(tutor, /DOOR_TINT|<TintRow\b/, 'Speak paints a way in with a place tint again');
     assert.doesNotMatch(tutor, /st\.door\b/, 'the tutor still draws a bespoke card-button for its quiet doors');
   });
 });
@@ -1707,8 +1753,11 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
    * grew a second. Revamp A moved four more sections out the same way, so the
    * surfaces are listed per tab and both counts are taken over the whole tab.
    */
+  // 2026-09-27, Phase 3: each tab's own surfaces as it imports them today. Home no longer draws
+  // AbilitiesCard; My French draws its phrase bank and sounds map instead of SituationsCard. The row test
+  // below fails if a listed file stops being drawn, so this list cannot go stale silently.
   const SURFACES: Record<string, readonly string[]> = {
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'home/MissionHero.tsx', 'home/AbilitiesCard.tsx'],
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
@@ -1716,22 +1765,28 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
     ],
-    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/SituationsCard.tsx'],
+    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/LevelCard.tsx'],
     'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx'],
   };
 
   test('a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406', () => {
-    // Home's pill is the hero's Start conversation and there is no second one
-    // anywhere on the tab, which is the assertion the file name carries: a
-    // count alone would pass with the pill in the wrong card.
+    // Home's pills are one per lead, and a learner meets one: the recall
+    // card's and the plans card's in the tab itself, each in its own branch of
+    // the one lead switch, and the Start on the mission hero. That is the
+    // assertion the file names carry: a count alone would pass with the pill in
+    // the wrong card. Revamp B (F602) added the plans lead; HomeTab.test.ts
+    // proves the three branches are exclusive.
     const homePills = SURFACES['tabs/HomeTab.tsx']!.flatMap((name) =>
       (named(name).match(/<PillButton\b/g) ?? []).map(() => name),
     );
     assert.deepEqual(
       homePills,
-      ['tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
-      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; the one pill is Start conversation, on the mission hero (F544)`,
+      ['tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'tabs/HomeTab.tsx', 'home/MissionHero.tsx'],
+      `Home draws its pills in ${homePills.join(', ') || 'nowhere'}; read recovery, local, plans, recall and scene each need one working action`,
     );
+    const home = named('tabs/HomeTab.tsx').replace(/\s+/g, ' ');
+    assert.match(home, /!unowned && readFailed \? \( <Card[\s\S]*?\) : hero === null \|\| unowned \? \( <Skeleton/, 'unread work must not reach the loaded lead or cross accounts');
+    assert.match(home, /lead === 'local' \? \( <ColourCard[\s\S]*?\) : lead === 'plans' \? \( <ColourCard[\s\S]*?\) : lead === 'review' \? \( <ColourCard/, 'local, plans and review must be alternate leads');
 
     /**
      * Revamp A's counts, and every change to them is a decision rather than a
@@ -1746,12 +1801,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
      * outline and the one pill a learner with no conversation yet meets.
      */
     const pills: Record<string, number> = {
-      // Two exclusive templates; nextAction.test.ts proves the priority rule.
-      'tabs/HomeTab.tsx': 2,
+      // Three exclusive leads (review, plans and Start), one pill each;
+      // nextAction.test.ts proves the priority rule.
+      'tabs/HomeTab.tsx': 5,
       'tabs/TutorTab.tsx': 1,
-      'tabs/MyFrenchTab.tsx': 0,
+      'tabs/MyFrenchTab.tsx': 2,
       'tabs/PracticeTab.tsx': 1,
-      'tabs/ProfileTab.tsx': 0,
+      'tabs/ProfileTab.tsx': 2,
     };
     for (const [tab, expected] of Object.entries(pills)) {
       const n = SURFACES[tab]!.reduce((total, name) => total + (named(name).match(/<PillButton\b/g) ?? []).length, 0);
@@ -1759,36 +1815,49 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     }
   });
 
-  test('a tab lists what it opens as the one tinted row, and never two shapes for one list — F569', () => {
+  test('a tab lists what it opens one way, as ledger rows, and never two shapes for one list — F569', () => {
     // The companion to the rule above. A tab with no pill still has to offer a
-    // way in, and revamp A's answer is the same row everywhere: white disc, one
-    // glyph, a title, a gloss, a chevron. The counts are literal `<TintRow`
-    // tags rather than rendered rows, because every one of these is inside a
-    // `.map` over a model — what is pinned is that each list is drawn ONE way,
-    // so two rows in the same list cannot drift apart.
-    const rows: Record<string, number> = {
-      // The hero is a picture and a pill; nothing on Home is a list.
+    // way in, and every list is drawn ONE way, so two rows in the same list
+    // cannot drift apart. The counts are literal tags rather than rendered rows,
+    // because every list is a `.map` over a model. Notebook redesign
+    // (2026-09-27, Phase 3): the tinted stamp row became the hairline ledger
+    // row, so both are counted. The tinted row is a deprecated wrapper now; its
+    // last call site is Speak's memory row in ContinuityCard, and it goes in the
+    // final sweep, when that count must reach zero too.
+    for (const [tab, files] of Object.entries(SURFACES)) {
+      for (const file of files.slice(1)) {
+        assert.ok(named(tab).includes(`'../${file}'`), `${tab} no longer draws ${file}; the surface list is stale`);
+      }
+    }
+    const tinted: Record<string, number> = {
       'tabs/HomeTab.tsx': 0,
-      // The three ways in, and the remembers row above them.
-      'tabs/TutorTab.tsx': 4,
-      // Replay a moment, make this phrase yours, tune one sound: three rows in
-      // three card files. The fourth is on the tab itself and it is the one
-      // shape the starter branch cannot borrow. A learner with no conversation
-      // meets the same three rows built from the café lesson, and two of them
-      // are literally the same components; the moment is not, because it goes
-      // to the scripted lesson rather than to a drill on a pack, and because
-      // shaping an authored exchange as a `Replay` would put a sentence the
-      // learner never said into a field called `quote`. So the moment row is
-      // drawn here, from `practice/starterRows.ts`, and the count is four.
+      'tabs/TutorTab.tsx': 0,
+      'tabs/PracticeTab.tsx': 0,
+      'tabs/MyFrenchTab.tsx': 0,
+      'tabs/ProfileTab.tsx': 0,
+    };
+    const ledger: Record<string, number> = {
+      // Revamp B (F602): the one review row, under a scene or plans lead when
+      // phrases are due. Everything else on Today is a card or a sentence.
+      'tabs/HomeTab.tsx': 1,
+      // The level path's scenes, the other ways in, and the memory row.
+      'tabs/TutorTab.tsx': 2,
+      // The review door on the tab, then replay a moment and make this phrase
+      // yours in their own card files.
       'tabs/PracticeTab.tsx': 4,
-      // The situations in their two groups, and the saved shelf.
-      'tabs/MyFrenchTab.tsx': 2,
+      // Conversations and their "see all", the phrase shelf, the collection,
+      // goals, the daily collection and the door to every situation.
+      'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };
-    for (const [tab, expected] of Object.entries(rows)) {
+    for (const [tab, expected] of Object.entries(tinted)) {
       const n = SURFACES[tab]!.reduce((total, name) => total + (named(name).match(/<TintRow\b/g) ?? []).length, 0);
       assert.equal(n, expected, `${tab} draws ${n} tinted rows across its own surfaces; it should draw ${expected}`);
+    }
+    for (const [tab, expected] of Object.entries(ledger)) {
+      const n = SURFACES[tab]!.reduce((total, name) => total + (named(name).match(/<LedgerRow\b/g) ?? []).length, 0);
+      assert.equal(n, expected, `${tab} draws ${n} ledger rows across its own surfaces; it should draw ${expected}`);
     }
   });
 });
@@ -1826,7 +1895,7 @@ describe('the device runbook carries the Pass 2 content checks — F350', () => 
 });
 
 describe('one Monogram, borrowed everywhere — F344', () => {
-  test('the app exports one Monogram, and the leaderboard borrows it', () => {
+  test('the app exports one Monogram, and Profile borrows it', () => {
     // Two Monograms is two initials that drift: friends/ui.tsx drew a sans disc
     // with radius.pill, components.tsx draws the serif decorative one. The tab
     // that shows the learner their own row used the friends copy. One export now.
@@ -1836,9 +1905,9 @@ describe('one Monogram, borrowed everywhere — F344', () => {
       'friends/ui.tsx still exports its own Monogram',
     );
     assert.match(
-      named('tabs/LeaderboardTab.tsx'),
+      named('profile/ProfileButton.tsx'),
       /import \{[^}]*\bMonogram\b[^}]*\} from '\.\.\/components\.tsx'/,
-      'the leaderboard does not borrow the shared Monogram',
+      'Profile does not borrow the shared Monogram',
     );
   });
 });
@@ -1911,7 +1980,7 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
     return body.slice(start);
   }
 
-  test('the auth screens pin their pills in the frame\'s footer — F357', () => {
+  test("the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer", () => {
     for (const name of ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
       const body = named(name);
       // Keyboard-aware, so the fields lift rather than hide; and the one back is
@@ -1919,19 +1988,45 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
       assert.match(body, /<ScrollScreen\b[\s\S]*?avoidKeyboard/, `${name} is not a keyboard-aware ScrollScreen`);
       assert.match(body, /<ScreenHeader\b[^>]*\bback=/, `${name} does not draw its one back through the shared header`);
 
-      // The primary pill and the Google outline live in the footer, where a
-      // keyboard cannot scroll them out of reach.
+      // The footer holds one pill and nothing else, and it is the ink one (ink
+      // is PillButton's default tone): the form's own action, where a keyboard
+      // cannot scroll it out of reach. Revamp B (F601) moved the provider doors
+      // out of the footer, so neither mark may be left behind in it, and the
+      // outline Google door is gone from the file altogether.
       const footer = footerProp(body);
-      assert.match(footer, /<PillButton\b/, `${name} does not pin its primary pill in the footer`);
-      assert.match(footer, /<OutlineButton\b/, `${name} does not pin the Google door in the footer`);
-      assert.match(footer, /GoogleMark/, `${name}'s footer outline is not the Google door`);
+      const footerPills = tags(footer, 'PillButton');
+      assert.equal(footerPills.length, 1, `${name} pins ${footerPills.length} pills in the footer; it pins exactly one`);
+      assert.doesNotMatch(footerPills[0]!, /\btone=/, `${name}'s footer pill is not the ink one`);
+      assert.doesNotMatch(footer, /AppleMark|GoogleMark/, `${name} left a provider door in the footer`);
+      assert.doesNotMatch(body, /<OutlineButton\b/, `${name} still draws the outline door the board retired`);
 
-      // The switch row is NOT in the footer: it stays at the body's end so a
-      // field is visible over an SE-class keyboard rather than pinned under the
-      // buttons. It is the only Pressable on the screen, so the footer holding
-      // one would be the row in the wrong place.
-      assert.ok(!footer.includes('<Pressable'), `${name} pins its switch row in the footer instead of the body's end`);
-      assert.match(body, /<Pressable\b[\s\S]*?accessibilityRole="button"/, `${name} lost the switch row from the body`);
+      // The body, which follows the footer prop in the JSX, leads with the
+      // doors. Apple's is gated and ink; Google's is the white pill beneath it;
+      // and both come before the first field, the way the board draws them.
+      const content = body.slice(body.indexOf('footer={') + 'footer='.length + footer.length);
+      const doors = tags(content, 'PillButton');
+      const apple = doors.find((tag) => /<AppleMark\b/.test(tag));
+      const google = doors.find((tag) => /<GoogleMark\b/.test(tag));
+      assert.ok(apple, `${name} lost the Apple door from the body`);
+      assert.ok(google, `${name} lost the Google door from the body`);
+      assert.doesNotMatch(apple, /\btone=/, `${name}'s Apple door is not an ink pill`);
+      assert.match(google, /\btone="white"/, `${name}'s Google door is not the white pill`);
+      writtenBefore(content, '{appleOffered && (', apple, `${name} draws the Apple door whether or not the platform offers it`);
+      writtenBefore(content, apple, google, `${name} draws the Apple door below the Google one`);
+      writtenBefore(content, google, '<Field', `${name} puts a field above the provider doors`);
+
+      // The switch row is NOT in the footer: it stays at the body's end, after
+      // the last field, so a field is visible over an SE-class keyboard rather
+      // than pinned under the buttons. It is the only Press on the screen that
+      // is not inside a part, so the footer holding one would be the row in the
+      // wrong place.
+      assert.doesNotMatch(footer, /<Press(?:able)?\b/, `${name} pins its switch row in the footer instead of the body's end`);
+      const switchRow = tags(content, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));
+      assert.ok(switchRow, `${name} lost the switch row from the body`);
+      assert.ok(
+        content.lastIndexOf('<Field') < content.indexOf(switchRow),
+        `${name} moved the switch row above a field, off the body's end`,
+      );
     }
   });
 });
@@ -1974,7 +2069,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
       const header = raw.slice(0, raw.indexOf('*/'));
       assert.doesNotMatch(header, /dot underneath/, `${name} still says the active tab has a dot underneath`);
       assert.doesNotMatch(header, /both go ink/, `${name} still says the active tab goes ink`);
-      assert.match(header, /chartreuse/, `${name} does not describe the selected Atelier surface`);
+      // 2026-09-27, notebook Phase 1: the header must now say the chartreuse is gone.
+      assert.match(header, /no chartreuse/, `${name} does not say the selected tab carries no chartreuse`);
       assert.match(header, /no dot|there is no dot/, `${name} does not say there is no dot`);
     }
   });
@@ -2064,66 +2160,23 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     );
   });
 
-  test('the design doc describes the greeting, the daily situation and the tutor\'s pills as the tabs draw them — F407', () => {
+  test('the design doc and tabs agree on static greetings, picture-free daily French and one Speak primary — F407', () => {
     const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
     const home = named('tabs/HomeTab.tsx');
     const tutor = named('tabs/TutorTab.tsx');
-
-    // 1. The greeting. The doc used to call "Bonjour, {name}" Home's single
-    //    French flourish, which stopped being true when it started cycling.
-    for (const word of ['Salut', 'Bonjour', 'Hello']) {
-      assert.ok(design.includes(word), `DESIGN.md never names "${word}", which Home's greeting cycles through`);
-    }
-    assert.doesNotMatch(
-      design,
-      /single flourish/,
-      'DESIGN.md still calls the greeting a single flourish, and it is three words on a loop now',
-    );
-
-    // 2. Home's header. Home was the one tab with no purpose line for four
-    //    passes and is not any more: the line is the hour's own question, so
-    //    the doc says that and the tab is held to reading it rather than
-    //    spelling it.
-    assert.match(design, /Home's purpose line is the hour's question/, "DESIGN.md does not say what Home's purpose line is");
-    assert.doesNotMatch(design, /Home is the one tab that carries no purpose line/, 'DESIGN.md still calls Home the tab without a purpose line, and it has one now');
-    assert.match(home, /purpose=\{greeting\.subline\}/, "Home's purpose line is not the one the design doc describes");
-
-    // 3. The pill rule, which changed from per tab to per door, and then to
-    //    none at all on the tab whose primary is a circle.
-    assert.match(design, /One primary pill per door/, 'DESIGN.md still states the rule as one pill per tab');
-    assert.equal(
-      (tutor.match(/<PillButton\b/g) ?? []).length,
-      1,
-      'Tutor has one explicit primary start action in its recommendation panel',
-    );
-
-    // 4. The native revision. The complete phrase overlaps through the handoff
-    //    and stands down before a fixed slot can clip accessibility text.
-    assert.match(design, /rise together through one clipped line/, 'DESIGN.md does not describe the native greeting transition');
-    assert.match(design, /opacities always add to one/, 'DESIGN.md permits an empty frame between greetings');
-    assert.match(design, /accessibility text sizes[^.]*stands down/, 'DESIGN.md does not record the large-text fallback');
-    assert.doesNotMatch(
-      design,
-      /name is outside the\s+slot and never moves/,
-      'DESIGN.md still describes the retired split word/name mechanism',
-    );
-    assert.match(
-      design,
-      /Seven greetings, and the hour decides which/,
-      'DESIGN.md does not record that the greeting pool is filtered by the hour',
-    );
-    assert.match(design, /daily pack/i, 'DESIGN.md never names the pack of drawings Home rotates through');
-    assert.match(
-      design,
-      /Demo mode\*{0,2} label left the situation card/,
-      'DESIGN.md does not record that the demo label left the situation card',
-    );
-
-    // 5. The retired pair, so nobody reinstates them from a stale doc.
-    for (const gone of ['TodayRow', 'PhrasebookCard']) {
-      assert.ok(design.includes(gone), `DESIGN.md never records that ${gone} left Home`);
-    }
-    assert.ok(design.includes('WordSprout'), 'DESIGN.md never names the scene Home draws for the word of the day');
+    assert.match(design, /Only the voice orb, shared press and once-only recap celebration animate/);
+    assert.match(design, /daily library and Today\s+show no pictures/);
+    // Revamp B (F599): the places are flat drawings now, and the doc must not
+    // go on saying the retired watercolours ship.
+    assert.match(design, /seven place drawings/);
+    assert.doesNotMatch(design, /watercolours ship|Raster scenes, retiring/);
+    assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
+    assert.match(home, /title=\{greeting\.title\}/);
+    assert.match(home, /purpose=\{greeting\.subline\}/);
+    // Revamp B (F602): Today draws the white "today" look of the same card.
+    assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
+    assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
+    assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 1);
   });
 
   /**
@@ -2137,64 +2190,29 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
    * checked against another doc is two documents agreeing about a screen
    * neither of them has seen.
    */
-  test('the design doc describes the momentum block as four cards there from the first day — F440', () => {
-    const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
-    // The block left Home for the `Progress` screen with revamp A, so the
-    // sentence that describes it is in the routes table rather than the tab
-    // table. The claim is unchanged and so is every assertion under it: what
-    // moved is where the doc has to be right.
-    const row = design.split('\n').find((line) => line.startsWith('| Progress |'));
-    assert.ok(row, 'DESIGN.md no longer carries a Progress row, so the momentum block is described nowhere');
-    const home = design.split('\n').find((line) => line.startsWith('| Home |'));
-    assert.ok(home, 'DESIGN.md no longer carries a Home row in the tab table');
-    assert.ok(
-      home!.toLowerCase().includes('one level down'),
-      'the Home row does not say the momentum block is one level down, so a reader would expect it on Home',
-    );
-
-    // Four, and the source says four: one hero, two half tiles and the goal.
-    const block = named('progress/MomentumCards.tsx');
-    const cards = (block.match(/<Card\b/g) ?? []).length;
-    assert.equal(cards, 4, `MomentumCards draws ${cards} cards; the design doc says four`);
-    assert.match(row!, /four cards/, 'DESIGN.md does not say the momentum block is four cards');
-
-    // The overturn itself, in the two phrases PRODUCT.md uses for it, so the
-    // doc cannot drift back to describing a block nobody would meet on day one.
-    assert.match(row!, /there from the first day/, 'DESIGN.md does not record that the momentum block ships on a first run');
-    assert.match(row!, /worded as a start/, 'DESIGN.md does not record that a count at nought is worded as a start');
-    assert.doesNotMatch(row!, /momentum[^|]{0,80}absent at zero/, 'DESIGN.md still says the momentum block is absent at zero, and it ships from day one now');
-
-    // And it names all four cards, in the module's own words. A doc that names
-    // three of them is a doc that will be believed about the fourth.
-    const module = named('progress/momentum.ts');
-    const labelOf = (name: string): string => {
-      const found = new RegExp(`export const ${name} = (?:'([^']*)'|"([^"]*)")`).exec(module);
-      assert.ok(found, `momentum.ts no longer exports ${name}, so this check reads nothing`);
-      return (found![1] ?? found![2])!;
-    };
-    for (const name of ['RETAINED_LABEL', 'DAYS_LABEL', 'MASTERY_LABEL', 'GOAL_TITLE']) {
-      const label = labelOf(name);
-      assert.ok(
-        row!.toLowerCase().includes(label.toLowerCase()),
-        `DESIGN.md's Home row never names "${label}", which is one of the four cards Home draws`,
+  test('nothing renders the retired momentum block, its inline details or the week rail, and no screen draws a days-active count — F440', () => {
+    // 2026-09-27, notebook final sweep. `progress/MomentumCards.tsx` and
+    // `HomeProgressDetails` had had no renderer since the Phase 3 Today
+    // rebuild, and `WeekRail`'s last live caller was the retired French wall
+    // page, so all three are deleted rather than described. The DESIGN.md half
+    // of F440 (the `| Progress |` route row and the Home row's "one level
+    // down") is dropped here, not repointed: the docs rewrite that follows this
+    // sweep pins the new Structure section.
+    for (const file of ['progress/MomentumCards.tsx', 'progress/ProgressScreen.tsx', 'progress/progressView.ts']) {
+      assert.equal(existsSync(join(SRC, file)), false, `${file} is retired`);
+    }
+    assert.doesNotMatch(named('components.tsx'), /export function WeekRail\b/, 'the week rail is exported again');
+    // No screen draws a days count. The rule is PRODUCT.md's, and the model
+    // that holds it by name stays in `progress/momentum.ts` with its suite;
+    // nothing else may fold `momentumFrom` or spell the tile back onto a screen.
+    for (const { path, body } of SOURCES) {
+      if (rel(path) === 'progress/momentum.ts') continue;
+      assert.doesNotMatch(
+        body,
+        /\b(?:MomentumCards|HomeProgressDetails|WeekRail|weekRailFrom|canDoRows|momentumFrom|DAYS_LABEL)\b|Days active|days\.count/,
+        `${rel(path)} renders the retired momentum block, its details, the week rail or a days-active count`,
       );
     }
-    // The week rail is drawn and described, and it is a picture rather than a
-    // quota, which is the one part of this block that has ever been mistaken
-    // for one.
-    assert.match(row!, /week rail/, "DESIGN.md does not describe the days card's week rail");
-    // The plain rail, without day names, and that is the whole of the fix that
-    // put it back: this tile is half the screen wide and seven labels under it
-    // wrap onto a second line at 430pt, worse at 390. The labelled rail is
-    // Profile's, where the rhythm panel is full width and the week is what the
-    // surface is about rather than one tile of four.
-    assert.match(
-      block,
-      /<WeekRail week=\{days\.week\} \/>/,
-      'the days card no longer draws the week rail the design doc describes',
-    );
-    assert.ok(!block.includes('labels='), 'the half-width momentum tile labels its seven days, which wraps the rail onto two lines');
-    assert.match(named('components.tsx'), /week\.map\(\(filled, index\)/, 'the shared week rail no longer draws one mark per day');
   });
 
   /**
@@ -2224,19 +2242,31 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     // next-step row became the hero with F543.
     const home = named('tabs/HomeTab.tsx');
     assert.match(home, /<MissionHero\b/, 'Home no longer draws the hero the runbook says a beginner meets');
+    // Revamp B (F602): the page splits once on whether storage has answered
+    // (sand blocks until it has), and the lead is the rule's answer for the
+    // hero it read. The one condition on the hero is still having a situation
+    // to offer; the brief is the lead whenever neither recall nor the plans
+    // card is.
     assert.match(
       home,
-      /\{hero !== null && \(homeActionFor/,
+      /const lead = hero === null \|\| unowned \? null : homeActionFor\(hero, due\.length, billing, live\);/,
       'the hero is drawn behind some other condition than having a situation to offer',
     );
+    assert.match(home, /\{!unowned && readFailed \? \(/, 'Home no longer separates failed reads from a fresh account');
+    assert.match(home, /\) : hero === null \|\| unowned \? \(/, 'Home no longer waits on storage before it draws a lead');
+    assert.match(home.replace(/\s+/g, ' '), /\) : \( <MissionHero hero=\{hero\} \/> \)\}/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the
     // hero and it is having a situation to offer.
+    // 2026-09-27, Phase 3: the momentum tiles left Today, so the order now pinned is the next scene before
+    // today's phrase. Both must be present, or the comparison would pass on a missing tag.
+    assert.ok(home.includes('<MissionHero') && home.includes('<DailyCard'), 'Today no longer draws the scene brief and today\'s phrase');
     assert.ok(
-      home.indexOf('<MissionHero') < home.indexOf('<HomeMomentum'),
-      'the conversation invitation must precede the compact evidence cards',
+      home.indexOf('<MissionHero') < home.indexOf('<DailyCard'),
+      'the next scene must lead Today, ahead of today\'s phrase',
     );
+    assert.doesNotMatch(home, /<HomeMomentum\b/, 'the four empty tiles came back to Today');
   });
 
   test('the device runbook carries the Pass 5 checks — F410', () => {
@@ -2328,4 +2358,100 @@ describe('the device runbook carries revamp A — F587', () => {
       assert.ok(section.includes(phrase), `the Pass 8 section never asks anyone to check ${what}`);
     }
   });
+});
+
+/** Parse JSX, not angle brackets in comments, strings or callback expressions. */
+function notebookComposition(source: string): { highlighters: number; nestedCards: number } {
+  const tree = ts.createSourceFile('screen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const names = new Map(['Card', 'Highlight', 'LevelPath'].map(name => [name, name]));
+  const namespaces = new Set<string>();
+  for (const statement of tree.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    if (!/(?:^|\/)components(?:\.tsx)?$/.test(statement.moduleSpecifier.text)) continue;
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
+    if (bindings && ts.isNamedImports(bindings)) {
+      for (const binding of bindings.elements) names.set(binding.name.text, binding.propertyName?.text ?? binding.name.text);
+    }
+  }
+  const result = { highlighters: 0, nestedCards: 0 };
+  function visit(node: ts.Node, cardDepth: number): void {
+    let depth = cardDepth;
+    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = ts.isJsxElement(node) ? node.openingElement.tagName : node.tagName;
+      const name = ts.isIdentifier(tag) ? names.get(tag.text)
+        : ts.isPropertyAccessExpression(tag) && ts.isIdentifier(tag.expression) && namespaces.has(tag.expression.text)
+          ? tag.name.text : undefined;
+      // A LevelPath owns its "here" mark, so it consumes the same budget as Highlight.
+      if (name === 'Highlight' || name === 'LevelPath') result.highlighters += 1;
+      if (name === 'Card') {
+        if (depth > 0) result.nestedCards += 1;
+        depth += 1;
+      }
+    }
+    ts.forEachChild(node, child => visit(child, depth));
+  }
+  visit(tree, 0);
+  return result;
+}
+
+describe('the notebook composition rules have no transitional allowances', () => {
+  test('the JSX guard counts both highlighter hosts and catches nested cards through callbacks and aliases', () => {
+    assert.deepEqual(notebookComposition('<><Highlight text="bonjour" /><LevelPath levels={levels} /></>'), { highlighters: 2, nestedCards: 0 });
+    assert.deepEqual(notebookComposition('<Card><View>{items.map(item => <Card key={item.id} />)}</View></Card>'), { highlighters: 0, nestedCards: 1 });
+    assert.deepEqual(notebookComposition("import { Card as Box, Highlight as Mark } from './components.tsx'; const view = <Box><Box /><Mark text='oui' /></Box>;"), { highlighters: 1, nestedCards: 1 });
+    assert.deepEqual(notebookComposition("import * as Kit from './components.tsx'; const view = <Kit.Card><Kit.Card /><Kit.LevelPath levels={levels} /></Kit.Card>;"), { highlighters: 1, nestedCards: 1 });
+    assert.deepEqual(notebookComposition('const example = "<Card><Card/><Highlight/></Card>"; const view = <><Card /><Card /></>;'), { highlighters: 0, nestedCards: 0 });
+  });
+
+  test('each screen file draws at most one Highlight or LevelPath here host', () => {
+    for (const { path, body } of SOURCES) {
+      assert.ok(notebookComposition(body).highlighters <= 1, `${rel(path)} draws more than one highlighter host`);
+    }
+  });
+
+  test('no Card is nested inside another Card', () => {
+    for (const { path, body } of SOURCES) {
+      assert.equal(notebookComposition(body).nestedCards, 0, `${rel(path)} nests a Card inside a Card`);
+    }
+  });
+});
+
+describe('retired notebook presentation cannot return', () => {
+  test('no source retains a tint token, role table or tinted primitive', () => {
+    for (const { path, body } of SOURCES) {
+      assert.doesNotMatch(rel(path), /Tint\.(?:ts|tsx)$/, `${rel(path)} retains a tint role table`);
+      assert.doesNotMatch(body, /\b(?:tint|TintName|TintRow|TintPanel|TintDisc|MISSION_TINT|DOOR_TINT|CONTINUITY_TINT|MADE_FROM_TINT|RHYTHM_TINT|MOMENT_TINT|missionTint|doorTint|madeFromTint|momentTint)\b/, `${rel(path)} retains the old tint vocabulary`);
+    }
+  });
+});
+
+test('retired notebook files and artwork stay deleted', () => {
+  const files = [
+    'surface/IconRowCard.tsx', 'surface/HeroCard.tsx', 'nav/tabSurface.ts',
+    'missions/missionTint.ts', 'tutor/doorTint.ts', 'tutor/momentTint.ts',
+    'practice/madeFromTint.ts', 'profile/rhythmTint.ts', 'practice/starterRows.ts',
+    'practice/PathNodeRow.tsx', 'daily/DailyCarousel.tsx', 'daily/carousel.ts',
+    'progress/WordScene.tsx', 'progress/WordOfDayCard.tsx', 'progress/wordScenes.ts',
+    'wall/WallMapPage.tsx', 'wall/WallFrenchPage.tsx', 'wall/wallMap.ts', 'wall/wallFrench.ts',
+    'illustrations/scenes/bubbles.tsx', 'illustrations/scenes/onboarding.tsx',
+    'illustrations/scenes/sprout.tsx', 'illustrations/scenes/stack.tsx',
+    'illustrations/scenes/daily/kitchen.tsx', 'illustrations/scenes/daily/weather.tsx',
+    'illustrations/scenes/daily/street.tsx', 'illustrations/scenes/daily/garden.tsx',
+    'illustrations/useSceneMotion.ts',
+  ];
+  for (const file of files) assert.equal(existsSync(join(SRC, file)), false, `${file} is retired`);
+  const retiredArt = ['welcome-bubbles', 'onboard-cake', 'onboard-wave', 'empty-table', 'recap-postcard', 'phrasebook', 'wall-map'];
+  for (const name of retiredArt) {
+    for (const density of ['', '@2x', '@3x']) {
+      assert.equal(existsSync(join(APP, 'assets', 'art', `${name}${density}.png`)), false, `${name}${density} must not ship`);
+    }
+    // Revamp B (F599): the raster registry retired with the PNGs, and the one
+    // registry left is the flat one, which must not take a retired name back.
+    assert.ok(!named('art/flat/index.ts').includes(`'${name}'`), `${name} is still registered`);
+  }
+  for (const { path, body } of SOURCES) {
+    assert.doesNotMatch(body, /\b(?:IconRowCard|HeroCard|sceneForDaily|WordScene|StillWriting|TitleSwapRow)\b/, `${rel(path)} retains retired presentation`);
+    assert.doesNotMatch(body, /#(?:FEE7DB|F8D8DF|E4D3EE|CFF3EB|E8EED5|D5EFFE)\b/i, `${rel(path)} restores a retired tint as a raw hex`);
+  }
 });

@@ -6,15 +6,15 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, openSyn
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { DAILY_WORDS, DAILY_PHRASES } from '../packages/core/src/daily/index.ts';
-import { ELEVEN_VOICES, VOICE_SETTINGS, LANGUAGE_CODE } from '../services/tutor-agent/src/voice.ts';
-import { CAP, MODEL, GAIN_DB, MULTIPLIERS, hash, selectBatch, reserveRequest, estimateCredits } from './daily-tutor-plan.mjs';
+import { ELEVEN_VOICES, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
+import { CAP, MODEL, RECORDING_LANGUAGE, GAIN_DB, MULTIPLIERS, hash, selectBatch, reserveRequest, estimateCredits } from './daily-tutor-plan.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const dir = resolve(root, 'artifacts/daily-tutor-batch-1');
 const assets = resolve(root, 'apps/mobile/assets/daily-tutors');
 const checkpointPath = resolve(dir, 'manifest.json');
 const words = selectBatch(DAILY_WORDS), phrases = selectBatch(DAILY_PHRASES);
-const config = { model: MODEL, gainDb: GAIN_DB, settings: VOICE_SETTINGS, language: LANGUAGE_CODE, voices: ELEVEN_VOICES, format: 'pcm_22050', encoding: 'aac_64000', cap: CAP };
+const config = { model: MODEL, gainDb: GAIN_DB, settings: VOICE_SETTINGS, language: RECORDING_LANGUAGE, voices: ELEVEN_VOICES, format: 'pcm_22050', encoding: 'aac_64000', cap: CAP };
 const entries = [...words, ...phrases].map(({ id, fr, tier }) => ({ id, text: fr, tier }));
 const fingerprint = hash(JSON.stringify({ config, entries }));
 const jobs = entries.flatMap(item => Object.entries(ELEVEN_VOICES).map(([voice, voiceId]) => ({
@@ -87,7 +87,7 @@ try {
   manifest.status = 'running'; delete manifest.reason; checkpoint();
   const sampleDir = resolve(root, 'artifacts/voice-comparison-2026-09-19');
   const samples = JSON.parse(readFileSync(resolve(sampleDir, 'manifest.json'), 'utf8'));
-  if (JSON.stringify(samples.settings) !== JSON.stringify(VOICE_SETTINGS) || samples.language !== LANGUAGE_CODE) throw new Error('Approved sample settings mismatch.');
+  if (JSON.stringify(samples.settings) !== JSON.stringify(VOICE_SETTINGS) || samples.language !== RECORDING_LANGUAGE) throw new Error('Approved sample settings mismatch.');
   let cursor = 0, completed = 0, halted = false;
   async function worker() {
     while (!halted && cursor < jobs.length) {
@@ -110,7 +110,7 @@ try {
           manifest.clips[job.key] = clip; checkpoint(); // Durable reservation before spending.
           const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${job.voiceId}?output_format=pcm_22050&optimize_streaming_latency=3`, {
             method: 'POST', headers, signal: AbortSignal.timeout(45000),
-            body: JSON.stringify({ text: job.text, model_id: MODEL, language_code: LANGUAGE_CODE, voice_settings: VOICE_SETTINGS }),
+            body: JSON.stringify({ text: job.text, model_id: MODEL, language_code: RECORDING_LANGUAGE, voice_settings: VOICE_SETTINGS }),
           });
           if (!response.ok) { clip.httpStatus = response.status; checkpoint(); throw new Error(`Synthesis HTTP ${response.status}; no automatic retry.`); }
           const costHeader = response.headers.get('character-cost');

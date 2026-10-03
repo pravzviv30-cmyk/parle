@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
 
 /**
  * Whether the learner has asked for less movement.
@@ -24,13 +24,15 @@ import { AccessibilityInfo, Animated, Easing } from 'react-native';
  * react-native-web's support for the change event varies by version, so both
  * the subscribe and the teardown are guarded.
  */
-export function useReduceMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
+export function useReduceMotion(waitUntilKnown: true): boolean | null;
+export function useReduceMotion(waitUntilKnown?: false): boolean;
+export function useReduceMotion(waitUntilKnown = false): boolean | null {
+  const [reduced, setReduced] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
     void AccessibilityInfo.isReduceMotionEnabled().then((on) => {
       if (live) setReduced(on);
-    });
+    }).catch(() => { if (live) setReduced(true); });
     const sub = AccessibilityInfo.addEventListener?.('reduceMotionChanged', (on: boolean) => {
       if (live) setReduced(on);
     });
@@ -39,7 +41,7 @@ export function useReduceMotion(): boolean {
       sub?.remove?.();
     };
   }, []);
-  return reduced;
+  return waitUntilKnown ? reduced : reduced !== false;
 }
 
 /**
@@ -66,6 +68,72 @@ export function settleIn(value: Animated.Value, reduced: boolean, delayMs = 0): 
     easing: Easing.out(Easing.cubic),
     useNativeDriver: true,
   });
+  animation.start();
+  return animation;
+}
+
+/**
+ * The highlighter drawing in behind a French line: one stroke, left to right,
+ * slower than a settle because a pen is slower than a card arriving. Revamp B
+ * stills the band (STYLE section 11 leaves the pen stroke out of the motion
+ * budget), so this has no caller; Stage 6 retires the export.
+ */
+export const DRAW_MS = 520;
+
+/**
+ * Draw a 0-to-1 highlighter stroke once, or land on the drawn band when
+ * movement is withheld. Like `settleIn`, withholding motion never withholds the
+ * mark: the band is the content and the stroke is the flourish.
+ */
+export function drawIn(value: Animated.Value, reduced: boolean, delayMs = 0): Animated.CompositeAnimation | null {
+  if (reduced) {
+    value.setValue(1);
+    return null;
+  }
+  const animation = Animated.timing(value, {
+    toValue: 1,
+    duration: DRAW_MS,
+    delay: delayMs,
+    easing: Easing.out(Easing.quad),
+    useNativeDriver: true,
+  });
+  animation.start();
+  return animation;
+}
+
+/**
+ * How far a pressed thing shrinks: STYLE section 11, "every tappable thing
+ * scales to 0.97".
+ */
+export const PRESS_SCALE = 0.97;
+
+/** The native Animated module is not on the web; a spring asked to cross there logs and stalls. */
+export const NATIVE_DRIVER = Platform.OS !== 'web';
+
+/**
+ * Take a scale to `to` on the press spring, or land there at once when
+ * movement is withheld.
+ *
+ * The one spring in the app. STYLE section 11 gives it as iOS describes a
+ * spring, response 0.3 s and damping ratio 0.7, and Animated takes physical
+ * numbers, so they are converted rather than eyeballed:
+ *
+ *   stiffness = (2 * PI / response)^2 = (2 * PI / 0.3)^2  = 438.6, so 439
+ *   damping   = 2 * ratio * sqrt(stiffness * mass)
+ *             = 2 * 0.7 * sqrt(439)                     = 29.33, so 29.3
+ *   mass      = 1
+ *
+ * Do not round them further. A ratio of 0.7 overshoots a little on release by
+ * design; anyone who wants a clamped press changes STYLE first. The press is
+ * cancelled by Pressable itself: when a scroll takes the responder it fires
+ * `onPressOut` and never `onPress`, so the spring returns and nothing happens.
+ */
+export function pressTo(value: Animated.Value, to: number, reduced: boolean): Animated.CompositeAnimation | null {
+  if (reduced) {
+    value.setValue(to);
+    return null;
+  }
+  const animation = Animated.spring(value, { toValue: to, stiffness: 439, damping: 29.3, mass: 1, useNativeDriver: NATIVE_DRIVER });
   animation.start();
   return animation;
 }

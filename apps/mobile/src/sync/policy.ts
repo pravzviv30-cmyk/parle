@@ -97,6 +97,7 @@
  * `drill/merge.ts`, `@luvani/core` — are all pure for exactly that reason.
  */
 
+import { retainCompletions } from '../missions/retain.ts';
 import { innerVersion, stableStringify } from './envelope.ts';
 import { mergeActiveDays } from '../progress/activeDays.ts';
 import type { SyncMergeRequest, SyncMergeResult, SyncPolicy } from './engine.ts';
@@ -564,7 +565,7 @@ function mergeMissions(local: unknown, remote: unknown): unknown {
     const rows = (byMission.get(id) ?? []).sort(
       (x, y) => x.at - y.at || compareText(canonical(x), canonical(y)),
     );
-    completions.push(...rows.slice(-MAX_COMPLETIONS_PER_MISSION));
+    completions.push(...retainCompletions(rows, MAX_COMPLETIONS_PER_MISSION));
   }
   return { version: 1, completions };
 }
@@ -787,6 +788,7 @@ export interface SyncExclusion {
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
+  { namespace: 'pendingPurchase', reason: 'A checkout started on this phone stays fenced here until its matching paid entitlement is verified. It is transaction recovery, never learning evidence or cross-device billing authority.' },
   {
     namespace: 'suggestions',
     reason:

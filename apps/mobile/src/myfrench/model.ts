@@ -38,8 +38,6 @@ import { phraseKeyOf, type ConversationPack, type DailyScenario, type MissionPla
 import { isStamped, stampsFrom, type Stamp } from '../progress/passport.ts';
 import { chipFor, type SituationChip } from './situations.ts';
 import { situationAction, startLabel, type SituationAction } from '../progress/portfolio.ts';
-import { missionTint } from '../missions/missionTint.ts';
-import type { TintName } from '../palette.ts';
 import { hasSaved } from '../bookmarks/view.ts';
 import { ledgerFrom, shelfLine } from './ledger.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
@@ -52,7 +50,6 @@ export interface SituationRow {
   /** The place, for the row's mark. Lifted out so the screen never reaches through. */
   place: MissionPlace;
   /** The place's own paper, named here so the row never picks a colour (F467). */
-  tint: TintName;
   /** The French name of the scene, which is what the row is titled. */
   title: string;
   /** What it is in English, under it. */
@@ -75,7 +72,6 @@ export interface SavedRow {
   /** The scenario itself, because the screen opens it through core's seed topic. */
   scenario: DailyScenario;
   place: MissionPlace;
-  tint: TintName;
   accessibilityLabel: string;
 }
 
@@ -125,7 +121,6 @@ export function myFrenchFrom(input: {
       id: progress.mission.id,
       progress,
       place: progress.mission.place,
-      tint: missionTint(progress.mission.place),
       title: progress.mission.title,
       gloss: progress.mission.titleEn,
       earned: stamp !== undefined && isStamped(stamp),
@@ -138,7 +133,6 @@ export function myFrenchFrom(input: {
   const saved: SavedRow[] = input.saved.map((scenario) => ({
     scenario,
     place: scenario.place,
-    tint: missionTint(scenario.place),
     accessibilityLabel: startLabel(scenario.titleEn),
   }));
 

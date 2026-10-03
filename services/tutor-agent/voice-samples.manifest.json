@@ -8,10 +8,10 @@
         "Bonjour, je m’appelle Alexandre.",
         "Hi, my name is Alexandre."
       ],
-      "voiceKey": "elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "voiceKey": "elevenlabs:c365oriviHmAhyLhpuN6:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
       "sampleRate": 22050,
-      "bytes": 31628,
-      "sha256": "11b785eac1a9955b2ac685b23072f0acfa61bc4cedc6052fe3befcdb3fd9c692",
+      "bytes": 28042,
+      "sha256": "7f44eb3def62bafa75a1baf1e6e0d7e11d7755ec8d477fb657a6d3606fe29b71",
       "vendor": {
         "name": "Adrien Clairon - French Modern for Narration, Podcasts and Commercials",
         "category": "professional",
@@ -22,9 +22,9 @@
           "en": "en-french"
         },
         "model": "eleven_multilingual_v2",
-        "readAt": "2026-09-10T17:06:05.973Z"
+        "readAt": "2026-10-03T12:49:14.907Z"
       },
-      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+      "heard": "Founder listened to this refreshed preview on 3 October 2026 and confirmed all six have clear French and intelligible English with a natural French accent."
     },
     "emilie": {
       "text": "Bonjour, je m’appelle Émilie. Hi, my name is Émilie.",
@@ -32,10 +32,10 @@
         "Bonjour, je m’appelle Émilie.",
         "Hi, my name is Émilie."
       ],
-      "voiceKey": "elevenlabs:GYzIdoKkRyANjBvkKYfO:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "voiceKey": "elevenlabs:GYzIdoKkRyANjBvkKYfO:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
       "sampleRate": 22050,
-      "bytes": 28378,
-      "sha256": "2c797f9548beab12771e724325f6903f7c235cd959f50ee654b747cc57f5e82b",
+      "bytes": 29575,
+      "sha256": "7628e4cff839a5e89b8c801e6842c98d4298b42205b486512b165c4395edcf88",
       "vendor": {
         "name": "Koraly - Smooth and Captivating",
         "category": "professional",
@@ -46,9 +46,9 @@
           "en": "en-french"
         },
         "model": "eleven_multilingual_v2",
-        "readAt": "2026-09-10T17:06:05.973Z"
+        "readAt": "2026-10-03T12:49:14.907Z"
       },
-      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+      "heard": "Founder listened to this refreshed preview on 3 October 2026 and confirmed all six have clear French and intelligible English with a natural French accent."
     },
     "guillaume": {
       "text": "Bonjour, je m’appelle Guillaume. Hi, my name is Guillaume.",
@@ -56,10 +56,10 @@
         "Bonjour, je m’appelle Guillaume.",
         "Hi, my name is Guillaume."
       ],
-      "voiceKey": "elevenlabs:Qrl71rx6Yg8RvyPYRGCQ:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "voiceKey": "elevenlabs:Qrl71rx6Yg8RvyPYRGCQ:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
       "sampleRate": 22050,
-      "bytes": 28435,
-      "sha256": "058fcc8f58e1f635b7f89402ef18ad52382715e66fafe46cf18f4fd4256edd8c",
+      "bytes": 26365,
+      "sha256": "858f02260cfed1611cdc6106653691fcf7d2d78bea740a11d405823c2b4ca113",
       "vendor": {
         "name": "Olivier - Narration and Voiceover",
         "category": "professional",
@@ -70,9 +70,9 @@
           "en": "en-french"
         },
         "model": "eleven_multilingual_v2",
-        "readAt": "2026-09-10T17:06:05.973Z"
+        "readAt": "2026-10-03T12:49:14.907Z"
       },
-      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+      "heard": "Founder listened to this refreshed preview on 3 October 2026 and confirmed all six have clear French and intelligible English with a natural French accent."
     },
     "marie": {
       "text": "Bonjour, je m’appelle Marie. Hi, my name is Marie.",
@@ -80,10 +80,10 @@
         "Bonjour, je m’appelle Marie.",
         "Hi, my name is Marie."
       ],
-      "voiceKey": "elevenlabs:sANWqF1bCMzR6eyZbCGw:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "voiceKey": "elevenlabs:sANWqF1bCMzR6eyZbCGw:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
       "sampleRate": 22050,
-      "bytes": 32269,
-      "sha256": "fd000f35dc8d9d557b955e027b8c4de182b5d419f456227bcf076f44f8a1edb7",
+      "bytes": 27578,
+      "sha256": "5b74013714b9d2b68a28e95e3692599c825938c966079aeb1195bd55e2e1272a",
       "vendor": {
         "name": "Marie",
         "category": "professional",
@@ -94,9 +94,9 @@
           "en": "en-french"
         },
         "model": "eleven_multilingual_v2",
-        "readAt": "2026-09-10T17:06:05.973Z"
+        "readAt": "2026-10-03T12:49:14.907Z"
       },
-      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+      "heard": "Founder listened to this refreshed preview on 3 October 2026 and confirmed all six have clear French and intelligible English with a natural French accent."
     },
     "anatole": {
       "text": "Bonjour, je m’appelle Anatole. Hi, my name is Anatole.",
@@ -104,10 +104,10 @@
         "Bonjour, je m’appelle Anatole.",
         "Hi, my name is Anatole."
       ],
-      "voiceKey": "elevenlabs:Jrq4GqCKqYpigdQsZRkP:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "voiceKey": "elevenlabs:Jrq4GqCKqYpigdQsZRkP:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
       "sampleRate": 22050,
-      "bytes": 28561,
-      "sha256": "71a1448e724c1514b6554e165d9ff8221a9e0c78070f6b855b371217e4934c15",
+      "bytes": 29819,
+      "sha256": "88d72afa46c7f19138d1ab67340b5305c886dfe4e03df8feeb956da690be27fb",
       "vendor": {
         "name": "Anatole - Teenager-like voice",
         "category": "professional",
@@ -118,9 +118,9 @@
           "en": "en-french"
         },
         "model": "eleven_multilingual_v2",
-        "readAt": "2026-09-10T17:06:05.973Z"
+        "readAt": "2026-10-03T12:49:14.907Z"
       },
-      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+      "heard": "Founder listened to this refreshed preview on 3 October 2026 and confirmed all six have clear French and intelligible English with a natural French accent."
     },
     "sarah": {
       "text": "Bonjour, je m’appelle Sarah. Hi, my name is Sarah.",
@@ -128,10 +128,10 @@
         "Bonjour, je m’appelle Sarah.",
         "Hi, my name is Sarah."
       ],
-      "voiceKey": "elevenlabs:b6nVfb3l2zshrLZTvqbs:eleven_multilingual_v2:sl3:lang=fr:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
+      "voiceKey": "elevenlabs:b6nVfb3l2zshrLZTvqbs:eleven_multilingual_v2:sl3:lang=auto:similarity_boost=80,stability=40,style=30,use_speaker_boost=true",
       "sampleRate": 22050,
-      "bytes": 30545,
-      "sha256": "bad2184c7c697bae928fec44346a0ca8e627e2ee79e0e612e5d324c82bbf8fa7",
+      "bytes": 30455,
+      "sha256": "f2f85cb2173a7f0dae84cb38591b9f84906db35cbd82c30700d9f4fd74adbbcd",
       "vendor": {
         "name": "Miss Radio",
         "category": "professional",
@@ -142,9 +142,9 @@
           "en": "en-french"
         },
         "model": "eleven_multilingual_v2",
-        "readAt": "2026-09-10T17:06:05.973Z"
+        "readAt": "2026-10-03T12:49:14.907Z"
       },
-      "heard": "\"they all sound french now\" — founder, 2026-09-10, after playing all six clips on a page that asked specifically about the English half of each one."
+      "heard": "Founder listened to this refreshed preview on 3 October 2026 and confirmed all six have clear French and intelligible English with a natural French accent."
     }
   }
 }

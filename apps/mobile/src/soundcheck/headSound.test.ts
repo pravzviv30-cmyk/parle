@@ -60,13 +60,17 @@ describe('the sound to tune comes from a measurement, or from nowhere — F584',
 
   test('the sound check draws the panel above the line, and asks for the sound rather than choosing one', () => {
     const screen = stripComments(read('./SoundCheckScreen.tsx'));
+    assert.match(screen, /loadSoundChecks\(\{ strict: true \}\)/, 'a corrupt history can be mistaken for no measured sound');
     assert.match(screen, /acousticFor\(headSound\(evidence\)\)/, 'the sound check picks its own sound instead of reading the checks');
-    assert.match(screen, /<AcousticCard acoustic=\{acoustic\} \/>/, 'the sound check draws no acoustic panel');
-    // Absent rather than empty when there is nothing measured.
-    assert.match(screen, /acoustic !== null/, 'the panel is drawn for a learner who has nothing measured');
+    assert.match(screen, /readOwner\.scope === scopeGeneration\(\)[\s\S]*?readOwner\.userId === activeUserId\(\)/,
+      'the measured focus is not tied to its storage owner');
+    assert.match(screen, /const shownAcoustic = ownerMatches \? acoustic : null/, 'a prior account can show its measured focus before the new read lands');
+    assert.match(screen, /<AcousticCard acoustic=\{shownAcoustic\} \/>/, 'the sound check draws no acoustic panel');
+    // Absent rather than empty when there is nothing measured or the read is unknown.
+    assert.match(screen, /shownAcoustic !== null && shownPhase !== 'result'/, 'the panel is drawn without a current measured sound');
     // Above the line to say, which is the whole point of moving it.
     const panelAt = screen.indexOf('<AcousticCard');
-    const lineAt = screen.indexOf('fitDisplay(reference)');
+    const lineAt = screen.indexOf('fitDisplay(shownReference)');
     assert.ok(panelAt !== -1 && lineAt !== -1, 'the sound check lost its panel or its reference line; this test is stale');
     assert.ok(panelAt < lineAt, 'the acoustic panel is drawn below the line it is instructions for');
 

@@ -27,7 +27,14 @@
  *   3. Nothing here can throw. A storage failure, a rejected pull and a missing
  *      engine all end at onboarding, which is a way forward.
  *   4. The caller learns which of those happened, so a launch can say so in the
- *      log without guessing.
+ *      log without guessing. A missing engine is `no-sync`, never the
+ *      `unavailable` returned by a failed account pull.
+ *
+ * The pre-account draft rides on the same answer. It may become this account's
+ * profile only on `empty` (the account was read and held nothing) or `no-sync`
+ * (there is no account store to overwrite). `has-local`, `adopted`, `timed-out`
+ * and `unavailable` never hand it over: none of them proves the account is new,
+ * and the draft on this device may be somebody else's answers.
  *
  * It deliberately does NOT decide what to render. `ProfileGate` reads the disk
  * after this resolves and reaches its own conclusion, so adoption is picked up
@@ -51,17 +58,24 @@ export type FreshStartKind =
   | 'has-local'
   /** The account had state and a store adopted it. Onboarding is skipped. */
   | 'adopted'
-  /** The account reconciled cleanly and had nothing to give. A genuinely new learner. */
+  /** The account reconciled cleanly and had nothing to give. Identity creation is unknown. */
   | 'empty'
   /** The budget expired first. Open the app; the engine carries on behind it. */
   | 'timed-out'
-  /** No engine this launch, or the pull failed outright. */
+  /** No sync engine: mock auth or a build with no account project configured. */
+  | 'no-sync'
+  /** An account pull was attempted but failed outright. */
   | 'unavailable';
 
 export interface FreshStart {
   readonly kind: FreshStartKind;
   /** True when this launch actually spent time waiting on the network. */
   readonly waited: boolean;
+}
+
+/** Unknown or existing account state must never be seeded from a device draft. */
+export function mayAdoptPreAccountDraft(start: FreshStart): boolean {
+  return start.kind === 'empty' || start.kind === 'no-sync';
 }
 
 export interface FreshStartOptions {
@@ -124,7 +138,7 @@ export async function adoptBeforeReady(options: FreshStartOptions): Promise<Fres
   if (hasLocal) return { kind: 'has-local', waited: false };
 
   const pull = options.pull;
-  if (pull === null) return { kind: 'unavailable', waited: false };
+  if (pull === null) return { kind: 'no-sync', waited: false };
 
   const budgetMs = options.budgetMs ?? FRESH_DEVICE_BUDGET_MS;
   const expire = options.expire ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));

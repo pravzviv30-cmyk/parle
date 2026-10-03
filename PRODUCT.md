@@ -47,14 +47,16 @@ asking a human for help, and coming back because they can feel and see progress.
 Two things competitors structurally cannot copy without changing shape:
 
 1. **Pronunciation feedback that is actually trustworthy.** Accuracy scoring
-   requires a known reference text. Speak and Issen both lead with open-ended
-   conversation, which is exactly why users of both describe their speech
-   recognition as "too forgiving". Beginners spend most of a session on scripted
-   and cued turns, so scoring is reliable precisely where our audience lives.
+   requires a known reference text. Beginners practise scripted and cued turns,
+   which give a scorer a known line to assess. Show pronunciation feedback only
+   when an assessment returned evidence; an unavailable assessment stays
+   unscored. Open conversation is practice, with no promise of reference-based
+   scoring on a line that has no reference.
 
 2. **French only, in depth.** A hand-built French phoneme inventory weighted for
-   English-L1 error patterns, mapped to minimal-pair drills. Issen's founders
-   publicly conceded their quality collapses in untested languages.
+   English-L1 error patterns, mapped to minimal-pair drills. The inventory and
+   its examples are authored for French, rather than inferred from an English
+   pronunciation model.
 
 ## Operating Context
 
@@ -72,7 +74,7 @@ Two things competitors structurally cannot copy without changing shape:
 - Pronunciation assessment needs a reference text; free conversation yields
   fluency signals only. This constraint shapes the whole scaffolding design.
 - **Metered minutes, enforced from v1.** Trial is a finite 30 minutes total (not a
-  daily allowance). Paid: ~$19/180min, ~$39/450min. Unlimited pricing is rejected
+  daily allowance). Paid: Starter 180 minutes, Max 300 minutes. Prices come from the store. Unlimited pricing is rejected
   on modelled unit economics.
 - Premium French TTS voices — the dominant cost line, and the most immediately
   felt quality signal for a beginner.
@@ -94,31 +96,53 @@ Two hard behavioural commitments, both derived from confirmed research:
   shipped instead.
 
   Asked a third time, by the daily-Home mockup, the answer was different and the
-  reason is worth keeping. Home now carries a **Days active** tile, and it is not
+  reason is worth keeping. Home carried a **Days active** tile, and it was not
   the thing that was refused twice. A streak is a chain: it reads yesterday, it
-  can be broken, and the product asks you to protect it. This counts the distinct
-  days that have an entry, so it only ever rises, a quiet day costs nothing,
-  yesterday is never read, and there is no state a loss could be written into.
-  The tile is present from the first day and worded as a start: where the count
-  would be nought no numeral is drawn at all, the line beside it points forward,
-  and it names no target to fall short of. That is the founder's decision of
-  2026-09-05, overturning an earlier rule that kept the whole block absent until
-  there was a number in it. A learner should be able to see what this app will
-  ever claim about them before it can claim any of it.
-  The properties are held by name in `apps/mobile/src/progress/momentum.ts`
-  and its suite, and every word on the tile still has to pass the ban list in
-  `apps/mobile/src/copy/guilt.ts`, which is why the word "streak" appears nowhere
-  a learner can read it.
+  can be broken, and the product asks you to protect it. The tile counted the
+  distinct days that have an entry, so it only ever rises, a quiet day costs
+  nothing, yesterday is never read, and there is no state a loss could be written
+  into. It was present from the first day and worded as a start: where the count
+  would be nought no numeral was drawn at all, the line beside it pointed
+  forward, and it named no target to fall short of. That was the founder's
+  decision of 2026-09-05, overturning an earlier rule that kept the whole block
+  absent until there was a number in it.
 
-- **The ladder displays evidence; it is not a new incentive.** Six levels
-  (Beginner → Rookie → General → Captain → Master → Veteran) over XP that can
-  only be earned by producing French — words said, turns composed unaided,
+  The tile left Today with the notebook redesign on 2026-09-27. Nothing renders
+  `apps/mobile/src/progress/MomentumCards.tsx` now, and Today shows at most two
+  sentences about the week (`weekLines` in `apps/mobile/src/home/todayView.ts`).
+  The rule outlives the tile. Any count of days that comes back, on any screen,
+  keeps every property above: it only ever rises, yesterday is never read, there
+  is no state a loss could be written into, it is present from the first day, and
+  it is worded as a start. Those properties are still held by name in
+  `apps/mobile/src/progress/momentum.ts` and its suite. Every word a learner can
+  read still has to pass the ban list in `apps/mobile/src/copy/guilt.ts`, which
+  is why the word "streak" appears nowhere a learner can read it.
+
+- **The level path displays evidence; it is not a new incentive.** A learner
+  sees a CEFR level (A0, then A1) and one can-do line per scene. Before a scene
+  is earned the line says what they will be able to do ("Order a coffee at the
+  counter"). Once it is earned the line says what they can do ("You can order a
+  coffee"). A scene is earned only on independence evidence: a finish with
+  nothing handed over, read from the best-ever attempt, so a replay with more
+  help never takes it back (`isEarned` in `packages/core/src/missions/missions.ts`,
+  `spineFrom` in `packages/core/src/missions/spine.ts`). No screen names a rank.
+  XP still exists inside `packages/core/src/levels/` and is never shown. It
+  counts only French the learner produced: words said, turns composed unaided,
   phrases resolved, cards recalled. Never minutes elapsed, sessions started, or
-  app opens, and capped per day so a marathon cannot buy a level. It measures
-  returning, not bingeing, and it cannot be ground.
+  app opens, and it is capped per day so a marathon cannot buy anything. It
+  measures returning, not bingeing, and it cannot be ground.
 - **The learner is never stranded and never scolded.** No mid-session scores, no
   "wrong", no commenting on hesitation. The tutor steps in and carries the
   conversation the way a good human tutor does.
+
+One visual commitment sits beside them:
+
+- **Chartreuse is a highlighter, never paint.** It marks the one thing on a
+  screen that is the learner's own: a French line they have made theirs, or
+  "you are here" on their path. It appears at most once per screen, and it is
+  never the ground of a panel, card, tab or button. The brand mark follows the
+  same rule. The colour and its rule live in `apps/mobile/src/palette.ts`
+  (`highlight`).
 
 ## Evidence on Hand
 
@@ -138,6 +162,9 @@ tests across all six workspaces, including 507 in core:
   `apps/mobile/src/onboarding/`
 - Mission, review and generated-drill practice paths — `packages/core/src/missions/`,
   `packages/core/src/review/`, `apps/mobile/src/missions/`, `apps/mobile/src/DrillScreen.tsx`
+- The scene spine: seven scenes in order from A0 to A1, each earned only on
+  independence evidence, with the learner's level read off what is earned, in
+  `packages/core/src/missions/spine.ts`
 
 Absent, and must not be fabricated: any user testimonials, learner counts,
 retention figures for this product, App Store presence, press, or funding.

@@ -28,6 +28,7 @@ const SRC = fileURLToPath(new URL('.', import.meta.url));
  */
 const TYPING_SCREENS = [
   'ConvoScreen.tsx',
+  'SessionView.tsx',
   'DrillScreen.tsx',
   // The review deck takes typing now: a due card can be answered in the box
   // rather than out loud. Since F308 it scrolls, and it scrolls on ScrollScreen
@@ -57,6 +58,15 @@ const SCROLL_VIEW_TAG = /<ScrollView\s/g;
 const SCROLL_SCREEN_TAG = /<ScrollScreen\b/g;
 
 describe('taps and the keyboard — whether a press has to be made twice', () => {
+  test('a typed lesson takes the first tap with the keyboard open', () => {
+    const source = readFileSync(join(SRC,'SessionView.tsx'),'utf8');
+    const frame = readFileSync(join(SRC,'layout.tsx'),'utf8');
+    assert.match(source, /<ScrollScreen[\s\S]*?avoidKeyboard/);
+    assert.match(frame, /keyboardShouldPersistTaps="handled"/);
+    assert.match(source, /onPress=\{sendDraft\}/);
+    assert.match(source, /<ControlTile[\s\S]*?label="Type instead"/);
+  });
+
   test('the choosing screen keeps taps while the keyboard is up', () => {
     const source = readFileSync(join(SRC, 'ConvoScreen.tsx'), 'utf8');
     const scrolls = source.match(SCROLL_VIEW_TAG) ?? [];

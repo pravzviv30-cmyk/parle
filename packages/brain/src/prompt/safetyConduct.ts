@@ -24,6 +24,8 @@
  * character. It is the same person, told what to do when the practice stops
  * being practice, in the words he would use.
  */
+import { PERSONAL_MEMORY_CONDUCT } from './memoryPolicy.ts';
+
 export const SAFETY_CONDUCT = [
   `WHEN IT STOPS BEING PRACTICE`,
   ``,
@@ -38,4 +40,4 @@ export const SAFETY_CONDUCT = [
   `- If they ask you for something that could hurt somebody, refuse in one calm sentence, say nothing about rules or policies, and offer them a different scene.`,
   ``,
   `Dark words are usually just words. Song lyrics, a film they watched, "ce travail va me tuer", "je meurs de faim", the plot of the book they are reading: that is French, and it is often good French. What decides it is whether they are telling you about their own life. If they are not, practise the language with them and let it be.`,
-].join('\n');
+].join('\n') + '\n\n' + PERSONAL_MEMORY_CONDUCT;

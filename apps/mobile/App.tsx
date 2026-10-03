@@ -3,9 +3,9 @@
  * THESIS: Learning to speak should feel like a warm, unhurried picture book —
  *   calm, friendly, professional. Easy to look at twice a day.
  * OWN-WORLD: Paper & ink. Pale lilac paper, warm black ink, hand-drawn line
- *   art, Fraunces for anything with a voice (headlines and every French line),
- *   DM Sans for the furniture. Flat white cards on a hairline rule; one solid
- *   ink pill per screen. Chrome is plain English; French appears only as the
+ *   art, Outfit for every word on the screen, French and English alike.
+ *   Flat white cards on a hairline rule; one solid ink pill per screen.
+ *   Chrome is plain English; French appears only as the
  *   thing being learned.
  * KEPT FROM THE ENAMEL WORLD (behaviour, not surface): one primary action per
  *   screen; the four support colours cooling as help is withdrawn; no scores
@@ -29,16 +29,19 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import { hide as hideNativeLaunch } from 'expo-splash-screen';
 import { completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
-import { paper } from './src/theme.ts';
+import { paper, type, space } from './src/theme.ts';
+import { Card, GhostButton, PillButton } from './src/components.tsx';
+import { ScrollScreen, ScreenHeader } from './src/layout.tsx';
 import { saveConsent } from './src/analytics/consentStore.ts';
 import { trackProductEvent } from './src/analytics/track.ts';
 import { auth } from './src/auth/adapter.ts';
@@ -51,17 +54,20 @@ import { deleteAccountAndErase } from './src/auth/deleteAccountFlow.ts';
 import type { AuthUser } from './src/auth/types.ts';
 import type { AuthResult } from './src/auth/types.ts';
 import { recoverJournal } from './src/live/journal.ts';
-import { clearActiveUserData, migrateLegacyStores, setActiveUser, userKey } from './src/storage/scope.ts';
+import { clearActiveUserData, migrateLegacyStores, setActiveUser, userKey, scopeGeneration } from './src/storage/scope.ts';
 import { startSync, type SyncEngine } from './src/sync/engine.ts';
 import { createSyncDiagnostics } from './src/sync/diagnostics.ts';
 import { syncPolicy } from './src/sync/policy.ts';
 import { resetSyncRegistry } from './src/sync/registry.ts';
-import { adoptBeforeReady } from './src/app/freshDevice.ts';
+import { adoptBeforeReady, mayAdoptPreAccountDraft, type FreshStart } from './src/app/freshDevice.ts';
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
-import { lessonXp } from '@luvani/core';
+import { FIRST_MISSION, lessonXp, type MissionId } from '@luvani/core';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
+import { profileFromDraft, reminderFromDraft } from './src/onboarding/createFromDraft.ts';
+import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
+import { saveReminder } from './src/reminders/store.ts';
 import {
   clearPreAccountDraft,
   loadPreAccountDraft,
@@ -133,11 +139,18 @@ function PreAccountProfileBootstrap({
   draft,
   done,
   onConsumed,
+  requireReview,
+  accountLabel,
 }: {
   draft: PreAccountOnboardingDraft;
   done: (profile: StoredProfile) => void;
   onConsumed: () => void;
+  requireReview: boolean;
+  accountLabel: string;
 }) {
+  // OAuth can sign into an existing empty account. A clean account read proves
+  // there is no profile to overwrite, not whose anonymous draft this is.
+  const [confirmed, setConfirmed] = useState(!requireReview);
   // ProfileGate is intentionally the only owner of a user-scoped profile. The
   // pre-account flow can therefore carry its two answers across auth without
   // ever writing them to a shared account namespace. The effect is the bridge:
@@ -148,9 +161,13 @@ function PreAccountProfileBootstrap({
     // React's development strict mode may replay an effect. Creating a profile
     // is idempotent in content, but the first-run navigation flag is an effect
     // too, so keep the bridge explicitly once-only.
-    if (delivered.current) return;
+    if (!confirmed || delivered.current) return;
     delivered.current = true;
-    const built = createStoredProfile({ name: null, ageConfirmed: draft.ageConfirmed, motivation: null });
+    const owner = scopeGeneration();
+    // The whole plan, through the existing doors (spine contract section 3):
+    // reason, minutes, starting level, seeded goal, voice and first name. See
+    // src/onboarding/createFromDraft.ts for which answer lands where.
+    const built = profileFromDraft(draft);
     // The usage-data answer reaches the disk BEFORE the profile is handed over,
     // and the order is the point rather than a detail. `done` is what releases
     // the app, and `trackProductEvent` reads the stored consent at the moment
@@ -168,11 +185,44 @@ function PreAccountProfileBootstrap({
         // learner still gets their app, and an answer this build cannot prove
         // was given reads as off, which is the only safe direction.
       }
-      done(withChosenVoice(built, draft.tutorVoice));
+      if (owner !== scopeGeneration()) return;
+      try {
+        // The plan's reminder time, kept off: no notification permission has
+        // been asked for, and the recap is where it is offered.
+        await saveReminder(reminderFromDraft(draft));
+      } catch {
+        // Nothing stored reads as off, which is what was meant anyway.
+      }
+      if (owner !== scopeGeneration()) return;
+      done(built);
       onConsumed();
     })();
-  }, [draft, done, onConsumed]);
+  }, [confirmed, draft, done, onConsumed]);
+  if (!confirmed) {
+    const plan = planFor(draft);
+    return <ScrollScreen bottom="inset" header={<ScreenHeader title="Use this starting plan?" />}
+      footer={<PillButton label="Use this plan for my account" onPress={() => setConfirmed(true)} />}>
+      <Text style={[type.body, { color: paper.ink }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
+      <Card style={{ marginTop: space(4), gap: space(2) }}>
+        {draft.firstName && <Text style={type.body}>Name: {draft.firstName}</Text>}
+        <Text style={type.heading}>{plan.scenes[0]?.titleEn}</Text>
+        <Text style={type.body}>{plan.startingReason}</Text>
+        {plan.goal && <Text style={type.body}>{plan.goal}</Text>}
+        <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
+        <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. The reminder is off. You can change these choices in Settings.</Text>
+      </Card>
+      <GhostButton label="Start a new plan instead" onPress={onConsumed} />
+    </ScrollScreen>;
+  }
   return <Loading />;
+}
+
+/** ProfileGate mounts its children only once the signed-in profile is complete. */
+function CompleteProfileDraftCleanup({ onConsumed }: { onConsumed: () => void }) {
+  useEffect(() => {
+    onConsumed();
+  }, [onConsumed]);
+  return null;
 }
 
 function SignedInRoot({
@@ -194,18 +244,22 @@ function SignedInRoot({
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
   const [ready, setReady] = useState(false);
+  const [startupFailed, setStartupFailed] = useState(false);
+  const [startupRead, setStartupRead] = useState(0);
+  const [freshStart, setFreshStart] = useState<FreshStart | null>(null);
   /**
    * Did this learner finish onboarding a moment ago, in this launch?
    *
    * In memory, and deliberately never written to disk. It decides one thing:
-   * whether the navigator opens on the mission chooser instead of Home, so the
-   * first thing after signing up is choosing something to say rather than
-   * reading a summary of a level nobody has earned yet. A persisted flag would
-   * be one more piece of state that can get stuck; an app killed between the
-   * last onboarding tap and the first frame lands on Home, whose mission card
-   * leads to exactly the same screen.
+   * whether the navigator opens on the first scene's microphone primer, with
+   * Today behind it, so the first thing after signing up is the scene the plan
+   * promised. A persisted flag would be one more piece of state that can get
+   * stuck; an app killed between the last onboarding tap and the first frame
+   * lands on Today, whose Start leads to the same scene.
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
+  /** Which scene the plan put first: the spine's first, less the opener for "I can get by". */
+  const firstScene = useRef<MissionId>(FIRST_MISSION);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
   const pendingInvite = useRef<string | null>(null);
   const openPendingInvite = useCallback(() => {
@@ -229,30 +283,45 @@ function SignedInRoot({
   useEffect(() => {
     let cancelled = false;
     let engine: SyncEngine | null = null;
+    setReady(false);
+    setStartupFailed(false);
     setActiveUser(user.id);
+    const owner = scopeGeneration();
     void migrateLegacyStores(user.id)
       .then(async () => {
         // Sessions finished before the activity log existed have no evidence
         // stored to price them properly, so each is credited at the base rate
         // and no more. Without this, everyone already using the app is told on
         // launch day that they are a Beginner with nothing to their name.
-        const history = await loadHistory();
-        if (history.length > 0) {
-          await backfillFrom(history, lessonXp({ wordsProduced: [], unassistedRate: 0 }));
+        // An unread history is not an empty history. Preserve it and let the
+        // Progress read show its recovery state; optional backfill must not
+        // trap every screen behind the launch spinner.
+        try {
+          const history = await loadHistory();
+          if (cancelled || owner !== scopeGeneration()) return;
+          if (history.length > 0) {
+            await backfillFrom(history, lessonXp({ wordsProduced: [], unassistedRate: 0 }));
+          }
+        } catch {
+          console.warn('[luvani] startup history recovery unavailable');
         }
-        // A conversation that ended without being banked, because the app was
-        // closed between the recap and the practice message. Ordinary launches
-        // find nothing here and this costs one read.
-        const recovered = await recoverJournal();
-        if (recovered > 0) console.info(`[luvani] recovered ${recovered} phrases from a session that did not finish banking`);
+        if (cancelled || owner !== scopeGeneration()) return;
+        // A failed recovery retains the outbox for a future launch. It does not
+        // manufacture phrases or counts and is independent of opening the app.
+        try {
+          const recovered = await recoverJournal();
+          if (recovered > 0) console.info(`[luvani] recovered ${recovered} phrases from a session that did not finish banking`);
+        } catch {
+          console.warn('[luvani] startup phrase recovery unavailable');
+        }
 
         // Sync starts here and nowhere else: after the journal has been banked,
         // so the launch reconcile pushes a device that is already whole, and
         // inside the effect that owns this account, so the cleanup below is the
         // only thing that can outlive it.
-        if (cancelled) return;
+        if (cancelled || owner !== scopeGeneration()) return;
         const started = await startAccountSync(user.id);
-        if (cancelled) {
+        if (cancelled || owner !== scopeGeneration()) {
           started?.stop();
           return;
         }
@@ -274,9 +343,13 @@ function SignedInRoot({
         // something correctness depends on. Skipped when the fresh device pull
         // above already ran one.
         if (started !== null && !start.waited) void started.reconcileAll();
+        if (!cancelled && owner === scopeGeneration()) {
+          setFreshStart(start);
+          setReady(true);
+        }
       })
-      .then(() => {
-        if (!cancelled) setReady(true);
+      .catch(() => {
+        if (!cancelled && owner === scopeGeneration()) setStartupFailed(true);
       });
     return () => {
       cancelled = true;
@@ -288,35 +361,53 @@ function SignedInRoot({
       resetSyncRegistry();
       setActiveUser(null);
     };
-  }, [user.id]);
+  }, [user.id, startupRead]);
 
   /**
-   * Linking owns the initial state on web, so `/` resolves to Tabs after the
-   * stack's `initialRouteName` has chosen Missions. Wait until that resolution
-   * is complete, then replace the root exactly once. Native takes the same
-   * path harmlessly, which keeps one first-run rule for both platforms.
+   * Linking owns the initial state on web, so a stale URL can resolve somewhere
+   * other than where a first run belongs. Wait until that resolution is
+   * complete, then replace the root exactly once. Native takes the same path
+   * harmlessly, which keeps one first-run rule for both platforms.
    *
-   * This is deliberately a reset rather than a push. A first run has no screen
-   * behind the chooser, and MissionsScreen already turns its Back control into
-   * an explicit route to Tabs when there is no history to pop.
+   * A first run opens on the first scene (notebook Phase 5): the microphone
+   * primer for the scene the plan put first, with Today behind it, so a back
+   * from the primer or the scene lands on Today rather than on nothing. The
+   * ten-way chooser is never the first thing a new learner meets; it stays
+   * reachable from Speak's level path. A reset rather than a push, because a
+   * first run has no screen behind it.
    */
-  const openFirstMissionChooser = useCallback(() => {
+  const openFirstRun = useCallback(() => {
     if (!justOnboarded || !navigationRef.isReady()) return;
-    navigationRef.resetRoot({ index: 0, routes: [{ name: 'Missions' }] });
+    navigationRef.resetRoot({
+      index: 1,
+      routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
+    });
     setJustOnboarded(false);
   }, [justOnboarded, navigationRef]);
 
-  if (!ready) return <Loading />;
+  if (startupFailed) return (
+    <ScrollScreen header={<ScreenHeader title="Your saved learning" />}>
+      <Card>
+        <Text style={[type.body, { color: paper.ink }]}>Your saved learning could not be opened. Try again when this phone can read its storage.</Text>
+        <PillButton label="Try again" onPress={() => setStartupRead(value => value + 1)} />
+        <GhostButton label="Sign out" onPress={() => void auth.signOut()} />
+      </Card>
+    </ScrollScreen>
+  );
+  if (!ready || freshStart === null) return <Loading />;
 
   return (
     <ProfileGate
       onSignOut={() => void auth.signOut()}
       onboarding={(existing, done) => (
-        existing === null && preAccountDraft !== null ? (
+        existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft(freshStart) ? (
           <PreAccountProfileBootstrap
             draft={preAccountDraft}
+            requireReview={user.provider === 'google' || user.provider === 'apple'}
+            accountLabel={user.email ?? 'your current account'}
             onConsumed={onPreAccountDraftConsumed}
             done={(profile) => {
+              firstScene.current = firstSceneFor(preAccountDraft.startLevel);
               setJustOnboarded(true);
               done(profile);
             }}
@@ -368,10 +459,11 @@ function SignedInRoot({
         )
       )}
     >
+      <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
-          onReady={() => { openFirstMissionChooser(); openPendingInvite(); }}
+          onReady={() => { openFirstRun(); openPendingInvite(); }}
           theme={navTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.
@@ -380,7 +472,6 @@ function SignedInRoot({
           <RootNavigator
             onSignOut={() => void auth.signOut()}
             onDeleteAccount={onDeleteAccount}
-            startOnMissions={justOnboarded}
           />
         </NavigationContainer>
       </LiveProvider>
@@ -424,6 +515,20 @@ function Gate() {
    * a disk erase finished is not an auth fact for the provider to carry.
    */
   const [localCopyKept, setLocalCopyKept] = useState(false);
+  /**
+   * An under-13 answer on the first run's save page, before any account
+   * (F637, F639, F641). Held here because `Gate` stays mounted for the whole
+   * launch and `AuthFlow` does not: a sign-in unmounts the flow, and a sign-out
+   * mounts a new one. A refusal kept in the flow ended with it, and a sign-in
+   * through Google or Apple followed by a sign-out offered the pill again.
+   *
+   * Memory only, and nothing sets it back to false, so it lasts until the app
+   * is closed. It is never written to the device: a marker would be new data
+   * about a minor, which the founder did not choose (2026-09-30). The tradeoff:
+   * on a shared phone, an adult who signs out later in the same launch meets
+   * the refusal page until the app is reopened.
+   */
+  const [preAccountRefused, setPreAccountRefused] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -447,6 +552,12 @@ function Gate() {
     setPreAccountDraft(null);
     void clearPreAccountDraft();
   }, []);
+
+  /** "I am younger than that": hold the refusal for the launch and clear the draft, first name and all. */
+  const refusePreAccount = useCallback(() => {
+    setPreAccountRefused(true);
+    discardPreAccountDraft();
+  }, [discardPreAccountDraft]);
 
   /**
    * The whole of deleting an account, wired to the real adapter and the real
@@ -497,18 +608,24 @@ function Gate() {
       onDraftChange={keepPreAccountDraft}
       onCreateAccount={keepPreAccountDraft}
       onSignIn={discardPreAccountDraft}
+      refused={preAccountRefused}
+      onRefuse={refusePreAccount}
     />
   );
 }
 
 export default function App() {
   const [loaded] = useFonts({
-    'Fraunces-SemiBold': require('./assets/fonts/Fraunces-SemiBold.ttf'),
-    'Fraunces-Bold': require('./assets/fonts/Fraunces-Bold.ttf'),
-    'DMSans-Regular': require('./assets/fonts/DMSans-Regular.ttf'),
-    'DMSans-Medium': require('./assets/fonts/DMSans-Medium.ttf'),
-    'DMSans-Bold': require('./assets/fonts/DMSans-Bold.ttf'),
+    'Outfit-Regular': require('./assets/fonts/Outfit-Regular.ttf'),
+    'Outfit-Medium': require('./assets/fonts/Outfit-Medium.ttf'),
+    'Outfit-SemiBold': require('./assets/fonts/Outfit-SemiBold.ttf'),
+    'Outfit-Bold': require('./assets/fonts/Outfit-Bold.ttf'),
+    'Outfit-ExtraBold': require('./assets/fonts/Outfit-ExtraBold.ttf'),
   });
+
+  useEffect(() => {
+    if (loaded) hideNativeLaunch();
+  }, [loaded]);
 
   return (
     <SafeAreaProvider>

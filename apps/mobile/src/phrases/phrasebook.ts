@@ -29,7 +29,7 @@
  * honest. A ratio would not be.
  */
 
-import { isDue, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@luvani/core';
+import { reviewPhraseFor, isDue, isSettled, phraseKeyOf, type PracticeTopic, type ReviewCard } from '@luvani/core';
 
 /** How settled a phrase is. The same three words the practice path uses. */
 export type Hold = 'steady' | 'coming-back' | 'new';
@@ -37,7 +37,7 @@ export type Hold = 'steady' | 'coming-back' | 'new';
 export interface Phrase {
   /** The deck card's id, so a caller can find its way back. */
   id: string;
-  /** The French, exactly as the learner said it. */
+  /** The card's French phrase, from a conversation or authored lesson. */
   front: string;
   /** What it means. */
   back: string;
@@ -59,6 +59,8 @@ export interface SavedPhrase {
   id: string;
   front: string;
   back: string;
+  /** Known situation only; never inferred from the phrase's words. */
+  source?: string;
 }
 
 export interface Phrasebook {
@@ -140,7 +142,7 @@ export function buildPhrasebook(
    */
   packs: readonly PhraseSourcePack[] = [],
 ): Phrasebook {
-  const said = cards.filter((c) => c.kind !== 'phoneme' && c.reps > 0);
+  const said = cards.filter((c) => c.kind !== 'phoneme' && c.reps > 0 && reviewPhraseFor(c) !== null);
 
   // One phrase key can appear in two topics. First lane wins, which is the
   // same rule `mix.ts` uses when it interleaves, so a phrase never shows twice.
@@ -163,11 +165,13 @@ export function buildPhrasebook(
 
   const byGroup = new Map<string, Phrase[]>();
   for (const card of said) {
-    const group = claimed.get(phraseKeyOf(card.front)) ?? LESSONS_GROUP;
+    const pair = reviewPhraseFor(card);
+    if (!pair) continue;
+    const group = claimed.get(phraseKeyOf(pair.fr)) ?? LESSONS_GROUP;
     const phrase: Phrase = {
       id: card.id,
-      front: card.front,
-      back: card.back,
+      front: pair.fr,
+      back: pair.en,
       hold: holdFor(card, now),
     };
     const list = byGroup.get(group);
@@ -199,10 +203,15 @@ export function buildPhrasebook(
   // Saved from a conversation (or anywhere) and never recalled. Shown apart,
   // newest first, and never folded into the groups or the count above.
   const saved: SavedPhrase[] = cards
-    .filter((c) => c.kind !== 'phoneme' && c.reps === 0)
+    .filter((c) => c.kind !== 'phoneme' && c.reps === 0 && reviewPhraseFor(c) !== null)
     .slice()
     .sort((a, b) => b.addedAt - a.addedAt)
-    .map((c) => ({ id: c.id, front: c.front, back: c.back }));
+    .map((c) => {
+      const pair = reviewPhraseFor(c)!;
+      const sourceId = claimed.get(phraseKeyOf(pair.fr));
+      const source = sourceId ? titles.get(sourceId) : undefined;
+      return { id: c.id, front: pair.fr, back: pair.en, ...(source ? { source } : {}) };
+    });
 
   return {
     groups,
