@@ -1,10 +1,10 @@
 # Format
 
-> 634 nodes · cohesion 0.00
+> 631 nodes · cohesion 0.00
 
 ## Key Concepts
 
-- **Format** (634 connections) — `docs/KNOWN_ISSUES.md`
+- **Format** (734 connections) — `docs/KNOWN_ISSUES.md`
 - **A1 — A spoken answer has to match the script exactly** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A2 — An empty transcript is graded as a wrong answer** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **A3 — A freeze at the top rung still asks the learner to invent French** (1 connections) — `docs/KNOWN_ISSUES.md`
@@ -29,11 +29,11 @@
 - **E2 — A dead voice key blocks the two modes that need no voice** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **E3 — The French tutor spoke with an American voice, and every check passed** (1 connections) — `docs/KNOWN_ISSUES.md`
 - **E4 — A delivery knob could change what the vendor was asked for while the cache replayed the old answer** (1 connections) — `docs/KNOWN_ISSUES.md`
-- *... and 609 more nodes in this community*
+- *... and 606 more nodes in this community*
 
 ## Relationships
 
-- [Onboarding — everything before the first French word](Onboarding_—_everything_before_the_first_French_word.md) (1 shared connections)
+- [backoff.ts](backoff.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 634 (100%)
+- EXTRACTED: 734 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -1,63 +1,63 @@
 # userKey
 
-> 32 nodes · cohesion 0.14
+> 42 nodes · cohesion 0.08
 
 ## Key Concepts
 
-- **userKey()** (44 connections) — `apps/mobile/src/storage/scope.ts`
-- **soundcheck/store.ts** (30 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **markDirty()** (29 connections) — `apps/mobile/src/sync/registry.ts`
-- **tutor/store.ts** (23 connections) — `apps/mobile/src/tutor/store.ts`
-- **loadSoundChecks()** (11 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **recordSoundCheck()** (8 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **soundcheck/store.test.ts** (7 connections) — `apps/mobile/src/soundcheck/store.test.ts`
-- **markCoachMarkSeen()** (7 connections) — `apps/mobile/src/tutor/store.ts`
-- **adoptSoundChecks()** (6 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **loadSeenCoachMarks()** (6 connections) — `apps/mobile/src/tutor/store.ts`
-- **adoptCoachMarks()** (5 connections) — `apps/mobile/src/tutor/store.ts`
-- **readSeen()** (5 connections) — `apps/mobile/src/tutor/store.ts`
-- **isEvidence()** (4 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **KEY()** (4 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **read()** (4 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **save()** (4 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **serialized()** (4 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **adoptTutorIntro()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- **COACH_MARKS_KEY()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- **markTutorIntroSeen()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- **readPersisted()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- **registerAdopters()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- **serialized()** (4 connections) — `apps/mobile/src/tutor/store.ts`
-- **registerAdopter()** (3 connections) — `apps/mobile/src/soundcheck/store.ts`
-- **hasSeenTutorIntro()** (3 connections) — `apps/mobile/src/tutor/store.ts`
-- *... and 7 more nodes in this community*
+- **abilities.ts** (21 connections) — `apps/mobile/src/home/abilities.ts`
+- **passport.test.ts** (21 connections) — `apps/mobile/src/progress/passport.test.ts`
+- **abilities.test.ts** (20 connections) — `apps/mobile/src/home/abilities.test.ts`
+- **passport.ts** (20 connections) — `apps/mobile/src/progress/passport.ts`
+- **situations.ts** (16 connections) — `apps/mobile/src/myfrench/situations.ts`
+- **situations.test.ts** (16 connections) — `apps/mobile/src/myfrench/situations.test.ts`
+- **isStamped()** (7 connections) — `apps/mobile/src/progress/passport.ts`
+- **Stamp** (7 connections) — `apps/mobile/src/progress/passport.ts`
+- **canDoSentence()** (5 connections) — `apps/mobile/src/home/abilities.ts`
+- **chipFor()** (4 connections) — `apps/mobile/src/myfrench/situations.ts`
+- **splitByStamp()** (4 connections) — `apps/mobile/src/myfrench/situations.ts`
+- **abilitiesFrom()** (3 connections) — `apps/mobile/src/home/abilities.ts`
+- **joinSituations()** (3 connections) — `apps/mobile/src/home/abilities.ts`
+- **NEXT_PLACES** (3 connections) — `apps/mobile/src/myfrench/situations.ts`
+- **YOU_CAN_NOW** (3 connections) — `apps/mobile/src/myfrench/situations.ts`
+- **hasStamps()** (3 connections) — `apps/mobile/src/progress/passport.ts`
+- **STAMP_STATES** (3 connections) — `apps/mobile/src/progress/passport.ts`
+- **dueCardsFor()** (3 connections) — `apps/mobile/src/progress/passport.test.ts`
+- **Abilities** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- **ABILITIES_LABEL** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- **AND_MORE** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- **CAN_NOW** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- **MAX_ABILITIES** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- **REAL_PROGRESS_LABEL** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- **REAL_PROGRESS_START** (2 connections) — `apps/mobile/src/home/abilities.ts`
+- *... and 17 more nodes in this community*
 
 ## Relationships
 
-- [scope.ts](scope.ts.md) (14 shared connections)
-- [storeBinding.test.ts](storeBinding.test.ts.md) (12 shared connections)
-- [engine.ts](engine.ts.md) (10 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (8 shared connections)
-- [progressStore.ts](progressStore.ts.md) (6 shared connections)
-- [activity.ts](activity.ts.md) (6 shared connections)
-- [PracticeTab.tsx](PracticeTab.tsx.md) (5 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (5 shared connections)
-- [soundcheck/model.ts](soundcheck-model.ts.md) (4 shared connections)
-- [bookmarks/store.ts](bookmarks-store.ts.md) (4 shared connections)
-- [drill/store.ts](drill-store.ts.md) (4 shared connections)
-- [ProfileTab.tsx](ProfileTab.tsx.md) (4 shared connections)
+- [voice.ts](voice.ts.md) (9 shared connections)
+- [dashboard.ts](dashboard.ts.md) (6 shared connections)
+- [practice/history.ts](practice-history.ts.md) (6 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (5 shared connections)
+- [generate.ts](generate.ts.md) (5 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (5 shared connections)
+- [speakView.ts](speakView.ts.md) (4 shared connections)
+- [wallCopy.ts](wallCopy.ts.md) (3 shared connections)
+- [daily/index.ts](daily-index.ts.md) (2 shared connections)
+- [brain/src/index.ts](brain-src-index.ts.md) (2 shared connections)
+- [archive.ts](archive.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/soundcheck/store.test.ts`
-- `apps/mobile/src/soundcheck/store.ts`
-- `apps/mobile/src/storage/scope.ts`
-- `apps/mobile/src/sync/registry.ts`
-- `apps/mobile/src/tutor/store.ts`
+- `apps/mobile/src/home/abilities.test.ts`
+- `apps/mobile/src/home/abilities.ts`
+- `apps/mobile/src/myfrench/situations.test.ts`
+- `apps/mobile/src/myfrench/situations.ts`
+- `apps/mobile/src/progress/passport.test.ts`
+- `apps/mobile/src/progress/passport.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 165 (95%)
-- INFERRED: 8 (5%)
+- EXTRACTED: 123 (97%)
+- INFERRED: 4 (3%)
 - AMBIGUOUS: 0 (0%)
 
 ---

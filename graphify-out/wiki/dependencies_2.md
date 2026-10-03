@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **dependencies** (38 connections) — `apps/mobile/package.json`
+- **dependencies** (40 connections) — `apps/mobile/package.json`
 - **@config-plugins/react-native-webrtc** (2 connections) — `apps/mobile/package.json`
 - **expo-apple-authentication** (2 connections) — `apps/mobile/package.json`
 - **expo-constants** (2 connections) — `apps/mobile/package.json`
@@ -27,17 +27,17 @@
 ## Relationships
 
 - [mobile/package.json](mobile-package.json.md) (1 shared connections)
-- [@expo/metro-runtime](@expo-metro-runtime.md) (1 shared connections)
-- [@livekit/react-native](@livekit-react-native.md) (1 shared connections)
+- [sessionLoop.ts](sessionLoop.ts.md) (1 shared connections)
+- [replayEar.test.ts](replayEar.test.ts.md) (1 shared connections)
 - [@livekit/react-native-expo-plugin](@livekit-react-native-expo-plugin.md) (1 shared connections)
-- [@livekit/react-native-webrtc](@livekit-react-native-webrtc.md) (1 shared connections)
-- [@luvani/brain](@luvani-brain.md) (1 shared connections)
+- [verifyConversationText.mjs](verifyConversationText.mjs.md) (1 shared connections)
+- [choosingView.ts](choosingView.ts.md) (1 shared connections)
 - [@luvani/core](@luvani-core.md) (1 shared connections)
 - [@react-navigation/native-stack](@react-navigation-native-stack.md) (1 shared connections)
-- [@supabase/supabase-js](@supabase-supabase-js.md) (1 shared connections)
-- [expo](expo.md) (1 shared connections)
-- [expo-audio](expo-audio.md) (1 shared connections)
+- [expo-font](expo-font.md) (1 shared connections)
 - [expo-crypto](expo-crypto.md) (1 shared connections)
+- [verify-daily-tutor-audio.mjs](verify-daily-tutor-audio.mjs.md) (1 shared connections)
+- [fixLineAttempt.test.ts](fixLineAttempt.test.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -45,7 +45,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 47 (100%)
+- EXTRACTED: 49 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

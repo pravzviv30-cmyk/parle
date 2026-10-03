@@ -1,55 +1,58 @@
 # generate.ts
 
-> 26 nodes · cohesion 0.09
+> 19 nodes · cohesion 0.19
 
 ## Key Concepts
 
-- **generate.ts** (30 connections) — `packages/brain/src/drill/generate.ts`
-- **generate.test.ts** (18 connections) — `packages/brain/src/drill/generate.test.ts`
-- **buildDrillGenerationRequest()** (7 connections) — `packages/brain/src/drill/generate.ts`
-- **DrillGenerationInput** (3 connections) — `packages/brain/src/drill/generate.ts`
-- **phraseLine()** (2 connections) — `packages/brain/src/drill/generate.ts`
-- **AppropriateReplyZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **BASE** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **BestSentenceZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **FillBlankZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **GeneratedExerciseZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **INSTRUCTION** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **ListenTypeZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **NonMicExerciseZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **RepeatThisZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **_shapeCheck** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **TapTranslateZ** (1 connections) — `packages/brain/src/drill/generate.ts`
-- **appropriateReply** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **base()** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **bestSentence** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **fillBlank** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **input()** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **listenType** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **profilePhrase** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **repeatThis** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- **sessionPhrase** (1 connections) — `packages/brain/src/drill/generate.test.ts`
-- *... and 1 more nodes in this community*
+- **core/src/index.ts** (391 connections) — `packages/core/src/index.ts`
+- **madeFrom.test.ts** (27 connections) — `apps/mobile/src/practice/madeFrom.test.ts`
+- **dueCards()** (22 connections) — `packages/core/src/review/scheduler.ts`
+- **nextStep.ts** (20 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **nextStep.test.ts** (18 connections) — `apps/mobile/src/practice/nextStep.test.ts`
+- **starter.ts** (10 connections) — `apps/mobile/src/practice/starter.ts`
+- **starterFrom()** (8 connections) — `apps/mobile/src/practice/starter.ts`
+- **nextStep** (6 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **NEXT_STEP** (4 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **MADE_FROM_COPY** (2 connections) — `apps/mobile/src/practice/madeFrom.ts`
+- **card()** (2 connections) — `apps/mobile/src/practice/madeFrom.test.ts`
+- **pack()** (2 connections) — `apps/mobile/src/practice/madeFrom.test.ts`
+- **packLine()** (2 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **reviewLine()** (2 connections) — `apps/mobile/src/practice/nextStep.ts`
+- **STARTER_COPY** (2 connections) — `apps/mobile/src/practice/starter.ts`
+- **CHECK** (1 connections) — `apps/mobile/src/practice/madeFrom.test.ts`
+- **FR** (1 connections) — `apps/mobile/src/practice/madeFrom.test.ts`
+- **NOW** (1 connections) — `apps/mobile/src/practice/madeFrom.test.ts`
+- **NextPhrase** (1 connections) — `apps/mobile/src/practice/nextStep.ts`
 
 ## Relationships
 
-- [LlmUsage](LlmUsage.md) (13 shared connections)
-- [curationEval.ts](curationEval.ts.md) (3 shared connections)
-- [drill/session.ts](drill-session.ts.md) (2 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
-- [runEval.ts](runEval.ts.md) (2 shared connections)
-- [convo.ts](convo.ts.md) (2 shared connections)
-- [brain/src/index.ts](brain-src-index.ts.md) (1 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (21 shared connections)
+- [brain/src/index.ts](brain-src-index.ts.md) (11 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (11 shared connections)
+- [archive.ts](archive.ts.md) (9 shared connections)
+- [conversation.ts](conversation.ts.md) (7 shared connections)
+- [SessionSummary](SessionSummary.md) (6 shared connections)
+- [myfrench/copy.ts](myfrench-copy.ts.md) (6 shared connections)
+- [practice/history.ts](practice-history.ts.md) (5 shared connections)
+- [disclosure.test.ts](disclosure.test.ts.md) (5 shared connections)
+- [coachMarks.test.ts](coachMarks.test.ts.md) (5 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (5 shared connections)
+- [userKey](userKey.md) (5 shared connections)
 
 ## Source Files
 
-- `packages/brain/src/drill/generate.test.ts`
-- `packages/brain/src/drill/generate.ts`
+- `apps/mobile/src/practice/madeFrom.test.ts`
+- `apps/mobile/src/practice/madeFrom.ts`
+- `apps/mobile/src/practice/nextStep.test.ts`
+- `apps/mobile/src/practice/nextStep.ts`
+- `apps/mobile/src/practice/starter.ts`
+- `packages/core/src/index.ts`
+- `packages/core/src/review/scheduler.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 52 (98%)
-- INFERRED: 1 (2%)
+- EXTRACTED: 488 (100%)
+- INFERRED: 1 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

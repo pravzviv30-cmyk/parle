@@ -1,8 +1,8 @@
 # paper
 
-> God node · 91 connections · `apps/mobile/src/palette.ts`
+> God node · 134 connections · `apps/mobile/src/palette.ts`
 
-**Community:** [space](space.md)
+**Community:** [purchases.test.ts](purchases.test.ts.md)
 
 ## Connections by Relation
 
@@ -10,29 +10,29 @@
 - palette.ts `EXTRACTED`
 
 ### imports
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) `EXTRACTED`
 - components.tsx `EXTRACTED`
-- [SettingsScreen.tsx](SettingsScreen.tsx.md) `EXTRACTED`
+- ConvoScreen.tsx `EXTRACTED`
 - [RootNavigator.tsx](RootNavigator.tsx.md) `EXTRACTED`
 - [DrillScreen.tsx](DrillScreen.tsx.md) `EXTRACTED`
-- [TutorTab.tsx](TutorTab.tsx.md) `EXTRACTED`
+- [PreAccountOnboarding.tsx](PreAccountOnboarding.tsx.md) `EXTRACTED`
+- [SettingsScreen.tsx](SettingsScreen.tsx.md) `EXTRACTED`
+- TutorTab.tsx `EXTRACTED`
+- MyFrenchTab.tsx `EXTRACTED`
+- PracticeTab.tsx `EXTRACTED`
 - App.tsx `EXTRACTED`
-- [ProfileTab.tsx](ProfileTab.tsx.md) `EXTRACTED`
-- [PracticeTab.tsx](PracticeTab.tsx.md) `EXTRACTED`
-- [WallScreen.tsx](WallScreen.tsx.md) `EXTRACTED`
-- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) `EXTRACTED`
-- ProgressScreen.tsx `EXTRACTED`
+- RecapScreen.tsx `EXTRACTED`
+- HomeTab.tsx `EXTRACTED`
+- ProfileTab.tsx `EXTRACTED`
 - layout.tsx `EXTRACTED`
-- LiveSessionScreen.tsx `EXTRACTED`
-- ConversationsScreen.tsx `EXTRACTED`
-- MissionsScreen.tsx `EXTRACTED`
-- [TutorMemoryScreen.tsx](TutorMemoryScreen.tsx.md) `EXTRACTED`
-- [RealMomentScreen.tsx](RealMomentScreen.tsx.md) `EXTRACTED`
 - PhrasebookScreen.tsx `EXTRACTED`
-- ReviewScreen.tsx `EXTRACTED`
+- WallScreen.tsx `EXTRACTED`
+- [GoalStepScreen.tsx](GoalStepScreen.tsx.md) `EXTRACTED`
+- MissionsScreen.tsx `EXTRACTED`
+- ConversationsScreen.tsx `EXTRACTED`
+- OnboardingFlow.tsx `EXTRACTED`
 
 ### re_exports
-- src/theme.ts `EXTRACTED`
+- [src/theme.ts](src-theme.ts.md) `EXTRACTED`
 
 ---
 

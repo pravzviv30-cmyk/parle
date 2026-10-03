@@ -1,63 +1,58 @@
 # threads.ts
 
-> 25 nodes · cohesion 0.15
+> 24 nodes · cohesion 0.14
 
 ## Key Concepts
 
-- **threads.ts** (22 connections) — `apps/mobile/src/tutor/threads.ts`
-- **dashboard.ts** (19 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **threads.test.ts** (16 connections) — `apps/mobile/src/tutor/threads.test.ts`
-- **dashboard.test.ts** (14 connections) — `apps/mobile/src/tutor/dashboard.test.ts`
-- **ContinuityCard.tsx** (13 connections) — `apps/mobile/src/tutor/ContinuityCard.tsx`
-- **threadFrom()** (9 connections) — `apps/mobile/src/tutor/threads.ts`
-- **Thread** (5 connections) — `apps/mobile/src/tutor/threads.ts`
-- **continuedAt()** (4 connections) — `apps/mobile/src/conversationPacks/marks.ts`
-- **continuityRow** (4 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **tutorHeading()** (4 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **ContinuityCard()** (3 connections) — `apps/mobile/src/tutor/ContinuityCard.tsx`
-- **TUTOR_ORB_SUBLINE** (3 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **TUTOR_PURPOSE** (3 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **ContinuityRoute** (2 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **KEEP_GOING** (2 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **MAX_ONLY_ARC** (2 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **PICK_IT_UP** (2 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **SEE_MEMORY** (2 connections) — `apps/mobile/src/tutor/dashboard.ts`
-- **CAME_UP** (2 connections) — `apps/mobile/src/tutor/threads.ts`
-- **cameUpLine()** (2 connections) — `apps/mobile/src/tutor/threads.ts`
-- **lowerFirst()** (2 connections) — `apps/mobile/src/tutor/threads.ts`
-- **pack()** (2 connections) — `apps/mobile/src/tutor/threads.test.ts`
-- **unfinishedScene()** (2 connections) — `apps/mobile/src/tutor/threads.ts`
-- **NOW** (1 connections) — `apps/mobile/src/tutor/threads.test.ts`
-- **TOPIC** (1 connections) — `apps/mobile/src/tutor/threads.test.ts`
+- **startOwnership.test.ts** (33 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **modeCarriesAudio()** (9 connections) — `apps/mobile/src/tutor/choosingView.ts`
+- **liveHook()** (8 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **micOpensAtConnect()** (8 connections) — `apps/mobile/src/tutor/choosingView.ts`
+- **startOwnership.ts** (7 connections) — `apps/mobile/src/live/startOwnership.ts`
+- **TOPIC_SERVER** (7 connections) — `packages/core/src/protocol/protocol.ts`
+- **startStillOwns()** (6 connections) — `apps/mobile/src/live/startOwnership.ts`
+- **nextStart()** (5 connections) — `apps/mobile/src/live/startOwnership.ts`
+- **standDown** (5 connections) — `apps/mobile/src/live/startOwnership.ts`
+- **runAsync()** (4 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **NO_START** (3 connections) — `apps/mobile/src/live/startOwnership.ts`
+- **fragment()** (3 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **capsFor()** (3 connections) — `apps/mobile/src/tutor/choosingView.ts`
+- **asJs()** (2 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **fragmentAt()** (2 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **insideOf()** (2 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **START** (2 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **StartHolds** (1 connections) — `apps/mobile/src/live/startOwnership.ts`
+- **AsyncFunction** (1 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **Handler** (1 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **hook** (1 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **LEAVE** (1 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **read()** (1 connections) — `apps/mobile/src/live/startOwnership.test.ts`
+- **UNMOUNT** (1 connections) — `apps/mobile/src/live/startOwnership.test.ts`
 
 ## Relationships
 
-- [TutorTab.tsx](TutorTab.tsx.md) (16 shared connections)
-- [PracticeTab.tsx](PracticeTab.tsx.md) (6 shared connections)
-- [marks.ts](marks.ts.md) (5 shared connections)
+- [drill/index.ts](drill-index.ts.md) (13 shared connections)
+- [typesafe.ts](typesafe.ts.md) (6 shared connections)
 - [greeting.ts](greeting.ts.md) (4 shared connections)
-- [guilt.ts](guilt.ts.md) (4 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (2 shared connections)
-- [topics.ts](topics.ts.md) (2 shared connections)
-- [homeMission.ts](homeMission.ts.md) (2 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
-- [progressStore.ts](progressStore.ts.md) (2 shared connections)
-- [buildConversationPack](buildConversationPack.md) (2 shared connections)
-- [space](space.md) (1 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (2 shared connections)
+- [useLiveSession.test.ts](useLiveSession.test.ts.md) (2 shared connections)
+- [getMission](getMission.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
+- [verifyPhraseAudioBudget.mjs](verifyPhraseAudioBudget.mjs.md) (1 shared connections)
+- [view.test.ts](view.test.ts.md) (1 shared connections)
+- [voiceLifecycle.ts](voiceLifecycle.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/conversationPacks/marks.ts`
-- `apps/mobile/src/tutor/ContinuityCard.tsx`
-- `apps/mobile/src/tutor/dashboard.test.ts`
-- `apps/mobile/src/tutor/dashboard.ts`
-- `apps/mobile/src/tutor/threads.test.ts`
-- `apps/mobile/src/tutor/threads.ts`
+- `apps/mobile/src/live/startOwnership.test.ts`
+- `apps/mobile/src/live/startOwnership.ts`
+- `apps/mobile/src/tutor/choosingView.ts`
+- `packages/core/src/protocol/protocol.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 95 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 71 (91%)
+- INFERRED: 7 (9%)
 - AMBIGUOUS: 0 (0%)
 
 ---

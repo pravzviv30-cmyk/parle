@@ -1,68 +1,40 @@
 # answers.test.ts
 
-> 57 nodes · cohesion 0.06
+> 10 nodes · cohesion 0.27
 
 ## Key Concepts
 
-- **answers.test.ts** (42 connections) — `apps/mobile/src/onboarding/answers.test.ts`
-- **answers.ts** (36 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **ageStop.test.ts** (29 connections) — `apps/mobile/src/profile/ageStop.test.ts`
-- **upgrade.ts** (21 connections) — `apps/mobile/src/profile/upgrade.ts`
-- **upgradeStored()** (17 connections) — `apps/mobile/src/profile/upgrade.ts`
-- **age.ts** (15 connections) — `apps/mobile/src/profile/age.ts`
-- **upgrade.test.ts** (11 connections) — `apps/mobile/src/profile/upgrade.test.ts`
-- **answersFrom()** (7 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **ageConfirmedFromDob()** (7 connections) — `apps/mobile/src/profile/age.ts`
-- **entryFor()** (6 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **age.test.ts** (5 connections) — `apps/mobile/src/profile/age.test.ts`
-- **SafetyCategory** (5 connections) — `packages/core/src/protocol/protocol.ts`
-- **ageStopStanding()** (4 connections) — `apps/mobile/src/profile/age.ts`
-- **SYNC_POLICIES** (4 connections) — `apps/mobile/src/sync/policy.ts`
-- **AGE_QUESTION** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **AGE_REFUSAL** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **AGE_REFUSAL_EXIT** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **AGE_RETURN_SUB** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **AGE_RETURN_TITLE** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **AGE_SUB** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **NAME_LABEL** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **NAME_QUESTION** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **NAME_SKIP_HINT** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **nameFrom()** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- **needsOnboarding()** (3 connections) — `apps/mobile/src/onboarding/answers.ts`
-- *... and 32 more nodes in this community*
+- **progress/evidence.ts** (13 connections) — `apps/mobile/src/progress/evidence.ts`
+- **progress/evidence.test.ts** (11 connections) — `apps/mobile/src/progress/evidence.test.ts`
+- **evidenceFrom()** (6 connections) — `apps/mobile/src/progress/evidence.ts`
+- **LevelStanding** (4 connections) — `packages/core/src/levels/levels.ts`
+- **Evidence** (2 connections) — `apps/mobile/src/progress/evidence.ts`
+- **hasEvidence()** (2 connections) — `apps/mobile/src/progress/evidence.ts`
+- **EvidenceStat** (1 connections) — `apps/mobile/src/progress/evidence.ts`
+- **nothing** (1 connections) — `apps/mobile/src/progress/evidence.test.ts`
+- **NOW** (1 connections) — `apps/mobile/src/progress/evidence.test.ts`
+- **someXp** (1 connections) — `apps/mobile/src/progress/evidence.test.ts`
 
 ## Relationships
 
-- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) (26 shared connections)
-- [ProfileTab.tsx](ProfileTab.tsx.md) (21 shared connections)
-- [TutorVoiceKey](TutorVoiceKey.md) (10 shared connections)
-- [TutorMemoryScreen.tsx](TutorMemoryScreen.tsx.md) (8 shared connections)
-- [disclosure.test.ts](disclosure.test.ts.md) (6 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (5 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (5 shared connections)
-- [sync/policy.ts](sync-policy.ts.md) (5 shared connections)
-- [track.test.ts](track.test.ts.md) (3 shared connections)
-- [preAccountDraft.ts](preAccountDraft.ts.md) (3 shared connections)
-- [profile/merge.ts](profile-merge.ts.md) (3 shared connections)
-- [sync/policy.test.ts](sync-policy.test.ts.md) (3 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (7 shared connections)
+- [wallPlans.test.ts](wallPlans.test.ts.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (2 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (2 shared connections)
+- [practice/history.ts](practice-history.ts.md) (2 shared connections)
+- [TutorMemoryScreen.tsx](TutorMemoryScreen.tsx.md) (2 shared connections)
+- [voice.ts](voice.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/onboarding/answers.test.ts`
-- `apps/mobile/src/onboarding/answers.ts`
-- `apps/mobile/src/onboarding/voiceStep.test.ts`
-- `apps/mobile/src/profile/age.test.ts`
-- `apps/mobile/src/profile/age.ts`
-- `apps/mobile/src/profile/ageStop.test.ts`
-- `apps/mobile/src/profile/upgrade.test.ts`
-- `apps/mobile/src/profile/upgrade.ts`
-- `apps/mobile/src/sync/policy.ts`
-- `packages/core/src/protocol/protocol.ts`
+- `apps/mobile/src/progress/evidence.test.ts`
+- `apps/mobile/src/progress/evidence.ts`
+- `packages/core/src/levels/levels.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 195 (99%)
-- INFERRED: 1 (1%)
+- EXTRACTED: 30 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

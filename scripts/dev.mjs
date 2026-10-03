@@ -129,6 +129,7 @@ function waitForReady(step, child) {
 function shutdown(code) {
   if (shuttingDown) return;
   shuttingDown = true;
+  process.exitCode = code;
   if (children.length > 0) say('dev', 'stopping.');
   for (const { child } of children) {
     try {
@@ -145,8 +146,9 @@ function shutdown(code) {
         /* already gone */
       }
     }
-    process.exit(code);
-  }, 3000).unref();
+    // Let child handles drain after SIGKILL so the process groups are reaped
+    // before Node exits with the code set above.
+  }, 3000);
 }
 
 function die(lines) {
@@ -155,6 +157,9 @@ function die(lines) {
 }
 
 async function main() {
+  say('dev', `checkout: ${ROOT}`);
+  const revision = spawnSync('git', ['log', '-1', '--format=%h %s'], { cwd: ROOT, encoding: 'utf8' });
+  if (revision.status === 0) say('dev', `revision: ${revision.stdout.trim()}`);
   const agentEnv = readEnvFile(AGENT_ENV_FILE);
   const tokenEnv = readEnvFile(TOKEN_ENV_FILE);
 
@@ -199,16 +204,18 @@ async function main() {
     const verdict = classifyPort(step, result);
 
     if (verdict.kind === 'occupied') {
+      say('dev', verdict.message, process.stderr);
       shutdown(1);
-      die(verdict.message);
+      return;
     }
     if (verdict.kind === 'reuse') {
       if (step.id === 'token' && process.env.LUVANI_DURABLE_PRACTICE === '1') {
         let durable = false;
         try { durable = JSON.parse(result.body).durablePractice === true; } catch { /* older server */ }
         if (!durable) {
+          say('dev', 'The existing token API does not have durable practice enabled. Stop its dev supervisor, then run npm run dev:durable.', process.stderr);
           shutdown(1);
-          die('The existing token API does not have durable practice enabled. Stop its dev supervisor, then run npm run dev:durable.');
+          return;
         }
       }
       say('dev', verdict.note);

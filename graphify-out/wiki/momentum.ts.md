@@ -4,12 +4,12 @@
 
 ## Key Concepts
 
-- **momentum.ts** (72 connections) — `apps/mobile/src/progress/momentum.ts`
-- **momentum.test.ts** (58 connections) — `apps/mobile/src/progress/momentum.test.ts`
+- **momentum.ts** (68 connections) — `apps/mobile/src/progress/momentum.ts`
+- **momentum.test.ts** (59 connections) — `apps/mobile/src/progress/momentum.test.ts`
+- **ActivityKind** (5 connections) — `apps/mobile/src/progress/activity.ts`
 - **DAILY_GOAL_UNSET** (4 connections) — `apps/mobile/src/profile/dailyGoal.ts`
 - **cardOf()** (4 connections) — `apps/mobile/src/progress/momentum.test.ts`
 - **GoalMinutes** (3 connections) — `apps/mobile/src/profile/dailyGoal.ts`
-- **ActivityKind** (3 connections) — `apps/mobile/src/progress/activity.ts`
 - **noGoal()** (3 connections) — `apps/mobile/src/progress/momentum.test.ts`
 - **tenMinuteGoal()** (3 connections) — `apps/mobile/src/progress/momentum.test.ts`
 - **DAYS_LABEL** (2 connections) — `apps/mobile/src/progress/momentum.ts`
@@ -33,18 +33,18 @@
 
 ## Relationships
 
-- [ProfileTab.tsx](ProfileTab.tsx.md) (15 shared connections)
-- [localDayKey](localDayKey.md) (14 shared connections)
-- [FrenchLifeCard.tsx](FrenchLifeCard.tsx.md) (10 shared connections)
-- [scheduler.ts](scheduler.ts.md) (6 shared connections)
-- [wallPages.test.ts](wallPages.test.ts.md) (4 shared connections)
-- [activity.ts](activity.ts.md) (3 shared connections)
-- [ReviewCard](ReviewCard.md) (3 shared connections)
-- [ledger.ts](ledger.ts.md) (3 shared connections)
-- [guilt.ts](guilt.ts.md) (3 shared connections)
-- [today.test.ts](today.test.ts.md) (2 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
-- [phraseKeyOf](phraseKeyOf.md) (2 shared connections)
+- [goals/store.ts](goals-store.ts.md) (15 shared connections)
+- [plugins](plugins.md) (14 shared connections)
+- [apple.native.ts](apple.native.ts.md) (10 shared connections)
+- [ReviewCard](ReviewCard.md) (6 shared connections)
+- [LuvaniConversation](LuvaniConversation.md) (3 shared connections)
+- [archive.ts](archive.ts.md) (3 shared connections)
+- [drillJudge.ts](drillJudge.ts.md) (3 shared connections)
+- [practice/history.ts](practice-history.ts.md) (3 shared connections)
+- [Current-state map](Current-state_map.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (2 shared connections)
+- [attempt.ts](attempt.ts.md) (2 shared connections)
+- [brain/src/index.ts](brain-src-index.ts.md) (2 shared connections)
 
 ## Source Files
 

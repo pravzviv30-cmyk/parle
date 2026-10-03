@@ -1,6 +1,6 @@
 # Format
 
-> God node · 634 connections · `docs/KNOWN_ISSUES.md`
+> God node · 734 connections · `docs/KNOWN_ISSUES.md`
 
 **Community:** [Format](Format.md)
 

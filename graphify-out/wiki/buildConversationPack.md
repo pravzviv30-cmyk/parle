@@ -1,63 +1,55 @@
 # buildConversationPack
 
-> 28 nodes · cohesion 0.12
+> 26 nodes · cohesion 0.09
 
 ## Key Concepts
 
-- **buildConversationPack()** (34 connections) — `packages/core/src/conversationPacks.ts`
-- **core/src/conversationPacks.ts** (30 connections) — `packages/core/src/conversationPacks.ts`
-- **isConversationPack()** (11 connections) — `packages/core/src/conversationPacks.ts`
-- **core/src/conversationPacks.test.ts** (8 connections) — `packages/core/src/conversationPacks.test.ts`
-- **text()** (5 connections) — `packages/core/src/conversationPacks.ts`
-- **containsForbiddenConversationData()** (4 connections) — `packages/core/src/conversationPacks.ts`
-- **ensureTranslationExercises()** (4 connections) — `packages/core/src/conversationPacks.ts`
-- **normaliseConversationPack()** (4 connections) — `packages/core/src/conversationPacks.ts`
-- **translationExercisesFor()** (4 connections) — `packages/core/src/conversationPacks.ts`
-- **correctionOf()** (3 connections) — `packages/core/src/conversationPacks.ts`
-- **durationOf()** (3 connections) — `packages/core/src/conversationPacks.ts`
-- **phraseOf()** (3 connections) — `packages/core/src/conversationPacks.ts`
-- **record()** (3 connections) — `packages/core/src/conversationPacks.ts`
-- **topicOf()** (3 connections) — `packages/core/src/conversationPacks.ts`
-- **pack()** (2 connections) — `apps/mobile/src/conversationPacks/model.test.ts`
-- **pack()** (2 connections) — `apps/mobile/src/practice/nextStep.test.ts`
-- **pack()** (2 connections) — `apps/mobile/src/practice/sessionCard.test.ts`
-- **BuildConversationPackInput** (2 connections) — `packages/core/src/conversationPacks.ts`
-- **CONVERSATION_PACK_VERSION** (1 connections) — `packages/core/src/conversationPacks.ts`
-- **ConversationPackCorrection** (1 connections) — `packages/core/src/conversationPacks.ts`
-- **ConversationPackPhrase** (1 connections) — `packages/core/src/conversationPacks.ts`
-- **ConversationPackSeed** (1 connections) — `packages/core/src/conversationPacks.ts`
-- **ConversationPackState** (1 connections) — `packages/core/src/conversationPacks.ts`
-- **ConversationPackTopic** (1 connections) — `packages/core/src/conversationPacks.ts`
-- **FORBIDDEN_KEYS** (1 connections) — `packages/core/src/conversationPacks.ts`
-- *... and 3 more nodes in this community*
+- **generate.ts** (31 connections) — `packages/brain/src/drill/generate.ts`
+- **generate.test.ts** (18 connections) — `packages/brain/src/drill/generate.test.ts`
+- **buildDrillGenerationRequest()** (9 connections) — `packages/brain/src/drill/generate.ts`
+- **DrillGenerationInput** (3 connections) — `packages/brain/src/drill/generate.ts`
+- **phraseLine()** (2 connections) — `packages/brain/src/drill/generate.ts`
+- **AppropriateReplyZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **BASE** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **BestSentenceZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **FillBlankZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **GeneratedExerciseZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **INSTRUCTION** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **ListenTypeZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **NonMicExerciseZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **RepeatThisZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **_shapeCheck** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **TapTranslateZ** (1 connections) — `packages/brain/src/drill/generate.ts`
+- **appropriateReply** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **base()** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **bestSentence** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **fillBlank** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **input()** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **listenType** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **profilePhrase** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **repeatThis** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- **sessionPhrase** (1 connections) — `packages/brain/src/drill/generate.test.ts`
+- *... and 1 more nodes in this community*
 
 ## Relationships
 
-- [PracticeTab.tsx](PracticeTab.tsx.md) (8 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (6 shared connections)
-- [ReviewCard](ReviewCard.md) (6 shared connections)
-- [phraseKeyOf](phraseKeyOf.md) (4 shared connections)
-- [validateExercise](validateExercise.md) (4 shared connections)
-- [convo.ts](convo.ts.md) (3 shared connections)
-- [server.ts](server.ts.md) (3 shared connections)
-- [drill/session.ts](drill-session.ts.md) (2 shared connections)
-- [drill/index.ts](drill-index.ts.md) (2 shared connections)
-- [closure.ts](closure.ts.md) (2 shared connections)
-- [marks.ts](marks.ts.md) (2 shared connections)
-- [story.test.ts](story.test.ts.md) (2 shared connections)
+- [ledger.ts](ledger.ts.md) (13 shared connections)
+- [curationEval.ts](curationEval.ts.md) (3 shared connections)
+- [MeteredBrain](MeteredBrain.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (2 shared connections)
+- [bookmarks/store.ts](bookmarks-store.ts.md) (2 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (2 shared connections)
+- [chooserView.ts](chooserView.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/conversationPacks/model.test.ts`
-- `apps/mobile/src/practice/nextStep.test.ts`
-- `apps/mobile/src/practice/sessionCard.test.ts`
-- `packages/core/src/conversationPacks.test.ts`
-- `packages/core/src/conversationPacks.ts`
+- `packages/brain/src/drill/generate.test.ts`
+- `packages/brain/src/drill/generate.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 88 (95%)
-- INFERRED: 5 (5%)
+- EXTRACTED: 55 (98%)
+- INFERRED: 1 (2%)
 - AMBIGUOUS: 0 (0%)
 
 ---

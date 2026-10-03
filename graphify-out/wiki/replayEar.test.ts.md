@@ -1,31 +1,23 @@
 # replayEar.test.ts
 
-> 8 nodes · cohesion 0.29
+> 2 nodes · cohesion 1.00
 
 ## Key Concepts
 
-- **replayEar.test.ts** (5 connections) — `apps/mobile/src/tutor/replayEar.test.ts`
-- **replayEar.ts** (4 connections) — `apps/mobile/src/tutor/replayEar.ts`
-- **replayEar** (4 connections) — `apps/mobile/src/tutor/replayEar.ts`
-- **Line()** (3 connections) — `apps/mobile/src/tutor/Transcript.tsx`
-- **ReplayEarInput** (1 connections) — `apps/mobile/src/tutor/replayEar.ts`
-- **ALL** (1 connections) — `apps/mobile/src/tutor/replayEar.test.ts`
-- **read()** (1 connections) — `apps/mobile/src/tutor/replayEar.test.ts`
-- **stripComments()** (1 connections) — `apps/mobile/src/tutor/replayEar.test.ts`
+- **@livekit/react-native** (2 connections) — `apps/mobile/package.json`
+- **@livekit/react-native** (1 connections) — `apps/mobile/package.json`
 
 ## Relationships
 
-- [space](space.md) (4 shared connections)
+- [dependencies](dependencies.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/tutor/Transcript.tsx`
-- `apps/mobile/src/tutor/replayEar.test.ts`
-- `apps/mobile/src/tutor/replayEar.ts`
+- `apps/mobile/package.json`
 
 ## Audit Trail
 
-- EXTRACTED: 12 (100%)
+- EXTRACTED: 2 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

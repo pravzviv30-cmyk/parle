@@ -1,26 +1,38 @@
 # Current-state map
 
-> 5 nodes · cohesion 0.40
+> 11 nodes · cohesion 0.25
 
 ## Key Concepts
 
-- **Current-state map** (4 connections) — `docs/CURRENT_STATE_MAP.md`
-- **CURRENT_STATE_MAP.md** (2 connections) — `docs/CURRENT_STATE_MAP.md`
-- **Replacement/dependency graph** (1 connections) — `docs/CURRENT_STATE_MAP.md`
-- **Runtime path** (1 connections) — `docs/CURRENT_STATE_MAP.md`
-- **Sources of truth** (1 connections) — `docs/CURRENT_STATE_MAP.md`
+- **today.test.ts** (11 connections) — `apps/mobile/src/progress/today.test.ts`
+- **today.ts** (10 connections) — `apps/mobile/src/progress/today.ts`
+- **ActivityEntry** (6 connections) — `apps/mobile/src/progress/activity.ts`
+- **todayFrom()** (3 connections) — `apps/mobile/src/progress/today.ts`
+- **hasToday()** (2 connections) — `apps/mobile/src/progress/today.ts`
+- **SITTINGS_IN_A_DAY** (2 connections) — `apps/mobile/src/progress/today.ts`
+- **NOTHING** (1 connections) — `apps/mobile/src/progress/today.ts`
+- **at()** (1 connections) — `apps/mobile/src/progress/today.test.ts`
+- **entry()** (1 connections) — `apps/mobile/src/progress/today.test.ts`
+- **NOON** (1 connections) — `apps/mobile/src/progress/today.test.ts`
+- **Today** (1 connections) — `apps/mobile/src/progress/today.ts`
 
 ## Relationships
 
-- [docs/README.md](docs-README.md.md) (1 shared connections)
+- [LuvaniConversation](LuvaniConversation.md) (4 shared connections)
+- [momentum.ts](momentum.ts.md) (2 shared connections)
+- [plugins](plugins.md) (2 shared connections)
+- [practice/history.ts](practice-history.ts.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `docs/CURRENT_STATE_MAP.md`
+- `apps/mobile/src/progress/activity.ts`
+- `apps/mobile/src/progress/today.test.ts`
+- `apps/mobile/src/progress/today.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 5 (100%)
+- EXTRACTED: 25 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

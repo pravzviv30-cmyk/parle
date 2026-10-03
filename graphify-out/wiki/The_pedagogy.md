@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **The pedagogy** (9 connections) — `docs/PEDAGOGY.md`
+- **The pedagogy** (10 connections) — `docs/PEDAGOGY.md`
 - **PEDAGOGY.md** (2 connections) — `docs/PEDAGOGY.md`
 - **One focus, one drill** (1 connections) — `docs/PEDAGOGY.md`
 - **The four rungs** (1 connections) — `docs/PEDAGOGY.md`
@@ -25,7 +25,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 10 (100%)
+- EXTRACTED: 11 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

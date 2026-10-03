@@ -4,8 +4,8 @@
 
 ## Key Concepts
 
-- **expo-crypto** (2 connections) — `apps/mobile/package.json`
-- **expo-crypto** (1 connections) — `apps/mobile/package.json`
+- **expo** (2 connections) — `apps/mobile/package.json`
+- **expo** (1 connections) — `apps/mobile/package.json`
 
 ## Relationships
 

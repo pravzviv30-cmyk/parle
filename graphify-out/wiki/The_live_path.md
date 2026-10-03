@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **The live path** (7 connections) — `docs/LIVE_VOICE.md`
+- **The live path** (9 connections) — `docs/LIVE_VOICE.md`
 - **LIVE_VOICE.md** (2 connections) — `docs/LIVE_VOICE.md`
 - **The wire** (2 connections) — `docs/LIVE_VOICE.md`
 - **Audio, and what may be claimed about it** (1 connections) — `docs/LIVE_VOICE.md`
@@ -24,7 +24,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 9 (100%)
+- EXTRACTED: 11 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

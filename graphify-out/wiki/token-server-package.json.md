@@ -6,7 +6,7 @@
 
 - **token-server/package.json** (8 connections) — `services/token-server/package.json`
 - **dependencies** (6 connections) — `services/token-server/package.json`
-- **scripts** (5 connections) — `services/token-server/package.json`
+- **scripts** (6 connections) — `services/token-server/package.json`
 - **devDependencies** (3 connections) — `services/token-server/package.json`
 - **dotenv** (2 connections) — `services/token-server/package.json`
 - **jose** (2 connections) — `services/token-server/package.json`
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 26 (100%)
+- EXTRACTED: 27 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -1,44 +1,44 @@
 # HomeTab.test.ts
 
-> 19 nodes · cohesion 0.13
+> 15 nodes · cohesion 0.20
 
 ## Key Concepts
 
-- **HomeTab.test.ts** (21 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **START_CONVERSATION** (3 connections) — `apps/mobile/src/home/homeMission.ts`
-- **surfaceFiles()** (3 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **between()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **literals()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **read()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **spoken()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **stripComments()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **style()** (2 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **ABILITIES** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **at()** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **flat()** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **HERO** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **HERO_CARD** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **HOME_SURFACE** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **RENDER** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **SCREEN** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **SCREEN_RAW** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
-- **tags()** (1 connections) — `apps/mobile/src/tabs/HomeTab.test.ts`
+- **LuvaniTabBar.tsx** (36 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **icons.tsx** (14 connections) — `apps/mobile/src/nav/icons.tsx`
+- **LuvaniTabBar()** (11 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **dueCount()** (5 connections) — `apps/mobile/src/review/store.ts`
+- **HomeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
+- **MyFrenchIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
+- **PracticeIcon()** (2 connections) — `apps/mobile/src/nav/icons.tsx`
+- **TabIconProps** (2 connections) — `apps/mobile/src/nav/icons.tsx`
+- **announceTab()** (2 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **labelsWrapUnderGlyph()** (2 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **Glyph()** (1 connections) — `apps/mobile/src/nav/icons.tsx`
+- **ProfileIcon()** (1 connections) — `apps/mobile/src/nav/icons.tsx`
+- **ICONS** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **LABELS** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- **st** (1 connections) — `apps/mobile/src/nav/LuvaniTabBar.tsx`
 
 ## Relationships
 
-- [homeMission.ts](homeMission.ts.md) (2 shared connections)
-- [guilt.ts](guilt.ts.md) (2 shared connections)
-- [MissionHero.tsx](MissionHero.tsx.md) (1 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (17 shared connections)
+- [SessionView.test.ts](SessionView.test.ts.md) (3 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (3 shared connections)
+- [scopeGeneration](scopeGeneration.md) (2 shared connections)
+- [storeBinding.test.ts](storeBinding.test.ts.md) (1 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/home/homeMission.ts`
-- `apps/mobile/src/tabs/HomeTab.test.ts`
+- `apps/mobile/src/nav/LuvaniTabBar.tsx`
+- `apps/mobile/src/nav/icons.tsx`
+- `apps/mobile/src/review/store.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 27 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 58 (94%)
+- INFERRED: 4 (6%)
 - AMBIGUOUS: 0 (0%)
 
 ---

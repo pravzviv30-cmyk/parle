@@ -1,48 +1,51 @@
 # supabaseAdapter.ts
 
-> 12 nodes · cohesion 0.27
+> 22 nodes · cohesion 0.14
 
 ## Key Concepts
 
-- **supabaseAdapter.ts** (27 connections) — `apps/mobile/src/auth/supabaseAdapter.ts`
-- **auth/adapter.ts** (20 connections) — `apps/mobile/src/auth/adapter.ts`
-- **installationId()** (6 connections) — `apps/mobile/src/auth/installation.ts`
-- **authMode.ts** (5 connections) — `apps/mobile/src/auth/authMode.ts`
-- **build()** (4 connections) — `apps/mobile/src/auth/adapter.ts`
-- **selectAuthMode()** (4 connections) — `apps/mobile/src/auth/authMode.ts`
-- **installation.ts** (4 connections) — `apps/mobile/src/auth/installation.ts`
-- **auth** (3 connections) — `apps/mobile/src/auth/adapter.ts`
-- **authMode.test.ts** (2 connections) — `apps/mobile/src/auth/authMode.test.ts`
-- **AuthMode** (1 connections) — `apps/mobile/src/auth/authMode.ts`
-- **AuthModeEnvironment** (1 connections) — `apps/mobile/src/auth/authMode.ts`
-- **toUser()** (1 connections) — `apps/mobile/src/auth/supabaseAdapter.ts`
+- **friendly.ts** (20 connections) — `apps/mobile/src/auth/friendly.ts`
+- **friendly.test.ts** (14 connections) — `apps/mobile/src/auth/friendly.test.ts`
+- **apple.ts** (9 connections) — `apps/mobile/src/auth/apple.ts`
+- **friendly()** (9 connections) — `apps/mobile/src/auth/friendly.ts`
+- **oauth.ts** (6 connections) — `apps/mobile/src/auth/oauth.ts`
+- **APPLE_START_FAILED** (4 connections) — `apps/mobile/src/auth/friendly.ts`
+- **GOOGLE_START_FAILED** (4 connections) — `apps/mobile/src/auth/friendly.ts`
+- **APPLE_NOT_CONFIGURED** (3 connections) — `apps/mobile/src/auth/friendly.ts`
+- **deletionFailure()** (3 connections) — `apps/mobile/src/auth/friendly.ts`
+- **GENERIC_FAILURE** (3 connections) — `apps/mobile/src/auth/friendly.ts`
+- **passwordProse()** (3 connections) — `apps/mobile/src/auth/friendly.ts`
+- **weakPassword()** (3 connections) — `apps/mobile/src/auth/friendly.ts`
+- **startAppleSignIn()** (2 connections) — `apps/mobile/src/auth/apple.ts`
+- **GOOGLE_NOT_CONFIGURED** (2 connections) — `apps/mobile/src/auth/friendly.ts`
+- **ProviderFailure** (2 connections) — `apps/mobile/src/auth/friendly.ts`
+- **startGoogleSignIn()** (2 connections) — `apps/mobile/src/auth/oauth.ts`
+- **copyLiterals()** (1 connections) — `apps/mobile/src/auth/friendly.test.ts`
+- **messages()** (1 connections) — `apps/mobile/src/auth/friendly.test.ts`
+- **rateLimitRule()** (1 connections) — `apps/mobile/src/auth/friendly.test.ts`
+- **read()** (1 connections) — `apps/mobile/src/auth/friendly.test.ts`
+- **REPO_ROOT** (1 connections) — `apps/mobile/src/auth/friendly.test.ts`
+- **serverSource()** (1 connections) — `apps/mobile/src/auth/friendly.test.ts`
 
 ## Relationships
 
-- [friendly.ts](friendly.ts.md) (9 shared connections)
-- [AuthAdapter](AuthAdapter.md) (6 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (4 shared connections)
-- [mockAdapter.ts](mockAdapter.ts.md) (3 shared connections)
-- [DrillScreen](DrillScreen.md) (3 shared connections)
-- [privacy/export.ts](privacy-export.ts.md) (3 shared connections)
-- [apple.test.ts](apple.test.ts.md) (3 shared connections)
-- [secureSessionStorage.ts](secureSessionStorage.ts.md) (3 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (2 shared connections)
-- [useLiveSession.ts](useLiveSession.ts.md) (1 shared connections)
-- [Plan](Plan.md) (1 shared connections)
-- [phonemes/index.ts](phonemes-index.ts.md) (1 shared connections)
+- [wallPages.ts](wallPages.ts.md) (9 shared connections)
+- [ConversationsScreen.test.ts](ConversationsScreen.test.ts.md) (8 shared connections)
+- [Testing](Testing.md) (6 shared connections)
+- [dailyLicences.ts](dailyLicences.ts.md) (3 shared connections)
+- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
+- [recognition.ts](recognition.ts.md) (2 shared connections)
 
 ## Source Files
 
-- `apps/mobile/src/auth/adapter.ts`
-- `apps/mobile/src/auth/authMode.test.ts`
-- `apps/mobile/src/auth/authMode.ts`
-- `apps/mobile/src/auth/installation.ts`
-- `apps/mobile/src/auth/supabaseAdapter.ts`
+- `apps/mobile/src/auth/apple.ts`
+- `apps/mobile/src/auth/friendly.test.ts`
+- `apps/mobile/src/auth/friendly.ts`
+- `apps/mobile/src/auth/oauth.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 60 (100%)
+- EXTRACTED: 63 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

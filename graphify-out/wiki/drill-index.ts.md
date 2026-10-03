@@ -1,63 +1,56 @@
 # drill/index.ts
 
-> 27 nodes · cohesion 0.20
+> 20 nodes · cohesion 0.18
 
 ## Key Concepts
 
-- **drill/index.ts** (57 connections) — `packages/core/src/drill/index.ts`
-- **drill/types.ts** (23 connections) — `packages/core/src/drill/types.ts`
-- **drill/grading.ts** (19 connections) — `packages/core/src/drill/grading.ts`
-- **drill/grading.test.ts** (12 connections) — `packages/core/src/drill/grading.test.ts`
-- **DrillExerciseBase** (9 connections) — `packages/core/src/drill/types.ts`
-- **FillBlankExercise** (9 connections) — `packages/core/src/drill/types.ts`
-- **RepeatThisExercise** (8 connections) — `packages/core/src/drill/types.ts`
-- **TapTranslateExercise** (8 connections) — `packages/core/src/drill/types.ts`
-- **gradeAnswer()** (7 connections) — `packages/core/src/drill/grading.ts`
-- **OwnWordsExercise** (7 connections) — `packages/core/src/drill/types.ts`
-- **TranslationExercise** (7 connections) — `packages/core/src/drill/types.ts`
-- **sameWord()** (7 connections) — `packages/core/src/text/distance.ts`
-- **gradeFreeText()** (6 connections) — `packages/core/src/drill/grading.ts`
-- **AppropriateReplyExercise** (6 connections) — `packages/core/src/drill/types.ts`
-- **BestSentenceExercise** (6 connections) — `packages/core/src/drill/types.ts`
-- **ListenTypeExercise** (6 connections) — `packages/core/src/drill/types.ts`
-- **distance.ts** (6 connections) — `packages/core/src/text/distance.ts`
-- **damerauLevenshtein()** (6 connections) — `packages/core/src/text/distance.ts`
-- **realWordSet()** (4 connections) — `packages/core/src/drill/grading.ts`
-- **acceptedFor()** (3 connections) — `packages/core/src/drill/grading.ts`
-- **DrillDifficulty** (3 connections) — `packages/core/src/drill/types.ts`
-- **TYPO_MAX_DISTANCE** (3 connections) — `packages/core/src/text/distance.ts`
-- **TYPO_MIN_LENGTH** (3 connections) — `packages/core/src/text/distance.ts`
-- **GradeResult** (2 connections) — `packages/core/src/drill/grading.ts`
-- **typed()** (2 connections) — `packages/core/src/drill/grading.test.ts`
-- *... and 2 more nodes in this community*
+- **useLiveSession.ts** (97 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **useLiveSession()** (40 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **safetyState.ts** (5 connections) — `apps/mobile/src/live/safetyState.ts`
+- **abandonSession()** (5 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **globals.ts** (4 connections) — `apps/mobile/src/live/globals.ts`
+- **afterDismiss()** (4 connections) — `apps/mobile/src/live/safetyState.ts`
+- **micApiUnavailable()** (3 connections) — `apps/mobile/src/live/failure.ts`
+- **ensureAudioSession()** (3 connections) — `apps/mobile/src/live/globals.ts`
+- **ensureLiveKitGlobals()** (3 connections) — `apps/mobile/src/live/globals.ts`
+- **releaseAudioSession()** (3 connections) — `apps/mobile/src/live/globals.ts`
+- **trace()** (3 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **emptyDiagnostics()** (2 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **plansIn()** (2 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **refusalCode()** (2 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **CONNECT_TIMEOUTS** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **LiveStatus** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **OUT_OF_MINUTES** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **OutOfMinutesCode** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **OutOfMinutesCopy** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
+- **READY_RETRIES_MS** (1 connections) — `apps/mobile/src/live/useLiveSession.ts`
 
 ## Relationships
 
-- [drill/session.ts](drill-session.ts.md) (34 shared connections)
-- [validateExercise](validateExercise.md) (14 shared connections)
-- [ownWords.test.ts](ownWords.test.ts.md) (12 shared connections)
-- [DrillScreen.tsx](DrillScreen.tsx.md) (10 shared connections)
-- [normalise](normalise.md) (8 shared connections)
-- [DrillScreen](DrillScreen.md) (3 shared connections)
-- [drill/merge.test.ts](drill-merge.test.ts.md) (3 shared connections)
-- [phraseKeyOf](phraseKeyOf.md) (3 shared connections)
-- [buildConversationPack](buildConversationPack.md) (2 shared connections)
-- [DrillScreen.test.ts](DrillScreen.test.ts.md) (2 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (1 shared connections)
-- [path.ts](path.ts.md) (1 shared connections)
+- [threads.ts](threads.ts.md) (13 shared connections)
+- [greeting.ts](greeting.ts.md) (11 shared connections)
+- [getMission](getMission.md) (10 shared connections)
+- [typesafe.ts](typesafe.ts.md) (8 shared connections)
+- [nav/wiring.test.ts](nav-wiring.test.ts.md) (8 shared connections)
+- [journal.ts](journal.ts.md) (7 shared connections)
+- [TutorVoiceKey](TutorVoiceKey.md) (7 shared connections)
+- [MissionProgress](MissionProgress.md) (4 shared connections)
+- [src/theme.ts](src-theme.ts.md) (3 shared connections)
+- [DrillScreen.tsx](DrillScreen.tsx.md) (3 shared connections)
+- [MouthGuide.tsx](MouthGuide.tsx.md) (3 shared connections)
+- [useLiveSession.test.ts](useLiveSession.test.ts.md) (2 shared connections)
 
 ## Source Files
 
-- `packages/core/src/drill/grading.test.ts`
-- `packages/core/src/drill/grading.ts`
-- `packages/core/src/drill/index.ts`
-- `packages/core/src/drill/types.ts`
-- `packages/core/src/text/distance.ts`
+- `apps/mobile/src/live/failure.ts`
+- `apps/mobile/src/live/globals.ts`
+- `apps/mobile/src/live/safetyState.ts`
+- `apps/mobile/src/live/useLiveSession.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 162 (99%)
-- INFERRED: 1 (1%)
+- EXTRACTED: 148 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -1,14 +1,10 @@
 # PhraseCard.test.ts
 
-> 5 nodes · cohesion 0.40
+> 1 nodes · cohesion 0.40
 
 ## Key Concepts
 
-- **PhraseCard.test.ts** (4 connections) — `apps/mobile/src/surface/PhraseCard.test.ts`
-- **FLAT** (1 connections) — `apps/mobile/src/surface/PhraseCard.test.ts`
-- **PHRASE** (1 connections) — `apps/mobile/src/surface/PhraseCard.test.ts`
-- **read()** (1 connections) — `apps/mobile/src/surface/PhraseCard.test.ts`
-- **stripComments()** (1 connections) — `apps/mobile/src/surface/PhraseCard.test.ts`
+- **PhraseCard.test.ts** (2 connections) — `apps/mobile/src/surface/PhraseCard.test.ts`
 
 ## Relationships
 
@@ -20,7 +16,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 4 (100%)
+- EXTRACTED: 2 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

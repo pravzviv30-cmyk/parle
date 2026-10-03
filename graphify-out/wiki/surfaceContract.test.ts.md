@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **surfaceContract.test.ts** (22 connections) — `apps/mobile/src/surfaceContract.test.ts`
+- **surfaceContract.test.ts** (26 connections) — `apps/mobile/src/surfaceContract.test.ts`
 - **openingTag()** (2 connections) — `apps/mobile/src/surfaceContract.test.ts`
 - **SOURCES** (2 connections) — `apps/mobile/src/surfaceContract.test.ts`
 - **stripComments()** (2 connections) — `apps/mobile/src/surfaceContract.test.ts`
@@ -27,8 +27,8 @@
 ## Relationships
 
 - [disclosure.test.ts](disclosure.test.ts.md) (2 shared connections)
+- [illustrations.mjs](illustrations.mjs.md) (1 shared connections)
 - [track.test.ts](track.test.ts.md) (1 shared connections)
-- [answers.test.ts](answers.test.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -36,7 +36,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 24 (100%)
+- EXTRACTED: 28 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **sync/policy.test.ts** (47 connections) — `apps/mobile/src/sync/policy.test.ts`
+- **sync/policy.test.ts** (52 connections) — `apps/mobile/src/sync/policy.test.ts`
 - **ACTIVITY_KEEP_DAYS** (2 connections) — `apps/mobile/src/sync/policy.ts`
 - **MAX_BOOKMARKS** (2 connections) — `apps/mobile/src/sync/policy.ts`
 - **MAX_COMPLETIONS_PER_MISSION** (2 connections) — `apps/mobile/src/sync/policy.ts`
@@ -35,12 +35,12 @@
 
 - [sync/policy.ts](sync-policy.ts.md) (7 shared connections)
 - [engine.ts](engine.ts.md) (5 shared connections)
-- [answers.test.ts](answers.test.ts.md) (3 shared connections)
+- [track.test.ts](track.test.ts.md) (3 shared connections)
 - [profile/merge.ts](profile-merge.ts.md) (2 shared connections)
-- [scheduler.ts](scheduler.ts.md) (1 shared connections)
-- [activity.ts](activity.ts.md) (1 shared connections)
-- [RealMomentScreen.tsx](RealMomentScreen.tsx.md) (1 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (1 shared connections)
+- [ReviewCard](ReviewCard.md) (1 shared connections)
+- [LuvaniConversation](LuvaniConversation.md) (1 shared connections)
+- [realMoments.ts](realMoments.ts.md) (1 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -49,8 +49,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 43 (78%)
-- INFERRED: 12 (22%)
+- EXTRACTED: 46 (77%)
+- INFERRED: 14 (23%)
 - AMBIGUOUS: 0 (0%)
 
 ---

@@ -1,78 +1,65 @@
 # LlmUsage
 
-> 182 nodes · cohesion 0.04
+> 35 nodes · cohesion 0.13
 
 ## Key Concepts
 
-- **LlmUsage** (63 connections) — `packages/brain/src/llm/client.ts`
-- **openaiResponses.ts** (61 connections) — `packages/brain/src/llm/openaiResponses.ts`
-- **contract/types.ts** (49 connections) — `packages/brain/src/contract/types.ts`
-- **anthropic.ts** (47 connections) — `packages/brain/src/llm/anthropic.ts`
-- **llm/client.ts** (44 connections) — `packages/brain/src/llm/client.ts`
-- **openaiCompat.ts** (43 connections) — `packages/brain/src/llm/openaiCompat.ts`
-- **claudeCli.ts** (41 connections) — `packages/brain/src/llm/claudeCli.ts`
-- **client.test.ts** (34 connections) — `packages/brain/src/llm/client.test.ts`
-- **MockLlmClient** (34 connections) — `packages/brain/src/llm/mock.ts`
-- **LlmClient** (31 connections) — `packages/brain/src/llm/client.ts`
-- **mock.ts** (30 connections) — `packages/brain/src/llm/mock.ts`
-- **ScenarioFrame** (28 connections) — `packages/brain/src/contract/types.ts`
-- **schemas.ts** (25 connections) — `packages/brain/src/contract/schemas.ts`
-- **OpenAiResponsesBrainClient** (25 connections) — `packages/brain/src/llm/openaiResponses.ts`
-- **TutorTurn** (24 connections) — `packages/brain/src/contract/types.ts`
-- **BrainTurnRequest** (24 connections) — `packages/brain/src/llm/client.ts`
-- **OpenAiCompatBrainClient** (23 connections) — `packages/brain/src/llm/openaiCompat.ts`
-- **openaiResponses.test.ts** (23 connections) — `packages/brain/src/llm/openaiResponses.test.ts`
-- **split.ts** (22 connections) — `packages/brain/src/llm/split.ts`
-- **AnthropicBrainClient** (21 connections) — `packages/brain/src/llm/anthropic.ts`
-- **BrainFrameRequest** (20 connections) — `packages/brain/src/llm/client.ts`
-- **Curation** (19 connections) — `packages/brain/src/curate/curate.ts`
-- **BrainCurateRequest** (19 connections) — `packages/brain/src/llm/client.ts`
-- **BrainDrillsRequest** (19 connections) — `packages/brain/src/llm/client.ts`
-- **BrainExtractRequest** (19 connections) — `packages/brain/src/llm/client.ts`
-- *... and 157 more nodes in this community*
+- **PLANS** (28 connections) — `packages/core/src/metering/meter.ts`
+- **meter.ts** (24 connections) — `packages/core/src/metering/meter.ts`
+- **metering/index.ts** (21 connections) — `packages/core/src/metering/index.ts`
+- **secondsRemaining()** (15 connections) — `packages/core/src/metering/meter.ts`
+- **meter.test.ts** (14 connections) — `packages/core/src/metering/meter.test.ts`
+- **canStartSession()** (12 connections) — `packages/core/src/metering/meter.ts`
+- **src/billingStatus.ts** (12 connections) — `services/token-server/src/billingStatus.ts`
+- **PlanSpec** (9 connections) — `packages/core/src/metering/meter.ts`
+- **billingStatus.test.ts** (9 connections) — `services/token-server/src/billingStatus.test.ts`
+- **MIN_VIABLE_SESSION_SEC** (7 connections) — `packages/core/src/metering/meter.ts`
+- **rollPeriod()** (7 connections) — `packages/core/src/metering/meter.ts`
+- **billingStatusFor()** (7 connections) — `services/token-server/src/billingStatus.ts`
+- **DEFAULT_COST_MODEL** (6 connections) — `packages/core/src/metering/meter.ts`
+- **estimateSessionCost()** (6 connections) — `packages/core/src/metering/meter.ts`
+- **lapsedEntitlement()** (6 connections) — `packages/core/src/metering/meter.ts`
+- **planMargin()** (5 connections) — `packages/core/src/metering/meter.ts`
+- **Metered minutes enforced from v1** (5 connections) — `PRODUCT.md`
+- **recordUsage()** (4 connections) — `packages/core/src/metering/meter.ts`
+- **Cascaded STT to LLM to TTS voice pipeline** (4 connections) — `PRODUCT.md`
+- **Metering enforced at token issuance** (3 connections) — `README.md`
+- **Risk 2: cost per session** (3 connections) — `README.md`
+- **LAPSE_GRACE_SEC** (2 connections) — `packages/core/src/metering/meter.ts`
+- **Margin** (2 connections) — `packages/core/src/metering/meter.ts`
+- **SessionCost** (2 connections) — `packages/core/src/metering/meter.ts`
+- **SessionUsage** (2 connections) — `packages/core/src/metering/meter.ts`
+- *... and 10 more nodes in this community*
 
 ## Relationships
 
-- [conversation.ts](conversation.ts.md) (52 shared connections)
-- [runEval.ts](runEval.ts.md) (52 shared connections)
-- [convo.test.ts](convo.test.ts.md) (31 shared connections)
-- [profile.ts](profile.ts.md) (25 shared connections)
-- [curationEval.ts](curationEval.ts.md) (21 shared connections)
-- [brain/src/index.ts](brain-src-index.ts.md) (17 shared connections)
-- [convo.ts](convo.ts.md) (15 shared connections)
-- [src/copy.ts](src-copy.ts.md) (14 shared connections)
-- [generate.ts](generate.ts.md) (13 shared connections)
-- [ChatMessage](ChatMessage.md) (10 shared connections)
-- [drillJudge.ts](drillJudge.ts.md) (6 shared connections)
-- [server.ts](server.ts.md) (2 shared connections)
+- [src/store.ts](src-store.ts.md) (10 shared connections)
+- [phraseKeyOf](phraseKeyOf.md) (9 shared connections)
+- [voiceLifecycle.ts](voiceLifecycle.ts.md) (6 shared connections)
+- [profile/store.ts](profile-store.ts.md) (6 shared connections)
+- [server.ts](server.ts.md) (6 shared connections)
+- [generate.ts](generate.ts.md) (3 shared connections)
+- [outOfMinutes.test.ts](outOfMinutes.test.ts.md) (3 shared connections)
+- [What changed](What_changed.md) (3 shared connections)
+- [plan.ts](plan.ts.md) (3 shared connections)
+- [deliveryRoadmap.test.ts](deliveryRoadmap.test.ts.md) (2 shared connections)
+- [drill/index.ts](drill-index.ts.md) (2 shared connections)
+- [databaseContract.test.ts](databaseContract.test.ts.md) (1 shared connections)
 
 ## Source Files
 
+- `PRODUCT.md`
 - `README.md`
-- `packages/brain/src/contract/schemas.test.ts`
-- `packages/brain/src/contract/schemas.ts`
-- `packages/brain/src/contract/types.ts`
-- `packages/brain/src/curate/curate.ts`
-- `packages/brain/src/drill/generate.ts`
-- `packages/brain/src/llm/anthropic.ts`
-- `packages/brain/src/llm/claudeCli.ts`
-- `packages/brain/src/llm/client.test.ts`
-- `packages/brain/src/llm/client.ts`
-- `packages/brain/src/llm/factory.ts`
-- `packages/brain/src/llm/http.ts`
-- `packages/brain/src/llm/index.ts`
-- `packages/brain/src/llm/judge.ts`
-- `packages/brain/src/llm/mock.ts`
-- `packages/brain/src/llm/openaiCompat.ts`
-- `packages/brain/src/llm/openaiResponses.test.ts`
-- `packages/brain/src/llm/openaiResponses.ts`
-- `packages/brain/src/llm/routing.ts`
-- `packages/brain/src/llm/split.test.ts`
+- `packages/core/src/metering/index.ts`
+- `packages/core/src/metering/meter.test.ts`
+- `packages/core/src/metering/meter.ts`
+- `services/token-server/src/billingStatus.test.ts`
+- `services/token-server/src/billingStatus.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 881 (99%)
-- INFERRED: 11 (1%)
+- EXTRACTED: 143 (94%)
+- INFERRED: 9 (6%)
 - AMBIGUOUS: 0 (0%)
 
 ---

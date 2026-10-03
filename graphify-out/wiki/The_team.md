@@ -4,13 +4,13 @@
 
 ## Key Concepts
 
-- **The team** (7 connections) — `docs/TEAM.md`
-- **Calling them** (1 connections) — `docs/TEAM.md`
-- **Territory is the point** (1 connections) — `docs/TEAM.md`
-- **The gate defends the fleet** (1 connections) — `docs/TEAM.md`
-- **The independent reviewers** (1 connections) — `docs/TEAM.md`
-- **Three of them are ahead of the code** (1 connections) — `docs/TEAM.md`
-- **Who owns what** (1 connections) — `docs/TEAM.md`
+- **The loop** (7 connections) — `docs/LOOP.md`
+- **Giving it a goal** (1 connections) — `docs/LOOP.md`
+- **Running it** (1 connections) — `docs/LOOP.md`
+- **The agents** (1 connections) — `docs/LOOP.md`
+- **The bar** (1 connections) — `docs/LOOP.md`
+- **The other half: building something new** (1 connections) — `docs/LOOP.md`
+- **Verifying UI work** (1 connections) — `docs/LOOP.md`
 
 ## Relationships
 
@@ -18,7 +18,7 @@
 
 ## Source Files
 
-- `docs/TEAM.md`
+- `docs/LOOP.md`
 
 ## Audit Trail
 

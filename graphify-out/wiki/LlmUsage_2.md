@@ -1,8 +1,8 @@
 # LlmUsage
 
-> God node · 63 connections · `packages/brain/src/llm/client.ts`
+> God node · 79 connections · `packages/brain/src/llm/client.ts`
 
-**Community:** [LlmUsage](LlmUsage.md)
+**Community:** [ledger.ts](ledger.ts.md)
 
 ## Connections by Relation
 
@@ -14,13 +14,18 @@
 - openaiResponses.ts `EXTRACTED`
 - anthropic.ts `EXTRACTED`
 - openaiCompat.ts `EXTRACTED`
-- sessionLoop.ts `EXTRACTED`
 - claudeCli.ts `EXTRACTED`
-- [runEval.ts](runEval.ts.md) `EXTRACTED`
+- [sessionLoop.ts](sessionLoop.ts.md) `EXTRACTED`
+- jevJudge.ts `EXTRACTED`
+- runEval.ts `EXTRACTED`
+- [typesafe.ts](typesafe.ts.md) `EXTRACTED`
 - mock.ts `EXTRACTED`
-- split.ts `EXTRACTED`
 - [drillJudge.ts](drillJudge.ts.md) `EXTRACTED`
+- tutor-agent/src/canDoEvidence.ts `EXTRACTED`
+- tutor-agent/src/correctionReason.ts `EXTRACTED`
+- split.ts `EXTRACTED`
 - usageAccounting.test.ts `EXTRACTED`
+- fixLineObserver.ts `EXTRACTED`
 - brain-playground/src/usage.ts `EXTRACTED`
 - pricing.ts `EXTRACTED`
 - pricing.test.ts `EXTRACTED`
@@ -28,24 +33,24 @@
 ### references
 - [LuvaniConversation](LuvaniConversation.md) `EXTRACTED`
 - .complete() `EXTRACTED`
-- .parseWithRetry() `EXTRACTED`
-- .ask() `EXTRACTED`
-- .completeJson() `EXTRACTED`
 - .recordBrainUsage() `EXTRACTED`
-- .turn() `EXTRACTED`
-- .curate() `EXTRACTED`
-- .drills() `EXTRACTED`
-- .extract() `EXTRACTED`
-- .frame() `EXTRACTED`
-- .curate() `EXTRACTED`
-- .drills() `EXTRACTED`
-- .extract() `EXTRACTED`
-- .frame() `EXTRACTED`
+- .ask() `EXTRACTED`
+- .parseWithRetry() `EXTRACTED`
+- .completeJson() `EXTRACTED`
 - .turn() `EXTRACTED`
 - DrillJudgeDeps `EXTRACTED`
-- .judge() `EXTRACTED`
+- JevResult `EXTRACTED`
 - .curate() `EXTRACTED`
 - .drills() `EXTRACTED`
+- .extract() `EXTRACTED`
+- .frame() `EXTRACTED`
+- .screen() `EXTRACTED`
+- .curate() `EXTRACTED`
+- .drills() `EXTRACTED`
+- .extract() `EXTRACTED`
+- .frame() `EXTRACTED`
+- .turn() `EXTRACTED`
+- .judge() `EXTRACTED`
 
 ---
 

@@ -27,7 +27,7 @@
 
 ## Relationships
 
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (3 shared connections)
+- [wallPages.ts](wallPages.ts.md) (3 shared connections)
 
 ## Source Files
 

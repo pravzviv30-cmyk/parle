@@ -4,7 +4,7 @@
 
 ## Key Concepts
 
-- **deviceBuildContract.test.ts** (5 connections) — `apps/mobile/src/app/deviceBuildContract.test.ts`
+- **deviceBuildContract.test.ts** (7 connections) — `apps/mobile/src/app/deviceBuildContract.test.ts`
 - **appConfig** (1 connections) — `apps/mobile/src/app/deviceBuildContract.test.ts`
 - **manifest** (1 connections) — `apps/mobile/src/app/deviceBuildContract.test.ts`
 - **MOBILE** (1 connections) — `apps/mobile/src/app/deviceBuildContract.test.ts`
@@ -21,7 +21,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 5 (100%)
+- EXTRACTED: 7 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

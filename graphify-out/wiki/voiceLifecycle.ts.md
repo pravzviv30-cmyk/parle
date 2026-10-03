@@ -6,7 +6,7 @@
 
 - **voiceLifecycle.ts** (68 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **main()** (26 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
-- **voiceLifecycle.test.ts** (22 connections) — `services/tutor-agent/src/verify/voiceLifecycle.test.ts`
+- **voiceLifecycle.test.ts** (25 connections) — `services/tutor-agent/src/verify/voiceLifecycle.test.ts`
 - **timed()** (15 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **checkHardStop()** (11 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **sleep()** (11 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
@@ -19,12 +19,12 @@
 - **checkAgentSecret()** (6 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **checkNeverJoinedRoom()** (6 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **checkUnusableRoomNotCharged()** (6 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
+- **readStore()** (6 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **checkDepartureClosesRoom()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **checkLeaseReleased()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **connectRoom()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **endSession()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **leaveRoom()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
-- **readStore()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **recordEmptyRoomHold()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **recordRejoinInsideTtl()** (5 connections) — `services/tutor-agent/src/verify/voiceLifecycle.ts`
 - **CostModel** (4 connections) — `packages/core/src/metering/meter.ts`
@@ -33,11 +33,11 @@
 
 ## Relationships
 
-- [meter.ts](meter.ts.md) (6 shared connections)
-- [protocol.ts](protocol.ts.md) (2 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (2 shared connections)
-- [Entitlement](Entitlement.md) (1 shared connections)
-- [startOwnership.test.ts](startOwnership.test.ts.md) (1 shared connections)
+- [LlmUsage](LlmUsage.md) (6 shared connections)
+- [src/store.ts](src-store.ts.md) (3 shared connections)
+- [getMission](getMission.md) (2 shared connections)
+- [generate.ts](generate.ts.md) (2 shared connections)
+- [threads.ts](threads.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -47,7 +47,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 182 (100%)
+- EXTRACTED: 186 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

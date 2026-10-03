@@ -1,49 +1,56 @@
 # voice.ts
 
-> 19 nodes · cohesion 0.15
+> 18 nodes · cohesion 0.22
 
 ## Key Concepts
 
-- **voice.ts** (34 connections) — `services/tutor-agent/src/voice.ts`
-- **voice.test.ts** (16 connections) — `services/tutor-agent/src/voice.test.ts`
-- **joinMeta.test.ts** (8 connections) — `services/tutor-agent/src/joinMeta.test.ts`
-- **ELEVEN_VOICES** (6 connections) — `services/tutor-agent/src/voice.ts`
-- **resolveTutorVoice()** (5 connections) — `services/tutor-agent/src/voice.ts`
-- **VOICE_KEY** (5 connections) — `services/tutor-agent/src/voice.ts`
-- **BuildTTSOptions** (2 connections) — `services/tutor-agent/src/voice.ts`
-- **LANGUAGE_CODE** (2 connections) — `services/tutor-agent/src/voice.ts`
-- **OUTPUT_ENCODING** (2 connections) — `services/tutor-agent/src/voice.ts`
-- **VOICE_SETTINGS** (2 connections) — `services/tutor-agent/src/voice.ts`
-- **AGENT** (1 connections) — `services/tutor-agent/src/joinMeta.test.ts`
-- **CODE** (1 connections) — `services/tutor-agent/src/joinMeta.test.ts`
-- **stripComments()** (1 connections) — `services/tutor-agent/src/joinMeta.test.ts`
-- **DEFAULT_CACHE_DIR** (1 connections) — `services/tutor-agent/src/voice.ts`
-- **Env** (1 connections) — `services/tutor-agent/src/voice.ts`
-- **SETTINGS_FINGERPRINT** (1 connections) — `services/tutor-agent/src/voice.ts`
-- **settingsFingerprint()** (1 connections) — `services/tutor-agent/src/voice.ts`
-- **ENV_KEYS** (1 connections) — `services/tutor-agent/src/voice.test.ts`
-- **VoiceVendor** (1 connections) — `services/tutor-agent/src/voice.ts`
+- **MissionProgress** (34 connections) — `packages/core/src/missions/missions.ts`
+- **myfrench/model.ts** (32 connections) — `apps/mobile/src/myfrench/model.ts`
+- **myFrenchFrom()** (13 connections) — `apps/mobile/src/myfrench/model.ts`
+- **portfolio.test.ts** (12 connections) — `apps/mobile/src/progress/portfolio.test.ts`
+- **portfolio.ts** (8 connections) — `apps/mobile/src/progress/portfolio.ts`
+- **SituationRow** (6 connections) — `apps/mobile/src/myfrench/model.ts`
+- **situationAction** (6 connections) — `apps/mobile/src/progress/portfolio.ts`
+- **startLabel()** (5 connections) — `apps/mobile/src/progress/portfolio.ts`
+- **hasSaved()** (4 connections) — `apps/mobile/src/bookmarks/view.ts`
+- **recentPhraseKeys()** (4 connections) — `apps/mobile/src/myfrench/model.ts`
+- **SituationChip** (4 connections) — `apps/mobile/src/myfrench/situations.ts`
+- **ChooserInput** (2 connections) — `apps/mobile/src/missions/chooserView.ts`
+- **NEXT_SITUATION** (2 connections) — `apps/mobile/src/progress/portfolio.ts`
+- **SITUATION_ACTION** (2 connections) — `apps/mobile/src/progress/portfolio.ts`
+- **read()** (2 connections) — `apps/mobile/src/progress/portfolio.test.ts`
+- **stripComments()** (2 connections) — `apps/mobile/src/progress/portfolio.test.ts`
+- **finished** (1 connections) — `apps/mobile/src/progress/portfolio.test.ts`
+- **NOW** (1 connections) — `apps/mobile/src/progress/portfolio.test.ts`
 
 ## Relationships
 
-- [TutorVoiceKey](TutorVoiceKey.md) (9 shared connections)
-- [preflight.ts](preflight.ts.md) (9 shared connections)
-- [src/voiceSamples.ts](src-voiceSamples.ts.md) (7 shared connections)
-- [voiceFish.ts](voiceFish.ts.md) (4 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (3 shared connections)
-- [ttsCache.ts](ttsCache.ts.md) (3 shared connections)
-- [agent.ts](agent.ts.md) (2 shared connections)
-- [warmCache.ts](warmCache.ts.md) (2 shared connections)
+- [authFlow.test.ts](authFlow.test.ts.md) (11 shared connections)
+- [userKey](userKey.md) (9 shared connections)
+- [drillJudge.ts](drillJudge.ts.md) (7 shared connections)
+- [dashboard.ts](dashboard.ts.md) (6 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (5 shared connections)
+- [daily/index.ts](daily-index.ts.md) (4 shared connections)
+- [paywallView.ts](paywallView.ts.md) (3 shared connections)
+- [generate.ts](generate.ts.md) (3 shared connections)
+- [brain/src/index.ts](brain-src-index.ts.md) (2 shared connections)
+- [reflection.ts](reflection.ts.md) (2 shared connections)
+- [FixLineSession](FixLineSession.md) (2 shared connections)
+- [archive.ts](archive.ts.md) (1 shared connections)
 
 ## Source Files
 
-- `services/tutor-agent/src/joinMeta.test.ts`
-- `services/tutor-agent/src/voice.test.ts`
-- `services/tutor-agent/src/voice.ts`
+- `apps/mobile/src/bookmarks/view.ts`
+- `apps/mobile/src/missions/chooserView.ts`
+- `apps/mobile/src/myfrench/model.ts`
+- `apps/mobile/src/myfrench/situations.ts`
+- `apps/mobile/src/progress/portfolio.test.ts`
+- `apps/mobile/src/progress/portfolio.ts`
+- `packages/core/src/missions/missions.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 65 (100%)
+- EXTRACTED: 106 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

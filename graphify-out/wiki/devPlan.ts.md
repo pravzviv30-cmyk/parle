@@ -4,12 +4,12 @@
 
 ## Key Concepts
 
-- **devPlan.ts** (24 connections) — `services/shared/devPlan.ts`
+- **devPlan.ts** (27 connections) — `services/shared/devPlan.ts`
 - **dev.mjs** (21 connections) — `scripts/dev.mjs`
+- **main()** (14 connections) — `scripts/dev.mjs`
 - **devPlan.test.ts** (14 connections) — `services/tutor-agent/src/devPlan.test.ts`
-- **main()** (13 connections) — `scripts/dev.mjs`
-- **envGaps()** (6 connections) — `services/shared/devPlan.ts`
-- **bootPlan()** (5 connections) — `services/shared/devPlan.ts`
+- **envGaps()** (8 connections) — `services/shared/devPlan.ts`
+- **bootPlan()** (7 connections) — `services/shared/devPlan.ts`
 - **launch()** (4 connections) — `scripts/dev.mjs`
 - **say()** (4 connections) — `scripts/dev.mjs`
 - **shutdown()** (4 connections) — `scripts/dev.mjs`
@@ -20,6 +20,8 @@
 - **readEnvFile()** (3 connections) — `scripts/dev.mjs`
 - **resolvedPlan()** (3 connections) — `scripts/dev.mjs`
 - **waitForReady()** (3 connections) — `scripts/dev.mjs`
+- **AGENT_ENV_FILE** (2 connections) — `scripts/dev.mjs`
+- **children** (2 connections) — `scripts/dev.mjs`
 - **die()** (2 connections) — `scripts/dev.mjs`
 - **hasClaudeCli()** (2 connections) — `scripts/dev.mjs`
 - **BootStep** (2 connections) — `services/shared/devPlan.ts`
@@ -27,14 +29,12 @@
 - **ProbeResult** (2 connections) — `services/shared/devPlan.ts`
 - **voiceVendorOf()** (2 connections) — `services/shared/devPlan.ts`
 - **stepFor()** (2 connections) — `services/tutor-agent/src/devPlan.test.ts`
-- **AGENT_ENV_FILE** (1 connections) — `scripts/dev.mjs`
-- **children** (1 connections) — `scripts/dev.mjs`
 - *... and 15 more nodes in this community*
 
 ## Relationships
 
-- [httpSecurity.ts](httpSecurity.ts.md) (3 shared connections)
-- [preflight.ts](preflight.ts.md) (3 shared connections)
+- [config.ts](config.ts.md) (3 shared connections)
+- [agent.ts](agent.ts.md) (3 shared connections)
 
 ## Source Files
 
@@ -44,7 +44,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 78 (100%)
+- EXTRACTED: 87 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

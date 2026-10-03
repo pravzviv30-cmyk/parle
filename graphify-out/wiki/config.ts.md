@@ -1,28 +1,35 @@
 # config.ts
 
-> 6 nodes · cohesion 0.53
+> 11 nodes · cohesion 0.31
 
 ## Key Concepts
 
-- **config.ts** (6 connections) — `services/token-server/src/config.ts`
-- **productionConfigurationProblems()** (5 connections) — `services/token-server/src/config.ts`
-- **exactHttpsOrigin()** (2 connections) — `services/token-server/src/config.ts`
-- **secureUrl()** (2 connections) — `services/token-server/src/config.ts`
-- **config.test.ts** (2 connections) — `services/token-server/src/config.test.ts`
-- **ServerEnvironment** (1 connections) — `services/token-server/src/config.ts`
+- **httpSecurity.ts** (12 connections) — `services/token-server/src/httpSecurity.ts`
+- **httpSecurity.test.ts** (6 connections) — `services/token-server/src/httpSecurity.test.ts`
+- **applyHttpSecurity()** (5 connections) — `services/token-server/src/httpSecurity.ts`
+- **createOriginPolicy()** (4 connections) — `services/token-server/src/httpSecurity.ts`
+- **APP_PORT** (3 connections) — `services/shared/devPlan.ts`
+- **originAllowed()** (3 connections) — `services/token-server/src/httpSecurity.ts`
+- **parseAllowedOrigins()** (3 connections) — `services/token-server/src/httpSecurity.ts`
+- **requestOrigin()** (2 connections) — `services/token-server/src/httpSecurity.ts`
+- **DEVELOPMENT_ORIGINS** (1 connections) — `services/token-server/src/httpSecurity.ts`
+- **DEVELOPMENT_PORTS** (1 connections) — `services/token-server/src/httpSecurity.ts`
+- **OriginPolicy** (1 connections) — `services/token-server/src/httpSecurity.ts`
 
 ## Relationships
 
-- [server.ts](server.ts.md) (2 shared connections)
+- [server.ts](server.ts.md) (4 shared connections)
+- [devPlan.ts](devPlan.ts.md) (3 shared connections)
 
 ## Source Files
 
-- `services/token-server/src/config.test.ts`
-- `services/token-server/src/config.ts`
+- `services/shared/devPlan.ts`
+- `services/token-server/src/httpSecurity.test.ts`
+- `services/token-server/src/httpSecurity.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 10 (100%)
+- EXTRACTED: 24 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

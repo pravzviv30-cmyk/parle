@@ -1,18 +1,17 @@
 # expo
 
-> 32 nodes · cohesion 0.06
+> 31 nodes · cohesion 0.06
 
 ## Key Concepts
 
 - **expo** (12 connections) — `apps/mobile/app.json`
 - **ios** (8 connections) — `apps/mobile/app.json`
-- **adaptiveIcon** (5 connections) — `apps/mobile/app.json`
 - **android** (5 connections) — `apps/mobile/app.json`
+- **adaptiveIcon** (4 connections) — `apps/mobile/app.json`
 - **permissions** (3 connections) — `apps/mobile/app.json`
 - **web** (3 connections) — `apps/mobile/app.json`
 - **infoPlist** (2 connections) — `apps/mobile/app.json`
 - **backgroundColor** (1 connections) — `apps/mobile/app.json`
-- **backgroundImage** (1 connections) — `apps/mobile/app.json`
 - **foregroundImage** (1 connections) — `apps/mobile/app.json`
 - **monochromeImage** (1 connections) — `apps/mobile/app.json`
 - **package** (1 connections) — `apps/mobile/app.json`
@@ -29,11 +28,12 @@
 - **bundleIdentifier** (1 connections) — `apps/mobile/app.json`
 - **deploymentTarget** (1 connections) — `apps/mobile/app.json`
 - **requireFullScreen** (1 connections) — `apps/mobile/app.json`
-- *... and 7 more nodes in this community*
+- **supportsTablet** (1 connections) — `apps/mobile/app.json`
+- *... and 6 more nodes in this community*
 
 ## Relationships
 
-- [plugins](plugins.md) (1 shared connections)
+- [recognition.ts](recognition.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -41,7 +41,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 32 (100%)
+- EXTRACTED: 31 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

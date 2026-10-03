@@ -1,46 +1,47 @@
 # plugins
 
-> 13 nodes · cohesion 0.15
+> 13 nodes · cohesion 0.24
 
 ## Key Concepts
 
-- **plugins** (10 connections) — `apps/mobile/app.json`
-- **oauth.native.ts** (6 connections) — `apps/mobile/src/auth/oauth.native.ts`
-- **expo-web-browser** (3 connections) — `apps/mobile/app.json`
-- **saveFile.native.ts** (2 connections) — `apps/mobile/src/progress/saveFile.native.ts`
-- **expo-apple-authentication** (2 connections) — `apps/mobile/app.json`
-- **expo-font** (2 connections) — `apps/mobile/app.json`
-- **expo-notifications** (2 connections) — `apps/mobile/app.json`
-- **expo-secure-store** (2 connections) — `apps/mobile/app.json`
-- **expo-sharing** (2 connections) — `apps/mobile/app.json`
-- **startGoogleSignIn()** (1 connections) — `apps/mobile/src/auth/oauth.native.ts`
-- **saveTextFile()** (1 connections) — `apps/mobile/src/progress/saveFile.native.ts`
-- **@config-plugins/react-native-webrtc** (1 connections) — `apps/mobile/app.json`
-- **@livekit/react-native-expo-plugin** (1 connections) — `apps/mobile/app.json`
+- **localDayKey()** (25 connections) — `packages/core/src/levels/levels.ts`
+- **isRetained()** (13 connections) — `apps/mobile/src/progress/momentum.ts`
+- **retainedOrder()** (8 connections) — `apps/mobile/src/progress/momentum.ts`
+- **retainedFrom()** (7 connections) — `apps/mobile/src/progress/momentum.ts`
+- **goalFrom()** (6 connections) — `apps/mobile/src/progress/momentum.ts`
+- **momentumFrom()** (6 connections) — `apps/mobile/src/progress/momentum.ts`
+- **activeDayKeys()** (5 connections) — `apps/mobile/src/progress/momentum.ts`
+- **daysFrom()** (4 connections) — `apps/mobile/src/progress/momentum.ts`
+- **recentDayKeys()** (4 connections) — `apps/mobile/src/progress/momentum.ts`
+- **weekRailFrom()** (4 connections) — `apps/mobile/src/progress/momentum.ts`
+- **isPhrase()** (3 connections) — `apps/mobile/src/progress/momentum.ts`
+- **masteryFrom()** (3 connections) — `apps/mobile/src/progress/momentum.ts`
+- **goalNote()** (2 connections) — `apps/mobile/src/progress/momentum.ts`
 
 ## Relationships
 
-- [friendly.ts](friendly.ts.md) (2 shared connections)
-- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) (1 shared connections)
-- [expo](expo.md) (1 shared connections)
-- [AuthResult](AuthResult.md) (1 shared connections)
-- [AuthAdapter](AuthAdapter.md) (1 shared connections)
-- [apple.native.ts](apple.native.ts.md) (1 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (1 shared connections)
-- [reminder.ts](reminder.ts.md) (1 shared connections)
-- [supabaseAdapter.ts](supabaseAdapter.ts.md) (1 shared connections)
-- [SettingsScreen.tsx](SettingsScreen.tsx.md) (1 shared connections)
+- [momentum.ts](momentum.ts.md) (14 shared connections)
+- [drillJudge.ts](drillJudge.ts.md) (8 shared connections)
+- [archive.ts](archive.ts.md) (4 shared connections)
+- [ReviewCard](ReviewCard.md) (3 shared connections)
+- [GoalStepScreen.tsx](GoalStepScreen.tsx.md) (3 shared connections)
+- [apple.native.ts](apple.native.ts.md) (2 shared connections)
+- [reflection.ts](reflection.ts.md) (2 shared connections)
+- [Current-state map](Current-state_map.md) (2 shared connections)
+- [TutorMemoryScreen.tsx](TutorMemoryScreen.tsx.md) (2 shared connections)
+- [goals/store.ts](goals-store.ts.md) (1 shared connections)
+- [FixLineSession](FixLineSession.md) (1 shared connections)
+- [LuvaniConversation](LuvaniConversation.md) (1 shared connections)
 
 ## Source Files
 
-- `apps/mobile/app.json`
-- `apps/mobile/src/auth/oauth.native.ts`
-- `apps/mobile/src/progress/saveFile.native.ts`
+- `apps/mobile/src/progress/momentum.ts`
+- `packages/core/src/levels/levels.ts`
 
 ## Audit Trail
 
-- EXTRACTED: 23 (100%)
-- INFERRED: 0 (0%)
+- EXTRACTED: 66 (93%)
+- INFERRED: 5 (7%)
 - AMBIGUOUS: 0 (0%)
 
 ---

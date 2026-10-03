@@ -5,6 +5,8 @@
 ## Key Concepts
 
 - **safety.ts** (52 connections) — `services/tutor-agent/src/safety.ts`
+- **ONE_LETTER_WORDS** (2 connections) — `services/tutor-agent/src/safety.ts`
+- **OUTPUT_RULES** (2 connections) — `services/tutor-agent/src/safety.ts`
 - **AGE_STANDS_ALONE** (1 connections) — `services/tutor-agent/src/safety.ts`
 - **APPROACH_DIRECT** (1 connections) — `services/tutor-agent/src/safety.ts`
 - **APPROACH_REQUEST** (1 connections) — `services/tutor-agent/src/safety.ts`
@@ -27,17 +29,15 @@
 - **MINOR** (1 connections) — `services/tutor-agent/src/safety.ts`
 - **MINOR_SEXUAL_RULES** (1 connections) — `services/tutor-agent/src/safety.ts`
 - **NUDITY** (1 connections) — `services/tutor-agent/src/safety.ts`
-- **ONE_LETTER_WORDS** (1 connections) — `services/tutor-agent/src/safety.ts`
-- **OUTPUT_PROMPT_LEAK** (1 connections) — `services/tutor-agent/src/safety.ts`
 - *... and 10 more nodes in this community*
 
 ## Relationships
 
-- [safetyDecision](safetyDecision.md) (8 shared connections)
+- [safetyDecision](safetyDecision.md) (10 shared connections)
 - [safety.test.ts](safety.test.ts.md) (5 shared connections)
 - [safetyPolicy.test.ts](safetyPolicy.test.ts.md) (3 shared connections)
-- [convo.ts](convo.ts.md) (1 shared connections)
-- [tutor.ts](tutor.ts.md) (1 shared connections)
+- [preAccountDraft.ts](preAccountDraft.ts.md) (1 shared connections)
+- [verifyProductEvents.mjs](verifyProductEvents.mjs.md) (1 shared connections)
 
 ## Source Files
 
@@ -45,7 +45,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 52 (100%)
+- EXTRACTED: 54 (100%)
 - INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 

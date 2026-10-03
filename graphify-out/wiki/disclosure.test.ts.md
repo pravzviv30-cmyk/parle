@@ -4,47 +4,47 @@
 
 ## Key Concepts
 
-- **disclosure.test.ts** (40 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
+- **disclosure.test.ts** (43 connections) — `apps/mobile/src/onboarding/disclosure.test.ts`
+- **disclosure.ts** (40 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **voiceStep.test.ts** (37 connections) — `apps/mobile/src/onboarding/voiceStep.test.ts`
-- **disclosure.ts** (33 connections) — `apps/mobile/src/onboarding/disclosure.ts`
-- **tutorName.test.ts** (33 connections) — `apps/mobile/src/tutor/tutorName.test.ts`
-- **voiceStep.ts** (25 connections) — `apps/mobile/src/onboarding/voiceStep.ts`
-- **OnboardingFlow()** (13 connections) — `apps/mobile/src/onboarding/OnboardingFlow.tsx`
-- **tutorVoiceOf()** (13 connections) — `apps/mobile/src/tutor/tutorVoice.ts`
+- **tutorName.test.ts** (34 connections) — `apps/mobile/src/tutor/tutorName.test.ts`
+- **voiceStep.ts** (26 connections) — `apps/mobile/src/onboarding/voiceStep.ts`
+- **PreAccountOnboarding()** (18 connections) — `apps/mobile/src/onboarding/PreAccountOnboarding.tsx`
+- **OnboardingFlow()** (15 connections) — `apps/mobile/src/onboarding/OnboardingFlow.tsx`
+- **tutorVoiceOf()** (15 connections) — `apps/mobile/src/tutor/tutorVoice.ts`
 - **firstRunSurfaces()** (9 connections) — `apps/mobile/src/onboarding/disclosure.ts`
-- **PreAccountOnboarding()** (9 connections) — `apps/mobile/src/onboarding/PreAccountOnboarding.tsx`
-- **nextSample()** (8 connections) — `apps/mobile/src/tutor/tutorVoice.ts`
 - **VOICE_SKIP_HINT()** (7 connections) — `apps/mobile/src/onboarding/disclosure.ts`
+- **withChosenVoice()** (7 connections) — `apps/mobile/src/onboarding/voiceStep.ts`
 - **withTutorVoice()** (7 connections) — `apps/mobile/src/profile/store.ts`
-- **pagesFor()** (7 connections) — `apps/mobile/src/tutor/TutorIntro.tsx`
 - **MEET_AI()** (6 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **MEET_PRIVACY()** (6 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **MEET_TITLE()** (6 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **PERSONA_TITLE()** (6 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **WELCOME_SUBLINE()** (6 connections) — `apps/mobile/src/onboarding/disclosure.ts`
-- **withChosenVoice()** (6 connections) — `apps/mobile/src/onboarding/voiceStep.ts`
 - **DEFAULT_TUTOR_PERSONA** (6 connections) — `apps/mobile/src/tutor/tutorName.ts`
+- **nextSample()** (6 connections) — `apps/mobile/src/tutor/tutorVoice.ts`
+- **pageBefore()** (5 connections) — `apps/mobile/src/onboarding/answers.ts`
+- **MEET_MIC** (5 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **PERSONA_BODY()** (5 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - **pronouns** (5 connections) — `apps/mobile/src/onboarding/disclosure.ts`
-- **pageBefore()** (4 connections) — `apps/mobile/src/onboarding/answers.ts`
+- **pagesFor()** (5 connections) — `apps/mobile/src/tutor/TutorIntro.tsx`
 - **FIRST_RUN_SURFACES** (4 connections) — `apps/mobile/src/onboarding/disclosure.ts`
-- **VOICE_AI** (4 connections) — `apps/mobile/src/onboarding/disclosure.ts`
 - *... and 37 more nodes in this community*
 
 ## Relationships
 
-- [TutorVoiceKey](TutorVoiceKey.md) (33 shared connections)
-- [OnboardingFlow.tsx](OnboardingFlow.tsx.md) (24 shared connections)
-- [ProfileTab.tsx](ProfileTab.tsx.md) (16 shared connections)
-- [space](space.md) (7 shared connections)
-- [answers.test.ts](answers.test.ts.md) (6 shared connections)
-- [ConvoScreen.tsx](ConvoScreen.tsx.md) (6 shared connections)
+- [core/src/conversationText.ts](core-src-conversationText.ts.md) (34 shared connections)
+- [levels.ts](levels.ts.md) (23 shared connections)
+- [goals/store.ts](goals-store.ts.md) (15 shared connections)
+- [purchases.test.ts](purchases.test.ts.md) (8 shared connections)
+- [track.test.ts](track.test.ts.md) (6 shared connections)
+- [nav/wiring.test.ts](nav-wiring.test.ts.md) (6 shared connections)
+- [generate.ts](generate.ts.md) (5 shared connections)
 - [html.ts](html.ts.md) (5 shared connections)
-- [choosingView.ts](choosingView.ts.md) (5 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (4 shared connections)
-- [RootNavigator.tsx](RootNavigator.tsx.md) (3 shared connections)
-- [topics.ts](topics.ts.md) (3 shared connections)
-- [surfaceContract.test.ts](surfaceContract.test.ts.md) (2 shared connections)
+- [typesafe.ts](typesafe.ts.md) (5 shared connections)
+- [illustrations.mjs](illustrations.mjs.md) (3 shared connections)
+- [micPrimer.ts](micPrimer.ts.md) (3 shared connections)
+- [storeBinding.test.ts](storeBinding.test.ts.md) (3 shared connections)
 
 ## Source Files
 
@@ -63,8 +63,8 @@
 
 ## Audit Trail
 
-- EXTRACTED: 252 (99%)
-- INFERRED: 2 (1%)
+- EXTRACTED: 282 (100%)
+- INFERRED: 0 (0%)
 - AMBIGUOUS: 0 (0%)
 
 ---

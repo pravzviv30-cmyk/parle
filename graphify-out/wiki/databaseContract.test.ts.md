@@ -6,11 +6,11 @@
 
 - **databaseContract.test.ts** (51 connections) — `services/token-server/src/databaseContract.test.ts`
 - **evaluateSqlExpression()** (7 connections) — `services/token-server/src/databaseContract.test.ts`
-- **stripComments()** (6 connections) — `services/token-server/src/databaseContract.test.ts`
+- **stripComments()** (7 connections) — `services/token-server/src/databaseContract.test.ts`
 - **branchTaken()** (5 connections) — `services/token-server/src/databaseContract.test.ts`
 - **evaluateSqlGuard()** (5 connections) — `services/token-server/src/databaseContract.test.ts`
+- **applyDebit()** (4 connections) — `services/token-server/src/databaseContract.test.ts`
 - **and3()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
-- **applyDebit()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
 - **debitAssignments()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
 - **effectiveBody()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
 - **or3()** (3 connections) — `services/token-server/src/databaseContract.test.ts`
@@ -34,8 +34,8 @@
 ## Relationships
 
 - [supabaseLive.ts](supabaseLive.ts.md) (2 shared connections)
-- [meter.ts](meter.ts.md) (1 shared connections)
-- [core/src/index.ts](core-src-index.ts.md) (1 shared connections)
+- [LlmUsage](LlmUsage.md) (1 shared connections)
+- [generate.ts](generate.ts.md) (1 shared connections)
 
 ## Source Files
 
@@ -43,7 +43,7 @@
 
 ## Audit Trail
 
-- EXTRACTED: 72 (99%)
+- EXTRACTED: 73 (99%)
 - INFERRED: 1 (1%)
 - AMBIGUOUS: 0 (0%)
 
