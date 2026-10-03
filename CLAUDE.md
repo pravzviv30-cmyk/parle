@@ -139,15 +139,17 @@ with evidence from comparable bounded tasks.
 
 ## The team
 
-Sixteen agents work in this repo. Four are **roles in a loop** — `design-architect`
-decides the shape, `bug-hunter` repairs, `fix-verifier` refutes, `work-judge` says
-SHIP. Twelve are **engineers who own a territory** of the codebase. The roster and
-the territories are in `docs/TEAM.md`.
+The repository agents include **roles in a loop** — `design-architect` decides the
+shape, `bug-hunter` repairs, `fix-verifier` refutes, `work-judge` says SHIP — and
+**engineers who own a territory** of the codebase. Four backend architecture guards
+review cross-service design, database security, voice reliability and deployment.
+The current roster, territories and review triggers are in `docs/TEAM.md`.
 
 | Want | Run |
 |---|---|
 | Something built properly | `/forge <what you want built>` |
 | To know if it is safe to release | `/ship` |
+| A backend architecture review before implementation or promotion | `/backend-review <scope>` |
 | To know if this belongs on main yet | `/land` |
 | One pass at the ledger's top open item | `/bug-sweep` |
 | A specific specialist | ask for it by name |

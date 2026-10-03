@@ -315,6 +315,10 @@ const AGENT_MODELS = {
   'repository-archaeologist': 'fable',
   'social-systems-engineer': 'fable',
   'qa-release-engineer': 'opus',
+  'backend-architect': 'fable',
+  'database-security-architect': 'fable',
+  'voice-reliability-architect': 'fable',
+  'deployment-architect': 'fable',
 };
 
 const readOrNull = (file) => {
@@ -369,7 +373,7 @@ for (const agent of agentFiles) {
   }
 }
 
-for (const command of ['forge', 'bug-sweep', 'ship']) {
+for (const command of ['forge', 'bug-sweep', 'ship', 'backend-review']) {
   if (readOrNull(path.join(ROOT, '.claude', 'commands', `${command}.md`)) === null) {
     fail('agents', `.claude/commands/${command}.md is missing — /${command} does not exist`);
   }

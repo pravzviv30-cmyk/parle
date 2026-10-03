@@ -1,0 +1,5 @@
+{"case":"wrong issuer/audience","acceptedByTrustedKeyFixture":true,"outsiderForgery":false}
+{"case":"nonlearner role","acceptedByTrustedKeyFixture":true,"outsiderForgery":false}
+{"case":"missing expiry","acceptedByTrustedKeyFixture":true,"outsiderForgery":false}
+{"case":"supplied expired token","rejected":true}
+{"case":"billing-dark deletion","productionConfigurationAccepted":true,"deleted":false,"databaseOrProcessorRequests":0}

@@ -1,7 +1,7 @@
 /**
  * What makes an agent definition well formed, tested away from the filesystem.
  *
- * The fleet is sixteen markdown files and a map in scripts/gate.mjs, and the ways it
+ * The fleet is markdown files and a map in scripts/gate.mjs, and the ways it
  * silently breaks are all structural: a model pin that was never added to the map, a
  * frontmatter field in the wrong order, a read-only guard that quietly grew an Edit tool.
  * None of those fail loudly. An agent with no pin still dispatches, still answers, and
@@ -19,10 +19,12 @@ export const FRONTMATTER_FIELDS = ['name', 'description', 'tools', 'model'] as c
 export const WRITE_TOOLS = ['Edit', 'Write'] as const;
 
 /**
- * Agents whose whole point is that they cannot edit. design-architect hands over a
+ * Agents whose role is to review rather than edit. design-architect hands over a
  * contract, work-judge and fix-verifier return a verdict, release-engineer says whether a
  * change can land, and scaling-engineer says whether it needs to scale at all. Give any of
  * them a Write and the separation between deciding and doing stops being real.
+ * Excluding direct Edit/Write tools is not an OS-level prohibition on Bash writes;
+ * reviews also require the stated read-only policy or an enforcing sandbox.
  */
 export const READ_ONLY_AGENTS = [
   'design-architect',
@@ -33,6 +35,10 @@ export const READ_ONLY_AGENTS = [
   'repository-archaeologist',
   'social-systems-engineer',
   'qa-release-engineer',
+  'backend-architect',
+  'database-security-architect',
+  'voice-reliability-architect',
+  'deployment-architect',
 ] as const;
 
 export type AgentFrontmatter = {
