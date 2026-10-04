@@ -9732,7 +9732,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: 3 October 2026: exact-lockfile `npm ci` succeeds, all 11 CI contracts pass, and the online `audit:ci` exits zero under the recorded decisions (0 critical, 21 high and 12 moderate inherited advisories). Only brace-expansion changed in the lockfile. The two new tooling exceptions remain vulnerabilities with no published patch; this closure records their bounded handling, not a zero-vulnerability or release claim.
 - verified-by: `the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns`
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
-- verified-by: `unpatched build-tool exceptions cannot enter a service runtime or an app update dependency`
+- note: 4 October 2026: adding expo-updates 57.0.24 triggered a fresh certificate-verifier review. Its Forge-dependent imports remain CLI-only; the mobile client does not import them, and iOS native verification uses Apple Security. The revised client/runtime boundary test passes; custom update signing remains unconfigured and the temporary exception's expiry is unchanged.
+- verified-by: `unpatched build-tool exceptions cannot enter service runtimes or the mobile update client`
 
 ### F712 — The generated iOS ignore rule excluded the handwritten Walk module
 - severity: P1

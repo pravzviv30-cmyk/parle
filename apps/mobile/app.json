@@ -53,6 +53,20 @@
         }
       ],
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "19183dc7-05cc-459a-b95f-6d7ad6fd6665"
+      }
+    },
+    "owner": "praveen30",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/19183dc7-05cc-459a-b95f-6d7ad6fd6665",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }

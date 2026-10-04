@@ -1,0 +1,74 @@
+name: mobile preview
+
+on:
+  workflow_run:
+    workflows: [gate]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: luvani-mobile-preview
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check publishing credential
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo '::error::Configure the EXPO_TOKEN repository secret before enabling hosted previews.'
+            exit 1
+          fi
+
+      - name: Check out the tested commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Check this is still the latest main commit
+        id: latest
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "$(git rev-parse refs/remotes/origin/main)" = "$TESTED_SHA" ]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'A newer main commit superseded this preview.'
+          fi
+
+      - name: Node
+        if: steps.latest.outputs.publish == 'true'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24.16.0'
+          cache: npm
+
+      - name: Install the tested lockfile
+        if: steps.latest.outputs.publish == 'true'
+        run: npm ci
+
+      - name: Check hosted services and publish iPhone preview
+        if: steps.latest.outputs.publish == 'true'
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_NO_DOTENV: '1'
+          CI: '1'
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: >-
+          npx --yes eas-cli@24.10.0 env:exec preview
+          'node ../../scripts/checkMobilePreview.mjs && npx --yes eas-cli@24.10.0 update --channel preview --environment preview --platform ios --message "main $TESTED_SHA" --non-interactive'
+          --non-interactive

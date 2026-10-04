@@ -165,9 +165,9 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 11502 nodes, 29350 links
-across the extracted source files, grouped into 496 communities. Re-measured by the
-AST-only update on 2026-10-04 while integrating backend hardening, hook isolation and main's legacy cleanup/video UX (previously 8820 / 22455 / 375
+This project has a knowledge graph at `graphify-out/` — 11672 nodes, 29890 links
+across the extracted source files, grouped into 492 communities. Re-measured by the
+AST-only update on 2026-10-04 after adding the hosted iPhone preview contracts (previously 11502 / 29350 / 496 after backend hardening and onboarding integration, and 8820 / 22455 / 375
 on 2026-09-26). This update omitted 72 SQL files because `tree_sitter_sql` is absent;
 SQL validation uses the executable full-schema proofs, not this incomplete graph.
 The community

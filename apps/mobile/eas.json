@@ -1,12 +1,17 @@
 {
-  "cli": { "appVersionSource": "local" },
+  "cli": {
+    "appVersionSource": "local"
+  },
   "build": {
     "development": {
       "node": "24.16.0",
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "1" }
+      "env": {
+        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "1"
+      },
+      "channel": "development"
     },
     "staging": {
       "node": "24.16.0",
@@ -14,8 +19,14 @@
       "developmentClient": false,
       "distribution": "internal",
       "autoIncrement": false,
-      "env": { "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "0", "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0" },
-      "android": { "buildType": "apk" }
+      "env": {
+        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "0",
+        "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview"
     },
     "production": {
       "node": "24.16.0",
@@ -23,7 +34,11 @@
       "developmentClient": false,
       "distribution": "store",
       "autoIncrement": false,
-      "env": { "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "0", "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0" }
+      "env": {
+        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "0",
+        "EXPO_PUBLIC_LUVANI_WALL_PREVIEW": "0"
+      },
+      "channel": "production"
     }
   }
 }

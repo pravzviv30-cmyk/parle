@@ -31,7 +31,7 @@
 import { strict as assert } from 'node:assert';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, test } from 'node:test';
@@ -445,7 +445,7 @@ describe('the ci contract', () => {
     }
   });
 
-  test('unpatched build-tool exceptions cannot enter a service runtime or an app update dependency', () => {
+  test('unpatched build-tool exceptions cannot enter service runtimes or the mobile update client', () => {
     const tooling = ['braces', 'micromatch', 'node-forge', '@expo/code-signing-certificates'];
     for (const workspace of ['packages/core', 'packages/brain', 'services/tutor-agent', 'services/token-server', 'services/brain-playground']) {
       const closure = dependencyClosure(workspace);
@@ -453,12 +453,30 @@ describe('the ci contract', () => {
         assert.ok(!tooling.some((name) => key.endsWith(`node_modules/${name}`)), `${workspace} reaches build-only ${key}`);
       }
     }
-    assert.ok(!Object.keys(lock.packages).some((key) => key.endsWith('node_modules/expo-updates')),
-      'enabling remote updates requires a new review of the certificate verifier');
+    const updates = resolveFrom('apps/mobile', 'expo-updates');
+    assert.ok(updates, 'the reviewed remote update client must resolve');
+    assert.equal(lock.packages[updates]?.version, '57.0.24', 'the remote update client needs a version-specific verifier review');
+    const decision = accepted.find((item) => item.module === 'node-forge');
+    assert.match(decision?.reachability ?? '', /SecKeyVerifySignature/);
+    assert.match(decision?.reachability ?? '', /expo-updates 57\.0\.24/);
+    const config = JSON.parse(readFileSync(path.join(ROOT, 'apps/mobile/app.json'), 'utf8')).expo;
+    assert.equal(config.updates?.codeSigningCertificate, undefined, 'custom signing requires a separate review');
+    const updateClient = path.join(ROOT, updates, 'src');
+    function inspectClient(directory: string): void {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const file = path.join(directory, entry.name);
+        if (entry.isDirectory()) inspectClient(file);
+        else if (/\.[jt]sx?$/.test(entry.name)) {
+          assert.doesNotMatch(readFileSync(file, 'utf8'), /['"](?:node-forge|@expo\/code-signing-certificates)(?:\/|['"])/,
+            `the update client reaches a tooling verifier in ${entry.name}`);
+        }
+      }
+    }
+    inspectClient(updateClient);
     const files = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8' })
       .split('\0').filter((file) => /^(apps|services|packages)\//.test(file) && /\.(?:tsx?|[cm]?js)$/.test(file) && !/\.(?:test|spec)\.(?:tsx?|[cm]?js)$/.test(file));
     assert.ok(files.length > 100, 'the runtime import check must inspect the actual application');
-    const forbiddenImport = /\b(?:from\s+|require\s*\(\s*|import\s*(?:\(\s*)?)['"](?:braces|micromatch|node-forge|@expo\/code-signing-certificates|expo-updates)(?:\/[^'"]+)?['"]/;
+    const forbiddenImport = /\b(?:from\s+|require\s*\(\s*|import\s*(?:\(\s*)?)['"](?:braces|micromatch|node-forge|@expo\/code-signing-certificates)(?:\/[^'"]+)?['"]/;
     for (const example of ["import 'node-forge';", "import forge from 'node-forge';", "require('braces');", "import('node-forge/lib/rsa.js');"]) {
       assert.ok(forbiddenImport.test(example), `the runtime guard misses ${example}`);
     }
