@@ -1,0 +1,101 @@
+id,name,category,url,retrieval_scope,public_heading_or_title,motion_evidence,http_status,source_file_sha256
+1,Babbel,Learning,https://www.babbel.com/,R: public product content,The effective way to learn a language online,Native motion not assessed,200,58de053c45069ae44578c6f666755efda0a571e495f4d2c19c1b1f83acec473d
+2,Busuu,Learning,https://www.busuu.com/,R: public product content,Why learn a language with Busuu?,Native motion not assessed,200,98d61a55487b1092657ffcd9a119e26598386ddb963b05a9ae105b314c258c65
+3,Memrise,Learning,https://www.memrise.com/,R: public product content,Understand native speakers. Sound more like them.,Native motion not assessed,200,0f26a88dd65c58b95365c39fe8ea1971d55b2b226b0f83a1106b3ffb48471b91
+4,LingQ,Learning,https://www.lingq.com/,R: public product content,Learn Languages from BooksPodcastsMoviesTV Shows,Native motion not assessed,200,dfe310ee6fa4a7255a36b5c157a5aedbd083580a1054a427abc68e6050bb2e12
+5,Rosetta Stone,Learning,https://www.rosettastone.com/,R: public product content,A new era of Rosetta Stone is here,Native motion not assessed,200,5dfed3fda6278d81fec74f595351adbe89b926e6fc5e1c6be8b790dfff27f0aa
+6,ELSA Speak,Learning,https://elsaspeak.com/,R: public product content,How ELSA Speak Turns Practice into Confident Speaking,Native motion not assessed,200,2b22b2e78084f69ada66709800d2ee510231487b1518b5870eeec73ea18140ea
+7,Speak,Learning,https://www.speak.com/,R: public product content,GoodthingshappenwhenweSpeak,Native motion not assessed,200,630363ba49b7efe2302388a3f8d20996e47e596c24d9ebf611f143947feb2b95
+8,Praktika,Learning,https://praktika.ai/,R: public product content,Learn a new language with AI tutors,Native motion not assessed,200,1d8297cb38fc833b99fcde19f055314b96435da68c6a0dcf0427da17eb2b79b6
+9,Brilliant,Learning,https://brilliant.org/,R: public product content,Your personal tutor for math and coding,Native motion not assessed,200,351b0cd1685043bea122701e8ce728768cb4a98fd38776661c67f92fd1d66d1a
+10,Khan Academy,Learning,https://www.khanacademy.org/,R: public product content,Get started,Native motion not assessed,200,59503aef2199d5643c9a2384b471c342f8fbea8d6fd67c79efc1eebb860d344d
+11,Quizlet,Learning,https://quizlet.com/,R: public product content,How do you want to study?,Native motion not assessed,200,687b9c089841cea03faad055cf0493c15073b64b91c6d0951d161c377f936d8d
+12,Headway,Learning,https://makeheadway.com/,R: public product content,Transform your life with microlearning,Native motion not assessed,200,5b3b880307be8b8fbf41fb1eb80844e693504a5ed14f5cced45214cac93fb192
+13,Headspace,Wellbeing,https://www.headspace.com/,R: public product content,Mental Health App for Meditation & Sleep - Headspace,D: separate in-app case study,200,dfce9c869e1e77cdd26545c96e932f83ff1970834e16ed155ad3d0abb0815db7
+14,Calm,Wellbeing,https://www.calm.com/,R: public product content,Calm your mind. Change your life.,Native motion not assessed,200,1327c5462a7d0e1535ddf89b0b676b2042c76fe9e3652186c05a206686ab5278
+15,Finch,Wellbeing,https://finchcare.com/,R: public product content,Your new self-care best friend.,Native motion not assessed,200,fe835d6795f89bfcf3e9de0a78eeddf4386daa976f757c91b099ae0d5ab21e83
+16,Forest,Wellbeing,https://www.forestapp.cc/,R: public product content,Spend your time well with Forest.,Native motion not assessed,200,3e03e921f557e3fa3eed47d7cf176cc8296f8471db75fe07e9e65d777b4b49b3
+17,Endel,Wellbeing,https://endel.io/,R: public product content,Endel,Native motion not assessed,200,84e2c2e94b47a70c77568aa308c2adc7e12c4adf796b8ac00240a36fd2c52a22
+18,Balance,Wellbeing,https://balanceapp.com/,R: public product content,Meditation that adapts to you,Native motion not assessed,200,142b42d6ee3f4e6a99a263e0a807a485bbae36376ba3b0d81772836265d8d9ce
+19,Insight Timer,Wellbeing,https://insighttimer.com/,R: public product content,How can we help?,Native motion not assessed,200,89cb577e9cdcb900d6a63fc861c65f67c37d0f5f69b2352295a248bcc24eaf03
+20,Fabulous,Wellbeing,https://www.thefabulous.co/,R: public product content,Find Your Ultimate Daily Routine and Make It Stick,Native motion not assessed,200,42b34322656d3e6cfb9fe27f89da61ea1bcd054170b133265f7b94c5d24c6760
+21,Daylio,Wellbeing,https://daylio.net/,R: public product content,How Does Daylio Work?,Native motion not assessed,200,4347d82e481639da48fa1376a924be415a84f421f4ddc29241f5c1679c072f04
+22,Stoic,Wellbeing,https://www.getstoic.com/,R: public product content,How journaling makes your life better,Native motion not assessed,200,1ecdea408cd1778a4b4cc1047ff0c1da0d371f6b1b9b859afe81ab3ff0b893f8
+23,Meditopia,Wellbeing,https://meditopia.com/,R: public product content,Proactive Wellbeing for Modern Workplaces. Personalized Care that Scales.,Native motion not assessed,200,22086bb07279e05767658ef8c3e6e114a8f5f124fa68e3aaf5f7b7301154497f
+24,BetterSleep,Wellbeing,https://www.bettersleep.com/,R: public product content,"Sleep Sounds, Noises and Brainwaves",Native motion not assessed,200,ad39ba325555fe8c9d99978d0bb5ff34a005e46d7a0b7181aee132032fc905b3
+25,Strava,Fitness,https://www.strava.com/,R: public product content,Community-Powered Motivation,Native motion not assessed,200,5f6dcba130386b2f41f7dbce8d56f7fdf0adbab4311c4ba7ecfb5918b8bcdfe8
+26,Nike Run Club,Fitness,https://www.nike.com/nrc-app,R: public product content,Let’s Run Together,Native motion not assessed,200,ceb67f63737dc187d0040d6aab9a91f55d08e1f67f969a1e5af3a88271cbdbd1
+27,Nike Training Club,Fitness,https://www.nike.com/ntc-app,R: public product content,Training For Every Body and Mind,Native motion not assessed,200,af0be55456fba60d999fb097ae1a8928a481877d77d9a6bdf8f04177dc1674e5
+28,Peloton,Fitness,https://www.onepeloton.com/app,R: public product content,Bikes,Native motion not assessed,200,346c34713843d59e628b5bc625e1e9bb259b4e7ef64323276ff0a46062ff8f15
+29,Fitbit,Fitness,https://www.fitbit.com/,R: hardware brand page,"Google Fitbit, Pixel Watches & Trackers with Google Health",Native motion not assessed,200,39c94138cf0f3693a2d15faf2e10dad504bf465fa4d52042f43387a7cc25635b
+30,Garmin Connect,Fitness,https://www.garmin.com/en-GB/p/125677/,R: public product content,Garmin Connect™ App,Native motion not assessed,200,b37c1f553dbce5ce5055d515aeaf0e97b4cd7bc1f5add51422c69d56769308e8
+31,Apple Fitness,Fitness,https://www.apple.com/apple-fitness-plus/,R: public product content,Apple Fitness+,Native motion not assessed,200,99b0ef0db5a5a635994224bd7057d9966fbf8f456a0c8976e4b6652b57befaa2
+32,AllTrails,Fitness,https://www.alltrails.com/,R: public product content,Find your next adventure,Native motion not assessed,200,8fbb10cee8586667921e437072d9bb6d106e66f940bbf1396c1d2228233e46e5
+33,MyFitnessPal,Fitness,https://www.myfitnesspal.com/,R: public product content,5.5 Million 5-Star Reviews,Native motion not assessed,200,660d9683708b1160b8907771795f2e9bc2cce67b024448bc0bda017302a467ce
+34,Seven,Fitness,https://seven.app/,R: public product content,No heading/title extracted.,Native motion not assessed,200,2bd40e3d1e9ab48b4644f04e5f51ace29c432faef5f9e86121befa7ed87d8b24
+35,Notion,Productivity,https://www.notion.com/,R: public product content,AI where your team works.,Native motion not assessed,200,bf4fa512418d04a83b69c35d370e5bf67850f9983b54dd6f68a64025bb25adf6
+36,Todoist,Productivity,https://www.todoist.com/,R: public product content,"Clarity, finally.",Native motion not assessed,200,dfda46b41caca8766e096dc1184871772550b4e1224b368e9a734bf0f9fb39a0
+37,Things,Productivity,https://culturedcode.com/things/,R: public product content,Things,Native motion not assessed,200,8bc320c91bb0014e81ce802ada6150fdc000251111b2d657a51a077d9cda8cf4
+38,Craft,Productivity,https://www.craft.do/,R: public product content,"Your space for notes, tasks, and big ideas",Native motion not assessed,200,a4a081e19525b256dedb838cc8b56607c0e671149475a0a7cf18110434de0b64
+39,TickTick,Productivity,https://ticktick.com/,R: public product content,"Stay Organized, Stay Creative.",Native motion not assessed,200,5d1b5920e651c5ffff6b0b498ce0dfeaafd4de303a37261549b46b22eb3d4622
+40,Any.do,Productivity,https://www.any.do/,R: public product content,A simple to do list to manage it all,Native motion not assessed,200,ebc65219d6b4f2fa1a548a95ce7db8954a211b37ab1c772168a5caafb1130d09
+41,Asana,Productivity,https://asana.com/,R: public product content,The OS for human-agent teams,Native motion not assessed,200,7cd1d2a1cf117f43dd3e2b46089915cbd2b2004b8080bd1f2106d7616d97bb27
+42,Trello,Productivity,https://trello.com/,R: public product content,"Capture, organize, and tackle your to-dos from anywhere.",Native motion not assessed,200,f494415103b64d628c78802b17cd47695d9984d51fe2ba30883e7e7346c0508b
+43,Linear,Productivity,https://linear.app/,R: public product content,Linear – The system for product development,Native motion not assessed,200,e490379ef5e62ebdb149d4b558a03b2dca15ae70e6f6eddb81305d502a9c48a9
+44,Slack,Productivity,https://slack.com/,R: public product content,All your people and AI agents working together,Native motion not assessed,200,b41ce16ae9fbb1e76b518abd7cfe0a99074d123afdf3ca65d8c44e5762e030b5
+45,Microsoft Teams,Productivity,https://www.microsoft.com/en-us/microsoft-teams/group-chat-software,R: public product content,Microsoft Teams: The AI-Powered Platform for Work,Native motion not assessed,200,368112f8907c1bca4678720a2363722a2d9308d9e5c357a2a7ed1903ca02a41f
+46,Zoom,Productivity,https://www.zoom.com/meetings/,R: public product content,Zoom Meetings: Online Meetings With Built-in AI,Native motion not assessed,200,6d21304ce083d417e5e1e86c51320ea60e23b81446730b72a4b4e89ca267e91f
+47,Figma,Creative,https://www.figma.com/,R: public product content,The full-stack creative canvas,Native motion not assessed,200,0f397dd886e4c00049338008e94dac9033d6c6c56c092002d494524cd3d255de
+48,Canva,Creative,https://www.canva.com/,R: public product content,What will you design today?,Native motion not assessed,200,d4826b209dadd54040834c12bee4ee92dacdda41e4d7169d506e1ebf4276fe38
+49,Adobe Express,Creative,https://www.adobe.com/express/,R: public product content,The quick and easy create-anything app.,Native motion not assessed,200,d1987fe66ef592c113f590164a19d0862a7fb791e63fb0786fb73b04a97f819d
+50,Procreate,Creative,https://procreate.com/,R: public product content,Procreate - Home,Native motion not assessed,200,e1391b6b058e157680300f34874e6d2da73ff65dbd01ef15e10fb1d6780a94c7
+51,Sketch,Creative,https://www.sketch.com/,R: public product content,"Designers, welcome home.",Native motion not assessed,200,844c9d91fd852cd00a786bfc1f46f56ba4f5eb76b0544e125a443c95072cd023
+52,Framer,Creative,https://www.framer.com/,R: public product content,Design with an agent,Native motion not assessed,200,b447709838704893dc767df5c4974b258e900317d3eb2dd9786783a57931c1bb
+53,CapCut,Creative,https://www.capcut.com/,R: public product content,CapCut AI Video Editor: Smart Online Video Editing with Advanced AI Tools,Native motion not assessed,200,42ed4d9db57e1cd3ce384413f8e2798fd98596e4916576689c560070725bf2dc
+54,VSCO,Creative,https://www.vsco.co/,R: public product content,Everything a Photographer Needs,Native motion not assessed,200,85ad54946582089a3a09a06ab9ced359be1ac007eb0fc49b6a5518c594ce1f6e
+55,Picsart,Creative,https://picsart.com/,R: public product content,"Make videos, images, and audio for every channel",Native motion not assessed,200,bfa4116bd1df4f17c1276ec5a92f4ff3a238800efee51c924cbfbc3a92b9e024
+56,Lightroom,Creative,https://www.adobe.com/products/photoshop-lightroom.html,R: public product content,Explore Adobe Lightroom features.,Native motion not assessed,200,6a09bdabd94ba003ec73951cee105ede3619b569d5b1f75e42526a9bc01ae2ae
+57,Spotify,Media,https://www.spotify.com/,U: retrieval limited,No usable product content retrieved.,Native motion not assessed,200,7466b4cb5b8be65fff10ebbdf1c31f6cb60eb0f31648669000543e0ac3157fa9
+58,Apple Music,Media,https://www.apple.com/apple-music/,R: public product content,Apple Music,Native motion not assessed,200,4f886d8930a7163268b2948ad026e8093abcdd33ef288d4bf0266461b279d0a7
+59,YouTube,Media,https://about.youtube/,R: official web fallback,About YouTube,Native motion not assessed,200,6d3d2cf9197d1d5ecdd6f7c2e212706ebf5cbedc0960799c83695cbe9df2885f
+60,Netflix,Media,https://about.netflix.com/en,R: official web fallback,"We are here to entertain the world, one fan at a time.",Native motion not assessed,200,5c1068e8adcfadcb40245a15d5c058b1efac8b412211542d1d2d9fe15d0bc6c4
+61,Disney Plus,Media,https://www.disneyplus.com/,R: public product content,Every Story. Every Genre. Bundled Your Way.,Native motion not assessed,200,e3540584ccf5fed1b110793a02a95516a8eccc7284820483ebb69dfea5cd4f0f
+62,Audible,Media,https://www.audible.com/,R: public product content,Read as many books as you can hear,Native motion not assessed,200,5076aa9820b25df978e4a3a3c23c01fdeb165ab326ebb1d503fe45f0dbae28ef
+63,Pocket Casts,Media,https://pocketcasts.com/,R: public product content,Beautifully designed.,Native motion not assessed,200,2f1f377408607a344d3fdb6f896bebbfe9965f3e6363acd8e048aab8489d920b
+64,SoundCloud,Media,https://soundcloud.com/,R: public product content,Discover. Get Discovered.,Native motion not assessed,200,bd4a87b5b89f8cf780e812d0988533d2fb303804f4ae52fbeac6f07deddb689a
+65,Shazam,Media,https://www.shazam.com/,R: public product content,What people are finding with Shazam right now,Native motion not assessed,200,75b69498c4650abb3218944e7c2d902c219923e369aaa68ccd49943a80ee5e22
+66,TikTok,Media,https://www.tiktok.com/about,R: public product content,Our mission is to inspire creativity and bring joy.,Native motion not assessed,200,6f895bec517d51b3cb5f57515cbcbcb8ce525761803d5b3dd6c2682064eba744
+67,Instagram,Social,https://about.instagram.com/,R: public product content,Instagram brings you closer to the people and things you love,Native motion not assessed,200,6cb3a1e40023ace5fe386258d3b28891843ee263c281dc9f1857b917d308231b
+68,Snapchat,Social,https://www.snapchat.com/,R: official web fallback,Have fun with your friends and family.,Native motion not assessed,200,
+69,Pinterest,Social,https://www.pinterest.com/,U: retrieval limited,No usable product content retrieved.,Native motion not assessed,,
+70,Reddit,Social,https://www.redditinc.com/,R: public product content,The heart of the internet,Native motion not assessed,200,acb3d0d188f3971752ee3f49b7d109391ea5e3bb9bbc23a22c9e656af7d52a93
+71,Discord,Social,https://discord.com/,R: public product content,Group chat that’s all fun & games,Native motion not assessed,200,20904baf19d9aaad78f72eaef4a3a017d52e81d2ea86342a122c3161ea7aa85a
+72,WhatsApp,Social,https://www.whatsapp.com/,R: official web fallback,"Simple, reliable, private messaging and calling for free",Native motion not assessed,200,
+73,Signal,Social,https://signal.org/,R: public product content,Speak Freely,Native motion not assessed,200,fee1c5a498b1d65b61bf758f45400bd6ed730d90cb766becc35a5eeab503c5ae
+74,Telegram,Social,https://telegram.org/,R: official web fallback,a new era of messaging,Native motion not assessed,200,
+75,Airbnb,Travel,https://www.airbnb.com/,R: public product content,Airbnb homepage,Native motion not assessed,200,267026a01558d49bf490c5ceeed497556556dd88a2a0370a40a665e27a6a5d69
+76,Booking.com,Travel,https://www.booking.com/,R: public product content,Why Booking.com?,Native motion not assessed,200,318f63a19d7696c420e413aab059c3b3d690d1b26f2271766d4728ffd6326de2
+77,Expedia,Travel,https://www.expedia.com/,R: public product content,The one place you go to go places,Native motion not assessed,200,a34525bb1862c9ca41d5d57be848cc027465b602ebec7a6e9cb36ffde215db50
+78,Tripadvisor,Travel,https://www.tripadvisor.com/,R: public product content,Where to?,Native motion not assessed,200,3a63b5c7a757f0b7e66aac0406051cca713fb98ba726121b211811faf08b5602
+79,Uber,Travel,https://www.uber.com/,R: public product content,Go anywhere,Native motion not assessed,200,f41f17f41df05a6a3d3268fe2f7795c7906e32313fc00aefb8c7c17eed1dcef3
+80,Lyft,Travel,https://www.lyft.com/,R: public product content,The world awaits,Native motion not assessed,200,e650f85cdd8d98d663348905d9559b3e70e4eadfcaf65f6dfa5994078a6342a0
+81,Google Maps,Travel,https://www.google.com/maps/about/,R: public product content,Your guide to anywhere,Native motion not assessed,200,27df57aa134b4713835fe343f70baacb5b524b6ee63e474a2428709d69b0eaa3
+82,Citymapper,Travel,https://citymapper.com/,R: public product content,Get Me Somewhere,Native motion not assessed,200,57a58674597ae9cf674f14bfd4e6dcf62a7eb998aae296427fbf28541b33a9d2
+83,Monzo,Money,https://monzo.com/,R: public product content,"Spend your money on life, not your life on money",Native motion not assessed,200,599073d59988894d50e2729401501b3831400a8879c27b7d4c7b89516730048c
+84,Revolut,Money,https://www.revolut.com/,R: public product content,Banking & Beyond,Native motion not assessed,200,c1ca6535c89f8dfe08a177e459a8b4fb3ffbae011329ca6eb6d643a18126bc23
+85,Wise,Money,https://wise.com/,R: public product content,The fast way to send money abroad,D: web/promotional case only,200,621adc3174f43ced54a3338cee6f6d6431cde5ec3b0aff34210b65d86f75706d
+86,N26,Money,https://n26.com/,R: public product content,The first bank you'll love,Native motion not assessed,200,77187c71ad13872233d99cae864966b7e4dd63db8d65032a57b6bf02b75aa046
+87,Nubank,Money,https://nubank.com.br/,R: public product content,Somos incansáveis para você não precisar ser,Native motion not assessed,200,8bee3af7c39a76e2dc9de8af66ff4baf71de214e3232d567879631abbeaad8c7
+88,PayPal,Money,https://www.paypal.com/,R: public product content,"Pay, send, and save smarter",Native motion not assessed,200,8a93e56fc532df2d968011b6f779a77b4b62aeffd1eb70d9594c238d68833a8b
+89,Cash App,Money,https://cash.app/,R: public product content,The way money should work,Native motion not assessed,200,4731b1feb713bdc17556f7d579612b7df944a3a5f47f1abc5d28da21cfe9a80f
+90,Venmo,Money,https://venmo.com/,R: public product content,Venmo everything,Native motion not assessed,200,4a0faad89aa189bd3d2ca38e87afd0d0278bee30379e5426870691b2432741e2
+91,Amazon,Shopping,https://www.amazon.com/,R: public product content,Amazon.com. Spend less. Smile more.,Native motion not assessed,200,137001f4d2f2103b4d6c7821cda4bd62ff43a0e0170462d6f946c3d76926b994
+92,Shop,Shopping,https://shop.app/,R: public product content,Shop is all about you,Native motion not assessed,200,dd94d8d2b5f09a28702d53e55e41cec5c8058244c373c3b9df4a06d55aa7393f
+93,Shopify,Shopping,https://www.shopify.com/,R: public product content,Be the next AI all-star,Native motion not assessed,200,a06fb3b6c109962b0932da3303180015ada62f4f088f044e38cd0807c88edaa3
+94,DoorDash,Shopping,https://www.doordash.com/,R: public product content,$0 DELIVERY FEE ON FIRST ORDER,Native motion not assessed,200,5fabb1c4308ce6838265f36d74fb26ed096bd066d122f39168ff68b9a78d3dc6
+95,Deliveroo,Shopping,https://deliveroo.co.uk/,R: public product content,"Restaurants, takeaways, supermarkets and shops. Delivered.",Native motion not assessed,200,a0176f997f7093bd5154ebe78933feb2cd59197b61c64fabecc7e56a4154e964
+96,Uber Eats,Shopping,https://www.ubereats.com/,R: public product content,Order delivery near you,Native motion not assessed,200,307e79737c10db4824f3afd39ea9b96cf65720e34d110f283ee3ae56e6c47736
+97,Instacart,Shopping,https://www.instacart.com/,R: official web fallback,Instacart | Grocery Delivery or Pickup from Local Stores Near You,Native motion not assessed,200,
+98,Too Good To Go,Shopping,https://www.toogoodtogo.com/,R: public product content,Save good food from going to waste,Native motion not assessed,200,8170b401a53f68b99f40edae0adb7592bee827755b9ae6b13d41b88a5c250b3d
+99,Vinted,Shopping,https://www.vinted.com/,R: public product content,Ready to declutter your closet?,Native motion not assessed,200,0447b9da8197f88c5785163350c671dce143678f65c22d0e07d2d77e18ca4398
+100,Depop,Shopping,https://www.depop.com/,R: public product content,Buy preloved. Wear it your way,Native motion not assessed,200,8a5d62ff4f7477e231f45eb2a09e168ffe5607d0ea49c90405fd29728dd73dcb

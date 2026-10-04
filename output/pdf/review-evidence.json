@@ -1,0 +1,1542 @@
+{
+  "review_date": "2026-10-04",
+  "source_commit": "2cbea8655b90c22fcac00412d008d4540e69954d",
+  "video_path": "/Users/pravz_07/Downloads/The-UX-Psychology-Behind-Apps-People-Can_t-Stop-Using.-Watch-Till-End-Dont-Forget-to-Like-and-Follow-for-more-YT-uxpeak-ForYou-fyp-viral-ui-uxdesign.MP4",
+  "video_duration_seconds": 659.466667,
+  "video_sha256": "e5717992af0a5931e9f77edff096933ff276694ae3583127a57716622d79d6bf",
+  "screen_environment": "Development web preview; current source commit verified; mock account; no deployed-production uptime claim",
+  "viewports_css_pixels": [
+    [
+      390,
+      844
+    ],
+    [
+      320,
+      568
+    ]
+  ],
+  "gate": {
+    "command": "npm run gate",
+    "exit_code": 0,
+    "tests_passed": 4232,
+    "stage": "Initial audit on unchanged source; not rerun for report-only expansion"
+  },
+  "screenshots": [
+    {
+      "file": "01-welcome-390.jpg",
+      "sha256": "9cbf71e290b1ac422a8b00a240c43eee94528950f3ca9ecf0506f94c3816a2d2"
+    },
+    {
+      "file": "02-first-line-390.jpg",
+      "sha256": "ab9668e6007020e85cc7308222ad893dabd8d428aec8044c2d84f800f1e127b7"
+    },
+    {
+      "file": "03-line-selected-390.jpg",
+      "sha256": "fc892ac0dce7a61b988c3a6387d2d1762414dc11f9fa33d568768433ecd8e7a8"
+    },
+    {
+      "file": "04-starting-level-390.jpg",
+      "sha256": "54c19be50e0b13bae39fef9866b033e8d91bcb5bc9abfd8d1c2d47c8cdc17c5f"
+    },
+    {
+      "file": "05-goal-390.jpg",
+      "sha256": "f0cf1400e2cbda4991ec29d19e278b52e6dee8f49d999aeb151f6013ace2f033"
+    },
+    {
+      "file": "06-plan-top-390.jpg",
+      "sha256": "52f8a0d8f79517034f7a858cc7ba92f54de55382909f30720ee715471241b778"
+    },
+    {
+      "file": "07-plan-bottom-390.jpg",
+      "sha256": "2bb52b0b5798a7152f5f6f59d49358f18c06d0a66533b355827380e4ac9fd3b8"
+    },
+    {
+      "file": "08-save-plan-390.jpg",
+      "sha256": "2795fe7e2d02e7775bf25ada8e23a15d54da45db4232029542a10fcf17aeeedf"
+    },
+    {
+      "file": "09-sign-in-390.jpg",
+      "sha256": "635c1be3d4b390cda9248a5b6d8b317a8a94e27a735bd42dac802ca38a3e831f"
+    },
+    {
+      "file": "10-home-offline-390.jpg",
+      "sha256": "5539bc654fe7434fbf5d473d9bd2e49a695c6bbf1cfb981daacac646277cfc66"
+    },
+    {
+      "file": "11-practice-top-390.jpg",
+      "sha256": "5b420aea9f22369ccd93089cfbc55bf8a0091beaec1d8293ce9379f1f9a38ad0"
+    },
+    {
+      "file": "12-practice-offline-attempt-390.jpg",
+      "sha256": "25941f7065a85c2de7d5ca75df8a1d2e2adcab8f32a74325f7302fc95d090059"
+    },
+    {
+      "file": "13-speak-offline-390.jpg",
+      "sha256": "3487b9da2081ea78bc98d1fb00af098fd7029098bd72109ee5707ff5b0faa6d8"
+    },
+    {
+      "file": "14-scenes-390.jpg",
+      "sha256": "a5a2c04f30c682d8eb284807b57b46b39db03b70d8eed5da0e34535bb487c109"
+    },
+    {
+      "file": "15-first-scene-390.jpg",
+      "sha256": "3b9c43888821d842a1fdf841461b4c020745dda389ae3de4230003b465202482"
+    },
+    {
+      "file": "16-progress-empty-390.jpg",
+      "sha256": "69cadcce77831bc8135c5277ee381c6ba35315a51e49c0e694959bbf6488f02f"
+    },
+    {
+      "file": "17-friends-390.jpg",
+      "sha256": "ddce2994c438626a12f419e14bd1b570683a90cf3138f2f2716a500a9a7d6b38"
+    },
+    {
+      "file": "18-profile-390.jpg",
+      "sha256": "2b9fb6f251c6e5e58ba654601a3987ea4460d2ec5df424afb4c25168556a1fb6"
+    },
+    {
+      "file": "19-settings-390.jpg",
+      "sha256": "53d8135ca2375a31be2d698efccade4ba156fcca1659ae3bb75d69b1711136c3"
+    },
+    {
+      "file": "20-plans-unavailable-390.jpg",
+      "sha256": "e719c2addff175c7d2055809c57c4f84f340dee38624082d124a58ce51a10891"
+    },
+    {
+      "file": "21-local-practice-390.jpg",
+      "sha256": "645f1c1fe0c48789ba84a3d0cdde4b2ab348758f4f6116dcdab837ea32dae0d5"
+    },
+    {
+      "file": "22-first-scene-320.jpg",
+      "sha256": "f079865ae8b157115572ef94f63f4f0710851ae981ab4d30f31e68c2c95f7873"
+    },
+    {
+      "file": "V2-05-goal.jpg",
+      "sha256": "5dcf8877ff2edade6ad77206c4b1d1d240163e15cc011819fd20783976b7f978"
+    },
+    {
+      "file": "V2-085-answer-chips.jpg",
+      "sha256": "2ff5b31d8386cb181882e0e5808357de551242b0df1ad0e30bdec67c1404c739"
+    },
+    {
+      "file": "V2-12-plan.jpg",
+      "sha256": "592b64903d016347806df9f12bbe9c8942574ff75ee392d0143570045c89daa2"
+    },
+    {
+      "file": "V2-18-billing.jpg",
+      "sha256": "6d323d1721c1a615c7749313b40c62d4033731636db371450ac98059a441151f"
+    }
+  ],
+  "expansion": {
+    "second_video": {
+      "path": "/Users/pravz_07/Downloads/0e183cbe925a4f9e85e973b3f9fc7029.MP4",
+      "duration_seconds": 30,
+      "dimensions": [
+        720,
+        1280
+      ],
+      "sha256": "71d227739075505d846ddbb1a791a03313f307e26438c7984004cb6b99e4661b",
+      "sampled_frames_inspected": 60,
+      "sample_rate_fps": 2,
+      "transcription_result": "No speech detected; on-screen text reviewed"
+    },
+    "original_video_second_pass": "Full timed transcript re-reviewed; no seventh principle; added CTA, small value, ownership and attribution nuances",
+    "copy_ledger_entries": 40,
+    "word_pair_sample": {
+      "current_words": 49,
+      "proposed_words": 28,
+      "method": "Whitespace-separated; excludes relocated detail"
+    },
+    "research_cohort": {
+      "other_apps": 100,
+      "duolingo_separate": true,
+      "usable_public_content": 98,
+      "limited_retrievals": 2,
+      "native_hands_on_audits": 0,
+      "verified_store_ranking": false,
+      "register": [
+        {
+          "id": 1,
+          "name": "Babbel",
+          "category": "Learning",
+          "url": "https://www.babbel.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The effective way to learn a language online",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "58de053c45069ae44578c6f666755efda0a571e495f4d2c19c1b1f83acec473d"
+        },
+        {
+          "id": 2,
+          "name": "Busuu",
+          "category": "Learning",
+          "url": "https://www.busuu.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Why learn a language with Busuu?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "98d61a55487b1092657ffcd9a119e26598386ddb963b05a9ae105b314c258c65"
+        },
+        {
+          "id": 3,
+          "name": "Memrise",
+          "category": "Learning",
+          "url": "https://www.memrise.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Understand native speakers. Sound more like them.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "0f26a88dd65c58b95365c39fe8ea1971d55b2b226b0f83a1106b3ffb48471b91"
+        },
+        {
+          "id": 4,
+          "name": "LingQ",
+          "category": "Learning",
+          "url": "https://www.lingq.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Learn Languages from BooksPodcastsMoviesTV Shows",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "dfe310ee6fa4a7255a36b5c157a5aedbd083580a1054a427abc68e6050bb2e12"
+        },
+        {
+          "id": 5,
+          "name": "Rosetta Stone",
+          "category": "Learning",
+          "url": "https://www.rosettastone.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "A new era of Rosetta Stone is here",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5dfed3fda6278d81fec74f595351adbe89b926e6fc5e1c6be8b790dfff27f0aa"
+        },
+        {
+          "id": 6,
+          "name": "ELSA Speak",
+          "category": "Learning",
+          "url": "https://elsaspeak.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "How ELSA Speak Turns Practice into Confident Speaking",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "2b22b2e78084f69ada66709800d2ee510231487b1518b5870eeec73ea18140ea"
+        },
+        {
+          "id": 7,
+          "name": "Speak",
+          "category": "Learning",
+          "url": "https://www.speak.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "GoodthingshappenwhenweSpeak",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "630363ba49b7efe2302388a3f8d20996e47e596c24d9ebf611f143947feb2b95"
+        },
+        {
+          "id": 8,
+          "name": "Praktika",
+          "category": "Learning",
+          "url": "https://praktika.ai/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Learn a new language with AI tutors",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "1d8297cb38fc833b99fcde19f055314b96435da68c6a0dcf0427da17eb2b79b6"
+        },
+        {
+          "id": 9,
+          "name": "Brilliant",
+          "category": "Learning",
+          "url": "https://brilliant.org/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Your personal tutor for math and coding",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "351b0cd1685043bea122701e8ce728768cb4a98fd38776661c67f92fd1d66d1a"
+        },
+        {
+          "id": 10,
+          "name": "Khan Academy",
+          "category": "Learning",
+          "url": "https://www.khanacademy.org/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Get started",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "59503aef2199d5643c9a2384b471c342f8fbea8d6fd67c79efc1eebb860d344d"
+        },
+        {
+          "id": 11,
+          "name": "Quizlet",
+          "category": "Learning",
+          "url": "https://quizlet.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "How do you want to study?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "687b9c089841cea03faad055cf0493c15073b64b91c6d0951d161c377f936d8d"
+        },
+        {
+          "id": 12,
+          "name": "Headway",
+          "category": "Learning",
+          "url": "https://makeheadway.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Transform your life with microlearning",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5b3b880307be8b8fbf41fb1eb80844e693504a5ed14f5cced45214cac93fb192"
+        },
+        {
+          "id": 13,
+          "name": "Headspace",
+          "category": "Wellbeing",
+          "url": "https://www.headspace.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Mental Health App for Meditation & Sleep - Headspace",
+          "motion_evidence": "D: separate in-app case study",
+          "http_status": 200,
+          "source_file_sha256": "dfce9c869e1e77cdd26545c96e932f83ff1970834e16ed155ad3d0abb0815db7"
+        },
+        {
+          "id": 14,
+          "name": "Calm",
+          "category": "Wellbeing",
+          "url": "https://www.calm.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Calm your mind. Change your life.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "1327c5462a7d0e1535ddf89b0b676b2042c76fe9e3652186c05a206686ab5278"
+        },
+        {
+          "id": 15,
+          "name": "Finch",
+          "category": "Wellbeing",
+          "url": "https://finchcare.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Your new self-care best friend.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "fe835d6795f89bfcf3e9de0a78eeddf4386daa976f757c91b099ae0d5ab21e83"
+        },
+        {
+          "id": 16,
+          "name": "Forest",
+          "category": "Wellbeing",
+          "url": "https://www.forestapp.cc/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Spend your time well with Forest.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "3e03e921f557e3fa3eed47d7cf176cc8296f8471db75fe07e9e65d777b4b49b3"
+        },
+        {
+          "id": 17,
+          "name": "Endel",
+          "category": "Wellbeing",
+          "url": "https://endel.io/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Endel",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "84e2c2e94b47a70c77568aa308c2adc7e12c4adf796b8ac00240a36fd2c52a22"
+        },
+        {
+          "id": 18,
+          "name": "Balance",
+          "category": "Wellbeing",
+          "url": "https://balanceapp.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Meditation that adapts to you",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "142b42d6ee3f4e6a99a263e0a807a485bbae36376ba3b0d81772836265d8d9ce"
+        },
+        {
+          "id": 19,
+          "name": "Insight Timer",
+          "category": "Wellbeing",
+          "url": "https://insighttimer.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "How can we help?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "89cb577e9cdcb900d6a63fc861c65f67c37d0f5f69b2352295a248bcc24eaf03"
+        },
+        {
+          "id": 20,
+          "name": "Fabulous",
+          "category": "Wellbeing",
+          "url": "https://www.thefabulous.co/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Find Your Ultimate Daily Routine and Make It Stick",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "42b34322656d3e6cfb9fe27f89da61ea1bcd054170b133265f7b94c5d24c6760"
+        },
+        {
+          "id": 21,
+          "name": "Daylio",
+          "category": "Wellbeing",
+          "url": "https://daylio.net/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "How Does Daylio Work?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "4347d82e481639da48fa1376a924be415a84f421f4ddc29241f5c1679c072f04"
+        },
+        {
+          "id": 22,
+          "name": "Stoic",
+          "category": "Wellbeing",
+          "url": "https://www.getstoic.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "How journaling makes your life better",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "1ecdea408cd1778a4b4cc1047ff0c1da0d371f6b1b9b859afe81ab3ff0b893f8"
+        },
+        {
+          "id": 23,
+          "name": "Meditopia",
+          "category": "Wellbeing",
+          "url": "https://meditopia.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Proactive Wellbeing for Modern Workplaces. Personalized Care that Scales.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "22086bb07279e05767658ef8c3e6e114a8f5f124fa68e3aaf5f7b7301154497f"
+        },
+        {
+          "id": 24,
+          "name": "BetterSleep",
+          "category": "Wellbeing",
+          "url": "https://www.bettersleep.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Sleep Sounds, Noises and Brainwaves",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "ad39ba325555fe8c9d99978d0bb5ff34a005e46d7a0b7181aee132032fc905b3"
+        },
+        {
+          "id": 25,
+          "name": "Strava",
+          "category": "Fitness",
+          "url": "https://www.strava.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Community-Powered Motivation",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5f6dcba130386b2f41f7dbce8d56f7fdf0adbab4311c4ba7ecfb5918b8bcdfe8"
+        },
+        {
+          "id": 26,
+          "name": "Nike Run Club",
+          "category": "Fitness",
+          "url": "https://www.nike.com/nrc-app",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Let\u2019s Run Together",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "ceb67f63737dc187d0040d6aab9a91f55d08e1f67f969a1e5af3a88271cbdbd1"
+        },
+        {
+          "id": 27,
+          "name": "Nike Training Club",
+          "category": "Fitness",
+          "url": "https://www.nike.com/ntc-app",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Training For Every Body and Mind",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "af0be55456fba60d999fb097ae1a8928a481877d77d9a6bdf8f04177dc1674e5"
+        },
+        {
+          "id": 28,
+          "name": "Peloton",
+          "category": "Fitness",
+          "url": "https://www.onepeloton.com/app",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Bikes",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "346c34713843d59e628b5bc625e1e9bb259b4e7ef64323276ff0a46062ff8f15"
+        },
+        {
+          "id": 29,
+          "name": "Fitbit",
+          "category": "Fitness",
+          "url": "https://www.fitbit.com/",
+          "retrieval_scope": "R: hardware brand page",
+          "public_heading_or_title": "Google Fitbit, Pixel Watches & Trackers with Google Health",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "39c94138cf0f3693a2d15faf2e10dad504bf465fa4d52042f43387a7cc25635b"
+        },
+        {
+          "id": 30,
+          "name": "Garmin Connect",
+          "category": "Fitness",
+          "url": "https://www.garmin.com/en-GB/p/125677/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Garmin Connect\u2122 App",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "b37c1f553dbce5ce5055d515aeaf0e97b4cd7bc1f5add51422c69d56769308e8"
+        },
+        {
+          "id": 31,
+          "name": "Apple Fitness",
+          "category": "Fitness",
+          "url": "https://www.apple.com/apple-fitness-plus/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Apple Fitness+",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "99b0ef0db5a5a635994224bd7057d9966fbf8f456a0c8976e4b6652b57befaa2"
+        },
+        {
+          "id": 32,
+          "name": "AllTrails",
+          "category": "Fitness",
+          "url": "https://www.alltrails.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Find your next adventure",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "8fbb10cee8586667921e437072d9bb6d106e66f940bbf1396c1d2228233e46e5"
+        },
+        {
+          "id": 33,
+          "name": "MyFitnessPal",
+          "category": "Fitness",
+          "url": "https://www.myfitnesspal.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "5.5 Million 5-Star Reviews",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "660d9683708b1160b8907771795f2e9bc2cce67b024448bc0bda017302a467ce"
+        },
+        {
+          "id": 34,
+          "name": "Seven",
+          "category": "Fitness",
+          "url": "https://seven.app/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "No heading/title extracted.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "2bd40e3d1e9ab48b4644f04e5f51ace29c432faef5f9e86121befa7ed87d8b24"
+        },
+        {
+          "id": 35,
+          "name": "Notion",
+          "category": "Productivity",
+          "url": "https://www.notion.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "AI where your team works.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "bf4fa512418d04a83b69c35d370e5bf67850f9983b54dd6f68a64025bb25adf6"
+        },
+        {
+          "id": 36,
+          "name": "Todoist",
+          "category": "Productivity",
+          "url": "https://www.todoist.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Clarity, finally.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "dfda46b41caca8766e096dc1184871772550b4e1224b368e9a734bf0f9fb39a0"
+        },
+        {
+          "id": 37,
+          "name": "Things",
+          "category": "Productivity",
+          "url": "https://culturedcode.com/things/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Things",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "8bc320c91bb0014e81ce802ada6150fdc000251111b2d657a51a077d9cda8cf4"
+        },
+        {
+          "id": 38,
+          "name": "Craft",
+          "category": "Productivity",
+          "url": "https://www.craft.do/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Your space for notes, tasks, and big ideas",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "a4a081e19525b256dedb838cc8b56607c0e671149475a0a7cf18110434de0b64"
+        },
+        {
+          "id": 39,
+          "name": "TickTick",
+          "category": "Productivity",
+          "url": "https://ticktick.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Stay Organized, Stay Creative.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5d1b5920e651c5ffff6b0b498ce0dfeaafd4de303a37261549b46b22eb3d4622"
+        },
+        {
+          "id": 40,
+          "name": "Any.do",
+          "category": "Productivity",
+          "url": "https://www.any.do/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "A simple to do list to manage it all",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "ebc65219d6b4f2fa1a548a95ce7db8954a211b37ab1c772168a5caafb1130d09"
+        },
+        {
+          "id": 41,
+          "name": "Asana",
+          "category": "Productivity",
+          "url": "https://asana.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The OS for human-agent teams",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "7cd1d2a1cf117f43dd3e2b46089915cbd2b2004b8080bd1f2106d7616d97bb27"
+        },
+        {
+          "id": 42,
+          "name": "Trello",
+          "category": "Productivity",
+          "url": "https://trello.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Capture, organize, and tackle your to-dos from anywhere.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "f494415103b64d628c78802b17cd47695d9984d51fe2ba30883e7e7346c0508b"
+        },
+        {
+          "id": 43,
+          "name": "Linear",
+          "category": "Productivity",
+          "url": "https://linear.app/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Linear \u2013 The system for product development",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "e490379ef5e62ebdb149d4b558a03b2dca15ae70e6f6eddb81305d502a9c48a9"
+        },
+        {
+          "id": 44,
+          "name": "Slack",
+          "category": "Productivity",
+          "url": "https://slack.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "All your people and AI agents working together",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "b41ce16ae9fbb1e76b518abd7cfe0a99074d123afdf3ca65d8c44e5762e030b5"
+        },
+        {
+          "id": 45,
+          "name": "Microsoft Teams",
+          "category": "Productivity",
+          "url": "https://www.microsoft.com/en-us/microsoft-teams/group-chat-software",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Microsoft Teams: The AI-Powered Platform for Work",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "368112f8907c1bca4678720a2363722a2d9308d9e5c357a2a7ed1903ca02a41f"
+        },
+        {
+          "id": 46,
+          "name": "Zoom",
+          "category": "Productivity",
+          "url": "https://www.zoom.com/meetings/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Zoom Meetings: Online Meetings With Built-in AI",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "6d21304ce083d417e5e1e86c51320ea60e23b81446730b72a4b4e89ca267e91f"
+        },
+        {
+          "id": 47,
+          "name": "Figma",
+          "category": "Creative",
+          "url": "https://www.figma.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The full-stack creative canvas",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "0f397dd886e4c00049338008e94dac9033d6c6c56c092002d494524cd3d255de"
+        },
+        {
+          "id": 48,
+          "name": "Canva",
+          "category": "Creative",
+          "url": "https://www.canva.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "What will you design today?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "d4826b209dadd54040834c12bee4ee92dacdda41e4d7169d506e1ebf4276fe38"
+        },
+        {
+          "id": 49,
+          "name": "Adobe Express",
+          "category": "Creative",
+          "url": "https://www.adobe.com/express/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The quick and easy create-anything app.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "d1987fe66ef592c113f590164a19d0862a7fb791e63fb0786fb73b04a97f819d"
+        },
+        {
+          "id": 50,
+          "name": "Procreate",
+          "category": "Creative",
+          "url": "https://procreate.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Procreate - Home",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "e1391b6b058e157680300f34874e6d2da73ff65dbd01ef15e10fb1d6780a94c7"
+        },
+        {
+          "id": 51,
+          "name": "Sketch",
+          "category": "Creative",
+          "url": "https://www.sketch.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Designers, welcome home.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "844c9d91fd852cd00a786bfc1f46f56ba4f5eb76b0544e125a443c95072cd023"
+        },
+        {
+          "id": 52,
+          "name": "Framer",
+          "category": "Creative",
+          "url": "https://www.framer.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Design with an agent",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "b447709838704893dc767df5c4974b258e900317d3eb2dd9786783a57931c1bb"
+        },
+        {
+          "id": 53,
+          "name": "CapCut",
+          "category": "Creative",
+          "url": "https://www.capcut.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "CapCut AI Video Editor: Smart Online Video Editing with Advanced AI Tools",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "42ed4d9db57e1cd3ce384413f8e2798fd98596e4916576689c560070725bf2dc"
+        },
+        {
+          "id": 54,
+          "name": "VSCO",
+          "category": "Creative",
+          "url": "https://www.vsco.co/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Everything a Photographer Needs",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "85ad54946582089a3a09a06ab9ced359be1ac007eb0fc49b6a5518c594ce1f6e"
+        },
+        {
+          "id": 55,
+          "name": "Picsart",
+          "category": "Creative",
+          "url": "https://picsart.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Make videos, images, and audio for every channel",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "bfa4116bd1df4f17c1276ec5a92f4ff3a238800efee51c924cbfbc3a92b9e024"
+        },
+        {
+          "id": 56,
+          "name": "Lightroom",
+          "category": "Creative",
+          "url": "https://www.adobe.com/products/photoshop-lightroom.html",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Explore Adobe Lightroom features.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "6a09bdabd94ba003ec73951cee105ede3619b569d5b1f75e42526a9bc01ae2ae"
+        },
+        {
+          "id": 57,
+          "name": "Spotify",
+          "category": "Media",
+          "url": "https://www.spotify.com/",
+          "retrieval_scope": "U: retrieval limited",
+          "public_heading_or_title": "No usable product content retrieved.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "7466b4cb5b8be65fff10ebbdf1c31f6cb60eb0f31648669000543e0ac3157fa9"
+        },
+        {
+          "id": 58,
+          "name": "Apple Music",
+          "category": "Media",
+          "url": "https://www.apple.com/apple-music/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Apple Music",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "4f886d8930a7163268b2948ad026e8093abcdd33ef288d4bf0266461b279d0a7"
+        },
+        {
+          "id": 59,
+          "name": "YouTube",
+          "category": "Media",
+          "url": "https://about.youtube/",
+          "retrieval_scope": "R: official web fallback",
+          "public_heading_or_title": "About YouTube",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "6d3d2cf9197d1d5ecdd6f7c2e212706ebf5cbedc0960799c83695cbe9df2885f"
+        },
+        {
+          "id": 60,
+          "name": "Netflix",
+          "category": "Media",
+          "url": "https://about.netflix.com/en",
+          "retrieval_scope": "R: official web fallback",
+          "public_heading_or_title": "We are here to entertain the world, one fan at a time.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5c1068e8adcfadcb40245a15d5c058b1efac8b412211542d1d2d9fe15d0bc6c4"
+        },
+        {
+          "id": 61,
+          "name": "Disney Plus",
+          "category": "Media",
+          "url": "https://www.disneyplus.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Every Story. Every Genre. Bundled Your Way.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "e3540584ccf5fed1b110793a02a95516a8eccc7284820483ebb69dfea5cd4f0f"
+        },
+        {
+          "id": 62,
+          "name": "Audible",
+          "category": "Media",
+          "url": "https://www.audible.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Read as many books as you can hear",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5076aa9820b25df978e4a3a3c23c01fdeb165ab326ebb1d503fe45f0dbae28ef"
+        },
+        {
+          "id": 63,
+          "name": "Pocket Casts",
+          "category": "Media",
+          "url": "https://pocketcasts.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Beautifully designed.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "2f1f377408607a344d3fdb6f896bebbfe9965f3e6363acd8e048aab8489d920b"
+        },
+        {
+          "id": 64,
+          "name": "SoundCloud",
+          "category": "Media",
+          "url": "https://soundcloud.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Discover. Get Discovered.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "bd4a87b5b89f8cf780e812d0988533d2fb303804f4ae52fbeac6f07deddb689a"
+        },
+        {
+          "id": 65,
+          "name": "Shazam",
+          "category": "Media",
+          "url": "https://www.shazam.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "What people are finding with Shazam right now",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "75b69498c4650abb3218944e7c2d902c219923e369aaa68ccd49943a80ee5e22"
+        },
+        {
+          "id": 66,
+          "name": "TikTok",
+          "category": "Media",
+          "url": "https://www.tiktok.com/about",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Our mission is to inspire creativity and bring joy.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "6f895bec517d51b3cb5f57515cbcbcb8ce525761803d5b3dd6c2682064eba744"
+        },
+        {
+          "id": 67,
+          "name": "Instagram",
+          "category": "Social",
+          "url": "https://about.instagram.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Instagram brings you closer to the people and things you love",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "6cb3a1e40023ace5fe386258d3b28891843ee263c281dc9f1857b917d308231b"
+        },
+        {
+          "id": 68,
+          "name": "Snapchat",
+          "category": "Social",
+          "url": "https://www.snapchat.com/",
+          "retrieval_scope": "R: official web fallback",
+          "public_heading_or_title": "Have fun with your friends and family.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": null
+        },
+        {
+          "id": 69,
+          "name": "Pinterest",
+          "category": "Social",
+          "url": "https://www.pinterest.com/",
+          "retrieval_scope": "U: retrieval limited",
+          "public_heading_or_title": "No usable product content retrieved.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": null,
+          "source_file_sha256": null
+        },
+        {
+          "id": 70,
+          "name": "Reddit",
+          "category": "Social",
+          "url": "https://www.redditinc.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The heart of the internet",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "acb3d0d188f3971752ee3f49b7d109391ea5e3bb9bbc23a22c9e656af7d52a93"
+        },
+        {
+          "id": 71,
+          "name": "Discord",
+          "category": "Social",
+          "url": "https://discord.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Group chat that\u2019s all fun & games",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "20904baf19d9aaad78f72eaef4a3a017d52e81d2ea86342a122c3161ea7aa85a"
+        },
+        {
+          "id": 72,
+          "name": "WhatsApp",
+          "category": "Social",
+          "url": "https://www.whatsapp.com/",
+          "retrieval_scope": "R: official web fallback",
+          "public_heading_or_title": "Simple, reliable, private messaging and calling for free",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": null
+        },
+        {
+          "id": 73,
+          "name": "Signal",
+          "category": "Social",
+          "url": "https://signal.org/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Speak Freely",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "fee1c5a498b1d65b61bf758f45400bd6ed730d90cb766becc35a5eeab503c5ae"
+        },
+        {
+          "id": 74,
+          "name": "Telegram",
+          "category": "Social",
+          "url": "https://telegram.org/",
+          "retrieval_scope": "R: official web fallback",
+          "public_heading_or_title": "a new era of messaging",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": null
+        },
+        {
+          "id": 75,
+          "name": "Airbnb",
+          "category": "Travel",
+          "url": "https://www.airbnb.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Airbnb homepage",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "267026a01558d49bf490c5ceeed497556556dd88a2a0370a40a665e27a6a5d69"
+        },
+        {
+          "id": 76,
+          "name": "Booking.com",
+          "category": "Travel",
+          "url": "https://www.booking.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Why Booking.com?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "318f63a19d7696c420e413aab059c3b3d690d1b26f2271766d4728ffd6326de2"
+        },
+        {
+          "id": 77,
+          "name": "Expedia",
+          "category": "Travel",
+          "url": "https://www.expedia.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The one place you go to go places",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "a34525bb1862c9ca41d5d57be848cc027465b602ebec7a6e9cb36ffde215db50"
+        },
+        {
+          "id": 78,
+          "name": "Tripadvisor",
+          "category": "Travel",
+          "url": "https://www.tripadvisor.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Where to?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "3a63b5c7a757f0b7e66aac0406051cca713fb98ba726121b211811faf08b5602"
+        },
+        {
+          "id": 79,
+          "name": "Uber",
+          "category": "Travel",
+          "url": "https://www.uber.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Go anywhere",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "f41f17f41df05a6a3d3268fe2f7795c7906e32313fc00aefb8c7c17eed1dcef3"
+        },
+        {
+          "id": 80,
+          "name": "Lyft",
+          "category": "Travel",
+          "url": "https://www.lyft.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The world awaits",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "e650f85cdd8d98d663348905d9559b3e70e4eadfcaf65f6dfa5994078a6342a0"
+        },
+        {
+          "id": 81,
+          "name": "Google Maps",
+          "category": "Travel",
+          "url": "https://www.google.com/maps/about/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Your guide to anywhere",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "27df57aa134b4713835fe343f70baacb5b524b6ee63e474a2428709d69b0eaa3"
+        },
+        {
+          "id": 82,
+          "name": "Citymapper",
+          "category": "Travel",
+          "url": "https://citymapper.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Get Me Somewhere",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "57a58674597ae9cf674f14bfd4e6dcf62a7eb998aae296427fbf28541b33a9d2"
+        },
+        {
+          "id": 83,
+          "name": "Monzo",
+          "category": "Money",
+          "url": "https://monzo.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Spend your money on life, not your life on money",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "599073d59988894d50e2729401501b3831400a8879c27b7d4c7b89516730048c"
+        },
+        {
+          "id": 84,
+          "name": "Revolut",
+          "category": "Money",
+          "url": "https://www.revolut.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Banking & Beyond",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "c1ca6535c89f8dfe08a177e459a8b4fb3ffbae011329ca6eb6d643a18126bc23"
+        },
+        {
+          "id": 85,
+          "name": "Wise",
+          "category": "Money",
+          "url": "https://wise.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The fast way to send money abroad",
+          "motion_evidence": "D: web/promotional case only",
+          "http_status": 200,
+          "source_file_sha256": "621adc3174f43ced54a3338cee6f6d6431cde5ec3b0aff34210b65d86f75706d"
+        },
+        {
+          "id": 86,
+          "name": "N26",
+          "category": "Money",
+          "url": "https://n26.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The first bank you'll love",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "77187c71ad13872233d99cae864966b7e4dd63db8d65032a57b6bf02b75aa046"
+        },
+        {
+          "id": 87,
+          "name": "Nubank",
+          "category": "Money",
+          "url": "https://nubank.com.br/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Somos incans\u00e1veis para voc\u00ea n\u00e3o precisar ser",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "8bee3af7c39a76e2dc9de8af66ff4baf71de214e3232d567879631abbeaad8c7"
+        },
+        {
+          "id": 88,
+          "name": "PayPal",
+          "category": "Money",
+          "url": "https://www.paypal.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Pay, send, and save smarter",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "8a93e56fc532df2d968011b6f779a77b4b62aeffd1eb70d9594c238d68833a8b"
+        },
+        {
+          "id": 89,
+          "name": "Cash App",
+          "category": "Money",
+          "url": "https://cash.app/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "The way money should work",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "4731b1feb713bdc17556f7d579612b7df944a3a5f47f1abc5d28da21cfe9a80f"
+        },
+        {
+          "id": 90,
+          "name": "Venmo",
+          "category": "Money",
+          "url": "https://venmo.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Venmo everything",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "4a0faad89aa189bd3d2ca38e87afd0d0278bee30379e5426870691b2432741e2"
+        },
+        {
+          "id": 91,
+          "name": "Amazon",
+          "category": "Shopping",
+          "url": "https://www.amazon.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Amazon.com. Spend less. Smile more.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "137001f4d2f2103b4d6c7821cda4bd62ff43a0e0170462d6f946c3d76926b994"
+        },
+        {
+          "id": 92,
+          "name": "Shop",
+          "category": "Shopping",
+          "url": "https://shop.app/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Shop is all about you",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "dd94d8d2b5f09a28702d53e55e41cec5c8058244c373c3b9df4a06d55aa7393f"
+        },
+        {
+          "id": 93,
+          "name": "Shopify",
+          "category": "Shopping",
+          "url": "https://www.shopify.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Be the next AI all-star",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "a06fb3b6c109962b0932da3303180015ada62f4f088f044e38cd0807c88edaa3"
+        },
+        {
+          "id": 94,
+          "name": "DoorDash",
+          "category": "Shopping",
+          "url": "https://www.doordash.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "$0 DELIVERY FEE ON FIRST ORDER",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "5fabb1c4308ce6838265f36d74fb26ed096bd066d122f39168ff68b9a78d3dc6"
+        },
+        {
+          "id": 95,
+          "name": "Deliveroo",
+          "category": "Shopping",
+          "url": "https://deliveroo.co.uk/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Restaurants, takeaways, supermarkets and shops. Delivered.",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "a0176f997f7093bd5154ebe78933feb2cd59197b61c64fabecc7e56a4154e964"
+        },
+        {
+          "id": 96,
+          "name": "Uber Eats",
+          "category": "Shopping",
+          "url": "https://www.ubereats.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Order delivery near you",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "307e79737c10db4824f3afd39ea9b96cf65720e34d110f283ee3ae56e6c47736"
+        },
+        {
+          "id": 97,
+          "name": "Instacart",
+          "category": "Shopping",
+          "url": "https://www.instacart.com/",
+          "retrieval_scope": "R: official web fallback",
+          "public_heading_or_title": "Instacart | Grocery Delivery or Pickup from Local Stores Near You",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": null
+        },
+        {
+          "id": 98,
+          "name": "Too Good To Go",
+          "category": "Shopping",
+          "url": "https://www.toogoodtogo.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Save good food from going to waste",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "8170b401a53f68b99f40edae0adb7592bee827755b9ae6b13d41b88a5c250b3d"
+        },
+        {
+          "id": 99,
+          "name": "Vinted",
+          "category": "Shopping",
+          "url": "https://www.vinted.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Ready to declutter your closet?",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "0447b9da8197f88c5785163350c671dce143678f65c22d0e07d2d77e18ca4398"
+        },
+        {
+          "id": 100,
+          "name": "Depop",
+          "category": "Shopping",
+          "url": "https://www.depop.com/",
+          "retrieval_scope": "R: public product content",
+          "public_heading_or_title": "Buy preloved. Wear it your way",
+          "motion_evidence": "Native motion not assessed",
+          "http_status": 200,
+          "source_file_sha256": "8a5d62ff4f7477e231f45eb2a09e168ffe5607d0ea49c90405fd29728dd73dcb"
+        }
+      ]
+    },
+    "contrast_pairs": [
+      {
+        "name": "White on blue",
+        "foreground": "#FFFFFF",
+        "background": "#3B2FE0",
+        "ratio": 7.8683
+      },
+      {
+        "name": "White on coral",
+        "foreground": "#FFFFFF",
+        "background": "#D63A22",
+        "ratio": 4.6796
+      },
+      {
+        "name": "Ink on sun",
+        "foreground": "#16123A",
+        "background": "#FFC93C",
+        "ratio": 11.5694
+      },
+      {
+        "name": "Ink on mint",
+        "foreground": "#16123A",
+        "background": "#2FD18B",
+        "ratio": 8.9816
+      },
+      {
+        "name": "Ink on paper",
+        "foreground": "#16123A",
+        "background": "#FFF6E9",
+        "ratio": 16.595
+      },
+      {
+        "name": "Soft ink on paper",
+        "foreground": "#5C5A74",
+        "background": "#FFF6E9",
+        "ratio": 6.187
+      },
+      {
+        "name": "Ink on blue",
+        "foreground": "#16123A",
+        "background": "#3B2FE0",
+        "ratio": 2.2585
+      },
+      {
+        "name": "White on sun",
+        "foreground": "#FFFFFF",
+        "background": "#FFC93C",
+        "ratio": 1.536
+      },
+      {
+        "name": "White on mint",
+        "foreground": "#FFFFFF",
+        "background": "#2FD18B",
+        "ratio": 1.9785
+      }
+    ],
+    "app_source_modified": false,
+    "gate_rerun_for_report_expansion": false,
+    "additional_youtube_videos": [
+      {
+        "id": "MXLF8b15GhQ",
+        "url": "https://www.youtube.com/watch?v=MXLF8b15GhQ",
+        "title": "How I Make Apps FEEL Premium (5 examples)",
+        "creator": "Chris Raroque",
+        "player_duration_seconds": 850,
+        "transcript_sha256": "34a9782c3a594aa2ae35d211717dbf3bbbdc20164b301a980879d16c2d5dde50",
+        "review_method": "Complete timed English auto-captions plus sampled chapter/demo browser visuals"
+      },
+      {
+        "id": "SAxKK5fbjbc",
+        "url": "https://www.youtube.com/watch?v=SAxKK5fbjbc",
+        "title": "The Reason Why Some Apps Feel Expensive, But Most Don\u2019t",
+        "creator": "Wyatt Feaster",
+        "player_duration_seconds": 460,
+        "transcript_sha256": "7ad7f729dc6a91b7aff2e6a1094513bfd5c3d1168cfbc1ae58ab75f95dd7e0ff",
+        "review_method": "Complete timed English auto-captions plus sampled chapter browser visuals"
+      },
+      {
+        "id": "MVOpq3WRnbo",
+        "url": "https://www.youtube.com/watch?v=MVOpq3WRnbo",
+        "title": "The psychology trick that makes any app feel 10x better",
+        "creator": "Wyatt Feaster",
+        "player_duration_seconds": 389,
+        "transcript_sha256": "7cce4c6a2a7c485691623acbfe64dcc336ecbc3df9253d7cf6e5904440d695d3",
+        "page_source_sha256": "f0d767e7d5a141e10a0ac050ad880f78f606f9bd934aadf6903117d9f58a3c9a",
+        "review_method": "Complete timed English auto-captions plus sampled chapter browser visuals",
+        "claims_mapped": [
+          "goal gradient",
+          "peak-end",
+          "labor illusion",
+          "von Restorff / isolation",
+          "choice overload"
+        ],
+        "qualifications": [
+          "No measured tenfold Luvani effect",
+          "No artificial wait",
+          "Provider effort distinguished from user effort",
+          "Ending retained in peak-end interpretation",
+          "No universal fewer-options rule"
+        ]
+      }
+    ],
+    "fifth_video_research": [
+      {
+        "name": "labor",
+        "url": "https://www.hbs.edu/ris/Publication%20Files/Norton_Michael_The%20labor%20illusion%20How%20operational_f4269b70-3732-4fc4-8113-72d0c47533e0.pdf",
+        "access": "Author-hosted full paper: abstract and relevant discussion inspected",
+        "sha256": "1f9b0055ce2bfaf8aa7076657321c174e0c858a03760d410eb5f778a31f759d6"
+      },
+      {
+        "name": "peak",
+        "url": "https://www.psychologicalscience.org/journals/psychological-science/j.1467-9280.1993.tb00589.x/",
+        "access": "Publisher abstract",
+        "sha256": "3866f5355f1fa66d001ba1efcdf77cd22526045c20b675ffe4308e6d83ef9f60"
+      },
+      {
+        "name": "choice",
+        "url": "https://doi.org/10.1086/651235",
+        "access": "Publisher abstract",
+        "sha256": "39d9167b0b40eb88bfbaed6c70241db46ff8401e0676c09ce9a2f66b50e88e57"
+      },
+      {
+        "name": "isolation",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/11713872/",
+        "access": "Research abstract indexed in PubMed",
+        "sha256": "1c0e6bd6c561f623daabde855737d6737ad85b69060bcdea8b53ba1ce5db313b"
+      }
+    ]
+  },
+  "pdf_sha256": "b16c4c810ce0bc94f72a22b4766e4fb7ed4ac4e6ce9bb887227accc1faa80cfd",
+  "findings": [
+    {
+      "id": "F01",
+      "priority": "P0",
+      "title": "Remove production use of simulated learner evidence",
+      "evidence": "O, S"
+    },
+    {
+      "id": "F02",
+      "priority": "P0",
+      "title": "Complete the existing launch evidence and trust gate",
+      "evidence": "O, S, R, U"
+    },
+    {
+      "id": "F03",
+      "priority": "P1",
+      "title": "Give a genuine first task before account commitment",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F04",
+      "priority": "P1",
+      "title": "Replace the long plan with an outcome and editable defaults",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F05",
+      "priority": "P2",
+      "title": "Make the goal question earn its place",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F06",
+      "priority": "P1",
+      "title": "Separate setup progress from learning evidence",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F07",
+      "priority": "P1",
+      "title": "Reduce signup work while preserving informed choices",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F08",
+      "priority": "P2",
+      "title": "Use defaults for reversible practice decisions",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F09",
+      "priority": "P1",
+      "title": "Keep the next task relevant across tabs",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F10",
+      "priority": "P1",
+      "title": "Make unavailable tutoring lead to genuine local practice",
+      "evidence": "O, S"
+    },
+    {
+      "id": "F11",
+      "priority": "P1",
+      "title": "Compress the scene chooser and briefing",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F12",
+      "priority": "P2",
+      "title": "Correct visual priority and ground-aware header colors",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F13",
+      "priority": "P1",
+      "title": "Put the actual phrase on the first recap view",
+      "evidence": "S, H"
+    },
+    {
+      "id": "F14",
+      "priority": "P1",
+      "title": "Remove correction countdown pressure and lost drafts",
+      "evidence": "S, H"
+    },
+    {
+      "id": "F15",
+      "priority": "P2",
+      "title": "Give new learners a useful Progress empty state",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F16",
+      "priority": "P2",
+      "title": "Make Friends secondary until it proves daily value",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F17",
+      "priority": "P2",
+      "title": "Make growing saved work easier to find and reuse",
+      "evidence": "S, H"
+    },
+    {
+      "id": "F18",
+      "priority": "P2",
+      "title": "Ask for reminders after an experienced benefit",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F19",
+      "priority": "P1",
+      "title": "Validate a fair and understandable plan comparison",
+      "evidence": "S, U, H"
+    },
+    {
+      "id": "F20",
+      "priority": "P1",
+      "title": "Verify recovery and save promises end to end",
+      "evidence": "O, S, R, U"
+    },
+    {
+      "id": "F21",
+      "priority": "P1",
+      "title": "Finish native accessibility and interruption acceptance",
+      "evidence": "O, S, R, U"
+    },
+    {
+      "id": "F22",
+      "priority": "P2",
+      "title": "Remove contextual overclaims and stale product descriptions",
+      "evidence": "O, S, R"
+    },
+    {
+      "id": "F23",
+      "priority": "P1",
+      "title": "Cut repeated interface copy without losing essential meaning",
+      "evidence": "O, S, H"
+    },
+    {
+      "id": "F24",
+      "priority": "P2",
+      "title": "Add brief, state-driven playful feedback",
+      "evidence": "S, H, U"
+    },
+    {
+      "id": "F25",
+      "priority": "P2",
+      "title": "Distribute vibrant colour around task and earned value",
+      "evidence": "O, S, H"
+    }
+  ]
+}

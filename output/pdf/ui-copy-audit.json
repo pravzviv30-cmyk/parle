@@ -1,0 +1,282 @@
+[
+  {
+    "location": "Welcome / firstRun.ts",
+    "current": "Try a café exchange, with help when you need it.",
+    "proposal": "Try ordering a coffee.",
+    "decision_rule": "Shorten only if the preview really demonstrates ordering. Keep its English support.",
+    "source_verified": true
+  },
+  {
+    "location": "Example / firstRun.ts",
+    "current": "Tap to hear the reply. Say it aloud if you like.",
+    "proposal": "Hear the reply. Try saying it.",
+    "decision_rule": "Shorten; retain optional playback and no required speaking.",
+    "source_verified": true
+  },
+  {
+    "location": "Scope / firstRun.ts",
+    "current": "A useful line to try. Your voice is not recorded or assessed here.",
+    "proposal": "Try this line. Nothing is recorded or assessed here.",
+    "decision_rule": "Keep the assessment limit next to the example, visible before any apparent voice action.",
+    "source_verified": true
+  },
+  {
+    "location": "Playback / firstRun.ts",
+    "current": "You can continue without playing the recording.",
+    "proposal": "Remove this extra sentence.",
+    "decision_rule": "Only cut if Continue stays enabled and playback is visibly optional. Do not count this proposal as a shortened string.",
+    "source_verified": true
+  },
+  {
+    "location": "Demo / firstRun.ts",
+    "current": "An authored example, not an assessment of your French.",
+    "proposal": "Example feedback. Your French is not assessed.",
+    "decision_rule": "Keep an honest example label; this is not learner feedback.",
+    "source_verified": true
+  },
+  {
+    "location": "Choice / firstRun.ts",
+    "current": "One tap. You can change it later.",
+    "proposal": "You can change this later.",
+    "decision_rule": "Keep reversibility; the row affordance already communicates tapping.",
+    "source_verified": true
+  },
+  {
+    "location": "Name / firstRun.ts",
+    "current": "So your tutor can greet you. You can leave it empty.",
+    "proposal": "Optional",
+    "decision_rule": "Defer the entire name field until Profile. If retained, label the field Optional and keep purpose in details.",
+    "source_verified": true
+  },
+  {
+    "location": "Routine / plan.ts",
+    "current": "A flexible starting routine",
+    "proposal": "Daily practice",
+    "decision_rule": "Demote to one editable row beneath the first task.",
+    "source_verified": true
+  },
+  {
+    "location": "Routine / plan.ts",
+    "current": "A suggestion for practice, not an extra allowance of live minutes. Change it whenever you like.",
+    "proposal": "Practice goal, separate from live minutes.",
+    "decision_rule": "Put the change affordance on the row. Keep the distinction at the routine choice and in allowance details.",
+    "source_verified": true
+  },
+  {
+    "location": "Coverage / plan.ts",
+    "current": "Beginner A0 and A1 scenes. These are a starting route, not a certified placement or a full tailored course.",
+    "proposal": "Beginner scenes. Your starting level is a suggestion.",
+    "decision_rule": "Relocate the full non-certified/non-tailored scope to named route details; never imply a placement result.",
+    "source_verified": true
+  },
+  {
+    "location": "Goal / plan.ts",
+    "current": "This goal guides tutor context. It does not change the scene route.",
+    "proposal": "Used as tutor context; scene order stays the same.",
+    "decision_rule": "Keep if asking the goal now. Better: defer the question until its benefit is evident.",
+    "source_verified": true
+  },
+  {
+    "location": "Reminder / plan.ts",
+    "current": "Not on yet. You can turn it on later.",
+    "proposal": "Remove the inactive reminder row from setup.",
+    "decision_rule": "Ask after a kept phrase is useful. Keep explicit opt-in and current permission state then.",
+    "source_verified": true
+  },
+  {
+    "location": "Permission / FirstSceneScreen.tsx",
+    "current": "Speaking asks for microphone access when you tap Start. Speaking and typing in the live room use live minutes.",
+    "proposal": "Start asks for microphone access. Live speaking and typing use live minutes.",
+    "decision_rule": "One visible notice by Start; full processing detail stays available. Do not imply typing is free in the live room.",
+    "source_verified": true
+  },
+  {
+    "location": "Examples / FirstSceneScreen.tsx",
+    "current": "See other examples",
+    "proposal": "More examples",
+    "decision_rule": "Keep one model line visible; additional authored examples are optional.",
+    "source_verified": true
+  },
+  {
+    "location": "Empty / practice/copy.ts",
+    "current": "Short practice from what you have said.",
+    "proposal": "A short first practice.",
+    "decision_rule": "Render this only before genuine personal material exists. Populated accounts may retain current wording.",
+    "source_verified": true
+  },
+  {
+    "location": "Review / practice/copy.ts",
+    "current": "Phrases your review is ready for.",
+    "proposal": "Phrases due for review.",
+    "decision_rule": "Use only for the actual scheduled review selection, not all saved phrases.",
+    "source_verified": true
+  },
+  {
+    "location": "Resume / practice/copy.ts",
+    "current": "Pick up where you stopped.",
+    "proposal": "Keep: Pick up where you stopped.",
+    "decision_rule": "Already concise and useful when the saved sitting can actually resume.",
+    "source_verified": true
+  },
+  {
+    "location": "Recall / practice/copy.ts",
+    "current": "You brought some of these back without choices.",
+    "proposal": "You recalled some phrases without choices.",
+    "decision_rule": "Keep the assistance boundary. This is task-specific recall, not proof of broad fluency.",
+    "source_verified": true
+  },
+  {
+    "location": "After / practice/copy.ts",
+    "current": "Your review deck takes it from here.",
+    "proposal": "These phrases will return in review.",
+    "decision_rule": "Keep the real scheduling consequence; deck is an internal metaphor.",
+    "source_verified": true
+  },
+  {
+    "location": "Save failure / practice/copy.ts",
+    "current": "This practice was not saved on this phone.",
+    "proposal": "Practice was not saved on this phone.",
+    "decision_rule": "Keep failure visible and actionable; do not replace with a success tick.",
+    "source_verified": true
+  },
+  {
+    "location": "Retry / practice/copy.ts",
+    "current": "Try saving again",
+    "proposal": "Retry save",
+    "decision_rule": "Retain the exact retry operation and preserve its learning payload.",
+    "source_verified": true
+  },
+  {
+    "location": "Typing / profile/typing.ts",
+    "current": "Conversations open with the keyboard. The circle is still there.",
+    "proposal": "Start by typing. You can still speak.",
+    "decision_rule": "Clarify input preference. Tutor audio remains on unless another real control changes it; add that fact in the setting details.",
+    "source_verified": true
+  },
+  {
+    "location": "Retry / FixLineSheet.tsx",
+    "current": "Say it again or use your own French. Keep the corrected part.",
+    "proposal": "Try again, keeping the corrected part.",
+    "decision_rule": "Keep speak/type controls visibly available. This changes wording, not the valid retry criterion.",
+    "source_verified": true
+  },
+  {
+    "location": "Transcript / FixLineSheet.tsx",
+    "current": "Review your words before checking.",
+    "proposal": "Check the transcript, then tap Check.",
+    "decision_rule": "Keep a chance to edit recognition errors before checking the text.",
+    "source_verified": true
+  },
+  {
+    "location": "Scope / FixLineSheet.tsx",
+    "current": "Check reads your words, not pronunciation. Your retry is not saved.",
+    "proposal": "Text check only. This retry is not saved.",
+    "decision_rule": "Keep both limits before Check. Do not celebrate pronunciation or persistence here.",
+    "source_verified": true
+  },
+  {
+    "location": "Success / FixLineSheet.tsx",
+    "current": "That fixes the part we practised.",
+    "proposal": "Keep: That fixes the part we practised.",
+    "decision_rule": "Already appropriately scoped. Do not inflate to Perfect French.",
+    "source_verified": true
+  },
+  {
+    "location": "Timer end / FixLineSheet.tsx",
+    "current": "Your minute is done. You can keep practising the line anytime.",
+    "proposal": "Remove after F14 replaces the countdown flow.",
+    "decision_rule": "Requires the timer/draft behavior change; editing this label alone would conceal a real expiry.",
+    "source_verified": true
+  },
+  {
+    "location": "Purpose / friendsView.ts",
+    "current": "Practise with people you know, at your own pace.",
+    "proposal": "Remove when the next heading repeats the same benefit.",
+    "decision_rule": "Keep a single clear explanation of Friends; do not stack two equivalent headings.",
+    "source_verified": true
+  },
+  {
+    "location": "Heading / friendsView.ts",
+    "current": "Practise French with someone you know.",
+    "proposal": "Practise with a friend.",
+    "decision_rule": "The app context supplies French. Keep the feature optional and secondary.",
+    "source_verified": true
+  },
+  {
+    "location": "Setup / friendsView.ts",
+    "current": "Choose a username and invite a friend to a shared conversation challenge. Joining is optional. Your recordings and conversation text stay private.",
+    "proposal": "Invite a friend to a shared challenge. Joining is optional.",
+    "decision_rule": "Show Username as the real next setup step. Keep Your recordings and text stay private as a separate visible privacy line; full privacy link remains.",
+    "source_verified": true
+  },
+  {
+    "location": "Challenge / friendsView.ts",
+    "current": "A French idea for this week: practise ordering a drink in a café scene. The shared counter records conversations, not whether either person passed this task.",
+    "proposal": "Try ordering a drink in a café scene.",
+    "decision_rule": "Keep Conversations completed as the counter label and explain that it is not a task-pass measure beside the counter. Do not delete that distinction.",
+    "source_verified": true
+  },
+  {
+    "location": "Action / friendsView.ts",
+    "current": "Set up Friends",
+    "proposal": "Invite a friend",
+    "decision_rule": "Use only if a clear username/setup step follows before invitation. If the actual immediate action is setup, keep Set up Friends.",
+    "source_verified": true
+  },
+  {
+    "location": "Privacy / friendsView.ts",
+    "current": "How Friends privacy works",
+    "proposal": "Friends privacy",
+    "decision_rule": "Keep a descriptive, reachable link and the core privacy fact visible.",
+    "source_verified": true
+  },
+  {
+    "location": "First value / firstRun.ts",
+    "current": "Hear the exchange",
+    "proposal": "Keep: Hear the exchange",
+    "decision_rule": "Specific action; no need to rewrite everything for its own sake.",
+    "source_verified": true
+  },
+  {
+    "location": "Help / firstRun.ts",
+    "current": "I'm stuck",
+    "proposal": "Keep: I'm stuck",
+    "decision_rule": "A usable, low-pressure request for help.",
+    "source_verified": true
+  },
+  {
+    "location": "Age / firstRun.ts",
+    "current": "I am 13 or older, create account",
+    "proposal": "Keep explicit age confirmation and Create account.",
+    "decision_rule": "Never replace a combined consequential action with Continue. Any redesign must preserve the existing age flow.",
+    "source_verified": true
+  },
+  {
+    "location": "Trial / plan.ts",
+    "current": "30 free minutes, no card needed",
+    "proposal": "Keep if derived allowance remains 30 free minutes.",
+    "decision_rule": "The current string is derived from the configured trial plan. Do not hardcode or convert it into seven free days.",
+    "source_verified": true
+  },
+  {
+    "location": "Days off / plan.ts",
+    "current": "A day off takes nothing away.",
+    "proposal": "Keep as reassurance where useful; omit duplicate repeats.",
+    "decision_rule": "No threatened loss, guilt or disappointed mascot.",
+    "source_verified": true
+  },
+  {
+    "location": "Help / practice/copy.ts",
+    "current": "Show the phrase",
+    "proposal": "Keep: Show the phrase",
+    "decision_rule": "Assistance remains easy and is distinguished from independent recall.",
+    "source_verified": true
+  },
+  {
+    "location": "Empty points / friendsView.ts",
+    "current": "No points this week",
+    "proposal": "Keep: No points this week",
+    "decision_rule": "True state; do not invent initial credits or make zero look like failure.",
+    "source_verified": true
+  }
+]
