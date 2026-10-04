@@ -74,14 +74,15 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
   });
 
   test('one Start, the next conversation, with a quiet "Type instead" under it and no segmented pill', () => {
-    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 1);
+    assert.match(RENDER_FLAT, /<NextTaskCard/);
+    const shared = read('../practice/NextTaskCard.tsx');
+    const hero = read('../home/MissionHero.tsx');
+    assert.match(shared, /<MissionHero hero=\{value.hero\}/);
+    assert.match(hero, /secondary=\{<GhostButton label=\{modes.other.label\}/);
+    assert.match(hero, /open\(modes.other.textMode\)/);
     assert.match(FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/);
-    assert.match(FLAT, /launchLabel\(\{ checking, live, mode: modes.mode \}\)/);
-    assert.match(FLAT, /open\(heldBack\?.textMode \?\? modes.textMode, heldBack \? pendingStart.current : next.params\)/);
-    assert.match(RENDER_FLAT, /label=\{modes.other.label\} color=\{paper.onInk\} disabled=\{checking\} onPress=\{\(\) => open\(modes.other.textMode, next.params\)\}/);
-    assert.match(RENDER_FLAT, /!offlineShown && <SceneBrief/);
-    assert.match(RENDER_FLAT, /canDo=\{next.canDo \? canDoSentence\(next.canDo\) : next.body\}/);
     assert.doesNotMatch(SCREEN, /<TabBar\b|Ready when you are/);
+
   });
 
   test('the level path from the spine, then every scene as a ledger row that opens its brief', () => {
@@ -92,17 +93,17 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
     assert.match(RENDER_FLAT, /\{row.french\}/);
     assert.equal((SCREEN.match(/path.rows.map\(/g) ?? []).length, 1);
     assert.doesNotMatch(SCREEN, /<LevelPath|path.groups.map|<Highlight/);
-    assert.ok(at('<SceneBrief') < at('path.rows.map('));
+    assert.ok(at('<NextTaskCard') < at('path.rows.map('));
   });
 
   test('offline Speak says it is unavailable once', () => {
     assert.match(FLAT, /const offlineShown = !live \|\| heldBack !== null/);
-    assert.match(FLAT, /const note = startNote\(orb, offlineShown\)/);
-    assert.match(RENDER_FLAT, /!offlineShown && <SceneBrief/);
+    assert.match(RENDER_FLAT, /<NextTaskCard/);
     assert.match(RENDER_FLAT, /\{offlineShown && \(/);
     assert.equal((RENDER.match(/TUTOR_OFFLINE.headline/g) ?? []).length, 1);
-    assert.equal((RENDER.match(/\{note\}/g) ?? []).length, 1);
-    assert.match(RENDER, /name="state-offline"/);
+    assert.doesNotMatch(RENDER, /state-offline|todayItems/);
+    assert.match(read('../practice/NextTaskCard.tsx'), /<LocalPracticeCard/);
+
   });
 
   test('"More ways to practise" appears only after a first finished scene', () => {

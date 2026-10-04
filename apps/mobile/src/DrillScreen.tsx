@@ -1,3 +1,4 @@
+import { Feedback } from './motion/Feedback.tsx';
 /**
  * The drill sitting — the review deck made active.
  *
@@ -518,10 +519,11 @@ function TranslationView({
         </Text>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}
         {canHelp && help.shown && (
-          <>
+          <Feedback kind="help" active appear>
             <Text style={[type.french, { color: paper.inkSoft, textAlign: 'center', marginTop: space(3) }]}>{exercise.fr}</Text>
             <HearRow text={exercise.fr} />
-          </>
+            <Text style={[type.small, { color: paper.inkSoft }]}>With help</Text>
+          </Feedback>
         )}
         {canHelp && !help.shown && (
           <View style={{ marginTop: space(3) }}>
@@ -1573,7 +1575,7 @@ export function DrillScreen({
     const card = practiceEndCard(practiceSaved, statement);
     return (
       <ScrollScreen footer={doneFooter}>
-        <Card>
+        <Feedback kind="practised" active={!card.retry} appear eventKey={`practice-${held.sittingId}`}><Card>
           <Text style={[type.title, { color: paper.ink }]}>{card.title}</Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{card.body}</Text>
           {/* Nothing is safe yet, so the one thing to offer is the same save
@@ -1588,7 +1590,7 @@ export function DrillScreen({
               />
             </View>
           )}
-        </Card>
+        </Card></Feedback>
       </ScrollScreen>
     );
   }

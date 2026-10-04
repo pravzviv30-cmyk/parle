@@ -1,0 +1,5 @@
+
+> luvani@0.1.0 audit:ci
+> node scripts/gate.mjs --audit
+
+audit: 0 critical, 21 high, 12 moderate — every high root is one of adm-zip, uuid, braces, node-forge, each recorded with a reachability argument.

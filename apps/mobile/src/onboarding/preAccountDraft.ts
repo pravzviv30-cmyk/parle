@@ -4,7 +4,7 @@
  * A voice, an age confirmation and the usage-data answer are enough to make the
  * account-creation hand-off personal without turning an unsigned device into a
  * second profile store.  There is deliberately no transcript, audio, or
- * free-form answer here, and the one typed value, an optional first name, is
+ * free-form answer here, and a legacy optional first name is
  * bounded and stays on the device.  Once an account exists the draft is folded into that
  * account's normal, user-scoped profile and this key is cleared.
  *
@@ -41,12 +41,12 @@ import { REMINDER_TIMES, type ReminderTimeId } from '../reminders/reminder.ts';
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /**
- * The six pages before an account, in the order a learner meets them. The AI
+ * The five pages before an account, in the order a learner meets them. The AI
  * disclosure is on the first, the answers follow it, and the consent switch is
  * on the last (spine contract section 4). Held here because the draft resumes
  * on one of them.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'plan', 'save'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
 export const START_LEVEL_KEYS = ['zero', 'few', 'getby'] as const;
@@ -80,7 +80,7 @@ export interface PreAccountOnboardingDraft {
   /** Null until changed on the plan; the plan shows the preset until then. */
   minutes: PlanMinutes | null;
   reminderTime: ReminderTimeId | null;
-  /** Optional, typed on the save page. Never sent anywhere before an account exists. */
+  /** Legacy optional value, now entered in Profile. Never sent anywhere before an account exists. */
   firstName: string | null;
 }
 
@@ -151,7 +151,7 @@ function repaired(value: object): PreAccountOnboardingDraft {
     analyticsConsent: (value as { analyticsConsent?: unknown }).analyticsConsent === true,
     // Every plan answer is optional on disk: a draft from before these pages
     // existed, or one with junk in a slot, reads as not answered yet.
-    page: oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
+    page: (value as { page?: unknown }).page === 'reason' ? 'plan' : oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
     startLevel: oneOf(START_LEVEL_KEYS, (value as { startLevel?: unknown }).startLevel),
     reason: oneOf(REASON_KEYS, (value as { reason?: unknown }).reason),
     minutes: oneOf(PLAN_MINUTES, (value as { minutes?: unknown }).minutes),

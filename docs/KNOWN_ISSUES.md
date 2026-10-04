@@ -8944,7 +8944,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
 - verified-by: `the bar is white with a top hairline, and never a floating shadow`
 - verified-by: `the active tab is the brand blue at weight 700, the rest soft ink at 600, and a screen reader still hears selected`
-- verified-by: `the five words are Home, Speak, Practice, Progress and Friends, and no route name changed`
+- verified-by: `the four words are Home, Speak, Practice and Progress; Friends remains a stack route`
 - verified-by: `a tab cell presses through Press with no haptic of its own, and the bar still moves nothing`
 - verified-by: `the active tab is set in the brand blue, and the rest in soft ink`
 

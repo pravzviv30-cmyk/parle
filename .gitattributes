@@ -1,0 +1,2 @@
+# Preserve exported PDFs byte-for-byte and avoid treating them as source text.
+*.pdf binary

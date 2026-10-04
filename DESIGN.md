@@ -12,17 +12,20 @@ Blue carries a scene or a weekly story, coral the recap cover, sun a sound or
 plan, and mint a can-do. A working page uses paper and at most one colour card.
 White cards carry lists. Chartreuse marks one French line on white or paper.
 There are no gradients, shadows, uppercase metadata, italic French, nested
-cards, decorative badges, streaks, XP or visible Friends ranks.
+white cards, decorative badges, streaks, XP or visible Friends ranks. A white
+reading surface inside a colour task card keeps French legible.
 
 ### Current composition rules
 
-- Five tabs: Home, Speak, Practice, Progress and Friends. Profile opens from
-  the labelled avatar; Settings is its first row. Route identifiers remain stable.
+- Four tabs: Home, Speak, Practice and Progress. Profile opens from the labelled
+  avatar; Settings is its first row and optional Friends follows it. Route
+  identifiers and the Friends URL remain stable.
 - Home offers one useful next action, a lifetime day count, starting scenes or
   evidence-based week sentences, and today's voiced French. It shows no weekly
   day quota. Loading does not claim that the learner has no history.
-- Speak leads with the chosen tutor before the first scene, or real continuity
-  afterwards. One primary opens the next scene or checks an offline connection.
+- Speak shows the chosen tutor and the same next task as Home: unfinished
+  personal practice, usable practice, then the next scene. Offline, the bundled
+  coffee line replaces a service retry as the useful primary.
   The current-level scene path uses earned evidence from core. All scenes are
   available through the grouped A0/A1 list and blue scene briefs.
 - Live rooms retain the real start, pause, type, help, slower, English and leave
@@ -34,10 +37,12 @@ cards, decorative badges, streaks, XP or visible Friends ranks.
   saved work. Shadowing plays the selected tutor's bundled audio,
   records a temporary local take and offers comparison without assessing it.
   Finishing that practice records an active date only after a durable write.
-- Progress opens the blue level card, saved material, a story when the week has
-  evidence, and earned place postcards. Its day count is weekly; Profile's is
+- Empty Progress offers a real first task. With history, independently earned
+  can-dos lead, followed by a quiet scene-path row, saved material, a story when the week
+  has evidence, and earned place postcards. Its day count is weekly; Profile's is
   lifetime. Neither becomes a streak, deadline or target.
-- A recap starts with its coral result. It adds the learner's actual lines,
+- A recap starts with actual French on a white surface within its coral result.
+  It adds the learner's actual lines,
   correction or durably saved phrase, a sound page only for a saved check, an
   ability page only for a core-earned can-do, and a next page only when there is
   a useful next action or reminder. It does not draw empty story steps or infer
@@ -359,12 +364,11 @@ the new look, listed at the end, and they go with their call sites.
   in the ground's words colour and the rest in `segmentPending`, read once as
   "Step 2 of 6".
 - **Label** — the meta line a card may carry: small, soft ink, sentence case.
-- **Tab bar** — flat on the paper with a top hairline: no inset dock, no
-  outline, no chartreuse, no wash and no animation. Selected is an ink glyph and
-  a DM Sans Medium word; unselected is a faint glyph over a soft-ink word (the
-  word stays soft ink because faint ink sits on the text floor's edge). 60pt
-  cells, labels wrap at large text. The five tabs read Today, Speak, Practice,
-  My French and Friends; the route names are unchanged.
+- **Tab bar** — white with a top hairline, four labelled icons and no dock,
+  shadow, chartreuse wash or independent animation. Selected is brand blue in
+  Outfit Bold; unselected is soft ink in Outfit SemiBold. Cells keep a 60pt
+  floor and labels wrap at large text. The words are Home, Speak, Practice and
+  Progress; Friends is an optional Profile route.
 - **Highlight** — the highlighter (SNIPPETS highlight): a still band in
   `highlight` behind one French line, at most once per screen and only on white
   or paper. The band is decorative; the line on it is what is read, marked as
@@ -512,28 +516,28 @@ SpeakBubbles, OnboardWave, the unused onboarding drawings and LearnStack are
 deleted. All twenty daily-pack drawings, their selector and their unused card
 are deleted. The illustration animation hook and moving layers are gone.
 `motion.test.ts` and `surfaceContract.test.ts` enforce static illustrations;
-only the voice orb and the highlighter may animate.
+Illustrations stay static; the bounded motion hosts are listed in the Motion section.
 ## Structure
 
 First run shows a captioned, recorded French exchange silently until the learner
-taps Hear. The next page lets them select and hear a sample reply without
-recording or assessing their voice; an optional disclosure shows a worked
-attempt, correction and retry. Starting level, an optional reason and an
-editable suggested routine lead to a catalogue-backed A0/A1 starting plan.
+taps Hear. The next page offers an authored coffee choice with useful feedback
+and optional help, without recording or assessing their voice. Starting level
+and an editable routine lead to a catalogue-backed A0/A1 starting plan. Name
+and conversation goals are optional Profile choices after setup.
 The age confirmation comes before account creation. A refused microphone
-offers typing, and the first scene shows one line, its estimate and the live
+offers typing, and the first scene shows one line and the live
 minutes cost before either start. Returning learners sign in; the recovery flow
 asks plain questions and lets them hear voices before choosing one.
 
-The signed-in app has five tabs. Each preserves its existing route and
-opens Profile from the labelled avatar. Friends lists people by name with shared challenges and moderation.
+The signed-in app has four tabs, each opening Profile from the labelled
+avatar. Friends is a Profile route and retains shared challenges and moderation.
 
 | Tab | What it is |
 |---|---|
-| Home | One next scene, review or plans lead; a lifetime day count; starting scenes or two week sentences; today’s French and free local practice. |
-| Speak | The chosen tutor or real continuity, one blue next-scene brief or an honest offline alternative, then the current level scene path. The grouped scene list opens a brief before starting. |
+| Home | One shared next task: unfinished personal practice, usable practice, then a scene; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today’s French and free local practice. |
+| Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
-| Progress | Blue A0/A1 level card, a weekly day line, saved phrases, sound evidence, conversations and goals; earned postcards and a week story appear only with evidence. |
+| Progress | A first task when empty; independently earned can-dos before the A0/A1 level card, a weekly day line, saved phrases, sound evidence, conversations and goals; earned postcards and a week story appear only with evidence. |
 | Profile (avatar) | Settings first, the learner’s monogram and name, lifetime days, the chosen tutor, memory and learning choices. Voice and name choices open sheets over the page. |
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
@@ -542,8 +546,8 @@ a section with a learner's own data behind it is worth a page.
 
 | Route | What it is |
 |---|---|
-| Progress | Blue A0/A1 level card, a weekly day line, saved phrases, sound evidence, conversations and goals; earned postcards and a week story appear only with evidence. |
-| Phrasebook | What My French's phrase shelf opens. The one-line card first, a single phrase from the deck with the English showing and the French withheld until an attempt lands, because the thing worth doing should never sit under a list of things already done. Then the kept phrases as white cards grouped by where they came from, each with a speaker. Then the cadence set at the foot: ten authored connectors with the note each was written with, the ones the learner has produced unprompted lifted to the top |
+| Friends | Optional shared challenges, privacy and moderation, opened from Profile or existing friend links. |
+| Phrasebook | What My French's phrase shelf opens. The one-line card first, a single phrase from the deck with the English showing and the French withheld until an attempt lands, because the thing worth doing should never sit under a list of things already done. At twelve saved entries, local French/English search helps retrieve a line without changing evidence. Then the kept phrases as white cards grouped by where they came from, each with a speaker. Then the cadence set at the foot: ten authored connectors with the note each was written with, the ones the learner has produced unprompted lifted to the top |
 | Conversations | What My French's **Your conversations** row opens, and where Practice's archive went. The filters, the vault said in words, then the feed: one row per finished conversation carrying when it was, how long they spoke and what it left behind, each one opening a drill on its own phrases. The pack library opens over it in place rather than as a second push, which is why this screen answers Android's back itself. Deleting a saved conversation, and deleting all of them, is reachable here and nowhere else |
 
 Every tab opens the same way. A **TabHeader** is the first thing in its scroll
@@ -691,12 +695,14 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-Only the voice orb, shared press and once-only recap celebration animate.
+The voice orb, shared press, once-only earned recap celebration and bounded
+state feedback animate. `motion/Feedback.tsx` is the shared host for the
+approved selection, context, save, practice, help and reopen responses.
 The orb is the only continuous animation. Press uses the shared spring;
 recap confetti falls once on the first earned finish in that scene, and its
 real line count rises once. Navigating back does not replay either flourish.
 The source allow-list is `components.tsx`, `motion.ts`, `tutor/VoiceOrb.tsx`
-and `recap/OnceConfetti.tsx`. The count uses a short-lived timer with cleanup.
+`recap/OnceConfetti.tsx` and `motion/Feedback.tsx`. The count uses a short-lived timer with cleanup.
 Illustrations, the greeting and the tab bar stay static.
 
 `useReduceMotion` observes the OS preference. Reduced motion shows the final
@@ -769,3 +775,27 @@ The worktree continuation report records those gaps and verification limits.
 
 The app icon and splash artwork in `app.json` are still the enamel era's
 placeholders on paper-coloured ground.
+
+### Video review implementation, 4 October 2026
+
+The founder approved expanding the motion contract. `motion/Feedback.tsx` is the
+sole new animation host. It applies opacity and at most 4pt translation to a
+real selection, setup-context change, durable save, completed local practice,
+requested help or reopened kept material. Timings are 200/260/440/320/200/260ms
+in `motion/feedbackPolicy.ts`; the existing earned-only confetti falls once over
+650ms. These are prototype timings, not research measurements. Content and
+controls remain available throughout. Reduce Motion shows the final state;
+unknown settings wait conservatively. Backgrounding and unmount stop motion.
+Event identifiers deduplicate responses in bounded session memory and are never persisted or transmitted.
+The existing press spring and controlled VoiceOrb remain the only spring and
+continuous movement. No animation library, fake progress, audio, punitive mascot
+or artificial processing delay is added.
+
+Four primary tabs: Home, Speak, Practice, Progress. Friends is an optional stack
+screen reached from Profile, preserving its URL, invitations and privacy controls.
+Home and Speak use `NextTaskCard`: unfinished personal practice, usable personal
+practice, then the next authored scene; unavailable live service offers the same
+bundled coffee line in the selected tutor's voice. Empty Practice uses that same
+card. Colour belongs to meaning: blue next task, sun local café practice, coral
+recap with a white French reading surface, mint independently earned can-do.
+The first recap view leads with actual French, never a count or illustration.

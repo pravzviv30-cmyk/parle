@@ -33,9 +33,10 @@
 ## Current presentation and preview
 
 `index.ts` registers `App.tsx`; `nav/RootNavigator.tsx` is the only app navigator.
-The five tab routes are Home, Tutor, Practice, MyFrench and Friends, displayed as
-Home, Speak, Practice, Progress and Friends. Profile is a pushed screen reached from
-the profile button. Revamp B and the UX report changes are already on `main`.
+The four tab routes are Home, Tutor, Practice and MyFrench, displayed as Home,
+Speak, Practice and Progress. Profile is a pushed screen reached from the profile
+button; Friends is an optional stack route inside Profile. Revamp B and the
+video UX implementation use this same navigator.
 
 Daily playback uses `daily/tutorAudioManifest.ts`: 400 items with six tutor voices,
 2,400 recordings. The full 2,000-item text library remains available. Missing tutor
@@ -61,3 +62,11 @@ merging `main` elsewhere cannot update a server on an older branch.
   retains its namespace, identity, adapter, challenges and compatibility data.
 - Pricing changes cross core constants, SQL plan checks, token responses, UI, purchase
   webhooks, and compatibility migration together.
+
+
+4 October 2026: four primary tabs with Friends in Profile. Home, Speak and empty
+Practice share the owned next-task selector (resume, personal practice, next
+scene) and the same genuine bundled café fallback. The navigator never mounts
+the simulated lesson. Correction drafts have no countdown; individual requests
+still time out and exit/background/account changes cancel them. See
+`VIDEO_UX_IMPLEMENTATION.md` for the video-review dispositions and verification.

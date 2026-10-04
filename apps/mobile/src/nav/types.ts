@@ -21,10 +21,10 @@ export type TabParamList = {
   Tutor: undefined;
   Practice: undefined;
   MyFrench: undefined;
-  Friends: undefined;
 };
 
 export type RootStackParamList = {
+  Friends: undefined;
   Profile: { sheet?: 'tutorVoice' } | undefined;
   AddFriends: { username?: string } | undefined;
   SocialSettings: undefined;

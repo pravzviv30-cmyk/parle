@@ -38,7 +38,7 @@ export interface TutorOfflineCopy {
 export const TUTOR_OFFLINE: TutorOfflineCopy = {
   label: 'Connection unavailable',
   headline: 'Your tutor cannot connect right now.',
-  body: 'Try again in a moment, or keep practising with a guided lesson.',
+  body: 'Try again, or practise a bundled line offline.',
   retry: 'Check again',
   checking: 'Checking',
   back: 'Back',

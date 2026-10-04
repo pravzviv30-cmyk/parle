@@ -16,7 +16,9 @@ import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { UNREAD } from '../practice/archive.ts';
-import { ALTERNATIVES, PRACTICE_PURPOSE, PRACTICE_TITLE } from '../practice/copy.ts';
+import { ALTERNATIVES, FIRST_PRACTICE_PURPOSE, PRACTICE_PURPOSE, PRACTICE_TITLE } from '../practice/copy.ts';
+import { NextTaskCard } from '../practice/NextTaskCard.tsx';
+import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { NEXT_STEP } from '../practice/nextStep.ts';
 import { recommendation } from '../practice/recommendation.ts';
 import { practiceCard, practiceDoors, type PracticeCard, type PracticeDoors } from '../practice/practiceCard.ts';
@@ -195,8 +197,8 @@ export function PracticeTab() {
 
   /**
    * The guided sound lesson, opened the way the chooser opens it. The probe
-   * only refreshes whether a tutor is reachable: the lesson runs live when one
-   * is and on this phone when not, so it opens either way.
+   * refreshes whether a real tutor is reachable. An unavailable lesson stays
+   * here with genuine local practice rather than simulated speech.
    */
   const openLesson = () => {
     if (checking || !ownsReadNow()) return;
@@ -207,7 +209,7 @@ export function PracticeTab() {
       const start = lessonStart(false);
       nav.navigate(start.screen, start.params);
     };
-    void recheck().then(go, go);
+    void recheck().then(answered => { if (answered) go(); else { if (!ownsReadNow()) return; setChecking(false); setHeldBack({ textMode: false }); } }, () => { if (!ownsReadNow()) return; setChecking(false); setHeldBack({ textMode: false }); });
   };
 
   /** The one recommended action. A module sitting is local, so nothing is probed. */
@@ -255,7 +257,7 @@ export function PracticeTab() {
   const rowsCanStart =
     ownerMatches && ((made?.value?.replay != null && made.value.replay.sayable) ||
     made?.value?.phrase != null ||
-    (step !== null && step.doors.review !== null));
+    (!dayOne && step !== null && step.doors.review !== null));
 
   // The page's one primary action, built once. It sits in the sound block on
   // day one and in the recommended card on every other day, never both.
@@ -269,7 +271,7 @@ export function PracticeTab() {
       </View>
       {heldBack !== null && (
         <View style={st.offline}>
-          <Text style={st.openingBody}>{TUTOR_OFFLINE.body}</Text>
+          <Text style={st.openingBody}>{TUTOR_OFFLINE.body}</Text><LocalPracticeCard />
           <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
         </View>
       )}
@@ -291,7 +293,7 @@ export function PracticeTab() {
       )}
     >
       <View>
-        <TabHeader title={PRACTICE_TITLE} purpose={PRACTICE_PURPOSE} trailing={<ProfileButton />} />
+        <TabHeader title={PRACTICE_TITLE} purpose={dayOne ? FIRST_PRACTICE_PURPOSE : PRACTICE_PURPOSE} trailing={<ProfileButton />} />
 
         {/* The read did not finish. Said plainly, with the same work offered again. */}
         {showFailed && (
@@ -309,18 +311,18 @@ export function PracticeTab() {
         {/* The exact next action stays in the first viewport, including on day one. */}
         {ownerMatches && step !== null && (
           <View style={st.block}>
-            <Card style={{ gap: space(4) }}>
+            {dayOne ? <NextTaskCard /> : <Card style={{ gap: space(4) }}>
               <Label>{NEXT_STEP.label}</Label>
               <FrenchBlock french={step.card.phrase.fr} english={step.card.phrase.en} playing={playing} onHear={() => hearNext(step.card.phrase.fr)} />
               {primary}
-            </Card>
+            </Card>}
           </View>
         )}
 
         {/* One sentence, on day one only: what this page becomes. */}
         {dayOne && <Text style={st.starterLine}>{STARTER.line}</Text>}
 
-        {shadowPhrase && <View style={st.block}><Ledger><LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Hear, say and compare" gloss="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={()=>nav.navigate('DailyPractice',{id:shadowPhrase.id,mode:'shadowing'})} /></Ledger></View>}
+        {!dayOne && shadowPhrase && <View style={st.block}><Ledger><LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Hear, say and compare" gloss="Free offline practice with your chosen tutor’s recording. Your take is temporary and is not graded." onPress={()=>nav.navigate('DailyPractice',{id:shadowPhrase.id,mode:'shadowing'})} /></Ledger></View>}
 
         {/* The sound example follows the short action; its full guide is optional. */}
         {ownerMatches && lead !== null && (
@@ -356,7 +358,7 @@ export function PracticeTab() {
                 /* The own-words node the row builds, passed straight on (F581). */
                 <MakePhraseCard phrase={made.value.phrase} onSay={(node) => { if (ownsReadNow()) nav.navigate('Drill', { node }); }} />
               )}
-              {step !== null && step.doors.review !== null && (
+              {!dayOne && step !== null && step.doors.review !== null && (
                 <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title={step.doors.review} onPress={() => { if (ownsReadNow()) nav.navigate('Review'); }} />
               )}
             </Ledger>

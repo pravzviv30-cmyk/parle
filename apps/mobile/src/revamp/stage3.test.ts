@@ -7,7 +7,7 @@ const has=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const p
 const lacks=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const pattern of patterns) assert.doesNotMatch(code,pattern,file);};
 
 test('revamp B Speak preserves real gates, one primary action and the authored scene path',()=>{
-  has('tabs/TutorTab.tsx',/<TutorCard/,/<ContinuityCard/,/<SceneBrief/,/<SceneMark/,/PATH_LABEL/,/state-offline/,/TUTOR_OFFLINE.retry/,/nav.navigate\('Missions'/);
+  has('tabs/TutorTab.tsx',/<TutorCard/,/<ContinuityCard/,/<NextTaskCard/,/<SceneMark/,/PATH_LABEL/,/TUTOR_OFFLINE.retry/,/nav.navigate\('Missions'/);
   lacks('tabs/TutorTab.tsx',/<TintRow/,/<OptionCard/,/Start a real conversation/);
   has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);
 });

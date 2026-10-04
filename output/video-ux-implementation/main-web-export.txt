@@ -1,0 +1,15 @@
+Command: npm run build:web
+Exit code: 0
+assets/voices/marie.dd12daa4a5c784d9ece64f3fafc243b5.m4a (28KB)
+assets/voices/sarah.c7194c2f9208873f5745f5a415eeb6db.m4a (30KB)
+
+› web bundles (2):
+_expo/static/js/web/index-531f4a5281147e96b045fa32b1b65783.js (3.2MB)
+_expo/static/js/web/LiveScreenModule-55fbe71fbc9370b50aa2ad2c51ee0641.js (689KB)
+
+› Files (3):
+favicon.ico (15KB)
+index.html (1.2KB)
+metadata.json (49B)
+
+Exported: dist

@@ -301,8 +301,8 @@ and level to `/drill/fix-line`. That endpoint uses the same authentication,
 identity to the configured language model and no text to a log, event, table,
 deck or grade. A timeout, malformed or uncertain answer stays unjudged.
 The own-words Jev shortcut is bypassed: a correction-specific screen has not
-been calibrated on real French attempts. The practice window is one minute;
-leaving, backgrounding or an account/scope change fences late results and cancels
+been calibrated on real French attempts. The retry has no learner countdown;
+its request deadlines remain bounded. Leaving, backgrounding or an account/scope change fences late results and cancels
 the correction/transcription request. A cancelled take waiting for authentication
 starts no later upload; the 12s transcription deadline also bounds stalled auth.
 An upload already sent may have reached Deepgram despite cancellation. Vendor

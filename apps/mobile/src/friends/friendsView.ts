@@ -17,19 +17,19 @@ export function friendsEntry(snapshot: SocialSnapshot | null): FriendsEntry {
   return snapshot.settings.enabled ? 'circle' : 'start';
 }
 
-export const FRIENDS_START_TITLE = 'Practise French with someone you know.';
-export const FRIENDS_START_BODY = 'Choose a username and invite a friend to a shared conversation challenge. Joining is optional. Your recordings and conversation text stay private.';
-export const FRIENDS_FRENCH_IDEA = 'A French idea for this week: practise ordering a drink in a café scene. The shared counter records conversations, not whether either person passed this task.';
+export const FRIENDS_START_TITLE = 'Practise with a friend.';
+export const FRIENDS_START_BODY = 'Choose a username, then invite a friend to a shared challenge. Joining is optional.';
+export const FRIENDS_FRENCH_IDEA = 'Try ordering a drink in a café scene. The counter records conversations completed, not task passes.';
 /** The one start, on the tab and on the privacy screen alike. */
 export const FRIENDS_START = 'Set up Friends';
 /** Secondary, beneath the start, for somebody who wants to read before joining. */
-export const FRIENDS_PRIVACY_LINK = 'How Friends privacy works';
+export const FRIENDS_PRIVACY_LINK = 'Friends privacy';
 
 /**
  * Under the tab title: what the tab holds, said plainly (notebook Phase 4 copy
  * pass, 2026-09-27). It replaced the tagline "A little French, together.".
  */
-export const FRIENDS_PURPOSE = 'Practise with people you know, at your own pace.';
+export const FRIENDS_PURPOSE = 'Optional shared practice.';
 /** Beside a name on the board with no points this week. It replaced "Ready when you are". */
 export const FRIENDS_NO_POINTS = 'No points this week';
 

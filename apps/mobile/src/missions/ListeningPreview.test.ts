@@ -141,7 +141,7 @@ describe('the listening preview control — Stage 4 item 4', () => {
 describe('the chooser offers it on the one situation already picked out', () => {
   const SCREEN = stripComments(read('./MissionsScreen.tsx'));
   // 2026-09-27, notebook Phase 4 (B1): the card dropped the deprecated `tone="feature"`.
-  const hero = SCREEN.slice(SCREEN.indexOf('<Card style={{ gap: space(4) }}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('<Card style={{ gap: space(4) }}>')));
+  const hero = SCREEN.slice(SCREEN.indexOf('<Card style={{ gap: space(3) }}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('<Card style={{ gap: space(3) }}>')));
 
   test('mounted inside the Start here card, after its one pill, for that mission', () => {
     assert.ok(hero.length > 0, 'the hero card moved; this test is stale');
@@ -171,6 +171,9 @@ describe('both lesson doors that can open a live lesson say so', () => {
   test('Speak draws no second lesson door, and the offline local practice needs no minutes', () => {
     const tab = stripComments(read('../tabs/TutorTab.tsx')).replace(/\s+/g, ' ');
     assert.doesNotMatch(tab, /Practise pronunciation|LESSON_MINUTES/, 'Speak draws a lesson door the chooser already draws');
-    assert.match(tab, /<GhostButton label="Practise today's phrase on this phone" onPress=\{\(\) => nav\.navigate\('DailyPractice', \{ id: todayItems\(0, Date\.now\(\)\)\.phrase\.id \}\)\} \/>/);
+    assert.match(tab, /<LocalPracticeCard/);
+    const local = stripComments(read('../practice/LocalPracticeCard.tsx'));
+    assert.match(local, /localPracticeFor\(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO\)/);
+    assert.match(local, /navigate\('DailyPractice', \{ id: phrase.id, mode: 'shadowing' \}\)/);
   });
 });

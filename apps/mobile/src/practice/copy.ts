@@ -34,6 +34,7 @@ export const PRACTICE_TITLE = 'Practice';
 
 /** The line under it: one short sentence, not a slogan. */
 export const PRACTICE_PURPOSE = 'Short practice from what you have said.';
+export const FIRST_PRACTICE_PURPOSE = 'A short first practice.';
 
 /** The caps label over the one card at the top of the tab. */
 export const NEXT_PRACTICE_LABEL = 'Your next practice';
@@ -78,7 +79,7 @@ export const RECOMMENDED = {
   /** When the sitting draws on a saved conversation, before its title. */
   fromConversation: 'Includes phrases from',
   /** When only scheduled review contributed. */
-  fromReview: 'Phrases your review is ready for.',
+  fromReview: 'Phrases due for review.',
   /** When a sitting is waiting on this phone. */
   resumeLine: 'Pick up where you stopped.',
   /**
@@ -114,24 +115,24 @@ export const PRACTICE_HELP = {
 
 /** What a practice sitting says at the end, chosen by `sittingStatement`. */
 export const PRACTICE_END = {
-  'recalled-some': 'You brought some of these back without choices.',
+  'recalled-some': 'You recalled some phrases without choices.',
   practised: 'You practised these phrases.',
   'coming-back': 'These phrases will come round again.',
   /** Nothing playable, said as a fact rather than a finish. */
   empty: 'Nothing here can be practised right now.',
   emptyBody: 'Try another conversation, or talk with your tutor to make new practice.',
   /** The phone would not keep this sitting. Said plainly, with no finish claimed. */
-  notSaved: 'This practice was not saved on this phone.',
+  notSaved: 'Practice was not saved on this phone.',
   notSavedBody: 'Try again in a moment. Your earlier practice is still here.',
   /** Under a sitting the store confirmed: what happens to the phrases next. */
-  after: 'Your review deck takes it from here.',
+  after: 'These phrases will return in review.',
   /** Saved, but older than the recent history keeps, so it is not listed there. */
   savedOutsideHistory: 'Practice saved.',
-  savedOutsideHistoryBody: 'This session is outside your recent history. Your review deck takes it from here.',
+  savedOutsideHistoryBody: 'This session is outside your recent history. These phrases will return in review.',
   /** Kept safe on this phone, still finishing its writes. */
   savedLocally: 'Kept on this phone. It will finish saving shortly.',
   /** The one door on a sitting that was not saved: the same save again. */
-  retry: 'Try saving again',
+  retry: 'Retry save',
   retrying: 'Saving',
   /** A saved sitting whose exercises are gone from this phone. */
   cannotResume: 'That practice can no longer be resumed.',

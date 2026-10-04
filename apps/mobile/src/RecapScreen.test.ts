@@ -35,8 +35,8 @@ function at(marker: string): number {
 
 describe('the recap is a keepsake', () => {
   test('it reads your lines, one phrase kept, one sound, then "Next time", then the reminder offer', () => {
-    assert.ok(at('{KEEPSAKE_COPY.lines}') < at('<Highlight text={keptPhrase.fr}'), 'the kept phrase comes before the learner\'s own lines');
-    assert.ok(at('<Highlight text={keptPhrase.fr}') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
+    assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.lines}'), 'the kept phrase comes before the learner\'s own lines');
+    assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
     assert.ok(at('{KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
     assert.ok(at('{nextTime}') < at('{offer.title}'), 'the reminder is offered before the keepsake is over');
     assert.match(render, /currentPage === 'next' &&/);
@@ -49,7 +49,7 @@ describe('the recap is a keepsake', () => {
     assert.match(code, /const nextTime = context === null \? null : nextTimeLine\(context\.progress\);/, '"Next time" is not the spine\'s next scene');
     assert.match(code, /const keptPhrase = closureFromRecap\(recap, null\)\.phrases\[0\] \?\? null/, 'the kept phrase can change under a save already started');
     // The kept phrase is the screen's one highlighter mark.
-    assert.equal((code.match(/<Highlight\b/g) ?? []).length, 1, 'the recap draws more or less than one highlighter');
+    assert.equal((readFileSync(new URL('./recap/KeptPhraseCard.tsx', import.meta.url), 'utf8').match(/<Highlight\b/g) ?? []).length, 1, 'the recap draws more or less than one highlighter');
     // Every block appears only once it has something true to show.
     assert.match(render, /\{lines\.length > 0 && \(/, 'an empty "Your lines" block is drawn');
     assert.match(render, /\{nextTime !== null && /, '"Next time" is drawn with nothing to name');
@@ -58,7 +58,7 @@ describe('the recap is a keepsake', () => {
   test('the notification permission is asked only when the learner accepts the reminder offer', () => {
     // Offered only after a win, at the chosen time, from facts already read.
     assert.match(code, /const won = lines\.length > 0 \|\| keptPhrase !== null;/, 'the offer is not gated on the first win');
-    assert.match(code, /const offer = reminderOffer\(\{ available: REMINDERS_AVAILABLE, won, stored, permission \}\);/);
+    assert.match(code, /const offer = reminderOffer\(\{ available: REMINDERS_AVAILABLE, won, stored: offeredReminder, permission \}\);/);
     // Read on the way in, never asked.
     assert.match(code, /Promise\.all\(\[loadReminder\(\{ strict: true \}\), reminderPermission\(\)\]\)/, 'the recap does not read the permission it offers against');
     for (const effect of code.split('useEffect(').slice(1)) {
@@ -68,8 +68,10 @@ describe('the recap is a keepsake', () => {
     // Asked in exactly one place: the accept handler, through the model.
     assert.equal((code.match(/\baskReminderPermission\b/g) ?? []).length, 2, 'the dialog is reachable from somewhere other than the accept handler');
     const accept = code.slice(code.indexOf('const acceptReminder = '), code.indexOf('};', code.indexOf('const acceptReminder = ')));
-    assert.match(accept, /acceptReminderOffer\(offer, \{ ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder \}\)/);
+    assert.match(accept, /acceptReminderOffer\(offer, \{ owns, ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder \}\)/);
     assert.match(render, /<OutlineButton label=\{offer\.accept\}[^>]*onPress=\{acceptReminder\}/, 'the accept control does not accept');
+    assert.match(render, /REMINDER_TIMES.map/);
+    assert.match(render, /onPress=\{\(\) => setOfferTime\(time.value\)\}/);
     assert.match(render, /<GhostButton label=\{offer\.decline\}/, 'there is no quiet way to say no');
     assert.match(render, /reminderAnswerLine\(reminder, offer\)/, 'the answer is not said once the learner has chosen');
   });
@@ -105,7 +107,7 @@ describe('the recap is a keepsake', () => {
 describe('the conversation closes with something useful', () => {
   test('the exact visible keepsake is durable before the recap calls it saved', () => {
     assert.match(screen, /onSave\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)/);
-    assert.match(screen, /saveState === 'saved'[\s\S]*\? 'Saved to Progress'/);
+    assert.match(screen, /saveState === 'saved'[\s\S]*\? 'Saved to Progress on this phone'/);
     assert.match(screen, /saveState === 'failed'[\s\S]*\? 'Not saved yet'/);
     assert.match(keepsake, /const acknowledged = await addPhrases\(/);
     assert.match(keepsake, /return acknowledged === 'durable'/);

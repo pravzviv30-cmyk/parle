@@ -108,8 +108,8 @@ describe('answers to a plan', () => {
     const LEVEL = /\b(A0|A1|A2|B1|B2|C1|C2|CEFR|beginner|intermediate|advanced|fluent|fluency)\b/i;
     const DATE = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december|tomorrow|next week|in \d+ (days|weeks|months))\b/i;
     const PROMISE = /\b(you will be|you'll be (fluent|at)|guarantee|by the end)\b/i;
-    assert.match(COVERAGE_NOTE, /Beginner A0 and A1 scenes/);
-    assert.match(COVERAGE_NOTE, /not a certified placement or a full tailored course/);
+    assert.match(COVERAGE_NOTE, /Beginner scenes/);
+    assert.match(COVERAGE_NOTE, /starting level is a suggestion/);
     const lines: string[] = PLAN_COPY.filter(line => line !== COVERAGE_NOTE);
     for (const level of START_LEVELS) {
       for (const reason of [null, ...REASONS.map((r) => r.key)]) {

@@ -51,7 +51,7 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.match(FLAT, /<OneLineCard line=\{oneLine\} onGraded=\{\(\) => setGraded\(\(n\) => n \+ 1\)\} \/>/, 'the one line card is gone, or no longer re-reads the deck it just graded');
     assert.ok(at('<OneLineCard') < at('<Label>{LEDGER.rowsLabel}</Label>'), 'the lines already said are drawn above the one line the visit asks for');
     assert.ok(at('<CadenceCard cadence={cadence}') > at('<Label>{LEDGER.rowsLabel}</Label>'), 'the cadence set no longer closes the page');
-    assert.match(FLAT, /visibleBook !== null && oneLine !== null && <OneLineCard/, 'an unread deck still deals a card');
+    assert.match(FLAT, /visibleBook !== null && query\.trim\(\) === '' && oneLine !== null && <OneLineCard/, 'an unread deck still deals a card');
     // Stage 3: the set is an optional collection now, so the card is gated on a
     // read that has answered with words AND on the learner asking to see it.
     assert.match(FLAT, /hasCadence\(cadence\) && \(/, 'the cadence collection is drawn from an unanswered read');
@@ -63,7 +63,7 @@ describe('your phrases, as a route of its own — F575', () => {
     assert.match(FLAT, /setBook\(buildPhrasebook\(deck, topics, now, packs\)\)/, 'the screen groups the phrases itself instead of asking phrasebook.ts');
     assert.match(FLAT, /setOneLine\(oneLineFrom\(\{ deck, now \}\)\)/, 'the screen deals the card itself instead of asking oneLine.ts');
     assert.match(FLAT, /setCadence\(cadenceFrom\(\{ deck \}\)\)/, 'the screen picks the connectors itself instead of asking cadence.ts');
-    assert.match(FLAT, /visibleBook !== null && hasPhrases\(visibleBook\)/, 'a learner with no kept lines is shown an empty list under a heading');
+    assert.match(FLAT, /displayBook !== null && hasPhrases\(displayBook\)/, 'a learner with no kept lines is shown an empty list under a heading');
     assert.match(FLAT, /bookScope === owner \? book : null/, 'old-account phrases can remain visible after an account switch');
 
     // The route's own picture, at the registry's size, and the heading from the
@@ -74,22 +74,22 @@ describe('your phrases, as a route of its own — F575', () => {
     // What left with the route, and must not come back: two figures over a list
     // the learner can see, and a hold mark beside every line they wrote.
     assert.ok(!SCREEN.includes('<Stat'), 'the phrasebook counts itself again; a total over a visible list is a number asking to be compared');
-    assert.ok(!SCREEN.includes('hold'), 'a per-phrase hold mark is back, so a page of the learner’s own French reports on them while they read it');
+    assert.doesNotMatch(SCREEN, /\bHoldMark\b|\bhold=\{/, 'a per-phrase hold mark is back, so a page of the learner’s own French reports on them while they read it');
   });
 
   test('saved phrases not yet recalled are their own block, after the retained lines and under their own name — Stage 1', () => {
     // Separate from "Yours in conversation", never inside it: the retained
     // groups are evidence, and a saved phrase is a promise until it is recalled.
-    assert.match(FLAT, /visibleBook !== null && hasSaved\(visibleBook\) &&/, 'the saved block is drawn from an unanswered read, or on a length the screen works out itself');
+    assert.match(FLAT, /displayBook !== null && hasSaved\(displayBook\) &&/, 'the saved block is drawn from an unanswered read, or on a length the screen works out itself');
     assert.match(FLAT, /<Label>\{SAVED_TITLE\}<\/Label>/, 'the saved block spells its own heading, or has none');
     assert.match(FLAT, /\{SAVED_NOTE\}/, 'the saved block does not say how a phrase joins the retained lines');
-    assert.match(FLAT, /visibleBook\.saved\.map\(/, 'the saved phrases are not drawn');
+    assert.match(FLAT, /displayBook\.saved\.map\(/, 'the saved phrases are not drawn');
     assert.ok(at('<Label>{LEDGER.rowsLabel}</Label>') < at('<Label>{SAVED_TITLE}</Label>'), 'saved phrases are drawn above the lines already recalled');
     assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('<CadenceCard cadence={cadence}'), 'the cadence set no longer closes the page');
     // The retained gate is unchanged, so a saved phrase alone never draws the retained heading.
-    assert.match(FLAT, /visibleBook !== null && hasPhrases\(visibleBook\) &&/, 'the retained block lost its own gate');
+    assert.match(FLAT, /displayBook !== null && hasPhrases\(displayBook\) &&/, 'the retained block lost its own gate');
     // And each saved line can be heard by the same labelled speaker.
-    const saved = FLAT.slice(at('visibleBook.saved.map('));
+    const saved = FLAT.slice(at('displayBook.saved.map('));
     assert.match(saved.slice(0, 400), /<PhraseRow/, 'a saved line is drawn without the shared row and its speaker');
   });
 
@@ -162,4 +162,9 @@ describe('your phrases, as a route of its own — F575', () => {
     }
     assert.doesNotMatch(SCREEN, /—/, 'the route carries an em dash, which no learner-facing file may');
   });
+});
+
+// A saved-but-unrecalled collection is populated, not an empty notebook.
+test('saved phrases and search results never draw the first-phrase empty prompt', () => {
+  assert.match(FLAT, /!hasPhrases\(visibleBook\) && !hasSaved\(visibleBook\) && query.trim\(\) === '' && <Card>/);
 });

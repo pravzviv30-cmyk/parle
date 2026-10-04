@@ -5,7 +5,7 @@
  * it is something kept rather than something scored: the lines they said, one
  * phrase kept, one sound, and "Next time" naming the spine's next scene. After
  * all of that, and only then, the recap offers a daily reminder at the time the
- * learner chose in their plan.
+ * learner chooses on the offer or previously chose in Settings.
  *
  * ## When the phone is asked
  *
@@ -129,6 +129,8 @@ export function reminderOffer(facts: {
 export type ReminderAnswer = 'on' | 'refused' | 'failed';
 
 export interface ReminderPhone {
+  /** A pending permission or save cannot act for a different account. */
+  owns?: () => boolean;
   /** Raises the system dialog. Called from here and nowhere on the way in. */
   ask: () => Promise<ReminderPermission>;
   /** Reads the permission without raising anything. */
@@ -143,15 +145,18 @@ export interface ReminderPhone {
  */
 export async function acceptReminderOffer(offer: ReminderOffer, phone: ReminderPhone): Promise<ReminderAnswer> {
   try {
+    const owns = phone.owns ?? (() => true);
+    if (!owns()) return 'failed';
     const permission = offer.asks ? await phone.ask() : await phone.read();
+    if (!owns()) return 'failed';
     const time = offer.time.value;
     if (!reminderRow({ enabled: true, time }, permission).on) return 'refused';
-    if ((await phone.save({ enabled: true, time })) !== 'durable') return 'failed';
+    if ((await phone.save({ enabled: true, time })) !== 'durable' || !owns()) return 'failed';
     if ((await phone.schedule(time)) !== 'done') {
-      await phone.save({ enabled: false, time });
+      if (owns()) await phone.save({ enabled: false, time });
       return 'failed';
     }
-    return 'on';
+    return owns() ? 'on' : 'failed';
   } catch {
     return 'failed';
   }

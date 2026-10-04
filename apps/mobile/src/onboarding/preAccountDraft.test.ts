@@ -190,7 +190,7 @@ describe('the pre-account hand-off', () => {
   });
 
   test('is a six-page flow with the plan and a selected Tutor before account creation', () => {
-    assert.deepEqual([...PRE_ACCOUNT_PAGES], ['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save']);
+    assert.deepEqual([...PRE_ACCOUNT_PAGES], ['hear-it', 'first-line', 'start-level', 'plan', 'save']);
     assert.match(source, /onPress=\{\(\) => chooseVoice\(option\.value\)\}/, 'a tap does not save the selected voice to the draft');
     assert.match(source, /onHear=\{\(\) => hearVoice\(selected\)\}/, 'the voice sample is not a deliberate learner action');
     // Revamp B (F601): the pill says the age and the action as one sentence, with a comma.
@@ -210,7 +210,7 @@ describe('the pre-account hand-off', () => {
     // full stop was added after a line that already ends with one.
     assert.match(
       source,
-      /accessibilityLabel=\{`Reply: \$\{asSentences\(\[FIRST_LINE\.reply\.fr, FIRST_LINE\.reply\.en\]\)\}`\}/,
+      /accessibilityLabel=\{asSentences\(\[option\.fr, option\.en\]\)\}/,
       'the reply label joins its sentences by hand again',
     );
     assert.match(source, /import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';/, 'the reply label does not use the shared sentence joiner');
@@ -254,7 +254,7 @@ describe('the pre-account hand-off', () => {
     assert.ok(ai > 0 && mic > ai && raw > mic, 'the final page no longer presents AI, microphone/typing and raw-audio facts in a readable order');
     assert.ok(consent > raw, 'analytics consent is asked before the learner is told what the app keeps');
     assert.match(save, /\{TRIAL_LINE\}/, 'the save page does not say what the trial is');
-    assert.match(save, /<Field\b/, 'the save page does not ask for a first name');
+    assert.doesNotMatch(save, /<Field\b/, 'name entry should be deferred to Profile');
   });
 
   test('turns the draft into one account-scoped profile exactly once', () => {
@@ -335,4 +335,16 @@ test('refusal clears a pending draft and wins over already queued answers — F6
   // A genuine new onboarding after this refusal is cleared may save again.
   await savePreAccountDraft(freshPreAccountDraft());
   assert.notEqual(await loadPreAccountDraft(), null);
+});
+
+test('a draft on the retired goal page resumes at the plan without losing answers or consent', async () => {
+  const disk = installDisk();
+  disk.set(KEY, JSON.stringify({ ...freshPreAccountDraft(), page: 'reason', reason: 'work', minutes: 'none', firstName: 'Ada', tutorVoice: 'marie', analyticsConsent: false }));
+  const loaded = await loadPreAccountDraft();
+  assert.equal(loaded?.page, 'plan');
+  assert.equal(loaded?.reason, 'work');
+  assert.equal(loaded?.minutes, 'none');
+  assert.equal(loaded?.firstName, 'Ada');
+  assert.equal(loaded?.tutorVoice, 'marie');
+  assert.equal(loaded?.analyticsConsent, false);
 });

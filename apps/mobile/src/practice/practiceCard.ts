@@ -51,8 +51,8 @@ export interface PracticeCard {
     | { kind: 'resume'; label: string }
     /**
      * Day one on Practice (notebook Phase 3, 2026-09-27): the guided
-     * pronunciation lesson that opens on "Bonjour". It runs live while a tutor
-     * is connected and on this phone when not, so it says `liveMinutes`.
+     * pronunciation lesson that opens on "Bonjour". It requires a real tutor;
+     * unavailable service offers a separate ungraded local task.
      */
     | { kind: 'lesson'; label: string }
     /**

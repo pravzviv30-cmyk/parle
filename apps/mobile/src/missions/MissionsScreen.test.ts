@@ -47,7 +47,10 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.doesNotMatch(SCREEN, /<TabBar\b/, 'the scene brief grows a mode chooser');
     assert.match(SCREEN, /const typed = route\.params\?\.textMode === true;/);
     assert.match(SCREEN, /label=\{TYPE_INSTEAD\} color=\{paper\.onInk\} onPress=\{\(\) => open\(first, true\)\}/, 'the brief loses its quiet typed twin');
-    assert.match(SCREEN, /missionMinutes\(first\.mission\)/, 'the brief invents its minutes');
+    assert.doesNotMatch(SCREEN, /missionMinutes\(first\.mission\)/, 'an unmeasured duration dominates the brief');
+    const brief = SCREEN.slice(SCREEN.indexOf('if (focus && first)'));
+    assert.ok(brief.indexOf('{first.mission.title}') < brief.indexOf('<Illustration'), 'decoration precedes the actual task');
+    assert.match(SCREEN, /ground=\{focus && progress !== null && first \? 'blue' : 'paper'\}/, 'the brand has no contrast on its ground');
     assert.match(SCREEN, /\['A0', 'A1'\]/, 'the list loses its level grouping');
     assert.match(SCREEN, /view\.cards\.filter\(\(card\) => card\.mission\.cefr === level\)\.map/, 'the list loses scenes from the view model');
     assert.match(SCREEN, /<LedgerRow\b/);

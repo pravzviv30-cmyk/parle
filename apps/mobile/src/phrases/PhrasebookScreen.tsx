@@ -1,3 +1,5 @@
+import { needsPhraseSearch, searchPhrases } from './search.ts';
+import { Feedback } from '../motion/Feedback.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 /**
  * Your phrases — every line that has become the learner's, as a route (F575).
@@ -39,7 +41,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { Card, GhostButton, Label, PillButton } from '../components.tsx';
+import { Card, Field, GhostButton, Label, PillButton } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
@@ -63,12 +65,16 @@ import { buildPhrasebook, hasPhrases, hasSaved, SAVED_NOTE, SAVED_TITLE, type Ph
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { CADENCE_NOTE, PHRASEBOOK_TITLE, cadenceToggleLabel, hasCadence, speakerLabel } from './phrasebookView.ts';
 
+let nextVisit = 0;
+
 export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const [book, setBook] = useState<Phrasebook | null>(null);
   const [bookScope, setBookScope] = useState<number | null>(null);
   const [unread, setUnread] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [query, setQuery] = useState('');
+  const [visit, setVisit] = useState(0);
   const [sourcePacks, setSourcePacks] = useState<ConversationPack[]>([]);
   const [oneLine, setOneLine] = useState<OneLine | null>(null);
   const [cadence, setCadence] = useState<Cadence | null>(null);
@@ -81,6 +87,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   voiceRef.current = selectedVoice;
   const owner = scopeGeneration();
   const visibleBook = bookScope === owner ? book : null;
+  const displayBook = visibleBook === null ? null : searchPhrases(visibleBook, query);
   const recorded = useRecordedLine({ isCurrent: () => owner === scopeGeneration() && selectedVoice === voiceRef.current });
   const keptAudio = useKeptPhraseAudio(selectedVoice);
   const dynamicAudio = process.env.EXPO_PUBLIC_LUVANI_KEPT_PHRASE_AUDIO === '1';
@@ -104,6 +111,8 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
     useCallback(() => {
       let cancelled = false;
       const account = scopeGeneration();
+      setVisit(++nextVisit);
+      setQuery('');
       setBook(null); setBookScope(null); setOneLine(null); setCadence(null); setSourcePacks([]); setUnread(false);
       void Promise.all([loadDeck(), loadTopics(), loadConversationPacks()])
         .then(([deck, topics, packs]) => {
@@ -151,19 +160,22 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
         </Text>
       </View>
 
+      {visibleBook !== null && needsPhraseSearch(visibleBook) && <Field label="Find a phrase" value={query} onChangeText={setQuery} placeholder="French or English" maxLength={120} />}
+      {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={type.small}>No matching phrases.</Text>}
+
       {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><GhostButton label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
 
-      {visibleBook !== null && !hasPhrases(visibleBook) && <Card><Illustration name="state-notebook" fit="small" /><Text style={[type.body, { color: paper.ink }]}>Your first kept phrase lands here.</Text><PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>}
+      {visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '' && <Card><Illustration name="state-notebook" fit="small" /><Text style={[type.body, { color: paper.ink }]}>Your first kept phrase lands here.</Text><PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>}
 
       {/* The one card this visit deals, at the top, so the thing worth doing is
           never below a list of things already done. */}
-      {visibleBook !== null && oneLine !== null && <OneLineCard line={oneLine} onGraded={() => setGraded((n) => n + 1)} />}
+      {visibleBook !== null && query.trim() === '' && oneLine !== null && <OneLineCard line={oneLine} onGraded={() => setGraded((n) => n + 1)} />}
 
-      {visibleBook !== null && hasPhrases(visibleBook) && (
-        <View style={st.block}>
+      {displayBook !== null && hasPhrases(displayBook) && (
+        <Feedback kind="reopened" active appear eventKey={`phrasebook-${visit}`}><View style={st.block}>
           <Label>{LEDGER.rowsLabel}</Label>
           <View style={st.groups}>
-            {visibleBook.groups.map((group) => (
+            {displayBook.groups.map((group) => (
               <Card key={group.id}>
                 <Label color={paper.inkSoft}>{group.title}</Label>
                 <View style={st.rows}>
@@ -182,18 +194,18 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
               </Card>
             ))}
           </View>
-        </View>
+        </View></Feedback>
       )}
 
       {/* Saved but not yet recalled, apart from the lines above and under a
           name that claims nothing about holding them. A saved phrase used to
           vanish here, because the list above is recalled lines only. */}
-      {visibleBook !== null && hasSaved(visibleBook) && (
-        <View style={st.block}>
+      {displayBook !== null && hasSaved(displayBook) && (
+        <Feedback kind="reopened" active appear eventKey={`phrasebook-${visit}`}><View style={st.block}>
           <Label>{SAVED_TITLE}</Label>
           <Text style={st.savedNote}>{SAVED_NOTE}</Text>
           <Card style={st.savedCard}>
-            {visibleBook.saved.map((phrase, index) => (
+            {displayBook.saved.map((phrase, index) => (
               <PhraseRow
                 key={phrase.id}
                 phrase={phrase}
@@ -205,13 +217,13 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
               />
             ))}
           </Card>
-        </View>
+        </View></Feedback>
       )}
 
       {/* Authored, so it is here on a first morning too, but it is an optional
           collection now (Stage 3): one quiet row, closed until asked for, so
           the learner's own lines lead and the glossary never outweighs them. */}
-      {visibleBook !== null && hasCadence(cadence) && (
+      {visibleBook !== null && query.trim() === '' && hasCadence(cadence) && (
         <View style={st.block}>
           <Pressable
             onPress={() => setCadenceOpen((open) => !open)}

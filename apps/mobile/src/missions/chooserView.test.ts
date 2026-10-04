@@ -155,6 +155,7 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     assert.equal(firstEver().microphoneNotice, MICROPHONE_NOTICE);
     assert.match(MICROPHONE_NOTICE, /microphone/i, 'the notice never names the permission it is preparing for');
     assert.match(MICROPHONE_NOTICE, /tap the circle/i, 'the notice does not say when the microphone opens');
+    // The notice is now beside Start in the focused brief, before capture.
     // Stage 3 browser proof (2026-09-25): Speak's own circle is a state
     // indicator now and cannot be tapped, and this line sits under it. The
     // circle that opens the microphone is the one inside the conversation, so
@@ -169,8 +170,8 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     );
     assert.match(
       stripComments(read('./MissionsScreen.tsx')),
-      /view\.microphoneNotice/,
-      'the decision exists but the chooser never puts it on glass',
+      /Start speaking asks for microphone access/,
+      'the brief must prepare the learner before the permission-bearing start',
     );
   });
 
@@ -182,12 +183,13 @@ describe('the first-win chooser — what a learner who has never spoken is shown
       assert.equal(chooserView({ progress: missionStates([], [], NOW), spokenBefore }).access, CHOOSER_ACCESS);
     }
     assert.match(CHOOSER_ACCESS, /live minutes/, 'the access line hides that a situation is metered');
-    assert.match(CHOOSER_ACCESS, /typed/, 'the access line implies typing is free');
+    assert.match(CHOOSER_ACCESS, /typing/, 'the access line implies typing is free');
     assert.doesNotMatch(CHOOSER_ACCESS, /—|\d|£|\$|€|\bfree\b/i, 'the access line carries a dash, a number, a price or a free claim');
     assert.equal(guiltIn(CHOOSER_ACCESS), undefined);
     const screen = stripComments(read('./MissionsScreen.tsx'));
     assert.match(screen, /\{view\.access\}/, 'the chooser never draws the access line');
-    assert.ok(screen.indexOf('{view.access}') < screen.indexOf('{first.mission.title}'), 'the access line is only said after a situation is already on offer');
+    assert.ok(screen.indexOf('{view.access}') < screen.indexOf("{(['A0', 'A1']"), 'the chooser must explain live minutes before the list');
+    assert.ok(screen.indexOf('Speaking and typing use live minutes') < screen.indexOf("label={typed ? 'Start typing'"), 'the brief must explain live minutes next to Start');
   });
 
   test('talk freely is still a door, and not the first one for a beginner', () => {
@@ -219,7 +221,10 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     // the other one, both on the same recommendation (2026-09-27 follow-up).
     assert.match(tab, /heldBack\?\.textMode \?\? modes\.textMode/, 'a fresh start loses the standing mode');
     assert.match(tab, /heldBack \? pendingStart\.current : next\.params/, 'a retry loses the original scene');
-    assert.ok(tab.includes('open(modes.other.textMode, next.params)'), 'the recommendation loses its other mode');
+    assert.match(tab, /<NextTaskCard/);
+    const shared = stripComments(read('../practice/NextTaskCard.tsx'));
+    assert.match(shared, /<MissionHero hero=\{value.hero\}/);
+    assert.match(stripComments(read('../home/MissionHero.tsx')), /open\(modes.other.textMode\)/, 'the shared recommendation loses its other mode');
   });
 });
 
@@ -546,6 +551,6 @@ describe('walking back into a scene you have already finished', () => {
 });
 
 test('the first-line promise gives help without an unmeasured deadline', () => {
-  assert.match(PROMISE, /tutor.*help.*first useful French line/i);
+  assert.match(PROMISE, /help.*first French line/i);
   assert.doesNotMatch(PROMISE, /\d|minute|second|within|next two|next one/i);
 });

@@ -116,7 +116,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
     assert.match(lesson, /if \(checking \|\| !ownsReadNow\(\)\) return;/, 'a second tap or an old account’s action opens a lesson');
     assert.ok(lesson.indexOf('setChecking(true)') >= 0 && lesson.indexOf('setChecking(true)') < lesson.indexOf('recheck()'), 'the tap is acknowledged after the network is touched');
     assert.match(flat(lesson), /const start = lessonStart\(false\); nav\.navigate\(start\.screen, start\.params\);/, 'the lesson opens somewhere other than where gate.ts says');
-    assert.match(flat(lesson), /void recheck\(\)\.then\(go, go\);/, 'a failed probe leaves the lesson unopened, and it runs offline too');
+    assert.match(flat(lesson), /void recheck\(\)\.then\(answered => \{ if \(answered\) go\(\); else/, 'a failed probe leaves the lesson unopened, and it runs offline too');
     // The one sentence about what the page becomes is day one's, and only day one's.
     assert.match(FLAT, /\{dayOne && <Text style=\{st\.starterLine\}>\{STARTER\.line\}<\/Text>\}/, 'the day-one sentence is drawn for a learner who has had a conversation');
   });
@@ -124,7 +124,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
   test('the tab keeps exactly one primary pill, whichever day it is', () => {
     assert.equal((SCREEN.match(/<PillButton/g) ?? []).length, 1, 'a second primary pill was added somewhere on the tab');
     // The same recommendation card serves both a starter and returning learner.
-    assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.block\}> <Card/, 'the one card does not serve both starter and returning learners, or survives an account switch');
+    assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.block\}> \{dayOne \? <NextTaskCard \/> : <Card/, 'the one card does not serve both starter and returning learners, or survives an account switch');
     const card = RENDER.slice(at('<Label>{NEXT_STEP.label}</Label>'), at('<Ledger'));
     assert.match(card, /\{primary\}/, 'the card\'s control is something other than the one primary');
     for (const loud of ['<OutlineButton', '<PillButton']) {
@@ -154,7 +154,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
     // sayable rule), and the phrase row only when there is a phrase.
     assert.match(flat(ledger), /\{made\?\.value\?\.replay != null && made\.value\.replay\.sayable && \(/, 'the replay row draws when its sitting would be empty');
     assert.match(flat(ledger), /\{made\?\.value\?\.phrase != null && \(/, 'the phrase row draws with no phrase behind it');
-    assert.match(flat(ledger), /\{step !== null && step\.doors\.review !== null && \( <LedgerRow/, 'due review is not a ledger row gated on the deck');
+    assert.match(flat(ledger), /\{!dayOne && step !== null && step\.doors\.review !== null && \( <LedgerRow/, 'due review is not a ledger row gated on the deck');
     assert.ok(ledger.indexOf('<ReplayMomentCard') < ledger.indexOf('<MakePhraseCard'), 'the phrase sits above the moment');
     assert.ok(ledger.indexOf('<MakePhraseCard') < ledger.indexOf('step.doors.review'), 'review sits above the made-from rows');
     assert.match(flat(ledger), /onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Review'\); \}\}/, 'the review row does not open the review deck, or opens it after the account changes');
@@ -231,7 +231,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
   test('the header says where the page came from, and none of those words live here', () => {
     const header = between(RENDER, '<TabHeader', '/>', 'Practice opens on a TabHeader');
     assert.match(header, /title=\{PRACTICE_TITLE\}/);
-    assert.match(header, /purpose=\{PRACTICE_PURPOSE\}/);
+    assert.match(header, /purpose=\{dayOne \? FIRST_PRACTICE_PURPOSE : PRACTICE_PURPOSE\}/);
     assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'Practice must retain the shared profile entry point');
     for (const spelled of ['Your sound to tune', 'bonjour', 'Made from your conversations', 'Your next practice', 'Scheduled review', 'Recorded tutor audio']) {
       assert.ok(!SCREEN.includes(spelled), `the tab spells "${spelled}" itself; that word belongs to practice/`);

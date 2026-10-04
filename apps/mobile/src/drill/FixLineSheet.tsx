@@ -21,7 +21,6 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
   const focus = useRef(focused); focus.current = focused;
   const closeRef = useRef(onClose); closeRef.current = onClose;
   const [state, setState] = useState<FixLineState>({ phase: 'ready', attempt: '', hint: null });
-  const [remaining, setRemaining] = useState(60);
   const [session] = useState(() => new FixLineSession({
     now: Date.now,
     current: () => focus.current && foreground.current && owner.current === scopeGeneration() && userId.current !== null && userId.current === activeUserId(),
@@ -38,8 +37,6 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
     });
     const timer = setInterval(() => {
       if (owner.current !== scopeGeneration() || userId.current !== activeUserId()) { session.dispose(); closeRef.current(); return; }
-      setRemaining(Math.ceil(session.remaining() / 1000));
-      if (session.remaining() === 0) session.finish();
     }, 250);
     return () => { clearInterval(timer); subscription.remove(); session.dispose(); };
   }, [session]);
@@ -50,7 +47,7 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
   const take = useCallback((uri: string | null) => { void session.take(uri); }, [session]);
   const typing = useCallback(() => session.edit(), [session]);
   return <Sheet visible title="Fix your line" onClose={close} footer={<GhostButton label="Done" onPress={close} />}>
-    <Text style={[type.small, { color: paper.inkSoft }]}>{ended ? 'A little practice goes a long way.' : `A minute to try it. ${remaining}s left.`}</Text>
+    <Text style={[type.small, { color: paper.inkSoft }]}>Take your time.</Text>
     <View style={{ gap: space(1) }}>
       <Text style={[type.small, { color: paper.inkSoft }]}>You said</Text>
       <Text {...frenchText} style={[type.french, { color: paper.ink }]}>{repair.quote}</Text>
@@ -60,11 +57,11 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
       <Text style={[type.small, { color: paper.inkSoft }]}>{repair.why}</Text>
     </View>
     {!ended && <>
-      <Text style={[type.body, { color: paper.ink }]}>Say it again or use your own French. Keep the corrected part.</Text>
+      <Text style={[type.body, { color: paper.ink }]}>Try again, keeping the corrected part.</Text>
       <SpokenAttempt busy={busy} onTake={take} onTyping={typing} />
       {state.phase === 'transcribing' && <Text accessibilityLiveRegion="polite" style={type.small}>Preparing your words…</Text>}
       {state.phase !== 'ready' && state.phase !== 'transcribing' && <>
-        <Text style={[type.small, { color: paper.inkSoft }]}>Review your words before checking.</Text>
+        <Text style={[type.small, { color: paper.inkSoft }]}>Check the transcript, then tap Check.</Text>
         <TextInput accessibilityLabel="Your French retry" placeholder="e.g. Je voudrais un café, s’il vous plaît." placeholderTextColor={paper.inkSoft}
           value={state.attempt} onChangeText={value => session.edit(value)} editable={!busy} multiline maxLength={600}
           style={[type.body, { color: paper.ink, borderColor: paper.field, borderWidth: HAIRLINE, borderRadius: radius.card, padding: space(3), minHeight: 96 }]} />
@@ -74,7 +71,7 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
     {state.phase === 'retry' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{state.hint ?? 'Try the corrected part once more.'}</Text>}
     {state.phase === 'unavailable' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.inkSoft }]}>The tutor couldn’t check this time. Keep the corrected line, or try again.</Text>}
     {state.phase === 'success' && <View style={{ backgroundColor: colour.mint, borderRadius: radius.card, padding: space(4) }}><Text accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: paper.ink }]}>That fixes the part we practised.</Text></View>}
-    {state.phase === 'finished' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your minute is done. You can keep practising the line anytime.</Text>}
-    <Text style={[type.small, { color: paper.inkSoft }]}>Check reads your words, not pronunciation. Your retry is not saved.</Text>
+    {state.phase === 'finished' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Practice ended.</Text>}
+    <Text style={[type.small, { color: paper.inkSoft }]}>Text check only. This retry is not saved.</Text>
   </Sheet>;
 }

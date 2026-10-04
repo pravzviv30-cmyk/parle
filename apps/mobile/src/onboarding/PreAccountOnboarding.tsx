@@ -1,9 +1,10 @@
+import { Feedback } from '../motion/Feedback.tsx';
 /**
- * Six pages before account creation (notebook Phase 5).
+ * Five pages before account creation (notebook Phase 5).
  *
- * Hear it: a real recorded exchange, captioned. First line: the learner taps
- * the reply, hears it in the tutor's recording, and it is marked with the
- * highlighter, the first chartreuse they see. Then two one-tap answers, a plan
+ * Hear it: a real recorded exchange, captioned. First line: the learner chooses
+ * an authored reply, gets guidance, and can hear it in the tutor's recording with a
+ * highlighter, the first chartreuse they see. Then a starting-level choice, a plan
  * they can see those answers shape, and the page that saves it with an account.
  *
  * Nothing on these pages reaches an AI service or the network: the audio is
@@ -12,7 +13,7 @@
  * `disclosure.test.ts` walks this file's imports to hold that.
  *
  * Revamp B (F601) draws them on colour: hear it and the first line are blue
- * pages with the exchange in white and ink bubbles and a round next; the two
+ * pages with the exchange in white and ink bubbles and a round next; the starting-level
  * answers are option rows on paper; the plan is the sun page, showing the
  * plan rather than configuring it; the save page is paper, and an under-13
  * answer turns it into a calm page of its own that holds for the rest of the
@@ -30,12 +31,9 @@ import { tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { HAIRLINE, HIT, colour, decorative, font, frenchText, onColour, paper, radius, space, textOn, type } from '../theme.ts';
 import {
   Card,
-  Field,
   FrenchBlock,
   GhostButton,
-  HeroNumber,
   Highlight,
-  Label,
   MicGlyph,
   OptionRow,
   PillButton,
@@ -46,7 +44,7 @@ import {
   TutorCard,
   type Ground,
 } from '../components.tsx';
-import { InfoGlyph, LockGlyph, PlayGlyph, SpeakerGlyph } from '../glyphs.tsx';
+import { InfoGlyph, LockGlyph, PlayGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
@@ -54,6 +52,7 @@ import { voiceSample } from '../tutor/voiceSamples.ts';
 import { CHANGE_VOICE, tutorCardFacts } from '../tutor/speakView.ts';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
+import { FIRST_CHOICES, firstChoiceFeedback, type FirstChoice } from './firstChoice.ts';
 import { useReduceMotion } from '../motion.ts';
 import { asSentences } from '../copy/spoken.ts';
 import { SAVE_PRIVACY, WELCOME_SUBLINE } from './disclosure.ts';
@@ -68,9 +67,6 @@ import {
   FIRST_LINE,
   FIRST_LINE_PROMPT,
   FIRST_LINE_TITLE,
-  FIRST_NAME_HINT,
-  FIRST_NAME_LABEL,
-  FIRST_NAME_PLACEHOLDER,
   HAVE_ACCOUNT,
   HEAR_AGAIN,
   HEAR_IT_EXCHANGE,
@@ -80,12 +76,8 @@ import {
   HIGHLIGHT_MEANS,
   LEARNER_LABEL,
   LEVEL_TITLE,
-  REASON_SKIP,
-  REASON_TITLE,
   SAVE_TITLE,
   STUCK,
-  STUCK_HINT,
-  TAP_TO_CONTINUE,
   TRY_A_LINE,
   UNDER_AGE_BODY,
   UNDER_AGE_TITLE,
@@ -93,34 +85,23 @@ import {
   type ExchangeLine,
 } from './firstRun.ts';
 import {
-  GOAL_LABEL,
   GOAL_NOTE,
-  METHOD_LABEL,
   METHOD_STEPS,
-  MINUTES_UNIT,
-  MINUTES_LABEL,
   ROUTINE_OPTIONS,
   ROUTINE_NOTE,
   COVERAGE_NOTE,
   NO_STREAKS,
-  PLAN_SCENES_LABEL,
-  PLAN_TITLE,
-  REASONS,
   SAVE_PLAN,
   START_LEVELS,
   TRIAL_LINE,
   levelOf,
   planFor,
-  reminderLine,
 } from './plan.ts';
 import {
-  MAX_FIRST_NAME_CHARS,
   PRE_ACCOUNT_PAGES,
-  firstNameFrom,
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
   type PreAccountPage,
-  type Reason,
   type StartLevel,
 } from './preAccountDraft.ts';
 
@@ -150,6 +131,8 @@ export function PreAccountOnboarding({
   onRefuse?: () => void;
 }) {
   const [page, setPage] = useState<PreAccountPage>(() => initialDraft?.page ?? 'hear-it');
+  const [choice, setChoice] = useState<FirstChoice | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [coachingOpen, setCoachingOpen] = useState(false);
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => initialDraft ?? freshPreAccountDraft());
   const draftRef = useRef(draft);
@@ -161,7 +144,6 @@ export function PreAccountOnboarding({
   const [voicesOpen, setVoicesOpen] = useState(false);
   const [routineOpen, setRoutineOpen] = useState(false);
   const [audioNotice, setAudioNotice] = useState<string | null>(null);
-  const [nameText, setNameText] = useState(() => initialDraft?.firstName ?? '');
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
   const reduced = useReduceMotion();
@@ -287,11 +269,6 @@ export function PreAccountOnboarding({
 
   const answerLevel = (key: StartLevel) => {
     keep({ startLevel: key });
-    go('reason');
-  };
-
-  const answerReason = (key: Reason | null) => {
-    keep({ reason: key });
     go('plan');
   };
 
@@ -303,11 +280,6 @@ export function PreAccountOnboarding({
   const hearVoice = (voice: TutorVoiceKey) => {
     if (playing === 'sample') { stop(); return; }
     if (play(voiceSample(voice), null)) setPlaying('sample');
-  };
-
-  const setName = (value: string) => {
-    setNameText(value);
-    keep({ firstName: firstNameFrom(value) });
   };
 
   const index = PRE_ACCOUNT_PAGES.indexOf(page);
@@ -379,37 +351,13 @@ export function PreAccountOnboarding({
             />
           </Card>
 
-          {stage === 'ask' && (
-            <>
-              <Press
-                haptic="light"
-                accessibilityRole="button"
-                accessibilityLabel={`Reply: ${asSentences([FIRST_LINE.reply.fr, FIRST_LINE.reply.en])}`}
-                accessibilityHint="Plays the line in the tutor's voice"
-                onPress={sayReply}
-                style={st.reply}
-              >
-                <View style={st.replyWords}>
-                  <Text {...frenchText} style={st.frenchLg}>{FIRST_LINE.reply.fr}</Text>
-                  <Text style={st.english}>{FIRST_LINE.reply.en}</Text>
-                </View>
-                {/* Inside the button, so it is a mark and not a second control. */}
-                <View {...decorative} style={st.inkDisc}>
-                  <SpeakerGlyph size={22} color={paper.onInk} />
-                </View>
-              </Press>
-              {stuck ? (
-                <Card style={st.stuckCard}>
-                  <Text style={st.speaker}>{persona.name}</Text>
-                  <Text {...frenchText} style={st.french}>{STUCK_HINT}</Text>
-                </Card>
-              ) : (
-                <View style={st.quiet}>
-                  <GhostButton label={STUCK} color={paper.onInk} onPress={() => setStuck(true)} />
-                </View>
-              )}
-            </>
-          )}
+          <Text style={st.noteOnBlue}>Choose a reply. This local task does not assess your French.</Text>
+          {stage === 'ask' && <View style={st.options}>
+            {FIRST_CHOICES.map(option => <OptionRow key={option.id} title={option.fr} detail={option.en} accessibilityLabel={asSentences([option.fr, option.en])}
+              selected={choice === option.id} onPress={() => { setChoice(option.id); if (option.id === 'coffee') setStage('selected'); else setStage('ask'); }} />)}
+          </View>}
+          {choice !== null && <Card><Text accessibilityLiveRegion="polite" style={st.body}>{firstChoiceFeedback(choice, stuck)}</Text></Card>}
+          {stuck ? <Card><Text style={st.body}>« Un café » means a coffee.</Text></Card> : <GhostButton label={STUCK} color={paper.onInk} onPress={() => setStuck(true)} />}
 
           {stage === 'selected' && (
             <View accessibilityLiveRegion="polite" style={st.said}>
@@ -424,7 +372,8 @@ export function PreAccountOnboarding({
                 <Text style={st.meaning}>{HIGHLIGHT_MEANS}</Text>
               </Card>
               <GhostButton label="Hear the reply again" color={paper.onInk} onPress={sayReply} />
-              <GhostButton label="Stop the recording" color={paper.onInk} onPress={stop} />
+              {status.playing && <GhostButton label="Stop the recording" color={paper.onInk} onPress={stop} />}
+              <GhostButton label="Try another reply" color={paper.onInk} onPress={() => { setChoice(null); setStage('ask'); stop(); }} />
             </View>
           )}
           <GhostButton color={paper.onInk} label={coachingOpen ? 'Close the practice example' : 'See how practice works'} onPress={() => setCoachingOpen(open => !open)} />
@@ -453,24 +402,7 @@ export function PreAccountOnboarding({
                 title={option.title}
                 detail={option.gloss}
                 selected={level === option.key}
-                onPress={() => answerLevel(option.key)}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-
-      {page === 'reason' && (
-        <View style={st.page}>
-          <Text accessibilityRole="header" style={st.title}>{REASON_TITLE}</Text>
-          <Text style={st.body}>{ANSWER_HINT}</Text>
-          <View style={st.options}>
-            {REASONS.map((option) => (
-              <OptionRow
-                key={option.key}
-                title={option.title}
-                selected={draft.reason === option.key}
-                onPress={() => answerReason(option.key)}
+                onPress={() => keep({ startLevel: option.key })}
               />
             ))}
           </View>
@@ -479,40 +411,23 @@ export function PreAccountOnboarding({
 
       {page === 'plan' && (
         <View style={st.page}>
-          {/* The plan shows itself rather than asking again: the minutes and
-              the reminder keep their defaults in the draft and are changed in
-              Profile and Settings. No picture: the board draws none. */}
-          <Text accessibilityRole="header" style={st.planTitle}>{PLAN_TITLE}</Text>
-          <Text style={st.sectionHead}>{MINUTES_LABEL}</Text>
-          {view.minutes === 'none'
-            ? <Text style={st.onSun}>No fixed daily target</Text>
-            : <HeroNumber value={String(view.minutes)} unit={MINUTES_UNIT} ground="sun" />}
-          <Text style={st.onSunSmall}>{ROUTINE_NOTE}</Text>
-          <GhostButton label={routineOpen ? 'Close routine choices' : 'Adjust routine'} color={paper.ink} onPress={() => setRoutineOpen(!routineOpen)} />
-          {routineOpen && <View style={st.options}>{ROUTINE_OPTIONS.map(option => (
-            <OptionRow key={option.key} title={option.title} selected={view.minutes === option.key}
-              onPress={() => { keep({ minutes: option.key }); setRoutineOpen(false); }} />
-          ))}</View>}
-          <Text style={st.onSun}>{view.startingReason}</Text>
-          <View style={st.planFacts}>
-            <Text style={st.planFact}>{NO_STREAKS}</Text>
-            <Text style={st.planFact}>{reminderLine(view.reminder.clock)}</Text>
-          </View>
-
-          <View style={st.block}>
-            <Text style={st.sectionHead}>{PLAN_SCENES_LABEL}</Text>
-            <Card style={st.planCard}>
-              {view.scenes.map((scene, at) => (
-                <View key={scene.id} style={[st.sceneRow, at > 0 && st.ruled]}>
-                  <View style={st.sceneTitles}>
-                    <Text {...frenchText} style={st.french}>{scene.titleFr}</Text>
-                    <Text style={st.english}>{scene.titleEn}</Text>
-                  </View>
-                  <Text style={st.english}>{scene.canDoEn}</Text>
-                </View>
-              ))}
-            </Card>
-          </View>
+          {/* Outcomes first; routine and voice are editable, other details optional. */}
+          <Text accessibilityRole="header" style={st.planTitle}>Your first scenes</Text>
+          <Feedback kind="context" active={page === 'plan'} appear eventKey={`setup-${level}-${view.minutes}`}><Card style={st.planCard}>
+            {view.scenes.map((scene, at) => <View key={scene.id} style={[st.sceneRow, at > 0 && st.ruled]}>
+              <Text style={st.sectionHead}>{at === 0 ? 'Start here' : 'Then'}</Text>
+              <Text style={st.french}>{scene.titleEn}</Text>
+              <Text style={st.english}>{scene.canDoEn}</Text>
+            </View>)}
+          </Card></Feedback>
+          <Text style={st.onSunSmall}>{view.startingReason}</Text>
+          <GhostButton label={`Daily practice: ${view.minutes === 'none' ? 'No fixed target' : `${view.minutes} minutes`}. Change`} color={paper.ink} onPress={() => setRoutineOpen(!routineOpen)} />
+          {routineOpen && <View style={st.options}>
+            <Text style={st.onSunSmall}>{ROUTINE_NOTE}</Text>
+            {ROUTINE_OPTIONS.map(option => <OptionRow key={option.key} title={option.title} selected={view.minutes === option.key}
+              onPress={() => { keep({ minutes: option.key }); setRoutineOpen(false); }} />)}
+          </View>}
+          <Text style={st.onSunSmall}>{NO_STREAKS}</Text>
 
           <View style={st.block}>
             <TutorCard
@@ -539,26 +454,13 @@ export function PreAccountOnboarding({
             )}
           </View>
 
-          {view.goal !== null && (
-            <View style={st.block}>
-              <Label color={textOn.sun}>{GOAL_LABEL}</Label>
-              <Text style={st.onSun}>{view.goal}</Text>
-              <Text style={st.onSunSmall}>{GOAL_NOTE}</Text>
-            </View>
-          )}
-
-          <Text style={st.onSunSmall}>{COVERAGE_NOTE}</Text>
-          <View style={st.block}>
-            <Text style={st.sectionHead}>{METHOD_LABEL}</Text>
-            <Card style={st.planCard}>
-              {METHOD_STEPS.map((step, at) => (
-                <View key={step} style={[st.stepRow, at > 0 && st.ruled]}>
-                  <Text style={st.stepNumber}>{at + 1}</Text>
-                  <Text style={st.stepWords}>{step}</Text>
-                </View>
-              ))}
-            </Card>
-          </View>
+          <GhostButton label={detailsOpen ? 'Close route details' : 'Route details'} color={paper.ink} onPress={() => setDetailsOpen(!detailsOpen)} />
+          {detailsOpen && <Card style={st.planCard}>
+            <Text style={st.body}>{COVERAGE_NOTE}</Text>
+            <Text style={st.body}>This is a starting route, not certified placement or a fully tailored course.</Text>
+            {view.goal !== null && <><Text style={st.body}>{view.goal}</Text><Text style={st.body}>{GOAL_NOTE}</Text></>}
+            {METHOD_STEPS.map(step => <Text key={step} style={st.body}>{step}</Text>)}
+          </Card>}
         </View>
       )}
 
@@ -574,19 +476,6 @@ export function PreAccountOnboarding({
             <>
               <Text style={st.body}>Make an account to keep your plan across devices and start a real task with {chosenPersona.name}.</Text>
               <Card><Text style={type.body}>{view.scenes[0]?.titleEn}</Text><Text style={type.small}>{view.startingReason}</Text></Card>
-              <View style={st.block}>
-                <Field
-                  label={FIRST_NAME_LABEL}
-                  value={nameText}
-                  onChangeText={setName}
-                  placeholder={FIRST_NAME_PLACEHOLDER}
-                  autoCapitalize="words"
-                  autoComplete="given-name"
-                  maxLength={MAX_FIRST_NAME_CHARS}
-                  returnKeyType="done"
-                />
-                <Text style={st.english}>{FIRST_NAME_HINT}</Text>
-              </View>
               {/* One mark to a row, and the row's own sentence beside it. The
                   AI row keeps its lead words, which say it first. */}
               <Card style={st.trust}>
@@ -636,6 +525,7 @@ export function PreAccountOnboarding({
         // The story segments run full width above the round back, the way the
         // boards draw them. `title={false}`, or the header prints the app name.
         <View style={[st.head, previous === null && st.headAlone]}>
+          {!refusedHere && <Text style={{ ...type.small, color: page === 'hear-it' || page === 'first-line' ? paper.onInk : paper.ink }}>Setup: {index + 1} of {PRE_ACCOUNT_PAGES.length}</Text>}
           {!refusedHere && <ProgressDots total={PRE_ACCOUNT_PAGES.length} index={index} ground={SEGMENTS[page]} />}
           {previous !== null && <ScreenHeader title={false} divider={false} back={{ onPress: () => go(previous) }} />}
         </View>
@@ -651,16 +541,8 @@ export function PreAccountOnboarding({
                 <GhostButton label={HAVE_ACCOUNT} color={paper.onInk} onPress={onSignIn} />
               </View>
             )}
-            {page === 'first-line' && <><PillButton label={CONTINUE} tone="white" onPress={() => go('start-level')} /><Text style={st.footerHint}>{TAP_TO_CONTINUE}</Text></>}
+            {page === 'first-line' && <><PillButton label={CONTINUE} tone="white" onPress={() => go('start-level')} /></>}
             {page === 'start-level' && <PillButton label={CONTINUE} onPress={() => answerLevel(level)} />}
-            {page === 'reason' && (
-              <>
-                {draft.reason !== null && <PillButton label={CONTINUE} onPress={() => go('plan')} />}
-                <View style={st.secondary}>
-                  <GhostButton label={REASON_SKIP} color={paper.ink} onPress={() => answerReason(null)} />
-                </View>
-              </>
-            )}
             {page === 'plan' && (
               <View style={st.footRow}>
                 <RoundButton kind="next" tone="ink" label={SAVE_PLAN} onPress={() => go('save')} />
@@ -691,7 +573,6 @@ const GROUND: Readonly<Record<PreAccountPage, string>> = {
   'hear-it': colour.blue,
   'first-line': colour.blue,
   'start-level': paper.ground,
-  reason: paper.ground,
   plan: colour.sun,
   save: paper.ground,
 };
@@ -701,7 +582,6 @@ const SEGMENTS: Readonly<Record<PreAccountPage, Ground | 'paper'>> = {
   'hear-it': 'blue',
   'first-line': 'blue',
   'start-level': 'paper',
-  reason: 'paper',
   plan: 'sun',
   save: 'paper',
 };

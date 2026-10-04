@@ -1,3 +1,4 @@
+import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 import { WALK_AVAILABLE } from '../walk/observer.ts';
 /**
  * Speak: who is teaching, the next conversation, and the path from A0 to A1.
@@ -25,11 +26,11 @@ import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/n
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { memoryPaused } from '@luvani/brain/profile';
-import { todayItems } from '../daily/catalogue.ts';
+import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { ownedReadStatus } from './ownedRead.ts';
 
-import { Card, GhostButton, Highlight, Label, Ledger, LedgerRow, OutlineButton, PillButton, TutorCard, SceneBrief, SceneMark, Press, canDoSentence } from '../components.tsx';
+import { Card, GhostButton, Label, Ledger, LedgerRow, TutorCard, SceneMark, Press } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -46,10 +47,10 @@ import { MICROPHONE_NOTICE, missionCompletionsFrom } from '../missions/chooserVi
 import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { loadDeck } from '../review/store.ts';
 import { frenchText, HIT, paper, space, type } from '../theme.ts';
-import { sceneMeta } from '../home/estimate.ts';
-import { Illustration } from '../art/flat/Illustration.tsx';
+
+
 import { tutorHeading } from '../tutor/dashboard.ts';
-import { launchAccessibilityLabel, launchLabel, launchNotice, tutorOrbState } from '../tutor/orbState.ts';
+import { tutorOrbState } from '../tutor/orbState.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { ContinuityCard } from '../tutor/ContinuityCard.tsx';
 import { continuityFrom, continuityHeadline, type Continuity } from '../tutor/continuity.ts';
@@ -58,20 +59,7 @@ import { tutorVoiceOf } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 import { nextConversation } from '../tutor/nextConversation.ts';
 import { prefersTyping } from '../profile/typing.ts';
-import {
-  CHANGE_VOICE,
-  HERE_MARK,
-  MORE_WAYS,
-  MORE_WAYS_LABEL,
-  PATH_LABEL,
-  moreWaysOpen,
-  speakPath,
-  pathCard,
-  startModes,
-  startNote,
-  tutorCardFacts,
-  type MoreWay,
-} from '../tutor/speakView.ts';
+import { CHANGE_VOICE, MORE_WAYS, MORE_WAYS_LABEL, PATH_LABEL, moreWaysOpen, speakPath, pathCard, startModes, startNote, tutorCardFacts, type MoreWay } from '../tutor/speakView.ts';
 
 export function TutorTab() {
   const focused = useIsFocused();
@@ -223,9 +211,8 @@ export function TutorTab() {
     nav.navigate(way.screen);
   };
 
-  const primary = <PillButton tone={offlineShown ? 'ink' : 'white'}
-    label={offlineShown ? (checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry) : launchLabel({ checking, live, mode: modes.mode })}
-    accessibilityLabel={offlineShown ? TUTOR_OFFLINE.retry : launchAccessibilityLabel({ checking, live, mode: modes.mode, tutorName })}
+  const primary = <GhostButton
+    label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
     disabled={checking} onPress={() => open(heldBack?.textMode ?? modes.textMode, heldBack ? pendingStart.current : next.params)} />;
 
   if (renderHistoryStatus !== 'ready') return <ScrollScreen bottom="tab">
@@ -233,7 +220,7 @@ export function TutorTab() {
     <Card style={st.offline}>
       <Text style={[type.body, { color: paper.ink }]}>{renderHistoryStatus === 'loading' ? 'Finding your next conversation.' : 'Your conversation history could not be read just now.'}</Text>
       {renderHistoryStatus === 'unread' && <GhostButton label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
-      <GhostButton label="Practise today's phrase on this phone" onPress={() => nav.navigate('DailyPractice', { id: todayItems(0, Date.now()).phrase.id })} />
+      <LocalPracticeCard />
     </Card>
   </ScrollScreen>;
 
@@ -268,21 +255,8 @@ export function TutorTab() {
         playing={playing} onChange={() => nav.navigate('Profile', { sheet: 'tutorVoice' })}
         changeLabel={CHANGE_VOICE}
       />}
-      <View style={st.start}>
-        {!offlineShown && <SceneBrief
-          meta={next.minutes === null ? `${next.label}, with ${tutorName}` : sceneMeta(next.label, next.minutes, tutorName)}
-          french={next.french ?? undefined} title={next.title}
-          canDo={next.canDo ? canDoSentence(next.canDo) : next.body}
-          line={next.lines[0] ? { fr: next.lines[0] } : undefined}
-          note={next.minutes === null ? undefined : "The estimate is for this scene's steps. The live room uses minutes while open."}
-          action={<>
-            {note !== null && <Text style={[type.small, { color: paper.onInk }]}>{note}</Text>}
-            {primary}
-            <Text style={[type.small, { color: paper.onInk }]}>Speaking and typing in a live room use live minutes. Tap the microphone when it is your turn.</Text>
-          </>}
-          secondary={<GhostButton label={modes.other.label} color={paper.onInk} disabled={checking} onPress={() => open(modes.other.textMode, next.params)} />}
-        />}
-      </View>
+      <View style={st.start}><NextTaskCard /></View>
+
 
       {WALK_AVAILABLE && <GhostButton label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
 
@@ -290,17 +264,15 @@ export function TutorTab() {
 
       {offlineShown && (
         <Card style={st.offline}>
-          <Illustration name="state-offline" fit="small" style={{ alignSelf: 'center' }} />
           <Label>{TUTOR_OFFLINE.label}</Label>
           <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{TUTOR_OFFLINE.headline}</Text>
           {heldBack !== null && (
             <>
-              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Try connecting again, or practise today's phrase on this phone.</Text>
+              <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Try connecting again. Offline practice is available above.</Text>
 
             </>
           )}
           {primary}
-          <GhostButton label="Practise today's phrase on this phone" onPress={() => nav.navigate('DailyPractice', { id: todayItems(0, Date.now()).phrase.id })} />
         </Card>
       )}
 

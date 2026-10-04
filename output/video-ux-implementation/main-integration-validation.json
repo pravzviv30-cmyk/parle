@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-04",
+  "target": "origin/main",
+  "mainBase": "4c04bf594ce9177dd983d396670abc60bcb21469",
+  "uxImplementation": "31e4e4ab95685ec3750a279a7224e0a70385e9fd",
+  "uxReportCommit": "c7397735b4e6e65533c4f8557077599b6db3b371",
+  "gate": {
+    "exitCode": 0,
+    "total": 4255,
+    "failures": 0,
+    "workspaces": {
+      "core": 711,
+      "brain": 464,
+      "tutor-agent": 541,
+      "token-server": 298,
+      "brain-playground": 26,
+      "mobile": 2215
+    },
+    "floorsChanged": false
+  },
+  "webExport": {
+    "exitCode": 0,
+    "matchesVerifiedUXBundles": true
+  },
+  "bundleSecrets": {
+    "exitCode": 0,
+    "files": 2432
+  },
+  "dependencyAudit": {
+    "exitCode": 0,
+    "critical": 0,
+    "high": 21,
+    "moderate": 12,
+    "existingDocumentedExceptions": true
+  },
+  "graph": {
+    "nodes": 10599,
+    "edges": 27184,
+    "duplicateIds": 0,
+    "danglingEdges": 0,
+    "mode": "AST only",
+    "limitations": [
+      "52 SQL files: missing tree_sitter_sql",
+      "21 source files produced no nodes"
+    ]
+  },
+  "integration": {
+    "sourceConflicts": false,
+    "documentationConflictsResolved": true,
+    "generatedGraphRebuilt": true,
+    "mainCleanupAndPreviewSafeguardsPreserved": true,
+    "otherWorktreesChanged": false,
+    "dependenciesAndLockfileUnchanged": true
+  },
+  "bundles": [
+    {
+      "file": "apps/mobile/dist/_expo/static/js/web/LiveScreenModule-55fbe71fbc9370b50aa2ad2c51ee0641.js",
+      "sha256": "898443a4e17f37d8721f79a90e8c5643a445bb2b3dab30b912ee448ec73874b3",
+      "bytes": 688877
+    },
+    {
+      "file": "apps/mobile/dist/_expo/static/js/web/index-531f4a5281147e96b045fa32b1b65783.js",
+      "sha256": "1eb3634d98e0361addd96e3b46aab544e85a6ae6ca110b21c0fb81869c8ac773",
+      "bytes": 3217686
+    }
+  ],
+  "productionRelease": "HOLD: native, hosted and store acceptance remain in docs/RELEASE_GATE.md",
+  "normalPrePushGateRequired": true,
+  "workingTreeSecrets": {
+    "exitCode": 0,
+    "gitWorktreeExplicitlyBound": true
+  }
+}

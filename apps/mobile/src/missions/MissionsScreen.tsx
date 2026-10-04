@@ -26,10 +26,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { earnedMissionIds, missionStates, type MissionProgress } from '@luvani/core';
 import { colour, frenchText, paper, space, type } from '../theme.ts';
-import { Card, GhostButton, Label, Ledger, LedgerRow, MicGlyph, OutlineButton, PillButton, SceneMark, FrenchBlock, RoundButton } from '../components.tsx';
+import { Card, GhostButton, Ledger, LedgerRow, PillButton, SceneMark } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
-import { PlaceGlyph, WaveformGlyph } from '../glyphs.tsx';
+
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { sceneIllustration } from '../art/flat/scenes.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -38,15 +38,7 @@ import { lessonStart, TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { loadMissionCompletions } from './store.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadActivity } from '../progress/activity.ts';
-import {
-  CHOOSER_OTHER,
-  CHOOSER_START_HERE,
-  LESSON_DOOR,
-  chooserView,
-  hasSpokenBefore,
-  missionCompletionsFrom,
-  type ChooserCard,
-} from './chooserView.ts';
+import { LESSON_DOOR, chooserView, hasSpokenBefore, missionCompletionsFrom, type ChooserCard } from './chooserView.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 import { asSentences } from '../copy/spoken.ts';
 import { ListeningPreview } from './ListeningPreview.tsx';
@@ -108,17 +100,7 @@ export function MissionsScreen() {
     nav.navigate(card.route.screen, { ...card.route.params, textMode });
   };
 
-  /**
-   * The scripted lesson, probed and refused by nothing.
-   *
-   * One probe in flight, one lesson, the same guard every other probing handler
-   * in the app carries. What differs is the answer it is allowed to give:
-   * `tutorGate` can hold a learner back from a conversation because there is no
-   * conversation without a server, while the lesson falls back to the mock
-   * session, so `lessonStart` opens either way and the learner lands on the
-   * live lesson or the honest demo of it. `go` is passed twice so a probe that
-   * ever threw still lets go of the flag instead of retiring the screen.
-   */
+  /** The live lesson route owns the gate and offers genuine local practice offline. */
   const openLesson = (textMode: boolean) => {
     if (checking) return;
     setChecking(true);
@@ -138,7 +120,7 @@ export function MissionsScreen() {
   const view = chooserView({ progress: progress ?? missionStates([], [], Date.now()), spokenBefore, focus });
   const [first, ...rest] = view.cards;
 
-  const header = <ScreenHeader back={{ onPress: leave }} title={focus ? undefined : "Scenes"} />;
+  const header = <ScreenHeader back={{ onPress: leave }} title={focus ? undefined : "Scenes"} ground={focus && progress !== null && first ? 'blue' : 'paper'} />;
   if (progress === null) return <ScrollScreen header={header}><View style={st.scroll}>
     <Text style={st.sub}>{readFailed ? 'Your scene history could not be read just now.' : 'Finding your scenes.'}</Text>
     {readFailed && <GhostButton label="Try loading scenes again" onPress={() => setReadAttempt((n) => n + 1)} />}
@@ -147,27 +129,24 @@ export function MissionsScreen() {
     return (
       <ScrollScreen ground={colour.blue} header={header}
         footer={<View style={{ gap: space(2) }}>
-          <Text style={[type.small, { color: paper.onInk }]}>Speaking asks for microphone access when needed. You tap the microphone for each turn. Speaking and typing in a live room use live minutes.</Text>
+          <Text style={[type.small, { color: paper.onInk }]}>Start speaking asks for microphone access. Speaking and typing use live minutes while the room is open.</Text>
           <PillButton tone="white" label={typed ? 'Start typing' : 'Start speaking'} onPress={() => open(first)} />
           {!typed && <GhostButton label={TYPE_INSTEAD} color={paper.onInk} onPress={() => open(first, true)} />}
         </View>}>
-        <Text style={[type.small, { color: paper.onInk }]}>{view.access}</Text>
-        <View style={{ gap: space(5), paddingTop: space(6), paddingBottom: space(6) }}>
-          <Text style={[type.small, { color: paper.onInk }]}>{first.mission.cefr}, {minutesLine(missionMinutes(first.mission))}</Text>
-          <Text style={[type.small, { color: paper.onInk }]}>The estimate is for this scene's steps. The live room uses minutes while open.</Text>
-          <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />
-          <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>{first.mission.titleEn}</Text>
+        <View style={{ gap: space(3), paddingTop: space(3), paddingBottom: space(4) }}>
           <Text {...frenchText} style={[type.french, { color: paper.onInk }]}>{first.mission.title}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>{first.mission.titleEn}</Text>
+          <Text style={[type.body, { color: paper.onInk }]}>{first.mission.canDoEn}</Text>
           {first.status !== 'New' && <Text style={[type.small, { color: paper.onInk }]}>{first.status}</Text>}
-          <Text style={[type.heading, { color: paper.onInk }]}>{first.mission.canDoEn}</Text>
-          <Card style={{ gap: space(4) }}>
+          <Card style={{ gap: space(3) }}>
             <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>One line to try</Text>
             {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
-            {first.mission.referencePhrases.length > 1 && <GhostButton label={showExamples ? 'Hide other examples' : 'See other examples'} onPress={() => setShowExamples((open) => !open)} />}
+            {first.mission.referencePhrases.length > 1 && <GhostButton label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
             {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
             <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
           </Card>
-
+          <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />
+          <Text style={[type.small, { color: paper.onInk }]}>{first.mission.cefr} scene</Text>
         </View>
       </ScrollScreen>
     );
@@ -177,7 +156,6 @@ export function MissionsScreen() {
       <View style={st.scroll}>
         <Text style={st.sub}>{view.sub}</Text>
         {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
-        {view.microphoneNotice !== null && <Text style={st.microphoneNotice}>{view.microphoneNotice}</Text>}
         <Text style={st.access}>{view.access}</Text>
         {(['A0', 'A1'] as const).map((level) => <View key={level} style={st.rows}>
           <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{level}</Text>
@@ -207,7 +185,7 @@ const st = StyleSheet.create({
   scroll: { paddingTop: space(2), paddingBottom: space(6) },
   headline: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  promise: { ...type.bodyStrong, color: paper.ink, marginTop: space(4) },
+  promise: { ...type.small, color: paper.ink, marginTop: space(2) },
   microphoneNotice: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
   access: { ...type.small, color: paper.ink, marginTop: space(2) },
   hero: { marginTop: space(5), gap: space(3) },

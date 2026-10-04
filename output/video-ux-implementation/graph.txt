@@ -1,0 +1,8 @@
+Command: graphify update .
+Exit code: 0
+  warning: 21 source file(s) produced zero nodes and are absent from the graph: launch.json, settings.json, search-anthropic-models.json, settings.json, expo-module.config.json (+16 more). A re-run will retry them (empties are no longer cached); if it persists, please report the file(s) (#1666).
+  warning: 52 .sql file(s) contributed nothing to the graph because a dependency is missing: tree_sitter_sql not installed. Install it with: pip install "graphifyy[sql]" (#1745)
+[graphify watch] No code-graph topology changes detected; outputs left untouched.
+Code graph updated. For doc/paper/image changes run /graphify --update in your AI assistant.
+Tip: set GEMINI_API_KEY or GOOGLE_API_KEY to use Gemini for semantic extraction.
+Validated graph: 10602 nodes, 27237 edges, 0 duplicate IDs, 0 dangling edges.

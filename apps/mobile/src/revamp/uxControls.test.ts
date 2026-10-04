@@ -8,7 +8,7 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf
 
 test('the authored teaching preview connects attempt, useful feedback, model retry and saved practice without assessing playback', () => {
   assert.equal(DEMO_COACHING.alternative, FIRST_LINE.reply);
-  assert.match(DEMO_COACHING.scope, /authored example, not an assessment/);
+  assert.match(DEMO_COACHING.scope, /Example feedback. Your French is not assessed/);
   assert.match(DEMO_COACHING.feedback, /"bonjour" to greet/);
   assert.ok(DEMO_COACHING.alternative.fr.startsWith('Bonjour'));
   assert.match(DEMO_COACHING.retry, /microphone stays off/);

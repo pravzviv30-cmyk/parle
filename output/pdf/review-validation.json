@@ -1,0 +1,41 @@
+{
+  "review_date": "2026-10-04",
+  "pdf_sha256": "b16c4c810ce0bc94f72a22b4766e4fb7ed4ac4e6ce9bb887227accc1faa80cfd",
+  "page_count": 78,
+  "planned_page_count": 78,
+  "bookmark_entries": 78,
+  "pdf_link_annotations": 149,
+  "finding_count": 25,
+  "copy_decisions": 40,
+  "motion_specifications": 8,
+  "video_references": 5,
+  "fifth_video_pages": [
+    41,
+    42,
+    43,
+    44
+  ],
+  "motion_section_pages": [
+    53,
+    54,
+    55,
+    56,
+    57
+  ],
+  "benchmark_references": 100,
+  "evidence_images_hash_verified": 26,
+  "visual_review": {
+    "pages_inspected": 78,
+    "method": "All rendered contact sheets; new pages 41-44 and motion page 54 inspected at full render size. Final wording refinement on page 42 rerendered and inspected; other 77 pages have identical extracted text.",
+    "result": "No observed clipping, overlap or broken page layouts"
+  },
+  "structural_review": {
+    "result": "Passed",
+    "all_planned_titles_on_expected_pages": true,
+    "text_within_page_bounds": true,
+    "pdf_matches_evidence_hash": true
+  },
+  "application_source_unchanged": true,
+  "software_gate": "Historical initial-audit result retained; not rerun for document expansion",
+  "limitations": "Artifact QA and targeted research verification; does not certify native accessibility, production readiness or measured user outcomes."
+}

@@ -75,7 +75,7 @@ describe('every animation crosses to the native driver', () => {
       let at = file.body.indexOf('Animated.timing(');
       while (at !== -1) {
         const body = callBody(file.body, at + 'Animated.timing'.length);
-        if (!/useNativeDriver:\s*true/.test(body)) {
+        if (!/useNativeDriver:\s*(?:true|NATIVE_DRIVER)/.test(body)) {
           offenders.push(`${file.short}:${lineOf(file.body, at)}`);
         }
         at = file.body.indexOf('Animated.timing(', at + 1);
@@ -279,7 +279,7 @@ describe('the glyph layer draws with the same pen as the scenes', () => {
  * daily drawings, SpeakBubbles, the welcome steam, the RewardMark motion.
  */
 describe('only the orb and the highlighter move', () => {
-  const TARGET = ['components.tsx', 'motion.ts', join('tutor', 'VoiceOrb.tsx'), join('recap', 'OnceConfetti.tsx')];
+  const TARGET = ['components.tsx', 'motion.ts', join('tutor', 'VoiceOrb.tsx'), join('recap', 'OnceConfetti.tsx'), join('motion', 'Feedback.tsx')];
   // 2026-09-27, notebook Phase 3 (B1): the rotating greeting (and its hook
   // file), the DailyCard entrance and the Speak tab's settle-in entrance were
   // removed, so daily/DailyCard.tsx, home/useGreetingRotation.ts and

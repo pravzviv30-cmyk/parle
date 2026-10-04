@@ -1,3 +1,4 @@
+import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 import { DayCount } from '../progress/DayCount.tsx';
 /**
  * Today: the learner's next scene, what it lets them say, and where they are.
@@ -8,19 +9,15 @@ import { DayCount } from '../progress/DayCount.tsx';
  * draws still sand blocks shaped like the page and nothing else, so no card is
  * drawn before the lead it sits under.
  *
- * Then exactly one colour card leads, and `home/nextAction.ts` chooses which:
- * the blue scene brief for the next scene on the CEFR spine (meta line, French
- * title, English, the can-do as a sentence, one line to say, a white "Start
- * speaking" and a quiet "Type instead"), the blue recall card when phrases are
- * due on the day's scene, or the sun plans card when the free trial's minutes
- * are used. That last one needs the plan, read through the same billing call
- * Speak makes; a plan nobody could read never leads.
+ * Then the shared `NextTaskCard` leads with owned unfinished or usable practice,
+ * scheduled authored review, the next scene, or a genuine offline café task.
+ * It owns the live allowance read; this screen does not decide a second lead.
  *
  * Under the lead, white: day one lists where the learner starts, one scene
  * mark per can-do, the first one next. After that, at most two plain sentences
  * about the week with no label over them, and nothing at all on a quiet week.
  * Where the lifetime count will go (F609) there is a slot and no number. Then
- * the review row when the recall card is not the lead, today's phrase as a
+ * today's phrase as a
  * white card with a play disc and "Practise it", the friends card, and the way
  * into the daily collection.
  *
@@ -33,15 +30,11 @@ import { DayCount } from '../progress/DayCount.tsx';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
-import { levelFor, missionStates, totalXp, type ReviewCard } from '@luvani/core';
+import { levelFor, missionStates, totalXp } from '@luvani/core';
 
 import { ScrollScreen, TabHeader } from '../layout.tsx';
-import { HAIRLINE, onColour, paper, radius, space, textOn, type } from '../theme.ts';
-import { Card, ColourCard, GhostButton, Ledger, LedgerRow, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
-import { useLive } from '../app/LiveContext.tsx';
-import { useAuth } from '../auth/useAuth.tsx';
-import { fetchBillingStatus } from '../purchases/client.ts';
-import type { BillingStatus } from '../purchases/billingStatus.ts';
+import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
+import { Card, GhostButton, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { DailyCard } from '../daily/DailyCard.tsx';
 import { todayItems } from '../daily/catalogue.ts';
@@ -49,7 +42,6 @@ import { useSocial } from '../friends/useSocial.ts';
 import { usefulFriends } from '../home/activitySections.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { homeGreeting } from '../home/greeting.ts';
-import { MissionHero } from '../home/MissionHero.tsx';
 import { storyFrom } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
@@ -60,7 +52,6 @@ import { loadMissionCompletions } from '../missions/store.ts';
 import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
-import { PLANS_LEAD, dueLine, homeActionFor } from '../home/nextAction.ts';
 import { useHomeRefresh } from '../home/useHomeRefresh.ts';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
@@ -75,8 +66,6 @@ export function HomeTab() {
   const focused = useIsFocused();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
-  const { live } = useLive();
-  const { user } = useAuth();
 
   // One name rule for the whole app. A learner who skipped the question is
   // greeted by the word alone, never by "you" and never with a bare comma.
@@ -92,9 +81,6 @@ export function HomeTab() {
   const [start, setStart] = useState<StartingPoint | null>(null);
   const [week, setWeek] = useState<readonly string[]>([]);
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
-  const [due, setDue] = useState<ReviewCard[]>([]);
-  /** The plan as the server answered it, or null when it has not or could not. */
-  const [billing, setBilling] = useState<BillingStatus | null>(null);
   const { snapshot: social } = useSocial();
   const friendsActivity = usefulFriends(social);
 
@@ -110,7 +96,6 @@ export function HomeTab() {
       setHero(null);
       setStart(null);
       setWeek([]);
-      setDue([]);
       setReadFailed(false);
       void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadPracticeHistory()])
         .then(([activity, deck, completions, records, history, packs, checks, events]) => {
@@ -119,7 +104,6 @@ export function HomeTab() {
           // rung and no number from it reaches the page.
           const standing = levelFor(totalXp(activity));
           setDaily(todayItems(standing.index, now));
-          setDue(deck.filter(card => card.due <= now && card.kind !== 'phoneme'));
           // One projection of where every scene stands, handed to every rule
           // that draws from it, so the brief and the blocks under it agree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, now);
@@ -140,31 +124,7 @@ export function HomeTab() {
     }, [profile, revision, readAttempt]),
   );
 
-  // The plan, on its own read, the way Speak reads it (TutorTab), so the used
-  // trial can lead the page. Signed out or offline there is no read at all, and
-  // a status the server would not give stays null, which never leads with plans.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      const scope = scopeGeneration();
-      setBilling(null);
-      if (!live || user === null) return;
-      void fetchBillingStatus(user.id)
-        .then((status) => {
-          if (cancelled || scopeGeneration() !== scope) return;
-          setBilling(status);
-        })
-        .catch(() => {});
-      return () => {
-        cancelled = true;
-      };
-    }, [live, user]),
-  );
-
-  // Which one colour card leads is the rule's, never the screen's. Null only
-  // while the storage read has not answered.
   const unowned = readOwner !== scopeGeneration();
-  const lead = hero === null || unowned ? null : homeActionFor(hero, due.length, billing, live);
 
   return (
     // bottom="tab": the tab bar owns the bottom edge.
@@ -188,33 +148,7 @@ export function HomeTab() {
           <Skeleton blocks={[{ height: 328, radius: radius.feature }, { height: 24, width: '60%', radius: radius.field }, { height: 68, radius: radius.tile }, { height: 132, radius: radius.card }]} />
         ) : (
           <>
-            {lead === 'local' ? (
-              <ColourCard ground="blue">
-                <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.blue }]}>Keep practising French</Text>
-                <Text style={[type.body, { color: onColour.blue }]}>The live tutor cannot connect just now. Today's phrase is ready on this phone.</Text>
-                <PillButton tone="white" label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
-                <GhostButton label="Explore Practice" color={paper.onInk} onPress={() => nav.navigate('Practice')} />
-              </ColourCard>
-            ) : lead === 'plans' ? (
-              <ColourCard ground="sun">
-                <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.sun }]}>{PLANS_LEAD.title}</Text>
-                <Text style={[type.body, { color: textOn.sun }]}>{PLANS_LEAD.body}</Text>
-                <Text style={[type.small, { color: onColour.sun }]}>{PLANS_LEAD.keeps}</Text>
-                <PillButton label={PLANS_LEAD.action} onPress={() => nav.navigate('Wall', { entry: 'refused' })} />
-                <GhostButton label="Practise today's phrase on this phone" color={paper.ink} onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
-              </ColourCard>
-            ) : lead === 'review' ? (
-              <ColourCard ground="blue">
-                <Text style={[type.small, { color: onColour.blue }]}>A little French to bring back</Text>
-                <Text accessibilityRole="header" style={[type.frenchLg, { color: textOn.blue }]}>{due.length === 1 ? 'One phrase is ready.' : `${due.length} phrases are ready.`}</Text>
-                <Text style={[type.body, { color: onColour.blue }]}>Try recalling a few phrases from your own collection. A short review is enough.</Text>
-                {due[0] && <Text style={[type.body, { color: paper.onInk }]}>One line to bring back: {due[0].front}</Text>}
-                <PillButton tone="white" label="Practise recall" onPress={() => nav.navigate('Review')} />
-                {live ? <GhostButton label="I’d rather speak" color={paper.onInk} onPress={() => nav.navigate('Tutor')} /> : <GhostButton label="Practise today's phrase on this phone" color={paper.onInk} onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />}
-              </ColourCard>
-            ) : (
-              <MissionHero hero={hero} />
-            )}
+            <NextTaskCard />
 
             <DayCount />
 
@@ -238,14 +172,6 @@ export function HomeTab() {
               </View>
             )}
 
-            {/* The recall door as a white row, unless the recall card already leads. */}
-            {lead !== 'review' && due.length > 0 && (
-              <Ledger style={st.list}>
-                <LedgerRow title={dueLine(due.length)} gloss="A short review is enough." onPress={() => nav.navigate('Review')} />
-              </Ledger>
-            )}
-
-            {/* Today's phrase, the tutor's audio first, with no picture. */}
             <DailyCard item={daily.phrase} variant="today" />
 
             {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Text style={[type.small, { color: paper.inkSoft }]}>French with friends</Text><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><GhostButton label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}

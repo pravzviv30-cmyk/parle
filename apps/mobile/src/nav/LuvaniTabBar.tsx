@@ -1,5 +1,5 @@
 /**
- * The tab bar, SNIPPETS' bar: five labelled SVG icons, 24pt marks and 60pt
+ * The tab bar, SNIPPETS' bar: four labelled SVG icons, 24pt marks and 60pt
  * minimum cells, white with one top hairline. No inset dock, no outline, no
  * shadow, no chartreuse and no wash: selected is the glyph and the word in the
  * brand blue at Outfit Bold, unselected is the glyph and the word in soft ink
@@ -18,9 +18,7 @@ import { accent, font, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { Press } from '../components.tsx';
 import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
-import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, FriendsIcon, type TabIconProps } from './icons.tsx';
-import { readSocial, onSocialChange } from '../friends/social.ts';
-import { socialUpdateCount } from '../friends/socialModel.ts';
+import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, type TabIconProps } from './icons.tsx';
 import { navigationWidth } from '../responsiveLayout.ts';
 
 const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
@@ -28,7 +26,6 @@ const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
   Tutor: TutorIcon,
   Practice: PracticeIcon,
   MyFrench: MyFrenchIcon,
-  Friends: FriendsIcon,
 };
 
 /**
@@ -40,16 +37,15 @@ const LABELS: Record<string, string> = {
   Tutor: 'Speak',
   Practice: 'Practice',
   MyFrench: 'Progress',
-  Friends: 'Friends',
 };
 
 /**
  * The reading size at which a word stops fitting beside its neighbours.
  *
  * Below it the cells share the bar by flex, which lets a long word borrow room
- * from a short one and keeps the five glyphs evenly spread. At and above it the
+ * from a short one and keeps the four glyphs evenly spread. At and above it the
  * words are wide enough that borrowing pushes them into each other, so every
- * cell takes exactly a fifth and the long ones wrap.
+ * cell takes exactly a quarter and the long ones wrap.
  */
 const WRAPS_UNDER_GLYPH = 1.6;
 
@@ -62,14 +58,6 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
   // learner moves between tabs — finishing a sitting must be able to clear it.
   const [due, setDue] = useState(0);
-  const [friendRequests, setFriendRequests] = useState(0);
-  useEffect(() => {
-    let live = true;
-    const refresh = () => { void readSocial().then(s => { if (live) setFriendRequests(socialUpdateCount(s)); }).catch(() => { if (live) setFriendRequests(0); }); };
-    refresh();
-    const unsubscribe = onSocialChange(refresh);
-    return () => { live = false; unsubscribe(); };
-  }, [state.index]);
   // The window is watched so the bar re-renders when the learner changes the OS
   // text size while the app is open; PixelRatio is what the text is actually
   // drawn at, and on the web the window reports 1 whatever the browser does.
@@ -87,7 +75,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   }, [state.index]);
 
   return (
-    // The rule and the white run the full width; the five cells keep the
+    // The rule and the white run the full width; the four cells keep the
     // responsive column so they do not drift apart on a wide window.
     <View style={[st.bar, { paddingBottom: Math.max(insets.bottom, space(2)) }]}>
       <View style={[st.cells, { width: navigationWidth(width, insets.left, insets.right) }]}>
@@ -95,7 +83,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
         const focused = state.index === index;
         const Icon = ICONS[route.name];
         const label = LABELS[route.name] ?? route.name;
-        const badged = (route.name === 'Practice' && due > 0) || (route.name === 'Friends' && friendRequests > 0);
+        const badged = route.name === 'Practice' && due > 0;
         if (!Icon) return null;
 
         const onPress = () => {
@@ -125,7 +113,7 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             aria-selected={focused}
             // Counting out loud would be a number in the chrome; "ready" is the
             // fact the learner needs and matches the forward framing elsewhere.
-            accessibilityLabel={badged ? `${label}, ${route.name === 'Friends' ? 'new social updates' : 'practice ready'}` : label}
+            accessibilityLabel={badged ? `${label}, practice ready` : label}
           >
             <View style={st.iconBox}>
               <Icon size={24} color={focused ? accent.brand : paper.inkSoft} />
@@ -178,10 +166,10 @@ const st = StyleSheet.create({
   /** What the spring shrinks: the glyph over its word, centred across the cell. */
   face: { alignSelf: 'stretch', alignItems: 'center', gap: space(1) },
   cellWrapped: {
-    // One fifth of the bar each, taken rather than shared: flexBasis fixes the
+    // One quarter of the bar each, taken rather than shared: flexBasis fixes the
     // width, and neither growing nor shrinking can then borrow it back. A word
-    // that no longer fits wraps inside its own fifth and the cell gets taller.
-    flexBasis: '20%',
+    // that no longer fits wraps inside its own quarter and the cell gets taller.
+    flexBasis: '25%',
     flexGrow: 0,
     flexShrink: 0,
     paddingHorizontal: space(0.5),

@@ -150,6 +150,21 @@ describe('accepting the offer', () => {
     assert.equal(await acceptReminderOffer(offerAt('undetermined'), threw.deps), 'failed');
   });
 
+  test('a pending permission or save cannot schedule a reminder for the next account', async () => {
+    for (const boundary of ['permission', 'save'] as const) {
+      let owned = true;
+      const p = phone('granted');
+      const originalSave = p.deps.save;
+      const deps = { ...p.deps, owns: () => owned,
+        ask: async () => { const answer = await p.deps.ask(); if (boundary === 'permission') owned = false; return answer; },
+        save: async (value: StoredReminder) => { const ack = await originalSave(value); if (boundary === 'save') owned = false; return ack; },
+      };
+      assert.equal(await acceptReminderOffer(offerAt('undetermined'), deps), 'failed');
+      assert.ok(!p.calls.some(call => call.startsWith('schedule')));
+      assert.equal(p.saved.length, boundary === 'save' ? 1 : 0);
+    }
+  });
+
   test('every answer is said plainly', () => {
     const offer = offerAt('undetermined');
     assert.equal(reminderAnswerLine('refused', offer), REMINDER_REFUSED);

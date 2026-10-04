@@ -16,7 +16,7 @@ import { CAFE_LESSON } from '@luvani/core';
 
 export const STARTER = {
   label: 'Your first conversation',
-  line: 'After your first conversation this page is made from what you said: the moment worth replaying, the phrases worth keeping, and one sound to tune.',
+  line: 'Your conversation phrases will appear here.',
   moment: {
     label: 'Your first moment',
     lead: 'The café, where every learner starts.',

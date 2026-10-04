@@ -37,7 +37,8 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
 import { bankLesson } from '../live/journal.ts';
-import { SessionScreen } from '../SessionScreen.tsx';
+import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { SummaryScreen } from '../SummaryScreen.tsx';
 import { DrillScreen } from '../DrillScreen.tsx';
 import { ReviewScreen } from '../ReviewScreen.tsx';
@@ -156,7 +157,8 @@ function LessonRoute() {
   const route = useRoute<RouteProp<RootStackParamList, 'Lesson'>>();
   const textMode = route.params?.textMode ?? false;
   const { user } = useAuth();
-  const { live } = useLive();
+  const { live, recheck } = useLive();
+  const [checking, setChecking] = useState(false);
   const [startRung, setStartRung] = useState<Rung | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [report, setReport] = useState<ProgressReport | null>(null);
@@ -183,7 +185,7 @@ function LessonRoute() {
   const finish = useCallback((s: SessionSummary, timing?: { activeMs: number }) => {
     // Show the card immediately; the history write catches up and fills the
     // since-you-started block when it lands. A slow disk must not delay it.
-    if (!ownsLesson()) return;
+    if (user === null || !ownsLesson()) return;
     setSummary(s);
     setHistorySaveFailed(false);
     void recordSession(s).then(value => {
@@ -212,7 +214,7 @@ function LessonRoute() {
     // the whole deck without a word. Only `bankLesson` keeps the summary for
     // the next launch to try again.
     void bankLesson(s);
-  }, []);
+  }, [user]);
 
   /**
    * Go again means go again. Both of these buttons used to call goBack(), which
@@ -234,6 +236,8 @@ function LessonRoute() {
   }, []);
 
   if (!ownsLesson()) return <Loading />;
+  if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><GhostButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
+
   if (historyFailed) return (
     <View style={[st.center, { gap: space(3), padding: space(6) }]}>
       <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
@@ -255,7 +259,7 @@ function LessonRoute() {
       />
     );
   }
-  return live && user ? (
+  return (
     <Suspense fallback={<Loading />}>
       <LazyLiveSessionScreen
         key={textMode ? 'live-text' : 'live'}
@@ -268,8 +272,6 @@ function LessonRoute() {
         onExit={leave}
       />
     </Suspense>
-  ) : (
-    <SessionScreen key="mock" lesson={CAFE_LESSON} startRung={startRung} textMode={textMode} onFinish={finish} onExit={leave} />
   );
 }
 
@@ -378,7 +380,7 @@ function ConvoRoute() {
   if (!user) return <Loading />;
   if (!live) {
     return (
-      <View style={st.gate}>
+      <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
         <Label color={paper.inkSoft}>{TUTOR_OFFLINE.label}</Label>
         <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.headline}
@@ -386,8 +388,9 @@ function ConvoRoute() {
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.body}
         </Text>
+        <LocalPracticeCard />
         <View style={st.gateAction}>
-          <PillButton
+          <GhostButton
             label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
             disabled={checking}
             onPress={() => {
@@ -395,14 +398,11 @@ function ConvoRoute() {
               setChecking(true);
               // A server that came up while this screen was open flips `live`,
               // and the conversation mounts underneath the learner's finger.
-              void recheck().finally(() => setChecking(false));
+              void recheck().catch(() => false).finally(() => setChecking(false));
             }}
           />
         </View>
-        <View style={st.gateSecondary}>
-          <GhostButton label={TUTOR_OFFLINE.back} onPress={leave} />
-        </View>
-      </View>
+      </ScrollScreen>
     );
   }
   // After the offline gate on purpose: a learner with no server to talk to gets
@@ -662,7 +662,6 @@ function Tabs() {
       <Tab.Screen name="Tutor" component={TutorTab} />
       <Tab.Screen name="Practice" component={PracticeTab} />
       <Tab.Screen name="MyFrench" component={MyFrenchTab} />
-      <Tab.Screen name="Friends" component={FriendsTab} />
     </Tab.Navigator>
   );
 }
@@ -687,6 +686,7 @@ export function RootNavigator({
     >
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Profile" component={ProfileTab} />
+      <Stack.Screen name="Friends">{() => <FriendsTab pushed />}</Stack.Screen>
       <Stack.Screen name="AddFriends" component={InviteFriendsScreen} />
       <Stack.Screen name="SocialSettings" component={SocialSettingsScreen} />
       <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
