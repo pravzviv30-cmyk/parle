@@ -41,6 +41,10 @@ subsystem, and knows the things about those paths that a generalist gets wrong.
 | `privacy-safety-engineer` | opus | yes | minimisation, consent, retention, deletion and safety policy |
 | `social-systems-engineer` | fable | **no** | approval gate for social, moderation and abuse systems |
 | `qa-release-engineer` | opus | **no** | independent product/security/learning/build release evidence |
+| `backend-architect` | fable | **no** | cross-service contracts and architecture review routing |
+| `database-security-architect` | fable | **no** | auth, RLS, privileged RPCs, migrations and privacy |
+| `voice-reliability-architect` | fable | **no** | admission across jobs, voice/typed input, settlement and recovery |
+| `deployment-architect` | fable | **no** | release evidence, hosting, rollout, SLOs and restore |
 
 `packages/core` pedagogy — the ladder, lesson matching, and session summary — is owned by
 `learning-science-engineer`. [ARCHITECTURE.md](ARCHITECTURE.md) still gives each decision
@@ -71,7 +75,7 @@ cross-cutting test files belong to one integrator and nobody else edits them.
 ## The independent reviewers
 
 `release-engineer`, `scaling-engineer`, `repository-archaeologist`,
-`social-systems-engineer`, and `qa-release-engineer` have no `Edit` and no `Write`, for the
+`social-systems-engineer`, `qa-release-engineer`, and the four backend architects have no `Edit` and no `Write`, for the
 same reason `design-architect` and `work-judge` do not: an agent that can quietly fix what
 it found has stopped being a second opinion.
 
@@ -80,15 +84,16 @@ it found has stopped being a second opinion.
 - `scaling-engineer` returns `NOT YET` or `NOW`, and for `NOT YET` the trigger metric is
   mandatory. An answer without a number is not an answer.
 
-## Three of them are ahead of the code
+## Infrastructure evidence must stay current
 
-`deploy-engineer`, `observability-engineer` and `scaling-engineer` own territories that
-barely exist yet. There is no `eas.json`, no CI, no error-tracking SDK, no second instance
-of anything, and at zero users none of that is a mistake.
+As checked on 3 October 2026, `.github/workflows/ci.yml` exists and the Linux gate,
+dependency audit and secret scan passed for commit `2cbea865`. The checkout still has
+no `eas.json` or service hosting/container manifest. Verify current live metadata;
+a workflow file is not enforced branch protection or a deployment pipeline.
 
-They ship with instructions rather than infrastructure, and their first answer is usually
-the seam plus the condition that would justify filling it. That is deliberate. Premature
-infrastructure is a bug you cannot test and a bill you pay monthly.
+The architects specify the smallest justified controls and the evidence that proves
+them. Correctness under concurrency, abuse limits and recovery matter before public
+launch; sharding and multiple regions need measured capacity requirements.
 
 Note what `scaling-engineer` will tell you first: production's Supabase/Upstash concurrency
 controls require live multi-instance proof; the memory/file implementations are local-only
@@ -96,11 +101,23 @@ fixtures and cannot be treated as a deployable fallback.
 
 ## Calling them
 
+**`/backend-review <change or candidate commit>`** selects the relevant backend
+architects. `/forge` uses their advice for the design contract; `/ship` uses the
+deployment architect and any specialists touched by the release. Existing engineers
+retain implementation ownership. Reviews return evidence, blockers, acceptance
+checks and owners; they neither deploy nor schedule recurring work. Definitions are
+configured for the repository's Claude Code agent system. A different host must
+report any unavailable pinned dispatch honestly.
+
+Use these roles on each relevant change and release, rather than dispatching every
+architect for unrelated edits. Missing critical deployed evidence is a release hold
+even where the issue ledger has no failing P1 test.
+
 **`/forge <what you want built>`** is the normal path. The architect designs, step 5 routes
 to whoever owns the files, the gate runs, the judge decides. See [FORGE.md](FORGE.md).
 
 **`/ship`** runs the guards over the current state and reports what blocks a release. It
-edits nothing. Findings are filed as **P2 unless demonstrated with a failing test** —
+edits nothing. Proposed ledger entries use **P2 unless demonstrated with a failing test** —
 P0 and P1 block the gate for the whole repo, and a guard that files them on a hunch stops
 everyone's work.
 
@@ -115,8 +132,10 @@ silent: an agent with no `model:` line still dispatches, still answers, and runs
 whatever model the session happened to be using.
 
 `services/tutor-agent/src/agentFleet.test.ts` covers what a regex in the gate cannot: the
-frontmatter field order, the name matching the file it is dispatched by, the guards staying
-unable to edit, and `/forge` routing only to engineers that exist.
+frontmatter field order, the name matching the file it is dispatched by, the guards
+excluding direct `Edit`/`Write` tools, and `/forge` routing only to defined agents.
+Their Bash instructions prohibit mutations during review; use a read-only execution
+sandbox when hard separation is required.
 
 Adding an agent means: the file, the pin in `gate.mjs`, and a row in the routing table or a
 mention in `/ship`. Miss any of the three and a test tells you which.

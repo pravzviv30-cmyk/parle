@@ -1,0 +1,90 @@
+name: Release evidence
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      node_image:
+        description: 'Reviewed node:24.16.0-bookworm-slim@sha256 digest reference'
+        required: true
+        type: string
+      audio_decoder_image:
+        description: 'Reviewed decoder image at sha256, with executable /usr/local/bin/ffmpeg and compatible runtime dependencies'
+        required: true
+        type: string
+      audio_decoder_sha256:
+        description: 'Independently reviewed SHA256 of the actual executable binary'
+        required: true
+        type: string
+      buildkit_image:
+        description: 'Reviewed moby/buildkit image at immutable sha256 digest'
+        required: true
+        type: string
+      sbom_image:
+        description: 'Reviewed SBOM generator image at immutable sha256 digest'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-evidence-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5, verified 2026-10-04
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5, verified 2026-10-04
+        with: {node-version: '24.16.0', cache: npm}
+      - run: npm ci
+        env: {LUVANI_SKIP_HOOKS: '1'}
+      - run: node --test scripts/verifyRelease.test.mjs
+      - run: node scripts/releaseSchemaManifest.mjs --output release-schema.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-10-04
+        with:
+          name: release-schema-${{ github.sha }}
+          path: release-schema.json
+          if-no-files-found: error
+          retention-days: 7
+  portable-artifact:
+    if: github.event_name == 'workflow_dispatch'
+    needs: source-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_IMAGE: ${{ inputs.node_image }}
+      AUDIO_DECODER_IMAGE: ${{ inputs.audio_decoder_image }}
+      AUDIO_DECODER_SHA256: ${{ inputs.audio_decoder_sha256 }}
+      BUILDKIT_IMAGE: ${{ inputs.buildkit_image }}
+      SBOM_IMAGE: ${{ inputs.sbom_image }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with: {node-version: '24.16.0'}
+      - name: Refuse mutable build inputs
+        run: |
+          GIT_SHA=$(git rev-parse HEAD) node deployment/validateBuild.mjs
+          node --input-type=module -e "for(const key of ['BUILDKIT_IMAGE','SBOM_IMAGE']) { const value=process.env[key]; if(!/^[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64}$/.test(value) || /^.*@sha256:([a-f0-9])\\1{63}$/.test(value)) throw Error('Invalid immutable image input: '+key); }"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3, verified 2026-10-04
+        with:
+          driver-opts: image=${{ inputs.buildkit_image }}
+      - name: Build portable OCI artifact with provenance and SBOM
+        run: |
+          SOURCE_SHA=$(git rev-parse HEAD)
+          docker buildx build --platform linux/amd64 --build-arg "NODE_IMAGE=$NODE_IMAGE" --build-arg "AUDIO_DECODER_IMAGE=$AUDIO_DECODER_IMAGE" --build-arg "AUDIO_DECODER_SHA256=$AUDIO_DECODER_SHA256" --build-arg "GIT_SHA=$SOURCE_SHA" --provenance=mode=max --attest "type=sbom,generator=$SBOM_IMAGE" --output type=oci,dest=release-image.tar --metadata-file build-metadata.json .
+          node --input-type=module -e "import{createReadStream,writeFileSync,readFileSync}from'node:fs';import{createHash}from'node:crypto';import{execFileSync}from'node:child_process';const hash=createHash('sha256');for await(const chunk of createReadStream('release-image.tar'))hash.update(chunk);writeFileSync('artifact-receipt.json',JSON.stringify({version:1,gitSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),platform:'linux/amd64',nodeImage:process.env.NODE_IMAGE,audioDecoderImage:process.env.AUDIO_DECODER_IMAGE,audioDecoderSha256:process.env.AUDIO_DECODER_SHA256,buildkitImage:process.env.BUILDKIT_IMAGE,sbomImage:process.env.SBOM_IMAGE,ociArchiveSha256:hash.digest('hex'),buildMetadata:JSON.parse(readFileSync('build-metadata.json')),promotion:'pending external acceptance'},null,2)+'\\n');"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: portable-backend-${{ github.sha }}
+          path: |
+            release-image.tar
+            build-metadata.json
+            artifact-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+      # No registry login/push, hosted SQL, provisioning or deployment command.
+      # Protected promotion and hosted evidence are mandatory operator gates.

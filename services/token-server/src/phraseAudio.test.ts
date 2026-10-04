@@ -25,7 +25,7 @@ test('one generation dispatches only after atomic reservation and a fresh kill c
  });
  assert.equal(calls.length,3);assert.match(calls[0]!.url,/rpc\/reserve_phrase_audio$/);assert.deepEqual(calls[0]!.body,{p_user_id:user,p_pack_id:id,p_kind:'phrase',p_index:0,p_voice:'marie',p_fingerprint:config.fingerprint});
  assert.match(calls[1]!.url,/rpc\/phrase_audio_dispatch_allowed$/);
- assert.equal(calls[2]!.url,`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}?output_format=pcm_22050&optimize_streaming_latency=3`);
+ assert.equal(calls[2]!.url,`https://api.elevenlabs.io/v1/text-to-speech/${config.voiceId}?output_format=pcm_22050&optimize_streaming_latency=3&enable_logging=false`);
  assert.deepEqual(calls[2]!.body,{text:reservation.fr,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.4,similarity_boost:0.8,style:0.3,use_speaker_boost:true}});
  assert.ok(calls.every(call=>!call.url.includes('café')&&!call.url.includes('fake-voice')));
  assert.equal(Buffer.from(wav!).subarray(0,4).toString(),'RIFF');assert.equal(Buffer.from(wav!).readUInt32LE(24),22050);assert.equal(wav!.length,48);

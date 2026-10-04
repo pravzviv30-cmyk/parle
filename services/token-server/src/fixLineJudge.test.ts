@@ -33,7 +33,8 @@ test('correction endpoint authenticates and bounds a distinct retry before spend
   for (const body of [{ ...correction, userId: 'old-owner' }, { ...correction, attempt: 'a'.repeat(601) }, { ...correction, original: correction.better },
     { ...correction, better: 'a'.repeat(401) }, 'x'.repeat(JUDGE_BODY_LIMIT_BYTES + 1), []]) {
     const d = setup(); const r = response(); await handleFixLineJudge(req(body), r.res, d.deps);
-    assert.ok([400, 403].includes(r.status())); assert.equal(d.seen.calls.length, 0); assert.deepEqual(d.seen.usage, []);
+    assert.equal(r.status(), typeof body === 'string' && Buffer.byteLength(body) > JUDGE_BODY_LIMIT_BYTES ? 413 : typeof body === 'object' && !Array.isArray(body) && body.userId === 'old-owner' ? 403 : 400);
+    assert.equal(d.seen.calls.length, 0); assert.deepEqual(d.seen.usage, []);
   }
   const d = setup({ users: { resolve: async () => ({ ok: false, status: 401, message: 'sign in' }) } });
   const r = response(); await handleFixLineJudge(req(correction), r.res, d.deps);

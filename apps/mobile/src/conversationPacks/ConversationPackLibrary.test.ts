@@ -8,6 +8,18 @@ const source = readFileSync(fileURLToPath(new URL('./ConversationPackLibrary.tsx
   .replace(/^\s*\/\/.*$/gm, '');
 
 describe('Conversation Pack library', () => {
+  test('one finite page and a separately resolved bookmark never imply a complete archive', () => {
+    assert.match(source, /packs\.slice\(0, CONVERSATION_PAGE_SIZE-unavailableRows\.length\)/);
+    assert.match(source, /unavailable\.slice\(0,CONVERSATION_PAGE_SIZE\)/);
+    assert.match(source, /Its saved content has not been removed/);
+    assert.match(source, /onOpenUnavailable\(row\.id\)/);
+    assert.match(source, /onDeleteUnavailable\(row\.id\)/);
+    assert.match(source, /linkedPack\?\.id === initialPackId/);
+    assert.match(source, /No conversations on this page/);
+    for (const label of ['Older conversations', 'Newest conversations', 'Retry loading conversations']) assert.ok(source.includes(label));
+    assert.match(source, /paginationPending \|\| busy/);
+    assert.match(source, /\{pageNote\}/);
+  });
   test('keeps a complete learner-owned route back into a conversation', () => {
     for (const required of [
       'Practice from conversations',

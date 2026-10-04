@@ -1,0 +1,35 @@
+# Voice and learning acceptance capture toolkit
+
+`scripts/verifyVoiceAcceptance.mjs` validates externally captured evidence offline. It makes no device/provider calls and applies no acceptance configuration. No quality score, latency, cost, physical-device result or production canary has been measured by this implementation. Every test fixture is synthetic, including tests that exercise the physical-device record format.
+
+The module exports `validateVoiceAcceptance`, `verifyVoiceAcceptanceArtifacts`, `voiceCaptureIdentity`, `voicePolicyIdentity`, `VOICE_SCENARIOS` and `ACCENT_CLASSES`. The expected release projection is exact:
+
+```text
+{releaseSha256,gitSha,image,schemaSha256}
+```
+
+Root release integration should derive it from `releaseIdentity(candidate)`, candidate.gitSha, candidate.image and candidate.schema.catalogSha256. It must check the current clean source, image and schema independently. A capture from an older source, model configuration or corpus is not transferable to a new candidate. The runner does not bypass the release promotion approvals.
+
+Version1 capture has exact keys version, captureKind, capturedAt, release, corpus, configuration, devices, policy, cases, evidence and reviews. `captureKind` is synthetic or physical-device. Capture/review evidence must be current within seven days. Evidence entries have actual HTTPS source URL, SHA256 and absolute local artifact path; files are bounded to50MiB, structured records to64KiB, and CLI manifest to1MiB. The manifest holds identifiers/metrics/assertions rather than learner audio/transcripts. Store raw sources under the consent and access policy; no public source URL should expose a learner recording.
+
+Corpus declares SHA256, French locale, rubric SHA256, consent SHA256 and fixtures `{id,accentClass,sourceSha256}`. At least two sources per `fr-native`, `fr-ca` and `learner-accent` cohort are required. The actual hashed corpus JSON must reproduce its exact fixture list. A separately hashed rubric explains the transcript/learning/task-success metrics and accountable reviewer. The consent capture must bind the exact corpus, approved purpose `voice-acceptance` and actual basis: consented participants or licensed corpus for physical captures; synthetic basis remains synthetic only. This checks an evidence contract, not the adequacy of consent or legal terms; the accountable reviewer must establish those facts.
+
+Configuration binds SHA256 and exact provider/model/voice/component-configuration SHA256 entries. Its hashed JSON must match the declared entries. Device records include symbolic ID, iOS/Android platform, physical flag, model, OS version and build provenance SHA256. Physical acceptance requires both actual physical platforms. The hashed build provenance must bind platform, candidate git SHA, actual app artifact SHA256 and its HTTPS build URL. App build authenticity and signed provisioning provenance require promotion review.
+
+Each platform requires at least20 total cases,10 accented/noisy French voice cases and two per accent cohort. These are coverage minima, not proof of statistical representativeness. Both platforms must cover all nine scenarios: accented French, noisy accented French, reconnect, background/resume, typed fallback, expected safety response, blocked unsafe canary, failed-session unused refund and retained practice baseline. Reconnect/background/typed/safety/practice success must be asserted. Unsafe canary must be blocked with zero provider attempts and zero measured provider cost. Safety failures, refund discrepancies or lost baseline cannot be waived by an average score.
+
+Case records bind device, fixture, scenario, mode, exact configuration SHA256, actual measurements, assertions and structured trace SHA256. Measurement fields are integer turnMillis, integer costMicroUsd, integer providerAttempts, transcriptAccuracy and learningScore in[0,1]. Assertions are exact booleans taskSuccess, safetyExpected, canaryBlocked, unusedRefundCorrect and practiceBaselinePreserved. Every hashed case trace must reproduce these values, release/image/schema/source identity, physical flag, device build provenance and bounded recordedAt. No arbitrary passed checkbox or unrelated screenshot substitutes for the trace.
+
+Policy requires accountable current review of explicit positive p50/p95 turn-latency and cost ceilings and transcript/learning/task success thresholds. It may raise the minimum case counts. No prices or target values are shipped as measured defaults. The runner calculates nearest-rank p50/p95 separately by platform over the accented/noisy voice cohort and compares actual input values to the reviewed policy. Means and task-success ratios use that same cohort. Functional and safety scenarios are separate mandatory requirements. Averages cannot hide a functional/safety failure. Accent subgroup or noisy-condition quality thresholds beyond the coverage floor require a more specific operator rubric; this baseline does not claim subgroup fairness or long-term learning effectiveness.
+
+Two distinct current review captures approve the exact canonical manifest hash; review records are excluded from the subject hash to avoid circularity. Policy review binds its separate canonical threshold hash. Review artifact JSON must reproduce decision approved, reviewer, timestamps and subject hash. Changing a trace, model, release, corpus, policy, evidence or case invalidates those approvals.
+
+Pure schema validation always reports reviewedCaptureAccepted=false, localIntegrityVerified=false and independentlyMeasured=false. Artifact verification can accept a reviewed physical-device capture after its local hashes and structured evidence pass. It still reports independentlyMeasured=false: authorship, real device execution, rubric scoring, signed build provenance and measurement reliability remain external reviewer responsibility. Synthetic captures never approve production; the CLI exits2 for them.
+
+```sh
+node scripts/verifyVoiceAcceptance.mjs --capture /absolute/capture.json --release /absolute/release-projection.json --verify
+```
+
+This prints a content-free aggregate report. The current real-world canary and physical-device evidence are absent, so production acceptance remains on hold. Future paid corpus runs must cross the root paid-provider guard and reviewed quote/call envelope; this offline runner cannot authorize a paid test.
+
+Six focused tests pass: complete synthetic capture remains nonproduction, exact release/config/platform/corpus/scenario coverage, safety/canary/refund/practice refusals, threshold/current-review binding, actual file tampering, and the physical-format protocol branch without claiming real device measurement. Remaining release work includes real recordings with accountable consent, both actual devices/builds, accented and noisy speech, connection/background controls, practice/refund trace preservation, a reviewed rubric, actual measured cost/timing and independent approvals of the exact final artifact.

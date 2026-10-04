@@ -4,6 +4,7 @@ import type { ResolvedUser } from './auth.ts';
 import { readJudgeBody } from './drillJudge.ts';
 import { decodedHeader, DRILL_USER_HEADER } from './drillScore.ts';
 import { generatePhraseAudio, phraseAudioManifest } from './phraseAudio.ts';
+import { HttpInputError, answerRequestError } from './requestBoundary.ts';
 
 export interface PhraseAudioDeps {
   users: {resolve(authorization:string|undefined,asserted:string|null):Promise<ResolvedUser>};
@@ -11,6 +12,7 @@ export interface PhraseAudioDeps {
   env: Record<string,string|undefined>;
   request?: typeof fetch;
   timeoutMs?: number;
+  requestFor?(user:Extract<ResolvedUser,{ok:true}>,signal:AbortSignal):typeof fetch;
 }
 function json(res:ServerResponse,status:number,body:unknown) {
   if (res.destroyed || res.writableEnded) return;
@@ -38,15 +40,18 @@ export async function handlePhraseAudio(req:IncomingMessage,res:ServerResponse,g
       const keys=generate?['source','voice','fingerprint','frenchHash']:['source','voice'];
       if (!body || Object.keys(body).length!==keys.length || !keys.every(key=>Object.hasOwn(body,key)) || !readPhraseAudioSource(body.source) || !isTutorVoiceKey(body.voice)) return json(res,400,{error:'a saved source and selected voice are required'});
       if (!generate) {
-        const manifest=await phraseAudioManifest(user.userId,body.source,body.voice,deps.env,controller.signal,deps.request);
+        const manifest=await phraseAudioManifest(user.userId,body.source,body.voice,deps.env,controller.signal,deps.requestFor?.(user,controller.signal) ?? deps.request);
         if (!controller.signal.aborted) return manifest?json(res,200,manifest):json(res,503,{error:'tutor-audio-unavailable'});
       } else {
-        const wav=await generatePhraseAudio(user.userId,body.source,body.voice,body.fingerprint,body.frenchHash,deps.env,controller.signal,deps.request);
+        const wav=await generatePhraseAudio(user.userId,body.source,body.voice,body.fingerprint,body.frenchHash,deps.env,controller.signal,deps.requestFor?.(user,controller.signal) ?? deps.request);
         if (controller.signal.aborted || res.destroyed || res.writableEnded) return;
         if (!wav) return json(res,503,{error:'tutor-audio-unavailable'});
         res.writeHead(200,{'content-type':'audio/wav','content-length':wav.length,'cache-control':'no-store'}); res.end(wav);
       }
     })(),ended]);
-  } catch { json(res,503,{error:'tutor-audio-unavailable'}); }
+  } catch (error) {
+    if (error instanceof HttpInputError) answerRequestError(req,res,error);
+    else json(res,503,{error:'tutor-audio-unavailable'});
+  }
   finally { clearTimeout(timer); req.removeListener('aborted',end); res.removeListener('close',end); }
 }

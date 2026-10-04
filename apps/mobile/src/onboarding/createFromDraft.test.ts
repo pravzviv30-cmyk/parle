@@ -16,6 +16,9 @@ import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { SEEDED_GOAL, START_LEVELS, REASONS, firstSceneFor, presetMinutes, planFor } from './plan.ts';
 import { profileFromDraft, reminderFromDraft } from './createFromDraft.ts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setActiveUser } from '../storage/scope.ts';
+import { loadProfile, saveProfile } from '../profile/store.ts';
 
 const NOW = new Date(2026, 8, 27, 12).getTime();
 const draft = (extra: Partial<PreAccountOnboardingDraft>): PreAccountOnboardingDraft => ({ ...freshPreAccountDraft(), ...extra });
@@ -25,6 +28,22 @@ const strip = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replac
 const APP = strip(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
 
 describe('the plan is written at account creation', () => {
+  test('a chosen voice retains its causal edit through seeded-goal composition and the real store round trip', async () => {
+    setActiveUser('onboarding-preference-voice');
+    const values = new Map<string, string>();
+    const storage = AsyncStorage as unknown as Record<string, unknown>;
+    storage.getItem = async (key: string) => values.get(key) ?? null;
+    storage.setItem = async (key: string, value: string) => { values.set(key, value); };
+    for (const reason of [null, 'work'] as const) {
+      const profile = profileFromDraft(draft({ firstName: 'Ada', reason, tutorVoice: 'marie' }), NOW);
+      assert.equal(await saveProfile(profile), true);
+      const loaded = await loadProfile();
+      assert.equal(loaded?.tutorVoice, 'marie');
+      assert.equal(loaded?.preferenceClocks?.tutorVoice?.value, 'marie');
+      assert.deepEqual(loaded?.brain.cefr.evidence, []);
+      assert.deepEqual(loaded?.learnerGoals, reason ? [SEEDED_GOAL[reason]] : []);
+    }
+  });
   test('every level and purpose combination persists exactly the route and tutor goal shown without inventing evidence', () => {
     for (const level of START_LEVELS) for (const reason of [null, ...REASONS.map(option => option.key)]) {
       const answer = draft({ startLevel: level.key, reason });

@@ -136,7 +136,7 @@ of the list.
   desktop horizontal overflow. A local mock-auth account completed all three onboarding steps,
   landed at `/missions`, returned to `/home`, and stayed there across reload. A Supabase-auth
   run, five-viewport pass, native screen-reader pass and human stopwatch have not been run.
-- All 26 migrations and 24 rollback scripts pass their static contract. Migration 7,
+- At the previous checkpoint, all 26 schema files and 24 rollback scripts passed their static contract. Migration 7,
   `202608270001_onboarding_event_property_fix.sql`, has never been applied to any project.
   No schema is production evidence until all twelve are applied in order and the live verifier
   passes there.
@@ -184,7 +184,7 @@ applied to one, and the day one exists it starts with an empty schema and the sa
 | Upstash cross-instance limits and leases | F61 | `measured` | `npm run verify:upstash`, exit 0, 5 of 5 proofs. Two token servers on ports 53320 and 53324 sharing one Redis: requests split across both then both refused the next, a live session on A made B answer 409, only the matching id freed the lease, an abandoned lease lapsed on its TTL, and the key scan read 5 keys, all hashed. | Upstash under production concurrency and region latency. Two local processes are not a fleet. |
 | Secret scanning of files, history and bundles | F62 | `measured` | `npm run scan:secrets` clean across the working tree. `npm run scan:secrets:history` found **5 critical findings in one commit**, `576bc53`, an `.env.bak-before-cli-all` carrying 4 distinct live vendor credentials. That commit is on two local `codex/*` branches and is **not** reachable from any remote ref. No value was printed at any point. | `--bundles` reported BLOCKED because no web build output exists. Run `npm run build:web` first. Rotation is a human action on four vendor consoles: see F80. |
 | Supabase RLS, RPC privilege, debit concurrency, trial race, deletion cascade | F63 | `measured` | `npm run verify:supabase` against a disposable project. First run: **6 of 12 failed**, which is how F74 and F75 were found. After the three fix migrations, exit 0 and **12 of 12 proofs passed**, one row each in the run record below. | The production project, which does not exist yet. Two accounts are not a population, and no proof here was run under production concurrency, data volume or region latency. |
-| Migration rollbacks and the apply runbook | F64 | `measured` | `databaseContract.test.ts` over 26 migrations and 26 down-scripts: each down-script names every object its migration created, `202608230001_down.sql` also restores the 2-argument `consume_entitlement` its migration dropped, hazardous function-body rollbacks refuse to run without their interlocks, and `supabase/README.md` applies all 26 in order and pairs each with its rollback. The added atomic-billing migration has disposable PostgreSQL/WASM transaction evidence, not live deployment proof. | No rollback has been executed against the hosted database. The rollback-evidence procedure in the runbook has not been performed. |
+| Migration rollbacks and the apply runbook | F64 | `measured` | `databaseContract.test.ts` at the previous checkpoint over 26 schema files and 26 down-scripts: each down-script names every object its migration created, `202608230001_down.sql` also restores the 2-argument `consume_entitlement` its migration dropped, hazardous function-body rollbacks refuse to run without their interlocks, and `supabase/README.md` applies all 26 in order and pairs each with its rollback. The added atomic-billing migration has disposable PostgreSQL/WASM transaction evidence, not live deployment proof. | No rollback has been executed against the hosted database. The rollback-evidence procedure in the runbook has not been performed. |
 | Voice lifecycle: expiry, caps, leases, hard stop, billing | F65 | `measured` | `npm run verify:voice`, 13 checks, 108.5s wall clock: **11 assertions held, 2 measurements recorded**, exit 0. Grants live 300s and a credential 90s past expiry is refused; `maxParticipants=2` held against a forged third identity; one grant and one 409 from the lease, released by the debit; the agent secret guarded the debit; a replayed `/session/end` changed nothing in the store file; a never-joined room debited 0s; a room with no learner turn debited 0s; the hard stop fired at **60.0s** against a seeded 60s allowance and the room was gone **20.1s** later. | Cloud LiveKit was not used; transport was a self-hosted server on 127.0.0.1. The 15-minute production hard stop was pinned by test, not run for 15 real minutes. |
 | Safety net breadth | F66 | `measured` | `npm test -w @luvani/tutor-agent`, 338 tests, 0 failing. 153 patterns, up from 33. 149 adversarial lines across 8 categories and 4 buckets each are caught, and a 51-line ordinary-French corpus still returns null. Normalisation sees through zero-width, homoglyph, spacing and leet forms. | A wider net is still a net. Nothing here bounds what a determined adult phrases around, which is exactly what F70 exists for. |
 | Privacy and safety policy | F67 | `measured` | `docs/PRIVACY_AND_SAFETY.md` plus 4 tests in `safetyPolicy.test.ts`. Falsified by mutation: flipping one category action, replacing the disclaimer with an emergency-service claim, and blanking one retention cell each turned the suite red, and the doc was restored with a matching checksum. | A document is a promise, not an enforcement. Retention is asserted against copy, not against a database that holds rows. |
@@ -681,8 +681,10 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 26 migrations, including the onboarding event
-  property fix, then reload the schema cache and run `npm run verify:supabase`.
+- **`phase-3-schema-apply`** — apply all 36 migrations, including the onboarding event
+  property fix, after reconciling current hosted history/catalog with the release
+  manifest. Run the current hosted verifier and role/runtime proofs below; the
+  legacy twelve-proof harness is insufficient for the current schema.
 - **`phase-3-device-and-human-pass`** — complete the first-run matrix on iOS, Android,
   narrow/wide web and screen readers, and time a real beginner at their own pace. The static
   six-screen/six-tap count is not a two-minute measurement.
@@ -693,7 +695,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **26 migrations** for a fresh full schema, applied once in order from
+There are **36 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -753,15 +755,40 @@ There are **26 migrations** for a fresh full schema, applied once in order from
 
 26. `20261003001510_approved_phrase_audio_caps.sql` — founder-approved hard $0.02 lifetime trial/$0.20 paid thirty-day/$10 global thirty-day ceilings. Forces disabled; preserves counters and anchors, seeds no rates. Independent Sol and disposable sequential checks accepted; **not applied live**, vendor billing and native playback remain unverified.
 
-Then reload the API schema cache and run `npm run verify:supabase` against that project.
-Stopping after any of the first four leaves a known defect live, which is why the runbook
-lists them as one operation and not as a menu.
+27. `20261003230215_bounded_direct_data.sql` — backend audit implementation: bounded direct learner/event writes, per-account quotas, server receipt timestamps and auth-first direct write locking. Disposable SQL proof and independent review only; **not applied live**. Hosted role/concurrency and existing oversized-data remediation remain outstanding.
 
-Also required, though not a blocker for anything in the tables above:
+28. `20261003230224_bounded_data_retention.sql` — bounded service-only analytics, antifraud and pending-social retention. Every usage/debit/refund field is preserved and marked for policy review. **Not applied live or scheduled**; migration33 adds separately disabled speaking-detail expiry while preserving financial replay proof.
 
-- Final web domain and hosting configuration for CSP, HSTS, TLS and CORS.
-- Store sandbox credentials and product decisions for purchases.
-- The rollback-evidence procedure in `supabase/README.md` has never been executed. It needs
-  a disposable project and about an hour.
-- `SUPABASE_JWT_SECRET` is in the original credential request but is not read by the
-  harness; only URL, service-role key and anon key are required.
+29. `20261003230232_bounded_social_inbox.sql` — bounded pending incoming requests, expiry and foreign-key indexes without truncating the current Friends protocol. **Not applied live**; local expiry/retry proofs and independent review exist, but hosted concurrency/scheduling acceptance remain outstanding.
+
+30. `20261003231627_authoritative_tutor_sessions.sql` — backend lifecycle repository implementation: admission defaults disabled, allowance reservation and worker fences, durable checkpoint/completion/receipt and room-stop outbox. **Not applied live**; paired API/agent/reconciliation integration and synthetic crash/rejoin/ACK/cutoff proofs exist. Actual multi-process/vendor/device/hosted races and recovery acceptance remain outstanding. Do not enable admission from the existence of this file alone.
+
+31. `20261003234853_privacy_maintenance_workflows.sql` — durable erasure before fencing, sticky processor history, bounded worker heartbeats and private readiness/catalog inspection. **Not applied live**; encrypted off-backup journal/replay are implemented and locally exercised. Actual independent storage durability, key recovery and deployed maintenance remain required.
+
+32. `20261004002534_bounded_account_exports.sql` — Bounded coherent export jobs and UTF8 fragments with SHA chain; default OFF; original usage receipts preserved. Export, global capacity and 128MiB exceptional-request handling require reviewed activation. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+33. `20261004003511_bounded_session_detail_retention.sql` — Nullable older known session details, expiry OFF by default, independent financial idempotency preserved; bounded practice claim/reconcile and active lease checks. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+34. `20261004004023_friends_launch_guard.sql` — Friends default OFF, immutable reviewed moderation evidence with expiry and irreversible enabled-history rollback guard. No moderation service is fabricated. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+35. `20261004010327_whole_product_paid_admission.sql` — Whole-product owner-reviewed immutable quotes, nonrecycling global/account/vendor reservation and execution-day envelopes, current tutor resume and per-account session caps. OFF/zero by default; no vendor prices or capacity seeded. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+36. `20261004015000_indexed_conversation_library.sql` — Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+
+Current hosted acceptance uses the complete inventory above. For an existing target,
+compare captured migration history/Auth/platform/catalog and apply only missing
+reviewed forward changes with admission disabled and old writers drained. Use
+`scripts/verifyCurrentHostedSchema.mjs`, the current full-schema role/runtime proofs,
+and the exact-artifact release gates in `docs/BACKEND_RELEASE_RUNBOOK.md`. Keep
+`npm run verify:supabase` only for its matching historical disposable baseline;
+it cannot certify the current backend.
+
+**4 October implementation checkpoint:** See `docs/BACKEND_IMPLEMENTATION.md` for
+A01–A30, all local measurements and unresolved external acceptance. Portable Docker
+was chosen first; hosting remains undecided. New migrations/configuration have not
+been applied live. Linux CI/builds, physical iOS/Android journeys, actual processor
+contracts, concurrency/load, alert delivery and a timed isolated restore remain
+release blockers. Older credentials were founder-reported retired on3October;
+retain that evidence without inventing a direct old-key refusal test. Every current
+local pass remains separate from public deployment approval.

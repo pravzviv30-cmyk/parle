@@ -26,6 +26,8 @@
     "scan:secrets:all": "node --experimental-strip-types services/token-server/src/secretScan.ts --all",
     "scan:secrets:history": "node --experimental-strip-types services/token-server/src/secretScan.ts --history",
     "scan:secrets:bundles": "node --experimental-strip-types services/token-server/src/secretScan.ts --bundles",
+    "verify:database:bounds": "node --experimental-strip-types scripts/verifyDataBoundaries.mjs",
+    "verify:database:sessions": "node --experimental-strip-types scripts/verifyTutorSessions.mjs",
     "verify:voice": "node --experimental-strip-types services/tutor-agent/src/verify/voiceLifecycle.ts",
     "verify:supabase": "node --experimental-strip-types services/token-server/src/verify/supabaseLive.ts",
     "verify:sync": "node --experimental-strip-types apps/mobile/src/sync/verify/syncLive.ts",
@@ -41,34 +43,35 @@
     "dependencyAudit": {
       "reviewed": "2026-10-03",
       "auditFailsAbove": "moderate",
-      "note": "Every advisory npm audit reports is listed here exactly once, keyed on the vulnerable package rather than on the dependants that inherit it. `npm run audit:ci` refuses any high or critical advisory whose package is not on this list, and refuses an accepted entry whose advisory has gone away, so the record cannot rot in either direction. `lockedAt` is the version package-lock.json carries today; ciContract.test.ts pins it, so a later install cannot move one of these without a person re-reading the reachability argument.",
+      "note": "High and critical root advisories require an exact GHSA ID, vulnerable range, installed lock version, reachability argument and an unexpired review window of at most 30 days. New advisories on an accepted package fail. Stale acceptances and reported fixed advisories fail. audit:ci alone contacts the registry; the normal gate is offline.",
       "advisories": [
         {
           "module": "@expo/metro",
           "severity": "high",
           "decision": "fixed",
           "lockedAt": "56.0.2",
-          "removedPackages": ["image-size"],
+          "removedPackages": [
+            "image-size"
+          ],
           "advisories": [
             "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
             "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq"
           ],
           "chain": "expo -> @expo/cli -> @expo/metro -> metro -> image-size",
           "reachability": "build time only, but genuinely executed: this is the bundler behind `npm run web` and `npm run build:web`, and it reads every image asset in the repo.",
-          "resolution": "@expo/metro 56.0.0 pinned metro 0.84.4, which depends on image-size. 56.0.2 pins metro 0.84.5, which dropped image-size altogether. ~56.0.0 is the range expo already declares, so 56.0.2 needed no override — only a lockfile that was not stale. `npm update @expo/metro` moved exactly one version and added nothing else; the full suite and a real `npm run build:web` both pass on 0.84.5."
+          "resolution": "@expo/metro 56.0.0 pinned metro 0.84.4, which depends on image-size. 56.0.2 pins metro 0.84.5, which dropped image-size altogether. ~56.0.0 is the range expo already declares, so 56.0.2 needed no override \u2014 only a lockfile that was not stale. `npm update @expo/metro` moved exactly one version and added nothing else; the full suite and a real `npm run build:web` both pass on 0.84.5."
         },
         {
           "module": "adm-zip",
           "severity": "high",
-          "decision": "accepted",
-          "lockedAt": "0.5.18",
-          "reviewNote": "Rechecked 2026-09-19: the historical lockfile experiment below is not the current SDK state. The tutor SDK/plugins are now pinned to 1.9.0 to obtain Sharp 0.35.4, with cross-platform binaries and the Anthropic SDK split preserved. Silero 1.9.0 still uses onnxruntime-node 1.24.3 and the same install-only adm-zip path; this existing acceptance remains unchanged. Repeat paid live voice lifecycle QA before deploying the upgraded tutor service.",
+          "decision": "fixed",
+          "lockedAt": "0.6.1",
           "advisories": [
             "https://github.com/advisories/GHSA-xcpc-8h2w-3j85"
           ],
           "chain": "@livekit/agents-plugin-silero -> onnxruntime-node -> adm-zip",
-          "reachability": "install time only. adm-zip is required by exactly one file, onnxruntime-node/script/install-utils.js, run from that package's postinstall to unpack the ORT native binary out of a .nupkg fetched over TLS from api.nuget.org. The tutor agent's runtime path is onnxruntime-node/dist/binding.js, which only require()s the prebuilt .node addon — grep for adm-zip under dist/ finds nothing. A crafted ZIP therefore needs control of NuGet or a broken TLS chain, not a learner.",
-          "why": "adm-zip 0.6.0 is the fix and onnxruntime-node declares ^0.5.16, so an override would be a forced out-of-range bump on the path that fetches a native binary. npm also cannot apply an override here without regenerating package-lock.json, and that regeneration was measured on 2026-08-25: it moves 92 packages, hoists @anthropic-ai/sdk 0.33.1 -> 0.117.1 against the arrangement CLAUDE.md documents as deliberate, downgrades debug and ms, and bumps the whole @livekit/agents stack 1.6.2 -> 1.7.0, which would invalidate the voice-lifecycle measurements taken against 1.6.2. Regenerating the lock on macOS additionally drops 47 foreign-platform optional binaries, including @livekit/rtc-ffi-bindings-linux-x64-gnu, which would break `npm ci` on the Linux CI runner. The advisory is smaller than the cure. Recorded so the bump can be taken deliberately later: adm-zip 0.6.0 was tested against the exact three calls the install script makes — new AdmZip(path), getEntry, extractEntryTo(entry, dir, false, true) — and all three behave identically."
+          "reachability": "install time only. adm-zip is required by exactly one file, onnxruntime-node/script/install-utils.js, run from that package's postinstall to unpack the ORT native binary out of a .nupkg fetched over TLS from api.nuget.org. The tutor agent's runtime path is onnxruntime-node/dist/binding.js, which only require()s the prebuilt .node addon \u2014 grep for adm-zip under dist/ finds nothing. A crafted ZIP therefore needs control of NuGet or a broken TLS chain, not a learner.",
+          "resolution": "2026-10-04: exact scoped onnxruntime-node -> adm-zip 0.6.1 override replaces the vulnerable install-only ZIP parser. Public npm metadata and a clean onnxruntime-node1.24.3 fixture verify the tested release and integrity. The installed constructor, getEntry and extractEntryTo API remain compatible with the native installer; bounded forged-size and symlink extraction checks exercise security fixes. Existing dependency versions and platform binaries are preserved. A clean root manifest npm ci fixture verifies the committed lock; paid voice lifecycle remains a separate acceptance check."
         },
         {
           "module": "uuid",
@@ -80,7 +83,12 @@
           ],
           "chain": "expo -> @expo/config-plugins -> xcode -> uuid",
           "reachability": "not reached. The advisory is a missing bounds check in v3, v5 and v6 when a caller supplies its own buf. xcode's only use of uuid is `uuid.v4()` at lib/pbxProject.js:90, with no buf argument, and no source file in this repo imports uuid at all. The chain is also build time only: xcode writes Xcode project files during an Expo prebuild, and ios/ and android/ are gitignored here.",
-          "why": "The fix is uuid >= 11.1.1 against xcode's declared ^7.0.3 — four majors of forced bump, on an unreachable call site, and xcode 3.0.1 is the newest version published so there is no dependant to move instead. Moderate, so `npm run audit:ci` reports it rather than failing on it."
+          "why": "The fix is uuid >= 11.1.1 against xcode's declared ^7.0.3 \u2014 four majors of forced bump, on an unreachable call site, and xcode 3.0.1 is the newest version published so there is no dependant to move instead. Moderate, so `npm run audit:ci` reports it rather than failing on it.",
+          "reviewed": "2026-10-03",
+          "expires": "2026-11-02",
+          "advisoryRanges": {
+            "https://github.com/advisories/GHSA-w5hq-g745-h8pq": "<11.1.1"
+          }
         },
         {
           "module": "braces",
@@ -92,7 +100,12 @@
           ],
           "chain": "expo -> @expo/cli -> @expo/metro-file-map -> micromatch -> braces; the retained @expo/metro -> metro-file-map build chain also resolves this copy",
           "reachability": "Build/development watcher only. Metro's includedByGlob matches filesystem paths against project-authored glob patterns; its no-glob fallback is the constant **/*. Luvani does not accept learner-supplied glob patterns, and no app or service runtime imports braces or micromatch. The service dependency closures do not reach either package. An attacker would need to change trusted project/build configuration to supply the nested pattern in this advisory.",
-          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 3.0.3 is still the latest published release and the advisory has no patched version. npm's proposed fix is an incompatible downgrade to Expo 44, which cannot run the SDK 57 app. Retain a temporary build-only exception, not a claim that braces is patched; revisit when a compatible upstream fix exists, and before accepting external patterns in a build service. Unknown high roots still fail audit:ci. The separate brace-expansion copy is patched to 5.0.12."
+          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 3.0.3 is still the latest published release and the advisory has no patched version. npm's proposed fix is an incompatible downgrade to Expo 44, which cannot run the SDK 57 app. Retain a temporary build-only exception, not a claim that braces is patched; revisit when a compatible upstream fix exists, and before accepting external patterns in a build service. Unknown high roots still fail audit:ci. The separate brace-expansion copy is patched to 5.0.12.",
+          "reviewed": "2026-10-03",
+          "expires": "2026-11-02",
+          "advisoryRanges": {
+            "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm": "<=3.0.3"
+          }
         },
         {
           "module": "node-forge",
@@ -104,9 +117,22 @@
           ],
           "chain": "expo -> @expo/cli -> node-forge; @expo/cli -> @expo/code-signing-certificates -> node-forge",
           "reachability": "Expo build/development tooling only. The CLI parses local iOS signing certificates and EAS-issued development certificates, validates a locally configured certificate with its matching private key, and signBufferRSASHA256AndVerify checks a signature it has just generated. Luvani has no expo-updates dependency, imports no Forge or Expo certificate verifier in application code, and its service dependency closures do not reach Forge. These checks do not authenticate a learner or authorise a billing operation.",
-          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 1.4.0 is still the latest published release and this incomplete RSA verification fix has no patched release. npm's proposed Expo 44 downgrade is incompatible with SDK 57. Record a temporary tooling exception rather than a security fix. Keep development certificate inputs trusted; revisit on a compatible upstream patch and before enabling remote-update signing or using this verifier for untrusted external signatures. CI keeps the exact version, build-only boundaries and refusal of unknown high roots under test."
+          "why": "Reviewed 2026-10-03 against the npm registry and GitHub advisory: 1.4.0 is still the latest published release and this incomplete RSA verification fix has no patched release. npm's proposed Expo 44 downgrade is incompatible with SDK 57. Record a temporary tooling exception rather than a security fix. Keep development certificate inputs trusted; revisit on a compatible upstream patch and before enabling remote-update signing or using this verifier for untrusted external signatures. CI keeps the exact version, build-only boundaries and refusal of unknown high roots under test.",
+          "reviewed": "2026-10-03",
+          "expires": "2026-11-02",
+          "advisoryRanges": {
+            "https://github.com/advisories/GHSA-86w9-cpqp-85rv": "<=1.4.0"
+          }
         }
       ]
+    }
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14"
+  },
+  "overrides": {
+    "onnxruntime-node": {
+      "adm-zip": "0.6.1"
     }
   }
 }

@@ -28,6 +28,6 @@ test('only an explicit conversation review uses Flux French and English hints', 
 test('the review recognizer stays inside lazy session audio and phase updates preserve its bilingual hints', () => {
   const source = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
   assert.match(source, /const recognition = recognitionPlan\(isConvo \? 'convo' : 'lesson', sttLanguageFor\(isConvo \? 'convo' : 'lesson', 'choosing'\), process.env\)/);
-  assert.match(source, /sessionAudio\(voiceless, \{[\s\S]*?stt: \(\) => recognition.experimental\s*\? new deepgram.STTv2\(recognition.options\)\s*: new deepgram.STT\(recognition.options\)/);
+  assert.match(source, /sessionAudio\(voiceless, \{[\s\S]*?stt: \(\) => recognition.experimental\s*\? new deepgram.STTv2\(recognition.options\)\s*: new deepgram.STT\(\{ \.\.\.recognition.options, \.\.\.\(proxy \? \{ baseUrl: proxy.deepgramBaseURL, apiKey: \'proxy-only\', sampleRate: 16000, numChannels: 1, mipOptOut: true \} : \{\}\) \}\)/);
   assert.match(source, /setSttLanguage: \(language\) => \{\s*if \(!recognition.experimental\) stt\?\.updateOptions\(\{ language \}\);\s*\}/);
 });

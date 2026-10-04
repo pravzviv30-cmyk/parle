@@ -70,22 +70,23 @@ export function brainChoice(env: Record<string, string | undefined> = process.en
  * brain the flag chose, for the own-words judge only; see jevJudge.ts. Unset,
  * the brain comes back exactly as it did before the key existed.
  */
-export function brainClientFromEnv(env: Record<string, string | undefined> = process.env): LlmClient {
-  const brain = vendorBrainFromEnv(env);
-  const jev = typeSafeFromEnv(env);
+export function brainClientFromEnv(env: Record<string, string | undefined> = process.env, transport?:typeof fetch): LlmClient {
+  const brain = vendorBrainFromEnv(env,transport);
+  // Jev's current API has no enforced output ceiling; activation awaits a bounded adapter.
+  const jev = env.NODE_ENV==='production' ? null : typeSafeFromEnv(env);
   return jev === null ? brain : new JevFirstBrainClient({ brain, jev });
 }
 
-function vendorBrainFromEnv(env: Record<string, string | undefined>): LlmClient {
+function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:typeof fetch): LlmClient {
   const brain = brainChoice(env);
-  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' });
+  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' },transport);
   if (brain === 'openai') {
     return new OpenAiResponsesBrainClient({
       apiKey: env.OPENAI_API_KEY,
       turnModel: env.OPENAI_TURN_MODEL,
       liveModel: env.OPENAI_LIVE_MODEL,
       analystModel: env.OPENAI_ANALYST_MODEL,
-    });
+    },transport);
   }
   // No split, and no key: the subscription answers everything through the
   // `claude` binary, and Groq drops out of the session entirely.
@@ -99,5 +100,5 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>): LlmClient 
       considered: new ClaudeCliBrainClient(),
     });
   }
-  return new AnthropicBrainClient(); // reads ANTHROPIC_API_KEY
+  return new AnthropicBrainClient({apiKey:env.ANTHROPIC_API_KEY,...(transport?{fetch:transport}:{})});
 }

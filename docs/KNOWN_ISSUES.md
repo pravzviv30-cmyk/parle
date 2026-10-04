@@ -3429,7 +3429,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F210 — The scripted lesson agent's own lines pass no output guard
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/tutor.ts:224
 - note: `PRIVACY_AND_SAFETY.md`'s not-true-yet table names the gap honestly and its ledger
   column says "Not filed", but `KNOWN_ISSUES.md` is where this repo keeps what is known to be
@@ -3438,7 +3438,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reaches the learner unchecked. `safetyPolicy.test.ts` already pins `guardedAgents()` to
   `convo.ts` alone, so closing this means extending the guard and updating that pin together.
   Found by work-judge at the slice 2 boundary.
-- verified-by: `the scripted lesson agent's own lines pass the output guard`
+- verified-by: `split harmful output and private markers never reach the scripted speaker or text history`
+
+- resolution: 4October backend implementation holds the entire finite scripted model reply before speech/history, applies the shared output boundary and suppresses split harmful/private output. The executable streamed-node regression passes; production corpus/device safety acceptance remains separate.
 
 ### F211 — The roadmap's Phase 5 section contradicts the ledger it summarises
 - severity: P1

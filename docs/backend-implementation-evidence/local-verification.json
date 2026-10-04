@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "recordedAt": "2026-10-04T02:49:50.537132+00:00",
+  "baselineGitSha": "2cbea8655b90c22fcac00412d008d4540e69954d",
+  "auditCheckpoint": "0b099829",
+  "branch": "codex/backend-production-hardening",
+  "sourceState": "implementation working tree before checkpoint; not a clean-HEAD release attestation",
+  "nodeVersion": "24.16.0",
+  "fullGate": {
+    "passed": true,
+    "workspaceTests": 4380,
+    "sharedReleaseProviderTests": 75,
+    "failures": 0,
+    "workspaceCounts": {
+      "core": 711,
+      "brain": 468,
+      "tutorAgent": 606,
+      "tokenServer": 347,
+      "brainPlayground": 26,
+      "mobile": 2222
+    },
+    "databaseSuites": 8,
+    "migrationsPerSuite": 36
+  },
+  "hostileHttp": {
+    "passed": true,
+    "externalProvidersConfigured": false
+  },
+  "independentReview": {
+    "availableCodexReview": true,
+    "requiredFableReview": false,
+    "fullTutorFactoryComponents": 12,
+    "maximumQuoteComponents": 16,
+    "proxyUploadRepeatedPasses": 25
+  },
+  "secretScans": {
+    "workingTreeIncludingUntracked": "passed",
+    "allAvailableRefsFullHistory": "passed",
+    "freshNativeMobileBundles": "not run"
+  },
+  "dependencyAudit": {
+    "critical": 0,
+    "high": 18,
+    "moderate": 12,
+    "policyProblems": [],
+    "acceptedRoots": [
+      "uuid",
+      "braces",
+      "node-forge"
+    ],
+    "exceptionExpiry": "2026-11-02"
+  },
+  "graph": {
+    "nodes": 11241,
+    "edges": 29035,
+    "communities": 459,
+    "missingSqlParserFiles": 72,
+    "otherEmptyExtractions": 25,
+    "semanticLabelsAndWiki": "not regenerated"
+  },
+  "localLogs": [
+    {
+      "label": "fullGate",
+      "localPath": "/private/tmp/luvani-full-gate-frozen-final.log",
+      "sha256": "5a26c49240b82b091db945c6b3e9b8c40aee3fecff933bdbd5bf4bad4219083d"
+    },
+    {
+      "label": "hostileHttp",
+      "localPath": "/private/tmp/luvani-http-boundary-final.log",
+      "sha256": "632f2b063f0b32594411fd3dde927665d522c0783bee890d0e4dabe20240ee97"
+    },
+    {
+      "label": "proxyRepeats",
+      "localPath": "/private/tmp/luvani-paid-proxy-final-upload-repeat.log",
+      "sha256": "f4b337c37a520c9a52d84ccf01969c6ce9b32a83bbff3171180c0b9bce97e6cd"
+    },
+    {
+      "label": "graphUpdate",
+      "localPath": "/private/tmp/luvani-graph-frozen-final.log",
+      "sha256": "f1ab18bbe57935257adb99bdb9e601fd5a56b8b760831c831275e4819b0df6c3"
+    },
+    {
+      "label": "dependencyAudit",
+      "localPath": "/private/tmp/luvani-current-npm-audit.json",
+      "sha256": "dea92307c0d2c6abd7bf60cde9b39c797207e835704d41c58bfe60d8c957af9c"
+    }
+  ],
+  "externalAcceptance": {
+    "dockerLinuxBuild": "not run",
+    "hostedSchemaAuthRlsConcurrency": "not attested",
+    "physicalDevices": "not run",
+    "actualVendorPricingInvoices": "not verified",
+    "alertReceiverDelivery": "not run",
+    "isolatedTimedRestore": "not run",
+    "paidProviderCalls": 0,
+    "provisioningDeployPushMerge": "not performed"
+  },
+  "disposition": "HOLD"
+}

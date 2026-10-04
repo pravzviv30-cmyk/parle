@@ -138,6 +138,8 @@ export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' |
    * whole file was written to end.
    */
   voice?: TutorVoiceKey;
+  /** Per-job paid transport. A real vendor key is held only by its proxy. */
+  baseURL?: string;
 }
 
 /**
@@ -151,7 +153,7 @@ export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' |
  * the warmed cache on disk is keyed to that string and a byte of drift throws
  * all of it away.
  */
-export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, ...hooks }: BuildTTSOptions = {}): CachedTTS {
+export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, ...hooks }: BuildTTSOptions = {}): CachedTTS {
   const dir = process.env.TTS_CACHE_DIR ?? DEFAULT_CACHE_DIR;
 
   if (selectedVoiceVendor() === 'fish') {
@@ -178,6 +180,8 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, ...hooks }: BuildTTSOpti
     ...(LANGUAGE_CODE ? { languageCode: LANGUAGE_CODE } : {}),
     encoding: OUTPUT_ENCODING,
     voiceId,
+    enableLogging: false,
+    ...(baseURL ? { baseURL, apiKey: 'proxy-only' } : {}),
   });
 
   const opts: CachedTTSOptions = {

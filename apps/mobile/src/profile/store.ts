@@ -71,8 +71,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createProfile, repairProfile, withoutForgottenMemory, validMemoryControl, type LearnerProfile } from '@luvani/brain/profile';
+import { preferenceValue, preferenceClocks, sanitisePreferenceClocks, maxPreferenceCounter, newPreferenceClock, resolvePreferenceClocks, type PreferenceField, type PreferenceClock, type PreferenceClocks } from '@luvani/brain/profile/merge';
 import type { TutorVoiceKey } from '@luvani/core';
-import { onUserScopeReset, userKey, scopeGeneration, writeInUserScope } from '../storage/scope.ts';
+import { activeUserId, onUserScopeReset, userKey, scopeGeneration, writeInUserScope } from '../storage/scope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
 import { upgradeStored } from './upgrade.ts';
@@ -82,6 +83,8 @@ const KEY = () => userKey('profile');
 
 export interface StoredProfile {
   version: 8;
+  /** Exact-value-bound setting edits. No age, DOB, entitlement or identity authority. */
+  preferenceClocks?: PreferenceClocks;
   /** What they asked to be called. Null when they skipped the question. */
   name: string | null;
   /**
@@ -183,6 +186,59 @@ export interface OnboardingAnswers {
  */
 let writeChain: Promise<unknown> = Promise.resolve();
 
+interface PreferenceEdit {
+  owner: string | null;
+  generation: number;
+  observed: number;
+  value: unknown;
+  clock?: PreferenceClock;
+}
+// Explicit UI intent cannot be inferred from a stale whole-profile/recap save.
+// It stays in memory until the serialized durable write assigns a clock. The
+// same object retried reuses that exact operation; adoption never creates one.
+const preferenceEdits = new WeakMap<StoredProfile, Map<PreferenceField, PreferenceEdit>>();
+
+/** Compose setting builders without detaching their account-bound, exact-value intent. */
+export function carryPreferenceEdits(existing: StoredProfile, next: StoredProfile): StoredProfile {
+  const edits = new Map([...(preferenceEdits.get(existing) ?? []), ...(preferenceEdits.get(next) ?? [])]);
+  if (edits.size) preferenceEdits.set(next, edits);
+  return next;
+}
+
+export function withPreferenceEdit(existing: StoredProfile, next: StoredProfile, field: PreferenceField): StoredProfile {
+  carryPreferenceEdits(existing, next);
+  const edits = new Map(preferenceEdits.get(next));
+  if (preferenceValue(existing, field) !== preferenceValue(next, field)) {
+    edits.set(field, { owner: activeUserId(), generation: scopeGeneration(), observed: maxPreferenceCounter(existing), value: preferenceValue(next, field) });
+  }
+  if (edits.size) preferenceEdits.set(next, edits);
+  return next;
+}
+
+async function mutationId(): Promise<string> {
+  // Web/Node expose WebCrypto; the native implementation is Expo's UUIDv4.
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return (await import('expo-crypto')).randomUUID();
+}
+
+async function orderedPreferences(p: StoredProfile, held: StoredProfile | null, generation: number): Promise<StoredProfile> {
+  const clocks = preferenceClocks(p);
+  let observed = Math.max(maxPreferenceCounter(p, held), ...[...(preferenceEdits.get(p)?.values() ?? [])].map((edit) => Math.max(edit.observed, edit.clock?.counter ?? 0)));
+  for (const [field, edit] of preferenceEdits.get(p) ?? []) {
+    if (edit.owner !== activeUserId() || edit.generation !== generation) throw new Error('preference edit scope changed');
+    if (generation !== scopeGeneration()) throw new Error('preference edit scope changed');
+    if (edit.value !== preferenceValue(p, field)) throw new Error('preference edit value changed');
+    if (!edit.clock) edit.clock = newPreferenceClock(p, field, await mutationId(), observed);
+    if (edit.clock.value !== preferenceValue(p, field)) throw new Error('preference edit value changed');
+    clocks[field] = edit.clock;
+    observed = Math.max(observed, edit.clock.counter);
+  }
+  const candidate = sanitisePreferenceClocks({ ...p, preferenceClocks: clocks });
+  // Persist a new brain while retaining independently newer settings. Missing
+  // or stale clocks in a recap are never evidence of a new settings action.
+  return resolvePreferenceClocks(candidate, held, candidate);
+}
+
 function serialized<T>(mutation: (key: string) => Promise<T>): Promise<T> {
   const key = KEY();
   const run = () => mutation(key);
@@ -211,7 +267,7 @@ export async function loadProfile(): Promise<StoredProfile | null> {
     // worker as the session snapshot and crashed it on open. Repair at the
     // door: this is the only place the device's copy is read, so it is the
     // only place that can stop a bad one leaving.
-    return { ...upgraded, brain: withoutForgottenMemory(repairProfile(upgraded.brain), upgraded.forgottenFacts) };
+    return sanitisePreferenceClocks({ ...upgraded, brain: withoutForgottenMemory(repairProfile(upgraded.brain), upgraded.forgottenFacts) });
   } catch {
     // A corrupt profile is not worth crashing over. Onboarding runs again.
     return null;
@@ -224,7 +280,7 @@ async function profileAt(key: string): Promise<StoredProfile | null> {
   if (raw === null) return null;
   const value = upgradeStored(JSON.parse(raw) as unknown);
   if (!value) throw new Error('profile cannot be read');
-  return { ...value, brain: withoutForgottenMemory(repairProfile(value.brain), value.forgottenFacts) };
+  return sanitisePreferenceClocks({ ...value, brain: withoutForgottenMemory(repairProfile(value.brain), value.forgottenFacts) });
 }
 
 export function saveProfile(p: StoredProfile): Promise<boolean> {
@@ -232,12 +288,13 @@ export function saveProfile(p: StoredProfile): Promise<boolean> {
   return serialized(async (key) => {
     try {
       const held = await profileAt(key);
+      const ordered = await orderedPreferences(p, held, generation);
       const forgottenFacts = [...new Set([...(held?.forgottenFacts ?? []), ...p.forgottenFacts])];
       const before = validMemoryControl(held?.brain.memory.control);
       const proposed = validMemoryControl(p.brain.memory.control);
       const newerHeld = before && (!proposed || before.changedAt > proposed.changedAt || (before.changedAt === proposed.changedAt && before.paused && !proposed.paused));
       const memory = newerHeld && held ? held.brain.memory : p.brain.memory;
-      const next = { ...p, forgottenFacts, brain: withoutForgottenMemory({ ...p.brain, memory }, forgottenFacts) };
+      const next = { ...ordered, forgottenFacts, brain: withoutForgottenMemory({ ...ordered.brain, memory }, forgottenFacts) };
       if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify(next))))) return false;
       markDirty('profile');
       return true;
@@ -308,7 +365,8 @@ function adoptProfile(fold: SyncFold): Promise<SyncAdoption> {
     // different door. So the device keeps its own, whatever the account says.
     const own = upgradeStored(persisted)?.ageStopAt ?? null;
     try {
-      if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify({ ...upgraded, ageStopAt: own, brain: withoutForgottenMemory(repairProfile(upgraded.brain), upgraded.forgottenFacts) }))))) throw new Error('profile scope changed');
+      const next = sanitisePreferenceClocks({ ...upgraded, ageStopAt: own, brain: withoutForgottenMemory(repairProfile(upgraded.brain), upgraded.forgottenFacts) });
+      if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify(next))))) throw new Error('profile scope changed');
     } catch {
       // Throwing keeps the namespace pending; the engine retries on the next cycle.
       throw new Error('profile adoption could not be saved');
@@ -393,7 +451,8 @@ export function completeProfile(existing: StoredProfile, answers: OnboardingAnsw
   // reached from. A learner sent back here by a stop is answering the same
   // question in the same words, so it clears through the same door the
   // standalone gate uses rather than a second rule that could disagree with it.
-  return answers.ageConfirmed === true ? withAgeGatePassed(answered) : answered;
+  const ordered = withPreferenceEdit(existing, withPreferenceEdit(existing, answered, 'name'), 'dailyGoalMin');
+  return answers.ageConfirmed === true ? withAgeGatePassed(ordered) : ordered;
 }
 
 /**
@@ -407,7 +466,7 @@ export function completeProfile(existing: StoredProfile, answers: OnboardingAnsw
  * `update` on the profile context is the whole of the write.
  */
 export function withAgeStop(existing: StoredProfile, now = Date.now()): StoredProfile {
-  return { ...existing, ageStopAt: now };
+  return carryPreferenceEdits(existing, { ...existing, ageStopAt: now });
 }
 
 /**
@@ -418,7 +477,7 @@ export function withAgeStop(existing: StoredProfile, now = Date.now()): StoredPr
  * field nobody reads is a record of a child kept for no reason.
  */
 export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
-  return { ...existing, ageStopAt: null };
+  return carryPreferenceEdits(existing, { ...existing, ageStopAt: null });
 }
 
 /**
@@ -426,7 +485,7 @@ export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
  * write path — the goal is asked in Profile now, from exactly one row.
  */
 export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15 | null): StoredProfile {
-  return { ...existing, dailyGoalMin };
+  return withPreferenceEdit(existing, { ...existing, dailyGoalMin }, 'dailyGoalMin');
 }
 
 /**
@@ -443,7 +502,7 @@ export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15
  * offers all eight, so changing their mind is picking another one.
  */
 export function withTutorVoice(existing: StoredProfile, tutorVoice: TutorVoiceKey): StoredProfile {
-  return { ...existing, tutorVoice };
+  return withPreferenceEdit(existing, { ...existing, tutorVoice }, 'tutorVoice');
 }
 
 /**
@@ -455,7 +514,7 @@ export function withTutorVoice(existing: StoredProfile, tutorVoice: TutorVoiceKe
  * `profile/typing.ts`, which is the one place the field is interpreted.
  */
 export function withPreferTyping(existing: StoredProfile, preferTyping: boolean): StoredProfile {
-  return { ...existing, preferTyping };
+  return withPreferenceEdit(existing, { ...existing, preferTyping }, 'preferTyping');
 }
 
 /**
@@ -474,10 +533,10 @@ export function withPreferTyping(existing: StoredProfile, preferTyping: boolean)
  * learner a way to un-name themselves, so this door does not carry one.
  */
 export function withName(existing: StoredProfile, name: string): StoredProfile {
-  return { ...existing, name };
+  return withPreferenceEdit(existing, { ...existing, name }, 'name');
 }
 
 /** Claim a leaderboard username. A plain spread, named so the field has one write path. */
 export function withUsername(existing: StoredProfile, username: string): StoredProfile {
-  return { ...existing, username };
+  return withPreferenceEdit(existing, { ...existing, username }, 'username');
 }

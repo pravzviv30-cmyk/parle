@@ -183,7 +183,10 @@ export async function journalPractice(batch: PracticeBatch, savedAt = Date.now()
  * because the key is also where an unbanked conversation waits.
  */
 export async function bankLesson(summary: SessionSummary): Promise<PersistAck> {
+  const owner = scopeGeneration();
+  const uid = activeUserId();
   const ack = await acknowledged(() => addFromSummary(summary));
+  if (owner !== scopeGeneration() || uid === null || uid !== activeUserId()) return 'failed';
   if (ack === 'durable') return ack;
   try {
     // `serialized` throws rather than rejects when nobody is signed in, which
@@ -209,11 +212,12 @@ export async function bankLesson(summary: SessionSummary): Promise<PersistAck> {
  * before v3 carried a name — the key is cleared as it always was.
  */
 export function clearJournal(batchId: string | null = null): Promise<PersistAck> {
-  return serialized((key) => clearAt(key, batchId));
+  return serialized((key, owner) => clearAt(key, batchId, owner));
 }
 
-async function clearAt(key: string, batchId: string | null = null): Promise<PersistAck> {
+async function clearAt(key: string, batchId: string | null = null, owner = scopeGeneration()): Promise<PersistAck> {
   try {
+    if (owner !== scopeGeneration()) return 'failed';
     if (batchId !== null) {
       const onDisk = await readJournal(key);
       const found = onDisk === null ? null : onDisk.batchId;
@@ -221,6 +225,7 @@ async function clearAt(key: string, batchId: string | null = null): Promise<Pers
       // nothing that still needs recovering.
       if (typeof found === 'string' && found !== '' && found !== batchId) return 'durable';
     }
+    if (owner !== scopeGeneration()) return 'failed';
     await AsyncStorage.removeItem(key);
     return 'durable';
   } catch {
@@ -253,11 +258,18 @@ async function clearAt(key: string, batchId: string | null = null): Promise<Pers
  * did land is simply written again next time onto rows that already hold it.
  */
 export async function bankPractice(batch: PracticeBatch): Promise<'banked' | 'kept'> {
+  const owner = scopeGeneration();
+  const uid = activeUserId();
+  const current = () => uid !== null && uid === activeUserId() && owner === scopeGeneration();
+  if (!current()) return 'kept';
   const topics = await acknowledged(() => mergeSessionTopics(batch.topics));
+  if (!current()) return 'kept';
   // The counts ride the phrases' own write. One conversation, one deck write,
   // one acknowledgement to reason about.
   const phrases = await acknowledged(() => addPhrases(batch.phrases, { stagger: true, convoUses: batch.convoUses }));
+  if (!current()) return 'kept';
   const drills = await acknowledged(() => mergeExercises(batch.drills));
+  if (!current()) return 'kept';
   // A lesson deck riding in the same envelope, which only ever happens on a
   // recovered batch. Every one is tried even after one has failed, on the same
   // reasoning as the three stores: the journal is kept either way, and
@@ -265,6 +277,7 @@ export async function bankPractice(batch: PracticeBatch): Promise<'banked' | 'ke
   let lessons: PersistAck = 'durable';
   for (const summary of batch.lessons ?? []) {
     if ((await acknowledged(() => addFromSummary(summary))) === 'failed') lessons = 'failed';
+    if (!current()) return 'kept';
   }
 
   if (topics === 'failed' || phrases === 'failed' || drills === 'failed' || lessons === 'failed') return 'kept';
@@ -272,6 +285,7 @@ export async function bankPractice(batch: PracticeBatch): Promise<'banked' | 'ke
   // A clear that fails is not a bank that failed: the practice is on disk, and
   // the next launch replays a batch that every store already holds.
   await acknowledged(() => clearJournal(batch.batchId));
+  if (!current()) return 'kept';
   return 'banked';
 }
 
@@ -311,6 +325,7 @@ async function acknowledged(write: () => Promise<PersistAck>): Promise<PersistAc
  */
 export async function recoverJournal(): Promise<number> {
   const uid = activeUserId();
+  const owner = scopeGeneration();
   const key = KEY();
 
   let raw: string | null = null;
@@ -319,19 +334,20 @@ export async function recoverJournal(): Promise<number> {
   } catch {
     return 0;
   }
+  if (owner !== scopeGeneration() || uid !== activeUserId()) return 0;
   if (!raw) return 0;
 
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    await serialized(() => clearAt(key));
+    await serialized(() => clearAt(key, null, owner));
     return 0;
   }
 
   const plan = recoveryPlan(parsed);
   if (plan === null) {
-    await serialized(() => clearAt(key));
+    await serialized(() => clearAt(key, null, owner));
     return 0;
   }
 

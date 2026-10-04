@@ -11,6 +11,7 @@
 
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { safeError } from '../../shared/safeError.ts';
 
 import { applyBillingSnapshot, type BillingSnapshot, type BillingProjection } from './billing/state.ts';
 import { PLANS, rollPeriod, secondsRemaining, readSessionSettlement, isServiceFailure, type Entitlement, type Plan, type ServiceFailure, type SessionSettlement } from '@luvani/core';
@@ -350,7 +351,7 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
     } catch (err) {
       // A balance that could not be persisted is still correct in memory for
       // this process. Loud, because the next restart will forget it.
-      console.error('[luvani] ENTITLEMENT_NOT_PERSISTED', err);
+      console.error('[luvani] ENTITLEMENT_NOT_PERSISTED', safeError(err));
       if (strict) throw err;
     }
   }

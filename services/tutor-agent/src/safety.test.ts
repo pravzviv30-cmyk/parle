@@ -753,14 +753,15 @@ describe('tutor safety boundary', () => {
     }
   });
 
-  test('odd input is bounded and never throws', () => {
+  test('accepted odd input is harmless and oversized policy text is refused', () => {
     for (const input of ['', '   ', '​​​', '😀'.repeat(200), '?'.repeat(2_000), '.-'.repeat(1_000)]) {
       assert.equal(safetyDecision(input), null, `unexpected decision for odd input: ${JSON.stringify(input.slice(0, 20))}`);
     }
-    // A wall of text is truncated, not walked forever, and still decides.
+    // Accepted policy text is inspected whole; a suffix cannot hide beyond 4k.
     const buried = `${'bonjour '.repeat(600)}je veux mourir`;
     assert.equal(safetyDecision(`je veux mourir ${'bonjour '.repeat(600)}`)?.category, 'self-harm');
-    assert.equal(safetyDecision(buried), null, 'input past the bound is not read');
+    assert.equal(safetyDecision(buried)?.category, 'self-harm', 'the full accepted input must be read');
+    assert.throws(() => safetyDecision('a'.repeat(16_385)), RangeError, 'oversize policy input must be refused, never truncated');
   });
 });
 

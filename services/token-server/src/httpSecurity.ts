@@ -65,6 +65,7 @@ export function applyHttpSecurity(req: IncomingMessage, res: ServerResponse, pol
   res.setHeader('content-security-policy', "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
   res.setHeader('cross-origin-resource-policy', 'same-site');
   res.setHeader('vary', 'Origin');
+  res.setHeader('access-control-expose-headers','Retry-After, X-Request-Id');
   if (policy.production) {
     res.setHeader('strict-transport-security', 'max-age=31536000; includeSubDomains');
   }

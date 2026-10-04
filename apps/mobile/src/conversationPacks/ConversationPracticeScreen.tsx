@@ -5,7 +5,9 @@ import { Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { paper, radius, space, type, HIT } from '../theme.ts';
 import * as voice from '../speech/tutorVoice.ts';
-import { loadConversationPacks } from './store.ts';
+import { loadConversationPackForLearner } from './store.ts';
+import { useAuth } from '../auth/useAuth.tsx';
+import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { choicesFor, matchPair, pairsFor, matchingOrder, checkRecognition, NEW_ATTEMPT, type RecognitionAttempt } from './recognition.ts';
 import { mintPracticeId } from '../practice/history.ts';
 import { recordWarmupCompleted } from '../practice/historyStore.ts';
@@ -29,6 +31,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
   /** Story fixture only. The navigator supplies this exclusively in development. */
   previewPack?: ConversationPack;
 }) {
+  const { user, adapter } = useAuth();
   const [pack, setPack] = useState<ConversationPack | null | undefined>(undefined);
   const [stage, setStage] = useState<'match' | 'listen' | 'ready'>('match');
   const [selected, setSelected] = useState<string | null>(null);
@@ -61,13 +64,17 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
   }, [warmedUp, previewPack, pack]);
   useEffect(() => {
     let cancelled = false;
+    const owner = scopeGeneration();
+    const current = () => !cancelled && owner === scopeGeneration() && user?.id === activeUserId();
+    setPack(undefined);
     if (previewPack) setPack(previewPack);
-    else void loadConversationPacks().then((packs) => {
-      if (!cancelled) setPack(packs.find((p) => p.id === packId && p.state === 'ready') ?? null);
-    }).catch(() => { if (!cancelled) setPack(null); });
+    else if (!user) setPack(null);
+    else void loadConversationPackForLearner(user, adapter, packId).then((result) => {
+      if (current()) setPack(result.ok && result.pack?.state === 'ready' ? result.pack : null);
+    }).catch(() => { if (current()) setPack(null); });
     void voice.available().then((available) => { if (!cancelled) setAudioReady(available); });
     return () => { cancelled = true; voice.stop(); };
-  }, [packId, previewPack]);
+  }, [packId, previewPack, user, adapter]);
   const pairs = useMemo(() => pack ? pairsFor(pack) : [], [pack]);
   const right = useMemo(() => matchingOrder(pairs, `${packId}:matching`), [pairs, packId]);
   const listening = useMemo(() => pack ? choicesFor(pack) : [], [pack]);

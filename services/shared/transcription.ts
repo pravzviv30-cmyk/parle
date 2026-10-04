@@ -2,15 +2,17 @@ import { sniffAudio } from './toneperfect.ts';
 
 /** One ephemeral French take, no callback, account identity, storage or log. */
 export async function transcribeFrenchTake(audio: Uint8Array, options: {
-  key?: string; request?: typeof fetch; timeoutMs?: number;
+  key?: string; request?: typeof fetch; timeoutMs?: number; signal?: AbortSignal;
 } = {}): Promise<string | null> {
   const key = options.key ?? process.env.DEEPGRAM_API_KEY;
   const mime = sniffAudio(audio).mime;
-  if (!key || audio.length === 0 || audio.length > 2 * 1024 * 1024 || mime === 'application/octet-stream') return null;
+  if (options.signal?.aborted || !key || audio.length === 0 || audio.length > 2 * 1024 * 1024 || mime === 'application/octet-stream') return null;
+  const deadline = AbortSignal.timeout(Math.max(1, Math.min(10_000, options.timeoutMs ?? 10_000)));
+  const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline;
   try {
-    const response = await (options.request ?? fetch)('https://api.deepgram.com/v1/listen?model=nova-3&language=fr&smart_format=true', {
+    const response = await (options.request ?? fetch)('https://api.deepgram.com/v1/listen?model=nova-3&language=fr&smart_format=true&mip_opt_out=true', {
       method: 'POST', headers: { authorization: `Token ${key}`, 'content-type': mime },
-      body: audio as BodyInit, signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
+      body: audio as BodyInit, signal,
     });
     if (!response.ok) return null;
     if (!response.body) return null;

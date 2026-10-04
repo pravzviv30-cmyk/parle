@@ -1,0 +1,23 @@
+{
+  "retrieved_date": "2026-10-03",
+  "distinct_apps_services": 100,
+  "distinct_primary_source_urls": 100,
+  "source_reviewed": 100,
+  "full_private_architectures_inspected": 0,
+  "by_scope": {
+    "app-technical": 61,
+    "app-security": 19,
+    "platform-technical": 3,
+    "app-operations": 1,
+    "app-API": 6,
+    "company-technical": 7,
+    "subsystem-technical": 2,
+    "company-operations": 1
+  },
+  "by_retrieval_method": {
+    "firecrawl_primary_page_content": 94,
+    "web_reader_primary_content": 6
+  },
+  "review_depth": "Targeted public-disclosure verification, not independent assurance.",
+  "ranking_limit": "Representative 100-entry cohort; no universal top-100 ranking was asserted."
+}

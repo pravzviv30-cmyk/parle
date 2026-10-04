@@ -6,6 +6,11 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { randomUUID } from 'node:crypto';
+import {paidService,validatePaidTutorCall} from './paidService.ts';
+import {decodeAudio} from '../../shared/audioDecode.ts';
+import { cachedReadiness } from './readiness.ts';
+import { observeRequest, requestMetrics } from './telemetry.ts';
 import 'dotenv/config';
 import { supportedSessionModes, supportsSessionMode } from '../../shared/sessionCapabilities.ts';
 
@@ -32,12 +37,18 @@ import {
   type EntitlementStore,
 } from './store.ts';
 import { grantSession, type TokenConfig } from './tokens.ts';
+import { TutorSessionRepository, type ReservedTutorSession } from './tutorSessions.ts';
+import { TUTOR_OPERATIONS, tutorSessionOperation, type TutorOperation } from './tutorSessionRoutes.ts';
 import { createUserResolver } from './auth.ts';
+import { liveIdentityVerifier } from './identity.ts';
 import { agentDebitAllowed } from './agentAuth.ts';
 import { practiceJobs } from './practiceJobs.ts';
 import { productionConfigurationProblems } from './config.ts';
-import { deleteAccountWithProcessor, signedInRecently } from './accountDeletion.ts';
+import { signedInRecently } from './accountDeletion.ts';
 import { exportRecentlyAuthenticatedAccountData } from './accountExport.ts';
+import { accountExports } from './accountExportV2.ts';
+import { privacyJobs } from './privacyJobs.ts';
+import { conversationPackById, conversationPackPage } from './conversationPackPages.ts';
 import { saveConversationText, deleteConversationText, listConversationText } from './conversationText.ts';
 import { billingStatusFor } from './billingStatus.ts';
 import { claimTrialWithEvidence, recordMinutesRefusal } from './sessionEvents.ts';
@@ -53,12 +64,12 @@ import { transcribeFrenchTake } from '../../shared/transcription.ts';
 import {
   deleteAllConversationPacks,
   deleteConversationPack,
-  listConversationPacks,
   getConversationPack,
   saveConversationPack,
   validConversationPackFor,
 } from './conversationPacks.ts';
 import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
+import { answerRequestError, protectHttpHandler, readRequestJson, requestUrl, withRequestSignal } from './requestBoundary.ts';
 import {
   refreshSubscriber,
   revenueCatConfiguration,
@@ -163,11 +174,35 @@ const users = createUserResolver({
   supabaseUrl: process.env.SUPABASE_URL,
   nodeEnv: process.env.NODE_ENV,
   localDevelopment: process.env.LUVANI_LOCAL_DEVELOPMENT,
-});
+}, process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY ? {
+  isIdentityActive: liveIdentityVerifier(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY),
+} : {});
 const billing = revenueCatConfiguration(process.env);
 const eventSink = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
   ? { baseUrl: process.env.SUPABASE_URL, serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY } : null;
 const userIdPattern = sessionIdPattern;
+const tutorSessions = eventSink ? new TutorSessionRepository(eventSink.baseUrl, eventSink.serviceRoleKey) : null;
+const paid=process.env.NODE_ENV==='production' ? paidService(process.env) : null;
+let privacyConfigured = false;
+const readiness = cachedReadiness(async signal => {
+  if (!tutorSessions || !eventSink) throw new Error('backend-unconfigured');
+  if (!privacyConfigured) {
+    await privacyJobs(eventSink.baseUrl, eventSink.serviceRoleKey, process.env.REVENUECAT_SECRET_API_KEY).configure();
+    privacyConfigured = true;
+  }
+  const [schema, workers, limiter, paidSchema] = await Promise.all([
+    tutorSessions.rpc('tutor_session_schema_v1', {}, signal),
+    tutorSessions.rpc('backend_status_v1', {}, signal),
+    rateLimiter.consume({ name: 'readiness', limit: 10000, windowSec: 60 }, privateSignal(rateLimitSalt, 'installation', 'backend-readiness')),
+    paid ? paid.rpc('paid_admission_schema_v1',{},signal) : Promise.resolve({version:1,enabled:true}),
+  ]);
+  return { schema: schema.version === 1 && workers.version === 1, redis: limiter.allowed,
+    tutor: workers.tutor === true, practice: workers.practice === true, maintenance: workers.maintenance === true,
+    admission: schema.enabled === true && (paidSchema as {enabled?:boolean}).enabled === true };
+});
+const activeResponses = new Set<ServerResponse>();
+let draining = false;
+
 
 /**
  * The brain behind /drill/judge, built on the first judged attempt and not
@@ -185,6 +220,7 @@ function judgeBrain(): LlmClient {
 }
 
 function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
+  if (res.destroyed || res.writableEnded) return;
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json',
@@ -222,19 +258,15 @@ function installationChecks(req: IncomingMessage, rule: RateLimitRule): readonly
   return installation ? [[rule, 'installation', installation]] : [];
 }
 
-async function readJson(req: IncomingMessage, limit = 64 * 1024): Promise<Record<string, unknown>> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > limit) throw new Error('payload too large');
-    chunks.push(chunk as Buffer);
-  }
-  if (chunks.length === 0) return {};
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
-}
+const readJson = readRequestJson;
 
-const server = createServer(async (req, res) => {
+const server = createServer(protectHttpHandler(async (req, res) => {
+  observeRequest(req, res);
+  if (draining && req.url !== '/health') return json(res, 503, { error: 'service draining' });
+  if (activeResponses.size >= 128 && req.url !== '/health' && req.url !== '/ready') return json(res, 503, { error: 'service busy' });
+  activeResponses.add(res);
+  const finished = () => activeResponses.delete(res);
+  res.once('finish', finished); res.once('close', finished);
   if (!applyHttpSecurity(req, res, originPolicy)) {
     return json(res, 403, { error: 'origin not allowed' });
   }
@@ -249,11 +281,50 @@ const server = createServer(async (req, res) => {
     return res.end();
   }
 
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-
   try {
+    const url = requestUrl(req);
     if (req.method === 'GET' && url.pathname === '/health') {
       return json(res, 200, { ok: true, livekitUrl, supportedModes: supportedSessionModes(), durablePractice: process.env.LUVANI_DURABLE_PRACTICE === '1' });
+    }
+
+    if (req.method === 'GET' && url.pathname === '/ready') {
+      const status = await readiness.state();
+      return json(res, status.ready ? 200 : 503, status);
+    }
+    if (req.method === 'GET' && url.pathname === '/internal/metrics') {
+      const secret = process.env.LUVANI_METRICS_SECRET;
+      if (!secret || !agentDebitAllowed(secret, req.headers['x-luvani-metrics'])) return json(res, 401, { error: 'metrics authentication required' });
+      const operations = tutorSessions ? await tutorSessions.rpc('backend_status_v1', {}) : {};
+      return json(res, 200, { http: requestMetrics(), operations });
+    }
+    if (req.method === 'POST' && url.pathname === '/agent/heartbeat') {
+      if (!AGENT_SECRET || !agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) return json(res, 401, { error: 'agent authentication required' });
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.heartbeatIp)]))) return;
+      const body = await readJson(req, 1024);
+      if (!tutorSessions || body.role !== 'tutor' || typeof body.workerId !== 'string' || !sessionIdPattern.test(body.workerId)
+        || typeof body.ready !== 'boolean' || Object.keys(body).some(key => !['role','workerId','ready'].includes(key))) return json(res, 400, { error: 'invalid worker heartbeat' });
+      return json(res, 200, await tutorSessions.rpc('publish_backend_heartbeat_v1', { p_role: body.role, p_worker_id: body.workerId, p_ready: body.ready }));
+    }
+
+    if(req.method==='POST' && url.pathname==='/agent/paid') {
+      if(!AGENT_SECRET || !agentDebitAllowed(AGENT_SECRET,req.headers['x-luvani-agent']))return json(res,401,{error:'agent authentication required'});
+      if(!paid)return json(res,503,{error:'paid admission unavailable'});
+      if(!await withinLimits(req,res,[ipCheck(req,RATE_LIMITS.tutorWorkIp)]))return;
+      const call=validatePaidTutorCall(await readJson(req,8192));
+      if(!await withinLimits(req,res,[[RATE_LIMITS.tutorWorkUser,'user',call.userId]]))return;
+      return json(res,200,await withRequestSignal(req,res,signal=>paid.rpc(call.name,call.args,signal),10000));
+    }
+
+    const tutorOperation = url.pathname.match(/^\/agent\/tutor\/(claim|checkpoint|complete|receipt)$/)?.[1];
+    if (req.method === 'POST' && tutorOperation && TUTOR_OPERATIONS.includes(tutorOperation as TutorOperation)) {
+      if (!AGENT_SECRET || !agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) return json(res, 401, { error: 'agent authentication required' });
+      if (!tutorSessions) return json(res, 503, { error: 'session service unavailable' });
+      if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.tutorWorkIp)]))) return;
+      const body = await readJson(req, 160 * 1024);
+      if (typeof body.userId !== 'string' || !userIdPattern.test(body.userId)) return json(res, 400, { error: 'invalid session owner' });
+      if (!(await withinLimits(req, res, [[RATE_LIMITS.tutorWorkUser, 'user', body.userId]]))) return;
+      const result = await tutorSessionOperation(tutorSessions, tutorOperation as TutorOperation, body);
+      return json(res, 200, result);
     }
 
     // RevenueCat's event is a doorbell, not authority. Authenticate and dedupe
@@ -316,6 +387,7 @@ const server = createServer(async (req, res) => {
     // What the app calls to begin. Returns credentials, or 402 with the reason.
     if (req.method === 'POST' && url.pathname === '/session/start') {
       if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.sessionIp)]))) return;
+      if (process.env.NODE_ENV === 'production' && !(await readiness.state()).ready) return json(res, 503, { error: 'session service unavailable', message: 'Your tutor is not ready. Please try again.' });
       const startedAt = performance.now();
       const body = await readJson(req);
       const parsedAt = performance.now();
@@ -404,12 +476,34 @@ const server = createServer(async (req, res) => {
       }
       const entitlement = await store.get(userId);
       const entitledAt = performance.now();
+      let admitted: ReservedTutorSession | undefined;
+      if (tutorSessions && resolved.authSessionId) {
+        const sessionId = randomUUID();
+        const reservation = await tutorSessions.reserve({ userId, authSessionId: resolved.authSessionId,
+          sessionId, roomName: `luvani-${sessionId}`, mode,
+          request: { lessonId, mode, revision, startRung, snapshot, seedTopic, missionId, tutorVoice } });
+        if (reservation.kind === 'refused') {
+          const status = ['exhausted', 'insufficient-for-session', 'subscription-lapsed'].includes(reservation.reason)
+            ? 402 : reservation.reason === 'session-active' ? 409 : 503;
+          return json(res, status, { error: reservation.reason, message: 'Your session could not be prepared. Please try again.', plans: PLANS });
+        }
+        admitted = reservation;
+        if(paid)try {
+          await withRequestSignal(req,res,signal=>paid.admission.reserve({userId,operationId:sessionId,activity:mode,context:{kind:'tutor',sessionId},requestDigest:sessionId.replace(/-/g,'').repeat(2),signal}),10000);
+        } catch {
+          await tutorSessions.abandon(userId,sessionId);
+          return json(res,503,{error:'paid admission unavailable',message:'Your session could not be prepared. Please try again.'});
+        }
+      } else if (process.env.NODE_ENV === 'production') {
+        return json(res, 503, { error: 'session admission unavailable' });
+      }
       const result = await grantSession({
         userId,
         lessonId,
         entitlement,
         config,
         mode,
+        ...(admitted ? { admitted } : {}),
         ...(revision ? { revision } : {}),
         ...(startRung !== undefined ? { startRung } : {}),
         ...(snapshot !== undefined ? { snapshot } : {}),
@@ -430,7 +524,7 @@ const server = createServer(async (req, res) => {
         return json(res, result.status, { error: result.reason, message: result.message, plans: PLANS }, { 'server-timing': serverTiming });
       }
       const leaseSignal = privateSignal(rateLimitSalt, 'user', userId);
-      if (!(await sessionLeases.acquire(leaseSignal, result.grant.sessionId, ACTIVE_SESSION_LEASE_SEC))) {
+      if (!admitted && !(await sessionLeases.acquire(leaseSignal, result.grant.sessionId, ACTIVE_SESSION_LEASE_SEC))) {
         return json(
           res,
           409,
@@ -441,7 +535,7 @@ const server = createServer(async (req, res) => {
       // The token stays private until its issued allowance is durably fenced.
       // A concurrent billing change cannot turn this into a grant for old minutes.
       try {
-        if (!(await store.recordSessionGrant(userId, result.grant.sessionId, entitlement))) {
+        if (!admitted && !(await store.recordSessionGrant(userId, result.grant.sessionId, entitlement))) {
           await sessionLeases.release(leaseSignal, result.grant.sessionId);
           return json(res, 409, { error: 'allowance changed', message: 'Your allowance changed. Please try again.' });
         }
@@ -482,7 +576,7 @@ const server = createServer(async (req, res) => {
     // handler, its header decoding and its refusal of the old query form live
     // in drillScore.ts, beside the judge, so they can be tested without a port.
     if (req.method === 'POST' && url.pathname === '/drill/score') {
-      return handleDrillScore(req, res, {
+      return await handleDrillScore(req, res, {
         users,
         limits: (request, response, userId) =>
           userId === null
@@ -493,24 +587,33 @@ const server = createServer(async (req, res) => {
               ]),
         // Ten seconds, not the live turn's five: a drill learner is waiting for
         // a verdict, not sitting in a conversation that has to keep moving.
-        score: (request) => scoreUtterance(request, { timeoutMs: 10_000 }),
+        score: async (request, signal,user) => {
+          if(!paid)return scoreUtterance(request,{timeoutMs:10000,signal});
+          if(!user || !signal)return [];
+          try{const decoded=await decodeAudio(request.audio,{signal});return await scoreUtterance({...request,audio:decoded.wav},{timeoutMs:10000,signal,fetchFn:paid.apiTransport(user,'api-score',signal)});}catch{return [];}
+        },
       });
     }
 
     if (req.method === 'POST' && url.pathname === '/drill/transcribe') {
-      return handleDrillTranscribe(req, res, {
+      return await handleDrillTranscribe(req, res, {
         users,
         limits: (request, response, userId) => userId === null
           ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.scoringIp)])
           : withinLimits(request, response, [[RATE_LIMITS.scoringUser, 'user', userId],
             ...installationChecks(request, RATE_LIMITS.scoringInstallation)]),
-        transcribe: audio => transcribeFrenchTake(audio),
+        transcribe: async (audio, signal,user) => {
+          if(!paid)return transcribeFrenchTake(audio,signal?{signal}:{});
+          if(!user || !signal)return null;
+          try{const decoded=await decodeAudio(audio,{signal});return await transcribeFrenchTake(decoded.wav,{signal,request:paid.apiTransport(user,'api-transcribe',signal)});}catch{return null;}
+        },
       });
     }
 
     if (req.method === 'POST' && (url.pathname === '/phrase-audio/manifest' || url.pathname === '/phrase-audio/generate')) {
-      return handlePhraseAudio(req, res, url.pathname.endsWith('/generate'), {
+      return await handlePhraseAudio(req, res, url.pathname.endsWith('/generate'), {
         users, env: process.env,
+        ...(paid?{requestFor:(user,signal)=>paid.apiTransport(user,'phrase-audio',signal)}:{}),
         limits: (request, response, userId) => userId === null
           ? withinLimits(request, response, [ipCheck(request, RATE_LIMITS.phraseAudioIp)])
           : withinLimits(request, response, [[RATE_LIMITS.phraseAudioUser, 'user', userId]]),
@@ -525,7 +628,7 @@ const server = createServer(async (req, res) => {
     // still serves every other endpoint.
     if (req.method === 'POST' && (url.pathname === '/drill/judge' || url.pathname === '/drill/fix-line')) {
       const handler = url.pathname === '/drill/fix-line' ? handleFixLineJudge : handleDrillJudge;
-      return handler(req, res, {
+      return await handler(req, res, {
         users,
         limits: (request, response, userId) =>
           userId === null
@@ -534,7 +637,8 @@ const server = createServer(async (req, res) => {
                 [RATE_LIMITS.scoringUser, 'user', userId],
                 ...installationChecks(request, RATE_LIMITS.scoringInstallation),
               ]),
-        client: judgeBrain(),
+        client: { judge: request => judgeBrain().judge(request) },
+        ...(paid ? {clientFor:async (user,signal)=>brainClientFromEnv(process.env,paid.apiTransport(user,url.pathname==='/drill/fix-line'?'api-fix-judge':'api-judge',signal))} : {}),
         usage: (usage) => console.log(judgeUsageLine(usage)),
         ...(url.pathname === '/drill/fix-line' ? { fixLineObserver: fixLineObserverFromEnv() } : {}),
       });
@@ -558,10 +662,40 @@ const server = createServer(async (req, res) => {
           message: 'Sign in again to confirm it is you, then delete the account within five minutes.',
         });
       }
-      if (!(await deleteAccountWithProcessor(supabaseUrl, serviceRoleKey, resolved.userId, process.env.REVENUECAT_SECRET_API_KEY))) {
-        return json(res, 503, { error: 'purchase record erasure could not be requested' });
+      if (tutorSessions) {
+        const result = await privacyJobs(supabaseUrl, serviceRoleKey, process.env.REVENUECAT_SECRET_API_KEY).begin(resolved.userId);
+        if (result.kind !== 'pending' && result.kind !== 'completed' && result.kind !== 'gone') return json(res, 503, { error: 'account erasure unavailable' });
+        return json(res, result.kind === 'pending' ? 202 : 200, { deletionAccepted: true, deleted: result.kind !== 'pending' });
       }
-      return json(res, 200, { deleted: true });
+      return json(res, 503, { error: 'account erasure unavailable' });
+    }
+
+    if ((req.method === 'POST' && url.pathname === '/account/export-v2')
+      || ((req.method === 'GET' || req.method === 'DELETE') && url.pathname.startsWith('/account/export-v2/'))) {
+      const preparing = req.method === 'POST';
+      if (!(await withinLimits(req,res,[ipCheck(req,preparing?RATE_LIMITS.exportIp:RATE_LIMITS.exportPageIp)]))) return;
+      const resolved=await users.resolve(req.headers.authorization,null);
+      if(!resolved.ok)return json(res,resolved.status,{error:resolved.message});
+      if(!(await withinLimits(req,res,[[preparing?RATE_LIMITS.exportUser:RATE_LIMITS.exportPageUser,'user',resolved.userId]])))return;
+      if(!eventSink || !resolved.authSessionId)return json(res,503,{error:'account export unavailable'});
+      const exports=accountExports(eventSink.baseUrl,eventSink.serviceRoleKey);
+      if(preparing) {
+        const body=await readRequestJson(req,1024);
+        if(Object.keys(body).length!==1 || typeof body.exportId!=='string' || !sessionIdPattern.test(body.exportId))return json(res,400,{error:'exportId required'});
+        const result=await withRequestSignal(req,res,signal=>exports.prepare(resolved.userId,resolved.authSessionId!,body.exportId as string,resolved.authenticatedAt,signal),35_000);
+        if(result===null)return json(res,403,{error:'recent authentication required'});
+        return json(res,result.kind==='ready'?200:503,result);
+      }
+      const exportId=url.pathname.slice('/account/export-v2/'.length);
+      if(!sessionIdPattern.test(exportId))return json(res,400,{error:'invalid export id'});
+      if(req.method==='DELETE') {
+        await withRequestSignal(req,res,signal=>exports.purge(resolved.userId,exportId,signal));
+        return json(res,200,{ok:true});
+      }
+      const partText=url.searchParams.get('part');
+      if([...url.searchParams.keys()].length!==1 || partText===null || !/^(0|[1-9][0-9]{0,3})$/.test(partText) || Number(partText)>2047)return json(res,400,{error:'invalid export part'});
+      const part=await withRequestSignal(req,res,signal=>exports.part(resolved.userId,resolved.authSessionId!,exportId,Number(partText),signal));
+      return json(res,part===null?404:200,part??{error:'export unavailable'});
     }
 
     // A portable copy of the verified caller's account and server rows. There
@@ -677,8 +811,7 @@ const server = createServer(async (req, res) => {
       const supabaseUrl = process.env.SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (!supabaseUrl || !serviceRoleKey) return json(res, 503, { error: 'Conversation Pack storage is not configured' });
-      const packs = await listConversationPacks(supabaseUrl, serviceRoleKey, resolved.userId);
-      return json(res, 200, { packs });
+      return json(res, 200, await conversationPackPage(supabaseUrl, serviceRoleKey, resolved.userId, url.searchParams.get('after')));
     }
 
     if (req.method === 'DELETE' && url.pathname === '/conversation-packs') {
@@ -694,6 +827,15 @@ const server = createServer(async (req, res) => {
     }
 
     const packDelete = url.pathname.match(/^\/conversation-packs\/([0-9a-f-]{36})$/i);
+    if(req.method==='GET' && packDelete) {
+      if(url.search)return json(res,400,{error:'pack detail accepts no query parameters'});
+      if(!await withinLimits(req,res,[ipCheck(req,RATE_LIMITS.conversationPackIp)]))return;
+      const user=await users.resolve(req.headers.authorization,null);if(!user.ok)return json(res,user.status,{error:user.message});
+      if(!await withinLimits(req,res,[[RATE_LIMITS.conversationPackUser,'user',user.userId]]))return;
+      if(!eventSink)return json(res,503,{error:'saved practice unavailable'});
+      const pack=await conversationPackById(eventSink.baseUrl,eventSink.serviceRoleKey,user.userId,packDelete[1]!);
+      return pack ? json(res,200,{pack}) : json(res,404,{error:'practice not found'});
+    }
     if (req.method === 'DELETE' && packDelete) {
       if (!(await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.conversationPackIp)]))) return;
       const resolved = await users.resolve(req.headers.authorization, null);
@@ -755,34 +897,10 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { kind: 'charged', refundedSeconds: 0, secondsRemaining: secondsRemaining(updated), plan: updated.plan });
     }
 
-    // The other way a session ends: the tutor never turned up.
-    //
-    // A grant takes a thirty-minute lease so one account cannot run two sessions
-    // at once, and until now only /session/end gave it back. Only the agent
-    // calls that, so an agent that never joins leaves the lease standing, and
-    // the learner is refused their own next attempt for half an hour by a
-    // session that never happened. They are told nothing was counted against
-    // their minutes, which is true, and then locked out anyway. That is a
-    // strand, and the way out of it has to be something the app can do itself.
-    //
-    // So this is the one lease call a learner makes, and it is authenticated as
-    // the account rather than with the shared agent secret: agentAuth is the
-    // wrong door for a caller who has no agent identity to prove, and handing
-    // the app that secret would be handing it the debit endpoint too.
-    //
-    // It releases and does nothing else. It never debits, never extends a lease,
-    // never mints a token and never reads or writes entitlement. That narrowness
-    // is the whole reason it is safe to expose to a client.
-    //
-    // The named risk, accepted: a caller holding an account's own bearer token
-    // and a sessionId from that account's own grant can free that lease while an
-    // agent is still alive and start again. The cost is one account making its
-    // own concurrency worse, and defending it further would mean asking the
-    // agent, which is the thing that is missing in the case this exists for.
-    // What is not accepted is freeing somebody else's lease, and two things stop
-    // that: the key is derived from the caller the auth layer verified and never
-    // from the body, and the store's release is a compare-and-delete on the
-    // sessionId, so a lease held by any other session survives untouched.
+    // The authenticated owner may cancel a grant that never joined or a live
+    // session. Authoritative SQL keeps a live cancellation in ownership until
+    // room termination/lease grace is confirmed; it cannot admit a second tutor.
+    // Explicit local fixtures retain the legacy Redis compare-and-delete path.
     if (req.method === 'POST' && url.pathname === '/session/abandon') {
       // The session budget rather than a new rule, and not the debit one either.
       // An abandon can only follow a start, so no caller can reach this more
@@ -803,23 +921,37 @@ const server = createServer(async (req, res) => {
       if (!sessionId || !sessionIdPattern.test(sessionId)) {
         return json(res, 400, { error: 'sessionId is required' });
       }
-      await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
-      // The same answer whatever the store found, and deliberately not a report
-      // of whether a lease was there. A learner tapping Back twice, or one whose
-      // agent did arrive and already ended the session, is not looking at an
-      // error: the lease is gone either way and the next start will work. An
-      // honest 200 also refuses to become an oracle for whether some account has
-      // a session open, which a 404 here would quietly be.
+      if (tutorSessions && resolved.authSessionId) await tutorSessions.abandon(userId, sessionId);
+      else await sessionLeases.release(privateSignal(rateLimitSalt, 'user', userId), sessionId);
+      // Acknowledges the cancellation request. Room termination may still be
+      // pending; the next admission remains blocked by the durable SQL state.
       return json(res, 200, { ok: true });
     }
 
     return json(res, 404, { error: 'not found' });
   } catch (err) {
-    console.error('[luvani] request failed', err);
-    return json(res, 500, { error: 'internal error' });
+    return answerRequestError(req, res, err);
   }
-});
+}));
+
+server.headersTimeout = 10_000;
+server.requestTimeout = 30_000;
+server.keepAliveTimeout = 5_000;
+server.maxRequestsPerSocket = 100;
 
 server.listen(PORT, () => {
-  console.log(`[luvani] token server on http://localhost:${PORT} → ${livekitUrl}`);
+  const address = server.address();
+  const actualPort = typeof address === 'object' && address ? address.port : PORT;
+  console.log(`[luvani] token server on http://localhost:${actualPort} → ${livekitUrl}`);
 });
+
+const drain = () => {
+  if (draining) return;
+  draining = true; readiness.drain();
+  server.close(() => { clearTimeout(deadline); process.exitCode = 0; });
+  server.closeIdleConnections();
+  const deadline = setTimeout(() => { server.closeAllConnections(); process.exitCode = 1; }, 30_000);
+  deadline.unref();
+};
+process.once('SIGTERM', drain);
+process.once('SIGINT', drain);

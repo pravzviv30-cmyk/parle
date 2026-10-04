@@ -352,6 +352,9 @@ function compareSql(operator: string, left: SqlValue, right: SqlValue): Tri {
  * that refuses to. Unknown syntax throws rather than evaluating to something convenient.
  */
 function evaluateSqlExpression(expression: string, row: Record<string, SqlValue>): SqlValue {
+  // New lifecycle SQL pins the clock's schema and shares one reviewed cap table.
+  // Resolve only these known builtins/helpers; unknown SQL still fails this evaluator.
+  expression = expression.replace(/\bpg_catalog\.clock_timestamp\(\)/g, 'now()').replace(/\bluvani_private\.tutor_cap_v1/g, 'tutor_cap_v1');
   const tokens = expression.match(/'[^']*'|[a-zA-Z_][a-zA-Z0-9_]*|\d+|<>|<=|>=|[(),+\-=<>]/g) ?? [];
   let at = 0;
   const peek = (): string | undefined => tokens[at]?.toLowerCase();
@@ -480,6 +483,13 @@ function evaluateSqlExpression(expression: string, row: Record<string, SqlValue>
       const numbers = args.filter((value): value is number => typeof value === 'number');
       return numbers.length === 0 ? null : Math.min(...numbers);
     }
+    if (keyword === 'tutor_cap_v1') {
+      take('('); const plan = parseOr(); take(')');
+      const tables = planCapCases(effectiveBody(/create(?: or replace)? function luvani_private\.tutor_cap_v1\b/i));
+      assert.equal(tables.length, 1, 'the shared SQL allowance helper must own exactly one cap table');
+      assert.equal(typeof plan, 'string');
+      return tables[0]![plan as string] ?? 0;
+    }
     if (keyword in row) return row[keyword]!;
     throw new Error(`unsupported token in a debit expression: ${token}`);
   };
@@ -578,9 +588,9 @@ const CORE_CAPS: Record<string, number> = Object.fromEntries(
 
 /** Every `case plan when '<plan>' then <seconds> ... end` in one file. */
 function planCapCases(sql: string): Record<string, number>[] {
-  return [...stripComments(sql).matchAll(/case plan\s+((?:when '\w+' then \d+\s+)+)(?:else \d+\s+)?end/gi)].map(
-    ([, arms]) =>
-      Object.fromEntries([...arms!.matchAll(/when '(\w+)' then (\d+)/gi)].map((arm) => [arm[1]!, Number(arm[2])])),
+  return [...stripComments(sql).matchAll(/case plan\s+((?:when '\w+' then \d+\s+)+)(?:else \d+\s+)?end|case p_plan\s+((?:when '\w+' then \d+\s+){3})(?:else \d+\s+)?end/gi)].map(
+    ([, planArms, parameterArms]) =>
+      Object.fromEntries([...(planArms ?? parameterArms)!.matchAll(/when '(\w+)' then (\d+)/gi)].map((arm) => [arm[1]!, Number(arm[2])])),
   );
 }
 
@@ -600,24 +610,24 @@ function createdObjects(sql: string): CreatedObject[] {
   const flat = sql.replace(/\s+/g, ' ');
   const objects: CreatedObject[] = [];
 
-  for (const [, name] of flat.matchAll(/create table (?:if not exists )?(public\.\w+)/gi)) {
+  for (const [, name] of flat.matchAll(/create table (?:if not exists )?((?:public|luvani_private)\.\w+)/gi)) {
     objects.push({ kind: 'table', name: name!, undone: [new RegExp(`drop table if exists ${escape(name!)}`, 'i')] });
   }
   for (const [, name] of flat.matchAll(/create index (?:if not exists )?(\w+)/gi)) {
     objects.push({
       kind: 'index',
       name: name!,
-      undone: [new RegExp(`drop index if exists (?:public\\.)?${escape(name!)}`, 'i')],
+      undone: [new RegExp(`drop index (?:if exists )?(?:(?:public|luvani_private)\\.)?${escape(name!)}`, 'i')],
     });
   }
-  for (const [, name, table] of flat.matchAll(/create policy "([^"]+)" on (public\.\w+)/gi)) {
+  for (const [, name, table] of flat.matchAll(/create policy "([^"]+)" on ((?:public|luvani_private)\.\w+)/gi)) {
     objects.push({
       kind: 'policy',
       name: `"${name}" on ${table}`,
       undone: [new RegExp(`drop policy if exists "${escape(name!)}" on ${escape(table!)}`, 'i')],
     });
   }
-  for (const [, name, args] of flat.matchAll(/create (?:or replace )?function (public\.\w+)\s*\(([^)]*)\)/gi)) {
+  for (const [, name, args] of flat.matchAll(/create (?:or replace )?function ((?:public|luvani_private)\.\w+)\s*\(([^)]*)\)/gi)) {
     const types = (args ?? '')
       .split(',')
       .map((argument) => argument.replace(/\s+default\b[\s\S]*$/i, '').trim().split(/\s+/).slice(1).join(' '))
@@ -629,12 +639,12 @@ function createdObjects(sql: string): CreatedObject[] {
       // Either dropped, or restored to its previous definition — both are rollbacks, and
       // a `create or replace` migration can only be undone by one of the two.
       undone: [
-        new RegExp(`drop function if exists ${escape(signature).replaceAll(', ', ',\\s*')}`, 'i'),
+        new RegExp(`drop function (?:if exists )?${escape(signature).replaceAll(', ', ',\\s*')}`, 'i'),
         new RegExp(`create or replace function ${escape(name!)}\\s*\\(`, 'i'),
       ],
     });
   }
-  for (const [, name, table] of flat.matchAll(/create trigger (\w+) [\s\S]*?on (public\.\w+)/gi)) {
+  for (const [, name, table] of flat.matchAll(/create trigger (\w+) [\s\S]*?on ((?:public|luvani_private)\.\w+)/gi)) {
     objects.push({
       kind: 'trigger',
       name: `${name} on ${table}`,
@@ -648,13 +658,13 @@ function createdObjects(sql: string): CreatedObject[] {
   // migration that quietly dropped a constraint and never put one back would have gone
   // unread. A named constraint is undone either by dropping it or by adding it again with
   // a different body, which is what narrowing a whitelist back looks like.
-  for (const [, table, actions] of flat.matchAll(/alter table (public\.\w+) ([^;]*);/gi)) {
+  for (const [, table, actions] of flat.matchAll(/alter table ((?:public|luvani_private)\.\w+) ([^;]*);/gi)) {
     for (const [, name] of actions!.matchAll(/\badd constraint (\w+)/gi)) {
     objects.push({
       kind: 'constraint',
       name: `${name} on ${table}`,
       undone: [
-        new RegExp(`drop constraint if exists ${escape(name!)}`, 'i'),
+        new RegExp(`drop constraint (?:if exists )?${escape(name!)}`, 'i'),
         new RegExp(`add constraint ${escape(name!)}`, 'i'),
       ],
     });
@@ -693,8 +703,11 @@ describe('database security contract — SQL cannot drift quietly', () => {
     }
     assert.ok(copies >= 4, `only ${copies} allowance tables were read, so this is checking less than it looks`);
 
-    // And the body a database actually ends up with carries exactly one of them.
-    assert.deepEqual(planCapCases(effectiveBody(FUNCTION_HEADERS.consume_entitlement_session)), [CORE_CAPS]);
+    // Follow the current debit to the single SQL helper rather than requiring
+    // another duplicated allowance table. Every historic copy is still checked.
+    const debit = effectiveBody(FUNCTION_HEADERS.consume_entitlement_session);
+    assert.match(debit, /least\(luvani_private\.tutor_cap_v1\(plan\),seconds_used\+p_seconds\)/);
+    assert.deepEqual(planCapCases(effectiveBody(/create(?: or replace)? function luvani_private\.tutor_cap_v1\b/i)), [CORE_CAPS]);
   });
 
   test('the debit is a fixed-search-path security definer unavailable to clients', () => {
@@ -1154,6 +1167,11 @@ describe('database security contract — SQL cannot drift quietly', () => {
       const objects = createdObjects(sqlOf(file));
       assert.ok(objects.length > 0, `${file} appears to create nothing, which cannot be right`);
       for (const object of objects) {
+        if (file === '20261003230215_bounded_direct_data.sql' && object.kind === 'table' && object.name === 'luvani_private.data_write_quotas') {
+          assert.match(rollback, /data_write_quotas intentionally remain/i);
+          assert.doesNotMatch(stripComments(rollback), /drop table[^;]*data_write_quotas/i);
+          continue; // Preserve abuse history: executable rollback/reapply proof in verifyDataBoundaries.mjs.
+        }
         assert.ok(
           object.undone.some((pattern) => pattern.test(rollback)),
           `${rollbackName} never undoes the ${object.kind} ${object.name} that ${file} created`,

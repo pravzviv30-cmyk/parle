@@ -21,7 +21,6 @@ import {
   currentPrompt,
   submitTurn,
   summarise,
-  decodeClientMessage,
   toLearnerInput,
   STUCK_SILENCE_MS,
   type Lesson,
@@ -38,13 +37,17 @@ import {
 import { TEXT_SILENCE_MS } from './convo.ts';
 import { buildPrompt } from './prompt.ts';
 import { scoreUtterance } from '../../shared/pronunciation.ts';
+import { decodeAudio } from '../../shared/audioDecode.ts';
 import { reportUsage } from './usage.ts';
 import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
-import { TurnQueue } from './queue.ts';
+import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
+import { safeError } from './safeError.ts';
+import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
-import { recordSafetyDecision, safetyDecision } from './safety.ts';
+import { isAcceptedLearnerText, outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
+import type { RuntimeLifecycle } from './sessionLifecycle.ts';
 
 /**
  * Anything that can carry a message back to the app.
@@ -64,6 +67,56 @@ type Publisher = (message: ServerMessage) => void | Promise<void>;
  * in text mode and in tests there is no handle at all.
  */
 type SpokenLine = { waitForPlayout: () => Promise<void> } | undefined;
+
+/** Buffer one finite reply so no unsafe prefix can reach either text or TTS. */
+export function guardScriptedOutput(source: ReadableStream<llm.ChatChunk | string>, options: {
+  fallback: string; signal?: AbortSignal; timeoutMs?: number;
+  suppressed?: (finding: ReturnType<typeof outputGuard>) => void;
+  unavailable?: () => void;
+}): ReadableStream<string> {
+  const reader = source.getReader();
+  let cancelled = false, outputCancelled = false;
+  let interrupt: (error: unknown) => void = () => {};
+  const stopped = new Promise<never>((_resolve, reject) => { interrupt = reject; });
+  void stopped.catch(() => {});
+  const abort = () => { cancelled = true; interrupt(new voice.StopResponse()); void reader.cancel().catch(() => {}); };
+  options.signal?.addEventListener('abort', abort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return new ReadableStream<string>({
+    async start(controller) {
+      let text = '', bytes = 0, chunks = 0, suppressed = false;
+      timer = setTimeout(() => interrupt(new Error('Scripted reply unavailable')), options.timeoutMs ?? 10_000);
+      try {
+        if (options.signal?.aborted) { abort(); throw new voice.StopResponse(); }
+        for (;;) {
+          const part = await Promise.race([reader.read(), stopped]);
+          if (part.done) break;
+          const chunk = part.value;
+          const content = typeof chunk === 'string' ? chunk : chunk.delta?.content ?? '';
+          // Scripted lessons register no tools. Refuse unexpected calls instead
+          // of executing semantics that cannot pass a text safety boundary.
+          if ((typeof chunk !== 'string' && chunk.delta?.toolCalls?.length) || ++chunks > 1_024
+            || (bytes += Buffer.byteLength(content)) > 8_192) { suppressed = true; break; }
+          text += content;
+        }
+        if (cancelled || options.signal?.aborted) throw new voice.StopResponse();
+        const finding = suppressed ? null : outputGuard(text);
+        if (suppressed || finding) { options.suppressed?.(finding); text = options.fallback; }
+        if (Buffer.byteLength(text) > 8_192 || outputGuard(text)) text = 'On continue. Vas-y, je t’écoute.';
+        if (text) controller.enqueue(text);
+        controller.close();
+      } catch {
+        if (!cancelled && !options.signal?.aborted) options.unavailable?.();
+        if (!outputCancelled) controller.error(new Error('Scripted reply unavailable'));
+      } finally {
+        if (timer) clearTimeout(timer);
+        options.signal?.removeEventListener('abort', abort);
+        void reader.cancel().catch(() => {});
+      }
+    },
+    cancel() { outputCancelled = true; abort(); },
+  });
+}
 
 /**
  * The session id agent.ts has not written yet.
@@ -133,8 +186,13 @@ export class LuvaniTutor extends voice.Agent {
   private startedAt = Date.now();
   private ended = false;
   private finishing: Promise<void> | null = null;
+  private lifecycle: RuntimeLifecycle | undefined;
+  private acknowledgedState: SessionState;
   /** Every mutation of `state` goes through here, one at a time. */
   private readonly queue = new TurnQueue();
+  private readonly replayQueue = new TurnQueue({ maxPending: 1 });
+  private readonly commands = new CommandBudget();
+  private lastInputNotice = -Infinity;
   /** True between the learner starting to talk and their turn being applied. */
   private learnerSpeaking = false;
   /**
@@ -154,6 +212,7 @@ export class LuvaniTutor extends voice.Agent {
   private refused = false;
   /** Keeps a copy of each utterance on its way to the recogniser. */
   private readonly tap = new UtteranceTap();
+  private readonly scoringRequest: typeof fetch | undefined;
 
   /**
    * Voiceless: the lesson runs with no microphone and no speech at all.
@@ -182,14 +241,16 @@ export class LuvaniTutor extends voice.Agent {
    */
   private readonly persona: TutorPersona | undefined;
 
-  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona } = {}) {
+  constructor(lesson: Lesson, startRung?: Rung, options: { voiceless?: boolean; persona?: TutorPersona; scoringRequest?: typeof fetch } = {}) {
     const state = createSession(lesson, startRung);
     const prompt = currentPrompt(lesson, state);
     super({ instructions: buildPrompt(lesson, prompt.turn, prompt.directive, options.persona) });
     this.lesson = lesson;
     this.state = state;
+    this.acknowledgedState = state;
     this.voiceless = options.voiceless ?? false;
     this.persona = options.persona;
+    this.scoringRequest = options.scoringRequest;
   }
 
   get sessionState(): SessionState {
@@ -202,6 +263,41 @@ export class LuvaniTutor extends voice.Agent {
     // The refusal is decided when the signed session id lands, which is before
     // there is any channel back to the app. Say it now or nobody hears it.
     if (this.refused) this.publishError(REPLAYED_SESSION_MESSAGE);
+  }
+
+  attachLifecycle(lifecycle: RuntimeLifecycle): void { this.lifecycle = lifecycle; }
+
+  /** Stop queued generation and active speech before durable cleanup begins. */
+  cancelLiveReplies(): void {
+    this.queue.clearPending(); this.replayQueue.clearPending(); this.clearRescue();
+    try { void Promise.resolve(this.session.interrupt({ force: true })).catch(() => {}); } catch { /* session not started */ }
+  }
+
+  override async onExit(): Promise<void> { await this.finish(); }
+
+  override async llmNode(
+    chatCtx: Parameters<voice.Agent['llmNode']>[0],
+    toolCtx: Parameters<voice.Agent['llmNode']>[1],
+    modelSettings: Parameters<voice.Agent['llmNode']>[2],
+  ): ReturnType<voice.Agent['llmNode']> {
+    if (this.ended || this.voiceless) throw new voice.StopResponse();
+    this.lifecycle?.assertActive();
+    const source = await voice.Agent.default.llmNode(this, chatCtx, toolCtx, modelSettings);
+    if (!source) return source;
+    return guardScriptedOutput(source, {
+      fallback: currentPrompt(this.lesson, this.state).turn.tutor,
+      signal: this.lifecycle?.signal,
+      suppressed: finding => {
+        if (finding) recordSafetyDecision({ sessionId: this.sessionId, category: finding.category,
+          action: 'suppress', rule: finding.rule, mode: 'lesson', voiceless: this.voiceless });
+        else console.warn('[luvani] scripted reply exceeded its bounded text/tool contract');
+      },
+      unavailable: () => {
+        this.serviceFailure ??= 'llm_error';
+        this.cancelLiveReplies();
+        void this.finish().finally(() => this.closeRoom()).catch(() => {});
+      },
+    });
   }
 
   /** Send the app whatever it should be rendering right now. */
@@ -234,7 +330,15 @@ export class LuvaniTutor extends voice.Agent {
    * send would give a current app the vanishing toast as well as the surface
    * that stays.
    */
+  private rejectInput(message: string): void {
+    const at = performance.now();
+    if (at - this.lastInputNotice < 1_000) return;
+    this.lastInputNotice = at;
+    this.publish({ t: 'error', message });
+  }
+
   private handleSafety(text: string, session?: voice.AgentSession): boolean {
+    if (!isAcceptedLearnerText(text)) { this.rejectInput(INPUT_LIMIT_MESSAGE); return true; }
     const decision = safetyDecision(text);
     if (decision === null) return false;
     this.clearRescue();
@@ -273,7 +377,7 @@ export class LuvaniTutor extends voice.Agent {
       await delivered;
       await spoken?.waitForPlayout();
     } catch (error) {
-      console.warn('[luvani] the stop message did not settle cleanly; closing the room anyway:', error);
+      console.warn('[luvani] the stop message did not settle cleanly; closing the room anyway:', safeError(error));
     }
     this.closeRoom();
   }
@@ -293,12 +397,20 @@ export class LuvaniTutor extends voice.Agent {
   /** Handle an intent the learner expressed by tapping rather than speaking. */
   async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
     if (this.refused) return; // a spent credential gets no lesson, whatever it taps
-    const msg = decodeClientMessage(payload);
-    if (!msg) return; // a malformed frame must not disturb a live conversation
+    const received = readClientInput(payload);
+    if (!received.message) { if (received.reason === 'oversized') this.rejectInput(INPUT_LIMIT_MESSAGE); return; }
+    const msg = received.message;
+    if (this.ended && msg.t !== 'ready' && msg.t !== 'leave') return;
 
+    if (msg.t === 'leave') { this.queue.clearPending(); this.replayQueue.clearPending();
+      try { void Promise.resolve(session.interrupt({ force: true })).catch(() => {}); } catch { /* closed session */ }
+      return void this.finish();
+    }
+    if (msg.t === 'mode') { if (msg.voiceless) this.replayQueue.clearPending(); return this.setVoiceless(session, msg.voiceless); }
+
+    if ((msg.t === 'say' || msg.t === 'choice') && this.handleSafety(msg.text, session)) return;
+    if (!this.commands.allow(msg.t) || (['say', 'choice', 'help', 'skip'].includes(msg.t) && this.queue.full)) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
     if (msg.t === 'ready') return this.sendCurrentPrompt();
-    if (msg.t === 'leave') return void this.finish();
-    if (msg.t === 'mode') return this.setVoiceless(session, msg.voiceless);
 
     if (msg.t === 'typing' || msg.t === 'moment') {
       // Presence, not silence. Someone typing an answer, or saying they need a
@@ -318,13 +430,14 @@ export class LuvaniTutor extends voice.Agent {
     // the transcript, the ladder and the model unread — in the mode that
     // carries the whole scripted lesson, where tapping IS how a learner
     // answers. One guard, and it covers every way an answer arrives.
-    if ((msg.t === 'say' || msg.t === 'choice') && this.handleSafety(msg.text, session)) return;
     if (msg.t === 'hear') {
       // Replay the line to say, uninterruptible so it always plays out whole.
       // Scripted lines come from the TTS cache, so a replay costs nothing.
       if (this.voiceless) return;
       const prompt = currentPrompt(this.lesson, this.state);
-      session.say(prompt.turn.target, { allowInterruptions: false });
+      if (this.replayQueue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
+      void this.replayQueue.run(async signal => { if (!this.ended) await replayPlayout(session.say(prompt.turn.target, { allowInterruptions: false })?.waitForPlayout(), signal); })
+        .catch(error => console.error('[luvani] replay did not finish:', safeError(error)));
       return;
     }
 
@@ -391,7 +504,7 @@ export class LuvaniTutor extends voice.Agent {
     const generation = this.queue.generation;
     if (this.ended) return generation;
 
-    this.silenceTimer = setTimeout(() => void this.runRescue(session, generation), this.silenceWindow());
+    this.silenceTimer = setTimeout(() => { void this.runRescue(session, generation).catch(() => {}); }, this.silenceWindow());
     return generation;
   }
 
@@ -482,6 +595,7 @@ export class LuvaniTutor extends voice.Agent {
     }
 
     if (this.handleSafety(transcript, this.session)) throw new voice.StopResponse();
+    if (!this.commands.allow('say') || this.queue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); throw new voice.StopResponse(); }
 
     this.publish({ t: 'transcript', text: transcript, final: true });
 
@@ -489,10 +603,14 @@ export class LuvaniTutor extends voice.Agent {
     const utterance = this.tap.take();
     // Reference text is what makes accuracy scoring meaningful at all — see the
     // note in packages/core/src/lessons/types.ts.
+    let scoringAudio: Uint8Array | undefined = audioScoringEnabled() ? utterance?.wav : undefined;
+    if (scoringAudio && this.scoringRequest) {
+      try { scoringAudio = (await decodeAudio(scoringAudio, { signal: this.lifecycle?.signal })).wav; } catch { scoringAudio = undefined; }
+    }
     const phonemes = await scoreUtterance({
       reference: prompt.turn.reference,
-      ...(audioScoringEnabled() && utterance?.wav ? { audio: utterance.wav } : {}),
-    });
+      ...(scoringAudio ? { audio: scoringAudio } : {}),
+    }, { ...(this.scoringRequest ? { fetchFn: this.scoringRequest } : {}), ...(this.lifecycle ? { signal: this.lifecycle.signal } : {}) });
 
     await this.enqueue(this.session, {
       type: 'spoke',
@@ -522,6 +640,8 @@ export class LuvaniTutor extends voice.Agent {
   }
 
   private async applyInput(session: voice.AgentSession | undefined, input: Parameters<typeof submitTurn>[2]): Promise<void> {
+    if (this.ended) return;
+    this.lifecycle?.assertActive();
     // `silence` is the rescue, which the agent applies on the learner's behalf.
     // Everything else arrived from their mouth, their keyboard or their thumb,
     // and that difference is exactly what billing keys off in `finish()`.
@@ -529,9 +649,16 @@ export class LuvaniTutor extends voice.Agent {
     const { state, feedback } = submitTurn(this.lesson, this.state, input);
     this.state = state;
 
+    if (this.lifecycle) {
+      await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns,
+        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) }, () => { this.acknowledgedState = state; });
+      if (this.ended) return;
+      this.lifecycle.assertActive();
+    }
+
     if (feedback.message) this.publish({ t: 'feedback', feedback });
 
-    if (state.finished) return void this.finish();
+    if (state.finished) return this.finish();
 
     const next = currentPrompt(this.lesson, state);
     // The persona rides every rebuild, not just the first one. This line runs
@@ -541,6 +668,8 @@ export class LuvaniTutor extends voice.Agent {
     // F292 mismatch arriving late instead of at the start, and it is invisible
     // to any test that only checks the constructor.
     await this.updateInstructions(buildPrompt(this.lesson, next.turn, next.directive, this.persona));
+    if (this.ended) return;
+    this.lifecycle?.assertActive();
     this.publish({ t: 'prompt', prompt: next });
 
     // The tutor answers every applied input — a spoken turn, a rescue, a skip —
@@ -570,9 +699,20 @@ export class LuvaniTutor extends voice.Agent {
   }
 
   private async complete(): Promise<void> {
+    this.lifecycle?.freezeBillingCutoff?.();
     this.ended = true;
-    this.clearRescue();
+    this.cancelLiveReplies();
 
+    if (this.lifecycle) {
+      const settlement = await this.lifecycle.complete({ learnerTurns: this.learnerTurns,
+        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) });
+      this.state = this.acknowledgedState;
+      const summary = summarise(this.state);
+      noteSessionReported(this.sessionId);
+      await this.publish({ t: 'summary', summary });
+      await this.publish({ t: 'settlement', result: settlement });
+      return;
+    }
     const summary = summarise(this.state);
     this.publish({ t: 'summary', summary });
 

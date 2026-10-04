@@ -39,6 +39,9 @@ import { buildTTS, selectedVoiceVendor, VOICE_KEY } from './voice.ts';
 import { CONVO_LINES } from './convo.ts';
 import { voicesToWarm, warmCost, warmPlanLine, warmVoiceLine } from './warmPlan.ts';
 
+import { assertDevelopmentPaidTool } from './standalonePaidTool.ts';
+assertDevelopmentPaidTool();
+
 // The worker CLI does this for the agent; a standalone script must do it itself.
 initializeLogger({ pretty: true, level: 'warn' });
 

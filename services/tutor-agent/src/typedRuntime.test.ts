@@ -103,7 +103,7 @@ test('a mismatched signed spoken job reports zero use before rejecting, without 
   const source = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
   const guard = source.match(/if \(!supportsSessionMode\(meta.mode \?\? 'lesson'\)\) \{[\s\S]*?\n    \}/)?.[0];
   assert.ok(guard);
-  const run = new Function('meta', 'participant', 'supportsSessionMode', 'reportUsage', `return (async () => { ${guard} })();`);
+  const run = new Function('meta', 'participant', 'supportsSessionMode', 'reportUsage', 'lifecycle', 'finish', `return (async () => { ${guard} })();`);
   const sessionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const userId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   const sent: unknown[] = [];
@@ -116,5 +116,9 @@ test('a mismatched signed spoken job reports zero use before rejecting, without 
   });
   await assert.rejects(run({ mode: 'convo', sessionId }, { identity: userId }, (mode: unknown) => supportsSessionMode(mode, typed), report), /typed sessions only/);
   assert.deepEqual(sent, [{ userId, sessionId, seconds: 0, utterancesScored: 0 }]);
+  let completed = 0;
+  await assert.rejects(run({ mode: 'convo', sessionId }, { identity: userId }, (mode: unknown) => supportsSessionMode(mode, typed),
+    () => { throw new Error('authoritative jobs must not use legacy debit'); }, {}, async () => { completed++; }), /typed sessions only/);
+  assert.equal(completed, 1, 'a claimed authoritative mismatch releases its reservation through completion');
   assert.ok(source.indexOf(guard) < source.indexOf('sessionAudio(voiceless'));
 });

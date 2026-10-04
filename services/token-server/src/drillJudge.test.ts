@@ -6,6 +6,7 @@
 
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
+import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -46,7 +47,7 @@ function request(body: unknown, headers: Record<string, string> = {}): IncomingM
 function response(): { res: ServerResponse; status: () => number; body: () => Record<string, unknown> } {
   let status = 0;
   let payload = '';
-  const res = {
+  const res = Object.assign(new EventEmitter(), {
     writeHead(code: number) {
       status = code;
       return res;
@@ -54,7 +55,7 @@ function response(): { res: ServerResponse; status: () => number; body: () => Re
     end(text?: string) {
       payload = text ?? '';
     },
-  } as unknown as ServerResponse;
+  }) as unknown as ServerResponse;
   return { res, status: () => status, body: () => (payload === '' ? {} : (JSON.parse(payload) as Record<string, unknown>)) };
 }
 
@@ -170,7 +171,7 @@ describe('the own-words judge endpoint — F580', () => {
     ]) {
       const { res, status } = response();
       await handleDrillJudge(request(body), res, deps({ client: counting }));
-      assert.equal(status(), 400, `this body must be refused: ${body.slice(0, 40)}`);
+      assert.equal(status(), Buffer.byteLength(body) > JUDGE_BODY_LIMIT_BYTES ? 413 : 400, 'invalid input must be refused before paid work');
     }
     assert.deepEqual(asked, [], 'a malformed request never reaches a vendor we pay');
   });

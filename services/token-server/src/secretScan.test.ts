@@ -10,6 +10,7 @@
 
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -25,6 +26,7 @@ import {
   runScan,
   scanDiffStream,
   scanLine,
+  scanHistory,
   scanText,
   SECRET_PATTERNS,
 } from './secretScan.ts';
@@ -316,11 +318,65 @@ describe('the secret scanner — shapes found, values never spoken', () => {
     );
   });
 
-  test('a bundle scan with no build output reports blocked rather than clean', () => {
+
+  test('full history streaming finds a credential older than two thousand commits and never prints it', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'luvani-history-stream-'));
+    const leaked = `gsk_${token(52)}`;
+    try {
+      execFileSync('git', ['init', '-q'], { cwd: root });
+      const commands: string[] = [];
+      for (let n = 0; n < 2005; n++) {
+        const content = n === 0 ? `GROQ_API_KEY=${leaked}\n` : `fixture ${n}\n`;
+        const message = `fixture ${n}`;
+        commands.push(`commit refs/heads/main\ncommitter Fixture <fixture@example.com> ${1700000000+n} +0000\ndata ${Buffer.byteLength(message)}\n${message}\nM 100644 inline history.txt\ndata ${Buffer.byteLength(content)}\n${content}\n`);
+      }
+      execFileSync('git', ['fast-import', '--quiet'], { cwd: root, input: commands.join('') });
+      const findings = await scanHistory(root);
+      assert.ok(findings.some(f => f.patternId === 'groq-key' && f.path === 'history.txt' && f.line === 1));
+      assert.ok(!report(findings, 'history').join('\n').includes(leaked));
+      assert.equal((await runScan(['--history'], root)).code, 1);
+      const clone = path.join(root, 'shallow');
+      execFileSync('git', ['clone', '-q', '--depth=1', '--branch=main', `file://${root}`, clone]);
+      const blocked = await runScan(['--history'], clone);
+      assert.equal(blocked.code, 1);assert.match(blocked.lines[0] ?? '', /^BLOCKED:/);assert.ok(!blocked.lines.join('\n').includes('clean'));
+      const noGit = await runScan(['--history'], path.join(root, 'missing'));
+      assert.equal(noGit.code, 1);assert.match(noGit.lines[0] ?? '', /^BLOCKED:/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  test('only the exact historical impossible-signature fixture keeps its approved pre-rename annotation', () => {
+    const commit='9317ec2cbab2ecededb3ac2cad8d74dc55e242ba',file='services/tutor-agent/src/verify/voiceLifecycle.test.ts';
+    const source=execFileSync('git',['show',`${commit}:${file}`],{cwd:path.resolve(import.meta.dirname,'../../..'),encoding:'utf8'});
+    const line=source.split('\n').find(value=>value.includes('parle-secret-scan: allow'));
+    assert.ok(line);
+    const historic=(content: string, hash=commit, target=file)=>`commit ${hash}\n+++ b/${target}\n@@ -0,0 +322 @@\n+${content}`;
+    assert.deepEqual(scanDiffStream(historic(line)),[]);
+    assert.ok(scanDiffStream(historic(line,'0123456789abcdef0123456789abcdef01234567')).some(f=>f.patternId==='signed-jwt'));
+    assert.ok(scanDiffStream(historic(line,commit,'other.test.ts')).some(f=>f.patternId==='signed-jwt'));
+    const realShape=jwt('authenticated');
+    assert.equal(Buffer.from(realShape.split('.')[2]!, 'base64url').length,32);
+    const marked=`const credential="${realShape}"; // parle-secret-scan: allow`;
+    assert.ok(scanDiffStream(historic(marked)).some(f=>f.patternId==='signed-jwt'));
+    assert.ok(scanText(line,file).some(f=>f.patternId==='signed-jwt'),'new tree cannot reuse historical legacy annotation');
+  });
+
+  test('an oversized single history line is blocked without echoing its content', async () => {
+    const root=mkdtempSync(path.join(tmpdir(),'luvani-history-line-'));
+    try {
+      execFileSync('git',['init','-q'],{cwd:root});
+      const content='SYNTHETIC_HISTORY_BODY_'+ 'x'.repeat(8*1024*1024+1);
+      execFileSync('git',['fast-import','--quiet'],{cwd:root,input:`commit refs/heads/main\ncommitter Fixture <fixture@example.com> 1700000000 +0000\ndata 7\nfixture\nM 100644 inline history.txt\ndata ${Buffer.byteLength(content)}\n${content}\n`});
+      const result=await runScan(['--history'],root);
+      assert.equal(result.code,1);assert.match(result.lines[0] ?? '',/^BLOCKED:/);
+      assert.ok(!result.lines.join('\n').includes('SYNTHETIC_HISTORY_BODY_'));
+    } finally {rmSync(root,{recursive:true,force:true});}
+  });
+
+  test('a bundle scan with no build output reports blocked rather than clean', async () => {
     const empty = mkdtempSync(path.join(tmpdir(), 'luvani-secret-scan-'));
     try {
       assert.deepEqual(bundleFiles(empty), []);
-      const outcome = runScan(['--bundles'], empty);
+      const outcome = await runScan(['--bundles'], empty);
       assert.equal(outcome.code, 1, 'nothing scanned must never exit clean');
       assert.match(outcome.lines[0] ?? '', /^BLOCKED: no build output found/);
       assert.ok(

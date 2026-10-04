@@ -139,15 +139,17 @@ with evidence from comparable bounded tasks.
 
 ## The team
 
-Sixteen agents work in this repo. Four are **roles in a loop** — `design-architect`
-decides the shape, `bug-hunter` repairs, `fix-verifier` refutes, `work-judge` says
-SHIP. Twelve are **engineers who own a territory** of the codebase. The roster and
-the territories are in `docs/TEAM.md`.
+The repository agents include **roles in a loop** — `design-architect` decides the
+shape, `bug-hunter` repairs, `fix-verifier` refutes, `work-judge` says SHIP — and
+**engineers who own a territory** of the codebase. Four backend architecture guards
+review cross-service design, database security, voice reliability and deployment.
+The current roster, territories and review triggers are in `docs/TEAM.md`.
 
 | Want | Run |
 |---|---|
 | Something built properly | `/forge <what you want built>` |
 | To know if it is safe to release | `/ship` |
+| A backend architecture review before implementation or promotion | `/backend-review <scope>` |
 | To know if this belongs on main yet | `/land` |
 | One pass at the ledger's top open item | `/bug-sweep` |
 | A specific specialist | ask for it by name |
@@ -163,9 +165,12 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 8820 nodes, 22455 links
-across the source files, grouped into 375 communities. Re-measured 2026-09-26 after the
-whole-app upgrade (the previous figures, 7653 / 18782 / 332, were read on 2026-09-17). The community
+This project has a knowledge graph at `graphify-out/` — 11239 nodes, 28983 links
+across the extracted source files, grouped into 477 communities. Re-measured by the
+AST-only update on 2026-10-04 while integrating backend hardening with main's legacy cleanup (previously 8820 / 22455 / 375
+on 2026-09-26). This update omitted 72 SQL files because `tree_sitter_sql` is absent;
+SQL validation uses the executable full-schema proofs, not this incomplete graph.
+The community
 names are **placeholders** (`Community N`) as of that rebuild: `graphify label . --backend
 claude-cli` needs a signed-in `claude` CLI, and the session on this Mac had expired, so the
 first session with a working `claude login` should run `graphify label . --backend

@@ -31,7 +31,7 @@ export interface VerifierConfig {
   localDevelopment?: string | undefined;
 }
 
-export type ResolvedUser = { ok: true; userId: string; authenticatedAt?: number } | { ok: false; status: number; message: string };
+export type ResolvedUser = { ok: true; userId: string; authenticatedAt?: number; authSessionId?: string } | { ok: false; status: number; message: string };
 
 export interface UserResolver {
   /** True when a token verifier exists; asserted local identity is a separate opt-in. */
@@ -43,9 +43,16 @@ const SIGN_IN_REQUIRED: ResolvedUser = { ok: false, status: 401, message: 'Sign 
 
 export function createUserResolver(
   config: VerifierConfig,
-  options: { getKey?: JWTVerifyGetKey } = {},
+  options: {
+    getKey?: JWTVerifyGetKey;
+    /** Live auth session/account check. No cache: sign-out/deletion must fence costly work. */
+    isIdentityActive?: (userId: string, sessionId: string) => Promise<boolean>;
+  } = {},
 ): UserResolver {
-  let verify: ((token: string) => Promise<{ userId: string; authenticatedAt?: number } | null>) | null = null;
+  const production = config.nodeEnv === 'production';
+  const issuer = config.supabaseUrl ? `${config.supabaseUrl.replace(/\/+$/, '')}/auth/v1` : undefined;
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  let verify: ((token: string) => Promise<{ userId: string; sessionId?: string; authenticatedAt?: number } | null>) | null = null;
 
   if (config.supabaseUrl || options.getKey) {
     // The JWKS fetcher is injectable so tests can hand over a key without a
@@ -60,16 +67,28 @@ export function createUserResolver(
         : null);
     if (getKey) {
       verify = async (token) => {
-        const { payload } = await jwtVerify(token, getKey);
+        if (production && !issuer) return null;
+        const { payload } = await jwtVerify(token, getKey, production ? {
+          issuer, audience: 'authenticated', algorithms: ['ES256', 'RS256'],
+          requiredClaims: ['sub', 'iss', 'aud', 'exp', 'iat', 'role', 'session_id'],
+          clockTolerance: 5,
+        } : { algorithms: ['ES256', 'RS256'] });
         if (typeof payload.sub !== 'string' || !payload.sub) return null;
+        if (production && (
+          !uuid.test(payload.sub) || payload.role !== 'authenticated' || payload.is_anonymous === true ||
+          typeof payload.session_id !== 'string' || !uuid.test(payload.session_id) ||
+          typeof payload.iat !== 'number' || !Number.isSafeInteger(payload.iat) ||
+          typeof payload.exp !== 'number' || !Number.isSafeInteger(payload.exp) || payload.exp <= payload.iat ||
+          payload.iat > Math.floor(Date.now() / 1000) + 5
+        )) return null;
         const at = verifiedAuthenticationAt(payload);
-        return { userId: payload.sub, ...(at === null ? {} : { authenticatedAt: at }) };
+        return { userId: payload.sub, ...(production ? { sessionId: payload.session_id as string } : {}), ...(at === null ? {} : { authenticatedAt: at }) };
       };
     }
-  } else if (config.jwtSecret) {
+  } else if (config.jwtSecret && !production) {
     const secret = new TextEncoder().encode(config.jwtSecret);
     verify = async (token) => {
-      const { payload } = await jwtVerify(token, secret);
+      const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
       if (typeof payload.sub !== 'string' || !payload.sub) return null;
         const at = verifiedAuthenticationAt(payload);
         return { userId: payload.sub, ...(at === null ? {} : { authenticatedAt: at }) };
@@ -87,14 +106,25 @@ export function createUserResolver(
       // That matters in local mode too: a malformed or expired bearer must not
       // become a different identity merely because the request also has userId.
       if (header !== undefined && header.trim() !== '') {
-        if (!token || active === null) return SIGN_IN_REQUIRED;
+        if (!token || token.length > 16 * 1024 || active === null) return SIGN_IN_REQUIRED;
+        let identity;
         try {
-          const identity = await active(token);
-          return identity === null ? SIGN_IN_REQUIRED : { ok: true, ...identity };
+          identity = await active(token);
         } catch {
           // Expired, malformed, wrong key — the reason is not the client's business.
           return SIGN_IN_REQUIRED;
         }
+        if (identity === null) return SIGN_IN_REQUIRED;
+        if (production) {
+          if (!options.isIdentityActive || !identity.sessionId) return { ok: false, status: 503, message: 'Sign-in verification is temporarily unavailable.' };
+          try {
+            if (!await options.isIdentityActive(identity.userId, identity.sessionId)) return SIGN_IN_REQUIRED;
+          } catch {
+            return { ok: false, status: 503, message: 'Sign-in verification is temporarily unavailable.' };
+          }
+        }
+        const { sessionId, ...publicIdentity } = identity;
+        return { ok: true, ...publicIdentity, ...(sessionId ? { authSessionId: sessionId } : {}) };
       }
 
       if (!trustsAssertedIdentity) return SIGN_IN_REQUIRED;

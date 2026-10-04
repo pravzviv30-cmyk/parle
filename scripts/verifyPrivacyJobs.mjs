@@ -1,0 +1,110 @@
+/** Actual sequential disposable SQL; no hosted project, secrets or provider calls. */
+import assert from 'node:assert/strict';
+import { readdir, readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+const db = new PGlite();
+const root = new URL('../supabase/migrations/', import.meta.url);
+const id = n => `80000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const call = async (name, args = []) => (await db.query(`select public.${name}(${args.map((_,i) => `$${i+1}`).join(',')}) value`, args)).rows[0].value;
+try {
+  await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+    create schema auth; create table auth.users(id uuid primary key);
+    create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+    create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema public,auth to anon,authenticated,service_role;
+    alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
+    alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
+  const files = (await readdir(root)).filter(n => n.endsWith('.sql')).sort();
+  for (const file of files) await db.exec(await readFile(new URL(file, root), 'utf8'));
+  for (let n=1; n<=3; n++) await db.query('insert into auth.users(id) values($1)', [id(n)]);
+  await db.query("insert into learner_state(user_id,namespace,payload) values($1,'profile','{}')", [id(1)]);
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id(1)]);
+  assert.equal((await call('begin_account_erasure_v1', [id(1), false])).kind, 'pending');
+  assert.equal((await db.query('select processor_required from account_erasure_jobs where user_id=$1', [id(1)])).rows[0].processor_required, false);
+  assert.equal((await db.query('select count(*)::integer n from luvani_private.tutor_account_fences where user_id=$1', [id(1)])).rows[0].n, 1);
+  await db.exec('set role authenticated');
+  assert.equal((await db.query('select * from learner_state')).rows.length, 0);
+  await assert.rejects(db.query("insert into learner_state(user_id,namespace,payload) values($1,'phrases','{}')", [id(1)]));
+  await assert.rejects(db.query("delete from learner_state where user_id=$1", [id(1)]));
+  await assert.rejects(call('luvani_social', ['view', {}]));
+  await assert.rejects(db.query("select luvani_private.social_dispatch('view','{}')"));
+  await db.exec('reset role');
+  console.log('PASS pending erasure denies stale-bearer direct reads, writes and social dispatch.');
+  let claim = await call('claim_account_erasure_v1');
+  assert.equal(claim.userId, id(1));
+  await assert.rejects(call('advance_account_erasure_v1', [id(1), claim.lease, 'identity-deleted']));
+  await db.query('delete from auth.users where id=$1', [id(1)]);
+  assert.equal((await call('advance_account_erasure_v1', [id(1), claim.lease, 'identity-deleted'])).kind, 'recorded');
+  assert.equal((await db.query('select identity_deleted from account_erasure_jobs where user_id=$1', [id(1)])).rows[0].identity_deleted, true);
+  console.log('PASS billing-disabled erasure fences first, survives auth deletion, proves completion only after identity removal.');
+  await call('configure_privacy_processor_v1', [true]);
+  await call('configure_privacy_processor_v1', [false]);
+  await call('begin_account_erasure_v1', [id(2), false]);
+  claim = await call('claim_account_erasure_v1');
+  assert.equal(claim.processorRequired, true);
+  await assert.rejects(call('advance_account_erasure_v1', [id(2), claim.lease, 'identity-deleted']));
+  assert.equal((await call('advance_account_erasure_v1', [id(2), id(99), 'processor-accepted'])).kind, 'superseded');
+  await call('advance_account_erasure_v1', [id(2), claim.lease, 'processor-failed']);
+  assert.equal((await call('claim_account_erasure_v1')).kind, 'idle');
+  await db.query("update account_erasure_jobs set next_attempt_at=clock_timestamp()-interval '1 second' where user_id=$1", [id(2)]);
+  const retry = await call('claim_account_erasure_v1');
+  assert.notEqual(retry.lease, claim.lease);
+  await call('advance_account_erasure_v1', [id(2), retry.lease, 'processor-accepted']);
+  await db.query('delete from auth.users where id=$1', [id(2)]);
+  assert.equal((await call('begin_account_erasure_v1', [id(2), false])).kind, 'pending');
+  await call('advance_account_erasure_v1', [id(2), retry.lease, 'identity-deleted']);
+  assert.equal((await call('begin_account_erasure_v1', [id(2), false])).kind, 'completed');
+  console.log('PASS sticky processor history, retriable failure, stale lease and processor-before-identity ordering.');
+
+  // A partial/mixed restore can bring back an identity alongside its old
+  // completed job. Completion alone must never certify the restored row gone.
+  const historical = (await db.query('select requested_at::text as requested_at,attempts from account_erasure_jobs where user_id=$1', [id(2)])).rows[0];
+  await db.query('insert into auth.users(id) values($1)', [id(2)]);
+  await db.query("insert into learner_state(user_id,namespace,payload) values($1,'profile','{}')", [id(2)]);
+  assert.equal((await call('begin_account_erasure_v1', [id(2), false])).kind, 'pending');
+  const reopened = (await db.query('select *,requested_at::text as requested_at from account_erasure_jobs where user_id=$1', [id(2)])).rows[0];
+  assert.equal(reopened.requested_at, historical.requested_at);
+  assert.equal(reopened.attempts, historical.attempts);
+  assert.equal(reopened.processor_required, true);
+  assert.equal(reopened.processor_accepted, false);
+  assert.equal(reopened.identity_deleted, false);
+  assert.equal(reopened.completed_at, null);
+  assert.equal(reopened.lease_token, null);
+  assert.equal(reopened.lease_until, null);
+  assert.equal((await call('backend_status_v1')).erasurePending, 1);
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id(2)]);
+  await db.exec('set role authenticated');
+  assert.equal((await db.query('select * from learner_state')).rows.length, 0);
+  await db.exec('reset role');
+  const restoredClaim = await call('claim_account_erasure_v1');
+  assert.equal(restoredClaim.userId, id(2));
+  assert.equal(restoredClaim.processorRequired, true);
+  assert.equal(restoredClaim.processorAccepted, false);
+  assert.equal(restoredClaim.identityDeleted, false);
+  assert.equal((await call('advance_account_erasure_v1', [id(2), retry.lease, 'processor-accepted'])).kind, 'superseded');
+  await assert.rejects(call('advance_account_erasure_v1', [id(2), restoredClaim.lease, 'identity-deleted']));
+  // Replaying the same journal entry during live work preserves its lease.
+  assert.equal((await call('begin_account_erasure_v1', [id(2), false])).kind, 'pending');
+  assert.equal((await db.query('select lease_token from account_erasure_jobs where user_id=$1', [id(2)])).rows[0].lease_token, restoredClaim.lease);
+  await call('advance_account_erasure_v1', [id(2), restoredClaim.lease, 'processor-accepted']);
+  await assert.rejects(call('advance_account_erasure_v1', [id(2), restoredClaim.lease, 'identity-deleted']));
+  await db.query('delete from auth.users where id=$1', [id(2)]);
+  await call('advance_account_erasure_v1', [id(2), restoredClaim.lease, 'identity-deleted']);
+  assert.equal((await call('begin_account_erasure_v1', [id(2), false])).kind, 'completed');
+  assert.equal((await call('backend_status_v1')).erasurePending, 0);
+  assert.equal((await db.query('select count(*)::integer n from learner_state where user_id=$1', [id(2)])).rows[0].n, 0);
+  console.log('PASS reintroduced identity reopens completed erasure, preserves provenance, rejects stale leases and requires renewed processor acceptance plus actual identity deletion.');
+  for (const role of ['anon', 'authenticated']) {
+    await db.exec(`set role ${role}`);
+    await assert.rejects(call('begin_account_erasure_v1', [id(3), false]));
+    await assert.rejects(db.query('select * from account_erasure_jobs'));
+    await db.exec('reset role');
+  }
+  await db.exec("set luvani.rollback_privacy_maintenance='on'");
+  await assert.rejects(db.exec(await readFile(new URL('../supabase/rollback/20261003234853_down.sql', import.meta.url), 'utf8')));
+  await db.exec('rollback');
+  assert.equal((await db.query('select count(*)::integer n from account_erasure_jobs')).rows[0].n, 2);
+  console.log(`PASS all ${files.length} migrations, app-role denial, issued-proof rollback interlock; hosted concurrency remains unverified.`);
+} catch {
+  console.error('FAIL disposable privacy workflow proof (sanitized; no external data).'); process.exitCode = 1;
+} finally { await db.close(); }

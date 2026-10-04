@@ -79,6 +79,7 @@ export interface SyncRequest {
   readonly method: string;
   readonly headers: Record<string, string>;
   readonly body?: string;
+  readonly signal?: AbortSignal;
 }
 
 export interface SyncHttpResponse {
@@ -219,6 +220,8 @@ export interface SyncEngineOptions {
   readonly conflictBudget?: number;
   /** A burst of local writes becomes one push after this quiet period. */
   readonly debounceMs?: number;
+  /** Includes response-body reading. A stuck adapter cannot block the next cycle. */
+  readonly requestTimeoutMs?: number;
 }
 
 export interface SyncEngine {
@@ -253,6 +256,8 @@ export function startSync(options: SyncEngineOptions): SyncEngine {
   const anonKey = options.anonKey;
   const getAccessToken = options.getAccessToken;
   const request = options.fetch;
+  const requestTimeoutMs = Math.max(1, Math.min(options.requestTimeoutMs ?? 10_000, 10_000));
+  const activeRequests = new Set<AbortController>();
   const storage = options.storage;
   const policy = options.policy;
   const now = options.now ?? Date.now;
@@ -312,25 +317,35 @@ export function startSync(options: SyncEngineOptions): SyncEngine {
   type Failed = { readonly kind: 'failed'; readonly code: SyncCode; readonly status: number };
 
   async function send(url: string, init: SyncRequest): Promise<Rows | Failed> {
-    let response: SyncHttpResponse;
+    const controller = new AbortController();
+    activeRequests.add(controller);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const aborted = new Promise<never>((_resolve, reject) => {
+      controller.signal.addEventListener('abort', () => reject(new Error('sync-request-stopped')), { once: true });
+      timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+    });
     try {
-      response = await request(url, init);
+      const result = await Promise.race([(async (): Promise<Rows | Failed> => {
+        const response = await request(url, { ...init, signal: controller.signal });
+        if (!response.ok) return { kind: 'failed', code: 'http-error', status: response.status };
+        let body: unknown;
+        try {
+          const text = await response.text();
+          if (new TextEncoder().encode(text).byteLength > MAX_ENVELOPE_BYTES + 4096) return { kind: 'failed', code: 'bad-body', status: response.status };
+          body = parseJson(text);
+        } catch { return { kind: 'failed', code: 'bad-body', status: response.status }; }
+        if (body === null) return { kind: 'rows', rows: [] };
+        if (!Array.isArray(body)) return { kind: 'failed', code: 'bad-body', status: response.status };
+        const rows = body.filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null && !Array.isArray(row));
+        return { kind: 'rows', rows };
+      })(), aborted]);
+      return result;
     } catch {
       return { kind: 'failed', code: 'network', status: 0 };
+    } finally {
+      clearTimeout(timer);
+      activeRequests.delete(controller);
     }
-    if (!response.ok) return { kind: 'failed', code: 'http-error', status: response.status };
-    let body: unknown;
-    try {
-      body = parseJson(await response.text());
-    } catch {
-      return { kind: 'failed', code: 'bad-body', status: response.status };
-    }
-    if (body === null) return { kind: 'rows', rows: [] };
-    if (!Array.isArray(body)) return { kind: 'failed', code: 'bad-body', status: response.status };
-    const rows = body.filter(
-      (row): row is Record<string, unknown> => typeof row === 'object' && row !== null && !Array.isArray(row),
-    );
-    return { kind: 'rows', rows };
   }
 
   // ─────────────────────────────────────────────────────────────── one namespace
@@ -443,6 +458,7 @@ export function startSync(options: SyncEngineOptions): SyncEngine {
       const local = await readLocal(key);
 
       const pulled = await pull(namespace, token);
+      if (halted) return outcome(namespace, 'stopped', null, adopted, false, attempt);
       if (pulled !== null && 'kind' in pulled) {
         event(namespace, 'pull', 'offline', attempt, null, null, pulled.code);
         return outcome(namespace, 'offline', null, adopted, false, attempt);
@@ -578,6 +594,7 @@ export function startSync(options: SyncEngineOptions): SyncEngine {
               body: JSON.stringify({ payload: envelope, revision: pulled.revision + 1 }),
             });
 
+      if (halted) return outcome(namespace, 'stopped', null, adopted, false, attempt);
       if (written.kind === 'failed') {
         // 409 on the insert means another device created the row between the pull and
         // the push. That is the same race as a lost compare-and-swap, so it takes the
@@ -661,12 +678,14 @@ export function startSync(options: SyncEngineOptions): SyncEngine {
     ),
     resume(): void {
       if (halted) return;
+      for (const controller of activeRequests) controller.abort();
       retry.resumed();
       parked.clear();
       void flushDirty();
     },
     stop(): void {
       halted = true;
+      for (const controller of activeRequests) controller.abort();
       unsubscribe();
     },
     stopped: () => halted,

@@ -63,6 +63,17 @@ transactional migration tooling. Inspect the schema before recovering a partial 
 | 24 | `migrations/20261002212536_kept_phrase_audio_budget.sql` | Disabled, zero-cap dynamic saved-phrase audio; verified rate revisions, atomic source/account/global reservations and final source/period dispatch gate. Extends bounded account export to fifteen owned tables. No hosted application, approved cap assumptions or seeded vendor rates. Requires 2, 10, 11 and 22. |
 | 25 | `migrations/20261002233520_failed_session_refunds.sql` | Founder-approved confirmed service-failure refunds of actual charged seconds, allowance-epoch grants and entitlement-first locking. Extends bounded export to sixteen owned tables. Drain all old grant/debit writers before migration; no hosted application. Requires 2, 10, 13, 21, 22 and 24. |
 | 26 | `migrations/20261003001510_approved_phrase_audio_caps.sql` | Founder-approved hard ceilings: $0.02 lifetime trial, $0.20 paid per thirty days, $10 global per thirty days. Forces disabled; retains spent counters and anchors, seeds no rates. Not applied live; requires 24. |
+| 27 | `migrations/20261003230215_bounded_direct_data.sql` | Direct learner/event payload, per-account and write quotas; immutable server receipt timestamps and auth-first client write locking. Requires 1–26. Prepared and exercised in disposable SQL; not applied live. |
+| 28 | `migrations/20261003230224_bounded_data_retention.sql` | Bounded service-only analytics/antifraud/social retention. Marks old usage for detail-policy review and preserves every charge/refund proof. Requires 27; scheduling and hosted execution remain outstanding. |
+| 29 | `migrations/20261003230232_bounded_social_inbox.sql` | Twenty pending incoming requests, expiry and missing foreign-key indexes, preserving the existing Friends RPC contract. Requires 15 and 28; independent hosted races remain outstanding. |
+| 30 | `migrations/20261003231627_authoritative_tutor_sessions.sql` | Versioned database admission, allowance reservation, worker fencing, checkpoints, atomic completion and room-stop recovery. Admission defaults disabled with zero capacity. Drain legacy workers before enabling; implementation is in progress and hosted acceptance is outstanding. |
+
+| 31 | `migrations/20261003234853_privacy_maintenance_workflows.sql` | Durable erasure before account fencing, sticky processor history, bounded worker heartbeats and service-only readiness/catalog inspection. Jobs survive auth deletion; backup deletion-journal acceptance remains required. Requires 30; prepared and tested locally, not applied live. |
+| 32 | `migrations/20261004002534_bounded_account_exports.sql` | Bounded coherent export jobs and UTF8 fragments with SHA chain; default OFF; original usage receipts preserved. Export, global capacity and 128MiB exceptional-request handling require reviewed activation. Prepared and proved in disposable SQL; not applied live. |
+| 33 | `migrations/20261004003511_bounded_session_detail_retention.sql` | Nullable older known session details, expiry OFF by default, independent financial idempotency preserved; bounded practice claim/reconcile and active lease checks. Prepared and proved in disposable SQL; not applied live. |
+| 34 | `migrations/20261004004023_friends_launch_guard.sql` | Friends default OFF, immutable reviewed moderation evidence with expiry and irreversible enabled-history rollback guard. No moderation service is fabricated. Prepared and proved in disposable SQL; not applied live. |
+| 35 | `migrations/20261004010327_whole_product_paid_admission.sql` | Whole-product owner-reviewed immutable quotes, nonrecycling global/account/vendor reservation and execution-day envelopes, current tutor resume and per-account session caps. OFF/zero by default; no vendor prices or capacity seeded. Prepared and proved in disposable SQL; not applied live. |
+| 36 | `migrations/20261004015000_indexed_conversation_library.sql` | Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. Prepared and proved in disposable SQL; not applied live. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -153,9 +164,19 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `20261004015000_indexed_conversation_library.sql` | `rollback/20261004015000_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
+| `20261004010327_whole_product_paid_admission.sql` | `rollback/20261004010327_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
+| `20261004004023_friends_launch_guard.sql` | `rollback/20261004004023_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
+| `20261004003511_bounded_session_detail_retention.sql` | `rollback/20261004003511_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
+| `20261004002534_bounded_account_exports.sql` | `rollback/20261004002534_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
 | `20261002212536_kept_phrase_audio_budget.sql` | `rollback/20261002212536_down.sql` | Disable worker first and back up budgets. Removes spend history and restores the previous fourteen-table archive. Reapply stays dark; do not enable with reset spend counters. |
 | `20261002233520_failed_session_refunds.sql` | `rollback/20261002233520_down.sql` | Drain new grant/debit/refund writers first; back up proof. Removes refund history and grants, restores the old debit body and fifteen-table export. Never run alongside new workers. |
 | `20261003001510_approved_phrase_audio_caps.sql` | `rollback/20261003001510_down.sql` | Disable runtime switches and drain synthesis first; sets disabled/zero caps and removes ceilings, preserving all spends and anchors. Reapply stays dark. |
+| `20261003230215_bounded_direct_data.sql` | `rollback/20261003230215_down.sql` | Maintenance-only, explicitly interlocked: removing admission limits reopens abuse risk. Preserve receipt provenance and back up operational state first. |
+| `20261003230224_bounded_data_retention.sql` | `rollback/20261003230224_down.sql` | Stop scheduled maintenance before removing the retention RPC; already-deleted expired records cannot be reconstructed. Usage proofs remain intact. |
+| `20261003230232_bounded_social_inbox.sql` | `rollback/20261003230232_down.sql` | Maintenance-only, explicitly interlocked: restore the previous dispatcher only after clients and workers drain. Removed expired requests are not recovered by rollback. |
+| `20261003234853_privacy_maintenance_workflows.sql` | `rollback/20261003234853_down.sql` | Interlocked; refuses any erasure record or enabled processor history. Fix forward once used. |
+| `20261003231627_authoritative_tutor_sessions.sql` | `rollback/20261003231627_down.sql` | Schema removal is allowed only before any version-one grant has ever been issued. After issuance, disable admission, drain and fix forward; retain settlement and replay proofs. |
 | `202609250001_learner_state_goal_steps.sql` | `rollback/202609250001_down.sql` | **DESTRUCTIVE.** Deletes every server copy of a learner's goal steps (which conversations were opened from a goal, and their "used outside" reports) before narrowing the whitelist. Device copies survive; a learner who changes phone loses them. Refuses to run until you set `luvani.remove_goal_steps` in the same session |
 | `202609230001_learner_state_practice_history.sql` | `rollback/202609230001_down.sql` | **DESTRUCTIVE.** Deletes every server copy of completed conversation-practice history before narrowing the whitelist. Device copies survive; a learner who changes phone loses it. Refuses to run until you set `luvani.remove_practice_history` in the same session |
 | `20260920200807_practice_account_deletion.sql` | `rollback/20260920200807_down.sql` | Reopens restricted-role account deletion failure. Guarded by `luvani.reopen_practice_delete`; prefer fixing forward. |
@@ -236,37 +257,48 @@ The saved-text rollback is `rollback/20261002171317_down.sql`. It permanently re
 
 ## Rollback evidence
 
-"We can roll back" is a claim, and this is how it becomes evidence. Do it on a disposable
-project, and keep the output:
+The current release has all 36 migrations. A twelve-proof legacy harness is
+historical evidence; it is not full-catalog security, rollback or restore acceptance.
+Do not execute an old destructive rollback sequence against the current schema.
 
-1. Apply all 26 migrations. Run the harness. Record: twelve proofs, all passed. Separately run `scripts/verifyPracticeQueue.mjs` against disposable PostgreSQL/WASM for the new queue functions; the legacy harness does not cover them.
-2. Note the row counts of all seven tables (`select count(*) from public.<table>;`).
-3. Take the backup from `## Backup`, and record its timestamp.
-4. Apply `rollback/202608240001_down.sql` with the interlock set. Re-run the harness and
-   record that `trial-refused-second-installation` now **fails** — that failure is the
-   evidence the rollback did something, and the evidence F73 was real.
-5. Re-apply `migrations/202608240001_claim_trial_null_fix.sql`. Re-run the harness and
-   record twelve passes again.
-6. Apply `rollback/202609250001_down.sql` with `luvani.remove_goal_steps` set, then
-   `rollback/202609230001_down.sql` with `luvani.remove_practice_history` set, then
-   `rollback/20260920200807_down.sql` with `luvani.reopen_practice_delete` set, then
-   `rollback/20260920200454_down.sql` with `luvani.reopen_practice_receipt` set, then
-   `rollback/20260920194653_down.sql` with `luvani.remove_practice_queue` set, then
-   `rollback/20260919120650_down.sql` with `luvani.remove_friends` set to `'yes'`, then
-   `rollback/202609100002_down.sql` with its interlock set, then `rollback/202609100001_down.sql`, then `rollback/202609050001_down.sql`, then `rollback/202609040001_down.sql`, then `rollback/202608300003_down.sql`, then `rollback/202608300002_down.sql` with its interlock set, then
-   `rollback/202608300001_down.sql`, then `rollback/202608270001_down.sql` with its
-   interlock set, then `rollback/202608260001_down.sql`, then
-   `rollback/202608250002_down.sql` and `rollback/202608250001_down.sql` with their
-   interlocks set, then `rollback/202608230001_down.sql`, then
-   `rollback/202608220001_down.sql`. Record that the harness now reports the schema as
-   not applied, naming each missing object.
-7. Re-apply all 26 migrations, restore from step 3, and record the row counts from
-   step 2 matching.
+1. On a disposable target, capture the complete expected schema manifest using
+   `scripts/releaseSchemaManifest.mjs` and replay the full inventory. `npm run gate`
+   runs eight current disposable SQL suites: direct-data bounds, authoritative
+   tutor sessions, privacy jobs, coherent exports, detail retention, Friends launch,
+   whole-product paid admission and indexed conversation history. Keep each actual
+   migration/proof-group count. Add legacy allowance/queue/refund/phrase proofs where
+   relevant; sequential WASM evidence does not prove independent PostgreSQL races.
+2. Before hosted work, disable admission/generation/expiry and drain incompatible
+   writers. Compare actual hosted migration history, Auth/platform/configuration,
+   roles/RLS/ACLs, full effective catalog and explicit release manifest through
+   `scripts/verifyCurrentHostedSchema.mjs`. Review differences; apply only missing
+   reviewed forward migrations in order. No hosted migration was applied here.
+3. Review each migration's paired down script and interlocks in the table above.
+   Several rollbacks intentionally refuse after issued exposure or enabled history,
+   and retain quota/financial/idempotency proof. After issued exposure, drain and
+   forward-fix; removing surviving proof is not a supported rollback. Test only the
+   permitted current rollback/reapply path on a disposable fixture with nonempty
+   rows, exact values and ACLs, including injected transactional failures.
+4. Capture a complete backup/restore inventory, beyond the original seven public
+   tables: current public/private schema/data, Auth identities/configuration,
+   grants/default privileges/extensions, migration history, storage bodies where
+   used, external receipts and separately recoverable keys/secrets. Keep the
+   encrypted deletion journal outside the database backup and freeze its high
+   water mark. Row counts alone cannot prove restore correctness.
+5. Restore into a distinct isolated target with admission disabled, replay the
+   off-backup erasure journal, recheck processor acknowledgements and exact current
+   catalog/roles, and validate representative learning, entitlement, refund,
+   idempotency and privacy invariants. Measure RPO/RTO and preserve evidence bound
+   to the release/target. Follow `docs/BACKEND_RELEASE_RUNBOOK.md`; do not call the
+   local fixtures a hosted timed recovery drill.
 
-Steps 4 and 5 are the cheap half and can be run on their own: they touch one function
-body and no rows. Steps 6 and 7 are the honest half, and are the only ones that prove a
-restore. Paste the recorded output into `docs/IMPLEMENTATION_EVIDENCE.md` under the
-Supabase row; a step that was not run stays marked as not run.
+The original trial-function rollback/reapply test used
+`rollback/202608240001_down.sql` and
+`migrations/202608240001_claim_trial_null_fix.sql` with the twelve-proof
+`services/token-server/src/verify/supabaseLive.ts` harness. That dated test remains
+useful on its matching disposable historical schema, not as instructions to revert
+one old function beneath newer dependants. Record only checks actually run in
+`docs/IMPLEMENTATION_EVIDENCE.md`.
 
 ## When something goes wrong
 
@@ -275,13 +307,14 @@ Supabase row; a step that was not run stays marked as not run.
 - **`42P01 relation does not exist`** during a paste: a migration ran out of order.
   Inspect migration history and apply the missing prerequisite; do not blindly replay non-idempotent files.
 - **`permission denied for function`** from the token server: the `grant execute ... to
-  service_role` at the end of the migration did not run. Re-paste that file.
+  service_role` or its current reviewed replacement is absent. Compare the full
+  catalog and review the missing grant; do not re-paste an entire non-idempotent migration.
 - **The harness reports a proof this runbook says should pass**: that is a finding, not a
   flake. File it in `docs/KNOWN_ISSUES.md` before changing anything.
 
 ### Optional funnel evidence (Report 45)
 
-Apply migration 23 before the new token worker. Missing-RPC PGRST202 permits the
+Apply the complete reviewed schema before the compatible new workers. Missing-RPC PGRST202 permits the
 old claim path during rollout, with no invented trial evidence; other failures
 remain trial failures. Never edit historic allowance functions. Consent is read
 on the requesting device for each start, and withdrawal affects future requests.

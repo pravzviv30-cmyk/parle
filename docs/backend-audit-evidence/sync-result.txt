@@ -1,0 +1,1 @@
+REPRODUCED: one never-settling transport request holds the sync chain; resume and a queued reconcile do not issue a second request or complete. No transport deadline/cancellation exists. No real network call made.

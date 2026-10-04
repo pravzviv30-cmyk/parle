@@ -6,6 +6,9 @@ import { realtime } from '@livekit/agents-plugin-openai';
 import { NATIVE_EVAL_AGENT, NATIVE_EVAL_INSTRUCTIONS, NATIVE_EVAL_TEACHING, NativeEvalBudget, nativeEvalRemaining } from './nativeEvalPolicy.ts';
 import { applyLanguageAgreement, languageAgreementInstruction, nativeTeachingRequest, parseNativeTeachingReply, type LanguageAgreement } from './nativeEvalLanguage.ts';
 
+import { assertDevelopmentPaidTool } from './standalonePaidTool.ts';
+assertDevelopmentPaidTool();
+
 export default defineAgent({
   entry: async (ctx) => {
     if (process.env.LUVANI_NATIVE_EVAL !== '1' || !process.env.OPENAI_API_KEY) {

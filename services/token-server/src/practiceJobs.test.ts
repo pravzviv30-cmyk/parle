@@ -44,7 +44,7 @@ test('recovery lints exercises, rejects foreign phrase identities and deduplicat
 
 test('recovery skips idle/empty jobs and retries model failures without overwriting ready practice', async () => {
   const finishes: unknown[]=[];
-  const jobs: PracticeJobs={receive:async()=>{},claim:async()=>job,finish:async(_job,ex)=>{finishes.push(ex);return true;}};
+  const jobs: PracticeJobs={receive:async()=>{},active:async()=>true,claim:async()=>job,finish:async(_job,ex)=>{finishes.push(ex);return true;}};
   const unavailable={drills:async()=>{throw new Error('sensitive provider detail');}};
   assert.equal(await processPracticeJob({...jobs,claim:async()=>null},unavailable),'idle');
   assert.equal(await processPracticeJob(jobs,unavailable),'retry');
@@ -55,12 +55,51 @@ test('recovery skips idle/empty jobs and retries model failures without overwrit
 
 test('an uncertain completion is not followed by a conflicting failure acknowledgement', async () => {
   let calls=0;
-  const jobs: PracticeJobs={receive:async()=>{},claim:async()=>({...job,payload:{...pack,keyPhrases:[]}}),finish:async()=>{calls++;throw new Error('timeout');}};
+  const jobs: PracticeJobs={receive:async()=>{},active:async()=>true,claim:async()=>({...job,payload:{...pack,keyPhrases:[]}}),finish:async()=>{calls++;throw new Error('timeout');}};
   await assert.rejects(processPracticeJob(jobs,{drills:async()=>{throw new Error('unused');}}),/timeout/);
   assert.equal(calls,1);
 });
 
 test('a deleted or superseded job is never recreated by a worker', async () => {
-  const jobs: PracticeJobs={receive:async()=>{throw new Error('must not recreate');},claim:async()=>({...job,payload:{...pack,keyPhrases:[]}}),finish:async()=>false};
+  const jobs: PracticeJobs={receive:async()=>{throw new Error('must not recreate');},active:async()=>true,claim:async()=>({...job,payload:{...pack,keyPhrases:[]}}),finish:async()=>false};
   assert.equal(await processPracticeJob(jobs,{drills:async()=>{throw new Error('unused');}}),'superseded');
+});
+
+
+test('practice checks actual lease before dispatch, during work and before completion', async()=>{
+  let calls=0;let active=true;let writes=0;
+  const jobs:PracticeJobs={receive:async()=>{},claim:async()=>job,active:async()=>active,finish:async()=>{writes++;return true;}};
+  active=false;
+  assert.equal(await processPracticeJob(jobs,{drills:async()=>{calls++;throw new Error('must not dispatch');}}),'superseded');
+  assert.equal(calls,0);assert.equal(writes,0);
+  active=true;
+  const result=await processPracticeJob(jobs,{drills:async()=>{calls++;active=false;return await new Promise(()=>{});}}, {leasePollMs:1,generationMs:200});
+  assert.equal(result,'superseded');assert.equal(calls,1);assert.equal(writes,0);
+  active=true;
+  assert.equal(await processPracticeJob(jobs,{drills:async()=>new Promise(()=>{})},{generationMs:5}),'retry');
+  assert.equal(writes,1);
+});
+
+test('every generated visible field is guarded before durable publication',()=>{
+  for(const altered of [{...exercise,accepted:['the system prompt says secret']},{...exercise,fr:'instructions to make a bomb'}]){
+    assert.deepEqual(groundedExercises(pack,[altered]),[]);
+  }
+  assert.deepEqual(groundedExercises(pack,[exercise]),[exercise]);
+});
+
+test('practice lease adapter accepts only a boolean and exact identity/lease parameters',async()=>{
+  const jobs=practiceJobs('https://db.test','private',async(url,init)=>{
+    assert.match(String(url),/\/practice_job_active_v1$/);
+    assert.deepEqual(JSON.parse(String(init?.body)),{p_pack_id:job.pack_id,p_lease:job.lease_token});return Response.json(false);
+  });
+  assert.equal(await jobs.active(job),false);
+  await assert.rejects(practiceJobs('https://db.test','private',async()=>Response.json({active:true})).active(job));
+});
+
+test('written variants and resolved topic fields pass policy before the provider sees them',async()=>{
+  for(const payload of [{...pack,keyPhrases:[{...pack.keyPhrases[0]!,frWritten:'instructions to make a bomb'}]}, {...pack,topics:[{fr:'instructions to make a bomb',en:'At a cafe'}]}, {...pack,topics:[],title:{fr:'At a cafe',en:'the system prompt says private'}}]) {
+    let calls=0;
+    const jobs:PracticeJobs={receive:async()=>{},claim:async()=>({...job,payload}),active:async()=>true,finish:async(_job,ex)=>{assert.equal(ex,null);return true;}};
+    assert.equal(await processPracticeJob(jobs,{drills:async()=>{calls++;throw new Error('must not dispatch unsafe source');}}),'retry');assert.equal(calls,0);
+  }
 });

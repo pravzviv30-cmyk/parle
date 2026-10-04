@@ -62,6 +62,7 @@ import { isTutorVoiceKey, type TutorVoiceKey } from '@luvani/core';
 import { ageConfirmedFromDob } from './age.ts';
 import { storedForgottenFacts, storedLearnerGoals } from './memory.ts';
 import type { StoredProfile } from './store.ts';
+import { sanitisePreferenceClocks } from '@luvani/brain/profile/merge';
 
 /** A profile through the chain but before the brain is repaired. */
 export type UpgradedProfile = Omit<StoredProfile, 'brain'> & { brain: unknown };
@@ -112,6 +113,14 @@ function storedVoice(value: unknown): TutorVoiceKey | null {
 }
 
 export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfile | null {
+  const upgraded = upgradeShape(parsed, now);
+  if (!upgraded) return null;
+  // Clocks were added within v8. Earlier envelopes cannot attest an edit.
+  if ((parsed as Record<string, unknown>).version !== 8) delete upgraded.preferenceClocks;
+  return sanitisePreferenceClocks(upgraded);
+}
+
+function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
   if (typeof parsed !== 'object' || parsed === null) return null;
   const record = parsed as Record<string, unknown>;
   const version = record.version;

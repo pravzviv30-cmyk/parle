@@ -17,6 +17,8 @@ re-deriving the architecture from source every time.
 | Building something new: Fable designs, Opus builds, Fable judges | [FORGE.md](FORGE.md) |
 | Who owns which part of the codebase, and which agent to call | [TEAM.md](TEAM.md) |
 | What is known to be broken right now | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
+| The 3 October backend production audit, evidence limits and implementation priorities | [BACKEND_PRODUCTION_AUDIT.md](BACKEND_PRODUCTION_AUDIT.md) |
+| The primary-source backend practices comparison and 100-app/service evidence register | [BACKEND_INDUSTRY_BENCHMARK.md](BACKEND_INDUSTRY_BENCHMARK.md) |
 | How the privacy and support pages get hosted, and what App Store Connect needs | [LEGAL_HOSTING.md](LEGAL_HOSTING.md) |
 | What is implemented, local-only, missing, or externally blocked | [IMPLEMENTATION_EVIDENCE.md](IMPLEMENTATION_EVIDENCE.md) |
 | Report 2 implementation disposition and remaining acceptance holds | [REVAMP_B_CONTINUATION.md](REVAMP_B_CONTINUATION.md) |

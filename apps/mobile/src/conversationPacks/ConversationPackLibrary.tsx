@@ -9,7 +9,7 @@ import { Card, GhostButton, Label, OutlineButton, PillButton } from '../componen
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { paper, signal, space, type } from '../theme.ts';
-import { orderedConversationPacks } from './model.ts';
+import { CONVERSATION_PAGE_SIZE } from './store.ts';
 import { PRACTICE_ALTERNATIVES, RECOMMENDED } from '../practice/copy.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
 import type { PracticeHistoryItem } from '../practice/history.ts';
@@ -38,6 +38,16 @@ export function ConversationPackLibrary({
   onDeleteOne,
   onDeleteAll,
   initialPackId,
+  linkedPack,
+  linkMessage,
+  pageNote,
+  paginationPending = false,
+  onOlder,
+  onNewest,
+  onRetryPage,
+  unavailable = [],
+  onOpenUnavailable,
+  onDeleteUnavailable,
 }: {
   packs: readonly ConversationPack[];
   /**
@@ -45,6 +55,17 @@ export function ConversationPackLibrary({
    * it is still among them. A deleted or unknown id leaves the list showing.
    */
   initialPackId?: string;
+  /** One direct-link detail, independently fetched without extending the page. */
+  linkedPack?: ConversationPack | null;
+  linkMessage?: string | null;
+  pageNote?: string;
+  paginationPending?: boolean;
+  onOlder?: () => void;
+  onNewest?: () => void;
+  onRetryPage?: () => void;
+  unavailable?: readonly import('./store.ts').UnavailablePack[];
+  onOpenUnavailable?: (id:string) => Promise<{ok:true;pack:ConversationPack}|{ok:false;message:string}>;
+  onDeleteUnavailable?: (id:string) => Promise<DeleteResult>;
   onBack: () => void;
   onReview: (pack: ConversationPack) => void;
   /**
@@ -60,7 +81,8 @@ export function ConversationPackLibrary({
   const [confirming, setConfirming] = useState<string | 'all' | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const ordered = orderedConversationPacks(packs);
+  const unavailableRows=unavailable.slice(0,CONVERSATION_PAGE_SIZE);
+  const ordered = packs.slice(0, CONVERSATION_PAGE_SIZE-unavailableRows.length);
   // What was practised on a revisit's source, read only to put a before beside
   // the after (Stage 4). Empty until read, and empty if it cannot be read: the
   // section then says what the packs themselves hold and nothing more.
@@ -85,11 +107,11 @@ export function ConversationPackLibrary({
   const openedRef = useRef(false);
   useEffect(() => {
     if (openedRef.current || initialPackId === undefined) return;
-    const target = packs.find((pack) => pack.id === initialPackId);
+    const target = packs.find((pack) => pack.id === initialPackId) ?? (linkedPack?.id === initialPackId ? linkedPack : undefined);
     if (target === undefined) return;
     openedRef.current = true;
     setSelected(target);
-  }, [packs, initialPackId]);
+  }, [packs, initialPackId, linkedPack]);
 
   const leaveDetail = () => {
     setConfirming(null);
@@ -229,11 +251,13 @@ export function ConversationPackLibrary({
       <Label>Progress</Label>
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginTop: space(2) }]}>Practice from conversations</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>
+      {pageNote !== undefined && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{pageNote}</Text>}
+      {linkMessage != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{linkMessage}</Text>}
 
-      {ordered.length === 0 ? (
+      {ordered.length === 0 && unavailableRows.length===0 ? (
         <Card style={st.empty}>
           <Illustration name="state-notebook" fit="small" />
-          <Text style={[type.bodyStrong, { color: paper.ink }]}>No conversation practice yet</Text>
+          <Text style={[type.bodyStrong, { color: paper.ink }]}>No conversations on this page</Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Finish a Tutor conversation and its curated practice can appear here.</Text>
         <PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>
       ) : (
@@ -255,7 +279,26 @@ export function ConversationPackLibrary({
         </View>
       )}
 
-      {ordered.length > 0 && (
+      {unavailableRows.map(row=>(
+        <Card key={row.id} style={st.empty}>
+          <Text style={[type.bodyStrong,{color:paper.ink}]}>This saved conversation is too large for this page.</Text>
+          <Text style={[type.small,{color:paper.inkSoft,marginTop:space(1)}]}>{dateLine(row.createdAt)}. Its saved content has not been removed.</Text>
+          {onOpenUnavailable!==undefined && <OutlineButton label={busy?'Opening…':'Open conversation'} disabled={busy} onPress={()=>{setBusy(true);void onOpenUnavailable(row.id).then(result=>{if(result.ok)setSelected(result.pack);else setMessage(result.message);}).catch(()=>setMessage('This conversation could not be opened.')).finally(()=>setBusy(false));}} />}
+          {onDeleteUnavailable!==undefined && (confirming===row.id ? <>
+            <Text style={[type.small,{color:paper.inkSoft}]}>Delete this saved conversation? Your earned phrases and reviews stay.</Text>
+            <OutlineButton label={busy?'Deleting…':'Delete conversation'} disabled={busy} onPress={()=>{setBusy(true);void onDeleteUnavailable(row.id).then(result=>{if(!result.ok)setMessage(result.message);else setConfirming(null);}).catch(()=>setMessage('This conversation was not changed.')).finally(()=>setBusy(false));}} />
+            <GhostButton label="Keep conversation" disabled={busy} onPress={()=>setConfirming(null)} />
+          </> : <GhostButton label="Delete this unavailable conversation" disabled={busy} onPress={()=>setConfirming(row.id)} />)}
+        </Card>
+      ))}
+
+      <View style={st.cardActions}>
+        {onOlder !== undefined && <OutlineButton label="Older conversations" disabled={paginationPending || busy} onPress={onOlder} />}
+        {onNewest !== undefined && <GhostButton label="Newest conversations" disabled={paginationPending || busy} onPress={onNewest} />}
+        {onRetryPage !== undefined && <OutlineButton label="Retry loading conversations" disabled={paginationPending || busy} onPress={onRetryPage} />}
+      </View>
+
+      {(ordered.length > 0 || unavailableRows.length>0) && (
         <View style={st.deleteAll}>
           {confirming === 'all' ? (
             <>

@@ -1,0 +1,38 @@
+{
+  "safety": {
+    "controlCategory": "prompt-injection",
+    "paddedCharacters": 4138,
+    "paddedDecision": null,
+    "fullTextAccepted": true,
+    "unsafeSuffixReachedMockedFrameRequest": true
+  },
+  "malformedScripted": {
+    "decoded": true,
+    "errorName": "TypeError",
+    "errorMessage": "input.slice is not a function",
+    "processCrash": false,
+    "containment": "agent.ts:315 catches rejection"
+  },
+  "malformedConversation": {
+    "decoded": true,
+    "errorName": "TypeError",
+    "errorMessage": "input.slice is not a function",
+    "processCrash": false,
+    "containment": "convo.ts:1918-1922 catches error"
+  },
+  "brainOutage": {
+    "definitiveMockFailures": 3,
+    "meteredSeconds": 30,
+    "serviceFailureMarkerSent": false,
+    "terminalErrorMessages": 0
+  },
+  "replay": {
+    "markedInOneJob": "true",
+    "seenInFreshJob": "false",
+    "liveRoomReplayTest": false
+  },
+  "logging": {
+    "parseErrorInspectionIncludesSyntheticRawText": true,
+    "realLearnerDataUsed": false
+  }
+}
