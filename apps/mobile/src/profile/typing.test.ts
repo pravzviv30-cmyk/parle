@@ -51,9 +51,9 @@ describe('preferring the keyboard, as the app reads it — F370', () => {
     // 2. The sentence, and the promise inside it. Every spoken path in this
     //    product has a quiet twin, and this is not it: the microphone is one
     //    tap away on the circle it always was, and the row has to say so.
-    assert.match(PREFER_TYPING_SUB, /circle/i, 'the row stopped promising the circle, so this reads as losing the voice');
+    assert.match(PREFER_TYPING_SUB, /speak/i, 'the row stopped promising the circle, so this reads as losing the voice');
     assert.match(PREFER_TYPING_SUB, /still/i, 'the row no longer says the spoken way is unchanged');
-    assert.match(PREFER_TYPING_SUB, /keyboard/i, 'the row never says what turning it on actually does');
+    assert.match(PREFER_TYPING_SUB, /typing/i, 'the row never says what turning it on actually does');
     assert.ok(
       !/\b(instead of|no more|without) (speaking|talking|your voice)\b/i.test(PREFER_TYPING_SUB),
       'the row offers to take the voice away, which is a different setting than this one',

@@ -118,7 +118,7 @@ describe('the portfolio — a situation row and the next-situation words, decide
     for (const [name, source] of [['Home', home], ['My French', myFrench], ['the situations card', card]] as const) {
       assert.ok(!source.includes('<NextSituationCard'), `${name} draws a next-situation card, and the card was folded into the rows`);
     }
-    assert.match(home, /<MissionHero/, 'Home draws neither a card nor the hero, so there is no next step at all');
+    assert.match(home, /<NextTaskCard/, 'Home draws neither a card nor the hero, so there is no next step at all');
 
     // The two headings are the group module's words, read rather than spelled,
     // and which place comes first is `splitByStamp`'s answer rather than the

@@ -1,16 +1,17 @@
 import { storyFrom, hasStory } from '../progress/story.ts';
 import { loadHistory } from '../progress/store.ts';
 import { earnedPostcards } from '../recap/evidence.ts';
+import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { DayCount } from '../progress/DayCount.tsx';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DAILY_SCENARIOS, MISSIONS, isEarned, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
-import { Card, Ledger, LedgerRow, PillButton } from '../components.tsx';
+import { ColourCard, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { ChatGlyph, DocumentGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { paper, space, type } from '../theme.ts';
+import { onColour, paper, space, type } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -25,7 +26,7 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
 import { myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
 import { MY_FRENCH_RETRY, MY_FRENCH_UNREAD, MY_FRENCH_PURPOSE, MY_FRENCH_TITLE } from '../myfrench/copy.ts';
-import { NOTEBOOK, isFirstVisit, levelPathFrom, soundsMapFrom } from '../myfrench/notebook.ts';
+import { isFirstVisit, levelPathFrom, soundsMapFrom } from '../myfrench/notebook.ts';
 import { LevelCard } from '../myfrench/LevelCard.tsx';
 import { progressRows } from '../myfrench/progressRows.ts';
 import { allConversations, type HistoryItem } from '../myfrench/recentConversations.ts';
@@ -175,23 +176,20 @@ export function MyFrenchTab() {
 
       {renderStatus === 'ready' && (
         <View style={st.group}>
-          {proof !== null && <Card style={{ gap: space(2) }}>
+          {proof !== null && <ColourCard ground="mint" style={{ gap: space(2) }}>
             <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>You can {proof.mission.canDoEn.toLowerCase()}</Text>
-            <Text style={[type.body, { color: paper.inkSoft }]}>{proof.mission.titleEn}. {new Date(proof.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
-            <Text style={[type.small, { color: paper.inkSoft }]}>You finished this scene independently. A later practice with help does not take it away.</Text>
+            <Text style={[type.body, { color: onColour.mint }]}>{proof.mission.titleEn}. {new Date(proof.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+            <Text style={[type.small, { color: onColour.mint }]}>You finished this scene independently. A later practice with help does not take it away.</Text>
             <PillButton label="See this scene" onPress={() => nav.navigate('Missions', { focus: proof.mission.id })} />
-          </Card>}
+          </ColourCard>}
+          {proof !== null && <Ledger><LedgerRow title="Your scene path" gloss="See the beginner scenes" accessibilityLabel="Your scene path. See the beginner scenes" onPress={() => nav.navigate('Missions')} /></Ledger>}
           {proof === null && hasFinish && <Text style={[type.body, { color: paper.inkSoft }]}>You have practised a scene with support. An independent finish adds a can-do here.</Text>}
-          <LevelCard path={path} hasFinish={hasFinish} hasEarned={hasEarned} onPress={() => nav.navigate('Missions')} />
+          {!firstVisit && proof === null && <LevelCard path={path} hasFinish={hasFinish} hasEarned={hasEarned} onPress={() => nav.navigate('Missions')} />}
         </View>
       )}
 
       {renderStatus === 'ready' && firstVisit && (
-        <Card style={st.group}>
-          <Text style={type.heading}>Your French starts here</Text>
-          <Text style={st.line}>{NOTEBOOK.firstVisit}</Text>
-          <PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} />
-        </Card>
+        <View style={st.group}><Text accessibilityRole="header" style={type.heading}>Your first useful phrase</Text><LocalPracticeCard /></View>
       )}
 
       <DayCount weekly />

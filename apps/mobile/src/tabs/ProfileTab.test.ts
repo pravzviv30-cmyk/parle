@@ -230,7 +230,7 @@ describe('the tab that is a person — F576', () => {
     // One row on Profile leads anywhere at all, and everything above went
     // behind it.
     assert.match(TAB, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
-    assert.equal((TAB.match(/nav\.navigate\(/g) ?? []).length, 1, 'Profile leads somewhere other than Settings');
+    assert.equal((TAB.match(/nav\.navigate\(/g) ?? []).length, 2, 'Profile leads somewhere other than Settings');
 
     // The bite: a screen that kept the plan card would pass a check that only
     // looked at Settings.

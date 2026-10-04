@@ -30,7 +30,7 @@ import { Illustration } from '../art/flat/Illustration.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { tutorPersonaOf } from '../tutor/tutorName.ts';
 import { PHONE_SETTINGS_AVAILABLE, openPhoneSettings } from '../settings/phoneSettings.ts';
-import { minutesLine, missionMinutes } from '../home/estimate.ts';
+
 import {
   PRIMER_META,
   PRIMER_SETTINGS_FAILED,
@@ -105,7 +105,7 @@ export function FirstSceneScreen({
       header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
         <View style={st.actions}>
-          {!refused && <Text style={[type.small, { color: paper.onInk }]}>Speaking asks for microphone access when you tap Start. Speaking and typing in the live room use live minutes.</Text>}
+          {!refused && <Text style={[type.small, { color: paper.onInk }]}>Start asks for microphone access. Live speaking and typing use live minutes.</Text>}
           <PillButton
             tone={refused ? 'ink' : 'white'}
             label={view.primary.label}
@@ -137,20 +137,18 @@ export function FirstSceneScreen({
         <View style={st.brief}>
           <Text style={st.meta}>{PRIMER_META(persona.name)}</Text>
           <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>{mission.titleEn}</Text>
-          <Text {...frenchText} style={st.title}>{mission.title}</Text>
+          <Text {...frenchText} style={[type.heading, { color: textOn.blue }]}>{mission.title}</Text>
           <Text style={st.canDo}>{canDoSentence(mission.canDoEn)}</Text>
-          <Text style={st.meta}>{minutesLine(missionMinutes(mission))}</Text>
           {lines.length > 0 && (
             <Card style={st.lines}>
               <Label>One line to try</Label>
               {lines.slice(0, 1).map((line, at) => (
                 <Text key={line} {...frenchText} style={[st.line, at > 0 && st.lineRuled]}>{line}</Text>
               ))}
-              {lines.length > 1 && <GhostButton label={showMore ? 'Hide other examples' : 'See other examples'} onPress={() => setShowMore((open) => !open)} />}
+              {lines.length > 1 && <GhostButton label={showMore ? 'Fewer examples' : 'More examples'} onPress={() => setShowMore((open) => !open)} />}
               {showMore && lines.slice(1).map((line) => <Text key={line} {...frenchText} style={st.line}>{line}</Text>)}
             </Card>
           )}
-          <Text style={st.meta}>{view.note}</Text>
         </View>
       )}
     </ScrollScreen>

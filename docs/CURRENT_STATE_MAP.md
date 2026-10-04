@@ -13,7 +13,7 @@
 6. Session finish reports the signed session ID and billable seconds to the token server.
    PostgreSQL records the ID once and atomically debits the entitlement.
 7. The app stores recap/practice/profile artefacts locally. The Supabase `learner_state`
-   table is not yet connected to a client sync transport.
+   table is connected through the account-scoped client sync engine in App.tsx. Physical two-device convergence remains a release acceptance check.
 
 ## Sources of truth
 
@@ -26,7 +26,7 @@
 | Production entitlement and trial | Supabase RPCs in `supabase/migrations/` |
 | Active session | Upstash lease keyed by deployment-salted user signal |
 | Local learner scope | `apps/mobile/src/storage/scope.ts` |
-| Production learner sync | Not implemented |
+| Production learner sync | Client transport implemented; physical two-device acceptance pending |
 
 ## Replacement/dependency graph
 
@@ -43,3 +43,10 @@
 - Pricing changes cross core constants, SQL plan checks, token responses, UI, purchase
   webhooks, and compatibility migration together.
 
+
+4 October 2026: four primary tabs with Friends in Profile. Home, Speak and empty
+Practice share the owned next-task selector (resume, personal practice, next
+scene) and the same genuine bundled café fallback. The navigator never mounts
+the simulated lesson. Correction drafts have no countdown; individual requests
+still time out and exit/background/account changes cancel them. See
+`VIDEO_UX_IMPLEMENTATION.md` for the video-review dispositions and verification.

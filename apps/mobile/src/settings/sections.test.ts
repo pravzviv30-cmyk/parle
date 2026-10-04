@@ -169,7 +169,7 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     writtenBefore(PROFILE, 'label={SETTINGS_ROW}', 'title={PREFER_TYPING_ROW}', 'Settings should be immediately accessible above the profile details');
     assert.equal(
       (PROFILE.match(/nav\.navigate\(/g) ?? []).length,
-      1,
+      2,
       'Profile leads somewhere other than Settings, so it is a list with two ways out again',
     );
   });
@@ -224,7 +224,7 @@ describe('the Settings screen is one push away — F473', () => {
     assert.match(NAVIGATOR, /function Tabs\(\) \{/, 'Tabs still takes props it has nothing to do with');
     assert.match(NAVIGATOR, /<Stack\.Screen name="Tabs" component=\{Tabs\} \/>/, 'the tab navigator is still a children function');
     assert.match(NAVIGATOR, /<Stack\.Screen name="Profile" component=\{ProfileTab\} \/>/, 'Profile must be pushed from the avatar');
-    assert.match(NAVIGATOR, /<Tab\.Screen name="Friends" component=\{FriendsTab\} \/>/, 'Friends replaces the former Profile tab');
+    assert.match(NAVIGATOR, /<Stack\.Screen name="Friends">[\s\S]*?<FriendsTab pushed/, 'Friends replaces the former Profile tab');
 
     // Its own back, drawn in the screen. A native header would be a second,
     // duplicate way out, which is the whole reason every pushed screen here

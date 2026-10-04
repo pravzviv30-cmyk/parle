@@ -60,7 +60,7 @@ import { ChoiceRow } from '../settings/ChoiceRow.tsx';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
-import { LEARNING_LABEL, PROFILE_PURPOSE, RHYTHM_LABEL, TUTOR_LABEL } from '../profile/frenchLife.ts';
+import { LEARNING_LABEL, PROFILE_PURPOSE, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
 import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
@@ -261,7 +261,8 @@ export function ProfileTab() {
         <View style={st.group}>
           <Label>{LEARNING_LABEL}</Label>
           <Card style={{ marginTop: space(2.5) }}>
-            <SettingsRow first label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
+            <SettingsRow first label="Friends" value="Optional shared practice" onPress={() => nav.navigate('Friends')} />
+            <SettingsRow label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
             {/* Three words on a track, and what the chosen one means beneath. The
                 minutes are a number in the store and words on the screen. */}
             <ChoiceRow<GoalKey>

@@ -291,10 +291,10 @@ describe('the scripted lesson opens whichever way the learner can take it', () =
     const navigator = stripComments(read('../nav/RootNavigator.tsx'));
     assert.match(
       navigator,
-      /<SessionScreen key="mock"/,
+      /<LocalPracticeCard/,
       'the offline lesson is gone, so opening the lesson on a dead server is a dead end now',
     );
-    assert.match(TUTOR_OFFLINE.body, /guided lesson/, 'the offline card points to practice that still works');
+    assert.match(TUTOR_OFFLINE.body, /bundled line offline/, 'the offline card points to practice that still works');
     assert.match(navigator, /textMode=\{textMode\}/, 'the Lesson route stopped honouring textMode, so the quiet door leads nowhere');
   });
 });

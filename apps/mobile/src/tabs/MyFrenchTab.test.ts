@@ -86,7 +86,7 @@ describe('My French is the level, the phrases, the sounds and the conversations 
   test('the level is the spine\'s, with the can-dos earned and "here" on the next scene, and no rank anywhere', () => {
     assert.match(FLAT, /const path = levelPathFrom\(missions\);/);
     assert.match(FLAT, /<LevelCard path=\{path\} hasFinish=\{hasFinish\} hasEarned=\{hasEarned\} onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
-    gated('<LevelCard', "renderStatus === 'ready' &&", 1000);
+    gated('<LevelCard', '!firstVisit &&', 1000);
     const level = read('../myfrench/LevelCard.tsx');
     assert.match(level, /ground="blue"/);
     assert.match(level, /<SceneMark state=\{stop.state\}/);
@@ -97,9 +97,9 @@ describe('My French is the level, the phrases, the sounds and the conversations 
 
   test('a first visit reads one line on what will collect here, and nothing empty', () => {
     assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs.length \}\);/);
-    gated('{NOTEBOOK.firstVisit}', 'firstVisit &&', 300);
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'first visit and earned proof each have one scene door');
-    assert.match(FLAT, /label="Choose a scene" onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
+    gated('<LocalPracticeCard', 'firstVisit &&', 300);
+    assert.equal(tags(SCREEN, 'PillButton').length, 1, 'first visit and earned proof each have one scene door');
+    assert.match(FLAT, /<LocalPracticeCard/);
   });
 
   test('the phrase bank is the newest kept phrases with audio, and one door to all of them', () => {
@@ -125,9 +125,9 @@ describe('My French is the level, the phrases, the sounds and the conversations 
   });
 
   test('the page is ledger rows and nothing louder: no pill, no tint, no retired row', () => {
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'proof and first visit are exclusive scene doors');
-    assert.match(FLAT, /proof !== null && <Card/);
-    assert.equal(tags(SCREEN, 'Ledger').length, 3, 'retry, saved materials and evidence-based stories');
+    assert.equal(tags(SCREEN, 'PillButton').length, 1, 'proof and first visit are exclusive scene doors');
+    assert.match(FLAT, /proof !== null && <ColourCard/);
+    assert.equal(tags(SCREEN, 'Ledger').length, 4, 'retry, scene path, saved materials and evidence-based stories');
     assert.match(SCREEN, /hasWeek \|\| earnedPostcards\(missions\).length > 0/);
     assert.ok(SCREEN.includes('renderStatus === \'ready\' && rows.length > 0'));
     for (const retired of ['<TintRow', '<IconRowCard', '<OutlineButton', '<Stat']) assert.ok(!SCREEN.includes(retired));
@@ -135,7 +135,7 @@ describe('My French is the level, the phrases, the sounds and the conversations 
 
   test('every row goes somewhere and names itself', () => {
     const rows = tags(FLAT, 'LedgerRow');
-    assert.equal(rows.length, 4, 'retry, saved materials, week story and postcards');
+    assert.equal(rows.length, 5, 'retry, scene path, saved materials, week story and postcards');
     for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
     assert.match(FLAT, /key=\{row.id\}/);
   });

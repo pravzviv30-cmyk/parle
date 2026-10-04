@@ -7,7 +7,10 @@ const driver = read('../SessionScreen.tsx');
 const routes = read('../nav/RootNavigator.tsx');
 
 test('offline lessons preserve the chosen text mode', () => {
-  assert.match(routes, /<SessionScreen[^>]*textMode=\{textMode\}/);
+  assert.match(routes, /textMode=\{textMode\}/);
+  assert.doesNotMatch(routes, /<SessionScreen|import \{ SessionScreen \}/);
+  assert.match(routes, /if \(!live \|\| user === null\) return/);
+  assert.match(routes, /<LocalPracticeCard/);
   assert.match(driver, /onType=\{textMode \? speak : undefined\}/);
   assert.match(driver, /if \(textMode\) \{\s*tutorVoice\.stop\(\);\s*setPhase\('awaiting'\);\s*return;/);
 });

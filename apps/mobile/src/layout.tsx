@@ -195,7 +195,7 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean } & (
+type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ground?: 'blue' | 'coral' | 'paper' } & (
   | { back?: { onPress: () => void; label?: string }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
@@ -228,7 +228,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           // a live region); this only keeps a plain string title from vanishing.
           <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{title}</Text>
         ) : (
-          title ?? <Text style={[type.label, { color: paper.ink }]}>Luvani</Text>
+          title ?? <Text style={[type.label, { color: props.ground === 'blue' || props.ground === 'coral' ? paper.onInk : paper.ink }]}>Luvani</Text>
         )}
         {props.trailing}
       </View>

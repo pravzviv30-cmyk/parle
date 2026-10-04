@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Text, View, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { ScrollScreen, TabHeader, ScreenHeader } from '../layout.tsx';
 import { Card, GhostButton, Label, Ledger, LedgerRow, PillButton, OutlineButton, Field } from '../components.tsx';
-import { HAIRLINE, paper, space, type } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { useSocial } from '../friends/useSocial.ts';
 import { friendsByName, REACTIONS } from '../friends/socialModel.ts';
@@ -17,8 +17,8 @@ import {
   friendsEntry,
 } from '../friends/friendsView.ts';
 
-export function FriendsTab() {
-  const nav = useNavigation<{ navigate: (screen: string) => void }>();
+export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
+  const nav = useNavigation<{ navigate: (screen: string) => void; canGoBack(): boolean; goBack(): void }>();
   const { snapshot: s, error, busy, act, refresh } = useSocial();
   const [manage, setManage] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -29,7 +29,7 @@ export function FriendsTab() {
     try { await Share.share({ message: `Un peu de français, ensemble. ${s?.self.name} and ${partner} made room for four French conversations together this week on Luvani.` }); }
     catch { setShareNote('The postcard could not be shared just now. Try again.'); }
   };
-  return <ScrollScreen bottom="tab">
+  return <ScrollScreen bottom={pushed ? "inset" : "tab"} header={pushed ? <ScreenHeader title={false} back={{ onPress: () => { if (nav.canGoBack()) nav.goBack(); else nav.navigate('Tabs'); } }} /> : undefined}>
     <TabHeader title="Friends" purpose={FRIENDS_PURPOSE} trailing={<ProfileButton />} />
     {error !== '' && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><GhostButton label="Try again" onPress={refresh} /></Card>}
     {entry === 'loading' && !error && <Text style={[type.body, { color: paper.inkSoft }]}>Opening your circle…</Text>}
@@ -38,6 +38,7 @@ export function FriendsTab() {
     {entry === 'start' && <Card>
       <Text style={[type.title, { color: paper.ink }]}>{FRIENDS_START_TITLE}</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginVertical: space(3) }]}>{FRIENDS_START_BODY}</Text>
+      <Text style={[type.small, { color: paper.inkSoft }]}>Your recordings and text stay private.</Text>
       <PillButton label={FRIENDS_START} onPress={() => nav.navigate('AddFriends')} />
       <GhostButton label={FRIENDS_PRIVACY_LINK} onPress={() => nav.navigate('SocialSettings')} />
     </Card>}

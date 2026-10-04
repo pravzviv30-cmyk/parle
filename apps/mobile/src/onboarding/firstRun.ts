@@ -1,9 +1,9 @@
 /**
- * The first two screens as data, and the words of all six (notebook Phase 5).
+ * The first two screens as data, and the words of the five setup pages.
  *
  * Screen one plays a real recorded exchange: Alexandre asks, Émilie's
  * recording says the learner's reply, Alexandre follows up. Screen two gives
- * the learner that reply to tap, in Alexandre's own recording, and he closes.
+ * an authored response choice, with honest feedback and optional Alexandre audio.
  * Every line here is a bundled recording (`exchangeAudio.ts` maps them), so
  * nothing reaches an AI service before an account exists.
  *
@@ -60,7 +60,7 @@ export const STUCK_HINT = 'Bonjour, je vais…';
 // ─────────────────────────────────────────────────────────── the page words
 
 export const HEAR_TITLE = 'Hear it first';
-export const HEAR_REASSURANCE = 'Try a café exchange, with help when you need it.';
+export const HEAR_REASSURANCE = 'Try ordering a coffee.';
 export const LEARNER_LABEL = 'A learner';
 export const HEAR_NOTE = `A recorded example with ${tutorVoice(TUTOR_LINES_VOICE).persona.name}. Your microphone is off. You can choose another tutor later.`;
 export const HEAR_AGAIN = 'Hear the exchange';
@@ -68,16 +68,16 @@ export const TRY_A_LINE = 'Try a line';
 export const HAVE_ACCOUNT = 'I have an account';
 
 export const FIRST_LINE_TITLE = 'Your first line';
-export const FIRST_LINE_PROMPT = 'Tap to hear the reply. Say it aloud if you like.';
+export const FIRST_LINE_PROMPT = 'Which reply orders a coffee?';
 export const STUCK = "I'm stuck";
-export const HIGHLIGHT_MEANS = 'A useful line to try. Your voice is not recorded or assessed here.';
+export const HIGHLIGHT_MEANS = 'Try this line. Nothing is recorded or assessed here.';
 export const TAP_TO_CONTINUE = 'You can continue without playing the recording.';
 export const CONTINUE = 'Continue';
 
 /** An authored illustration of feedback, never a judgment of the learner. */
 export const DEMO_COACHING = {
   title: 'How a phrase becomes practice',
-  scope: 'An authored example, not an assessment of your French.',
+  scope: 'Example feedback. Your French is not assessed.',
   attempt: 'Je veux un café.',
   attemptEn: 'I want a coffee.',
   feedback: 'That asks for a coffee. Start with "bonjour" to greet the person before ordering.',
@@ -89,13 +89,13 @@ export const DEMO_COACHING = {
 export const LEVEL_TITLE = 'Where are you starting?';
 export const REASON_TITLE = "What's it for?";
 export const REASON_SKIP = 'Skip this';
-export const ANSWER_HINT = 'One tap. You can change it later.';
+export const ANSWER_HINT = 'You can change this later.';
 export const CHOSEN = 'Chosen';
 
 export const SAVE_TITLE = 'Save your plan';
 export const FIRST_NAME_LABEL = 'First name';
 export const FIRST_NAME_PLACEHOLDER = 'e.g. James';
-export const FIRST_NAME_HINT = 'So your tutor can greet you. You can leave it empty.';
+export const FIRST_NAME_HINT = 'Optional';
 export const ALREADY_HAVE_ACCOUNT = 'I already have an account';
 export const YOUNGER = 'I am younger than that';
 /**

@@ -112,6 +112,8 @@ export function homeMissionFrom(input: {
   records: readonly ScenarioRecord[];
   /** The learner's level standing, so the daily pool is pitched at them. */
   levelIndex: number;
+  /** An unassessed setup suggestion; never awards or skips earned evidence. */
+  startingMissionId?: MissionId;
   now: number;
 }): HomeMission | null {
   if (input.progress.length === 0) return null;
@@ -129,7 +131,9 @@ export function homeMissionFrom(input: {
     return sceneHero(unfinished.mine.mission, minutes, HERO_LABELS.resume);
   }
 
-  const next = spineFrom(input.progress).next;
+  const untouched = input.progress.every(item => item.lastFinishedAt === null);
+  const suggested = untouched && input.startingMissionId !== undefined ? getMission(input.startingMissionId) : null;
+  const next = suggested ?? spineFrom(input.progress).next;
   if (next !== null) {
     return sceneHero(next, missionMinutes(next), null);
   }

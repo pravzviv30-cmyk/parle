@@ -1,3 +1,4 @@
+import { KeptPhraseCard } from './recap/KeptPhraseCard.tsx';
 import { PrivatePractice } from './recap/PrivatePractice.tsx';
 import { OnceConfetti } from './recap/OnceConfetti.tsx';
 import { OnceCount } from './recap/OnceCount.tsx';
@@ -13,8 +14,8 @@ import type { ConversationText } from '@luvani/core';
  *
  * The end of a conversation is where a learner decides whether to come back,
  * so since 2026-09-27 it is something kept rather than something scored. It
- * reads, in order: the lines the learner said, one phrase kept (on the screen's
- * one highlighter, saved to Progress before the card calls it saved), one
+ * leads with one kept phrase and translation on the screen's one highlighter.
+ * It confirms a local save before calling it saved. Then come the learner's lines and one
  * sound (a word first, the notation on request), and "Next time: <the spine's
  * next scene>". Only after all of that does it offer a daily reminder at the
  * time the learner chose, and the phone's notification dialog is raised only
@@ -37,10 +38,11 @@ import { recapPages, adjacentRecapPage, type RecapPage } from './recap/pages.ts'
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
-import { HAIRLINE, HIT, paper, signal, space, type, frenchText, onColour, colour } from './theme.ts';
-import { BookmarkGlyph, Card, GhostButton, Highlight, Label, OutlineButton, PillButton, ProgressDots, RoundButton, HeroNumber } from './components.tsx';
-import { ScreenHeader, ScrollScreen } from './layout.tsx';
+import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour } from './theme.ts';
+import { Card, GhostButton, Label, OutlineButton, OptionRow, PillButton, ProgressDots, RoundButton } from './components.tsx';
+import { ScrollScreen } from './layout.tsx';
 import { arrived } from './motion/haptics.ts';
+import { FeedbackLedger } from './motion/feedbackPolicy.ts';
 import { SOUND_DETAIL, exampleFirstHeading } from './tutor/soundExample.ts';
 import { MouthGuide } from './practice/MouthGuide.tsx';
 import { MAX_CLOSURE_PHRASES, closureFromRecap, type ClosureContext } from './conversationPacks/closure.ts';
@@ -51,7 +53,7 @@ import { loadSoundChecks } from './soundcheck/store.ts';
 import { recapLine } from './tutor/recapLine.ts';
 import { loadReminder, saveReminder } from './reminders/store.ts';
 import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission, scheduleReminder } from './reminders/schedule.ts';
-import type { ReminderPermission, StoredReminder } from './reminders/reminder.ts';
+import { REMINDER_TIMES, type ReminderTimeId, type ReminderPermission, type StoredReminder } from './reminders/reminder.ts';
 import {
   KEEPSAKE_COPY,
   acceptReminderOffer,
@@ -60,6 +62,8 @@ import {
   reminderOffer,
   type ReminderAnswer,
 } from './live/keepsake.ts';
+
+const savedHaptics = new FeedbackLedger();
 
 export interface RecapPracticePhrase {
   fr: string;
@@ -96,6 +100,8 @@ export function RecapScreen({
 }) {
   const { user, adapter } = useAuth();
   const ownerScope = useRef(scopeGeneration()).current;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   // Null until the reads answer: the keepsake draws at once from the recap,
   // and the sound and "Next time" arrive a beat later.
   const [page, setPage] = useState<RecapPage>('result');
@@ -107,12 +113,10 @@ export function RecapScreen({
   // way in raises a dialog, and no offer is drawn until both have answered.
   const [stored, setStored] = useState<StoredReminder | null>(null);
   const [permission, setPermission] = useState<ReminderPermission | null>(null);
+  const [offerTime, setOfferTime] = useState<ReminderTimeId | null>(null);
+  const [choosingTime, setChoosingTime] = useState(false);
   const [reminder, setReminder] = useState<'offered' | 'asking' | 'declined' | ReminderAnswer>('offered');
 
-  // Arriving somewhere earned: once, when the card first draws.
-  useEffect(() => {
-    arrived();
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,18 +165,21 @@ export function RecapScreen({
   const nextTime = context === null ? null : nextTimeLine(context.progress);
   // The first-win gate: a recap with nothing in it offers nothing.
   const won = lines.length > 0 || keptPhrase !== null;
-  const offer = reminderOffer({ available: REMINDERS_AVAILABLE, won, stored, permission });
+  const offeredReminder = offerTime === null ? stored : { enabled: stored?.enabled ?? false, time: offerTime };
+  const offer = reminderOffer({ available: REMINDERS_AVAILABLE, won, stored: offeredReminder, permission });
   const hasMore = closure.didWell.length > 0 || otherPhrases.length > 0 || otherFocus !== null;
   const [more, setMore] = useState(false);
   const [soundDetail, setSoundDetail] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const situation = closure.title;
+  const savedHaptic = useRef(false);
+  useEffect(() => { if (saveState === 'saved' && !savedHaptic.current && ownerScope === scopeGeneration() && keptPhrase !== null) { savedHaptic.current = true; if (savedHaptics.claim(`${ownerScope}:${keptPhrase.key}`)) arrived(); } }, [saveState, ownerScope, keptPhrase?.key]);
   const retrySave = () => {
-    if (keptPhrase === null || saveState === 'saving') return;
+    if (keptPhrase === null || saveState === 'saving' || ownerScope !== scopeGeneration()) return;
     setSaveState('saving');
     void onSave({ fr: keptPhrase.fr, en: keptPhrase.en, situation })
-      .then((saved) => setSaveState(saved ? 'saved' : 'failed'))
-      .catch(() => setSaveState('failed'));
+      .then((saved) => { if (mounted.current && ownerScope === scopeGeneration()) setSaveState(saved ? 'saved' : 'failed'); })
+      .catch(() => { if (mounted.current && ownerScope === scopeGeneration()) setSaveState('failed'); });
   };
 
   useEffect(() => {
@@ -200,14 +207,15 @@ export function RecapScreen({
    * says a dialog is the honest next step.
    */
   const acceptReminder = () => {
-    if (offer === null || reminder !== 'offered') return;
+    const owns = () => mounted.current && scopeGeneration() === ownerScope;
+    if (offer === null || reminder !== 'offered' || !owns()) return;
     setReminder('asking');
-    void acceptReminderOffer(offer, { ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder }).then(setReminder);
+    void acceptReminderOffer(offer, { owns, ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder }).then(answer => { if (owns()) setReminder(answer); });
   };
 
   const saveLine =
     saveState === 'saved'
-      ? 'Saved to Progress'
+      ? 'Saved to Progress on this phone'
       : saveState === 'failed'
         ? 'Not saved yet'
         : 'Saving to Progress';
@@ -247,9 +255,13 @@ export function RecapScreen({
           <GhostButton label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
         </Card>}
         <OnceConfetti active={currentPage === 'ability' && firstEarned && canDo !== null} />
-        {lines.length > 0 && <View style={currentPage === 'result' ? undefined : {display:'none'}}><OnceCount value={lines.length} /></View>}
+
         {currentPage === 'result' && <View style={st.head}>
-          {mission ? <Illustration name={sceneIllustration(mission.id)} /> : lines.length > 0 ? <Illustration name="celebrate-first-line" /> : <Illustration name="state-waiting" />}
+          {keptPhrase !== null ? <><KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
+            {saveState === 'failed' && <OutlineButton label="Retry save" onPress={retrySave} />}
+            {canPractise && <GhostButton label="Practise this phrase" color={paper.onInk} onPress={() => onPractice!({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />}
+          </> : lines.length > 0 ? <Card><Label>Your French</Label><Text {...frenchText} style={type.french}>{lines[lines.length - 1]}</Text></Card> : null}
+          {mission ? <Illustration name={sceneIllustration(mission.id)} fit="small" /> : lines.length > 0 ? <Illustration name="celebrate-first-line" fit="small" /> : <Illustration name="state-waiting" fit="small" />}
           <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>
             {recap.headline}
           </Text>
@@ -289,15 +301,7 @@ export function RecapScreen({
         {/* One phrase kept, on the screen's one highlighter. */}
         {keptPhrase !== null ? (
           <View style={st.keptStack}>
-            <Card style={st.kept}>
-              <Label>{KEEPSAKE_COPY.kept}</Label>
-              <Highlight text={keptPhrase.fr} />
-              <Text style={[type.body, { color: paper.inkSoft }]}>{keptPhrase.en}</Text>
-              <View style={st.savedLine}>
-                <BookmarkGlyph size={18} color={saveState === 'saved' ? signal.good : paper.ink} />
-                <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{saveLine}</Text>
-              </View>
-            </Card>
+            <KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
             {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
             {onPractice !== undefined ? (
               <GhostButton
@@ -310,6 +314,7 @@ export function RecapScreen({
           </View>
         ) : null}
 
+        {lines.length > 0 && <OnceCount value={lines.length} />}
         </View>}
 
         {currentPage === 'sound' && <View>
@@ -370,6 +375,8 @@ export function RecapScreen({
               <>
                 <Text style={[type.bodyStrong, { color: paper.ink }]}>{offer.title}</Text>
                 <Text style={[type.small, { color: paper.inkSoft }]}>{offer.body}</Text>
+                <GhostButton label={choosingTime ? 'Keep this time' : 'Change time'} disabled={reminder === 'asking'} onPress={() => setChoosingTime(value => !value)} />
+                {choosingTime && reminder === 'offered' && REMINDER_TIMES.map(time => <OptionRow key={time.value} selected={time.value === offer.time.value} title={time.label} detail={time.gloss} onPress={() => setOfferTime(time.value)} />)}
                 <View style={st.offerActions}>
                   <OutlineButton label={offer.accept} disabled={reminder === 'asking'} onPress={acceptReminder} />
                   <GhostButton label={offer.decline} disabled={reminder === 'asking'} onPress={() => setReminder('declined')} />

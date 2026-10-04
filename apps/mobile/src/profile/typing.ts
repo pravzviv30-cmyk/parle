@@ -39,7 +39,7 @@ export const PREFER_TYPING_ROW = 'Prefer typing';
  * reading size ran to five at the largest. What went was the explanation of
  * where the circle is; what stayed is that it is still there.
  */
-export const PREFER_TYPING_SUB = 'Conversations open with the keyboard. The circle is still there.';
+export const PREFER_TYPING_SUB = 'Start by typing. You can still speak. Tutor audio stays on.';
 
 /**
  * Does this learner want the box open when a conversation starts?

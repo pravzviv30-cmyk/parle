@@ -113,9 +113,9 @@ export interface PlanView {
 
 export const PLAN_TITLE = 'Your plan';
 export const PLAN_SCENES_LABEL = 'Your first three scenes';
-export const MINUTES_LABEL = 'A flexible starting routine';
+export const MINUTES_LABEL = 'Daily practice';
 export const GOAL_LABEL = 'Your goal';
-export const GOAL_NOTE = 'This goal guides tutor context. It does not change the scene route.';
+export const GOAL_NOTE = 'Used as tutor context; scene order stays the same.';
 export const METHOD_LABEL = 'How it works';
 export const METHOD_STEPS: readonly string[] = [
   'Talk through a real scene, out loud or by typing.',
@@ -128,8 +128,8 @@ export const ROUTINE_OPTIONS: readonly AnswerOption<PlanMinutes>[] = [
   { key: 15, title: 'Fifteen minutes' },
   { key: 'none', title: 'No fixed daily target' },
 ];
-export const ROUTINE_NOTE = 'A suggestion for practice, not an extra allowance of live minutes. Change it whenever you like.';
-export const COVERAGE_NOTE = 'Beginner A0 and A1 scenes. These are a starting route, not a certified placement or a full tailored course.';
+export const ROUTINE_NOTE = 'Practice goal, separate from live minutes.';
+export const COVERAGE_NOTE = 'Beginner scenes. Your starting level is a suggestion.';
 
 export function startingReasonFor(level: StartLevel): string {
   if (level === 'getby') return 'You said you can get by, so we skip the first coffee and start with ordering and paying.';

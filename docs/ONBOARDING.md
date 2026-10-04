@@ -17,10 +17,10 @@ learner edit the suggested routine or choose no fixed target, and confirms
 ownership before applying an anonymous draft to an empty OAuth account. Older
 descriptions below are historical where they differ from these details.
 
-Pre-account onboarding renders **6 pages**: `hear-it`, `first-line`, `start-level`, `reason`, `plan`, `save`.
+Pre-account onboarding renders **5 pages**: `hear-it`, `first-line`, `start-level`, `plan`, `save`.
 
-A brand-new learner normally crosses **8 screens** before a live spoken line:
-those six pages, account creation, and the first scene's microphone primer.
+A brand-new learner normally crosses **7 screens** before a live spoken line:
+those five pages, account creation, and the first scene's microphone primer.
 An OAuth return to an empty account can add a plan-ownership confirmation before
 the primer. The age confirmation is part of the save page. This is a static
 screen count, not measured time. (Notebook redesign, 2026-09-27; ownership
@@ -40,15 +40,14 @@ of a learner with no record at all, so nobody is asked twice.
 | # | Screen | The one thing it does |
 |---|---|---|
 | 1 | Hear it first (`hear-it`, `onboarding/PreAccountOnboarding.tsx`) | Shows a captioned three-line café exchange silently until Hear is tapped; names the AI tutor. "I have an account" leads to sign-in |
-| 2 | Your first line (`first-line`) | The learner taps a sample reply and hears the tutor's recording. The highlight labels a useful line to try, not independent ability. "I'm stuck" offers a hint; "See how practice works" opens an optional attempt → correction → retry example |
-| 3 | Where are you starting? (`start-level`) | One tap: from zero, a few words, or "I can get by" |
-| 4 | What's it for? (`reason`) | One tap from five reasons, or skip it |
-| 5 | Your plan (`plan`) | A suggested 5-, 10- or 15-minute routine, editable here including "No fixed daily target"; a reminder marked off, three catalogue scenes with can-do lines, the selected tutor and an optional goal. It explains why the self-reported start chose that route and names the limited A0/A1 scope, without promising placement or a tailored course |
-| 6 | Save your plan (`save`) | An optional first name, the AI, microphone and history notes, the usage-data switch (off), then "I am 13 or older, create account". "I am younger than that" shows the refusal and clears the saved draft. Moving between the pages and leaving through "I have an account" do not undo it for the rest of the launch |
-| 7 | Sign up (`auth/SignUpScreen.tsx`) | Creates an account by email/password, Google, or Apple on iOS |
-| 8 | Your first scene (`onboarding/FirstSceneScreen.tsx`) | The plan's first scene, with one example line, a content-based "About … minutes" estimate and live-minute cost before Start or Type. The phone's microphone prompt appears only after a speaking tap; other examples are disclosed on request |
+| 2 | Your first line (`first-line`) | A local authored choice between a coffee and water order. Wrong-choice feedback and an optional hint are explicit; nothing is recorded or assessed. Correct selection reveals the useful line, with optional tutor playback. The practice example is optional |
+| 3 | Where are you starting? (`start-level`) | Select from zero, a few words, or “I can get by”. The choice stays visible and editable until explicit Continue |
+| 4 | Your first scenes (`plan`) | Three catalogue outcomes first. A compact editable routine, including no fixed target; the chosen tutor with optional alternatives; route scope and method details on request. No inactive reminder clock |
+| 5 | Save your plan (`save`) | AI, microphone and history notes, usage-data switch off, then “I am 13 or older, create account”. Refusal holds for the launch and clears the draft. Moving between the pages and leaving through "I have an account" do not undo it for the rest of the launch. Name and goal entry are deferred to Profile |
+| 6 | Sign up (`auth/SignUpScreen.tsx`) | Email/password, Google, or Apple on iOS |
+| 7 | Your first scene (`onboarding/FirstSceneScreen.tsx`) | Task, outcome and one French line before Start. Live-minute cost remains beside Start and Type. Speaking alone requests microphone permission; more examples are optional |
 
-The words on pages 1 to 6 live in `onboarding/firstRun.ts` and `onboarding/plan.ts`.
+The words on pages 1 to 5 live in `onboarding/firstRun.ts` and `onboarding/plan.ts`.
 The first scene is `firstSceneFor` in `plan.ts`: the short first café for zero or
 a few words, or the ordering-and-paying café for "I can get by". This is a
 catalogue route chosen from self-report, not an assessed level or personalised
@@ -121,7 +120,7 @@ tutor is AI.
 
 ## What changed, and why each one
 
-The current path is the six-page pre-account flow above. The older
+The current path is the five-page pre-account flow above. The older
 age/name/meet/voice flow (`onboarding/OnboardingFlow.tsx`, pages in `PAGES` in
 `answers.ts`) is kept as a recovery path. It runs for a signed-in learner who has
 no profile the draft may become, or an older profile that never answered the age
@@ -158,11 +157,7 @@ tradeoff: on a shared phone, an adult who signs out later in the same launch
 meets the refusal page until the app is reopened. No account is created and
 nothing is sent anywhere. (Founder decision, 2026-09-30: F637, F639, F641.)
 
-**The reason is asked again, because it is used now.** The old why page was
-removed because nothing read its answer. The `reason` page is different: its
-answer sets the suggested minutes on the plan, is written to `motivation`, and
-becomes the goal the tutor is given on the first session (`SEEDED_GOAL` in
-`onboarding/plan.ts`). It can be skipped, and a skip writes no goal.
+**4 October 2026 implementation.** The optional reason question and first-name field are deferred to Profile/Tutor memory. Existing version-1 drafts keep their answers and a saved `reason` page resumes at `plan`. The reason remains valid tutor context for existing drafts; it never changes scene order. Reminders are offered after a useful phrase and remain off until explicit permission and opt-in. The pre-account choice records no ability, history, activity or AI assessment.
 
 **The first scene opens the app, not the chooser.** The selected scene is an
 explainable first task in the existing catalogue; the self-reported starting
@@ -251,7 +246,7 @@ conversation.
 
 | What | Where |
 |---|---|
-| The six-page pre-account front door | `apps/mobile/src/onboarding/PreAccountOnboarding.tsx` |
+| The five-page pre-account front door | `apps/mobile/src/onboarding/PreAccountOnboarding.tsx` |
 | The words on those pages, and the plan they build | `apps/mobile/src/onboarding/firstRun.ts`, `apps/mobile/src/onboarding/plan.ts` |
 | The four-page account recovery flow | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
 | The compact local hand-off, and how it becomes a profile | `apps/mobile/src/onboarding/preAccountDraft.ts`, `apps/mobile/src/onboarding/createFromDraft.ts` |

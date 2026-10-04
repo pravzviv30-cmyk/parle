@@ -477,7 +477,7 @@ describe('the onboarding doc counts the screens the code shows', () => {
       preAccountPages,
       'the doc names different pages, or names them in a different order',
     );
-    assert.match(PRE_ACCOUNT_DRAFT, /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'\]/, 'the six pages in the doc are not the six the pre-account flow renders');
+    assert.match(PRE_ACCOUNT_DRAFT, /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'plan', 'save'\]/, 'the six pages in the doc are not the six the pre-account flow renders');
 
     // Sign-up and the first scene's microphone primer follow the six pages.
     // The age gate is part of the save page rather than a seventh screen.
@@ -524,7 +524,7 @@ describe('the first run asks about usage data once, and off is the answer until 
     );
     assert.match(
       PRE_ACCOUNT_DRAFT,
-      /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save'\]/,
+      /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'plan', 'save'\]/,
       'the switch was given a page of its own, which is a screen bought with a learner’s time',
     );
 

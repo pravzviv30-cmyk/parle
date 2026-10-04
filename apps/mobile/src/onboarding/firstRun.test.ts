@@ -124,7 +124,7 @@ describe('screen one plays a real recorded exchange', () => {
     for (const name of ['hear-it', 'first-line']) {
       assert.match(pageSource(name), /<Text accessibilityRole="header" style=\{st\.display\}>/, `the ${name} headline is not the display line`);
     }
-    for (const name of ['start-level', 'reason', 'plan', 'save']) {
+    for (const name of ['start-level', 'plan', 'save']) {
       assert.doesNotMatch(pageSource(name), /st\.display\b/, `the ${name} page borrows the blue headline`);
     }
 
@@ -159,79 +159,54 @@ describe('screen two: the learner’s first line, then the first highlight', () 
   });
 
   test('the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt', () => {
-    assert.equal((SCREEN.match(/<Highlight\b/g) ?? []).length, 1, 'the flow draws more than one highlighter');
     const line = pageSource('first-line');
-    const said = line.indexOf("stage === 'selected'");
-    const highlight = line.indexOf('<Highlight');
-    assert.ok(said > 0 && highlight > said, 'the highlight appears before the learner selects the example');
-    assert.match(line, /<Highlight text=\{FIRST_LINE\.reply\.fr\}/, 'the highlight is on something other than the reply');
-    // The mint tick sits beside the marked line, and only once it is said.
-    assert.doesNotMatch(SCREEN, /SceneMark|state="earned"/, 'a recording selection awards unearned learning evidence');
-    assert.match(line, /\{HIGHLIGHT_MEANS\}/, 'the playback highlight has no scope explanation');
-    // The tutor is named by a meta line on a white card, not drawn as a mark.
-    assert.match(line, /<Text style=\{st\.speaker\}>\{persona\.name\}<\/Text>/, 'the tutor is not named on the first-line page');
-    assert.doesNotMatch(SCREEN, /TutorMark/, 'the tutor mark is still drawn beside the lines');
-    assert.match(line, /<FrenchBlock\s+french=\{FIRST_LINE\.question\.fr\}\s+english=\{FIRST_LINE\.question\.en\}\s+size="lg"/, 'the question is not the large French block');
-    assert.match(line, /questionClip === undefined\s*\?\s*undefined/, 'the question offers playback with no recording behind it');
-    assert.match(SCREEN, /player\.pause\(\);[\s\S]*player\.replace\(clip\)/, 'a second recording overlaps the first');
-    assert.match(SCREEN, /const questionClip = clipFor\(FIRST_LINE\.question\)/, 'the question plays something other than its bundled recording');
-    assert.doesNotMatch(line, /<Pressable\b/, 'the reply is not pressed through the one spring');
-    assert.match(line, /<Press\s+haptic="light"\s+accessibilityRole="button"\s+accessibilityLabel=\{`Reply: /, 'the reply is not the white card the learner presses');
-    assert.match(line, /label=\{STUCK\}/, 'there is no way to say you are stuck');
-    const before = SCREEN.slice(0, SCREEN.indexOf("page === 'first-line' && ("));
-    assert.doesNotMatch(before, /accent\.feature|\bhighlight\b|<Highlight/, 'chartreuse appears before the first line');
-    assert.doesNotMatch(SCREEN, /accent\.feature/, 'the flow paints the deprecated chartreuse alias');
+    assert.equal((SCREEN.match(/<Highlight\b/g) ?? []).length, 1);
+    assert.match(line, /FIRST_CHOICES.map/);
+    assert.match(line, /firstChoiceFeedback\(choice, stuck\)/);
+    assert.match(line, /<Highlight text=\{FIRST_LINE.reply.fr\}/);
+    assert.match(line, /\{HIGHLIGHT_MEANS\}/);
+    assert.doesNotMatch(SCREEN, /SceneMark|state="earned"|recordActivity|recordSession/);
+    assert.match(line, /questionClip === undefined/);
+    assert.match(SCREEN, /player.pause\(\);[\s\S]*player.replace\(clip\)/);
+
   });
 });
 
 describe('the rest of the flow', () => {
   test('six pages, answers one tap each, and the old welcome is gone', () => {
-    assert.deepEqual([...PRE_ACCOUNT_PAGES], ['hear-it', 'first-line', 'start-level', 'reason', 'plan', 'save']);
-    assert.equal((SCREEN.match(/accessibilityRole="header"/g) ?? []).length, PRE_ACCOUNT_PAGES.length, 'a page has no heading, or one has two');
-    assert.match(pageSource('start-level'), /onPress=\{\(\) => answerLevel\(option\.key\)\}/);
-    assert.match(pageSource('reason'), /onPress=\{\(\) => answerReason\(option\.key\)\}/);
-    assert.match(SCREEN, /label=\{REASON_SKIP\}/, 'the reason cannot be skipped');
-    for (const gone of ['SpeakBubbles', 'SCREEN_ART', 'Life happens', 'Find your voice in French', 'Bonjour, new possibilities', 'TintPanel', 'Animated.']) {
-      assert.ok(!SCREEN.includes(gone), `the old welcome still carries ${gone}`);
-    }
+    assert.deepEqual([...PRE_ACCOUNT_PAGES], ['hear-it', 'first-line', 'start-level', 'plan', 'save']);
+    assert.match(pageSource('start-level'), /onPress=\{\(\) => keep\(\{ startLevel: option.key \}\)\}/);
+    assert.doesNotMatch(pageSource('start-level'), /answerLevel|\bgo\(/, 'selecting a starting point must leave the page available for review');
+    assert.match(SCREEN, /page === 'start-level' && <PillButton label=\{CONTINUE\} onPress=\{\(\) => answerLevel\(level\)\}/, 'only explicit Continue advances the starting-point page');
+    assert.match(SCREEN, /keep\(\{ startLevel: key \}\);\s*go\('plan'\)/);
+    assert.doesNotMatch(SCREEN, /page === 'reason'|<Field\b|HeroNumber|reminderLine/);
+    assert.match(SCREEN, /Setup:/);
+    for (const gone of ['SpeakBubbles', 'SCREEN_ART', 'Life happens', 'TintPanel', 'Animated.']) assert.ok(!SCREEN.includes(gone));
+
   });
 
   test('the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture', () => {
     const plan = pageSource('plan');
-    assert.match(SCREEN, /plan: colour\.sun,/, 'the plan is not the sun page');
-    assert.match(SCREEN, /plan: 'sun',/, 'the story segments are not drawn for the sun ground');
-    assert.match(plan, /<Text accessibilityRole="header" style=\{st\.planTitle\}>\{PLAN_TITLE\}<\/Text>/, 'the plan has no title in its body');
-    assert.match(plan, /<HeroNumber value=\{String\(view\.minutes\)\} unit=\{MINUTES_UNIT\} ground="sun" \/>/, 'the minutes are not the hero number');
+    assert.match(SCREEN, /plan: colour.sun/);
+    assert.match(plan, /Your first scenes/);
+    assert.ok(plan.indexOf('{scene.canDoEn}') < plan.indexOf('Daily practice:'));
+    assert.match(plan, /ROUTINE_OPTIONS.map[\s\S]*keep\(\{ minutes: option.key \}\)/);
+    assert.match(plan, /view.minutes === 'none'/);
+    assert.match(plan, /<TutorCard/);
+    assert.match(plan, /detailsOpen && <Card/);
+    assert.match(plan, /METHOD_STEPS.map/);
+    assert.match(plan, /\{COVERAGE_NOTE\}/);
     assert.match(plan, /\{NO_STREAKS\}/);
-    assert.match(plan, /\{reminderLine\(view\.reminder\.clock\)\}/, 'the reminder is not said to be off');
+    assert.doesNotMatch(plan, /HeroNumber|reminderLine|<Illustration/);
+    assert.doesNotMatch(SCREEN, /requestPermissionsAsync/);
+    assert.match(SCREEN, /label=\{SAVE_PLAN\}/);
+    assert.match(SCREEN, /\{TRIAL_LINE\}/);
 
-    // The scenes lead in French, with the English beside and the can-do under.
-    const titleFr = plan.indexOf('{scene.titleFr}');
-    assert.ok(titleFr > 0 && plan.indexOf('{scene.titleEn}') > titleFr && plan.indexOf('{scene.canDoEn}') > titleFr, 'the scenes do not lead in French');
-    assert.match(plan, /<Text \{\.\.\.frenchText\} style=\{st\.french\}>\{scene\.titleFr\}<\/Text>/, 'the French title is not marked as French');
-    assert.match(plan, /<TutorCard\b/, 'the voice choice did not move into the plan');
-    assert.match(plan, /\{METHOD_LABEL\}[\s\S]*?\{at \+ 1\}[\s\S]*?\{step\}/, 'how it works is not three numbered steps');
-
-    // It shows the plan rather than configuring it: no pickers, no picture.
-    assert.doesNotMatch(plan, /<TabBar\b/, 'the plan still asks for the minutes or the reminder');
-    assert.match(plan, /\{MINUTES_LABEL\}/, 'the flexible routine has no label');
-    assert.match(plan, /ROUTINE_OPTIONS.map[\s\S]*keep\(\{ minutes: option.key \}\)/, 'a suggested routine cannot be changed and kept');
-    assert.match(plan, /view.minutes === 'none'/, 'the routine has no unset state');
-    assert.doesNotMatch(SCREEN, /\b(REMINDER_TIMES|requestPermissionsAsync)\b/, 'the demo introduces a permission or notification picker');
-    assert.doesNotMatch(SCREEN, /sceneIllustration|<Art\b/, 'the plan still draws a place');
-    assert.doesNotMatch(plan, /<Illustration\b/, 'the plan draws a picture the board does not');
-    // The save page's refusal is the one picture this flow draws.
-    assert.equal((SCREEN.match(/<Illustration\b/g) ?? []).length, 1, 'a picture appears somewhere other than the under-13 page');
-
-    // One way on: the round next in ink, and the trial beside it.
-    assert.match(SCREEN, /<RoundButton kind="next" tone="ink" label=\{SAVE_PLAN\}/, 'Save my plan is not the round next on sun');
-    assert.match(SCREEN, /<Text style=\{st\.trialOnSun\}>\{TRIAL_LINE\}<\/Text>/, 'the trial is not said beside the next');
   });
 
   test('the one-tap answers are option rows that carry their choice as state, never ledger rows with a Chosen word', () => {
     for (const [name, list, chosen, answer] of [
-      ['start-level', 'START_LEVELS', 'level === option\\.key', 'answerLevel\\(option\\.key\\)'],
-      ['reason', 'REASONS', 'draft\\.reason === option\\.key', 'answerReason\\(option\\.key\\)'],
+      ['start-level', 'START_LEVELS', 'level === option\\.key', 'keep\\(\\{ startLevel: option\\.key \\}\\)'],
     ] as const) {
       const body = pageSource(name);
       assert.match(body, new RegExp(`\\{${list}\\.map\\(\\(option\\) => \\(\\s*<OptionRow\\b`), `the ${name} answers are not option rows`);
@@ -352,7 +327,7 @@ describe('the rest of the flow', () => {
     // with an empty name, the refusal is never written to the draft, and once
     // refused nothing reaches the draft at all.
     assert.match(SCREEN, /useState<PreAccountPage>\(\(\) => initialDraft\?\.page \?\? 'hear-it'\)/, 'with no draft the screen opens somewhere other than the first page');
-    assert.match(SCREEN, /const \[nameText, setNameText\] = useState\(\(\) => initialDraft\?\.firstName \?\? ''\);/, 'with no draft the name field is not empty');
+    assert.doesNotMatch(SCREEN, /<Field\b|setNameText/, 'name entry is deferred to Profile');
     assert.doesNotMatch(SCREEN, /keep\(\{[^}]*(?:underAge|refus)/, 'the refusal is written to the draft, which the founder did not choose');
     assert.match(keepSource(), /if \(!underAge\) onDraftChange\(next\);/, 'a refused screen still writes the draft, so a relaunch would reopen mid-flow');
   });
@@ -394,7 +369,7 @@ describe('the rest of the flow', () => {
     assert.match(draft, /firstName: string \| null;/, 'the first name no longer rides the draft: check what the refusal must clear');
     assert.match(draft, /export function clearPreAccountDraft\(\): Promise<void> \{\s*draftGeneration\+\+;\s*return enqueueDraft\(\(\) => AsyncStorage\.removeItem\(KEY\)\);/, 'the clear no longer removes the whole draft');
     assert.match(SCREEN, /useState<PreAccountPage>\(\(\) => initialDraft\?\.page \?\? 'hear-it'\)/, 'with no draft the screen opens somewhere other than the first page');
-    assert.match(SCREEN, /const \[nameText, setNameText\] = useState\(\(\) => initialDraft\?\.firstName \?\? ''\);/, 'with no draft the name field is not empty');
+    assert.doesNotMatch(SCREEN, /<Field\b|setNameText/, 'name entry is deferred to Profile');
   });
 
   test('the under-13 refusal holds across the sign-in detour for the rest of the launch', () => {

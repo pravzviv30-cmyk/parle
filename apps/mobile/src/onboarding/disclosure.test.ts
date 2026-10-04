@@ -485,7 +485,7 @@ describe('nothing reaches an AI service or the network before the save page is p
     const pages: readonly string[] = PRE_ACCOUNT_PAGES;
     const at = (page: string) => pages.indexOf(page);
     assert.equal(pages[0], 'hear-it', 'the AI disclosure is not the first page');
-    for (const answer of ['first-line', 'start-level', 'reason']) {
+    for (const answer of ['first-line', 'start-level']) {
       assert.ok(at(answer) > at('hear-it'), `${answer} is asked before the learner is told the tutor is AI`);
       assert.ok(at(answer) < at('plan'), `${answer} comes after the plan it shapes`);
     }

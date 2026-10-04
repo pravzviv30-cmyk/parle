@@ -36,6 +36,20 @@ function progressWith(completions: MissionCompletion[] = [], now = EVENING): Mis
   return missionStates(completions, [], now);
 }
 
+test('the untouched next scene respects the setup suggestion without awarding a can-do, while real history wins', () => {
+  const progress = progressWith();
+  const hero = homeMissionFrom({ progress, records: [], levelIndex: 0, now: EVENING, startingMissionId: 'mission:cafe' });
+  assert.ok(hero?.kind === 'scene');
+  assert.equal(hero.mission.id, 'mission:cafe');
+  assert.equal(spineFrom(progress).next?.id, FIRST_MISSION);
+  const helped = homeMissionFrom({ progress: progressWith([{ id: FIRST_MISSION, at: EVENING - 5000, rung: 1 }]), records: [], levelIndex: 0, now: EVENING, startingMissionId: 'mission:cafe' });
+  assert.ok(helped?.kind === 'scene');
+  assert.equal(helped.mission.id, FIRST_MISSION);
+  const resume = homeMissionFrom({ progress, records: [{ missionId: 'mission:hotel', at: EVENING - 1000, elapsedMs: 1000, beatsDone: 1 }], levelIndex: 0, now: EVENING, startingMissionId: 'mission:cafe' });
+  assert.ok(resume?.kind === 'scene');
+  assert.equal(resume.mission.id, 'mission:hotel');
+});
+
 /** Every mission on the spine earned on its own, which is rung 4. */
 const allEarned = (): MissionCompletion[] => SCENE_SPINE.map((id, i) => ({ id, at: EVENING - 10_000 - i, rung: 4 }));
 

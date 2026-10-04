@@ -1,3 +1,4 @@
+import { Feedback } from './motion/Feedback.tsx';
 /**
  * Luvani, bright (revamp B): the shared parts every screen builds from.
  *
@@ -1728,8 +1729,8 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
           <Text style={[type.label, { color: paper.ink }]}>{title}</Text>
           {detail != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{detail}</Text> : null}
         </View>
-        {selected ? <View {...decorative} style={[b.optionMark, { backgroundColor: accent.brand }]}><CheckGlyph size={18} color={paper.onInk} /></View>
-          : <View {...decorative} style={[b.optionMark, { borderWidth: 2, borderColor: paper.field }]} />}
+        <Feedback kind="selection" active={selected}>{selected ? <View {...decorative} style={[b.optionMark, { backgroundColor: accent.brand }]}><CheckGlyph size={18} color={paper.onInk} /></View>
+          : <View {...decorative} style={[b.optionMark, { borderWidth: 2, borderColor: paper.field }]} />}</Feedback>
       </Press>
       {onHear != null ? <Press haptic="light" onPress={onHear} accessibilityLabel={playing ? `Stop ${title}` : `Hear ${title}`} style={{ minHeight: HIT, minWidth: HIT, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={[type.small, { color: paper.ink }]}>{playing ? 'Stop' : 'Hear'}</Text>
@@ -1819,11 +1820,11 @@ export function FrenchBlock({
   size?: 'lg' | 'md';
   onHear?: () => void;
   playing?: boolean;
-  ground?: 'white' | 'blue';
+  ground?: 'white' | 'blue' | 'sun';
 }) {
   const onBlue = ground === 'blue';
   const color = onBlue ? paper.onInk : paper.ink;
-  const secondary = onBlue ? onColour.blue : paper.inkSoft;
+  const secondary = onBlue ? onColour.blue : ground === 'sun' ? onColour.sun : paper.inkSoft;
   return (
     <View style={b.frenchRow}>
       <View style={b.frenchWords}>

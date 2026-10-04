@@ -59,9 +59,9 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     const from = BAR.indexOf('cellWrapped: {');
     assert.notEqual(from, -1, 'the wrapped cell style is gone; this test is reading the wrong thing');
     const cell = BAR.slice(from, BAR.indexOf('},', from) + 1);
-    assert.match(cell, /flexBasis: '20%'/, 'a wrapped cell does not take a fifth of the bar, so the five cells share it again');
+    assert.match(cell, /flexBasis: '25%'/, 'a wrapped cell does not take a quarter of the bar, so the four cells share it again');
     assert.match(cell, /flexGrow: 0/, 'a wrapped cell can still grow into its neighbour');
-    assert.match(cell, /flexShrink: 0/, 'a wrapped cell can still be shrunk out of its fifth by a longer neighbour');
+    assert.match(cell, /flexShrink: 0/, 'a wrapped cell can still be shrunk out of its quarter by a longer neighbour');
 
     // The floor under every cell is still a floor: a two-line word makes the
     // cell taller, and nothing here is allowed to make it shorter.
@@ -155,19 +155,24 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press may move a cell');
   });
 
-  test('the five words are Home, Speak, Practice, Progress and Friends, and no route name changed', () => {
+  test('the four words are Home, Speak, Practice and Progress; Friends remains a stack route', () => {
     // 2026-09-30, revamp B (F600). Replaces "Home is labelled Today". The words
     // under the glyphs follow the approved bar; the route names, which deep
     // links and every navigate() call spell, do not move.
     assert.match(
       FLAT,
-      /const LABELS: Record<string, string> = \{ Home: 'Home', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'Progress', Friends: 'Friends', \};/,
-      'the five words under the glyphs are not Home, Speak, Practice, Progress and Friends',
+      /const LABELS: Record<string, string> = \{ Home: 'Home', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'Progress', \};/,
+      'the four words under the glyphs are not Home, Speak, Practice and Progress',
     );
     assert.match(
       FLAT,
-      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, Friends: FriendsIcon, \};/,
+      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, \};/,
       'a route name changed; only the word under the glyph was meant to',
     );
   });
+});
+
+test('a cold Friends link exits to the main tabs instead of creating a Profile back loop', () => {
+  const source = readFileSync(new URL('../tabs/FriendsTab.tsx', import.meta.url), 'utf8');
+  assert.match(source, /if \(nav.canGoBack\(\)\) nav.goBack\(\); else nav.navigate\('Tabs'\)/);
 });

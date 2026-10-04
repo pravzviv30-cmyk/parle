@@ -105,7 +105,7 @@ describe('the first scene opens with a microphone primer', () => {
     assert.match(screen, /\{PRIMER_META\(persona\.name\)\}/, 'the brief does not say whose scene it is');
     assert.match(screen, /const persona = tutorPersonaOf\(useProfile\(\)\.profile\)/, 'the brief names a tutor the learner did not choose');
     assert.match(screen, /accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.onInk \}\]\}>\{mission\.titleEn\}<\/Text>/, 'the English outcome is not the headline');
-    assert.match(screen, /<Text \{\.\.\.frenchText\} style=\{st\.title\}>\{mission\.title\}<\/Text>/, 'the French scene title is missing');
+    assert.match(screen, /<Text \{\.\.\.frenchText\}[^\n]*>\{mission\.title\}<\/Text>/, 'the French scene title is missing');
     assert.match(screen, /title: \{ \.\.\.type\.display, color: textOn\.blue \}/, 'the French title is not legible on blue');
     assert.match(screen, /\{canDoSentence\(mission\.canDoEn\)\}/, 'the can-do is not one sentence');
     assert.match(screen, /mission\.referencePhrases\.slice\(0, 3\)/, 'the brief shows other than the first three lines');

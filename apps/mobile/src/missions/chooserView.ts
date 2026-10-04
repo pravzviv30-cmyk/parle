@@ -37,13 +37,13 @@ import type { ScenarioRecord } from './progressStore.ts';
 import { LESSON_MINUTES } from '../copy/access.ts';
 
 /** Shown before the first conversation, and never again. */
-export const PROMISE = 'Your tutor will help you find your first useful French line.';
+export const PROMISE = 'Get help with your first French line.';
 
 /** The just-in-time permission promise, beside the first scene rather than behind it. */
 export const MICROPHONE_NOTICE = 'In a conversation, the microphone opens only when you tap the circle. You can type instead.';
 
 export const CHOOSER_HEADLINE = 'What do you want to practise?';
-export const CHOOSER_SUB = 'Choose a real situation. Your tutor plays the other person and helps when you need it.';
+export const CHOOSER_SUB = 'Choose a situation. Your AI tutor plays the other person.';
 
 /**
  * What a situation costs, said before one is chosen (whole-app Stage 3A).
@@ -52,7 +52,7 @@ export const CHOOSER_SUB = 'Choose a real situation. Your tutor plays the other 
  * line names the unit the rest of the app uses and no price or plan: which
  * plan buys how many minutes is the Plans screen's to say.
  */
-export const CHOOSER_ACCESS = 'Each situation is a live conversation with your tutor, spoken or typed, and uses live minutes.';
+export const CHOOSER_ACCESS = 'Speaking and typing with your tutor use live minutes.';
 
 /** The free path, kept as a peer rather than demoted to a footnote. */
 export const TALK_FREELY = 'Talk freely about something else';

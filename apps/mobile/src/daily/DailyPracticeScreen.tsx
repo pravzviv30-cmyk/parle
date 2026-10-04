@@ -1,3 +1,4 @@
+import { Feedback } from '../motion/Feedback.tsx';
 import { recorderUri } from './recorderUri.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { finishLocalTake } from './finishLocalTake.ts';
@@ -9,7 +10,7 @@ import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-na
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder } from 'expo-audio';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
-import { Card, GhostButton, OutlineButton, PillButton } from '../components.tsx';
+import { Card, GhostButton, PillButton } from '../components.tsx';
 import { paper, type, space, frenchText } from '../theme.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { addPhrases } from '../review/store.ts';
@@ -154,20 +155,19 @@ export function DailyPracticeScreen() {
   };
   return <ScrollScreen bottom="inset" header={<ScreenHeader title={shadowing ? 'Hear, say and compare' : 'A little French'} back={{ onPress: goBack }} />}>
     {item ? <View style={{gap:space(4)}}>
-      {shadowing && <Illustration name="state-headphones" fit="small" />}
-      <Text style={[type.body,{color:paper.inkSoft}]}>{shadowing ? "Hear the model, record your take, then listen to both. This is free offline practice. Nothing is graded, and your take is deleted when you leave." : "A short listen, a take of your own, and a moment to compare. Your take is deleted when you leave."}</Text>
       <Card><Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{item.en}</Text>
       <View style={{ gap: space(3), marginTop: space(4) }}>
+        <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
         {modelAsset != null && <GhostButton label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
         {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
         {uri && !recording && <GhostButton label="Hear my take" onPress={() => void play(true)} />}
         {completedTake && uri && !recording && !daySaved && <GhostButton label="Try again" onPress={() => void record()} disabled={busy} />}
-        <Text style={[type.small, { color: paper.inkSoft }]}>{modelAsset != null ? 'Free offline practice. Compare the rhythm and sounds yourself; this does not assess pronunciation.' : 'Record and listen to your own take. Tutor audio is not in this pack yet. This practice does not assess pronunciation.'}</Text>
-        <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{note}</Text>
+        {modelAsset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
+        <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
         {completedTake && !recording && !daySaved && <PillButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}
         {daySaved && <PillButton label="Done" onPress={goBack} />}
         <GhostButton label="Add to review and practise recall" onPress={() => void review()} />
       </View>
-    </Card></View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
+    </Card>{shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
   </ScrollScreen>;
 }
