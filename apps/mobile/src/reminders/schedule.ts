@@ -96,8 +96,9 @@ export function askReminderPermission(): Promise<ReminderPermission> {
  * nothing. The argument is read and discarded on purpose: a parameter the web
  * half omitted would let the native half's signature drift unnoticed.
  */
-export function scheduleReminder(time: ReminderTimeId): Promise<ScheduleOutcome> {
+export function scheduleReminder(time: ReminderTimeId, days?: readonly number[]): Promise<ScheduleOutcome> {
   void time;
+  void days;
   return Promise.resolve('unavailable');
 }
 

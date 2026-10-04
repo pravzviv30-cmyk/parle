@@ -160,6 +160,9 @@ export const PROFILE_ANSWER_FIELDS = [
   'ageConfirmed',
   'motivation',
   'dailyGoalMin',
+  'practiceDaysPerWeek',
+  'onboardingGoal',
+  'onboardingDrink',
   'username',
   // Which catalogue voice the learner asked their tutor to speak with, as the
   // app-level key `@luvani/core` owns. It is here rather than riding with the
@@ -567,6 +570,7 @@ export function mergeStoredProfiles(
     outer[key] = heavy.outer[key];
   }
   for (const field of PROFILE_ANSWER_FIELDS) {
+    if (!(field in sa.outer) && !(field in sb.outer)) continue;
     outer[field] = pickAnswer(field, sa, sb, cmp);
   }
   for (const field of PROFILE_UNION_FIELDS) {

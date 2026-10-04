@@ -440,7 +440,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // Seven since Stage 3: one per group that holds a card, plus Delete account
     // in a card of its own at the foot, apart from the routine account rows.
     // Still exact: a card added or lost is a change to what this screen is.
-    assert.equal(CARDS.length, 7, `Settings draws ${CARDS.length} cards; it should draw one per group and one for Delete account`);
+    assert.equal(CARDS.length, 8, `Settings draws ${CARDS.length} cards; it should draw one per group and one for Delete account`);
 
     for (const [line, control] of LINES) {
       const holding: string[] = CARDS.filter((card) => card.includes(line) && card.includes(control));

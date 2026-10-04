@@ -1,3 +1,4 @@
+import { evidence } from '../test/evidence.ts';
 /**
  * The component vocabulary, held to the source — F332, F333.
  *
@@ -272,7 +273,7 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     const pill = region(source, '  pill: {', '  pillWhite:');
     assert.match(pill, /minHeight: HIT \+ 12/, 'the pill is under 56pt');
     assert.match(pill, /backgroundColor: accent\.primary/, 'the pill is not ink');
-    assert.match(pill, /borderRadius: radius\.pill/, 'the pill is not fully rounded like the logo');
+    assert.match(pill, /borderRadius: radius\.control/, 'the primary action should use the clean control radius');
     assert.match(source, /pillWhite: \{ backgroundColor: paper\.card \}/, 'the white pill for blue and coral grounds is not white');
     const outline = region(source, '  outline: {', '  outlinePressed:');
     assert.match(outline, /minHeight: HIT/, 'the quiet link is under the touch floor');
@@ -776,20 +777,7 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(row, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
   });
 
-  test('a sheet rises from the bottom under an ink scrim, is modal, and closes from the scrim', () => {
-    const sheet = part('Sheet');
-    assert.match(sheet, /<Modal visible=\{visible\} transparent animationType="none" onRequestClose=\{onClose\}/);
-    assert.match(sheet, /accessibilityViewIsModal/);
-    assert.match(sheet, /onAccessibilityEscape=\{onClose\}/);
-    assert.match(sheet, /accessibilityRole="header"/);
-    assert.match(sheet, /accessibilityLabel="Close" onPress=\{onClose\}/);
-    assert.match(sheet, /backgroundColor: paper.ink, opacity: 0.45/);
-    assert.match(sheet, /Math.max\(insets.bottom, space\(6\)\)/);
-    assert.match(sheet, /<ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"/);
-    assert.match(sheet, /\{footer\}/);
-    assert.doesNotMatch(sheet, /#[0-9A-Fa-f]{6}|Animated.spring/);
-    assert.match(region(componentsSource(), '  sheetOverlay: {', '  grabber:'), /justifyContent: 'flex-end'/);
-  });
+  test("sheets animate over the parent, retain closing content and expose accessible dismissal", () => { const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet')); assert.match(sheet, /<Modal visible=\{present\}/); assert.match(sheet, /snapshot\.current\.children/); assert.match(sheet, /accessibilityViewIsModal/); assert.match(sheet, /onAccessibilityEscape=\{onClose\}/); assert.match(sheet, /onShow=\{focusHeading\}/); assert.match(sheet, /Math\.max\(insets\.bottom, space\(6\)\)/); assert.match(sheet, /keyboardShouldPersistTaps="handled"/); assert.match(sheet, /outputRange: \[0, 0\.4\]/); assert.match(sheet, /onPanResponderRelease/); assert.match(sheet, /close\.current\(\) !== false/); });
 
   test('a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line', () => {
     const skeleton = part('Skeleton');

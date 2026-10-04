@@ -1,0 +1,19 @@
+{
+  "checks": 14,
+  "passed": [
+    "eligibility required",
+    "opaque capability issued",
+    "one start per installation",
+    "installation binding enforced",
+    "unknown task refused",
+    "analytics rejects learner text",
+    "parallel attempts limited to two; actual reply checked",
+    "invalid bearer never falls back to local identity",
+    "usage transferred once without duplicate debit",
+    "another account cannot claim the same practice",
+    "claimed capability cannot keep practising online",
+    "authenticated analytics rejects learner text",
+    "speech availability announced before microphone capture",
+    "unavailable guest speech refuses vendor work and leaves typed practice usable"
+  ]
+}

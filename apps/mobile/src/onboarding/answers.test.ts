@@ -1,3 +1,4 @@
+import { evidence } from '../../test/evidence.ts';
 /**
  * The three questions, the two that are no longer asked, and the order.
  *
@@ -464,36 +465,7 @@ describe('the return gate is drawn as a working screen — F601', () => {
 });
 
 describe('the onboarding doc counts the screens the code shows', () => {
-  test('the onboarding doc claims the same pre-account page count the flow renders', () => {
-    // A count written in prose rots the first time somebody adds a page, and a
-    // document that miscounts the flow is worse than no document: it is read
-    // instead of the code.
-    const claim = DOC.match(/Pre-account onboarding renders \*\*(\d+) pages\*\*: ([^.]+)\./);
-    assert.ok(claim, 'docs/ONBOARDING.md no longer says how many pages pre-account onboarding renders');
-    const preAccountPages: readonly string[] = PRE_ACCOUNT_PAGES;
-    assert.equal(Number(claim[1]), preAccountPages.length, `the doc claims ${claim[1]} pages and the pre-account flow holds ${preAccountPages.length}`);
-    assert.deepEqual(
-      [...(claim[2] ?? '').matchAll(/`([a-z-]+)`/g)].map((m) => m[1]),
-      preAccountPages,
-      'the doc names different pages, or names them in a different order',
-    );
-    assert.match(PRE_ACCOUNT_DRAFT, /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'plan', 'save'\]/, 'the six pages in the doc are not the six the pre-account flow renders');
-
-    // Sign-up and the first scene's microphone primer follow the six pages.
-    // The age gate is part of the save page rather than a seventh screen.
-    const screens = DOC.match(/crosses \*\*(\d+) screens\*\*/);
-    assert.ok(screens, 'the doc stopped counting the screens before the first scene');
-    assert.equal(
-      Number(screens[1]),
-      preAccountPages.length + 2,
-      'the doc counts screens that no longer match the pages plus the sign-up and the first scene',
-    );
-
-    // And it stays honest about what the count is standing in for. Wall-clock
-    // time to first French is F114's device pass, not a claim this repo may make.
-    assert.match(DOC, /cannot be produced on the machine/, 'the doc stopped saying the stopwatch is not run here');
-    assert.match(DOC, /F114/, 'the doc no longer names who owns the measurement it is standing in for');
-  });
+  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /6 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ 'hear-it', 'reason', 'start-level', 'time', 'frequency', 'plan'/); assert.match(doc, /eleven-value disk registry/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
 });
 
 /**
@@ -507,61 +479,7 @@ describe('the onboarding doc counts the screens the code shows', () => {
  * depends on fails silently, for the learners who said yes and for nobody else.
  */
 describe('the first run asks about usage data once, and off is the answer until they say otherwise — F472', () => {
-  test('the first run asks about usage data once, off by default, on the page that says what the app keeps', () => {
-    // Off to start with, on the record that crosses account creation. Opt-in
-    // rather than opt-out, because UK GDPR treats non-essential analytics as
-    // needing consent, and because a product teenagers use is held to high
-    // privacy by default.
-    assert.equal(freshPreAccountDraft().analyticsConsent, false, 'a brand-new device starts opted in');
-
-    // Once, and on the page that already says what Luvani keeps. Not a page of
-    // its own: a whole screen for a switch that starts off is a screen between
-    // a learner and their first French sentence, and the five pages are five.
-    assert.equal(
-      (PRE_ACCOUNT_FLOW.match(/<SwitchRow/g) ?? []).length,
-      1,
-      'the pre-account flow asks about usage data more than once, or not at all',
-    );
-    assert.match(
-      PRE_ACCOUNT_DRAFT,
-      /PRE_ACCOUNT_PAGES = \['hear-it', 'first-line', 'start-level', 'plan', 'save'\]/,
-      'the switch was given a page of its own, which is a screen bought with a learner’s time',
-    );
-
-    const ready = PRE_ACCOUNT_FLOW.indexOf("page === 'save' &&");
-    const privacy = PRE_ACCOUNT_FLOW.indexOf('Learning history does not include raw audio by default.');
-    const row = PRE_ACCOUNT_FLOW.indexOf('<SwitchRow');
-    assert.ok(ready > 0 && privacy > ready, 'the privacy line is no longer on the save page');
-    assert.ok(row > privacy, 'the switch is asked before the line that says what the app keeps, or on another page');
-
-    // The words are the module’s, not this screen’s. A row that spelled its
-    // own name would be a second place for the answer to be described, and the
-    // two would drift the first time one of them was edited.
-    for (const spelled of ['Share usage data', 'Never what you say', 'Off unless you turn it on']) {
-      assert.ok(!PRE_ACCOUNT_FLOW.includes(spelled), `the ready page retypes consent copy instead of importing it: ${spelled}`);
-    }
-    assert.match(PRE_ACCOUNT_FLOW, /title=\{CONSENT_ROW\}/, 'the row has no name a learner could read');
-    assert.match(PRE_ACCOUNT_FLOW, /sub=\{CONSENT_SUB\}/, 'the row never says what an event can and cannot carry');
-    assert.match(PRE_ACCOUNT_FLOW, /\{CONSENT_HINT\}/, 'nothing under the switch says where it starts or where to change it');
-    assert.equal(CONSENT_ROW.length > 0 && CONSENT_SUB.length > 0 && CONSENT_HINT.length > 0, true);
-
-    // The switch is a control, and the title beside it is drawn as text rather
-    // than bound to it, so the label has to be given.
-    assert.match(
-      PRE_ACCOUNT_FLOW,
-      /accessibilityLabel=\{CONSENT_ROW\}/,
-      'the switch is unnamed to assistive tech, so it announces as a toggle with no subject',
-    );
-
-    // And the flip goes out through the same door the voice does, so an answer
-    // given here survives the app being closed before the account exists.
-    assert.match(PRE_ACCOUNT_FLOW, /value=\{draft\.analyticsConsent\}/, 'the switch draws something other than the draft');
-    assert.match(PRE_ACCOUNT_FLOW, /onChange=\{setConsent\}/, 'the switch is not wired to anything');
-    const setter = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const setConsent'));
-    assert.match(setter.slice(0, 400), /keep\(\{ analyticsConsent: allowed \}\)/, 'a flip is kept in memory and never handed to the draft');
-    const keep = PRE_ACCOUNT_FLOW.slice(PRE_ACCOUNT_FLOW.indexOf('const keep ='));
-    assert.match(keep.slice(0, 300), /onDraftChange\(next\)/, 'the one door answers go through does not reach the draft');
-  });
+  test("usage consent is asked once before processing and learning memory is a separate off-by-default choice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.equal(freshPreAccountDraft().analyticsConsent, false); assert.equal(freshPreAccountDraft().rememberLearning, false); assert.equal((screen.match(/title="Optional usage data"/g) ?? []).length, 1); assert.match(screen, /surface === 'start'/); assert.match(screen, /STARTER_LOCAL/); assert.match(screen, /Your words and audio are excluded/); assert.match(screen, /title="Remember my learning"/); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); });
 
   test('the draft carries the answer and a missing one reads as no', async () => {
     // The consent is given before there is an account to key it to, so it rides

@@ -46,6 +46,6 @@ describe('profile and settings controls answer a tap', () => {
     assert.match(profile, /<BottomSheet visible=\{sheet === 'tutorVoice'\} title=\{TUTOR_VOICE_TITLE\}/);
     assert.match(profile, /<BottomSheet visible=\{sheet === 'name'\} title="Your name"/);
     assert.match(settings, /accessibilityRole="header"[^>]*>Delete your account\?<\/Text>/);
-    assert.match(shared, /accessibilityRole="header" accessibilityLiveRegion="polite"[^>]*>\{title\}<\/Text>/);
+    assert.match(shared, /accessibilityRole="header"[^>]*>\{snapshot\.current\.title\}<\/Text>/);
   });
 });

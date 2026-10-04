@@ -159,6 +159,8 @@ function objectLiteralAt(source: string, from: number, what: string): string {
 
 /** The `trigger: { ... }` literal handed to the OS. */
 function triggerLiteral(source: string): string {
+  const built = source.indexOf('const triggers =');
+  if (built >= 0) return source.slice(built, source.indexOf('for (const trigger', built));
   const start = source.indexOf('trigger:');
   assert.notEqual(start, -1, 'the native module schedules nothing with a trigger');
   return objectLiteralAt(source, start, 'trigger');
@@ -234,7 +236,9 @@ describe('the reminder pair that talks to the OS', () => {
     assert.equal(scheduled.length, 1, `the native module schedules ${scheduled.length} times, so which trigger repeats is a guess`);
 
     const trigger = triggerLiteral(NATIVE);
-    assert.match(trigger, /SchedulableTriggerInputTypes\.DAILY/, 'the trigger is not the daily repeating one');
+    assert.match(trigger, /SchedulableTriggerInputTypes\.DAILY/, 'legacy daily reminders must remain supported');
+    assert.match(trigger, /SchedulableTriggerInputTypes\.WEEKLY/, 'selected days must repeat weekly');
+    assert.match(trigger, /weekday/, 'weekly reminders must preserve the selected weekday');
     assert.match(trigger, /\bhour\b/, 'the trigger names no hour');
     assert.match(trigger, /\bminute\b/, 'the trigger names no minute');
     assert.doesNotMatch(
@@ -247,7 +251,7 @@ describe('the reminder pair that talks to the OS', () => {
     // A one-shot trigger plus a re-arm is a daily reminder that the app gets to
     // decide about every day, which is exactly the decision Phase 6b refuses to
     // let it have. The OS repeats this one and the app never sees the day pass.
-    assert.doesNotMatch(NATIVE, /TIME_INTERVAL|SchedulableTriggerInputTypes\.(?:DATE|CALENDAR|WEEKLY|MONTHLY|YEARLY)/, 'the reminder uses a trigger that is not a plain daily repeat');
+    assert.doesNotMatch(NATIVE, /TIME_INTERVAL|SchedulableTriggerInputTypes\.(?:DATE|CALENDAR|MONTHLY|YEARLY)/, 'the reminder uses a trigger that is not a plain daily repeat');
     assert.doesNotMatch(NATIVE, /\brepeats\b/, 'a repeats flag means the trigger is one the app can switch off for a day');
     assert.doesNotMatch(
       NATIVE,

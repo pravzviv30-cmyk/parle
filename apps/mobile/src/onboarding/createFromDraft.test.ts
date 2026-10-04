@@ -7,6 +7,7 @@
  * `enabled: false` until the OS has granted anything.
  */
 
+import { starterTasks } from '@luvani/core';
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -49,12 +50,15 @@ describe('the plan is written at account creation', () => {
       const answer = draft({ startLevel: level.key, reason });
       const view = planFor(answer);
       const profile = profileFromDraft(answer, NOW);
-      assert.equal(view.scenes[0]?.id, firstSceneFor(level.key));
+      assert.equal(view.scenes[0]?.id, firstSceneFor(level.key, reason));
       assert.equal(profile.dailyGoalMin, view.minutes);
       assert.deepEqual(profile.learnerGoals, view.goal === null ? [] : [view.goal]);
       assert.equal(profile.brain.cefr.confidence, 'low');
       assert.deepEqual(profile.brain.cefr.evidence, []);
-      assert.match(view.startingReason, level.key === 'getby' ? /skip the first coffee/ : /short café greeting/);
+      assert.match(view.startingReason, /[Hh]elp/);
+      assert.equal(view.starter.id, starterTasks(reason)[0]!.id);
+      assert.equal(profile.practiceDaysPerWeek, null);
+      assert.equal(profile.brain.memory.control?.paused, true);
     }
   });
 
@@ -106,7 +110,7 @@ describe('the plan is written at account creation', () => {
     const reminder = boot.indexOf('await saveReminder(reminderFromDraft(draft))');
     const release = boot.indexOf('done(built)');
     assert.ok(consent > 0 && reminder > consent && release > reminder, 'the app is released before consent and the reminder are written');
-    assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel\)/, 'the first scene ignores the starting level');
+    assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason\)/, 'the first scene ignores the starting level');
     assert.match(
       APP,
       /navigationRef\.resetRoot\(\{\s*index: 1,\s*routes: \[\{ name: 'Tabs' \}, \{ name: 'FirstScene', params: \{ missionId: firstScene\.current \} \}\]/,

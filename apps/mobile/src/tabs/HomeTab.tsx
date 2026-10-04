@@ -36,6 +36,9 @@ import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import { Card, GhostButton, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
+import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
+import { loadSavedStarter } from '../onboarding/savedStarter.ts';
+import type { GuestPractice } from '../onboarding/guestModel.ts';
 import { DailyCard } from '../daily/DailyCard.tsx';
 import { todayItems } from '../daily/catalogue.ts';
 import { useSocial } from '../friends/useSocial.ts';
@@ -74,6 +77,7 @@ export function HomeTab() {
   const greeting = homeGreeting(firstName, Date.now());
 
   // Null here means the storage read has not answered yet.
+  const [starter, setStarter] = useState<GuestPractice | null>(null);
   const [hero, setHero] = useState<HomeMission | null>(null);
   const [readOwner, setReadOwner] = useState(() => scopeGeneration());
   const [readFailed, setReadFailed] = useState(false);
@@ -94,16 +98,18 @@ export function HomeTab() {
       setReadOwner(scope);
       setDaily(todayItems(0, now));
       setHero(null);
+      setStarter(null);
       setStart(null);
       setWeek([]);
       setReadFailed(false);
-      void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadPracticeHistory()])
-        .then(([activity, deck, completions, records, history, packs, checks, events]) => {
+      void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadPracticeHistory(), loadSavedStarter()])
+        .then(([activity, deck, completions, records, history, packs, checks, events, savedStarter]) => {
           if (cancelled || scopeGeneration() !== scope) return;
           // The standing pitches the daily pool and nothing else; no name, no
           // rung and no number from it reaches the page.
           const standing = levelFor(totalXp(activity));
           setDaily(todayItems(standing.index, now));
+          setStarter(savedStarter);
           // One projection of where every scene stands, handed to every rule
           // that draws from it, so the brief and the blocks under it agree.
           const progress = missionStates(missionCompletionsFrom(completions), deck, now);
@@ -148,7 +154,9 @@ export function HomeTab() {
           <Skeleton blocks={[{ height: 328, radius: radius.feature }, { height: 24, width: '60%', radius: radius.field }, { height: 68, radius: radius.tile }, { height: 132, radius: radius.card }]} />
         ) : (
           <>
-            <NextTaskCard />
+            {starter !== null && profile.brain.stats.sessions === 0 ? (
+              <StarterContinuation initial={starter} onTutor={() => nav.navigate('Tutor')} onPlans={() => nav.navigate('Wall', { entry: 'recap' })} />
+            ) : <NextTaskCard />}
 
             <DayCount />
 

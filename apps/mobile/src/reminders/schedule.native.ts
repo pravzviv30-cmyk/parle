@@ -226,22 +226,18 @@ async function ensureReminderChannel(): Promise<void> {
  * the default rather than throwing. A value that came back off a disk should
  * cost the learner the time they picked, never the reminder itself.
  */
-export async function scheduleReminder(time: ReminderTimeId): Promise<ScheduleOutcome> {
+export async function scheduleReminder(time: ReminderTimeId, days?: readonly number[]): Promise<ScheduleOutcome> {
   const preset = reminderTime(time);
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
     await ensureReminderChannel();
-    await Notifications.scheduleNotificationAsync({
-      content: reminderContent(),
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        channelId: REMINDER_CHANNEL_ID,
-        hour: preset.hour,
-        minute: preset.minute,
-      },
-    });
+    const chosen = days ? [...new Set(days)].filter(day => Number.isInteger(day) && day >= 1 && day <= 7) : null;
+    if (chosen && chosen.length === 0) return 'failed';
+    const triggers = chosen ? chosen.map(weekday => ({ type: Notifications.SchedulableTriggerInputTypes.WEEKLY as const, weekday, channelId: REMINDER_CHANNEL_ID, hour: preset.hour, minute: preset.minute })) : [{ type: Notifications.SchedulableTriggerInputTypes.DAILY as const, channelId: REMINDER_CHANNEL_ID, hour: preset.hour, minute: preset.minute }];
+    for (const trigger of triggers) await Notifications.scheduleNotificationAsync({ content: reminderContent(), trigger });
     return 'done';
   } catch {
+    await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
     // The OS refused. The caller must not record this as a reminder that is on,
     // because the row the learner would use to turn it off already says Off.
     return 'failed';

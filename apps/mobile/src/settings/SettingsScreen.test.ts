@@ -191,7 +191,7 @@ describe('the daily reminder on Settings', () => {
       const body = bodyOf(TAB, name);
       assert.match(body, /if \(row === null[^\n]*!ownsReminderNow\(\)\) return;/, `${name} accepts a tap from an unknown or former owner`);
       assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'saveReminder(wanted)'), `${name} can write after a scope change during the permission read`);
-      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'scheduleReminder(wanted.time)'), `${name} can schedule after a scope change`);
+      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'scheduleReminder(wanted.time, wanted.days)'), `${name} can schedule after a scope change`);
     }
     assert.match(TAB, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\}/, 'a former owner can expose the selected reminder time');
   });
@@ -430,7 +430,7 @@ describe('a schedule the phone would not take', () => {
       // the sign flipped: the row would say Off while the notification kept
       // arriving daily, from the one control the learner would use to stop it.
       assert.ok(
-        body.includes('honest.on ? await scheduleReminder(wanted.time) : await cancelReminder()'),
+        body.includes('honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder()'),
         `${name} does not read what the OS answered`,
       );
       assert.ok(
@@ -455,7 +455,7 @@ describe('a schedule the phone would not take', () => {
       // And the disk is put back, so the next launch does not read the lie.
       assert.ok(refused.includes('saveReminder(reverted)'), `${name} leaves the store claiming a reminder that was never set`);
       assert.ok(
-        body.includes('const reverted: StoredReminder = { enabled: row.on,'),
+        body.includes('const reverted: StoredReminder = { ...stored, enabled: row.on,'),
         `${name} works out the rollback for itself instead of using the state reminderRow answered for`,
       );
       assert.ok(
@@ -518,7 +518,7 @@ describe('a schedule the phone would not take', () => {
 
   test('that check bites when the row moves over a schedule that was refused', () => {
     // The defect itself: the OS is asked, its answer is dropped, the row moves.
-    const dropped = "{ const outcome = await scheduleReminder(wanted.time); setStored(wanted); }";
+    const dropped = "{ const outcome = await scheduleReminder(wanted.time, wanted.days); setStored(wanted); }";
     assert.equal(
       writtenBefore(dropped, "outcome === 'failed'", 'setStored(wanted)'),
       false,
@@ -541,13 +541,13 @@ describe('a schedule the phone would not take', () => {
     // A rollback worked out from the thumb rather than from reminderRow.
     const negated = 'const reverted: StoredReminder = { enabled: !next, time: chosen.value };';
     assert.ok(
-      !negated.includes('const reverted: StoredReminder = { enabled: row.on,'),
+      !negated.includes('const reverted: StoredReminder = { ...stored, enabled: row.on,'),
       'a rollback computed by negating the switch passes as a value the module answered for',
     );
 
     // And the shape the screen actually ships passes each of them.
     const shipped =
-      "{ const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();" +
+      "{ const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();" +
       " if (outcome === 'failed') { await saveReminder(reverted); setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); return; }" +
       ' setStored(wanted); }';
     assert.equal(writtenBefore(shipped, "outcome === 'failed'", 'setStored(wanted)'), true);

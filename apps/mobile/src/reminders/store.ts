@@ -113,7 +113,7 @@ async function read(key: string, strict: boolean): Promise<StoredReminder | null
     const stored = parsed.reminder as Partial<StoredReminder> | null | undefined;
     if (typeof stored !== 'object' || stored === null) return unreadable();
     if (typeof stored.enabled !== 'boolean') return unreadable();
-    return { enabled: stored.enabled, time: presetOf(stored.time) };
+    return { enabled: stored.enabled, time: presetOf(stored.time), ...(Array.isArray(stored.days) ? { days: [...new Set(stored.days.filter(day => Number.isInteger(day) && day >= 1 && day <= 7))] } : {}) };
   } catch (error) {
     if (strict) throw error;
     return null;

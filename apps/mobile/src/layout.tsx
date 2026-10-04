@@ -15,7 +15,7 @@
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
-import { type ReactNode } from 'react';
+import { type ReactNode, type Ref } from 'react';
 import {
   View,
   ScrollView,
@@ -24,12 +24,19 @@ import {
   Platform,
   useWindowDimensions,
   KeyboardAvoidingView,
+  type ScrollViewProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT } from './theme.ts';
-import { screenInsets } from './responsiveLayout.ts';
+import { compactPhone, screenInsets } from './responsiveLayout.ts';
+
+/** Screens consume the frame's compact mode rather than measuring or fixing their own width. */
+export function useCompactPhone() {
+  const { width, height } = useWindowDimensions();
+  return compactPhone(width, height);
+}
 
 /** Where the bottom of a screen ends. */
 export type ScreenBottom = 'tab' | 'inset' | 'none';
@@ -141,8 +148,12 @@ export function Screen({
 }
 
 type ScrollScreenProps = ScreenProps & {
+  /** Inside a Sheet, that sheet owns scrolling, insets and its one heading. */
+  embedded?: boolean;
   /** Pin a short body to the vertical centre instead of the top. */
   center?: boolean;
+  scrollRef?: Ref<ScrollView>;
+  onScroll?: ScrollViewProps['onScroll'];
 };
 
 /**
@@ -153,7 +164,10 @@ type ScrollScreenProps = ScreenProps & {
  */
 export function ScrollScreen({
   children,
+  embedded = false,
   center,
+  scrollRef,
+  onScroll,
   ground,
   padded,
   topGap,
@@ -162,6 +176,9 @@ export function ScrollScreen({
   footer,
   avoidKeyboard,
 }: ScrollScreenProps) {
+  if (embedded) {
+    return <View style={{ gap: space(4) }}>{children}{footer}</View>;
+  }
   return (
     <Screen
       ground={ground}
@@ -173,6 +190,9 @@ export function ScrollScreen({
       avoidKeyboard={avoidKeyboard}
     >
       <ScrollView
+        ref={scrollRef}
+        onScroll={onScroll}
+        scrollEventThrottle={100}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{
           flexGrow: 1,

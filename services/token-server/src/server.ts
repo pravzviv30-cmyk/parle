@@ -1,3 +1,5 @@
+import { guestSpeechAvailable, transcribeGuestTake } from './onboardingSpeech.ts';
+import { parseGuestMetric } from './guestMetrics.ts';
 /**
  * The token server.
  *
@@ -5,6 +7,9 @@
  * drill scoring, account deletion, and privacy-filtered product events.
  */
 
+import { MemoryGuestStore, RedisGuestStore, createGuest, guestKey, guestAttempt, claimGuest } from './onboardingGuest.ts';
+import { STARTER_GOALS, starterTasks, checkStarter, type StarterGoal, type StarterDrink } from '@luvani/core';
+import { readAudio } from './drillScore.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import {paidService,validatePaidTutorCall} from './paidService.ts';
@@ -86,6 +91,12 @@ import {
   privateSignal,
   type RateLimitRule,
 } from './rateLimit.ts';
+
+const guestStore = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new RedisGuestStore(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestStore();
+const GUEST_START_LIMIT = { name: 'guest-start', limit: 5, windowSec: 86400 };
+const GUEST_EVENT_LIMIT = { name: 'guest-evidence', limit: 80, windowSec: 3600 };
+const GUEST_REPLY_LIMIT = { name: 'guest-reply', limit: 20, windowSec: 3600 };
 
 const PORT = Number(process.env.PORT ?? 8787);
 const originPolicy = createOriginPolicy(process.env);
@@ -275,7 +286,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
     // unlisted one, and a web drill that cannot send its line is never scored.
     res.writeHead(204, {
       'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS',
-      'access-control-allow-headers': `content-type, authorization, x-luvani-installation, ${DRILL_USER_HEADER}, ${DRILL_REFERENCE_HEADER}`,
+      'access-control-allow-headers': `content-type, authorization, x-luvani-installation, x-luvani-guest, x-luvani-task, x-luvani-active-seconds, ${DRILL_USER_HEADER}, ${DRILL_REFERENCE_HEADER}`,
       'access-control-max-age': '600',
     });
     return res.end();
@@ -325,6 +336,84 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (!(await withinLimits(req, res, [[RATE_LIMITS.tutorWorkUser, 'user', body.userId]]))) return;
       const result = await tutorSessionOperation(tutorSessions, tutorOperation as TutorOperation, body);
       return json(res, 200, result);
+    }
+
+    if (req.method === 'POST' && url.pathname.startsWith('/onboarding/')) {
+      if (url.search) return json(res, 400, { error: 'query parameters are not accepted' });
+      const installation = installationSignal(req);
+      if (!installation) return json(res, 400, { error: 'installation is required' });
+      const installHash = privateSignal(rateLimitSalt, 'installation', installation);
+      if (!(await withinLimits(req, res, [ipCheck(req, url.pathname === '/onboarding/start' ? GUEST_START_LIMIT : ['/onboarding/event', '/onboarding/account-event'].includes(url.pathname) ? GUEST_EVENT_LIMIT : GUEST_REPLY_LIMIT)]))) return;
+      if (url.pathname === '/onboarding/start') {
+        const body = await readJson(req, 2048);
+        if (body.eligible !== true || !STARTER_GOALS.includes(body.goal as StarterGoal) || !['coffee', 'tea'].includes(String(body.drink)) || ![5, 10, 15, 'none'].includes(body.minutes as number)) return json(res, 400, { error: 'valid eligibility and plan required' });
+        try { return json(res, 200, { ...await createGuest(guestStore, { installation: installHash, eligible: true, goal: body.goal as StarterGoal, drink: body.drink as StarterDrink, minutes: body.minutes as 5 | 10 | 15 | 'none', analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' }), speechAvailable: guestSpeechAvailable(process.env) }); }
+        catch { return json(res, 409, { error: 'starter already used', message: 'This device has already started its guest practice today. Your saved practice is still available offline.' }); }
+      }
+      if (url.pathname === '/onboarding/account-event') {
+        const body = await readJson(req, 512);
+        const identity = await users.resolve(req.headers.authorization, process.env.LUVANI_LOCAL_DEVELOPMENT === '1' ? String(body.userId ?? '') : null);
+        if (!identity.ok) return json(res, identity.status, { error: identity.message });
+        if (Object.keys(body).some(key => !['name', 'evidence', 'analyticsAllowed', ...(process.env.LUVANI_LOCAL_DEVELOPMENT === '1' ? ['userId'] : [])].includes(key))) return json(res, 400, { error: 'unexpected metric fields' });
+        const event = parseGuestMetric({ name: body.name, evidence: body.evidence });
+        if (!event) return json(res, 400, { error: 'unknown starter metric' });
+        if (body.analyticsAllowed === true) {
+          try { await guestStore.metric(event, 'full'); } catch { /* Optional aggregate evidence. */ }
+        }
+        return json(res, 200, { ok: true });
+      }
+      const token = req.headers['x-luvani-guest'];
+      if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) return json(res, 401, { error: 'guest capability required' });
+      const guest = await guestStore.get(guestKey(token));
+      if (!guest || guest.installation !== installHash) return json(res, 401, { error: 'guest capability invalid' });
+      if (url.pathname === '/onboarding/event') {
+        const event = parseGuestMetric(await readJson(req, 512));
+        if (!event) return json(res, 400, { error: 'unknown starter metric' });
+        if (guest.analyticsAllowed && guest.createdAt + 86400000 > Date.now() && !guest.owner) {
+          try { await guestStore.metric(event, guest.variant); } catch { /* Optional aggregate evidence never blocks learning. */ }
+        }
+        return json(res, 200, { ok: true });
+      }
+      if (url.pathname === '/onboarding/claim') {
+        const claimBody = await readJson(req, 1024);
+        const identity = await users.resolve(req.headers.authorization, process.env.LUVANI_LOCAL_DEVELOPMENT === '1' ? String(claimBody.userId ?? '') : null);
+        if (!identity.ok) return json(res, identity.status, { error: identity.message });
+        let claimed;
+        try { claimed = await claimGuest(guestStore, token, identity.userId); } catch { return json(res, 409, { error: 'guest practice already claimed or expired' }); }
+        // The existing one-time installation/account boundary grants the trial, not this route.
+        const trial = await claimTrialWithEvidence(store, eventSink, identity.userId, claimed.installation, privateSignal(rateLimitSalt, 'user', identity.userId), false);
+        if (!trial) return json(res, 200, { secondsRemaining: 0, trialEligible: false });
+        const entitlement = await store.get(identity.userId);
+        if (entitlement.plan === 'trial' && claimed.seconds > 0) {
+          if (!(await store.recordSessionGrant(identity.userId, claimed.id, entitlement))) return json(res, 409, { error: 'usage changed, retry saving' });
+          await store.consume(identity.userId, claimed.seconds, claimed.id);
+        }
+        return json(res, 200, { secondsRemaining: secondsRemaining(await store.get(identity.userId)) });
+      }
+      if (url.pathname === '/onboarding/attempt' || url.pathname === '/onboarding/audio') {
+        if (guest.expiresAt <= Date.now() || guest.owner) return json(res, 410, { error: 'guest practice expired' });
+        const audio = url.pathname === '/onboarding/audio';
+        // Guest capabilities are not an authenticated paid-admission context.
+        if (audio && !guestSpeechAvailable(process.env)) return json(res, 503, { error: 'guest speech unavailable; type instead' });
+        const body = audio ? {} : await readJson(req, 4096);
+        const taskId = audio ? req.headers['x-luvani-task'] : body.taskId;
+        const task = starterTasks(guest.goal, guest.drink, guest.minutes).find(task => task.id === taskId);
+        if (!task) return json(res, 400, { error: 'unknown starter task' });
+        if (!audio && (typeof body.reply !== 'string' || !body.reply.trim() || body.reply.length > 600)) return json(res, 400, { error: 'reply required' });
+        // Reserve before vendor work. Parallel audio calls and failures cannot buy unbounded transcription.
+        let feedback;
+        try { feedback = await guestAttempt(guestStore, token, task.id, audio ? 'pending transcription' : body.reply as string, audio ? 'spoken' : 'typed', Date.now(), audio ? Number(req.headers['x-luvani-active-seconds']) : Number(body.activeSeconds)); }
+        catch { return json(res, 409, { error: 'starter attempt limit reached' }); }
+        if (!audio) return json(res, 200, { ...feedback, reply: body.reply });
+        let take;
+        try { take = await readAudio(req); } catch { return json(res, 413, { error: 'recording exceeds its limit' }); }
+        if (!take.length) return json(res, 400, { error: 'recording required' });
+        let transcript: string | null = null;
+        try { transcript = await withRequestSignal(req, res, signal => transcribeGuestTake(take, signal), 12000); } catch { /* no transcript or audio in logs */ }
+        if (!transcript || transcript.length > 600) return json(res, 503, { error: 'transcription unavailable' });
+        return json(res, 200, { ...checkStarter(task, transcript, 'spoken'), secondsUsed: feedback.secondsUsed, reply: transcript });
+      }
+      return json(res, 404, { error: 'unknown starter route' });
     }
 
     // RevenueCat's event is a doorbell, not authority. Authenticate and dedupe

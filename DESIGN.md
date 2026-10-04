@@ -779,7 +779,7 @@ placeholders on paper-coloured ground.
 ### Video review implementation, 4 October 2026
 
 The founder approved expanding the motion contract. `motion/Feedback.tsx` is the
-sole new animation host. It applies opacity and at most 4pt translation to a
+shared animation host for the post-onboarding app. It applies opacity and at most 4pt translation to a
 real selection, setup-context change, durable save, completed local practice,
 requested help or reopened kept material. Timings are 200/260/440/320/200/260ms
 in `motion/feedbackPolicy.ts`; the existing earned-only confetti falls once over
@@ -799,3 +799,9 @@ bundled coffee line in the selected tutor's voice. Empty Practice uses that same
 card. Colour belongs to meaning: blue next task, sun local café practice, coral
 recap with a white French reading surface, mint independently earned can-do.
 The first recap view leads with actual French, never a count or illustration.
+
+## Onboarding interaction update — October 2026
+
+The opening, goal choices and result use existing vibrant vector brand illustrations with no mascot. Omit decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions lead with one readable heading, illustrated full-width options and deliberate Next; the shared primary control uses radius.control. Keep meaningful native secondary sheets over the parent page.
+
+Onboarding motion is interruptible and event-driven: card 180 ms; Next arrow 100/140 ms; page opacity/translation 270 ms; progress transform 220 ms; illustration pulse 140/220 ms or 300 ms success settle; sheet 310/250 ms. No loops or blocking celebrations. Native uses supported opacity/transform drivers; web uses its supported driver. Live Reduce Motion changes cancel to final states. One accepted-action haptic, no duplicate selection tick and no vibration during recording; honor the Settings preference. Preserve screen-reader heading focus, modal trapping/restoration, keyboard/safe-area behavior and the visible Close/Cancel action.

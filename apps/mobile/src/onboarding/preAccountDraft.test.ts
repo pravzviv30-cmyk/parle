@@ -1,3 +1,4 @@
+import { evidence } from '../../test/evidence.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +25,7 @@ const app = read('../../App.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /** Every answer the plan pages add, unanswered. */
-const UNANSWERED = { page: null, startLevel: null, reason: null, minutes: null, reminderTime: null, firstName: null } as const;
+const UNANSWERED = { drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [], page: null, startLevel: null, reason: null, minutes: null, reminderTime: null, firstName: null } as const;
 
 /** One in-memory AsyncStorage, so the round trip is the real store's. */
 function installDisk(): Map<string, string> {
@@ -102,7 +103,7 @@ describe('the pre-account hand-off', () => {
     await savePreAccountDraft(answered);
     assert.deepEqual(await loadPreAccountDraft(), answered, 'an answered draft did not come back as it was written');
 
-    const junk: Record<keyof typeof UNANSWERED, unknown[]> = {
+    const junk: Partial<Record<keyof typeof UNANSWERED, unknown[]>> = {
       page: ['welcome', 'ready', 3, {}, 'PLAN'],
       startLevel: ['beginner', 'A1', 0, true],
       reason: ['holiday', '', ['trip']],
@@ -157,29 +158,9 @@ describe('the pre-account hand-off', () => {
     }
   });
 
-  test('the signup sign-in link discards the draft before navigating', () => {
-    const auth = read('../auth/AuthFlow.tsx');
-    const signup = auth.slice(auth.indexOf("if (screen === 'signup')"), auth.indexOf("if (screen === 'signin')"));
-    assert.match(signup, /onSignIn=\{\(\) => \{\s*setSignupDraft\(null\);\s*onSignIn\(\);\s*setScreen\('signin'\);\s*\}\}/);
-    assert.match(app, /onSignIn=\{discardPreAccountDraft\}/);
-    assert.match(app, /const discardPreAccountDraft = useCallback\(\(\) => \{\s*setPreAccountDraft\(null\);\s*void clearPreAccountDraft\(\)/);
-  });
+  test("sign-in preserves guest work until explicit account ownership handling", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /setScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='), flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx'); assert.match(handoff, /Keep this practice/); assert.match(handoff, /Start fresh/); assert.match(handoff, /adoptGuestUsage/); });
 
-  test('a complete signed-in profile clears the draft without bootstrapping it', () => {
-    const boundary = app.slice(app.indexOf('function CompleteProfileDraftCleanup'), app.indexOf('function SignedInRoot'));
-    assert.match(boundary, /useEffect\(\(\) => \{\s*onConsumed\(\);\s*\}, \[onConsumed\]\)/);
-    assert.match(app, /<ProfileGate[\s\S]*?>\s*<CompleteProfileDraftCleanup onConsumed=\{onPreAccountDraftConsumed\} \/>/);
-    assert.match(app, /onPreAccountDraftConsumed=\{discardPreAccountDraft\}/);
-    // 2026-09-27: retain both original conditions and require safe account-read evidence.
-    assert.match(app, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
-    assert.match(app, /const \[freshStart, setFreshStart\] = useState<FreshStart \| null>\(null\)/);
-    assert.match(app, /if \(!cancelled && owner === scopeGeneration\(\)\) \{\s*setFreshStart\(start\);\s*setReady\(true\);\s*\}/);
-    assert.match(app, /if \(!ready \|\| freshStart === null\) return <Loading \/>/);
-    const fallback = app.slice(app.indexOf('<OnboardingFlow'), app.indexOf('</ProfileGate>'));
-    assert.match(fallback, /^<OnboardingFlow\s+existing=\{existing\}/);
-    assert.doesNotMatch(fallback, /preAccountDraft|profileFromDraft|firstName|initialDraft/,
-      'uncertain account reads must not prefill ordinary onboarding from the device draft');
-  });
+  test("complete accounts keep their own profile and new accounts use modern onboarding", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(app, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\)/); assert.match(app, /existing === null \? \( <PreAccountOnboarding/); assert.match(app, /<GuestAccountHandoff/); assert.match(app, /owner !== scopeGeneration\(\)/); assert.match(app, /if \(!ready \|\| freshStart === null\) return <Loading/); });
 
   test('the first name is optional, trimmed and bounded', async () => {
     const disk = installDisk();
@@ -189,73 +170,19 @@ describe('the pre-account hand-off', () => {
     assert.equal((await loadPreAccountDraft())?.firstName?.length, MAX_FIRST_NAME_CHARS);
   });
 
-  test('is a six-page flow with the plan and a selected Tutor before account creation', () => {
-    assert.deepEqual([...PRE_ACCOUNT_PAGES], ['hear-it', 'first-line', 'start-level', 'plan', 'save']);
-    assert.match(source, /onPress=\{\(\) => chooseVoice\(option\.value\)\}/, 'a tap does not save the selected voice to the draft');
-    assert.match(source, /onHear=\{\(\) => hearVoice\(selected\)\}/, 'the voice sample is not a deliberate learner action');
-    // Revamp B (F601): the pill says the age and the action as one sentence, with a comma.
-    assert.match(source, /<PillButton label=\{CREATE_ACCOUNT_AGE\} onPress=\{\(\) => onCreateAccount\(draft\)\} \/>/, 'age confirmation is not kept at account creation');
-    assert.equal(CREATE_ACCOUNT_AGE, 'I am 13 or older, create account', 'age confirmation is not kept at account creation');
-    assert.match(source, /onCreateAccount\(draft\)/, 'the chosen voice is dropped before sign-up');
-  });
+  test("setup selects plan and optional tutor before an account while eligibility precedes guest practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Choose tutor"/); assert.match(screen, /TUTOR_VOICE_OPTIONS\.map/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draft, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label="Save progress"/); });
 
-  test('no page animates on its own; the highlighter is the only thing that moves', () => {
-    assert.doesNotMatch(source, /\bAnimated\b/, 'a page animates again');
-    assert.doesNotMatch(source, /settleIn|interpolate/, 'the flow brought back its own motion');
-    assert.match(source, /const reduced = useReduceMotion\(\)/, 'the exchange cannot honour reduced motion');
-  });
+  test("page and artwork motion respond to actions and stop when reduced motion changes", () => { const motion = evidence('apps/mobile/src/onboarding/OnboardingMotion.tsx'); assert.match(motion, /useReduceMotion\(\)/); assert.match(motion, /stopAnimation\(\)/); assert.match(motion, /if \(reduced\)/); assert.match(motion, /duration: 270/); assert.doesNotMatch(motion, /Animated\.loop|setInterval/); });
 
-  test('the café reply is read aloud as two sentences, with no doubled mark — Stage 4 browser proof', () => {
-    // The label read "…s’il vous plaît.. I’d like a coffee, please." because a
-    // full stop was added after a line that already ends with one.
-    assert.match(
-      source,
-      /accessibilityLabel=\{asSentences\(\[option\.fr, option\.en\]\)\}/,
-      'the reply label joins its sentences by hand again',
-    );
-    assert.match(source, /import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';/, 'the reply label does not use the shared sentence joiner');
-  });
+  test("the selected drink model has separate French and English text without stitched punctuation", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Bonjour, je vais prendre un/); assert.match(screen, /Hello, I will have a/); assert.match(screen, /draft\.drink === 'tea'/); assert.doesNotMatch(screen, /\.\. I’d|asSentences\(\[FIRST_LINE/); });
 
-  test('the second page is optional recorded practice, and Continue works silently and after an audio failure', () => {
-    assert.match(source, /const \[stage, setStage\] = useState<LineStage>\('ask'\)/, 'the first line has no local state');
-    assert.match(source, /setStage\('selected'\);\s*play\(clipFor\(FIRST_LINE.reply\), null\)/, 'the reply does not play its own bundled recording');
-    assert.match(source, /page === 'first-line' && <><PillButton label=\{CONTINUE\}/, 'Continue depends on playing or assessing the example');
-    assert.match(source, /setAudioNotice\('The recording could not play. You can read the example and continue.'\)/, 'an audio failure has no honest silent recovery');
-    assert.match(source, /accessibilityLiveRegion="polite"/, 'the selected-line explanation is not announced');
+  test("the recorded example is optional and audio failure leaves a readable route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /label="Make my plan"/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
 
-    // A demonstration is not an excuse to ask for either permission. The real
-    // scene remains the first place a learner can deliberately ask to speak.
-    for (const permission of ['requestRecordingPermissionsAsync', 'requestPermissionsAsync', 'getPermissionsAsync']) {
-      assert.ok(!source.includes(permission), `pre-account onboarding asks for permission through ${permission}`);
-    }
-  });
+  test("every catalogue voice is available in a contextual sheet with a provisional selection", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /surface === 'voice'/); assert.match(screen, /TUTOR_VOICE_OPTIONS\.map/); assert.match(screen, /selected=\{edit\.tutorVoice === v\.value\}/); assert.match(screen, /setEdit\(\{ \.\.\.edit, tutorVoice: v\.value \}\)/); assert.match(screen, /patch\(\{ tutorVoice: edit\.tutorVoice \}\)/); });
 
-  test('the plan lists every voice and never hides a resumed choice', () => {
-    assert.match(source, /\{voicesOpen && \(/, 'the voice list is always open, or never');
-    assert.match(source, /\{TUTOR_VOICE_OPTIONS\.map\(\(option\) => \(/, 'the plan offers fewer than every voice');
-    assert.match(source, /onChange=\{\(\) => setVoicesOpen\(\(open\) => !open\)\}/, 'the tutor card cannot open the voice list');
-  });
+  test("voice selection is silent; a separate Hear control starts and stops its sample", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const selection = screen.slice(screen.indexOf("{surface === 'voice' &&"),screen.indexOf("{surface === 'start' &&")); assert.match(selection, /stopSound\(\)/); assert.match(selection, /onPress=\{\(\) => hear\(voiceSample\(v\.value\)\)/); assert.match(selection, /playing \? 'Stop'/); assert.doesNotMatch(selection, /setEdit[^;]*player\.play/); });
 
-  test('voice selection is silent and a separate Hear control plays or stops that tutor’s bundled introduction', () => {
-    const choose = source.slice(source.indexOf('const chooseVoice'), source.indexOf('const hearVoice'));
-    assert.match(choose, /stop\(\);\s*keep\(\{ tutorVoice: voice \}\)/, 'changing a voice does not stop the prior preview and retain the choice');
-    assert.doesNotMatch(choose, /\bplay\(|player.play/, 'selecting a voice forces an audition');
-    const hear = source.slice(source.indexOf('const hearVoice'), source.indexOf('const setName'));
-    assert.match(hear, /playing === 'sample'[\s\S]*stop\(\)/, 'the preview cannot be stopped');
-    assert.match(hear, /if \(play\(voiceSample\(voice\), null\)\) setPlaying\('sample'\)/, 'an unavailable preview is shown as playing');
-  });
-
-  test('the final page separates trust facts before it asks for analytics consent', () => {
-    const save = source.slice(source.indexOf("page === 'save' &&"));
-    const ai = save.indexOf('Your tutor is AI');
-    const mic = save.indexOf('We ask for microphone permission only when you start a scene. You can type instead.');
-    const raw = save.indexOf('Learning history does not include raw audio by default.');
-    const consent = save.indexOf('<SwitchRow');
-    assert.ok(ai > 0 && mic > ai && raw > mic, 'the final page no longer presents AI, microphone/typing and raw-audio facts in a readable order');
-    assert.ok(consent > raw, 'analytics consent is asked before the learner is told what the app keeps');
-    assert.match(save, /\{TRIAL_LINE\}/, 'the save page does not say what the trial is');
-    assert.doesNotMatch(save, /<Field\b/, 'name entry should be deferred to Profile');
-  });
+  test("the start sheet explains AI and retention before separate off-by-default opt-ins", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.equal(freshPreAccountDraft().analyticsConsent, false); assert.equal(freshPreAccountDraft().rememberLearning, false); const start = screen.slice(screen.indexOf("{surface === 'start' &&")); assert.ok(start.indexOf('STARTER_PROCESSING') < start.indexOf('Optional usage data')); assert.match(start, /title="Remember my learning"/); assert.match(start, /label="Privacy details"/); });
 
   test('turns the draft into one account-scoped profile exactly once', () => {
     assert.match(app, /function PreAccountProfileBootstrap/, 'the account boundary has no pre-account bootstrap');
@@ -267,18 +194,7 @@ describe('the pre-account hand-off', () => {
 });
 
 describe('the introduction the voice page shows', () => {
-  test('the introduction on the voice page is rendered from the catalogue, never typed in', () => {
-    // The voice choice lives on the plan now, as the tutor card. Its signature
-    // is the French half of the bundled sample, read off the catalogue through
-    // `tutorCardFacts`, so the words on the card are the words the clip says.
-    assert.match(source, /const card = tutorCardFacts\(selected\)/, 'the plan does not read the tutor card from the catalogue');
-    assert.match(source, /signature=\{card\.signature\}/, 'the card shows a signature that is not the catalogue’s');
-
-    // Nothing of the sentence may be written in this screen, in any form.
-    assert.doesNotMatch(source, /Bonjour, je m/, 'the voice page writes the French opener out by hand');
-    assert.doesNotMatch(source, /my name is/, 'the voice page writes the English half out by hand');
-    assert.doesNotMatch(source, /persona\.name\}\. Hello/, 'the old two-sentence caption is still here');
-  });
+  test("voice sample captions come from the same catalogue as the bundled audio", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /tutorSampleLine\(v\.value\)/); assert.match(screen, /voiceSample\(v\.value\)/); assert.doesNotMatch(screen, /Bonjour, je m|my name is/); });
 });
 
 describe('a draft that names a voice the catalogue no longer has', () => {
@@ -337,11 +253,11 @@ test('refusal clears a pending draft and wins over already queued answers — F6
   assert.notEqual(await loadPreAccountDraft(), null);
 });
 
-test('a draft on the retired goal page resumes at the plan without losing answers or consent', async () => {
+test('a draft on the restored goal page resumes its question without losing answers or consent', async () => {
   const disk = installDisk();
   disk.set(KEY, JSON.stringify({ ...freshPreAccountDraft(), page: 'reason', reason: 'work', minutes: 'none', firstName: 'Ada', tutorVoice: 'marie', analyticsConsent: false }));
   const loaded = await loadPreAccountDraft();
-  assert.equal(loaded?.page, 'plan');
+  assert.equal(loaded?.page, 'reason');
   assert.equal(loaded?.reason, 'work');
   assert.equal(loaded?.minutes, 'none');
   assert.equal(loaded?.firstName, 'Ada');

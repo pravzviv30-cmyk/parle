@@ -11,8 +11,8 @@
  *
  * Revamp B (F601): the provider doors lead the body, above an "or" rule and the
  * three fields, the way the approved board draws them. The Apple pill sits
- * above the Google one and only where the platform offers it, which today
- * means iOS. Sign-in and sign-up draw the same doors in the same order on
+ * above the Google one where the platform offers native or browser OAuth.
+ * Sign-in and sign-up draw the same doors in the same order on
  * purpose: a learner who cannot remember which one they used last time should
  * not have to find out from a screen that offers fewer.
  */
@@ -30,7 +30,7 @@ import { appleSignInOffered } from './apple.ts';
 import { planFor } from '../onboarding/plan.ts';
 import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 
-export function SignUpScreen({ onBack, onSignIn, planDraft = null }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null }) {
+export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = false }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null; embedded?: boolean }) {
   const { adapter } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +46,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null }: { onBack: (
   const busy = pending !== null;
   const plan = planDraft === null ? null : planFor(planDraft);
   // Asked once, and false until it answers. The Apple door is drawn only where
-  // the platform actually opens it; Android and web never do.
+  // the platform can open it; the adapter checks provider configuration.
   const [appleOffered, setAppleOffered] = useState(false);
   useEffect(() => {
     let alive = true;
@@ -112,8 +112,9 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null }: { onBack: (
 
   return (
     <ScrollScreen
+      embedded={embedded}
       avoidKeyboard
-      header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
+      header={embedded ? undefined : <ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
         <PillButton
           label={authButtonLabel('createAccount', pending === 'createAccount')}
@@ -123,23 +124,19 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null }: { onBack: (
       }
     >
       {/* A working title on the paper itself, then what an account is for. */}
-      <View style={st.head}>
+      {!embedded && <View style={st.head}>
         <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Create your account</Text>
-      </View>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
-        An account keeps your plan, your lines and what your tutor remembers.
-      </Text>
-      {plan && <View style={{ gap: space(1), marginTop: space(3) }}>
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>Your start: {plan.scenes[0]?.titleEn}</Text>
-        <Text style={[type.small, { color: paper.inkSoft }]}>{plan.startingReason}</Text>
-        <Text style={[type.small, { color: paper.inkSoft }]}>
-          {plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a flexible practice routine.`} You can change your plan later in Profile.
-        </Text>
       </View>}
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>
+        Keep this phrase and continue on another device.
+      </Text>
+
+
+      {plan && <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{plan.starter.title}</Text>}
 
       {/* The provider doors lead the form. Apple is an ink pill, drawn only where
           the platform offers it; Google is the white pill beneath it. */}
-      <View style={st.doors}>
+      <View style={[st.doors, embedded && { marginTop: 0 }]}>
         {appleOffered && (
           <PillButton
             label={authButtonLabel('apple', pending === 'apple')}

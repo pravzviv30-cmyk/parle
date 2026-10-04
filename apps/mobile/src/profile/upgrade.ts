@@ -161,6 +161,9 @@ function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
     // username, so the two branches say the same thing about everything else.
     return {
       ...(record as unknown as UpgradedProfile),
+      ...(record.practiceDaysPerWeek !== undefined ? { practiceDaysPerWeek: record.practiceDaysPerWeek === 'none' ? 'none' : [3,5,7].includes(Number(record.practiceDaysPerWeek)) && typeof record.practiceDaysPerWeek === 'number' ? record.practiceDaysPerWeek as 3 | 5 | 7 : null } : {}),
+      ...(record.onboardingGoal !== undefined ? { onboardingGoal: ['food','trip','family','moving','work','because'].includes(String(record.onboardingGoal)) ? String(record.onboardingGoal) : null } : {}),
+      ...(record.onboardingDrink !== undefined ? { onboardingDrink: record.onboardingDrink === 'tea' || record.onboardingDrink === 'coffee' ? record.onboardingDrink : null } : {}),
       version: 8,
       name: typeof record.name === 'string' ? record.name : null,
       dob,
@@ -180,6 +183,9 @@ function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
   if (version === 4 || version === 5 || version === 6 || version === 7 || version === 8) {
     return {
       ...(record as unknown as UpgradedProfile),
+      ...(record.practiceDaysPerWeek !== undefined ? { practiceDaysPerWeek: record.practiceDaysPerWeek === 'none' ? 'none' : [3,5,7].includes(Number(record.practiceDaysPerWeek)) && typeof record.practiceDaysPerWeek === 'number' ? record.practiceDaysPerWeek as 3 | 5 | 7 : null } : {}),
+      ...(record.onboardingGoal !== undefined ? { onboardingGoal: ['food','trip','family','moving','work','because'].includes(String(record.onboardingGoal)) ? String(record.onboardingGoal) : null } : {}),
+      ...(record.onboardingDrink !== undefined ? { onboardingDrink: record.onboardingDrink === 'tea' || record.onboardingDrink === 'coffee' ? record.onboardingDrink : null } : {}),
       version: 8,
       name: typeof record.name === 'string' ? record.name : null,
       dob,

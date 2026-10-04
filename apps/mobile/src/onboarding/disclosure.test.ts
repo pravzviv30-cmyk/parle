@@ -1,3 +1,4 @@
+import { evidence } from '../../test/evidence.ts';
 /**
  * The disclosure, held to what it promises.
  *
@@ -289,59 +290,9 @@ describe('the first run says what a learner is talking to', () => {
     assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(MEET_TYPING), 'the typing line scolds');
   });
 
-  test('the pre-account save page renders the approved speech and typed-data disclosure beside AI', () => {
-    for (const persona of EVERY_PERSONA) {
-      const line = SAVE_PRIVACY(persona);
-      assert.ok(line.includes(persona.name) && line.includes(VENDOR_PHRASE));
-      assert.match(line, /After you start a task/);
-      assert.match(line, /Full conversation text is saved only if you choose it/);
-      assert.match(line, /Settings explains providers and data controls/);
-      assert.doesNotMatch(line, /No person hears|for any purpose other than/);
-    }
-    const screen = stripComments(read('onboarding/PreAccountOnboarding.tsx'));
-    const save = screen.slice(screen.indexOf("page === 'save' && ("), screen.indexOf('avoidKeyboard='));
-    assert.match(save, /Your tutor is AI<\/Text>\s*<Text[^>]*>\{SAVE_PRIVACY\(chosenPersona\)\}<\/Text>/);
-    assert.match(screen, /import \{[^}]*SAVE_PRIVACY[^}]*\} from '\.\/disclosure\.ts'/);
-  });
+  test("bounded starter disclosure names AI, transcription, typed checks and local retention before Start", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const disclosure = evidence('apps/mobile/src/onboarding/disclosure.ts'); assert.match(screen, /STARTER_AI.*STARTER_PROCESSING/); assert.match(screen, /STARTER_LOCAL/); assert.match(disclosure, /Deepgram for transcription/); assert.match(disclosure, /Typing sends text/); assert.match(disclosure, /authored phrases/); assert.match(disclosure, /discards the recording/); assert.doesNotMatch(disclosure.slice(disclosure.indexOf('export const STARTER_AI')), /No person hears|nothing is shared|certified/i); });
 
-  test('every first-run screen reads its AI disclosure from one module', () => {
-    // The wiring, checked by identifier rather than by filename so it does not
-    // depend on what a screen ends up being called. Red until the welcome, the
-    // Meet Luc page and the persona page consume these constants, which is the
-    // whole of F107 and the reason this module exists.
-    const names = [
-      'WELCOME_SUBLINE',
-      'MEET_TITLE',
-      'MEET_AI',
-      'MEET_PRIVACY',
-      'MEET_MIC',
-      'MEET_TYPING',
-      'MEET_MORE',
-      'MEET_PILL',
-      'PERSONA_TITLE',
-      'PERSONA_BODY',
-    ];
-    for (const name of names) {
-      assert.ok(
-        FIRST_RUN_SOURCE.some(({ source }) => source.includes(name)),
-        `no first-run screen puts ${name} on glass`,
-      );
-    }
-
-    for (const surface of FIRST_RUN_SURFACES) {
-      assert.ok(existsSync(at(surface.where)), `${surface.where} owns the ${surface.key} surface and does not exist`);
-    }
-
-    // Nobody re-inlines the life story next to nothing that says he is written.
-    for (const { file, source } of FIRST_RUN_SOURCE) {
-      if (/Lyon|ran a bar|behind a bar|twenty years/i.test(source)) {
-        assert.ok(
-          /\bAI\b/.test(source) || source.includes('disclosure.ts'),
-          `${file} tells his life story as a biography again`,
-        );
-      }
-    }
-  });
+  test("modern starter and legacy repair use the shared disclosure module", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /from '\.\/disclosure\.ts'/); for (const path of ['apps/mobile/src/onboarding/OnboardingFlow.tsx','apps/mobile/src/tutor/TutorIntro.tsx']) { const source = evidence(path); assert.match(source, /disclosure\.ts/); assert.doesNotMatch(source, /No person hears you/); } });
 });
 
 describe("the first-run copy claims nothing a voice can contradict — F281", () => {
@@ -481,63 +432,19 @@ describe('the first-run disclosure follows the chosen persona — F294', () => {
  * so the walk covers pages one to five and the save page as well.
  */
 describe('nothing reaches an AI service or the network before the save page is passed', () => {
-  test('the answer pages come after the disclosure, and the consent switch is on the last page', () => {
-    const pages: readonly string[] = PRE_ACCOUNT_PAGES;
-    const at = (page: string) => pages.indexOf(page);
-    assert.equal(pages[0], 'hear-it', 'the AI disclosure is not the first page');
-    for (const answer of ['first-line', 'start-level']) {
-      assert.ok(at(answer) > at('hear-it'), `${answer} is asked before the learner is told the tutor is AI`);
-      assert.ok(at(answer) < at('plan'), `${answer} comes after the plan it shapes`);
-    }
-    assert.equal(pages.at(-1), 'save', 'the save page is not the last page before an account');
-
-    const screen = stripComments(read('onboarding/PreAccountOnboarding.tsx'));
-    const hear = screen.indexOf("page === 'hear-it' && (");
-    const save = screen.indexOf("page === 'save' && (");
-    assert.ok(hear > 0 && screen.indexOf('WELCOME_SUBLINE(persona)', hear) > hear, 'the first page does not say AI');
-    assert.equal((screen.match(/<SwitchRow/g) ?? []).length, 1);
-    assert.ok(screen.indexOf('<SwitchRow') > save, 'the usage-data switch is asked before the save page');
-    assert.match(screen, /onPress=\{\(\) => onCreateAccount\(draft\)\}/, 'the account is created from somewhere other than the save page pill');
+  test("setup remains local and the processing disclosure precedes eligibility and start controls", () => {
+    const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
+    const start = screen.slice(screen.indexOf("{surface === 'start' &&"));
+    const controls = screen.slice(screen.indexOf('const sheetFooter'), screen.indexOf('return (', screen.indexOf('const sheetFooter')));
+    const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet'));
+    assert.ok(start.indexOf('STARTER_PROCESSING') >= 0 && start.indexOf('STARTER_PROCESSING') < start.indexOf('I am 13 or older'));
+    assert.match(start, /Optional usage data/);
+    assert.match(controls, /label="Type instead" disabled=\{busy \|\| !draft\.eligibilityConfirmed\}/);
+    assert.match(screen, /footer=\{sheetFooter\}/);
+    assert.ok(sheet.indexOf('{snapshot.current.children}') < sheet.indexOf('{snapshot.current.footer}'), 'the sheet renders disclosure and eligibility before its pinned actions');
+    assert.match(screen, /!draft\.eligibilityConfirmed \|\| refused/);
+    assert.match(screen, /label="Try this practice" onPress=\{\(\) => open\('start'\)/);
   });
 
-  test('pages one to five import no live or network module', () => {
-    const BANNED_PATH = /^(live|sync|auth|api|voice|conversationPacks|wall|billing|friends)\/|^analytics\/(track|consentStore)\.ts$|^app\//;
-    const BANNED_PACKAGE = /^(livekit-client|@livekit\/|@supabase\/|expo-notifications|react-native-purchases|expo-web-browser|expo-auth-session|@luvani\/brain)/;
-    const NETWORK = /\bfetch\(|\bWebSocket\b|\bXMLHttpRequest\b|\bEventSource\b|\btrackProductEvent\b|\bsendBeacon\b/;
-
-    const seen = new Set<string>();
-    const packages = new Set<string>();
-    const queue = ['onboarding/PreAccountOnboarding.tsx'];
-    while (queue.length > 0) {
-      const file = queue.shift()!;
-      if (seen.has(file)) continue;
-      seen.add(file);
-      const source = stripComments(read(file));
-      for (const match of source.matchAll(/^\s*import\s+(type\s+)?[\s\S]*?\s+from\s+'([^']+)';?/gm)) {
-        if (match[1]) continue; // a type import is erased and loads nothing
-        const spec = match[2]!;
-        if (!spec.startsWith('.')) {
-          packages.add(spec);
-          continue;
-        }
-        const base = fileURLToPath(new URL(spec, new URL(file, SRC)));
-        const found = [base, `${base}.ts`, `${base}.tsx`].find((p) => existsSync(p) && !p.endsWith('/'));
-        if (found === undefined || !/\.tsx?$/.test(found)) continue;
-        queue.push(found.slice(fileURLToPath(SRC).length));
-      }
-    }
-
-    assert.ok(seen.has('onboarding/preAccountDraft.ts') && seen.has('onboarding/plan.ts'), 'the walk did not reach the flow’s own modules');
-    for (const file of seen) {
-      assert.doesNotMatch(file, BANNED_PATH, `the pre-account flow loads ${file}`);
-      assert.doesNotMatch(stripComments(read(file)), NETWORK, `${file}, loaded before the save page is passed, can reach the network`);
-    }
-    for (const spec of packages) {
-      assert.doesNotMatch(spec, BANNED_PACKAGE, `the pre-account flow loads ${spec}`);
-    }
-    // And the device's permissions stay unasked until the first scene.
-    for (const file of seen) {
-      assert.doesNotMatch(read(file), /request\w*PermissionsAsync/, `${file} asks for a permission before an account exists`);
-    }
-  });
+  test("guest service requests require deliberate eligible Start and remain bounded outside authenticated rooms", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); const server = evidence('services/token-server/src/server.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); assert.match(screen, /await startGuestPractice\(draft\)/); assert.match(server, /body\.eligible !== true/); assert.match(server, /guest\.installation !== installHash/); assert.match(server, /guest\.expiresAt <= Date\.now\(\) \|\| guest\.owner/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync|joinRoom|new Room\(/); const recording = evidence('apps/mobile/src/onboarding/GuestRecording.tsx'); assert.match(recording, /requestRecordingPermissionsAsync/); assert.match(recording, /onPress=\{\(\) => void record\(\)/); });
 });

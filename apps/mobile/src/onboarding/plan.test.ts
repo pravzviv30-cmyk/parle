@@ -98,7 +98,8 @@ describe('answers to a plan', () => {
     assert.equal(MINUTES_UNIT, 'minutes a day');
 
     const chosen = planFor(draft({ startLevel: 'getby', reason: 'work', minutes: 5, reminderTime: 'morning' }));
-    assert.deepEqual(chosen.scenes.map((s) => s.id), sceneOrder('getby').slice(0, 3));
+    assert.deepEqual(chosen.scenes.map((s) => s.id), [firstSceneFor('getby', 'work'), ...sceneOrder('getby').filter(id => id !== firstSceneFor('getby', 'work'))].slice(0, 3));
+    assert.equal(chosen.starter.id, 'colleague');
     assert.equal(chosen.minutes, 5, 'a minutes answer the learner changed was overridden by the preset');
     assert.equal(chosen.goal, SEEDED_GOAL.work);
     assert.equal(chosen.reminder.time, 'morning');

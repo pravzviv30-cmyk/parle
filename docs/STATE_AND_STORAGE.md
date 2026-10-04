@@ -456,7 +456,7 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fourteen synced, nine excluded once
+stores; `sync/policy.ts` is the count of record (fourteen synced, eleven excluded once
 `goalSteps` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
@@ -514,7 +514,7 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Ten are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
+Eleven are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
 is the unfinished sitting and its completion plan: its meaning is local to this device's
 bank and deck, and a copy on a second device could finish the same sitting again, so
 completed sittings travel through `practiceHistory` instead. `packMarks`
@@ -783,3 +783,12 @@ finish, safety/failure and departure cancel it. Reset clears held thread text.
 Late provider usage after the first spend summary emits a session/activity-linked
 late-usage total, never a learner quote or late explanation. Unknown abandoned
 provider billing remains labelled as abandoned rather than claimed free.
+
+
+### Onboarding continuity and device preferences
+
+`onboarding-practice` is excluded from sync: it holds the bounded starter replies and feedback on this phone. Its guest capability is removed before account adoption. Kept phrases enter the normal synced `review` deck only by explicit import; existing account preferences remain authoritative. Account reset/export include this namespace.
+
+The separate device-only keys are `@luvani/pre-account-onboarding/v1` for choices, `@luvani/guest-practice/v2` for bounded guest replies/capability, `@luvani/has-used-app/v1` (and native SecureStore `luvani.has-used-app.v1`) for a non-personal used-app hint, and `@luvani/interaction-haptics/v1` for the device feedback preference. Neither hint identifies an account. Guest/draft deletion drains queued writes and invalidates pending work. Refusal deletes the guest/draft keys and leaves no refusal marker. iOS keychain reinstall persistence is best effort; Android uninstall clears it.
+
+The server stores a hashed installation signal, usage counters and one-account ownership in a 30-day guest ledger, never replies or recordings. Service attempts expire at 24 hours and the start allowance at one day. Optional anonymous daily event counts expire at ninety days and contain only closed event, variant and evidence enums.

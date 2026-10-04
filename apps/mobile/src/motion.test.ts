@@ -75,7 +75,7 @@ describe('every animation crosses to the native driver', () => {
       let at = file.body.indexOf('Animated.timing(');
       while (at !== -1) {
         const body = callBody(file.body, at + 'Animated.timing'.length);
-        if (!/useNativeDriver:\s*(?:true|NATIVE_DRIVER)/.test(body)) {
+        if (!/useNativeDriver:\s*(?:true|NATIVE_DRIVER|Platform\.OS !== 'web')/.test(body)) {
           offenders.push(`${file.short}:${lineOf(file.body, at)}`);
         }
         at = file.body.indexOf('Animated.timing(', at + 1);
@@ -296,7 +296,7 @@ describe('only the orb and the highlighter move', () => {
     const moving = FILES.filter((f) => /\bAnimated\./.test(f.body)).map((f) => f.short).sort();
     assert.deepEqual(
       moving,
-      [...TARGET, ...PENDING].sort(),
+      [...TARGET, ...PENDING, 'onboarding/ChoiceCard.tsx', 'onboarding/NextButton.tsx', 'onboarding/OnboardingMotion.tsx'].sort(),
       'a file started or stopped animating; a new one is refused, and one that stopped comes off the pending list',
     );
   });

@@ -131,6 +131,7 @@ export const DEFAULT_REMINDER_TIME: ReminderTimeId = EARLY_EVENING.value;
  * that can compare.
  */
 export interface StoredReminder {
+  days?: number[];
   enabled: boolean;
   time: ReminderTimeId;
 }

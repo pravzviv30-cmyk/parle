@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, twenty-three namespaces, no exceptions.
+ * What happens when two devices disagree — one table, twenty-five namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Fourteen namespaces are synced under three merge classes;
- * nine are excluded with a stated reason, because a namespace that is silently absent
+ * eleven are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -42,6 +42,8 @@
  * | `analytics`   | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `moments`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `packMarks`   | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `pendingPurchase` | **excluded** — see SYNC_EXCLUSIONS                     |
+ * | `onboarding-practice` | **excluded** — see SYNC_EXCLUSIONS                 |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -781,13 +783,14 @@ export interface SyncExclusion {
 }
 
 /**
- * The six namespaces that are on the device and stay on the device.
+ * The eleven namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
+  { namespace: 'onboarding-practice', reason: 'A temporary first-use task on this phone. Its explicitly saved phrase enters the ordinary synced review deck; the local guest capability never syncs.' },
   { namespace: 'pendingPurchase', reason: 'A checkout started on this phone stays fenced here until its matching paid entitlement is verified. It is transaction recovery, never learning evidence or cross-device billing authority.' },
   {
     namespace: 'suggestions',

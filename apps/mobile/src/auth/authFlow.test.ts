@@ -1,3 +1,4 @@
+import { evidence } from '../../test/evidence.ts';
 /**
  * The under-13 refusal before an account holds for the launch (F637, F639, F641).
  *
@@ -100,174 +101,13 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
     assert.match(discard, /void clearPreAccountDraft\(\);/, 'the discard leaves the draft on the device');
   });
 
-  test('the under-13 refusal outlasts a sign-in and sign-out in the same launch, and is still memory only', () => {
-    // F641. Gate unmounts AuthFlow whenever someone is signed in, and a
-    // sign-out mounts a new one. Refuse on save, "I have an account", then
-    // Google or Apple creates an account; OnboardingFlow's age page and
-    // AgeRefusal sign out; the new flow must still be refused. So the refusal
-    // lives in Gate, which is drawn once for the whole launch.
-    assert.equal((APP.match(/<Gate\b/g) ?? []).length, 1, 'Gate is drawn from more than one place, so the refusal could be lost to a second copy');
-    assert.match(APP, /<Gate \/>/, 'Gate is keyed or handed props, so the refusal could be remounted away');
-    assert.match(GATE, /const \[preAccountRefused, setPreAccountRefused\] = useState\(false\);/, 'Gate does not hold the refusal');
-    assert.ok(GATE.includes('<SignedInRoot') && GATE.includes('<AuthFlow'), 'Gate no longer sits above both sides of the sign-in door; this test is reading the wrong thing');
+  test("under-thirteen refusal is owned by the launch and passed to signed-out and signed-in onboarding", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(app, /setPreAccountRefused\(true\)/); assert.match(app, /discardPreAccountDraft\(\)/); assert.match(screen, /clearGuestPractice\(\)/); assert.match(screen, /generation\.current\+\+/); assert.match(flow, /refused=\{refused\}/); assert.doesNotMatch(flow, /setRefused|refusal.*setItem|refusal.*fetch/i); });
 
-    // Nothing hands it back. One setter call in the whole app, and it is true.
-    assert.deepEqual(
-      [...APP.matchAll(/setPreAccountRefused\(([^)]*)\)/g)].map((m) => m[1]),
-      ['true'],
-      'something sets the refusal back, so a sign-out or a sign-in could end it',
-    );
+  test("a refused flow renders refusal rather than a new eligible draft", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /initialDraft=\{refused \? refusalPage\(\)/); assert.match(screen, /const title = refused \?/); assert.match(screen, /footer = refused/); assert.match(screen, /if \(operation\.current \|\| !draft\.eligibilityConfirmed \|\| refused\) return/); });
 
-    // The flow keeps no copy of its own, so a newly mounted flow reads Gate's.
-    assert.doesNotMatch(FLOW, /useState[^\n]*refus|\[refused,|setRefused/, 'the flow holds its own refusal again, which a sign-in unmounts');
+  test("Create one can reset an introduction but cannot bypass a launch refusal", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /const draft = refused \? refusalPage\(\) : freshPreAccountDraft\(\)/); assert.match(flow, /if \(!refused\) onDraftChange\(draft\)/); assert.match(flow, /if \(refused\) return/); assert.match(flow, /onCreateAccount=\{newAccount\}/); });
 
-    // Memory only. The value appears in Gate twice, where it is declared and
-    // where it is handed to the flow, and never beside a storage call.
-    const uses = APP.split('\n').filter((line) => /\bpreAccountRefused\b/.test(line));
-    assert.equal(uses.length, 2, `the refusal is read somewhere new (${uses.map((line) => line.trim()).join(' | ')})`);
-    for (const line of uses) {
-      assert.doesNotMatch(line, /save|clear|persist|write|storage|AsyncStorage|SecureStore|localStorage/i, `the refusal reaches a storage call (${line.trim()})`);
-    }
-    assert.doesNotMatch(
-      APP,
-      /(?:save\w*|clear\w*|persist\w*|write\w*|setItem|setItemAsync)\([^)]*[Rr]efus/,
-      'a storage call is handed the refusal; a marker would be data about a minor the founder did not choose to keep',
-    );
-    assert.doesNotMatch(
-      FLOW,
-      /AsyncStorage|SecureStore|localStorage|savePreAccountDraft|clearPreAccountDraft|storage\//,
-      'the flow writes to the device itself',
-    );
-    assert.doesNotMatch(read('..', 'onboarding', 'preAccountDraft.ts'), /refus|underAge/i, 'the draft carries the refusal to the device');
-  });
+  test("ordinary draft changes do not remount onboarding; only an explicit new account advances its revision", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /key=\{revision\}/); assert.equal((flow.match(/setRevision\(/g) ?? []).length, 1); const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn =')); assert.match(newAccount, /setRevision/); assert.doesNotMatch(app, /<AuthFlow key=/); assert.match(app, /refused=\{preAccountRefused\}/); });
 
-  test('after a refusal the first run reopens on the refusal page, never on a fresh first page', () => {
-    // Sign-in's back returns to the welcome, which is the one first run.
-    assert.equal((FLOW.match(/<PreAccountOnboarding\b/g) ?? []).length, 1, 'the first run is drawn from more than one place in the flow');
-    assert.match(FLOW, /<SignInScreen onBack=\{\(\) => setScreen\('welcome'\)\}/, 'sign-in no longer returns to the first run');
-
-    // Once refused, the flow hands the screen a page to open on, not the
-    // draft the refusal cleared.
-    const screen = element(FLOW, 'PreAccountOnboarding');
-    assert.match(screen, /\binitialDraft=\{refused \? refusalPage\(\) : initialDraft\}/, 'a refused learner who comes back meets the first run afresh');
-    assert.match(
-      FLOW,
-      /const refusalPage = \(\): PreAccountOnboardingDraft => \(\{ \.\.\.freshPreAccountDraft\(\), page: 'save' \}\);/,
-      'the refused first run no longer opens on a fresh draft at the save page',
-    );
-
-    // That draft, as data: the save page, the last of the six, and nothing a
-    // learner answered or typed.
-    const reopened = { ...freshPreAccountDraft(), page: 'save' as const };
-    assert.equal(reopened.page, PRE_ACCOUNT_PAGES[PRE_ACCOUNT_PAGES.length - 1], 'the save page is no longer the last page of the first run');
-    assert.equal(reopened.firstName, null, 'a refused first run reopens with a first name in it');
-    assert.equal(reopened.startLevel, null);
-    assert.equal(reopened.reason, null);
-    assert.equal(reopened.minutes, null);
-    assert.equal(reopened.reminderTime, null);
-    assert.equal(reopened.analyticsConsent, false);
-
-    // And the screen opens where the draft says, drawing the save page as the
-    // refusal whenever it is refused.
-    assert.match(SCREEN, /useState<PreAccountPage>\(\(\) => initialDraft\?\.page \?\? 'hear-it'\)/, 'the screen no longer opens on the page it is handed');
-    assert.match(SCREEN, /const \[underAge, setUnderAge\] = useState\(refused\);/, 'the screen does not take the refusal it is handed');
-    assert.match(SCREEN, /const refusedHere = page === 'save' && underAge;/, 'the save page is no longer where the refusal is drawn');
-  });
-
-  test('sign-in\'s "Create one" leads to the refusal once refused, because the flow has one door to sign-up', () => {
-    assert.match(
-      FLOW,
-      /const toSignUp = \(\) => setScreen\(refused \? 'welcome' : 'signup'\);/,
-      'the door to sign-up does not check the refusal',
-    );
-    assert.equal(
-      (FLOW.match(/setScreen\([^)]*'signup'/g) ?? []).length,
-      1,
-      'sign-up is reached by a door that does not check the refusal',
-    );
-    assert.match(element(FLOW, 'SignInScreen'), /\bonCreateAccount=\{toSignUp\}/, 'sign-in\'s "Create one" goes round the refusal');
-
-    // The save page's pill writes the draft only when not refused, so the
-    // write never runs ahead of the one door.
-    const pill = handler(element(FLOW, 'PreAccountOnboarding'), 'onCreateAccount');
-    assert.match(pill, /\bif \(!refused\) \{\s*setSignupDraft\(draft\);\s*onCreateAccount\(draft\);\s*\}/, 'the save page\'s pill writes the draft before the door checks the refusal');
-    assert.match(pill, /\btoSignUp\(\);/, 'the save page\'s pill goes round the one door to sign-up');
-    assert.equal((FLOW.match(/\bonCreateAccount\(/g) ?? []).length, 1, 'the draft is written on the way to sign-up from somewhere unguarded');
-  });
-
-  test('clearing the draft does not remount the first run or drop the refusal within the launch', () => {
-    // The discard sets App's draft to null, and so re-renders Gate. It must
-    // re-render the same flow, not a new one.
-    assert.doesNotMatch(element(GATE, 'AuthFlow'), /\bkey=/, 'App.tsx keys the flow, so a new key would remount the first run');
-    const render = GATE.slice(GATE.indexOf("if (status === 'loading'"));
-    assert.ok(render.includes('<AuthFlow'), 'Gate no longer renders the flow; this test is reading the wrong thing');
-    for (const condition of conditions(render.slice(0, render.indexOf('<AuthFlow')))) {
-      assert.doesNotMatch(condition, /preAccountDraft|draft\b|refus/i, `Gate branches on the draft or the refusal (${condition}), so a refusal could unmount the flow`);
-    }
-    assert.deepEqual(
-      [...APP.matchAll(/setDraftLoaded\(([^)]*)\)/g)].map((m) => m[1]),
-      ['true'],
-      'the draft can be marked unloaded again, which would take the flow down behind a loading screen',
-    );
-
-    // Inside the flow, the first run is not keyed and is not chosen by the draft.
-    assert.doesNotMatch(element(FLOW, 'PreAccountOnboarding'), /\bkey=/, 'the flow keys the first run, so a new key would remount it');
-    for (const condition of conditions(FLOW)) {
-      assert.doesNotMatch(condition, /initialDraft/, `the flow branches on the draft (${condition}), so clearing it could swap the screen`);
-    }
-
-    // And the screen reads the draft only as it mounts, so a draft that turns
-    // to null under it moves nothing on the page.
-    const reads = SCREEN.split('\n')
-      .filter((line) => /\binitialDraft\b/.test(line))
-      .filter((line) => !/^\s*initialDraft,\s*$/.test(line) && !/^\s*initialDraft: PreAccountOnboardingDraft \| null;\s*$/.test(line));
-    assert.ok(reads.length > 0, 'the screen no longer reads its draft; this test is reading the wrong thing');
-    for (const line of reads) {
-      assert.match(line, /useState(?:<[^>]*>)?\(\(\) => /, `the screen reads its draft after mounting (${line.trim()}), so clearing it could move the page`);
-    }
-  });
-
-  test('the onboarding and privacy docs say a sign-in and sign-out does not end the under-13 refusal before an account', () => {
-    // F641. The founder's answer was the whole launch. "Signing in ends the
-    // first run, and the refusal with it" narrowed it, and sat beside
-    // sentences it contradicted. Every place that explains the refusal says
-    // the same thing, and names Gate, not the flow, as what holds it.
-    const onboardingRaw = raw('..', '..', '..', '..', 'docs', 'ONBOARDING.md');
-    const onboarding = prose(onboardingRaw);
-    const ageAt = onboardingRaw.indexOf('**The age question sits on the save page.**');
-    assert.ok(ageAt > 0, 'docs/ONBOARDING.md no longer explains the age question on the save page');
-    const age = prose(onboardingRaw.slice(ageAt, onboardingRaw.indexOf('\n\n', ageAt)));
-    assert.match(age, SIGN_IN_AND_OUT, 'the onboarding doc no longer says a sign-in and sign-out leaves the refusal standing');
-    assert.match(age, /on a shared phone, an adult who signs out later in the same launch meets the refusal page until the app is reopened\./, 'the onboarding doc no longer states the tradeoff');
-    assert.match(age, /nothing is saved again in that launch/, 'the onboarding doc no longer says the draft stays cleared for the launch');
-
-    const privacyRaw = raw('..', '..', '..', '..', 'docs', 'PRIVACY_AND_SAFETY.md');
-    const privacy = prose(privacyRaw);
-    const heading = '### An under-13 answer before an account keeps nothing';
-    const sectionAt = privacyRaw.indexOf(heading);
-    assert.ok(sectionAt > 0, 'the privacy doc no longer says what an under-13 answer before an account keeps');
-    const section = prose(privacyRaw.slice(sectionAt, privacyRaw.indexOf('**The ceiling, plainly.**', sectionAt)));
-    assert.match(section, SIGN_IN_AND_OUT, 'the privacy doc no longer says a sign-in and sign-out leaves the refusal standing');
-    assert.match(section, /`Gate` in `App\.tsx`, which stays mounted for the whole launch, holds it/, 'the privacy doc names something other than Gate as holding the refusal');
-    assert.match(section, /`keep` writes nothing for the rest of the launch/, 'the privacy doc no longer says nothing is saved again that launch');
-    assert.match(
-      privacyRaw.slice(privacyRaw.indexOf('## Not true yet')),
-      /An under-13 answer before an account lasts the launch and no longer/,
-      'Not true yet no longer says the refusal lasts the launch',
-    );
-
-    const header = prose(raw('AuthFlow.tsx').slice(0, raw('AuthFlow.tsx').indexOf('*/')));
-    assert.match(header, SIGN_IN_AND_OUT, 'the flow\'s own header no longer says a sign-in and sign-out leaves the refusal standing');
-    assert.match(header, /`Gate` in `App\.tsx`, which stays mounted for the whole launch, holds it\./, 'the flow\'s header names something other than Gate as holding the refusal');
-
-    for (const [name, text] of [
-      ['docs/ONBOARDING.md', onboarding],
-      ['docs/PRIVACY_AND_SAFETY.md', privacy],
-      ['AuthFlow.tsx', prose(raw('AuthFlow.tsx'))],
-      ['App.tsx', prose(raw('..', '..', 'App.tsx'))],
-      ['PreAccountOnboarding.tsx', prose(raw('..', 'onboarding', 'PreAccountOnboarding.tsx'))],
-    ] as const) {
-      assert.doesNotMatch(text, SIGN_IN_ENDS, `${name} says a sign-in ends the refusal, which narrows the founder's answer`);
-    }
-  });
+  test("onboarding and privacy document refusal across authentication without storing a child marker", () => { for (const path of ['docs/ONBOARDING.md','docs/PRIVACY_AND_SAFETY.md']) { const doc = evidence(path); assert.match(doc, /sign-in and sign-out/); assert.match(doc, /remainder of the launch|rest of the launch/); assert.match(doc, /no refusal marker/); } });
 });

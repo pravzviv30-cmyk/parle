@@ -69,6 +69,7 @@ import { Card, Field, Label, OptionRow, OutlineButton, PillButton, GhostButton, 
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
+import { loadHapticPreference, setHapticPreference } from '../motion/hapticPreference.ts';
 import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
 import { PlanCard } from '../profile/PlanCard.tsx';
@@ -199,6 +200,10 @@ export function SettingsScreen({
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
+
+  const [hapticFeedback, setHapticFeedback] = useState(true);
+  const [hapticSaving, setHapticSaving] = useState(false);
+  const [hapticTrouble, setHapticTrouble] = useState('');
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -267,6 +272,7 @@ export function SettingsScreen({
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      void loadHapticPreference().then(value => { if (!cancelled) setHapticFeedback(value); });
       const reminderOwner = { scope: scopeGeneration(), userId: user?.id ?? null };
       const sameReminderOwner = () => !cancelled && reminderOwner.scope === scopeGeneration() && reminderOwner.userId === activeUserId();
       setStoredOwner(null);
@@ -504,19 +510,19 @@ export function SettingsScreen({
         if (!ownsReminderNow()) return;
         setNotifications(fresh);
         const honest = reminderRow({ enabled: next, time: chosen.value }, fresh);
-        const wanted: StoredReminder = { enabled: honest.on, time: chosen.value };
+        const wanted: StoredReminder = { ...stored, enabled: honest.on, time: chosen.value };
         // What the phone is doing already, in the shape the store writes. Built
         // from `row.on`, which is reminderRow's answer for the state the row is
         // in, so putting the disk back is the module's value and never a
         // negation worked out here.
-        const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
+        const reverted: StoredReminder = { ...stored, enabled: row.on, time: chosen.value };
         const ack = await saveReminder(wanted);
         if (!ownsReminderNow()) return;
         if (ack === 'failed') {
           setReminderTrouble(REMINDER_SAVE_TROUBLE);
           return;
         }
-        const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
+        const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();
         if (!ownsReminderNow()) return;
         if (outcome === 'failed') {
           await saveReminder(reverted);
@@ -551,15 +557,15 @@ export function SettingsScreen({
       if (!ownsReminderNow()) return;
       setNotifications(fresh);
       const honest = reminderRow({ enabled: true, time: value }, fresh);
-      const wanted: StoredReminder = { enabled: honest.on, time: value };
-      const reverted: StoredReminder = { enabled: row.on, time: chosen.value };
+      const wanted: StoredReminder = { ...stored, enabled: honest.on, time: value };
+      const reverted: StoredReminder = { ...stored, enabled: row.on, time: chosen.value };
       const ack = await saveReminder(wanted);
       if (!ownsReminderNow()) return;
       if (ack === 'failed') {
         setReminderTrouble(REMINDER_SAVE_TROUBLE);
         return;
       }
-      const outcome = honest.on ? await scheduleReminder(wanted.time) : await cancelReminder();
+      const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();
       if (!ownsReminderNow()) return;
       if (outcome === 'failed') {
         await saveReminder(reverted);
@@ -851,6 +857,20 @@ export function SettingsScreen({
           </Card>
         </View>
       )}
+
+      <View style={{ marginTop: space(6) }}>
+        <Label>Interaction</Label>
+        <Card style={{ marginTop: space(2.5) }}>
+          <SwitchRow title="Haptic feedback" sub="A gentle tap when an action lands. Motion follows your phone’s accessibility setting." accessibilityLabel="Haptic feedback" value={hapticFeedback} disabled={hapticSaving} onChange={value => {
+            if (hapticSaving) return;
+            setHapticSaving(true);
+            const previous = hapticFeedback;
+            setHapticFeedback(value);
+            void setHapticPreference(value).then(saved => { setHapticSaving(false); setHapticTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setHapticFeedback(previous); });
+          }} />
+          {hapticTrouble && <TroubleLine message={hapticTrouble} />}
+        </Card>
+      </View>
 
       {/* Help, which always has the intro in it and has a Contact row only once
           an address is supplied. A Contact us row with nothing behind it is a

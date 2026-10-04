@@ -246,7 +246,7 @@ describe('the Apple door is offered only where it works — F376', () => {
     const onboarding = readFileSync(path.join(MOBILE_DIR, '..', '..', 'docs', 'ONBOARDING.md'), 'utf8');
     assert.match(
       onboarding,
-      /Google, or Apple on iOS/,
+      /Apple and Google appear on sign-in and signup/,
       'docs/ONBOARDING.md still describes a sign-up screen with two doors on it',
     );
   });

@@ -14,7 +14,7 @@
  * an account exists (`disclosure.test.ts` walks the imports to prove it).
  */
 
-import { PLANS, SCENE_SPINE, getMission, type MissionId, type MissionPlace } from '@luvani/core';
+import { starterTasks, type StarterTask, PLANS, SCENE_SPINE, getMission, type MissionId, type MissionPlace } from '@luvani/core';
 
 import { DEFAULT_REMINDER_TIME, reminderTime, type ReminderTimeId } from '../reminders/reminder.ts';
 import type { PlanMinutes, PreAccountOnboardingDraft, Reason, StartLevel } from './preAccountDraft.ts';
@@ -27,20 +27,21 @@ export interface AnswerOption<K extends string | number> {
 
 /** Where are you starting? One tap; zero is the default. */
 export const START_LEVELS: readonly (AnswerOption<StartLevel> & { gloss: string })[] = [
-  { key: 'zero', title: 'Starting from zero', gloss: 'No French yet, and that is fine.' },
-  { key: 'few', title: 'A few words', gloss: 'Bonjour, merci, and a little more.' },
-  { key: 'getby', title: 'I can get by', gloss: 'Simple chats, with some gaps.' },
+  { key: 'zero', title: 'I haven’t started', gloss: '' },
+  { key: 'few', title: 'Say hello and order a drink', gloss: '' },
+  { key: 'getby', title: 'Have a short conversation', gloss: '' },
 ];
 
 export const DEFAULT_START_LEVEL: StartLevel = 'zero';
 
 /** What's it for? One tap, and skippable. */
 export const REASONS: readonly AnswerOption<Reason>[] = [
-  { key: 'trip', title: 'A trip' },
-  { key: 'family', title: 'Family or a partner' },
-  { key: 'moving', title: 'Moving somewhere French' },
-  { key: 'work', title: 'Work' },
-  { key: 'because', title: 'Just because' },
+  { key: 'food', title: 'Ordering food and drinks' },
+  { key: 'trip', title: 'Getting around on a trip' },
+  { key: 'family', title: 'Talking with friends or family' },
+  { key: 'moving', title: 'Everyday life after a move' },
+  { key: 'work', title: 'Simple conversations at work' },
+  { key: 'because', title: 'I’m exploring' },
 ];
 
 /**
@@ -49,6 +50,7 @@ export const REASONS: readonly AnswerOption<Reason>[] = [
  * snapshot on the first join, which is after the save page.
  */
 export const SEEDED_GOAL: Readonly<Record<Reason, string>> = {
+  food: 'Order food and drinks in French.',
   trip: 'Get by in French on my next trip.',
   family: 'Talk with family or a partner in French.',
   moving: 'Handle everyday life in French after a move.',
@@ -62,7 +64,11 @@ export function sceneOrder(level: StartLevel): readonly MissionId[] {
 }
 
 /** The scene the first run opens on after the account is made. */
-export function firstSceneFor(level: StartLevel | null): MissionId {
+export function firstSceneFor(level: StartLevel | null, reason?: Reason | null): MissionId {
+  if (reason === 'trip') return 'mission:chemin';
+  if (reason === 'family') return 'mission:amis';
+  if (reason === 'moving') return 'mission:marche';
+  if (reason === 'work') return 'mission:amis';
   return sceneOrder(level ?? DEFAULT_START_LEVEL)[0]!;
 }
 
@@ -102,6 +108,7 @@ export interface PlanScene {
 }
 
 export interface PlanView {
+  starter: StarterTask;
   scenes: readonly PlanScene[];
   minutes: PlanMinutes;
   /** The seeded goal the tutor will be given, or null when the reason was skipped. */
@@ -113,9 +120,9 @@ export interface PlanView {
 
 export const PLAN_TITLE = 'Your plan';
 export const PLAN_SCENES_LABEL = 'Your first three scenes';
-export const MINUTES_LABEL = 'Daily practice';
+export const MINUTES_LABEL = 'A flexible starting routine';
 export const GOAL_LABEL = 'Your goal';
-export const GOAL_NOTE = 'Used as tutor context; scene order stays the same.';
+export const GOAL_NOTE = 'This goal chooses your first practice and guides your tutor.';
 export const METHOD_LABEL = 'How it works';
 export const METHOD_STEPS: readonly string[] = [
   'Talk through a real scene, out loud or by typing.',
@@ -128,14 +135,12 @@ export const ROUTINE_OPTIONS: readonly AnswerOption<PlanMinutes>[] = [
   { key: 15, title: 'Fifteen minutes' },
   { key: 'none', title: 'No fixed daily target' },
 ];
-export const ROUTINE_NOTE = 'Practice goal, separate from live minutes.';
-export const COVERAGE_NOTE = 'Beginner scenes. Your starting level is a suggestion.';
+export const ROUTINE_NOTE = 'A suggestion for practice, not an extra allowance of live minutes. Change it whenever you like.';
+export const COVERAGE_NOTE = 'Beginner scenes. Your starting level is a suggestion, not a certified placement or a full tailored course.';
 
 export function startingReasonFor(level: StartLevel): string {
-  if (level === 'getby') return 'You said you can get by, so we skip the first coffee and start with ordering and paying.';
-  return level === 'few'
-    ? 'You know a few words, so we start with a short café greeting.'
-    : 'You are starting from zero, so we start with a short café greeting.';
+  if (level === 'getby') return 'Start with a French prompt. Help is available whenever you need it.';
+  return level === 'few' ? 'Try your own reply, with translation and help available.' : 'Start with a sentence starter and translation. Help is available.';
 }
 /**
  * The one line the plan says about days off. It used to deny streaks by naming
@@ -182,7 +187,8 @@ export const PLAN_COPY: readonly string[] = [
 
 /** The whole plan, from the draft as it stands. */
 export function planFor(draft: PreAccountOnboardingDraft): PlanView {
-  const scenes = sceneOrder(levelOf(draft))
+  const first = firstSceneFor(draft.startLevel, draft.reason);
+  const scenes = [first, ...sceneOrder(levelOf(draft)).filter(id => id !== first)]
     .slice(0, 3)
     .flatMap((id): PlanScene[] => {
       const mission = getMission(id);
@@ -193,6 +199,7 @@ export function planFor(draft: PreAccountOnboardingDraft): PlanView {
   const time = reminderOf(draft);
   return {
     scenes,
+    starter: starterTasks(draft.reason, draft.drink ?? 'coffee', minutesOf(draft))[0]!,
     minutes: minutesOf(draft),
     goal: draft.reason === null ? null : SEEDED_GOAL[draft.reason],
     startingReason: startingReasonFor(levelOf(draft)),

@@ -1,0 +1,22 @@
+
+> luvani@0.1.0 gate
+> node scripts/gate.mjs
+
+  ✔ @luvani/core: 714 tests, 0 failing (floor 623)
+  ✔ @luvani/brain: 468 tests, 0 failing (floor 395)
+  ✔ @luvani/tutor-agent: 609 tests, 0 failing (floor 446)
+  ✔ @luvani/token-server: 356 tests, 0 failing (floor 200)
+  ✔ @luvani/brain-playground: 26 tests, 0 failing (floor 26)
+  ✔ @luvani/mobile: 2250 tests, 0 failing (floor 1365)
+  total: 4423 tests
+  ✔ shared release/provider proofs: 75 tests, 0 failing
+  ✔ verifyDataBoundaries.mjs: all 36 migrations replayed
+  ✔ verifyTutorSessions.mjs: all 36 migrations replayed
+  ✔ verifyPrivacyJobs.mjs: all 36 migrations replayed
+  ✔ verifyAccountExport.mjs: all 36 migrations replayed
+  ✔ verifySessionDetails.mjs: all 36 migrations replayed
+  ✔ verifyFriendsLaunch.mjs: all 36 migrations replayed
+  ✔ verifyPaidAdmission.mjs: all 36 migrations replayed
+  ✔ verifyConversationLibrary.mjs: all 36 migrations replayed
+
+gate: green

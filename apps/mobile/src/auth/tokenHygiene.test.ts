@@ -122,7 +122,7 @@ const byName = (name: string): Source => {
 };
 
 /** AsyncStorage is plaintext. These two are the only files allowed to write to it. */
-const PLAINTEXT_WRITERS = new Set(['installation.ts', 'mockAdapter.ts']);
+const PLAINTEXT_WRITERS = new Set(['installation.ts', 'mockAdapter.ts', 'installHistory.ts', 'installHistory.native.ts']);
 
 describe('auth token hygiene — what a static walk can prove without a device', () => {
   test('the walk actually covers the auth layer', () => {
@@ -167,6 +167,11 @@ describe('auth token hygiene — what a static walk can prove without a device',
             'the session, the result, the callback URL and the form state all carry a bearer token, a code or an email.',
         );
       }
+    }
+
+    for (const name of ['installHistory.ts', 'installHistory.native.ts']) {
+      assert.match(byName(name).code, /AsyncStorage\.setItem\([^,]+, 'yes'\)/);
+      assert.doesNotMatch(byName(name).code, /SupabaseClient|getAccessToken|authorization|identityToken/);
     }
 
     // --- plain storage ----------------------------------------------------

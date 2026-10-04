@@ -371,3 +371,8 @@ export function firstRunCopy(persona: TutorPersona): readonly string[] {
 
 /** The same, for the voice a learner gets when they never choose one. */
 export const FIRST_RUN_COPY: readonly string[] = firstRunCopy(DEFAULT_TUTOR_PERSONA);
+
+/** The bounded starter has a different pipeline from a live tutor room. */
+export const STARTER_AI = 'Your tutor is AI.';
+export const STARTER_PROCESSING = 'Feedback checks authored phrases. Typing sends text to Luvani; speaking sends a recording to Deepgram for transcription. Luvani discards the recording from this device after processing.';
+export const STARTER_LOCAL = 'Replies are saved on this device.';
