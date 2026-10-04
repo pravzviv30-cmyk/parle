@@ -34,7 +34,8 @@ describe('session lifecycle wiring — infrastructure must have callsites', () =
   test('the agent binds identity once, filters data senders and has a real hard stop', () => {
     assert.match(agent, /source\.identity !== tutor\.learnerId/);
     assert.doesNotMatch(agent, /tutor\.learnerId = p\.identity/);
-    assert.match(agent, /maximumSessionSec = Math\.min\(15 \* 60, allowanceRemaining\)/);
+    assert.match(agent, /maximumSessionSec = lifecycle\?\.maxSeconds \?\? Math\.min\(15 \* 60, allowanceRemaining\)/);
+    assert.ok(agent.indexOf('await claimSessionLifecycle(') < agent.indexOf('new voice.AgentSession('), 'production claim must precede provider construction');
     assert.match(agent, /setTimeout\([\s\S]*tutor\.finish\(\)\.finally\(\(\) => ctx\.room\.disconnect\(\)\)/);
   });
 });

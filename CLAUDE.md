@@ -165,9 +165,12 @@ each, and a second opinion about them is how a repo grows two ladders.
 
 ## graphify
 
-This project has a knowledge graph at `graphify-out/` — 8820 nodes, 22455 links
-across the source files, grouped into 375 communities. Re-measured 2026-09-26 after the
-whole-app upgrade (the previous figures, 7653 / 18782 / 332, were read on 2026-09-17). The community
+This project has a knowledge graph at `graphify-out/` — 11241 nodes, 29035 links
+across the extracted source files, grouped into 459 communities. Re-measured by the
+AST-only update on 2026-10-04 after backend hardening (previously 8820 / 22455 / 375
+on 2026-09-26). This update omitted 72 SQL files because `tree_sitter_sql` is absent;
+SQL validation uses the executable full-schema proofs, not this incomplete graph.
+The community
 names are **placeholders** (`Community N`) as of that rebuild: `graphify label . --backend
 claude-cli` needs a signed-in `claude` CLI, and the session on this Mac had expired, so the
 first session with a working `claude login` should run `graphify label . --backend

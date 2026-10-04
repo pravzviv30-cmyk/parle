@@ -276,7 +276,7 @@ describe('the privacy notice — F479', () => {
     // Facts now ride the scene and each turn in the same repaired bounded
     // memory brief. Keep the disclosure and both actual call doors together.
     const convo = readFileSync(fileURLToPath(new URL('../../../../services/tutor-agent/src/convo.ts', import.meta.url)), 'utf8');
-    assert.match(convo, /repaired\.memory\.facts\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
+    assert.match(convo, /repaired\.memory\.facts\.filter\(fact => safeContextText\(fact\.en\)\)\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
     assert.match(convo, /this\.memoryBrief = tutorMemoryBrief\(this\.profile\)/);
     assert.match(convo, /this\.teachingBrief, this\.memoryBrief/);
     assert.match(convo, /text: this\.memoryBrief/);
@@ -286,7 +286,7 @@ describe('the privacy notice — F479', () => {
 
     // And the document, which is where the narrower sentence came from. It said
     // no stored row is handed over; the memory facts are stored rows.
-    assert.match(DOC, /`tutorMemoryBrief`[\s\S]{0,200}`repaired\.memory\.facts\.slice\(-5\)`/, 'the document stopped describing what the memory brief sends');
+    assert.match(DOC, /`tutorMemoryBrief`[\s\S]{0,200}`repaired\.memory\.facts\.filter\(\.\.\.\)\.slice\(-5\)`/, 'the document stopped describing what the memory brief sends');
     assert.doesNotMatch(DOC, /no stored row/i, 'the document claims again that nothing stored reaches the model vendor');
   });
 
@@ -423,7 +423,7 @@ describe('the privacy notice — F479', () => {
     );
     assert.doesNotMatch(drillJudge, /console\.|\.insert\(|\.upsert\(/, 'the judge handler logs or stores something, so "we keep no copy" is untrue');
     const server = repo('services/token-server/src/server.ts');
-    assert.match(server, /client: judgeBrain\(\),\s*usage: \(usage\) => console\.log\(judgeUsageLine\(usage\)\)/, 'the judge route logs more than the usage line');
+    assert.match(server, /client: \{ judge: request => judgeBrain\(\)\.judge\(request\) \},[\s\S]*?usage: \(usage\) => console\.log\(judgeUsageLine\(usage\)\)/, 'the lazy judge route must meter only content-free usage');
     const judge = repo('packages/brain/src/llm/judge.ts');
     assert.match(judge, /`LEARNER LEVEL: \$\{input\.cefr\}`/, 'the model stopped being sent the level, so the sentence overclaims');
     const jevJudge = repo('packages/brain/src/llm/jevJudge.ts');
@@ -701,7 +701,10 @@ describe('the privacy notice — F479', () => {
     const server = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/server.ts', import.meta.url)), 'utf8');
     const route = server.slice(server.indexOf("if (req.method === 'POST' && url.pathname === '/account/delete')"), server.indexOf("if (req.method === 'GET' && url.pathname === '/account/export')"));
     assert.match(route, /authenticationIsRecent\(resolved\.authenticatedAt\)/);
-    assert.match(route, /deleteAccountWithProcessor\(supabaseUrl, serviceRoleKey, resolved\.userId, process\.env\.REVENUECAT_SECRET_API_KEY\)/);
+    assert.match(route, /privacyJobs\(supabaseUrl, serviceRoleKey, process\.env\.REVENUECAT_SECRET_API_KEY\)\.begin\(resolved\.userId\)/);
+    assert.match(route, /result\.kind === 'pending' \? 202 : 200/);
+    const jobs = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/privacyJobs.ts', import.meta.url)), 'utf8');
+    assert.ok(jobs.indexOf('requestRevenueCatErasure(') < jobs.indexOf('deleteSupabaseUser('));
     assert.match(DOC, /Account deletion requests purchase-processor erasure/);
     assert.match(DOC, /asynchronous queue/);
     assert.doesNotMatch(WHOLE, /RevenueCat|StoreKit|Google Play Billing/i);

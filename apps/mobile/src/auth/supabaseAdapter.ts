@@ -194,7 +194,8 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         // The response body is never read. It is written for an operator, it
         // can carry a database error, and the same route can be answered by a
         // proxy that knows nothing about this product. The status says enough.
-        return response.ok ? { ok: true } : { ok: false, message: deletionFailure(response.status) };
+        return response.status === 202 ? { ok: true, deletionPending: true }
+          : response.ok ? { ok: true } : { ok: false, message: deletionFailure(response.status) };
       } catch {
         return { ok: false, message: 'The connection dropped before deletion was confirmed. Try again.' };
       }

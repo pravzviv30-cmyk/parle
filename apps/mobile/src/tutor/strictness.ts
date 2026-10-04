@@ -21,7 +21,7 @@
  */
 
 import type { LearnerProfile } from '@luvani/brain/profile';
-import type { StoredProfile } from '../profile/store.ts';
+import { withPreferenceEdit, type StoredProfile } from '../profile/store.ts';
 
 /**
  * Taken from the learner model rather than restated.
@@ -119,11 +119,11 @@ export function strictnessLabel(profile: StoredProfile | null | undefined): stri
  * in there is evidence about somebody that a screen has no business rewriting.
  */
 export function withStrictness(profile: StoredProfile, strictness: Strictness): StoredProfile {
-  return {
+  return withPreferenceEdit(profile, {
     ...profile,
     brain: {
       ...profile.brain,
       preferences: { ...profile.brain.preferences, strictness },
     },
-  };
+  }, 'strictness');
 }

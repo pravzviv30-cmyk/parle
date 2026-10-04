@@ -823,9 +823,11 @@ describe('the privacy and safety policy is held against the code', () => {
     for (const surface of guardedSurfaces()) {
       assert.ok(guardFlat.includes(surface), `the output guard runs on the ${surface} and the doc does not say so`);
     }
-    assert.deepEqual(guardedAgents(), ['convo.ts'], 'the set of agents running the output guard has changed, and the doc still describes the old one');
-    assert.match(guardFlat, /scripted lesson agent has no guard of its own/, 'the doc does not admit which agent is unguarded');
-    assert.match(notTrueYet, /scripted lesson agent's own lines pass no output guard/);
+    assert.deepEqual(guardedAgents(), ['convo.ts', 'tutor.ts'], 'both tutor agents must retain their output boundary');
+    assert.match(guardFlat, /scripted[\s\S]*(?:whole|entire)[\s\S]*reply/i, 'the scripted guard must describe its buffering latency tradeoff');
+    assert.match(guardFlat, /8\s*KiB|8,192/, 'the scripted buffer must name its finite byte limit');
+    assert.match(guardFlat, /10\s*(?:seconds|s\b)/, 'the scripted buffer must name its finite time limit');
+    assert.doesNotMatch(notTrueYet, /scripted lesson agent's own lines pass no output guard/);
     assert.match(guardFlat, /never a stop/i, 'the doc does not say the guard substitutes rather than stops');
     assert.match(guardFlat, /the learner is told nothing/i, 'the doc does not say the learner hears nothing about a suppression');
     const guardCall = methodBody(CONVO_PATH, 'private guardLine');
@@ -882,7 +884,10 @@ describe('the privacy and safety policy is held against the code', () => {
     assert.match(stop, /No practice pack is saved for a safety stop/);
     const completion = methodBody(path.join(import.meta.dirname, 'convo.ts'), 'private async complete');
     const safetyReturn = completion.indexOf('if (this.safetyStopped)');
-    assert.ok(safetyReturn >= 0 && safetyReturn < completion.indexOf('this.extractMemory('));
+    assert.ok(safetyReturn >= 0 && safetyReturn < completion.lastIndexOf('this.extractMemory('));
+    const optional = completion.slice(completion.indexOf('if (this.enrichBeforeComplete'), completion.indexOf('const settlement = await this.lifecycle.complete'));
+    assert.match(optional, /!this\.safetyStopped && !this\.serviceFailure && !this\.lifecycle\.signal\.aborted/);
+    assert.match(optional, /this\.extractMemory\(/);
     assert.match(completion.slice(safetyReturn, completion.indexOf('reportConversationPack(')), /return;/,
       'safety must return before any pack or enrichment');
   });

@@ -22,7 +22,7 @@
  */
 
 import type { LearnerProfile } from '@luvani/brain/profile';
-import type { StoredProfile } from '../profile/store.ts';
+import { withPreferenceEdit, type StoredProfile } from '../profile/store.ts';
 
 /**
  * Taken from the learner model rather than restated, the way `Strictness` is.
@@ -78,11 +78,11 @@ export function paceOf(profile: StoredProfile | null | undefined): Pace {
  * the strictness dial and the recent scenarios with it.
  */
 export function withPace(profile: StoredProfile, pace: Pace): StoredProfile {
-  return {
+  return withPreferenceEdit(profile, {
     ...profile,
     brain: {
       ...profile.brain,
       preferences: { ...profile.brain.preferences, pace },
     },
-  };
+  }, 'pace');
 }

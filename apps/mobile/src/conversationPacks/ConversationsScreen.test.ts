@@ -86,8 +86,8 @@ describe('your conversations, as a route of its own — F574', () => {
     assert.equal((SCREEN.match(/<ScrollScreen\b/g) ?? []).length, 1, 'the route has duplicated its shared scrolling frame');
     assert.equal((SCREEN.match(/<ScreenHeader\b/g) ?? []).length, 1, 'the route has duplicated its back control');
     assert.match(FLAT, /<ScreenHeader back=\{\{ onPress: onBack \}\} \/>/, 'the header is not the shared back');
-    assert.match(FLAT, /showingLibrary && !visibleUnread && visibleArchive !== null && \(!remotePending \|\| visiblePacks\.length > 0\)/, 'unread or pending owned material is presented as an empty practice library');
-    assert.match(FLAT, /setUnread\(true\); setShowingLibrary\(false\);/, 'a failed read cannot return to the single retry view');
+    assert.match(FLAT, /showingLibrary && \(!visibleUnread \|\| visiblePacks\.length > 0\) && visibleArchive !== null && \(!remotePending \|\| visiblePacks\.length > 0\)/, 'pending empty material must stay behind the read gate');
+    assert.match(FLAT, /setUnread\(true\); if \(stored\.length === 0 \|\| pageAfter !== null\) setShowingLibrary\(false\);/, 'a failed empty page must return to retry while an owned cached page remains usable');
     assert.match(FLAT, /const archiveIsOwned = archiveOwner === currentOwner && archiveUserId === currentUserId && archiveUserId === activeUserId\(\)/, 'an account switch must hide the previous account’s archive before the next read');
     assert.match(FLAT, /const visibleArchive = archiveIsOwned \? archive : null/, 'an account switch must hide the previous account’s archive before the next read');
     assert.match(FLAT, /const visiblePacks = archiveIsOwned \? packs : \[\]/, 'an account switch must hide the previous account’s pack list before the next read');
@@ -109,5 +109,18 @@ describe('your conversations, as a route of its own — F574', () => {
       assert.doesNotMatch(quoted, /\d/, `the route types ${quoted}; every figure here belongs to the module that counted it`);
     }
     assert.doesNotMatch(SCREEN, /—/, 'the route carries an em dash, which no learner-facing file may');
+  });
+  test('pages stay finite, expose loading failure and retain independent old links', () => {
+    assert.match(FLAT, /fetched\.slice\(0, CONVERSATION_PAGE_SIZE\)/);
+    assert.match(FLAT, /refreshConversationPacks\(user, adapter, fetch, pageAfter\)/);
+    assert.match(FLAT, /Counts and filters describe this page/);
+    assert.match(FLAT, /nextCursor === undefined/);
+    for (const label of ['Older conversations', 'Newest conversations', 'Retry loading conversations']) assert.ok(SCREEN.includes(label));
+    assert.match(FLAT, /loadConversationPackForLearner\(user, adapter, openPackId\)/);
+    assert.match(FLAT, /linkedPack=\{archiveIsOwned \? linkedPack : null\}/);
+    assert.match(FLAT, /pageScope\.current !== scope/);
+    const practice = stripComments(read('./ConversationPracticeScreen.tsx'));
+    assert.match(practice, /loadConversationPackForLearner\(user, adapter, packId\)/);
+    assert.match(practice, /owner === scopeGeneration\(\)/);
   });
 });

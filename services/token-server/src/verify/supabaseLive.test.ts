@@ -19,6 +19,8 @@ import { describe, test } from 'node:test';
 
 import {
   REQUIRED_ENV,
+  currentInventoryProblems,
+  registerLegacySessions,
   SUPABASE_PROOFS,
   blockedReport,
   codeOf,
@@ -229,6 +231,49 @@ describe('the supabase live harness is honest about what it proved', () => {
     assert.equal(codeOf({ error: { message: 'boom' } }), 'unknown', 'an error with no code must not read as a refusal');
     assert.equal(messageOf({ error: null }), '');
     assert.equal(messageOf({ error: { message: 'session id already belongs to another account' } }).includes('another account'), true);
+  });
+
+  test('legacy debit fixtures register all grants before any concurrent debit', async () => {
+    const sequence: string[] = [];
+    const expected = { secondsUsed: 0 };
+    const store = {
+      async get(userId: string) { sequence.push(`get:${userId}`); return expected; },
+      async recordSessionGrant(userId: string, sessionId: string, snapshot: typeof expected) {
+        assert.equal(snapshot, expected); sequence.push(`grant:${userId}:${sessionId}`); return true;
+      },
+    };
+    await registerLegacySessions(store, 'learner', ['first', 'second']);
+    assert.deepEqual(sequence, ['get:learner', 'grant:learner:first', 'grant:learner:second']);
+    await assert.rejects(registerLegacySessions(store, 'learner', ['same', 'same']), /invalid legacy fixture/);
+    await assert.rejects(registerLegacySessions({ ...store, async recordSessionGrant() { return false; } }, 'learner', ['refused']), /session grant refused/);
+  });
+
+  test('current REST preflight detects missing objects, unsafe ACLs and source drift', () => {
+    const expected = {
+      tables: [{ schema: 'public', name: 'new_current_table', rls: true, privileges: { anon: { select: false }, authenticated: { select: false } } }],
+      policies: [],
+      routines: [{ schema: 'public', name: 'current_rpc_v1', arguments: '', securityDefiner: true,
+        configuration: ['search_path=""'], definitionMd5: 'fixture-md5', execute: { anon: false, authenticated: false } }],
+    };
+    const actual = { tables: expected.tables.map(table => ({ ...table, anonSelect: table.privileges.anon.select, authenticatedSelect: table.privileges.authenticated.select })), policies: [], routines: expected.routines.map(routine => ({ ...routine,
+      anonExecute: routine.execute.anon, authenticatedExecute: routine.execute.authenticated })) };
+    assert.deepEqual(currentInventoryProblems(expected, actual), []);
+    assert.ok(currentInventoryProblems(expected, { tables: [], routines: [], policies: [] }).length > 0);
+    const drift = structuredClone(actual); drift.routines[0]!.authenticatedExecute = true;
+    assert.ok(currentInventoryProblems(expected, drift).some(problem => problem.includes('routine/ACL')));
+    const changed = structuredClone(actual); changed.routines[0]!.definitionMd5 = 'changed-version';
+    assert.ok(currentInventoryProblems(expected, changed).length > 0);
+    const tableAcl = structuredClone(actual); tableAcl.tables[0]!.anonSelect = true;
+    assert.ok(currentInventoryProblems(expected, tableAcl).some(problem => problem.includes('client ACL')));
+    assert.ok(currentInventoryProblems(expected, { ...actual, policies: [{ policyname: 'unreviewed' }] }).some(problem => problem.includes('policy source drift')));
+    assert.ok(currentInventoryProblems(expected, { tables: [null], routines: [], policies: [] }).length > 0);
+    assert.ok(currentInventoryProblems(expected, null).length > 0);
+  });
+
+  test('legacy live harness refuses an unconfirmed destructive target before loading SDK/network', async () => {
+    const report = await runSupabaseVerification({ env: { SUPABASE_URL: 'https://fixture.test', SUPABASE_SERVICE_ROLE_KEY: 'offline-fixture', SUPABASE_ANON_KEY: 'offline-fixture' } });
+    assert.equal(report.ok, false); assert.equal(report.blocked, true); assert.equal(report.results.length, 0);
+    assert.match(report.lines.join('\n'), /LUVANI_SUPABASE_VERIFY_DISPOSABLE/);
   });
 
   test('every line the supabase harness prints leaves through its log sink', async () => {

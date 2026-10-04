@@ -11,7 +11,7 @@ import { InMemoryEntitlementStore, SupabaseEntitlementStore, SessionReconciliati
 // controlled HTTP edges. This is not a hosted server/socket or deployment test.
 const source = readFileSync(new URL('./server.ts', import.meta.url), 'utf8');
 const start = source.indexOf("    if (req.method === 'POST' && url.pathname === '/session/end') {");
-const end = source.indexOf('\n    // The other way a session ends:', start);
+const end = source.indexOf('\n    // The authenticated owner may cancel', start);
 assert.ok(start >= 0 && end > start);
 const stripped = stripTypeScriptTypes(`async function branch() { ${source.slice(start, end)} }`);
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;

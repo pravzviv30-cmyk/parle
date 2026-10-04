@@ -1,6 +1,6 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
+import { existsSync, lstatSync, mkdtempSync, writeFileSync, readdirSync, symlinkSync, utimesSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AudioFrame } from '@livekit/rtc-node';
@@ -11,6 +11,7 @@ import { initializeLogger, tts } from '@livekit/agents';
 initializeLogger({ pretty: false, level: 'silent' });
 
 import { CachedTTS, normaliseLine } from './ttsCache.ts';
+import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
 import { encodeWav, decodeWav } from './wav.ts';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -155,7 +156,7 @@ beforeEach(() => {
   delete process.env.LUVANI_TTS_MISS_TRANSPORT;
   dir = mkdtempSync(join(tmpdir(), 'luvani-tts-'));
   fake = new FakeTTS();
-  cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+  cached = new CachedTTS(fake, { dir, voiceKey: 'test-voice', authoredLines: [...AUTHORED_SPEECH_LINES, 'Sur place ou à emporter ?', 'Sur place ou à emporter'] });
 });
 
 afterEach(() => {
@@ -348,6 +349,78 @@ describe('the first-audio hook', () => {
 describe('normalisation', () => {
   test('collapses whitespace and trims, nothing else', () => {
     assert.equal(normaliseLine('  Un   café,\ns’il vous plaît  '), 'Un café, s’il vous plaît');
+  });
+});
+
+describe('authored-only bounded persistence', () => {
+  test('a short private model reply is synthesized live every time and never persisted', async () => {
+    const privateReply = 'Votre rendez-vous privé avec Camille est mardi.';
+    await pcmOf(synth(cached, privateReply));
+    await pcmOf(synth(cached, privateReply));
+    assert.equal(fake.calls, 2);
+    assert.equal(existsSync(cached.cachePath(privateReply)), false);
+    assert.deepEqual(readdirSync(dir), []);
+  });
+
+  test('legacy owned hash WAVs are removed, unrelated assets and symlinks are ignored', async () => {
+    const legacy = join(dir, 'a'.repeat(40) + '.wav');
+    const asset = join(dir, 'authored-asset.wav');
+    const target = join(mkdtempSync(join(tmpdir(), 'luvani-cache-target-')), 'kept.wav');
+    writeFileSync(legacy, 'legacy-personal-speech'); writeFileSync(asset, 'bundled'); writeFileSync(target, 'outside');
+    const link = join(dir, 'b'.repeat(40) + '.wav'); symlinkSync(target, link);
+    const next = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+    assert.equal(existsSync(legacy), false);
+    assert.equal(readFileSync(asset, 'utf8'), 'bundled');
+    assert.equal(lstatSync(link).isSymbolicLink(), true);
+    assert.equal(readFileSync(target, 'utf8'), 'outside');
+    await next.close();
+  });
+
+  test('a symlinked authored directory never reads or writes its target', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'luvani-cache-outside-'));
+    symlinkSync(outside, join(dir, 'authored-v1'));
+    const next = new CachedTTS(fake, { dir, voiceKey: 'test-voice' });
+    await pcmOf(synth(next, 'Bonjour !')); await pcmOf(synth(next, 'Bonjour !'));
+    assert.equal(fake.calls, 2);
+    assert.deepEqual(readdirSync(outside), []);
+    await next.close();
+  });
+
+  test('slot eviction validates the full fingerprint and preserves WAV playback', async () => {
+    const next = new CachedTTS(fake, { dir, voiceKey: 'test-voice', cacheSlots: 1 });
+    const first = await pcmOf(synth(next, 'Bonjour !'));
+    await pcmOf(synth(next, 'Au revoir'));
+    assert.equal(next.cachePath('Bonjour !'), next.cachePath('Au revoir'));
+    const third = await pcmOf(synth(next, 'Bonjour !'));
+    assert.equal(fake.calls, 3, 'a collision is a miss, never another sentence replay');
+    assert.deepEqual(third, first);
+    assert.equal(readdirSync(next.cacheDirectory).length, 1);
+    assert.deepEqual([...decodeWav(readFileSync(next.cachePath('Bonjour !'))).samples], first);
+    await next.close();
+  });
+
+  test('expired audio and entries above the byte ceiling are not replayed or retained', async () => {
+    await pcmOf(synth(cached, 'Bonjour !'));
+    utimesSync(cached.cachePath('Bonjour !'), new Date(0), new Date(0));
+    await pcmOf(synth(cached, 'Bonjour !'));
+    assert.equal(fake.calls, 2);
+    const small = new CachedTTS(fake, { dir: join(dir, 'small'), voiceKey: 'test-voice', maxEntryBytes: 128 });
+    await pcmOf(synth(small, 'Bonjour !')); await pcmOf(synth(small, 'Bonjour !'));
+    assert.equal(existsSync(small.cachePath('Bonjour !')), false);
+    await small.close();
+  });
+
+  test('an occupied slot temporary file cannot be clobbered by another job', async () => {
+    const next = new CachedTTS(fake, { dir, voiceKey: 'test-voice', cacheSlots: 1 });
+    await pcmOf(synth(next, 'Bonjour !'));
+    const pending = next.cachePath('Au revoir').replace(/\.wav$/, '.pending');
+    writeFileSync(pending, 'other-job');
+    const audio = await pcmOf(synth(next, 'Au revoir'));
+    assert.ok(audio.length > 0);
+    assert.equal(readFileSync(pending, 'utf8'), 'other-job');
+    assert.equal(next.readLine('Bonjour !') !== null, true);
+    assert.equal(readdirSync(next.cacheDirectory).length, 2, 'one cache and one exclusive pending file per slot');
+    rmSync(pending); await next.close();
   });
 });
 

@@ -183,6 +183,7 @@ describe('preferring typing — one field, one write path', () => {
   }
 
   test('preferring typing changes that and nothing else, and survives the store\'s round trip — F370', async () => {
+    setActiveUser('77777777-7777-4777-8777-777777777777');
     // A new learner has not said how they like to answer, so the circle is
     // the way in. The door flips one boolean and touches nothing else.
     const before = existing();

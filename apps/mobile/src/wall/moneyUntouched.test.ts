@@ -75,8 +75,13 @@ const FILES: Record<string, string> = {
   // 2026-09-27, Fable paywall review: the entitlement gate, the debit, core metering's entry point, the
   // client subscription state and every billing or entitlement migration were missing, so a change to
   // them would have ridden past this pin. Each hash was read at 0cb39ad and equals the working tree.
-  'services/token-server/src/tokens.ts': 'f0120883b1e44221c85a7e9bc5e44c1cb257f98d57a3fd1d8033de6e32baa562',
-  'services/token-server/src/store.ts': 'b3edf92493b55f836a1d2de84858724033c1613d18785f2072271898bd7eebac',
+  // 4 October 2026: founder-authorized production backend restructure. Independent
+  // database/revenue reviewer accepted these exact hashes after real repository
+  // reservation→cryptographically verified SDK JWT proof, malformed RPC/owner
+  // tests and 38 billing tests. SQL admission supersedes stale snapshots;
+  // store changes remove raw error logging only. Prices/allowances remain pinned.
+  'services/token-server/src/tokens.ts': 'f298cb76bdfc3320da98066b801d15b3a2632af35c6b7ff402598f2c11164e74',
+  'services/token-server/src/store.ts': 'f9509f57c722634c176d659106af23724c9f4510a0c77a03367323ab2c475d0b',
   'packages/core/src/metering/index.ts': 'f7f45e8b95c398e8cfb44eb1205d5abf6619df185f8b47f4b8f8def9c911b100',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
   'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',

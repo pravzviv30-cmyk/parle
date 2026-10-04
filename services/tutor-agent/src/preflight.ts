@@ -127,6 +127,7 @@ export function missingRequired(env: Env = process.env): string[] {
     // worker that was never going to call ElevenLabs.
     ...(!typedOnly(env) ? [VOICE_KEY[selectedVoiceVendor(env)]] : []),
     ...(brainKey === null ? [] : [brainKey]),
+    ...(env.NODE_ENV === 'production' ? ['TOKEN_SERVER_URL', 'LUVANI_AGENT_SECRET'] : []),
   ];
   return required.filter((name) => (env[name] ?? '').trim() === '');
 }
@@ -234,11 +235,12 @@ export interface VendorCheck {
   vendor: string;
   fatal: boolean;
   detail: string;
+  unavailable?: boolean;
 }
 
 type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string>; body?: string },
+  init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 /**
@@ -277,7 +279,7 @@ async function probe(
   try {
     response = await fetchFn(url, { method: 'GET', headers });
   } catch {
-    return { vendor, fatal: false, detail: `could not be reached — check the network, not the key.` };
+    return { vendor, fatal: false, unavailable: true, detail: `could not be reached — check the network, not the key.` };
   }
   if (response.status === 401 || response.status === 403) {
     if (allowScopeGap) {
@@ -294,13 +296,13 @@ async function probe(
     return { vendor, fatal: true, detail: `rejected the key (HTTP ${response.status}). It is wrong, expired, or revoked.` };
   }
   if (!response.ok) {
-    return { vendor, fatal: false, detail: `answered HTTP ${response.status}; treating as a blip rather than a misconfiguration.` };
+    return { vendor, fatal: false, unavailable: true, detail: `answered HTTP ${response.status}; treating as a blip rather than a misconfiguration.` };
   }
   if (onOk === undefined) return null;
   try {
     return onOk(await response.json());
   } catch {
-    return { vendor, fatal: false, detail: `returned a body this check could not read.` };
+    return { vendor, fatal: false, unavailable: true, detail: `returned a body this check could not read.` };
   }
 }
 
@@ -330,13 +332,14 @@ async function probeSynthesis(voiceId: string, apiKey: string, fetchFn: FetchLik
       body,
     });
   } catch {
-    return { vendor: 'ElevenLabs', fatal: false, detail: `could not be reached — check the network, not the key.` };
+    return { vendor: 'ElevenLabs', fatal: false, unavailable: true, detail: `could not be reached — check the network, not the key.` };
   }
   if (response.ok) return null;
   if (response.status >= 500 || response.status === 429) {
     return {
       vendor: 'ElevenLabs',
       fatal: false,
+      unavailable: true,
       detail: `answered HTTP ${response.status} to a test line; treating as a blip rather than a misconfiguration.`,
     };
   }
@@ -385,13 +388,14 @@ async function probeFishSynthesis(env: Env, fetchFn: FetchLike): Promise<VendorC
   try {
     response = await fetchFn(url, { method: 'POST', headers, body });
   } catch {
-    return { vendor: 'fish.audio', fatal: false, detail: `could not be reached — check the network, not the key.` };
+    return { vendor: 'fish.audio', fatal: false, unavailable: true, detail: `could not be reached — check the network, not the key.` };
   }
   if (response.ok) return null;
   if (response.status >= 500 || response.status === 429) {
     return {
       vendor: 'fish.audio',
       fatal: false,
+      unavailable: true,
       detail: `answered HTTP ${response.status} to a test line; treating as a blip rather than a misconfiguration.`,
     };
   }
@@ -426,8 +430,28 @@ export async function verifyVendors(
   env: Env = process.env,
   model: string = '',
   fetchFn: FetchLike = globalThis.fetch as unknown as FetchLike,
+  options: { timeoutMs?: number } = {},
 ): Promise<VendorCheck[]> {
+  // One startup budget includes both headers and body parsing. Fake/SDK clients
+  // that ignore AbortSignal still cannot leave this worker advertised as ready.
+  const request = fetchFn;
+  const controller = new AbortController();
+  let expire: () => void = () => {};
+  const expired = new Promise<never>((_resolve, reject) => {
+    expire = () => { controller.abort(); reject(new Error('vendor-probe-timeout')); };
+  });
+  const timer = setTimeout(expire, Math.max(1, Math.min(12_000, options.timeoutMs ?? 12_000)));
+  fetchFn = async (url, init) => {
+    const response = await Promise.race([request(url, { ...init, signal: controller.signal }), expired]);
+    return { ok: response.ok, status: response.status, json: () => Promise.race([response.json(), expired]) };
+  };
   const checks: Promise<VendorCheck | null>[] = [];
+  const results = async () => {
+    try {
+      return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null).map(check =>
+        env.NODE_ENV === 'production' && check.unavailable ? { ...check, fatal: true } : check);
+    } finally { clearTimeout(timer); }
+  };
 
   // Both CLI configurations also serve scripted lessons through the SDK's
   // Groq plugin. Probe the dependency they actually construct, even when the
@@ -489,7 +513,7 @@ export async function verifyVendors(
   // Only the selected voice vendor is asked anything. Probing the other one
   // would send an empty key, read the 401 as fatal, and refuse to start a worker
   // that was perfectly able to run — the same trap claude-cli-all showed above.
-  if (typedOnly(env)) return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null);
+  if (typedOnly(env)) return results();
   if (selectedVoiceVendor(env) === 'fish') {
     checks.push(
       (async (): Promise<VendorCheck | null> => {
@@ -626,7 +650,7 @@ export async function verifyVendors(
 
   checks.push(probe('Deepgram', 'https://api.deepgram.com/v1/projects', { Authorization: `Token ${env.DEEPGRAM_API_KEY ?? ''}` }, fetchFn));
 
-  return (await Promise.all(checks)).filter((c): c is VendorCheck => c !== null);
+  return results();
 }
 
 /** Prints what the vendors said, and refuses to start on anything fatal. */
@@ -652,6 +676,18 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
   const result = spawnSync('claude', ['--version'], { stdio: 'ignore', timeout: 5000 });
   return !result.error && result.status === 0;
 }): void {
+  if (env.NODE_ENV === 'production') {
+    const brain = selectedBrain(env);
+    let safeServer = false;
+    try { const url = new URL(env.TOKEN_SERVER_URL ?? ''); safeServer = url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash; } catch { /* invalid */ }
+    if (!safeServer || (env.LUVANI_AGENT_SECRET ?? '').length < 32 || brain === 'claude-cli' || brain === 'claude-cli-all' || brain === 'groq'
+      || selectedVoiceVendor(env) !== 'elevenlabs' || env.LUVANI_CONVO_ASR_EXPERIMENT === '1'
+      || env.LUVANI_TTS_MISS_TRANSPORT === 'ws' || env.TYPESAFE_API_KEY?.trim()
+      || env.LUVANI_AUDIO_SCORING === '1' && (env.LUVANI_SCORING_VENDOR !== 'speechace' || !env.SPEECHACE_API_KEY?.trim())) {
+      console.error('[luvani:agent] Production requires an HTTPS token API, a strong agent secret and a hosted API brain.');
+      exit(1); return;
+    }
+  }
   for (const line of warnings(env)) console.warn(`[luvani:agent] ${line}`);
 
   const missing = missingRequired(env);

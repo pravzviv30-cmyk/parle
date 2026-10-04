@@ -242,6 +242,9 @@ export function installationSignal(req: IncomingMessage): string | null {
 }
 
 export const RATE_LIMITS = {
+  heartbeatIp: { name: 'worker-heartbeat-ip', limit: 1000, windowSec: 60 },
+  tutorWorkIp: { name: 'tutor-work-ip', limit: 30000, windowSec: 60 },
+  tutorWorkUser: { name: 'tutor-work-user', limit: 240, windowSec: 60 },
   phraseAudioIp: { name: 'phrase-audio-ip', limit: 180, windowSec: 86_400 },
   phraseAudioUser: { name: 'phrase-audio-user', limit: 90, windowSec: 86_400 },
   sessionIp: { name: 'session-ip', limit: 30, windowSec: 60 },
@@ -256,6 +259,8 @@ export const RATE_LIMITS = {
   deletionUser: { name: 'deletion-user', limit: 3, windowSec: 86_400 },
   exportIp: { name: 'export-ip', limit: 30, windowSec: 86_400 },
   exportUser: { name: 'export-user', limit: 5, windowSec: 86_400 },
+  exportPageIp: { name: 'export-page-ip', limit: 1200, windowSec: 60 },
+  exportPageUser: { name: 'export-page-user', limit: 240, windowSec: 60 },
   billingReadinessIp: { name: 'billing-readiness-ip', limit: 120, windowSec: 60 },
   billingReadinessUser: { name: 'billing-readiness-user', limit: 30, windowSec: 60 },
   billingWebhookIp: { name: 'billing-webhook-ip', limit: 240, windowSec: 60 },

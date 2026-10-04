@@ -1,3 +1,4 @@
+import {boundedFetchJson} from '../../shared/boundedFetch.ts';
 function adminHeaders(serviceRoleKey: string): Record<string, string> {
   return { apikey: serviceRoleKey, authorization: `Bearer ${serviceRoleKey}` };
 }
@@ -10,10 +11,10 @@ export async function requestRevenueCatErasure(
 ): Promise<boolean> {
   if (!secretKey?.trim()) return false;
   try {
-    const response = await request(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
+    const response = await boundedFetchJson(request,`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`, {
       method: 'DELETE', headers: { authorization: `Bearer ${secretKey}` },
       signal: AbortSignal.timeout(5_000),
-    });
+    },{timeoutMs:5000,maxBytes:32*1024,parse:'ignore'});
     // RevenueCat documents an asynchronous accepted deletion and an absent
     // customer as retry-safe completion. Never GET: that can create a customer.
     return response.status === 200 || response.status === 404;
@@ -43,13 +44,14 @@ export async function signedInRecently(
   now: number = Date.now(),
   maximumAgeMs = 5 * 60 * 1_000,
 ): Promise<boolean> {
-  const response = await request(
+  const response = await boundedFetchJson(request,
     `${baseUrl.replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(userId)}`,
     { headers: adminHeaders(serviceRoleKey), signal: AbortSignal.timeout(5_000) },
+    {timeoutMs:5000,maxBytes:64*1024},
   );
-  if (!response.ok) throw new Error(`recent authentication check failed (${response.status})`);
-  const body = (await response.json()) as { last_sign_in_at?: unknown };
-  if (typeof body.last_sign_in_at !== 'string') return false;
+  if (response.status<200 || response.status>=300) throw new Error(`recent authentication check failed (${response.status})`);
+  const body = response.value as { last_sign_in_at?: unknown };
+  if (typeof body?.last_sign_in_at !== 'string') return false;
   const signedInAt = Date.parse(body.last_sign_in_at);
   return Number.isFinite(signedInAt) && signedInAt <= now && now - signedInAt <= maximumAgeMs;
 }
@@ -61,13 +63,13 @@ export async function deleteSupabaseUser(
   userId: string,
   request: typeof fetch = fetch,
 ): Promise<void> {
-  const response = await request(
+  const response = await boundedFetchJson(request,
     `${baseUrl.replace(/\/+$/, '')}/auth/v1/admin/users/${encodeURIComponent(userId)}`,
     {
       method: 'DELETE',
       headers: adminHeaders(serviceRoleKey),
       signal: AbortSignal.timeout(5_000),
-    },
+    },{timeoutMs:5000,maxBytes:32*1024,parse:'ignore'},
   );
-  if (!response.ok) throw new Error(`account deletion failed (${response.status})`);
+  if ((response.status<200 || response.status>=300) && response.status !== 404) throw new Error(`account deletion failed (${response.status})`);
 }

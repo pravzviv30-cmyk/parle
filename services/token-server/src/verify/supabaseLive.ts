@@ -19,8 +19,8 @@
  *      the redactor, which strips the values it was handed and any JWT or Supabase key
  *      shape it happens to meet in an error message from the service.
  *
- * It cannot apply migrations — DDL does not travel over PostgREST and this machine has no
- * CLI, Docker or psql — so when the schema is absent it says so in one clear line and
+ * It cannot apply migrations: this harness uses PostgREST, which does not carry DDL.
+ * When the schema is absent it says so in one clear line and
  * points at supabase/README.md rather than reporting twelve confusing failures.
  *
  * The module body has no imports beyond node's own. The Supabase SDK, the entitlement
@@ -105,7 +105,7 @@ export const SUPABASE_PROOFS: readonly SupabaseProof[] = [
   },
   {
     id: 'deletion-cascade',
-    title: 'deleting an account removes every learner row and keeps only the pseudonymous antifraud hash',
+    title: 'deleting a disposable account removes the seeded legacy learner rows and keeps the pseudonymous antifraud hash',
     why: 'deletion has to be real, and the antifraud evidence has to survive it without identifying anyone',
   },
 ];
@@ -146,14 +146,14 @@ export function blockedReport(missing: readonly string[]): string {
 export function schemaMissingReport(detail: string): string {
   return [
     `BLOCKED: the Supabase project answers but the Luvani schema is not applied (missing: ${detail}).`,
-    'Paste the migrations in order from supabase/README.md, then run this again.',
+    'Apply all migrations using the reviewed release procedure in supabase/README.md, then run this again.',
   ].join('\n');
 }
 
 /**
  * What the schema has to contain before any proof means anything, and one readable
- * column from each table. Every migration's tables are listed, so a half-applied schema
- * is named object by object instead of failing twelve checks for one missing table.
+ * column from each historical table these twelve proofs exercise. This is not the
+ * current full catalog; the separate catalog preflight below checks its inventory.
  */
 const SCHEMA_OBJECTS: readonly (readonly [string, string])[] = [
   ['learner_state', 'user_id'],
@@ -166,9 +166,9 @@ const SCHEMA_OBJECTS: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * Every RPC, probed with arguments it must reject. A missing function answers PGRST202;
- * anything else — including the validation exception these arguments are chosen to raise —
- * proves the function is there, and no probe writes a row.
+ * Historical RPCs, probed with arguments they must reject. A missing function answers PGRST202;
+ * a known validation exception proves the function is there. Permission/network or
+ * unexpected success cannot establish this precondition. No probe writes a row.
  */
 const ROUTINE_PROBES: readonly (readonly [string, Record<string, unknown>])[] = [
   ['consume_entitlement', { p_user_id: '00000000-0000-0000-0000-000000000000', p_seconds: -1, p_session_id: null }],
@@ -317,6 +317,53 @@ function recorder(redact: (value: unknown) => string, log: (line: string) => voi
   };
 }
 
+/** Minimal type-only grant seam. Fixtures must bind a session before its debit. */
+interface LegacyGrantStore<E> {
+  get(userId: string): Promise<E>;
+  recordSessionGrant(userId: string, sessionId: string, expected: E): Promise<boolean>;
+}
+export async function registerLegacySessions<E>(store: LegacyGrantStore<E>, userId: string, sessionIds: readonly string[]): Promise<void> {
+  if (sessionIds.length === 0 || new Set(sessionIds).size !== sessionIds.length) throw new Error('invalid legacy fixture session ids');
+  const expected = await store.get(userId);
+  for (const sessionId of sessionIds) {
+    if (await store.recordSessionGrant(userId, sessionId, expected) !== true) throw new Error('legacy verification session grant refused');
+  }
+}
+
+interface CatalogShape {
+  tables: readonly { schema: string; name: string; rls: boolean; privileges: { anon: { select: boolean }; authenticated: { select: boolean } } }[];
+  policies: readonly Record<string, unknown>[];
+  routines: readonly { schema: string; name: string; arguments: string; securityDefiner: boolean; configuration: readonly string[] | null;
+    definitionMd5: string; execute: { anon: boolean; authenticated: boolean } }[];
+}
+/** Narrow REST inventory/client ACL/policy preflight. Full columns/service/default ACLs require the SQL CLI. */
+export function currentInventoryProblems(expected: CatalogShape, actual: unknown): string[] {
+  if (!actual || typeof actual !== 'object') return ['backend_catalog_v1 returned no catalog'];
+  const catalog = actual as { tables?: readonly { schema: string; name: string; rls: boolean; anonSelect: boolean; authenticatedSelect: boolean }[];
+    routines?: readonly Record<string, unknown>[]; policies?: readonly Record<string, unknown>[] };
+  if (!Array.isArray(catalog.tables) || !Array.isArray(catalog.routines) || !Array.isArray(catalog.policies)
+    || [...catalog.tables, ...catalog.routines, ...catalog.policies].some(row => !row || typeof row !== 'object')) return ['backend_catalog_v1 returned malformed catalog'];
+  const stable = (value: unknown): unknown => Array.isArray(value) ? value.map(stable)
+    : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, stable(item)])) : value;
+  const problems: string[] = [];
+  const key = (row: { schema: string; name: string; arguments?: string }) => `${row.schema}.${row.name}${row.arguments === undefined ? '' : '(' + row.arguments + ')'}`;
+  for (const table of expected.tables) {
+    const observed = catalog.tables.find(t => key(t) === key(table));
+    if (!observed || observed.rls !== table.rls || observed.anonSelect !== table.privileges.anon.select
+      || observed.authenticatedSelect !== table.privileges.authenticated.select) problems.push(`table/RLS/client ACL ${key(table)}`);
+  }
+  for (const table of catalog.tables) if (!expected.tables.some(t => key(t) === key(table))) problems.push(`unexpected table ${key(table)}`);
+  if (JSON.stringify(stable(expected.policies)) !== JSON.stringify(stable(catalog.policies))) problems.push('RLS policy source drift');
+  for (const routine of expected.routines) {
+    const observed = catalog.routines.find(r => r.schema === routine.schema && r.name === routine.name && r.arguments === routine.arguments);
+    if (!observed || observed.securityDefiner !== routine.securityDefiner || observed.definitionMd5 !== routine.definitionMd5
+      || JSON.stringify(observed.configuration) !== JSON.stringify(routine.configuration)
+      || observed.anonExecute !== routine.execute.anon || observed.authenticatedExecute !== routine.execute.authenticated) problems.push(`routine/ACL ${key(routine)}`);
+  }
+  for (const routine of catalog.routines) if (!expected.routines.some(r => r.schema === routine.schema && r.name === routine.name && r.arguments === routine.arguments)) problems.push('unexpected routine in current inventory');
+  return problems;
+}
+
 export interface RunOptions {
   readonly env: Environment;
   readonly log?: (line: string) => void;
@@ -365,6 +412,13 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
     return { ok: false, blocked: true, results: [], lines: report.split('\n') };
   }
 
+  if (env.LUVANI_SUPABASE_VERIFY_DISPOSABLE !== '1') {
+    const lines = ['BLOCKED: this harness creates/deletes accounts and requires LUVANI_SUPABASE_VERIFY_DISPOSABLE=1 on an isolated disposable project.',
+      'The separate scripts/verifyCurrentHostedSchema.mjs workflow is read-only and does not run these twelve historical proofs.'];
+    for (const line of lines) log(line);
+    return { ok: false, blocked: true, results: [], lines };
+  }
+
   const { createClient } = await import('@supabase/supabase-js');
   const { SupabaseEntitlementStore } = await import('../store.ts');
 
@@ -379,22 +433,25 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
   const store = new SupabaseEntitlementStore(url, serviceRoleKey);
 
   // Preflight. Twelve failures that all mean "no tables" is a worse report than one line
-  // that says so, and this machine cannot apply the migrations itself.
+  // that says so. This harness never applies migrations or changes launch config.
   //
   // The read is deliberately a one-row select rather than a HEAD count: PostgREST answers
   // a HEAD request for a table it cannot find with 204 and no error at all, which would
   // let this walk straight past a project that has no schema.
   const absent: string[] = [];
+  const preflightErrors: string[] = [];
   for (const [table, column] of SCHEMA_OBJECTS) {
     const probe = await admin.from(table).select(column).limit(1);
     if (probe.error?.code === 'PGRST205' || probe.error?.code === '42P01') absent.push(`table ${table}`);
+    else if (probe.error) preflightErrors.push(`table ${table}: ${codeOf(probe)}`);
   }
   for (const [routine, args] of ROUTINE_PROBES) {
     const probe = await admin.rpc(routine, args);
     if (probe.error?.code === 'PGRST202' || probe.error?.code === '42883') absent.push(`function ${routine}`);
+    else if (!probe.error || !['P0001', '22023', 'PT400'].includes(codeOf(probe))) preflightErrors.push(`function ${routine}: expected validation refusal, received ${codeOf(probe)}`);
   }
-  if (absent.length > 0) {
-    const report = schemaMissingReport(absent.join(', '));
+  if (absent.length > 0 || preflightErrors.length > 0) {
+    const report = absent.length ? schemaMissingReport(absent.join(', ')) : `BLOCKED: historical schema preflight unresolved: ${preflightErrors.join(', ')}`;
     const results = SUPABASE_PROOFS.map((proof) => ({
       id: proof.id,
       outcome: 'skipped' as const,
@@ -405,6 +462,22 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
     for (const line of lines) log(line);
     return { ok: false, blocked: true, results, lines };
   }
+
+  // Read-only narrow REST inventory. Do not label it a full catalog/security proof.
+  const { buildSchemaManifest } = await import(new URL('../../../../scripts/releaseSchemaManifest.mjs', import.meta.url).href);
+  const expectedSchema = await buildSchemaManifest() as { catalog: CatalogShape; migrationCount: number };
+  const observedCatalog = await admin.rpc('backend_catalog_v1');
+  const inventoryProblems = observedCatalog.error ? [`backend_catalog_v1 ${codeOf(observedCatalog)}`] : currentInventoryProblems(expectedSchema.catalog, observedCatalog.data);
+  const admission = await admin.rpc('tutor_session_schema_v1');
+  if (admission.error || admission.data?.enabled !== false) inventoryProblems.push('legacy proof fixtures require tutor admission OFF; harness never changes admission');
+  if (inventoryProblems.length) {
+    const results = SUPABASE_PROOFS.map(proof => ({ id: proof.id, outcome: 'skipped' as const, detail: 'current inventory/preconditions unresolved', ms: 0 }));
+    const lines = [`BLOCKED: current ${expectedSchema.migrationCount}-migration inventory/preconditions unresolved: ${inventoryProblems.slice(0,30).join(', ')}`,
+      'Function-definition drift may include PostgreSQL formatting/version differences; review rather than ignore it. Use verifyCurrentHostedSchema.mjs for full SQL catalog evidence.', ...summarise(results).lines];
+    for (const line of lines) log(redact(line));
+    return { ok: false, blocked: true, results, lines };
+  }
+  log(`Current ${expectedSchema.migrationCount}-migration REST inventory/client ACL/policy preflight matched; full SQL catalog and v1 lifecycle hosted acceptance remain separate.`);
 
   const created: string[] = [];
   const installations: string[] = [];
@@ -555,13 +628,13 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
           p_seconds: 600,
           p_session_id: null,
         });
-        expect(debit.error, `${name} executed consume_entitlement`);
+        expect(codeOf(debit) === '42501', `${name} consume_entitlement refusal was ${codeOf(debit)}, expected permission denied`);
         const claim = await client.rpc('claim_trial', {
           p_user_id: alice.id,
           p_installation_hash: signal('installation', randomUUID()),
           p_user_hash: signal('user', alice.id),
         });
-        expect(claim.error, `${name} executed claim_trial`);
+        expect(codeOf(claim) === '42501', `${name} claim_trial refusal was ${codeOf(claim)}, expected permission denied`);
       }
       const allowed = await adminDb.rpc('consume_entitlement', {
         p_user_id: alice.id,
@@ -612,7 +685,9 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
         .update({ plan: 'regular', seconds_used: 0, period_end: new Date(Date.now() + 86_400_000).toISOString() })
         .eq('user_id', bob.id);
       expect(!reset.error, `could not reset the allowance: ${redact(reset.error)}`);
-      const debits = Array.from({ length: 10 }, () => store.consume(bob.id, 60, randomUUID()));
+      const sessionIds = Array.from({ length: 10 }, () => randomUUID());
+      await registerLegacySessions(store, bob.id, sessionIds);
+      const debits = sessionIds.map(sessionId => store.consume(bob.id, 60, sessionId));
       await Promise.all(debits);
       const after = await store.get(bob.id);
       expect(after.secondsUsed === 600, `ten concurrent 60s debits left ${after.secondsUsed}s used, expected 600`);
@@ -629,6 +704,7 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
     await run.check('session-replay', async () => {
       const before = await store.get(bob.id);
       const sessionId = randomUUID();
+      await registerLegacySessions(store, bob.id, [sessionId]);
       await store.consume(bob.id, 120, sessionId);
       const once = await store.get(bob.id);
       await store.consume(bob.id, 120, sessionId);
@@ -650,6 +726,7 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
 
     await run.check('cross-user-session-refused', async () => {
       const sessionId = randomUUID();
+      await registerLegacySessions(store, alice.id, [sessionId]);
       await store.consume(alice.id, 30, sessionId);
       const before = await store.get(bob.id);
       let refused = false;
@@ -784,29 +861,32 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
       const device = signal('installation', randomUUID());
       installations.push(device);
       await store.claimTrial(doomed.id, device, signal('user', doomed.id));
-    await doomedDb.from('learner_state').upsert({ user_id: doomed.id, namespace: 'profile', payload: { a: 1 } });
+      const state = await doomedDb.from('learner_state').upsert({ user_id: doomed.id, namespace: 'profile', payload: { a: 1 } });
+      expect(!state.error, `could not seed learner state to cascade: ${redact(state.error)}`);
       // Checked, not fired and forgotten. An unwritten event cascades to empty for free,
       // which would make the product_events assertion below vacuous.
       const seeded = await doomedDb
         .from('product_events')
         .insert({ user_id: doomed.id, name: 'my_french_opened', properties: { situationsDone: 1, linesKept: 2 } });
-    expect(!seeded.error, `could not seed a product event to cascade: ${redact(seeded.error)}`);
-    const pack = await adminDb.from('conversation_packs').insert({
-      id: randomUUID(),
-      session_id: randomUUID(),
-      user_id: doomed.id,
-      state: 'ready',
-      payload: {},
-    });
-    expect(!pack.error, `could not seed a Conversation Pack to cascade: ${redact(pack.error)}`);
-      await store.consume(doomed.id, 45, randomUUID());
+      expect(!seeded.error, `could not seed a product event to cascade: ${redact(seeded.error)}`);
+      const pack = await adminDb.from('conversation_packs').insert({
+        id: randomUUID(),
+        session_id: randomUUID(),
+        user_id: doomed.id,
+        state: 'ready',
+        payload: {},
+      });
+      expect(!pack.error, `could not seed a Conversation Pack to cascade: ${redact(pack.error)}`);
+      const sessionId = randomUUID();
+      await registerLegacySessions(store, doomed.id, [sessionId]);
+      await store.consume(doomed.id, 45, sessionId);
 
       const removed = await admin.auth.admin.deleteUser(doomed.id);
       expect(!removed.error, `account deletion failed: ${redact(removed.error)}`);
       const alreadyGone = created.indexOf(doomed.id);
       if (alreadyGone >= 0) created.splice(alreadyGone, 1);
 
-      for (const table of ['learner_state', 'product_events', 'entitlements', 'session_usage', 'conversation_packs'] as const) {
+      for (const table of ['learner_state', 'product_events', 'entitlements', 'session_usage', 'session_grants', 'conversation_packs'] as const) {
         const left = await adminDb.from(table).select('user_id').eq('user_id', doomed.id);
         expect((left.data ?? []).length === 0, `${table} kept rows for a deleted account`);
       }
@@ -815,7 +895,7 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
         .select('installation_hash')
         .eq('installation_hash', device);
       expect((antifraud.data ?? []).length === 1, 'the pseudonymous antifraud row did not survive account deletion');
-      return 'five learner tables cascaded to empty, the antifraud hash survived';
+      return 'six seeded legacy learner tables cascaded to empty, the antifraud hash survived; v1/privacy workflows remain separate acceptance';
     });
   } catch (err) {
     // A failure in the fixtures themselves is not a proof of anything. Everything that

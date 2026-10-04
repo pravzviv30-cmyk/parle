@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "enabled": false,
+  "budgets": {
+    "globalDailyMicroUsd": 0,
+    "accountDailyMicroUsd": 0,
+    "globalDailyOperations": 0,
+    "accountDailyOperations": 0,
+    "globalDailyCalls": 0,
+    "accountDailyCalls": 0
+  },
+  "tutor": {
+    "accountDailySessions": 0,
+    "accountDailySeconds": 0
+  },
+  "review": null,
+  "vendors": [],
+  "quotes": [],
+  "bindings": {},
+  "notes": [
+    "Disabled template only; contains no vendor rates or launch approval.",
+    "MicroUSD values are reviewed worst-case finite envelopes, not measured usage or asserted vendor prices.",
+    "Counters retain every envelope on reservation UTC day, including cancellation/failure/unknown ACK; no refunds or recycling.",
+    "Separate execution-start-day ledgers charge each full component once per operation/component/UTC day, plus each admitted effect retry envelope; the reviewed cost/call caps apply independently to both ledgers. No counters are recycled.",
+    "Permits expire at the next UTC boundary. Actual provider attempts must start before the deadline; streaming connections must combine this deadline with session/request cancellation. Vendor invoice timestamp allocation still needs independent acceptance.",
+    "Before enabling, independently verify exact vendor/account terms, input/output/audio/text units, minimums, models/voices/cache/reasoning dimensions and every permitted SDK/outer retry.",
+    "API compressed audio bytes do not bound billed duration; decoded/container duration validation must precede admission.",
+    "SQL owner applies configuration. App and service credentials cannot edit these private budgets or quotes. No configuration is applied by this validator.",
+    "Global/provider aggregates survive Auth erasure; owner daily counters and operation/effect receipts cascade. Quote revisions carry no learner content.",
+    "Maximum 4096 retained quote revisions, 16 components and 1024 reserved provider attempts per operation; explicit positive per-account tutor caps required. New revisions require lifecycle/retention review before that permanent ceiling is reached."
+  ]
+}

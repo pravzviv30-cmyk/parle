@@ -49,6 +49,7 @@ import { resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting
 export type { BrainEffort };
 
 export interface AnthropicBrainConfig {
+  fetch?: typeof fetch;
   apiKey?: string;
   /** Per-activity routes. Default: the shared table with env overrides. */
   routing?: BrainRouting;
@@ -96,7 +97,7 @@ export class AnthropicBrainClient implements LlmClient {
 
   constructor(config: AnthropicBrainConfig = {}, sdk?: ParseCapableSdk) {
     // A bare constructor resolves credentials from the environment.
-    this.sdk = sdk ?? new Anthropic(config.apiKey ? { apiKey: config.apiKey } : {});
+    this.sdk = sdk ?? new Anthropic({...(config.apiKey ? {apiKey:config.apiKey} : {}),maxRetries:0,...(config.fetch ? {fetch:config.fetch} : {})});
     this.routing = config.routing ?? resolveRouting();
     this.overrides = { model: config.model, effort: config.effort, maxTokens: config.maxTokens };
   }

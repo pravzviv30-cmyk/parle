@@ -138,7 +138,8 @@ describe('a job process does not re-verify the vendors — F384', () => {
     assert.match(inside, /\bpreflight\(\);/, 'preflight() left the worker-only block');
     assert.match(inside, /reportVendors\(await verifyVendors\(/, 'the vendor check left the worker-only block');
     const after = block.slice(close);
-    assert.match(after, /cli\.runApp\(new WorkerOptions\(/, 'runApp must stay outside the block: the framework needs the module to load in a job too');
+    assert.match(after, /const workerOptions = new WorkerOptions\(/, 'the CLI retains the SDK options used to obtain its actual health port');
+    assert.match(after, /cli\.runApp\(workerOptions\)/, 'runApp must stay outside the block: the framework needs the module to load in a job too');
     // Nothing else at the top level asks a vendor before a job can answer.
     const topLevel = AGENT.slice(AGENT.indexOf('\n});\n', AGENT.indexOf('export default defineAgent(')));
     assert.equal((topLevel.match(/verifyVendors\(/g) ?? []).length, 1, 'verifyVendors is called more than once at the top level');

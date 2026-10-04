@@ -3,6 +3,11 @@ import { describe, test } from 'node:test';
 import { productionConfigurationProblems } from './config.ts';
 
 describe('production starts closed', () => {
+  test('unadmitted optional vendor configuration refuses production startup',()=>{
+    for(const extra of [{TONEPERFECT_API_KEY:'synthetic'},{FISH_API_KEY:'synthetic'},{LUVANI_TTS_VENDOR:'fish'}])assert.ok(productionConfigurationProblems({NODE_ENV:'production',...extra}).includes('unsupported production paid adapter'));
+    for(const extra of [{SPEECHACE_API_KEY:'synthetic'},{LUVANI_SCORING_VENDOR:'toneperfect'},{LUVANI_SCORING_VENDOR:'speechace'}])assert.ok(productionConfigurationProblems({NODE_ENV:'production',...extra}).includes('explicit supported Speechace scoring'));
+    assert.ok(!productionConfigurationProblems({NODE_ENV:'production',SPEECHACE_API_KEY:'synthetic',LUVANI_SCORING_VENDOR:'speechace'}).includes('explicit supported Speechace scoring'));
+  });
   test('development keeps the keyless path', () => {
     assert.deepEqual(
       productionConfigurationProblems({ NODE_ENV: 'development', LUVANI_LOCAL_DEVELOPMENT: '1' }),
@@ -35,7 +40,7 @@ describe('production starts closed', () => {
       NODE_ENV: 'production',
       SUPABASE_JWT_SECRET: 'legacy-auth-secret',
       LIVEKIT_URL: 'wss://luvani.livekit.cloud',
-      LUVANI_AGENT_SECRET: 'agent-secret',
+      LUVANI_AGENT_SECRET: 'synthetic-agent-secret-at-least-32-characters',
       LUVANI_ALLOWED_ORIGINS: 'https://app.luvani.example',
       UPSTASH_REDIS_REST_URL: 'https://redis.example',
       UPSTASH_REDIS_REST_TOKEN: 'redis-token',
@@ -51,7 +56,7 @@ describe('production starts closed', () => {
       SUPABASE_URL: 'https://project.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role',
       LIVEKIT_URL: 'wss://luvani.livekit.cloud',
-      LUVANI_AGENT_SECRET: 'agent-secret',
+      LUVANI_AGENT_SECRET: 'synthetic-agent-secret-at-least-32-characters',
     };
     assert.ok(productionConfigurationProblems({ ...base, LUVANI_ALLOWED_ORIGINS: '*' }).includes('exact HTTPS origins'));
     assert.ok(
@@ -67,7 +72,7 @@ describe('production starts closed', () => {
       SUPABASE_URL: 'http://project.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role',
       LIVEKIT_URL: 'ws://livekit.example',
-      LUVANI_AGENT_SECRET: 'agent-secret',
+      LUVANI_AGENT_SECRET: 'synthetic-agent-secret-at-least-32-characters',
       LUVANI_ALLOWED_ORIGINS: 'https://app.luvani.example',
       UPSTASH_REDIS_REST_URL: 'https://redis.example',
       UPSTASH_REDIS_REST_TOKEN: 'redis-token',
@@ -84,7 +89,7 @@ describe('production starts closed', () => {
         SUPABASE_URL: 'https://project.supabase.co',
         SUPABASE_SERVICE_ROLE_KEY: 'service-role',
         LIVEKIT_URL: 'wss://luvani.livekit.cloud',
-        LUVANI_AGENT_SECRET: 'agent-secret',
+        LUVANI_AGENT_SECRET: 'synthetic-agent-secret-at-least-32-characters',
         LUVANI_ALLOWED_ORIGINS: 'https://app.luvani.example',
         UPSTASH_REDIS_REST_URL: 'https://redis.example',
         UPSTASH_REDIS_REST_TOKEN: 'redis-token',
@@ -100,7 +105,7 @@ describe('production starts closed', () => {
       SUPABASE_URL: 'https://project.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role',
       LIVEKIT_URL: 'wss://luvani.livekit.cloud',
-      LUVANI_AGENT_SECRET: 'agent-secret',
+      LUVANI_AGENT_SECRET: 'synthetic-agent-secret-at-least-32-characters',
       LUVANI_ALLOWED_ORIGINS: 'https://app.luvani.example',
       UPSTASH_REDIS_REST_URL: 'https://redis.example',
       UPSTASH_REDIS_REST_TOKEN: 'redis-token',

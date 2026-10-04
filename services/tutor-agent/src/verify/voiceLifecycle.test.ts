@@ -191,10 +191,12 @@ describe('voice lifecycle harness', () => {
     }
   });
 
-  it('the seeded hard stop is computed the way the agent computes it', () => {
-    // If agent.ts changes its ceiling, the harness is seeding against a timer
-    // that no longer exists and would still report a confident number.
-    assert.match(AGENT_SOURCE, /maximumSessionSec = Math\.min\(15 \* 60, allowanceRemaining\)/);
+  it('the local legacy seed is separate from the authoritative reserved ceiling', () => {
+    // The short forged seed is a local legacy fixture. Production claims use
+    // the DB reservation and conservative lease/hard-deadline timers.
+    assert.match(AGENT_SOURCE, /maximumSessionSec = lifecycle\?\.maxSeconds \?\? Math\.min\(15 \* 60, allowanceRemaining\)/);
+    assert.match(AGENT_SOURCE, /hardStop = lifecycle \? undefined : setTimeout/);
+    assert.match(AGENT_SOURCE, /meta\.lifecycleVersion !== 1 && legacyRuntimeFixture\(process\.env\)/);
     assert.match(AGENT_SOURCE, /}, maximumSessionSec \* 1_000\);/);
     assert.equal(HARD_STOP_CEILING_SEC, 15 * 60);
   });

@@ -30,6 +30,7 @@
 
 import { strict as assert } from 'node:assert';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
@@ -56,6 +57,9 @@ interface AdvisoryDecision {
   reachability?: string;
   why?: string;
   resolution?: string;
+  reviewed?: string;
+  expires?: string;
+  advisoryRanges?: Record<string,string>;
 }
 
 interface LockEntry {
@@ -169,6 +173,54 @@ function atLeast(version: string, floor: string): boolean {
 }
 
 describe('the ci contract', () => {
+  test('the full offline gate replays every migration with the exact locked database engine', () => {
+    const rootManifest=manifest as typeof manifest & {devDependencies:Record<string,string>,overrides:Record<string,Record<string,string>>};
+    assert.equal(rootManifest.devDependencies['@electric-sql/pglite'],'0.3.14');
+    assert.equal(lock.packages['node_modules/@electric-sql/pglite']?.version,'0.3.14');
+    const gate=readFileSync(path.join(ROOT,'scripts/gate.mjs'),'utf8');
+    const section=gate.slice(gate.indexOf('// ------------------------------------------------------- disposable SQL proofs'),gate.indexOf('// ------------------------------------------------------------------ 3. hygiene'));
+    for(const proof of ['verifyDataBoundaries.mjs','verifyTutorSessions.mjs','verifyPrivacyJobs.mjs']) {
+      assert.ok(section.includes(proof),`${proof} is mandatory in the full gate`);
+      assert.ok(existsSync(path.join(ROOT,'scripts',proof)));
+    }
+    assert.match(section,/if \(!fast\)/);assert.match(section,/replayed !== migrationCount/);
+    assert.match(section,/PGLITE_MODULE: ''/,'the gate cannot use an arbitrary temporary engine override');
+  });
+
+  test('the native installer ZIP override fixes allocations and extraction while preserving its real API', () => {
+    const request=createRequire(import.meta.url);
+    const native=request.resolve('onnxruntime-node/package.json');
+    const nativeRequest=createRequire(native);
+    assert.equal(nativeRequest('onnxruntime-node/package.json').version,'1.24.3');
+    assert.equal(nativeRequest('adm-zip/package.json').version,'0.6.1');
+    const rootManifest=manifest as typeof manifest & {overrides:Record<string,Record<string,string>>};
+    assert.equal(rootManifest.overrides['onnxruntime-node']?.['adm-zip'],'0.6.1');
+    for(const [key,entry] of Object.entries(lock.packages)) if(key.endsWith('node_modules/adm-zip')) assert.equal(entry.version,'0.6.1');
+    execFileSync(process.execPath,['--input-type=commonjs','-e',`
+      const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+      const AdmZip=require('adm-zip');
+      const root=fs.mkdtempSync(path.join(os.tmpdir(),'luvani-installer-zip-'));
+      try {
+        const data=Buffer.from('synthetic native binary'),zip=new AdmZip();
+        zip.addFile('runtimes/linux-x64/native/libfixture.so',data);
+        const archive=path.join(root,'fixture.nupkg');zip.writeZip(archive);
+        const loaded=new AdmZip(archive),entry=loaded.getEntry('runtimes/linux-x64/native/libfixture.so');
+        const extracted=path.join(root,'extracted');fs.mkdirSync(extracted);
+        loaded.extractEntryTo(entry,extracted,false,true);
+        assert.deepEqual(fs.readFileSync(path.join(extracted,'libfixture.so')),data);
+        // A declared huge size must not become an eager Buffer allocation.
+        const malicious=loaded.toBuffer();let central=malicious.indexOf(Buffer.from([0x50,0x4b,0x01,0x02]));
+        assert.ok(central>=0);malicious.writeUInt32LE(0x7ffffff0,central+24);
+        const original=Buffer.alloc;Buffer.alloc=function(size,...rest){assert.ok(size<=1024*1024,'untrusted eager allocation');return original.call(Buffer,size,...rest);};
+        try { assert.deepEqual(new AdmZip(malicious).getEntry(entry.entryName).getData(),data); } finally { Buffer.alloc=original; }
+        const outside=path.join(root,'outside');fs.mkdirSync(outside);const sentinel=path.join(outside,'sentinel');fs.writeFileSync(sentinel,'unchanged');
+        fs.unlinkSync(path.join(extracted,'libfixture.so'));fs.symlinkSync(sentinel,path.join(extracted,'libfixture.so'));
+        assert.throws(()=>loaded.extractEntryTo(entry,extracted,false,true));
+        assert.equal(fs.readFileSync(sentinel,'utf8'),'unchanged');
+      } finally {fs.rmSync(root,{recursive:true,force:true});}
+    `],{cwd:ROOT,timeout:5000,stdio:['ignore','pipe','pipe']});
+  });
+
   test('both XML parser release lines stay above their security patch floors', () => {
     const parsers = Object.entries(lock.packages).filter(([key]) => key.endsWith('node_modules/@xmldom/xmldom'));
     assert.ok(parsers.length >= 2, 'both Expo and plist XML parser chains must be checked');
@@ -226,6 +278,7 @@ describe('the ci contract', () => {
       { what: 'the gate', script: 'gate' },
       { what: 'the dependency audit', script: 'audit:ci' },
       { what: 'the secret scan', script: 'scan:secrets' },
+      { what: 'the full history secret scan', script: 'scan:secrets:history' },
     ];
 
     for (const { what, script } of required) {
@@ -285,7 +338,7 @@ describe('the ci contract', () => {
 
       const closure = dependencyClosure(key);
       assert.ok(
-        closure.size >= 10,
+        record.module === 'adm-zip' || closure.size >= 10,
         `the dependency walk from ${record.module} reached only ${closure.size} packages, ` +
           'which means the walk is broken rather than the chain being clean',
       );
@@ -293,7 +346,7 @@ describe('the ci contract', () => {
       // A fixed image-size advisory is not a promise that every future advisory
       // elsewhere in Metro's tree is fixed. Those roots still face audit:ci's
       // independent decision, version and reachability checks.
-      assert.ok(record.removedPackages?.length, `${record.module} names no dependency its fix removed`);
+      assert.ok(record.module === 'adm-zip' || record.removedPackages?.length, `${record.module} names no dependency its fix removed`);
       for (const removed of record.removedPackages ?? []) {
         for (const [resolvedKey, resolved] of closure) {
           assert.ok(
@@ -414,6 +467,11 @@ describe('the ci contract', () => {
         `${where}: no reachability argument. Say which code path reaches it, or say that none does and why.`,
       );
       if (record.decision === 'accepted') {
+        assert.match(record.reviewed ?? '', /^\d{4}-\d{2}-\d{2}$/, `${where}: review date required`);
+        assert.match(record.expires ?? '', /^\d{4}-\d{2}-\d{2}$/, `${where}: expiry required`);
+        const reviewed=Date.parse(`${record.reviewed}T00:00:00Z`),expires=Date.parse(`${record.expires}T00:00:00Z`);
+        assert.ok(reviewed<=Date.now() && expires>Date.now() && expires>reviewed && expires-reviewed<=30*86400000, `${where}: exception expired or exceeds 30 days`);
+        assert.deepEqual(Object.keys(record.advisoryRanges ?? {}).sort(), record.advisories?.slice().sort(), `${where}: each accepted advisory needs its exact range`);
         assert.ok((record.why ?? '').length > 80, `${where}: accepted with no reason recorded`);
       } else {
         assert.ok((record.resolution ?? '').length > 80, `${where}: fixed with no account of what was done`);

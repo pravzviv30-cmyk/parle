@@ -1,0 +1,68 @@
+# Portable single-host reference, not a claim of HA/TLS/autoscaling.
+# No build or deploy command is run by release verification.
+name: luvani-backend
+x-runtime: &runtime
+  image: ${LUVANI_IMAGE:?Set the reviewed registry image reference at sha256 digest}
+  init: true
+  user: node
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: unless-stopped
+  stop_signal: SIGTERM
+  pids_limit: 512
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  api:
+    <<: *runtime
+    command: [api]
+    env_file: ["${LUVANI_API_ENV_FILE:?Private API env file required}"]
+    cpus: ${LUVANI_API_CPUS:?Measured API CPU budget required}
+    mem_limit: ${LUVANI_API_MEMORY:?Measured API memory budget required}
+    stop_grace_period: ${LUVANI_API_DRAIN_GRACE:?Measured API drain grace required}
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=64m,uid=1000,gid=1000,mode=0700"]
+    ports: ["127.0.0.1:${LUVANI_API_PORT:?Private ingress port required}:8787"]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8787/health',{signal:AbortSignal.timeout(2000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+  tutor:
+    <<: *runtime
+    command: [tutor]
+    env_file: ["${LUVANI_TUTOR_ENV_FILE:?Private tutor env file required}"]
+    cpus: ${LUVANI_TUTOR_CPUS:?Measured native tutor CPU budget required}
+    mem_limit: ${LUVANI_TUTOR_MEMORY:?Measured native tutor memory budget required}
+    stop_grace_period: ${LUVANI_TUTOR_DRAIN_GRACE:?Measured SDK tutor drain grace required}
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=${LUVANI_TUTOR_TMPFS_BYTES:?Bounded authored-cache/native temporary budget required},uid=1000,gid=1000,mode=0700"]
+  practice:
+    <<: *runtime
+    command: [practice]
+    env_file: ["${LUVANI_PRACTICE_ENV_FILE:?Private practice env file required}"]
+    cpus: ${LUVANI_PRACTICE_CPUS:?Measured practice CPU budget required}
+    mem_limit: ${LUVANI_PRACTICE_MEMORY:?Measured practice memory budget required}
+    stop_grace_period: ${LUVANI_PRACTICE_DRAIN_GRACE:?Measured leased-job drain grace required}
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=64m,uid=1000,gid=1000,mode=0700"]
+  maintenance:
+    <<: *runtime
+    command: [maintenance]
+    env_file: ["${LUVANI_MAINTENANCE_ENV_FILE:?Private maintenance env file required}"]
+    cpus: ${LUVANI_MAINTENANCE_CPUS:?Measured maintenance CPU budget required}
+    mem_limit: ${LUVANI_MAINTENANCE_MEMORY:?Measured maintenance memory budget required}
+    stop_grace_period: ${LUVANI_MAINTENANCE_DRAIN_GRACE:?Measured maintenance drain grace required}
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=64m,uid=1000,gid=1000,mode=0700"]
+
+  observability:
+    <<: *runtime
+    command: [observability]
+    env_file: ["${LUVANI_OBSERVABILITY_ENV_FILE:?Private metrics credential/config required}"]
+    volumes: ["${LUVANI_OBSERVABILITY_CONFIG_FILE:?Reviewed per-instance config required}:/run/config/observability.json:ro"]
+    cpus: ${LUVANI_OBSERVABILITY_CPUS:?Measured exporter CPU budget required}
+    mem_limit: ${LUVANI_OBSERVABILITY_MEMORY:?Measured exporter memory budget required}
+    stop_grace_period: 10s
+    network_mode: host # Linux reference; Prometheus scrapes host127.0.0.1:9464
+    tmpfs: ["/tmp:rw,nosuid,noexec,size=16m,uid=1000,gid=1000,mode=0700"]
+    # Config must bind127.0.0.1:9464; source pins one API instance over TLS.

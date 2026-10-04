@@ -242,7 +242,7 @@ describe('the redis boundary — failures refuse, keys are hashed', () => {
     );
     assert.ok(withinLimits.length > 0, 'withinLimits must still exist to be checked');
     assert.doesNotMatch(withinLimits, /\bcatch\b/, 'a caught limiter failure would become a silent grant');
-    assert.match(serverSource, /catch \(err\)[\s\S]{0,200}json\(res, 500/);
+    assert.match(serverSource, /catch \(err\)[\s\S]{0,200}answerRequestError\(req, res, err\)/);
   });
 
   test('no raw ip, user or installation value reaches a redis key without the deployment-salted hmac', () => {

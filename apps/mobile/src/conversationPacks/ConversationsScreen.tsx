@@ -30,7 +30,7 @@
  * frame, three null gates and a stylesheet.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type ReviewCard } from '@luvani/core';
@@ -58,7 +58,10 @@ import {
   deleteAllConversationPacksForLearner,
   deleteConversationPackForLearner,
   loadConversationPacks,
+  loadConversationPackForLearner,
+  CONVERSATION_PAGE_SIZE,
   refreshConversationPacks,
+  type UnavailablePack,
 } from './store.ts';
 import { loadPackMarks, withMarks, type PackMark } from './marks.ts';
 import { useContinueArc } from '../purchases/useContinueArc.ts';
@@ -93,6 +96,12 @@ export function ConversationsScreen({
   const [remotePending, setRemotePending] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [packs, setPacks] = useState<readonly ConversationPack[]>([]);
+  const [unavailable, setUnavailable] = useState<readonly UnavailablePack[]>([]);
+  const [pageAfter, setPageAfter] = useState<string | null>(null);
+  const pageScope = useRef(scopeGeneration());
+  const [nextCursor, setNextCursor] = useState<string | null | undefined>(undefined);
+  const [linkedPack, setLinkedPack] = useState<ConversationPack | null>(null);
+  const [linkMessage, setLinkMessage] = useState<string | null>(null);
   // Which filter the learner chose. `sessionsUnder` falls back to the whole
   // feed when the row stops earning its place, so this can stay put.
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -104,6 +113,7 @@ export function ConversationsScreen({
   const archiveIsOwned = archiveOwner === currentOwner && archiveUserId === currentUserId && archiveUserId === activeUserId();
   const visibleArchive = archiveIsOwned ? archive : null;
   const visiblePacks = archiveIsOwned ? packs : [];
+  const visibleUnavailable = archiveIsOwned ? unavailable : [];
   const visibleUnread = unread && unreadOwner === currentOwner && unreadUserId === currentUserId && unreadUserId === activeUserId();
 
   useHardwareBack(showingLibrary && archiveIsOwned, () => setShowingLibrary(false));
@@ -116,12 +126,21 @@ export function ConversationsScreen({
       // Bound to the account before the read: a result from a previous account
       // is dropped, never drawn for this one.
       const scope = scopeGeneration();
+      if (pageScope.current !== scope) {
+        pageScope.current = scope;
+        if (pageAfter !== null) { setPageAfter(null); return () => { cancelled = true; }; }
+      }
       const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope && (user?.id ?? null) === activeUserId();
       setRemotePending(user !== null);
+      setNextCursor(undefined);
+      setLinkedPack(null);
+      setLinkMessage(null);
+      setUnavailable([]);
+      if (pageAfter !== null) { setArchive(null); setPacks([]); }
       const draw = (fetched: readonly ConversationPack[], deck: readonly ReviewCard[], marks: readonly PackMark[]) => {
         // This phone's marks folded in first, so the feed and the library
         // cannot disagree about a conversation that was already practised.
-        const marked = withMarks(fetched, marks);
+        const marked = withMarks(fetched.slice(0, CONVERSATION_PAGE_SIZE), marks);
         setPacks(marked);
         setArchive(archiveFrom({ packs: marked, deck, now: Date.now() }));
         setArchiveOwner(scope);
@@ -131,14 +150,25 @@ export function ConversationsScreen({
       void Promise.all([loadConversationPacks(), loadDeck(), loadPackMarks()])
         .then(([stored, deck, marks]) => {
           if (!sameAccount()) return undefined;
-          draw(stored, deck, marks);
+          if (pageAfter === null) draw(stored.slice(0, CONVERSATION_PAGE_SIZE), deck, marks);
           if (user === null) { setRemotePending(false); return undefined; }
           // The cache first, then the server-owned truth. A closed app can miss
           // the original delivery, so this pull is the recovery path.
-          return refreshConversationPacks(user, adapter).then((result) => {
+          return refreshConversationPacks(user, adapter, fetch, pageAfter).then(async (result) => {
             if (sameAccount()) setRemotePending(false);
-            if (sameAccount() && result.ok) draw(result.packs, deck, marks);
-            else if (sameAccount() && stored.length === 0) { setUnreadOwner(scope); setUnreadUserId(user?.id ?? null); setUnread(true); setShowingLibrary(false); }
+            if (!sameAccount()) return;
+            if (result.ok) { draw(result.packs, deck, marks); setUnavailable(result.unavailable); setNextCursor(result.nextCursor); }
+            else { setUnreadOwner(scope); setUnreadUserId(user?.id ?? null); setUnread(true); if (stored.length === 0 || pageAfter !== null) setShowingLibrary(false); }
+            if (openPackId !== undefined && (!result.ok || !result.packs.some(pack => pack.id === openPackId))) {
+              const found = await loadConversationPackForLearner(user, adapter, openPackId);
+              if (!sameAccount()) return;
+              if (found.ok && found.pack) {
+                setLinkedPack(withMarks([found.pack], marks)[0] ?? found.pack);
+                setShowingLibrary(true);
+                if (!result.ok && pageAfter !== null) draw([], deck, marks);
+              }
+              else setLinkMessage(found.ok ? 'This linked conversation is no longer available.' : found.reason==='oversize' ? 'This saved conversation is too large to open here. Its content has not been removed.' : 'This linked conversation could not be loaded. Retry when connected.');
+            }
           });
         })
         .catch(() => {
@@ -150,14 +180,42 @@ export function ConversationsScreen({
       return () => {
         cancelled = true;
       };
-    }, [user, adapter, attempt]),
+    }, [user, adapter, attempt, pageAfter, openPackId]),
   );
 
-  if (showingLibrary && !visibleUnread && visibleArchive !== null && (!remotePending || visiblePacks.length > 0)) {
+  const pageNote = nextCursor === undefined
+    ? remotePending ? 'Loading conversations. Counts and filters describe this page.' : 'Showing a cached page. Older history could not be loaded. Retry when connected.'
+    : pageAfter === null ? 'Newest conversations. Counts and filters describe this page.' : 'An older page of conversations. Counts and filters describe this page.';
+  const older = archiveIsOwned && typeof nextCursor === 'string' ? () => setPageAfter(nextCursor) : undefined;
+  const newest = archiveIsOwned && pageAfter !== null ? () => setPageAfter(null) : undefined;
+  const retryPage = archiveIsOwned && nextCursor === undefined && !remotePending ? () => setAttempt(n => n + 1) : undefined;
+
+  if (showingLibrary && (!visibleUnread || visiblePacks.length > 0) && visibleArchive !== null && (!remotePending || visiblePacks.length > 0)) {
     return (
       <ConversationPackLibrary
         packs={visiblePacks}
         initialPackId={openPackId}
+        linkedPack={archiveIsOwned ? linkedPack : null}
+        linkMessage={archiveIsOwned ? linkMessage : null}
+        pageNote={pageNote}
+        paginationPending={remotePending}
+        onOlder={older}
+        onNewest={newest}
+        onRetryPage={retryPage}
+        unavailable={visibleUnavailable}
+        onOpenUnavailable={async id=>{
+          if(!user)return {ok:false,message:'Please sign in again.'};
+          const result=await loadConversationPackForLearner(user,adapter,id);
+          if(currentOwner!==scopeGeneration() || currentUserId!==activeUserId())return {ok:false,message:'Account changed. Reopen your conversations.'};
+          return result.ok && result.pack ? {ok:true,pack:result.pack} : {ok:false,message:!result.ok && result.reason==='oversize' ? 'This conversation is too large to open here. Its saved content has not been removed.' : 'This conversation could not be opened.'};
+        }}
+        onDeleteUnavailable={async id=>{
+          if(!user)return {ok:false,message:'Please sign in again.'};
+          const result=await deleteConversationPackForLearner(user,adapter,id);
+          if(currentOwner!==scopeGeneration() || currentUserId!==activeUserId())return {ok:false,message:'Account changed. Reopen your conversations.'};
+          if(result.ok){setUnavailable(held=>held.filter(row=>row.id!==id));setArchive(null);setAttempt(n=>n+1);return {ok:true};}
+          return result;
+        }}
         onBack={() => setShowingLibrary(false)}
         onReview={(pack) => nav.navigate('ConversationPractice', { packId: pack.id })}
         // The tutor revisit is offered only when the plan opens it, by the
@@ -178,7 +236,10 @@ export function ConversationsScreen({
           const result = await deleteConversationPackForLearner(user, adapter, pack.id);
           if (currentOwner !== scopeGeneration() || currentUserId !== activeUserId()) return { ok: false, message: 'Account changed. Reopen your conversations.' };
           if (result.ok) {
-            setPacks(result.packs);
+            setPacks(held => held.filter(item => item.id !== pack.id));
+            if (linkedPack?.id === pack.id) setLinkedPack(null);
+            setArchive(null);
+            setAttempt(n => n + 1);
             return { ok: true };
           }
           return result;
@@ -188,7 +249,11 @@ export function ConversationsScreen({
           const result = await deleteAllConversationPacksForLearner(user, adapter);
           if (currentOwner !== scopeGeneration() || currentUserId !== activeUserId()) return { ok: false, message: 'Account changed. Reopen your conversations.' };
           if (result.ok) {
-            setPacks(result.packs);
+            setPacks([]);
+            setLinkedPack(null);
+            setArchive(null);
+            setPageAfter(null);
+            setAttempt(n => n + 1);
             return { ok: true };
           }
           return result;
@@ -205,6 +270,8 @@ export function ConversationsScreen({
         {CONVERSATIONS_TITLE}
       </Text>
       <Text style={st.purpose}>{CONVERSATIONS_PURPOSE}</Text>
+      {visibleArchive !== null && <Text accessibilityLiveRegion="polite" style={st.purpose}>{pageNote}</Text>}
+      {visibleUnavailable.length>0 && <Text accessibilityLiveRegion="polite" style={st.purpose}>Some saved conversations are too large for this page. Open the conversation library to inspect them. Counts and filters include the available conversations only.</Text>}
       {adapter.kind === 'supabase' && <GhostButton label="Saved conversation text" onPress={() => nav.navigate('SavedConversationText')} />}
 
       {(visibleArchive === null || remotePending && visiblePacks.length === 0) && !visibleUnread && (
@@ -240,6 +307,12 @@ export function ConversationsScreen({
         </View>
       )}
 
+      <View style={st.block}>
+        {older !== undefined && <OutlineButton label="Older conversations" disabled={remotePending} onPress={older} />}
+        {newest !== undefined && <GhostButton label="Newest conversations" disabled={remotePending} onPress={newest} />}
+        {retryPage !== undefined && <OutlineButton label="Retry loading conversations" onPress={retryPage} />}
+      </View>
+
       {shown.length > 0 && (
         <View style={st.block}>
           <View style={st.feedHead}>
@@ -263,14 +336,14 @@ export function ConversationsScreen({
       {/* What a learner with no conversations reads instead of an archive.
           Gated on the model rather than on the feed's length, so it cannot
           appear for half a second while storage is still answering. */}
-      {!visibleUnread && !remotePending && visibleArchive?.opening != null && (
+      {!visibleUnread && !remotePending && visibleUnavailable.length===0 && visibleArchive?.opening != null && (
         <View style={st.block}>
           <Text style={st.openingTitle}>{visibleArchive.opening.title}</Text>
           <Text style={st.openingBody}>{visibleArchive.opening.body}</Text>
         </View>
       )}
 
-      {visiblePacks.length > 0 && (
+      {(visiblePacks.length > 0 || visibleUnavailable.length>0) && (
         <View style={st.block}>
           <Ledger>
             <LedgerRow

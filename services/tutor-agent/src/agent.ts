@@ -42,7 +42,7 @@ import {
 } from '@livekit/agents';
 import * as anthropic from '@livekit/agents-plugin-anthropic';
 import * as openai from '@livekit/agents-plugin-openai';
-import { openAiLiveModel, DEFAULT_ROUTING, defaultModel } from '@luvani/brain';
+import { brainClientFromEnv, openAiLiveModel, DEFAULT_ROUTING, defaultModel } from '@luvani/brain';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
 import { preflight, reportVendors, selectedBrain, verifyVendors } from './preflight.ts';
@@ -50,6 +50,8 @@ import 'dotenv/config';
 import { sessionAudio, supportsSessionMode, typedOnly } from '../../shared/sessionCapabilities.ts';
 
 import { buildTTS, resolveTutorVoice } from './voice.ts';
+import { resumePaidRuntime } from './paidRuntime.ts';
+import { createPaidVoiceProxy, type PaidVoiceProxy } from './paidVoiceProxy.ts';
 
 import {
   CAFE_LESSON,
@@ -68,6 +70,11 @@ import { formatVendorMetrics, type VendorMetrics } from './timing.ts';
 import { createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { turnHandlingFor } from './turnHandling.ts';
 import { reportUsage } from './usage.ts';
+import { safeError } from './safeError.ts';
+import { claimSessionLifecycle, legacyRuntimeFixture, tutorSupervisorHeartbeat, type TutorSessionIdentity } from './sessionLifecycle.ts';
+
+// SDK session-end and shutdown each join the same idempotent completion.
+const completions = new WeakMap<JobContext, () => Promise<void>>();
 
 /**
  * The tutor brain, selected by env so the quality/cost trade is a .env change.
@@ -85,20 +92,25 @@ import { reportUsage } from './usage.ts';
  *          to Groq; only the conversation brain gets the subscription, and only
  *          for the calls that run after the room has closed.
  */
-function tutorLLM() {
+function tutorLLM(proxy?: PaidVoiceProxy) {
   // claude-cli lands here too, and on purpose. This is the LiveKit pipeline's
   // streaming LLM, not the brain's client: it is constructed by a plugin that
   // speaks HTTP to a vendor, and there is no shape of it that shells out to a
   // command line. A subscription cannot serve it, so the scripted lesson's
   // spoken replies stay on Groq while the conversation brain splits.
   if (selectedBrain() === 'openai') {
-    return new openai.LLM({ model: openAiLiveModel() });
+    const model = new openai.LLM({ model: openAiLiveModel(), ...(proxy ? { baseURL: proxy.openaiBaseURL, apiKey: 'proxy-only', maxCompletionTokens: 3000 } : {}) });
+    if (proxy) model.prewarm = () => {};
+    return model;
   }
   if (selectedBrain() !== 'anthropic') return openai.LLM.withGroq({ model: defaultModel() }); // reads GROQ_API_KEY
-  return new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model });
+  const model = new anthropic.LLM({ model: DEFAULT_ROUTING.turn.model, ...(proxy ? { baseURL: proxy.anthropicBaseURL, apiKey: 'proxy-only', maxTokens: 3000, maxRetries: 0 } : {}) });
+  if (proxy) model.prewarm = () => {};
+  return model;
 }
 
 export default defineAgent({
+  onSessionEnd: async (ctx: JobContext) => { await completions.get(ctx)?.(); },
   prewarm: async (proc: JobProcess) => {
     // Loading the VAD model takes seconds; doing it per job would put that delay
     // in front of a learner who just tapped "speak".
@@ -131,12 +143,14 @@ export default defineAgent({
       revision?: unknown;
       missionId?: unknown;
       tutorVoice?: unknown;
+      lifecycleVersion?: unknown;
     };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
-        return raw ? (JSON.parse(raw) as TokenMeta) : {};
+        const value: unknown = raw ? JSON.parse(raw) : {};
+        return value && typeof value === 'object' && !Array.isArray(value) ? value as TokenMeta : {};
       } catch {
-        // Malformed metadata is ignorable; identity alone is enough to debit.
+        // Admission below refuses missing or malformed signed bindings.
         return {};
       }
     };
@@ -144,18 +158,39 @@ export default defineAgent({
     const meta = parseMeta(participant.metadata);
     if (
       typeof meta.sessionId !== 'string' ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(meta.sessionId)
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(meta.sessionId)
     ) {
       throw new Error('signed join metadata is missing a valid session id');
     }
     if (meta.lessonId && meta.lessonId !== lesson.id) {
-      console.warn(`[luvani] token metadata names lesson ${meta.lessonId}; agent is running ${lesson.id}`);
+      console.warn('[luvani] signed lesson differs from the worker catalogue');
     }
+    const fixture = meta.lifecycleVersion !== 1 && legacyRuntimeFixture(process.env);
+    if (meta.lifecycleVersion !== 1 && !fixture) throw new Error('authoritative signed tutor lifecycle is required');
+    if (!['lesson', 'lesson-text', 'convo', 'convo-text'].includes(meta.mode ?? '')) throw new Error('invalid signed session mode');
+    const lifecycle = fixture ? undefined : await claimSessionLifecycle({
+      userId: participant.identity, sessionId: meta.sessionId, roomName: ctx.room.name ?? '',
+      mode: meta.mode as TutorSessionIdentity['mode'],
+    });
+    let proxy: PaidVoiceProxy | undefined;
+    const closeProxy = async () => { await proxy?.close(); };
+    let stopPaidWork = () => { void closeProxy().catch(() => {}); };
+    let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
+    completions.set(ctx, () => finish());
+    ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
+    lifecycle?.onStop(() => {
+      stopPaidWork();
+      // Disconnect now: settlement retries must not keep STT/TTS spending.
+      void ctx.room.disconnect().catch(() => {});
+      void finish().catch(() => {});
+    });
+    try {
     if (!supportsSessionMode(meta.mode ?? 'lesson')) {
       // A directly deployed mismatched token process may already have granted
       // this signed room. Nothing ran; close its lease with zero usage before
       // refusing it. This does not reverse an already claimed trial.
-      await reportUsage({ userId: participant.identity, sessionId: meta.sessionId, seconds: 0, utterancesScored: 0 });
+      if (lifecycle) await finish();
+      else await reportUsage({ userId: participant.identity, sessionId: meta.sessionId, seconds: 0, utterancesScored: 0 });
       throw new Error('This worker supports typed sessions only.');
     }
     const voiceless = meta.mode === 'convo-text' || meta.mode === 'lesson-text';
@@ -164,7 +199,9 @@ export default defineAgent({
       typeof meta.secondsRemaining === 'number' && Number.isFinite(meta.secondsRemaining)
         ? Math.max(1, Math.floor(meta.secondsRemaining))
         : 15 * 60;
-    const maximumSessionSec = Math.min(15 * 60, allowanceRemaining);
+    const maximumSessionSec = lifecycle?.maxSeconds ?? Math.min(15 * 60, allowanceRemaining);
+    const paid = process.env.NODE_ENV === 'production' && lifecycle ? await resumePaidRuntime(lifecycle) : undefined;
+    if (paid && lifecycle) proxy = await createPaidVoiceProxy({ gate: paid.gate, signal: lifecycle.signal, maximumSessionMillis: maximumSessionSec * 1000, credentials: { deepgram: process.env.DEEPGRAM_API_KEY, elevenlabs: process.env.ELEVEN_API_KEY, anthropic: process.env.ANTHROPIC_API_KEY, openai: process.env.OPENAI_API_KEY } });
     // Clamped, not trusted: the value is server-signed, but a rung outside the
     // ladder would still put createSession into a state that cannot exist.
     const startRung =
@@ -196,15 +233,17 @@ export default defineAgent({
     // the room is open instead of before. Preflight already refuses to register
     // a spoken worker whose voice key is absent, so the case this trades away is one
     // the worker would not have been running in.
+    lifecycle?.assertActive();
     const persona = tutorVoice(chosenVoice).persona;
     const recognition = recognitionPlan(isConvo ? 'convo' : 'lesson', sttLanguageFor(isConvo ? 'convo' : 'lesson', 'choosing'), process.env);
     const { vad, stt, tts: voiceTts } = sessionAudio(voiceless, {
       vad: () => ctx.proc.userData.vad as silero.VAD,
       stt: () => recognition.experimental
         ? new deepgram.STTv2(recognition.options)
-        : new deepgram.STT(recognition.options),
+        : new deepgram.STT({ ...recognition.options, ...(proxy ? { baseUrl: proxy.deepgramBaseURL, apiKey: 'proxy-only', sampleRate: 16000, numChannels: 1, mipOptOut: true } : {}) }),
       tts: () => buildTTS({
         voice: chosenVoice,
+        ...(proxy ? { baseURL: proxy.elevenlabsBaseURL, missTransport: 'http' as const } : {}),
       }),
     });
 
@@ -241,8 +280,8 @@ export default defineAgent({
           reviewFocus,
           previousCorrection,
           missionId,
-          canDoEvidenceReader: canDoEvidenceReaderFromEnv(),
-          correctionReasonReader: correctionReasonReaderFromEnv(),
+          canDoEvidenceReader: paid ? undefined : canDoEvidenceReaderFromEnv(),
+          correctionReasonReader: paid ? undefined : correctionReasonReaderFromEnv(),
           // The same clamped rung the scripted lesson below already got, now
           // reaching the branch a mission actually runs on. It rode this far
           // and then died here: missions are conversations, so handing it only
@@ -252,17 +291,27 @@ export default defineAgent({
           // mission and nowhere else.
           startRung,
           persona,
+          enrichBeforeComplete: !!paid,
+          ...(paid ? { client: brainClientFromEnv(process.env, paid.transport) } : {}),
           setSttLanguage: (language) => {
             if (!recognition.experimental) stt?.updateOptions({ language });
           },
         })
-      : new LuvaniTutor(lesson, startRung, { voiceless, persona });
+      : new LuvaniTutor(lesson, startRung, { voiceless, persona, ...(paid ? { scoringRequest: paid.transport } : {}) });
     tutor.learnerId = participant.identity;
     tutor.sessionId = meta.sessionId;
+    if (lifecycle) tutor.attachLifecycle(lifecycle);
+    finish = async () => { stopPaidWork(); await closeProxy(); await tutor.finish(); };
+    stopPaidWork = () => {
+      void closeProxy().catch(() => {});
+      tutor.cancelLiveReplies();
+      if (tutor instanceof LuvaniConversation) tutor.cancelCanDoEvidence();
+    };
+    lifecycle?.assertActive();
 
     // Join-token expiry only limits replay; it does not eject a connected
     // participant. This timer is the actual vendor-cost and allowance ceiling.
-    const hardStop = setTimeout(() => {
+    const hardStop = lifecycle ? undefined : setTimeout(() => {
       tutor.publishError('That is a good place to stop. Your session has reached its time limit.');
       if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
       void tutor.finish().finally(() => ctx.room.disconnect());
@@ -293,7 +342,7 @@ export default defineAgent({
     const publish = (message: ServerMessage) =>
       ctx.room.localParticipant
         ?.publishData(encodeMessage(message), { topic: TOPIC_SERVER, reliable: true })
-        .catch((err) => console.error('[luvani] failed to publish state', err));
+        .catch((err) => console.error('[luvani] failed to publish state', safeError(err)));
 
     tutor.attach(publish);
 
@@ -313,14 +362,15 @@ export default defineAgent({
       // process, and an unhandled rejection here ends all of their sessions at
       // once. A `void` with no catch is that bet, taken on every frame.
       void tutor.handleClientMessage(session, payload).catch((err: unknown) => {
-        console.error('[luvani] a client message failed on its way in', err);
+        console.error('[luvani] a client message failed on its way in', safeError(err));
       });
     });
 
     const session = new voice.AgentSession({
       vad,
       stt,
-      llm: tutorLLM(),
+      llm: tutorLLM(proxy),
+      ...(paid ? { connOptions: { sttConnOptions: { maxRetry: 0 }, llmConnOptions: { maxRetry: 0 }, ttsConnOptions: { maxRetry: 0 }, maxUnrecoverableErrors: 1 } } : {}),
       // Cached: scripted lesson lines are synthesized once, ever, and replayed
       // from disk. Only free-form replies reach the vendor. See ttsCache.ts.
       tts: voiceTts,
@@ -331,11 +381,12 @@ export default defineAgent({
         turnDetection: process.env.LUVANI_TURN_DETECTION,
       }),
     });
+    session.on(voice.AgentSessionEventTypes.Close, () => { stopPaidWork(); void finish().catch(() => {}); });
 
     session.on(voice.AgentSessionEventTypes.Error, (ev) => {
       // A TTS outage without this handler is indistinguishable from silence:
       // prompts keep flowing and the learner hears nothing. Tell them plainly.
-      console.error('[luvani] pipeline error:', ev.error);
+      console.error('[luvani] pipeline error:', safeError(ev.error));
 
       // Which half broke, and whether it is coming back. Every arm of the
       // pipeline's error union already carries both (events.ts: STTError,
@@ -433,7 +484,8 @@ export default defineAgent({
       // Cost visibility per session: hits are free lines, misses were billed.
       if (voiceTts) console.log(`[luvani] voice cache: ${voiceTts.hits} replayed free, ${voiceTts.misses} synthesized live`);
       if (tutor instanceof LuvaniConversation) { tutor.cancelCanDoEvidence(); tutor.cancelLiveReplies(); }
-      void tutor.finish();
+      stopPaidWork();
+      void finish().catch(() => {});
     });
 
     // The room 'disconnected' event is about the AGENT's own connection — when
@@ -452,6 +504,7 @@ export default defineAgent({
     await session.start({ agent: tutor, room: ctx.room, record: false,
       ...(voiceless ? { inputOptions: { audioEnabled: false }, outputOptions: { audioEnabled: false } } : {}),
     });
+    lifecycle?.assertActive();
 
     if (tutor instanceof LuvaniConversation) {
       // The scene opens: the character speaks first and the app renders the
@@ -466,6 +519,12 @@ export default defineAgent({
       // carries the tutor's line, the target and the support, and the model has
       // nothing to add to a script.
       if (!voiceless) session.generateReply(tutor.replyOptions());
+    }
+    } catch (error) {
+      stopPaidWork();
+      await finish();
+      await ctx.room.disconnect().catch(() => {});
+      throw error;
     }
   },
 });
@@ -489,7 +548,17 @@ if (isWorkerProcess) {
   // Presence is not health. The keys can all be filled in and still be rejected,
   // and the model named in one of them can have been retired since it was written
   // — both of which land on the learner as that same silent room.
-  reportVendors(await verifyVendors(process.env, ['groq', 'claude-cli', 'claude-cli-all'].includes(selectedBrain()) ? defaultModel() : ''));
+  if (process.env.NODE_ENV !== 'production') reportVendors(await verifyVendors(process.env, ['groq', 'claude-cli', 'claude-cli-all'].includes(selectedBrain()) ? defaultModel() : ''));
+  // Production vendor acceptance is a reviewed paid canary, never a billable boot probe.
 }
 
-cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));
+const workerOptions = new WorkerOptions({ agent: fileURLToPath(import.meta.url), production: process.argv.includes('start') });
+if (isWorkerProcess && workerOptions.production && !process.argv.includes('--simulation')) {
+  // This is the SDK's actual configured health port. Its '/' reports 200 only
+  // after registration/connection and inference health, never at process start.
+  const heartbeat = tutorSupervisorHeartbeat({ port: workerOptions.port });
+  void heartbeat.poll();
+  process.once('SIGTERM', () => { void heartbeat.drain(); });
+  process.once('SIGINT', () => { void heartbeat.drain(); });
+}
+cli.runApp(workerOptions);

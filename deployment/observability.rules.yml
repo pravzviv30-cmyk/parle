@@ -1,0 +1,46 @@
+# Provisional thresholds: operator review and actual promtool/delivery acceptance required.
+groups:
+  - name: luvani-backend
+    rules:
+      - alert: LuvaniMetricsExporterUnavailable
+        expr: "up{job=\"luvani-api-metrics\"} == 0 or absent(up{job=\"luvani-api-metrics\"})"
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Luvani metrics exporter is unavailable."
+      - alert: LuvaniMetricsSourceUnavailable
+        expr: "luvani_metrics_source_up == 0"
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Luvani pinned API metrics source is unavailable or invalid."
+      - alert: LuvaniWorkerUnavailable
+        expr: "max by (worker) (luvani_backend_worker_ready) == 0"
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Luvani required worker role has no fresh ready heartbeat."
+      - alert: LuvaniErasureDelayed
+        expr: "max(luvani_erasure_oldest_seconds) > 3600 and max(luvani_erasure_pending) > 0"
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Luvani oldest account erasure exceeded the provisional one-hour target."
+      - alert: LuvaniApiErrorRatioHigh
+        expr: "sum(rate(luvani_http_errors_total{route!~\"health|ready|internal\"}[5m])) / clamp_min(sum(rate(luvani_http_requests_total{route!~\"health|ready|internal\"}[5m])), 0.001) > 0.01 and sum(increase(luvani_http_requests_total{route!~\"health|ready|internal\"}[5m])) >= 100"
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Luvani public API errors exceeded the provisional one-percent threshold."
+      - alert: LuvaniApiLatencyHigh
+        expr: "histogram_quantile(0.95, sum by (le) (rate(luvani_http_duration_seconds_bucket{route!~\"health|ready|internal\"}[5m]))) > 1 and sum(increase(luvani_http_duration_seconds_count{route!~\"health|ready|internal\"}[5m])) >= 100"
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Luvani public API p95 exceeded the provisional one-second threshold."

@@ -61,7 +61,7 @@ test('a failed fifth-rung pack write keeps its source and reports failure until 
     const user: AuthUser = { id: uid, email: null, provider: 'password' };
     const adapter = { kind: 'supabase', getAccessToken: async () => 'test' } as unknown as AuthAdapter;
     const pack = buildConversationPack({ id: `s-${suffix}`, sessionId: `s-${suffix}`, learnerId: uid, createdAt: new Date(1).toISOString(), title: { fr: 'La table', en: 'Ask for a table' }, summary: 'A table.', keyPhrases: [{ fr: 'Une table, merci', frWritten: null, en: 'A table, thank you' }] });
-    const request: typeof fetch = async () => Response.json({ packs: [pack] });
+    const request: typeof fetch = async () => Response.json({ packs: [pack], nextCursor: null });
     refuse = suffix;
     assert.deepEqual(await refreshConversationPacks(user, adapter, request), { ok: false });
     assert.equal((await loadConversationPacks())[0]?.id, pack.id, 'the pack remains a retryable source');
