@@ -4,7 +4,7 @@
  * A voice, an age confirmation and the usage-data answer are enough to make the
  * account-creation hand-off personal without turning an unsigned device into a
  * second profile store.  There is deliberately no transcript, audio, or
- * free-form answer here, and a legacy optional first name is
+ * free-form answer here, and the one typed value, an optional first name, is
  * bounded and stays on the device.  Once an account exists the draft is folded into that
  * account's normal, user-scoped profile and this key is cleared.
  *
@@ -41,18 +41,18 @@ import { REMINDER_TIMES, type ReminderTimeId } from '../reminders/reminder.ts';
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /**
- * The five pages before an account, in the order a learner meets them. The AI
+ * The six pages before an account, in the order a learner meets them. The AI
  * disclosure is on the first, the answers follow it, and the consent switch is
  * on the last (spine contract section 4). Held here because the draft resumes
  * on one of them.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'plan', 'save'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
 export const START_LEVEL_KEYS = ['zero', 'few', 'getby'] as const;
 export type StartLevel = (typeof START_LEVEL_KEYS)[number];
 
-export const REASON_KEYS = ['trip', 'family', 'moving', 'work', 'because'] as const;
+export const REASON_KEYS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
 export type Reason = (typeof REASON_KEYS)[number];
 
 export const PLAN_MINUTES = [5, 10, 15, 'none'] as const;
@@ -63,6 +63,13 @@ export const MAX_FIRST_NAME_CHARS = 40;
 
 export interface PreAccountOnboardingDraft {
   version: 1;
+  drink?: 'coffee' | 'tea' | null;
+  frequency?: 3 | 5 | 7 | 'none' | null;
+  eligibilityConfirmed?: boolean;
+  quickStart?: boolean;
+  rememberLearning?: boolean;
+  reminderEnabled?: boolean;
+  reminderDays?: number[];
   /** The only eligibility fact the product needs at account creation. */
   ageConfirmed: true;
   /** A real choice, including the displayed default, never a vendor id. */
@@ -80,7 +87,7 @@ export interface PreAccountOnboardingDraft {
   /** Null until changed on the plan; the plan shows the preset until then. */
   minutes: PlanMinutes | null;
   reminderTime: ReminderTimeId | null;
-  /** Legacy optional value, now entered in Profile. Never sent anywhere before an account exists. */
+  /** Optional, typed on the save page. Never sent anywhere before an account exists. */
   firstName: string | null;
 }
 
@@ -90,6 +97,7 @@ export function freshPreAccountDraft(): PreAccountOnboardingDraft {
     ageConfirmed: true,
     tutorVoice: DEFAULT_TUTOR_VOICE,
     analyticsConsent: false,
+    drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [],
     page: null,
     startLevel: null,
     reason: null,
@@ -138,7 +146,7 @@ function readable(value: unknown): boolean {
  * anything else a disk can hand back all read as `false`, because the question
  * is whether this learner said yes and every one of those means they did not.
  */
-function repaired(value: object): PreAccountOnboardingDraft {
+export function repaired(value: object): PreAccountOnboardingDraft {
   const draft = value as PreAccountOnboardingDraft;
   return {
     version: 1,
@@ -151,7 +159,14 @@ function repaired(value: object): PreAccountOnboardingDraft {
     analyticsConsent: (value as { analyticsConsent?: unknown }).analyticsConsent === true,
     // Every plan answer is optional on disk: a draft from before these pages
     // existed, or one with junk in a slot, reads as not answered yet.
-    page: (value as { page?: unknown }).page === 'reason' ? 'plan' : oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
+    drink: oneOf(['coffee', 'tea'] as const, (value as { drink?: unknown }).drink),
+    frequency: oneOf([3, 5, 7, 'none'] as const, (value as { frequency?: unknown }).frequency),
+    eligibilityConfirmed: (value as { eligibilityConfirmed?: unknown }).eligibilityConfirmed === true,
+    rememberLearning: (value as { rememberLearning?: unknown }).rememberLearning === true,
+    reminderEnabled: (value as { reminderEnabled?: unknown }).reminderEnabled === true,
+    quickStart: (value as { quickStart?: unknown }).quickStart === true,
+    reminderDays: Array.isArray((value as { reminderDays?: unknown }).reminderDays) ? [...new Set((value as { reminderDays: unknown[] }).reminderDays.filter((n): n is number => Number.isInteger(n) && Number(n) >= 1 && Number(n) <= 7))] : [],
+    page: oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
     startLevel: oneOf(START_LEVEL_KEYS, (value as { startLevel?: unknown }).startLevel),
     reason: oneOf(REASON_KEYS, (value as { reason?: unknown }).reason),
     minutes: oneOf(PLAN_MINUTES, (value as { minutes?: unknown }).minutes),
@@ -194,7 +209,7 @@ export async function loadPreAccountDraft(): Promise<PreAccountOnboardingDraft |
   }
 }
 
-/** Discarded on refusal, sign-in, or once the account owns a complete profile. */
+/** Discarded on refusal or explicit account adoption/discard. Authentication preserves it. */
 export function clearPreAccountDraft(): Promise<void> {
   draftGeneration++;
   return enqueueDraft(() => AsyncStorage.removeItem(KEY));

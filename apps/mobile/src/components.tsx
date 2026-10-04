@@ -16,6 +16,9 @@ import { Children, useEffect, useId, useRef, useState, type ReactNode } from 're
 import {
   AccessibilityInfo,
   Modal,
+  PanResponder,
+  Easing,
+  findNodeHandle,
   KeyboardAvoidingView,
   ScrollView,
   Animated,
@@ -970,7 +973,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2),
     backgroundColor: accent.primary,
-    borderRadius: radius.pill,
+    borderRadius: radius.control,
     paddingHorizontal: space(6),
     paddingVertical: space(3),
   },
@@ -1504,7 +1507,7 @@ const ls = StyleSheet.create({
 export type Haptic = 'light' | 'selection' | 'none';
 
 export type PressProps = Omit<PressableProps, 'style' | 'onPress' | 'children'> & {
-  onPress?: () => void;
+  onPress?: () => void | boolean;
   /** light: a press. selection: a choice or a toggle. none: the caller answers (the tab bar). */
   haptic?: Haptic;
   /** The surface that shrinks: background, radius, padding. */
@@ -1539,6 +1542,7 @@ export function Press({ onPress, haptic = 'light', style, frame, disabled = fals
   const scale = useRef(new Animated.Value(1)).current;
   const running = useRef<Animated.CompositeAnimation | null>(null);
   useEffect(() => () => running.current?.stop(), []);
+  useEffect(() => { if (reduced) { running.current?.stop(); scale.setValue(1); } }, [reduced, scale]);
   return (
     <Pressable
       accessibilityRole="button" {...rest}
@@ -1554,9 +1558,9 @@ export function Press({ onPress, haptic = 'light', style, frame, disabled = fals
         onPressOut?.(event);
       }}
       onPress={() => {
+        if (disabled || onPress?.() === false) return;
         if (haptic === 'light') pressed();
         else if (haptic === 'selection') tapSettled();
-        onPress?.();
       }}
       style={frame}
     >
@@ -1752,23 +1756,68 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  * the way the old centred leave card said its question (F603). `ConfirmSheet`
  * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children, footer }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+export function Sheet({ visible, title, onClose, children, footer, returnFocus }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null } }) {
   const insets = useSafeAreaInsets();
+  const reduced = useReduceMotion();
+  const snapshot = useRef({ title, children, footer });
+  if (visible) snapshot.current = { title, children, footer };
+  const wasOpen = useRef(false);
+  const [present, setPresent] = useState(visible);
+  const arrival = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const drag = useRef(new Animated.Value(0)).current;
+  const heading = useRef<Text>(null);
+  const close = useRef(onClose); close.current = onClose;
+  const motion = useRef<Animated.CompositeAnimation | null>(null);
+  useEffect(() => {
+    motion.current?.stop();
+    if (visible) { setPresent(true); drag.setValue(0); }
+    if (reduced) { arrival.setValue(visible ? 1 : 0); setPresent(visible); return; }
+    motion.current = Animated.timing(arrival, { toValue: visible ? 1 : 0, duration: visible ? 310 : 250, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' });
+    motion.current.start(({ finished }) => { if (finished && !visible) setPresent(false); });
+    return () => motion.current?.stop();
+  }, [visible, reduced, arrival, drag]);
+  useEffect(() => {
+    if (present) { wasOpen.current = true; return; }
+    if (wasOpen.current && Platform.OS !== 'web') {
+      wasOpen.current = false;
+      const handle = findNodeHandle(returnFocus?.current ?? null);
+      if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+    }
+  }, [present, returnFocus]);
+  const gesture = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_, g) => drag.setValue(Math.max(0, g.dy)),
+    onPanResponderRelease: (_, g) => {
+      if ((g.dy > 70 || g.vy > 0.8) && close.current() !== false) return;
+      Animated.timing(drag, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
+    },
+    onPanResponderTerminate: () => drag.setValue(0),
+  })).current;
+  const focusHeading = () => {
+    if (Platform.OS === 'web') { (heading.current as unknown as { focus?: () => void })?.focus?.(); return; }
+    const handle = findNodeHandle(heading.current); if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+  };
+  useEffect(() => {
+    if (visible) focusHeading();
+  }, [title]);
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible={present} transparent animationType="none" onShow={focusHeading} onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={b.sheetOverlay}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}
-            style={[StyleSheet.absoluteFill, { backgroundColor: paper.ink, opacity: 0.45 }]} />
-          <View accessibilityViewIsModal onAccessibilityEscape={onClose}
-            style={[b.sheetPanel, { maxHeight: '90%', paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature }]}>
-            <View {...decorative} style={b.grabber} />
-            <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.heading, { color: paper.ink }]}>{title}</Text>
-            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ gap: space(4) }}>
-              {children}
-            </ScrollView>
-            {footer}
-          </View>
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: arrival.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }), backgroundColor: paper.ink }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+          <Animated.View accessibilityViewIsModal onAccessibilityEscape={onClose}
+            style={[b.sheetPanel, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
+              transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
+            <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
+              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
+              <GhostButton label="Close" onPress={onClose} />
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ gap: space(4) }}>{snapshot.current.children}</ScrollView>
+            {snapshot.current.footer}
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

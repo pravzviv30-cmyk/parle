@@ -1,261 +1,71 @@
-# Onboarding — everything before the first French word
+# Onboarding
 
-The path from opening the app for the first time to speaking French, what it
-costs a learner, and which of those costs are measured rather than asserted.
+The 4 October 2026 implementation supersedes the recorded-example notebook flow. It implements the revised report in `artifacts/reports/Luvani-onboarding-improvement-report-revised.docx`, with the latest requested changes: no early sign-in for first installs, Apple alongside Google, account-specific onboarding, and vibrant brand illustrations in place of a mascot.
 
-Owner: `onboarding-ux-engineer`. The copy on the disclosure screens is owned by
-`privacy-safety-engineer` and lives in `apps/mobile/src/onboarding/disclosure.ts`;
-the rules of the flow live in `apps/mobile/src/onboarding/answers.ts`, where a
-test can reach them.
+## Current journey
 
-## The shape now
+Pre-account onboarding renders **6 setup pages**: `hear-it`, `reason`, `start-level`, `time`, `frequency`, `plan`. The runtime order is `FULL_SETUP` in `onboarding/flow.ts`. The eleven-value disk registry also accepts historical `first-line` and `save` pages and the current practice, recap and Home states; it is not the screen count. Historical demo/save pages repair to the opening.
 
-**3 October 2026 supersession.** The September notebook flow and its six-page
-count remain the structure, but the current implementation starts silently,
-offers audio only on tap, adds an optional worked teaching example, lets the
-learner edit the suggested routine or choose no fixed target, and confirms
-ownership before applying an anonymous draft to an empty OAuth account. Older
-descriptions below are historical where they differ from these details.
-
-Pre-account onboarding renders **5 pages**: `hear-it`, `first-line`, `start-level`, `plan`, `save`.
-
-A brand-new learner normally crosses **7 screens** before a live spoken line:
-those five pages, account creation, and the first scene's microphone primer.
-An OAuth return to an empty account can add a plan-ownership confirmation before
-the primer. The age confirmation is part of the save page. This is a static
-screen count, not measured time. (Notebook redesign, 2026-09-27; ownership
-confirmation, 2026-10-03.)
-
-Pages 1 and 2 use bundled recordings only, each started by the learner; the
-first page is silent on arrival. Captions and Continue work when a clip cannot
-play. Neither page opens a microphone or reaches an AI service.
-
-The usage-data answer is the switch on the save page, off unless the learner turns it on,
-and it rides the draft because it is given before there is an account to key it
-to. `App.tsx` writes it to `analytics/consentStore.ts` before it hands the
-profile over, so nothing is counted against an answer that has not reached the
-disk. The recovery flow below asks the same question on its Meet page, and only
-of a learner with no record at all, so nobody is asked twice.
-
-| # | Screen | The one thing it does |
-|---|---|---|
-| 1 | Hear it first (`hear-it`, `onboarding/PreAccountOnboarding.tsx`) | Shows a captioned three-line café exchange silently until Hear is tapped; names the AI tutor. "I have an account" leads to sign-in |
-| 2 | Your first line (`first-line`) | A local authored choice between a coffee and water order. Wrong-choice feedback and an optional hint are explicit; nothing is recorded or assessed. Correct selection reveals the useful line, with optional tutor playback. The practice example is optional |
-| 3 | Where are you starting? (`start-level`) | Select from zero, a few words, or “I can get by”. The choice stays visible and editable until explicit Continue |
-| 4 | Your first scenes (`plan`) | Three catalogue outcomes first. A compact editable routine, including no fixed target; the chosen tutor with optional alternatives; route scope and method details on request. No inactive reminder clock |
-| 5 | Save your plan (`save`) | AI, microphone and history notes, usage-data switch off, then “I am 13 or older, create account”. Refusal holds for the launch and clears the draft. Moving between the pages and leaving through "I have an account" do not undo it for the rest of the launch. Name and goal entry are deferred to Profile |
-| 6 | Sign up (`auth/SignUpScreen.tsx`) | Email/password, Google, or Apple on iOS |
-| 7 | Your first scene (`onboarding/FirstSceneScreen.tsx`) | Task, outcome and one French line before Start. Live-minute cost remains beside Start and Type. Speaking alone requests microphone permission; more examples are optional |
-
-The words on pages 1 to 5 live in `onboarding/firstRun.ts` and `onboarding/plan.ts`.
-The first scene is `firstSceneFor` in `plan.ts`: the short first café for zero or
-a few words, or the ordering-and-paying café for "I can get by". This is a
-catalogue route chosen from self-report, not an assessed level or personalised
-target. `App.tsx` opens it once over Today, so a back lands on Today.
-The primer's choices are `onboarding/micPrimer.ts`: a granted microphone opens
-the ordinary conversation, while refusal leads with typing and offers the
-phone's Settings second where available. Both room modes use live minutes.
-
-Then the live scene can lead to a recap (`RecapScreen.tsx`,
-`recap/pages.ts`). The result always appears; the learner's actual lines,
-correction or kept phrase, a sound from a saved check, an independently earned
-can-do, and a useful next action each add only the pages their evidence supports.
-Phrase saving is acknowledged only after the write. An eligible reminder is
-offered on the next page at the selected time; the phone's notification dialog
-is raised only if the learner accepts.
-
-### The draft before the account
-
-The pre-account draft (`onboarding/preAccountDraft.ts`) lives on the device only.
-It holds the selected voice, the age confirmation, the usage-data answer, the page
-the learner is on, the starting level, the reason, the minutes a day, the reminder
-time, and an optional first name. It holds no transcript and no audio.
-
-- **The name.** `firstNameFrom` trims it and removes control and format
-  characters, which includes bidi overrides and zero-width spaces. It keeps the
-  two joiners (ZWNJ and ZWJ), because they carry spelling in scripts such as
-  Persian and Sinhala. A name that is empty once joiners are ignored, or longer
-  than 40 characters, is stored as no name. It is refused, never cut.
-- **Repair on load.** A stored draft must be version 1 with the age confirmed, or
-  it is dropped. Any answer that is not one of this build's values reads as not
-  answered. A missing or odd usage-data answer reads as no. A voice that left the
-  catalogue becomes the default.
-- **When it is thrown away.** On every link to sign in: "I have an account",
-  "I already have an account", and sign-up's own link to sign in
-  (`discardPreAccountDraft` in `App.tsx`). Also once a signed-in learner's profile
-  is complete, whether or not the draft was used (`CompleteProfileDraftCleanup`).
-  And when the learner answers "I am younger than that" on the save page: the
-  same discard runs, and nothing is saved again in that launch.
-- **When it becomes the profile.** Only when this device has no profile and
-  `mayAdoptPreAccountDraft` in `app/freshDevice.ts` says yes, which is on an
-  `empty` account read or on `no-sync`. A timed-out or failed read, or an account
-  that already had state, never adopts it, because the draft on this device may be
-  somebody else's answers. OAuth sign-in to an empty account also asks the
-  signed-in learner to confirm that this phone's draft is theirs, showing the
-  account label and plan before the draft is applied. They can start a new plan
-  instead. Those who cannot adopt get the recovery flow below.
-- **How it is written.** `onboarding/createFromDraft.ts` turns it into the
-  profile through doors that already exist: the name, the age, the reason as
-  `motivation` and as a seeded goal, the selected routine as the daily goal (or
-  no fixed daily goal), the starting level as a low-confidence internal A0/A1
-  estimate rather than certification, and the voice. The usage-data answer is
-  saved first, and the reminder time is saved switched off.
-
-## Historical context
-
-| # | Screen | What it wanted |
-|---|---|---|
-| 1 | Splash page 1 | "Welcome to Luvani!", tap Let's go |
-| 2 | Splash page 2 | Three sentences on why speaking out loud works |
-| 3 | Auth welcome | "Find your voice in French", tap Create account |
-| 4 | Sign up | Email and password |
-| 5 | Onboarding: name | A name |
-| 6 | Onboarding: age | One tap: thirteen or older |
-| 7 | Onboarding: why | One of four reasons, or Skip |
-| 8 | Mission chooser | Which situation to speak in |
-
-Three of those screens introduced the product: splash page 2, the auth welcome's
-subline, and TutorIntro's first page on the Tutor tab. None of the three said the
-tutor is AI.
-
-## What changed, and why each one
-
-The current path is the five-page pre-account flow above. The older
-age/name/meet/voice flow (`onboarding/OnboardingFlow.tsx`, pages in `PAGES` in
-`answers.ts`) is kept as a recovery path. It runs for a signed-in learner who has
-no profile the draft may become, or an older profile that never answered the age
-question. It asks the age first, so a learner is never asked their name and then
-told they cannot stay.
-
-**The learner controls the example.** The first page shows a recorded exchange
-but does not autoplay it. The second lets the learner select and hear a sample
-reply, with an optional worked practice example. It does not record their voice
-or claim they have said the line independently. Both use bundled recordings, so
-nothing reaches an AI service and no microphone is opened before an account exists.
-
-**The AI disclosure comes first, and again before the account.** The first page's
-subline says the tutor is AI (`WELCOME_SUBLINE` in `onboarding/disclosure.ts`).
-The save page says it again beside the privacy line (`SAVE_PRIVACY`), which also
-names the typed answers the account will carry. The recovery flow's Meet page and
-TutorIntro's persona page read from the same module, so the surfaces cannot drift
-apart.
-
-**The age question sits on the save page.** It is the pill that creates the
-account: "I am 13 or older, create account". "I am younger than that" replaces the
-page with a calm page of its own (the frame drawing, "Luvani is for learners
-thirteen and up.", then one line) and removes the pill. Moving back and forward
-between the pages does not undo it, and neither does leaving through "I have an
-account" and coming back: the refusal holds for the rest of the launch. It also
-clears the saved first-run draft, including any first name typed, and nothing is
-saved again in that launch, so reopening the app starts at the first page with
-nothing kept. The refusal itself lives in memory only and is never written to
-the device, so after a relaunch the question can be asked again, the same
-close-the-app escape the age gate keeps for a mis-tap. Signing in and out again
-does not end it; only closing the app does. `Gate` in `App.tsx` holds it, because
-`Gate` stays mounted for the whole launch while the sign-in flow does not. The
-tradeoff: on a shared phone, an adult who signs out later in the same launch
-meets the refusal page until the app is reopened. No account is created and
-nothing is sent anywhere. (Founder decision, 2026-09-30: F637, F639, F641.)
-
-**4 October 2026 implementation.** The optional reason question and first-name field are deferred to Profile/Tutor memory. Existing version-1 drafts keep their answers and a saved `reason` page resumes at `plan`. The reason remains valid tutor context for existing drafts; it never changes scene order. Reminders are offered after a useful phrase and remain off until explicit permission and opt-in. The pre-account choice records no ability, history, activity or AI assessment.
-
-**The first scene opens the app, not the chooser.** The selected scene is an
-explainable first task in the existing catalogue; the self-reported starting
-point only chooses whether to include the short café opener. On web, `NavigationContainer`
-resolves `/` to Home before a stack `initialRouteName` can win, so `App.tsx` waits
-for `onReady` and then `openFirstRun` resets the root once to Today with the first
-scene above it (`[Tabs, FirstScene { missionId }]`). The scene is the one the plan
-put first. A back from the primer or the scene lands on Today. The flag that
-triggers this lives in memory and is never persisted, so an app killed between
-sign-up and the first frame opens on Today. The chooser is never the first screen
-a new learner sees. It is still reachable from Speak's level path and from My
-French.
-
-**History.** Until the notebook redesign on 2026-09-27, the front door was a
-different set of pages, and before that a two-page splash. The splash used a
-device-level flag and an animated café scene, and it was removed because the
-account already knows whether somebody has been here. The five-page flow that
-followed had a welcome, "Speak in real situations", "Life happens", a voice page
-and a "Ready" page, and it ended on the ten-way mission chooser. The chooser
-carried the first-run promise and the just-in-time microphone line, and a driven
-local mock-auth web journey proved its one-shot `/missions` landing on
-2026-08-27. The notebook redesign replaced all of that with the six pages, the
-first scene and its microphone primer. The one-shot landing on `FirstScene` has not
-yet been proven the same way.
-
-**A third door, where the platform has one (F375, F376).** Sign up and sign in
-both draw "Continue with Apple" above the Google outline, and only when
-`appleSignInOffered()` in `auth/apple.native.ts` says the device can open it,
-which today means iOS. Android and web see exactly the two doors they saw
-before, because a button that opens onto an unconfigured flow costs more than a
-missing one. The screen count and the tap count above are unchanged: it is a
-third way through the same screen, not another screen.
-
-What is proven here is the wiring, not the sign-in. `auth/apple.test.ts` and
-`auth/appleNonce.test.ts` hold the preflight order, the nonce pairing, the
-button's placement and the build config. The sheet itself, Apple's signature
-over the nonce, and Supabase accepting the identity token all need the paid
-Apple Developer capability and the project's Apple provider, and neither exists
-on the machine this was written on. That half belongs to
-[DEVICE_VERIFICATION.md](DEVICE_VERIFICATION.md) and has not been run.
-
-The local path lets a learner hear an example, inspect how a correction works,
-choose a suggested routine and know the AI, microphone and live-minute terms
-before starting the scene the plan showed.
-
-## Who never sees any of this
-
-- **A returning learner on the same device.** `needsOnboarding` in `answers.ts`
-  reads `ageConfirmed`, the one question nobody is allowed to decline. Anyone who
-  has been through the flow has it stored as `true`, whatever else they skipped.
-- **A returning learner on a new phone.** Phase 2's `app/freshDevice.ts` gives the
-  account a bounded moment to answer before the app decides the device is empty, so
-  a reinstall adopts the stored profile instead of writing a beginner over it.
-- **Someone who skipped their name.** The guard used to read the name, which is a
-  field a learner is allowed to leave empty, so skipping it sent them back to page
-  one on that launch and every launch after. A question about a *journey* cannot be
-  answered from a *field*.
-
-Nothing in the reorder touches that rule, and it is deliberately written so it
-cannot: `needsOnboarding` names no page, so adding, removing or reordering pages
-can never change who is asked.
-
-## What is measured here, and what is not
-
-**Not measured: wall-clock time to first useful French.** That is the number this
-phase actually cares about, and it cannot be produced on the machine this was
-written on — no device or simulator is verified available here, the mobile
-workspace has no renderer, and a stopwatch against a bundle that never runs is a
-guess with a decimal point on it. Nobody should quote one until it has been run.
-
-**Measured instead, as the static proxy:** the screen count, the tap count and the
-page count above, held to the code by
-`apps/mobile/src/onboarding/answers.test.ts` → `the onboarding doc claims the same
-page count the flow renders`. If a page is added or renamed and this file is not
-updated, that test fails. It proves the doc is honest about the flow. It proves
-nothing about how long the flow takes.
-
-The stopwatch belongs to **F114** in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), with the
-runbook in [DEVICE_VERIFICATION.md](DEVICE_VERIFICATION.md) — five viewports, both
-platforms, VoiceOver and TalkBack, and the time from first launch to first spoken
-French recorded per device. Until that pass runs, the table above is the only
-honest screen-count claim; it does not imply a measured time to first
-conversation.
-
-## The files
-
-| What | Where |
+| Surface | Action and consequence |
 |---|---|
-| The five-page pre-account front door | `apps/mobile/src/onboarding/PreAccountOnboarding.tsx` |
-| The words on those pages, and the plan they build | `apps/mobile/src/onboarding/firstRun.ts`, `apps/mobile/src/onboarding/plan.ts` |
-| The four-page account recovery flow | `apps/mobile/src/onboarding/OnboardingFlow.tsx` |
-| The compact local hand-off, and how it becomes a profile | `apps/mobile/src/onboarding/preAccountDraft.ts`, `apps/mobile/src/onboarding/createFromDraft.ts` |
-| When the draft may be adopted | `mayAdoptPreAccountDraft` in `apps/mobile/src/app/freshDevice.ts` |
-| The rules: pages, the gate, the leaving guard | `apps/mobile/src/onboarding/answers.ts` |
-| The words about AI, privacy and the microphone | `apps/mobile/src/onboarding/disclosure.ts` |
-| Who is asked at all | `apps/mobile/src/app/ProfileContext.tsx` |
-| What is stored afterwards | `apps/mobile/src/profile/store.ts`, [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
-| What the first run promises a learner | [PRIVACY_AND_SAFETY.md](PRIVACY_AND_SAFETY.md) |
-| The first scene and its microphone primer | `apps/mobile/src/onboarding/FirstSceneScreen.tsx`, `apps/mobile/src/onboarding/micPrimer.ts` |
-| Why the first scene opens once, after web linking resolves | `apps/mobile/App.tsx` (`openFirstRun`), `apps/mobile/src/nav/theme.ts` |
-| The recap keepsake and its reminder offer | `apps/mobile/src/RecapScreen.tsx`, `apps/mobile/src/live/keepsake.ts` |
+| Opening | Choose coffee or tea; see the matching French line and translation. Make my plan opens questions. Try a practice now proposes a five-minute café task and three days, explicitly as suggestions. Playback is optional and never starts on arrival. There is no sign-in link here. |
+| Goal | Choose food, family, a trip, moving or work, or I’m exploring. Each concrete goal has its own authored starter. |
+| Ability | Choose what you can do today. This changes translation and sentence-starter help, without claiming placement. |
+| Time | Choose five, ten or fifteen minutes, or Choose each time. The starter has one, two or three tasks; the preference is saved. |
+| Frequency | Choose three, five or seven days, or No schedule. This saves a preference; it does not grant notification permission. |
+| Result | One relevant task, one routine line, and Try this practice. Change plan and Choose tutor open contextual sheets with Done and Cancel. The tutor is explicitly AI before a voice sample or processing request. |
+| Start sheet | Processing and local-save facts, thirteen-or-older confirmation, optional analytics and learning memory (both off), speaking or typing. No guest request or microphone permission precedes explicit eligibility and Start. |
+| Practice | An actual French prompt, optional help, and the learner’s own typed reply or short recording. Feedback checks bounded authored replies. Unknown replies receive a model and useful correction without being declared globally incorrect French. |
+| Recap | Actual reply and relevant feedback; retry the same task, keep the phrase, optionally save progress, or Finish. Playback never earns assessment, XP or pronunciation evidence. |
+| Continuation | Continue this practice or retry the exact line. Account saving, reminders and plans are optional after value. Sign-in is available here and in the account sheet. |
+
+Core answers stay selected until Next is pressed. Back preserves answers and scroll position. There are no decorative eyebrows, chips, syllabus blocks, repeated sales pitches or required name question. One focused heading and a sticky action lead each page. Drawings use the existing café, scene and keepsake artwork, with saturated blue, coral, sun and mint grounds and readable contrasting text.
+
+Button and text placement follows the shared frame: aligned side gutters, a single working heading, one fixed primary action, and quieter optional actions below it. Choice cards have a minimum 66-point tap area; Next is 56 points and secondary controls remain at least 44 points. Compact phones use the shared layout mode and existing readable type tokens; all five goals were visibly checked at 320 × 700. Text remains scalable and scrollable, never truncated to fit. Plan edits use full rows with a label, current answer and arrow, then one focused choice group. Done/Cancel and start controls stay fixed outside the sheet's scroll area. Tutor samples expand only for the selected voice. Embedded account forms use the sheet's single heading and scroll region, avoiding a second back control or nested form frame.
+
+The quick route omits the questionnaire and labels its proposed routine as suggested. `EXPO_PUBLIC_ONBOARDING_VARIANT=five` enables the report’s five-surface experiment: opening, goal, time, frequency, result. Ability remains available in Change plan and is excluded from that variant’s four earned choices. This is an experiment, not an established conversion improvement. The default plan offer is voluntary See plans after value and account handling, using the existing real store products, terms and free exit. The comparison of pre-practice versus post-feedback commercial timing needs cohort evidence before activation; this revision does not fabricate prices or require a purchase.
+
+## Accounts and returning users
+
+Device history chooses only the signed-out entry. After a completed account reaches the app, a non-personal `yes` marker opens Sign in on logout. Existing locally completed profiles provide an upgrade hint. iOS uses SecureStore plus a device fallback; the keychain can survive reinstall but Apple does not guarantee it. Android uninstall clears app storage, so the app cannot reliably distinguish a reinstall from a first install before authentication. After sign-in, the account profile is authoritative on every platform: completed accounts skip onboarding; empty new accounts receive the same modern onboarding; incomplete older profiles use the existing repair flow. Create one on a returning sign-in screen explicitly starts a fresh introduction.
+
+Apple and Google appear on sign-in and signup. iOS Apple uses the system sheet with the hashed/raw nonce pairing; Android uses browser PKCE; web redirects through Supabase. Cancellation returns to the originating result. Live Apple operation requires the project’s Apple provider and developer configuration, including Services ID/return URL and current client secret for browser flows. Local mock buttons demonstrate navigation only, not a successful production OAuth exchange.
+
+Anonymous choices and practice remain separate during authentication. An empty OAuth account confirms the phone’s plan before adopting preferences. Keep this practice explicitly imports phrases into Practice and a device-local continuation into the authenticated namespace; a populated account’s profile is never silently overwritten. Start fresh declines phrase import but still reconciles metered usage. Server ownership binds a guest capability to one authenticated account and is idempotent. Storage acknowledgements wait for successful writes; account switches and refusal invalidate stale asynchronous work.
+
+## Guest practice and recovery
+
+The token service issues one opaque guest capability per installation per day, with a 24-hour service lifetime. IP limits, installation binding and atomic per-task reservations permit two attempts per introduced task, at most three tasks. Production guest speech remains unavailable until an anonymous paid-admission context is reviewed and implemented; an API key alone cannot bypass the newer authenticated quote/budget boundary. The service reports speech availability before capture, and the learner continues with typing. Explicit local development with a configured speech key can exercise recording. Native capture stops at twenty seconds; the server additionally caps audio at 2 MiB and reserves attempts before transcription, including failed transcription. Guest credentials never enter URLs, analytics or account sync. Production uses the existing durable Redis service; local development uses an in-memory store.
+
+Active practice seconds are capped per attempt and total, pause in the background on the client, and cannot exceed elapsed capability time on the server. On authenticated adoption, the existing one-time trial boundary owns the allowance and the guest record ID debits usage idempotently. Declining import does not reset the allowance. A capability can be claimed during the 30-day ownership ledger retention even after online practice expires. Offline use preserves any existing capability for later reconciliation.
+
+An unavailable service has a direct local counterpart for the selected task, with honest authored phrase feedback and no pronunciation claim. The local draft includes eligibility, choices, page, voice, opt-ins and reminder choice; the separate guest record holds bounded replies and feedback. Corrupt records cannot invent eligibility, capabilities, task IDs or durable saving. An unsent reply prompts before leaving practice. Completed attempts and the same task survive relaunch; a transient unsent input is not promised as a durable submission. Storage failure keeps the current attempt visible and offers retry without claiming it was kept. Native temporary recordings are discarded on consumption, failure, background and unmount.
+
+**The age question sits before first processing.** It is in the Start sheet, not an account sales button. “I am younger than that” clears the whole draft and guest record, sends nothing, stores no refusal marker, and holds for the rest of the launch. Moving between pages, sign-in and sign-out, and Create one cannot undo the refusal. Closing and relaunching starts at the first page with nothing kept, and the question can be asked again. No date of birth or new first name is collected. Older stored names remain compatible.
+
+## Motion, haptics and sheets
+
+Press feedback uses the shared scale spring and one accepted-action haptic. A selected card responds in 180 ms, Next’s arrow in 100/140 ms, page arrival in 270 ms, progress in 220 ms, and illustrations in a bounded 140/220 ms response (300 ms settling after success). There is no looping mascot or blocking celebration. Native transforms and opacity use the native driver; web uses its supported driver. Reduce Motion changes stop live animations and show final states. Settings offers a persistent Haptic feedback switch. Recording does not vibrate while the microphone is live.
+
+Sheets preserve the parent behind an inactive scrim, animate open/close in 310/250 ms, and support a handle, swipe, visible Close/Cancel, keyboard movement, safe areas, Android Back and screen-reader escape. Focus enters the modal heading; the web modal traps/restores focus and native restores the originating heading. Pending writes reject dismissal and a refused swipe settles back. Short edits stay in sheets; core questions remain pages. Account forms can expand for keyboard and verification.
+
+Reminders are offered after value. Explicit Enable asks OS permission and schedules only selected weekdays/time. Denial, unavailability or partial scheduling failure leaves the preference off. Existing daily reminders remain compatible. Editing the time preserves selected days. No permission dialog is raised on arrival.
+
+## Report coverage and verification
+
+| Report requirement | Implementation |
+|---|---|
+| Remove redundant demo/copy/pills | Interactive opening, compact result, delayed account sheet; no decorative section labels |
+| Concrete illustrated choices and deliberate navigation | ChoiceCard, ChoiceArt, NextButton, earned SetupProgress and restored Back |
+| Real personalisation | Five distinct goal routes; ability changes support; time changes tasks; frequency changes preference |
+| Value before registration | Bounded typed/spoken guest task, actual feedback and exact retry |
+| Endowment/save/return | Durable kept phrase; explicit account adoption; Home continuation before unrelated daily content |
+| Vivid responsive UI | Existing vector brand scenes, bounded reactions, page/card/button/sheet motion and haptics; mascot removed per latest request |
+| Contextual editing/help/privacy | Shared accessible sheets, provisional edits, actual policy, conservative feedback details |
+| Recovery and privacy | Explicit eligibility, separate off-by-default opt-ins, local counterpart, cancellation, generation guards and bounded server ownership |
+| Scheduling and commercial follow-ups | Optional selected-weekday reminder and real See plans after value; five-surface variant and timing experiment documented |
+| Measurement | Closed anonymous daily starter event counts by variant/evidence only after opt-in; authenticated useful-return event after an accepted reply, not login |
+
+Optional guest analytics use fixed names: practice_started, useful_reply, feedback_seen, retry, help_used, phrase_kept, save_progress, useful_return and practice_finished. No words, audio, answer values or user/install IDs are written to these counts. Counts expire at ninety days; the capability ledger expires at thirty days. Account analytics read the account’s current consent. These are evidence hooks, not a completed user study or proof that a design wins.
+
+Automated unit/integration checks, the repository quality gate and browser screenshots are recorded with the implementation evidence. F114’s physical-device stopwatch, haptic tuning, iOS/Android microphone and notification dialogs, VoiceOver/TalkBack and live Apple authentication cannot be produced on the machine through a browser-only walkthrough. Run the device matrix in `docs/DEVICE_VERIFICATION.md`; do not call native behavior or French native-speaker review verified without those passes. Observe new, returning, family/work and quiet-use learners without coaching, including editing, denial, offline recovery, saving and useful return, before declaring conversion or comprehension outcomes.

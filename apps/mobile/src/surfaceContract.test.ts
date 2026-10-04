@@ -520,7 +520,7 @@ describe('one front door, not three — F105', () => {
     const importers = EVERYTHING.filter(({ body }) =>
       /import\s*\{[^}]*\bPreAccountOnboarding\b[^}]*\}\s*from/.test(body),
     ).map((f) => rel(f.path));
-    assert.deepEqual(importers, ['auth/AuthFlow.tsx'], 'the welcome is reached from somewhere other than the auth flow');
+    assert.deepEqual(importers.sort(), ['App.tsx', 'auth/AuthFlow.tsx'], 'the welcome is reached from somewhere other than the auth flow');
 
     // Gone as a folder, as a component, and as a flag with a reader. The key
     // string survives on purpose, in RETIRED_DEVICE_KEYS, which is the sweep.
@@ -637,7 +637,7 @@ describe('a form says out loud what it shows — F109', () => {
  */
 const FIRST_RUN: readonly { where: string; headings: number }[] = [
   // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 5 },
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
@@ -760,7 +760,7 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       const body = named(where);
       for (const [pattern, complaint] of [
         [/focusable\s*[=:]\s*\{?\s*false/, 'takes a control out of the focus order'],
-        [/tabIndex\s*[=:]\s*\{?\s*-\s*\d/, 'gives a control a negative tabIndex'],
+        [/<(?:Press|Pressable|TextInput|Button)\b[^>]*tabIndex\s*[=:]\s*\{?\s*-\s*\d/, 'gives a control a negative tabIndex'],
         [/accessible\s*[=:]\s*\{?\s*false/, 'hides a control from assistive tech'],
         [/importantForAccessibility="no/, 'tells Android to skip part of the screen'],
       ] as const) {

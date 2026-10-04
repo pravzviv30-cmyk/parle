@@ -319,7 +319,7 @@ describe('merging two copies of one learner', () => {
     // Never asked on either side stays never asked. `false` is not written here
     // and is not invented here.
     const blank = merge(stored(), stored());
-    for (const field of PROFILE_ANSWER_FIELDS) assert.equal(blank?.[field], null, field);
+    for (const field of PROFILE_ANSWER_FIELDS) assert.equal(blank?.[field], ['practiceDaysPerWeek', 'onboardingGoal', 'onboardingDrink'].includes(field) ? undefined : null, field);
   });
 
   test('a chosen voice beats a null one from either side, and the merge still absorbs its inputs', () => {

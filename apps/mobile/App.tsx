@@ -37,7 +37,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { hide as hideNativeLaunch } from 'expo-splash-screen';
-import { completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
+import { saveProfile, completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper, type, space } from './src/theme.ts';
 import { Card, GhostButton, PillButton } from './src/components.tsx';
@@ -64,6 +64,11 @@ import { adoptBeforeReady, mayAdoptPreAccountDraft, type FreshStart } from './sr
 import { loadHistory } from './src/progress/store.ts';
 import { backfillFrom } from './src/progress/activity.ts';
 import { FIRST_MISSION, lessonXp, type MissionId } from '@luvani/core';
+import { PreAccountOnboarding } from './src/onboarding/PreAccountOnboarding.tsx';
+import { loadHapticPreference } from './src/motion/hapticPreference.ts';
+import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
+import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
+import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
 import { profileFromDraft, reminderFromDraft } from './src/onboarding/createFromDraft.ts';
@@ -152,6 +157,8 @@ function PreAccountProfileBootstrap({
   // OAuth can sign into an existing empty account. A clean account read proves
   // there is no profile to overwrite, not whose anonymous draft this is.
   const [confirmed, setConfirmed] = useState(!requireReview);
+  const [bootstrapError, setBootstrapError] = useState('');
+  const [bootstrapRetry, setBootstrapRetry] = useState(0);
   // ProfileGate is intentionally the only owner of a user-scoped profile. The
   // pre-account flow can therefore carry its two answers across auth without
   // ever writing them to a shared account namespace. The effect is the bridge:
@@ -195,10 +202,18 @@ function PreAccountProfileBootstrap({
         // Nothing stored reads as off, which is what was meant anyway.
       }
       if (owner !== scopeGeneration()) return;
+      try {
+        if (!(await saveProfile(built))) throw new Error('storage failed');
+      } catch {
+        if (owner === scopeGeneration()) { delivered.current = false; setBootstrapError('Your plan could not be saved. Try again.'); }
+        return;
+      }
+      if (owner !== scopeGeneration()) return;
       done(built);
-      onConsumed();
+      if (!draft.eligibilityConfirmed) onConsumed();
     })();
-  }, [confirmed, draft, done, onConsumed]);
+  }, [confirmed, draft, done, onConsumed, bootstrapRetry]);
+  if (bootstrapError) return <ScrollScreen><Text style={type.body}>{bootstrapError}</Text><PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} /></ScrollScreen>;
   if (!confirmed) {
     const plan = planFor(draft);
     return <ScrollScreen bottom="inset" header={<ScreenHeader title="Use this starting plan?" />}
@@ -206,7 +221,7 @@ function PreAccountProfileBootstrap({
       <Text style={[type.body, { color: paper.ink }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
       <Card style={{ marginTop: space(4), gap: space(2) }}>
         {draft.firstName && <Text style={type.body}>Name: {draft.firstName}</Text>}
-        <Text style={type.heading}>{plan.scenes[0]?.titleEn}</Text>
+        <Text style={type.heading}>{plan.starter.title}</Text>
         <Text style={type.body}>{plan.startingReason}</Text>
         {plan.goal && <Text style={type.body}>{plan.goal}</Text>}
         <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
@@ -216,6 +231,12 @@ function PreAccountProfileBootstrap({
     </ScrollScreen>;
   }
   return <Loading />;
+}
+
+/** A completed account reaches the app before this device hint is written. */
+function RememberCompletedAccount({ onUsed }: { onUsed: () => void }) {
+  useEffect(onUsed, [onUsed]);
+  return null;
 }
 
 /** ProfileGate mounts its children only once the signed-in profile is complete. */
@@ -230,11 +251,17 @@ function SignedInRoot({
   user,
   preAccountDraft,
   onPreAccountDraftConsumed,
+  onAppUsed,
+  refused,
+  onRefuseOnboarding,
   onDeleteAccount,
 }: {
   user: AuthUser;
   preAccountDraft: PreAccountOnboardingDraft | null;
   onPreAccountDraftConsumed: () => void;
+  onAppUsed: () => void;
+  refused: boolean;
+  onRefuseOnboarding: () => void;
   /**
    * Delete the account, erase this device, sign out.
    *
@@ -404,13 +431,33 @@ function SignedInRoot({
         existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft(freshStart) ? (
           <PreAccountProfileBootstrap
             draft={preAccountDraft}
-            requireReview={user.provider === 'google' || user.provider === 'apple'}
+            requireReview={preAccountDraft.eligibilityConfirmed === true || user.provider === 'google' || user.provider === 'apple'}
             accountLabel={user.email ?? 'your current account'}
             onConsumed={onPreAccountDraftConsumed}
             done={(profile) => {
-              firstScene.current = firstSceneFor(preAccountDraft.startLevel);
-              setJustOnboarded(true);
+              firstScene.current = firstSceneFor(preAccountDraft.startLevel, preAccountDraft.reason);
+              setJustOnboarded(!preAccountDraft.eligibilityConfirmed);
               done(profile);
+            }}
+          />
+        ) : existing === null ? (
+          <PreAccountOnboarding
+            initialDraft={null}
+            signedIn
+            refused={refused}
+            onDraftChange={() => { /* Drafts for signed-in learners remain inside their account flow. */ }}
+            onSignIn={() => void auth.signOut()}
+            onRefuse={() => { onRefuseOnboarding(); void auth.signOut(); }}
+            onCreateAccount={async draft => {
+              if (!draft.eligibilityConfirmed) return false;
+              const owner = scopeGeneration();
+              const built = profileFromDraft(draft);
+              await saveConsent({ allowed: draft.analyticsConsent });
+              await saveReminder(reminderFromDraft(draft));
+              if (owner !== scopeGeneration() || !(await saveProfile(built))) return false;
+              firstScene.current = firstSceneFor(draft.startLevel, draft.reason);
+              done(built);
+              return true;
             }}
           />
         ) : (
@@ -460,7 +507,9 @@ function SignedInRoot({
         )
       )}
     >
-      <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />
+      <GuestAccountHandoff draft={preAccountDraft} onDone={onPreAccountDraftConsumed}>
+      {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
+      <RememberCompletedAccount onUsed={onAppUsed} />
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
@@ -476,6 +525,7 @@ function SignedInRoot({
           />
         </NavigationContainer>
       </LiveProvider>
+      </GuestAccountHandoff>
     </ProfileGate>
   );
 }
@@ -497,6 +547,8 @@ function Gate() {
   const { status, user, recovering, clearRecovery } = useAuth();
   const [preAccountDraft, setPreAccountDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const appUsed = useCallback(() => { setReturning(true); void rememberAppUse(); }, []);
   /**
    * Did an account deletion leave a copy of the learner's data on this device?
    *
@@ -534,9 +586,10 @@ function Gate() {
 
   useEffect(() => {
     let cancelled = false;
-    void loadPreAccountDraft().then((draft) => {
+    void Promise.all([loadPreAccountDraft(), hasUsedApp()]).then(([draft, used]) => {
       if (!cancelled) {
         setPreAccountDraft(draft);
+        setReturning(used);
         setDraftLoaded(true);
       }
     });
@@ -598,6 +651,9 @@ function Gate() {
         user={user}
         preAccountDraft={preAccountDraft}
         onPreAccountDraftConsumed={discardPreAccountDraft}
+        onAppUsed={appUsed}
+        refused={preAccountRefused}
+        onRefuseOnboarding={refusePreAccount}
         onDeleteAccount={deleteAccount}
       />
     );
@@ -612,9 +668,10 @@ function Gate() {
   return (
     <AuthFlow
       initialDraft={preAccountDraft}
+      returning={returning}
       onDraftChange={keepPreAccountDraft}
       onCreateAccount={keepPreAccountDraft}
-      onSignIn={discardPreAccountDraft}
+      onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
       refused={preAccountRefused}
       onRefuse={refusePreAccount}
     />
@@ -622,6 +679,7 @@ function Gate() {
 }
 
 export default function App() {
+  useEffect(() => { void loadHapticPreference(); }, []);
   const [loaded] = useFonts({
     'Outfit-Regular': require('./assets/fonts/Outfit-Regular.ttf'),
     'Outfit-Medium': require('./assets/fonts/Outfit-Medium.ttf'),

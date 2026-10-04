@@ -1,3 +1,4 @@
+import { evidence } from '../../test/evidence.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -6,30 +7,9 @@ import { DEMO_COACHING, FIRST_LINE } from '../onboarding/firstRun.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('the authored teaching preview connects attempt, useful feedback, model retry and saved practice without assessing playback', () => {
-  assert.equal(DEMO_COACHING.alternative, FIRST_LINE.reply);
-  assert.match(DEMO_COACHING.scope, /Example feedback. Your French is not assessed/);
-  assert.match(DEMO_COACHING.feedback, /"bonjour" to greet/);
-  assert.ok(DEMO_COACHING.alternative.fr.startsWith('Bonjour'));
-  assert.match(DEMO_COACHING.retry, /microphone stays off/);
-  assert.match(DEMO_COACHING.kept, /After a real conversation/);
-  const screen = read('../onboarding/PreAccountOnboarding.tsx');
-  assert.match(screen, /useState\(false\)/);
-  assert.match(screen, /coachingOpen && <Card/);
-  assert.match(screen, /play\(clipFor\(DEMO_COACHING.alternative\), null\)/);
-  assert.doesNotMatch(screen, /SceneMark|recordActivity|recordMissionCompletion/);
-});
+test("actual guest practice connects the submitted reply, useful feedback, exact retry and durable keep", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /sendGuestAttempt/); assert.match(screen, /result\.feedback\.accepted/); assert.match(screen, /label="Try it again"|label="Try again"|Retry/); assert.match(screen, /saveGuestPractice\(next\)/); assert.match(screen, /if \(saved\)/); assert.doesNotMatch(screen, /coachingOpen|pronunciationScore|awardXp/); });
 
-test('signup carries the current plan summary and clears it before an existing-account sign-in', () => {
-  const flow = read('../auth/AuthFlow.tsx');
-  assert.match(flow, /planDraft=\{refused \? null : signupDraft\}/);
-  assert.match(flow, /if \(!refused\) \{\s*setSignupDraft\(draft\);\s*onCreateAccount\(draft\)/);
-  assert.match(flow, /onSignIn=\{\(\) => \{\s*setSignupDraft\(null\);\s*onSignIn\(\)/);
-  const screen = read('../auth/SignUpScreen.tsx');
-  assert.match(screen, /planDraft === null \? null : planFor\(planDraft\)/);
-  assert.match(screen, /plan.minutes === 'none'/);
-  assert.doesNotMatch(screen, /Saved to your account|plan is saved/);
-});
+test("signup carries the actual starter and keeps guest work during sign-in", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); const signup = evidence('apps/mobile/src/auth/SignUpScreen.tsx'); assert.match(flow, /planDraft=\{refused \? null : signupDraft\}/); assert.match(signup, /plan\.starter\.title/); assert.match(flow, /setScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='),flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); });
 
 test('memory and Settings put practical controls before processing details without inventing support', () => {
   const memory = read('../profile/TutorMemoryScreen.tsx');

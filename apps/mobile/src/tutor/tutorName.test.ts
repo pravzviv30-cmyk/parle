@@ -377,7 +377,7 @@ describe('onboarding introduces the voice already on the record — F300', () =>
     // before an account exists. It says which persona it means out loud rather
     // than letting the copy module decide for it.
     assert.ok(
-      WELCOME.includes('WELCOME_SUBLINE(persona)'),
+      WELCOME.includes('STARTER_AI'),
       'the welcome screen stopped saying which persona its subline is about',
     );
   });

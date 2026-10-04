@@ -11,10 +11,8 @@
  *
  * Revamp B (F601): the same family as sign-up. The provider doors lead the
  * body, above an "or" rule and the two fields. The Apple pill sits above the
- * Google one and is drawn only where the platform offers it, which today means
- * iOS. That order is Apple's own guidance where its button appears at all, and
- * it costs an Android or web learner nothing, because there the button does not
- * exist.
+ * Google one where the platform offers native or browser OAuth. Returning
+ * devices use the full page; a guest opens it in a sheet after practice.
  */
 
 import { useEffect, useState } from 'react';
@@ -28,7 +26,7 @@ import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { appleSignInOffered } from './apple.ts';
 import { SIGN_IN_PURPOSE } from './copy.ts';
 
-export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; onCreateAccount: () => void }) {
+export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { onBack?: () => void; onCreateAccount: () => void; embedded?: boolean }) {
   const { adapter } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,7 +39,7 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
   // Asked once, and false until it answers. A door is drawn only where the
-  // platform actually opens it: Android and web never offer Apple sign-in, and
+  // platform can open it; Android and web use configured browser OAuth, and
   // an iPhone too old for it says no as well. Drawing the button first and
   // hiding it after would flash a door that was never there.
   const [appleOffered, setAppleOffered] = useState(false);
@@ -112,19 +110,20 @@ export function SignInScreen({ onBack, onCreateAccount }: { onBack: () => void; 
 
   return (
     <ScrollScreen
+      embedded={embedded}
       avoidKeyboard
-      header={<ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
+      header={!embedded && onBack ? <ScreenHeader title={false} divider={false} back={{ onPress: onBack }} /> : undefined}
       footer={<PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />}
     >
       {/* A working title on the paper itself, then what is behind the door. */}
-      <View style={st.head}>
+      {!embedded && <View style={st.head}>
         <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Welcome back</Text>
-      </View>
+      </View>}
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{SIGN_IN_PURPOSE}</Text>
 
       {/* The provider doors lead the form. Apple is an ink pill, drawn only where
           the platform offers it; Google is the white pill beneath it. */}
-      <View style={st.doors}>
+      <View style={[st.doors, embedded && { marginTop: 0 }]}>
         {appleOffered && (
           <PillButton
             label={authButtonLabel('apple', pending === 'apple')}

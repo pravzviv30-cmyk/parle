@@ -123,6 +123,7 @@ export const USER_KEY_SUFFIXES = [
   'soundChecks',
   'conversationPacks',
   'reminder',
+  'onboarding-practice',
   'bookmarks',
   'scenarioProgress',
   'suggestions',

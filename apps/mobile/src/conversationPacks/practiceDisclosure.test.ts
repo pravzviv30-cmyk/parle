@@ -1,3 +1,4 @@
+import { evidence } from '../../test/evidence.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
@@ -22,17 +23,7 @@ test('French choice exercises do not give away meanings through visible or spoke
   assert.doesNotMatch(screen, /\{exercise.line.en\}/);
 });
 
-test('onboarding removes decorative chrome but retains progress, back navigation and consent', () => {
-  const pre = read('../onboarding/PreAccountOnboarding.tsx');
-  assert.doesNotMatch(pre, /A little French, every day|chapterNumber/);
-  assert.match(pre, /<ProgressDots/);
-  assert.match(pre, /CONSENT_ROW/);
-  for (const file of ['SignUpScreen', 'SignInScreen']) {
-    const auth = read(`../auth/${file}.tsx`);
-    assert.match(auth, /<ScreenHeader title=\{false\} divider=\{false\} back=/);
-    assert.doesNotMatch(auth, /Le début de votre histoire/);
-  }
-});
+test("onboarding removes decorative chrome while retaining progress, back and separate opt-ins", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /<SetupProgress/); assert.match(screen, /label="Back"/); assert.match(screen, /title="Optional usage data"/); assert.match(screen, /title="Remember my learning"/); assert.doesNotMatch(screen, /<Chip|<Label|<ProgressDots|<TutorMark|mascot/i); });
 
 test('a finished warm-up is recorded once as exposure, and a skip or the preview records nothing', () => {
   const screen = read('./ConversationPracticeScreen.tsx');

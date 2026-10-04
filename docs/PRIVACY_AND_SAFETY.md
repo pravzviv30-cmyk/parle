@@ -28,7 +28,7 @@ Every durable store, with the retention that governs it. A row whose retention s
 | What | Where it lives | Why | Retention | Removed by |
 |---|---|---|---|---|
 | Email, name, sign-in provider | Supabase `auth.users` | There is no account without them | Life of the account | Account deletion |
-| The first-run draft before an account: age confirmation, Tutor voice, usage-data answer, the plan's answers, the page reached, and an optional first name | Device, `@luvani/pre-account-onboarding/v1` | Carry the first-run answers through account creation, and resume where the learner left off | Until the signed-in profile is created, a link to sign in is taken, or the learner says they are under thirteen | Profile creation, any link to sign in, "I am younger than that" on the save page, clearing app data |
+| The first-run draft before an account: age confirmation, Tutor voice, usage-data answer, the plan's answers, the page reached, and an optional first name | Device, `@luvani/pre-account-onboarding/v1` | Carry the first-run answers through account creation, and resume where the learner left off | Until explicit adoption or discard, or the learner says they are under thirteen | Explicit adoption or discard, "I am younger than that" in the Start sheet, clearing app data |
 | Age confirmation, and a date of birth for learners who joined when Luvani asked | Device, `luvani.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Account deletion |
 | The moment a session stopped because the learner said they are under thirteen | Device, `luvani.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reinstall, account deletion |
 | Learning state: history, review deck, journal phrases, missions, topics, drills, sound-check evidence | Device, `luvani.u.<uid>.*`, and `public.learner_state` once sync ships | It is the product | Life of the account | Account deletion, cascade |
@@ -732,7 +732,7 @@ is listed again in [Not true yet](#not-true-yet).
 
 ### An under-13 answer before an account keeps nothing
 
-The first run asks the age question on its last page, before any account
+The first run asks the age question in its Start sheet, before any processing or account
 exists. "I am younger than that" shows a calm page of its own and takes away
 "I am 13 or older, create account". From that tap, nothing about the learner is
 kept:
@@ -1137,3 +1137,11 @@ All newly accepted conversation packs are≤512KiB. Library pages contain≤20en
 Retention expiry remainsOFF until reviewed periods and activation. Financial/idempotency evidence survives speaking-detail expiry. Unknown legacy timestamps need operator remediation. Docker's proposed stdout rotation bounds file bytes, but neither deployed logging nor time-based log retention is established.
 
 Production paid requests are guarded by immutable reviewed quotes, finite provider attempts and exact configuration/quantity ceilings; no tariff is inferred. ElevenLabs live and saved-phrase requests use enable_logging=false; Deepgram streaming uses mip_opt_out=true. These switches do not verify contracts, retention, model-training treatment or cancellation invoice behavior. Unbounded/experimental TypeSafe, TonePerfect, Fish, Flux and Eleven WS adapters cannot be enabled in this production artifact. Optional memory/curation may run for≤5s inside the active paid lease before completion; learner billing stops at finish, and unsafe/paused/expired sessions skip that work.
+
+### October starter update
+
+The modern first run uses `onboarding/disclosure.ts` for AI and bounded-starter processing facts before Start. Goal and routine questions make no network request. Explicit local-development speaking submits a short take to Deepgram for transcription; production anonymous speech is unavailable under the authenticated paid-admission policy and continues with typing; typing submits text for authored checks, not a free-form live tutor. Local capture is discarded after consumption and on interruption. Device cleanup and vendor retention are distinct; real-device cleanup and vendor configuration still require validation.
+
+The guest capability/usage/ownership ledger contains hashed installation metadata and counters for thirty days, with online attempts expiring after twenty-four hours. It holds no replies or recordings. Explicitly opted-in aggregate event counts contain closed event/variant/evidence enums and expire at ninety days; no answer, words, account or install ID enters them. Analytics and tutor learning memory start off independently. The local guest record retains bounded replies and feedback until explicit adoption/discard or app-data clearing. Authentication alone does not silently import it. See `docs/ONBOARDING.md` and `docs/STATE_AND_STORAGE.md` for ownership, metering and reinstall limits.
+
+The under-thirteen refusal clears both guest and draft writes, sends nothing and stores no refusal marker. It holds through sign-in and sign-out and new-account navigation for the remainder of the launch. A relaunch starts at the first page with nothing kept, and the question can be asked again. The historical draft can contain an optional first name; the modern journey asks for no name. The used-app marker is written after a completed account reaches the app, independently of any refusal.

@@ -8,3 +8,8 @@ export function screenInsets(width: number, left: number, right: number, padded 
 export function navigationWidth(width: number, left: number, right: number) {
   return Math.max(0, Math.min(640, width - left - right - 16));
 }
+
+/** Compact phones keep the five goal choices discoverable; text still scales and scrolls. */
+export function compactPhone(width: number, height: number) {
+  return width <= 360 && height < 760;
+}

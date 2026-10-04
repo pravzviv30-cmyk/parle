@@ -1,0 +1,62 @@
+Luvani onboarding implementation verification — 4 October 2026
+
+Repository quality gate: npm run gate — green; 4,423 workspace tests plus 75 shared release/provider checks passing.
+Workspace counts: core 714, brain 468, tutor-agent 609, token-server 356,
+brain-playground 26, mobile 2,250. Required type checks passed.
+Test floors, gate logic and production configuration were not lowered or changed.
+
+Web export: npm run build:web — successful.
+Native JavaScript/Hermes exports: Expo export --platform ios --platform android
+— successful for both platforms. These are bundle checks, not signed app builds
+or physical-device acceptance.
+Git diff --check — clean.
+
+Synthetic localhost service checks: 14 passing, recorded in local-http-checks.json.
+They cover explicit eligibility, opaque installation-bound capabilities, atomic
+attempt quotas, strict analytics, bearer refusal, one-owner claims and idempotent
+usage debit. Local mock identity was used; no production credentials or writes.
+
+Browser checks at 320 x 700:
+- Returning device opens sign-in with Apple and Google.
+- Explicit Create one opens a fresh introduction with no early sign-in.
+- Opening requires a selected drink for Make my plan; quick route is available.
+- All five goal choices and the pinned Next control fit the compact viewport.
+- Selecting an answer does not navigate; Next enables; Back preserves the answer.
+- Work goal / short-conversation support / 10 minutes / 5 days produce the work task.
+- Change plan opens over its parent; one field opens at a time; Cancel discards edits.
+- Plan edit rows have a full tap target and readable label/value separation.
+- Tutor selection shows only its own sample; selection does not autoplay.
+- Done/Cancel remain fixed while tutor or goal choices scroll.
+- Processing facts precede eligibility. Start/type/offline remain disabled until eligible.
+- Analytics and learning-memory opt-ins start off; start actions remain fixed on scroll.
+
+Screenshots: opening.png, goal-choice.png, work-plan.png, plan-edit.png,
+tutor-choice.png, start-practice.png, start-options.png, returning-sign-in.png.
+The temporary responsive viewport was reset after verification.
+
+Not verified by a browser or JavaScript export:
+- Live Apple provider/developer configuration and real Apple/Google account exchange.
+- iPhone/Android microphone and notification dialogs, physical haptic tuning,
+  VoiceOver/TalkBack, keyboard and gesture behavior, and interrupted native recording.
+- iOS reinstall keychain survival (not guaranteed); Android cannot reliably identify
+  a previous install before authentication after app storage is erased.
+- French native-speaker editorial review, user comprehension or conversion outcomes.
+Completed authenticated profiles remain the authority for skipping onboarding.
+Run docs/DEVICE_VERIFICATION.md for release acceptance. Commercial timing and
+five-surface experiments need cohort evidence; no conversion improvement is claimed.
+
+Implementation/report coverage: docs/ONBOARDING.md.
+Integration against origin/main 009a1d62f4d2b8f9042ae2a9a927ea7d96381cc6:
+- Replaced the competing onboarding; retained unrelated backend and app changes.
+- Preserved causal preference edits through onboarding profile composition.
+- Retained the shared NextTaskCard after the saved-starter continuation.
+- Guest account claim sends the same installation binding as starter requests.
+- Production guest speech cannot bypass authenticated paid-admission safeguards.
+  Speech availability is returned before capture; unavailable speech opens typing.
+  Guest speech in production requires a reviewed anonymous admission implementation.
+- Rebuilt web/iOS/Android bundles; reran the full gate and all 36 migration fixtures.
+- Rechecked returning sign-in, new-account introduction and all five readable goal
+  choices with deliberate Next at 320 x 700; screenshot main-integration.png.
+
+Prepared for the authorised main push. No live provider provisioning or production
+data changes were performed.

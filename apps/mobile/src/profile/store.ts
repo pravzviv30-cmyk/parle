@@ -85,6 +85,9 @@ export interface StoredProfile {
   version: 8;
   /** Exact-value-bound setting edits. No age, DOB, entitlement or identity authority. */
   preferenceClocks?: PreferenceClocks;
+  practiceDaysPerWeek?: 3 | 5 | 7 | 'none' | null;
+  onboardingGoal?: string | null;
+  onboardingDrink?: 'coffee' | 'tea' | null;
   /** What they asked to be called. Null when they skipped the question. */
   name: string | null;
   /**
@@ -486,6 +489,10 @@ export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
  */
 export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15 | null): StoredProfile {
   return withPreferenceEdit(existing, { ...existing, dailyGoalMin }, 'dailyGoalMin');
+}
+
+export function withPracticeDays(existing: StoredProfile, practiceDaysPerWeek: 3 | 5 | 7 | 'none'): StoredProfile {
+  return { ...existing, practiceDaysPerWeek };
 }
 
 /**

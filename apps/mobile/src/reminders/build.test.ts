@@ -248,7 +248,10 @@ describe('what the reminder needs from the build rather than from its own logic'
     // Both ends, because either alone does nothing at all. A channel created
     // and never named on the trigger is a channel nothing routes to, and the
     // builder falls back exactly as if it had not been created.
-    const trigger = bracedAfter(NATIVE, 'trigger:', 'the trigger');
+    const begin = NATIVE.indexOf('const triggers =');
+    assert.ok(begin >= 0, 'native reminders have no trigger builder');
+    const trigger = NATIVE.slice(begin, NATIVE.indexOf('for (const trigger', begin));
+    assert.match(NATIVE, /scheduleNotificationAsync\(\{ content: reminderContent\(\), trigger \}\)/);
     assert.match(
       trigger,
       /\bchannelId:\s*REMINDER_CHANNEL_ID\b/,

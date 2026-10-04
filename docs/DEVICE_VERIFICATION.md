@@ -1033,3 +1033,12 @@ pick up. The room opened but nobody joined it, so nothing has been counted again
 minutes", with a way back. So `ConvoScreen` itself, and the three controls dimmed there by
 F459, remain unwalked on a device. `LiveErrorView` was walked, and it pays its inset, which
 is one of the three screens F444 moved onto the shared frame.
+
+
+## October onboarding acceptance matrix
+
+Run on a physical iPhone and Android device with both standard and maximum reading size. Verify first install has no sign-in link, all concrete choices preserve state on Back, five-surface and quick branches, task routing for every goal, contextual sheets with keyboard/VoiceOver/TalkBack/escape/swipe, Reduce Motion changed while moving, haptic off and no vibration during live capture. Deny the microphone and notifications; background/unmount recording and inspect deletion; interrupt storage/network and retry. Confirm local practice retains the same task and never claims pronunciation.
+
+Complete a new account, log out, and verify direct sign-in. Reuse that account and confirm no questionnaire. Create a distinct account on the same device and confirm modern onboarding. Test reinstall separately: iOS keychain persistence is best effort and Android uninstall loses local history; authentication must still restore a completed account. Verify Apple system sign-in on iOS and configured browser OAuth/PKCE on Android/web, cancellation, missing email, enabled-provider preflight and return URLs, without counting local mock sign-in as vendor verification.
+
+Save a phrase only after a durable write, retry/continue it on Home, and test a populated account on a shared device without silently importing another learner’s preferences. Verify one-time trial usage remains idempotent when saving or declining import. Test weekday reminders with permission granted/denied and partial failure. See plans must show real store price/terms and allow a free exit. Run French native-speaker review and uncoached comprehension/useful-return sessions before claiming outcomes.

@@ -62,7 +62,7 @@ import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
 import { LEARNING_LABEL, PROFILE_PURPOSE, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
+import { withPracticeDays, withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
 import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
 import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
@@ -272,6 +272,14 @@ export function ProfileTab() {
               onChange={(key) => update(withDailyGoal(profile, goalFor(key).minutes))}
               gloss={goalLine(profile)}
               accessibilityLabel={DAILY_GOAL_ROW}
+            />
+            <ChoiceRow<'3' | '5' | '7' | 'none'>
+              title="Days a week"
+              options={[{ key: '3', label: '3' }, { key: '5', label: '5' }, { key: '7', label: 'Every day' }, { key: 'none', label: 'No schedule' }]}
+              active={profile.practiceDaysPerWeek == null ? null : String(profile.practiceDaysPerWeek) as '3' | '5' | '7' | 'none'}
+              onChange={value => update(withPracticeDays(profile, value === 'none' ? 'none' : Number(value) as 3 | 5 | 7))}
+              gloss={profile.practiceDaysPerWeek === 'none' || !profile.practiceDaysPerWeek ? 'Choose when to practise.' : `${profile.practiceDaysPerWeek} days a week. Reminders are optional.`}
+              accessibilityLabel="Practice days a week"
             />
             <ChoiceRow<Strictness>
               title={STRICTNESS_ROW}

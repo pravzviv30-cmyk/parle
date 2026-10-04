@@ -20,7 +20,7 @@
  */
 
 import { carryPreferenceEdits, createStoredProfile, type StoredProfile } from '../profile/store.ts';
-import { withLearnerGoal } from '../profile/memory.ts';
+import { withLearnerGoal, withMemoryPaused } from '../profile/memory.ts';
 import type { StoredReminder } from '../reminders/reminder.ts';
 import { withChosenVoice } from './voiceStep.ts';
 import { SEEDED_GOAL, levelOf, minutesOf, reminderOf, startEstimate } from './plan.ts';
@@ -39,13 +39,16 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
   );
   const placed: StoredProfile = {
     ...built,
+    practiceDaysPerWeek: draft.frequency ?? null,
+    onboardingGoal: draft.reason, onboardingDrink: draft.drink ?? null,
     brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft)) } },
   };
-  const voiced = withChosenVoice(placed, draft.tutorVoice);
+  const chosen = withChosenVoice(placed, draft.tutorVoice);
+  const voiced = carryPreferenceEdits(chosen, withMemoryPaused(chosen, draft.rememberLearning !== true, now));
   return draft.reason === null ? voiced : carryPreferenceEdits(voiced, withLearnerGoal(voiced, SEEDED_GOAL[draft.reason]));
 }
 
 /** The reminder time chosen on the plan, saved off until the OS has said yes. */
 export function reminderFromDraft(draft: PreAccountOnboardingDraft): StoredReminder {
-  return { enabled: false, time: reminderOf(draft) };
+  return { enabled: draft.reminderEnabled === true, time: reminderOf(draft), ...(draft.reminderDays?.length ? { days: draft.reminderDays } : {}) };
 }

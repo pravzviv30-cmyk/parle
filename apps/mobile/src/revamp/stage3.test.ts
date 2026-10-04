@@ -27,7 +27,7 @@ test('revamp B conversation bubbles distinguish speaker and highlight only the n
   lacks('tutor/SafetyStopView.tsx',/Animated|VoiceOrb|centerFill/);
 });
 test('revamp B shared choices, controls and sheets carry state and keep secondary actions quiet',()=>{
-  has('components.tsx',/minHeight: 56/,/accessibilityState=\{\{ selected \}\}/,/aria-selected=\{selected\}/,/aria-pressed=\{selected\}/,/playing \? 'Stop' : 'Hear'/,/maxHeight: '90%'/,/accessibilityViewIsModal/,/keyboardShouldPersistTaps="handled"/,/opacity: 0.45/);
+  has('components.tsx',/minHeight: 56/,/accessibilityState=\{\{ selected \}\}/,/aria-selected=\{selected\}/,/aria-pressed=\{selected\}/,/playing \? 'Stop' : 'Hear'/,/maxHeight: '94%'/,/accessibilityViewIsModal/,/keyboardShouldPersistTaps="handled"/,/outputRange: \[0, 0\.4\]/);
   has('layout.tsx',/trailing\?: ReactNode/,/props.divider === true \? HAIRLINE : 0/,/alignItems: 'flex-start'/);
 });
 test('revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare',()=>{

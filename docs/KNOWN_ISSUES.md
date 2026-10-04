@@ -2307,7 +2307,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: before/after flow and the screen/tap counts standing in for time-to-first-useful-
   French, held to PAGES by a test so the doc cannot drift from the flow. Wall-clock
   measurement belongs to F114's device pass.
-- verified-by: `the onboarding doc claims the same pre-account page count the flow renders`
+- verified-by: `the documented setup count matches the runtime order rather than historical disk pages`
 
 ### F112 — Onboarding analytics reports only questions the flow asks
 - severity: P1
@@ -7300,7 +7300,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reached the disk yet would be dropped for exactly the learners who said yes. Opt-in rather than
   opt-out because UK GDPR treats non-essential analytics as needing consent, and because high
   privacy by default is what the ICO's age appropriate design code asks of a product teenagers use.
-- verified-by: `the first run asks about usage data once, off by default, on the page that says what the app keeps`
+- verified-by: `usage consent is asked once before processing and learning memory is a separate off-by-default choice`
 - verified-by: `the draft carries the answer and a missing one reads as no`
 - verified-by: `the answer is written before the completion event is sent`
 - verified-by: `a learner who already answered is not asked again`
@@ -7821,7 +7821,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every voice introduces itself in two short sentences the catalogue owns, French first`
 - verified-by: `the English sentence reaches the vendor on its own, short and in the same voice`
 - verified-by: `the introduction is written in one place, and every screen reads it from there`
-- verified-by: `the introduction on the voice page is rendered from the catalogue, never typed in`
+- verified-by: `voice sample captions come from the same catalogue as the bundled audio`
 
 ### F506 — The output encoding was the plugin's default, and the clips were quieter than they needed to be
 - severity: P1
@@ -7862,7 +7862,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the committed clips record the text, the voice and the settings that made them`
 - verified-by: `the introduction is written in one place, and every screen reads it from there`
 - verified-by: `a clip nobody has listened to cannot be recorded as heard`
-- verified-by: `the introduction on the voice page is rendered from the catalogue, never typed in`
+- verified-by: `voice sample captions come from the same catalogue as the bundled audio`
 
 ### F508 — No voice in the catalogue is verified for French-accented English on the pinned model
 - severity: P1
@@ -8907,7 +8907,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a round button is a 44 disc for back and close and a 64 disc for next, with the ICONS.md mark`
 - verified-by: `a colour card is one ground with its words in the palette's colours for it, and a stat tile and a hero number each read as one phrase`
 - verified-by: `an option row says its choice twice and marks it with the blue check or the field ring`
-- verified-by: `a sheet rises from the bottom under an ink scrim, is modal, and closes from the scrim`
+- verified-by: `sheets animate over the parent, retain closing content and expose accessible dismissal`
 - verified-by: `a skeleton is still sand blocks that say Loading once, and a quiet line is a centred small line`
 - verified-by: `a French block leads with the French, marks it as French, glosses under it, and offers to hear or to stop`
 - verified-by: `the pushed header's way back is a 44 round white button`
@@ -8937,7 +8937,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 - verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
 - verified-by: `the chooser's first card draws its scene through the one illustration at the hero-spot size, and sizes nothing itself`
-- verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
+- verified-by: `the personalised result leads with one task and contextual edits instead of a syllabus`
 
 ### F600 — The tab bar is paper and ink with Today and My French, not white with a blue Home and Progress
 - severity: P1
@@ -8961,11 +8961,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
-- verified-by: `the first two pages are blue: story segments, a display headline, the exchange in white and ink, and a round next`
-- verified-by: `the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt`
-- verified-by: `the one-tap answers are option rows that carry their choice as state, never ledger rows with a Chosen word`
-- verified-by: `the plan is the sun page: the hero minutes, the first three scenes in French, the tutor, how it works, and no picture`
-- verified-by: `the save page asks with one ink pill and no middot, and the refusal is its own calm page with the frame drawing`
+- verified-by: `opening and recap keep vibrant brand grounds with a readable sticky action`
+- verified-by: `playback selects a model but only a real submitted reply can receive success feedback`
+- verified-by: `illustrated full-width choices carry radio state and never advance on selection`
+- verified-by: `the personalised result leads with one task and contextual edits instead of a syllabus`
+- verified-by: `eligibility is a separate start-sheet choice and refusal removes service and account actions`
 - verified-by: `the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing`
 - verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
 - verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
@@ -9164,7 +9164,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:252
 - note: `underAge` is `useState(false)` inside PreAccountOnboarding, so it lives only while that screen is mounted. Refuse on save, go back five pages to hear-it, tap "I have an account" (App.tsx:530 discards the draft), tap SignIn's back (auth/AuthFlow.tsx:39 remounts the welcome with `underAge` false), walk the six pages, and "I am 13 or older, create account" is offered again in the same launch. Yet PreAccountOnboarding.tsx:18 and :252-255, firstRun.test.ts:238 and docs/ONBOARDING.md:37 and :129-130 say it stays for the session or until the app is closed. Not a regression (before F601 any page move reset it), but the words overclaim a minors safeguard. Fix the words to say that moving between the pages does not undo it, that leaving through "I have an account" starts the first run fresh, and that closing the app reopens the save page with the question asked again, the same close-the-app escape the age gate keeps for a mis-tap (corrected by F638: this note first said closing the app starts the first run fresh, which it does not). Whether it should hold for the whole launch is the founder's call, filed as F637.
-- verified-by: `the onboarding doc says what undoes the under-13 refusal, and promises no more than the screen holds`
+- verified-by: `the age boundary is documented before processing and lasts the launch only`
 
 ### F634 — OnboardingFlow's OptionCard was to become OptionRow in F601, and was left without a word
 - severity: P2
@@ -9192,21 +9192,21 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [ ]
 - where: apps/mobile/src/auth/AuthFlow.tsx:39
 - note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
-- verified-by: `the under-13 refusal holds across the sign-in detour for the rest of the launch`
+- verified-by: `authentication cannot undo a refusal or silently make its draft eligible`
 
 ### F638 — The under-13 refusal's words say closing the app starts the first run fresh, but a relaunch reopens the save page with the pill live
 - severity: P1
 - status: [x]
 - where: docs/ONBOARDING.md:130
 - note: found by the F601 judge, confirming the privacy-safety review. F633's fix wrote "closing the app, or leaving through \"I have an account\", starts the first run fresh" into docs/ONBOARDING.md and the comment in onboarding/PreAccountOnboarding.tsx, and firstRun.test.ts pinned it. Closing the app does not start the first run fresh: "Save my plan" writes page 'save' to the draft, which App.tsx saves to the device, and "I am younger than that" writes nothing, so a relaunch reopens the save page with the question asked again. That matches HEAD and the age gate's close-the-app escape, so the words are the defect, not the code. Whether a refusal should clear the draft is a founder question (F639). Superseded by F639: a refusal now clears the draft, so a relaunch starts at the first page with nothing kept.
-- verified-by: `the onboarding doc says a relaunch after the under-13 refusal starts at the first page with nothing kept`
+- verified-by: `relaunch does not restore a refusal marker or retained child draft`
 
 ### F639 — Founder question: should an under-13 refusal clear the saved first-run draft, so a relaunch starts at the first page and keeps no first name
 - severity: P2
 - status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:662
 - note: found by the privacy-safety review of F601. The refusal writes nothing, so the draft saved by go('save') keeps page 'save' and any first name the child typed on the device (never sent), and a relaunch reopens the save page with the pill live. Clearing the draft on refusal removes data about a minor rather than storing any. It overlaps F637, so decide both together. A founder and legal call, not a build miss. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
-- verified-by: `a refusal on the save page clears the saved draft, so a relaunch starts at the first page and keeps no first name`
+- verified-by: `refusal invalidates pending service work and queued guest writes`
 
 ### F640 — The canvas sells Max as 450 minutes a month, but the plan the code sells is 300 at $29
 - severity: P2
@@ -9222,8 +9222,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/auth/AuthFlow.tsx:60
 - note: found by the judge of the F637/F639 stage, confirming the privacy-safety review. The refusal lives in AuthFlow's `useState(false)`, and Gate (App.tsx) unmounts AuthFlow while anyone is signed in. Refuse on save, then 'I have an account', then Google or Apple, which creates a new account. OnboardingFlow asks the age question, 'younger' signs out through AgeRefusal, and a new AuthFlow opens on hear-it with the pill live after six pages. keep writes the draft, first name included, back to the device. The founder's answer (2026-09-30) was the whole launch, and ONBOARDING.md and PRIVACY_AND_SAFETY.md say nothing is saved again in that launch. Move the refusal up to Gate, which stays mounted for the launch and already holds state that crosses the auth door (`preAccountDraft`, `localCopyKept`). Use `const [preAccountRefused, setPreAccountRefused] = useState(false)` and a `refusePreAccount` that sets it and calls `discardPreAccountDraft`. Pass `refused` and `onRefuse` to AuthFlow as required props, and drop AuthFlow's own useState. Keep it in memory only. Pin that nothing calls `setPreAccountRefused(false)` and that the value never reaches a storage call. Also check `refused` before `onCreateAccount(draft)` in AuthFlow's save-page handler, so the write never runs ahead of the one door. Replace 'Signing in ends the first run, and the refusal with it' with 'Signing in and out again does not end it; only closing the app does' in docs/ONBOARDING.md, docs/PRIVACY_AND_SAFETY.md and AuthFlow's header comment, and move the regex pins in authFlow.test.ts and firstRun.test.ts with them. Tradeoff to state: on a shared phone, an adult who signs out later in that launch lands on the refusal page until the app is reopened. If the lead would rather let a sign-in end the refusal, that narrows the founder's answer and has to go back to the founder. The four sentences above must then say 'until someone signs in or the app is closed'.
 - note (fix, auth-engineer): built as filed. Gate holds `preAccountRefused`, set only by `refusePreAccount`, which also runs `discardPreAccountDraft`; AuthFlow takes `refused` and `onRefuse` as required props and keeps no copy; the save page's handler writes the draft only when not refused. The tradeoff is stated in Gate's comment, docs/ONBOARDING.md and docs/PRIVACY_AND_SAFETY.md. policy.test.ts's pin on `onRefuse={discardPreAccountDraft}` moved to `onRefuse={refusePreAccount}` plus the discard inside it, same intent.
-- verified-by: `the under-13 refusal outlasts a sign-in and sign-out in the same launch, and is still memory only`
-- verified-by: `the onboarding and privacy docs say a sign-in and sign-out does not end the under-13 refusal before an account`
+- verified-by: `under-thirteen refusal is owned by the launch and passed to signed-out and signed-in onboarding`
+- verified-by: `onboarding and privacy document refusal across authentication without storing a child marker`
 
 - note (independent review, 2026-10-02): user-authorized gpt-6-sol reviewed the real diff and accepted the launch-held refusal plus the serialized draft clear. The delayed storage regression proves that an already issued save finishes before removal and queued answers are invalidated. Native launch/relaunch still needs device evidence.
 - verified-by: `refusal clears a pending draft and wins over already queued answers — F641`
@@ -9582,8 +9582,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Implement the corresponding recommendations from the two founder-authorised UX reports. Source checks and driven preview evidence must be separate from external acceptance.
 
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
-- verified-by: `the selected recording gets a useful-line highlight without earning a tick or claiming an assessed attempt`
-- verified-by: `the authored teaching preview connects attempt, useful feedback, model retry and saved practice without assessing playback`
+- verified-by: `playback selects a model but only a real submitted reply can receive success feedback`
+- verified-by: `actual guest practice connects the submitted reply, useful feedback, exact retry and durable keep`
 
 ### F697 — The starting plan must explain real adaptation and allow no routine target
 - severity: P1
@@ -9721,7 +9721,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: An empty account read proves nothing is available to overwrite, not that OAuth created a new identity. Review the exact on-phone plan under the authenticated account before applying its profile, reminder or usage-data choice; allow starting a new plan and prevent a scope change during bootstrap from applying it elsewhere.
 
 - note: 3 October 2026: source implementation and regression checks completed for this item. Device, store, French calibration and hosted acceptance remain separately recorded in UX_ACCEPTANCE_REVIEW.md; this tick does not certify them.
-- verified-by: `an existing empty OAuth account must confirm the on-phone draft before any preference or profile adoption`
+- verified-by: `an empty OAuth account must confirm ownership before durable preference and profile adoption`
 - verified-by: `a scope change during draft adoption cannot apply the plan or reminder to the next account`
 
 ### F711 — The landing audit finds new dependency advisories outside the recorded decisions
@@ -9765,3 +9765,5 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Independent cleanup review found shutdown followed by die exited immediately, bypassing the SIGKILL fallback; an unref'ed shutdown timer could also report success after a fatal timeout. Refusal now logs and returns through shutdown, which sets the failure code immediately and keeps the cleanup timer alive until child handles drain. Apply the same path to durable-service refusal. A real local fixture service that ignores SIGTERM proves occupied-preview cleanup; a promptly exiting fixture proves the fatal timeout still exits 1. Both process tests failed before the fix and passed after it; no keys, network service or paid vendor required.
 - verified-by: `refusing an occupied preview reaps even a service that ignores SIGTERM`
 - verified-by: `a readiness timeout reports failure even when its service exits promptly`
+
+October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.

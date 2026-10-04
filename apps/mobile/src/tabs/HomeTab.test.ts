@@ -539,7 +539,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
 
 describe('Today keeps its day when the disk will not answer', () => {
   test('an account switch clears the old recommendation before any new read resolves', () => {
-    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); setDaily\(todayItems\(0, now\)\); setHero\(null\); setStart\(null\); setWeek\(\[\]\);/);
+    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(\[\]\);/);
     assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/);
     assert.match(FLAT, /!unowned && readFailed \? \(/);
     assert.match(FLAT, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
