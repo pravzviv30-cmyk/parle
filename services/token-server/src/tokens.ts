@@ -10,6 +10,7 @@
 import { AccessToken, RoomConfiguration, TrackSource } from 'livekit-server-sdk';
 import { randomUUID } from 'node:crypto';
 import { canStartSession, MIN_VIABLE_SESSION_SEC, secondsRemaining, parseTutorRevision, type Entitlement, type TutorRevision } from '@luvani/core';
+import type { ReservedTutorSession } from './tutorSessions.ts';
 
 export interface TokenConfig {
   apiKey: string;
@@ -204,6 +205,8 @@ export async function grantSession(
     lessonId: string;
     entitlement: Entitlement;
     config: TokenConfig;
+    /** Database reservation, required by the production API before signing. */
+    admitted?: ReservedTutorSession;
     now?: number;
     /** Where the ladder should open. Validated here; invalid values are dropped. */
     startRung?: number;
@@ -233,7 +236,9 @@ export async function grantSession(
     tutorVoice?: unknown;
   },
 ): Promise<GrantResult> {
-  const decision = canStartSession(opts.entitlement, MIN_VIABLE_SESSION_SEC);
+  const decision = opts.admitted
+    ? { allowed: true as const, secondsRemaining: opts.admitted.secondsRemaining }
+    : canStartSession(opts.entitlement, MIN_VIABLE_SESSION_SEC);
   if (!decision.allowed) {
     // 402 rather than 403: this is not "you may not", it is "you have run out".
     // The app renders a different screen for each, so the distinction matters.
@@ -245,8 +250,11 @@ export async function grantSession(
   const missionId = validMissionId(opts.missionId);
   const tutorVoice = validTutorVoice(opts.tutorVoice);
   const revision = parseTutorRevision(opts.revision);
-  const sessionId = randomUUID();
-  const roomName = `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
+  if (opts.admitted && (opts.admitted.userId !== opts.userId || opts.admitted.mode !== (opts.mode ?? 'lesson'))) {
+    throw new Error('reservation identity mismatch');
+  }
+  const sessionId = opts.admitted?.sessionId ?? randomUUID();
+  const roomName = opts.admitted?.roomName ?? `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
     identity: opts.userId,
     // The credential only has to survive the join and any full reconnect the
@@ -266,7 +274,8 @@ export async function grantSession(
     metadata: JSON.stringify({
       sessionId,
       lessonId: opts.lessonId,
-      secondsRemaining: decision.secondsRemaining,
+      secondsRemaining: opts.admitted?.reservedSeconds ?? decision.secondsRemaining,
+      ...(opts.admitted ? { lifecycleVersion: 1, joinDeadline: opts.admitted.joinDeadline } : {}),
       mode: opts.mode ?? 'lesson',
       ...(startRung !== undefined ? { startRung } : {}),
       ...(seedTopic !== undefined ? { seedTopic } : {}),
@@ -300,7 +309,7 @@ export async function grantSession(
       sessionId,
       roomName,
       identity: opts.userId,
-      secondsRemaining: secondsRemaining(opts.entitlement),
+      secondsRemaining: opts.admitted?.secondsRemaining ?? secondsRemaining(opts.entitlement),
     },
   };
 }

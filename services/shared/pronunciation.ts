@@ -77,6 +77,8 @@ export interface ScoreOptions {
   env?: ScoringEnv;
   /** Defaults to `SCORING_TIMEOUT_MS`. */
   timeoutMs?: number;
+  /** Account/session/request cancellation composes with the utterance deadline. */
+  signal?: AbortSignal;
 }
 
 export type ScoringVendor = 'toneperfect' | 'speechace';
@@ -147,7 +149,7 @@ export function selectScoringVendor(env: ScoringEnv = process.env): ScoringVendo
  * API is down.
  */
 export async function scoreUtterance(req: ScoreRequest, options: ScoreOptions = {}): Promise<PhonemeObservation[]> {
-  if (!req.audio || req.audio.length === 0) return [];
+  if (!req.audio || req.audio.length === 0 || options.signal?.aborted) return [];
 
   const env = options.env ?? process.env;
   const vendor = selectScoringVendor(env);
@@ -170,15 +172,16 @@ export async function scoreUtterance(req: ScoreRequest, options: ScoreOptions = 
     return [];
   }
 
-  const timeoutMs = options.timeoutMs ?? SCORING_TIMEOUT_MS;
-  const signal = AbortSignal.timeout(timeoutMs);
+  const timeoutMs = Math.max(1, Math.min(10_000, options.timeoutMs ?? SCORING_TIMEOUT_MS));
+  const deadline = AbortSignal.timeout(timeoutMs);
+  const signal = options.signal ? AbortSignal.any([options.signal, deadline]) : deadline;
   try {
     return await untilDeadline(score(req, { fetchFn: options.fetchFn, env, signal }), signal, () =>
       console.warn(`[scoring] ${vendor} did not answer within ${timeoutMs} ms, so this utterance is unscored`),
     );
-  } catch (err) {
+  } catch {
     // The adapters do not throw. This is the backstop for the day one does.
-    console.warn(`[scoring] ${vendor} failed unexpectedly, so this utterance is unscored`, err);
+    console.warn(`[scoring] ${vendor} failed unexpectedly, so this utterance is unscored`);
     return [];
   }
 }

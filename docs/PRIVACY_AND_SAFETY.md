@@ -191,7 +191,7 @@ profile the server keeps.
 
 The turn is not the only call, and the scene call hands over more than a derived
 estimate. `tutorMemoryBrief` in `services/tutor-agent/src/convo.ts` repairs the
-profile and sends `repaired.memory.facts.slice(-5)` to the same vendor, once
+profile and sends `repaired.memory.facts.filter(...).slice(-5)` to the same vendor, once
 inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`.
 The unmastered phrases and recent scene list remain beside it in the scene call.
 Those are stored rows, and they are about the learner's
@@ -797,8 +797,7 @@ replaced with a neutral continuation and the scene carries on, so a learner is
 never stranded because the model misbehaved, and **the learner is told nothing
 about it.** They did nothing.
 
-The scripted lesson agent has no guard of its own today. That gap is in
-[Not true yet](#not-true-yet) rather than left to be discovered.
+Both the conversation agent and scripted lesson agent now inspect their own output. The scripted agent buffers the whole reply before delivering any text or speech: at most 8 KiB, 1,024 SDK chunks and 10 seconds. Unsafe output, unexpected tool calls and oversized replies receive an authored continuation; timeout or stream failure ends the session as a service failure. Buffering adds latency that still requires physical voice acceptance. These deterministic checks are a containment measure, not proof that every unsafe reply can be detected.
 
 ## Escalation and what Luvani is not
 
@@ -1035,7 +1034,7 @@ promise already kept.
 | An under-13 stop is remembered on the device that saw it, not on the account | A reinstall clears it, and a second phone never learns about it | This file, section above; founder accepted |
 | An under-13 answer before an account lasts the launch and no longer | A relaunch asks the age question again, because holding it would mean storing a note about a child, which the founder chose not to do | This file, section above; founder decision, 2026-09-30 |
 | Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
-| The scripted lesson agent's own lines pass no output guard | `outputGuard` covers the conversation agent only | Not filed |
+| Buffered scripted speech latency has not been measured on a device | Both agents check output; scripted replies wait for a complete inspected utterance within 8 KiB and 10 seconds | Backend A19/A30 release acceptance |
 | No reviewed privacy policy or terms exist | The app says professional review remains required before release; it must not present an unreviewed document as a legal promise | Release roadmap, Phase 8 |
 
 ## Explicitly saved conversation text (2 October review branch)
@@ -1051,7 +1050,7 @@ loses this ephemeral copy.
 
 The authenticated caller owns every read, save and delete. Service-only SQL RPCs
 require an owned session-usage row and an agent-owned ready practice pack; safety
-stops produce no pack. A recap can arrive before those reports: the save retries
+stops retain only the last clean, database-acknowledged baseline, if one exists; later unacknowledged content is discarded. A recap can arrive before those reports: the save retries
 three times at most while the owner still matches, then explains that preparation
 is pending and offers another deliberate attempt. The first accepted payload is
 immutable. Deletion blanks the payload and keeps a word-free session fence, so
@@ -1124,3 +1123,17 @@ session, one active, with a 2.5-second bound. A newer input before the turn queu
 finish, safety/service failure or room departure cancels it. Late results cannot
 publish, but returned usage is still metered. Cancelled TypeSafe retry waits
 check cancellation before sending again. Vendor retention remains unverified.
+
+### 4 October production-hardening supersession (repository only)
+
+Current authoritative tutor lifecycle has durable clean learning checkpoints, completion receipts, refund reconciliation and a room-stop outbox. The earlier3October statement that no scheduled grant cleanup exists describes that dated baseline; the prepared maintenance role now performs reconciliation, but no hosted worker or schedule was verified. A safety stop saves no new unsafe pack or analyst data; an earlier clean acknowledged baseline can remain.
+
+Current account export stages a coherent16-dataset snapshot with128MiB/2048-fragment ceilings and streams verified UTF8 fragments into private device files. Old32MiB/10000-row description above is historical. Excessive historical exports fail explicitly and require an operational complete-export path. Account-switch/failure/crash cleanup is tested locally; physical sharing/storage behavior remains unverified.
+
+Current account deletion immediately fences identity and returns202pending while durable processor/identity/journal retries complete. The independently encrypted off-backup journal must survive restore and its key/coverage/replay must be exercised. A completed restored job cannot reuse old processor approval when identity/content reappears. No synchronous erasure or deployed durability claim is made.
+
+All newly accepted conversation packs are≤512KiB. Library pages contain≤20entries and≤1MiB; exceptional historical entries appear explicitly as unavailable instead of blocking the page. Individual historical packs≤1MiB may remain readable; giant records require export/support. Cache contains≤200packs, so its derived summaries do not establish all-history totals.
+
+Retention expiry remainsOFF until reviewed periods and activation. Financial/idempotency evidence survives speaking-detail expiry. Unknown legacy timestamps need operator remediation. Docker's proposed stdout rotation bounds file bytes, but neither deployed logging nor time-based log retention is established.
+
+Production paid requests are guarded by immutable reviewed quotes, finite provider attempts and exact configuration/quantity ceilings; no tariff is inferred. ElevenLabs live and saved-phrase requests use enable_logging=false; Deepgram streaming uses mip_opt_out=true. These switches do not verify contracts, retention, model-training treatment or cancellation invoice behavior. Unbounded/experimental TypeSafe, TonePerfect, Fish, Flux and Eleven WS adapters cannot be enabled in this production artifact. Optional memory/curation may run for≤5s inside the active paid lease before completion; learner billing stops at finish, and unsafe/paused/expired sessions skip that work.

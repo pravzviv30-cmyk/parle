@@ -40,6 +40,7 @@ import {
 } from '@luvani/brain/llm';
 
 import type { ResolvedUser } from './auth.ts';
+import { HttpInputError, answerRequestError, readRequestBytes, withRequestSignal } from './requestBoundary.ts';
 
 /** A drill card is a sentence or two. Four kilobytes is generous for that. */
 export const JUDGE_BODY_LIMIT_BYTES = 4 * 1024;
@@ -80,6 +81,7 @@ export interface DrillJudgeDeps {
    * construction: five numbers and the model that answered. There is no
    * parameter here through which the attempt could travel.
    */
+  clientFor?(user:Extract<ResolvedUser,{ok:true}>,signal:AbortSignal):Promise<DrillJudgeDeps['client']>;
   usage?(usage: LlmUsage): void;
   timeoutMs?: number;
 }
@@ -93,10 +95,11 @@ export interface DrillJudgeDeps {
 export function judgeUsageLine(usage: LlmUsage): string {
   const priced = priceUsage(usage);
   const cost = `$${priced.usd.toFixed(6)}${priced.exact ? '' : ' (estimated)'}`;
-  return `[luvani:judge] answered by ${usage.model ?? 'an unnamed model'}: ${usage.inputTokens} input, ${usage.outputTokens} output, ${cost}`;
+  return `[luvani:judge] answered by ${typeof usage.model==='string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(usage.model) ? usage.model : 'an unnamed model'}: ${usage.inputTokens} input, ${usage.outputTokens} output, ${cost}`;
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {
+  if (res.destroyed || res.writableEnded) return;
   const payload = JSON.stringify(body);
   res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) });
   res.end(payload);
@@ -104,15 +107,9 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 
 /** The body, or null when it was too large or was not an object. */
 export async function readJudgeBody(req: IncomingMessage): Promise<Record<string, unknown> | null> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += (chunk as Buffer).length;
-    if (size > JUDGE_BODY_LIMIT_BYTES) return null;
-    chunks.push(chunk as Buffer);
-  }
+  const bytes = await readRequestBytes(req, JUDGE_BODY_LIMIT_BYTES);
   try {
-    const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const parsed: unknown = JSON.parse(bytes.toString('utf8'));
     return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : null;
@@ -164,7 +161,9 @@ function cefrOf(value: unknown): CefrBand {
 export async function handleDrillJudge(req: IncomingMessage, res: ServerResponse, deps: DrillJudgeDeps): Promise<void> {
   if (!(await deps.limits(req, res, null))) return;
 
-  const body = await readJudgeBody(req);
+  let body: Record<string, unknown> | null;
+  try { body = await readJudgeBody(req); }
+  catch (error) { return answerRequestError(req, res, error); }
   if (body === null) return json(res, 400, { error: 'a judge request is one small JSON object' });
 
   const resolved = await deps.users.resolve(
@@ -182,37 +181,19 @@ export async function handleDrillJudge(req: IncomingMessage, res: ServerResponse
   if (!fr || !en || !situation) return json(res, 400, { error: 'the line, its meaning and the situation are required' });
   if (!attempt) return json(res, 400, { error: 'an attempt is required' });
 
-  // Both halves of a timeout, because they answer different failures: the
-  // abort stops paying for a call nobody will read, and the rejection is what
-  // lets the learner move on even if a client ignores its signal.
-  const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const expiry = new Promise<never>((_resolve, reject) => {
-    timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error('the judge did not answer in time'));
-    }, deps.timeoutMs ?? JUDGE_TIMEOUT_MS);
-  });
-
   try {
-    const request = buildOwnWordsJudgeRequest(
-      { fr, en, situation, mustKeep: mustKeepOf(body.mustKeep), attempt, cefr: cefrOf(body.cefr) },
-      controller.signal,
-    );
-    const answer = await Promise.race([deps.client.judge(request), expiry]);
-    // The meter learns that a call happened and what it cost. It is handed the
-    // usage object itself, never the request and never the attempt.
-    deps.usage?.(answer.usage);
+    const answer = await withRequestSignal(req, res, async signal => (await (deps.clientFor?.(resolved,signal) ?? Promise.resolve(deps.client))).judge(buildOwnWordsJudgeRequest(
+      { fr, en, situation, mustKeep: mustKeepOf(body.mustKeep), attempt, cefr: cefrOf(body.cefr) }, signal,
+    )).then(answer => { deps.usage?.(answer.usage); return answer; }), Math.max(1, Math.min(JUDGE_TIMEOUT_MS, deps.timeoutMs ?? JUDGE_TIMEOUT_MS)));
     // `allowedFrom` is what the drill and the learner already put on screen, so
     // a note echoing their own café back is not mistaken for a French leak.
     const verdict = parseOwnWordsVerdict(answer.verdict, `${fr} ${en} ${situation} ${attempt}`);
     return json(res, 200, { verdict });
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpInputError && (req.aborted || res.destroyed)) return;
     // Deliberately no detail, and deliberately nothing logged from the body:
     // the error may carry the raw model answer, which was written about this
     // learner's sentence. The app shows the line and writes no grade.
     return json(res, 503, { error: 'judge-unavailable' });
-  } finally {
-    clearTimeout(timer);
   }
 }

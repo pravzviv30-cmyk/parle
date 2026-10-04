@@ -20,10 +20,8 @@
 #                         than a line inside a script. This is the tracked-file scan, which
 #                         walks `git ls-files`. That reads the index, so it sees all 846
 #                         tracked files at any clone depth — measured, not assumed. The
-#                         history scan is the depth-sensitive one: `npm run
-#                         scan:secrets:history` walks `git log -p --all`, which saw 1 commit
-#                         on the old default and sees all 131 now. It is still not run here,
-#                         because it belongs to a release and not to every push.
+#                         history scan now streams all available refs without a commit cap,
+#                         refuses shallow clones and runs as a mandatory separate step.
 #
 # **This workflow needs no secrets, and must not be given any.** Every suite was measured
 # on 2026-08-25 with dotenv pointed at an empty file: 1547 tests, 0 failures, identical
@@ -76,14 +74,14 @@ jobs:
       # 175K per regeneration, so this stays cheap for years rather than forever. Revisit if
       # a clone ever costs more than a suite.
       - name: check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5 verified 2026-10-04
         with:
           fetch-depth: 0
 
       - name: node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5 verified 2026-10-04
         with:
-          node-version: '24'
+          node-version: '24.16.0'
           cache: npm
 
       # `npm ci` and never `npm install`: CI installs the lockfile as written, so a
@@ -102,3 +100,6 @@ jobs:
 
       - name: secret scan
         run: npm run scan:secrets
+
+      - name: full secret history scan
+        run: npm run scan:secrets:history

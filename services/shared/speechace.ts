@@ -53,7 +53,7 @@ export async function scoreWithSpeechace(req: ScoreRequest, deps: ScoreDeps = {}
   } catch (err) {
     // A fired deadline is the router's to report, and it already has.
     if (deps.signal?.aborted) return [];
-    console.warn('[speechace] request failed — falling back to text-only grading', err);
+    console.warn('[speechace] request failed — falling back to text-only grading', safeError(err));
     return [];
   }
 }
@@ -98,10 +98,8 @@ export function parseSpeechace(payload: unknown): PhonemeObservation[] {
   }
 
   if (unknown.size > 0) {
-    console.warn(
-      `[speechace] ${unknown.size} phone symbol(s) are not in the French inventory, so nothing can be said about ` +
-        `them: ${[...unknown].join(' ')}. If the whole response is listed here, the vendor has changed alphabet.`,
-    );
+    console.warn('[speechace] unknown phone symbols', { count: unknown.size });
   }
   return out;
 }
+import { safeError } from './safeError.ts';

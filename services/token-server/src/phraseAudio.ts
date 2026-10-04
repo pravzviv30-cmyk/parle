@@ -79,7 +79,7 @@ export async function generatePhraseAudio(userId: string, rawSource: unknown, ra
   if (!live || live.fingerprint !== config.fingerprint) return null;
   // Exactly one uncached call, the same settings as live speech. Keep all
   // existing pins, including the language parameter, pending by-ear A/B proof.
-  const upstream = await request(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(config.voiceId)}?output_format=${config.encoding}&optimize_streaming_latency=${config.streamingLatency}`, {
+  const upstream = await request(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(config.voiceId)}?output_format=${config.encoding}&optimize_streaming_latency=${config.streamingLatency}&enable_logging=false`, {
     method:'POST',signal,redirect:'error',headers:{'xi-api-key':env.ELEVEN_API_KEY,'content-type':'application/json',accept:'application/octet-stream'},
     body:JSON.stringify({text:fr,model_id:config.model,language_code:config.languageCode,voice_settings:config.settings}),
   });

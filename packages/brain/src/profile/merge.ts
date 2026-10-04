@@ -75,6 +75,15 @@
  * harmless without an operation log, and `merge.test.ts` property-tests it
  * rather than asserting it in prose.
  *
+ * User settings now have a separate causal rule when an exact-value-bound
+ * `preferenceClocks` entry is present: daily goal, voice, typing, name,
+ * username, strictness and pace join by counter, mutation ID, then value.
+ * Null/default choices can therefore undo previous choices. Clocks never
+ * govern age, DOB, device stops, account ownership or learning evidence. In
+ * clock-aware merges these settings are omitted from the evidence tie key so
+ * their independent adoption cannot choose a different CEFR/history winner.
+ * Profiles with no clocks retain the legacy rules described above.
+ *
  * It is **not** fully associative, and the counterexample is worth naming
  * rather than discovering. Three devices holding three different values for one
  * answered question — the heaviest holding `null`, the other two disagreeing —
@@ -115,6 +124,8 @@ import {
   withoutForgottenMemory,
   type LearnerProfile,
 } from './profile.ts';
+import { preferenceClocks, resolvePreferenceClocks, sanitisePreferenceClocks } from './preferenceClock.ts';
+export { PREFERENCE_FIELDS, MAX_PREFERENCE_COUNTER, preferenceValue, preferenceClocks, sanitisePreferenceClocks, maxPreferenceCounter, newPreferenceClock, comparePreferenceClocks, resolvePreferenceClocks, type PreferenceField, type PreferenceClocks, type PreferenceClock } from './preferenceClock.ts';
 
 /** One side of the merge: a stored blob and the envelope `savedAt` that carried it. */
 export interface ProfileSide {
@@ -257,8 +268,9 @@ interface Side {
 function normaliseSide(side: ProfileSide, deps: ProfileMergeDeps): Side | null {
   const upgraded = deps.upgrade(side.stored, deps.now);
   if (upgraded === null || typeof upgraded !== 'object' || Array.isArray(upgraded)) return null;
-  const outer = upgraded as Record<string, unknown>;
-  return { outer, brain: repairProfile(outer.brain), savedAt: finiteOr(side.savedAt, 0) };
+  const brain = repairProfile(upgraded.brain);
+  const outer = sanitisePreferenceClocks({ ...upgraded, brain });
+  return { outer, brain, savedAt: finiteOr(side.savedAt, 0) };
 }
 
 /**
@@ -269,20 +281,22 @@ function normaliseSide(side: ProfileSide, deps: ProfileMergeDeps): Side | null {
  * a phrase, or the merged result would stop absorbing its own inputs and two
  * devices could hand the same state back and forth forever.
  */
-function coreSlice(side: Side): string {
+function coreSlice(side: Side, causal = false): string {
   const outer: Record<string, unknown> = {};
   for (const key of Object.keys(side.outer)) {
     // The union fields are left out for the answer fields' reason: a key that
     // moved when the merge unioned a tombstone in would stop the result from
     // absorbing its own inputs.
-    if (key === 'brain' || ANSWER_FIELD_SET.has(key) || UNION_FIELD_SET.has(key)) continue;
+    if (key === 'brain' || key === 'preferenceClocks' || (causal && key === 'preferTyping') || ANSWER_FIELD_SET.has(key) || UNION_FIELD_SET.has(key)) continue;
     outer[key] = side.outer[key];
   }
   return canonical({
     outer,
     cefr: side.brain.cefr,
     memory: side.brain.memory,
-    preferences: side.brain.preferences,
+    // In clock-aware merges settings are independent joins. Their values must
+    // not move the evidence order when a lighter device's edit is adopted.
+    preferences: causal ? Object.fromEntries(Object.entries(side.brain.preferences).filter(([key]) => key !== 'strictness' && key !== 'pace')) : side.brain.preferences,
     stats: side.brain.stats,
   });
 }
@@ -296,7 +310,7 @@ function coreSlice(side: Side): string {
  * canonical rendering is the last resort, so the order is total and the answer
  * is the same on both devices rather than "whichever one asked".
  */
-function compareEvidence(a: Side, b: Side): number {
+function compareEvidence(a: Side, b: Side, causal = false): number {
   if (a.brain.stats.sessions !== b.brain.stats.sessions) {
     return a.brain.stats.sessions - b.brain.stats.sessions;
   }
@@ -304,7 +318,7 @@ function compareEvidence(a: Side, b: Side): number {
     return a.brain.stats.totalTurns - b.brain.stats.totalTurns;
   }
   if (a.savedAt !== b.savedAt) return a.savedAt - b.savedAt;
-  return compareStrings(coreSlice(a), coreSlice(b));
+  return compareStrings(coreSlice(a, causal), coreSlice(b, causal));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -469,7 +483,7 @@ function finish(side: Side, deps: ProfileMergeDeps): MergedStoredProfile {
   const upgraded = deps.upgrade(candidate, deps.now);
   const outer = upgraded === null || !isRecord(upgraded) ? candidate : upgraded;
   const forgotten = Array.isArray(outer.forgottenFacts) ? outer.forgottenFacts.filter((key): key is string => typeof key === 'string') : [];
-  return { ...outer, brain: settle(withoutForgottenMemory(settle(outer.brain), forgotten)) };
+  return sanitisePreferenceClocks({ ...outer, brain: settle(withoutForgottenMemory(settle(outer.brain), forgotten)) });
 }
 
 /**
@@ -543,7 +557,8 @@ export function mergeStoredProfiles(
   if (sa === null) return sb === null ? null : finish(sb, deps);
   if (sb === null) return finish(sa, deps);
 
-  const cmp = compareEvidence(sa, sb);
+  const causal = Object.keys(preferenceClocks(sa.outer)).length > 0 || Object.keys(preferenceClocks(sb.outer)).length > 0;
+  const cmp = compareEvidence(sa, sb, causal);
   const heavy = cmp >= 0 ? sa : sb;
 
   const outer: Record<string, unknown> = {};
@@ -568,5 +583,22 @@ export function mergeStoredProfiles(
     phrases: unionPhrases(sa.brain.phrases, sb.brain.phrases),
   };
 
-  return finish({ outer, brain, savedAt: Math.max(sa.savedAt, sb.savedAt) }, deps);
+  // A dead-even evidence tie used to be settled by these very settings. Once
+  // clocks remove them from that key, give unclocked values their own stable
+  // tie so operand order cannot choose a legacy default accidentally.
+  if (causal && cmp === 0) {
+    outer.preferTyping = compareStrings(canonical(sa.outer.preferTyping), canonical(sb.outer.preferTyping)) >= 0 ? sa.outer.preferTyping : sb.outer.preferTyping;
+    brain.preferences = { ...brain.preferences };
+    for (const field of ['strictness', 'pace'] as const) {
+      const av = sa.brain.preferences[field], bv = sb.brain.preferences[field];
+      const value = compareStrings(canonical(av), canonical(bv)) >= 0 ? av : bv;
+      if (field === 'pace') {
+        if (value === undefined) delete brain.preferences.pace;
+        else brain.preferences.pace = value as LearnerProfile['preferences']['pace'];
+      } else brain.preferences.strictness = value as LearnerProfile['preferences']['strictness'];
+    }
+  }
+
+  const resolved = resolvePreferenceClocks({ ...outer, brain }, sa.outer, sb.outer);
+  return finish({ outer: resolved, brain: resolved.brain, savedAt: Math.max(sa.savedAt, sb.savedAt) }, deps);
 }

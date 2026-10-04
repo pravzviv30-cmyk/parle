@@ -4,6 +4,7 @@ import { buildFixLineJudgeRequest, parseFixLineVerdict } from '@luvani/brain/llm
 import type { FixLineObserver } from './fixLineObserver.ts';
 import type { CefrBand } from '@luvani/brain';
 import { JUDGE_TIMEOUT_MS, readJudgeBody, type DrillJudgeDeps } from './drillJudge.ts';
+import { answerRequestError } from './requestBoundary.ts';
 
 function json(res: ServerResponse, status: number, value: unknown): void {
   if (res.destroyed || res.writableEnded) return;
@@ -20,7 +21,9 @@ function level(raw: unknown): CefrBand {
 
 export async function handleFixLineJudge(req: IncomingMessage, res: ServerResponse, deps: DrillJudgeDeps & { fixLineObserver?: FixLineObserver }): Promise<void> {
   if (!(await deps.limits(req, res, null))) return;
-  const body = await readJudgeBody(req);
+  let body: Record<string, unknown> | null;
+  try { body = await readJudgeBody(req); }
+  catch (error) { return answerRequestError(req, res, error); }
   if (!body) return json(res, 400, { error: 'a correction retry is one small JSON object' });
   const resolved = await deps.users.resolve(req.headers.authorization, typeof body.userId === 'string' ? body.userId : null);
   if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
@@ -50,7 +53,8 @@ export async function handleFixLineJudge(req: IncomingMessage, res: ServerRespon
       if (accepted) return json(res, 200, { verdict: { fixed: true, hint: null } });
     }
     if (controller.signal.aborted || req.aborted || res.destroyed || res.writableEnded) return;
-    const pending = deps.client.judge(buildFixLineJudgeRequest({ original, better, attempt, why, cefr: level(body.cefr) }, controller.signal))
+    const admittedClient=await (deps.clientFor?.(resolved,controller.signal) ?? Promise.resolve(deps.client));
+    const pending = admittedClient.judge(buildFixLineJudgeRequest({ original, better, attempt, why, cefr: level(body.cefr) }, controller.signal))
       .then(answer => { deps.usage?.(answer.usage); return answer; });
     const answer = await Promise.race([pending, expiry]);
     const verdict = parseFixLineVerdict(answer.verdict, `${original} ${better}`);

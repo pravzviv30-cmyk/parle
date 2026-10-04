@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Readable } from 'node:stream';
+import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { handleDrillTranscribe, type DrillTranscribeDeps } from './drillTranscribe.ts';
 import { transcribeFrenchTake } from '../../shared/transcription.ts';
@@ -15,7 +16,7 @@ function request(body = audio, url = '/drill/transcribe', asserted = 'learner'):
 function response() {
   let status = 0;
   let body = '';
-  const res = { writeHead(value: number) { status = value; }, end(value: string) { body = value; } } as unknown as ServerResponse;
+  const res = Object.assign(new EventEmitter(), { writeHead(value: number) { status = value; }, end(value: string) { body = value; } }) as unknown as ServerResponse;
   return { res, status: () => status, body: () => JSON.parse(body) as Record<string, unknown> };
 }
 function dependencies() {
@@ -76,7 +77,7 @@ test('French transcription sends bytes once without learner identifiers and boun
   let calls = 0;
   const request: typeof fetch = async (url, init) => {
     calls++;
-    assert.equal(String(url), 'https://api.deepgram.com/v1/listen?model=nova-3&language=fr&smart_format=true');
+    assert.equal(String(url), 'https://api.deepgram.com/v1/listen?model=nova-3&language=fr&smart_format=true&mip_opt_out=true');
     assert.equal(init?.body, audio);
     assert.deepEqual(init?.headers, { authorization: 'Token fake-test-key', 'content-type': 'audio/wav' });
     assert.ok(init?.signal);

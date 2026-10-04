@@ -46,6 +46,7 @@
  * would be found by a reviewer's download-size complaint rather than by us.
  */
 
+import { assertDevelopmentPaidTool } from './standalonePaidTool.ts';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, renameSync, statSync, writeFileSync } from 'node:fs';
@@ -520,6 +521,7 @@ const executedDirectly = process.argv[1] !== undefined && resolve(process.argv[1
 
 if (executedDirectly) {
   await import('dotenv/config');
+  assertDevelopmentPaidTool();
   // The worker CLI does this for the agent; a standalone script must do it itself.
   initializeLogger({ pretty: true, level: 'warn' });
   main().catch((err) => {

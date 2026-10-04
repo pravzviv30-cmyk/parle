@@ -10,10 +10,14 @@
  * Production boot requires the secret. The unconfigured branch exists only for
  * the server's explicit local-development compatibility mode.
  */
+import { timingSafeEqual } from 'node:crypto';
+
 export function agentDebitAllowed(secret: string | undefined, presented: string | string[] | undefined): boolean {
   if (!secret) return true;
   // A header can arrive repeated. One correct value among several is somebody
   // probing, not the agent.
   if (typeof presented !== 'string') return false;
-  return presented === secret;
+  const expected = Buffer.from(secret);
+  const supplied = Buffer.from(presented);
+  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 }

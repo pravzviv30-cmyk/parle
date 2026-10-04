@@ -1,3 +1,4 @@
+import { CONVO_LINES } from './authoredSpeech.ts';
 import { ReplyAudioScope } from './replyAudioScope.ts';
 /**
  * Free conversation over LiveKit — the brain, spoken.
@@ -23,7 +24,9 @@ import { ReadableStream } from 'node:stream/web';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
 import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parseReviewFocus, parsePreviousCorrection, tutorSessionBrief } from '@luvani/core';
 import { selectedBrain } from './preflight.ts';
-import { TurnQueue } from './queue.ts';
+import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
+import { safeError } from './safeError.ts';
+import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { inCharacterRecast } from './spokenRecast.ts';
 import type { SceneReplyTimingRecord } from './sceneReplyTiming.ts';
 // One replay ledger for the worker, not one per agent class. Both session
@@ -43,6 +46,8 @@ import {
   CAFE_FRAME,
   recoveryLine,
   ZERO_USAGE,
+  MAX_ERROR_PATTERNS,
+  MAX_PHRASES,
   addLlmUsage,
   brainClientFromEnv,
   applyCuration,
@@ -85,7 +90,6 @@ import {
 import {
   STUCK_SILENCE_MS,
   buildConversationPack,
-  decodeClientMessage,
   validateExercise,
   type MissionId,
   type Rung,
@@ -102,13 +106,14 @@ import {
  */
 
 import { reportUsage } from './usage.ts';
+import type { RuntimeLifecycle } from './sessionLifecycle.ts';
 import type { CorrectionReasonReader } from './correctionReason.ts';
 import type { CanDoEvidenceReader } from './canDoEvidence.ts';
 import { CAN_DO_EVIDENCE_TIMEOUT_MS } from './canDoEvidence.ts';
 import { terminalServiceFailure } from './serviceFailure.ts';
 import type { ServiceFailure } from '@luvani/core';
 import { reportConversationPack } from './conversationPacks.ts';
-import { outputGuard, recordSafetyDecision, safetyDecision } from './safety.ts';
+import { outputGuard, isAcceptedLearnerText, recordSafetyDecision, safetyDecision } from './safety.ts';
 
 /**
  * The wire shapes, derived from the protocol's own ServerMessage rather than
@@ -216,16 +221,53 @@ export function parseStoredProfile(snapshot: unknown): LearnerProfile {
   // a stale hint back into long-term profile memory with the recap.
   if (snapshot && typeof snapshot === 'object') {
     const { reviewFocus: _reviewFocus, previousCorrection: _previousCorrection, ...profile } = snapshot as Record<string, unknown>;
-    return repairProfile(profile);
+    return safeModelProfile(repairProfile(profile));
   }
-  return repairProfile(snapshot);
+  return safeModelProfile(repairProfile(snapshot));
+}
+
+function safeContextText(value: unknown): value is string {
+  return isAcceptedLearnerText(value) && safetyDecision(value) === null && outputGuard(value) === null;
+}
+
+/** Context can be signed yet learner-authored. No prefix is accepted as proof. */
+export function safeTutorContext(value: unknown): boolean {
+  let nodes = 0, bytes = 0;
+  const visit = (item: unknown, depth: number): boolean => {
+    if (++nodes > 500 || depth > 12) return false;
+    if (item === null || item === undefined || typeof item === 'boolean') return true;
+    if (typeof item === 'number') return Number.isFinite(item);
+    if (typeof item === 'string') { bytes += Buffer.byteLength(item); return bytes <= 16_384 && safeContextText(item); }
+    if (!item || typeof item !== 'object') return false;
+    return Object.entries(item).every(([key, part]) => safeContextText(key) && visit(part, depth + 1));
+  };
+  return visit(value, 0);
+}
+
+function safeModelProfile(profile: LearnerProfile): LearnerProfile {
+  const fresh = repairProfile(undefined);
+  const errorPatterns = Object.fromEntries(Object.entries(profile.errorPatterns).slice(0, MAX_ERROR_PATTERNS)
+    .filter(([tag, value]) => safeContextText(tag) && value && Number.isFinite(value.count)));
+  const phrases = Object.fromEntries(Object.entries(profile.phrases).slice(0, MAX_PHRASES)
+    .filter(([, phrase]) => phrase && safeContextText(phrase.fr) && safeContextText(phrase.en)
+      && (phrase.frWritten == null || safeContextText(phrase.frWritten))));
+  return { ...profile, cefr: { ...profile.cefr,
+    estimate: ['A0','A1','A2','B1','B2','C1','C2'].includes(profile.cefr.estimate) ? profile.cefr.estimate : fresh.cefr.estimate,
+    confidence: ['low','medium','high'].includes(profile.cefr.confidence) ? profile.cefr.confidence : fresh.cefr.confidence },
+    errorPatterns, phrases, preferences: { ...profile.preferences,
+      lastScenarios: profile.preferences.lastScenarios.slice(-12).filter(safeContextText) },
+    memory: { ...profile.memory, facts: profile.memory.facts.filter(fact => safeContextText(fact.en)
+      && (fact.fr === null || safeContextText(fact.fr))),
+      opener: profile.memory.opener && safeContextText(profile.memory.opener.fr) && safeContextText(profile.memory.opener.en) ? profile.memory.opener : null,
+      name: profile.memory.name && safeContextText(profile.memory.name) ? profile.memory.name : null },
+  };
 }
 
 /** Existing saved notes, bounded and labelled without inventing a session source. */
 export function tutorMemoryBrief(profile: LearnerProfile): string {
   const repaired = repairProfile(profile);
   if (repaired.memory.control?.paused === true) return '';
-  const notes = repaired.memory.facts.slice(-5).map((fact) => ({ source: 'saved tutor memory', note: fact.en }));
+  const notes = repaired.memory.facts.filter(fact => safeContextText(fact.en)).slice(-5).map((fact) => ({ source: 'saved tutor memory', note: fact.en }));
   if (notes.length === 0) return '';
   return [
     'SAVED TUTOR MEMORY',
@@ -323,39 +365,7 @@ export function brainClient(env: Record<string, string | undefined> = process.en
  * along on screen as exposure. The bridge stays French — by then the learner
  * has answered, and "Ah, très bien" is lesson-zero vocabulary doing its job.
  */
-export const CONVO_LINES = {
-  opener: { fr: "Alors, de quoi on parle aujourd'hui ?", en: 'So, what do you want to talk about today?' },
-  /**
-   * fr and en are the pair the screen shows. `spoken` is what the learner
-   * actually hears, and it is the only one of the three that has to do two
-   * jobs: the French stays, because by now they have answered and "Ah, très
-   * bien" is lesson-zero vocabulary earning its place, but designing a scene
-   * takes ten to twenty five seconds and across all of it this was the only
-   * thing they heard. A line that says what is happening is the difference
-   * between waiting and being abandoned.
-   */
-  bridge: {
-    fr: 'Ah, très bien. Alors…',
-    en: 'Ah, very good. So…',
-    spoken: "Ah, très bien. Give me a moment, I'm setting the scene.",
-  },
-  suggest: {
-    fr: 'Tout marche. Votre journée, vos projets, un café à Paris. Dites-le en anglais ou en français.',
-    en: "Anything goes. Your day, your plans, ordering coffee in Paris. Say it in English or French and we're off.",
-  },
-  /**
-   * What the scene says instead, when the output guard takes a tutor line out.
-   *
-   * The learner did nothing, so nothing is said to them about it: no apology,
-   * no notice, no hint that anything was removed. It hands the floor straight
-   * back, because the one thing a suppressed line must never do is leave
-   * somebody sitting in front of a scene that has stopped answering.
-   */
-  carryOn: {
-    fr: "On continue. Vas-y, je t'écoute.",
-    en: "Let's keep going. Go ahead, I'm listening.",
-  },
-} as const;
+export { CONVO_LINES } from './authoredSpeech.ts';
 
 /**
  * A topic the learner already talked about, tapped on a practice card and
@@ -923,11 +933,11 @@ export class LuvaniConversation extends voice.Agent {
   /**
    * The measured wall clock, shared by those same two writes.
    *
-   * Null until `finish` measures it, so a pack written by any other path is
-   * honestly untimed instead of claiming a conversation took no time.
+   * Production checkpoints measure it from the monotonic DB claim. Legacy
+   * fixtures measure it at finish; before either, the pack remains untimed.
    */
   private durationSec: number | null = null;
-  /** A hard safety stop must never create a durable learning artefact. */
+  /** A safety stop adds no new artefact; production retains clean acknowledged practice. */
   private safetyStopped = false;
   /**
    * Turns the learner actually produced: spoken, typed, or a help/skip tap.
@@ -936,6 +946,38 @@ export class LuvaniConversation extends voice.Agent {
    * which `integrateTurn` advances for a rescue too — see `finish()`.
    */
   private learnerTurns = 0;
+  private lifecycle: RuntimeLifecycle | undefined;
+  private acknowledged: { state: ConversationState; profile: LearnerProfile } | undefined;
+
+  attachLifecycle(lifecycle: RuntimeLifecycle): void {
+    this.lifecycle = lifecycle; this.acknowledged = { state: this.state, profile: this.profile };
+  }
+
+  override async onExit(): Promise<void> { await this.finish(); }
+
+  private async checkpoint(): Promise<void> {
+    if (!this.lifecycle) return;
+    this.lifecycle.assertActive();
+    const snapshot = { state: this.state, profile: this.profile };
+    const { recap } = assembleRecap(this.state, {
+      estimate: this.profile.cefr.estimate, confidence: this.profile.cefr.confidence,
+    });
+    this.durationSec = this.lifecycle.elapsedSeconds();
+    await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns,
+      ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}),
+      ...(this.learnerTurns > 0 ? { baseline: this.conversationPackFor(recap, null, [], 'ready') } : {}) }, () => { this.acknowledged = snapshot; });
+    if (!this.ended) this.lifecycle.assertActive();
+  }
+
+  private async failInfrastructure(): Promise<void> {
+    if (!this.lifecycle || this.ended) return;
+    this.serviceFailure ??= 'llm_error';
+    this.cancelLiveReplies();
+    await this.publish({ t: 'error', kind: 'llm_error', recoverable: false, terminal: true,
+      message: 'The tutor could not continue. Your session is ending.' });
+    await this.finish();
+    this.closeRoom();
+  }
   /** A spent credential re-opened this room, so this tutor never goes on air. */
   private refused = false;
   /**
@@ -976,6 +1018,7 @@ export class LuvaniConversation extends voice.Agent {
     this.refused = true;
     this.ended = true;
     this.clearRescue();
+
     console.warn(`[luvani] refused a replayed join credential for session ${value.slice(0, 8)}`);
   }
   /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
@@ -997,6 +1040,9 @@ export class LuvaniConversation extends voice.Agent {
   private voiceless: boolean;
   /** Every brain turn and every rescue runs through here, one at a time. */
   private readonly queue = new TurnQueue();
+  private readonly replayQueue = new TurnQueue({ maxPending: 1 });
+  private readonly commands = new CommandBudget();
+  private lastInputNotice = -Infinity;
   /**
    * How long the scenario builder gets. Read once, at construction, from the
    * same TUTOR_LLM that chose the brain — a slow brain gets a longer deadline
@@ -1065,6 +1111,8 @@ export class LuvaniConversation extends voice.Agent {
    * `convo.test.ts` reads this file back to prove no bare call survives.
    */
   private readonly persona: TutorPersona | undefined;
+  private readonly enrichBeforeComplete: boolean;
+  private readonly finishEnrichmentMs: number;
 
   /**
    * `client` is the seam a test drives this class through. Without it the
@@ -1076,6 +1124,9 @@ export class LuvaniConversation extends voice.Agent {
     opts: {
       voiceless?: boolean;
       client?: LlmClient;
+      /** Optional analyst work remains inside the current paid lease and finishes within5s. */
+      enrichBeforeComplete?: boolean;
+      finishEnrichmentMs?: number;
       setSttLanguage?: (language: SttLanguage) => void;
       /**
        * The topic this session was started on, if it was started from a card.
@@ -1112,6 +1163,7 @@ export class LuvaniConversation extends voice.Agent {
     // The pipeline LLM never generates here; see the header. One line keeps
     // the framework satisfied and makes the intent grep-able.
     super({ instructions: 'You are unused; replies are generated out of band.' });
+    profile = safeModelProfile(repairProfile(profile));
     // Honour pause at the backend too, even if an older client sent held details.
     this.profile = profile.memory.control?.paused === true
       ? { ...profile, memory: { ...profile.memory, facts: [], opener: null } } : profile;
@@ -1123,19 +1175,22 @@ export class LuvaniConversation extends voice.Agent {
       maxTurns: CONVO_MAX_TURNS,
     });
     this.client = opts.client ?? brainClient();
+    this.enrichBeforeComplete = opts.enrichBeforeComplete ?? false;
+    this.finishEnrichmentMs = opts.finishEnrichmentMs ?? 5000;
+    if (!Number.isInteger(this.finishEnrichmentMs) || this.finishEnrichmentMs < 1 || this.finishEnrichmentMs > 5000) throw new Error('invalid-finish-enrichment-deadline');
     this.seedTopic = validSeedTopic(opts.seedTopic);
     this.missionId = validMissionId(opts.missionId);
     this.canDoLedger = new CanDoEvidenceLedger(this.missionId);
     this.canDoReader = opts.canDoEvidenceReader;
     this.correctionReasonReader = opts.correctionReasonReader;
-    const revision = parseTutorRevision(opts.revision);
+    const revision = safeTutorContext(opts.revision) ? parseTutorRevision(opts.revision) : undefined;
     this.revisedFromPackId = revision?.packId ?? null;
     this.teachingBrief = tutorSessionBrief({
       revision,
       missionId: this.missionId,
       seeded: !!this.seedTopic,
-      reviewFocus: parseReviewFocus(opts.reviewFocus),
-      previousCorrection: parsePreviousCorrection(opts.previousCorrection),
+      reviewFocus: safeTutorContext(opts.reviewFocus) ? parseReviewFocus(opts.reviewFocus) : undefined,
+      previousCorrection: safeTutorContext(opts.previousCorrection) ? parsePreviousCorrection(opts.previousCorrection) : undefined,
     });
     // Held, not applied. The placeholder state built just above is the scene
     // nobody is in yet, and every real scene is built again when it opens.
@@ -1202,11 +1257,11 @@ export class LuvaniConversation extends voice.Agent {
    * `BrainParseError` is the expensive failure: a full prompt in, a full answer
    * out, a retry on top of it, and nothing usable at the end. Dropping its
    * usage made the single most costly outcome the one outcome the meter never
-   * saw. Anything else that throws here (a socket, an abort, an outage) carries
-   * no usage to record and passes through untouched.
+   * saw. A billed provider refusal carries usage too. Sockets and timeouts
+   * without a provider usage receipt cannot invent token counts.
    */
   private recordFailedCall(activity: BrainActivity, error: unknown): void {
-    if (error instanceof BrainParseError && error.usage !== undefined) this.recordBrainUsage(activity, error.usage);
+    if ((error instanceof BrainParseError || error instanceof BrainRefusalError) && error.usage !== undefined) this.recordBrainUsage(activity, error.usage);
   }
 
   /**
@@ -1229,6 +1284,13 @@ export class LuvaniConversation extends voice.Agent {
    * the room, and it must not close it over the top of the only sentence that
    * mattered. Text mode returns nothing, which is the honest answer there.
    */
+  private replayLine(text: string): Promise<void> {
+    if (this.replayQueue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); return Promise.resolve(); }
+    void this.replayQueue.run(async signal => { if (!this.ended) await replayPlayout(this.say(text, { allowInterruptions: false })?.waitForPlayout(), signal); })
+      .catch(error => console.error('[luvani] replay did not finish:', safeError(error)));
+    return Promise.resolve();
+  }
+
   private say(text: string, options: { allowInterruptions?: boolean } = {}): SpokenLine {
     if (this.voiceless) return undefined;
     return this.session.say(text, options);
@@ -1338,7 +1400,15 @@ export class LuvaniConversation extends voice.Agent {
    * send would give a current app the vanishing toast as well as the surface
    * that stays.
    */
+  private rejectInput(message: string): void {
+    const at = performance.now();
+    if (at - this.lastInputNotice < 1_000) return;
+    this.lastInputNotice = at;
+    this.publish({ t: 'error', message });
+  }
+
   private handleSafety(text: string): boolean {
+    if (!isAcceptedLearnerText(text)) { this.rejectInput(INPUT_LIMIT_MESSAGE); return true; }
     const decision = safetyDecision(text);
     if (decision === null) return false;
     this.releaseMoment();
@@ -1382,7 +1452,7 @@ export class LuvaniConversation extends voice.Agent {
     } catch (error) {
       // A line that could not finish playing is still a line that was said, and
       // a room that stays open is worse than one that closes a beat early.
-      console.warn('[luvani] the stop message did not settle cleanly; closing the room anyway:', error);
+      console.warn('[luvani] the stop message did not settle cleanly; closing the room anyway:', safeError(error));
     }
     this.closeRoom();
   }
@@ -1485,7 +1555,7 @@ export class LuvaniConversation extends voice.Agent {
       // it. The title comes off a practice card, which is the learner's own
       // past session played back at them, so the one thing it must not do is
       // be spoken before it is read.
-      if (this.handleSafety(this.seedTopic.en)) {
+      if (this.handleSafety(this.seedTopic.fr) || this.handleSafety(this.seedTopic.en)) {
         // A stop has already closed the session. A redirect has not, and a
         // redirect with no opening after it is a screen that never changes —
         // so the seeded scene is dropped and the ordinary choosing question
@@ -1497,7 +1567,7 @@ export class LuvaniConversation extends voice.Agent {
         this.publish(this.lastOpening);
         this.say(seeded.en, { allowInterruptions: false });
         void this.startScene(this.seedTopic.en).catch((error: unknown) => {
-          console.error('[luvani] the seeded scene could not be started:', error);
+          console.error('[luvani] the seeded scene could not be started:', safeError(error));
         });
         return;
       }
@@ -1575,7 +1645,7 @@ export class LuvaniConversation extends voice.Agent {
       this.phase = 'scene';
       this.openScene();
     } catch (error) {
-      console.error('[luvani] the mission scene could not be opened; handing back the choosing moment:', error);
+      console.error('[luvani] the mission scene could not be opened; handing back the choosing moment:', safeError(error));
       this.returnToChoosing();
     }
   }
@@ -1598,6 +1668,7 @@ export class LuvaniConversation extends voice.Agent {
    */
   private async startScene(request: string): Promise<void> {
     if (this.ended) return;
+    this.lifecycle?.assertActive();
     if (this.handleSafety(request)) return;
     if (this.phase !== 'choosing') {
       // A duplicate press during a healthy build stays dropped — the scene is
@@ -1615,8 +1686,11 @@ export class LuvaniConversation extends voice.Agent {
       frame = await this.buildFrame(request);
     } catch (error) {
       if (this.ended) return;
+      if (this.lifecycle && !(error instanceof BrainParseError) && !(error instanceof BrainRefusalError)) {
+        await this.failInfrastructure(); return;
+      }
       frame = requestFallbackFrame(request);
-      console.error('[luvani] scenario build failed; opening a simpler scene on the learner request:', error);
+      console.error('[luvani] scenario build failed; opening a simpler scene on the learner request:', safeError(error));
       this.publish({ t: 'error', message: "I've kept your topic. We'll start with a simpler version." });
     }
     if (this.ended) return;
@@ -1631,9 +1705,12 @@ export class LuvaniConversation extends voice.Agent {
         request,
       });
       this.phase = 'scene';
+      await this.checkpoint();
+      if (this.ended) return;
       this.openScene();
     } catch (error) {
-      console.error('[luvani] the scene could not be opened; handing back the choosing moment:', error);
+      if (this.lifecycle?.signal.aborted || this.ended) return;
+      console.error('[luvani] the scene could not be opened; handing back the choosing moment:', safeError(error));
       this.returnToChoosing();
     }
   }
@@ -1788,12 +1865,12 @@ export class LuvaniConversation extends voice.Agent {
       if (this.suggested) return generation;
       this.silenceTimer = setTimeout(() => {
         this.suggested = true;
-        this.say(CONVO_LINES.suggest.en, { allowInterruptions: false });
+        void this.replayLine(CONVO_LINES.suggest.en);
         if (this.lastOpening) this.publish(this.lastOpening);
       }, window);
       return generation;
     }
-    this.silenceTimer = setTimeout(() => void this.runRescue(generation), window);
+    this.silenceTimer = setTimeout(() => { void this.runRescue(generation).catch(() => {}); }, window);
     return generation;
   }
 
@@ -1833,7 +1910,7 @@ export class LuvaniConversation extends voice.Agent {
       // bubble every reader-window, which looked exactly like the tutor was
       // asking and answering its own questions.
       if (this.voiceless) {
-        this.applyRescue(input, false);
+        await this.applyRescue(input, false);
         return;
       }
       await this.rescue(input);
@@ -1918,16 +1995,20 @@ export class LuvaniConversation extends voice.Agent {
     try {
       await this.routeClientMessage(session, payload);
     } catch (error) {
-      console.error('[luvani] a client message could not be handled; the session carries on:', error);
+      console.error('[luvani] a client message could not be handled; the session carries on:', safeError(error));
     }
   }
 
   /** What a client message actually does. Wrapped by handleClientMessage. */
   private async routeClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
     if (this.refused) return; // a spent credential gets no conversation, whatever it taps
-    const msg = decodeClientMessage(payload);
-    if (!msg) return; // a malformed frame must not disturb a live conversation
+    const received = readClientInput(payload);
+    if (!received.message) { if (received.reason === 'oversized') this.rejectInput(INPUT_LIMIT_MESSAGE); return; }
+    const msg = received.message;
     if (this.ended && msg.t !== 'ready' && msg.t !== 'leave') return;
+
+    if (msg.t === 'say' && this.handleSafety(msg.text)) return;
+    if (!this.commands.allow(msg.t) || (['say', 'help', 'skip'].includes(msg.t) && this.queue.full)) { this.rejectInput(INPUT_BUSY_MESSAGE); return; }
 
     if (['say','help','skip','mode','leave'].includes(msg.t)) this.cancelCorrectionReason();
     if (msg.t === 'mode') {
@@ -1935,6 +2016,7 @@ export class LuvaniConversation extends voice.Agent {
       // them: a learner can board a quiet train while choosing a topic just as
       // easily as mid-scene, and the protocol already refused any frame whose
       // `voiceless` was not a boolean.
+      if (msg.voiceless) this.replayQueue.clearPending();
       this.setVoiceless(msg.voiceless);
       return;
     }
@@ -1994,13 +2076,10 @@ export class LuvaniConversation extends voice.Agent {
       this.cancelLiveReplies();
       return void this.finish();
     }
-    if (msg.t === 'say' && this.handleSafety(msg.text)) return;
-
     // A typed line is the learner producing French, in either phase: before the
     // scene it IS the topic, and inside it it is the turn. `hear`, `slower`,
     // `english`, `typing` and `moment` are never counted — they are presence,
     // and none of them produces anything. See `finish()` for what it decides.
-    if (msg.t === 'say') this.learnerTurns += 1;
 
     // Before the scene exists, every other tap gets the same gentle answer as
     // silence: a spoken suggestion and the question again. There is no ladder
@@ -2012,13 +2091,16 @@ export class LuvaniConversation extends voice.Agent {
       if (msg.t === 'say') {
         // Confirm only the accepted choosing answer. A duplicate during scene
         // preparation has not entered this conversation and is not saved text.
-        if (this.phase === 'choosing') this.publish({ t: 'transcript', text: msg.text, final: true });
+        if (this.phase === 'choosing') {
+          this.learnerTurns += 1;
+          this.publish({ t: 'transcript', text: msg.text, final: true });
+        }
         return this.startScene(msg.text);
       }
       if (msg.t === 'help' || msg.t === 'skip') {
         this.clearRescue();
         this.suggested = true;
-        this.say(CONVO_LINES.suggest.en, { allowInterruptions: false });
+        void this.replayLine(CONVO_LINES.suggest.en);
         if (this.lastOpening) this.publish(this.lastOpening);
       }
       return;
@@ -2032,7 +2114,7 @@ export class LuvaniConversation extends voice.Agent {
         // honest answer — the opposite of the SAY THIS card below, and the
         // reason the two are told apart here rather than merged.
         const scene = this.lastView?.sceneReply.fr ?? '';
-        if (scene.trim().length > 0) this.say(scene, { allowInterruptions: false });
+        if (scene.trim().length > 0) return this.replayLine(scene);
         return;
       }
       // Replay the current support line, uninterruptible so it plays out whole.
@@ -2041,7 +2123,7 @@ export class LuvaniConversation extends voice.Agent {
       // instead. There is nothing to replay: speaking the scene's own line here
       // would hand back exactly what the brain just took out.
       const line = this.state.lastSupport.fullLine.fr;
-      if (line.trim().length > 0) this.say(line, { allowInterruptions: false });
+      if (line.trim().length > 0) return this.replayLine(line);
       return;
     }
     if (msg.t === 'slower') {
@@ -2050,13 +2132,13 @@ export class LuvaniConversation extends voice.Agent {
       // audio itself replays at the cached speed until slow synthesis is
       // proven out with the voice vendor.
       this.state = { ...this.state, pace: 'slow' };
-      if (this.lastView) this.say(this.lastView.sceneReply.fr, { allowInterruptions: false });
+      if (this.lastView) return this.replayLine(this.lastView.sceneReply.fr);
       return;
     }
     if (msg.t === 'english') {
       // The gloss is already in hand — saying it costs nothing and is never a
       // ladder event. Asking to understand is a healthy act.
-      if (this.lastView) this.say(this.lastView.sceneReply.en, { allowInterruptions: false });
+      if (this.lastView) return this.replayLine(this.lastView.sceneReply.en);
       return;
     }
     if (msg.t === 'say') {
@@ -2070,14 +2152,16 @@ export class LuvaniConversation extends voice.Agent {
       this.invalidateReplyTiming();
       this.publish({ t: 'transcript', text: msg.text, final: true });
       const correctionGeneration = this.correctionReasonGeneration;
-      await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text: msg.text }, undefined, correctionGeneration));
+      await this.queue.run(() => {
+        this.learnerTurns += 1;
+        return this.runBrainTurn({ type: 'spoke', text: msg.text }, undefined, correctionGeneration);
+      });
       return;
     }
     if (msg.t === 'help' || msg.t === 'skip') {
       // Counted here rather than with `say` above, because before the scene
       // exists these two only re-offer the question: nothing moves, nothing is
       // produced, and a learner who only ever tapped them has had no session.
-      this.learnerTurns += 1;
       // The brain has no skip: a learner reaching for either button is lost,
       // and what a lost learner needs is support, not a hole in the scene.
       // Queued for the same reason as the typed turn: asking for help is the
@@ -2085,7 +2169,7 @@ export class LuvaniConversation extends voice.Agent {
       // rescue that was already on its way.
       this.releaseMoment();
       this.clearRescue();
-      await this.queue.run(() => this.rescue({ type: 'help' }));
+      await this.queue.run(() => { this.learnerTurns += 1; return this.rescue({ type: 'help' }); });
     }
     // 'choice' arrives as speech as well, exactly like the scripted path.
   }
@@ -2127,22 +2211,26 @@ export class LuvaniConversation extends voice.Agent {
         timing?.finish('cancelled');
         throw new voice.StopResponse();
       }
+      if (!this.commands.allow('say') || this.queue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); timing?.finish('cancelled'); throw new voice.StopResponse(); }
       // Words came out of the learner and the recogniser read them, whatever
       // the phase does with them next. That is the whole test for whether this
       // room reached anybody — see `finish()`.
-      this.learnerTurns += 1;
       this.cancelCorrectionReason();
       if (this.phase === 'choosing') {
+        this.learnerTurns += 1;
         // Speech on the choosing screen IS the topic. The transcript shows
         // the learner they were heard; the scene does the rest.
         this.publish({ t: 'transcript', text, final: true });
         void this.startScene(text).catch((error: unknown) => {
-          console.error('[luvani] the spoken topic could not open a scene:', error);
+          console.error('[luvani] the spoken topic could not open a scene:', safeError(error));
         });
       } else if (this.phase === 'scene') {
         this.publish({ t: 'transcript', text, final: true });
         const correctionGeneration = this.correctionReasonGeneration;
-        await this.queue.run(() => this.runBrainTurn({ type: 'spoke', text }, timing, correctionGeneration));
+        await this.queue.run(() => {
+          this.learnerTurns += 1;
+          return this.runBrainTurn({ type: 'spoke', text }, timing, correctionGeneration);
+        });
       } else {
         // Speech while the scenario builder runs is still dropped: the scene
         // they asked for is seconds away and answering into it would talk over
@@ -2162,14 +2250,16 @@ export class LuvaniConversation extends voice.Agent {
    * material the last turn already carried; the model's warm in-character
    * step-in follows when the network gets around to it.
    */
-  private applyRescue(
+  private async applyRescue(
     input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>,
     rearm: boolean = true,
-  ): void {
+  ): Promise<void> {
     if (this.ended) return;
 
     const { state, view } = applyNonSpokenInput(this.state, input);
     this.state = state;
+    await this.checkpoint();
+    if (this.ended) return;
     if (this.lastView) {
       // Merge: the scene has not moved, so the last reply stands; only the
       // support, the rung and the (now silent) coach change. Stale narration
@@ -2191,7 +2281,8 @@ export class LuvaniConversation extends voice.Agent {
   private async rescue(input: Extract<LearnerTurnInput, { type: 'silence' | 'help' }>): Promise<void> {
     if (this.ended) return;
 
-    this.applyRescue(input);
+    await this.applyRescue(input);
+    if (this.ended) return;
 
     await this.runBrainTurn(input);
   }
@@ -2214,6 +2305,7 @@ export class LuvaniConversation extends voice.Agent {
 
   private async performBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration): Promise<void> {
     if (this.ended) return;
+    this.lifecycle?.assertActive();
     if (input.type === 'spoke' && this.handleSafety(input.text)) return;
     // The fifth system-block call, and the only one that is not written as one.
     // brain's `prepareTurn` builds the blocks itself and has no persona to
@@ -2259,12 +2351,14 @@ export class LuvaniConversation extends voice.Agent {
       this.recordFailedCall('turn', error);
       if (this.ended) return; // a failed turn against a finished session is just noise
       if (error instanceof BrainParseError || error instanceof BrainRefusalError) {
+        await this.checkpoint();
         this.recover();
         return;
       }
       // Anything else (network, provider outage) gets the same gentle exit:
       // an unhandled throw here would strand the learner in silence.
-      console.error('[luvani] convo brain turn failed:', error);
+      console.error('[luvani] convo brain turn failed:', safeError(error));
+      if (this.lifecycle) { await this.failInfrastructure(); return; }
       this.recover();
       return;
     }
@@ -2298,6 +2392,8 @@ export class LuvaniConversation extends voice.Agent {
       { role: 'assistant', text: historyForPublishedTurn(turn, guarded) }] };
     const publishedView = toConvoView(guarded);
     if (input.type === 'spoke') this.canDoLedger.recordAcceptedSource(input.text, sourceBeat, previousGoalEvidence, publishedView, guarded === recast.view);
+    await this.checkpoint();
+    if (this.ended) return;
     const finalView = this.publishView(publishedView);
     this.speak(guarded, timing);
     if (input.type === 'spoke' && correctionGeneration === this.correctionReasonGeneration
@@ -2404,6 +2500,8 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   cancelLiveReplies(): void {
+    this.queue.clearPending();
+    this.replayQueue.clearPending();
     this.cancelCorrectionReason();
     this.liveWork.abort(new Error('Session ended'));
     try {
@@ -2421,13 +2519,43 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   private async complete(): Promise<void> {
+    this.lifecycle?.freezeBillingCutoff?.();
     this.ended = true;
+    this.queue.clearPending();
+    this.replayQueue.clearPending();
     this.cancelCorrectionReason();
     this.liveWork.abort(new Error('Session ended'));
     this.finishedAt ??= new Date().toISOString();
     this.releaseMoment();
     this.clearRescue();
 
+    if (this.lifecycle) {
+      if (this.acknowledged) { this.state = this.acknowledged.state; this.profile = this.acknowledged.profile; }
+      const { recap, state } = assembleRecap(this.state, {
+        estimate: this.profile.cefr.estimate, confidence: this.profile.cefr.confidence,
+      });
+      this.state = state; this.profile = finishSession(this.profile, state);
+      this.lastRecap = { t: 'recap', recap: toRecapPayload(recap), profile: this.profile };
+      if (this.enrichBeforeComplete && this.learnerTurns > 0 && !this.safetyStopped && !this.serviceFailure && !this.lifecycle.signal.aborted) {
+        // No analyst calls after completion, lease expiry or deletion. Baseline
+        // was acknowledged before this optional bounded work begins.
+        const [curated] = await Promise.all([this.curatePractice(state, this.finishEnrichmentMs), this.extractMemory(state.turnCount, false, this.finishEnrichmentMs)]);
+        try {
+          this.lifecycle.assertActive();
+          const baseline = this.conversationPackFor(recap, curated, [], 'ready');
+          const snapshot = { state: this.state, profile: this.profile };
+          await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns, baseline }, () => { this.acknowledged = snapshot; });
+        } catch { /* Preserve the last acknowledged baseline on optional failure. */ }
+      }
+      const settlement = await this.lifecycle.complete({ learnerTurns: this.learnerTurns,
+        ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) });
+      this.lastRecap = { ...this.lastRecap, profile: this.profile };
+      noteSessionReported(this.sessionId); this.cancelCanDoEvidence();
+      await this.publish(this.lastRecap);
+      await this.publish({ t: 'settlement', result: settlement });
+      this.logSpendSummary();
+      return;
+    }
     const { recap, state } = assembleRecap(this.state, {
       estimate: this.profile.cefr.estimate,
       confidence: this.profile.cefr.confidence,
@@ -2556,7 +2684,7 @@ export class LuvaniConversation extends voice.Agent {
       id: this.sessionId,
       sessionId: this.sessionId,
       learnerId: this.learnerId,
-      createdAt: this.finishedAt ?? new Date().toISOString(),
+      createdAt: this.lifecycle ? new Date(this.startedAt).toISOString() : (this.finishedAt ?? new Date().toISOString()),
       state,
       title,
       summary: recap.headline,
@@ -2609,7 +2737,7 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   /** One curation call with a hard deadline and a pure fallback. */
-  private async curatePractice(state: ConversationState): Promise<CuratedTopic[]> {
+  private async curatePractice(state: ConversationState, maximumMs?: number): Promise<CuratedTopic[]> {
     const sessionTopics = state.topics.map((t) => ({ en: t.en, fr: t.fr }));
     const known = this.knownPhrases();
     if (state.turnCount === 0) {
@@ -2626,7 +2754,7 @@ export class LuvaniConversation extends voice.Agent {
         learner: { cefr: this.profile.cefr.estimate, errorTags },
         knownPhrases: known,
       });
-      const ms = postSessionDeadlineMs('curate');
+      const ms = Math.min(postSessionDeadlineMs('curate'), maximumMs ?? Infinity);
       const result = await withDeadline(
         (signal) => this.client.curate({ kind: 'curate', system: buildSystemBlocks(this.persona), request, signal }),
         ms,
@@ -2634,10 +2762,10 @@ export class LuvaniConversation extends voice.Agent {
         () => this.noteAbandoned('curate', ms),
       );
       this.recordBrainUsage('curate', result.usage);
-      return applyCuration(result.curation, state.phrases, sessionTopics, known);
+      return applyCuration(outputGuard(JSON.stringify(result.curation)) ? null : result.curation, state.phrases, sessionTopics, known);
     } catch (error) {
       this.recordFailedCall('curate', error);
-      console.error('[luvani] curation failed; the code fallback ships instead:', error);
+      console.error('[luvani] curation failed; the code fallback ships instead:', safeError(error));
       return applyCuration(null, state.phrases, sessionTopics, known);
     }
   }
@@ -2648,13 +2776,13 @@ export class LuvaniConversation extends voice.Agent {
    * the enriched profile rides a second recap publish — idempotent for the
    * app, which just persists the newest blob.
    */
-  private async extractMemory(turnCount: number): Promise<void> {
+  private async extractMemory(turnCount: number, publish = true, maximumMs?: number): Promise<void> {
     // An empty session has nothing to remember, and asking would be spend
     // without a question.
     if (turnCount === 0 || this.lastRecap === null || this.profile.memory.control?.paused === true) return;
     try {
       const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts });
-      const ms = postSessionDeadlineMs('extract');
+      const ms = Math.min(postSessionDeadlineMs('extract'), maximumMs ?? Infinity);
       const result = await withDeadline(
         (signal) => this.client.extract({ kind: 'extract', system: buildSystemBlocks(this.persona), request, signal }),
         ms,
@@ -2662,12 +2790,12 @@ export class LuvaniConversation extends voice.Agent {
         () => this.noteAbandoned('extract', ms),
       );
       this.recordBrainUsage('extract', result.usage);
-      this.profile = applyExtractionToProfile(this.profile, result.extraction, new Date().toISOString());
+      this.profile = safeModelProfile(applyExtractionToProfile(this.profile, result.extraction, new Date().toISOString()));
       this.lastRecap = { ...this.lastRecap, profile: this.profile };
-      this.publish(this.lastRecap);
+      if (publish) this.publish(this.lastRecap);
     } catch (error) {
       this.recordFailedCall('extract', error);
-      console.error('[luvani] memory extraction failed; the recap already shipped without it:', error);
+      console.error('[luvani] memory extraction failed; the recap already shipped without it:', safeError(error));
     }
   }
 
@@ -2717,7 +2845,7 @@ export class LuvaniConversation extends voice.Agent {
       return valid;
     } catch (error) {
       this.recordFailedCall('drills', error);
-      console.error('[luvani] drill generation failed; the fixture bank covers the gap:', error);
+      console.error('[luvani] drill generation failed; the fixture bank covers the gap:', safeError(error));
       return [];
     }
   }

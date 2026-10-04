@@ -28,7 +28,10 @@
  *   node --experimental-strip-types secretScan.ts --bundles    build output
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
+import { Transform } from 'node:stream';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -481,49 +484,85 @@ export function scanWorkingTree(root: string, options: { includeUntracked?: bool
  * stream of added lines with their post-image line numbers, so a finding points
  * at the commit and line that introduced it.
  */
-export function scanDiffStream(diff: string): Finding[] {
+/** One immutable pre-rename annotation. Never honor legacy markers generally. */
+function approvedHistoricalFixture(commit: string, filePath: string, raw: string): boolean {
+  if (commit !== '9317ec2cbab2ecededb3ac2cad8d74dc55e242ba' || filePath !== 'services/tutor-agent/src/verify/voiceLifecycle.test.ts' || !raw.includes('parle-secret-scan: allow')) return false;
+  const token = raw.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/)?.[0];
+  if (!token || createHash('sha256').update(token).digest('hex') !== '06fe81e370fab284e3edeff8d3fa491977a21e17af1d9dd5ed572df4eb42ae9d') return false;
+  try {
+    const parts=token.split('.');
+    return JSON.parse(Buffer.from(parts[0]!, 'base64url').toString('utf8')).alg === 'HS256' && Buffer.from(parts[2]!, 'base64url').length === 18;
+  } catch { return false; }
+}
+
+/** Stateful line consumer shared by strings and the real subprocess stream. */
+function diffWalker() {
   const findings: Finding[] = [];
   let commit = 'unknown';
   let filePath = 'unknown';
   let lineNumber = 0;
-  for (const raw of diff.split('\n')) {
+  return { findings, line(raw: string) {
     const commitLine = raw.match(/^commit ([0-9a-f]{7,40})/);
-    if (commitLine) {
-      commit = (commitLine[1] ?? 'unknown').slice(0, 8);
-      continue;
-    }
-    if (raw.startsWith('+++ ')) {
-      filePath = raw.startsWith('+++ b/') ? raw.slice(6) : raw.slice(4);
-      continue;
-    }
-    if (raw.startsWith('--- ')) continue;
+    if (commitLine) { commit = commitLine[1] ?? 'unknown'; return; }
+    if (raw.startsWith('+++ ')) { filePath = raw.startsWith('+++ b/') ? raw.slice(6) : raw.slice(4); return; }
+    if (raw.startsWith('--- ')) return;
     const hunk = raw.match(/^@@ -\d+(?:,\d+)? \+(\d+)/);
-    if (hunk) {
-      lineNumber = Number(hunk[1]);
-      continue;
-    }
+    if (hunk) { lineNumber = Number(hunk[1]); return; }
     if (raw.startsWith('+')) {
-      for (const finding of scanText(raw.slice(1), filePath, `history ${commit}`)) {
+      for (const finding of scanText(raw.slice(1), filePath, `history ${commit.slice(0, 8)}`)) {
+        if (finding.patternId === 'signed-jwt' && approvedHistoricalFixture(commit,filePath,raw)) continue;
         findings.push({ ...finding, line: lineNumber });
       }
       lineNumber += 1;
-      continue;
-    }
-    if (raw.startsWith(' ')) lineNumber += 1;
-  }
-  return findings;
+    } else if (raw.startsWith(' ')) lineNumber += 1;
+  } };
 }
 
-export function scanHistory(root: string, options: { maxCommits?: number } = {}): Finding[] {
-  const diff = git(root, [
-    'log',
-    '-p',
-    '-U0',
-    '--all',
-    '--no-color',
-    `--max-count=${options.maxCommits ?? 2000}`,
-  ]);
-  return scanDiffStream(diff);
+export function scanDiffStream(diff: string): Finding[] {
+  const walker = diffWalker();
+  for (const line of diff.split('\n')) walker.line(line);
+  return walker.findings;
+}
+
+/** All available refs, without a commit-count cap or buffered git-log output. */
+export async function scanHistory(root: string): Promise<Finding[]> {
+  if (git(root, ['rev-parse', '--is-shallow-repository']).trim() !== 'false') {
+    throw new Error('BLOCKED: full history is unavailable; fetch the repository with fetch-depth: 0.');
+  }
+  const child = spawn('git', ['-c', 'core.quotePath=false', 'log', '-p', '-U0', '--all', '--no-color', '--no-ext-diff', '--no-textconv', '--format=commit %H'], {
+    cwd: root, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  // Drain stderr without retaining or printing anything it may echo from source.
+  child.stderr.resume();
+  const completed = new Promise<void>((resolve, reject) => {
+    child.once('error', () => reject(new Error('BLOCKED: history subprocess could not start.')));
+    child.once('close', code => code === 0 ? resolve() : reject(new Error('BLOCKED: history subprocess failed.')));
+  });
+  // Observe a subprocess failure even while the line iterator is still running.
+  void completed.catch(() => {});
+  // Readline retains one complete line. Refuse pathological single-line history
+  // before it can grow beyond the same 8 MiB budget as a tracked-file scan.
+  let lineBytes = 0;
+  const bounded = new Transform({ transform(chunk: Buffer, _encoding, callback) {
+    let start = 0;
+    for (;;) {
+      const newline = chunk.indexOf(10, start);
+      const end = newline === -1 ? chunk.length : newline;
+      lineBytes += end - start;
+      if (lineBytes > MAX_FILE_BYTES) return callback(new Error('history line exceeds scan budget'));
+      if (newline === -1) break;
+      lineBytes = 0;start = newline + 1;
+    }
+    callback(null, chunk);
+  } });
+  child.stdout.pipe(bounded);
+  const lines = createInterface({ input: bounded, crlfDelay: Infinity });
+  const walker = diffWalker();
+  try {
+    for await (const line of lines) walker.line(line);
+    await completed;
+    return walker.findings;
+  } finally { lines.close(); bounded.destroy(); if (child.exitCode === null) child.kill(); }
 }
 
 export const BUNDLE_DIRECTORIES = [
@@ -575,10 +614,12 @@ export function repositoryRoot(): string {
  * One run, as data. The CLI only prints what this returns, so the blocked path
  * and the exit codes are testable without a subprocess.
  */
-export function runScan(argv: readonly string[], root: string): { code: number; lines: string[] } {
+export async function runScan(argv: readonly string[], root: string): Promise<{ code: number; lines: string[] }> {
   if (argv.includes('--history')) {
-    const findings = scanHistory(root);
-    return { code: findings.length === 0 ? 0 : 1, lines: report(findings, 'git history') };
+    try {
+      const findings = await scanHistory(root);
+      return { code: findings.length === 0 ? 0 : 1, lines: report(findings, 'all available git refs; full history') };
+    } catch { return { code: 1, lines: ['BLOCKED: full history scan could not complete. Unshallow the repository and inspect Git availability.'] }; }
   }
   if (argv.includes('--bundles')) {
     const files = bundleFiles(root);
@@ -607,7 +648,7 @@ export function runScan(argv: readonly string[], root: string): { code: number; 
 const invokedDirectly =
   process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invokedDirectly) {
-  const outcome = runScan(process.argv.slice(2), repositoryRoot());
+  const outcome = await runScan(process.argv.slice(2), repositoryRoot());
   for (const line of outcome.lines) (outcome.code === 0 ? console.log : console.error)(line);
   process.exit(outcome.code);
 }

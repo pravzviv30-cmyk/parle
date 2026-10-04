@@ -18,6 +18,20 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
    runs on Fable and returns the contract. Write that to `.forge/<slug>/contract.md`, where
    `<slug>` is a few kebab-case words from the request.
 
+   For a backend change, obtain the applicable specialist input before finalising the
+   contract. `backend-architect` coordinates cross-service invariants; these reviewers
+   advise the design-architect and never replace the territory builders or final judge.
+
+   | Design decision | Architect |
+   |---|---|
+   | cross-service ownership, protocol and state transitions | **backend-architect** |
+   | auth, RLS, grants, migrations, privacy, money storage | **database-security-architect** |
+   | voice admission, media, typed commands, settlement and recovery | **voice-reliability-architect** |
+   | hosting, CI enforcement, release compatibility and restore | **deployment-architect** |
+
+   Select only roles touched by the change. `/backend-review` documents the shared
+   evidence handoff. An unavailable pinned reviewer remains an explicit review gap.
+
 3. **Get approval before any edit.** Show the contract. In plan mode that means
    `ExitPlanMode`; otherwise ask plainly and wait. Nothing is written to the repo until the
    contract is approved.

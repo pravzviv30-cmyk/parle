@@ -116,7 +116,7 @@ export async function scoreWithTonePerfect(req: ScoreRequest, deps: ScoreDeps = 
       // A fired deadline is the router's to report, and it already has.
       if (signal?.aborted) return [];
       if (retryable) continue;
-      console.warn('[toneperfect] request failed twice, so this utterance is unscored', err);
+      console.warn('[toneperfect] request failed twice, so this utterance is unscored', safeError(err));
       return [];
     }
 
@@ -131,7 +131,7 @@ export async function scoreWithTonePerfect(req: ScoreRequest, deps: ScoreDeps = 
       body = await res.json();
     } catch (err) {
       if (signal?.aborted) return [];
-      console.warn('[toneperfect] the response was not JSON, so this utterance is unscored', err);
+      console.warn('[toneperfect] the response was not JSON, so this utterance is unscored', safeError(err));
       return [];
     }
 
@@ -172,8 +172,9 @@ export function parseTonePerfect(payload: unknown): PhonemeObservation[] {
   }
   const answer = payload as { status?: unknown; assessable?: unknown; reason?: unknown; words?: unknown };
   if (answer.status !== 'completed' || answer.assessable !== true) {
-    const why = typeof answer.reason === 'string' && answer.reason ? answer.reason : String(answer.status ?? 'no status');
-    console.warn(`[toneperfect] not assessed (${why}), so this utterance is unscored`);
+    // Keep a useful fixed category without copying arbitrary provider text.
+    const reason = answer.reason === 'speech_too_short' ? 'speech_too_short' : 'unassessable';
+    console.warn(`[toneperfect] not assessed (${reason}), so this utterance is unscored`);
     return [];
   }
   if (!Array.isArray(answer.words)) {
@@ -210,13 +211,11 @@ export function parseTonePerfect(payload: unknown): PhonemeObservation[] {
   }
 
   if (unknown.size > 0) {
-    console.warn(
-      `[toneperfect] ${unknown.size} phone symbol(s) are not in the French inventory, so nothing can be said about ` +
-        `them: ${[...unknown].join(' ')}. If the whole response is listed here, the vendor has changed alphabet.`,
-    );
+    console.warn('[toneperfect] unknown phone symbols', { count: unknown.size });
   }
   if (answer.words.length > 0 && readable === 0) {
     console.warn('[toneperfect] a completed assessment produced no readable phones; has the response shape changed?');
   }
   return out;
 }
+import { safeError } from './safeError.ts';

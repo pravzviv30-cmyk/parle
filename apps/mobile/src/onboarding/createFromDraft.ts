@@ -19,7 +19,7 @@
  * and the plan page must not load anything that can (`disclosure.test.ts`).
  */
 
-import { createStoredProfile, type StoredProfile } from '../profile/store.ts';
+import { carryPreferenceEdits, createStoredProfile, type StoredProfile } from '../profile/store.ts';
 import { withLearnerGoal } from '../profile/memory.ts';
 import type { StoredReminder } from '../reminders/reminder.ts';
 import { withChosenVoice } from './voiceStep.ts';
@@ -42,7 +42,7 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
     brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft)) } },
   };
   const voiced = withChosenVoice(placed, draft.tutorVoice);
-  return draft.reason === null ? voiced : withLearnerGoal(voiced, SEEDED_GOAL[draft.reason]);
+  return draft.reason === null ? voiced : carryPreferenceEdits(voiced, withLearnerGoal(voiced, SEEDED_GOAL[draft.reason]));
 }
 
 /** The reminder time chosen on the plan, saved off until the OS has said yes. */

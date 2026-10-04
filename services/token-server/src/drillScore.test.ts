@@ -6,6 +6,7 @@
 
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
+import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
@@ -39,7 +40,7 @@ function scoringHeaders(user = LEARNER, reference = LINE): Record<string, string
 function response(): { res: ServerResponse; status: () => number; body: () => Record<string, unknown> } {
   let status = 0;
   let payload = '';
-  const res = {
+  const res = Object.assign(new EventEmitter(), {
     writeHead(code: number) {
       status = code;
       return res;
@@ -47,7 +48,7 @@ function response(): { res: ServerResponse; status: () => number; body: () => Re
     end(text?: string) {
       payload = text ?? '';
     },
-  } as unknown as ServerResponse;
+  }) as unknown as ServerResponse;
   return { res, status: () => status, body: () => (payload === '' ? {} : (JSON.parse(payload) as Record<string, unknown>)) };
 }
 
@@ -190,7 +191,9 @@ describe('drill scoring keeps the learner and the line out of the URL — F626',
     assert.match(block, /RATE_LIMITS\.scoringIp/);
     assert.match(block, /RATE_LIMITS\.scoringUser/);
     assert.match(block, /RATE_LIMITS\.scoringInstallation/);
-    assert.match(block, /scoreUtterance\(request, \{ timeoutMs: 10_000 \}\)/);
+    assert.match(block, /scoreUtterance\(request,\s*\{timeoutMs:10000,signal/);
+    assert.match(block, /decodeAudio\(request\.audio,\{signal\}\)/);
+    assert.match(block, /paid\.apiTransport\(user,'api-score',signal\)/);
     assert.doesNotMatch(block, /searchParams/, 'the server reads the learner or the line from the URL again');
   });
 });

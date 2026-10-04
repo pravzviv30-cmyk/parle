@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+const { startSync } = await import(new URL('../../apps/mobile/src/sync/engine.ts',import.meta.url));
+let requests=0;
+const engine=startSync({uid:'proof-user',deviceId:'proof-device',url:'https://example.invalid',anonKey:'proof',getAccessToken:async()=> 'proof-bearer',fetch:async()=>{requests++;return new Promise(()=>{});},storage:{getItem:async()=>null,setItem:async()=>{}},keyFor:x=>x,policy:{namespaces:['profile'],merge:()=>({kind:'merged',data:null})},schedule:()=>{}});
+void engine.reconcileAll();
+await new Promise(r=>setTimeout(r,10));
+engine.resume();
+const second=engine.reconcile('profile');
+const result=await Promise.race([second.then(()=> 'completed'),new Promise(r=>setTimeout(()=>r('still-pending'),50))]);
+assert.equal(result,'still-pending');assert.equal(requests,1);engine.stop();
+console.log('REPRODUCED: one never-settling transport request holds the sync chain; resume and a queued reconcile do not issue a second request or complete. No transport deadline/cancellation exists. No real network call made.');

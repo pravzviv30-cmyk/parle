@@ -6,6 +6,14 @@ export interface ServerEnvironment {
   SUPABASE_JWT_SECRET?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   LUVANI_AGENT_SECRET?: string;
+  LUVANI_METRICS_SECRET?: string;
+  LUVANI_BRAIN?: string;
+  LUVANI_SCORING_VENDOR?: string;
+  SPEECHACE_API_KEY?: string;
+  TONEPERFECT_API_KEY?: string;
+  FISH_API_KEY?: string;
+  LUVANI_TTS_VENDOR?: string;
+  TUTOR_LLM?: string;
   LUVANI_ALLOWED_ORIGINS?: string;
   UPSTASH_REDIS_REST_URL?: string;
   UPSTASH_REDIS_REST_TOKEN?: string;
@@ -22,7 +30,7 @@ function secureUrl(value: string | undefined, protocol: 'https:' | 'wss:'): bool
   if (!value) return false;
   try {
     const parsed = new URL(value);
-    return parsed.protocol === protocol && !parsed.username && !parsed.password;
+    return parsed.protocol === protocol && !parsed.username && !parsed.password && !parsed.search && !parsed.hash;
   } catch {
     return false;
   }
@@ -44,7 +52,13 @@ export function productionConfigurationProblems(env: ServerEnvironment): string[
   if (env.NODE_ENV !== 'production') problems.push('NODE_ENV=production or LUVANI_LOCAL_DEVELOPMENT=1');
   if (!secureUrl(env.SUPABASE_URL, 'https:')) problems.push('HTTPS Supabase JWKS authentication');
   if (!secureUrl(env.LIVEKIT_URL, 'wss:')) problems.push('secure WSS LiveKit URL');
-  if (!env.LUVANI_AGENT_SECRET) problems.push('LUVANI_AGENT_SECRET');
+  if (!env.LUVANI_AGENT_SECRET || env.LUVANI_AGENT_SECRET.length < 32) problems.push('LUVANI_AGENT_SECRET');
+  if (env.LUVANI_METRICS_SECRET && env.LUVANI_METRICS_SECRET.length < 32) problems.push('strong LUVANI_METRICS_SECRET');
+  if (env.LUVANI_LOCAL_DEVELOPMENT === '1') problems.push('local development disabled');
+  if (env.LUVANI_BRAIN && !['anthropic','openai'].includes(env.LUVANI_BRAIN)) problems.push('hosted API brain');
+  if (env.TUTOR_LLM && !['anthropic','openai'].includes(env.TUTOR_LLM.trim().toLowerCase())) problems.push('hosted TUTOR_LLM brain');
+  if (env.TONEPERFECT_API_KEY || env.FISH_API_KEY || env.LUVANI_TTS_VENDOR && env.LUVANI_TTS_VENDOR !== 'elevenlabs') problems.push('unsupported production paid adapter');
+  if (env.LUVANI_SCORING_VENDOR && env.LUVANI_SCORING_VENDOR !== 'speechace' || env.SPEECHACE_API_KEY && env.LUVANI_SCORING_VENDOR !== 'speechace' || env.LUVANI_SCORING_VENDOR === 'speechace' && !env.SPEECHACE_API_KEY?.trim()) problems.push('explicit supported Speechace scoring');
   const origins = (env.LUVANI_ALLOWED_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean);
   if (origins.length === 0) problems.push('LUVANI_ALLOWED_ORIGINS');
   else if (origins.some((origin) => !exactHttpsOrigin(origin))) {

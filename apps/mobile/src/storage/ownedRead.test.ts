@@ -20,7 +20,7 @@ test('owned cache distinguishes no key and a valid empty collection from unreada
 test('bookmark and pack mutations cannot replace unreadable owned material with an empty fallback', () => {
   for (const [path, start, end] of [
     ['../bookmarks/store.ts', 'async function readItems(', '/**\n * The envelope'],
-    ['../conversationPacks/store.ts', 'async function read(', '/** Packs are server-owned'],
+    ['../conversationPacks/store.ts', 'async function readCache(', 'async function writeCache('],
   ] as const) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');
     const read = source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));

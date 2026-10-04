@@ -1,0 +1,6 @@
+{"case":"active lease release","first":200,"concurrentBeforeAbandon":409,"abandon":200,"newStart":200,"firstCredentialStillExists":true,"differentSessionIds":true}
+{"case":"null body","path":"/session/start","status":500}
+{"case":"null body","path":"/billing/status","status":500}
+{"case":"health without DB or voice worker","status":200}
+{"case":"audio overflow","connectionFailed":true}
+{"case":"audio overflow process outcome","exitCode":1,"unhandledPayloadError":true}

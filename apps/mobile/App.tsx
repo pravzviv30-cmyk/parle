@@ -50,6 +50,7 @@ import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
 import { AuthFlow } from './src/auth/AuthFlow.tsx';
 import { SetNewPasswordScreen } from './src/auth/SetNewPasswordScreen.tsx';
 import { EraseNoticeScreen } from './src/auth/EraseNoticeScreen.tsx';
+import { DeletionPendingNotice } from './src/auth/DeletionPendingNotice.tsx';
 import { deleteAccountAndErase } from './src/auth/deleteAccountFlow.ts';
 import type { AuthUser } from './src/auth/types.ts';
 import type { AuthResult } from './src/auth/types.ts';
@@ -515,6 +516,7 @@ function Gate() {
    * a disk erase finished is not an auth fact for the provider to carry.
    */
   const [localCopyKept, setLocalCopyKept] = useState(false);
+  const [deletionPending, setDeletionPending] = useState(false);
   /**
    * An under-13 answer on the first run's save page, before any account
    * (F637, F639, F641). Held here because `Gate` stays mounted for the whole
@@ -574,7 +576,11 @@ function Gate() {
     return deleteAccountAndErase(
       {
         reauthenticate: (secret) => auth.reauthenticateForDeletion(secret),
-        deleteAccount: () => auth.deleteAccount(),
+        deleteAccount: async () => {
+          const result = await auth.deleteAccount();
+          if (result.ok && result.deletionPending) setDeletionPending(true);
+          return result;
+        },
         eraseThisDevice: () => clearActiveUserData(),
         signOut: () => auth.signOut(),
         warnLocalCopyKept: () => setLocalCopyKept(true),
@@ -602,6 +608,7 @@ function Gate() {
   // nothing else can be reached until it is, so this cannot be waiting behind
   // the next learner's sign-in either. F496.
   if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
+  if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
   return (
     <AuthFlow
       initialDraft={preAccountDraft}

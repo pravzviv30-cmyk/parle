@@ -46,12 +46,23 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { evaluateAudit } from './dependencyAudit.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
 const LEDGER_PATH = path.join(ROOT, 'docs', 'KNOWN_ISSUES.md');
 const MANIFEST_PATH = path.join(ROOT, 'package.json');
 const SECRET_SCANNER = path.join(ROOT, 'services', 'token-server', 'src', 'secretScan.ts');
+
+// Hooks export repository-local Git selectors. The gate owns ROOT; its tests
+// also create unrelated fixture repositories. Let each Git child resolve from
+// its explicit cwd, rather than reinitializing or scanning the caller's repo.
+// This affects only the gate process and children, never the parent push.
+for (const key of execFileSync('git', ['rev-parse', '--local-env-vars'], {
+  cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+}).trim().split('\n')) {
+  if (key) delete process.env[key];
+}
 
 const args = process.argv.slice(2);
 const asJson = args.includes('--json');
@@ -65,13 +76,14 @@ const auditOnly = args.includes('--audit');
 const failures = [];
 const fail = (check, detail) => failures.push({ check, detail });
 
-function run(command, commandArgs) {
+function run(command, commandArgs, options = {}) {
   try {
     const stdout = execFileSync(command, commandArgs, {
       cwd: ROOT,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       maxBuffer: 64 * 1024 * 1024,
+      ...options,
     });
     return { code: 0, out: stdout };
   } catch (err) {
@@ -127,38 +139,13 @@ if (auditOnly) {
     process.exit(1);
   }
 
-  const rows = Object.values(report.vulnerabilities);
-  const isRoot = (row) => Array.isArray(row.via) && row.via.some((entry) => typeof entry === 'object');
-  const roots = new Map(rows.filter(isRoot).map((row) => [row.name, row]));
-
-  const accepted = new Set(decided.filter((d) => d.decision === 'accepted').map((d) => d.module));
-  const fixed = new Set(decided.filter((d) => d.decision === 'fixed').map((d) => d.module));
-  const problems = [];
-
-  for (const [name, row] of roots) {
-    if (row.severity !== 'high' && row.severity !== 'critical') continue;
-    if (accepted.has(name)) continue;
-    problems.push(
-      `${name} (${row.severity}) is not in package.json luvani.dependencyAudit.advisories. ` +
-        'Fix it, or record it with a reachability argument and why it cannot be fixed.',
-    );
-  }
-  for (const name of accepted) {
-    if (!roots.has(name)) {
-      problems.push(`${name} is recorded as accepted but npm audit no longer reports it. Remove the acceptance.`);
-    }
-  }
-  for (const name of fixed) {
-    if (roots.has(name)) {
-      problems.push(`${name} is recorded as fixed but npm audit still reports it against this lockfile.`);
-    }
-  }
-
+  const lock = JSON.parse(readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8'));
+  const { problems, accepted } = evaluateAudit(record, lock, report);
   const totals = report.metadata?.vulnerabilities ?? {};
   if (problems.length === 0) {
     console.log(
       `audit: ${totals.critical ?? 0} critical, ${totals.high ?? 0} high, ${totals.moderate ?? 0} moderate — ` +
-        `every high root is one of ${[...accepted].join(', ')}, each recorded with a reachability argument.`,
+        `every high root is one of ${accepted.join(', ')}, each recorded with a reachability argument.`,
     );
     process.exit(0);
   }
@@ -223,6 +210,39 @@ for (const pkg of fast ? [] : Object.keys(floors)) {
     if (!t.startsWith('✔ ')) continue;
     passed.add(t.slice(2).replace(/\s*\([\d.]+m?s\)\s*$/, '').trim());
   }
+}
+
+// ------------------------------------------------------- disposable SQL proofs
+// Mandatory full-gate checks. Never connect to Supabase or trust a temporary
+// module override; CI installs the exact root development dependency lock.
+const databaseProofs = [];
+let releaseProviderProofTests = 0;
+if (!fast) {
+  const migrationCount = readdirSync(path.join(ROOT, 'supabase', 'migrations')).filter(file => file.endsWith('.sql')).length;
+  const proofEnvironment = { ...process.env, PGLITE_MODULE: '' };
+  for (const script of ['verifyDataBoundaries.mjs', 'verifyTutorSessions.mjs', 'verifyPrivacyJobs.mjs','verifyAccountExport.mjs','verifySessionDetails.mjs','verifyFriendsLaunch.mjs','verifyPaidAdmission.mjs','verifyConversationLibrary.mjs']) {
+    const result = run(process.execPath, ['--experimental-strip-types', path.join(ROOT, 'scripts', script)], {
+      env: proofEnvironment, timeout: 120_000,
+    });
+    let replayed = null;
+    if (['verifyDataBoundaries.mjs','verifyFriendsLaunch.mjs'].includes(script)) {
+      replayed = Number(result.out.match(/PASS: all (\d+) migrations/)?.[1] ?? NaN);
+    } else if (['verifyPrivacyJobs.mjs','verifyPaidAdmission.mjs','verifyConversationLibrary.mjs'].includes(script)) {
+      replayed = Number(result.out.match(/PASS:? all (\d+) migrations/)?.[1] ?? NaN);
+    } else {
+      try { const proof = JSON.parse(result.out.slice(result.out.indexOf('{'), result.out.lastIndexOf('}') + 1)); if (['PASS','pass'].includes(proof.status) && (Array.isArray(proof.proofGroups)?proof.proofGroups.length>0:proof.proofGroups>0)) replayed = proof.migrationCount; } catch { /* refusal below */ }
+    }
+    if (result.code !== 0 || replayed !== migrationCount || migrationCount === 0) {
+      fail('database proofs', `${script}: must successfully replay all ${migrationCount} migrations.\n${result.out.slice(-2000)}`);
+    } else { databaseProofs.push({ script, migrationCount: replayed }); }
+  }
+}
+
+if(!fast) {
+  const result=run(process.execPath,['--test','services/shared/paidExecution.test.ts','scripts/verifyPaidAdapters.test.mjs','services/shared/audioDecode.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs']);
+  const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
+  if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
+  else releaseProviderProofTests = tested;
 }
 
 // ------------------------------------------------------------------ 3. hygiene
@@ -315,6 +335,10 @@ const AGENT_MODELS = {
   'repository-archaeologist': 'fable',
   'social-systems-engineer': 'fable',
   'qa-release-engineer': 'opus',
+  'backend-architect': 'fable',
+  'database-security-architect': 'fable',
+  'voice-reliability-architect': 'fable',
+  'deployment-architect': 'fable',
 };
 
 const readOrNull = (file) => {
@@ -369,7 +393,7 @@ for (const agent of agentFiles) {
   }
 }
 
-for (const command of ['forge', 'bug-sweep', 'ship']) {
+for (const command of ['forge', 'bug-sweep', 'ship', 'backend-review']) {
   if (readOrNull(path.join(ROOT, '.claude', 'commands', `${command}.md`)) === null) {
     fail('agents', `.claude/commands/${command}.md is missing — /${command} does not exist`);
   }
@@ -450,7 +474,7 @@ if (bless) {
 }
 
 if (asJson) {
-  console.log(JSON.stringify({ ok, failures, counts, open: entries.filter((e) => !e.done).map((e) => ({ id: e.id, severity: e.severity, title: e.title })) }, null, 2));
+  console.log(JSON.stringify({ ok, failures, counts, databaseProofs, releaseProviderProofTests, open: entries.filter((e) => !e.done).map((e) => ({ id: e.id, severity: e.severity, title: e.title })) }, null, 2));
 } else {
   const total = Object.values(counts).reduce((n, c) => n + c.tests, 0);
   for (const [pkg, c] of Object.entries(counts)) {
@@ -460,6 +484,8 @@ if (asJson) {
     console.log('  fast: hygiene, secrets, agents and the ledger only. No suite ran and no tick was verified.');
   } else {
     console.log(`  total: ${total} tests`);
+    if(releaseProviderProofTests) console.log(`  ✔ shared release/provider proofs: ${releaseProviderProofTests} tests, 0 failing`);
+    for (const proof of databaseProofs) console.log(`  ✔ ${proof.script}: all ${proof.migrationCount} migrations replayed`);
   }
   if (ok) {
     console.log(fast ? '\ngate: fast checks green' : '\ngate: green');

@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "notes": [
+    "Names and ownership only. Inject actual values from reviewed per-environment secret references; never store values here.",
+    "Secrets are currently environment variables read by the application. Private env files are a portable example; use host secret injection after hosting review.",
+    "Supabase service_role bypasses RLS. API/practice/maintenance are trusted services, not dedicated restricted SQL roles; narrower per-service credentials need a separately tested migration.",
+    "All five containers use the same locked artifact but receive different secrets. Tutor never receives a database service key.",
+    "Only the chosen provider receives a key; optional product capabilities require their own tested provider keys and explicit availability evidence.",
+    "TUTOR_LLM is the shared factory selector for API, tutor and practice. Groq is recognized but refused in these production artifacts until its degraded privacy behavior has a separately reviewed launch contract."
+  ],
+  "fixedProduction": {
+    "NODE_ENV": "production",
+    "PORT": "8787",
+    "LUVANI_LOCAL_DEVELOPMENT": "0",
+    "LUVANI_NATIVE_EVAL": "0",
+    "LUVANI_DEV_UNLIMITED_MINUTES": "0",
+    "LUVANI_DURABLE_PRACTICE": "1"
+  },
+  "forbiddenProduction": [
+    "ENTITLEMENT_STORE_PATH",
+    "SUPABASE_JWT_SECRET",
+    "CLAUDE_CLI_PATH",
+    "LUVANI_BRAIN",
+    "TYPESAFE_API_KEY",
+    "FISH_API_KEY",
+    "TONEPERFECT_API_KEY"
+  ],
+  "roles": {
+    "api": {
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "LIVEKIT_API_KEY",
+        "LIVEKIT_API_SECRET",
+        "LUVANI_AGENT_SECRET",
+        "LUVANI_METRICS_SECRET",
+        "LUVANI_RATE_LIMIT_SALT",
+        "UPSTASH_REDIS_REST_TOKEN"
+      ],
+      "configuration": [
+        "SUPABASE_URL",
+        "LIVEKIT_URL",
+        "UPSTASH_REDIS_REST_URL",
+        "LUVANI_ALLOWED_ORIGINS",
+        "LUVANI_TRUST_PROXY",
+        "TUTOR_LLM",
+        "LUVANI_TYPED_ONLY",
+        "LUVANI_DURABLE_PRACTICE",
+        "LUVANI_SCORING_VENDOR",
+        "LUVANI_PAID_QUOTE_BINDINGS"
+      ],
+      "optionalSecrets": [
+        "REVENUECAT_SECRET_API_KEY",
+        "LUVANI_REVENUECAT_WEBHOOK_SECRET",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "DEEPGRAM_API_KEY",
+        "ELEVEN_API_KEY",
+        "SPEECHACE_API_KEY",
+        "GROQ_API_KEY"
+      ],
+      "optionalConfiguration": [
+        "REVENUECAT_ENTITLEMENT_ID",
+        "REVENUECAT_STARTER_PRODUCT_ID",
+        "REVENUECAT_REGULAR_PRODUCT_ID",
+        "OPENAI_TURN_MODEL",
+        "OPENAI_LIVE_MODEL",
+        "OPENAI_ANALYST_MODEL",
+        "LUVANI_TTS_VENDOR",
+        "LUVANI_AUDIO_DECODER_PATH",
+        "LUVANI_AUDIO_DECODER_SHA256"
+      ]
+    },
+    "tutor": {
+      "secrets": [
+        "LIVEKIT_API_KEY",
+        "LIVEKIT_API_SECRET",
+        "LUVANI_AGENT_SECRET"
+      ],
+      "configuration": [
+        "LIVEKIT_URL",
+        "TOKEN_SERVER_URL",
+        "TUTOR_LLM",
+        "LUVANI_TYPED_ONLY",
+        "LUVANI_TTS_VENDOR",
+        "TTS_CACHE_DIR",
+        "LUVANI_PAID_QUOTE_BINDINGS"
+      ],
+      "optionalSecrets": [
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "DEEPGRAM_API_KEY",
+        "ELEVEN_API_KEY",
+        "SPEECHACE_API_KEY",
+        "GROQ_API_KEY"
+      ],
+      "optionalConfiguration": [
+        "OPENAI_TURN_MODEL",
+        "OPENAI_LIVE_MODEL",
+        "OPENAI_ANALYST_MODEL",
+        "LUVANI_SCORING_VENDOR",
+        "LUVANI_TURN_DETECTION",
+        "LUVANI_TTS_MISS_TRANSPORT",
+        "LUVANI_AUDIO_DECODER_PATH",
+        "LUVANI_AUDIO_DECODER_SHA256"
+      ]
+    },
+    "practice": {
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "configuration": [
+        "SUPABASE_URL",
+        "LUVANI_DURABLE_PRACTICE",
+        "TUTOR_LLM",
+        "LUVANI_PAID_QUOTE_BINDINGS"
+      ],
+      "optionalSecrets": [
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "GROQ_API_KEY"
+      ],
+      "optionalConfiguration": [
+        "OPENAI_TURN_MODEL",
+        "OPENAI_LIVE_MODEL",
+        "OPENAI_ANALYST_MODEL"
+      ]
+    },
+    "maintenance": {
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "LIVEKIT_API_KEY",
+        "LIVEKIT_API_SECRET",
+        "LUVANI_DELETION_JOURNAL_TOKEN",
+        "LUVANI_DELETION_JOURNAL_KEY"
+      ],
+      "configuration": [
+        "SUPABASE_URL",
+        "LIVEKIT_URL",
+        "LUVANI_DELETION_JOURNAL_URL",
+        "LUVANI_DELETION_JOURNAL_PROJECT_URL"
+      ],
+      "optionalSecrets": [
+        "REVENUECAT_SECRET_API_KEY"
+      ],
+      "optionalConfiguration": []
+    },
+    "observability": {
+      "secrets": [
+        "LUVANI_METRICS_SECRET"
+      ],
+      "configuration": [
+        "LUVANI_OBSERVABILITY_CONFIG"
+      ],
+      "optionalSecrets": [],
+      "optionalConfiguration": []
+    }
+  },
+  "isolatedRestore": {
+    "secrets": [
+      "LUVANI_DELETION_JOURNAL_TOKEN",
+      "LUVANI_DELETION_JOURNAL_KEY"
+    ],
+    "configuration": [
+      "LUVANI_DELETION_JOURNAL_URL",
+      "LUVANI_DELETION_JOURNAL_PROJECT_URL"
+    ],
+    "notes": [
+      "Journal must survive database rollback; storage durability/readback/conditional append and replay are external release acceptance.",
+      "Key is exactly32bytes encoded as43base64url characters; token is at least32characters. Never bundle or put the key in restore evidence."
+    ]
+  },
+  "mobile": {
+    "publicConfiguration": [
+      "EXPO_PUBLIC_TOKEN_SERVER_URL",
+      "EXPO_PUBLIC_SUPABASE_URL",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY",
+      "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY",
+      "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID",
+      "EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID",
+      "EXPO_PUBLIC_REVENUECAT_REGULAR_PRODUCT_ID"
+    ],
+    "stagingEnvironment": "preview",
+    "productionEnvironment": "production",
+    "notes": [
+      "EXPO_PUBLIC values are bundled and readable by users regardless of EAS visibility.",
+      "Supabase anon and RevenueCat SDK publishable keys are public; secret/backend keys are forbidden in mobile bundles.",
+      "Actual EAS project/signing/public endpoint values remain operator-supplied external acceptance. No Expo Updates capability is configured."
+    ]
+  }
+}

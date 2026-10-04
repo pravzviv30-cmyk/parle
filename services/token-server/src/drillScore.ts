@@ -27,6 +27,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { buildReport, type PhonemeObservation } from '@luvani/core';
 
 import type { ResolvedUser } from './auth.ts';
+import { readRequestBytes, withRequestSignal } from './requestBoundary.ts';
 
 /** The learner the app claims to be, used only where a bearer does not decide. */
 export const DRILL_USER_HEADER = 'x-luvani-user';
@@ -46,24 +47,18 @@ export interface DrillScoreDeps {
    */
   limits(req: IncomingMessage, res: ServerResponse, userId: string | null): Promise<boolean>;
   /** The vendor router. Never throws; `[]` means no score, never a low one. */
-  score(request: { reference: string; audio: Uint8Array }): Promise<PhonemeObservation[]>;
+  score(request: { reference: string; audio: Uint8Array }, signal?: AbortSignal,user?:Extract<ResolvedUser,{ok:true}>): Promise<PhonemeObservation[]>;
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {
+  if (res.destroyed || res.writableEnded) return;
   const payload = JSON.stringify(body);
   res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) });
   res.end(payload);
 }
 
 export async function readAudio(req: IncomingMessage): Promise<Uint8Array> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += (chunk as Buffer).length;
-    if (size > SCORE_AUDIO_LIMIT_BYTES) throw new Error('payload too large');
-    chunks.push(chunk as Buffer);
-  }
-  return Buffer.concat(chunks);
+  return readRequestBytes(req, SCORE_AUDIO_LIMIT_BYTES);
 }
 
 /**
@@ -100,14 +95,16 @@ export async function handleDrillScore(req: IncomingMessage, res: ServerResponse
     return json(res, 400, { error: 'a scoring header is not valid percent-encoding' });
   }
   if (!reference) return json(res, 400, { error: 'reference is required' });
+  if (Buffer.byteLength(reference) > 4096) return json(res, 413, { error: 'reference is too large' });
   const resolved = await deps.users.resolve(req.headers.authorization, claimed);
   if (!resolved.ok) return json(res, resolved.status, { error: resolved.message });
+  if(claimed!==null && claimed!==resolved.userId)return json(res,403,{error:'account changed'});
   if (!(await deps.limits(req, res, resolved.userId))) return;
 
   const audio = await readAudio(req);
   if (audio.length === 0) return json(res, 400, { error: 'audio body is required' });
 
-  const observations = await deps.score({ reference, audio });
+  const observations = await withRequestSignal(req, res, signal => deps.score({ reference, audio }, signal,resolved));
   // No key, vendor down, timed out, or unscorable audio: an empty result, never an
   // invented penalty. The app treats it as "no verdict". The report is
   // core's — one focus point at most, and only when the evidence earns it.

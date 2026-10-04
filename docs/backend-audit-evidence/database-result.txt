@@ -1,0 +1,9 @@
+PASS: all 26 checked-in migrations applied sequentially to disposable PostgreSQL/WASM with simulated Supabase default grants.
+Local catalog: {"tables":21,"rls_tables":21}
+Client-callable app functions: [{"name":"luvani_private.social_dispatch","args":"action text, args jsonb","prosecdef":true,"authenticated":true,"anon":false},{"name":"public.luvani_social","args":"action text, args jsonb","prosecdef":false,"authenticated":true,"anon":false}]
+Single-column foreign keys without a nonpartial leading-column index: [{"table_name":"social_blocks","column_name":"target"},{"table_name":"social_reactions","column_name":"user_id"},{"table_name":"social_reports","column_name":"target"},{"table_name":"social_reports","column_name":"user_id"}]
+REPRODUCED: direct authenticated own-row INSERT accepts 614477-byte learner_state payload above the app's 512 KiB cap.
+REPRODUCED: an authenticated client writes unverified activity and receives 100 Friends points and 1 conversation, with no session_usage/session_grants rows.
+REPRODUCED: 10,001 valid own-account product_events accepted in one direct authenticated INSERT without a DB quota.
+REPRODUCED: account export fails completely after one owned table exceeds 10,000 rows; no pagination/archive fallback implemented.
+PASS: ownership RLS blocks a second user from reading the proof learner state; privileged refund RPC unavailable to authenticated role.

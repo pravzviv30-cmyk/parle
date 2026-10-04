@@ -73,6 +73,16 @@ export interface SafetyDecision {
 
 // ---------------------------------------------------------------- normalising
 
+/** Accepted learner content is checked whole before any transcript/model dispatch. */
+export const MAX_LEARNER_TEXT_BYTES = 4_096;
+export function isAcceptedLearnerText(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= MAX_LEARNER_TEXT_BYTES && Buffer.byteLength(value, 'utf8') <= MAX_LEARNER_TEXT_BYTES;
+}
+
+// Output guards combine translated surfaces. Keep that larger, finite policy
+// bound separate from the learner-input contract, and never inspect a prefix.
+const MAX_POLICY_TEXT_BYTES = 16_384;
+
 /**
  * Invisible characters. Anything here can be dropped without changing what a
  * human reads, which is exactly why an attacker puts them inside a word.
@@ -122,12 +132,14 @@ const ONE_LETTER_WORDS = new Set(['a', 'i', 'y', 'o']);
 
 /**
  * The canonical form: accents folded, invisibles removed, homoglyphs mapped
- * home, whitespace collapsed. Bounded at 4k characters so a wall of text costs
- * a fixed amount of work.
+ * home, whitespace collapsed. Oversize input is refused before normalization;
+ * every accepted byte is inspected, including the end of the utterance.
  */
 function normalise(input: string): string {
+  if (typeof input !== 'string' || input.length > MAX_POLICY_TEXT_BYTES || Buffer.byteLength(input, 'utf8') > MAX_POLICY_TEXT_BYTES) {
+    throw new RangeError('Safety text exceeds the policy bound');
+  }
   return input
-    .slice(0, 4_000)
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(INVISIBLE, '')

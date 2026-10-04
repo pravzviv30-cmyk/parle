@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { TurnQueue } from './queue.ts';
+import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 
 /** A piece of work that finishes when the test says so. */
 function held(): { work: () => Promise<void>; finish: () => void; fail: (err: Error) => void } {
@@ -90,4 +90,55 @@ describe('a queue that can say whether it is in the middle of something', () => 
     await queue.runIfCurrent(armed, async () => void ran.push('late rescue'));
     assert.deepEqual(ran, ['rescue', 'turn'], 'the late rescue dropped itself');
   });
+});
+
+test('overload never allocates an unbounded tail or rejects an SDK callback', async () => {
+  const queue = new TurnQueue({ maxPending: 2 });
+  const first = held();
+  let calls = 0;
+  const running = queue.run(first.work);
+  const waiting = queue.run(async () => { calls += 1; });
+  for (let i = 0; i < 1_000; i++) await assert.doesNotReject(queue.run(async () => { calls += 1; }));
+  assert.equal(queue.pending, 2);
+  first.finish(); await Promise.all([running, waiting]); await queue.idle();
+  assert.equal(calls, 1);
+});
+
+test('leaving invalidates queued generation while the running provider is being cancelled', async () => {
+  const queue = new TurnQueue();
+  const first = held();
+  const running = queue.run(first.work);
+  let staleCalls = 0;
+  const stale = queue.run(async () => { staleCalls += 1; });
+  queue.clearPending();
+  first.finish(); await Promise.all([running, stale]); await queue.idle();
+  assert.equal(staleCalls, 0);
+  await queue.run(async () => { staleCalls += 1; });
+  assert.equal(staleCalls, 1, 'new-generation work remains usable');
+});
+
+test('presence cannot refill generating commands and leave/quiet mode remain reachable after exhaustion', () => {
+  let now = 0;
+  const budget = new CommandBudget(() => now);
+  for (let i = 0; i < 16; i++) assert.equal(budget.allow('hear'), true);
+  assert.equal(budget.allow('say'), false);
+  assert.equal(budget.allow('typing'), true);
+  assert.equal(budget.allow('leave'), true);
+  assert.equal(budget.allow('mode'), true);
+  for (let i = 16; i < 180; i++) { now += 2_000; assert.equal(budget.allow('say'), true); }
+  now += 60_000;
+  assert.equal(budget.allow('say'), false, 'session-wide cap survives refill');
+  assert.equal(budget.allow('leave'), true);
+});
+
+test('cancelling held media releases its replay slot without waiting for playout', async () => {
+  const queue = new TurnQueue({ maxPending: 1 });
+  const media = held();
+  const running = queue.run(signal => replayPlayout(media.work(), signal));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(queue.full, true);
+  queue.clearPending();
+  await running; await queue.idle();
+  assert.equal(queue.full, false);
+  media.finish();
 });

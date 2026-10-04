@@ -306,6 +306,41 @@ beforeEach(() => {
   resetSyncRegistry();
 });
 
+test('blackholed headers or body expire and the next healthy reconciliation runs', async () => {
+  for (const stall of ['headers', 'body']) {
+    const rest = createRest();
+    rest.tokens.set('alice-jwt', ALICE);
+    let first = true;
+    let signal: AbortSignal | undefined;
+    const { engine } = engineFor(rest, createStorage(), ALICE, 'alice-jwt', {
+      requestTimeoutMs: 10,
+      fetch: async (url, init) => {
+        if (!first) return rest.fetch(url, init);
+        first = false; signal = init.signal;
+        if (stall === 'headers') return new Promise(() => {});
+        return { ok: true, status: 200, text: () => new Promise(() => {}) };
+      },
+    });
+    assert.equal((await engine.reconcile('review')).status, 'offline');
+    assert.equal(signal?.aborted, true);
+    const healthy = await engine.reconcile('review');
+    assert.notEqual(healthy.status, 'offline');
+    engine.stop();
+  }
+});
+test('account stop aborts an ignoring adapter and releases the cycle without adopting', async () => {
+  const rest = createRest();
+  let signal: AbortSignal | undefined;
+  const { engine } = engineFor(rest, createStorage(), ALICE, 'alice-jwt', {
+    fetch: async (_url, init) => { signal = init.signal; return new Promise(() => {}); },
+  });
+  const pending = engine.reconcile('review');
+  await until(() => signal !== undefined, 'request signal');
+  engine.stop();
+  assert.equal((await pending).status, 'stopped');
+  assert.equal(signal?.aborted, true);
+});
+
 // ────────────────────────────────────────────────────────────────────── the tests
 
 describe('the sync engine — one account, many devices', () => {
