@@ -45,9 +45,11 @@ import { DayCount } from '../progress/DayCount.tsx';
  * than growing a second one.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
@@ -137,11 +139,16 @@ export function ProfileTab() {
   const [samplePlaying, setSamplePlaying] = useState<TutorVoiceKey | null>(null);
   const samplePlayer = useAudioPlayer();
   const sampleStatus = useAudioPlayerStatus(samplePlayer);
+  useVoiceHold(sampleStatus.playing);
+  // Every tap and every close spends the ticket, so a clip asked for during the
+  // mode change never starts after the learner moved on.
+  const sampleTicket = useRef(0);
 
   const hearVoice = useCallback(
     (key: TutorVoiceKey) => {
       const next = nextSample(samplePlaying, key);
       setSamplePlaying(next);
+      const ticket = ++sampleTicket.current;
       if (next === null) {
         samplePlayer.pause();
         return;
@@ -151,14 +158,19 @@ export function ProfileTab() {
       // media element (AudioPlayer.web.ts, and the same on native), so the new
       // clip starts at nought by construction, and a tap on the voice that just
       // finished plays it again rather than sitting silently at its end.
-      samplePlayer.replace(voiceSample(next));
-      samplePlayer.play();
+      // A full voice mode first, so the sample is heard with the silent switch on (F723).
+      void enterVoicePlayback().catch(() => undefined).then(() => {
+        if (ticket !== sampleTicket.current) return;
+        samplePlayer.replace(voiceSample(next));
+        samplePlayer.play();
+      });
     },
     [samplePlaying, samplePlayer],
   );
 
   /** Leaving the sheet takes the sound with it. Nobody wants a voice following them back to Profile. */
   const closeVoiceSheet = useCallback(() => {
+    sampleTicket.current += 1;
     samplePlayer.pause();
     setSamplePlaying(null);
     setSheet('none');

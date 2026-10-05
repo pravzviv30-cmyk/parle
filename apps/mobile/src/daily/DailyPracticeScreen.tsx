@@ -7,7 +7,7 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder } from 'expo-audio';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
 import { Card, GhostButton, PillButton } from '../components.tsx';
@@ -20,6 +20,16 @@ import { dailyTutorVoice, tutorAudioFor } from './tutorAudio.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import type { RootStackParamList } from '../nav/types.ts';
+import { holdMic } from '../sound/audioFocus.ts';
+import { VOICE_MODE } from '../sound/audioModes.ts';
+import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
+
+/**
+ * Local compare plays only in the foreground: the voice mode every line here plays in never plays
+ * in the background (checked by the compiler), and the AppState listener below stops it on leaving.
+ */
+VOICE_MODE satisfies { readonly shouldPlayInBackground: false };
 
 /** Local listen/record/compare. Recordings are never uploaded or graded. */
 export function DailyPracticeScreen() {
@@ -34,6 +44,7 @@ export function DailyPracticeScreen() {
   const focused = useIsFocused();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const player = useAudioPlayer();
+  useVoiceHold(useAudioPlayerStatus(player).playing);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,6 +66,10 @@ export function DailyPracticeScreen() {
     stopping.current = work; return work;
   };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The microphone focus, held from before the mode change until the take ends
+  // by any route; every route out goes through here (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const resetRecordingAudio = (): Promise<void> => { micHold.current?.(); micHold.current = null; return leaveRecording(); };
   const finish = (): Promise<void> => {
     if (finishing.current) return finishing.current;
     const ticket = generation.current;
@@ -62,7 +77,7 @@ export function DailyPracticeScreen() {
     if (timer.current) clearTimeout(timer.current);
     const recorded = await finishLocalTake({
       stop: stopRecorder, uri: () => recorderUri(recorder, preparedUri.current),
-      resetAudio: () => setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }),
+      resetAudio: resetRecordingAudio,
       current: () => live.current && ticket === generation.current,
       discard: discardRecording,
     });
@@ -88,7 +103,7 @@ export function DailyPracticeScreen() {
       releaseDailyPlayback(player);
       const abandoned = recorderUri(recorder, preparedUri.current);
       discardRecording(held.current); held.current = null;
-      void stopRecorder().catch(() => {}).finally(() => { discardRecording(abandoned); discardRecording(recorderUri(recorder, abandoned)); void setAudioModeAsync({ allowsRecording: false }).catch(() => {}); });
+      void stopRecorder().catch(() => {}).finally(() => { discardRecording(abandoned); discardRecording(recorderUri(recorder, abandoned)); void resetRecordingAudio().catch(() => {}); });
     };
     if (!focused) { stop(); setUri(null); setRecording(false); }
     const subscription = AppState.addEventListener('change', state => { live.current = focused && state === 'active'; if (live.current && !operation.current) setBusy(false); if (state !== 'active') { stop(); setUri(null); setRecording(false); } });
@@ -109,15 +124,16 @@ export function DailyPracticeScreen() {
         if (!live.current || ticket !== generation.current) return;
         if (!permission.granted) { setNote('Microphone access is needed to record. You can still listen and practise aloud.'); return; }
         discardRecording(held.current); held.current = null; setUri(null);
-        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        micHold.current?.(); micHold.current = holdMic();
+        await enterRecording();
         preparedUri.current = recorderUri(recorder, preparedUri.current);
         await recorder.prepareToRecordAsync();
         preparedUri.current = recorderUri(recorder, preparedUri.current);
-        if (!live.current || ticket !== generation.current) { await stopRecorder(); discardRecording(recorderUri(recorder, preparedUri.current)); await setAudioModeAsync({ allowsRecording: false }); return; }
+        if (!live.current || ticket !== generation.current) { await stopRecorder(); discardRecording(recorderUri(recorder, preparedUri.current)); await resetRecordingAudio(); return; }
         startedRecording.current = Date.now(); setCompletedTake(false); recorder.record(); setRecording(true); setNote('Recording, up to 20 seconds.');
         timer.current = setTimeout(() => { void finish().catch(() => { setRecording(false); setNote('That take could not finish. Try again.'); }); }, 20000);
       }
-    } catch { if (live.current) { setNote('Recording could not start. You can still practise aloud.'); setRecording(false); } await setAudioModeAsync({ allowsRecording: false }).catch(() => {}); }
+    } catch { if (live.current) { setNote('Recording could not start. You can still practise aloud.'); setRecording(false); } await resetRecordingAudio().catch(() => {}); }
     finally { operation.current = false; if (live.current) setBusy(false); }
   };
   const play = async (own = false) => {
@@ -128,7 +144,7 @@ export function DailyPracticeScreen() {
     const playback = ++playbackTicket.current;
     try {
       claimDailyPlayback(player);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: false });
+      await enterVoicePlayback();
       if (!live.current || ticket !== generation.current || playback !== playbackTicket.current || !ownsDailyPlayback(player)) return;
       player.pause(); player.replace(typeof source === 'string' ? { uri: source } : source); player.setPlaybackRate(1); player.play();
     } catch { if (live.current) setNote('Audio could not play. Please try again.'); }

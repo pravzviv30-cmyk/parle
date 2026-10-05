@@ -17,11 +17,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from '../daily/playback.ts';
 import { createPlaybackGate, playWhenCurrent } from './playbackGate.ts';
 import { onUserScopeReset } from '../storage/scope.ts';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 
 export interface RecordedLinePlayer {
   /** The asset playing now, or null. */
@@ -38,6 +40,8 @@ export interface RecordedLinePlayer {
 export function useRecordedLine(options?: { isCurrent: () => boolean }): RecordedLinePlayer {
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
+  // No sound effect takes the audio session from a line while it plays (F725).
+  useVoiceHold(status.playing);
   const [playing, setPlaying] = useState<number | null>(null);
   const [playingUri, setPlayingUri] = useState<string | null>(null);
   const gate = useRef(createPlaybackGate()).current;
@@ -91,7 +95,7 @@ export function useRecordedLine(options?: { isCurrent: () => boolean }): Recorde
       claimDailyPlayback(player);
       setPlaying(typeof asset === 'number' ? asset : null);
       setPlayingUri(typeof asset === 'string' ? asset : null);
-      void playWhenCurrent(gate, ticket, () => setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, shouldPlayInBackground: false }), () => {
+      void playWhenCurrent(gate, ticket, enterVoicePlayback, () => {
         player.pause();
         player.replace(typeof asset === 'string' ? { uri: asset } : asset);
         player.play();

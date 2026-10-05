@@ -77,3 +77,4 @@ artifacts/daily-tutor-batch-*/manifest.json.tmp
 artifacts/onboarding-audio/*.pcm
 artifacts/onboarding-audio/generation.lock
 artifacts/onboarding-audio/manifest.json.tmp
+artifacts/sfx-audition/

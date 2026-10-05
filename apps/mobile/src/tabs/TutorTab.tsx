@@ -24,6 +24,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { memoryPaused } from '@luvani/brain/profile';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
@@ -99,18 +101,28 @@ export function TutorTab() {
   // tab takes the sound with it, because a bottom tab is never unmounted.
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
+  useVoiceHold(status.playing);
   const [playing, setPlaying] = useState(false);
+  // Every tap spends the ticket, so a stop or a blur during the mode change wins.
+  const hearTicket = useRef(0);
+  const focusedNow = useRef(focused);
+  focusedNow.current = focused;
   useEffect(() => { if (status.didJustFinish) setPlaying(false); }, [status.didJustFinish]);
   useEffect(() => { if (!focused) { player.pause(); setPlaying(false); } }, [focused, player]);
   const hear = () => {
+    const ticket = ++hearTicket.current;
     if (playing) {
       player.pause();
       setPlaying(false);
       return;
     }
-    player.replace(voiceSample(voiceKey));
-    player.play();
     setPlaying(true);
+    // A full voice mode first, so the sample is heard with the silent switch on (F723).
+    void enterVoicePlayback().catch(() => undefined).then(() => {
+      if (ticket !== hearTicket.current || !focusedNow.current) return;
+      player.replace(voiceSample(voiceKey));
+      player.play();
+    });
   };
 
   useFocusEffect(

@@ -1,0 +1,116 @@
+{
+  "generatedBy": "scripts/sfx/generate.mjs",
+  "recipeVersion": 1,
+  "sampleRate": 44100,
+  "encoder": "ffmpeg 9.0.1, aac 96k mono",
+  "sounds": [
+    {
+      "id": "tap",
+      "durationMs": 40,
+      "peakDbfs": -18,
+      "momentaryMaxLufs": -38.7,
+      "wavSha256": "6ee8182784303003880ea67cb04d8703cf0e9fcd9d08eb532b848a968adbb76a",
+      "m4aSha256": "d16250e1a9d9b3a8a69f8cf6d3e87aa700e543c37786311e6903a5bd21c8f458",
+      "m4aBytes": 1733
+    },
+    {
+      "id": "select",
+      "durationMs": 90,
+      "peakDbfs": -14,
+      "momentaryMaxLufs": -32.7,
+      "wavSha256": "43d16c819d1fb60136a9bad4d16fcb9e5dfe0725e69597754ba39cb4db3fd245",
+      "m4aSha256": "324643e1e1cd53f1cf83299d9bcb8e05eac6cfb2a9a285d572857ca9cfdf9c4b",
+      "m4aBytes": 2291
+    },
+    {
+      "id": "correct",
+      "durationMs": 300,
+      "peakDbfs": -8,
+      "momentaryMaxLufs": -20.6,
+      "wavSha256": "ae792a65738d02a3fdd8e18abec8b571e3445f6df4dd9b23bdbb63c2408e4833",
+      "m4aSha256": "045f357403a9806abc639960a3c03130798ecb27de4e35a5c13ae608daab2469",
+      "m4aBytes": 4852
+    },
+    {
+      "id": "nearly",
+      "durationMs": 220,
+      "peakDbfs": -12,
+      "momentaryMaxLufs": -25,
+      "wavSha256": "e52a66d2a2c80e639d746eefa259673a54ed178b06e9cdf08771539aae7ec279",
+      "m4aSha256": "dc8c92ad952118f93d63bbecd9fe6ce06582efcd2c9293c944fd5e57723f0452",
+      "m4aBytes": 4052
+    },
+    {
+      "id": "complete",
+      "durationMs": 760,
+      "peakDbfs": -6,
+      "momentaryMaxLufs": -17,
+      "wavSha256": "4b40e1da635cb5fb4b0e2eecd2dd24433099aa7f8650fe628b62eebc88de2518",
+      "m4aSha256": "d93cb379edeb4c5997e152fee1e09681f25e22557fb2c5bc54634ee7ea541433",
+      "m4aBytes": 10542
+    },
+    {
+      "id": "streak",
+      "durationMs": 820,
+      "peakDbfs": -6,
+      "momentaryMaxLufs": -20.1,
+      "wavSha256": "632f9e2e2fe91e87382cc792ca735f1bf66654f82a62e3684b942cdabe47688d",
+      "m4aSha256": "69f1b59077cd95cbc60669494a37dc61296d027c4e3a3bc2b6cd860d38472d76",
+      "m4aBytes": 11289
+    },
+    {
+      "id": "levelup",
+      "durationMs": 1150,
+      "peakDbfs": -5,
+      "momentaryMaxLufs": -16.3,
+      "wavSha256": "72497c22956d169ff723d286eb3326c4ee625626090edd2cb6e29808c5b816bb",
+      "m4aSha256": "e1a8469b11f4cc0cb20305ea6bebeb6dacd5e4778c92362520e0f44ccaa1c5d9",
+      "m4aBytes": 15369
+    },
+    {
+      "id": "quest",
+      "durationMs": 680,
+      "peakDbfs": -7,
+      "momentaryMaxLufs": -17.1,
+      "wavSha256": "0041ec22e34eeb89d7f23d2c7ae6e9cd0e79573374a2d7027590d273e44eaade",
+      "m4aSha256": "250e652cef988bda7dc79d9ed71da2f6f851d3ff7cc60ba0f55454b5b11a084b",
+      "m4aBytes": 9672
+    },
+    {
+      "id": "badge",
+      "durationMs": 950,
+      "peakDbfs": -7,
+      "momentaryMaxLufs": -16.7,
+      "wavSha256": "a6602fa7334806ba20bdc45c7df9cbbc98fb1a7450cda74c6d63fe24135410b3",
+      "m4aSha256": "34fb526fe76d6b15ca7448c110fb66b57e94a85c95e5cd6a1e702b294f62356d",
+      "m4aBytes": 12699
+    },
+    {
+      "id": "save",
+      "durationMs": 140,
+      "peakDbfs": -10,
+      "momentaryMaxLufs": -25.3,
+      "wavSha256": "3d160c489fc81930b7e560508e3ba96c82088cfb332f97bc5799d74547d57920",
+      "m4aSha256": "d80f6137002c5e8d3a0bcd58a233f95e8badc1662315da3c44379ed9ebd28a6a",
+      "m4aBytes": 2905
+    },
+    {
+      "id": "count-tick",
+      "durationMs": 18,
+      "peakDbfs": -24,
+      "momentaryMaxLufs": -44.5,
+      "wavSha256": "2cccf0bdbe746dca99d5bf4b91248efe30c10632dc7b4fd471d53ed1da574d46",
+      "m4aSha256": "b17a52fa370a4249ec7a40ea471e19066737d1c2217e2aa902c2ca26d539257c",
+      "m4aBytes": 1485
+    },
+    {
+      "id": "whoosh",
+      "durationMs": 300,
+      "peakDbfs": -16,
+      "momentaryMaxLufs": -30.1,
+      "wavSha256": "ade551e0296b779ca645b05b4146c43b34481d8d210d76198b76a1c1f441e6c7",
+      "m4aSha256": "6b04c5c2821c31e30ddaa9995319bf070aead90fbcbf51002e693f5f88693256",
+      "m4aBytes": 4894
+    }
+  ]
+}

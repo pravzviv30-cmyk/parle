@@ -31,7 +31,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import {
   answerCurrent,
   buildDrillSession,
@@ -86,6 +86,8 @@ import { clearPracticeSession, loadPracticeSession, mintSittingId, savePracticeS
 import { practiceOpening } from './practice/opening.ts';
 import { sittingProgress } from './practice/sittingProgress.ts';
 import { scopeGeneration } from './storage/scope.ts';
+import { holdMic } from './sound/audioFocus.ts';
+import { enterRecording, leaveRecording } from './sound/audioSession.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import type { PracticeRoute } from './practice/practiceRoute.ts';
 import {
@@ -566,6 +568,19 @@ function RepeatThisView({
   // The recorder's async edges must run one at a time; a double-tap cannot be
   // allowed to race prepare against stop.
   const busyRef = useRef(false);
+  // The microphone focus, held from before the mode change until the take
+  // ends, fails or the view goes, so no haptic or sound effect lands on it (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const letGoOfMic = useCallback(() => {
+    const release = micHold.current;
+    micHold.current = null;
+    if (!release) return false;
+    release();
+    return true;
+  }, []);
+  useEffect(() => () => {
+    if (letGoOfMic()) void leaveRecording().catch(() => undefined);
+  }, [letGoOfMic]);
 
   const toggleRecord = useCallback(async () => {
     if (busyRef.current || locked) return;
@@ -595,7 +610,8 @@ function RepeatThisView({
           uri = null;
         }
         // Hand the audio session back to playback, so Hear it keeps its volume.
-        void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
+        letGoOfMic();
+        void leaveRecording().catch(() => undefined);
         setMic('armed');
         onSpoke(uri);
       } else {
@@ -605,17 +621,20 @@ function RepeatThisView({
           return;
         }
         tutorVoice.stop(); // the reference playing into the microphone scores nobody
-        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+        letGoOfMic();
+        micHold.current = holdMic();
+        await enterRecording();
         await recorder.prepareToRecordAsync();
         recorder.record();
         setMic('live');
       }
     } catch {
       setMic('silent');
+      if (letGoOfMic()) void leaveRecording().catch(() => undefined);
     } finally {
       busyRef.current = false;
     }
-  }, [mic, locked, recorder, onSpoke]);
+  }, [mic, locked, recorder, onSpoke, letGoOfMic]);
 
   return (
     <View style={{ gap: space(4) }}>

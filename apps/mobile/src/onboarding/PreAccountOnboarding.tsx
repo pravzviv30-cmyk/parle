@@ -15,6 +15,8 @@ import {
   findNodeHandle,
 } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { starterTasks, tutorVoice } from '@luvani/core';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, earnedChoices } from './flow.ts';
@@ -193,6 +195,9 @@ export function PreAccountOnboarding({
   const player = useAudioPlayer();
   const playback = useAudioPlayerStatus(player);
   const playing = playback.playing;
+  useVoiceHold(playing);
+  // Every Hear and every stop spends the ticket, so a stop during the mode change wins.
+  const hearTicket = useRef(0);
   const pulse = (next: ArtworkResponse) => {
     setPose(next);
     setEvent((value) => value + 1);
@@ -205,6 +210,7 @@ export function PreAccountOnboarding({
     return next;
   };
   const stopSound = () => {
+    hearTicket.current += 1;
     player.pause();
   };
   const go = (next: PreAccountPage, backward = false) => {
@@ -323,12 +329,17 @@ export function PreAccountOnboarding({
       setIssue('This phrase has no recording yet. You can still read it and practise.');
       return;
     }
-    try {
-      player.replace(asset);
-      player.play();
-    } catch {
-      setIssue('Audio could not play. The words are still here.');
-    }
+    const ticket = ++hearTicket.current;
+    // A full voice mode first, so the line is heard with the silent switch on (F723).
+    void enterVoicePlayback().catch(() => undefined).then(() => {
+      if (ticket !== hearTicket.current || !current.current || AppState.currentState === 'background') return;
+      try {
+        player.replace(asset);
+        player.play();
+      } catch {
+        setIssue('Audio could not play. The words are still here.');
+      }
+    });
   };
   const metric = (
     name: Parameters<typeof trackGuestMetric>[2],

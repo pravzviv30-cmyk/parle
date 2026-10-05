@@ -9828,23 +9828,26 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F723 — Partial audio modes can silence the tutor in silent mode
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/GuestRecording.tsx, apps/mobile/src/recap/PrivatePractice.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx
 - note: A partial setAudioModeAsync selects iOS .ambient, and four voice players plus TTS set no mode, so a later voice line can follow the silent switch. One audio-session module owns every mode change.
+- note: 2026-10-05 sound/audioSession.ts is the only importer of setAudioModeAsync and sets only the full VOICE, RECORD or SFX mode on one serialised chain; every voice player and the device voice enter voice playback first, pausing any sound effect. Both titles failed against the pre-change source. Not yet heard on a device with the silent switch on.
 - verified-by: `only the audio session module sets an audio mode`
 - verified-by: `every voice player enters voice playback before it plays`
 
 ### F724 — Most recorders and the live room do not silence haptics
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/motion/hapticPreference.ts:9
+- note: 2026-10-05 all six recorders hold the microphone focus from before the recording mode until every exit, the LiveKit audio session holds the live focus, and hapticsEnabled is off under either. The title failed against the pre-change source.
 - verified-by: `every file that records holds the microphone focus`
 
 ### F725 — There are no sound effects, and none may ship unheard
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/sound, scripts/sfx
 - note: Founder decisions D8 and D9: original synthesised sounds, on by default, obeying the silent switch, silent while a microphone, voice line or live room is open, and playable only once the founder has approved each by ear.
+- note: 2026-10-05 sound/sfxCore.ts gates every play on SFX_APPROVED, the Sound effects switch, the three focus holds, the foreground and a safety suppression, then throttles and asks the session again after the mode change. No screen plays a sound yet and every approval is still false.
 - verified-by: `an unapproved sound never plays`
 - verified-by: `every sound asset matches its approved synthesis`
 - verified-by: `sound effects stay silent while a microphone, voice line or live room is open`

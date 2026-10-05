@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { GhostButton, SpeakCircle } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { scopeGeneration } from '../storage/scope.ts';
+import { holdMic } from '../sound/audioFocus.ts';
+import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
 import { RECORDING_READY, RECORDING_LIVE, RECORDING_TYPE } from './ownWordsCopy.ts';
 
 /** A bounded temporary take; the consumer owns deletion after handoff. */
@@ -22,7 +24,11 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
   const owner = useRef(scopeGeneration());
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const current = () => active.current && owner.current === scopeGeneration();
-  const resetAudio = () => setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
+  // The microphone focus, held from before the mode change until the take ends
+  // by any route: every route out goes through resetAudio (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const letGoOfMic = () => { micHold.current?.(); micHold.current = null; };
+  const resetAudio = () => { letGoOfMic(); return leaveRecording(); };
 
   const stop = useCallback(async (handoff = false) => {
     if (working.current || !live.current) return;
@@ -56,7 +62,9 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!current()) return;
       if (!permission.granted) return onTyping();
-      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      letGoOfMic();
+      micHold.current = holdMic();
+      await enterRecording();
       await recorder.prepareToRecordAsync();
       if (!current()) {
         await finishLocalTake({ stop: () => recorder.stop(), uri: () => recorder.uri, resetAudio,

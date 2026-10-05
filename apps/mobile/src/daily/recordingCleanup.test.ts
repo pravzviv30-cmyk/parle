@@ -20,6 +20,8 @@ for (const [kind, path, start, end] of [
       preparedUri: {current:'file://held.m4a'}, stopping: {current:null},
       releaseDailyPlayback:()=>{}, discardRecording:(uri:string|null)=>removed.push(uri),
       setAudioModeAsync:async()=>{}, stopRecorder:async()=>{throw new Error('released native object');},
+      // Both exits leave recording through the audio session now (F723, F724).
+      resetRecordingAudio:async()=>{},
     };
     const cleanup = new Function(...Object.keys(env), `${body}; return ${kind === 'daily' ? 'stop' : 'exit'};`)(...Object.values(env));
     assert.doesNotThrow(()=>cleanup());
