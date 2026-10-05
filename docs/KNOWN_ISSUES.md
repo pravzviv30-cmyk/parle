@@ -9791,9 +9791,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F719 — Core has no streak, goal, quest or badge model
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/streak, packages/core/src/goal, packages/core/src/quests, packages/core/src/badges
 - note: Pure, Node-tested logic for decisions D2 to D6: a practice day is the local date a sitting finishes; covers bridge a run and add nothing; freezes and repair only when entitled; quests deterministic per learner and day; badges awarded once.
+- note 2026-10-05: built on ca/p0-core (step C1). Covers are freeze, repair and travel; repair is a gap of at most 2 days restored by 2 finished practices on the two calendar days after the first uncovered day, entitlement checked at repair time; travel is entitled-only. Pure logic only: nothing in the app calls it yet (Phase 1 settle).
 - verified-by: `a covered day bridges the run but adds nothing to the count`
 - verified-by: `freezes and repair apply only to an entitled learner`
 - verified-by: `the same seed and day always pick the same three quests`
@@ -9802,9 +9803,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F720 — XP is computed but nothing can display a level or the XP a sitting earned
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/levels/levels.ts
 - note: Numbered display levels on a fixed curve, separate from the content-difficulty standing (levelFor stays as is), and the credited delta under the daily cap.
+- note 2026-10-05: built on ca/p0-core (step C1). xpLevelFor, levelThreshold, levelStep and xpCreditedFor added; totalXp takes a cap (default DAILY_XP_CAP 100, the one shown cap); levelFor, DAILY_XP_CAP and LEVEL_NAMES unchanged. No screen renders a level yet.
 - verified-by: `display levels rise on a fixed curve and never shrink a step`
 - verified-by: `credited XP respects the daily cap`
 
