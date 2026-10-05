@@ -9951,23 +9951,26 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F739 — A freeze counts as spent on a day a repair already covers
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/streak/freeze.ts:30
 - note: Found by the Phase 0 core review. Two devices can write a repair and a freeze for the same day; the streak shows the repair, but freezesHeld still counts the freeze as used, so a subscriber loses a freeze they never needed.
+- note 2026-10-05: fixed on ca/p0-fu-core (step F-C). freezesInUse reads the streak's resolved covers (streakDaysOf().covered), so only a day the streak shows as 'freeze' spends one; a repair or travel cover that wins the day leaves both freezes held. The title failed against the previous freeze.ts.
 - verified-by: `a freeze is spent only on a day the streak used it for`
 
 ### F740 — Today's phrase quest needs a recording the learner may not be able to make
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/quests/catalogue.ts:65, apps/mobile/src/daily/DailyPracticeScreen.tsx:146
 - note: Found by the Phase 0 core review. "Say today's phrase" is marked as needing no speaking, but the daily practice only finishes after a recording of at least a second, and it is in every day-one set. A learner who declined the microphone could never close their first chest.
+- note 2026-10-05: fixed on ca/p0-fu-core (step F-C). phrase-of-day is requiresSpeaking: true, QuestEligibility gains canRecord (false when denied, unavailable or unknown), the questEligible guard refuses a recording quest without it, and day one uses DAY_ONE_QUIET_QUESTS (finish-practice, practice-set, minutes). The app must pass canRecord when Phase 1 computes quests. The title failed against the previous catalogue and selector.
 - verified-by: `a quest that needs a recording is never set for a learner who cannot record`
 
 ### F741 — A streak badge says days in a row when a covered day bridged the run
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/badges/catalogue.ts:64-67
 - note: Found by the Phase 0 core review. The longest run counts across freeze, repair and travel days, so "You practised 30 days in a row." can be untrue. Every number on a celebration must be a persisted fact.
+- note 2026-10-05: fixed on ca/p0-fu-core (step F-C). The four streak lines read "You reached a {n}-day streak."; the test bridges a 7-day run with a freeze and a repair and scans every badge for "in a row". The title failed against the previous catalogue.
 - verified-by: `a streak badge never claims more days in a row than were practised`
 
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.

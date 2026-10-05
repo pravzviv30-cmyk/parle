@@ -35,6 +35,8 @@ import assert from 'node:assert/strict';
 
 import {
   applyGrade,
+  goalProgressFrom,
+  localDayKey,
   newCard,
   presentationOf,
   raiseEvidenceTo,
@@ -715,6 +717,37 @@ describe("today's practice time — active learning time, present from day one, 
     assert.equal(mixed.measured, 'Under a minute today');
     assert.equal(mixed.note, GOAL_UNTIMED, 'the footer still owns the untimed explanation when no whole minute was measured');
     assert.equal(mixed.untimedNote, null, 'and it is never said twice');
+  });
+
+  test("today's practice time is core's one minutes rule, so a garbled measurement is untimed and never negative", () => {
+    // A measurement that is not a number is unmeasured: no minutes, and the day says why.
+    for (const garbled of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      const goal = momentumFrom({ activity: [active(at(2026, 9, 4, 9), 'drill', garbled)], deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+      assert.equal(goal.minutes, 0, `${garbled} active ms became minutes`);
+      assert.equal(goal.timedToday, false);
+      assert.equal(goal.measured, null);
+      assert.equal(goal.note, GOAL_UNTIMED, `${garbled} active ms was read as nothing happened`);
+    }
+    // A negative measurement never takes time away from a real sitting.
+    const negative = [active(at(2026, 9, 4, 9), 'convo', 6 * MINUTE_MS), active(at(2026, 9, 4, 10), 'drill', -MINUTE_MS)];
+    assert.equal(momentumFrom({ activity: negative, deck: [], profile: tenMinuteGoal(), now: NOW }).goal.minutes, 6);
+
+    // The card and core agree on every day, because the card asks core.
+    const days: readonly (readonly ActivityEntry[])[] = [
+      [],
+      negative,
+      [entry(at(2026, 9, 4, 9), 'review'), active(at(2026, 9, 4, 11), 'lesson', 9 * MINUTE_MS + 59_000)],
+      [active(at(2026, 9, 4, 9), 'convo', Number.NaN), active(at(2026, 9, 4, 12), 'review', 30_000)],
+      [active(at(2026, 9, 3, 23, 30), 'convo', 20 * MINUTE_MS), active(at(2026, 9, 4, 0, 30), 'drill', 4 * MINUTE_MS)],
+    ];
+    for (const activity of days) {
+      const goal = momentumFrom({ activity, deck: [], profile: tenMinuteGoal(), now: NOW }).goal;
+      const core = goalProgressFrom({ sittings: activity, target: 10, today: localDayKey(NOW) });
+      assert.equal(goal.minutes, core.minutes, `${JSON.stringify(activity)} counted differently from core`);
+      assert.equal(goal.timedToday, core.activeMs > 0);
+      assert.equal(goal.note === GOAL_UNTIMED || goal.untimedNote === GOAL_UNTIMED, core.untimed);
+      assert.equal(goal.remaining === 0, core.met);
+    }
   });
 });
 

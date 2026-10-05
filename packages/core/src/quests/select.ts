@@ -39,6 +39,12 @@ export function mulberry32(seed: number): () => number {
 /** Day one's quests: no choice, three things a first day can do. */
 export const DAY_ONE_QUESTS: readonly [QuestId, QuestId, QuestId] = ['finish-practice', 'phrase-of-day', 'minutes'];
 
+/**
+ * Day one for a learner who cannot record. Today's phrase needs a take, so a
+ * short practice set stands in for it: always on offer, typed answers allowed.
+ */
+export const DAY_ONE_QUIET_QUESTS: readonly [QuestId, QuestId, QuestId] = ['finish-practice', 'practice-set', 'minutes'];
+
 const SLOTS: readonly QuestSlot[] = ['easy', 'core', 'stretch'];
 
 /** Always offerable in each slot, and of different families, so a pick can never come up empty. */
@@ -50,7 +56,9 @@ export function questsForDay(input: {
   eligibility: QuestEligibility;
   goalTarget: DailyGoalMinutes | null;
 }): [QuestId, QuestId, QuestId] {
-  if (input.eligibility.practiceDaysBefore <= 0) return [...DAY_ONE_QUESTS];
+  if (input.eligibility.practiceDaysBefore <= 0) {
+    return input.eligibility.canRecord === true ? [...DAY_ONE_QUESTS] : [...DAY_ONE_QUIET_QUESTS];
+  }
 
   const random = mulberry32(fnv1a(`${input.seed}|${input.day}`));
   const families = new Set<QuestFamily>();

@@ -40,6 +40,7 @@ export {
   REPAIR_MAX_GAP,
   REPAIR_PRACTICES,
   REPAIR_WINDOW_DAYS,
+  REPAIR_EVERY_DAYS,
   recentBreak,
   repairOffer,
   type StreakBreak,

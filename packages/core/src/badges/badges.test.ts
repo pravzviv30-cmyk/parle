@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { BADGES, MONTH_NAMES, badgeFor, monthlyQuestBadgeId, type BadgeFacts } from './catalogue.ts';
 import { newBadges } from './award.ts';
+import { streakFrom, type StreakCover } from '../streak/streak.ts';
 
 const nothing: BadgeFacts = {
   longestStreak: 0,
@@ -107,10 +108,36 @@ describe('milestone badges', () => {
     assert.deepEqual(badgeFor('streak-7'), {
       id: 'streak-7',
       title: 'One week',
-      line: 'You practised 7 days in a row.',
+      line: 'You reached a 7-day streak.',
       hint: 'Reach a 7-day streak',
       art: 'flame',
     });
+  });
+
+  test('a streak badge never claims more days in a row than were practised', () => {
+    // Seven practice days in one run, bridged by a freeze on the 4th and a repair on the 7th:
+    // the longest run is 7, yet no 7 consecutive dates were practised.
+    const practiceDays = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-05', '2026-10-06', '2026-10-08', '2026-10-09'];
+    const covers: StreakCover[] = [
+      { day: '2026-10-04', kind: 'freeze', at: 1 },
+      { day: '2026-10-07', kind: 'repair', at: 2 },
+    ];
+    const streak = streakFrom({ practiceDays, covers, today: '2026-10-09' });
+    assert.equal(streak.longest, 7);
+    const earned = newBadges({ ...nothing, longestStreak: streak.longest, lifetimeDays: streak.lifetimeDays }, []);
+    assert.ok(earned.includes('streak-7'));
+    assert.equal(badgeFor('streak-7')?.line, 'You reached a 7-day streak.');
+
+    // The line names the streak, which is true, never a run of dates, which may not be.
+    for (const [id, n] of [['streak-7', 7], ['streak-30', 30], ['streak-100', 100], ['streak-365', 365]] as const) {
+      assert.equal(badgeFor(id)?.line, `You reached a ${n}-day streak.`);
+    }
+    const all = [...BADGES.map((b) => badgeFor(b.id)!), ...MONTH_NAMES.map((_, i) => badgeFor(`quests-2026-${`${i + 1}`.padStart(2, '0')}`)!)];
+    for (const badge of all) {
+      for (const text of [badge.title, badge.line, badge.hint]) {
+        assert.doesNotMatch(text, /in a row|consecutive|straight days/i, `${badge.id} claims a run of dates: "${text}"`);
+      }
+    }
   });
 
   test('every badge title, line and hint reads as a plain, kind fact', () => {

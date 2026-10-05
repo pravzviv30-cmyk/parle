@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { addDays, dayRange, type DayKey } from './dayKey.ts';
-import { streakFrom, type StreakCover } from './streak.ts';
+import { monthFrom, streakFrom, type StreakCover } from './streak.ts';
 import { FREEZE_CAP, FREEZE_RETURN_DAYS, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
 import { recentBreak, repairOffer } from './repair.ts';
 import { travelCover } from './travel.ts';
@@ -100,6 +100,42 @@ describe('freezes', () => {
     assert.deepEqual(freezesToApply({ entitled: true, paidSince: null, practiceDays: run, covers: [], today: '2026-10-04' }), []);
     // A learner with nothing before the gap has no run to keep.
     assert.deepEqual(freezesToApply({ ...paid, practiceDays: [], covers: [freeze('2026-10-01')], today: '2026-10-03' }), []);
+  });
+
+  test('a freeze is spent only on a day the streak used it for', () => {
+    // Two devices each saw the 3rd get away: one wrote a repair, the other a freeze.
+    const practiceDays = [...run, '2026-10-04'];
+    const today = '2026-10-05';
+    const repair = (at: number): StreakCover => ({ day: '2026-10-03', kind: 'repair', at });
+    const travel = (at: number): StreakCover => ({ day: '2026-10-03', kind: 'travel', at });
+    const coverOn3rd = (covers: StreakCover[]) =>
+      streakFrom({ practiceDays, covers, today }).coveredInRun.find((c) => c.day === '2026-10-03')?.kind;
+
+    // Written at the same moment: the streak keeps the repair, so the freeze was never used.
+    const tie = [freeze('2026-10-03', 5), repair(5)];
+    assert.equal(coverOn3rd(tie), 'repair');
+    assert.equal(freezesHeld({ practiceDays, covers: tie, today, entitled: true }), 2);
+    assert.equal(nextFreezeReturn({ practiceDays, covers: tie, today, entitled: true }), null);
+    // The repair written first wins whatever order the list arrives in.
+    const repairFirst = [freeze('2026-10-03', 9), repair(4)];
+    assert.equal(coverOn3rd(repairFirst), 'repair');
+    assert.equal(freezesHeld({ practiceDays, covers: repairFirst, today, entitled: true }), 2);
+    // A travel cover the streak kept leaves the freeze unspent too.
+    const trip = [travel(5), freeze('2026-10-03', 5)];
+    assert.equal(coverOn3rd(trip), 'travel');
+    assert.equal(freezesHeld({ practiceDays, covers: trip, today, entitled: true }), 2);
+
+    // The freeze written first is the cover the streak shows, so that one is spent.
+    const freezeFirst = [repair(9), freeze('2026-10-03', 4)];
+    assert.equal(coverOn3rd(freezeFirst), 'freeze');
+    assert.equal(freezesHeld({ practiceDays, covers: freezeFirst, today, entitled: true }), 1);
+    assert.equal(nextFreezeReturn({ practiceDays, covers: freezeFirst, today, entitled: true }), '2026-10-10');
+
+    // Whatever arrives, the freezes held are the cap less the days the streak shows a freeze on.
+    for (const covers of [tie, repairFirst, trip, freezeFirst]) {
+      const shown = monthFrom({ practiceDays, covers, today, year: 2026, month: 10 }).filter((cell) => cell.cover === 'freeze').length;
+      assert.equal(freezesHeld({ practiceDays, covers, today, entitled: true }), FREEZE_CAP - shown);
+    }
   });
 
   test('freezes held stay between none and two, however many covers there are', () => {

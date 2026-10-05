@@ -3,12 +3,18 @@
  * (founder decision D6).
  *
  * Every quest is completed by practice the learner finishes, never by opening
- * the app or by time passing, and every one has a quiet way through: a spoken
- * path always has a typed or self-guided alternative (the sound check's
- * self-guided result, the daily phrase's listen-and-practise). A quest that
- * needs live tutor minutes is offered only when the server has said some
- * remain; when the billing answer is unknown it is not offered, because a
- * quest the room might refuse is a promise the app cannot keep.
+ * the app or by time passing. One quest needs the microphone: today's phrase
+ * is finished only by recording a take of at least a second, so it is marked
+ * `requiresSpeaking` and offered only when the app says it can record
+ * (`canRecord`), day one included. Every other quest has a quiet way through:
+ * a conversation or a scene can be typed, a practice set takes typed answers,
+ * and the sound check has its self-guided result. So a learner without a
+ * microphone is never set a quest they cannot finish.
+ *
+ * The same rule covers live tutor minutes. A quest that needs them is offered
+ * only when the server has said some remain; when the billing answer is
+ * unknown it is not offered, because a quest the room might refuse is a
+ * promise the app cannot keep.
  *
  * Quest XP (+10 each, +15 for the chest) is kept by the app as claims outside
  * the activity log, so it never touches the content-difficulty standing.
@@ -48,7 +54,10 @@ export interface QuestDef {
   target: number | null;
   /** Needs live tutor minutes the server has confirmed. */
   needsLiveMinutes: boolean;
-  /** Can only be finished by speaking aloud. No quest may be; the selector refuses one. */
+  /**
+   * Can only be finished by recording the learner's voice, so it needs a
+   * microphone the app can use. Offered only when `canRecord` is true.
+   */
   requiresSpeaking: boolean;
 }
 
@@ -62,7 +71,7 @@ export const CHEST = 'chest' as const;
 
 export const QUESTS: readonly QuestDef[] = [
   { id: 'finish-practice', slot: 'easy', family: 'sittings', title: 'Finish a practice', target: 1, needsLiveMinutes: false, requiresSpeaking: false },
-  { id: 'phrase-of-day', slot: 'easy', family: 'phrase', title: "Say today's phrase", target: 1, needsLiveMinutes: false, requiresSpeaking: false },
+  { id: 'phrase-of-day', slot: 'easy', family: 'phrase', title: "Say today's phrase", target: 1, needsLiveMinutes: false, requiresSpeaking: true },
   { id: 'practise-twice', slot: 'easy', family: 'sittings', title: 'Practise twice today', target: 2, needsLiveMinutes: false, requiresSpeaking: false },
   { id: 'review-recall', slot: 'easy', family: 'deck', title: 'Remember 5 phrases in review', target: 5, needsLiveMinutes: false, requiresSpeaking: false },
   { id: 'conversation', slot: 'core', family: 'live', title: 'Finish a conversation with {tutor}', target: 1, needsLiveMinutes: true, requiresSpeaking: false },
@@ -118,6 +127,13 @@ export interface QuestEligibility {
   conversations: number;
   /** Live tutor seconds the server says remain, or null when unknown (offline, unread). */
   liveSecondsRemaining: number | null;
+  /**
+   * True when the app can record the learner's voice. False when the
+   * microphone is denied or unavailable, and when the app cannot tell, for the
+   * reason unknown live minutes are refused: a quest that might not be
+   * finishable is a promise the app cannot keep.
+   */
+  canRecord: boolean;
 }
 
 /** Whether a quest can be offered today. */
@@ -127,7 +143,7 @@ export function questEligible(
   goalTarget: DailyGoalMinutes | null,
 ): boolean {
   const def = questDef(id);
-  if (def.requiresSpeaking) return false;
+  if (def.requiresSpeaking && eligibility.canRecord !== true) return false;
   const live = eligibility.liveSecondsRemaining;
   if (def.needsLiveMinutes && !(typeof live === 'number' && live > 0)) return false;
   switch (id) {

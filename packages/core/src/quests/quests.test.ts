@@ -14,10 +14,10 @@ import {
   type QuestEligibility,
   type QuestId,
 } from './catalogue.ts';
-import { DAY_ONE_QUESTS, fnv1a, mulberry32, questsForDay } from './select.ts';
+import { DAY_ONE_QUESTS, DAY_ONE_QUIET_QUESTS, fnv1a, mulberry32, questsForDay } from './select.ts';
 import { monthlyQuestCount, questProgress, questsToClaim, type DayFacts, type QuestClaim } from './progress.ts';
 
-const everything: QuestEligibility = { practiceDaysBefore: 10, phraseCards: 40, conversations: 3, liveSecondsRemaining: 600 };
+const everything: QuestEligibility = { practiceDaysBefore: 10, phraseCards: 40, conversations: 3, liveSecondsRemaining: 600, canRecord: true };
 
 const days = (n: number) => Array.from({ length: n }, (_, i) => new Date(Date.UTC(2026, 9, 1 + i)).toISOString().slice(0, 10));
 
@@ -115,7 +115,7 @@ describe('picking a day\'s quests', () => {
 
   test('every quest has a quiet way through, and each rule of eligibility holds', () => {
     assert.equal(QUESTS.length, 12);
-    assert.deepEqual(QUESTS.filter((q) => q.requiresSpeaking).map((q) => q.id), [], 'a quest needs speaking aloud');
+    assert.deepEqual(QUESTS.filter((q) => q.requiresSpeaking).map((q) => q.id), ['phrase-of-day'], "only today's phrase needs a recording");
     assert.ok(!questEligible('practise-twice', { ...everything, practiceDaysBefore: 0 }, 10));
     assert.ok(!questEligible('review-recall', { ...everything, phraseCards: 4 }, 10));
     assert.ok(questEligible('review-recall', { ...everything, phraseCards: 5 }, 10));
@@ -126,6 +126,51 @@ describe('picking a day\'s quests', () => {
     for (const id of ['finish-practice', 'phrase-of-day', 'practice-set', 'xp', 'minutes', 'new-phrases', 'sound-check'] as const) {
       assert.ok(questEligible(id, { ...quiet, phraseCards: 0, conversations: 0 }, null), `${id} should always be on offer`);
     }
+  });
+});
+
+describe('a learner who cannot record', () => {
+  test('a quest that needs a recording is never set for a learner who cannot record', () => {
+    // Today's phrase finishes only after a take of at least a second (DailyPracticeScreen).
+    assert.equal(questDef('phrase-of-day').requiresSpeaking, true, "today's phrase needs a recording");
+    const recording = QUESTS.filter((q) => q.requiresSpeaking).map((q) => q.id);
+
+    // The eligibility guard itself: a recording quest needs a microphone the app can use.
+    assert.equal(questEligible('phrase-of-day', everything, 10), true);
+    assert.equal(questEligible('phrase-of-day', { ...everything, canRecord: false }, 10), false);
+
+    // Day one has no choice, so the fixed set swaps today's phrase for something quiet.
+    const muted = { ...everything, canRecord: false };
+    for (const seed of ['a', 'b', 'learner-1']) {
+      const dayOne = questsForDay({ day: '2026-10-05', seed, eligibility: { ...muted, practiceDaysBefore: 0 }, goalTarget: 10 });
+      assert.deepEqual(dayOne, [...DAY_ONE_QUIET_QUESTS]);
+      for (const id of dayOne) {
+        assert.ok(!recording.includes(id), `day one set ${id}, which needs a recording`);
+        assert.ok(questEligible(id, { ...muted, practiceDaysBefore: 0 }, 10), `day one set ${id}, which a new learner cannot be offered`);
+      }
+    }
+    assert.equal(new Set(DAY_ONE_QUIET_QUESTS.map((id) => questDef(id).family)).size, 3, 'the quiet day one repeats a family');
+
+    // Every later day, whoever the learner is and whatever else they have.
+    for (const eligibility of [muted, { ...muted, liveSecondsRemaining: null, phraseCards: 0, conversations: 0 }]) {
+      for (const goalTarget of [null, 5, 20] as const) {
+        for (const seed of ['a', 'b', 'learner-1']) {
+          for (const day of days(120)) {
+            const picked = questsForDay({ day, seed, eligibility, goalTarget });
+            for (const id of picked) assert.ok(!recording.includes(id), `${day} set ${id} for a learner who cannot record`);
+          }
+        }
+      }
+    }
+
+    // Every quest still on offer without a microphone never requires speaking aloud.
+    for (const q of QUESTS) {
+      if (questEligible(q.id, muted, 10)) assert.equal(q.requiresSpeaking, false, `${q.id} is on offer without a microphone`);
+    }
+
+    // And a learner who can record still meets today's phrase.
+    const offered = days(60).some((day) => questsForDay({ day, seed: 'learner-1', eligibility: everything, goalTarget: 10 }).includes('phrase-of-day'));
+    assert.ok(offered, "today's phrase is never set for a learner who can record");
   });
 });
 

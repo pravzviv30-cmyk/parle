@@ -16,7 +16,7 @@ export {
   type QuestDef,
   type QuestEligibility,
 } from './catalogue.ts';
-export { fnv1a, mulberry32, DAY_ONE_QUESTS, questsForDay } from './select.ts';
+export { fnv1a, mulberry32, DAY_ONE_QUESTS, DAY_ONE_QUIET_QUESTS, questsForDay } from './select.ts';
 export {
   questProgress,
   questsToClaim,

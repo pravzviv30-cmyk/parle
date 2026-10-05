@@ -9,7 +9,10 @@ const run = dayRange('2026-10-01', '2026-10-03');
 
 describe('the travel cover', () => {
   test('a one-day gap after a big clock change is covered for travel', () => {
-    // Paris (UTC+2 in early October) to Honolulu (UTC-10): a date went missing over the Pacific.
+    // A twelve-hour clock change (Paris at UTC+2 in early October, Honolulu at UTC-10)
+    // beside a one-day gap. That flight skips no date; a flight west across the date
+    // line, Honolulu to Tokyo, does. The rule only compares the two offsets, so the
+    // gap is covered either way.
     const day = travelCover({
       practiceDays: [...run, '2026-10-05'],
       covers: [],

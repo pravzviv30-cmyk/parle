@@ -4,8 +4,12 @@
  * pruned history can never take it back.
  *
  * Titles, lines and hints are plain facts. A line says what happened ("You
- * practised 7 days in a row."); a hint says what earns a badge not yet held
+ * reached a 7-day streak."); a hint says what earns a badge not yet held
  * ("Reach a 30-day streak"). Nothing here is ever called locked.
+ *
+ * A streak line never says "days in a row". The longest run counts practice
+ * days, but a freeze, a repair or a travel day can bridge it, so seven
+ * practice days in one run need not be seven consecutive dates.
  *
  * The art is named, not drawn: the app draws each kind as a flat vector in
  * the current style (decision D10).
@@ -61,10 +65,10 @@ const atLeast = (value: number, n: number) => Number.isFinite(value) && value >=
 
 /** The fixed badges, in the order a shelf lists them. Monthly quest badges follow, one per month. */
 export const BADGES: readonly BadgeDef[] = [
-  { id: 'streak-7', title: 'One week', line: 'You practised 7 days in a row.', hint: 'Reach a 7-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 7) },
-  { id: 'streak-30', title: 'One month', line: 'You practised 30 days in a row.', hint: 'Reach a 30-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 30) },
-  { id: 'streak-100', title: '100 days', line: 'You practised 100 days in a row.', hint: 'Reach a 100-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 100) },
-  { id: 'streak-365', title: 'One year', line: 'You practised 365 days in a row.', hint: 'Reach a 365-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 365) },
+  { id: 'streak-7', title: 'One week', line: 'You reached a 7-day streak.', hint: 'Reach a 7-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 7) },
+  { id: 'streak-30', title: 'One month', line: 'You reached a 30-day streak.', hint: 'Reach a 30-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 30) },
+  { id: 'streak-100', title: '100 days', line: 'You reached a 100-day streak.', hint: 'Reach a 100-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 100) },
+  { id: 'streak-365', title: 'One year', line: 'You reached a 365-day streak.', hint: 'Reach a 365-day streak', art: 'flame', earned: (f) => atLeast(f.longestStreak, 365) },
   { id: 'days-50', title: '50 practice days', line: 'You have practised on 50 different days.', hint: 'Practise on 50 different days', art: 'pages', earned: (f) => atLeast(f.lifetimeDays, 50) },
   { id: 'days-200', title: '200 practice days', line: 'You have practised on 200 different days.', hint: 'Practise on 200 different days', art: 'pages', earned: (f) => atLeast(f.lifetimeDays, 200) },
   { id: 'first-conversation', title: 'First conversation', line: 'You finished your first conversation.', hint: 'Finish a conversation', art: 'bubbles', earned: (f) => atLeast(f.conversations, 1) },
