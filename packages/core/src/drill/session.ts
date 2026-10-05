@@ -132,16 +132,56 @@ export interface DrillFeedback {
  * tests. The miss line points at the real form in guillemets because showing
  * the right spelling teaches; naming what went wrong does not. Numbers never
  * appear here — they belong on the end card, where they can be given context.
+ *
+ * The voice around the guillemets is warm, plain English (founder decision
+ * D14, F717). French interface praise asked a beginner to decode one more line
+ * at the moment they should simply feel what happened; the French they are
+ * learning is the part inside the quotes, and nothing else is.
  */
-export const GOOD_FEEDBACK = 'Nickel.';
+export const GOOD_FEEDBACK = 'Nicely done.';
 
 /** The typo was accepted; this line only keeps the real spelling in view. */
 export function typoFeedback(exact: string): string {
-  return `Presque. Ça s'écrit «${exact}».`;
+  return `Nearly. It's spelt «${exact}».`;
 }
 
+/**
+ * A null form is the first miss, which hands over nothing by design (see
+ * `answerCurrent`): the line says only that the exercise is coming back.
+ */
 export function missFeedback(exact: string | null): string {
-  return exact === null ? 'Pas tout à fait.' : `Pas tout à fait. On dit: «${exact}».`;
+  return exact === null ? 'This one comes round again.' : `Here's how it goes: «${exact}».`;
+}
+
+/**
+ * How a verdict should feel, for a screen choosing colour, sound and haptic.
+ * `good` is a success, `nearly` is a success with a spelling pointed out, and
+ * `calm` is everything that did not count: no mark, no sound, no haptic.
+ */
+export type FeedbackTone = 'good' | 'nearly' | 'calm';
+
+/**
+ * The own-words outcome line and its tone, keyed on the decision rather than on
+ * the verdict it maps to. `judge` folds retry and reveal into 'miss', which is
+ * right for the queue and wrong for the copy: both would read "This one comes
+ * round again." while one is asking for a second try and the other is handing
+ * the phrase over.
+ *
+ * A retry is calm, not "nearly". It follows any reply the judge found did not
+ * carry the meaning, including one that kept none of it, so "nearly" would be
+ * a claim nobody measured; and it is a miss in the queue arithmetic, which gets
+ * no cue anywhere else in the drill. The judge's own note and the revealed
+ * phrase are the screen's to add beneath these lines.
+ */
+export function ownWordsFeedback(decided: OwnWordsDecision): { tone: FeedbackTone; text: string } {
+  switch (decided) {
+    case 'good':
+      return { tone: 'good', text: 'That works.' };
+    case 'retry':
+      return { tone: 'calm', text: 'Have another go.' };
+    case 'reveal':
+      return { tone: 'calm', text: "Here's one way to say it." };
+  }
 }
 
 /**

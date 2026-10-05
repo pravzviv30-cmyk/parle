@@ -1,8 +1,8 @@
 /**
  * The one ban list, held to the record of what was once banned.
  *
- * "No streak guilt" is the hardest promise in PRODUCT.md (:90-94, and principle
- * 4 at :179), and until F216 three suites kept it with three different
+ * "No streak guilt" is the hardest promise in PRODUCT.md (Brand Commitments,
+ * and principle 4), and until F216 three suites kept it with three different
  * contents: eleven phrases on Home, four words on the mix offer, and a source
  * scan on the review screen. The gate can see a lowered test floor and a ledger
  * box ticked without a passing test. It cannot see a ban list getting shorter,
@@ -26,7 +26,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BANNED_IN_COPY, guiltIn } from './guilt.ts';
+import { BANNED_IN_COPY, BANNED_IN_STREAK_COPY, RETIRED_FROM_BAN, guiltIn, streakGuiltIn } from './guilt.ts';
 
 /**
  * Every word a Luvani surface has ever banned, written down with its origin.
@@ -60,7 +60,11 @@ const ONCE_BANNED: readonly { readonly word: string; readonly from: string }[] =
 
 describe('the words no Luvani surface may say', () => {
   test('the shared ban list still carries every word each surface ever banned', () => {
-    const dropped = ONCE_BANNED.filter(({ word }) => guiltIn(word) === undefined).map(
+    // One way out, and it is written down. A word leaves the list only through
+    // RETIRED_FROM_BAN, which names the founder decision that retired it, and
+    // the record below still holds the word so the history is not rewritten.
+    const retired = new Set(RETIRED_FROM_BAN.map(({ word }) => word));
+    const dropped = ONCE_BANNED.filter(({ word }) => !retired.has(word) && guiltIn(word) === undefined).map(
       ({ word, from }) => `"${word}", banned by ${from}`,
     );
     assert.deepEqual(
@@ -70,6 +74,20 @@ describe('the words no Luvani surface may say', () => {
         'trips one of these, change the sentence. Shortening this list is how the no-guilt ' +
         'promise is lost one word at a time.',
     );
+    // The retired list cannot grow quietly. "streak" left on 2026-10-04 because
+    // the founder chose a full daily streak (D2); every shaming word stayed.
+    assert.deepEqual(
+      RETIRED_FROM_BAN.map(({ word }) => word),
+      ['streak'],
+      'a second word left the ban list. That needs its own founder decision, recorded here.',
+    );
+    for (const { word, by } of RETIRED_FROM_BAN) {
+      assert.ok(
+        ONCE_BANNED.some((once) => once.word === word),
+        `"${word}" is retired but was never banned, so the record is not a record`,
+      );
+      assert.match(by, /^founder decision \d{4}-\d{2}-\d{2}: \S/, `"${word}" is retired without a dated decision`);
+    }
   });
 
   test('a banned word cannot hide inside a longer one', () => {
@@ -79,8 +97,10 @@ describe('the words no Luvani surface may say', () => {
   });
 
   test('case and a curly apostrophe do not smuggle a word past', () => {
-    assert.equal(guiltIn('STREAK'), 'streak');
-    assert.equal(guiltIn('Streak'), 'streak');
+    // "streak" was the word here until it was retired (F718); "missed" makes
+    // the same point about case and is still banned.
+    assert.equal(guiltIn('MISSED'), 'missed');
+    assert.equal(guiltIn('Missed'), 'missed');
     // A designer pasting copy out of a doc brings U+2019 with it, and "don’t"
     // is not "don't" to includes(). The matcher folds them together so the
     // list does not have to carry each word twice.
@@ -106,6 +126,100 @@ describe('the words no Luvani surface may say', () => {
       'the union carries a duplicate, which means two surfaces were merged by hand',
     );
   });
+
+  test('streak copy states facts and never threatens', () => {
+    // F718, founder decision D2 (2026-10-04): a full daily streak that never
+    // shames. The word came off the shared list; the threat did not. Streak
+    // and reminder copy answers to a stricter list, kept separate so that a
+    // word like "protect" in privacy copy is not swept up with it.
+    for (const word of BANNED_IN_COPY) {
+      assert.ok(BANNED_IN_STREAK_COPY.includes(word), `streak copy may say "${word}", which no surface may`);
+    }
+    for (const word of BANNED_IN_STREAK_COPY) {
+      assert.equal(word, word.toLowerCase(), `"${word}" is not lowercase, so the matcher can never see it`);
+    }
+    assert.equal(new Set(BANNED_IN_STREAK_COPY).size, BANNED_IN_STREAK_COPY.length, 'the streak list carries a duplicate');
+    assert.ok(!BANNED_IN_COPY.includes('streak') && !BANNED_IN_STREAK_COPY.includes('streak'));
+    // The stricter list's own words, written down so it can grow but not shrink.
+    // Each is checked by name because a sample line can trip two of them, and
+    // then losing one would pass unseen.
+    for (const word of [
+      'at risk',
+      'last chance',
+      'hurry',
+      'ends tonight',
+      'midnight',
+      'before it ends',
+      'save your streak',
+      'disappear',
+      'miss you',
+      'ignor',
+      'disappoint',
+      'shame',
+      'sad',
+      'hours left',
+      'minutes left',
+      'hour left',
+      'minute left',
+      'broke',
+      'protect',
+      'in danger',
+      'going out',
+    ]) {
+      assert.ok(BANNED_IN_STREAK_COPY.includes(word), `streak copy may now say "${word}"`);
+    }
+
+    // Facts: a count, a day, a lifetime total, a calm word about repair.
+    for (const line of [
+      'Your 12-day streak is waiting',
+      'Day 13 is ready when you are',
+      'One week of French',
+      'A 7-day streak. One week of French.',
+      'Practised today. That makes 30 days in a row.',
+      '214 practice days so far',
+      'Start a new streak today',
+      'Subscribers can repair a streak within 2 days.',
+      'Léa has a phrase for you.',
+      // Lines the streak screen is specified to say (docs/come-alive/game.md),
+      // so a word added to the list cannot quietly ban the planned copy.
+      'A freeze covered yesterday',
+      'Streak freezes come with a plan. A freeze covers a day automatically when life gets busy.',
+      'Bring back your 12-day streak',
+      'One practice today reaches your 30-day milestone.',
+    ]) {
+      assert.equal(streakGuiltIn(line), undefined, `"${line}" trips "${streakGuiltIn(line) ?? ''}"`);
+      assert.equal(guiltIn(line), undefined, `"${line}" trips the shared list on "${guiltIn(line) ?? ''}"`);
+    }
+
+    // Threats: the countdown, the loss, the plea, the sad face in words.
+    for (const line of [
+      'Save your streak before midnight',
+      "Don't lose your streak",
+      'Don’t lose your streak',
+      'Your streak is at risk',
+      'Last chance to keep your streak',
+      'Hurry! Your streak ends tonight',
+      'Only 3 hours left to practise',
+      '20 minutes left today',
+      'Your streak will disappear',
+      'We miss you',
+      'You ignored Léa yesterday',
+      "Don't disappoint Léa",
+      'Your tutor is sad',
+      'You lost your 40-day streak',
+      'You missed a day',
+      'Practise before it ends',
+      // Found in review: each passed the first version of the list.
+      'Protect your streak',
+      'Only 1 hour left',
+      '1 minute left to practise',
+      'Your streak is in danger',
+      'Your flame is going out',
+      'You broke your 12-day streak',
+    ]) {
+      assert.notEqual(streakGuiltIn(line), undefined, `"${line}" threatens and passed`);
+    }
+  });
 });
 
 /**
@@ -124,6 +238,12 @@ describe('the words no Luvani surface may say', () => {
  * `progress/MomentumCards.tsx` now. PRODUCT.md records the tile as history and
  * keeps its properties as the rule any days count that comes back must follow,
  * so the assertions below are unchanged and still hold the wording of that rule.
+ *
+ * 2026-10-04, founder decision D2 (F718): the refusal was reversed and a daily
+ * streak is coming, on the condition that it never shames or threatens. The
+ * tile's properties now belong to the lifetime count of practice days that sits
+ * beside the streak, so every property assertion stays. What changed is the
+ * last one: the word left the ban list, and the record of why is checked here.
  */
 describe('the brand commitment records what shipped — F414', () => {
   test('PRODUCT.md records why days active is not the streak it refused — F414', () => {
@@ -145,8 +265,22 @@ describe('the brand commitment records what shipped — F414', () => {
     ] as const) {
       assert.match(product, pattern, `PRODUCT.md does not say ${property}, which is what makes the tile legal`);
     }
-    // And the word itself is still unsayable to a learner.
+    // 2026-10-04: the founder reversed the refusal (D2). The streak is back as
+    // a fact that never shames, and the properties above now belong to the
+    // lifetime count that sits beside it. The commitment says all three.
+    for (const [property, pattern] of [
+      ['that streak copy never shames or threatens', /never shames or threatens/],
+      ['that a lifetime count sits beside the streak', /lifetime count of practice days/],
+      ['that any finished practice counts', /any finished practice/],
+    ] as const) {
+      assert.match(product, pattern, `PRODUCT.md does not say ${property}`);
+    }
     assert.equal(guiltIn('Days active'), undefined, 'the tile label itself trips the ban list');
-    assert.ok(BANNED_IN_COPY.includes('streak'), 'the word this commitment is about left the ban list');
+    // The word left the ban list by a recorded decision, not by an edit.
+    assert.deepEqual(
+      RETIRED_FROM_BAN.find(({ word }) => word === 'streak'),
+      { word: 'streak', by: 'founder decision 2026-10-04: a full daily streak' },
+      'the word this commitment is about left the ban list without its record',
+    );
   });
 });

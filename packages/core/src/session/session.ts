@@ -378,7 +378,10 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
  * definition arrives when they are already struggling.
  *
  * The first entry of each family is the line this shipped with, so nothing that
- * was already right has been thrown away to make room for variety.
+ * was already right has been thrown away to make room for variety. The two
+ * praise families are the exception: they were French interface praise, and
+ * founder decision D14 (F717) made every win warm, plain English. The lesson's
+ * French is in the tutor's lines; this line is the voice around them.
  */
 const FEEDBACK = {
   rescued: [
@@ -387,8 +390,8 @@ const FEEDBACK = {
     'This one we do together.',
   ],
   skipped: ['No problem. On we go.', 'Fine, next one.', 'We can leave that one.'],
-  excellent: ['Parfait.', 'Voilà.', "C'est exactement ça."],
-  good: ['Très bien.', "C'est ça.", 'Voilà, oui.'],
+  excellent: ['Exactly right.', 'Spot on.', 'That was it, exactly.'],
+  good: ['Well said.', "Yes, that's it.", 'Nicely put.'],
   partial: [
     'Good. That got the message across.',
     'That lands. The meaning is there.',
