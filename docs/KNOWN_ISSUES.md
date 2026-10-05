@@ -9928,4 +9928,48 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Founder decision D13 enables guest speaking with server protection: an anonymous admission budget (per guest capability, installation, address and a global daily ceiling), about 60 seconds of speech per guest, the existing 20 s capture, 2 MiB cap and 24 h capability. Security and privacy review required.
 - verified-by: `guest speech is admitted only within its per-guest, per-installation, per-address and daily limits`
 
+### F736 — An off switch is invisible on iOS
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/settings/SwitchRow.tsx:57
+- note: The false track colour is set, but iOS paints an off switch from ios_backgroundColor, so every off toggle in Settings shows as a bare thumb. The Sound effects switch joins that screen in this programme.
+- verified-by: `an off switch shows its track on iOS`
+
+### F737 — The selected tab icon never shows it was chosen
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx, apps/mobile/src/nav/TabGlyph.tsx
+- note: Founder decision D7 (richer motion on flat controls). The selected tab icon pops once inside nav/TabGlyph.tsx and lands still under Reduce Motion; LuvaniTabBar.tsx itself still moves nothing, so the F600 assertion stays true.
+- verified-by: `the selected tab icon springs in TabGlyph and lands still under Reduce Motion`
+
+### F738 — Leaving one recording can stop another recorder or a live room
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/sound/audioSessionCore.ts:108
+- note: Found by the Phase 0 sound review. leaveRecording switches to voice mode even while another microphone hold or a live room is open, and on iOS a mode without the microphone stops a running recorder. A slow cleanup on one screen can cut off the next screen's recording.
+- verified-by: `leaving one recording never stops another or a live room`
+
+### F739 — A freeze counts as spent on a day a repair already covers
+- severity: P2
+- status: [ ]
+- where: packages/core/src/streak/freeze.ts:30
+- note: Found by the Phase 0 core review. Two devices can write a repair and a freeze for the same day; the streak shows the repair, but freezesHeld still counts the freeze as used, so a subscriber loses a freeze they never needed.
+- verified-by: `a freeze is spent only on a day the streak used it for`
+
+### F740 — Today's phrase quest needs a recording the learner may not be able to make
+- severity: P2
+- status: [ ]
+- where: packages/core/src/quests/catalogue.ts:65, apps/mobile/src/daily/DailyPracticeScreen.tsx:146
+- note: Found by the Phase 0 core review. "Say today's phrase" is marked as needing no speaking, but the daily practice only finishes after a recording of at least a second, and it is in every day-one set. A learner who declined the microphone could never close their first chest.
+- verified-by: `a quest that needs a recording is never set for a learner who cannot record`
+
+### F741 — A streak badge says days in a row when a covered day bridged the run
+- severity: P2
+- status: [ ]
+- where: packages/core/src/badges/catalogue.ts:64-67
+- note: Found by the Phase 0 core review. The longest run counts across freeze, repair and travel days, so "You practised 30 days in a row." can be untrue. Every number on a celebration must be a persisted fact.
+- verified-by: `a streak badge never claims more days in a row than were practised`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
+
+October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
