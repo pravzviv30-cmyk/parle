@@ -9810,18 +9810,20 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F721 — Motion has no shared engine, tokens or live reduced motion
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/motion.ts, apps/mobile/src/motion
 - note: Reanimated 4.5.1 enters through one driver that always passes the app's live reduced-motion answer, because Reanimated samples the system setting once at load.
+- note: 2026-10-05, ca/p0-motion: motion/tokens.ts, motion/drive.ts (the only with* caller, every call passes mode(reduced)), motion/ReduceMotionBridge.tsx mounted once in App.tsx, and Press on Reanimated with tile depth and the selected ring; motion.test.ts rewritten to directory allow-lists. All three tests pass and each failed under a mutation that removed what it checks.
 - verified-by: `nothing asks Reanimated for the system reduce-motion setting`
 - verified-by: `every file that moves reads reduced motion from motion.ts`
 - verified-by: `spring tokens match their response and damping derivations`
 
 ### F722 — Haptics have no celebration vocabulary
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/motion/haptics.native.ts
 - note: tick, thump, celebrate and cancel, each respecting the haptic switch and silent while a microphone is open.
+- note: 2026-10-05, ca/p0-motion: tick (60 ms gate), thump, celebrate (success, medium at 140, light at 280) and cancelHaptics in haptics.native.ts with no-op twins; the timing lives in the pure motion/hapticBeats.ts, which re-asks hapticsEnabled() per beat. The test steps an injected clock and failed when the per-beat check or cancel was removed.
 - verified-by: `celebration haptics are cancellable beats that respect the haptic switch`
 
 ### F723 — Partial audio modes can silence the tutor in silent mode

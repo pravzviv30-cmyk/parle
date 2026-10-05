@@ -53,6 +53,18 @@ const NOTICES: readonly Notice[] = [
     licence: 'MIT License',
     note: 'The app itself is built on them.',
   },
+  {
+    name: 'Reanimated',
+    by: 'Software Mansion',
+    licence: 'MIT License',
+    note: 'Moves the buttons you press.',
+  },
+  {
+    name: 'React Native Worklets',
+    by: 'Software Mansion',
+    licence: 'MIT License',
+    note: 'Keeps that movement smooth while the app is busy.',
+  },
 ];
 
 export function Acknowledgements({ onBack }: { onBack: () => void }) {

@@ -85,6 +85,7 @@ import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
+import { ReduceMotionBridge } from './src/motion/ReduceMotionBridge.tsx';
 
 function Loading() {
   return (
@@ -695,6 +696,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      <ReduceMotionBridge />
       <AuthProvider adapter={auth}>
         <View style={st.app}>
           {loaded ? (

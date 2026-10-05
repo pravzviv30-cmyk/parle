@@ -25,3 +25,23 @@ export function pressed(): void {
 export function soft(): void {
   // Native only.
 }
+
+/** A step in a count: a throttled selection tick. */
+export function tick(): void {
+  // Native only.
+}
+
+/** A weight landing: one medium impact. */
+export function thump(): void {
+  // Native only.
+}
+
+/** A real win: success, then medium, then light. */
+export function celebrate(): void {
+  // Native only.
+}
+
+/** Drop any celebration beats still waiting. */
+export function cancelHaptics(): void {
+  // Native only.
+}

@@ -59,8 +59,9 @@ import {
   rungColor,
   rungLabel,
 } from './theme.ts';
+import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { pressed, tapSettled } from './motion/haptics.ts';
-import { PRESS_SCALE, pressTo, useReduceMotion } from './motion.ts';
+import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
 import type { Rung } from '@luvani/core';
 
@@ -1514,6 +1515,16 @@ export type PressProps = Omit<PressableProps, 'style' | 'onPress' | 'children'> 
   style?: StyleProp<ViewStyle>;
   /** The Pressable's place in its parent: flex, alignSelf, width. Never a colour. */
   frame?: StyleProp<ViewStyle>;
+  /** control: pills, links and rows go to 0.97. tile: option tiles and icon buttons press deeper, to 0.95. */
+  depth?: 'control' | 'tile';
+  /**
+   * For a choice: whether this one is the chosen one. Becoming chosen pops the
+   * surface once and fades in a blue ring layer around it. Leave it out for an
+   * action, which draws no ring at all.
+   */
+  selected?: boolean;
+  /** The surface's corner, so the ring around it follows it. Defaults to the control radius. */
+  glowRadius?: number;
   children: ReactNode;
 };
 
@@ -1523,13 +1534,23 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
 /**
  * The one press (STYLE section 11): every tappable thing scales to 0.97 on the
  * press spring while the finger is down, springs back on lift, and answers
- * with a light impact for a press or a selection tick for a choice.
+ * with a light impact for a press or a selection tick for a choice. A tile
+ * (`depth="tile"`) presses deeper, to 0.95.
  *
- * Two layers, because the thing that shrinks must be the drawn surface and
- * `Animated.createAnimatedComponent(Pressable)` is refused by motion.test.ts:
- * the Pressable holds the part's place in its parent (`frame`), and the
- * Animated.View inside it is the surface (`style`). Under reduced motion the
- * scale lands at once, so the press is still felt and nothing travels.
+ * Two layers, because the thing that shrinks must be the drawn surface and an
+ * animated Pressable is refused by motion.test.ts: the Pressable holds the
+ * part's place in its parent (`frame`), and the Reanimated view inside it is
+ * the surface (`style`). The spring runs on the UI thread through
+ * `motion/drive.ts`. Under reduced motion the scale lands at once, so the press
+ * is still felt and nothing travels, and turning it on mid-press lands the
+ * surface at rest.
+ *
+ * A choice passes `selected`. When it becomes the chosen one the surface pops
+ * once (`SELECT_POP`, then the pop spring) and a blue ring layer fades in four
+ * points around it, at 0.16. The ring is a view drawn under the surface, not a
+ * cast shadow (F569), and it is decorative: the caller's fill and words, and
+ * `accessibilityState`, say what was chosen. No second haptic on select; the
+ * press already answered.
  *
  * Cancel-on-move is Pressable's own contract: when a scroll view takes the
  * responder, Pressable fires `onPressOut` and never `onPress`, so the spring
@@ -1537,24 +1558,32 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
  * role wins (a segment passes `tab`). A disabled Press never presses, so it
  * neither shrinks nor ticks.
  */
-export function Press({ onPress, haptic = 'light', style, frame, disabled = false, onPressIn, onPressOut, children, ...rest }: PressProps) {
+export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, onPressIn, onPressOut, children, ...rest }: PressProps) {
   const reduced = useReduceMotion();
-  const scale = useRef(new Animated.Value(1)).current;
-  const running = useRef<Animated.CompositeAnimation | null>(null);
-  useEffect(() => () => running.current?.stop(), []);
-  useEffect(() => { if (reduced) { running.current?.stop(); scale.setValue(1); } }, [reduced, scale]);
+  const scale = useSharedValue(1);
+  const ring = useSharedValue(selected === true ? SELECT_RING_OPACITY : 0);
+  const chosen = useRef(selected === true);
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const ringStyle = useAnimatedStyle(() => ({ opacity: ring.value, transform: [{ scale: scale.value }] }));
+  useEffect(() => () => stopMotion(scale, ring), [scale, ring]);
+  useEffect(() => { if (reduced) { pressTo(scale, 1, true); ringTo(ring, chosen.current, true); } }, [reduced, scale, ring]);
+  useEffect(() => {
+    const now = selected === true;
+    if (now === chosen.current) return;
+    chosen.current = now;
+    ringTo(ring, now, reduced);
+    if (now) selectPop(scale, reduced);
+  }, [selected, reduced, scale, ring]);
   return (
     <Pressable
       accessibilityRole="button" {...rest}
       disabled={disabled}
       onPressIn={(event) => {
-        running.current?.stop();
-        running.current = pressTo(scale, PRESS_SCALE, reduced);
+        pressTo(scale, depth === 'tile' ? PRESS_SCALE_TILE : PRESS_SCALE, reduced);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
-        running.current?.stop();
-        running.current = pressTo(scale, 1, reduced);
+        pressTo(scale, 1, reduced);
         onPressOut?.(event);
       }}
       onPress={() => {
@@ -1564,7 +1593,13 @@ export function Press({ onPress, haptic = 'light', style, frame, disabled = fals
       }}
       style={frame}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
+      {selected !== undefined ? (
+        <Reanimated.View
+          {...decorative}
+          style={[{ pointerEvents: 'none', position: 'absolute', top: -space(1), right: -space(1), bottom: -space(1), left: -space(1), borderRadius: glowRadius + space(1), backgroundColor: colour.blue }, ringStyle]}
+        />
+      ) : null}
+      <Reanimated.View style={[style, pressStyle]}>{children}</Reanimated.View>
     </Pressable>
   );
 }
