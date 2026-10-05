@@ -9767,4 +9767,84 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `refusing an occupied preview reaps even a service that ignores SIGTERM`
 - verified-by: `a readiness timeout reports failure even when its service exits promptly`
 
+### F716 — A reply that only echoes the tutor's greeting and question is accepted
+- severity: P1
+- status: [ ]
+- where: packages/core/src/onboarding.ts:298
+- note: Come alive (docs/come-alive). "Salut ! Ca Va" normalises to the prompt "Salut ! Ça va ?" and passes the family-hello check, so the first win praises a copied question and the raw spelling is saved as the learner's phrase. Reject a reply whose normalised form equals the prompt; "Ça va" alone stays a real answer. The token server imports core and must be redeployed.
+- verified-by: `a reply that only echoes the greeting and the question is not accepted`
+
+### F717 — Drill verdicts and lesson praise are French interface praise
+- severity: P2
+- status: [ ]
+- where: packages/core/src/drill/session.ts:136, packages/core/src/session/session.ts:390
+- note: Founder decision D14 (warm, plain English at wins). "Nickel." and the lesson praise families become English; the first miss still shows no answer, by design.
+- verified-by: `drill verdict lines are warm plain English with no score and no scold`
+- verified-by: `lesson praise families are plain English`
+
+### F718 — The copy rules refuse the founder's daily streak
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/copy/guilt.ts:33, PRODUCT.md:92
+- note: Founder decision D2 (2026-10-04) reverses the no-streak rule. Retire only the word "streak" from the shared ban, record the retirement, keep every shaming word, and add a stricter list for streak and reminder copy.
+- verified-by: `streak copy states facts and never threatens`
+
+### F719 — Core has no streak, goal, quest or badge model
+- severity: P2
+- status: [ ]
+- where: packages/core/src/streak, packages/core/src/goal, packages/core/src/quests, packages/core/src/badges
+- note: Pure, Node-tested logic for decisions D2 to D6: a practice day is the local date a sitting finishes; covers bridge a run and add nothing; freezes and repair only when entitled; quests deterministic per learner and day; badges awarded once.
+- verified-by: `a covered day bridges the run but adds nothing to the count`
+- verified-by: `freezes and repair apply only to an entitled learner`
+- verified-by: `the same seed and day always pick the same three quests`
+- verified-by: `each badge awards at its threshold and never twice`
+- verified-by: `today's goal minutes count only measured active time`
+
+### F720 — XP is computed but nothing can display a level or the XP a sitting earned
+- severity: P2
+- status: [ ]
+- where: packages/core/src/levels/levels.ts
+- note: Numbered display levels on a fixed curve, separate from the content-difficulty standing (levelFor stays as is), and the credited delta under the daily cap.
+- verified-by: `display levels rise on a fixed curve and never shrink a step`
+- verified-by: `credited XP respects the daily cap`
+
+### F721 — Motion has no shared engine, tokens or live reduced motion
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/motion.ts, apps/mobile/src/motion
+- note: Reanimated 4.5.1 enters through one driver that always passes the app's live reduced-motion answer, because Reanimated samples the system setting once at load.
+- verified-by: `nothing asks Reanimated for the system reduce-motion setting`
+- verified-by: `every file that moves reads reduced motion from motion.ts`
+- verified-by: `spring tokens match their response and damping derivations`
+
+### F722 — Haptics have no celebration vocabulary
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/motion/haptics.native.ts
+- note: tick, thump, celebrate and cancel, each respecting the haptic switch and silent while a microphone is open.
+- verified-by: `celebration haptics are cancellable beats that respect the haptic switch`
+
+### F723 — Partial audio modes can silence the tutor in silent mode
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/onboarding/GuestRecording.tsx, apps/mobile/src/recap/PrivatePractice.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx
+- note: A partial setAudioModeAsync selects iOS .ambient, and four voice players plus TTS set no mode, so a later voice line can follow the silent switch. One audio-session module owns every mode change.
+- verified-by: `only the audio session module sets an audio mode`
+- verified-by: `every voice player enters voice playback before it plays`
+
+### F724 — Most recorders and the live room do not silence haptics
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/motion/hapticPreference.ts:9
+- verified-by: `every file that records holds the microphone focus`
+
+### F725 — There are no sound effects, and none may ship unheard
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/sound, scripts/sfx
+- note: Founder decisions D8 and D9: original synthesised sounds, on by default, obeying the silent switch, silent while a microphone, voice line or live room is open, and playable only once the founder has approved each by ear.
+- verified-by: `an unapproved sound never plays`
+- verified-by: `every sound asset matches its approved synthesis`
+- verified-by: `sound effects stay silent while a microphone, voice line or live room is open`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
