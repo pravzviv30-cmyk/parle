@@ -67,12 +67,16 @@ export const RETIRED_FROM_BAN: readonly { readonly word: string; readonly by: st
  *
  * Kept apart from BANNED_IN_COPY on purpose. These are the words a streak
  * reaches for when it starts threatening, and most of them are harmless
- * elsewhere: "protect" in privacy copy, a "midnight" train in a scene. Putting
- * them on the shared list would push good sentences on other surfaces into
- * worse ones; leaving them off this one is how a streak learns to nag.
+ * elsewhere: "protect" in privacy copy, a "midnight" train in a scene, "going
+ * out" in a daily scene. Putting them on the shared list would push good
+ * sentences on other surfaces into worse ones; leaving them off this one is how
+ * a streak learns to nag.
  *
  * Substring, like the shared list. `ignor` catches ignore and ignored, `sad`
- * catches sadly, and `miss you` stays even though `missed` is already above.
+ * catches sadly, `protect` catches protection, and `miss you` stays even though
+ * `missed` is already above. Substring also means a plural does not cover its
+ * singular: "hours left" never matches "1 hour left", so each countdown unit is
+ * listed in both forms.
  */
 export const BANNED_IN_STREAK_COPY: readonly string[] = [
   ...BANNED_IN_COPY,
@@ -91,6 +95,15 @@ export const BANNED_IN_STREAK_COPY: readonly string[] = [
   'sad',
   'hours left',
   'minutes left',
+  // Added in review (2026-10-05): the singular countdown, the past tense of
+  // `break` that the shared list cannot see, and the threat that names no loss
+  // but pictures one.
+  'hour left',
+  'minute left',
+  'broke',
+  'protect',
+  'in danger',
+  'going out',
 ];
 
 /**
@@ -115,9 +128,11 @@ function normalise(line: string): string {
  * used `\b(...)\b`. Substring wins, because the two failure modes are not
  * symmetric. A false positive costs one sentence a rewrite, and the writer sees
  * exactly which word did it. A false negative ships guilt to a learner and
- * nothing ever says so. "You broke your run", "streaks", "you owed yourself
- * one" all pass a word-boundary check on the singular stems, and all of them
- * are the thing we promised not to do.
+ * nothing ever says so. "Your run breaks tonight" and "you owed yourself one"
+ * both pass a word-boundary check on the stems, and both are the thing we
+ * promised not to do. (Substring is not a stemmer either: "broke" contains no
+ * "break", so a new threat still needs its own word on a list, which is why
+ * BANNED_IN_STREAK_COPY carries it.)
  *
  * The cost is real and worth naming, because Phase 6a's new surfaces will meet
  * it. `break` catches breakfast and breakthrough. `lose` catches close and

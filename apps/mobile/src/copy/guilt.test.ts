@@ -159,6 +159,12 @@ describe('the words no Luvani surface may say', () => {
       'sad',
       'hours left',
       'minutes left',
+      'hour left',
+      'minute left',
+      'broke',
+      'protect',
+      'in danger',
+      'going out',
     ]) {
       assert.ok(BANNED_IN_STREAK_COPY.includes(word), `streak copy may now say "${word}"`);
     }
@@ -174,6 +180,12 @@ describe('the words no Luvani surface may say', () => {
       'Start a new streak today',
       'Subscribers can repair a streak within 2 days.',
       'Léa has a phrase for you.',
+      // Lines the streak screen is specified to say (docs/come-alive/game.md),
+      // so a word added to the list cannot quietly ban the planned copy.
+      'A freeze covered yesterday',
+      'Streak freezes come with a plan. A freeze covers a day automatically when life gets busy.',
+      'Bring back your 12-day streak',
+      'One practice today reaches your 30-day milestone.',
     ]) {
       assert.equal(streakGuiltIn(line), undefined, `"${line}" trips "${streakGuiltIn(line) ?? ''}"`);
       assert.equal(guiltIn(line), undefined, `"${line}" trips the shared list on "${guiltIn(line) ?? ''}"`);
@@ -197,6 +209,13 @@ describe('the words no Luvani surface may say', () => {
       'You lost your 40-day streak',
       'You missed a day',
       'Practise before it ends',
+      // Found in review: each passed the first version of the list.
+      'Protect your streak',
+      'Only 1 hour left',
+      '1 minute left to practise',
+      'Your streak is in danger',
+      'Your flame is going out',
+      'You broke your 12-day streak',
     ]) {
       assert.notEqual(streakGuiltIn(line), undefined, `"${line}" threatens and passed`);
     }
