@@ -29,6 +29,7 @@ re-deriving the architecture from source every time.
 | The agreed tutor-audio batches, credit-reset reminder and pre-publication checklist | [DAILY_AUDIO_ROLLOUT.md](DAILY_AUDIO_ROLLOUT.md) |
 | The risks that block users, payments, or release | [RISK_REGISTER.md](RISK_REGISTER.md) |
 | What old code may be removed, and only after which checks | [DELETION_LEDGER.md](DELETION_LEDGER.md) |
+| The October 2026 "come alive" programme: motion, sound, streak, XP, icons, first run and paywall, with its founder decisions and build order | [come-alive/README.md](come-alive/README.md) |
 
 These deliberately do not repeat what already exists:
 
