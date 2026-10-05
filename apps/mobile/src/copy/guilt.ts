@@ -1,8 +1,8 @@
 /**
  * The words Luvani's copy is not allowed to say.
  *
- * "No streak guilt" is the promise PRODUCT.md makes hardest (:90-93, and
- * principle 4 at :138), and it used to be kept by three suites carrying three
+ * "No streak guilt" is the promise PRODUCT.md makes hardest (Brand
+ * Commitments, and principle 4), and it used to be kept by three suites carrying three
  * different lists: eleven phrases on Home, four words on the mix offer, and a
  * source scan on the review screen. Three lists means the shortest one is the
  * real rule, and the gate cannot see any of them getting shorter. This is the
@@ -22,15 +22,17 @@
 /**
  * Every word and phrase banned from learner-facing copy, oldest first.
  *
- * Grows, never shrinks. copy/guilt.test.ts holds the historical record of what
- * each surface banned before there was one list, so a deletion here fails
- * there by name.
+ * Grows, never shrinks, except by a dated founder decision written into
+ * RETIRED_FROM_BAN below. copy/guilt.test.ts holds the historical record of
+ * what each surface banned before there was one list, so a deletion here that
+ * is not recorded there fails by name.
  */
 export const BANNED_IN_COPY: readonly string[] = [
-  // Home's daily count (progress/today.ts), which PRODUCT.md has now refused to
-  // turn into a streak twice. These eleven are the vocabulary of a chain you
-  // can break: the threat, the scold, and the ask to protect something.
-  'streak',
+  // Home's daily count (progress/today.ts), which PRODUCT.md refused to turn
+  // into a streak twice. These were eleven words, the vocabulary of a chain you
+  // can break: the threat, the scold, and the ask to protect something. The
+  // word "streak" itself was retired on 2026-10-04 (RETIRED_FROM_BAN); the
+  // threat and the scold stay.
   'missed',
   'lost',
   'lose',
@@ -44,6 +46,51 @@ export const BANNED_IN_COPY: readonly string[] = [
   // The mix offer (practice/mix.ts). Its list was streak, behind, missed and
   // owe; the first three were already above, so owe is what it adds.
   'owe',
+];
+
+/**
+ * The words that have left BANNED_IN_COPY, and the decision that let each go.
+ *
+ * One entry, and copy/guilt.test.ts holds it to exactly one: a second word
+ * leaving needs its own dated founder decision. "streak" left because the
+ * founder chose a full daily streak (D2 in docs/come-alive/README.md). Every
+ * shaming word it travelled with is still above, and streak copy answers to
+ * BANNED_IN_STREAK_COPY as well.
+ */
+export const RETIRED_FROM_BAN: readonly { readonly word: string; readonly by: string }[] = [
+  { word: 'streak', by: 'founder decision 2026-10-04: a full daily streak' },
+];
+
+/**
+ * The stricter list for streak, goal, quest and reminder copy: everything no
+ * surface may say, plus the countdown, the plea and the sad face in words.
+ *
+ * Kept apart from BANNED_IN_COPY on purpose. These are the words a streak
+ * reaches for when it starts threatening, and most of them are harmless
+ * elsewhere: "protect" in privacy copy, a "midnight" train in a scene. Putting
+ * them on the shared list would push good sentences on other surfaces into
+ * worse ones; leaving them off this one is how a streak learns to nag.
+ *
+ * Substring, like the shared list. `ignor` catches ignore and ignored, `sad`
+ * catches sadly, and `miss you` stays even though `missed` is already above.
+ */
+export const BANNED_IN_STREAK_COPY: readonly string[] = [
+  ...BANNED_IN_COPY,
+  'at risk',
+  'last chance',
+  'hurry',
+  'ends tonight',
+  'midnight',
+  'before it ends',
+  'save your streak',
+  'disappear',
+  'miss you',
+  'ignor',
+  'disappoint',
+  'shame',
+  'sad',
+  'hours left',
+  'minutes left',
 ];
 
 /**
@@ -82,4 +129,10 @@ function normalise(line: string): string {
 export function guiltIn(line: string): string | undefined {
   const copy = normalise(line);
   return BANNED_IN_COPY.find((word) => copy.includes(word));
+}
+
+/** The first phrase from BANNED_IN_STREAK_COPY present in `line`, matched as guiltIn matches. */
+export function streakGuiltIn(line: string): string | undefined {
+  const copy = normalise(line);
+  return BANNED_IN_STREAK_COPY.find((word) => copy.includes(word));
 }

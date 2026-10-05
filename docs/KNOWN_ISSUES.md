@@ -9769,24 +9769,27 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F716 — A reply that only echoes the tutor's greeting and question is accepted
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/onboarding.ts:298
 - note: Come alive (docs/come-alive). "Salut ! Ca Va" normalises to the prompt "Salut ! Ça va ?" and passes the family-hello check, so the first win praises a copied question and the raw spelling is saved as the learner's phrase. Reject a reply whose normalised form equals the prompt; "Ça va" alone stays a real answer. The token server imports core and must be redeployed.
+- note: 2026-10-05 ca/p0-copy: checkStarter compares the whole normalised reply to the normalised prompt before matching and answers an echo with "That repeats the question. Here is one way to answer: « model »"; the test failed on today's code with 'Salut ! Ça va ?' and 'Salut ! Ca Va', passes now, keeps 'Ça va' accepted, and checks no starter accepts its own prompt. Token server not yet redeployed.
 - verified-by: `a reply that only echoes the greeting and the question is not accepted`
 
 ### F717 — Drill verdicts and lesson praise are French interface praise
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/drill/session.ts:136, packages/core/src/session/session.ts:390
 - note: Founder decision D14 (warm, plain English at wins). "Nickel." and the lesson praise families become English; the first miss still shows no answer, by design.
+- note: 2026-10-05 ca/p0-copy: drill lines are 'Nicely done.', "Nearly. It's spelt «x».", 'This one comes round again.' and "Here's how it goes: «x»."; new ownWordsFeedback keys own-words copy and tone on the decision (good 'That works.', retry calm 'Have another go.', reveal calm). Lesson excellent and good families are English. Both tests failed before the change. Tutor agent not yet redeployed.
 - verified-by: `drill verdict lines are warm plain English with no score and no scold`
 - verified-by: `lesson praise families are plain English`
 
 ### F718 — The copy rules refuse the founder's daily streak
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/copy/guilt.ts:33, PRODUCT.md:92
 - note: Founder decision D2 (2026-10-04) reverses the no-streak rule. Retire only the word "streak" from the shared ban, record the retirement, keep every shaming word, and add a stricter list for streak and reminder copy.
+- note: 2026-10-05 ca/p0-copy: 'streak' left BANNED_IN_COPY and is recorded in RETIRED_FROM_BAN (held to exactly one entry by the F216 test, which keeps the history in ONCE_BANNED); BANNED_IN_STREAK_COPY and streakGuiltIn added; PRODUCT.md streak and XP bullets rewritten with every F414 phrase kept. review/cardView.test.ts:568 (F220) still uses 'streak' as its matcher canary and needs a one-line swap outside this track.
 - verified-by: `streak copy states facts and never threatens`
 
 ### F719 — Core has no streak, goal, quest or badge model

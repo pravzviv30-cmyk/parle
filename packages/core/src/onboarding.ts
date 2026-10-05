@@ -294,12 +294,21 @@ const variants: Readonly<Record<string, readonly string[]>> = {
   team: ['je travaille dans cette équipe', 'je travaille dans votre équipe'],
   'work-help': ['vous pouvez m’aider', 'pouvez-vous m’aider', 'aidez-moi', 'tu peux m’aider'],
 };
-/** Conservative whole-line matching. Unrecognised alternatives receive a model, never a claim they are invalid French. */
+/**
+ * Conservative whole-line matching. Unrecognised alternatives receive a model, never a claim they are invalid French.
+ *
+ * A reply that is the tutor's own line read back is not an answer, however it
+ * normalises (F716). "Salut ! Ça va ?" loses its accent, its punctuation and
+ * then its greeting on the way to "ca va", which is one of family-hello's real
+ * answers. Comparing the whole normalised line to the prompt first stops that
+ * without touching "Ça va" said on its own, which is an answer.
+ */
 export function checkStarter(
   task: StarterTask,
   reply: string,
   evidence: StarterFeedback['evidence'],
 ): StarterFeedback {
+  const echoed = normalise(reply) === normalise(task.prompt);
   const line = concise(reply);
   const forms = [task.model, ...(variants[task.id] ?? [])];
   const chosen =
@@ -308,10 +317,14 @@ export function checkStarter(
           normalise(form).includes(normalise(task.model).includes('the') ? 'the' : 'cafe'),
         )
       : forms;
-  const accepted = chosen.some((form) => line === concise(form));
+  const accepted = !echoed && chosen.some((form) => line === concise(form));
   return {
     accepted,
-    text: accepted ? task.success : `Here is one reply for this task. ${task.correction}`,
+    text: accepted
+      ? task.success
+      : echoed
+        ? `That repeats the question. Here is one way to answer: « ${task.model} »`
+        : `Here is one reply for this task. ${task.correction}`,
     model: task.model,
     evidence,
   };
