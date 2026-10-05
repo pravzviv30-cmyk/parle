@@ -3,15 +3,18 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
-import { PLANS, type Entitlement } from '@luvani/core';
+import { LAPSE_GRACE_SEC, PLANS, canStartSession, secondsRemaining, type Entitlement } from '@luvani/core';
 import { InMemoryEntitlementStore } from '../store.ts';
 import {
   projectSubscriber,
   refreshSubscriber,
+  renewSubscriber,
   revenueCatConfiguration,
+  revenueCatReadConfiguration,
   webhookAuthorised,
   type RevenueCatConfiguration,
 } from './revenuecat.ts';
+import { withheldSeconds } from './state.ts';
 
 const config: RevenueCatConfiguration = {
   secretApiKey: 'secret-api-key',
@@ -20,8 +23,15 @@ const config: RevenueCatConfiguration = {
   products: { starter: 'luvani_starter_monthly', regular: 'luvani_regular_monthly' },
 };
 const now = new Date('2026-08-30T12:00:00.000Z');
-const subscriber = (product: string, expires = '2026-09-30T12:00:00.000Z') => ({
-  subscriber: { entitlements: { luvani: { product_identifier: product, expires_date: expires } } },
+// F733 (2026-10-05): RevenueCat's subscriber record names each product's
+// period_type beside the entitlement, and the projection now reads it, so the
+// fixture carries the record a real paid month has. Every assertion that used
+// this fixture before still reads a normal paid period.
+const subscriber = (product: string, expires = '2026-09-30T12:00:00.000Z', periodType = 'normal', purchased = '2026-08-30T12:00:00.000Z') => ({
+  subscriber: {
+    entitlements: { luvani: { product_identifier: product, expires_date: expires, purchase_date: purchased } },
+    subscriptions: { [product]: { period_type: periodType, expires_date: expires, purchase_date: purchased } },
+  },
 });
 
 describe('RevenueCat subscriber projection — F247', () => {
@@ -238,4 +248,182 @@ test('a refresh cannot revert a debit that landed while it was in flight', async
   release();
   assert.equal((await refreshing).entitlement.secondsUsed,1600);
   assert.equal((await store.get('learner')).secondsUsed,1600);
+});
+
+describe('a store free trial and a yearly plan grant what D16 decided, on the server (F733)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const yearly: RevenueCatConfiguration = {
+    ...config,
+    yearlyProducts: { starter: 'luvani_starter_yearly', regular: 'luvani_regular_yearly' },
+  };
+
+  test("a store trial grants a week of the plan's minutes and no more", async (t) => {
+    const trialEnd = '2026-09-06T12:00:00.000Z';
+    for (const [plan, product, minutes] of [['starter', 'luvani_starter_monthly', 42], ['regular', 'luvani_regular_monthly', 70]] as const) {
+      // A learner still holding some of the free thirty minutes starts the store's free week.
+      const started = projectSubscriber(subscriber(product, trialEnd, 'trial'), { plan: 'trial', secondsUsed: 300 }, config, now);
+      assert.equal(started.kind, 'active');
+      assert.equal(started.entitlement.plan, plan);
+      assert.equal(
+        secondsRemaining(started.entitlement),
+        minutes * 60,
+        `a ${plan} trial granted ${secondsRemaining(started.entitlement) / 60} minutes, not a week of the plan`,
+      );
+      assert.equal(started.entitlement.periodEnd?.toISOString(), trialEnd, 'the trial allowance ends with the trial');
+      // The webhook spells the period in capitals. It is the same trial.
+      const shouted = projectSubscriber(subscriber(product, trialEnd, 'TRIAL'), { plan: 'trial', secondsUsed: 0 }, config, now);
+      assert.equal(secondsRemaining(shouted.entitlement), minutes * 60);
+    }
+
+    // Through the store and the meter: the week is spent, then refused, and a
+    // repeat read of the same trial never refills it.
+    t.mock.timers.enable({ apis: ['Date'], now: now.getTime() });
+    const userId = '7c1e0a52-4b0d-4c55-9a3f-2f6f0a1b2c3d';
+    const store = new InMemoryEntitlementStore('trial');
+    const trial = async () => new Response(JSON.stringify(subscriber('luvani_starter_monthly', trialEnd, 'trial')));
+    assert.equal((await refreshSubscriber(userId, store, config, { now, request: trial })).kind, 'active');
+    await store.consume(userId, 40 * 60);
+    assert.equal(canStartSession(await store.get(userId)).allowed, true, 'two minutes left is still one short session');
+    await store.consume(userId, 15 * 60);
+    const spent = await store.get(userId);
+    assert.equal(secondsRemaining(spent), 0, 'usage ran past the trial week');
+    const refused = canStartSession(spent);
+    assert.equal(refused.allowed === false && refused.reason, 'exhausted');
+    await refreshSubscriber(userId, store, config, { now, request: trial });
+    assert.equal(secondsRemaining(await store.get(userId)), 0, 'reading the same trial again handed the week back');
+
+    // The trial converts: the store's first paid month is the whole allowance.
+    const paid = async () => new Response(JSON.stringify(subscriber('luvani_starter_monthly', '2026-10-06T12:00:00.000Z', 'normal', trialEnd)));
+    assert.equal((await refreshSubscriber(userId, store, config, { now, request: paid })).kind, 'active');
+    assert.equal(secondsRemaining(await store.get(userId)), PLANS.starter.secondsPerPeriod);
+  });
+
+  test('a yearly plan refills the monthly allowance every thirty days', () => {
+    const bought = now;
+    const yearEnd = new Date(bought.getTime() + 365 * DAY);
+    const at = (day: number, extraMs = 0) => new Date(bought.getTime() + day * DAY + extraMs);
+    const year = () => subscriber('luvani_regular_yearly', yearEnd.toISOString(), 'normal', bought.toISOString());
+
+    // Day one: one month of Max, ending with the first window rather than the year.
+    const first = projectSubscriber(year(), { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod }, yearly, at(0));
+    assert.equal(first.kind, 'active');
+    assert.equal(first.entitlement.plan, 'regular');
+    assert.equal(secondsRemaining(first.entitlement), PLANS.regular.secondsPerPeriod, 'a yearly plan granted something other than one month');
+    assert.equal(first.entitlement.periodEnd?.toISOString(), at(30).toISOString(), 'the first allowance runs to the end of the year, not the window');
+
+    // Most of the month spent, read again inside the window: nothing comes back.
+    const spent: Entitlement = { ...first.entitlement, secondsUsed: 250 * 60 };
+    const again = projectSubscriber(year(), spent, yearly, at(12));
+    assert.equal(again.entitlement.secondsUsed, 250 * 60);
+    assert.equal(again.entitlement.periodEnd?.toISOString(), at(30).toISOString());
+
+    // The window ends and the next read refills one month, no more.
+    const next = projectSubscriber(year(), spent, yearly, at(30, 60_000));
+    assert.equal(next.entitlement.secondsUsed, 0);
+    assert.equal(next.entitlement.periodEnd?.toISOString(), at(60).toISOString());
+
+    // A learner who spends every minute every day of the paid year is refilled
+    // twelve times, each time with one month, and the last window ends with the year.
+    let row: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod };
+    let refills = 0;
+    for (let day = 0; day < 365; day += 1) {
+      const used: Entitlement = row.plan === 'trial' ? row : { ...row, secondsUsed: PLANS.regular.secondsPerPeriod };
+      const result = projectSubscriber(year(), used, yearly, at(day, 60 * 60 * 1000));
+      assert.equal(result.kind, 'active');
+      assert.ok(secondsRemaining(result.entitlement) <= PLANS.regular.secondsPerPeriod, 'a yearly plan granted more than a month at once');
+      if (result.entitlement.secondsUsed === 0) refills += 1;
+      row = result.entitlement;
+    }
+    assert.equal(refills, 12, `a paid year refilled ${refills} times`);
+    assert.equal(row.periodEnd?.toISOString(), yearEnd.toISOString());
+
+    // After the paid year nothing is granted; the store renews it or it ends.
+    assert.equal(projectSubscriber(year(), row, yearly, at(366)).kind, 'lapsed');
+  });
+
+  test('a purchase the server cannot classify is refused, never guessed', () => {
+    const current: Entitlement = { plan: 'starter', secondsUsed: 450, periodEnd: new Date('2026-09-15T12:00:00.000Z') };
+    const unnamed = { subscriber: { entitlements: { luvani: { product_identifier: 'luvani_starter_monthly', expires_date: '2026-09-30T12:00:00.000Z' } } } };
+    assert.deepEqual(projectSubscriber(unnamed, current, config, now), { kind: 'unchanged', reason: 'unknown-product', entitlement: current },
+      'a period the vendor did not name was guessed');
+    assert.equal(projectSubscriber(subscriber('luvani_starter_monthly', undefined, 'promotional'), current, config, now).kind, 'unchanged');
+    // A yearly product this server was not configured for is an unknown product.
+    assert.equal(projectSubscriber(subscriber('luvani_regular_yearly'), current, config, now).kind, 'unchanged');
+    // A yearly product with no start cannot be cut into windows, so it grants nothing rather than a year.
+    const startless = subscriber('luvani_regular_yearly', '2027-08-30T12:00:00.000Z');
+    delete (startless.subscriber.entitlements.luvani as { purchase_date?: string }).purchase_date;
+    delete (startless.subscriber.subscriptions['luvani_regular_yearly'] as { purchase_date?: string }).purchase_date;
+    assert.equal(projectSubscriber(startless, current, yearly, now).kind, 'unchanged');
+  });
+
+  test('a grant outside the plan allowance is refused before it reaches a row', () => {
+    for (const grant of [0, -60, 1.5, PLANS.starter.secondsPerPeriod + 1, Number.NaN]) {
+      assert.throws(() => withheldSeconds('starter', grant), RangeError, `a grant of ${grant} seconds was accepted`);
+    }
+    assert.equal(withheldSeconds('starter', PLANS.starter.secondsPerPeriod), 0, 'a paid month withholds nothing');
+    assert.equal(withheldSeconds('regular', 70 * 60), PLANS.regular.secondsPerPeriod - 70 * 60);
+  });
+
+  test('yearly product ids are optional one by one, and a partial or ambiguous set is refused', () => {
+    const five = {
+      REVENUECAT_SECRET_API_KEY: 'api',
+      LUVANI_REVENUECAT_WEBHOOK_SECRET: 'hook',
+      REVENUECAT_ENTITLEMENT_ID: 'luvani',
+      REVENUECAT_STARTER_PRODUCT_ID: 'starter',
+      REVENUECAT_REGULAR_PRODUCT_ID: 'regular',
+    };
+    assert.deepEqual(revenueCatConfiguration(five)?.yearlyProducts, {}, 'no yearly key means no yearly product, not a refusal');
+    assert.deepEqual(revenueCatConfiguration({ ...five, REVENUECAT_REGULAR_YEARLY_PRODUCT_ID: 'regular_year' })?.yearlyProducts, { regular: 'regular_year' });
+    assert.throws(() => revenueCatConfiguration({ REVENUECAT_STARTER_YEARLY_PRODUCT_ID: 'starter_year' }), /incomplete/);
+    assert.throws(() => revenueCatConfiguration({ ...five, REVENUECAT_STARTER_YEARLY_PRODUCT_ID: 'starter' }), /ambiguous/);
+    assert.throws(() => revenueCatConfiguration({ ...five, REVENUECAT_STARTER_YEARLY_PRODUCT_ID: 'year', REVENUECAT_REGULAR_YEARLY_PRODUCT_ID: 'year' }), /ambiguous/);
+
+    // The maintenance worker reads subscribers without the webhook secret. The
+    // secret alone, which it holds for privacy erasure, leaves the sweep off.
+    assert.equal(revenueCatReadConfiguration({ REVENUECAT_SECRET_API_KEY: 'api' }), null);
+    assert.throws(() => revenueCatReadConfiguration({ REVENUECAT_SECRET_API_KEY: 'api', REVENUECAT_ENTITLEMENT_ID: 'luvani' }), /incomplete/);
+    const { LUVANI_REVENUECAT_WEBHOOK_SECRET: _hook, ...read } = five;
+    assert.deepEqual(revenueCatReadConfiguration({ ...read, REVENUECAT_STARTER_YEARLY_PRODUCT_ID: 'starter_year' }), {
+      secretApiKey: 'api', entitlementId: 'luvani', products: { starter: 'starter', regular: 'regular' }, yearlyProducts: { starter: 'starter_year' },
+    });
+  });
+
+  test('a renewal check grants the next window and lapses nothing still inside its slack', async (t) => {
+    const later = new Date(now.getTime() + 30 * DAY + 5 * 60 * 1000);
+    t.mock.timers.enable({ apis: ['Date'], now: later.getTime() });
+    const store = new InMemoryEntitlementStore();
+    const errors: unknown[][] = [];
+    const logger = { error: (...args: unknown[]) => errors.push(args) };
+    const yearEnd = new Date(now.getTime() + 365 * DAY).toISOString();
+    const windowEnd = new Date(now.getTime() + 30 * DAY);
+
+    // A yearly learner who spent the whole first window gets the second the moment it opens.
+    await store.save('yearly', { plan: 'regular', secondsUsed: PLANS.regular.secondsPerPeriod, periodEnd: windowEnd });
+    const year = async () => new Response(JSON.stringify(subscriber('luvani_regular_yearly', yearEnd, 'normal', now.toISOString())));
+    assert.equal(await renewSubscriber('yearly', windowEnd, store, yearly, { now: later, request: year }), 'renewed');
+    const refilled = await store.get('yearly');
+    assert.equal(refilled.secondsUsed, 0);
+    assert.equal(refilled.periodEnd?.toISOString(), new Date(now.getTime() + 60 * DAY).toISOString());
+
+    // The vendor holds nothing yet, an hour after a monthly period ended: that is the slack's job.
+    const hourAgo = new Date(later.getTime() - 60 * 60 * 1000);
+    const monthly: Entitlement = { plan: 'starter', secondsUsed: 600, periodEnd: hourAgo };
+    await store.save('monthly', monthly);
+    const nothing = async () => new Response(JSON.stringify({ subscriber: { entitlements: {} } }));
+    assert.equal(await renewSubscriber('monthly', hourAgo, store, yearly, { now: later, request: nothing }), 'waiting');
+    assert.deepEqual(await store.get('monthly'), monthly, 'a period inside its slack was taken away');
+
+    // Past the slack, the same answer lapses it, exactly as a read would.
+    const dayAndMore = new Date(later.getTime() - LAPSE_GRACE_SEC * 1000 - 60_000);
+    await store.save('ended', { plan: 'starter', secondsUsed: 600, periodEnd: dayAndMore });
+    assert.equal(await renewSubscriber('ended', dayAndMore, store, yearly, { now: later, request: nothing }), 'lapsed');
+    assert.equal((await store.get('ended')).lapsed, true);
+
+    // A product nobody configured waits, loudly, and writes nothing.
+    await store.save('odd', { plan: 'starter', secondsUsed: 10, periodEnd: hourAgo });
+    const odd = async () => new Response(JSON.stringify(subscriber('some_future_plan', yearEnd)));
+    assert.equal(await renewSubscriber('odd', hourAgo, store, yearly, { now: later, request: odd, logger }), 'waiting');
+    assert.equal((await store.get('odd')).secondsUsed, 10);
+    assert.match(String(errors[0]?.[0]), /UNKNOWN_PRODUCT/);
+  });
 });

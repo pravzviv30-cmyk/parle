@@ -47,6 +47,9 @@ const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): Sto
   productId: `luvani_${plan}_monthly`,
   title,
   localizedPrice,
+  period: 'month',
+  intro: null,
+  introEligible: false,
 });
 
 /** Every string a view can put on glass, flattened. */

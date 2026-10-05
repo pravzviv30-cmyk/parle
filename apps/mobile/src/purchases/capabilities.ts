@@ -20,6 +20,21 @@ import type { Plan } from '@luvani/core';
 
 export type PlanTier = Plan | 'unknown';
 
+/**
+ * Streak freezes and the one-tap repair (founder decision D4, 2026-10-05).
+ *
+ * A paid perk on either tier, monthly or yearly, and during the store's free
+ * trial too, because the server answers that trial as the plan itself. The
+ * free tier and a lapsed plan get none: a missed day resets the run and the
+ * lifetime total stays. This says what a plan opens and nothing about a
+ * learner's streak; the game layer decides when a freeze is spent.
+ */
+export interface StreakProtection {
+  /** How many freezes the plan holds. */
+  freezes: number;
+  repair: boolean;
+}
+
 export interface Capabilities {
   liveMinutes: 'trial' | 'starter' | 'max';
   /** Earned learning is never gated. Typed true so a gate cannot be written. */
@@ -29,14 +44,19 @@ export interface Capabilities {
   memory: true;
   customRehearsal: boolean;
   continueArc: boolean;
+  streakProtection: StreakProtection;
 }
 
 const EARNED = { packs: true, savedPhrases: true, missions: true, memory: true } as const;
 
+/** What an unlapsed paid plan holds. Two freezes is D4's number, not a store's. */
+const PAID_PROTECTION: StreakProtection = { freezes: 2, repair: true };
+const NO_PROTECTION: StreakProtection = { freezes: 0, repair: false };
+
 export function capabilitiesFor(plan: PlanTier, lapsed = false): Capabilities {
-  if (plan === 'regular' && !lapsed) return { ...EARNED, liveMinutes: 'max', customRehearsal: true, continueArc: true };
-  if (plan === 'starter' && !lapsed) return { ...EARNED, liveMinutes: 'starter', customRehearsal: false, continueArc: false };
-  return { ...EARNED, liveMinutes: 'trial', customRehearsal: false, continueArc: false };
+  if (plan === 'regular' && !lapsed) return { ...EARNED, liveMinutes: 'max', customRehearsal: true, continueArc: true, streakProtection: { ...PAID_PROTECTION } };
+  if (plan === 'starter' && !lapsed) return { ...EARNED, liveMinutes: 'starter', customRehearsal: false, continueArc: false, streakProtection: { ...PAID_PROTECTION } };
+  return { ...EARNED, liveMinutes: 'trial', customRehearsal: false, continueArc: false, streakProtection: { ...NO_PROTECTION } };
 }
 
 /**

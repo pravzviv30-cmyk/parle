@@ -486,11 +486,12 @@ export class SupabaseEntitlementStore implements EntitlementStore {
     return result;
   }
 
+  /** Version 2 is the projection that grants store trials and yearly windows (F733); 1 would grant a trial the month. */
   async billingProjectionReady(): Promise<boolean> {
     const response = await this.request(`${this.baseUrl}/rest/v1/rpc/billing_projection_version`, {
       method: 'POST', headers: this.#headers(), signal: AbortSignal.timeout(5_000), body: '{}',
     });
-    return response.ok && await response.json() === 1;
+    return response.ok && await response.json() === 2;
   }
   async billingEventComplete(eventId: string): Promise<boolean> {
     const response = await this.request(`${this.baseUrl}/rest/v1/billing_events?event_id=eq.${encodeURIComponent(eventId)}&processed_at=not.is.null&select=event_id&limit=1`, {
@@ -511,11 +512,12 @@ export class SupabaseEntitlementStore implements EntitlementStore {
     return ticket;
   }
   async applyBilling(userId: string, ticket: number, snapshot: BillingSnapshot, eventId?: string): Promise<BillingProjection> {
-    const response = await this.request(`${this.baseUrl}/rest/v1/rpc/apply_billing_projection`, {
+    const response = await this.request(`${this.baseUrl}/rest/v1/rpc/apply_billing_projection_v2`, {
       method: 'POST', headers: this.#headers(), signal: AbortSignal.timeout(5_000),
       body: JSON.stringify({ p_user_id: userId, p_ticket: ticket, p_kind: snapshot.kind,
         p_plan: snapshot.kind === 'active' ? snapshot.plan : null,
-        p_period_end: snapshot.kind === 'active' ? snapshot.periodEnd.toISOString() : null, p_event_id: eventId ?? null }),
+        p_period_end: snapshot.kind === 'active' ? snapshot.periodEnd.toISOString() : null, p_event_id: eventId ?? null,
+        p_grant_seconds: snapshot.kind === 'active' ? snapshot.grantSeconds : null }),
     });
     if (!response.ok) throw new Error(`billing projection failed (${response.status})`);
     const body = await response.json() as { kind?: unknown; reason?: unknown; entitlement?: SupabaseEntitlementRow };

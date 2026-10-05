@@ -454,7 +454,12 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       // Validate vendor credentials and response shape without granting time.
       const subscriber = await fetchSubscriber(resolved.userId, billing);
       projectSubscriber(subscriber, { plan: 'trial', secondsUsed: 0 }, billing);
-      return json(res, 200, { ready: true, entitlementId: billing.entitlementId, products: billing.products, projectionVersion: 1 });
+      // projectionVersion is the wire contract with the app and stays 1; the
+      // database version the store checks above is the projection's own (F733).
+      // yearlyProducts lets a build that sells a yearly product refuse to when
+      // this server would not recognise the purchase.
+      return json(res, 200, { ready: true, entitlementId: billing.entitlementId, products: billing.products,
+        yearlyProducts: billing.yearlyProducts ?? {}, projectionVersion: 1 });
     }
 
     // Learner-triggered recovery for restore and for a webhook delayed or lost.

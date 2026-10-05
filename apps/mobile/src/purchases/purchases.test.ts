@@ -39,6 +39,9 @@ const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): Sto
   productId: `luvani_${plan}_monthly`,
   title,
   localizedPrice,
+  period: 'month',
+  intro: null,
+  introEligible: false,
 });
 const SRC = fileURLToPath(new URL('..', import.meta.url));
 

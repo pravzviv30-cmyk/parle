@@ -9898,7 +9898,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F733 — A store free trial or a yearly plan would grant the wrong allowance
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/metering/meter.ts, services/token-server/src/billing/revenuecat.ts, services/token-server/src/billing/state.ts
 - note: Founder decision D16: a 7-day introductory offer grants a week of the plan's minutes (allowance x 7/30) during the trial; Starter and Max yearly products refill the monthly allowance every 30 days inside the paid year. Today any active entitlement would grant the full monthly allowance at once and a yearly product would grant one month for a year. Money-pinned files change only with a dated reason and independent review.
 - verified-by: `a store trial grants a week of the plan's minutes and no more`
@@ -9906,9 +9906,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F734 — Plans say nothing about streak protection
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/capabilities.ts
-- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial.
+- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor now answers streakProtection. The INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn.
 - verified-by: `streak protection comes only with an unlapsed paid plan`
 
 ### F735 — Production guest speech is off, so the first win is never spoken

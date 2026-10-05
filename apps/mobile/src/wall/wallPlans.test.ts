@@ -39,6 +39,9 @@ const product = (plan: PaidPlan, localizedPrice: string, title = 'Store title'):
   productId: `luvani_${plan}_monthly`,
   title,
   localizedPrice,
+  period: 'month',
+  intro: null,
+  introEligible: false,
 });
 
 const offering = (...products: StoreProduct[]): StoreOffering => ({ available: true, products });

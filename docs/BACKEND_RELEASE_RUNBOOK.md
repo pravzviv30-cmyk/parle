@@ -98,3 +98,34 @@ The portable Linux exporter uses the host network and binds127.0.0.1:9464. Mount
 `voicePhysicalDevice.captureArtifactPath` must reference the actual physical-device capture validated by `scripts/verifyVoiceAcceptance.mjs`. `maintenanceAndAlerts.captureArtifactPath`, `configSha256` and `rulesSha256` bind the actual monitoring capture validated by `deployment/observabilityAcceptance.mjs`. Each capture and its nested evidence/reviews must exist as bounded local copies with exact hashes. Synthetic fixtures cannot satisfy either release gate. Real receiver/team/threshold review and supported iOS/Android corpus measurements remain mandatory.
 
 GitHub capture fields follow the official [Checks REST API](https://docs.github.com/en/rest/checks/runs). Local captured JSON validates integrity and binding; independent protected review must authenticate its origin.
+
+## Store free trial and yearly plans (F733, 5 October)
+
+Founder decision D16. What the server grants, whatever App Store Connect is configured with:
+
+- A store free trial (RevenueCat `period_type` trial on the subscriber record) is projected as the chosen plan with a week of its allowance, allowance x 7/30 (Starter 42 minutes, Max 70), until the trial ends. The first paid period after it grants the full monthly allowance. A longer trial configured in the store still grants one week.
+- A yearly product grants the plan's monthly allowance one 30-day window at a time inside the paid year: twelve windows, the last running to the end of the year. The period on record is the current window, never the year.
+- The part of an allowance a window does not grant is recorded as already spent, so every existing debit, reservation, refund and lapse function enforces the trial cap without change.
+- A purchase whose period type is missing or unrecognised, a yearly product with no purchase date, and any product id the server was not given are refused as unknown products (logged as `REVENUECAT_UNKNOWN_PRODUCT`). Nothing is guessed.
+- A paid introductory price (`period_type` intro) is a period somebody paid for and is granted the full allowance. None is planned; price its margin in `meter.ts` before configuring one. The app shows only a free trial as a trial.
+- The subscription record is read by product id, which is how RevenueCat keys App Store products. Google Play keying is unverified; an Android purchase that does not match is refused as an unknown product, so verify it before Android sells.
+- The maintenance worker's renewal sweep grants the next yearly window on time, because RevenueCat sends nothing when a month inside a year ends. Every five minutes it reads the paid rows whose period on record has ended (`billing_renewals_due_v1`, newest first), re-reads at most ten subscribers from RevenueCat, and projects only what the vendor verifies through the same ticketed projection a webhook uses. It lapses a row only once the 24-hour slack has passed, as a read would. It also recovers a monthly renewal whose webhook was lost.
+
+Environment, by role (names only; see `deployment/environment-contract.json`):
+
+- API: optional `REVENUECAT_STARTER_YEARLY_PRODUCT_ID` and `REVENUECAT_REGULAR_YEARLY_PRODUCT_ID`, each on its own. Absent means that tier is not sold yearly. Either one without the existing five billing keys is refused as partial, and a product id that repeats another is refused as ambiguous. `/billing/readiness` now also answers `yearlyProducts`.
+- Maintenance: `REVENUECAT_ENTITLEMENT_ID`, `REVENUECAT_STARTER_PRODUCT_ID`, `REVENUECAT_REGULAR_PRODUCT_ID` and the yearly ids, beside the `REVENUECAT_SECRET_API_KEY` it already holds, turn the renewal sweep on: the first three all or none. The secret key alone still means privacy erasure only. Without the sweep a yearly learner reads as lapsed once a window plus its slack has passed, until a restore or a webhook.
+- EAS: optional `EXPO_PUBLIC_REVENUECAT_STARTER_YEARLY_PRODUCT_ID` and `EXPO_PUBLIC_REVENUECAT_REGULAR_YEARLY_PRODUCT_ID`, equal to the server's. Any mismatch keeps the whole store closed, as a monthly mismatch already does.
+
+Deploy order:
+
+1. Apply `supabase/migrations/20261005231742_store_trial_yearly_allowance.sql`. `billing_projection_version()` then answers 2, so a server not yet redeployed reports purchases not ready until step 2; its webhooks and refreshes keep working through the original six-argument projection.
+2. Deploy the API and the maintenance worker with the keys above (yearly ids only when yearly products will exist).
+3. Only then create the 7-day introductory offers and the yearly products in App Store Connect and attach them to the one RevenueCat entitlement. An intro offer created before step 2 is projected by the old server as a full paid month.
+4. Do not offer an intro or yearly product to learners until the plans page that names them ships (come-alive Phase 4). Today's wall draws monthly prices only, and its purchase confirmation names the monthly allowance, which would overstate a trial.
+
+Modelled cost (DEFAULT_COST_MODEL, $0.0578 a minute at full burn; pinned in `meter.test.ts`): a trial used to the last minute costs $2.43 on Starter and $4.05 on Max. Yearly at the Small Business 15% rate: Starter +1.4% worst case; Max -6.9% worst case, about $1.12 a month lost on a learner who uses every minute of every window, which D16 accepted. At the standard 30% rate Starter is -19.7% and Max -29.8% worst case, so Small Business enrolment stays a requirement.
+
+Rollback is `supabase/rollback/20261005231742_down.sql`, behind the `luvani.reopen_trial_allowance` interlock: remove intro offers and yearly products and redeploy servers that call the six-argument projection first.
+
+Not yet verified: a sandbox trial, conversion and yearly purchase end to end; the exact `period_type` value RevenueCat returns for an Apple introductory offer on this account; PostgREST resolving `apply_billing_projection_v2` on the hosted project; and the sweep under real vendor latency.

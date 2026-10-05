@@ -151,10 +151,12 @@ test('billing projection uses one RPC carrying vendor state but never a stale us
     return new Response(JSON.stringify({ kind: 'active', entitlement: { user_id:'owner',plan:'regular',seconds_used:600,period_end:'2027-01-01T00:00:00Z' } }));
   };
   const store = new SupabaseEntitlementStore('https://db.test', 'secret', request as typeof fetch);
-  const result = await store.applyBilling('owner', 2, { kind:'active',plan:'regular',periodEnd:new Date('2027-01-01') }, 'event-1');
+  const result = await store.applyBilling('owner', 2, { kind:'active',plan:'regular',periodEnd:new Date('2027-01-01'),grantSeconds:18000 }, 'event-1');
   assert.equal(result.entitlement.secondsUsed,600);
   assert.equal(calls.length,1);
-  assert.match(calls[0]!.url,/rpc\/apply_billing_projection$/);
-  assert.deepEqual(calls[0]!.body,{p_user_id:'owner',p_ticket:2,p_kind:'active',p_plan:'regular',p_period_end:'2027-01-01T00:00:00.000Z',p_event_id:'event-1'});
+  // F733 (2026-10-05): the projection that grants store trials and yearly windows
+  // carries the window's grant; the usage counter still never crosses the wire.
+  assert.match(calls[0]!.url,/rpc\/apply_billing_projection_v2$/);
+  assert.deepEqual(calls[0]!.body,{p_user_id:'owner',p_ticket:2,p_kind:'active',p_plan:'regular',p_period_end:'2027-01-01T00:00:00.000Z',p_event_id:'event-1',p_grant_seconds:18000});
   assert.equal('seconds_used' in calls[0]!.body,false);
 });

@@ -65,8 +65,11 @@ test('in-flight store actions admit one tap and an account change cannot settle 
 test('monthly plan copy is reachable only from a verified monthly native package', async () => {
   const native = readFileSync(new URL('../purchases/adapter.native.ts', import.meta.url), 'utf8');
   const projection = native.slice(native.indexOf('async function paidPackages'), native.indexOf("/** The store's own"));
+  // F733 (2026-10-05): paidPackages also reads the yearly ids. None is
+  // configured here, so this still asks only about the monthly package.
   const bindings = { scopeGeneration: () => 1, ready: async () => true, configuredFor: 'owner',
     configuredPlans: () => ['regular'], PRODUCT_IDS: { regular: 'monthly' },
+    configuredYearlyPlans: () => [] as string[], YEARLY_PRODUCT_IDS: {},
     Purchases: { getOfferings: async () => ({ current: { availablePackages: [] as unknown[] } }) },
   };
   const read = new Function(...Object.keys(bindings), stripTypeScriptTypes(projection) + '\nreturn paidPackages;')(...Object.values(bindings)) as (uid: string) => Promise<unknown[]>;

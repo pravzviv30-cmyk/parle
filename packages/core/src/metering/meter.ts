@@ -68,8 +68,113 @@ export const STORE_FEE_RATES = {
   standard: 0.3,
 } as const;
 
+/** A tier the store sells. The free trial is granted, never bought. */
+export type PaidTier = Exclude<Plan, 'trial'>;
+
+/**
+ * How the store bills a paid tier (founder decision D16, 2026-10-05).
+ *
+ * The tier decides the allowance and the period decides how the store sells
+ * it. A yearly product is the same monthly allowance refilled window by window
+ * inside the paid year: never a whole year of minutes at once, which is a year
+ * of exposure on day one, and never one month's minutes stretched over twelve,
+ * which is a learner paying for twelve and getting one.
+ */
+export type BillingPeriod = 'month' | 'year';
+
+/**
+ * Days in one allowance window.
+ *
+ * A monthly product's store period is a single window, whatever its calendar
+ * length. A yearly product is cut into windows of this length from the start of
+ * its paid year; see `allowanceWindowEnd`.
+ */
+export const ALLOWANCE_WINDOW_DAYS = 30;
+
+/** The App Store introductory free trial, in days (D16). */
+export const STORE_TRIAL_DAYS = 7;
+
+/**
+ * What a store free trial grants: a week of the chosen plan's monthly
+ * allowance, allowance x 7/30. Starter 42 minutes, Max 70.
+ *
+ * Computed and enforced on the server, at the projection that writes the
+ * entitlement. Without it an introductory offer would hand a learner the full
+ * 180 or 300 minutes before anything was paid, which is the freeloader cost the
+ * free tier above is sized to avoid. A store configured with a longer trial
+ * still grants this week, so the cost of a trial is bounded here and not in a
+ * console setting. Full burn costs about $2.43 on Starter and $4.05 on Max at
+ * DEFAULT_COST_MODEL; meter.test.ts holds the ceiling.
+ */
+export function storeTrialSeconds(plan: PaidTier): number {
+  return Math.floor((PLANS[plan].secondsPerPeriod * STORE_TRIAL_DAYS) / ALLOWANCE_WINDOW_DAYS);
+}
+
+export interface YearlySpec {
+  plan: PaidTier;
+  /**
+   * The sticker price of the yearly product, for margin modelling only. The
+   * price a learner sees is the store's localised string, never this number.
+   */
+  priceUsd: number;
+}
+
+/**
+ * The yearly products (D16): Starter $149 a year, Max $229 a year.
+ *
+ * Each grants the tier's monthly allowance once per allowance window, twelve
+ * windows in a paid year. The founder accepted that yearly Max loses money on a
+ * learner who uses every minute of every window; meter.test.ts pins how much,
+ * so the day a vendor price moves that number is visible rather than inferred.
+ */
+export const YEARLY_PLANS: Record<PaidTier, YearlySpec> = {
+  starter: { plan: 'starter', priceUsd: 149 },
+  regular: { plan: 'regular', priceUsd: 229 },
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WINDOW_MS = ALLOWANCE_WINDOW_DAYS * DAY_MS;
+
+/**
+ * How many allowance windows a paid period holds.
+ *
+ * Whole windows only, with the remainder folded into the last one, so a
+ * 365-day year holds exactly twelve monthly allowances rather than twelve and a
+ * five-day thirteenth. A period shorter than two windows (a month, a trial, a
+ * sandbox year measured in minutes) is one window. Zero for a malformed period.
+ */
+export function allowanceWindowCount(start: Date, end: Date): number {
+  const s = start.getTime();
+  const e = end.getTime();
+  if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return 0;
+  return Math.max(1, Math.floor((e - s) / WINDOW_MS));
+}
+
+/**
+ * The end of the allowance window that holds `now`, inside a paid period that
+ * runs from `start` to `end`.
+ *
+ * Windows run ALLOWANCE_WINDOW_DAYS from the start of the period and the last
+ * runs to the period's own end. A `now` a little before the start, a server
+ * clock behind the store's, reads as the first window rather than as no window.
+ * Null when the period is malformed or `now` is at or past its end: there is no
+ * window left to grant into, and that is the store's lapse, not ours.
+ */
+export function allowanceWindowEnd(start: Date, end: Date, now: Date): Date | null {
+  const windows = allowanceWindowCount(start, end);
+  const n = now.getTime();
+  if (windows === 0 || !Number.isFinite(n) || n >= end.getTime()) return null;
+  const index = Math.min(windows - 1, Math.max(0, Math.floor((n - start.getTime()) / WINDOW_MS)));
+  return index === windows - 1 ? new Date(end.getTime()) : new Date(start.getTime() + (index + 1) * WINDOW_MS);
+}
+
 export interface Entitlement {
   plan: Plan;
+  /**
+   * Seconds spent in the current period, plus any part of the plan's allowance
+   * the current window does not grant: a store trial records the rest of the
+   * month as spent (F733). Remaining time is always allowance minus this.
+   */
   secondsUsed: number;
   /** When the current period ends. Undefined for the non-renewing trial. */
   periodEnd?: Date;
@@ -276,19 +381,56 @@ export function planMargin(
   storeFeeRate = 0,
 ): Margin {
   const spec = PLANS[plan];
+  return marginOn(plan, spec.priceUsd, spec.secondsPerPeriod, utilisation, model, storeFeeRate);
+}
+
+/**
+ * Margin on a yearly product: every allowance window of a 365-day paid year
+ * against the one yearly price, after the store's cut.
+ *
+ * The same arithmetic as `planMargin`, with the year's windows as the
+ * allowance. D16 (2026-10-05) accepted a negative worst case on yearly Max: at
+ * the Small Business rate a learner who burns all 300 minutes in every window
+ * costs about $208 against $194.65 received, roughly a dollar a month. That is
+ * the gym bet made explicit, and meter.test.ts holds it to that size.
+ */
+export function yearlyPlanMargin(
+  plan: PaidTier,
+  utilisation = 0.5,
+  model: CostModel = DEFAULT_COST_MODEL,
+  storeFeeRate = 0,
+): Margin {
+  const year = allowanceWindowCount(new Date(0), new Date(365 * DAY_MS));
+  return marginOn(plan, YEARLY_PLANS[plan].priceUsd, PLANS[plan].secondsPerPeriod * year, utilisation, model, storeFeeRate);
+}
+
+/** Vendor cost of a store free trial used to its last second: what a trialist who never pays costs. */
+export function storeTrialCostUsd(plan: PaidTier, model: CostModel = DEFAULT_COST_MODEL): number {
+  const seconds = storeTrialSeconds(plan);
+  return estimateSessionCost({ wallClockSec: seconds, utterancesScored: seconds / 20 }, model).total;
+}
+
+function marginOn(
+  plan: Plan,
+  priceUsd: number,
+  allowanceSec: number,
+  utilisation: number,
+  model: CostModel,
+  storeFeeRate: number,
+): Margin {
   // Assume roughly one scored utterance per 20 seconds of session.
   const utterances = (n: number) => n / 20;
 
-  const worst = estimateSessionCost({ wallClockSec: spec.secondsPerPeriod, utterancesScored: utterances(spec.secondsPerPeriod) }, model);
-  const usedSec = spec.secondsPerPeriod * utilisation;
+  const worst = estimateSessionCost({ wallClockSec: allowanceSec, utterancesScored: utterances(allowanceSec) }, model);
+  const usedSec = allowanceSec * utilisation;
   const expected = estimateSessionCost({ wallClockSec: usedSec, utterancesScored: utterances(usedSec) }, model);
 
-  const storeFeeUsd = spec.priceUsd * storeFeeRate;
-  const netRevenueUsd = spec.priceUsd - storeFeeUsd;
+  const storeFeeUsd = priceUsd * storeFeeRate;
+  const netRevenueUsd = priceUsd - storeFeeUsd;
 
   return {
     plan,
-    priceUsd: spec.priceUsd,
+    priceUsd,
     storeFeeRate,
     storeFeeUsd,
     netRevenueUsd,
