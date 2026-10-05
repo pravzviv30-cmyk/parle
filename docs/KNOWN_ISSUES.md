@@ -9847,4 +9847,75 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every sound asset matches its approved synthesis`
 - verified-by: `sound effects stay silent while a microphone, voice line or live room is open`
 
+### F726 — The app has no shared icon set, so options repeat one glyph
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/ChoiceArt.tsx, apps/mobile/src/glyphs.tsx, scripts/icons
+- note: Founder decision D11: Iconsax free icons, licensed to the founder as an individual, generated into react-native-svg components at the one stroke. All needed names exist in iconsax 0.1.1 (eight under renamed ids such as arrow-left-01 and refresh-left), so the Phosphor fallback is not needed.
+- verified-by: `every generated icon is decorative, token-coloured and drawn at the one stroke`
+- verified-by: `the icon set credits its licence in Acknowledgements`
+
+### F727 — Underlined text links stand in for icon controls
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/components.tsx
+- verified-by: `icon controls always carry a spoken label and a 44 point target`
+
+### F728 — Empty-string state reaches a View as a text node on web
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1014, apps/mobile/src/onboarding/StarterContinuation.tsx:216, apps/mobile/src/onboarding/GuestAccountHandoff.tsx:177, apps/mobile/src/settings/SettingsScreen.tsx:871
+- note: 335 "Unexpected text node" console errors per web onboarding run, from `{issue && (...)}` where issue is ''.
+- verified-by: `no empty string reaches a view as a text node`
+
+### F729 — There is nowhere to keep streak covers, quest claims, badges or celebrated moments
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game, apps/mobile/src/sync/policy.ts, supabase/migrations
+- note: A synced, versioned `game` namespace (set unions and maxes, commutative and idempotent) plus a device-only `gameLocal`; the Supabase namespace check must accept `game` before any build that writes it ships.
+- verified-by: `the game store refuses unknown bytes and keeps every awarded badge`
+
+### F730 — A twenty-minute daily goal is discarded on every profile read
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/profile/upgrade.ts:71, apps/mobile/src/profile/dailyGoal.ts:23
+- note: Founder decision D5 adds Intense (20 minutes); storedGoal only keeps 5, 10 or 15, so a saved 20 reads back as no goal. Profile version 9.
+- verified-by: `a twenty-minute goal survives every profile read`
+
+### F731 — A finished sitting that earns no XP records no practice day
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/progress/activity.ts:246
+- note: Founder decision D3: any finished practice is a streak day. Never add a new activity kind; record the day and the sitting in the game store.
+- verified-by: `a finished sitting that earns no XP still records a practice day`
+
+### F732 — A guest practice has no record of which day it was finished
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/guestModel.ts:12
+- note: The first-run streak day must come from a persisted finish, so GuestPractice v2 gains a bounded `finishedAt` list.
+- verified-by: `a guest streak day counts only a practice saved as finished`
+
+### F733 — A store free trial or a yearly plan would grant the wrong allowance
+- severity: P2
+- status: [ ]
+- where: packages/core/src/metering/meter.ts, services/token-server/src/billing/revenuecat.ts, services/token-server/src/billing/state.ts
+- note: Founder decision D16: a 7-day introductory offer grants a week of the plan's minutes (allowance x 7/30) during the trial; Starter and Max yearly products refill the monthly allowance every 30 days inside the paid year. Today any active entitlement would grant the full monthly allowance at once and a yearly product would grant one month for a year. Money-pinned files change only with a dated reason and independent review.
+- verified-by: `a store trial grants a week of the plan's minutes and no more`
+- verified-by: `a yearly plan refills the monthly allowance every thirty days`
+
+### F734 — Plans say nothing about streak protection
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/purchases/capabilities.ts
+- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial.
+- verified-by: `streak protection comes only with an unlapsed paid plan`
+
+### F735 — Production guest speech is off, so the first win is never spoken
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/onboardingSpeech.ts:10
+- note: Founder decision D13 enables guest speaking with server protection: an anonymous admission budget (per guest capability, installation, address and a global daily ceiling), about 60 seconds of speech per guest, the existing 20 s capture, 2 MiB cap and 24 h capability. Security and privacy review required.
+- verified-by: `guest speech is admitted only within its per-guest, per-installation, per-address and daily limits`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
