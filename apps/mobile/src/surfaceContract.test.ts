@@ -289,6 +289,17 @@ describe('one motion vocabulary, not four — J12', () => {
         `${path} asks for reduce motion itself instead of using useReduceMotion`,
       );
     }
+    // Come alive (F721): Reanimated is a fifth way to ask, and it samples the
+    // setting once at load. So its own hook and its System mode are refused,
+    // and its global switch is set in one place, the bridge, from the live hook.
+    for (const { path, body } of SOURCES) {
+      assert.doesNotMatch(body, /\buseReducedMotion\b/, `${rel(path)} asks Reanimated for reduce motion, which it sampled once at load`);
+      assert.doesNotMatch(body, /\bReduceMotion\.System\b/, `${rel(path)} leaves reduce motion to Reanimated's sampled answer`);
+      if (rel(path) !== 'motion/ReduceMotionBridge.tsx') {
+        assert.doesNotMatch(body, /\bReducedMotionConfig\b/, `${rel(path)} sets Reanimated's reduce motion outside the bridge`);
+      }
+    }
+    assert.match(named('motion/ReduceMotionBridge.tsx'), /<ReducedMotionConfig mode=\{reduced \? ReduceMotion\.Always : ReduceMotion\.Never\} \/>/, 'the bridge does not hand Reanimated the live answer');
   });
 
   test('the settling entrance has one set of numbers', () => {
@@ -2135,7 +2146,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
     const home = named('tabs/HomeTab.tsx');
     const tutor = named('tabs/TutorTab.tsx');
-    assert.match(design, /voice orb, shared press, once-only earned recap celebration and bounded\s+state feedback animate/);
+    assert.match(design, /voice orb, shared press, motion primitives, celebration host and bounded\s+state feedback animate/);
     assert.match(design, /daily library and Today\s+show no pictures/);
     // Revamp B (F599): the places are flat drawings now, and the doc must not
     // go on saying the retired watercolours ship.

@@ -688,17 +688,20 @@ describe('the B parts keep their promises — F597', () => {
     const press = part('Press');
     assert.match(press, /haptic = 'light'/, 'a press does not default to a light impact');
     assert.match(press, /const reduced = useReduceMotion\(\)/, 'the press does not ask whether movement is withheld');
-    assert.match(press, /onPressIn=\{[^}]*\{[\s\S]*?pressTo\(scale, PRESS_SCALE, reduced\)/, 'the press does not go down to 0.97 on the spring');
+    // Come alive (D7): a tile presses deeper, to PRESS_SCALE_TILE; a control still goes to 0.97.
+    assert.match(press, /onPressIn=\{[^}]*\{[\s\S]*?pressTo\(scale, depth === 'tile' \? PRESS_SCALE_TILE : PRESS_SCALE, reduced\)/, 'the press does not go down to 0.97 on the spring');
     assert.match(press, /onPressOut=\{[^}]*\{[\s\S]*?pressTo\(scale, 1, reduced\)/, 'the press is not released on lift');
-    assert.match(press, /<Animated\.View style=\{\[style, \{ transform: \[\{ scale \}\] \}\]\}>/, 'the drawn surface is not what shrinks');
+    // Come alive: the surface is a Reanimated view and its scale is an animated style.
+    assert.match(press, /<Reanimated\.View style=\{\[style, pressStyle\]\}>/, 'the drawn surface is not what shrinks');
+    assert.match(press, /const pressStyle = useAnimatedStyle\(\(\) => \(\{ transform: \[\{ scale: scale\.value \}\] \}\)\);/, 'the drawn surface is not what shrinks');
     assert.match(press, /accessibilityRole="button" \{\.\.\.rest\}/, 'the press is not a button by default, or a caller cannot give it another role');
-    assert.match(press, /useEffect\(\(\) => \(\) => running\.current\?\.stop\(\), \[\]\)/, 'a press unmounted mid-spring leaves the spring running');
+    assert.match(press, /useEffect\(\(\) => \(\) => stopMotion\(scale, ring\), \[scale, ring\]\)/, 'a press unmounted mid-spring leaves the spring running');
     assert.doesNotMatch(press, /pressRetentionOffset/, 'the press widens its own retention, so a scroll no longer cancels it');
     assert.doesNotMatch(press, /Animated\.spring/, 'the press writes its own spring instead of the one in motion.ts');
     assert.doesNotMatch(press, /createAnimatedComponent/, 'the press animates the Pressable itself, which motion.test.ts refuses');
     assert.match(
       componentsSource(),
-      /import \{ PRESS_SCALE, pressTo, useReduceMotion \} from '\.\/motion\.ts';/,
+      /import \{ PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion \} from '\.\/motion\.ts';/,
       'the press does not take its scale and its spring from the motion vocabulary',
     );
 
@@ -707,8 +710,12 @@ describe('the B parts keep their promises — F597', () => {
     const motion = stripComments(readFileSync(join(SRC, 'motion.ts'), 'utf8'));
     const spring = motion.slice(motion.indexOf('export function pressTo('));
     assert.ok(motion.includes('export function pressTo('), 'motion.ts has no press spring');
-    assert.match(spring, /if \(reduced\) \{\s*value\.setValue\(to\);\s*return null;/, 'reduced motion does not land the press at once');
-    assert.match(spring, /stiffness: 439, damping: 29\.3, mass: 1/, 'the press spring is not STYLE\'s response 0.3 and damping 0.7');
+    // Come alive: the press runs on Reanimated through motion/drive.ts, and its
+    // numbers are the press token in motion/tokens.ts, unchanged.
+    assert.match(spring, /if \(reduced\) \{\s*value\.value = to;\s*return;/, 'reduced motion does not land the press at once');
+    assert.match(spring, /value\.value = spring\(to, SPRING\.press, reduced\);/, 'the press spring is not STYLE\'s response 0.3 and damping 0.7');
+    const tokens = stripComments(readFileSync(join(SRC, 'motion', 'tokens.ts'), 'utf8'));
+    assert.match(tokens, /press: \{ stiffness: 439, damping: 29\.3, mass: 1 \}/, 'the press spring is not STYLE\'s response 0.3 and damping 0.7');
     assert.match(motion, /export const PRESS_SCALE = 0\.97;/, 'a press does not scale to 0.97');
 
     // The older tappable parts press through it too, and none of them keeps a

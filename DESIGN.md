@@ -276,7 +276,10 @@ wrapper in production source. There are no transitional allowances.
 ### Shadow
 
 No interface shadow. White cards separate content from warm paper; the live
-orb carries its state through the core, rings, glyph and caption.
+orb carries its state through the core, rings, glyph and caption. The selected
+glow is a ring layer, not a shadow: a translucent blue view drawn under a
+chosen tile (see Motion, The press). The live microphone glow remains the only
+shadow.
 
 **The whisper is deleted.** The theme exports no shadow token. `theme.test.ts`
 refuses the retired alias, and `surfaceContract.test.ts` refuses shadow styles
@@ -695,67 +698,206 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-The voice orb, shared press, once-only earned recap celebration and bounded
-state feedback animate. `motion/Feedback.tsx` is the shared host for the
-approved selection, context, save, practice, help and reopen responses.
-The orb is the only continuous animation. Press uses the shared spring;
-recap confetti falls once on the first earned finish in that scene, and its
-real line count rises once. Navigating back does not replay either flourish.
-The source allow-list is `components.tsx`, `motion.ts`, `tutor/VoiceOrb.tsx`
-`recap/OnceConfetti.tsx` and `motion/Feedback.tsx`. The count uses a short-lived timer with cleanup.
-Illustrations, the greeting and the tab bar stay static.
+The voice orb, shared press, motion primitives, celebration host and bounded
+state feedback animate. Motion answers something that really happened: a
+press, a choice, a save, a finished practice. It never stands in for content,
+never invents progress, and never holds the learner's next tap for long.
 
-`useReduceMotion` observes the OS preference. Reduced motion shows the final
-frame rather than hiding content: a press lands at its scale at once, and the
-orb holds still. VoiceOrb owns its speaking, listening and thinking movement and
-stands down when paused. The orb keeps its captions, its mark and its state
-colours when still; motion never carries information on its own.
+Built so far (come alive, Phase 0): the tokens, the one door to the engine, the
+reduce-motion bridge, the press depth and selected ring, the haptic vocabulary
+and the primitives below. No screen uses the primitives yet. The celebration
+host and the sound effects arrive in later come-alive phases and follow this
+section when they do.
+
+### Principles
+
+- Motion answers a real, persisted event. Nothing celebrates a guess, a fake
+  count or a safety stop.
+- Content is never withheld. Reduced motion shows the final frame, never
+  nothing.
+- Input is never blocked for more than `INPUT_READY_MS`, 600 ms, and a
+  celebration's last beat ends by `CELEBRATION_MAX_MS`, 2600 ms.
+- Reduced motion is watched, not sampled. `useReduceMotion` in `motion.ts`
+  subscribes to the OS setting. Reanimated reads the setting once, when it
+  loads, so `motion/ReduceMotionBridge.tsx`, mounted once in `App.tsx`, hands it
+  the live answer, and every call through `motion/drive.ts` passes the same
+  answer explicitly. In development Reanimated logs one warning when the bridge
+  mounts; that warning is the bridge working.
+- Transform, opacity and dash offsets only. Layout props never animate, except
+  the busy `MorphButton` closing to a circle.
+
+### Engine and tokens
+
+Reanimated 4.5.1 with Worklets 0.10.1 is the one engine. It is imported as
+`Reanimated`; `Animated` always means React Native's legacy module, which the
+files still on it keep until they move. That list only shrinks. The numbers are
+`motion/tokens.ts`, and nothing else writes a spring:
+
+| Group | Tokens |
+|---|---|
+| `DUR` (ms) | instant 0, micro 120, fast 180, base 260, settle 380, slow 420, flight 480, reveal 650, count 900, celebrate 900, burst 1400 |
+| `STAGGER` (ms) | tight 40 (words), base 60 (rows), loose 90 (icon rows), tiles 140 (stat tiles) |
+| `EASE` | out (0.22, 1, 0.36, 1), settle (0.33, 1, 0.68, 1), inOut (0.65, 0, 0.35, 1), in (0.55, 0, 1, 0.45), linear |
+| Press | `PRESS_SCALE` 0.97 for controls, `PRESS_SCALE_TILE` 0.95 for tiles, `SELECT_POP` 1.03 |
+| Budgets | `INPUT_READY_MS` 600, `CELEBRATION_MAX_MS` 2600, `BURST_MAX` phone 36, iPad 56, web 24 |
+
+Each spring is described the way iOS describes one, a response and a damping
+ratio, and converted rather than eyeballed: stiffness = (2π / response)²,
+damping = 2 × ratio × √stiffness, mass 1. `tokens.test.ts` holds every spring
+to its description.
+
+| Spring | Response | Ratio | Stiffness | Damping | Use |
+|---|---|---|---|---|---|
+| press | 0.30 s | 0.70 | 439 | 29.3 | the press |
+| pop | 0.35 s | 0.55 | 322 | 19.7 | the select pop, chips, medals, numbers |
+| settle | 0.50 s | 0.85 | 158 | 21.4 | bars and cards |
+| snap | 0.20 s | 0.80 | 987 | 50.3 | detents |
 
 ### The press
 
 Every tappable part presses through `Press` in `components.tsx`: the drawn
-surface scales to `PRESS_SCALE`, 0.97, on `pressTo`, the one `Animated.spring`
-in the app, and springs back on lift. STYLE gives the spring the way iOS
-describes one, response 0.3 s and damping ratio 0.7. Animated takes physical
-numbers, so they are converted rather than eyeballed:
+surface scales to `PRESS_SCALE`, 0.97, on `pressTo` and the press spring, and
+springs back on lift. Option tiles and icon buttons pass `depth="tile"` and
+press deeper, to 0.95. A ratio of 0.7 overshoots a little on release by design.
+Do not round the numbers further; a clamped press is a change to STYLE first.
 
-| Number | Derivation | Value |
-|---|---|---|
-| stiffness | (2π / 0.3)² = 438.6 | 439 |
-| damping | 2 × 0.7 × √439 = 29.33 | 29.3 |
-| mass | | 1 |
+A choice passes `selected`. When it becomes the chosen one the surface rises to
+1.03 and settles home on the pop spring, and a blue ring layer fades in four
+points around it, resting at 0.16 opacity. The ring is a view under the
+surface, not a shadow. The caller swaps fill and words at once and
+`accessibilityState` says what was chosen, so the ring is decorative. There is
+no second haptic on select. Under reduced motion the scale lands at once, the
+ring shows at rest and nothing pops.
 
-A ratio of 0.7 overshoots a little on release by design. Do not round the
-numbers further; a clamped press is a change to STYLE first. The spring asks for
-the native driver everywhere but the web (`NATIVE_DRIVER`), where the native
-module is absent and a spring asked to cross stalls. A press is cancelled by
-Pressable itself: when a scroll takes the responder it fires `onPressOut` and
-never `onPress`, so the spring returns and nothing happens. `motion.test.ts`
-holds the spring to `motion.ts` and to these numbers, and `components.test.ts`
-holds the pill, the link, the ledger row and the segmented control to `Press`.
+A press is cancelled by Pressable itself: when a scroll takes the responder it
+fires `onPressOut` and never `onPress`, so the spring returns and nothing
+happens.
 
-The highlighter no longer draws in. It is SNIPPETS' band, whole from the first
+The highlighter does not draw in. It is SNIPPETS' band, whole from the first
 frame. `drawIn` and `DRAW_MS` stay exported with no caller until Stage 6
 retires them.
 
-The enforced rules:
+### Primitives
 
-- Transform and opacity only. Loops and entrances use `useNativeDriver: true`;
-  the press spring uses `NATIVE_DRIVER`.
-- Never animate SVG geometry or layout dimensions.
-- One spring, the press, written once in `motion.ts`. Nothing else bounces.
-- No scene loops, animated greeting swaps or moving tab washes.
-- Reduced motion is watched, not sampled only once.
+The primitives live in `motion/`, and screens compose them; a screen never
+imports the engine. Each takes its answer from `useReduceMotion()`, is
+`pointerEvents="none"` and decorative when it is decoration, and stops on its
+final frame when it unmounts or the app leaves the foreground
+(`motion/landing.ts`). A one-shot waits at most `ANSWER_WAIT_MS`, 300 ms, for
+the OS to say whether movement is reduced, then plays the reduced version. Each
+primitive's own numbers are named groups in `motion/tokens.ts`.
+
+- `StaggerIn`: children arrive in turn, once, on first mount, the whole cascade
+  starting within 480 ms.
+- `CountUp`: a real number counts to its value at most 30 redraws a second; a
+  screen reader hears only the final value, and the widest value holds the
+  width. Ticks follow `motion/countTicks.ts`: by touch at most 12, 70 ms apart;
+  by sound at most 10, 90 ms apart; never on the final value.
+- `ProgressRing`: a ring draws by its dash offset to a stored fraction. On the
+  web it redraws from state at most 30 times a second, because an animated Svg
+  prop there is unproven.
+- `LivingBar`: a fill springs to its real position from the left, with a shine,
+  a spark at its edge, and one stretch when it fills.
+- `Burst`: seeded flat confetti (`motion/particles.ts`) in the four colours and
+  the card's white, never the highlighter or lilac, and never the ground's own
+  colour, at most `BURST_MAX` pieces. Nothing under reduced motion.
+- `DiscBloom`: three flat discs open behind a win. It is the spec's Bloom under
+  another name, because `Bloom` is a retired export.
+- `TokenFlight`: a chosen token travels to where it is kept, at most two at
+  once, drawn by the one `FlightLayer` at the root. It lands at once, with
+  nothing drawn, whenever it cannot fly.
+- `Glint`: one pass of light across a pill that has just become available.
+- `MorphButton`: a button that shows it is busy, and done only from a real
+  result; an error opens it back with no shake. Under reduced motion only its
+  words change.
+- `Enter`, `Reflow`, `Exit`: entrances, reflows and exits in a layout.
+- `BubbleIn`: a transcript line added after the transcript opened arrives.
+- `LevelRing`: two rings swell with a live sound level; under reduced motion,
+  three opacity steps and no scale.
+
+### Celebrations
+
+One host in `celebrate/`, mounted once at the root, plays every celebration. It
+merges what arrives together and plays at most three takeovers after one
+practice. It holds while a microphone or a live room is open, a sheet is up, or
+the app is in the background, and it clears its queue on a safety stop: a
+safety stop gets no celebration, sound, haptic or count. The first tap skips to
+the end, Continue is ready within 600 ms, and nothing dismisses itself. Each
+celebration plays once per real event. A reply accepted and a finished practice
+show in place, on the page they belong to.
+
+### Loops
+
+Four things loop: the live orb, a busy `MorphButton`, a held icon state such as
+a speaker that is playing, and the Home flame, which flickers three times when
+Home comes into view and then rests. Each loop listens for what pauses it
+(focus, the app state, or its own `playing` or `paused` prop) and stops there.
+
+### What never moves
+
+The tab bar, the greeting, the highlighter, the skeleton, the layout
+primitives, the flat drawings themselves (a wrapper may move one; the drawing
+does not), and legal or consent text. Inside a live room only the orb moves; a
+win there shows in place, and its fanfare waits for the recap.
 
 ### Haptics
 
-STYLE section 11, through `motion/haptics.native.ts`, with safe no-ops on the
-web. A press is a light impact (`pressed()`), a choice or a toggle is a
-selection tick (`tapSettled()`), something earned is a success
-(`arrived()`), a hint arriving is soft (`soft()`), and an error is nothing.
-`Press` takes `haptic`: `light` by default, `selection` for a choice, and `none`
-where the caller answers for itself, as the tab bar does. A haptic refusal never
-blocks navigation or learning state.
+Through `motion/haptics.native.ts`, with safe no-ops on the web, and only while
+the haptic setting is on and no microphone is open. Every native call swallows
+its own refusal, so a haptic never blocks navigation or learning state.
+
+| Moment | Haptic |
+|---|---|
+| Any press (the default) | `pressed()`, a light impact |
+| A choice, a toggle, a tab | `tapSettled()`, a selection tick |
+| A hint arriving | `soft()`, the softest impact |
+| Something earned arriving | `arrived()`, one success |
+| A step in a count | `tick()`, a selection tick at least 60 ms after the last |
+| A weight landing, a flame lighting | `thump()`, a medium impact |
+| A real win: a finished practice, a level, a confirmed purchase | `celebrate()`: success, then medium at 140 ms, then light at 280 ms |
+| An error, a refusal, a safety stop, anything in a live room | nothing |
+
+Each beat of `celebrate()` asks the setting again as it fires, so a microphone
+opening mid-pattern silences the rest, and `cancelHaptics()` drops whatever has
+not fired. `Press` takes `haptic`: `light` by default, `selection` for a choice,
+and `none` where the caller answers for itself, as the tab bar does.
+
+### Sound
+
+Twelve short sounds, synthesised for Luvani: tap, select, correct, nearly,
+complete, streak, levelup, quest, badge, save, count-tick and whoosh. None plays
+until the founder has approved it by ear. Sound effects follow the silent
+switch, have their own Settings switch, mix with the learner's music, and never
+play while a microphone is open, the tutor is speaking or a live room is open.
+
+### Enforcement
+
+`motion.test.ts` holds the rules:
+
+0. `Animated` means React Native's legacy module; Reanimated is imported as
+   `Reanimated`.
+1. The engine is imported only in `motion/`, `celebrate/`, `game/art/`,
+   `onboarding/firstRun/`, `icons/AnimatedIcon.tsx`, `nav/TabGlyph.tsx`,
+   `drill/AnswerSheet.tsx`, the orb layers in `tutor/`, `live/RoomLevels`,
+   `speech/useRecorderLevel.ts`, and in `components.tsx` only by `Press`.
+2. The legacy `Animated` file list only shrinks.
+3. Every file that moves reads reduced motion from `motion.ts`, and nothing asks
+   Reanimated for the system setting: no `useReducedMotion`, no
+   `ReduceMotion.System`, and `ReducedMotionConfig` only in the bridge.
+4. A loop runs only where it can be paused.
+5. The engine's animation calls (`withTiming`, `withSpring` and the rest) live
+   only in `motion/drive.ts`, and every spring is a named token.
+6. Only dash offsets and opacity animate through props, and only `MorphButton`
+   animates a layout prop.
+7. No test imports a module that imports the engine, `expo-audio` or
+   `expo-haptics`, because a suite that cannot load disappears.
+
+`tokens.test.ts` holds the springs to their derivations, `components.test.ts`
+holds the pill, the link, the ledger row and the segmented control to `Press`,
+and `motion/haptics.test.ts` holds the haptic vocabulary. `motion/primitives.test.ts`
+holds the primitives' shared promises, and `countTicks.test.ts`,
+`particles.test.ts` and `flights.test.ts` hold the ticks, the confetti and the
+tokens in the air.
 
 No interface surface casts a shadow.
 ## Evidence and remaining work
@@ -787,9 +929,9 @@ in `motion/feedbackPolicy.ts`; the existing earned-only confetti falls once over
 controls remain available throughout. Reduce Motion shows the final state;
 unknown settings wait conservatively. Backgrounding and unmount stop motion.
 Event identifiers deduplicate responses in bounded session memory and are never persisted or transmitted.
-The existing press spring and controlled VoiceOrb remain the only spring and
-continuous movement. No animation library, fake progress, audio, punitive mascot
-or artificial processing delay is added.
+At that review the press spring and the controlled VoiceOrb were the only
+spring and continuous movement; the Motion section now governs both. No fake
+progress, punitive mascot or artificial processing delay is added.
 
 Four primary tabs: Home, Speak, Practice, Progress. Friends is an optional stack
 screen reached from Profile, preserving its URL, invitations and privacy controls.

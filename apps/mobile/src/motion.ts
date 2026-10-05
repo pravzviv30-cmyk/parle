@@ -11,10 +11,21 @@
  *
  * The settling entrance was copy-pasted too, the same 380ms out-cubic in two
  * files, which is how a vocabulary becomes a dialect.
+ *
+ * Come alive (October 2026) adds Reanimated as the one engine. Its numbers are
+ * `motion/tokens.ts`, its only door is `motion/drive.ts`, and the live answer
+ * below reaches it twice: through `motion/ReduceMotionBridge.tsx` at the root,
+ * and as the `reduced` argument every drive call takes. The legacy `Animated`
+ * helpers here stay for the files still on them, a list that only shrinks.
  */
 
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Platform } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
+import { cancel, sequence, spring, timing } from './motion/drive.ts';
+import { DUR, EASE, SELECT_POP, SELECT_POP_MS, SELECT_RING_OPACITY, SPRING } from './motion/tokens.ts';
+
+export { PRESS_SCALE_TILE, SELECT_POP, SELECT_RING_OPACITY, SPRING } from './motion/tokens.ts';
 
 /**
  * Whether the learner has asked for less movement.
@@ -102,21 +113,23 @@ export function drawIn(value: Animated.Value, reduced: boolean, delayMs = 0): An
 }
 
 /**
- * How far a pressed thing shrinks: STYLE section 11, "every tappable thing
- * scales to 0.97".
+ * How far a pressed control shrinks: STYLE section 11, "every tappable thing
+ * scales to 0.97". Written here as a literal because F597 pins it here; the
+ * deeper tile press, `PRESS_SCALE_TILE`, lives with the other tokens.
  */
 export const PRESS_SCALE = 0.97;
 
-/** The native Animated module is not on the web; a spring asked to cross there logs and stalls. */
+/** The legacy Animated module is not native on the web; a timing asked to cross there logs and stalls. */
 export const NATIVE_DRIVER = Platform.OS !== 'web';
 
 /**
  * Take a scale to `to` on the press spring, or land there at once when
  * movement is withheld.
  *
- * The one spring in the app. STYLE section 11 gives it as iOS describes a
- * spring, response 0.3 s and damping ratio 0.7, and Animated takes physical
- * numbers, so they are converted rather than eyeballed:
+ * The press spring is `SPRING.press` in motion/tokens.ts. STYLE section 11
+ * gives it as iOS describes a spring, response 0.3 s and damping ratio 0.7, and
+ * the engine takes physical numbers, so they are converted rather than
+ * eyeballed (tokens.test.ts holds the conversion):
  *
  *   stiffness = (2 * PI / response)^2 = (2 * PI / 0.3)^2  = 438.6, so 439
  *   damping   = 2 * ratio * sqrt(stiffness * mass)
@@ -127,13 +140,45 @@ export const NATIVE_DRIVER = Platform.OS !== 'web';
  * design; anyone who wants a clamped press changes STYLE first. The press is
  * cancelled by Pressable itself: when a scroll takes the responder it fires
  * `onPressOut` and never `onPress`, so the spring returns and nothing happens.
+ *
+ * Runs on Reanimated's UI thread through `motion/drive.ts`, which passes the
+ * live reduced-motion answer to the engine as well.
  */
-export function pressTo(value: Animated.Value, to: number, reduced: boolean): Animated.CompositeAnimation | null {
+export function pressTo(value: SharedValue<number>, to: number, reduced: boolean): void {
   if (reduced) {
-    value.setValue(to);
-    return null;
+    value.value = to;
+    return;
   }
-  const animation = Animated.spring(value, { toValue: to, stiffness: 439, damping: 29.3, mass: 1, useNativeDriver: NATIVE_DRIVER });
-  animation.start();
-  return animation;
+  value.value = spring(to, SPRING.press, reduced);
+}
+
+/**
+ * The one pop a tile gives when it becomes the chosen one: up to `SELECT_POP`
+ * quickly, then home on the pop spring. Under reduced motion it is simply at
+ * rest; the fill and the ring already say it was chosen.
+ */
+export function selectPop(value: SharedValue<number>, reduced: boolean): void {
+  if (reduced) {
+    value.value = 1;
+    return;
+  }
+  value.value = sequence(reduced, timing(SELECT_POP, SELECT_POP_MS, EASE.out, reduced), spring(1, SPRING.pop, reduced));
+}
+
+/**
+ * The chosen tile's blue ring layer fading in, or out when the choice moves on.
+ * Under reduced motion it is shown at its resting opacity at once.
+ */
+export function ringTo(value: SharedValue<number>, on: boolean, reduced: boolean): void {
+  const to = on ? SELECT_RING_OPACITY : 0;
+  if (reduced) {
+    value.value = to;
+    return;
+  }
+  value.value = timing(to, on ? DUR.fast : DUR.micro, EASE.out, reduced);
+}
+
+/** Stop whatever is driving these values, where they stand: a press unmounted mid-spring. */
+export function stopMotion(...values: SharedValue<number>[]): void {
+  for (const value of values) cancel(value);
 }
