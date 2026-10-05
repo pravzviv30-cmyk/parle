@@ -2,16 +2,20 @@
  * The renewal sweep: a paid period that has ended is re-read from the vendor
  * before anybody is told it is over (F733, founder decision D16, 2026-10-05).
  *
- * A yearly product is granted one 30-day allowance window at a time, and the
- * window's end is the period on record, so the next window has to be granted
- * when the last one ends. Nothing the store sends arrives then: RevenueCat
- * fires a webhook when the year renews, not when a month inside it does. A
- * lazy read cannot grant it either, because a read that renews is the free
- * month for every cancelled subscriber that F245 took out. So the maintenance
- * worker asks. Every few minutes it reads the paid rows whose period has ended,
- * re-reads each subscriber from RevenueCat, and lets `renewSubscriber` project
- * only what the vendor verifies, through the same ticketed projection a webhook
- * uses. A monthly renewal whose webhook went missing is recovered the same way.
+ * A yearly product is granted one 30-day allowance window at a time inside its
+ * paid year, so the next window has to be granted when the last one ends.
+ * Nothing the store sends arrives then: RevenueCat fires a webhook when the
+ * year renews, not when a month inside it does. A lazy read cannot grant it
+ * either, because a read that renews is the free month for every cancelled
+ * subscriber that F245 took out. So the maintenance worker asks. Every few
+ * minutes it reads the paid rows whose period or window has ended, re-reads
+ * each subscriber from RevenueCat, and lets `renewSubscriber` project only what
+ * the vendor verifies, through the same ticketed projection a webhook uses. A
+ * monthly renewal whose webhook went missing is recovered the same way.
+ *
+ * A sweep that is late, down, or configured differently from the API costs a
+ * yearly learner minutes until it catches up or they restore, and never the
+ * plan: the paid year is the period on record, and only it lapses (F733 review).
  *
  * The sweep runs beside room-stop reconciliation and never holds it up: `tick`
  * starts a sweep and returns, and a slow vendor delays only the next sweep.
@@ -21,7 +25,10 @@ import type { RenewalOutcome } from './revenuecat.ts';
 
 export interface DueRenewal {
   userId: string;
-  /** The period on record that has ended: a monthly period, a trial, or a yearly window. */
+  /**
+   * The end on record that has passed: a monthly period, a trial, or a yearly
+   * product's allowance window (whose paid year is still running).
+   */
   periodEnd: Date;
 }
 
@@ -80,6 +87,10 @@ export function renewalSweep(deps: RenewalSweepDependencies, options: RenewalSwe
       }
     }
     logger.log(JSON.stringify({ event: 'billing_renewals', ...counts }));
+    // A full page means rows beyond it were not even read this time. At ten
+    // vendor reads a sweep that is a launch-scale bound, not a forever one, so
+    // it is said on the error stream where an alert can find it.
+    if (due.length >= options.read) logger.error(JSON.stringify({ event: 'billing_renewals_backlog', due: due.length, read: options.read }));
   }
 
   return {

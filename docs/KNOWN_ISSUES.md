@@ -9901,15 +9901,18 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: packages/core/src/metering/meter.ts, services/token-server/src/billing/revenuecat.ts, services/token-server/src/billing/state.ts
 - note: Founder decision D16: a 7-day introductory offer grants a week of the plan's minutes (allowance x 7/30) during the trial; Starter and Max yearly products refill the monthly allowance every 30 days inside the paid year. Today any active entitlement would grant the full monthly allowance at once and a yearly product would grant one month for a year. Money-pinned files change only with a dated reason and independent review.
+- note: 5 October review repair: the first build recorded a yearly window as period_end, so a read a day after any window the renewal sweep missed lapsed a paying learner and kept them lapsed. period_end is the paid year again and the window sits in allowance_window_end; a missed refill now costs minutes until the sweep or a restore, never the plan.
 - verified-by: `a store trial grants a week of the plan's minutes and no more`
 - verified-by: `a yearly plan refills the monthly allowance every thirty days`
+- verified-by: `a yearly learner whose window ended a day ago is not lapsed by a read, and the next refresh grants window two`
 
 ### F734 — Plans say nothing about streak protection
 - severity: P2
-- status: [x]
+- status: [ ]
 - where: apps/mobile/src/purchases/capabilities.ts
-- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor now answers streakProtection. The INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn.
+- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor answers streakProtection (5 October), but the plans page still says nothing: the INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn. Open until that line ships with the second test below, which does not exist yet, so the gate cannot tick this early.
 - verified-by: `streak protection comes only with an unlapsed paid plan`
+- verified-by: `the plans page names streak protection on both paid plans`
 
 ### F735 — Production guest speech is off, so the first win is never spoken
 - severity: P2
@@ -9917,5 +9920,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/token-server/src/onboardingSpeech.ts:10
 - note: Founder decision D13 enables guest speaking with server protection: an anonymous admission budget (per guest capability, installation, address and a global daily ceiling), about 60 seconds of speech per guest, the existing 20 s capture, 2 MiB cap and 24 h capability. Security and privacy review required.
 - verified-by: `guest speech is admitted only within its per-guest, per-installation, per-address and daily limits`
+
+### F736 — A store trial's purchase screens describe a month
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/WallScreen.tsx:330, apps/mobile/src/purchases/planStatus.ts:93
+- note: F733 review (5 October). The server grants a store trial a week of the plan (42 or 70 minutes), but the purchase confirmation shows the catalogue's monthly minutes with "Your speaking time each month.", and the plan card's band compares against the monthly allowance, so it reads "A little speaking time left." from the first day of a trial. Held back by runbook step 4 (no intro offer is shown to learners until the Phase 4 plans page ships); the Phase 4 wall takes the trial's minutes from the server, not the catalogue. Core's refusal now says "You have used all your minutes for now." for every paid period.
+- verified-by: `a store trial is described as a week of minutes, never a month`
 
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.

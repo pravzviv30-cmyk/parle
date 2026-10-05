@@ -46,7 +46,10 @@ export interface EntitlementStore {
 
 /** Local fixtures only. Production uses one database transaction below. */
 interface LocalSessionRecord { userId: string; epoch: string; charged?: number; refunded?: boolean; failure?: ServiceFailure }
-function periodKey(row: Entitlement): string { return `${row.periodEnd ? new Date(row.periodEnd).toISOString() : 'trial'}:${row.lapsed === true}`; }
+/** A yearly window is its own usage period (F733), exactly as the database's usage epoch treats it. */
+function periodKey(row: Entitlement): string {
+  return `${row.periodEnd ? new Date(row.periodEnd).toISOString() : 'trial'}:${row.windowEnd ? new Date(row.windowEnd).toISOString() : ''}:${row.lapsed === true}`;
+}
 
 abstract class LocalBillingSupport {
   abstract get(userId: string): Promise<Entitlement>;
@@ -313,10 +316,12 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
     for (const [id, row] of Object.entries(rawRows)) {
       if (!record(row) || !['trial','starter','regular'].includes(String(row.plan))
         || typeof row.secondsUsed !== 'number' || !Number.isFinite(row.secondsUsed) || row.secondsUsed < 0
-        || (row.periodEnd !== undefined && (typeof row.periodEnd !== 'string' || !Number.isFinite(Date.parse(row.periodEnd))))) {
+        || (row.periodEnd !== undefined && (typeof row.periodEnd !== 'string' || !Number.isFinite(Date.parse(row.periodEnd))))
+        || (row.windowEnd !== undefined && (typeof row.windowEnd !== 'string' || !Number.isFinite(Date.parse(row.windowEnd))))) {
         throw new Error('Invalid entitlement ledger balance');
       }
-      rows[id] = { ...row, ...(row.periodEnd ? { periodEnd: new Date(row.periodEnd as string) } : {}) } as Entitlement;
+      rows[id] = { ...row, ...(row.periodEnd ? { periodEnd: new Date(row.periodEnd as string) } : {}),
+        ...(row.windowEnd ? { windowEnd: new Date(row.windowEnd as string) } : {}) } as Entitlement;
     }
     if (versioned) {
       if (!record(parsed.epochs) || !record(parsed.sessions)) throw new Error('Invalid entitlement ledger proof');
@@ -371,6 +376,8 @@ interface SupabaseEntitlementRow {
   plan: Plan;
   seconds_used: number;
   period_end: string | null;
+  /** A yearly product's current allowance window, when it ends before the paid year (F733). */
+  allowance_window_end?: string | null;
   lapsed_from_paid?: boolean;
 }
 
@@ -379,6 +386,7 @@ function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
     plan: row.plan,
     secondsUsed: row.seconds_used,
     ...(row.period_end ? { periodEnd: new Date(row.period_end) } : {}),
+    ...(row.allowance_window_end ? { windowEnd: new Date(row.allowance_window_end) } : {}),
     ...(row.lapsed_from_paid === true ? { lapsed: true } : {}),
   };
 }
@@ -437,6 +445,7 @@ export class SupabaseEntitlementStore implements EntitlementStore {
         plan: entitlement.plan,
         seconds_used: entitlement.secondsUsed,
         period_end: entitlement.periodEnd?.toISOString() ?? null,
+        allowance_window_end: entitlement.windowEnd?.toISOString() ?? null,
         lapsed_from_paid: entitlement.lapsed === true,
       }),
     });
@@ -517,7 +526,8 @@ export class SupabaseEntitlementStore implements EntitlementStore {
       body: JSON.stringify({ p_user_id: userId, p_ticket: ticket, p_kind: snapshot.kind,
         p_plan: snapshot.kind === 'active' ? snapshot.plan : null,
         p_period_end: snapshot.kind === 'active' ? snapshot.periodEnd.toISOString() : null, p_event_id: eventId ?? null,
-        p_grant_seconds: snapshot.kind === 'active' ? snapshot.grantSeconds : null }),
+        p_grant_seconds: snapshot.kind === 'active' ? snapshot.grantSeconds : null,
+        p_window_end: snapshot.kind === 'active' && snapshot.windowEnd ? snapshot.windowEnd.toISOString() : null }),
     });
     if (!response.ok) throw new Error(`billing projection failed (${response.status})`);
     const body = await response.json() as { kind?: unknown; reason?: unknown; entitlement?: SupabaseEntitlementRow };

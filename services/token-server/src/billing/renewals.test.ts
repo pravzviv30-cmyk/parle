@@ -60,6 +60,22 @@ describe('the renewal sweep re-reads ended periods from the vendor (F733)', () =
     assert.equal(asked.at(-1), id(1), 'a quiet row was never asked about again');
   });
 
+  test('a sweep that reads a full page of due rows says so on the error stream', async () => {
+    // F733 review: ten vendor reads a sweep is a launch-scale bound. Rows past
+    // the page are not read at all, so a full page is the alertable signal.
+    const errors: string[] = [];
+    const logger = { log: () => {}, error: (line: string) => errors.push(line) };
+    const full = renewalSweep({ due: async () => [1, 2, 3].map(row), renew: async () => 'waiting', logger },
+      { everyMs: 1_000, read: 3, batch: 1, quietMs: 1_000 });
+    await full.tick(0);
+    assert.match(errors.join('\n'), /"event":"billing_renewals_backlog","due":3,"read":3/);
+    errors.length = 0;
+    const room = renewalSweep({ due: async () => [1, 2].map(row), renew: async () => 'waiting', logger },
+      { everyMs: 1_000, read: 3, batch: 1, quietMs: 1_000 });
+    await room.tick(0);
+    assert.deepEqual(errors, [], 'a sweep with room to spare raised a backlog');
+  });
+
   test('a failed read of the due list is logged and the next sweep still runs', async () => {
     const { lines, logger } = quietLogger();
     let calls = 0;

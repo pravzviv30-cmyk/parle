@@ -176,8 +176,21 @@ export interface Entitlement {
    * month as spent (F733). Remaining time is always allowance minus this.
    */
   secondsUsed: number;
-  /** When the current period ends. Undefined for the non-renewing trial. */
+  /**
+   * When the paid period the store holds ends: a month, a store trial, or a
+   * whole paid year. Undefined for the non-renewing trial. This is the instant
+   * a plan lapses from, after LAPSE_GRACE_SEC, so it is never an allowance
+   * window inside a year: a yearly learner whose window ended and was not yet
+   * refilled still holds the year they paid for (F733 review, 2026-10-05).
+   */
   periodEnd?: Date;
+  /**
+   * When the current allowance window ends, set only when that is before
+   * `periodEnd`: a yearly product's 30-day window (`allowanceWindowEnd`).
+   * Absent means the window is the whole period. Minutes are refilled when a
+   * verified vendor read grants the next window; a read never refills them.
+   */
+  windowEnd?: Date;
   /** The exhausted trial represents a former paid period, not a first trial. */
   lapsed?: boolean;
 }
@@ -244,7 +257,7 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
           ? 'Your subscription has ended.'
           : e.plan === 'trial'
             ? 'Your free trial is finished.'
-            : 'You have used all your minutes this month.',
+            : 'You have used all your minutes for now.',
     };
   }
 
@@ -305,6 +318,11 @@ export function lapsedEntitlement(): Entitlement {
  * lapses. A paid row with no period end at all is malformed rather than expired,
  * and is left alone - taking someone's plan away over a missing timestamp is the
  * opposite mistake, and just as expensive.
+ *
+ * Only the paid period counts here, never an allowance window inside it. A
+ * yearly window that ended without a refill leaves the learner holding the
+ * year, with the minutes the last window left them, until a vendor read grants
+ * the next window: short of minutes for a while, never stripped of the plan.
  */
 export function rollPeriod(e: Entitlement, now: Date): Entitlement {
   const spec = PLANS[e.plan];

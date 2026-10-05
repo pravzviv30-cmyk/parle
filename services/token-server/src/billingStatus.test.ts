@@ -82,4 +82,16 @@ describe('billing status — what the learner holds, read and never changed (F54
     );
     assert.equal(billingStatusFor({ plan: 'regular', secondsUsed: 0, periodEnd: 'soon' as unknown as Date }).periodEnd, null);
   });
+
+  test('a yearly plan reports when its minutes start fresh, which is the window and not the year', () => {
+    // F733 review (2026-10-05): the paid year is the period a plan lapses from,
+    // and the 30-day window is when the minutes come back. Every screen that
+    // reads periodEnd says the second, so the status answers the second.
+    const yearEnd = new Date('2027-10-05T09:00:00.000Z');
+    const windowEnd = new Date('2026-11-04T09:00:00.000Z');
+    const yearly = billingStatusFor({ plan: 'regular', secondsUsed: 600, periodEnd: yearEnd, windowEnd });
+    assert.equal(yearly.periodEnd, windowEnd.toISOString(), 'the plan card would promise fresh minutes at the end of the year');
+    assert.equal(yearly.lapsed, false);
+    assert.equal(billingStatusFor({ plan: 'regular', secondsUsed: 600, periodEnd: yearEnd }).periodEnd, yearEnd.toISOString());
+  });
 });

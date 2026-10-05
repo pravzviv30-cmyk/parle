@@ -133,8 +133,12 @@ describe('starting a session', () => {
     assert.equal(trial.allowed === false && trial.reason, 'exhausted');
     assert.match(trial.allowed === false ? trial.message : '', /trial is finished/i);
 
+    // 5 October 2026, F733 review: a paid allowance is now a month, a store
+    // trial's week or a yearly window, so "this month" was untrue for two of
+    // the three. The paid line names no period and never the free trial.
     const paid = canStartSession({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod });
-    assert.match(paid.allowed === false ? paid.message : '', /this month/i);
+    assert.equal(paid.allowed === false ? paid.message : '', 'You have used all your minutes for now.');
+    assert.doesNotMatch(paid.allowed === false ? paid.message : '', /trial|month/i);
   });
 
   test('a learner whose paid plan lapsed is not told their free trial ended', () => {
@@ -480,5 +484,29 @@ describe('a yearly plan refills by the window, inside the paid year (D16)', () =
       const m = yearlyPlanMargin(plan, 0.5, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
       assert.ok(m.expectedMargin > 0.4, `yearly ${plan} leaves ${(m.expectedMargin * 100).toFixed(0)}% at half utilisation`);
     }
+  });
+});
+
+describe('a yearly window that ends is a refill owed, never a lapse (F733 review)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const bought = new Date('2026-10-05T09:00:00.000Z');
+  const yearEnd = new Date(bought.getTime() + 365 * DAY);
+
+  test('a read keeps a yearly plan whose window ended a day ago, and lapses it only after the paid year', () => {
+    // Window one spent to the last second, ended twenty-five hours ago, and no
+    // renewal sweep has run. The learner still holds the year they paid for.
+    const windowEnd = new Date(bought.getTime() + 30 * DAY);
+    const spent: Entitlement = { plan: 'regular', secondsUsed: PLANS.regular.secondsPerPeriod, periodEnd: yearEnd, windowEnd };
+    const later = new Date(windowEnd.getTime() + 25 * 60 * 60 * 1000);
+    assert.equal(rollPeriod(spent, later), spent, 'a read lapsed a learner inside their paid year');
+    const refused = canStartSession(spent);
+    assert.equal(refused.allowed === false && refused.reason, 'exhausted', 'an unrefilled window reads as a paid plan out of minutes');
+    // Said the same way for a month, a store trial's week and a yearly window,
+    // because "this month" was untrue for two of the three.
+    assert.equal(refused.allowed === false && refused.message, 'You have used all your minutes for now.');
+
+    // The paid year itself still lapses exactly as a month does.
+    assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000)), spent);
+    assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000 + 1)).lapsed, true);
   });
 });

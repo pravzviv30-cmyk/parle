@@ -775,7 +775,7 @@ There are **37 migrations** for a fresh full schema, applied once in order from
 
 36. `20261004015000_indexed_conversation_library.sql` — Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. **Not applied live**; release manifest and hosted evidence must match the complete schema.
 
-37. `20261005231742_store_trial_yearly_allowance.sql`, F733 (D16): the projection that grants a store free trial a week of the plan's allowance and a yearly product one 30-day window at a time, the service-only renewal list for the maintenance worker, and projection version 2. **Not applied live**; apply before the token server and maintenance worker that call it and before any intro offer or yearly product exists in App Store Connect.
+37. `20261005231742_store_trial_yearly_allowance.sql`, F733 (D16): the projection that grants a store free trial a week of the plan's allowance and a yearly product one 30-day window at a time (the window in `allowance_window_end`, the paid year staying in `period_end`, so a missed refill never lapses the year), the service-only renewal list for the maintenance worker, and projection version 2. **Not applied live**; apply before the token server and maintenance worker that call it and before any intro offer or yearly product exists in App Store Connect.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

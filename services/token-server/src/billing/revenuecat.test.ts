@@ -304,23 +304,28 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     const at = (day: number, extraMs = 0) => new Date(bought.getTime() + day * DAY + extraMs);
     const year = () => subscriber('luvani_regular_yearly', yearEnd.toISOString(), 'normal', bought.toISOString());
 
-    // Day one: one month of Max, ending with the first window rather than the year.
+    // Day one: one month of Max, in a window ending thirty days in. The paid
+    // year is the period, so that is what a plan lapses from (F733 review).
     const first = projectSubscriber(year(), { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod }, yearly, at(0));
     assert.equal(first.kind, 'active');
     assert.equal(first.entitlement.plan, 'regular');
     assert.equal(secondsRemaining(first.entitlement), PLANS.regular.secondsPerPeriod, 'a yearly plan granted something other than one month');
-    assert.equal(first.entitlement.periodEnd?.toISOString(), at(30).toISOString(), 'the first allowance runs to the end of the year, not the window');
+    assert.equal(first.entitlement.windowEnd?.toISOString(), at(30).toISOString(), 'the first allowance runs to the end of the year, not the window');
+    assert.equal(first.entitlement.periodEnd?.toISOString(), yearEnd.toISOString(), 'the window was recorded as the paid period');
 
     // Most of the month spent, read again inside the window: nothing comes back.
     const spent: Entitlement = { ...first.entitlement, secondsUsed: 250 * 60 };
     const again = projectSubscriber(year(), spent, yearly, at(12));
     assert.equal(again.entitlement.secondsUsed, 250 * 60);
-    assert.equal(again.entitlement.periodEnd?.toISOString(), at(30).toISOString());
+    assert.equal(again.entitlement.windowEnd?.toISOString(), at(30).toISOString());
 
     // The window ends and the next read refills one month, no more.
     const next = projectSubscriber(year(), spent, yearly, at(30, 60_000));
     assert.equal(next.entitlement.secondsUsed, 0);
-    assert.equal(next.entitlement.periodEnd?.toISOString(), at(60).toISOString());
+    assert.equal(next.entitlement.windowEnd?.toISOString(), at(60).toISOString());
+
+    // An older window read late moves nothing back.
+    assert.equal(projectSubscriber(year(), next.entitlement, yearly, at(29)).kind, 'unchanged');
 
     // A learner who spends every minute every day of the paid year is refilled
     // twelve times, each time with one month, and the last window ends with the year.
@@ -336,9 +341,40 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     }
     assert.equal(refills, 12, `a paid year refilled ${refills} times`);
     assert.equal(row.periodEnd?.toISOString(), yearEnd.toISOString());
+    assert.equal(row.windowEnd, undefined, 'the last window ends with the year, so it is the period itself');
 
     // After the paid year nothing is granted; the store renews it or it ends.
     assert.equal(projectSubscriber(year(), row, yearly, at(366)).kind, 'lapsed');
+  });
+
+  test('a yearly learner whose window ended a day ago is not lapsed by a read, and the next refresh grants window two', async (t) => {
+    // F733 review (2026-10-05): the window used to be the period on record, so
+    // a read a day after a window the sweep missed lapsed a paying learner, and
+    // with them their streak protection, until the year renewed.
+    t.mock.timers.enable({ apis: ['Date'], now: now.getTime() });
+    const userId = '0b8e6a0c-1d2f-4e3a-9b4c-5d6e7f8a9b0c';
+    const store = new InMemoryEntitlementStore('trial');
+    const yearEnd = new Date(now.getTime() + 365 * DAY).toISOString();
+    const year = async () => new Response(JSON.stringify(subscriber('luvani_regular_yearly', yearEnd, 'normal', now.toISOString())));
+    assert.equal((await refreshSubscriber(userId, store, yearly, { now, request: year })).kind, 'active');
+    await store.consume(userId, PLANS.regular.secondsPerPeriod);
+
+    // No sweep runs. Twenty-five hours after window one ended, the learner reads.
+    const late = new Date(now.getTime() + 30 * DAY + 25 * 60 * 60 * 1000);
+    t.mock.timers.setTime(late.getTime());
+    const held = await store.get(userId);
+    assert.equal(held.plan, 'regular', 'a read lapsed a paying yearly learner');
+    assert.notEqual(held.lapsed, true);
+    assert.equal(held.periodEnd?.toISOString(), yearEnd, 'a read moved the paid year');
+    assert.equal(secondsRemaining(held), 0, 'a read refilled minutes no vendor read granted');
+    const refused = canStartSession(held);
+    assert.equal(refused.allowed === false && refused.reason, 'exhausted', 'an unrefilled window is a paid plan out of minutes, not a lapse');
+
+    // A refresh (the sweep, or the learner restoring) grants window two in full.
+    assert.equal((await refreshSubscriber(userId, store, yearly, { now: late, request: year })).kind, 'active');
+    const refilled = await store.get(userId);
+    assert.equal(secondsRemaining(refilled), PLANS.regular.secondsPerPeriod);
+    assert.equal(refilled.windowEnd?.toISOString(), new Date(now.getTime() + 60 * DAY).toISOString());
   });
 
   test('a purchase the server cannot classify is refused, never guessed', () => {
@@ -398,12 +434,14 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     const windowEnd = new Date(now.getTime() + 30 * DAY);
 
     // A yearly learner who spent the whole first window gets the second the moment it opens.
-    await store.save('yearly', { plan: 'regular', secondsUsed: PLANS.regular.secondsPerPeriod, periodEnd: windowEnd });
+    // F733 review: the row holds the paid year as its period and the window beside it.
+    await store.save('yearly', { plan: 'regular', secondsUsed: PLANS.regular.secondsPerPeriod, periodEnd: new Date(yearEnd), windowEnd });
     const year = async () => new Response(JSON.stringify(subscriber('luvani_regular_yearly', yearEnd, 'normal', now.toISOString())));
     assert.equal(await renewSubscriber('yearly', windowEnd, store, yearly, { now: later, request: year }), 'renewed');
     const refilled = await store.get('yearly');
     assert.equal(refilled.secondsUsed, 0);
-    assert.equal(refilled.periodEnd?.toISOString(), new Date(now.getTime() + 60 * DAY).toISOString());
+    assert.equal(refilled.windowEnd?.toISOString(), new Date(now.getTime() + 60 * DAY).toISOString());
+    assert.equal(refilled.periodEnd?.toISOString(), yearEnd);
 
     // The vendor holds nothing yet, an hour after a monthly period ended: that is the slack's job.
     const hourAgo = new Date(later.getTime() - 60 * 60 * 1000);

@@ -185,10 +185,13 @@ export type SubscriberProjection = BillingProjection;
  *
  * A store trial grants a week of the plan's allowance until the trial ends. A
  * monthly product grants the plan's allowance until its store period ends. A
- * yearly product grants the same monthly allowance until the end of the
- * current 30-day window inside its paid year, never the year at once; the next
- * window is granted by the next read of the vendor, through the same ticketed
- * projection (the renewal sweep makes that read on time).
+ * yearly product holds its whole paid year as the period, and grants the same
+ * monthly allowance until the end of the current 30-day window inside it,
+ * never the year's minutes at once; the next window is granted by the next
+ * read of the vendor, through the same ticketed projection (the renewal sweep
+ * makes that read on time, and a learner's restore makes it on demand). A
+ * window that is not refilled on time leaves the year standing, because the
+ * year, not the window, is what lapses (F733 review, 2026-10-05).
  */
 function subscriberSnapshot(body: RevenueCatSubscriberBody, config: RevenueCatReadConfiguration, now = new Date()): BillingSnapshot {
   if (!body.subscriber || !body.subscriber.entitlements || typeof body.subscriber.entitlements !== 'object' || Array.isArray(body.subscriber.entitlements)) {
@@ -212,7 +215,7 @@ function subscriberSnapshot(body: RevenueCatSubscriberBody, config: RevenueCatRe
       const start = instant(vendor.purchase_date) ?? instant(subscription?.purchase_date);
       const windowEnd = start ? allowanceWindowEnd(start, end, now) : null;
       if (!windowEnd) return { kind: 'unknown-product' };
-      return { kind: 'active', plan: sold.plan, periodEnd: windowEnd, grantSeconds: allowance };
+      return { kind: 'active', plan: sold.plan, periodEnd: end, windowEnd, grantSeconds: allowance };
     }
   }
   return { kind: 'inactive' };
@@ -266,16 +269,17 @@ export async function refreshSubscriber(
 export type RenewalOutcome = 'renewed' | 'lapsed' | 'waiting';
 
 /**
- * Re-read one subscriber whose period on record has ended, and move the row
- * only in the two directions a read is allowed to.
+ * Re-read one subscriber whose period or allowance window on record has ended,
+ * and move the row only in the two directions a read is allowed to.
  *
  * Forward, when the vendor holds a newer paid period or a yearly product's next
  * window: that is a verified receipt doing the renewing, through the same
  * ticketed projection a webhook uses, which is the only way minutes are ever
- * granted. And to a lapse, when the vendor holds nothing and the period on
- * record is already past the twenty-four hours a lazy read would wait anyway.
- * Inside those hours a vendor that holds nothing is left alone, because a
- * renewal that has not landed yet is exactly what the slack is for.
+ * granted. And to a lapse, when the vendor holds nothing and the end that came
+ * due (`periodEnd` here: a month, a trial, or a yearly window) is already past
+ * the twenty-four hours a lazy read would wait anyway. Inside those hours a
+ * vendor that holds nothing is left alone, because a renewal that has not
+ * landed yet is exactly what the slack is for.
  */
 export async function renewSubscriber(
   userId: string,
