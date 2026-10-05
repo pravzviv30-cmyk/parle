@@ -90,4 +90,12 @@ notifications. Real OAuth and push behavior require an appropriately signed buil
 - With Metro stopped and USB disconnected, load that update over internet access.
 - Push a harmless visible JavaScript change, wait for successful CI and publication,
   then confirm the phone loads it and its saved account/onboarding state survives.
-- Verify a native dependency change produces a different runtime and needs a build.
+- ~~Verify a native dependency change produces a different runtime and needs a build.~~
+  Verified 5 October 2026: adding `react-native-reanimated` 4.5.1 and
+  `react-native-worklets` 0.10.1 and the `EXDevMenuShowFloatingActionButton` plist key
+  (commit `e077f1cf`) changed the iOS fingerprint from
+  `19ef095c560e019dfa0a05e0a12e9a8eed34e1a5` (at `47fbc2ea`) to
+  `f6be04049fbace22d1e9e7d1ea3bb236c8b37720`. The changed sources were both packages,
+  `expoConfig` and `rncoreAutolinkingConfig:ios`, measured with
+  `npx @expo/fingerprint fingerprint:generate --platform ios`. Updates published after
+  that commit only reach a binary rebuilt from it.
