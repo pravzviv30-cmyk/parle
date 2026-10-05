@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 import { GhostButton } from '../components.tsx';
 import { HIT, onColour, frenchText, paper, space, type } from '../theme.ts';
@@ -25,6 +25,8 @@ import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { dailyTutorVoice } from '../daily/tutorAudio.ts';
 import { claimDailyPlayback, ownsDailyPlayback, releaseDailyPlayback } from '../daily/playback.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { PREVIEW_COPY, previewFor, type PreviewSelection } from './preview.ts';
 
 /**
@@ -38,6 +40,8 @@ export function ListeningPreview({ selection, showContext = false, ground = 'whi
   const { profile } = useProfile();
   const voice = dailyTutorVoice(profile.tutorVoice);
   const player = useAudioPlayer();
+  // No sound effect takes the audio session from the recording while it plays.
+  useVoiceHold(useAudioPlayerStatus(player).playing);
   // The chooser stays mounted under a native stack when it pushes a room or a
   // lesson, so leaving it is a blur, not an unmount.
   const focused = useIsFocused();
@@ -101,7 +105,7 @@ export function ListeningPreview({ selection, showContext = false, ground = 'whi
       if (preview.audio === 'recorded' && preview.asset !== undefined) {
         stopOwnVoice();
         claimDailyPlayback(player);
-        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, shouldPlayInBackground: false });
+        await enterVoicePlayback();
         if (mine !== ticket.current || !ownsDailyPlayback(player)) return;
         player.pause();
         player.replace(preview.asset);

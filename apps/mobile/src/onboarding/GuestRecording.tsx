@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { GhostButton, Press, MicGlyph } from '../components.tsx';
 import { silenceRecordingHaptics } from '../motion/hapticPreference.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
+import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
 import { colour, paper, type } from '../theme.ts';
 /** Twenty-second take, deleted after consumption. No haptic while the microphone is recording. */
 export function GuestRecording({
@@ -34,7 +35,7 @@ export function GuestRecording({
       await recorder.stop();
       releaseHaptics.current?.();
       releaseHaptics.current = null;
-      await setAudioModeAsync({ allowsRecording: false });
+      await leaveRecording();
       const uri = recorder.uri;
       if (active.current) setRecording(false);
       onRecordingChange(false);
@@ -46,7 +47,7 @@ export function GuestRecording({
         setNote('That take could not finish. You can type instead.');
       }
     } finally {
-      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      await leaveRecording().catch(() => {});
       discardRecording(recorder.uri);
       releaseHaptics.current?.();
       releaseHaptics.current = null;
@@ -80,19 +81,20 @@ export function GuestRecording({
         onTyping();
         return;
       }
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-      });
+      // The microphone focus is held from here until the take ends, so no
+      // sound effect can switch the session away from recording (F724).
+      releaseHaptics.current?.();
+      releaseHaptics.current = silenceRecordingHaptics();
+      await enterRecording();
       await recorder.prepareToRecordAsync();
       if (!active.current) {
         await recorder.stop().catch(() => {});
         discardRecording(recorder.uri);
-        await setAudioModeAsync({ allowsRecording: false });
+        releaseHaptics.current?.();
+        releaseHaptics.current = null;
+        await leaveRecording();
         return;
       }
-      releaseHaptics.current = silenceRecordingHaptics();
       recorder.record();
       live.current = true;
       setRecording(true);
@@ -109,7 +111,7 @@ export function GuestRecording({
       releaseHaptics.current?.();
       releaseHaptics.current = null;
       discardRecording(recorder.uri);
-      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      await leaveRecording().catch(() => {});
     } finally {
       working.current = false;
       if (!active.current) void stop(false);

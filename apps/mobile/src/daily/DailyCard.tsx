@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Card, FrenchBlock, GhostButton, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
@@ -25,6 +25,8 @@ import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { audioLine } from './libraryView.ts';
 import { scopeGeneration } from '../storage/scope.ts';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 
 export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, variant = 'full' }: {
   item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; variant?: 'full' | 'today';
@@ -36,6 +38,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const asset = tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice);
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
+  useVoiceHold(status.playing);
   const owner = scopeGeneration();
   const [saveRead, setSaveRead] = useState<{ owner: number; saved: boolean } | null>(null);
   const saved = saveRead?.owner === owner ? saveRead.saved : null;
@@ -70,7 +73,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
     try {
       if (asset == null) { setNote('Audio is not in this pack yet. You can still practise the text.'); return; }
       claimDailyPlayback(player);
-      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, shouldPlayInBackground: false });
+      await enterVoicePlayback();
       if (!active.current || ticket !== playTicket.current || !ownsDailyPlayback(player)) return;
       player.pause(); player.replace(asset); player.setPlaybackRate(slow ? 0.75 : 1); player.play(); setNote('');
     } catch { setNote('Audio could not play. Please try again.'); }

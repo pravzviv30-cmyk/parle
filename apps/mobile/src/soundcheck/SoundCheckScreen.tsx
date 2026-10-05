@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { getMission } from '@luvani/core';
 
 import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
@@ -19,6 +19,8 @@ import { trackProductEvent } from '../analytics/track.ts';
 import { PHONE_SETTINGS_AVAILABLE, openPhoneSettings } from '../settings/phoneSettings.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { abandonSoundCheckRecording } from './abandonRecording.ts';
+import { holdMic } from '../sound/audioFocus.ts';
+import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
 
 const CAN_RECORD =
   Platform.OS !== 'web' ||
@@ -51,6 +53,14 @@ export function SoundCheckScreen({
     stopping.current = work;
     return work;
   }, [recorder]);
+  // The microphone focus, held from before the mode change until the take ends
+  // by any route, so no haptic or sound effect lands on it (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const resetRecordingAudio = useCallback((): Promise<void> => {
+    micHold.current?.();
+    micHold.current = null;
+    return leaveRecording();
+  }, []);
   const mission = missionId === null ? undefined : getMission(missionId);
   const [reference, setReference] = useState<string | null>(null);
   // How the learner's own last measured sound is made, drawn above the line.
@@ -104,11 +114,11 @@ export function SoundCheckScreen({
       preparedUri.current = null;
       const work = abandonSoundCheckRecording(
         recorder, stopRecorder, abandoned, discardRecording,
-        () => setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }),
+        resetRecordingAudio,
       ).finally(() => { if (cleanupRef.current === work) cleanupRef.current = null; });
       cleanupRef.current = work;
     };
-  }, [mission, missionId, userId, attempt, recorder, stopRecorder]);
+  }, [mission, missionId, userId, attempt, recorder, stopRecorder, resetRecordingAudio]);
 
   const persist = useCallback(
     (decision: SoundCheckDecision) => {
@@ -153,7 +163,7 @@ export function SoundCheckScreen({
       // have left bytes on disk, and the path is the only way to reach them.
       const uri = recorderUri(recorder, preparedUri.current);
       preparedUri.current = null;
-      void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
+      void resetRecordingAudio().catch(() => undefined);
       if (!ownsReadNow()) { discardRecording(uri); return; }
       if (lost || !uri) {
         // Nothing here can be assessed, so nothing here should be kept either.
@@ -178,23 +188,26 @@ export function SoundCheckScreen({
       // Refused access is explained, not silently turned into practice.
       if (!permission.granted) return selfGuided(MIC_DENIED);
       tutorVoice.stop();
-      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
-      if (!ownsReadNow()) return;
+      micHold.current?.();
+      micHold.current = holdMic();
+      await enterRecording();
+      if (!ownsReadNow()) { await resetRecordingAudio(); return; }
       preparedUri.current = recorderUri(recorder, preparedUri.current);
       await recorder.prepareToRecordAsync();
       preparedUri.current = recorderUri(recorder, preparedUri.current);
       if (!ownsReadNow()) {
         await abandonSoundCheckRecording(recorder, stopRecorder, preparedUri.current, discardRecording,
-          () => setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }));
+          resetRecordingAudio);
         preparedUri.current = null;
         return;
       }
       recorder.record();
       setPhase('recording');
     } catch {
+      void resetRecordingAudio().catch(() => undefined);
       selfGuided();
     }
-  }, [reference, phase, recorder, stopRecorder, selfGuided, userId, persist, ownsReadNow]);
+  }, [reference, phase, recorder, stopRecorder, selfGuided, userId, persist, ownsReadNow, resetRecordingAudio]);
 
   // No back header on the "no check" card: it is a terminal card and Done is the
   // one door. Everywhere else the chevron is the way out, so the "Not now" pill

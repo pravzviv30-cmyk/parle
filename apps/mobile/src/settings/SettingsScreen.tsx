@@ -70,6 +70,7 @@ import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
 import { loadHapticPreference, setHapticPreference } from '../motion/hapticPreference.ts';
+import { loadSoundPreference, setSoundPreference } from '../sound/soundPreference.ts';
 import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
 import { PlanCard } from '../profile/PlanCard.tsx';
@@ -204,6 +205,9 @@ export function SettingsScreen({
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [hapticSaving, setHapticSaving] = useState(false);
   const [hapticTrouble, setHapticTrouble] = useState('');
+  const [soundEffects, setSoundEffects] = useState(true);
+  const [soundSaving, setSoundSaving] = useState(false);
+  const [soundTrouble, setSoundTrouble] = useState('');
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -273,6 +277,7 @@ export function SettingsScreen({
     useCallback(() => {
       let cancelled = false;
       void loadHapticPreference().then(value => { if (!cancelled) setHapticFeedback(value); });
+      void loadSoundPreference().then(value => { if (!cancelled) setSoundEffects(value); });
       const reminderOwner = { scope: scopeGeneration(), userId: user?.id ?? null };
       const sameReminderOwner = () => !cancelled && reminderOwner.scope === scopeGeneration() && reminderOwner.userId === activeUserId();
       setStoredOwner(null);
@@ -869,6 +874,14 @@ export function SettingsScreen({
             void setHapticPreference(value).then(saved => { setHapticSaving(false); setHapticTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setHapticFeedback(previous); });
           }} />
           {hapticTrouble && <TroubleLine message={hapticTrouble} />}
+          <SwitchRow title="Sound effects" sub="Short sounds when you finish something. They follow your phone’s silent switch and stay quiet while you speak or listen." accessibilityLabel="Sound effects" value={soundEffects} disabled={soundSaving} onChange={value => {
+            if (soundSaving) return;
+            setSoundSaving(true);
+            const previous = soundEffects;
+            setSoundEffects(value);
+            void setSoundPreference(value).then(saved => { setSoundSaving(false); setSoundTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setSoundEffects(previous); });
+          }} />
+          {soundTrouble && <TroubleLine message={soundTrouble} />}
         </Card>
       </View>
 

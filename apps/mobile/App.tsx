@@ -66,6 +66,7 @@ import { backfillFrom } from './src/progress/activity.ts';
 import { FIRST_MISSION, lessonXp, type MissionId } from '@luvani/core';
 import { PreAccountOnboarding } from './src/onboarding/PreAccountOnboarding.tsx';
 import { loadHapticPreference } from './src/motion/hapticPreference.ts';
+import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
 import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
@@ -680,6 +681,7 @@ function Gate() {
 
 export default function App() {
   useEffect(() => { void loadHapticPreference(); }, []);
+  useEffect(() => { void loadSoundPreference(); }, []);
   const [loaded] = useFonts({
     'Outfit-Regular': require('./assets/fonts/Outfit-Regular.ttf'),
     'Outfit-Medium': require('./assets/fonts/Outfit-Medium.ttf'),

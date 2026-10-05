@@ -11,6 +11,9 @@
  */
 import { registerGlobals, AudioSession } from '@livekit/react-native';
 
+import { holdLive } from '../sound/audioFocus.ts';
+import { markUnknown } from '../sound/audioSession.ts';
+
 let done = false;
 
 export function ensureLiveKitGlobals(): void {
@@ -25,15 +28,36 @@ export function ensureLiveKitGlobals(): void {
  * is the shipping platform — this is for the first dev build.
  */
 let audioStarted = false;
+/**
+ * The room's hold on the learner's ears (sound/audioFocus.ts): while it is held, no sound effect
+ * changes the audio mode and no control gives a haptic (decision D8). Taken before the session
+ * starts, so nothing can switch the mode while LiveKit is configuring it.
+ */
+let releaseLive: (() => void) | null = null;
 
 export async function ensureAudioSession(): Promise<void> {
   if (audioStarted) return;
-  await AudioSession.startAudioSession();
+  const release = holdLive();
+  try {
+    await AudioSession.startAudioSession();
+  } catch (error) {
+    release();
+    throw error;
+  }
+  releaseLive?.();
+  releaseLive = release;
   audioStarted = true;
 }
 
 export async function releaseAudioSession(): Promise<void> {
   if (!audioStarted) return;
   audioStarted = false;
-  await AudioSession.stopAudioSession();
+  try {
+    await AudioSession.stopAudioSession();
+  } finally {
+    // LiveKit set its own category, so the next voice, recording or sound effect sets a full mode.
+    markUnknown();
+    releaseLive?.();
+    releaseLive = null;
+  }
 }

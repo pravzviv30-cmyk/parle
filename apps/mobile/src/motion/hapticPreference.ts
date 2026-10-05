@@ -1,21 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { holdMic, liveRoom, micLive } from '../sound/audioFocus.ts';
 const KEY = '@luvani/interaction-haptics/v1';
 let enabled = true;
 let revision = 0;
 let writes: Promise<unknown> = Promise.resolve();
-let microphoneMutes = 0;
-export const hapticsEnabled = (): boolean => enabled && microphoneMutes === 0;
-/** A live microphone suppresses feedback from every control, including Back. */
-export function silenceRecordingHaptics(): () => void {
-  microphoneMutes++;
-  let released = false;
-  return () => {
-    if (!released) {
-      released = true;
-      microphoneMutes--;
-    }
-  };
-}
+/** A live microphone or an open live room keeps every control still, including Back (F724). */
+export const hapticsEnabled = (): boolean => enabled && !micLive() && !liveRoom();
+/** A live microphone suppresses feedback from every control. The microphone focus hold, by its older name. */
+export const silenceRecordingHaptics: () => () => void = holdMic;
 export async function loadHapticPreference(): Promise<boolean> {
   const owner = revision;
   try {

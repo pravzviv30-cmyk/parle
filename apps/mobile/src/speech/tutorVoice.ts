@@ -9,11 +9,21 @@
 
 import * as Speech from 'expo-speech';
 
+import { holdVoice } from '../sound/audioFocus.ts';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+
 /** Slightly under full speed. A beginner is transcribing with their ears. */
 const TUTOR_RATE = 0.85;
+/**
+ * The longest a line may hold the voice focus if the synthesizer never reports its end. A held
+ * focus only keeps sound effects quiet, so the cap errs long.
+ */
+const LONGEST_LINE_MS = 60_000;
 
 let voicePromise: Promise<string | null> | null = null;
 let playbackGeneration = 0;
+/** The voice focus the line now speaking holds (sound/audioFocus.ts). */
+let releaseVoice: (() => void) | null = null;
 
 /** A promise that MUST settle: callers gate the demo's fallback timer on it. */
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -65,17 +75,41 @@ export async function available(): Promise<boolean> {
 /** Returns the playback it started, so a chain of lines can tell it was stopped. */
 export function speak(text: string, opts?: { onDone?: () => void; rate?: number }): number {
   const generation = ++playbackGeneration;
-  void frenchVoice().then((voice) => {
+  void frenchVoice().then(async (voice) => {
     if (generation !== playbackGeneration) return;
     // Cut off anything still playing: a tapped replay must not queue behind the
     // tutor's line and arrive seconds late.
     void Speech.stop();
+    releaseVoice?.();
+    // The line holds the voice focus until it ends, fails or is stopped, so no
+    // sound effect switches the session to one that obeys the silent switch.
+    const release = holdVoice();
+    const cap = setTimeout(release, LONGEST_LINE_MS);
+    const letGo = () => {
+      clearTimeout(cap);
+      release();
+      if (releaseVoice === letGo) releaseVoice = null;
+    };
+    releaseVoice = letGo;
+    // A full voice mode first, after any sound effect has been paused (F723).
+    await enterVoicePlayback().catch(() => undefined);
+    if (generation !== playbackGeneration) {
+      letGo();
+      return;
+    }
     Speech.speak(text, {
       language: 'fr-FR',
       ...(voice ? { voice } : {}),
       rate: opts?.rate ?? TUTOR_RATE,
-      onDone: opts?.onDone,
-      onError: opts?.onDone,
+      onDone: () => {
+        letGo();
+        opts?.onDone?.();
+      },
+      onError: () => {
+        letGo();
+        opts?.onDone?.();
+      },
+      onStopped: letGo,
     });
   });
   return generation;
