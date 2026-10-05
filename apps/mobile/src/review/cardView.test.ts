@@ -565,7 +565,7 @@ describe('the delayed test, said out loud — F220', () => {
     // The ban list is the shared union from F216, imported rather than
     // re-listed, so a word removed to let this sentence through fails several
     // suites at once. Checked first that the matcher is the real one.
-    assert.equal(guiltIn('you broke your streak'), 'streak', 'this is not the shared ban list any more');
+    assert.equal(guiltIn('you missed a day'), 'missed', 'this is not the shared ban list any more');
 
     assert.equal(guiltIn(SITTING_OPENER), undefined, `the sitting opener says "${guiltIn(SITTING_OPENER) ?? ''}"`);
     assert.doesNotMatch(SITTING_OPENER, /\d/, 'the opener counts what is back, which is the score wall in one line');
