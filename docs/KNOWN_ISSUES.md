@@ -9913,7 +9913,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F735 — Production guest speech is off, so the first win is never spoken
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/onboardingSpeech.ts:10
 - note: Founder decision D13 enables guest speaking with server protection: an anonymous admission budget (per guest capability, installation, address and a global daily ceiling), about 60 seconds of speech per guest, the existing 20 s capture, 2 MiB cap and 24 h capability. Security and privacy review required.
 - verified-by: `guest speech is admitted only within its per-guest, per-installation, per-address and daily limits`

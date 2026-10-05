@@ -141,6 +141,20 @@ export function keyShapeProblem(key: string): string | null {
       ? null
       : 'luvani:active-session identity segment is not a 43-character base64url hmac';
   }
+  if (segments[1] === 'guest-speech') {
+    // Guest speech budgets: luvani:guest-speech:guest:<hash>, :global:<day>,
+    // and :installation|address:<day>:<hash>. A day is not an identity.
+    const day = (segment: string | undefined) => /^\d{4}-\d{2}-\d{2}$/.test(segment ?? '');
+    const scope = segments[2];
+    if (scope === 'guest') return segments.length === 4 && isHashedSegment(segments[3] ?? '') ? null : 'luvani:guest-speech guest key is not one 43-character base64url hash';
+    if (scope === 'global') return segments.length === 4 && day(segments[3]) ? null : 'luvani:guest-speech global key is not one UTC day';
+    if (scope === 'installation' || scope === 'address') {
+      return segments.length === 5 && day(segments[3]) && isHashedSegment(segments[4] ?? '')
+        ? null
+        : 'luvani:guest-speech daily key is not a UTC day and a 43-character base64url hmac';
+    }
+    return 'luvani:guest-speech scope segment is not a known scope';
+  }
   return 'key uses an unknown luvani namespace';
 }
 
