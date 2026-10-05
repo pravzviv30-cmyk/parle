@@ -704,9 +704,10 @@ press, a choice, a save, a finished practice. It never stands in for content,
 never invents progress, and never holds the learner's next tap for long.
 
 Built so far (come alive, Phase 0): the tokens, the one door to the engine, the
-reduce-motion bridge, the press depth and selected ring, and the haptic
-vocabulary. The other primitives, the celebration host and the sound effects
-arrive in later come-alive phases and follow this section when they do.
+reduce-motion bridge, the press depth and selected ring, the haptic vocabulary
+and the primitives below. No screen uses the primitives yet. The celebration
+host and the sound effects arrive in later come-alive phases and follow this
+section when they do.
 
 ### Principles
 
@@ -781,21 +782,38 @@ retires them.
 The primitives live in `motion/`, and screens compose them; a screen never
 imports the engine. Each takes its answer from `useReduceMotion()`, is
 `pointerEvents="none"` and decorative when it is decoration, and stops on its
-final frame when it unmounts or the app leaves the foreground.
+final frame when it unmounts or the app leaves the foreground
+(`motion/landing.ts`). A one-shot waits at most `ANSWER_WAIT_MS`, 300 ms, for
+the OS to say whether movement is reduced, then plays the reduced version. Each
+primitive's own numbers are named groups in `motion/tokens.ts`.
 
-- `StaggerIn`: children arrive in turn, once, on first mount.
-- `CountUp`: a real number counts to its value; a screen reader hears only the
-  final value.
-- `ProgressRing`: a ring draws by its dash offset to a stored fraction.
-- `LivingBar`: a fill springs to its real position.
-- `Burst`: seeded flat confetti in the palette's colours, at most `BURST_MAX`
-  pieces.
-- `Bloom`: three flat discs open behind a win.
-- `TokenFlight`: a chosen token travels to where it is kept.
+- `StaggerIn`: children arrive in turn, once, on first mount, the whole cascade
+  starting within 480 ms.
+- `CountUp`: a real number counts to its value at most 30 redraws a second; a
+  screen reader hears only the final value, and the widest value holds the
+  width. Ticks follow `motion/countTicks.ts`: by touch at most 12, 70 ms apart;
+  by sound at most 10, 90 ms apart; never on the final value.
+- `ProgressRing`: a ring draws by its dash offset to a stored fraction. On the
+  web it redraws from state at most 30 times a second, because an animated Svg
+  prop there is unproven.
+- `LivingBar`: a fill springs to its real position from the left, with a shine,
+  a spark at its edge, and one stretch when it fills.
+- `Burst`: seeded flat confetti (`motion/particles.ts`) in the four colours and
+  the card's white, never the highlighter or lilac, and never the ground's own
+  colour, at most `BURST_MAX` pieces. Nothing under reduced motion.
+- `DiscBloom`: three flat discs open behind a win. It is the spec's Bloom under
+  another name, because `Bloom` is a retired export.
+- `TokenFlight`: a chosen token travels to where it is kept, at most two at
+  once, drawn by the one `FlightLayer` at the root. It lands at once, with
+  nothing drawn, whenever it cannot fly.
 - `Glint`: one pass of light across a pill that has just become available.
 - `MorphButton`: a button that shows it is busy, and done only from a real
-  result.
+  result; an error opens it back with no shake. Under reduced motion only its
+  words change.
 - `Enter`, `Reflow`, `Exit`: entrances, reflows and exits in a layout.
+- `BubbleIn`: a transcript line added after the transcript opened arrives.
+- `LevelRing`: two rings swell with a live sound level; under reduced motion,
+  three opacity steps and no scale.
 
 ### Celebrations
 
@@ -876,7 +894,10 @@ play while a microphone is open, the tutor is speaking or a live room is open.
 
 `tokens.test.ts` holds the springs to their derivations, `components.test.ts`
 holds the pill, the link, the ledger row and the segmented control to `Press`,
-and `motion/haptics.test.ts` holds the haptic vocabulary.
+and `motion/haptics.test.ts` holds the haptic vocabulary. `motion/primitives.test.ts`
+holds the primitives' shared promises, and `countTicks.test.ts`,
+`particles.test.ts` and `flights.test.ts` hold the ticks, the confetti and the
+tokens in the air.
 
 No interface surface casts a shadow.
 ## Evidence and remaining work

@@ -17,7 +17,14 @@
  *
  * Imported only by `.tsx` files and motion.ts, never by a module a Node suite
  * loads: a suite that fails to load the engine vanishes without failing.
+ *
+ * The directive below makes every function here a worklet, so a primitive may
+ * call the same door from the UI thread as well as the JS thread: the level
+ * ring re-aims its trailing layer inside an animated reaction. Nothing else
+ * changes; a worklet is still an ordinary function when the JS thread calls it.
  */
+
+'worklet';
 
 import {
   Easing,
@@ -30,6 +37,7 @@ import {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import type { Bezier, SpringToken } from './tokens.ts';
 
 /** The live answer, said to the engine so it never consults its own. */
@@ -43,14 +51,29 @@ export function bezier(curve: Bezier) {
   return Easing.bezier(x1, y1, x2, y2);
 }
 
-/** Travel to `to` over `duration` on a token curve. */
-export function timing(to: number, duration: number, ease: Bezier, reduced: boolean): number {
-  return withTiming(to, { duration, easing: bezier(ease), reduceMotion: mode(reduced) });
+/**
+ * What an animation says when it stops, on the JS thread: true when it ran to
+ * its end, false when something replaced or cancelled it first.
+ */
+export type Landed = (finished: boolean) => void;
+
+/** The engine answers on the UI thread; this carries the answer across to the JS thread. */
+function report(done: Landed | undefined): ((finished?: boolean) => void) | undefined {
+  if (done === undefined) return undefined;
+  return (finished?: boolean) => {
+    'worklet';
+    scheduleOnRN(done, finished === true);
+  };
 }
 
-/** Travel to `to` on a token spring. Pass `SPRING.<name>`, never numbers. */
-export function spring(to: number, cfg: SpringToken, reduced: boolean): number {
-  return withSpring(to, { ...cfg, reduceMotion: mode(reduced) });
+/** Travel to `to` over `duration` on a token curve, and say so when it stops. */
+export function timing(to: number, duration: number, ease: Bezier, reduced: boolean, done?: Landed): number {
+  return withTiming(to, { duration, easing: bezier(ease), reduceMotion: mode(reduced) }, report(done));
+}
+
+/** Travel to `to` on a token spring, and say so when it stops. Pass `SPRING.<name>`, never numbers. */
+export function spring(to: number, cfg: SpringToken, reduced: boolean, done?: Landed): number {
+  return withSpring(to, { ...cfg, reduceMotion: mode(reduced) }, report(done));
 }
 
 /** Start `anim` after `ms`. */
