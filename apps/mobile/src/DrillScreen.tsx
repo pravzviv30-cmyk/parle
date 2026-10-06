@@ -60,6 +60,7 @@ import {
 import { HAIRLINE, HIT, colour, font, paper, radius, signal, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
+import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -1178,12 +1179,19 @@ export function DrillScreen({
     ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting
     // it right without being shown the spelling is the harder thing.
-    void recordActivity(
+    const xp = drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos });
+    const endedAt = Date.now();
+    const activeMs = clock.read();
+    // Only a set worked to its end says it finished, and only that settles
+    // (F744); one left from the header banks what it earned and nothing more.
+    const bank = () => recordActivity(
       'drill',
-      drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }),
-      Date.now(),
-      { durationMs: Date.now() - openedAt.current, activeMs: clock.read() },
+      xp,
+      endedAt,
+      { durationMs: endedAt - openedAt.current, activeMs: activeMs, ...(state.finished ? { finished: true } : {}) },
     );
+    if (state.finished) void settleSitting({ source: 'drill', at: endedAt, xpEarned: xp, activeMs, write: bank });
+    else void bank();
   }, [savePractice, finishPractice, clock]);
 
   const answer = useCallback(

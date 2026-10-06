@@ -3,6 +3,8 @@ import { recorderUri } from './recorderUri.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { finishLocalTake } from './finishLocalTake.ts';
 import { recordActiveDay } from '../progress/activity.ts';
+import { useActiveClock } from '../progress/useActiveClock.ts';
+import { beginSettle, finishSettle, releaseSettle } from '../game/settle.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
@@ -35,6 +37,9 @@ export function DailyPracticeScreen() {
   const tutorVoice = dailyTutorVoice(profile.tutorVoice);
   const modelAsset = item ? tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice) : undefined;
   const focused = useIsFocused();
+  // Today's phrase has no clock kind of its own, so it keeps review's 30 s
+  // stretch (review finding 13): hearing, recording and finishing are the work.
+  const clock = useActiveClock('review');
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const player = useAudioPlayer();
   useVoiceHold(useAudioPlayerStatus(player).playing);
@@ -107,7 +112,7 @@ export function DailyPracticeScreen() {
     return () => { playbackTicket.current++; releaseDailyPlayback(player); };
   }, [tutorVoice, player, item?.id]);
   const record = async () => {
-    if (operation.current || !live.current) return; operation.current = true; setBusy(true);
+    if (operation.current || !live.current) return; operation.current = true; setBusy(true); clock.touch();
     const ticket = generation.current;
     try {
       playbackTicket.current++; releaseDailyPlayback(player);
@@ -131,6 +136,7 @@ export function DailyPracticeScreen() {
   };
   const play = async (own = false) => {
     if (!item || recording || busy) return;
+    clock.touch();
     const source = own ? uri : modelAsset;
     if (source == null) return;
     const ticket = generation.current;
@@ -156,7 +162,20 @@ export function DailyPracticeScreen() {
     operation.current = true; setBusy(true);
     const owner = scopeGeneration();
     try {
+      // Finishing is the last piece of work. `at` names the sitting; the day is
+      // read off the clock a moment later, and should the two ever fall either
+      // side of midnight the settle also records the day `at` falls on.
+      clock.touch();
+      const at = Date.now();
+      const settling = await beginSettle();
+      // The day binds to whoever is signed in when it is asked for, so an
+      // account that changed while the snapshot was read records nothing.
+      if (owner !== scopeGeneration()) { releaseSettle(settling); return; }
       const ack = await recordActiveDay();
+      // The practice happened whether or not this screen is still showing, so
+      // it settles on the durable day alone: a quest, the goal, the +5 (F744).
+      if (ack === 'durable') void finishSettle(settling, { source: 'phrase', at, xpEarned: 0, activeMs: clock.read() });
+      else releaseSettle(settling);
       if (!live.current || owner !== scopeGeneration()) return;
       if (ack === 'durable') { setDaySaved(true); setNote('This practice counts as a day of French. Your recording stays on this device until you leave.'); }
       else setNote('Your day could not be saved yet. Try finishing practice again.');

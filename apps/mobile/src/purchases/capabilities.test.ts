@@ -55,15 +55,23 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
       .filter((file) => readFileSync(file, 'utf8').includes('capabilitiesFor('))
       .map((file) => file.slice(SRC.length))
       .sort();
-    // One named addition, and it is a helper rather than a screen: the tutor
-    // revisit offered from Practice and from the conversation library asks the
-    // same continueArc rule the Tutor tab does, through one file.
+    // Two named additions, neither a screen: the tutor revisit offered from
+    // Practice and from the conversation library asks the same continueArc rule
+    // the Tutor tab does, through one file; and the game view reads streak
+    // protection (founder decision D4: freezes and repair come with a plan).
     assert.deepEqual(
       askers,
-      ['purchases/capabilities.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
+      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
       `something else gates on the plan: ${askers.join(', ')}`,
     );
     assert.ok(askers.includes('tutor/RealMomentScreen.tsx'), 'the real moment no longer asks the plan');
+
+    // The game view reads streak protection and nothing else from the plan.
+    const view = readFileSync(join(SRC, 'game/view.ts'), 'utf8');
+    assert.match(view, /capabilitiesFor\(billing\.plan, billing\.lapsed\)\.streakProtection/, 'the game view reads something other than streak protection');
+    for (const earned of ['.packs', '.savedPhrases', '.missions', '.memory', '.customRehearsal', '.continueArc']) {
+      assert.ok(!view.includes(earned), `the game view gates ${earned}, which it was not added for`);
+    }
 
     // The helper reads the one Max door it exists for, and nothing else.
     const helper = readFileSync(join(SRC, 'purchases/useContinueArc.ts'), 'utf8');

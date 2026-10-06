@@ -32,6 +32,16 @@
  * Every step checks the account it was bound to. A sign-out or a data reset
  * between steps stops the run with `account-changed`; the stores refuse a write
  * whose scope moved, so nothing lands in another account or after a deletion.
+ *
+ * The game layer settles the sitting here, at the one place that knows a plan
+ * has completed, whoever ran it: the screen's finish, its retry, or the
+ * recovery Practice, the next-task card and the drill screen run at launch
+ * (Come alive F744, review finding 9). The settle's snapshot is taken before
+ * the plan's first write in this launch and kept across a `kept` answer, so a
+ * retry is measured against the learner's state before the sitting rather than
+ * after half of it landed; it settles only on `completed`, never on
+ * `already-completed`, and always at the plan's frozen instant, so a retry
+ * after midnight cannot make a second practice day.
  */
 
 import {
@@ -45,10 +55,11 @@ import {
   type PracticeTarget,
 } from '@luvani/core';
 
+import { beginSettle, finishSettle, releaseSettle, type SettleToken } from '../game/settle.ts';
 import { claimActivityInstant, recordActivityOnce } from '../progress/activity.ts';
 import { cleanActiveMs } from '../progress/activeTime.ts';
 import { applyPracticeGrades, planPracticeGrades, type CardGrade } from '../review/store.ts';
-import { scopeGeneration } from '../storage/scope.ts';
+import { onUserScopeReset, scopeGeneration } from '../storage/scope.ts';
 import { MAX_ATTEMPTS, isPracticeEvent, type PracticeEventTarget, type SessionCompletedEvent } from './history.ts';
 import { hasRecordedSitting, recordPracticeEventOutcome } from './historyStore.ts';
 import {
@@ -230,6 +241,9 @@ async function runPlan(bound: Bound, plan: CompletionPlan, status: 'completed' |
       ...(plan.durationMs === null ? {} : { durationMs: plan.durationMs }),
       // Absent on a plan an older build froze: that sitting credits no active time.
       ...(plan.activeMs === undefined || plan.activeMs === null ? {} : { activeMs: plan.activeMs }),
+      // A plan is frozen only for a finished sitting with answered work, so a
+      // practice that earned no XP still records its day (D3, F731, F744).
+      finished: true,
     },
   );
   if (activity !== 'durable') pending.push('activity');
@@ -253,6 +267,54 @@ async function runPlan(bound: Bound, plan: CompletionPlan, status: 'completed' |
 }
 
 /**
+ * The game layer's snapshot for a sitting whose plan answered `kept`, held
+ * until a later run of the same plan in this launch completes it. Only this
+ * launch: after a restart the recovery takes a fresh one, which can only
+ * under-report a sitting, never count it twice.
+ */
+const heldSettles = new Map<string, SettleToken>();
+onUserScopeReset(() => {
+  for (const token of heldSettles.values()) releaseSettle(token);
+  heldSettles.clear();
+});
+
+/**
+ * Run a frozen plan and settle the sitting into the game layer once it has
+ * completed. The snapshot comes before the plan writes anything (or is the one
+ * a `kept` run of this plan already took); the settle itself runs on the game
+ * layer's own chain afterwards and never holds this answer back.
+ */
+async function runAndSettle(bound: Bound, plan: CompletionPlan): Promise<PracticeCompletionResult> {
+  let token = heldSettles.get(plan.sittingId);
+  heldSettles.delete(plan.sittingId);
+  if (token !== undefined && token.scope !== bound.generation) {
+    releaseSettle(token);
+    token = undefined;
+  }
+  token ??= await beginSettle();
+  let done: PracticeCompletionResult;
+  try {
+    done = await runPlan(bound, plan, 'completed');
+  } catch (error) {
+    releaseSettle(token);
+    throw error;
+  }
+  if (done.status === 'completed') {
+    void finishSettle(token, {
+      source: 'drill',
+      at: plan.activityAt,
+      xpEarned: plan.xp,
+      ...(plan.activeMs === undefined || plan.activeMs === null ? {} : { activeMs: plan.activeMs }),
+    });
+  } else if (done.status === 'kept') {
+    heldSettles.set(plan.sittingId, token);
+  } else {
+    releaseSettle(token);
+  }
+  return done;
+}
+
+/**
  * Finish a practice sitting. Resolves only after every write it reports has
  * been acknowledged. Safe to call again with the same sitting id: a pending
  * plan is replayed, never recomputed, and a settled sitting answers
@@ -273,11 +335,11 @@ async function completeNow(input: CompletePracticeInput): Promise<PracticeComple
   const slot = await readCompletionSlot(bound, input.sittingId);
   if (slot.kind === 'unreadable') return result(moved(bound) ? 'account-changed' : 'failed', input.sittingId);
   if (slot.kind === 'completed') return result('already-completed', input.sittingId);
-  if (slot.kind === 'pending') return runPlan(bound, slot.plan, 'completed');
+  if (slot.kind === 'pending') return runAndSettle(bound, slot.plan);
   if (slot.kind === 'other-pending') {
     // Another sitting's plan must land first: two plans at once would let two
     // activity stamps be claimed against the same disk state.
-    const other = await runPlan(bound, slot.plan, 'completed');
+    const other = await runAndSettle(bound, slot.plan);
     if (other.status !== 'completed') return result('failed', input.sittingId);
   }
 
@@ -329,7 +391,7 @@ async function completeNow(input: CompletePracticeInput): Promise<PracticeComple
   const frozen = await freezeCompletionPlan(bound, plan);
   if (frozen === null) return result('failed', input.sittingId, { outcomes, xp });
   // Whatever is held on disk is the plan, even if a racing call froze first.
-  return runPlan(bound, frozen, 'completed');
+  return runAndSettle(bound, frozen);
 }
 
 /**
@@ -342,6 +404,6 @@ export function recoverPracticeCompletion(): Promise<PracticeCompletionResult | 
     const bound = bindPracticeScope();
     const slot = await readCompletionSlot(bound, null);
     if (slot.kind !== 'pending') return null;
-    return runPlan(bound, slot.plan, 'completed');
+    return runAndSettle(bound, slot.plan);
   });
 }

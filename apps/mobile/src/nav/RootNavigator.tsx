@@ -36,6 +36,7 @@ import { useLive } from '../app/LiveContext.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
+import { settleSitting } from '../game/settle.ts';
 import { bankLesson } from '../live/journal.ts';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -197,16 +198,27 @@ function LessonRoute() {
     // than from a second clock this screen would have to keep. Home's speaking
     // goal is the only reader; a summary written before F395 carries no
     // duration and counts zero minutes, which is honest.
-    void recordActivity(
-      'lesson',
-      lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }),
-      Date.now(),
-      // Active learning time only when the screen measured it. A driver that
-      // reports none writes none: the wall-clock duration is never copied in.
-      timing === undefined
-        ? { durationMs: Math.round(s.durationSec * 1000) }
-        : { durationMs: Math.round(s.durationSec * 1000), activeMs: timing.activeMs },
-    );
+    // A lesson that reached its summary is a finished sitting, and settles once
+    // (F744). The live lesson withholds its summary after a safety stop (F137),
+    // so a stopped lesson never reaches this line and settles nothing.
+    const endedAt = Date.now();
+    const xp = lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate });
+    void settleSitting({
+      source: 'lesson',
+      at: endedAt,
+      xpEarned: xp,
+      ...(timing === undefined ? {} : { activeMs: timing.activeMs }),
+      write: () => recordActivity(
+        'lesson',
+        xp,
+        endedAt,
+        // Active learning time only when the screen measured it. A driver that
+        // reports none writes none: the wall-clock duration is never copied in.
+        timing === undefined
+          ? { durationMs: Math.round(s.durationSec * 1000), finished: true }
+          : { durationMs: Math.round(s.durationSec * 1000), activeMs: timing.activeMs, finished: true },
+      ),
+    });
     // The session's words become review cards, through the outbox the
     // conversation has used since Phase 4. `addFromSummary` still compiles and
     // still writes, and that is exactly the trap: it awaited the disk's answer
