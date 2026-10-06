@@ -17,6 +17,7 @@ import {
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { starterTasks, tutorVoice } from '@luvani/core';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, earnedChoices } from './flow.ts';
@@ -330,8 +331,9 @@ export function PreAccountOnboarding({
       return;
     }
     const ticket = ++hearTicket.current;
-    // A full voice mode first, so the line is heard with the silent switch on (F723).
-    void enterVoicePlayback().catch(() => undefined).then(() => {
+    // A full voice mode first, so the line is heard with the silent switch on (F723). The web has
+    // no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
+    startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
       if (ticket !== hearTicket.current || !current.current || AppState.currentState === 'background') return;
       try {
         player.replace(asset);
@@ -339,7 +341,7 @@ export function PreAccountOnboarding({
       } catch {
         setIssue('Audio could not play. The words are still here.');
       }
-    });
+    }, Platform.OS === 'web');
   };
   const metric = (
     name: Parameters<typeof trackGuestMetric>[2],

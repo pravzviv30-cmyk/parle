@@ -16,7 +16,7 @@ import type { SfxId } from './sfxIds.ts';
 import { SFX_APPROVED, SFX_IDS } from './sfxManifest.ts';
 import { createSfxCore, type SfxCoreDeps } from './sfxCore.ts';
 import { COUNT_TICK_GAP_MS, SFX_PER_SECOND, createSfxThrottle, setSfxAppActive, sfxRefusal, suppressSfx } from './sfxGate.ts';
-import { holdLive, holdMic, holdVoice } from './audioFocus.ts';
+import { holdLive, holdMic, holdVoice, liveRoom } from './audioFocus.ts';
 import { createAudioSession } from './audioSessionCore.ts';
 import { SFX_MODE } from './audioModes.ts';
 
@@ -168,6 +168,28 @@ describe('sound effects ship only heard and play only when nothing else needs th
     assert.match(live, /const release = holdLive\(\);\s*try \{\s*await AudioSession\.startAudioSession\(\);/);
   });
 
+  test('the web preview holds the live room too, so no tap sound plays during a room', async (t) => {
+    // live/globals.ts is the browser's (and node's) half of the room's audio session. It used to
+    // take no hold, so a tap sound could play over a live room in the web preview.
+    const { ensureAudioSession, releaseAudioSession } = await import('../live/globals.ts');
+    t.after(() => releaseAudioSession());
+    assert.equal(liveRoom(), false);
+    await ensureAudioSession();
+    await ensureAudioSession();
+    assert.equal(liveRoom(), true, 'the web room took no hold on the learner’s ears');
+    const r = rig();
+    assert.equal(await r.core.play('tap'), false, 'a tap sound played during a live room on the web');
+    await releaseAudioSession();
+    assert.equal(liveRoom(), false, 'a second start took a second hold, or the release kept one');
+    await releaseAudioSession();
+    assert.equal(liveRoom(), false);
+    r.advance(1000);
+    assert.equal(await r.core.play('tap'), true, 'the room let go and a tap sound still stays quiet');
+    // The web hold matches the native one, taken in the start and given back in the release.
+    const web = stripComments(read('live/globals.ts'));
+    assert.match(web, /^import \{ holdLive \} from '\.\.\/sound\/audioFocus\.ts';$/m);
+  });
+
   test('the switch, the background and a safety stop each keep a sound quiet', async () => {
     assert.equal(sfxRefusal({ ...clean, soundOn: false }), 'sound-off');
     assert.equal(sfxRefusal({ ...clean, appActive: false }), 'background');
@@ -224,6 +246,60 @@ describe('sound effects ship only heard and play only when nothing else needs th
     assert.equal(r.entered(), 4);
     // One player per sound, made once, sent back to the start before each play.
     assert.deepEqual(r.created, ['tap']);
+  });
+
+  test('a sound counts against the throttle only once it has started', async () => {
+    // Review finding: a sound that failed to start, or that the session refused, still used up
+    // one of the four a second, so a burst of failures silenced the sound that could have played.
+    let broken = true;
+    const failing = rig({
+      createPlayer: () => ({ play: () => { if (broken) throw new Error('released'); }, pause: () => {}, seekTo: () => undefined }),
+    });
+    for (let i = 0; i < SFX_PER_SECOND; i += 1) assert.equal(await failing.core.play('tap'), false);
+    broken = false;
+    assert.equal(await failing.core.play('tap'), true, 'sounds that never started used up the throttle');
+
+    let open = false;
+    const refused = rig({ enterSfx: async () => open });
+    for (let i = 0; i < SFX_PER_SECOND; i += 1) assert.equal(await refused.core.play('select'), false);
+    open = true;
+    assert.equal(await refused.core.play('select'), true, 'sounds the session refused used up the throttle');
+
+    // A count tick that failed leaves the next one free to play at once.
+    let tickBroken = true;
+    const ticks = rig({
+      createPlayer: () => ({ play: () => { if (tickBroken) throw new Error('released'); }, pause: () => {}, seekTo: () => undefined }),
+    });
+    assert.equal(await ticks.core.play('count-tick'), false);
+    tickBroken = false;
+    assert.equal(await ticks.core.play('count-tick'), true, 'a tick that never sounded pushed the next one back');
+
+    // Played sounds still count, and two plays waiting on the session together cannot both take
+    // the last place in the second.
+    let release: () => void = () => {};
+    const waiting = rig({ enterSfx: () => new Promise<boolean>((resolve) => { release = () => resolve(true); }) });
+    for (let i = 0; i < SFX_PER_SECOND - 1; i += 1) {
+      const played = waiting.core.play('tap');
+      release();
+      assert.equal(await played, true);
+    }
+    const first = waiting.core.play('tap');
+    const firstOpen = release;
+    const second = waiting.core.play('tap');
+    const secondOpen = release;
+    firstOpen();
+    secondOpen();
+    assert.deepEqual([await first, await second], [true, false], 'a fifth sound played in one second');
+
+    // The web counts a refusal as its own only from a play that is about to start: the refusal
+    // window opens after the throttle, never for a sound it turned away.
+    const starts: number[] = [];
+    const web = rig({ enterSfx: undefined, currentMode: undefined, mayStart: () => true, willStart: () => { starts.push(1); } });
+    for (let i = 0; i < SFX_PER_SECOND + 2; i += 1) await web.core.play('tap');
+    assert.equal(starts.length, SFX_PER_SECOND, 'the refusal window opened for sounds the throttle turned away');
+    const webSource = stripComments(read('sound/sfx.web.ts'));
+    assert.match(webSource, /willStart: \(\) => \{\s*listenForRefusals\(\);\s*lastPlayAt = Date\.now\(\);\s*\}/);
+    assert.doesNotMatch(webSource.slice(webSource.indexOf('mayStart:'), webSource.indexOf('willStart:')), /lastPlayAt/, 'the refusal window opens before the throttle');
   });
 
   test('the native half keeps the session active after a sound, and pauses everything in the background', () => {

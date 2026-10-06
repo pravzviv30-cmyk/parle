@@ -66,6 +66,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { paper, space, type } from '../theme.ts';
 import { Card, PillButton, GhostButton, Field, ProgressDots, OptionRow } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -188,15 +189,16 @@ export function OnboardingFlow({
         return;
       }
       // A full voice mode first, so the sample is heard with the silent switch
-      // on (F723). Then loaded before it is told to play, or the player sounds
-      // whatever it was last handed. `replace` builds a fresh media element, so
-      // the new clip starts at nought and a tap on the one that just finished
-      // replays it.
-      void enterVoicePlayback().catch(() => undefined).then(() => {
+      // on (F723). The web has no modes and plays only inside the tap, so there
+      // it starts at once (sound/voiceLine.ts). Then loaded before it is told to
+      // play, or the player sounds whatever it was last handed. `replace` builds
+      // a fresh media element, so the new clip starts at nought and a tap on the
+      // one that just finished replays it.
+      startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
         if (ticket !== sampleTicket.current) return;
         player.replace(voiceSample(next));
         player.play();
-      });
+      }, Platform.OS === 'web');
     },
     [playing, player],
   );

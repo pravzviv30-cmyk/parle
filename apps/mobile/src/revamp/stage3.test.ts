@@ -35,7 +35,7 @@ test('revamp B Practice leads with the short action, then an optional evidence-b
   const practice = read('tabs/PracticeTab.tsx');
   assert.ok(practice.indexOf('<Label>{NEXT_STEP.label}</Label>') < practice.indexOf('<TuneSoundCard'), 'the sound guide buries the recommended action');
   has('tabs/PracticeTab.tsx',/step !== null && \(/,/<FrenchBlock/,/<TuneSoundCard/,/shadowingPhrase/,/mode:'shadowing'/,/Hear, say and compare/);
-  has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/shouldPlayInBackground: false/);
+  has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/enterVoicePlayback\(\)/);
   lacks('daily/DailyPracticeScreen.tsx',/fetch\(|Speech.speak|pronunciationScore/);
 });
 test('revamp B retrieval and drills preserve attempted recall, honest scoring and the typed twin',()=>{

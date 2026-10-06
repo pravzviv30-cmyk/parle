@@ -4,10 +4,14 @@
  *
  *   1. approved by the founder, or nothing        (SFX_APPROVED)
  *   2. the gate: switch on, no mic, voice or live hold, app active, not suppressed
- *   3. the throttle: four a second, count ticks 90 ms apart
+ *   3. the throttle: four a second, count ticks 90 ms apart, asked before the session so a sound
+ *      it would turn away never changes the mode
  *   4. native only: take the session into the sound-effect mode, then ask the gate again,
  *      because a microphone or voice line may have appeared while the mode changed
- *   5. one lazily created player per sound: back to the start, then play
+ *   5. the throttle again, then one lazily created player per sound: back to the start, then
+ *      play. Only a sound that started is counted, so a sound that failed or that the session
+ *      refused never silences the next one; asked and counted with no wait in between, so two
+ *      sounds that waited on the session together cannot both take the last place in a second
  *
  * Any failure is swallowed. A sound effect is a courtesy and never stops the learning flow.
  */
@@ -32,6 +36,8 @@ export type SfxCoreDeps = {
   currentMode?: () => string;
   /** Web: only inside a gesture-driven task does a browser let a page play. */
   mayStart?: () => boolean;
+  /** Web: a sound the throttle admitted is about to start (the refusal window opens here). */
+  willStart?: () => void;
 };
 
 export type SfxCore = {
@@ -89,7 +95,7 @@ export function createSfxCore(deps: SfxCoreDeps): SfxCore {
     if (deps.approved[id] !== true) return false;
     if (!allowed(id)) return false;
     if (deps.mayStart && !deps.mayStart()) return false;
-    if (!throttle.admit(id, now())) return false;
+    if (!throttle.allows(id, now())) return false;
     if (deps.enterSfx) {
       let entered = false;
       try {
@@ -100,7 +106,12 @@ export function createSfxCore(deps: SfxCoreDeps): SfxCore {
       if (!entered || !allowed(id)) return false;
       if (deps.currentMode && deps.currentMode() !== 'sfx') return false;
     }
-    return start(id);
+    const at = now();
+    if (!throttle.allows(id, at)) return false;
+    deps.willStart?.();
+    if (!start(id)) return false;
+    throttle.admit(id, at);
+    return true;
   };
 
   const warm = (ids: readonly SfxId[]): void => {

@@ -21,15 +21,8 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import type { RootStackParamList } from '../nav/types.ts';
 import { holdMic } from '../sound/audioFocus.ts';
-import { VOICE_MODE } from '../sound/audioModes.ts';
 import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
-
-/**
- * Local compare plays only in the foreground: the voice mode every line here plays in never plays
- * in the background (checked by the compiler), and the AppState listener below stops it on leaving.
- */
-VOICE_MODE satisfies { readonly shouldPlayInBackground: false };
 
 /** Local listen/record/compare. Recordings are never uploaded or graded. */
 export function DailyPracticeScreen() {
