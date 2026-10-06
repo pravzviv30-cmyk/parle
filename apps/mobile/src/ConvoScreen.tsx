@@ -19,8 +19,8 @@ import { prepareWalk } from './walk/lifecycle.ts';
 import { walkObserver } from './walk/observer.ts';
 import { WalkRoom } from './walk/WalkRoom.tsx';
 import { onUserScopeReset } from './storage/scope.ts';
-import { currentCanDoQuote, readMissionTasks, sessionSettlementCopy, type CurrentMissionFinish } from '@luvani/core';
-import { firstEarnedFinish } from './recap/evidence.ts';
+import { currentCanDoQuote, readMissionTasks, sessionSettlementCopy, type CurrentMissionFinish, type MissionTasks } from '@luvani/core';
+import { earnedFinish, firstEarnedFinish } from './recap/evidence.ts';
 import type { MissionCompletion } from '@luvani/core';
 /**
  * The free-conversation driver and surface.
@@ -55,7 +55,6 @@ import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './the
 import {
   Card,
   Label,
-  PillButton,
   OutlineButton,
   GhostButton,
   EarGlyph,
@@ -76,6 +75,9 @@ import { keepsakeLines } from './live/keepsake.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
+import type { GameDelta } from './game/delta.ts';
+import { holdCelebrations } from './celebrate/queue.ts';
+import { useReduceMotion } from './motion.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { ACTIVE_CUTOFF_MS, learnerEngaged } from './progress/activeTime.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -98,8 +100,12 @@ import { tutorNameOf } from './tutor/tutorName.ts';
 import { tutorVoiceOf } from './tutor/tutorVoice.ts';
 import { OPEN_MIC_LABEL, sceneControls, simplerLabel, typedTurn } from './tutor/sceneControls.ts';
 import { NO_WIN, dismissWin, winAfterTurn, winCard, type WinState } from './tutor/missionWin.ts';
+import { MissionWin } from './tutor/MissionWin.tsx';
 import { visibleMissionTasks } from './tutor/missionTasks.ts';
 import { MissionTaskList } from './tutor/MissionTaskList.tsx';
+import { useTaskTicks } from './tutor/useTaskTicks.ts';
+import { OrbCue } from './tutor/OrbRipple.tsx';
+import { sceneIllustration } from './art/flat/scenes.ts';
 import { recapWait } from './tutor/recapWait.ts';
 import { KeyboardGlyph, SpeakerSlowGlyph } from './glyphs.tsx';
 import { RoomWait } from './live/RoomWait.tsx';
@@ -185,56 +191,8 @@ function ListenPlaque({ onPress, tutorName }: { onPress: () => void; tutorName: 
   );
 }
 
-/**
- * The mission is finished, said once.
- *
- * DESIGN.md asks for a subtle, satisfying completion moment, and subtle is a
- * constraint rather than a mood: no confetti, no score, no percentage, nothing
- * that says how well. The line is the mission's own sentence about what the
- * learner actually did, which is a thing they can check, and the two doors are
- * both honest about what they cost.
- *
- * One primary action. "Keep talking" is the pill because the session is still
- * running underneath the card and carrying on is the cheaper of the two
- * decisions to get wrong; the line under it says plainly that it uses minutes,
- * so continuing is chosen and never assumed. Leaving is the ghost, and the
- * standing end control in the header still works, as it must in any metered room.
- *
- * Still, since the notebook redesign (Phase 4, 2026-09-27): only the orb and
- * the highlighter move in this app, so the card arrives in place. The sentence
- * was always the point, and nobody waits through a flourish to read it.
- */
-function MissionWin({
-  card,
-  onKeep,
-  onFinish,
-}: {
-  card: { line: string; keepLabel: string; keepSub: string; finishLabel: string };
-  onKeep: () => void;
-  onFinish: () => void;
-}) {
-  return (
-    <View style={st.win}>
-      <Card>
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[fitDisplay(card.line), { color: paper.ink, textAlign: 'left' }]}
-        >
-          {card.line}
-        </Text>
-        <View style={st.winPrimary}>
-          <PillButton label={card.keepLabel} onPress={onKeep} />
-        </View>
-        <Text style={[type.small, { color: paper.inkSoft, textAlign: 'left', marginTop: space(2) }]}>
-          {card.keepSub}
-        </Text>
-        <View style={st.winSecondary}>
-          <GhostButton label={card.finishLabel} onPress={onFinish} />
-        </View>
-      </Card>
-    </View>
-  );
-}
+/** No goals: a conversation that is not a mission, or a room with no view yet. */
+const NO_TASKS: MissionTasks['items'] = [];
 
 export function ConvoScreen({
   userId,
@@ -471,6 +429,13 @@ export function ConvoScreen({
   const safety = safetySurface(live.safety);
   const stopped = stoppedBySafety(live.safety);
 
+  // The scene's goals, and the moment one of them ticks (tutor/taskTicks.ts):
+  // the row pops and is announced, and on the last goal the orb ripples once
+  // before the scene's card arrives. Nothing moves after a stop.
+  const reducedMotion = useReduceMotion();
+  const missionItems = live.convo === null ? NO_TASKS : visibleMissionTasks(live.convo, missionId);
+  const ticks = useTaskTicks(missionItems, live.sessionId, { stopped, reduced: reducedMotion });
+
   // One stop out of the eight is also a fact about the account, and until now
   // it lasted exactly one session: a child said they were eleven, lost that
   // session, tapped start, and was in another scene seconds later. Written once,
@@ -567,6 +532,34 @@ export function ConvoScreen({
   useEffect(() => {
     if (roomOpen && openedAtRef.current === null) openedAtRef.current = Date.now();
   }, [roomOpen]);
+
+  /**
+   * What the finished conversation changed, read back from disk by the settle
+   * (game/settle.ts), for the recap's progress strip. Null until it lands, and
+   * null for good if it never does: the strip then draws nothing rather than a
+   * number nobody stored.
+   */
+  const [convoDelta, setConvoDelta] = useState<GameDelta | null>(null);
+  /**
+   * F766: the celebration queue waits from before the conversation settles
+   * until the recap's result page is up, so a streak or a level published by
+   * the settle can never start under the recap. The recap holds the queue
+   * itself for as long as it is mounted, so this hold only has to cover the
+   * hand-over, and it goes the moment the result page says it is showing (or
+   * this screen goes).
+   */
+  const settleHold = useRef<(() => void) | null>(null);
+  const [recapShown, setRecapShown] = useState(false);
+  const resultShown = useCallback(() => setRecapShown(true), []);
+  useEffect(() => {
+    if (!recapShown) return;
+    settleHold.current?.();
+    settleHold.current = null;
+  }, [recapShown]);
+  useEffect(() => () => {
+    settleHold.current?.();
+    settleHold.current = null;
+  }, []);
   useEffect(() => {
     // A stopped session hands nothing on and earns nothing. The recap is where
     // both used to happen on the same tick as the emergency number arriving.
@@ -586,13 +579,15 @@ export function ConvoScreen({
       const activeMs = clock.read();
       // A conversation that ran to its recap is a finished sitting, and it
       // settles here, inside the stop guard: a safety stop settles nothing (F137, F744).
+      // The queue is held first (F766), and the recap draws what the settle read back.
+      if (!recapShown) settleHold.current ??= holdCelebrations();
       void settleSitting({
         source: 'convo',
         at: endedAt,
         xpEarned: xp,
         activeMs,
         write: () => recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: activeMs, finished: true } : { durationMs: endedAt - openedAt, activeMs: activeMs, finished: true }),
-      });
+      }).then(setConvoDelta);
     }
     // `clock` is the same controller for the screen's whole life, so it stays
     // out of the list the F386 test pins.
@@ -625,6 +620,10 @@ export function ConvoScreen({
 
   const priorCompletions = useRef<readonly MissionCompletion[] | null>(null);
   const [firstEarned, setFirstEarned] = useState(false);
+  // This session's finish was on the learner's own (core's independence rule
+  // on the rung the winning view carried), first time or not: the recap stamps
+  // its postcard for every one of those and never for a finish with help.
+  const [independentFinish, setIndependentFinish] = useState(false);
   useEffect(() => {
     let cancelled = false;
     void loadMissionCompletions({ strict: true }).then(rows => { if (!cancelled) priorCompletions.current = missionCompletionsFrom(rows); }).catch(() => {});
@@ -660,7 +659,7 @@ export function ConvoScreen({
     // down here is a congratulation the learner meets later on another screen.
     if (stopped) return;
     const changedSession = winSession.current !== live.sessionId;
-    if (changedSession) { winSession.current = live.sessionId; setCurrentFinish(null); }
+    if (changedSession) { winSession.current = live.sessionId; setCurrentFinish(null); setIndependentFinish(false); }
     const currentWin = changedSession ? NO_WIN : win;
     const step = winAfterTurn(currentWin, live.convo, missionId);
     // Written at the flip and nowhere else, with the rung the winning view
@@ -671,6 +670,7 @@ export function ConvoScreen({
       const currentTasks = readMissionTasks(live.convo?.missionTasks, step.record.id);
       setCurrentFinish(live.sessionId && currentTasks?.items.every(item => item.achieved) ? { sessionId: live.sessionId, missionId: step.record.id, rung: step.record.rung } : null);
       setFirstEarned(firstEarnedFinish(priorCompletions.current, step.record));
+      setIndependentFinish(earnedFinish(step.record));
       void recordMissionCompletion(step.record.id, step.record.rung);
       void trackProductEvent({
         name: 'mission_completed',
@@ -878,6 +878,10 @@ export function ConvoScreen({
         settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
         completedMissionId={win.seen ? missionId : undefined}
         firstEarned={firstEarned}
+        independentFinish={win.seen && independentFinish}
+        delta={convoDelta}
+        momentKey={live.sessionId}
+        onResultShown={resultShown}
         evidenceQuote={currentCanDoQuote(live.canDoEvidence, currentFinish, live.turns)}
         lines={keepsakeLines(live.turns)}
         onDone={leaveNow}
@@ -1133,7 +1137,10 @@ export function ConvoScreen({
     typingOpen,
     micOpen: live.micOpen,
   });
-  const card = win.showing ? winCard(missionId) : null;
+  // The scene's card waits while the orb ripples for the last goal, and only
+  // then (tutor/useTaskTicks.ts); with movement reduced it arrives at once.
+  const card = win.showing && !ticks.holdingCard ? winCard(missionId) : null;
+  const wonMission = missionId ? getMission(missionId) : undefined;
   const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
   // One line at a time in the header: a dropped connection or a notice first,
   // and only when the slot is otherwise empty, the long-wait line.
@@ -1156,6 +1163,7 @@ export function ConvoScreen({
 
   return (
     <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+    <OrbCue value={ticks.cue}>
     <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
       {/* One calm white notice, gone the moment it is tapped. */}
       {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
@@ -1194,7 +1202,7 @@ export function ConvoScreen({
           ) : null}
         </View>
 
-        <MissionTaskList items={visibleMissionTasks(view, missionId)} />
+        <MissionTaskList items={missionItems} />
 
         {/* The tutor, as an object. Toward the top, and the only thing on the
             screen that moves. */}
@@ -1218,6 +1226,8 @@ export function ConvoScreen({
         {card ? (
           <MissionWin
             card={card}
+            art={wonMission ? sceneIllustration(wonMission.id) : null}
+            momentKey={`${live.sessionId ?? 'room'}:${missionId ?? 'scene'}`}
             onKeep={() => setWin(dismissWin)}
             onFinish={() => {
               setWin(dismissWin);
@@ -1344,6 +1354,7 @@ export function ConvoScreen({
         onCancel={() => setConfirming(false)}
       />
     </KeyboardAvoidingView>
+    </OrbCue>
     </RoomLevels>
   );
 }
@@ -1413,11 +1424,6 @@ const st = StyleSheet.create({
     alignItems: 'center',
     gap: space(1),
   },
-  // The completion card sits where the support card would have been, so the
-  // screen keeps its shape and the win does not shove the thread off the top.
-  win: { paddingBottom: space(3) },
-  winPrimary: { marginTop: space(5), alignSelf: 'stretch' },
-  winSecondary: { marginTop: space(3), alignItems: 'flex-start' },
   // A note, not a dialogue: no border, no shadow, nothing to answer. The touch
   // floor is here because the whole strip is what dismisses it.
   mark: {

@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { Rung } from '@luvani/core';
 
-import { NO_WIN, dismissWin, winAfterTurn, winCard } from './missionWin.ts';
+import { streakGuiltIn } from '../copy/guilt.ts';
+import { NO_WIN, SCENE_WON_BURST, dismissWin, winAfterTurn, winCard } from './missionWin.ts';
+
+/** Comments may say anything; only what reaches glass is under test. */
+function stripComments(source: string): string {
+  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
 
 const turn = (missionDone: boolean, rung: Rung = 2) => ({ missionDone, rung });
 
@@ -97,5 +106,33 @@ describe('the win card', () => {
     assert.doesNotMatch(card.line, /amazing|great job|well done|perfect|excellent/i);
     assert.ok(!/\d/.test(card.line), `"${card.line}" carries a number`);
     assert.ok(!/—/.test(card.line), `"${card.line}" carries an em dash`);
+  });
+});
+
+describe('the scene won card in the room — come alive, core loop 2.8', () => {
+  test('the scene won card names the moment in plain words, keeps one primary and plays no sound in the room', () => {
+    const card = winCard('mission:cafe');
+    assert.ok(card !== null);
+    assert.equal(card.kicker, 'Scene complete');
+    assert.doesNotMatch(card.kicker, /\d|[—–·]|amazing|great|well done|perfect|excellent|bravo|super/i, 'the kicker scores or praises');
+    assert.equal(streakGuiltIn(card.kicker), undefined);
+
+    const win = stripComments(readFileSync(fileURLToPath(new URL('./MissionWin.tsx', import.meta.url)), 'utf8'));
+    // "Keep talking" stays the one pill; leaving stays the ghost.
+    assert.equal((win.match(/<PillButton\b/g) ?? []).length, 1, 'the card grew a second primary');
+    assert.match(win, /<PillButton label=\{card\.keepLabel\} onPress=\{onKeep\} \/>/);
+    assert.match(win, /<GhostButton label=\{card\.finishLabel\} onPress=\{onFinish\} \/>/);
+    // The glow, the drawing and the confetti, from the shared primitives, once, and none of it with movement reduced.
+    assert.match(win, /<DiscBloom color=\{colour\.mint\}/, 'no mint glow opens behind the card');
+    assert.match(win, /<Burst seed=\{momentKey\} origin=\{\{ x: width \/ 2, y: 0 \}\} count=\{SCENE_WON_BURST\} \/>/, 'no confetti leaves the card\'s top edge');
+    assert.equal(SCENE_WON_BURST, 24);
+    assert.match(win, /const final = useLatch\(reduced \|\| !first\);/, 'the card replays on a remount, or moves with movement reduced');
+    assert.match(win, /claimInPlace\(`\$\{scopeGeneration\(\)\}:scene-won:\$\{momentKey\}`\)/);
+    // Silent and still to the touch in a live room (decision D8): no sound and no haptic reach from here.
+    assert.doesNotMatch(win, /sound\/|haptics|celebrate\/effects|ConfettiStill|<Confetti\b/, 'the card in the room plays a sound or a haptic, or draws the still confetti under Reduce Motion');
+    // And the conversation draws it from here, behind the ripple hold.
+    const convo = stripComments(readFileSync(fileURLToPath(new URL('../ConvoScreen.tsx', import.meta.url)), 'utf8'));
+    assert.match(convo, /import \{ MissionWin \} from '\.\/tutor\/MissionWin\.tsx';/);
+    assert.match(convo, /art=\{wonMission \? sceneIllustration\(wonMission\.id\) : null\}/, 'the card does not draw the scene\'s own place');
   });
 });

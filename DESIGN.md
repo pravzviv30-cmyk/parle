@@ -250,6 +250,26 @@ the primary control of the whole product, so it takes the primary colour exactly
 as the primary action does, and it changes to a state colour when the orb
 reports state.
 
+**The living orb** (come alive, October 2026). Inside a conversation room the
+orb answers the room's real audio, in the same state colours and the same
+drawing, through layers that move by transform and opacity only and are decided
+in `tutor/orbLayers.ts`. While it is the learner's turn, two rings behind it
+swell with their real microphone level (`OrbLevelRing`, the shared `LevelRing`),
+and the word under it reads "Hearing you" once they have been heard for a
+quarter second; the orb's accessible name keeps the state's own word, so a
+screen reader is never told twice a sentence. While the tutor speaks, the seven
+bars follow the tutor's voice band by band and the core grows a little with its
+loudness (`LiveBars`, `OrbPulse`), and the breathing loop rests so the core never
+moves two ways at once. While the tutor is really thinking, a sun segment of the
+outer ring goes round once every 1.2 seconds (`OrbThinkingArc`). On the goal
+tick that completes a scene the orb ripples once, two rings and eight dots in
+the state colour (`OrbRipple`). A level that is not measured draws nothing new:
+the orb keeps the loops above, so it never invents a voice. Every layer rests
+behind another screen, with the app in the background, when paused and with
+movement reduced (the arc then holds still and the ripple never plays). Outside
+a room (the Tutor tab, the intro, the waiting screens) the orb is exactly the
+drawing above. The lesson's Speak circle wears the same level ring.
+
 ### The rungs share one fill
 
 A rung colour is a fill under an ink numeral, not a state mark, so it is held to
@@ -730,12 +750,45 @@ control. At most one on screen, at most one *new* one per conversation, each
 shown once ever. That last pair of rules is what stops three notes becoming the
 manual again, spread out.
 
+**The goals tick as they are reached.** The scene's goals sit under its title
+with no count. When the learner reaches one, its mint disc pops in and the
+check lands in it a beat later, the row glints once, the list scrolls it into
+view, and a screen reader hears "Goal reached:" and the goal's own words. At
+rest a tick is the ink check on mint it always was (the Iconsax tick-circle's
+own disc would set the check on a dark teal and halve its contrast). A goal
+already reached when the list appears is simply drawn ticked, and nothing ticks
+after a safety stop. On the last goal the orb ripples once, and the scene's card
+waits for that ripple (under a second) before it arrives; with movement reduced
+it arrives at once.
+
 **The completion moment** is a card in the support card's own place, so the
-screen keeps its shape. It carries the mission's own sentence about what the
-learner did, one pill (**Keep talking**, with a line under it saying plainly
-that carrying on uses minutes) and one ghost (**Finish and see your recap**).
-No confetti, no score, no percentage, nothing about how well. It arrives on the
-app's one settle and shows exactly once, at the turn the mission completes.
+screen keeps its shape. Above the mission's own sentence about what the learner
+did, the kicker **Scene complete** and the scene's place drawing on the
+scene's blue (its white parts would vanish on the white card; left out on a
+short screen or at a large text size, so the doors never leave the screen);
+then one pill (**Keep talking**, with a line under it saying plainly that
+carrying on uses minutes) and one ghost (**Finish and see your recap**). A mint
+glow opens behind the drawing and 24 pieces of confetti leave the card's top
+edge. No score, no
+percentage, nothing about how well, and nothing is heard or felt: the room holds
+the learner's ears, so the fanfare waits for the recap. Both doors work from the
+first frame. It shows exactly once, at the turn the mission completes, and with
+movement reduced it is simply there, with no glow and no confetti.
+
+**Lines arrive.** A line said while the thread is on screen rises into place
+(`BubbleIn`): the learner's a little further, from the orb's side, the tutor's
+only fading in. Lines already there when the thread opens are in place.
+
+**The recap is where the conversation is celebrated.** It is the conversation's
+end card. Once the room has given the learner's ears back (the microphone
+closed, the tutor quiet), its coral result page plays the moment the room held
+back: a sun glow behind the drawing, the `complete` sound and one `celebrate()`,
+confetti when the scene was finished on the learner's own, and a progress strip
+from the settled practice (the XP it credited, the day streak, today's goal
+ring). The lines page counts up to the number of lines said. On the can-do page
+every finish on the learner's own this session gets its postcard stamped, the
+first one louder than the rest; a finish with help shows the postcard still.
+Each plays once per recap, and with movement reduced every part is at rest.
 
 ## Copy
 
@@ -967,8 +1020,9 @@ Home comes into view and then rests. Each loop listens for what pauses it
 The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
 greeting, the highlighter, the skeleton, the layout primitives, the flat
 drawings themselves (a wrapper may move one; the drawing
-does not), and legal or consent text. Inside a live room only the orb moves; a
-win there shows in place, and its fanfare waits for the recap.
+does not), and legal or consent text. Inside a live room only the orb, the
+goal ticks, the arriving lines and the scene's card move, and nothing is heard
+or felt; the fanfare waits for the recap.
 
 ### Haptics
 

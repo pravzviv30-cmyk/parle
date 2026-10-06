@@ -289,6 +289,34 @@ refused analyser) is caught by `LevelsGuard`, logs
 learner their conversation. Nothing is recorded, kept or sent: the levels are
 numbers read on the device and dropped.
 
+**What the orb draws from them** (F764). The levels stay on the UI thread; the
+orb branches on a few facts instead, which `createRoomFacts` in `live/levels.ts`
+takes from every frame the meter writes and hands to `OrbAudio` as `room`:
+whether each level is measured, whether the learner is being heard (their level
+above 0.12 for 250 ms, and back after 600 ms below, so the word never flickers
+between syllables), and whether the room is awake (`RoomLevels` is focused and
+the app is active). They change a few times a conversation, so the orb
+re-renders a few times a conversation. `tutor/orbLayers.ts` decides the layers
+from them: the listening ring from the learner's level, the live bars and the
+core pulse from the tutor's bands (today's loop rests while they draw), the
+thinking arc while `thinking` is true, the "Hearing you" word under the orb (its
+accessible name stays the state's own), and one ripple on the goal tick that
+completes a scene. A level that is not measured draws nothing new, and every
+layer rests while the room is asleep, the caller pauses the orb, or movement is
+reduced. `LiveSessionScreen` wraps the lesson in `RoomLevels` too, with the
+microphone only, so its Speak circle wears the same level ring; nothing in a
+lesson draws the tutor's voice, so it is not measured there.
+
+**Silent in the room** (F765, decision D8). The goal ticks, the orb's ripple
+and the scene's card move, and none of them plays a sound or a haptic: the
+room's files import neither. A spoken room also holds the audio focus from the
+moment it takes the session, and the microphone holds it while it is open, so
+the sound gate and the haptic switch would refuse anyway; a typed room takes no
+audio session and is silent because nothing in it asks. The recap is where the
+conversation is heard: its result page starts its moment once nothing holds the
+audio focus (`recap/useRecapMoment.ts`, after the release below), or after two
+seconds, when a beat that still meets a held room is simply silent.
+
 **An honest long wait.** `live/thinking.ts` `thinkingLine`: once the tutor has
 really been thinking for 6 seconds (from the final transcript, see `thinking`),
 the scene header reads "Still thinking. This can take a few seconds." when the

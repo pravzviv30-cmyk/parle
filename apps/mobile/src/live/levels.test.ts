@@ -16,10 +16,17 @@ import { fileURLToPath } from 'node:url';
 
 import {
   BAND_COUNT,
+  HEARING_ABOVE,
+  HEARING_OFF_AFTER_MS,
+  HEARING_ON_AFTER_MS,
   LEVEL_SAMPLE_MS,
+  NO_ROOM_FACTS,
   ROOM_AT_REST,
   STALE_AFTER_MS,
   atRest,
+  createRoomFacts,
+  type LevelFrame,
+  type RoomFacts,
   bandsFromSpectrum,
   createRoomMeter,
   envelope,
@@ -351,5 +358,108 @@ describe('the room hears real audio — F764, the plumbing half', () => {
     assert.match(hook, /room\.on\(RoomEvent\.LocalTrackPublished,/, 'the microphone track is never handed to the orb');
     assert.match(hook, /room\.on\(RoomEvent\.LocalTrackUnpublished,/, 'an unpublished microphone track stays with the orb');
     assert.doesNotMatch(hook, /useTrackVolume|createAudioAnalyser|requestAnimationFrame/, 'the session hook measures audio itself and renders per frame');
+  });
+});
+
+/**
+ * The orb branches on a few facts, not on numbers (come alive, core loop 3.3):
+ * whether each level is measured, and whether the learner is being heard. They
+ * change a few times a conversation, so the orb re-renders a few times a
+ * conversation, never per frame.
+ */
+describe('the room says what it hears in words — F764, the orb half', () => {
+  /** A frame from the meter: the learner at `input`, the tutor measured or not. */
+  const frame = (input: number, live: { inputLive?: boolean; outputLive?: boolean } = {}): LevelFrame => ({
+    input,
+    bands: [0, 0, 0, 0, 0, 0, 0],
+    output: 0,
+    inputLive: live.inputLive ?? true,
+    outputLive: live.outputLive ?? false,
+  });
+
+  test('the hearing word waits a quarter second before it shows and over half a second before it goes, and never chatters between syllables', () => {
+    const clock = fakeClock();
+    const said: RoomFacts[] = [];
+    const watch = createRoomFacts((facts) => said.push(facts), clock);
+    const loud = HEARING_ABOVE + 0.3;
+    const quiet = HEARING_ABOVE - 0.05;
+
+    // The learner starts speaking: readings every 40 ms, well over the line.
+    watch.frame(frame(loud));
+    assert.deepEqual(said.at(-1), { inputLive: true, outputLive: false, hearing: false }, 'the first loud frame said "Hearing you" at once');
+    for (let at = LEVEL_SAMPLE_MS; at < HEARING_ON_AFTER_MS; at += LEVEL_SAMPLE_MS) {
+      clock.advanceTo(at);
+      watch.frame(frame(loud));
+    }
+    assert.equal(said.at(-1)!.hearing, false, 'the word showed before the voice had lasted a quarter second');
+    clock.advanceTo(HEARING_ON_AFTER_MS);
+    assert.equal(said.at(-1)!.hearing, true, 'a voice that lasted a quarter second was never said to be heard');
+
+    // A gap between syllables, shorter than the off wait: the word holds.
+    const gapFrom = HEARING_ON_AFTER_MS + LEVEL_SAMPLE_MS;
+    clock.advanceTo(gapFrom);
+    watch.frame(frame(quiet));
+    clock.advanceTo(gapFrom + HEARING_OFF_AFTER_MS - LEVEL_SAMPLE_MS);
+    watch.frame(frame(loud));
+    assert.equal(said.at(-1)!.hearing, true, 'a breath between words took the word away');
+    const flips = said.filter((facts, i) => i > 0 && facts.hearing !== said[i - 1]!.hearing).length;
+    assert.equal(flips, 1, 'the word chattered on and off within one sentence');
+
+    // The learner stops. The meter falls to rest and then goes quiet: no more
+    // frames at all, so the watch's own timer has to take the word away.
+    const stopAt = clock.now() + LEVEL_SAMPLE_MS;
+    clock.advanceTo(stopAt);
+    watch.frame(frame(0));
+    clock.advanceTo(stopAt + HEARING_OFF_AFTER_MS - 1);
+    assert.equal(said.at(-1)!.hearing, true, 'the word went before the learner had been quiet long enough');
+    clock.advanceTo(stopAt + HEARING_OFF_AFTER_MS);
+    assert.equal(said.at(-1)!.hearing, false, 'the word stayed after the learner fell silent, because no frame came to take it away');
+    assert.equal(clock.pendingCount(), 0, 'the watch keeps a timer with nothing left to decide');
+  });
+
+  test("the room's facts change only when one flips, and a room that goes is said to measure nothing", () => {
+    const clock = fakeClock();
+    const said: RoomFacts[] = [];
+    const watch = createRoomFacts((facts) => said.push(facts), clock);
+
+    // Nothing measured is the starting point, and saying it again says nothing.
+    watch.frame(frame(0, { inputLive: false }));
+    assert.equal(said.length, 0, 'the watch announced the facts it started with');
+
+    // The tutor's voice is measured: one change, then quiet while frames keep coming.
+    watch.frame(frame(0, { inputLive: false, outputLive: true }));
+    for (let i = 0; i < 20; i += 1) watch.frame(frame(0, { inputLive: false, outputLive: true }));
+    assert.equal(said.length, 1, 'the orb would re-render on every frame instead of on a flip');
+    assert.deepEqual(said[0], { inputLive: false, outputLive: true, hearing: false });
+
+    // The learner is heard; then the microphone stops being measured (another
+    // screen, the background): heard goes at once, with no wait.
+    watch.frame(frame(0.9));
+    clock.advanceTo(HEARING_ON_AFTER_MS);
+    assert.equal(said.at(-1)!.hearing, true);
+    watch.frame(frame(0, { inputLive: false, outputLive: true }));
+    assert.deepEqual(said.at(-1), { inputLive: false, outputLive: true, hearing: false }, 'a level nobody measures was still said to be heard');
+
+    // Leaving: everything is unmeasured and no timer is left.
+    watch.frame(frame(0.9));
+    watch.stop();
+    assert.deepEqual(said.at(-1), NO_ROOM_FACTS);
+    assert.equal(clock.pendingCount(), 0, 'the watch left a timer behind when the room went');
+
+    // And the meter hands the watch every frame it writes, as RoomLevels wires it.
+    const heard: LevelFrame[] = [];
+    const meter = createRoomMeter(sink(), clock, (f) => heard.push(f));
+    meter.measuring({ mic: { track: 'mic' }, tutor: null });
+    meter.turn(LEARNERS_TURN);
+    meter.mic(SPEECH_RMS);
+    assert.ok(heard.length >= 2 && heard.at(-1)!.inputLive, 'the meter did not hand its frames on');
+    meter.stop();
+    assert.equal(heard.at(-1)!.inputLive, false, 'the meter did not say rest when the room went');
+    for (const [name, body] of [['native', stripComments(read('./RoomLevels.native.tsx'))], ['web', stripComments(read('./RoomLevels.tsx'))]] as const) {
+      assert.match(body, /createRoomMeter\(sink, CLOCK, watch\.frame\)/, `${name} RoomLevels does not hand its frames to the facts watch`);
+      assert.match(body, /room: \{ \.\.\.facts, awake \}/, `${name} RoomLevels does not hand the orb its facts`);
+      assert.match(body, /const awake = active && focused;/, `${name} RoomLevels keeps the orb awake in the background or behind another screen`);
+      assert.match(body, /watch\.stop\(\);/, `${name} RoomLevels leaves the facts watch's timer running when it goes`);
+    }
   });
 });

@@ -22,6 +22,18 @@ import { AppState, type AppStateStatus } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import type { LocalAudioTrack, RemoteAudioTrack } from 'livekit-client';
 
+import type { RoomFacts } from './levels.ts';
+
+/**
+ * What the orb's layers branch on, as plain values (`live/levels.ts`
+ * `createRoomFacts`), so a layer is drawn or not without reading a shared value
+ * back. Each changes a few times a conversation, never per frame.
+ */
+export interface OrbRoom extends RoomFacts {
+  /** The room is the screen in front of the learner and the app is active. False: every layer rests. */
+  readonly awake: boolean;
+}
+
 export interface OrbAudio {
   /** The learner's microphone level, 0 to 1, gated to their turn. */
   input: SharedValue<number>;
@@ -33,6 +45,8 @@ export interface OrbAudio {
   inputLive: SharedValue<boolean>;
   /** True once the tutor's voice is measured. False: draw today's loops. */
   outputLive: SharedValue<boolean>;
+  /** The same facts in words, for deciding which layers to draw. */
+  room: OrbRoom;
 }
 
 export const OrbAudioContext = createContext<OrbAudio | null>(null);

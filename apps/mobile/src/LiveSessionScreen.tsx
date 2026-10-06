@@ -18,7 +18,7 @@ import { sessionSettlementCopy } from '@luvani/core';
 
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { usePreventRemove } from '@react-navigation/native';
+import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
 import { Card, GhostButton } from './components.tsx';
@@ -42,6 +42,7 @@ import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
 import { OutOfMinutesView } from './live/OutOfMinutesView.tsx';
+import { RoomLevels } from './live/RoomLevels.tsx';
 
 export function LiveSessionScreen({
   lesson,
@@ -102,6 +103,12 @@ export function LiveSessionScreen({
    * that knows about the second case.
    */
   const typing = textMode || live.voiceless;
+  /**
+   * Whether this lesson is the screen in front of the learner. The Speak
+   * circle's level ring is measured (live/RoomLevels) only while it is, and
+   * the app is active.
+   */
+  const roomFocused = useIsFocused();
 
   /**
    * The quiet door, which the lesson now has on the same terms as the
@@ -286,6 +293,11 @@ export function LiveSessionScreen({
   );
 
   return (
+    // The lesson's real microphone level, for the ring around the Speak circle
+    // (live/RoomLevels): measured off the published track, never through this
+    // screen's state. Nothing in a lesson draws the tutor's voice, so it is not
+    // measured at all.
+    <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={null} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <View style={st.root}>
       <SessionView
         above={aboveTheScene}
@@ -332,6 +344,7 @@ export function LiveSessionScreen({
         onCancel={() => setConfirming(false)}
       />
     </View>
+    </RoomLevels>
   );
 }
 

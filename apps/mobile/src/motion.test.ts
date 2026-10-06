@@ -181,7 +181,6 @@ const LEGACY_ANIMATED = [
   'motion/Feedback.tsx',
   'onboarding/NextButton.tsx',
   'onboarding/OnboardingMotion.tsx',
-  'recap/OnceConfetti.tsx',
   'tutor/VoiceOrb.tsx',
 ];
 const usesLegacyAnimated = (body: string): boolean =>

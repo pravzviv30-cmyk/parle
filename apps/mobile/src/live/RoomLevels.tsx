@@ -29,7 +29,17 @@ import { useSharedValue } from 'react-native-reanimated';
 
 import { useReduceMotion } from '../motion.ts';
 import { LevelsGuard, OrbAudioContext, useAppActive, type OrbAudio, type RoomLevelsProps } from './OrbAudio.tsx';
-import { LEVEL_SAMPLE_MS, bandsFromSpectrum, createRoomMeter, rmsOf, type MeterClock, type RoomMeter } from './levels.ts';
+import {
+  LEVEL_SAMPLE_MS,
+  NO_ROOM_FACTS,
+  bandsFromSpectrum,
+  createRoomFacts,
+  createRoomMeter,
+  rmsOf,
+  type MeterClock,
+  type RoomFacts,
+  type RoomMeter,
+} from './levels.ts';
 
 /** A small FFT is plenty for a level and seven bands; the decibel window covers a speaking voice. */
 const ANALYSER = { fftSize: 512, smoothingTimeConstant: 0.5, minDecibels: -90, maxDecibels: -20 };
@@ -115,11 +125,15 @@ export function RoomLevels({ micTrack, tutorTrack, micOpen, tutorSpeaking, focus
   const output = useSharedValue(0);
   const inputLive = useSharedValue(false);
   const outputLive = useSharedValue(false);
-  const audio = useMemo<OrbAudio>(
+  const sink = useMemo(
     () => ({ input, bands, output, inputLive, outputLive }),
     [input, bands, output, inputLive, outputLive],
   );
-  const [meter] = useState(() => createRoomMeter(audio, CLOCK));
+  // The same frames, said as the few facts the orb's layers branch on. They
+  // change a few times a conversation, so this state is not per frame.
+  const [facts, setFacts] = useState<RoomFacts>(NO_ROOM_FACTS);
+  const [watch] = useState(() => createRoomFacts(setFacts, CLOCK));
+  const [meter] = useState(() => createRoomMeter(sink, CLOCK, watch.frame));
   const reduced = useReduceMotion();
   const active = useAppActive();
   const [failed, setFailed] = useState(false);
@@ -131,13 +145,24 @@ export function RoomLevels({ micTrack, tutorTrack, micOpen, tutorSpeaking, focus
   const mic = measuring ? micTrack : null;
   const tutor = measuring && !reduced ? tutorTrack : null;
 
+  // Awake is the room in front of the learner, whether or not a meter runs: the
+  // orb's own layers rest with the page hidden and behind another screen.
+  const awake = active && focused;
+  const audio = useMemo<OrbAudio>(
+    () => ({ ...sink, room: { ...facts, awake } }),
+    [sink, facts, awake],
+  );
+
   useEffect(() => {
     meter.measuring({ mic, tutor });
   }, [meter, mic, tutor]);
   useEffect(() => {
     meter.turn({ micOpen, tutorSpeaking });
   }, [meter, micOpen, tutorSpeaking]);
-  useEffect(() => () => meter.stop(), [meter]);
+  useEffect(() => () => {
+    meter.stop();
+    watch.stop();
+  }, [meter, watch]);
 
   return (
     <OrbAudioContext.Provider value={audio}>

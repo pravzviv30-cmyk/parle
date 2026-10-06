@@ -275,8 +275,12 @@ export interface RoomMeter {
  * the sink, and one timer that runs only while something is above rest. It is
  * that timer, not a new reading, that brings a level down after the audio
  * stops, because after the audio stops there are no readings.
+ *
+ * `onFrame`, when given, hears every frame the sink is written, on the same
+ * thread: `createRoomFacts` below turns those into the few words the orb
+ * branches on, so nothing has to read the shared values back.
  */
-export function createRoomMeter(sink: LevelSink, clock: MeterClock): RoomMeter {
+export function createRoomMeter(sink: LevelSink, clock: MeterClock, onFrame?: (frame: LevelFrame) => void): RoomMeter {
   let state: RoomLevelState = ROOM_AT_REST;
   let gate: Turn = { micOpen: false, tutorSpeaking: false };
   let tracks: Measuring = { mic: null, tutor: null };
@@ -289,6 +293,7 @@ export function createRoomMeter(sink: LevelSink, clock: MeterClock): RoomMeter {
     sink.output.value = frame.output;
     sink.inputLive.value = frame.inputLive;
     sink.outputLive.value = frame.outputLive;
+    onFrame?.(frame);
   };
 
   const schedule = (): void => {
@@ -340,6 +345,131 @@ export function createRoomMeter(sink: LevelSink, clock: MeterClock): RoomMeter {
       timer = null;
       state = ROOM_AT_REST;
       write();
+    },
+  };
+}
+
+/*
+ * What the orb branches on, in words rather than numbers (come alive, core
+ * loop 3.3). The levels themselves stay on the UI thread in shared values; the
+ * orb only needs a handful of facts to decide which layers to draw, and each of
+ * them changes a few times a conversation, never per frame:
+ *
+ * - whether the learner's level is measured (draw the listening ring), and
+ *   whether the tutor's voice is (draw the live bars);
+ * - whether the learner is being heard: a visual "Hearing you" under the orb,
+ *   once their level has stayed above HEARING_ABOVE for HEARING_ON_AFTER_MS,
+ *   and back to the state's own word once it has stayed below for
+ *   HEARING_OFF_AFTER_MS. The wait in each direction is what keeps the word from
+ *   flickering between syllables. The orb's accessible name never changes with
+ *   it, so a screen reader is not told twice a sentence.
+ */
+
+/** Above this level the learner is heard: a quiet voice, well over room noise. */
+export const HEARING_ABOVE = 0.12;
+/** The level stays above HEARING_ABOVE this long before "Hearing you" shows. */
+export const HEARING_ON_AFTER_MS = 250;
+/** And below it this long before the word goes back. */
+export const HEARING_OFF_AFTER_MS = 600;
+
+/** The room's levels, said as facts. */
+export interface RoomFacts {
+  /** The learner's microphone level is measured. */
+  readonly inputLive: boolean;
+  /** The tutor's voice is measured. */
+  readonly outputLive: boolean;
+  /** The learner has been heard long enough to say so. */
+  readonly hearing: boolean;
+}
+
+export const NO_ROOM_FACTS: RoomFacts = Object.freeze({ inputLive: false, outputLive: false, hearing: false });
+
+export interface RoomFactsWatch {
+  /** Every frame the meter writes. */
+  frame(frame: LevelFrame): void;
+  /** The room has gone: cancel the timer and say nothing is measured. */
+  stop(): void;
+}
+
+const sameFacts = (a: RoomFacts, b: RoomFacts): boolean =>
+  a.inputLive === b.inputLive && a.outputLive === b.outputLive && a.hearing === b.hearing;
+
+/**
+ * Turn the meter's frames into facts, and call `onChange` only when one of them
+ * changes. One timer at most, for the hearing word's wait, so a level that
+ * stops arriving (the meter is quiet at rest) still lets the word go back.
+ */
+export function createRoomFacts(onChange: (facts: RoomFacts) => void, clock: MeterClock): RoomFactsWatch {
+  let facts: RoomFacts = NO_ROOM_FACTS;
+  let aboveSince: number | null = null;
+  let belowSince: number | null = null;
+  let timer: unknown = null;
+  let timerAt: number | null = null;
+
+  const say = (next: RoomFacts): void => {
+    if (sameFacts(facts, next)) return;
+    facts = next;
+    onChange(next);
+  };
+
+  const quiet = (): void => {
+    if (timer !== null) clock.cancel(timer);
+    timer = null;
+    timerAt = null;
+  };
+
+  // The one decision: has the level stayed on one side of the line long enough?
+  // A frame arrives every 40 ms while the level moves, so a timer already set
+  // for the same moment is left alone rather than set again.
+  const decide = (now: number): void => {
+    const since = facts.hearing ? belowSince : aboveSince;
+    if (since === null) {
+      quiet();
+      return;
+    }
+    const at = since + (facts.hearing ? HEARING_OFF_AFTER_MS : HEARING_ON_AFTER_MS);
+    if (at <= now) {
+      quiet();
+      say({ ...facts, hearing: !facts.hearing });
+      return;
+    }
+    if (timer !== null && timerAt === at) return;
+    quiet();
+    timerAt = at;
+    timer = clock.later(() => {
+      timer = null;
+      timerAt = null;
+      decide(clock.now());
+    }, at - now);
+  };
+
+  return {
+    frame(frame) {
+      const now = clock.now();
+      if (!frame.inputLive) {
+        // Nothing measured is nothing heard, at once: a track that went, a room
+        // behind another screen, an app in the background.
+        aboveSince = null;
+        belowSince = null;
+        quiet();
+        say({ inputLive: false, outputLive: frame.outputLive, hearing: false });
+        return;
+      }
+      if (frame.input > HEARING_ABOVE) {
+        belowSince = null;
+        if (aboveSince === null) aboveSince = now;
+      } else {
+        aboveSince = null;
+        if (belowSince === null) belowSince = now;
+      }
+      say({ inputLive: true, outputLive: frame.outputLive, hearing: facts.hearing });
+      decide(now);
+    },
+    stop() {
+      aboveSince = null;
+      belowSince = null;
+      quiet();
+      say(NO_ROOM_FACTS);
     },
   };
 }

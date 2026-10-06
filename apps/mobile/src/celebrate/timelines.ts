@@ -53,7 +53,10 @@ export type TimelineId =
   | 'level-up'
   | 'badge-earned'
   | 'end-card'
-  | 'toast';
+  | 'toast'
+  | 'recap-result'
+  | 'postcard-first'
+  | 'postcard-again';
 
 export interface Timeline {
   readonly id: TimelineId;
@@ -187,6 +190,45 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
     ],
     end: 2020,
     still: { sound: 'save', haptic: 'arrived' },
+  },
+  // Core loop 2.9, the conversation's recap on coral, once the room has let go
+  // of the learner's ears (F763): a sun glow opens, the fanfare the room held
+  // back, confetti only for a scene finished on the learner's own, and the
+  // progress strip counting in.
+  'recap-result': {
+    id: 'recap-result',
+    beats: [
+      { t: 0, element: 'bloom', transform: 'DiscBloom in sun, scale 0.3 to 1, then fades', motion: timing('slow') },
+      { t: 120, element: 'chime', transform: 'nothing moves', motion: cue, sound: 'complete', haptic: 'celebrate' },
+      { t: 300, element: 'burst', transform: 'Burst of 32 from the scene, only when it was earned on your own', motion: timing('burst', 'linear') },
+      { t: 420, element: 'strip', transform: 'the progress strip rises in, translateY 10 to 0, its numbers counting up', motion: timing('count') },
+    ],
+    end: 1800,
+    still: { sound: 'complete', haptic: 'celebrate' },
+  },
+  // Core loop 2.9, a postcard stamped for the first independent finish of a
+  // scene: the card drops in, the ink stamp slams on, confetti.
+  'postcard-first': {
+    id: 'postcard-first',
+    beats: [
+      { t: 0, element: 'card', transform: 'the postcard drops in, rotate -8 to -3 degrees, scale 1.3 to 1', motion: springOf('snap') },
+      { t: 260, element: 'stamp', transform: 'the ink stamp slams in, scale 1.6 to 1, opacity 0 to 1', motion: timing('fast'), sound: 'badge', haptic: 'celebrate' },
+      { t: 380, element: 'burst', transform: 'Burst of 32 from the stamp', motion: timing('burst', 'linear') },
+    ],
+    end: 1800,
+    still: { sound: 'badge', haptic: 'celebrate' },
+  },
+  // The same for a scene finished on the learner's own again: a lighter sound,
+  // one success, half the confetti.
+  'postcard-again': {
+    id: 'postcard-again',
+    beats: [
+      { t: 0, element: 'card', transform: 'the postcard drops in, rotate -8 to -3 degrees, scale 1.3 to 1', motion: springOf('snap') },
+      { t: 260, element: 'stamp', transform: 'the ink stamp slams in, scale 1.6 to 1, opacity 0 to 1', motion: timing('fast'), sound: 'correct', haptic: 'arrived' },
+      { t: 380, element: 'burst', transform: 'Burst of 16 from the stamp', motion: timing('burst', 'linear') },
+    ],
+    end: 1800,
+    still: { sound: 'correct', haptic: 'arrived' },
   },
 };
 
