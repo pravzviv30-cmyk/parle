@@ -140,9 +140,9 @@ One visual commitment sits beside them:
 - **Chartreuse is a highlighter, never paint.** It marks the one thing on a
   screen that is the learner's own: a French line they have made theirs, or
   "you are here" on their path. It appears at most once per screen, and it is
-  never the ground of a panel, card, tab or button. The brand mark follows the
-  same rule. The colour and its rule live in `apps/mobile/src/palette.ts`
-  (`highlight`).
+  never the ground of a panel, card, tab or button. The brand mark, Hum, carries
+  none: it is sun and coral on the brand blue. The colour and its rule live in
+  `apps/mobile/src/palette.ts` (`highlight`).
 
 ## Evidence on Hand
 

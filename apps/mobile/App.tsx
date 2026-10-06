@@ -36,7 +36,6 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { hide as hideNativeLaunch } from 'expo-splash-screen';
 import { saveProfile, completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper, type, space } from './src/theme.ts';
@@ -85,8 +84,15 @@ import { LiveProvider } from './src/app/LiveContext.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
+import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
+import { useLaunchHold } from './src/launch/useLaunch.ts';
 
+/**
+ * Every wait on the way in. While one is on screen it holds the launch, so the
+ * launch screen leaves only once the app has something real to show.
+ */
 function Loading() {
+  useLaunchHold();
   return (
     <View style={st.loading}>
       <ActivityIndicator color={paper.inkFaint} />
@@ -687,16 +693,27 @@ export default function App() {
     'Outfit-Bold': require('./assets/fonts/Outfit-Bold.ttf'),
     'Outfit-ExtraBold': require('./assets/fonts/Outfit-ExtraBold.ttf'),
   });
-
-  useEffect(() => {
-    if (loaded) hideNativeLaunch();
-  }, [loaded]);
+  /**
+   * Whether the launch screen has finished. It is drawn over the app from the
+   * first frame, releases the native launch screen itself (it is the same
+   * frame), and fades out once nothing here is loading any more. The app
+   * renders beneath it all the while, so it opens wherever it was always going
+   * to: the welcome and onboarding for somebody new, Home for everybody else.
+   */
+  const [launched, setLaunched] = useState(false);
+  const finishLaunch = useCallback(() => setLaunched(true), []);
 
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <AuthProvider adapter={auth}>
-        <View style={st.app}>
+        {/* Out of a screen reader's reach until the launch has gone, on both
+            platforms: the first prop is VoiceOver's, the second TalkBack's. */}
+        <View
+          style={st.app}
+          accessibilityElementsHidden={!launched}
+          importantForAccessibility={launched ? 'auto' : 'no-hide-descendants'}
+        >
           {loaded ? (
             // The navigator fills the device. Shared screen gutters and the dock
             // adapt independently, so iPad is not trapped in a phone-sized shell.
@@ -707,6 +724,7 @@ export default function App() {
             <Loading />
           )}
         </View>
+        {!launched && <LaunchScreen onDone={finishLaunch} />}
       </AuthProvider>
     </SafeAreaProvider>
   );

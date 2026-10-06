@@ -52,7 +52,7 @@ const appConfig = JSON.parse(read('app.json')) as {
   expo: {
     scheme: string;
     icon: string;
-    ios: { bundleIdentifier: string };
+    ios: { bundleIdentifier: string; icon?: string | { light?: string; dark?: string; tinted?: string } };
     android: {
       package: string;
       adaptiveIcon: { foregroundImage: string; monochromeImage: string; backgroundImage?: string };
@@ -178,6 +178,40 @@ describe('the device build contract', () => {
     for (const slot of ['adaptiveForeground', 'adaptiveMonochrome'] as const) {
       assert.ok(reachFromCentre(slots[slot]!) <= 33 / 108, `${slot} reaches past the adaptive icon's safe zone, so a round launcher clips the mark`);
     }
-    assert.equal(android.adaptiveIcon.backgroundImage, undefined, 'the adaptive icon has a background picture again; its background is the ground colour');
+    assert.equal(android.adaptiveIcon.backgroundImage, undefined, 'the adaptive icon has a background picture again; its background is a palette colour');
+  });
+
+  test('the iOS icon has a light, a dark and a tinted face, each a 1024 square from the brand masters', () => {
+    // iOS 18 draws a home screen in three appearances and asks each app for a
+    // face for every one; without the other two it inverts the light icon on
+    // its own. Apple asks for the dark face on a transparent ground, so the
+    // system's dark backdrop shows through, and for the tinted face as a grey
+    // picture. Expo 57 flattens the light and tinted faces onto white, so a
+    // tinted face drawn white on transparent would arrive as a blank square:
+    // it is drawn grey on black instead, with no alpha to lose.
+    const { icon, ios } = appConfig.expo;
+    assert.ok(ios.icon !== undefined && typeof ios.icon === 'object', 'the iOS icon is a single picture, so dark and tinted home screens invent their own');
+    const faces = ios.icon;
+    for (const face of ['light', 'dark', 'tinted'] as const) {
+      const file = faces[face];
+      assert.ok(file !== undefined && file.startsWith('./assets/brand/'), `the ${face} iOS icon is not drawn from the brand masters: ${file}`);
+      assert.ok(existsSync(path.join(MOBILE, file)), `the ${face} iOS icon points at ${file}, which does not exist`);
+      const header = pngHeader(file);
+      assert.deepEqual([header.width, header.height], [1024, 1024], `the ${face} iOS icon is not a 1024 square`);
+    }
+    assert.equal(faces.light, icon, 'the light iOS face and the store icon are different pictures');
+    assert.equal(pngHeader(faces.light!).colourType, 2, 'the light iOS face has an alpha channel');
+    assert.equal(pngHeader(faces.tinted!).colourType, 2, 'the tinted iOS face has an alpha channel, which Expo flattens onto white');
+    assert.equal(pngHeader(faces.dark!).colourType, 6, 'the dark iOS face has no transparency for the system backdrop to show through');
+  });
+
+  test('the adaptive mark is big enough to read inside the launcher circle', () => {
+    // The maximum reach above keeps the mark inside the circle; this keeps it
+    // from shrinking into a dot within it. Android's guidance puts the logo at
+    // 48dp or more of the 108dp layer.
+    const { android } = appConfig.expo;
+    for (const slot of [android.adaptiveIcon.foregroundImage, android.adaptiveIcon.monochromeImage]) {
+      assert.ok(reachFromCentre(slot) >= 24 / 108, `${slot} is smaller than Android's 48dp logo`);
+    }
   });
 });

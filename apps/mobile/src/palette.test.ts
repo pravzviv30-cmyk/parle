@@ -653,14 +653,22 @@ describe('the recorded palette matches the code — F327, F328', () => {
     }
   });
 
-  test('the splash and the icon background are the ground', () => {
-    // Two hard-coded backgrounds sat outside the palette and would have flashed
-    // the old lilac before every launch. Both are the ground now.
+  test('the launch background is the brand blue wherever it is painted, and the app beneath stays on the ground', () => {
+    // F328 held both app.json backgrounds to the ground so nothing outside the
+    // palette could flash before a launch. F790 (2026-10-06) moved the launch
+    // onto Hum, which is the brand blue from the icon to the splash to the
+    // launch screen, so the rule is now the same one aimed at the blue: every
+    // launch background is one palette colour, and the screen that fades into
+    // the app fades onto the ground, which is where the app has always lived.
     const appJson = readFileSync(join(SRC, '..', 'app.json'), 'utf8');
     const backgrounds = [...appJson.matchAll(/"backgroundColor":\s*"(#[0-9A-Fa-f]{6})"/g)].map((m) => m[1]!.toUpperCase());
     assert.ok(backgrounds.length >= 2, `app.json carries ${backgrounds.length} backgroundColor values, expected the splash and the icon`);
     for (const bg of backgrounds) {
-      assert.equal(bg, paper.ground.toUpperCase(), 'a launch background is not the ground');
+      assert.equal(bg, colour.blue.toUpperCase(), 'a launch background is not the brand blue');
     }
+    const launch = readFileSync(join(SRC, 'launch', 'LaunchScreen.tsx'), 'utf8');
+    assert.match(launch, /backgroundColor: colour\.blue/, 'the launch screen is not on the brand blue the native launch shows');
+    const app = readFileSync(join(SRC, '..', 'App.tsx'), 'utf8');
+    assert.match(app, /app: \{ flex: 1, backgroundColor: paper\.ground \}/, 'the app beneath the launch is not on the ground');
   });
 });

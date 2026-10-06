@@ -55,10 +55,20 @@ export const SETTLE_MS = 380;
  *
  * The final frame rather than nothing, always: the arrival is the flourish and
  * the content is the point, so withholding motion must never withhold content.
+ *
+ * `onSettled` hears the arrival end: at once when the final frame is drawn
+ * straight away, and when the settle finishes otherwise. A settle stopped
+ * part-way, because its screen went, never reports one.
  */
-export function settleIn(value: Animated.Value, reduced: boolean, delayMs = 0): Animated.CompositeAnimation | null {
+export function settleIn(
+  value: Animated.Value,
+  reduced: boolean,
+  delayMs = 0,
+  onSettled?: () => void,
+): Animated.CompositeAnimation | null {
   if (reduced) {
     value.setValue(1);
+    onSettled?.();
     return null;
   }
   const animation = Animated.timing(value, {
@@ -68,7 +78,7 @@ export function settleIn(value: Animated.Value, reduced: boolean, delayMs = 0): 
     easing: Easing.out(Easing.cubic),
     useNativeDriver: true,
   });
-  animation.start();
+  animation.start(onSettled ? ({ finished }) => { if (finished) onSettled(); } : undefined);
   return animation;
 }
 

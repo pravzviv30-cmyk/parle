@@ -13,6 +13,11 @@
       "deploymentTarget": "16.4",
       "bundleIdentifier": "com.luvani.app",
       "buildNumber": "1",
+      "icon": {
+        "light": "./assets/brand/luvani-app-icon-1024.png",
+        "dark": "./assets/brand/luvani-app-icon-dark-1024.png",
+        "tinted": "./assets/brand/luvani-app-icon-tinted-1024.png"
+      },
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Luvani uses your microphone for spoken French conversations and practice recordings you choose to make."
@@ -21,7 +26,7 @@
     "android": {
       "package": "com.luvani.app",
       "adaptiveIcon": {
-        "backgroundColor": "#FFF6E9",
+        "backgroundColor": "#3B2FE0",
         "foregroundImage": "./assets/brand/luvani-adaptive-foreground-1024.png",
         "monochromeImage": "./assets/brand/luvani-adaptive-monochrome-1024.png"
       },
@@ -32,7 +37,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/brand/luvani-app-icon-1024.png",
+      "favicon": "./assets/brand/luvani-favicon-192.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -47,9 +52,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFF6E9",
+          "backgroundColor": "#3B2FE0",
           "image": "./assets/brand/luvani-mark-1024.png",
-          "imageWidth": 200
+          "imageWidth": 128
         }
       ],
       "expo-notifications"

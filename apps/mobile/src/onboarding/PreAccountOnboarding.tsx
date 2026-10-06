@@ -62,6 +62,7 @@ import { Choice } from './ChoiceCard.tsx';
 import { ChoiceArt } from './ChoiceArt.tsx';
 import { PlanEditRow } from './PlanEditRow.tsx';
 import { GuestRecording } from './GuestRecording.tsx';
+import { useLaunchHold } from '../launch/useLaunch.ts';
 import {
   OnboardingArtwork,
   PageArrival,
@@ -137,6 +138,9 @@ export function PreAccountOnboarding({
   const [direction, setDirection] = useState(1);
   const [guest, setGuest] = useState<GuestPractice | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Reading the guest's practice shows a loading line, so the launch screen
+  // stays up over it and fades onto the welcome itself.
+  useLaunchHold(!loaded);
   const [taskIndex, setTaskIndex] = useState(0);
   const [reply, setReply] = useState('');
   const [mode, setMode] = useState<'typed' | 'spoken'>('typed');

@@ -168,10 +168,10 @@ The primary action and the labels are ink, and `accent.label` equals
 `accent.primary`. `accent.brand` is the blue, pinned to `colour.blue` so a second
 brand cannot creep in, and held a Delta-E of 30 from every orb state, the
 highlighter, the rung fill and the tutor's mark. The chartreuse is one pen,
-`highlight`, legal in exactly three places: the `Highlight` band behind a French
-line, the `LevelPath` "you are here" stop, and the brand mark (an SVG in
-`assets/brand/`). At most one per screen, always under ink, and never the ground
-of a panel, tile, avatar, tab, title, card or button.
+`highlight`, legal in exactly two places: the `Highlight` band behind a French
+line and the `LevelPath` "you are here" stop. The brand mark, Hum, carries none
+(see Brand mark and launch). At most one per screen, always under ink, and never
+the ground of a panel, tile, avatar, tab, title, card or button.
 
 `accent.feature` is retired. `palette.test.ts` refuses the alias in the palette
 and any use in production source, with no transitional allowances.
@@ -181,7 +181,7 @@ and any use in production source, with no transitional allowances.
 | `accent.primary` | `#16123A` | The one ink pill (aliases `paper.ink`) |
 | `accent.label` | `#16123A` | Labels (aliases `paper.ink`) |
 | `accent.brand` | `#3B2FE0` | The brand blue (aliases `colour.blue`) |
-| `highlight` | `#D8FF54` | The highlighter: a band behind a French line, the "you are here" stop, the brand mark |
+| `highlight` | `#D8FF54` | The highlighter: a band behind a French line and the "you are here" stop |
 
 Ink clears 15.5 on the highlighter and soft ink 5.8. The highlighter stays a
 Delta-E of 30 from every signal, orb state, the rung fill, the ground and the
@@ -698,11 +698,15 @@ Two hard rules, held from the enamel era:
 The voice orb, shared press, once-only earned recap celebration and bounded
 state feedback animate. `motion/Feedback.tsx` is the shared host for the
 approved selection, context, save, practice, help and reopen responses.
-The orb is the only continuous animation. Press uses the shared spring;
+The orb is the only continuous animation: in the conversation, and as the mark
+on the launch screen, where Hum's ring turns while the app opens. Press uses the shared spring;
 recap confetti falls once on the first earned finish in that scene, and its
 real line count rises once. Navigating back does not replay either flourish.
 The source allow-list is `components.tsx`, `motion.ts`, `tutor/VoiceOrb.tsx`
-`recap/OnceConfetti.tsx` and `motion/Feedback.tsx`. The count uses a short-lived timer with cleanup.
+`recap/OnceConfetti.tsx`, `motion/Feedback.tsx` and `launch/LaunchScreen.tsx`. The count uses a short-lived timer with cleanup.
+The launch keeps the vocabulary: the ring's turn is its one loop, linear and
+2.4 s a turn; the name arriving is its one settling entrance, on `settleIn`'s
+380 ms; and it leaves on the same 380 ms as a fade.
 Illustrations, the greeting and the tab bar stay static.
 
 `useReduceMotion` observes the OS preference. Reduced motion shows the final
@@ -771,10 +775,42 @@ require their backend contracts, real-domain evaluation and the required indepen
 review. Live pronunciation remains disabled under the founder's existing decision.
 The worktree continuation report records those gaps and verification limits.
 
+## Brand mark and launch
+
+The mark is **Hum**: the tutor's orb, humming. A coral core sits inside a sun
+ring that ripples in seven lobes, one pointing straight up, on the brand blue.
+It is the conversation's orb made into a sign, so the icon promises the thing
+the app does. On a light ground the ring turns coral and the core blue; the
+one-colour versions are ink and white. It carries no chartreuse. The wordmark is
+a rounded lowercase "luvani" drawn as paths, so it needs no font file.
+
+One generator, `brand/source/hum_kit.py`, writes every master.
+`apps/mobile/assets/brand/` holds the app's slots: the store icon, the iOS dark
+and tinted faces, the Android adaptive layers, the favicon and the splash mark.
+`brand/` holds the full kit for the web and marketing, and `src/brand/hum.ts`
+holds the geometry the launch screen draws. Their README files say which file
+goes where.
+
+The launch. The native splash is the mark at 128pt on the brand blue.
+`launch/LaunchScreen.tsx` draws that exact frame over the app on its first
+render and releases the native splash once it is laid out, so the hand-off
+cannot be seen. The ring turns, then the mark lifts and the name settles in
+beneath it, which leaves the stacked logo. Once nothing is loading and the name
+has arrived, it fades onto wherever the app was already going: the welcome and
+onboarding for somebody new, Home for everybody else. The screens decide that,
+not the launch. Readiness comes from the waits themselves: App.tsx's `Loading`
+and ProfileGate's profile read each hold the launch while they are on screen
+(`launch/launchHold.ts`). A fast launch waits at most 620 ms for the name; a
+slow one waits only for itself, with the ring turning instead of a spinner. The
+launch is capped at 12 s, above the fresh-device wait, so a stuck load is never
+hidden behind the mark. Reduce motion draws the stacked logo at once and keeps
+the ring still.
+
 ## What has no design yet
 
-The app icon and splash artwork in `app.json` are still the enamel era's
-placeholders on paper-coloured ground.
+Alternate app icons (phase 2 of the come-alive programme) and a Liquid Glass
+`.icon` assembled in Icon Composer. Today's icon ships as PNG light, dark and
+tinted faces, which iOS 26 renders with its own glass treatment.
 
 ### Video review implementation, 4 October 2026
 

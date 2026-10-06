@@ -5035,7 +5035,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: two hard-coded `#F3E8F3` values sit outside the palette. With Porcelain chosen the app would
   flash lilac before every launch and the nav container would paint a different page edge than the
   splash. Read `app.json` in the test and hold both to `paper.ground` (`#F4F2F7`).
-- verified-by: `the splash and the icon background are the ground`
+- superseded: F790 (2026-10-06) moved the launch onto Hum, which is the brand blue from the icon to the native splash to the launch screen, and the launch screen fades onto the ground. The rule this entry made, one palette colour for every launch background, now names the blue; the test below is this entry's successor.
+- verified-by: `the launch background is the brand blue wherever it is painted, and the app beneath stays on the ground`
 
 ### F329 — The session's rung row draws a bare colour dot beside a rung it already names
 - severity: P2
@@ -8872,7 +8873,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `rungs one to three share the one skeleton fill and rung four is ink`
 - verified-by: `the brand blue never reads as an orb state, the highlighter, the rung fill or the tutor's mark`
 - verified-by: `DESIGN.md records the palette the app ships`
-- verified-by: `the splash and the icon background are the ground`
+- superseded: F790 (2026-10-06): app.json's two launch backgrounds follow the brand blue now, not the ground; the test below is the successor.
+- verified-by: `the launch background is the brand blue wherever it is painted, and the app beneath stays on the ground`
 - verified-by: `no six-digit hex is written anywhere in source but palette.ts`
 - verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
 - verified-by: `the intro names the orb states in words, never by colour`
@@ -9539,7 +9541,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/App.tsx
 - note: Expo57 simulator renders Home in accessibility but keeps the native launch image visibly above it. Explicitly release the native splash once bundled Outfit is ready, using the versioned Expo API; verify in simulator. No extra onboarding or new delay.
-- verified-by: `a ready native app releases its launch screen after Outfit loads`
+- superseded: F790 (2026-10-06). The launch screen now draws the native launch frame exactly, so it releases the native one the moment it is laid out, earlier than Outfit and still never on a timer; the test below is this entry's successor.
+- verified-by: `the native launch is released by the identical launch screen as soon as it is drawn, never by a timer`
 
 ### F692 — Native purchases resolves its shared runtime constant back to itself
 - severity: P1
@@ -9766,5 +9769,26 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Independent cleanup review found shutdown followed by die exited immediately, bypassing the SIGKILL fallback; an unref'ed shutdown timer could also report success after a fatal timeout. Refusal now logs and returns through shutdown, which sets the failure code immediately and keeps the cleanup timer alive until child handles drain. Apply the same path to durable-service refusal. A real local fixture service that ignores SIGTERM proves occupied-preview cleanup; a promptly exiting fixture proves the fatal timeout still exits 1. Both process tests failed before the fix and passed after it; no keys, network service or paid vendor required.
 - verified-by: `refusing an occupied preview reaps even a service that ignores SIGTERM`
 - verified-by: `a readiness timeout reports failure even when its service exits promptly`
+
+### F790 — The app opened on a placeholder L and a bare spinner, not on its mark
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/launch/LaunchScreen.tsx:1
+- note: The 27 September "spoken L" was placeholder artwork in the retired notebook palette, with a wordmark set in a font no longer in the repo, and launch was a still splash followed by spinners. On 2026-10-06 the founder chose Hum (the tutor's orb with a rippling ring, sun on the brand blue with a coral core) and asked for the launch to be the mark coming alive. Every icon slot now reads a Hum master: the store icon, iOS dark and tinted faces, the Android adaptive layers and the favicon. The native splash is the mark at 128pt on the blue. A launch screen that is that same frame takes over invisibly, turns the ring, settles the name in beneath it, and fades onto wherever the app was already going (the welcome and onboarding for someone new, Home for everyone else) once nothing is loading and the name has arrived, capped at 12s. Readiness comes from the app's own waits holding the launch. Reduce motion draws the final frame. Supersedes the launch rules in F328, F595 and F691, see there. A same-day adversarial review found that two waits did not hold the launch, so it could fade onto them: the guest hand-off's blank and pre-account onboarding's loading line. It also found a loosened timer check and two tests that did not test what their titles said. All were fixed, and each new assertion was shown to fail on its mutant. The native launch is now held from the moment the launch screen's file loads, because Expo otherwise drops it on the app's first view, and that view is a safe-area provider with nothing in it yet. The app beneath is hidden from screen readers until the launch has gone.
+- verified-by: `the launch screen draws exactly the ring and core of the brand master`
+- verified-by: `the native launch and the launch screen are one frame, so the hand-off cannot be seen`
+- verified-by: `the ring turns by a view transform on the native driver, and the SVG never moves`
+- verified-by: `the name arrives as the one settling entrance, and reduce motion draws the final frame`
+- verified-by: `the launch screen leaves only when the app is ready and the name has arrived, or at the cap`
+- verified-by: `every wait on the way in holds the launch, so it fades onto a real screen`
+- verified-by: `the app renders beneath the launch, and the launch is drawn on top until it is done`
+- verified-by: `the launch leaves only when the app is ready and the name has arrived, or at the cap`
+- verified-by: `one wait handing over to the next never reads as ready`
+- verified-by: `the iOS icon has a light, a dark and a tinted face, each a 1024 square from the brand masters`
+- verified-by: `the adaptive mark is big enough to read inside the launcher circle`
+- verified-by: `the native launch is released by the identical launch screen as soon as it is drawn, never by a timer`
+- verified-by: `the native launch stays up until the launch screen is drawn over it`
+- verified-by: `a screen reader meets the launch alone, and the app once the launch has gone`
+- verified-by: `the launch background is the brand blue wherever it is painted, and the app beneath stays on the ground`
 
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
