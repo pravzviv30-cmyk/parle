@@ -230,6 +230,9 @@ async function runPlan(bound: Bound, plan: CompletionPlan, status: 'completed' |
       ...(plan.durationMs === null ? {} : { durationMs: plan.durationMs }),
       // Absent on a plan an older build froze: that sitting credits no active time.
       ...(plan.activeMs === undefined || plan.activeMs === null ? {} : { activeMs: plan.activeMs }),
+      // A plan is frozen only for a finished sitting with answered work, so a
+      // practice that earned no XP still records its day (D3, F731, F744).
+      finished: true,
     },
   );
   if (activity !== 'durable') pending.push('activity');

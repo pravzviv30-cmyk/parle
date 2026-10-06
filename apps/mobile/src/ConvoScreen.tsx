@@ -75,6 +75,7 @@ import { saveRecapKeepsake } from './live/recapKeepsake.ts';
 import { keepsakeLines } from './live/keepsake.ts';
 import { MAX_RECOVERED_PHRASES, convoUsesFrom, type PracticeBatch } from './live/journalRules.ts';
 import { recordActivity } from './progress/activity.ts';
+import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { ACTIVE_CUTOFF_MS, learnerEngaged } from './progress/activeTime.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
@@ -568,7 +569,16 @@ export function ConvoScreen({
       // spent speaking French.
       const endedAt = Date.now();
       const xp = conversationXp({ phraseCount: phrases.length, unassistedRate: stats.unassistedRate });
-      void recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: clock.read() } : { durationMs: endedAt - openedAt, activeMs: clock.read() });
+      const activeMs = clock.read();
+      // A conversation that ran to its recap is a finished sitting, and it
+      // settles here, inside the stop guard: a safety stop settles nothing (F137, F744).
+      void settleSitting({
+        source: 'convo',
+        at: endedAt,
+        xpEarned: xp,
+        activeMs,
+        write: () => recordActivity('convo', xp, endedAt, openedAt === null ? { activeMs: activeMs, finished: true } : { durationMs: endedAt - openedAt, activeMs: activeMs, finished: true }),
+      });
     }
     // `clock` is the same controller for the screen's whole life, so it stays
     // out of the list the F386 test pins.

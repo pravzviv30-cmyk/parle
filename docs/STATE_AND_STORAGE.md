@@ -410,8 +410,43 @@ no entry, no XP, no minutes and no new activity kind. When the caller does not, 
 writes nothing, because not every caller reaches `recordActivity` only for a finished
 sitting: the bank drill records on the way out, so a drill left from the header with
 nothing answered arrives with 0 XP exactly as a finished set with nothing right does.
-No screen passes `finished` yet; Phase 1's settle and the bank drill's finished path
-are the callers that will.
+
+**The settle pipeline (Come alive Phase 1, F744, F745).** Every place a practice
+finishes settles it once through `game/settle.ts`, and nothing else writes the game facts
+for a sitting: the conversation inside its stop guard (`ConvoScreen.tsx`; a safety stop
+settles nothing, F137), the lesson's summary callback (`nav/RootNavigator.tsx`), the bank
+drill worked to its end and the practice sitting only when its durable plan answers
+`completed` (`DrillScreen.tsx`), the review when its queue empties (`ReviewScreen.tsx`,
+banked once with the unmount path), today's phrase once its day is durable
+(`daily/DailyPracticeScreen.tsx`) and a kept guest practice (`game/guestHandoff.ts`, which
+writes each guest day's `streak:<day>` into `game.seen` before recording the day). Each
+passes `finished: true` to its own write, so a zero-XP finished sitting still records
+its day in the activity log's `activeDays` (`recordActivityOnce` honours it too, for the
+practice plan); a sitting left early passes nothing and records nothing. `beginSettle`
+snapshots the activity log, the practice days and `game` before the write; `finishSettle`
+then runs alone on one chain, for the local day the sitting finished (the day before,
+for one that ended just before midnight), and writes in order: a `game.sittings` row for
+a zero-XP sitting; the +5 `bonus` for a win nothing grades (`phrase:<day>`,
+`guest:<day>`, `review:<ms>` when nothing was recalled); `covers` (travel, freezes, then
+a repair, only for a plan `capabilitiesFor(plan, lapsed).streakProtection` opens, with
+`paidSince` and `lastPracticeOffsetMin` kept in `gameLocal`); `goalDays`; `questDays`
+(dealt once and frozen, with no live-minute quest unless the server confirmed minutes
+and no recording quest unless the microphone is granted); `claims`; `xpMonths` (the
+store folds `questMonths` and `bonusMonths` itself); and `badges`. It reads all of it
+back into one `GameDelta` (`game/delta.ts`), whose XP is what the capped total actually
+gained (`xpCreditedFor`), so a replay counts nothing twice; turns it into moments
+(`game/events.ts`), drops any key already in `game.seen`, queues the rest in
+`gameLocal.pending` and hands them to the host, which marks each seen once it has
+played. A changed account makes it answer null and write nothing more. Until the
+existing-learner seed has run on this phone (`gameLocal.introducedAt`) a settle awards
+no badge and plays nothing. `GameProvider` runs that seed once per account per phone
+(badges derivable from saved practice, dated from the data or `null`; `xpMonths`; no
+cover; every current streak, milestone, level, badge and chest key marked seen, with the
+durable `intro` key) and shows the one intro sheet only to a learner with practice days
+whose account was never introduced. On mount, foreground and a screen's `refresh` it
+runs the quiet catch-up, which reconciles the same facts (freezes only), marks what is
+true seen without playing it, and replays only a durable moment a crash cut short, once.
+Re-planning tonight's reminder is Phase 4; its seam is `onSettled`.
 
 ### The pre-recap window
 

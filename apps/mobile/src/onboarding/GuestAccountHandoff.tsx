@@ -16,6 +16,7 @@ import {
   type GuestPractice,
 } from './guestPractice.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { settleGuestHandoff } from '../game/guestHandoff.ts';
 /** The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it. */
 export function GuestAccountHandoff({
   draft,
@@ -98,6 +99,9 @@ export function GuestAccountHandoff({
         ))
       )
         throw new Error('Your practice could not be saved.');
+      // The guest's finished days become the account's, once, and day one
+      // never lights a second time (F744). Nothing to record is not a failure.
+      if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
       setRemaining(balance);
       setSaved(true);
     } catch (cause) {

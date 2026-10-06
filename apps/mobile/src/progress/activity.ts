@@ -322,7 +322,9 @@ export function claimActivityInstant(kind: ActivityKind, xp: number, at: number)
  * `durable` when the entry `(at, kind, xp)` is already there (an earlier try
  * landed) or this write landed; `failed` when the disk refused, could not be
  * read, or the account changed or was reset since the call. A failed write
- * raises no dirty flag. `xp <= 0` records nothing and is honestly `durable`.
+ * raises no dirty flag. `xp <= 0` writes no entry, by `recordActivity`'s rule:
+ * marked `detail.finished` it records its day (a day is a set, so a replay
+ * adds nothing), and otherwise it records nothing and is honestly `durable`.
  * Ordinary `recordActivity` uses the same scoped native-write barrier.
  */
 export function recordActivityOnce(
@@ -332,7 +334,7 @@ export function recordActivityOnce(
   detail: ActivityDetail = {},
 ): Promise<PersistAck> {
   if (!Number.isFinite(xp) || !Number.isFinite(at)) return Promise.resolve('failed');
-  if (xp <= 0) return Promise.resolve('durable');
+  if (xp <= 0) return detail.finished === true ? recordActiveDay(at) : Promise.resolve('durable');
   return serialized(async (key, owner) => {
     let raw: string | null;
     try {

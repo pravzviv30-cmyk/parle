@@ -83,6 +83,7 @@ import {
 } from './src/onboarding/preAccountDraft.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
+import { GameProvider } from './src/game/GameProvider.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
@@ -512,6 +513,7 @@ function SignedInRoot({
       <GuestAccountHandoff draft={preAccountDraft} onDone={onPreAccountDraftConsumed}>
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
       <RememberCompletedAccount onUsed={onAppUsed} />
+      <GameProvider>
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
@@ -527,6 +529,7 @@ function SignedInRoot({
           />
         </NavigationContainer>
       </LiveProvider>
+      </GameProvider>
       </GuestAccountHandoff>
     </ProfileGate>
   );
