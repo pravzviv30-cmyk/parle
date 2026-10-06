@@ -10172,6 +10172,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the room plays no sound while the mic is live or the tutor speaks`
 - verified-by: `the stamp plays for every independent finish this session, never for an assisted replay`
 
+### F766 — A celebration can start under an end card or inside a sitting
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game/settle.ts:626, apps/mobile/src/celebrate/EndCard.tsx:76, apps/mobile/src/game/GameProvider.tsx:196, apps/mobile/src/celebrate/queue.ts:546
+- note: Found by the 6 October re-check of the merged Phase 1 (verdict SHIP, all MINOR). Settle publishes before the screen can mount its end card, so a takeover can start under it; a foreground catch-up can replay a moment in the middle of a sitting; and a safety stop during a seen read leaves crash copies that replay next launch. Fix with Phase 3's end cards: hold celebrations before settling and hand the release to the EndCard, replay only from a Home-focus refresh or a sitting hold, and drop in-flight keys on suppression.
+- verified-by: `no takeover starts under an end card or inside a sitting`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
