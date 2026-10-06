@@ -9970,6 +9970,38 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Found by the Phase 0 core review. The longest run counts across freeze, repair and travel days, so "You practised 30 days in a row." can be untrue. Every number on a celebration must be a persisted fact.
 - verified-by: `a streak badge never claims more days in a row than were practised`
 
+### F743 — Nothing celebrates a finished practice
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/celebrate, apps/mobile/App.tsx
+- note: Founder decisions D2, D6, D7, D8 (docs/come-alive/README.md). One celebration host above the navigator plays at most three full-screen moments after a sitting (streak, chest, level, badge), holds while a microphone, live room, sheet, end card or background is in the way, and plays nothing after a safety stop (F137).
+- verified-by: `at most three takeovers play after a sitting, in streak, chest, level, badge order`
+- verified-by: `a safety stop clears the celebration queue and refuses new moments`
+- verified-by: `a moment already in the synced seen list never plays again`
+
+### F744 — A finished practice is never settled into a streak day, a goal, quests or badges
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game/settle.ts, apps/mobile/src/ConvoScreen.tsx, apps/mobile/src/nav/RootNavigator.tsx, apps/mobile/src/DrillScreen.tsx, apps/mobile/src/ReviewScreen.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx, apps/mobile/src/onboarding/GuestAccountHandoff.tsx
+- note: One pipeline (README Part 6): every finished sitting settles once through game/settle.ts and returns a GameDelta read back from disk. A safety stop settles nothing.
+- verified-by: `settling a sitting records its day, goal, quests and badges once, and a replay changes nothing`
+- verified-by: `a safety stop settles nothing`
+- verified-by: `a kept guest practice lights day one once`
+
+### F745 — An existing learner would see a burst of old levels and badges on update
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game
+- note: game.md 3.6 with review finding 14. Seed the streak, badges and rollups from practice already saved, mark every current moment seen, and show the one intro sheet only to a learner who has practice days.
+- verified-by: `an existing learner is seeded from saved practice with every current moment marked seen`
+
+### F746 — The streak, quest, level and badge art does not exist
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game/art
+- note: Founder decision D10: flat vectors built in code in the current style (flame, chest, medal, crest, freeze and repair marks). Kept out of the flat illustration registry so the pinned 29-drawing count (F599) stays true. The founder approves the contact sheet by eye before the art ships.
+- verified-by: `every game drawing uses palette colours only and hides from assistive technology`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
