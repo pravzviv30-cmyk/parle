@@ -10152,9 +10152,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F763 — The microphone stays published after the recap arrives
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/useLiveSession.ts:1104
 - note: When the session ends the room is still open for the recap and the microphone stays published. Close it (setMicrophoneEnabled(false) and the mic-open state) before the recap shows, and release the live hold once the session has ended and the microphone is unpublished, so the recap may play its moment.
+- note 2026-10-06, ca/p3-room-audio (step P3-B): the `recap` case now calls `closeMicForRecap()` before `setRecap` (micOpen and diagnostics false, then `setMicrophoneEnabled(false)`, every session including a stop); once LiveKit confirms the close for the same room and start, an effect asks `live/recapAudio.ts` (recap arrived, close confirmed, tutor not speaking, not stopped) and only then `releaseLiveHold()` gives back the room's audio-focus hold. LiveKit's audio session still ends at `leave()`; the mute leaves the capture device open until then. `RecapScreen` holds the celebration queue while mounted so takeovers still wait for the learner to leave. The title failed with no close, with the close after `setRecap`, with micOpen left true, with the close reported before it resolved, with a late close from a left room reported, with the release ungated on the close, the tutor's line or a stop, with the web release keeping the hold, and with the recap not holding the queue. Not yet checked on a device.
 - verified-by: `the recap closes the microphone before it shows`
 
 ### F764 — The conversation orb never hears or answers the voices in the room

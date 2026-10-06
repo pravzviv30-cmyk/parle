@@ -42,6 +42,7 @@ import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour } from 
 import { Card, GhostButton, Label, OutlineButton, OptionRow, PillButton, ProgressDots, RoundButton } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { arrived } from './motion/haptics.ts';
+import { holdCelebrations } from './celebrate/queue.ts';
 import { FeedbackLedger } from './motion/feedbackPolicy.ts';
 import { SOUND_DETAIL, exampleFirstHeading } from './tutor/soundExample.ts';
 import { MouthGuide } from './practice/MouthGuide.tsx';
@@ -102,6 +103,11 @@ export function RecapScreen({
   const ownerScope = useRef(scopeGeneration()).current;
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  // This is the conversation's end card, and the queue waits while the learner
+  // reads it, as it does for every end card: what the conversation earned plays
+  // after they leave the room. The room's own hold on the audio focus used to do
+  // this by accident and now goes before the recap's moment (F763).
+  useEffect(() => holdCelebrations(), []);
   // Null until the reads answer: the keepsake draws at once from the recap,
   // and the sound and "Next time" arrive a beat later.
   const [page, setPage] = useState<RecapPage>('result');

@@ -47,6 +47,8 @@ import { afterDismiss } from './safetyState.ts';
 import { opensSession } from './sessionOpened.ts';
 import { micOpensAtConnect, modeCarriesAudio, type LiveMode } from '../tutor/choosingView.ts';
 import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
+import { liveRoom } from '../sound/audioFocus.ts';
+import { recapMayTakeTheAudio } from './recapAudio.ts';
 
 const NOW = new Date(2026, 7, 27, 14).getTime();
 
@@ -405,6 +407,9 @@ function switchWorld(
     missionId: 'mission:premier-cafe',
     setSafety: (s: SafetyDecision | null) => seen.safety.push(s),
     safetyRef,
+    // The recap closes the microphone before it shows (F763). Its own test
+    // below runs the real close; here it is only a name the recap case calls.
+    closeMicForRecap: noop,
     conversationTextRef: { current: new ConversationTextRecorder() },
     noticeTimer: { current: null as unknown },
     // Real, because "is this session stopped" must be one reading of the frame
@@ -1429,4 +1434,135 @@ test('optional can-do wire evidence is fenced by current issued session, mission
     setNotice: (text: string) => notices.push(text), noticeTimer: { current: null },
   });
   assert.equal(result, false); assert.equal(left, 1); assert.equal(failed.length, 1); assert.deepEqual(notices, []);
+});
+
+
+/* ------------------------------------------------------------------------- *
+ * F763: the microphone at the recap, and the recap's moment.
+ * ------------------------------------------------------------------------- */
+
+const CLOSE_MIC_FOR_RECAP = insideOf(hook, 'const closeMicForRecap = useCallback(() => {');
+
+/** The effect that hands the audio focus back to the recap: the body of the useEffect that asks the rule. */
+function releaseEffect(source: string): string {
+  const asks = source.indexOf('recapMayTakeTheAudio({');
+  assert.notEqual(asks, -1, 'the hook no longer asks recapMayTakeTheAudio before it gives the hold back');
+  const header = 'useEffect(() => {';
+  const open = source.lastIndexOf(header, asks);
+  assert.ok(open >= 0 && source.slice(open, asks).split('\n').length <= 3, 'the rule is no longer asked at the top of its own effect');
+  return insideOf(source.slice(open), header);
+}
+
+describe('the microphone at the recap — F763', () => {
+  test('the recap closes the microphone before it shows', async () => {
+    // What happens, in order, from the recap frame arriving to the recap being drawn.
+    const order: string[] = [];
+    // Every close LiveKit is asked for, answered by hand in the order the test chooses.
+    const closes: { confirm: () => void; refuse: (error: Error) => void }[] = [];
+    const room = {
+      localParticipant: {
+        setMicrophoneEnabled: (on: boolean): Promise<void> => {
+          order.push(`setMicrophoneEnabled(${on})`);
+          return new Promise<void>((resolve, reject) => {
+            closes.push({ confirm: resolve, refuse: reject });
+          });
+        },
+      },
+    };
+    const diagRef = { current: { micPublished: true } };
+    const roomRef: { current: unknown } = { current: room };
+    const startGenRef = { current: 1 };
+    const confirmed: boolean[] = [];
+    const closeWorld = {
+      roomRef,
+      startGenRef,
+      diagRef,
+      setMicOpen: (open: boolean) => order.push(`setMicOpen(${open})`),
+      setMicClosedAtRecap: (closed: boolean) => confirmed.push(closed),
+      trace: () => {},
+    };
+    const closeMicForRecap = (): unknown => run(CLOSE_MIC_FOR_RECAP, closeWorld);
+    const settle = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+
+    const { world, seen } = switchWorld();
+    deliver({ ...world, closeMicForRecap, setRecap: (r: unknown) => { order.push('recap shown'); seen.recaps.push(r); } }, RECAP_MSG);
+
+    assert.deepEqual(
+      order,
+      ['setMicOpen(false)', 'setMicrophoneEnabled(false)', 'recap shown'],
+      'the recap is drawn over a microphone that is still published, or the circle still reads it as open',
+    );
+    assert.equal(diagRef.current.micPublished, false, 'the diagnostics still claim a microphone after the session ended');
+    assert.equal(seen.journalled.length, 1, 'closing the microphone cost the recap its journal entry');
+
+    // Asked for is not the same as closed: until LiveKit confirms it, the room keeps the learner's ears.
+    assert.deepEqual(confirmed, [], 'the close was taken as done before LiveKit said so');
+    closes[0]!.confirm();
+    await settle();
+    assert.deepEqual(confirmed, [true], 'a confirmed close never reaches the effect that gives the recap its moment');
+    confirmed.length = 0;
+
+    // A close that fails is never reported as closed, and leave() still ends both.
+    closeMicForRecap();
+    closes[1]!.refuse(new Error('track gone'));
+    await settle();
+    assert.deepEqual(confirmed, [], 'a microphone that would not close was reported closed');
+
+    // A close confirmed after the learner left, or after a new start took the
+    // session, belongs to a room that is gone: it never reaches the release, so
+    // it cannot give away a hold a newer room took.
+    closeMicForRecap();
+    roomRef.current = null;
+    closes[2]!.confirm();
+    await settle();
+    roomRef.current = room;
+    closeMicForRecap();
+    startGenRef.current += 1;
+    closes[3]!.confirm();
+    await settle();
+    assert.deepEqual(confirmed, [], 'a close from a room the learner has left was reported as this session\'s');
+
+    // A stopped session's recap closes the microphone as well: nobody is listening any more.
+    const stopped = switchWorld(STOP);
+    let closedForStop = 0;
+    deliver({ ...stopped.world, closeMicForRecap: () => { closedForStop += 1; } }, RECAP_MSG);
+    assert.equal(closedForStop, 1, 'a stopped session left the microphone published under the stop screen');
+
+    // The hold goes only once the session has ended, the close is confirmed and
+    // the tutor is quiet, and never for a stop (F137 gets no moment).
+    const EFFECT = releaseEffect(hook);
+    const releases = (state: { recapArrived: boolean; micClosedAtRecap: boolean; tutorSpeaking: boolean; stoppedNow: boolean }): number => {
+      let released = 0;
+      run(EFFECT, { ...state, recapMayTakeTheAudio, trace: () => {}, releaseLiveHold: () => { released += 1; } });
+      return released;
+    };
+    const ready = { recapArrived: true, micClosedAtRecap: true, tutorSpeaking: false, stoppedNow: false };
+    assert.equal(releases(ready), 1, 'the recap never gets the audio focus back, so its moment is refused');
+    assert.equal(releases({ ...ready, recapArrived: false }), 0, 'the hold went before the session ended');
+    assert.equal(releases({ ...ready, micClosedAtRecap: false }), 0, 'the hold went while the microphone was still published');
+    assert.equal(releases({ ...ready, tutorSpeaking: true }), 0, 'the hold went under a line the tutor is still speaking');
+    assert.equal(releases({ ...ready, stoppedNow: true }), 0, 'a stopped session was given a moment');
+
+    // And the release itself gives back the hold and nothing else: the room's
+    // session is still `leave()`'s to end, and the next room holds again.
+    const { ensureAudioSession, releaseAudioSession, releaseLiveHold } = await import('./globals.ts');
+    await ensureAudioSession();
+    assert.equal(liveRoom(), true);
+    releaseLiveHold();
+    assert.equal(liveRoom(), false, 'the recap still sits under the room\'s hold');
+    releaseLiveHold();
+    await releaseAudioSession();
+    assert.equal(liveRoom(), false, 'leaving after the recap took a hold back');
+    await ensureAudioSession();
+    assert.equal(liveRoom(), true, 'the next room took no hold after a recap gave one back');
+    await releaseAudioSession();
+    assert.equal(liveRoom(), false);
+
+    // Giving the room's hold back must not let a takeover start over the recap:
+    // the recap holds the celebration queue while it is on screen, as every end
+    // card does, so what the conversation earned plays after the learner leaves.
+    const recapScreen = read('../RecapScreen.tsx');
+    assert.match(recapScreen, /import \{ holdCelebrations \} from '\.\/celebrate\/queue\.ts';/, 'the recap cannot hold the celebration queue');
+    assert.match(recapScreen, /useEffect\(\(\) => holdCelebrations\(\), \[\]\);/, 'a takeover can start over the recap once the room lets go');
+  });
 });

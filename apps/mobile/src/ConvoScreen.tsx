@@ -38,7 +38,7 @@ import type { MissionCompletion } from '@luvani/core';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, AppState, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePreventRemove } from '@react-navigation/native';
+import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import {
   conversationXp,
   missionStates,
@@ -106,6 +106,8 @@ import { RoomWait } from './live/RoomWait.tsx';
 import { CONNECTING_TITLE, connectingBody } from './live/connectingView.ts';
 import { waitingNote } from './tutor/waitingView.ts';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
+import { RoomLevels } from './live/RoomLevels.tsx';
+import { useThinkingLine } from './live/useThinkingLine.ts';
 
 /**
  * Everything one conversation asks the practice stores to keep, in the shape
@@ -407,6 +409,18 @@ export function ConvoScreen({
    * somebody has chosen not to speak.
    */
   const typing = openedTyped || live.voiceless;
+
+  /**
+   * After six seconds of real thinking the header says so in words (core loop
+   * 3.4): never sooner, never a pretend progress, and gone with the answer.
+   * Asked here, above every early return, because it is a hook.
+   */
+  const stillThinking = useThinkingLine(live.thinking);
+  /**
+   * Whether this room is the screen in front of the learner. The orb's meters
+   * (live/RoomLevels) run only while it is, and the app is active.
+   */
+  const roomFocused = useIsFocused();
 
   /**
    * Take the quiet door, wherever the learner found it.
@@ -937,6 +951,10 @@ export function ConvoScreen({
     });
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
     return (
+      // The room's real audio levels, for the orb (live/RoomLevels): the
+      // learner's microphone and the tutor's voice, measured off the tracks
+      // the session hands over and never through this screen's state.
+      <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
       <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
         {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
 
@@ -1078,6 +1096,7 @@ export function ConvoScreen({
           onCancel={() => setConfirming(false)}
         />
       </KeyboardAvoidingView>
+      </RoomLevels>
     );
   }
 
@@ -1116,6 +1135,9 @@ export function ConvoScreen({
   });
   const card = win.showing ? winCard(missionId) : null;
   const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
+  // One line at a time in the header: a dropped connection or a notice first,
+  // and only when the slot is otherwise empty, the long-wait line.
+  const headerLine = line.text ?? stillThinking;
   // The orb says one thing at a time, and thinking outranks everything: the
   // learner has just spoken and nothing has come back yet.
   const orbState: OrbState = live.thinking
@@ -1133,6 +1155,7 @@ export function ConvoScreen({
           : 'listening';
 
   return (
+    <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
       {/* One calm white notice, gone the moment it is tapped. */}
       {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
@@ -1148,12 +1171,12 @@ export function ConvoScreen({
             onEnd={() => setConfirming(true)}
             accessibilityLabel="End conversation"
             status={
-              line.text ? (
+              headerLine ? (
                 <Text
                   accessibilityLiveRegion="polite"
                   style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
                 >
-                  {line.text}
+                  {headerLine}
                 </Text>
               ) : undefined
             }
@@ -1321,6 +1344,7 @@ export function ConvoScreen({
         onCancel={() => setConfirming(false)}
       />
     </KeyboardAvoidingView>
+    </RoomLevels>
   );
 }
 

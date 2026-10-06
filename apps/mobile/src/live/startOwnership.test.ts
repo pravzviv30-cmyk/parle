@@ -347,6 +347,12 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     setReconnecting: () => {},
     setVoiceless: () => {},
     voicelessRef: { current: false },
+    // Added to `start` by the F763 recap close and the orb's audio tracks: a new
+    // start forgets the last session's tracks and its closed microphone. Same
+    // bargain as the setters above.
+    setAudioTracks: () => {},
+    NO_TRACKS: { mic: null, tutor: null },
+    setMicClosedAtRecap: () => {},
     setPrompt: () => {},
     setFeedback: () => {},
     setTutorSpeaking: () => {},
