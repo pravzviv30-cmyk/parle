@@ -163,7 +163,20 @@ export function suppressCelebrations(): () => void {
   };
 }
 
-/** True while a sheet or an end card holds the queue. */
+/**
+ * Hear every hold taken or let go, and every safety stop. The game layer's
+ * catch-up waits on this, so a moment it brings back never lands inside a
+ * sitting or under an end card (F766). Returns the stop.
+ */
+export function onCelebrationHoldChange(listener: () => void): () => void {
+  const heard = (): void => listener();
+  holdListeners.add(heard);
+  return () => {
+    holdListeners.delete(heard);
+  };
+}
+
+/** True while a sheet, a sitting or an end card holds the queue. */
 export const celebrationsHeld = (): boolean => holdCount > 0;
 /** True while a safety stop is on screen. */
 export const celebrationsSuppressed = (): boolean => suppressCount > 0;
@@ -347,7 +360,9 @@ type Showing = { card: TakeoverCard; readonly generation: number; final: boolean
 export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
   let waiting: Entry[] = [];
   let checking = 0;
-  const inFlight = new Set<string>();
+  // The moments whose `seen` read is still on its way, by key, kept whole so a
+  // safety stop can drop their crash-replay copies too (F766).
+  const inFlight = new Map<string, { readonly event: CelebrationEvent; readonly generation: number }>();
   let showing: Showing | null = null;
   // Cards put on screen since the run began. The run ends only when nothing is showing, waiting, being checked or about to resume.
   let presentedInBurst = 0;
@@ -542,12 +557,19 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
     }
   }
 
-  /** F137: everything waiting goes, the crash-replay copies too, so nothing returns after the stop. */
+  /**
+   * F137: everything waiting goes, the crash-replay copies too, so nothing
+   * returns after the stop. That includes a moment whose `seen` read was still
+   * on its way when the stop arrived: a catch-up brings back a moment with its
+   * copy already on this phone, and the answer that lands after the stop is
+   * ignored, so its copy would otherwise replay on the next launch (F766).
+   */
   function suppress(): void {
     const generation = deps.generation();
     const unplayed = [
       ...waiting.filter((entry) => entry.generation === generation).map((entry) => entry.event),
       ...(showing !== null && !showing.final && showing.generation === generation ? showing.card.covers : []),
+      ...[...inFlight.values()].filter((asked) => asked.generation === generation).map((asked) => asked.event),
     ];
     const keys = unplayed.filter(isRememberedInSeen).map((event) => event.key);
     clear();
@@ -567,7 +589,7 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
   }
 
   function check(event: CelebrationEvent, generation: number): void {
-    inFlight.add(event.key);
+    inFlight.set(event.key, { event, generation });
     checking += 1;
     const asked = epoch;
     let answer: Promise<boolean>;

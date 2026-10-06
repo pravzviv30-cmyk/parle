@@ -734,8 +734,32 @@ manual again, spread out.
 screen keeps its shape. It carries the mission's own sentence about what the
 learner did, one pill (**Keep talking**, with a line under it saying plainly
 that carrying on uses minutes) and one ghost (**Finish and see your recap**).
-No confetti, no score, no percentage, nothing about how well. It arrives on the
-app's one settle and shows exactly once, at the turn the mission completes.
+It never scores: no score, no percentage, nothing about how well. It arrives on
+the app's one settle and shows exactly once, at the turn the mission completes.
+
+**End cards** close every finished sitting in place, on the page that ran it:
+a drill set, a practice set, a review, today's phrase and a lesson. One mint
+card under "Practice complete." (`celebrate/EndCard.tsx`) carries up to three
+tiles that count up (XP, time and the sitting's own count), the goal ring and
+any quest the sitting finished. Every number on it is the GameDelta that
+`game/settle.ts` read back from disk once the sitting's writes landed. A tile
+appears only when its number exists, and a finish the settle could not read
+back stands in words with no number at all. It sounds `complete` with one
+`celebrate()`, once per sitting. While a sitting page is open, and from before
+it settles until its end card goes, the celebration queue is held, so a streak,
+a chest, a level or a badge plays only after the learner leaves. A review with
+nothing due still says "Nothing waiting." and plays nothing, and a safety stop
+has no end card.
+
+**The answer sheet** rises from the foot of a drill after each answer. A pass is
+mint with a check and a short warm line, `correct` and a light arrival haptic,
+and moves on by itself after 1.4 seconds. A typo the drill accepted is sun,
+"Nearly." and the real spelling, `nearly` and a soft haptic. A miss is calm
+white paper with no mark, no sound and no haptic: the first hands nothing over
+("This one comes round again."), and the second shows the French and waits for
+Continue. With a screen reader on, no sheet moves on by itself. The living bar
+under the header fills as phrases settle, carries no digit, glows sun after
+three real passes in a row, and never moves back.
 
 ## Copy
 

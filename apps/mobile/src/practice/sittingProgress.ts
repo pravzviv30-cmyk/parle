@@ -42,3 +42,38 @@ export function sittingProgress(state: DrillSessionState | null, targets: readon
   const step = Math.min(done + 1, total);
   return { step, total, label: `Phrase ${WORDS[step - 1]} of ${WORDS[total - 1]}` };
 }
+
+/**
+ * How full the sitting's living bar is: distinct phrases settled over distinct
+ * phrases in the sitting, from 0 to 1, and nothing else (README Part 5.E,
+ * "LivingBar in sittings, position only, no digits").
+ *
+ * A miss that comes round again is the same phrase, so it neither moves the
+ * bar back nor grows the total, and the bar only ever fills. It still answers
+ * once the sitting has finished, so the last answer fills it. Null, so no bar
+ * is drawn, while the sitting is being read, when it holds fewer than two
+ * phrases (one phrase has nowhere to go), or when it holds more than the words
+ * strip can say (`SITTING_PROGRESS_MAX`), the same bound the strip keeps.
+ *
+ * `sittingFill` places a practice sitting against its held targets, the same
+ * count the strip says in words. `queueFill` places an ordinary sitting, whose
+ * phrases are whatever its queue and its answers hold.
+ */
+export function sittingFill(state: DrillSessionState | null, targets: readonly PracticeTarget[]): number | null {
+  if (state === null) return null;
+  return fillOf(new Set(targets.map((t) => t.phraseKey)), state);
+}
+
+export function queueFill(state: DrillSessionState | null): number | null {
+  if (state === null) return null;
+  return fillOf(new Set([...state.answered.map((a) => a.phraseKey), ...state.queue.map((e) => e.phraseKey)]), state);
+}
+
+/** The fewest phrases a sitting holds for a bar to mean anything. */
+export const FILL_LEAST = 2;
+
+function fillOf(keys: ReadonlySet<string>, state: DrillSessionState): number | null {
+  if (keys.size < FILL_LEAST || keys.size > SITTING_PROGRESS_MAX) return null;
+  const done = new Set(state.answered.map((a) => a.phraseKey).filter((key) => keys.has(key))).size;
+  return Math.min(1, done / keys.size);
+}

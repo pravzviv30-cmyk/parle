@@ -149,8 +149,9 @@ Two hard behavioural commitments, both derived from confirmed research:
   fixed bonuses, and each is completed only by finished practice. Milestone
   badges mark real counts and are awarded once. XP never comes from minutes
   elapsed, sessions started or app opens, and practice XP is capped per day, so
-  a marathon buys nothing. XP is shown at the end of a finished practice and
-  never during one. Every celebration names a persisted event, and a safety
+  a marathon buys nothing. XP is shown on the end card of a finished practice,
+  as the XP the saved sitting actually credited, and never during one. Every
+  celebration names a persisted event, and a safety
   stop earns and celebrates nothing. There are no leagues or leaderboards, no
   paid currency, and no random rewards.
 - **The learner is never stranded and never scolded.** No mid-session scores, no

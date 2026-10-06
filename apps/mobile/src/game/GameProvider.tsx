@@ -10,7 +10,10 @@
  * 2. Runs the existing-learner seed once, then the quiet catch-up on mount,
  *    on every return to the foreground and whenever a screen asks (`refresh`,
  *    for a screen coming into focus). Quiet means nothing takes over the
- *    screen; see `catchUp.ts`.
+ *    screen; see `catchUp.ts`. A return to the foreground while a sitting or
+ *    an end card holds the celebration queue waits until the hold lifts, so a
+ *    moment the catch-up brings back never lands inside a sitting, and never
+ *    waits there long enough to time out (F766).
  * 3. Serves the hooks. Every number a screen shows comes from here, worked out
  *    by `game/view.ts`: a screen never works out a level or an XP total for
  *    itself (README Part 6, held by `game/display.test.ts`).
@@ -27,6 +30,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState, Text } from 'react-native';
 import { localDayKey, type GoalProgress, type StreakState, type XpLevel } from '@luvani/core';
 
+import { celebrationsHeld, onCelebrationHoldChange } from '../celebrate/queue.ts';
 import { PillButton, Sheet } from '../components.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { microphonePermission } from '../settings/phoneSettings.ts';
@@ -193,9 +197,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (current()) await catchUp();
     })();
 
+    const catchUpNow = () => {
+      void within(loadBilling(false), BILLING_WAIT_MS, undefined).then(() => (current() ? catchUp() : undefined));
+    };
+    // A catch-up owed by a return to the foreground that came while the queue
+    // was held: a sitting, an end card or a sheet was up.
+    let owed = false;
     const foreground = AppState.addEventListener('change', (next) => {
       if (next !== 'active' || !current()) return;
-      void within(loadBilling(false), BILLING_WAIT_MS, undefined).then(() => (current() ? catchUp() : undefined));
+      if (celebrationsHeld()) {
+        owed = true;
+        return;
+      }
+      catchUpNow();
+    });
+    const offHolds = onCelebrationHoldChange(() => {
+      if (!owed || celebrationsHeld() || !current()) return;
+      owed = false;
+      catchUpNow();
     });
     const offSettled = onSettled(() => {
       if (current()) read();
@@ -207,6 +226,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       mounted.current = false;
       restore();
       foreground.remove();
+      offHolds();
       offSettled();
       offDirty();
     };
