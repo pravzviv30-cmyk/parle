@@ -873,7 +873,7 @@ export function SettingsScreen({
             setHapticFeedback(value);
             void setHapticPreference(value).then(saved => { setHapticSaving(false); setHapticTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setHapticFeedback(previous); });
           }} />
-          {hapticTrouble && <TroubleLine message={hapticTrouble} />}
+          {hapticTrouble !== '' ? <TroubleLine message={hapticTrouble} /> : null}
           <SwitchRow title="Sound effects" sub="Short sounds when you finish something. They follow your phone’s silent switch and stay quiet while you speak or listen." accessibilityLabel="Sound effects" value={soundEffects} disabled={soundSaving} onChange={value => {
             if (soundSaving) return;
             setSoundSaving(true);
@@ -881,7 +881,7 @@ export function SettingsScreen({
             setSoundEffects(value);
             void setSoundPreference(value).then(saved => { setSoundSaving(false); setSoundTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setSoundEffects(previous); });
           }} />
-          {soundTrouble && <TroubleLine message={soundTrouble} />}
+          {soundTrouble !== '' ? <TroubleLine message={soundTrouble} /> : null}
         </Card>
       </View>
 

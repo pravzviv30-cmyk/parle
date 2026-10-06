@@ -487,7 +487,9 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     // spring, with the white speaker mark, and no Pressable of its own.
     assert.match(card, /<Press haptic="light"/, 'the sample does not press through the one spring with a light impact');
     assert.doesNotMatch(card, /<Pressable\b/, 'the tutor card keeps a Pressable of its own beside the spring');
-    assert.match(card, /<EarGlyph size=\{22\} color=\{paper\.onInk\} \/>/, 'the speaker on the ink disc is not white');
+    // Come alive (icons review 6): the disc stays; the speaker on it breathes
+    // only while the sample really plays.
+    assert.match(card, /<AnimatedIcon kind="speaker-waves" size=\{22\} active=\{playing\} color=\{paper\.onInk\} \/>/, 'the speaker on the ink disc is not white');
     const disc = region(componentsSource(), '  hear: {', '  brief: {');
     assert.match(disc, /width: HIT,\s*height: HIT,\s*borderRadius: HIT \/ 2/, 'the play disc is not a circle at the touch floor');
     assert.match(disc, /backgroundColor: paper\.ink/, 'the play disc is not ink');
@@ -774,14 +776,20 @@ describe('the B parts keep their promises — F597', () => {
   });
 
   test('an option row says its choice twice and marks it with the blue check or the field ring', () => {
+    // Come alive (F727): the option row is a thin wrapper over the one
+    // `Choice`, as a button, so its promises are read where they are kept.
+    // D7 turned the chosen row into the brand fill, so the check is now blue
+    // on a white disc rather than white on a blue one.
     const row = part('OptionRow');
-    assert.match(row, /accessibilityState=\{\{ selected \}\}/, 'the option row does not tell a device it is selected');
-    assert.match(row, /aria-selected=\{selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
-    assert.match(row, /haptic="selection"/, 'a choice does not tick like a choice');
-    assert.match(row, /backgroundColor: accent\.brand/, 'the chosen mark is not the brand blue');
-    assert.match(row, /<CheckGlyph size=\{18\} color=\{paper\.onInk\}/, 'the chosen mark has no white check');
-    assert.match(row, /borderColor: paper\.field/, 'the unchosen mark is not the field ring');
-    assert.match(row, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
+    assert.match(row, /return <Choice role="button" title=\{title\} detail=\{detail\} selected=\{selected\} onPress=\{onPress\} accessibilityLabel=\{accessibilityLabel\} onHear=\{onHear\} playing=\{playing\} \/>;/, 'the option row does not hand everything it was given to the one choice, as a button');
+    const choice = part('Choice');
+    assert.match(choice, /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, 'the option row does not tell a device it is selected');
+    assert.match(choice, /aria-selected=\{radio \? undefined : selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
+    assert.match(choice, /haptic="selection"/, 'a choice does not tick like a choice');
+    assert.match(choice, /selected \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
+    assert.match(choice, /<View \{\.\.\.decorative\} style=\{\[ch\.disc, \{ backgroundColor: paper\.card \}\]\}>\s*<CheckGlyph size=\{18\} color=\{accent\.brand\} \/>/, 'the chosen mark is not the blue check on a white disc');
+    assert.match(choice, /borderColor: paper\.field/, 'the unchosen mark is not the field ring');
+    assert.match(choice, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
   });
 
   test("sheets animate over the parent, retain closing content and expose accessible dismissal", () => { const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet')); assert.match(sheet, /<Modal visible=\{present\}/); assert.match(sheet, /snapshot\.current\.children/); assert.match(sheet, /accessibilityViewIsModal/); assert.match(sheet, /onAccessibilityEscape=\{onClose\}/); assert.match(sheet, /onShow=\{focusHeading\}/); assert.match(sheet, /Math\.max\(insets\.bottom, space\(6\)\)/); assert.match(sheet, /keyboardShouldPersistTaps="handled"/); assert.match(sheet, /outputRange: \[0, 0\.4\]/); assert.match(sheet, /onPanResponderRelease/); assert.match(sheet, /close\.current\(\) !== false/); });
@@ -804,7 +812,7 @@ describe('the B parts keep their promises — F597', () => {
     assert.ok(block.indexOf('{french}') < block.indexOf('{english}'), 'the English leads the French');
     assert.match(block, /onColour\.blue/, 'the English on blue is not the blue ground\'s secondary');
     assert.match(block, /accessibilityLabel=\{playing \? 'Stop' : 'Hear this line'\}/, 'the hear control offers to play what is already playing');
-    assert.match(block, /<EarGlyph size=\{22\}/, 'the hear control is not the ICONS.md speaker at 22');
+    assert.match(block, /<AnimatedIcon kind="speaker-waves" size=\{22\} active=\{playing\}/, 'the hear control is not the speaker at 22, breathing only while the line plays');
     assert.match(block, /<Press\b/, 'the hear control does not press through the one spring');
     const disc = region(componentsSource(), '  hearDisc: {', '});');
     assert.match(disc, /width: HIT, height: HIT/, 'the hear control is under the touch floor');
@@ -928,5 +936,127 @@ describe('the Start parts keep their promises — F601', () => {
       );
       assert.doesNotMatch(sentence, /\.\.$|[–—·]/, `${mission.id} ends on two stops or carries a dash or a middot`);
     }
+  });
+});
+
+/**
+ * The icon controls — F727, come alive D2.
+ *
+ * Underlined words stood in for controls that every phone draws as a picture.
+ * The pictures arrive here with their promises: a button with no visible label
+ * carries a spoken label and a 44 point target, an action with a picture keeps
+ * its word, off is a colour chosen by the ground and never an opacity, nothing
+ * casts a shadow, and a choice's Hear is a target of its own. Appended after
+ * ControlTile, so no region above moved.
+ */
+describe('the icon controls keep their promises', () => {
+  /** From one export to the next, or to the end of the file. */
+  const part = (name: string): string => {
+    const source = componentsSource();
+    const at = source.indexOf(`export function ${name}(`);
+    assert.notEqual(at, -1, `${name} is missing from components.tsx`);
+    const next = source.indexOf('\nexport ', at + 1);
+    return source.slice(at, next === -1 ? source.length : next);
+  };
+  const CAPS = ['numberOfLines', 'maxFontSizeMultiplier', 'allowFontScaling', 'adjustsFontSizeToFit'];
+
+  test('icon controls always carry a spoken label and a 44 point target', () => {
+    const source = componentsSource();
+    const button = part('IconButton');
+    const action = part('IconAction');
+
+    // The six marks that may stand alone, and no seventh.
+    const union = /export type IconButtonIcon = ([^;]+);/.exec(source);
+    assert.ok(union, 'IconButton has no closed set of icons');
+    const names = [...union[1]!.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]);
+    assert.deepEqual([...names].sort(), ['back', 'bell', 'bookmark', 'close', 'replay', 'speaker'], 'the icons that may stand without a word are not exactly the six');
+    assert.equal(union[1]!.split('|').length, 6, 'the set of icons that may stand alone holds something other than six names');
+    assert.match(button, /\n\s*icon: IconButtonIcon;/, 'IconButton takes an icon outside the six');
+
+    // The label is required, and it is what a screen reader says.
+    assert.match(button, /\n\s*label: string;/, 'IconButton\'s spoken label is not required');
+    assert.doesNotMatch(button, /\blabel\?:/, 'IconButton\'s spoken label can be left out');
+    assert.match(action, /\n\s*label: string;/, 'IconAction\'s word is not required');
+    assert.match(action, /\{ color: words \}, tile && ic\.tileWords\]\}>\{label\}<\/Text>/, 'IconAction does not show its word');
+    for (const [name, body] of [['IconButton', button], ['IconAction', action]] as const) {
+      assert.match(body, /accessibilityLabel\?: string;/, `${name} cannot be given a fuller spoken name`);
+      assert.match(body, /accessibilityLabel=\{accessibilityLabel \?\? label\}/, `${name} does not forward its spoken name, or does not fall back to its label`);
+      assert.equal((body.match(/<Press\b/g) ?? []).length, 1, `${name} is not exactly one press through the one spring`);
+      assert.doesNotMatch(body, /<Pressable\b/, `${name} keeps a Pressable of its own beside the spring`);
+      assert.doesNotMatch(body, /opacity/, `${name} says it is off in opacity, which leaves a mark with no shape to fall back on`);
+      assert.doesNotMatch(body, /shadow|elevation/, `${name} casts a shadow; F569 allows the live microphone alone`);
+      assert.doesNotMatch(body, /#[0-9A-Fa-f]{6}\b/, `${name} writes a raw colour`);
+      assert.doesNotMatch(body, /sound\/|playSfx|\bsfx\b/i, `${name} plays a sound of its own; an outcome's sound comes from its event`);
+      for (const cap of CAPS) assert.ok(!body.includes(cap), `${name} caps its words with ${cap}`);
+    }
+
+    // The target comes from the touch floor: 44, or 56 for the main audio.
+    assert.match(button, /const hit = size === 'lg' \? HIT \+ space\(3\) : HIT;/, 'the icon button\'s target does not come from the touch floor');
+    assert.match(button, /width: hit, height: hit, borderRadius: hit \/ 2/, 'the icon button is not a circle the size of its target');
+    assert.match(button, /depth="tile"/, 'the icon button does not press as deep as a tile');
+    assert.doesNotMatch(button, /\b(44|56)\b/, 'the icon button writes a raw size instead of the touch floor');
+    const styles = region(source, 'const ic = StyleSheet.create(', 'const ch = StyleSheet.create(');
+    assert.match(styles, /tile: \{[^}]*minHeight: HIT \+ space\(7\)/, 'an action tile is under its 72 floor');
+    assert.match(styles, /inline: \{ minHeight: HIT,/, 'an inline action is under the touch floor');
+
+    // Off is a colour, chosen by the ground: soft ink only on paper and white,
+    // the ground's own secondary on a colour (icons review 14), sand under a disc.
+    const ink = region(source, 'function groundInk(', 'function chosenInk(');
+    assert.match(ink, /if \(ground === 'paper'\) return disabled \? paper\.inkSoft : paper\.ink;/, 'an off control on paper is not soft ink');
+    assert.match(ink, /return disabled \? onColour\[ground\] : textOn\[ground\];/, 'an off control on a colour is soft ink, a forbidden pair, or not the ground\'s secondary');
+    assert.match(button, /groundInk\(ground, disabled\)/, 'a plain icon button does not take its ground\'s ink');
+    assert.match(action, /groundInk\(ground, disabled\)/, 'an inline action does not take its ground\'s words colour');
+    assert.match(button, /disabled \? paper\.skeleton/, 'an off disc is not the sand');
+    assert.match(action, /disabled \? paper\.skeleton/, 'an off action tile is not the sand');
+
+    // Two to four tiles share a row and wrap two to a line at the tab bar's
+    // large-text threshold, watched while the app is open.
+    const row = part('IconActionRow');
+    assert.match(source, /const ACTION_ROW_WRAPS = 1\.6;/, 'the action row does not wrap at the tab bar\'s threshold');
+    assert.match(row, /PixelRatio\.getFontScale\(\) >= ACTION_ROW_WRAPS/, 'the action row does not read the size the words are drawn at');
+    assert.match(row, /useWindowDimensions\(\);/, 'the action row does not re-render when the reading size changes');
+    assert.match(styles, /cell: \{ flex: 1, minWidth: 0 \}/, 'an action tile cannot shrink to share the row');
+    assert.match(styles, /cellWrapped: \{ flexBasis: '47%', flexGrow: 1, minWidth: 0 \}/, 'action tiles do not wrap two to a line at large text');
+
+    // Nothing in the new sheets casts a shadow or fades.
+    const sheets = source.slice(source.indexOf('const ic = StyleSheet.create('));
+    assert.doesNotMatch(sheets, /shadow|elevation|opacity/, 'the icon controls\' styles cast a shadow or fade');
+  });
+
+  test('a choice says it is chosen, fills when chosen, and its Hear is a separate target', () => {
+    const choice = part('Choice');
+    // A radio by default, said on a device and on the web; a button keeps a selected state.
+    assert.match(choice, /role = 'radio',/, 'a choice is not a radio by default');
+    assert.match(choice, /accessibilityRole=\{role\}/, 'a choice does not say what kind of control it is');
+    assert.match(choice, /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, 'a choice does not say it is chosen');
+    assert.match(choice, /aria-checked=\{radio \? selected : undefined\}/, 'a radio choice says nothing to the browser');
+    assert.match(choice, /<Press\s+haptic="selection"[\s\S]*?\bselected=\{selected\}/, 'a choice does not tick, pop and ring like a choice through the one press');
+    assert.equal((choice.match(/<Press\b/g) ?? []).length, 1, 'a choice is more than one press');
+    assert.doesNotMatch(choice, /<Pressable\b/, 'a choice keeps a Pressable of its own');
+
+    // Hearing never chooses: the speaker is its own button, outside the choice's press.
+    const closes = choice.indexOf('</Press>');
+    const hear = choice.indexOf('<IconButton');
+    assert.ok(closes > 0 && hear > closes, 'the Hear sits inside the choice, so hearing chooses and a button sits in a button');
+    assert.match(choice.slice(hear), /icon="speaker"\s+label=\{`\$\{playing \? 'Stop' : 'Hear'\} \$\{title\}`\}\s+onPress=\{onHear\}/, 'the Hear is not the speaker that says Stop while it sounds');
+
+    // The tile inside turns white with a brand mark, so it never vanishes into the fill.
+    assert.match(choice, /<TileOnChosen\.Provider value=\{selected\}>\{head\}<\/TileOnChosen\.Provider>/, 'the tile is not told the choice is chosen');
+    const tile = stripComments(readFileSync(join(SRC, 'icons', 'IconTile.tsx'), 'utf8'));
+    assert.match(tile, /const CHOSEN = \{ fill: paper\.card, mark: accent\.brand \} as const;/, 'a tile on a chosen choice is not white with the brand mark');
+    assert.match(tile, /const \{ fill, mark \} = chosen \? CHOSEN : TILE_GROUND\[ground\];/, 'a tile does not turn white on a chosen choice');
+
+    // A French title is French to a screen reader; no opacity, no shadow, no capped words.
+    assert.match(choice, /\{\.\.\.\(lang === 'fr' \? frenchText : \{\}\)\}/, 'a French choice is not read in a French voice');
+    assert.doesNotMatch(choice, /opacity|shadow|elevation/, 'a choice fades or casts a shadow');
+    for (const cap of CAPS) assert.ok(!choice.includes(cap), `a choice caps its words with ${cap}`);
+
+    // One choice: the option row is a thin wrapper, and the first run re-exports it.
+    assert.match(part('OptionRow'), /return <Choice role="button"/, 'OptionRow is a second choice component rather than a name for the one');
+    const card = stripComments(readFileSync(join(SRC, 'onboarding', 'ChoiceCard.tsx'), 'utf8')).trim();
+    assert.equal(card, "export { Choice } from '../components.tsx';", 'the first run draws a choice of its own');
+    const art = stripComments(readFileSync(join(SRC, 'onboarding', 'ChoiceArt.tsx'), 'utf8'));
+    assert.match(art, /return <IconTile name=\{name\} ground=\{ground\} size=\{size\} \/>;/, 'the first run\'s choice art is not a delegate to the icon tile');
+    assert.doesNotMatch(art, /<Svg\b|<Path\b/, 'the first run\'s choice art still draws by hand');
   });
 });

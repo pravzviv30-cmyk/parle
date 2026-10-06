@@ -174,14 +174,14 @@ export function GuestAccountHandoff({
           void adapter.signOut();
         }}
       />
-      {error && (
+      {error !== '' ? (
         <Text
           accessibilityLiveRegion="polite"
           style={[type.body, { color: paper.ink, marginTop: 20 }]}
         >
           {error}
         </Text>
-      )}
+      ) : null}
     </ScrollScreen>
   );
 }

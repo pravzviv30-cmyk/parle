@@ -462,6 +462,42 @@ The B parts, appended in revamp B Stage 2 for Stage 3 to paste:
 - **FrenchBlock** — a French line, large and marked as French, the English
   under it, and a 44pt hear disc that says Stop while the line sounds.
 
+The icon controls, appended in come alive (D2, F727). Each presses through
+`Press`, casts no shadow, says off in colour rather than opacity, and plays no
+sound of its own:
+
+- **IconButton** — a button with no visible label carries a spoken label. It
+  draws one of six marks every phone reads the same way (back, close, hear,
+  keep, replay and remind), and anything else is an `IconAction` with its word
+  on screen. The label is required and is what a screen reader says; the mark
+  is decorative. The target is the 44pt touch floor, or a 56pt disc for the main
+  audio on a page, both from `HIT`. Plain is the mark in its ground's ink, disc
+  is the white disc with an ink mark, ink is the ink disc with a white mark. A
+  toggle that is on (kept, reminders on) turns its mark Bulk, in brand blue
+  where it would be ink, and says so on a device and on the web; it moves only
+  through `AnimatedIcon`, on a real event. Off is soft ink on paper or white, a
+  sand disc, or the ground's own secondary on a colour. It presses as deep as a
+  tile.
+- **IconAction / IconActionRow** — an icon with its short word, for every
+  other action. A tile is the icon over the word in a white tile, 72pt tall,
+  two to four sharing a row and wrapping two to a line at the largest reading
+  sizes; inline is the icon beside the word at the touch floor, in the ground's
+  words colour. A chosen tile takes the blue ground's pale secondary, a 2pt
+  brand border and a Bulk brand icon, pops once and lights the ring layer; on a
+  blue or coral ground it takes the sun with ink. Busy turns the icon into the
+  turning refresh and says busy. Off is the sand tile with soft ink.
+- **Choice** — the one choice, for every option, plan, voice, level, goal and
+  time: a 72pt row with the tile at its head, the title, a line under it and a
+  28pt disc, or a tile for a grid of two. Not chosen, it is white with a 2pt
+  hairline (the paper on a white sheet), so it never matches its ground.
+  Chosen, it is the brand blue with white words and a white disc holding the
+  blue check, or the sun with ink on a blue ground; the tile inside turns white
+  with a brand mark, and it pops once and lights the ring layer. It is a radio
+  by default, said on a device and on the web. A Hear is its own speaker button
+  beside it, so hearing never chooses. `OptionRow` and the first run's `Choice`
+  are thin names for it, and `ChoiceArt` draws an `IconTile`. `OptionCard`, the
+  answer row in sittings and drills, still draws its own until it joins them.
+
 The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers
 are deleted. Callers use LedgerRow, Card and SceneBrief directly. No tint or
 retired wrapper is allowed in production source.

@@ -213,11 +213,11 @@ export function StarterContinuation({
                 />
               </>
             )}
-            {note && (
+            {note !== '' ? (
               <Text accessibilityLiveRegion="polite" style={type.body}>
                 {note}
               </Text>
-            )}
+            ) : null}
           </>
         )}
       </Sheet>

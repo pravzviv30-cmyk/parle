@@ -1,85 +1,63 @@
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { colour, decorative, paper } from '../theme.ts';
-/** Small native vector spots, deliberately brighter than form-field chrome. */
-export function ChoiceArt({
-  kind,
-}: {
-  kind: 'drink' | 'food' | 'family' | 'trip' | 'moving' | 'work' | 'time' | 'days' | 'ability';
-}) {
-  const color =
-    kind === 'family' || kind === 'time'
-      ? colour.coral
-      : kind === 'trip' || kind === 'work'
-        ? colour.blue
-        : colour.mint;
-  return (
-    <Svg width={40} height={40} viewBox="0 0 40 40" {...decorative}>
-      <Rect
-        x={0}
-        y={0}
-        width={40}
-        height={40}
-        rx={12}
-        fill={kind === 'drink' || kind === 'days' ? colour.sun : color}
-      />
-      {kind === 'drink' || kind === 'food' ? (
-        <>
-          <Path
-            d="M10 14h16v10a7 7 0 0 1-14 0V14 M26 15h3a4 4 0 0 1 0 8h-3 M9 31h21"
-            stroke={paper.ink}
-            strokeWidth={2}
-            fill="none"
-            strokeLinecap="round"
-          />
-          <Path d="M16 10V7m6 3V7" stroke={paper.ink} strokeWidth={2} strokeLinecap="round" />
-        </>
-      ) : kind === 'family' ? (
-        <Path d="M20 30L10 21C1 12 14 6 20 14C26 6 39 12 30 21Z" fill={paper.card} />
-      ) : kind === 'moving' ? (
-        <>
-          <Path d="M8 19L20 9L32 19V31H8Z" fill={paper.ink} />
-          <Rect x={17} y={23} width={6} height={8} fill={paper.card} />
-        </>
-      ) : kind === 'work' ? (
-        <>
-          <Rect x={8} y={15} width={24} height={17} rx={3} fill={paper.card} />
-          <Path d="M15 15V10H25V15M8 21H32" stroke={paper.card} strokeWidth={2} fill="none" />
-        </>
-      ) : kind === 'trip' ? (
-        <>
-          <Path d="M9 10L31 20L21 23L17 32Z" fill={paper.card} />
-          <Path d="M15 17L25 21" stroke={color} strokeWidth={2} />
-        </>
-      ) : kind === 'time' ? (
-        <>
-          <Circle cx={20} cy={20} r={12} fill={paper.card} />
-          <Path
-            d="M20 12V20L26 24"
-            stroke={paper.ink}
-            strokeWidth={2}
-            fill="none"
-            strokeLinecap="round"
-          />
-        </>
-      ) : kind === 'days' ? (
-        <>
-          <Rect x={9} y={10} width={22} height={22} rx={3} fill={paper.card} />
-          <Path
-            d="M9 17H31M15 8V13M25 8V13M14 24L18 28L26 21"
-            stroke={paper.ink}
-            strokeWidth={2}
-            fill="none"
-            strokeLinecap="round"
-          />
-        </>
-      ) : (
-        <>
-          <Path d="M10 10H30V26H22L16 32V26H10Z" fill={paper.ink} />
-          <Circle cx={15} cy={18} r={2} fill={paper.card} />
-          <Circle cx={21} cy={18} r={2} fill={paper.card} />
-          <Circle cx={27} cy={18} r={2} fill={paper.card} />
-        </>
-      )}
-    </Svg>
-  );
+/**
+ * The mark at the head of a first-run choice: a delegate to `IconTile` (come
+ * alive, D11; icons section 1.4). It used to draw nine small vector spots of
+ * its own, several of them the same cup; now each kind is one Bulk icon from
+ * the set on the ground that means it, and the tile pairs that ground with
+ * the one mark colour allowed on it.
+ *
+ * The reasons each have their own icon and colour: food on sun, a trip on
+ * blue, family on coral, moving on mint, work on ink, and exploring on the
+ * quiet sand skeleton. The three start levels are all mint, so the icon alone
+ * carries the step from an empty bubble to two. Coffee and tea no longer share
+ * a cup.
+ *
+ * `drink`, `ability`, `time` and `days` name a page rather than an answer, the
+ * way the first-run screens still ask for them; they keep the old grounds and
+ * stay until those screens pass the answer itself. Decorative, like every
+ * tile: the choice around it names itself in words.
+ */
+
+import type { ReactElement } from 'react';
+import { IconTile, type TileGround } from '../icons/IconTile.tsx';
+import type { BulkIconName } from '../icons/names.ts';
+
+export type ChoiceArtKind =
+  | 'drink'
+  | 'coffee'
+  | 'tea'
+  | 'food'
+  | 'family'
+  | 'trip'
+  | 'moving'
+  | 'work'
+  | 'because'
+  | 'ability'
+  | 'zero'
+  | 'few'
+  | 'getby'
+  | 'time'
+  | 'days';
+
+/** Each kind's icon and the ground it stands on. */
+const ART: Readonly<Record<ChoiceArtKind, { readonly name: BulkIconName; readonly ground: TileGround }>> = {
+  drink: { name: 'coffee', ground: 'sun' },
+  coffee: { name: 'coffee', ground: 'sun' },
+  tea: { name: 'tea', ground: 'sun' },
+  food: { name: 'food', ground: 'sun' },
+  family: { name: 'family', ground: 'coral' },
+  trip: { name: 'trip', ground: 'blue' },
+  moving: { name: 'moving', ground: 'mint' },
+  work: { name: 'work', ground: 'ink' },
+  because: { name: 'exploring', ground: 'skeleton' },
+  ability: { name: 'bubbles', ground: 'mint' },
+  zero: { name: 'bubble-empty', ground: 'mint' },
+  few: { name: 'bubble-line', ground: 'mint' },
+  getby: { name: 'bubbles', ground: 'mint' },
+  time: { name: 'clock', ground: 'coral' },
+  days: { name: 'calendar', ground: 'sun' },
+};
+
+export function ChoiceArt({ kind, size = 40 }: { kind: ChoiceArtKind; size?: number }): ReactElement {
+  const { name, ground } = ART[kind];
+  return <IconTile name={name} ground={ground} size={size} />;
 }

@@ -8,13 +8,19 @@
  * quiet sixth ground is `paper.skeleton` with ink, the fill the loading blocks
  * and the first rungs already use.
  *
+ * A tile inside a chosen `Choice` is the one exception: the choice fills with
+ * the brand blue (or the sun on a blue ground), which would swallow a blue or
+ * a sun tile whole, so there the tile turns white with the mark in the brand
+ * blue (come alive, icons section 1.6). `Choice` says so through
+ * `TileOnChosen`; nothing else provides it.
+ *
  * The corner is 0.3 of the tile (12 at 40, 14 at 48), and the mark is 0.55 of
  * it. Decorative: the choice around it names itself in words.
  */
 
-import type { ReactElement } from 'react';
+import { createContext, useContext, type ReactElement } from 'react';
 import { View } from 'react-native';
-import { colour, decorative, paper } from '../theme.ts';
+import { accent, colour, decorative, paper } from '../theme.ts';
 import { GoalDial, type GoalQuarters } from './GoalDial.tsx';
 import { Icon } from './Icon.tsx';
 import type { BulkIconName } from './names.ts';
@@ -31,6 +37,12 @@ export const TILE_GROUND: Readonly<Record<TileGround, { readonly fill: string; r
   ink: { fill: paper.ink, mark: paper.onInk },
   skeleton: { fill: paper.skeleton, mark: paper.ink },
 };
+
+/** A tile on a chosen choice: white, with the mark in the brand blue. */
+const CHOSEN = { fill: paper.card, mark: accent.brand } as const;
+
+/** Whether the tiles inside sit on a chosen choice. Provided by `Choice` alone. */
+export const TileOnChosen = createContext(false);
 
 /** The share of the tile the mark takes. */
 const MARK = 0.55;
@@ -55,7 +67,8 @@ export type IconTileProps = {
 );
 
 export function IconTile({ ground, size = 48, name, dial }: IconTileProps): ReactElement {
-  const { fill, mark } = TILE_GROUND[ground];
+  const chosen = useContext(TileOnChosen);
+  const { fill, mark } = chosen ? CHOSEN : TILE_GROUND[ground];
   const inner = Math.round(size * MARK);
   return (
     <View

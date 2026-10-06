@@ -9868,15 +9868,17 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F727 — Underlined text links stand in for icon controls
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx
+- note 2026-10-06, ca/p0-controls (step D2): IconButton (six marks, label required, 44 or 56 from HIT, depth tile, off by ground), IconAction and IconActionRow (tile and inline, two to four, wrapping at font scale 1.6) and the one Choice (radio by default, brand or sun fill, Hear a separate IconButton) are appended to components.tsx; OptionRow is a thin wrapper over Choice, ChoiceCard re-exports it and ChoiceArt draws an IconTile. OptionCard keeps its own drawing because the F355 title pins its sounding ear. The title failed under each of ten mutations. Screens still draw GhostButton until the Phase 2 and Phase 5 sweeps; not yet seen on a device.
 - verified-by: `icon controls always carry a spoken label and a 44 point target`
 
 ### F728 — Empty-string state reaches a View as a text node on web
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1014, apps/mobile/src/onboarding/StarterContinuation.tsx:216, apps/mobile/src/onboarding/GuestAccountHandoff.tsx:177, apps/mobile/src/settings/SettingsScreen.tsx:871
 - note: 335 "Unexpected text node" console errors per web onboarding run, from `{issue && (...)}` where issue is ''.
+- note 2026-10-06, ca/p0-controls (step D2): the eight sites (PreAccountOnboarding four, StarterContinuation, GuestAccountHandoff, and SettingsScreen's two trouble lines) render `{x !== '' ? (...) : null}`; src/textNodes.test.ts walks every empty-string state and failed with any one site reverted. The web console count was not re-measured in a browser.
 - verified-by: `no empty string reaches a view as a text node`
 
 ### F729 — There is nowhere to keep streak covers, quest claims, badges or celebrated moments
@@ -9931,9 +9933,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F736 — An off switch is invisible on iOS
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/settings/SwitchRow.tsx:57
 - note: The false track colour is set, but iOS paints an off switch from ios_backgroundColor, so every off toggle in Settings shows as a bare thumb. The Sound effects switch joins that screen in this programme.
+- note 2026-10-06, ca/p0-controls (step D2): SwitchRow sets ios_backgroundColor to paper.field, the false track; settings/SwitchRow.test.ts holds every Switch in the app to the pair and failed with the line removed or set to another colour. Not yet seen on an iPhone.
 - verified-by: `an off switch shows its track on iOS`
 
 ### F737 — The selected tab icon never shows it was chosen
