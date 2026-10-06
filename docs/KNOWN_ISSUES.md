@@ -9929,9 +9929,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F735 — Production guest speech is off, so the first win is never spoken
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/onboardingSpeech.ts:10
 - note: Founder decision D13 enables guest speaking with server protection: an anonymous admission budget (per guest capability, installation, address and a global daily ceiling), about 60 seconds of speech per guest, the existing 20 s capture, 2 MiB cap and 24 h capability. Security and privacy review required.
+- note: 6 October: ticked at merge by the integrator after two independent security reviews (5cb43138 and 0386e40c, both SHIP) covering abuse, cost and privacy; no new data recipient (Deepgram is already named in STARTER_PROCESSING and legal/policy.ts). Production stays off until LUVANI_GUEST_SPEECH=1 and the runbook's staging proofs on real Redis and real iOS and Android takes. Open follow-ups: F749, F750.
 - verified-by: `guest speech is admitted only within its per-guest, per-installation, per-address and daily limits`
 
 ### F736 — An off switch is invisible on iOS

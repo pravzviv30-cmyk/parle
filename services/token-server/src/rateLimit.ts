@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
+import { isIP } from 'node:net';
 
 export interface RateLimitRule {
   name: string;
@@ -219,6 +220,8 @@ export function privateSignal(salt: string, kind: 'ip' | 'user' | 'installation'
  *     and the per-IP budget is spoofable. Leave the flag unset unless a proxy
  *     really is terminating the connection; the socket peer is the honest
  *     source in that topology and is what this returns.
+ *
+ * An IPv6 peer is budgeted by its /64, see `addressBucket`.
  */
 export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
   if (trustProxy) {
@@ -230,9 +233,37 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0 && entry.length <= 64);
     const nearestHop = chain.at(-1);
-    if (nearestHop) return nearestHop;
+    if (nearestHop) return addressBucket(nearestHop);
   }
-  return req.socket.remoteAddress ?? 'unknown';
+  return addressBucket(req.socket.remoteAddress ?? 'unknown');
+}
+
+/**
+ * One network's share of a per-address budget.
+ *
+ * A home or mobile network is given a whole IPv6 /64 and picks the low half of
+ * each address itself, so a full IPv6 address would let one network rotate into
+ * a fresh budget on every request. IPv6 is therefore cut to its /64. IPv4 is
+ * returned exactly as given, including an IPv4 address carried inside IPv6 (the
+ * mapped `::ffff:0:0/96` form a dual-stack socket reports and the NAT64
+ * `64:ff9b::/96` prefix), which would otherwise put every IPv4 learner in one
+ * bucket. Anything that is not an address is returned as given.
+ */
+function addressBucket(address: string): string {
+  if (isIP(address) !== 6) return address;
+  const bare = address.split('%')[0] ?? address;
+  const [head = '', tail] = bare.split('::');
+  const groupsOf = (part: string) => (part ? part.split(':') : []);
+  // A dotted IPv4 tail fills the last two groups; it never reaches the first four.
+  const width = (groups: string[]) => groups.reduce((sum, group) => sum + (group.includes('.') ? 2 : 1), 0);
+  const left = groupsOf(head);
+  const right = tail === undefined ? [] : groupsOf(tail);
+  const groups = [...left, ...Array<string>(tail === undefined ? 0 : 8 - width(left) - width(right)).fill('0'), ...right]
+    .map((group) => (group.includes('.') ? group : Number.parseInt(group, 16).toString(16)));
+  const zero = (from: number, to: number) => groups.slice(from, to).every((group) => group === '0');
+  if (zero(0, 5) && groups[5] === 'ffff') return address;
+  if (groups[0] === '64' && groups[1] === 'ff9b' && zero(2, 6)) return address;
+  return `${groups.slice(0, 4).join(':')}::/64`;
 }
 
 export function installationSignal(req: IncomingMessage): string | null {

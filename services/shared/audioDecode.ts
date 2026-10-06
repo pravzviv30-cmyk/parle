@@ -21,6 +21,7 @@ export function pcmWav(pcm:Uint8Array):Uint8Array {
 /** Two decoders per process, 2MiB compressed, 30s mono PCM, 5s wall time.
  * Runtime container must provide a reviewed immutable binary and CPU/memory limits.
  * Unsupported/nonseekable encodings refuse rather than forwarding unchecked audio.
+ * Anonymous guest speech may hold at most one of the two (token-server onboardingSpeech.ts).
  */
 export async function decodeAudio(audio:Uint8Array,options:{env?:Record<string,string|undefined>;signal?:AbortSignal;timeoutMs?:number}={}):Promise<DecodedAudio> {
  if(audio.length<1 || audio.length>2097152 || sniffAudio(audio).mime==='application/octet-stream' || active>=2)throw new Error('audio-input-refused');
