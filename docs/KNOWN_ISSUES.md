@@ -10079,6 +10079,95 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Found by the 6 October data reviews. The store refuses rows dated more than a day after the writing device's clock, which stops a wrong clock on another device, but a device whose own clock is far ahead still writes rows the merge treats as newest, and the 60-day windows are measured from the newest row. The merge must stay clock-free, so this is a known limit, written up in docs/STATE_AND_STORAGE.md.
 - verified-by: `a game row from a clock far ahead cannot shorten what another device keeps`
 
+### F754 — The first run shows no plan, celebrates nothing and asks for things at the wrong moment
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/firstRun
+- note: Founder decisions D5, D13, D14 and README Part 5.C: where, level and daily goal build a visible plan card; the plan is revealed with real numbers; the first win is celebrated only for an accepted real reply; day one, the reminder ask and the save card come only after a finished practice; nothing in the first-run screens sends, stores or records activity before consent.
+- verified-by: `the win shows the learner's line beside the natural line and celebrates only an accepted real reply`
+- verified-by: `the reminder is asked only after a finished practice and only on a real tap`
+- verified-by: `no first-run page component can send, store or record activity`
+- verified-by: `the save card lists only what this phone holds`
+
+### F755 — The start sheet hides its last controls under the footer with no cue
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/components.tsx:1818, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:654
+- note: The consent sheet's content runs under the footer rule on a phone and nothing says there is more. Show the footer hairline and flash the scroll indicator only when the content scrolls.
+- verified-by: `the start sheet shows a scroll cue when its content runs under the footer`
+
+### F756 — The first run offers speaking when speech is unavailable
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:381
+- note: "Start speaking" is the primary action even when the server says guest speech is off, so learners land on "Speaking is unavailable". Speaking is the default only when speechAvailable is true; otherwise typing is offered first, and a 503 from /onboarding/audio moves calmly to typing (D13).
+- verified-by: `speaking is offered in the first run only when the server says speech is available`
+
+### F757 — A kept first-run phrase stores the learner's unchecked spelling
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/GuestAccountHandoff.tsx:71, apps/mobile/src/onboarding/StarterContinuation.tsx:80
+- note: The phrasebook and Home keep what the learner typed, unchecked, instead of the natural line the task models. Keep task.model.
+- verified-by: `a kept first-run phrase is the natural line, never the learner's unchecked spelling`
+
+### F758 — A disabled Next looks like a live button
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/NextButton.tsx:41, apps/mobile/src/components.tsx:981
+- note: A disabled pill is a slate fill that reads as live. Disabled is paper.skeleton with soft ink; enabling cross-fades to ink with a pop and a glint.
+- verified-by: `a disabled Next looks disabled on every ground`
+
+### F759 — A drill answer gets one line of text and no rhythm
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx, apps/mobile/src/drill
+- note: README Part 5.E: an answer sheet per verdict (good mint with sound and haptic, typo sun, first miss calm with no sound, second miss shows the form and waits for Continue, own-words retry "Nearly there." per D21), a living bar with a combo glow, and never an auto-advance while a screen reader is on.
+- verified-by: `a good answer, a typo and a miss each get their own sheet, and a screen reader never auto-advances`
+- verified-by: `a miss draws no mark, plays no sound and fires no haptic`
+
+### F760 — A finished sitting shows no end card
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx, apps/mobile/src/ReviewScreen.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx, apps/mobile/src/SummaryScreen.tsx
+- note: Every finished drill, practice set, review, daily phrase and lesson shows the in-place end card from celebrate/EndCard.tsx with numbers only from the settled GameDelta.
+- verified-by: `an end card shows only numbers the settle pipeline read back`
+
+### F761 — A finished review and an empty deck look the same
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/ReviewScreen.tsx:176
+- note: A sitting with grades shows "Review complete." with its end card; a deck with nothing due still says "Nothing waiting." and plays nothing.
+- verified-by: `a finished review is told apart from a review with nothing waiting`
+
+### F762 — Keeping an own-words phrase says saved when the write failed
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/DrillScreen.tsx:1301
+- note: Say saved, fill the bookmark and play the save moment only on a durable acknowledgement.
+- verified-by: `a kept own-words phrase is called saved only on a durable acknowledgement`
+
+### F763 — The microphone stays published after the recap arrives
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/live/useLiveSession.ts:1104
+- note: When the session ends the room is still open for the recap and the microphone stays published. Close it (setMicrophoneEnabled(false) and the mic-open state) before the recap shows, and release the live hold once the session has ended and the microphone is unpublished, so the recap may play its moment.
+- verified-by: `the recap closes the microphone before it shows`
+
+### F764 — The conversation orb never hears or answers the voices in the room
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/VoiceOrb.tsx, apps/mobile/src/live
+- note: README Part 5.E: the listening ring follows the learner's real microphone level, the speaking bars follow the tutor's real audio, levels decay to rest after 120 ms because the hook never writes 0, thinking is honest, and the orb falls back to today's loops when levels are unavailable.
+- verified-by: `the orb's levels come from real audio and decay to rest when the audio stops`
+
+### F765 — Nothing marks a scene goal or a scene won in the room
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tutor/MissionTaskList.tsx, apps/mobile/src/ConvoScreen.tsx
+- note: Goal ticks pop with a check and are announced; the scene won card plays in place; no sound or haptic while the microphone is live; the recap plays the scene moment and a postcard stamp for every independent finish.
+- verified-by: `the room plays no sound while the mic is live or the tutor speaks`
+- verified-by: `the stamp plays for every independent finish this session, never for an assisted replay`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
