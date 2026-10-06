@@ -318,10 +318,13 @@ describe('the store trial and yearly projection in SQL (F733)', () => {
     // six-argument function only and is not run by the gate.
     const id = user(20);
     const end = inDays(30);
+    // One purchase, so one start: a store keeps purchase_date fixed for a period. A start
+    // computed per call would cross a second boundary under load and read as a new period.
+    const start = inDays(-1);
     const event = async (ticketNo: number, kind: string, plan: string | null, at: string | null, eventId: string, grant: number | null) =>
       (await db.query<{ r: { kind: string; reason: string | null; entitlement: Row } }>(
         'select public.apply_billing_projection_v2($1,$2,$3,$4,$5,$6,$7,null,$8) as r',
-        [id, ticketNo, kind, plan, at, eventId, grant, kind === 'active' ? inDays(-1) : null])).rows[0]!.r;
+        [id, ticketNo, kind, plan, at, eventId, grant, kind === 'active' ? start : null])).rows[0]!.r;
     const first = await event(await ticket(id), 'active', 'regular', end, 'v2-first', CAP.regular);
     assert.equal(first.kind, 'active');
     await db.query('update public.entitlements set seconds_used = 600 where user_id = $1', [id]);
