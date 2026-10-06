@@ -137,7 +137,7 @@ describe('the tutor’s memory, edited by the learner', () => {
     delete v7.learnerGoals;
     const up = upgradeStored(v7, NOW);
     assert.ok(up);
-    assert.equal(up.version, 8);
+    assert.equal(up.version, 9);
     assert.deepEqual(up.forgottenFacts, []);
     assert.deepEqual(up.learnerGoals, []);
 
@@ -146,7 +146,7 @@ describe('the tutor’s memory, edited by the learner', () => {
     const policy = SYNC_POLICIES.find((entry) => entry.namespace === 'profile');
     assert.ok(policy, 'the profile namespace has no sync policy');
     assert.equal(policy.writes, createStoredProfile({ name: null, motivation: null }, NOW).version);
-    assert.equal(policy.writes, 8);
+    assert.equal(policy.writes, 9);
     assert.match(policy.rule, /forgotten facts union/, 'the policy table does not say the tombstones union');
 
     // And the merge, through the real chain: a forget on the quiet phone
@@ -157,7 +157,7 @@ describe('the tutor’s memory, edited by the learner', () => {
       const merged = policy.merge(a, b, NOW) as StoredProfile;
       assert.ok(typeof merged === 'object' && merged !== null && 'forgottenFacts' in merged, 'the merge declined two readable profiles');
       assert.deepEqual(merged.forgottenFacts, [factKey('Has a dog')], 'the busier device undid the forget');
-      assert.equal(merged.version, 8);
+      assert.equal(merged.version, 9);
     }
   });
 });

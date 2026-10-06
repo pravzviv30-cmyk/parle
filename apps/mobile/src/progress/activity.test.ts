@@ -304,3 +304,45 @@ test('reset waits for an already issued light-day disk write before removing dat
   assert.equal(await writing, 'failed');
   assert.equal(disk.has(`luvani.u.${uid}.activity`), false);
 });
+
+describe('a finished sitting is a practice day whatever it earned — F731', () => {
+  test('a finished sitting that earns no XP still records a practice day', async () => {
+    const { dirtyStamp, clearDirty } = await import('../sync/registry.ts');
+    const key = `luvani.u.${uid}.activity`;
+    const at = new Date(2026, 9, 2, 12).getTime();
+    const earlier = dirtyStamp('activity');
+    if (earlier !== null) clearDirty('activity', earlier);
+
+    // A drill set finished with nothing right. Before this, the call returned
+    // nothing and wrote nothing, so the learner's day vanished from the streak.
+    const ack = await recordActivity('drill', 0, at, { durationMs: 600_000, activeMs: 420_000 });
+    assert.equal(ack, 'durable', 'a finished sitting with no XP did not say its day landed');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02'], 'the day of a finished sitting with no XP is missing');
+    assert.deepEqual(await loadActivity({ strict: true }), [], 'a sitting with no XP wrote an entry, so XP or minutes could follow it');
+    const stamp = dirtyStamp('activity');
+    assert.notEqual(stamp, null, 'the new day was not flagged for the account, so another device never hears of it');
+    clearDirty('activity', stamp!);
+
+    // The same day again, and a conversation with nothing in it: still one day, still no entry.
+    assert.equal(await recordActivity('convo', -3, at + 60_000), 'durable');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02']);
+    assert.deepEqual(await loadActivity({ strict: true }), []);
+
+    // A sitting that did earn XP is unchanged: one entry, its day, and now its answer.
+    assert.equal(await recordActivity('review', 4, at + 86_400_000), 'durable');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02', '2026-10-03']);
+    assert.equal((await loadActivity({ strict: true })).length, 1);
+
+    // What cannot be a sitting records nothing and says so.
+    const before = disk.get(key);
+    assert.equal(await recordActivity('drill', Number.NaN, at), 'failed');
+    assert.equal(await recordActivity('drill', 0, Number.NaN), 'failed');
+    assert.equal(disk.get(key), before, 'a malformed sitting changed the log');
+
+    // An unreadable log is never replaced with a fresh one, for a day or an entry.
+    disk.set(key, '{broken');
+    assert.equal(await recordActivity('drill', 0, at), 'failed');
+    assert.equal(await recordActivity('drill', 5, at), 'failed');
+    assert.equal(disk.get(key), '{broken');
+  });
+});

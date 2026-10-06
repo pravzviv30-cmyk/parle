@@ -1,5 +1,8 @@
-import { starterTasks, type StarterFeedback } from '@luvani/core';
+import { dayKeyOf, starterTasks, type DayKey, type StarterFeedback } from '@luvani/core';
 import { repaired, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
+
+/** Finish instants kept: the newest 31, a month of daily practice. The oldest go first. */
+export const MAX_GUEST_FINISHES = 31;
 
 export interface GuestAttempt {
   taskId: string;
@@ -21,6 +24,14 @@ export interface GuestPractice {
   kept: boolean;
   completed: boolean;
   plan: PreAccountOnboardingDraft;
+  /**
+   * When a practice was saved as finished, epoch ms, oldest first, the newest
+   * 31 (F732). The streak a guest sees is counted from these and nothing else:
+   * an attempt, an open screen or a practice left unfinished is never a day.
+   * Absent on every record written before the field, which reads as none,
+   * because a finish nobody recorded is not one this phone can vouch for.
+   */
+  finishedAt?: number[];
 }
 const finite = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -28,6 +39,16 @@ const text = (value: unknown, max = 600): value is string =>
   typeof value === 'string' && value.length <= max;
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
+
+/** Finish instants a date can hold, deduplicated, oldest first, the newest 31. */
+function finishes(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  const held = new Set<number>();
+  for (const at of value) {
+    if (typeof at === 'number' && Number.isSafeInteger(at) && at > 0 && Number.isFinite(new Date(at).getTime())) held.add(at);
+  }
+  return [...held].sort((a, b) => a - b).slice(-MAX_GUEST_FINISHES);
+}
 
 /** A corrupt disk cannot invent eligibility, an attempt or a usable capability. */
 export function repairGuestPractice(value: unknown): GuestPractice | null {
@@ -90,6 +111,7 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
       },
     });
   }
+  const finishedAt = finishes(value.finishedAt);
   return {
     version: 2,
     plan,
@@ -102,7 +124,28 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
     attempts,
     kept: value.kept === true,
     completed: value.completed === true,
+    ...(finishedAt.length > 0 ? { finishedAt } : {}),
   };
+}
+
+/**
+ * The practice as it is saved when the learner finishes it: completed, and
+ * this finish instant added to `finishedAt`. Pure, so the finish is only a
+ * streak day once the caller has persisted exactly this value; a save that
+ * fails leaves no day behind.
+ */
+export function finishGuestPractice(guest: GuestPractice, at = Date.now()): GuestPractice {
+  return { ...guest, completed: true, finishedAt: finishes([...(guest.finishedAt ?? []), at]) };
+}
+
+/**
+ * The local days a guest practice was saved as finished, oldest first, one per
+ * day. Only `finishedAt` counts: attempts, a practice left open and the
+ * `completed` flag on its own say nothing about which day it was.
+ * `dayOf` is the device's local calendar unless a caller names another.
+ */
+export function guestPracticeDays(practice: GuestPractice | null, dayOf: (at: number) => DayKey = dayKeyOf): DayKey[] {
+  return [...new Set(finishes(practice?.finishedAt).map(dayOf))].sort();
 }
 
 /** Resume the introduced task before moving to another one. */
@@ -142,5 +185,7 @@ export function offlineContinuation(
     kept: false,
     completed: false,
     offline: true,
+    // A day already finished stays finished when the learner picks a new plan.
+    ...(prior?.finishedAt?.length ? { finishedAt: prior.finishedAt } : {}),
   };
 }

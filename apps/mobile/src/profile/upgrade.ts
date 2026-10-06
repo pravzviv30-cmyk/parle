@@ -20,7 +20,9 @@
  * Version 8 adds `forgottenFacts`, the facts the learner asked the tutor to
  * forget, and `learnerGoals`, what they wrote they want from French. Both are
  * lists of strings, both empty on every branch below 8, and both read only
- * from a v8 blob's own slot.
+ * from a v8 blob's own slot. Version 9 adds no field: it lets `dailyGoalMin`
+ * hold 20, the Intense goal, and moves the version so an older build, which
+ * would read 20 as no goal, goes quiet instead of merging the loss.
  *
  * Three rules hold this file together, and the first two are about not putting
  * words in the learner's mouth:
@@ -46,11 +48,11 @@
  *    own `true` is a choice. Junk in the slot is false too, because the only
  *    thing this app ever writes there is a boolean.
  *
- * ## What a v8 blob costs an older build, said plainly
+ * ## What a newer blob costs an older build, said plainly
  *
- * A build that predates this version has no `version === 8` branch, so it
- * reads a v8 profile as unreadable and hands back null, exactly as it does for
- * a v99 blob. The chain never throws and never mutates what it was given, so
+ * A build that predates a version has no branch for it (a v8 build has no
+ * `version === 9`), so it reads that profile as unreadable and hands back null,
+ * exactly as it does for a v99 blob. The chain never throws and never mutates what it was given, so
  * the blob on disk survives the read — but that build will run onboarding over
  * the top of it. That is the cost of every version bump in this chain and it is
  * not new here; what is new is that the field a downgrade discards is a safety
@@ -67,9 +69,17 @@ import { sanitisePreferenceClocks } from '@luvani/brain/profile/merge';
 /** A profile through the chain but before the brain is repaired. */
 export type UpgradedProfile = Omit<StoredProfile, 'brain'> & { brain: unknown };
 
-/** The only three goals ever offered. Anything else on disk is not an answer. */
-function storedGoal(value: unknown): 5 | 10 | 15 | null {
-  return value === 5 || value === 10 || value === 15 ? value : null;
+/**
+ * The only goals ever offered: five, ten and fifteen, and since v9 twenty.
+ * Anything else on disk is not an answer.
+ *
+ * Twenty is read from every version, not only from a v9 blob. Nothing this app
+ * ever wrote put a 20 anywhere before v9, so a 20 on an older envelope can only
+ * be a v9 answer that travelled through an older copy, and reading it as no
+ * goal would be this chain discarding a choice the learner made (F730).
+ */
+function storedGoal(value: unknown): 5 | 10 | 15 | 20 | null {
+  return value === 5 || value === 10 || value === 15 || value === 20 ? value : null;
 }
 
 /**
@@ -116,7 +126,8 @@ export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfil
   const upgraded = upgradeShape(parsed, now);
   if (!upgraded) return null;
   // Clocks were added within v8. Earlier envelopes cannot attest an edit.
-  if ((parsed as Record<string, unknown>).version !== 8) delete upgraded.preferenceClocks;
+  const version = (parsed as Record<string, unknown>).version;
+  if (version !== 8 && version !== 9) delete upgraded.preferenceClocks;
   return sanitisePreferenceClocks(upgraded);
 }
 
@@ -128,7 +139,7 @@ function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
 
   if (version === 1) {
     return {
-      version: 8,
+      version: 9,
       name: null,
       // v1 predates the date-of-birth question entirely, so there is nothing
       // here to keep and nothing to derive from.
@@ -164,7 +175,7 @@ function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
       ...(record.practiceDaysPerWeek !== undefined ? { practiceDaysPerWeek: record.practiceDaysPerWeek === 'none' ? 'none' : [3,5,7].includes(Number(record.practiceDaysPerWeek)) && typeof record.practiceDaysPerWeek === 'number' ? record.practiceDaysPerWeek as 3 | 5 | 7 : null } : {}),
       ...(record.onboardingGoal !== undefined ? { onboardingGoal: ['food','trip','family','moving','work','because'].includes(String(record.onboardingGoal)) ? String(record.onboardingGoal) : null } : {}),
       ...(record.onboardingDrink !== undefined ? { onboardingDrink: record.onboardingDrink === 'tea' || record.onboardingDrink === 'coffee' ? record.onboardingDrink : null } : {}),
-      version: 8,
+      version: 9,
       name: typeof record.name === 'string' ? record.name : null,
       dob,
       ageConfirmed: ageConfirmedFromDob(dob, new Date(now)),
@@ -180,13 +191,13 @@ function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
       brain: record.brain,
     };
   }
-  if (version === 4 || version === 5 || version === 6 || version === 7 || version === 8) {
+  if (version === 4 || version === 5 || version === 6 || version === 7 || version === 8 || version === 9) {
     return {
       ...(record as unknown as UpgradedProfile),
       ...(record.practiceDaysPerWeek !== undefined ? { practiceDaysPerWeek: record.practiceDaysPerWeek === 'none' ? 'none' : [3,5,7].includes(Number(record.practiceDaysPerWeek)) && typeof record.practiceDaysPerWeek === 'number' ? record.practiceDaysPerWeek as 3 | 5 | 7 : null } : {}),
       ...(record.onboardingGoal !== undefined ? { onboardingGoal: ['food','trip','family','moving','work','because'].includes(String(record.onboardingGoal)) ? String(record.onboardingGoal) : null } : {}),
       ...(record.onboardingDrink !== undefined ? { onboardingDrink: record.onboardingDrink === 'tea' || record.onboardingDrink === 'coffee' ? record.onboardingDrink : null } : {}),
-      version: 8,
+      version: 9,
       name: typeof record.name === 'string' ? record.name : null,
       dob,
       // Already asked and answered. A blob carrying anything else in that slot
@@ -195,23 +206,23 @@ function upgradeShape(parsed: unknown, now: number): UpgradedProfile | null {
       ageConfirmed: record.ageConfirmed === true ? true : null,
       // A v4 blob predates the field, so its slot is empty however the spread
       // above filled it; from v5 on the stop on the disk is that blob's own.
-      ageStopAt: version === 5 || version === 6 || version === 7 || version === 8 ? storedStop(record.ageStopAt) : null,
+      ageStopAt: version === 5 || version === 6 || version === 7 || version === 8 || version === 9 ? storedStop(record.ageStopAt) : null,
       // The same reading, one version later. v4 and v5 predate the voice
       // question, so whatever the spread carried up from their slot is not an
       // answer either — only a v6 blob's voice is its own. Spelling both
       // conditions out rather than testing `version >= 5` is deliberate:
       // `version` is unknown off the disk, and a relational compare against an
       // unknown is how a string "6" or a stray true would slip into a branch.
-      tutorVoice: version === 6 || version === 7 || version === 8 ? storedVoice(record.tutorVoice) : null,
+      tutorVoice: version === 6 || version === 7 || version === 8 || version === 9 ? storedVoice(record.tutorVoice) : null,
       // One version on, the same shape of reading: only a v7 blob has ever
       // been asked, and only its own `true` is an answer. Anything else in the
       // slot, a string, a number, a stray 1, is not a boolean this app wrote.
-      preferTyping: (version === 7 || version === 8) && record.preferTyping === true,
-      // The two lists v8 added, each read only from a v8 blob's own slot and
+      preferTyping: (version === 7 || version === 8 || version === 9) && record.preferTyping === true,
+      // The two lists v8 added, each read only from a v8 or v9 blob's own slot and
       // through the one reader `profile/memory.ts` keeps for it, so a junk
       // entry, a number, a blank, is dropped rather than carried.
-      forgottenFacts: version === 8 ? storedForgottenFacts(record.forgottenFacts) : [],
-      learnerGoals: version === 8 ? storedLearnerGoals(record.learnerGoals) : [],
+      forgottenFacts: version === 8 || version === 9 ? storedForgottenFacts(record.forgottenFacts) : [],
+      learnerGoals: version === 8 || version === 9 ? storedLearnerGoals(record.learnerGoals) : [],
       onboardedAt: typeof record.onboardedAt === 'number' ? record.onboardedAt : now,
       motivation: typeof record.motivation === 'string' ? record.motivation : null,
       dailyGoalMin: storedGoal(record.dailyGoalMin),

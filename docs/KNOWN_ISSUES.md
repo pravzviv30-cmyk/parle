@@ -9880,30 +9880,34 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F729 — There is nowhere to keep streak covers, quest claims, badges or celebrated moments
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game, apps/mobile/src/sync/policy.ts, supabase/migrations
 - note: A synced, versioned `game` namespace (set unions and maxes, commutative and idempotent) plus a device-only `gameLocal`; the Supabase namespace check must accept `game` before any build that writes it ships.
+- note: 2026-10-06 ca/p0-data: `game/model.ts` (pure strict reader and merge: set unions and per-month maxes, every bound ranked by identity so the merge is also associative), `game/store.ts` (activity.ts shape: one chain, scope-bound writes, markDirty only for local writes, adopter at load and on reset) and `game/gameLocal.ts` (device-only, strict, never synced); `game` and `gameLocal` in USER_KEY_SUFFIXES; policy row (writes 1) and exclusion; migration `20261006120000_learner_state_game.sql` with a destructive interlocked rollback, proved in PGlite with a blob at every cap (about 427 KB sealed). Not applied to any project: apply before any build that writes `game` ships. Adds `bonusMonths` beside the specified rollups so fixed XP can age out without the total falling.
 - verified-by: `the game store refuses unknown bytes and keeps every awarded badge`
 
 ### F730 — A twenty-minute daily goal is discarded on every profile read
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/profile/upgrade.ts:71, apps/mobile/src/profile/dailyGoal.ts:23
 - note: Founder decision D5 adds Intense (20 minutes); storedGoal only keeps 5, 10 or 15, so a saved 20 reads back as no goal. Profile version 9.
+- note: 2026-10-06 ca/p0-data: profile v9; `storedGoal`, brain `validValue`, `GoalMinutes` and `dailyGoalOf` accept 20; policy writes 9. The test fails on the old chain (a saved 20 loads as null) and passes now through load, a v8 upgrade, the profile sync merge and the row's readers. The Profile row has no Intense segment yet (Phase 1 goal setup); a 20 marks no segment and reads "Twenty minutes".
 - verified-by: `a twenty-minute goal survives every profile read`
 
 ### F731 — A finished sitting that earns no XP records no practice day
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/progress/activity.ts:246
 - note: Founder decision D3: any finished practice is a streak day. Never add a new activity kind; record the day and the sitting in the game store.
+- note: 2026-10-06 ca/p0-data: `recordActivity` answers a PersistAck; xp <= 0 records the day through `recordActiveDay` (no entry, no XP, no minutes, no new kind) and raises the activity flag; malformed input and an unreadable log answer failed and write nothing. Existing `void` callers are unchanged. The zero-XP sitting row in `game.sittings` is written by Phase 1's settle.
 - verified-by: `a finished sitting that earns no XP still records a practice day`
 
 ### F732 — A guest practice has no record of which day it was finished
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/guestModel.ts:12
 - note: The first-run streak day must come from a persisted finish, so GuestPractice v2 gains a bounded `finishedAt` list.
+- note: 2026-10-06 ca/p0-data: GuestPractice stays version 2 (it already was) and gains optional `finishedAt` (deduplicated, sorted, newest 31; absent reads as none); `finishGuestPractice` sets completed and the instant together, `guestPracticeDays` counts finishes only, and a new plan keeps the days. Still owed by the first-run track: `PreAccountOnboarding.tsx` finish() must persist `finishGuestPractice(guest)` instead of `{ ...guest, completed: true }`.
 - verified-by: `a guest streak day counts only a practice saved as finished`
 
 ### F733 — A store free trial or a yearly plan would grant the wrong allowance

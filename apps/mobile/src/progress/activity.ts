@@ -190,18 +190,29 @@ function serialized<T>(mutation: (key: string, owner: number) => Promise<T>): Pr
   return next;
 }
 
-function mutate(change: (stored: Stored) => Stored | null, origin: WriteOrigin = 'local'): Promise<void> {
+/**
+ * Read, change and write on the chain, and say whether the change is on disk.
+ *
+ * `durable` when the write landed, or when there was nothing to write; `failed`
+ * when the disk could not be read (an unreadable log is never replaced by a
+ * fresh one), refused the write, or the account changed since the call. A
+ * caller that does not care still gets the old fire-and-forget behaviour by
+ * not awaiting the answer: the sitting happened either way, and the ladder
+ * catches up next time rather than blocking anyone.
+ */
+function mutate(change: (stored: Stored) => Stored | null, origin: WriteOrigin = 'local'): Promise<PersistAck> {
   return serialized(async (key, owner) => {
     let current: Stored;
-    try { current = await read(key, true); } catch { return; }
+    try { current = await read(key, true); } catch { return 'failed'; }
     const next = change(current);
-    if (next === null) return;
+    if (next === null) return 'durable';
     try {
       const saved = await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify(next)));
-      if (saved && origin === 'local') markDirty('activity');
+      if (!saved) return 'failed';
+      if (origin === 'local') markDirty('activity');
+      return 'durable';
     } catch {
-      // Storage unavailable. The sitting still happened; the ladder catches up
-      // next time rather than blocking anyone.
+      return 'failed';
     }
   });
 }
@@ -226,13 +237,19 @@ function prune(entries: readonly ActivityEntry[], now: number): ActivityEntry[] 
 }
 
 /**
- * Record one finished sitting. Fire and forget; nothing waits on it.
+ * Record one finished sitting, and say whether it is on disk. Callers that
+ * `void` it still fire and forget; nothing has to wait on it.
  *
- * The `xp <= 0` return is unchanged and stays first, deliberately. A sitting
- * that produced no French leaves no mark, so it leaves no minutes either: a log
- * that carried the duration of a session with nothing in it would let a "time
- * spent" number climb while nothing was learned, which is the one thing a
- * minutes figure must never be able to do.
+ * Every caller reaches this only for a sitting that finished (a conversation
+ * that was not safety-stopped, a lesson, a drill set, a review), so a sitting
+ * here is a practice day whatever it earned (founder decision D3, F731).
+ *
+ * A sitting that earned no XP still writes no entry, deliberately. An entry is
+ * where XP and minutes live, and a log that carried the duration of a sitting
+ * with nothing in it would let a "time spent" number climb while nothing was
+ * learned, which is the one thing a minutes figure must never be able to do.
+ * So it records its day through `recordActiveDay`, which writes the date and
+ * nothing else: no entry, no XP, no minutes and no new activity kind.
  *
  * A duration the validator would refuse is dropped rather than stored, so this
  * store can never hold a row its own reader throws away.
@@ -242,10 +259,11 @@ export async function recordActivity(
   xp: number,
   now = Date.now(),
   detail: ActivityDetail = {},
-): Promise<void> {
-  if (!Number.isFinite(xp) || !Number.isFinite(now) || xp <= 0) return;
+): Promise<PersistAck> {
+  if (!Number.isFinite(xp) || !Number.isFinite(now)) return 'failed';
+  if (xp <= 0) return recordActiveDay(now);
   const entry = entryOf(now, kind, xp, detail);
-  await mutate((stored) => ({ ...stored, version: 2, activeDays: mergeActiveDays([...stored.entries, entry], stored.activeDays), entries: prune([...stored.entries, entry], now) }));
+  return mutate((stored) => ({ ...stored, version: 2, activeDays: mergeActiveDays([...stored.entries, entry], stored.activeDays), entries: prune([...stored.entries, entry], now) }));
 }
 
 /**

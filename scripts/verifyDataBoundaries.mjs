@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createProfile, MAX_PHRASES } from '@luvani/brain/profile';
 import { buildConversationPack, newCard } from '@luvani/core';
 import { sealEnvelope, MAX_ENVELOPE_BYTES } from '../apps/mobile/src/sync/envelope.ts';
+import { fullGame } from '../apps/mobile/src/game/capacityFixture.ts';
 
 const { PGlite } = await import(process.env.PGLITE_MODULE ? pathToFileURL(process.env.PGLITE_MODULE).href : '@electric-sql/pglite');
 const db = new PGlite();
@@ -109,6 +110,16 @@ try {
   await db.exec('drop trigger aaa_test_parent_lock on learner_state; drop function public.assert_test_parent_lock();');
   await db.exec(statementFunction.replace('create function','create or replace function'));
   pass('all 16 namespaces; numeric tutorIntro; 200-phrase profile; 50 sessions; 1,200 constructed review cards; 5,000 activity entries; 3,000 bookmarks; offline burst/CAS');
+
+  // F729: the largest game blob the bounds in game/model.ts allow, written by a
+  // learner of its own so the one-minute burst arithmetic above is untouched (a
+  // calendar-minute bucket would reset if this walk pushed it over a boundary).
+  // Measured against the client envelope and the database's byte, item and depth limits.
+  const fullGameEnvelope=envelope(fullGame(now));
+  assert.ok(Buffer.byteLength(JSON.stringify(fullGameEnvelope))<=MAX_ENVELOPE_BYTES,'a full game blob exceeds the mobile byte bound');
+  await role('authenticated',id(29)); await state(id(29),'game',fullGameEnvelope); await admin();
+  assert.equal((await db.query("select count(*)::integer as n from learner_state where user_id=$1 and namespace='game'",[id(29)])).rows[0].n,1);
+  pass('a game blob at every cap fits the envelope and the database byte, item and depth limits');
 
   await role('authenticated',a);
   const nearLimit=envelope({text:'quoted : space, comma, and café 👋',pad:''});

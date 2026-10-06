@@ -74,6 +74,7 @@ transactional migration tooling. Inspect the schema before recovering a partial 
 | 34 | `migrations/20261004004023_friends_launch_guard.sql` | Friends default OFF, immutable reviewed moderation evidence with expiry and irreversible enabled-history rollback guard. No moderation service is fabricated. Prepared and proved in disposable SQL; not applied live. |
 | 35 | `migrations/20261004010327_whole_product_paid_admission.sql` | Whole-product owner-reviewed immutable quotes, nonrecycling global/account/vendor reservation and execution-day envelopes, current tutor resume and per-account session caps. OFF/zero by default; no vendor prices or capacity seeded. Prepared and proved in disposable SQL; not applied live. |
 | 36 | `migrations/20261004015000_indexed_conversation_library.sql` | Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. Prepared and proved in disposable SQL; not applied live. |
+| 37 | `migrations/20261006120000_learner_state_game.sql` | Widens `learner_state`'s namespace whitelist to accept `game`, the account-synced facts behind the streak, daily goal, quests and badges (zero-XP sittings, streak covers, goal days, quest days and claims, fixed XP, monthly rollups, badge ids and celebration keys; no free text). Recreates one named check constraint, touches no rows. **Apply before any build that writes `game` ships**, or every push of it is refused and retried (F411). Prepared, not applied to any project. Requires 20. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -164,6 +165,7 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `20261006120000_learner_state_game.sql` | `rollback/20261006120000_down.sql` | **DESTRUCTIVE.** Deletes every server copy of a learner's game facts (streak covers, quest claims, fixed XP, monthly rollups, badges and celebrations played) before narrowing the whitelist. Roll back the builds that write `game` first. Device copies survive; a learner who changes phone loses them. Refuses to run until you set `luvani.remove_game` in the same session |
 | `20261004015000_indexed_conversation_library.sql` | `rollback/20261004015000_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
 | `20261004010327_whole_product_paid_admission.sql` | `rollback/20261004010327_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
 | `20261004004023_friends_launch_guard.sql` | `rollback/20261004004023_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
@@ -257,7 +259,7 @@ The saved-text rollback is `rollback/20261002171317_down.sql`. It permanently re
 
 ## Rollback evidence
 
-The current release has all 36 migrations. A twelve-proof legacy harness is
+The current release has all 37 migrations. A twelve-proof legacy harness is
 historical evidence; it is not full-catalog security, rollback or restore acceptance.
 Do not execute an old destructive rollback sequence against the current schema.
 
