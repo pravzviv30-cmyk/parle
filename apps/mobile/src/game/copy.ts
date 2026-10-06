@@ -56,6 +56,10 @@ export const GAME_COPY = {
   streak: {
     label: 'day streak',
     line: (current: number): string => (current === 1 ? 'Your streak starts today.' : 'You practised today.'),
+    /** The first run's day one, said once the finished practice is on the phone (README Part 5.C row 9). */
+    started: 'Your streak has started.',
+    /** A row on the first run's save card, and only while the run is alive. */
+    dayOf: (current: number): string => `Day ${current} of your streak`,
     restored: 'Your streak is back.',
     /** The same phrasing as progress/dayCount.ts, so the two never disagree. */
     lifetime: (total: number): string => `${total} ${total === 1 ? 'day' : 'days'} you have practised`,

@@ -10,7 +10,7 @@ import { checkStarter, type StarterFeedback, type StarterTask } from '@luvani/co
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 const KEY = '@luvani/guest-practice/v2';
 import { repairGuestPractice, type GuestPractice, type GuestAttempt } from './guestModel.ts';
-import { starterMinutes } from './guestProgress.ts';
+import { keepFinishes, starterMinutes } from './guestProgress.ts';
 import { SPEECH_UNAVAILABLE } from './firstRun/speech.ts';
 export type { GuestPractice, GuestAttempt } from './guestModel.ts';
 let writes: Promise<unknown> = Promise.resolve();
@@ -73,7 +73,11 @@ async function post(
     );
   return (await response.json()) as Record<string, unknown>;
 }
-export async function startGuestPractice(plan: PreAccountOnboardingDraft): Promise<GuestPractice> {
+/**
+ * A new guest practice from the service. `prior` is the record it replaces: the
+ * days it saw finished stay with the phone (F751), and nothing else of it does.
+ */
+export async function startGuestPractice(plan: PreAccountOnboardingDraft, prior: GuestPractice | null = null): Promise<GuestPractice> {
   if (!plan.eligibilityConfirmed) throw new Error('eligibility required');
   const data = await post('start', {
     eligible: true,
@@ -101,12 +105,15 @@ export async function startGuestPractice(plan: PreAccountOnboardingDraft): Promi
     completed: false,
     plan,
   };
-  const valid = repairGuestPractice(next);
+  // The carried days go through the same repair as the rest, so the new record
+  // holds them exactly as a record read back from the disk would.
+  const valid = repairGuestPractice(keepFinishes(next, prior));
   if (!valid) throw new Error('unavailable');
   return valid;
 }
-export function offlineGuestPractice(plan: PreAccountOnboardingDraft): GuestPractice {
-  return {
+/** A local practice with no capability; like a started one, it keeps the days `prior` saw finished (F751). */
+export function offlineGuestPractice(plan: PreAccountOnboardingDraft, prior: GuestPractice | null = null): GuestPractice {
+  const local: GuestPractice = {
     version: 2,
     token: null,
     expiresAt: 0,
@@ -117,6 +124,7 @@ export function offlineGuestPractice(plan: PreAccountOnboardingDraft): GuestPrac
     completed: false,
     plan,
   };
+  return keepFinishes(local, prior);
 }
 export async function sendGuestAttempt(
   guest: GuestPractice,

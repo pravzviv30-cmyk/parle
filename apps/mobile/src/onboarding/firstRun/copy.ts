@@ -1,5 +1,5 @@
 /**
- * The new words the first run says (come alive, README Part 5.C rows 1 to 8).
+ * The new words the first run says (come alive, README Part 5.C rows 1 to 11).
  *
  * Pure, so `copy.test.ts` beside it holds every line to the house rules: warm
  * plain English, no dash and no middot, nothing a streak could nag with
@@ -68,7 +68,67 @@ export const FIRST_RUN_COPY = {
   phraseKept: 'Phrase kept',
   retry: 'Retry',
   details: 'Details',
+
+  /**
+   * Day one (row 9). The run, its words and the title come from game/copy.ts;
+   * this is the rule under the week, said without a live minute in it (D3).
+   */
+  remindLine: 'Any finished practice counts, even offline.',
+
+  /** Save progress (row 10). */
+  keepTitle: 'Save your progress.',
+  onThisPhone: 'On this phone only',
+  keepLine: 'This is saved on this phone only. A free account keeps it safe and works on your other devices.',
+  keepLineSignedIn: 'Save this to your account.',
+  saveMyProgress: 'Save my progress',
+  notNow: 'Not now',
+
+  /** The guest home (row 10, after Not now). */
+  setReminder: 'Set a reminder',
+  reminderSet: 'Reminder set.',
 } as const;
+
+/** A count and its noun, so one is never "1 replies". */
+const counted = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * The save card's rows (row 10), each said only when the phone holds it
+ * (`guestProgress.ts` `guestInvestment` decides which). The streak's row is the
+ * game's (`GAME_COPY.streak.dayOf`).
+ */
+export const KEEP_ROWS = {
+  replies: (n: number): string => `${counted(n, 'French reply', 'French replies')} that ${n === 1 ? 'works' : 'work'}`,
+  kept: (n: number): string => `${counted(n, 'phrase', 'phrases')} kept`,
+  /** The first practice of the plan and the daily goal, or the practice alone when the goal is chosen each time. */
+  plan: (title: string, minutes: number | null): string => (minutes === null ? title : `${title}, ${minutes} minutes a day`),
+  tutor: (name: string): string => `Your AI tutor: ${name}`,
+  reminder: (gloss: string): string => `Reminder at about ${gloss}`,
+} as const;
+
+/**
+ * What a screen reader hears for the week strip: the days of this week the
+ * phone saw a practice finished, by name. A week without one says so plainly.
+ */
+export function weekLabel(practised: readonly string[]): string {
+  if (practised.length === 0) return 'This week has no practice days yet.';
+  const list = practised.length === 1 ? practised[0]! : `${practised.slice(0, -1).join(', ')} and ${practised[practised.length - 1]!}`;
+  return `This week you practised on ${list}.`;
+}
+
+/**
+ * The hand-off's time with the tutor (row 11), from the server's answer and
+ * nothing else. `free` is true on the free allowance, false on a plan, and null
+ * when only the balance is known. Nothing at all when no time is held: the
+ * offer that follows says what a plan adds.
+ */
+export function tutorTimeLine(seconds: number, free: boolean | null): string | null {
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 1) return 'You have less than a minute with your AI tutor.';
+  if (free === true) return `You have ${counted(minutes, 'free minute', 'free minutes')} with your AI tutor.`;
+  if (free === false) return `You have ${counted(minutes, 'minute', 'minutes')} with your AI tutor on your plan.`;
+  return `You have ${counted(minutes, 'minute', 'minutes')} with your AI tutor.`;
+}
 
 /** How long the practice page waits on a reply before it says the wait out loud. */
 export const SLOW_CHECK_MS = 4000;
@@ -87,9 +147,24 @@ export function exchangeLabel(index: number, total: number): string {
   return `Exchange ${Math.min(total, index + 1)} of ${total}`;
 }
 
-/** Every fixed line above, for the copy checks. */
+/** Every fixed line above, for the copy checks, with each builder filled at its edges. */
 export const FIRST_RUN_LINES: readonly string[] = [
   ...Object.values(FIRST_RUN_COPY),
   takeLength(0),
   takeLength(12),
+  KEEP_ROWS.replies(1),
+  KEEP_ROWS.replies(3),
+  KEEP_ROWS.kept(1),
+  KEEP_ROWS.kept(2),
+  KEEP_ROWS.plan('Order a coffee', 10),
+  KEEP_ROWS.plan('Order a coffee', null),
+  KEEP_ROWS.tutor('Sam'),
+  KEEP_ROWS.reminder('6:00 pm'),
+  weekLabel([]),
+  weekLabel(['Monday']),
+  weekLabel(['Monday', 'Tuesday']),
+  weekLabel(['Monday', 'Tuesday', 'Wednesday']),
+  ...[30, 59, 60, 61, 1800]
+    .flatMap((seconds) => [true, false, null].map((free) => tutorTimeLine(seconds, free)))
+    .filter((line): line is string => line !== null),
 ];

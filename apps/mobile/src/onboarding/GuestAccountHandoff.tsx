@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { starterTasks } from '@luvani/core';
+import { phraseKeyOf, starterTasks } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { Card, GhostButton, PillButton } from '../components.tsx';
@@ -17,15 +17,29 @@ import {
 } from './guestPractice.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { settleGuestHandoff } from '../game/guestHandoff.ts';
+import { celebrationKey, publishCelebrations } from '../celebrate/events.ts';
+import { fetchBillingStatus } from '../purchases/client.ts';
+import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { keptPhrase, starterMinutes } from './guestProgress.ts';
-/** The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it. */
+import { tutorTimeLine } from './firstRun/copy.ts';
+/**
+ * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
+ *
+ * Come alive (README Part 5.C row 11): Keep this practice saves the natural
+ * line (F757), says "Saved to your phrasebook." once the phrasebook write is
+ * durable, settles the guest's finished days into the account's streak (F744),
+ * and then says how much time with the tutor the server holds for this
+ * account. `onDone(kept)` tells the app whether the practice was kept, which is
+ * what opens the first-run offer once (App.tsx).
+ */
 export function GuestAccountHandoff({
   draft,
   onDone,
   children,
 }: {
   draft: PreAccountOnboardingDraft | null;
-  onDone: () => void;
+  /** Called once the hand-off is over: true when the practice was kept, false for Start fresh. */
+  onDone: (kept: boolean) => void;
   children: React.ReactNode;
 }) {
   const { user, adapter } = useAuth();
@@ -33,6 +47,8 @@ export function GuestAccountHandoff({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [remaining, setRemaining] = useState<number | null>(null);
+  // The server's answer about the account, read once the practice is saved.
+  const [status, setStatus] = useState<BillingStatus | null>(null);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     let active = true;
@@ -94,6 +110,13 @@ export function GuestAccountHandoff({
         );
       if ((await addPhrases(phrases)) !== 'durable')
         throw new Error('Your phrase could not be saved. Try again.');
+      // Said only now that the phrasebook write is durable: one toast for the
+      // phrase kept last, keyed by the stored phrase, never the learner's text.
+      const newest = phrases[phrases.length - 1];
+      if (newest !== undefined && owner === scopeGeneration()) {
+        const phraseKey = phraseKeyOf(newest.fr);
+        publishCelebrations([{ type: 'phrase-saved', key: celebrationKey.saved(phraseKey), origin: 'account', at: Date.now(), data: { phraseKey } }]);
+      }
       const key = userKey('onboarding-practice');
       if (
         !(await writeInUserScope(owner, () =>
@@ -106,6 +129,12 @@ export function GuestAccountHandoff({
       if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
       setRemaining(balance);
       setSaved(true);
+      // Free or on a plan: the server says, after the claim above has spent the
+      // guest's seconds. Read in the background, so nothing waits on it; until
+      // it answers, and if it cannot, the claim's own balance is said plainly.
+      void fetchBillingStatus(uid).then((answer) => {
+        if (owner === scopeGeneration() && activeUserId() === uid) setStatus(answer);
+      });
     } catch (cause) {
       if (owner === scopeGeneration())
         setError(cause instanceof Error ? cause.message : 'Your practice could not be linked yet.');
@@ -125,7 +154,7 @@ export function GuestAccountHandoff({
       if (owner !== scopeGeneration()) return;
       await clearGuestPractice();
       setGuest(null);
-      onDone();
+      onDone(saved);
     } catch {
       if (owner === scopeGeneration())
         setError('Your minutes could not be checked. Try again. Your practice is still here.');
@@ -133,6 +162,16 @@ export function GuestAccountHandoff({
       if (owner === scopeGeneration()) setBusy(false);
     }
   };
+  // The time with the tutor, once saved: free on the free allowance (and on a
+  // lapsed plan, which the server holds as that), on a plan otherwise, and in
+  // plain minutes when only the claim's balance is known.
+  const timeLine = !saved
+    ? null
+    : status !== null
+      ? tutorTimeLine(status.secondsRemaining, status.plan === 'trial' || status.lapsed)
+      : remaining !== null
+        ? tutorTimeLine(remaining, null)
+        : null;
   return (
     <ScrollScreen
       header={<ScreenHeader title={saved ? 'Your phrase is saved.' : 'Keep this practice?'} />}
@@ -154,11 +193,7 @@ export function GuestAccountHandoff({
             ? 'Your phrase is in Practice. Your account can sync it to another device.'
             : 'Keep the phrase from this phone. Your account’s existing learning and preferences stay yours.'}
         </Text>
-        {remaining !== null && (
-          <Text style={type.bodyStrong}>
-            {Math.floor(remaining / 60)} minutes {remaining % 60} seconds remaining.
-          </Text>
-        )}
+        {timeLine !== null && <Text style={type.bodyStrong}>{timeLine}</Text>}
       </Card>
       {!saved && (
         <GhostButton

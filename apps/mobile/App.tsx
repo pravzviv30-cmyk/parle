@@ -69,6 +69,10 @@ import { loadHapticPreference } from './src/motion/hapticPreference.ts';
 import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
+import { flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
+import { fetchBillingStatus } from './src/purchases/client.ts';
+import { purchases } from './src/purchases/adapter.ts';
+import { paywallSurface } from './src/purchases/paywallView.ts';
 import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
@@ -397,6 +401,31 @@ function SignedInRoot({
   }, [user.id, startupRead]);
 
   /**
+   * The first-run offer (come alive, README Part 5.C row 12): set when the
+   * hand-off ends with the guest's practice kept, and taken once by
+   * `openFirstRun` when the navigator is ready, after its own reset. The
+   * existing wall opens at its `path-complete` door only after the server says
+   * this account holds no paid plan and the store has plans to sell
+   * (`onboarding/firstRunWall.ts`). In memory only, so it is never shown again
+   * on its own.
+   */
+  const pendingWall = useRef(false);
+  const openPendingWall = useCallback(() => {
+    const owner = scopeGeneration();
+    void flushFirstRunWall({
+      take: () => {
+        const due = pendingWall.current;
+        pendingWall.current = false;
+        return due;
+      },
+      status: () => fetchBillingStatus(user.id),
+      storeHasPlans: async () => paywallSurface(await purchases.offering(user.id)) !== null,
+      stillHere: () => owner === scopeGeneration() && navigationRef.isReady(),
+      open: () => navigationRef.navigate('Wall', { entry: 'path-complete' }),
+    });
+  }, [navigationRef, user.id]);
+
+  /**
    * Linking owns the initial state on web, so a stale URL can resolve somewhere
    * other than where a first run belongs. Wait until that resolution is
    * complete, then replace the root exactly once. Native takes the same path
@@ -410,13 +439,17 @@ function SignedInRoot({
    * first run has no screen behind it.
    */
   const openFirstRun = useCallback(() => {
-    if (!justOnboarded || !navigationRef.isReady()) return;
-    navigationRef.resetRoot({
-      index: 1,
-      routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
-    });
-    setJustOnboarded(false);
-  }, [justOnboarded, navigationRef]);
+    if (!navigationRef.isReady()) return;
+    if (justOnboarded) {
+      navigationRef.resetRoot({
+        index: 1,
+        routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
+      });
+      setJustOnboarded(false);
+    }
+    // Then the first-run offer, once, after a kept practice (below).
+    openPendingWall();
+  }, [justOnboarded, navigationRef, openPendingWall]);
 
   if (startupFailed) return (
     <ScrollScreen header={<ScreenHeader title="Your saved learning" />}>
@@ -512,7 +545,13 @@ function SignedInRoot({
         )
       )}
     >
-      <GuestAccountHandoff draft={preAccountDraft} onDone={onPreAccountDraftConsumed}>
+      <GuestAccountHandoff
+        draft={preAccountDraft}
+        onDone={(kept) => {
+          if (kept) pendingWall.current = true;
+          onPreAccountDraftConsumed();
+        }}
+      >
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
       <RememberCompletedAccount onUsed={onAppUsed} />
       <GameProvider>

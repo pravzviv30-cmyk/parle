@@ -1,16 +1,19 @@
-import { offlineContinuation, continuingTask } from './guestModel.ts';
-import { tutorSampleLine } from '@luvani/core';
+import { offlineContinuation, continuingTask, finishGuestPractice, guestPracticeDays } from './guestModel.ts';
+import { dayKeyOf, tutorSampleLine } from '@luvani/core';
 import { STARTER_AI, STARTER_PROCESSING, STARTER_LOCAL } from './disclosure.ts';
 /**
  * First value before registration. Answers are deliberate; local choices never wait for a service.
  *
- * Come alive (README Part 5.C rows 1 to 8): the promise, where, level and the
+ * Come alive (README Part 5.C rows 1 to 10): the promise, where, level and the
  * daily goal build a visible plan card; the plan is revealed with the real
  * minutes; the start sheet keeps the legal order; the practice offers speaking
  * only where the server says it is available; and the first reply is
- * celebrated only when it is accepted and really the learner's. The new parts
- * live in `firstRun/` and take values by props; the literals tests pin stay
- * here. Nothing on these pages sends, stores or records activity by itself.
+ * celebrated only when it is accepted and really the learner's. Only once a
+ * finished practice is on the phone does day one light, with the one reminder
+ * ask; then the save card lists what the phone holds, and Not now leads to the
+ * guest home. The new parts live in `firstRun/` and take values by props; the
+ * literals tests pin stay here. Nothing on these pages sends, stores or records
+ * activity by itself.
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -51,21 +54,16 @@ import type { Box } from '../motion/flights.ts';
 import { IconTile } from '../icons/IconTile.tsx';
 import { consumeRecording } from '../speech/discardRecording.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
-import {
-  DEFAULT_REMINDER_TIME,
-  REMINDER_TIMES,
-  type ReminderTimeId,
-} from '../reminders/reminder.ts';
-import {
-  REMINDERS_AVAILABLE,
-  askReminderPermission,
-  scheduleReminder,
-} from '../reminders/schedule.ts';
+import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
+import { REMINDERS_AVAILABLE } from '../reminders/schedule.ts';
+import { ReminderAsk, type ReminderAnswer } from '../reminders/ReminderAsk.tsx';
+import { celebrationKey } from '../celebrate/events.ts';
+import { GAME_COPY } from '../game/copy.ts';
 import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { FIRST_LINE } from './firstRun.ts';
 import { clipFor } from './exchangeAudio.ts';
 import { REASONS, START_LEVELS, minutesOf, planFor } from './plan.ts';
-import { starterMinutes } from './guestProgress.ts';
+import { GUEST_PAGES, guestInvestment, guestStreak, resumePage, starterMinutes } from './guestProgress.ts';
 import {
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
@@ -100,6 +98,9 @@ import { WinArt, WinCard } from './firstRun/WinCard.tsx';
 import { ExchangeSteps } from './firstRun/ExchangeSteps.tsx';
 import { winEffects, winView } from './firstRun/winModel.ts';
 import { speakingOffered, speechRefused, startMode } from './firstRun/speech.ts';
+import { DayOne, StreakCard } from './firstRun/DayOne.tsx';
+import { WeekStrip } from './firstRun/WeekStrip.tsx';
+import { InvestmentList } from './firstRun/InvestmentList.tsx';
 
 type Surface =
   | 'plan'
@@ -117,8 +118,6 @@ const goals = [...REASONS].sort(
     ['food', 'family', 'trip', 'moving', 'work', 'because'].indexOf(a.key) -
     ['food', 'family', 'trip', 'moving', 'work', 'because'].indexOf(b.key),
 );
-/** Every day of the week, which is what a daily goal asks of a reminder. */
-const EVERY_DAY = [1, 2, 3, 4, 5, 6, 7];
 const headingFor = (page: PreAccountPage) =>
   (
     ({
@@ -179,12 +178,9 @@ export function PreAccountOnboarding({
   const [issue, setIssue] = useState('');
   const [storageNote, setStorageNote] = useState('');
   const [remember, setRemember] = useState(draft.rememberLearning === true);
-  const [reminderTime, setReminderTime] = useState<ReminderTimeId>(
-    draft.reminderTime ?? DEFAULT_REMINDER_TIME,
-  );
-  const [reminderDays, setReminderDays] = useState<number[]>(
-    draft.reminderDays?.length ? draft.reminderDays : EVERY_DAY,
-  );
+  // The reminder ask on day one was answered on this visit (Not now, or after
+  // a refusal), so it is not asked again on the way back.
+  const [reminderAnswered, setReminderAnswered] = useState(false);
   // The plan card's flight: where the last answer was chosen (README Part 6, Flight).
   const [flight, setFlight] = useState<FlyFrom | null>(null);
   // The win that has just arrived from a real submit, so it plays once; a
@@ -264,7 +260,7 @@ export function PreAccountOnboarding({
     if (!refused) onDraftChange({ ...draftRef.current, page: next });
     return true;
   };
-  const activePlan = ['practice', 'recap', 'home'].includes(page) && guest ? guest.plan : draft;
+  const activePlan = GUEST_PAGES.includes(page) && guest ? guest.plan : draft;
   const tasks = starterTasks(
     activePlan.reason,
     activePlan.drink ?? 'coffee',
@@ -274,12 +270,21 @@ export function PreAccountOnboarding({
   const attempts = guest?.attempts.filter((a) => a.taskId === task.id) ?? [];
   const serviceAttempts = attempts.filter((attempt) => !attempt.offline).length;
   const last = guest?.attempts.at(-1);
+  // Day one and the save card read the days this phone saw a practice
+  // finished, and nothing else (F751, F754).
+  const today = dayKeyOf(Date.now());
+  const days = guestPracticeDays(guest);
+  const streak = guestStreak(days, today);
   useEffect(() => {
     current.current = true;
     void loadGuestPractice().then((value) => {
       if (!current.current) return;
       setGuest(value);
-      if (value && ['practice', 'recap', 'home'].includes(page)) {
+      // A guest page needs its record, and day one and the save card a
+      // finished practice on this phone (F754); otherwise an earlier page opens.
+      const resumed = resumePage(page, value !== null, guestPracticeDays(value), dayKeyOf(Date.now()));
+      if (resumed !== page) setPage(resumed);
+      if (value && GUEST_PAGES.includes(resumed)) {
         setReply(value.attempts.at(-1)?.reply ?? '');
         setTaskIndex(
           Math.max(
@@ -291,7 +296,7 @@ export function PreAccountOnboarding({
             ).findIndex((t) => t.id === value.attempts.at(-1)?.taskId),
           ),
         );
-      } else if (!value && ['practice', 'recap', 'home'].includes(page)) setPage('plan');
+      }
       setLoaded(true);
     });
     return () => {
@@ -341,9 +346,22 @@ export function PreAccountOnboarding({
       go('plan', true);
       return;
     }
+    // After the win: day one goes back to the win, the save card to day one
+    // (or to the win when the run has lapsed), the guest home to the save card.
+    if (page === 'remind') {
+      go('recap', true);
+      return;
+    }
+    if (page === 'keep') {
+      go(streak !== null ? 'remind' : 'recap', true);
+      return;
+    }
+    if (page === 'home') {
+      go(days.length > 0 ? 'keep' : 'recap', true);
+      return;
+    }
     const index = questionOrder.indexOf(page);
     if (index > 0) go(questionOrder[index - 1]!, true);
-    else if (page === 'home') go('recap', true);
   };
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -406,7 +424,12 @@ export function PreAccountOnboarding({
   const persist = async (next: GuestPractice) => {
     const ticket = generation.current;
     const prior = guest;
-    setGuest({ ...next, kept: prior?.kept ?? false, completed: prior?.completed ?? false });
+    // Shown at once, except what only a save may claim: kept, finished, and
+    // the finish days, which stay as they were until the write lands (F751).
+    const shown: GuestPractice = { ...next, kept: prior?.kept ?? false, completed: prior?.completed ?? false };
+    if (prior?.finishedAt) shown.finishedAt = prior.finishedAt;
+    else delete shown.finishedAt;
+    setGuest(shown);
     try {
       await saveGuestPractice(next);
       if (!current.current || ticket !== generation.current) return false;
@@ -437,11 +460,12 @@ export function PreAccountOnboarding({
         !guest.completed &&
         JSON.stringify([guest.plan.reason, guest.plan.drink, guest.plan.minutes]) ===
           JSON.stringify([draft.reason, draft.drink, draft.minutes]);
+      // A new practice keeps the days already finished on this phone (F751).
       const next = offline
         ? offlineContinuation(draft, guest)
         : same && guest.token && guest.expiresAt > Date.now()
           ? guest
-          : await startGuestPractice(draft);
+          : await startGuestPractice(draft, guest);
       if (!current.current || ticket !== generation.current) return;
       if (!(await persist(next))) {
         setIssue('Your practice could not be saved. Try again before starting.');
@@ -553,9 +577,29 @@ export function PreAccountOnboarding({
   };
   const finish = async () => {
     if (!guest) return;
-    if (!(await persist({ ...guest, completed: true }))) return;
+    const at = Date.now();
+    const day = dayKeyOf(at);
+    // The day is new only if this finish adds it: a second practice the same
+    // day is still a finish, and lights nothing again.
+    const fresh = !guestPracticeDays(guest).includes(day);
+    const finished = finishGuestPractice(guest, at);
+    // The finish, and its day, reach the disk first (F751); day one and the
+    // reminder ask come only after that (F754).
+    if (!(await persist(finished))) return;
     metric('practice_finished');
-    go('home');
+    if (!go('remind')) return;
+    if (fresh) {
+      // The guest's day one lights once, here, in memory; the hand-off marks
+      // it seen before the account records it (README Part 6).
+      setMoment(celebrationKey.streak(day));
+      playSfx('streak');
+      celebrate();
+    }
+  };
+  /** The reminder ask's answer: on only once the OS took it, every day, at the time chosen. */
+  const answerReminder = (answer: ReminderAnswer) => {
+    setReminderAnswered(true);
+    if (answer.enabled) patch({ reminderEnabled: true, reminderTime: answer.time, reminderDays: [] });
   };
   const keepPhrase = async () => {
     if (!guest) return;
@@ -631,6 +675,10 @@ export function PreAccountOnboarding({
         ? colour.sun
         : paper.ground;
   const ink = blue || coral ? paper.card : paper.ink;
+  // The reminder is asked once on day one, only where a reminder can be given
+  // and is not already set, and not again once answered on this visit.
+  const askShown = REMINDERS_AVAILABLE && draft.reminderEnabled !== true && !reminderAnswered;
+  const tutorName = tutorVoice(draft.tutorVoice).persona.name;
   const closeSheet = () => {
     if (busy) return false;
     stopSound();
@@ -648,7 +696,11 @@ export function PreAccountOnboarding({
             ? last?.feedback.accepted
               ? 'That reply works.'
               : 'Try this small change.'
-            : 'Keep going with your French.'));
+            : page === 'remind'
+              ? (streak?.title ?? GAME_COPY.streak.started)
+              : page === 'keep'
+                ? FIRST_RUN_COPY.keepTitle
+                : 'Keep going with your French.'));
   if (!loaded)
     return (
       <Screen>
@@ -718,6 +770,33 @@ export function PreAccountOnboarding({
           else void finish();
         }}
       />
+    </View>
+  ) : page === 'remind' ? (
+    // While the ask is on the page its own Remind me and Not now are the
+    // actions; without one (the web, a reminder already set, an answer
+    // given) Continue leads on.
+    askShown ? null : (
+      <View style={readingColumn}>
+        <PillButton label={FIRST_RUN_COPY.continue} onPress={() => go('keep')} />
+      </View>
+    )
+  ) : page === 'keep' ? (
+    <View style={[readingColumn, { gap: space(1) }]}>
+      <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: space(4) }}>
+        {!signedIn ? (
+          <IconAction
+            icon="login"
+            layout="inline"
+            label="Sign in"
+            onPress={() => {
+              stopSound();
+              onSignIn();
+            }}
+          />
+        ) : null}
+        <GhostButton label={FIRST_RUN_COPY.notNow} disabled={busy} onPress={() => go('home')} />
+      </View>
     </View>
   ) : (
     <View style={readingColumn}>
@@ -833,6 +912,7 @@ export function PreAccountOnboarding({
                 />
               </WinArt>
             )}
+            {!refused && page === 'remind' && streak !== null ? <DayOne streak={streak} moment={moment} /> : null}
             <Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
@@ -1126,8 +1206,33 @@ export function PreAccountOnboarding({
                     </IconActionRow>
                   </>
                 )}
+                {page === 'remind' && (
+                  <>
+                    {streak !== null ? <WeekStrip week={streak.week} today={today} moment={moment} /> : null}
+                    <Text style={[type.body, { color: paper.ink }]}>{FIRST_RUN_COPY.remindLine}</Text>
+                    {askShown ? (
+                      <ReminderAsk
+                        time={draft.reminderTime ?? DEFAULT_REMINDER_TIME}
+                        tutor={tutorName}
+                        onDone={(answer) => {
+                          answerReminder(answer);
+                          go('keep');
+                        }}
+                      />
+                    ) : null}
+                  </>
+                )}
+                {page === 'keep' && (
+                  <>
+                    <InvestmentList rows={guestInvestment({ practice: guest, days, today, draft })} />
+                    <Text style={[type.body, { color: paper.ink }]}>
+                      {signedIn ? FIRST_RUN_COPY.keepLineSignedIn : FIRST_RUN_COPY.keepLine}
+                    </Text>
+                  </>
+                )}
                 {page === 'home' && (
                   <>
+                    {streak !== null ? <StreakCard streak={streak} today={today} /> : null}
                     {last && (
                       <Card style={{ gap: 10 }}>
                         <Text {...frenchText} style={type.frenchLg}>
@@ -1136,37 +1241,43 @@ export function PreAccountOnboarding({
                         <Text style={type.body}>Come back to this phrase whenever you like.</Text>
                       </Card>
                     )}
-                    <GhostButton
-                      label="Retry this line"
-                      onPress={() => {
-                        setReply('');
-                        setGuest(
-                          guest
-                            ? { ...guest, offline: true, completed: false }
-                            : offlineContinuation(draft, null),
-                        );
-                        go('practice');
-                      }}
-                    />
-                    <GhostButton
-                      label="Save progress"
-                      disabled={busy}
-                      onPress={() => {
-                        void saveAccount();
-                      }}
-                    />
-                    {!signedIn && (
-                      <GhostButton
-                        label="Sign in"
+                    <IconActionRow>
+                      <IconAction
+                        icon="refresh"
+                        label={FIRST_RUN_COPY.retry}
+                        accessibilityLabel="Retry this line"
                         onPress={() => {
-                          stopSound();
-                          onSignIn();
+                          setReply('');
+                          setGuest(
+                            guest
+                              ? { ...guest, offline: true, completed: false }
+                              : offlineContinuation(draft, null),
+                          );
+                          go('practice');
                         }}
                       />
-                    )}
-                    {REMINDERS_AVAILABLE && (
-                      <GhostButton label="Set a reminder" onPress={() => open('reminder')} />
-                    )}
+                      <IconAction
+                        icon="cloud-add"
+                        label="Save progress"
+                        disabled={busy}
+                        onPress={() => {
+                          void saveAccount();
+                        }}
+                      />
+                      {!signedIn ? (
+                        <IconAction
+                          icon="login"
+                          label="Sign in"
+                          onPress={() => {
+                            stopSound();
+                            onSignIn();
+                          }}
+                        />
+                      ) : null}
+                      {REMINDERS_AVAILABLE && draft.reminderEnabled !== true ? (
+                        <IconAction icon="bell" label={FIRST_RUN_COPY.setReminder} onPress={() => open('reminder')} />
+                      ) : null}
+                    </IconActionRow>
                   </>
                 )}
               </>
@@ -1469,62 +1580,16 @@ export function PreAccountOnboarding({
           </>
         )}
         {surface === 'reminder' && (
-          <>
-            <Text style={type.body}>Choose the days and time that suit you.</Text>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-              <Choice
-                key={day}
-                title={day}
-                selected={reminderDays.includes(index + 1)}
-                onPress={() =>
-                  setReminderDays((days) =>
-                    days.includes(index + 1)
-                      ? days.filter((d) => d !== index + 1)
-                      : [...days, index + 1],
-                  )
-                }
-              />
-            ))}
-            {REMINDER_TIMES.map((time) => (
-              <Choice
-                key={time.value}
-                title={time.gloss}
-                selected={reminderTime === time.value}
-                onPress={() => setReminderTime(time.value)}
-              />
-            ))}
-            <PillButton
-              label="Enable reminder"
-              disabled={!reminderDays.length || busy}
-              onPress={() => {
-                void (async () => {
-                  setBusy(true);
-                  try {
-                    const permission = await askReminderPermission();
-                    if (permission !== 'granted') {
-                      setIssue('Reminders are off. You can continue without them.');
-                      return;
-                    }
-                    const result = await scheduleReminder(reminderTime, reminderDays);
-                    if (result !== 'done') {
-                      setIssue('The reminder could not be scheduled.');
-                      return;
-                    }
-                    patch({
-                      reminderTime,
-                      reminderDays,
-                      reminderEnabled: true,
-                    });
-                    setIssue('Reminder set.');
-                    setSurface(null);
-                  } finally {
-                    setBusy(false);
-                  }
-                })();
-              }}
-            />
-            <GhostButton label="Not now" onPress={closeSheet} />
-          </>
+          // The guest home's Set a reminder: the same one ask as day one.
+          <ReminderAsk
+            time={draft.reminderTime ?? DEFAULT_REMINDER_TIME}
+            tutor={tutorName}
+            onDone={(answer) => {
+              answerReminder(answer);
+              closeSheet();
+              if (answer.enabled) setIssue(FIRST_RUN_COPY.reminderSet);
+            }}
+          />
         )}
         {surface === 'exit' && (
           <>

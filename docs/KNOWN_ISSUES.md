@@ -10064,10 +10064,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F751 — A real guest practice still records no finish day
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:483, apps/mobile/src/onboarding/guestPractice.ts:65, apps/mobile/src/onboarding/guestPractice.ts:97
 - note: Found by the 6 October data reviews. F732 gave GuestPractice a finishedAt list and finishGuestPractice, but the first run still persists { ...guest, completed: true }, and starting a new practice drops earlier finish days. Persist finishGuestPractice(guest) where the practice is saved as finished, carry finishedAt forward, and take the hand-off days from guestPracticeDays. Phase 2 (first run).
 - verified-by: `a guest who finishes a practice keeps that day through a new practice and the hand-off`
+- note: 2026-10-06 ca/p2-first-run-2: the first run persists `finishGuestPractice(guest)` before day one (and shows a finish day only once the write lands), `startGuestPractice` and `offlineGuestPractice` take the record they replace and keep its finish days (`keepFinishes` in onboarding/guestProgress.ts, through the same repair), and the hand-off settles the record's days through `guestPracticeDays`. The title failed with the finish saved as `{ ...guest, completed: true }` and with `keepFinishes` carrying nothing.
 
 ### F752 — The retired days-a-week answer is still written
 - severity: P3
@@ -10086,13 +10087,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F754 — The first run shows no plan, celebrates nothing and asks for things at the wrong moment
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/firstRun
 - note: Founder decisions D5, D13, D14 and README Part 5.C: where, level and daily goal build a visible plan card; the plan is revealed with real numbers; the first win is celebrated only for an accepted real reply; day one, the reminder ask and the save card come only after a finished practice; nothing in the first-run screens sends, stores or records activity before consent.
 - verified-by: `the win shows the learner's line beside the natural line and celebrates only an accepted real reply`
 - verified-by: `the reminder is asked only after a finished practice and only on a real tap`
 - verified-by: `no first-run page component can send, store or record activity`
 - verified-by: `the save card lists only what this phone holds`
+- note: 2026-10-06 ca/p2-first-run-2: day one (`remind`) is reached only from the finish once it is saved, lights the game flame once for a day the finish added (streak sound and celebrate haptic once), counts the run from core's streak rule over the guest's finish days and shows the week; the one shared `reminders/ReminderAsk.tsx` raises the notification dialog only inside the Remind me tap and reports on only after the OS took the schedule (hidden on web); the save card (`keep`) lists only what `guestInvestment` finds on the phone; a resumed draft reaches either page only with a finished practice. Walked in a web build at 390 and 1024 wide, with and without reduced motion; the ask itself, the dialog and the sounds are not yet seen on a device. The ask's "never on a day you have already practised" holds only once the Phase 4 planner skips practised days.
 
 ### F755 — The start sheet hides its last controls under the footer with no cue
 - severity: P2

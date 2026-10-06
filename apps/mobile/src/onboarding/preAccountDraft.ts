@@ -41,12 +41,12 @@ import { REMINDER_TIMES, type ReminderTimeId } from '../reminders/reminder.ts';
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /**
- * The six pages before an account, in the order a learner meets them. The AI
- * disclosure is on the first, the answers follow it, and the consent switch is
- * on the last (spine contract section 4). Held here because the draft resumes
- * on one of them.
+ * Every page a draft can resume on, current and retired. Held here because
+ * the draft resumes on one of them. Day one (`remind`) and the save card
+ * (`keep`) come after the win (come alive, README Part 5.C rows 9 and 10) and
+ * are appended, so every older page keeps its place.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
 export const START_LEVEL_KEYS = ['zero', 'few', 'getby'] as const;

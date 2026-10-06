@@ -465,7 +465,7 @@ describe('the return gate is drawn as a working screen — F601', () => {
 });
 
 describe('the onboarding doc counts the screens the code shows', () => {
-  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /5 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'start-level', 'time', 'plan'\]/); assert.match(doc, /eleven-value disk registry/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
+  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /5 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'start-level', 'time', 'plan'\]/); assert.match(doc, /thirteen-value disk registry/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
 });
 
 /**
