@@ -10018,9 +10018,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F746 — The streak, quest, level and badge art does not exist
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game/art
 - note: Founder decision D10: flat vectors built in code in the current style (flame, chest, medal, crest, freeze and repair marks). Kept out of the flat illustration registry so the pinned 29-drawing count (F599) stays true. The founder approves the contact sheet by eye before the art ships.
+- note 2026-10-06, ca/p1-art (step P1-A): `game/art/shapes.ts` holds six drawings as token-filled parts on a 100 box (flame lit and unlit, chest shut and open, medal sun, mint, blue and next, crest, freeze ready and used, repair); a drawing on a colour ground it uses trades that colour with white. Flame (ignite per real key, three flickers per activation, never a loop) and Chest (lid on SPRING.pop about its hinge) move whole layers by transform and opacity through drive.ts and land on the final frame under Reduce Motion, on leave and on unmount; Medal, Crest, FreezeMark and RepairMark are still. The title failed with decorative removed from one Svg, an unknown token, a token from a group palette.ts lacks, a raw hex fill or colour, an extra stroke, a url( in an outline, a gradient, a fill not read through colourOf, a theme colour import, an opacity on a part and a second Svg. Contact sheet: `node --experimental-strip-types scripts/art/game-art-sheet.mjs` writes `artifacts/game-art/index.html`. Not yet approved by the founder, not yet drawn by any screen, not yet seen on a device.
 - verified-by: `every game drawing uses palette colours only and hides from assistive technology`
 ### F742 — A store trial's purchase screens describe a month
 - severity: P2

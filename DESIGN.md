@@ -569,6 +569,30 @@ deleted. All twenty daily-pack drawings, their selector and their unused card
 are deleted. The illustration animation hook and moving layers are gone.
 `motion.test.ts` and `surfaceContract.test.ts` enforce static illustrations;
 Illustrations stay static; the bounded motion hosts are listed in the Motion section.
+
+### Game art
+
+The streak flame, the quests chest, the medal, the level crest and the freeze
+and repair marks are flat vectors built in code (come alive, decision D10), not
+catalogue drawings, so they live in `src/game/art/` and stay out of the flat
+registry and its pinned 29. Each is a list of named parts on a 100 by 100 box in
+`src/game/art/shapes.ts`, and every part names its fill by palette token
+(`colour.coral`, `paper.field`), never by value, and never the highlighter or
+lilac. They keep the one hand: flat fills, no outlines, gradients, shadows,
+faces or words. A waiting state is the same drawing in the paper greys: the
+unlit flame before the day's first practice, the next medal on the badge shelf,
+a used freeze. On a colour ground, a drawing that uses the ground's own colour
+trades it with white, so the flame on the coral milestone card is white and
+sun. Every one is decorative: the words beside it carry the meaning, and the
+crest draws no level number or name. The flame lights from an ember and
+flickers three times while in view, and the chest's lid opens on its hinge,
+each by moving whole layers with transform and opacity; the rest are still.
+`node --experimental-strip-types scripts/art/game-art-sheet.mjs` writes the
+contact sheet, `artifacts/game-art/index.html`: every drawing in every state at
+48, 96 and 160 px on paper and the four colours. The founder approves the art by
+eye on that sheet before it ships, and `src/game/art/shapes.test.ts` (F746)
+holds every part to the palette and its 100 box, and every Svg to `decorative`.
+
 ## Structure
 
 First run shows a captioned, recorded French exchange silently until the learner
