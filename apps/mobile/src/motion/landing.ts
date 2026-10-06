@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { ANSWER_WAIT_MS } from './tokens.ts';
+import { createUnmountGuard } from './unmount.ts';
 
 /**
  * A one-shot's reduced-motion answer, from `useReduceMotion(true)`.
@@ -39,19 +40,25 @@ export function useAnswered(known: boolean | null): boolean | null {
  * Calls `land` when the app leaves the foreground and when the caller
  * unmounts. `land` cancels whatever is running and puts every value at its
  * final frame. It may change between renders; the latest one is called.
+ *
+ * Only a real unmount lands (motion/unmount.ts): StrictMode and Fast Refresh
+ * run this cleanup and then the effect again at once, and a one-shot landed
+ * there would never play.
  */
 export function useLandOnLeave(land: () => void): void {
   const latest = useRef(land);
   useEffect(() => {
     latest.current = land;
   });
+  const [guard] = useState(() => createUnmountGuard());
   useEffect(() => {
+    guard.mounted();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') latest.current();
     });
     return () => {
       subscription.remove();
-      latest.current();
+      guard.unmounted(() => latest.current());
     };
-  }, []);
+  }, [guard]);
 }

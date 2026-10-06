@@ -842,9 +842,12 @@ win there shows in place, and its fanfare waits for the recap.
 
 ### Haptics
 
-Through `motion/haptics.native.ts`, with safe no-ops on the web, and only while
-the haptic setting is on and no microphone is open. Every native call swallows
-its own refusal, so a haptic never blocks navigation or learning state.
+Through `motion/haptics.native.ts`, with safe no-ops on the web, and on a device
+only while the haptic setting is on, no recorder holds the microphone and no
+spoken live room holds the audio session (`hapticsEnabled()` in
+`motion/hapticPreference.ts`, over the holds in `sound/audioFocus.ts`; a typed
+live room opens no audio session, so it takes no hold). Every native call
+swallows its own refusal, so a haptic never blocks navigation or learning state.
 
 | Moment | Haptic |
 |---|---|
@@ -855,7 +858,7 @@ its own refusal, so a haptic never blocks navigation or learning state.
 | A step in a count | `tick()`, a selection tick at least 60 ms after the last |
 | A weight landing, a flame lighting | `thump()`, a medium impact |
 | A real win: a finished practice, a level, a confirmed purchase | `celebrate()`: success, then medium at 140 ms, then light at 280 ms |
-| An error, a refusal, a safety stop, anything in a live room | nothing |
+| An error, a refusal, a safety stop, anything while a spoken live room holds the audio session | nothing |
 
 Each beat of `celebrate()` asks the setting again as it fires, so a microphone
 opening mid-pattern silences the rest, and `cancelHaptics()` drops whatever has

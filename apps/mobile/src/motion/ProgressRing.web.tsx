@@ -18,6 +18,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle } from 'react-native-svg';
 import { useReduceMotion } from '../motion.ts';
 import { colour, decorative, paper } from '../theme.ts';
+import { monotonicNow } from './clock.ts';
 import { fraction, ringGeometry, type ProgressRingProps } from './ring.ts';
 import { useAnswered } from './landing.ts';
 import { COUNT_FRAME_MS, DUR } from './tokens.ts';
@@ -46,7 +47,7 @@ export function ProgressRing({
   });
 
   const paint = useCallback((next: number) => {
-    const now = Date.now();
+    const now = monotonicNow();
     if (next !== latestGoal.current && now - paintedAt.current < COUNT_FRAME_MS) return;
     paintedAt.current = now;
     setShown(next);

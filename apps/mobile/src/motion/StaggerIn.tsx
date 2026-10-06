@@ -9,13 +9,14 @@
  *
  * Reduced motion comes from `useReduceMotion` through each `Enter`, which
  * lands every child on its final frame at once, and watches the setting live.
- * This file asks too, so a cascade the learner has asked to keep still never
- * computes one.
+ * This file never asks for itself. A second answer can land a commit apart from
+ * Enter's: the cascade would start with every child at index 0 and, having
+ * started, never stagger again. So each child always gets its real place, and
+ * Enter alone decides whether it moves.
  */
 
 import { Children, isValidElement, useEffect, useRef, type ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { useReduceMotion } from '../motion.ts';
 import { Enter } from './layout.tsx';
 import { DUR, ENTER_DISTANCE, STAGGER, STAGGER_SPAN_MS } from './tokens.ts';
 
@@ -45,7 +46,6 @@ export function StaggerIn({
   itemStyle?: StyleProp<ViewStyle>;
   children?: ReactNode;
 }) {
-  const reduced = useReduceMotion();
   // The cascade belongs to the first mount. A child that arrives later is
   // shown at rest rather than starting a cascade of its own.
   const mounted = useRef(false);
@@ -60,7 +60,7 @@ export function StaggerIn({
       {items.map((child, i) => (
         <Enter
           key={isValidElement(child) && child.key !== null ? child.key : i}
-          index={reduced ? 0 : Math.min(i, cascading - 1)}
+          index={Math.min(i, cascading - 1)}
           step={gap}
           from={from}
           distance={distance}

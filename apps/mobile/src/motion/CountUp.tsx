@@ -25,6 +25,7 @@ import { useReduceMotion } from '../motion.ts';
 import { decorative } from '../theme.ts';
 import { createCountTicks, type TickKind } from './countTicks.ts';
 import { cancel, timing } from './drive.ts';
+import { monotonicNow } from './clock.ts';
 import { tick as tickUnderFinger } from './haptics.ts';
 import { useAnswered, useLandOnLeave } from './landing.ts';
 import { COUNT_FRAME_MS, DUR, EASE } from './tokens.ts';
@@ -72,7 +73,7 @@ export function CountUp({
   // 30 times a second, and tick when the rules allow. The final value always
   // draws and never ticks.
   const step = useCallback((next: number) => {
-    const now = Date.now();
+    const now = monotonicNow();
     const final = next === latest.current.to;
     if (!final && now - drawnAt.current < COUNT_FRAME_MS) return;
     drawnAt.current = now;

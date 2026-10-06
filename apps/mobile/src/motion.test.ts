@@ -453,12 +453,17 @@ describe('only the orb and the highlighter move', () => {
     const leaked = names.filter((name) => new RegExp(`\\b${name}\\b`).test(outside));
     assert.deepEqual(leaked, [], `components.tsx uses the engine outside Press:\n${leaked.join('\n')}`);
 
+    // Exact, both ways: a file that starts on the legacy module fails, and so
+    // does one that has left it while its name stays here, because a list that
+    // only shrinks must shrink when a file moves, or the room it leaves is a
+    // place the next legacy animation can hide.
     const legacy = FILES.filter((f) => usesLegacyAnimated(f.body)).map((f) => f.short);
     const added = legacy.filter((short) => !LEGACY_ANIMATED.includes(short));
+    const left = LEGACY_ANIMATED.filter((short) => !legacy.includes(short));
     assert.deepEqual(
-      added,
-      [],
-      `A file started animating on the legacy Animated module; new motion goes through the engine's primitives:\n${added.join('\n')}`,
+      [...legacy].sort(),
+      [...LEGACY_ANIMATED].sort(),
+      `The legacy Animated list is not the files on it. New motion goes through the engine's primitives; a file that moved comes off the list.\nStarted: ${added.join(', ') || 'none'}\nLeft: ${left.join(', ') || 'none'}`,
     );
   });
 

@@ -68,9 +68,21 @@ export function LivingBar({
   // A fill that has reached full and not said so yet. Landing early still says
   // so, because the bar is then full; never after the bar has gone.
   const owed = useRef(false);
+  // On screen. Set in the body as well as cleared in the cleanup, so a
+  // StrictMode rehearsal or a Fast Refresh does not leave it cleared for good.
   const alive = useRef(true);
-  useEffect(() => () => {
-    alive.current = false;
+  // The next-tick answer under reduced motion, one at a time: a newer one
+  // replaces it. Cleared when the bar goes, not when the fill changes: reduced
+  // motion turned off within the tick, with no new fill, starts no spring, so
+  // this answer is the only thing that says the bar filled.
+  const answer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      if (answer.current !== null) clearTimeout(answer.current);
+      answer.current = null;
+    };
   }, []);
   const settle = useCallback(() => {
     if (!owed.current) return;
@@ -103,7 +115,8 @@ export function LivingBar({
     if (reduced) {
       still();
       // The next tick, so a caller never hears it during its own render.
-      setTimeout(settle, 0);
+      if (answer.current !== null) clearTimeout(answer.current);
+      answer.current = setTimeout(settle, 0);
       return;
     }
     if (!changed) return;
