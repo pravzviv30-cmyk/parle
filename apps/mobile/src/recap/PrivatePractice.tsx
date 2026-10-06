@@ -121,7 +121,7 @@ export function PrivatePractice({ french }: { french: string }) {
     <Text style={[type.small, { color: paper.inkSoft }]}>This is new practice, separate from your conversation. Nothing is judged or uploaded. Your clip is deleted when you leave this page.</Text>
     {asset != null ? <GhostButton label="Hear my tutor" disabled={busy || recording} onPress={() => void play(false)} /> : <Text style={[type.small, { color: paper.inkSoft }]}>This word has no recording from your chosen tutor yet. You can still record and hear your own take.</Text>}
     <OutlineButton label={busy ? 'One moment…' : recording ? 'Finish recording' : uri ? 'Record another take' : 'Record my practice take'} disabled={busy} onPress={() => void record()} />
-    {uri && !recording && <GhostButton label="Hear my practice take" disabled={busy} onPress={() => void play(true)} />}
+    {uri && !recording ? <GhostButton label="Hear my practice take" disabled={busy} onPress={() => void play(true)} /> : null}
     {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{note}</Text>}
   </View>;
 }

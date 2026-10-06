@@ -227,10 +227,10 @@ function PreAccountProfileBootstrap({
       footer={<PillButton label="Use this plan for my account" onPress={() => setConfirmed(true)} />}>
       <Text style={[type.body, { color: paper.ink }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
       <Card style={{ marginTop: space(4), gap: space(2) }}>
-        {draft.firstName && <Text style={type.body}>Name: {draft.firstName}</Text>}
+        {draft.firstName ? <Text style={type.body}>Name: {draft.firstName}</Text> : null}
         <Text style={type.heading}>{plan.starter.title}</Text>
         <Text style={type.body}>{plan.startingReason}</Text>
-        {plan.goal && <Text style={type.body}>{plan.goal}</Text>}
+        {plan.goal ? <Text style={type.body}>{plan.goal}</Text> : null}
         <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
         <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. The reminder is off. You can change these choices in Settings.</Text>
       </Card>

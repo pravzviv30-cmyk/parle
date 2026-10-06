@@ -68,13 +68,13 @@ export function SavedTextScreen() {
       {selected.lines.map(line => <View key={line.id} style={{ gap: space(1), marginBottom: space(4) }}>
         <Text style={[type.small, { color: paper.inkSoft }]}>{line.who === 'learner' ? 'You' : line.who === 'narration' ? 'Scene' : line.who === 'coach' ? 'Tutor coaching' : 'Tutor'}</Text>
         <Text {...(line.who === 'coach' ? {} : frenchText)} style={[type.body, { color: paper.ink }]}>{line.frWritten ?? line.fr}</Text>
-        {line.en && <Text style={[type.small, { color: paper.inkSoft }]}>{line.en}</Text>}
+        {line.en ? <Text style={[type.small, { color: paper.inkSoft }]}>{line.en}</Text> : null}
       </View>)}
       <GhostButton label="Delete this conversation text" disabled={busy} onPress={() => setConfirming(true)} />
     </> : rows === null ? <Text style={[type.body, { color: paper.inkSoft }]}>{message ? 'The saved text could not be loaded.' : 'Loading saved text…'}</Text> : rows.length === 0 ? <Text style={[type.body, { color: paper.inkSoft }]}>No conversation text saved. After a conversation, you can choose Save conversation text on the last recap page.</Text> : <Ledger>{rows.map(row => <LedgerRow key={row.sessionId} title={row.title} gloss={`${new Date(row.savedAt).toLocaleDateString()}${row.lines[0] ? `, ${row.lines[0].frWritten ?? row.lines[0].fr}` : ''}`} onPress={() => setSelected(row)} />)}</Ledger>}
-    {message && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{message}</Text>}
+    {message ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{message}</Text> : null}
     {!selected && nextCursor !== null && <GhostButton label={moreBusy ? 'Loading…' : 'Load older conversations'} disabled={moreBusy} onPress={more} />}
-    {!selected && rows === null && message && <GhostButton label="Try again" onPress={() => setAttempt(value => value + 1)} />}
+    {!selected && rows === null && message ? <GhostButton label="Try again" onPress={() => setAttempt(value => value + 1)} /> : null}
     <ConfirmSheet visible={confirming} title="Delete this conversation text?" body="The saved words are permanently removed. Your curated phrases, corrections and practice stay. This text cannot be saved again from this session." confirmLabel={busy ? 'Deleting…' : 'Delete text permanently'} cancelLabel="Keep this text" onConfirm={remove} onCancel={() => { if (!busy) setConfirming(false); }} />
   </ScrollScreen>;
 }

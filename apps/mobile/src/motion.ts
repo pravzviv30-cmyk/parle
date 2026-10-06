@@ -76,7 +76,7 @@ export function settleIn(
     duration: SETTLE_MS,
     delay: delayMs,
     easing: Easing.out(Easing.cubic),
-    useNativeDriver: true,
+    useNativeDriver: NATIVE_DRIVER,
   });
   animation.start(onSettled ? ({ finished }) => { if (finished) onSettled(); } : undefined);
   return animation;

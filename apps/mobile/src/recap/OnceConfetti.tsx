@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, View } from 'react-native';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { decorative } from '../theme.ts';
-import { useReduceMotion } from '../motion.ts';
+import { NATIVE_DRIVER, useReduceMotion } from '../motion.ts';
 
 /** First earned can-do only; one fall, no loop and no touch interception. */
 export function OnceConfetti({ active }: { active: boolean }) {
@@ -18,14 +18,14 @@ export function OnceConfetti({ active }: { active: boolean }) {
     if (reduced) return;
     let live=true;
     setShow(true);
-    const animation=Animated.timing(fall,{toValue:140,duration:650,useNativeDriver:true});
+    const animation=Animated.timing(fall,{toValue:140,duration:650,useNativeDriver:NATIVE_DRIVER});
     const subscription = AppState.addEventListener('change', state => { if (state !== 'active') { animation.stop(); setShow(false); } });
     animation.start(()=>{if(live)setShow(false);});
     return ()=>{live=false;animation.stop();subscription.remove();setShow(false);};
   },[active,focused,reduced,fall]);
   useEffect(()=>{if(reduced){fall.stopAnimation();setShow(false);}},[reduced,fall]);
   if(!show || reduced) return null;
-  return <View {...decorative} pointerEvents="none" style={{position:'absolute',top:0,left:0,right:0,overflow:'hidden'}}>
+  return <View {...decorative} style={{position:'absolute',top:0,left:0,right:0,overflow:'hidden',pointerEvents:'none'}}>
     <Animated.View style={{transform:[{translateY:fall}]}}><Illustration name="celebrate-confetti" /></Animated.View>
   </View>;
 }

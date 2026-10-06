@@ -269,7 +269,7 @@ export function RecapScreen({
           {/* How it went, in a sentence. See tutor/recapLine.ts for why the
               old score-like arithmetic is gone. */}
           <Text style={[type.body, { color: onColour.coral }]}>{recapLine(recap.stats)}</Text>
-          {settlementMessage && <Text accessibilityLiveRegion="polite" style={[type.body, { color: onColour.coral }]}>{settlementMessage}</Text>}
+          {settlementMessage ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: onColour.coral }]}>{settlementMessage}</Text> : null}
         </View>}
 
         {currentPage === 'lines' && <View style={{ gap: space(5) }}>
@@ -348,10 +348,10 @@ export function RecapScreen({
           {canDo !== null && mission && <>
             <Illustration name={postcardIllustration(mission.id)} />
             <Text style={[type.body, { color: paper.ink }]}>{firstEarned ? 'Your first independent finish here.' : 'A can-do you have earned.'}</Text>
-            {evidenceQuote && <View style={{ gap: space(2) }}>
+            {evidenceQuote ? <View style={{ gap: space(2) }}>
               <Text style={[type.body, { color: paper.inkSoft }]}>Your line</Text>
               <Text accessibilityLanguage="fr" style={[type.title, { color: paper.ink }]}>{evidenceQuote}</Text>
-            </View>}
+            </View> : null}
           </>}
         </View>}
 

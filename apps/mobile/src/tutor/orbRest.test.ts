@@ -188,7 +188,7 @@ describe('the orb is two rings, a core and one mark per state', () => {
     assert.match(ORB_FLAT, /transform: \[\{ scale: breath \}\]/, 'the orb no longer breathes by transform');
     assert.ok(!/controlGlass|borderWidth/.test(ORB), 'a frosted inner capsule or a ring drawn in views returned to the orb');
     for (const timing of ORB.match(/Animated\.timing\([\s\S]*?\}\)/g) ?? []) {
-      assert.match(timing, /useNativeDriver: true/, `an orb animation runs on the JS thread: ${flat(timing)}`);
+      assert.match(timing, /useNativeDriver: NATIVE_DRIVER/, `an orb animation runs on the JS thread: ${flat(timing)}`);
     }
 
     // One mark per state, named in the LOOKS table and drawn by that name.

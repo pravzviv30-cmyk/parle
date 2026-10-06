@@ -9791,4 +9791,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a screen reader meets the launch alone, and the app once the launch has gone`
 - verified-by: `the launch background is the brand blue wherever it is painted, and the app beneath stays on the ground`
 
+### F791 — The web build logged an error on every onboarding render
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1018
+- note: Found 2026-10-06 while landing F790. One walk through onboarding on web logged "Unexpected text node" 238 times and "BackHandler is not supported on web" twice. The first came from JSX children gated on a string, `{issue && <View/>}`: an empty `issue` renders the empty string itself, which iOS drops silently and the web logs under every View. A type-aware sweep of the whole app found 23 such conditions in 15 files. None was a number, which would have rendered "0" and crashed iOS. Each now compares with '' or uses a ternary. Seven of the sites are lines that come-alive's F728 fixed on its own branch, and they are spelled as F728 spells them, `{x !== '' ? (…) : null}`, so the two branches change those lines identically and merge there without a conflict. The second came from onboarding listening for the Android back button on every platform; it is now behind an Android check, like `useHardwareBack`. The same pass cleared two web-only warnings with no change on iOS. `settleIn`, VoiceOrb and OnceConfetti now ask for `NATIVE_DRIVER` rather than `true`. Five views moved `pointerEvents` from a prop into their style, as `Illustration` already does. The new come-alive motion files still use the prop, so that warning returns when they land. After the fix, a fresh tab through the launch, every onboarding page and the plan sheet logs nothing, and the iOS launch logs nothing.
+- verified-by: `no JSX child is drawn on a condition that can be an empty string or zero`
+- verified-by: `the Android back button is listened for only on Android`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.

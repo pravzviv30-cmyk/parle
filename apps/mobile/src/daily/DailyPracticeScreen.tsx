@@ -160,8 +160,8 @@ export function DailyPracticeScreen() {
         <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
         {modelAsset != null && <GhostButton label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
         {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
-        {uri && !recording && <GhostButton label="Hear my take" onPress={() => void play(true)} />}
-        {completedTake && uri && !recording && !daySaved && <GhostButton label="Try again" onPress={() => void record()} disabled={busy} />}
+        {uri && !recording ? <GhostButton label="Hear my take" onPress={() => void play(true)} /> : null}
+        {completedTake && uri && !recording && !daySaved ? <GhostButton label="Try again" onPress={() => void record()} disabled={busy} /> : null}
         {modelAsset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
         <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
         {completedTake && !recording && !daySaved && <PillButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}

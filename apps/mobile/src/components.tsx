@@ -1194,7 +1194,7 @@ export function Highlight({
 }) {
   return (
     <View style={ls.bandHost}>
-      <View {...decorative} pointerEvents="none" style={[ls.band, { backgroundColor: highlight }]} />
+      <View {...decorative} style={[ls.band, { backgroundColor: highlight, pointerEvents: 'none' }]} />
       <Text {...frenchText} accessibilityLabel={accessibilityLabel} style={[type.french, { color: paper.ink }, style]}>
         {text}
       </Text>

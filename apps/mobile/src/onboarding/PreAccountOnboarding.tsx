@@ -297,6 +297,7 @@ export function PreAccountOnboarding({
     else if (page === 'home') go('recap', true);
   };
   useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       back();
       return true;
@@ -1015,7 +1016,7 @@ export function PreAccountOnboarding({
                 )}
               </>
             )}
-            {issue && (
+            {issue !== '' ? (
               <View style={{ gap: 8 }}>
                 <Text accessibilityLiveRegion="polite" style={[type.body, { color: ink }]}>
                   {issue}
@@ -1047,12 +1048,12 @@ export function PreAccountOnboarding({
                   </>
                 )}
               </View>
-            )}
-            {storageNote && (
+            ) : null}
+            {storageNote !== '' ? (
               <Text accessibilityLiveRegion="polite" style={[type.small, { color: ink }]}>
                 {storageNote}
               </Text>
-            )}
+            ) : null}
           </PageArrival>
         </View>
       </ScrollScreen>
@@ -1164,11 +1165,11 @@ export function PreAccountOnboarding({
             )}
           </>
         )}
-        {surface !== 'start' && issue && (
+        {surface !== 'start' && issue !== '' ? (
           <Text accessibilityLiveRegion="polite" style={type.body}>
             {issue}
           </Text>
-        )}
+        ) : null}
         {surface === 'voice' && (
           <>
             {TUTOR_VOICE_OPTIONS.map((v) => (
@@ -1239,14 +1240,14 @@ export function PreAccountOnboarding({
               }}
             />
             <GhostButton label="Privacy details" onPress={() => setSurface('privacy')} />
-            {issue && (
+            {issue !== '' ? (
               <>
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
                 <GhostButton label="Try again" disabled={busy} onPress={() => void start(false)} />
               </>
-            )}
+            ) : null}
           </>
         )}
         {surface === 'privacy' && (

@@ -32,6 +32,6 @@ export function SaveTextChoice({ ownerId, conversation }: { ownerId: string; con
     <Text style={[type.bodyStrong, { color: paper.ink }]}>Keep the conversation text?</Text>
     <Text style={[type.small, { color: paper.inkSoft }]}>Save the conversation and tutor coaching to your account. Speech recognition can differ from what you said. No recording is saved. You can delete this text separately from your practice.</Text>
     {state !== 'saved' && <GhostButton label={state === 'saving' ? 'Saving conversation text…' : 'Save conversation text'} disabled={state === 'saving'} onPress={save} />}
-    {message && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{message}</Text>}
+    {message ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{message}</Text> : null}
   </View>;
 }
