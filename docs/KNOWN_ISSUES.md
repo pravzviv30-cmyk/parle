@@ -9736,6 +9736,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns`
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
 - note: 4 October 2026: adding expo-updates 57.0.24 triggered a fresh certificate-verifier review. Its Forge-dependent imports remain CLI-only; the mobile client does not import them, and iOS native verification uses Apple Security. The revised client/runtime boundary test passes; custom update signing remains unconfigured and the temporary exception's expiry is unchanged.
+- note: 6 October 2026: aligning the app with Expo SDK 57.0.27 moved expo-updates to 57.0.25 and repeated the version-specific review. Its only code change from 57.0.24 is the build-time createManifestForBuildAsync asset-hash index; Forge-dependent imports remain in the CLI's two code-signing commands, iOS verification still uses SecKeyVerifySignature, and node-forge 1.4.0 is still the latest release. The pinned version moved with the review; the exception's review date and expiry are unchanged.
 - verified-by: `unpatched build-tool exceptions cannot enter service runtimes or the mobile update client`
 
 ### F712 — The generated iOS ignore rule excluded the handwritten Walk module

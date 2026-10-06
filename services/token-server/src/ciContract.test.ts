@@ -455,10 +455,10 @@ describe('the ci contract', () => {
     }
     const updates = resolveFrom('apps/mobile', 'expo-updates');
     assert.ok(updates, 'the reviewed remote update client must resolve');
-    assert.equal(lock.packages[updates]?.version, '57.0.24', 'the remote update client needs a version-specific verifier review');
+    assert.equal(lock.packages[updates]?.version, '57.0.25', 'the remote update client needs a version-specific verifier review');
     const decision = accepted.find((item) => item.module === 'node-forge');
     assert.match(decision?.reachability ?? '', /SecKeyVerifySignature/);
-    assert.match(decision?.reachability ?? '', /expo-updates 57\.0\.24/);
+    assert.match(decision?.reachability ?? '', /expo-updates 57\.0\.25/);
     const config = JSON.parse(readFileSync(path.join(ROOT, 'apps/mobile/app.json'), 'utf8')).expo;
     assert.equal(config.updates?.codeSigningCertificate, undefined, 'custom signing requires a separate review');
     const updateClient = path.join(ROOT, updates, 'src');

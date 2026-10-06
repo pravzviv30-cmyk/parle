@@ -3,7 +3,7 @@
  *
  * Luvani ran in a browser for its whole life. `app.json` and `package.json` are the two
  * files that decide whether it can also run on a phone, and neither of them is imported
- * by anything, so nothing fails when they drift. Four things can be lost silently here,
+ * by anything, so nothing fails when they drift. Five things can be lost silently here,
  * and each costs an afternoon to rediscover on a device rather than in a test.
  *
  * The first is the dev client. Expo Go cannot load `@livekit/react-native-webrtc`'s
@@ -27,6 +27,14 @@
  * the store icon, see-through layers on the ground colour, and the adaptive layers inside
  * the circle a round launcher keeps.
  *
+ * The fifth is the iOS build itself. `expo-modules-jsi` builds an intermediate framework
+ * inside `node_modules` and signs it, and on a File Provider folder such as an iCloud
+ * `~/Documents` that signing fails with "resource fork, Finder information, or similar
+ * detritus not allowed". The postinstall in `scripts/patchExpoModulesJsi.mjs` turns that
+ * signing off, but only for the versions it names, because a new version may have fixed
+ * it. On 2026-10-06 Expo 57.0.27 moved the lock to 57.1.1, the postinstall stepped
+ * aside, the gate stayed green, and only an Xcode build found out.
+ *
  * Written as a source walk rather than as a mock, in the mould of
  * `services/token-server/src/ciContract.test.ts`: the thing being defended is a file, so
  * a file is what gets read.
@@ -40,6 +48,7 @@ import { inflateSync } from 'node:zlib';
 import { describe, test } from 'node:test';
 
 const MOBILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.join(MOBILE, '..', '..');
 
 const read = (name: string): string => readFileSync(path.join(MOBILE, name), 'utf8');
 
@@ -107,7 +116,7 @@ function reachFromCentre(file: string): number {
   return farthest / width;
 }
 
-const runbook = readFileSync(path.join(MOBILE, '..', '..', 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
+const runbook = readFileSync(path.join(ROOT, 'docs', 'DEVICE_VERIFICATION.md'), 'utf8');
 
 /** The flag every script that starts Metro has to carry. */
 const LOCAL_DEVELOPMENT = 'EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1';
@@ -213,5 +222,38 @@ describe('the device build contract', () => {
     for (const slot of [android.adaptiveIcon.foregroundImage, android.adaptiveIcon.monochromeImage]) {
       assert.ok(reachFromCentre(slot) >= 24 / 108, `${slot} is smaller than Android's 48dp logo`);
     }
+  });
+
+  test('the locked expo-modules-jsi is a version the iOS signing workaround has been checked against', () => {
+    const lock = JSON.parse(readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8')) as {
+      packages: Record<string, { version?: string }>;
+    };
+    const locked = lock.packages['node_modules/expo-modules-jsi']?.version;
+    assert.ok(locked, 'expo-modules-jsi is no longer locked; if Expo dropped it, delete scripts/patchExpoModulesJsi.mjs and these two tests');
+    const patch = readFileSync(path.join(ROOT, 'scripts', 'patchExpoModulesJsi.mjs'), 'utf8');
+    const named = patch.match(/^const AFFECTED_VERSIONS = \[(.*)\];$/m)?.[1];
+    assert.ok(named !== undefined, 'scripts/patchExpoModulesJsi.mjs no longer names the versions it patches');
+    const covered = [...named.matchAll(/'([^']+)'/g)].map((version) => version[1]);
+    assert.ok(
+      covered.includes(locked),
+      `expo-modules-jsi is locked at ${locked}, which scripts/patchExpoModulesJsi.mjs does not patch (${covered.join(', ')}), ` +
+        'so an iOS build in an iCloud folder fails at its nested codesign. Read its apple/scripts/build-xcframework.sh: ' +
+        'name the version if it still signs the intermediate framework, or delete the workaround if Expo fixed it.',
+    );
+  });
+
+  test('the installed expo-modules-jsi build leaves its intermediate framework unsigned', () => {
+    const script = readFileSync(
+      path.join(ROOT, 'node_modules', 'expo-modules-jsi', 'apple', 'scripts', 'build-xcframework.sh'),
+      'utf8',
+    );
+    // The nested build, from `xcodebuild \ build \` to the parenthesis that closes it.
+    const settings = script.match(/\n\s+xcodebuild \\\n\s+build \\\n([\s\S]*?)\n\s+\)/)?.[1];
+    assert.ok(settings !== undefined, 'the nested xcodebuild call in build-xcframework.sh changed shape, so the signing workaround needs review');
+    assert.match(
+      settings,
+      /^\s+CODE_SIGNING_ALLOWED=NO \\$/m,
+      'postinstall left the installed build script signing its intermediate framework, which fails on a File Provider folder',
+    );
   });
 });
