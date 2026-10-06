@@ -10005,7 +10005,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/game/settle.ts, apps/mobile/src/ConvoScreen.tsx, apps/mobile/src/nav/RootNavigator.tsx, apps/mobile/src/DrillScreen.tsx, apps/mobile/src/ReviewScreen.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx, apps/mobile/src/onboarding/GuestAccountHandoff.tsx
 - note: One pipeline (README Part 6): every finished sitting settles once through game/settle.ts and returns a GameDelta read back from disk. A safety stop settles nothing.
-- note 2026-10-06: fixed on ca/p1-settle (step P1-C). game/settle.ts settles every finish (conversation inside its stop guard, lesson, drill set and practice plan on completed only, review on an empty queue banked once, daily phrase, guest hand-off with streak:{day} seen first); recordActivityOnce honours finished; GameProvider and the hooks are mounted once in App.tsx; game/display.test.ts bans levelFor( and the XP helpers in screens. Each title failed without the change.
+- note 2026-10-06: fixed on ca/p1-settle (step P1-C) and repaired after review on ca/p1-settle-r1. game/settle.ts settles every finish (conversation inside its stop guard, lesson, bank drill set, review on an empty queue banked once, daily phrase, guest hand-off with streak:{day} seen first) and practice/completion.ts settles a practice plan wherever it completes (finish, retry from its first snapshot at its frozen instant, launch recovery); recordActivityOnce honours finished; GameProvider and the hooks are mounted once in App.tsx; game/display.test.ts bans levelFor( and the XP helpers in screens. Rule chosen for two devices dealt different quests: a quest either device credited stays earned (XP and the monthly count read every claim; done reads 3 once the chest is claimed). Each title failed without the change.
 - verified-by: `settling a sitting records its day, goal, quests and badges once, and a replay changes nothing`
 - verified-by: `a safety stop settles nothing`
 - verified-by: `a kept guest practice lights day one once`
@@ -10015,7 +10015,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/game
 - note: game.md 3.6 with review finding 14. Seed the streak, badges and rollups from practice already saved, mark every current moment seen, and show the one intro sheet only to a learner who has practice days.
-- note 2026-10-06: fixed on ca/p1-settle (step P1-C). game/catchUp.ts seeds once per account per phone (badges dated from data or null, xpMonths, no cover, every current moment and the durable intro key seen, paidSince for a paid plan); the intro sheet shows only with practice days on an account never introduced; until the seed runs a settle awards no badge and plays nothing. The title failed without the change.
+- note 2026-10-06: fixed on ca/p1-settle (step P1-C), kept through the review repair on ca/p1-settle-r1. game/catchUp.ts seeds once per account per phone (badges dated from data or null, xpMonths, no cover, every current moment and the durable intro key seen, paidSince for a paid plan); the intro sheet shows only with practice days on an account never introduced; until the seed runs a settle awards no badge and plays nothing. The title failed without the change.
 - verified-by: `an existing learner is seeded from saved practice with every current moment marked seen`
 
 ### F746 — The streak, quest, level and badge art does not exist

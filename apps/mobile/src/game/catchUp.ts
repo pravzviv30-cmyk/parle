@@ -13,6 +13,10 @@
  * Both run on the settle chain, so neither can mark a moment seen between a
  * sitting's write and its settle, and the catch-up does nothing while a sitting
  * is between `beginSettle` and `finishSettle` (the next foreground runs it).
+ * A sitting that begins while the catch-up is already running stops it too:
+ * the catch-up reads `settleEpochNow()` when it starts and writes nothing more,
+ * claims nothing and marks nothing seen once that has moved, so a sitting whose
+ * write lands under the catch-up's reads still celebrates its own moments.
  */
 
 import { localDayKey, newBadges } from '@luvani/core';
@@ -28,6 +32,7 @@ import {
   publishedInThisLaunch,
   readGameFacts,
   reconcileGame,
+  settleEpochNow,
   settleInFlight,
 } from './settle.ts';
 import { awardBadges, markSeen, raiseXpMonths } from './store.ts';
@@ -206,14 +211,17 @@ export function catchUpQuietly(): Promise<CelebrationEvent[]> {
   return onSettleChain(async () => {
     const uid = activeUserId();
     const scope = scopeGeneration();
-    const live = () => uid !== null && scope === scopeGeneration() && activeUserId() === uid;
+    // Read synchronously, before any await: a sitting that begins after this
+    // line raises the epoch, and from then on this pass writes nothing more.
+    const epoch = settleEpochNow();
+    const live = () => uid !== null && scope === scopeGeneration() && activeUserId() === uid && settleEpochNow() === epoch;
     if (uid === null) return [];
     const env = gameEnvironment();
     const now = env.now();
     if (settleInFlight(now)) return [];
     const local = await safely(() => loadGameLocal(), null);
     if (local === null || local.introducedAt === null) return [];
-    const done = await safely(() => reconcileGame({ uid, today: localDayKey(now), now, mode: 'quiet', awardBadges: true, live }), null);
+    const done = await safely(() => reconcileGame({ uid, today: localDayKey(now), now, mode: 'quiet', awardBadges: true, dealQuests: true, live }), null);
     if (done === null || !live()) return [];
 
     const plan = catchUpPlan({
@@ -223,7 +231,7 @@ export function catchUpQuietly(): Promise<CelebrationEvent[]> {
       published: publishedInThisLaunch,
       replayed: replayedThisLaunch,
     });
-    if (plan.quiet.length > 0) await markSeen(plan.quiet.map((key) => ({ key, at: now })));
+    if (plan.quiet.length > 0 && live()) await markSeen(plan.quiet.map((key) => ({ key, at: now })));
     if (plan.drop.length > 0 && live()) await dropCelebrations(plan.drop);
     const events = plan.replay
       .map((key) => durableEventFor(key, done.view, 'account', now))

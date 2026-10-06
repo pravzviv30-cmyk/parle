@@ -21,7 +21,7 @@
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DAY_ONE_QUESTS, addDays, localDayKey, streakFrom, xpCreditedFor, type QuestId } from '@luvani/core';
+import { CHEST, DAY_ONE_QUESTS, addDays, localDayKey, streakFrom, xpCreditedFor, type QuestId } from '@luvani/core';
 
 import { attachCelebrationListener, discardBufferedCelebrations, type CelebrationEvent } from '../celebrate/events.ts';
 import type { GuestPractice } from '../onboarding/guestModel.ts';
@@ -29,13 +29,14 @@ import { loadActiveDays, loadActivity, recordActiveDay, recordActivity, recordAc
 import { setActiveUser } from '../storage/scope.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { resetSyncRegistry } from '../sync/registry.ts';
-import { seedExistingLearner } from './catchUp.ts';
+import { catchUpQuietly, seedExistingLearner } from './catchUp.ts';
 import { GAME_COPY } from './copy.ts';
 import { loadGameLocal, setPaidSince } from './gameLocal.ts';
 import { settleGuestHandoff } from './guestHandoff.ts';
-import { beginSettle, configureGameEnvironment, finishSettle, settleSitting } from './settle.ts';
-import { loadGame } from './store.ts';
-import { NO_OUTSIDE_FACTS, type BillingFacts } from './view.ts';
+import type { StoredGame } from './model.ts';
+import { beginSettle, configureGameEnvironment, finishSettle, readGameFacts, settleSitting } from './settle.ts';
+import { addClaims, loadGame, setQuestDay } from './store.ts';
+import { NO_OUTSIDE_FACTS, badgeFactsFrom, gameViewFrom, type BillingFacts } from './view.ts';
 
 function installDisk(): Map<string, string> {
   const map = new Map<string, string>();
@@ -536,5 +537,217 @@ describe('settling a finished sitting — F744', () => {
     const streak = streakFrom({ practiceDays: activity.activeDays, covers: game.covers, today: TODAY });
     assert.equal(streak.current, 1, 'two sittings on one day counted as two streak days');
     assert.equal(streak.lifetimeDays, 1);
+  });
+});
+
+describe('settling a finished sitting, after review — F744', () => {
+  test('a cover this settle writes never replays a milestone the run had already passed', async () => {
+    const paid: BillingFacts = { plan: 'regular', lapsed: false, secondsRemaining: 1200, canStart: true };
+    pin({ billing: () => paid });
+
+    // A freeze. Ten days in a row ending the day before yesterday, yesterday
+    // missed, a plan first seen weeks ago. The seed meets a broken run, so no
+    // milestone is marked seen, and the settle's own freeze brings the run back.
+    for (let n = 11; n >= 2; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await setPaidSince(addDays(TODAY, -20)), 'durable');
+    assert.ok(await seedExistingLearner());
+    heard = [];
+    const frozen = await drill(NOW, 10);
+    assert.ok(frozen);
+    assert.deepEqual((await loadGame()).covers.map((cover) => [cover.day, cover.kind]), [[addDays(TODAY, -1), 'freeze']]);
+    assert.equal(frozen.streak.restoredBy, 'freeze');
+    assert.equal(frozen.streak.after.current, 11);
+    assert.equal(frozen.streak.milestone, null, 'a freeze replayed the 7 the run passed last week');
+    assert.deepEqual(streakMoments().map((e) => e.key), [`streak:${TODAY}`], 'today\'s streak moment was lost to an old milestone');
+
+    // A repair. Ten days ending three days ago, two days ago missed, yesterday
+    // practised: the missed day sits behind a new run, where no freeze reaches,
+    // and today's practice is the second in the window, so it completes the repair.
+    uid = nextUid();
+    setActiveUser(uid);
+    for (let n = 12; n >= 3; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    heard = [];
+    const repaired = await drill(NOW, 10);
+    assert.ok(repaired);
+    assert.deepEqual((await loadGame()).covers.map((cover) => [cover.day, cover.kind]), [[addDays(TODAY, -2), 'repair']]);
+    assert.equal(repaired.streak.restoredBy, 'repair');
+    assert.equal(repaired.streak.after.current, 12);
+    assert.equal(repaired.streak.milestone, null, 'a repair replayed the 7 the run passed days ago');
+    assert.deepEqual(streakMoments().map((e) => e.key), [`streak:${TODAY}`]);
+  });
+
+  test('a sitting after more than four hundred days of practice is credited every XP it earned', async () => {
+    // A sitting a day for 410 days, newest first, so no write ages out an older one.
+    for (let n = 1; n <= 410; n += 1) assert.equal(await recordActivity('drill', 20, NOW - n * DAY, { activeMs: MINUTE }), 'durable');
+    assert.equal((await loadActivity({ strict: true })).length, 410);
+    assert.ok(await seedExistingLearner());
+
+    const delta = await drill(NOW, 20, 2 * MINUTE);
+    assert.ok(delta);
+    assert.equal((await loadActivity({ strict: true })).length, 401, 'the fixture did not age the oldest days out in the sitting\'s own write');
+    assert.equal(delta.xp.counted, 20, 'the days that aged out were taken off this sitting\'s XP');
+    assert.equal(delta.xp.capped, false, 'an uncapped sitting was told the daily limit was reached');
+    assert.equal(delta.xp.totalAfter - delta.xp.totalBefore, delta.xp.counted + delta.xp.questXp + delta.xp.bonus, 'the total moved by something other than what this sitting credited');
+  });
+
+  test('a sitting that begins while the quiet catch-up is running keeps its own moments', async () => {
+    assert.equal(await seedExistingLearner(), null);
+
+    // The catch-up's read of the other stores is held open, as a slow disk would hold it.
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let parked = false;
+    restore();
+    restore = configureGameEnvironment({
+      now: () => NOW,
+      billing: () => Promise.resolve(null),
+      canRecord: () => Promise.resolve(true),
+      outside: async () => {
+        if (!parked) {
+          parked = true;
+          await gate;
+        }
+        return { ...NO_OUTSIDE_FACTS, goalTarget: 5 };
+      },
+    });
+    const quiet = catchUpQuietly();
+    while (!parked) await new Promise((resolve) => setImmediate(resolve));
+
+    // A conversation finishes, and its write lands under the catch-up's reads.
+    const settling = convo(NOW, 40, 6 * MINUTE);
+    while ((await loadActivity({ strict: true })).length === 0) await new Promise((resolve) => setImmediate(resolve));
+    release();
+
+    assert.deepEqual(await quiet, []);
+    const delta = await settling;
+    assert.ok(delta);
+    assert.deepEqual(delta.quests.completedNow, ['finish-practice', 'minutes'], 'the catch-up claimed the sitting\'s quests');
+    assert.deepEqual(delta.badges, ['first-conversation'], 'the catch-up awarded the sitting\'s badge');
+    assert.deepEqual(heard.map((e) => e.key).sort(), ['badge:first-conversation', 'level:2', `streak:${TODAY}`]);
+    assert.deepEqual((await loadGame()).seen.map((mark) => mark.key), ['intro'], 'the catch-up marked the sitting\'s moments seen, so they never play');
+  });
+
+  test('two devices dealt different quests keep every quest they credited after a merge, and the chest and the count agree', async () => {
+    // The phone dealt first and finished one of its three.
+    const phoneDeal: [QuestId, QuestId, QuestId] = ['phrase-of-day', 'conversation', 'new-phrases'];
+    assert.equal(await setQuestDay({ day: TODAY, ids: phoneDeal, at: NOW - 2 * HOUR }), 'durable');
+    assert.equal(await addClaims([{ day: TODAY, questId: 'phrase-of-day', xp: 10, at: NOW - 2 * HOUR }]), 'durable');
+    const phone = JSON.parse(disk.get(gameKey())!) as StoredGame;
+
+    // The tablet, offline and without a microphone, was dealt three others and finished them all.
+    disk = installDisk();
+    const tabletDeal: [QuestId, QuestId, QuestId] = ['practise-twice', 'practice-set', 'sound-check'];
+    assert.equal(await setQuestDay({ day: TODAY, ids: tabletDeal, at: NOW - HOUR }), 'durable');
+    assert.equal(
+      await addClaims([
+        ...tabletDeal.map((questId) => ({ day: TODAY, questId, xp: 10, at: NOW - HOUR })),
+        { day: TODAY, questId: CHEST, xp: 15, at: NOW - HOUR },
+      ]),
+      'durable',
+    );
+    const tablet = JSON.parse(disk.get(gameKey())!) as StoredGame;
+
+    const game = merge('game', phone, tablet) as StoredGame;
+    assert.deepEqual(game.questDays.map((row) => row.ids), [phoneDeal], 'the earliest deal is not the one kept');
+    disk.set(gameKey(), JSON.stringify(game));
+
+    const facts = await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null);
+    const view = gameViewFrom(facts, TODAY);
+    assert.deepEqual(view.quests.ids, phoneDeal);
+    assert.equal(view.quests.chest, true);
+    assert.equal(view.quests.done, 3, 'the chest is open and the count says the day is not done');
+    assert.equal(view.xp.quests, 10 + 3 * 10 + 15, 'a quest one device credited was taken back by the merge');
+    assert.deepEqual(badgeFactsFrom(facts, view).questMonths, [{ month: TODAY.slice(0, 7), count: 4 }]);
+
+    // The next sitting on the merged facts takes nothing back and opens no second chest.
+    const delta = await drill(NOW, 10);
+    assert.ok(delta);
+    assert.equal(delta.quests.chestNow, false);
+    assert.equal(delta.quests.done, 3);
+    assert.ok(delta.xp.totalAfter >= delta.xp.totalBefore + delta.xp.counted);
+    assert.equal((await loadGame()).claims.filter((claim) => claim.questId === CHEST).length, 1);
+  });
+
+  test('a sitting whose account changes while its snapshot is read never starts its write', async () => {
+    const other = nextUid();
+    const shared = AsyncStorage as unknown as Record<string, unknown>;
+    const getItem = shared.getItem as (key: string) => Promise<string | null>;
+    let switched = false;
+    shared.getItem = (key: string): Promise<string | null> => {
+      if (!switched && key === activityKey()) {
+        switched = true;
+        setActiveUser(other);
+      }
+      return getItem(key);
+    };
+    let started = 0;
+    const delta = await settleSitting({
+      source: 'drill',
+      at: NOW,
+      xpEarned: 12,
+      write: () => {
+        started += 1;
+        return recordActivity('drill', 12, NOW, { finished: true });
+      },
+    });
+    assert.ok(switched, 'the account never changed, so this checks nothing');
+    assert.equal(delta, null);
+    assert.equal(started, 0, 'the sitting\'s write was started after the account changed');
+    assert.equal(disk.has(activityKey(other)), false, 'one learner\'s sitting landed in the next account');
+    assert.equal(disk.has(gameKey(other)), false);
+  });
+
+  test('a sitting settled long after it finished yesterday deals and claims nothing for yesterday', async () => {
+    assert.equal(await seedExistingLearner(), null);
+    const evening = new Date(2026, 9, 4, 18, 0, 0).getTime();
+    assert.notEqual(localDayKey(evening), TODAY);
+
+    // Settled at noon the next day: a plan retried in the morning, a guest practice kept the day after.
+    const delta = await drill(evening, 12, 6 * MINUTE);
+    assert.ok(delta);
+    assert.deepEqual(await loadActiveDays(), [localDayKey(evening)], 'the sitting no longer counts for the day it finished');
+    const game = await loadGame();
+    assert.deepEqual(game.questDays.map((row) => row.day), [TODAY], 'quests were dealt for a day the learner had already left');
+    assert.ok(game.claims.every((claim) => claim.day === TODAY), 'a quest was claimed for a day the learner had already left');
+  });
+
+  test('the guest hand-off leaves today\'s quests to the first catch-up', async () => {
+    // Before the game layer mounts, the phone reads as unable to record.
+    pin({ canRecord: () => false });
+    const guest = { version: 2, attempts: [], kept: true, completed: true, finishedAt: [NOW - HOUR] } as unknown as GuestPractice;
+    const handed = await settleGuestHandoff(guest);
+    assert.equal(handed.ack, 'durable');
+    assert.ok(handed.delta);
+    assert.deepEqual((await loadGame()).questDays, [], 'the hand-off dealt today\'s quests before the app knew the microphone');
+
+    // The game layer mounts with the microphone known, and deals the day once.
+    pin({ canRecord: () => true });
+    assert.equal(await seedExistingLearner(), null);
+    assert.deepEqual(await catchUpQuietly(), []);
+    assert.deepEqual((await loadGame()).questDays.map((row) => [row.day, row.ids]), [[TODAY, [...DAY_ONE_QUESTS]]]);
+    assert.deepEqual(streakMoments(), []);
+  });
+
+  test('a kept guest practice is still saved when the game layer cannot mark it seen', async () => {
+    // A game record a newer build wrote: this build may not touch it.
+    const newer = JSON.stringify({ version: 99 });
+    disk.set(gameKey(), newer);
+    const guest = { version: 2, attempts: [], kept: true, completed: true, finishedAt: [NOW - HOUR] } as unknown as GuestPractice;
+    const handed = await settleGuestHandoff(guest);
+    assert.equal(handed.ack, 'durable', 'the practice was reported unsaved because only the game layer could not write');
+    assert.equal(handed.delta, null);
+    assert.deepEqual(await loadActiveDays(), [TODAY], 'the guest\'s practice day was not recorded');
+    assert.equal(disk.get(gameKey()), newer, 'a newer build\'s record was overwritten');
+    assert.deepEqual(streakMoments(), [], 'the flame lit again with nothing marked seen');
+
+    // A day that cannot be recorded is still a failure, so the hand-off can say so.
+    uid = nextUid();
+    setActiveUser(uid);
+    disk.set(activityKey(), '{broken');
+    assert.equal((await settleGuestHandoff(guest)).ack, 'failed');
   });
 });

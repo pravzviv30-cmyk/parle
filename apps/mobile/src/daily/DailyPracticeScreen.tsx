@@ -168,6 +168,9 @@ export function DailyPracticeScreen() {
       clock.touch();
       const at = Date.now();
       const settling = await beginSettle();
+      // The day binds to whoever is signed in when it is asked for, so an
+      // account that changed while the snapshot was read records nothing.
+      if (owner !== scopeGeneration()) { releaseSettle(settling); return; }
       const ack = await recordActiveDay();
       // The practice happened whether or not this screen is still showing, so
       // it settles on the durable day alone: a quest, the goal, the +5 (F744).

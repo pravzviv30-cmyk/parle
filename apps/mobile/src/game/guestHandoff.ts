@@ -23,7 +23,7 @@ import { recordActiveDay } from '../progress/activity.ts';
 import type { PersistAck } from '../storage/ack.ts';
 import { INTRO_SEEN_KEY } from './catchUp.ts';
 import type { GameDelta } from './delta.ts';
-import { beginSettle, finishSettle, gameEnvironment, releaseSettle } from './settle.ts';
+import { beginSettle, finishSettle, gameEnvironment, releaseSettle, settleStillLive } from './settle.ts';
 import { markSeen } from './store.ts';
 
 /** One finish instant per guest day, the latest on each, oldest day first. */
@@ -41,30 +41,52 @@ export function guestFinishes(practice: GuestPractice | null, dayOf: (at: number
   });
 }
 
+async function orFailed(work: () => Promise<PersistAck>): Promise<PersistAck> {
+  try {
+    return await work();
+  } catch {
+    return 'failed';
+  }
+}
+
 /**
- * Record a kept guest practice on the account and settle it. `failed` when a
- * day or its seen mark did not land, so the hand-off can say so and be tried
- * again; `durable` when every day is on disk (or there was none to record).
+ * Record a kept guest practice on the account and settle it.
+ *
+ * `failed` only when a practice day did not reach the disk (or the account
+ * changed before it could), so the hand-off can say the practice was not saved
+ * and be tried again. Everything the game layer adds on top is not the
+ * practice: when the seen mark cannot be written the days are still recorded
+ * and the settle is skipped, so nothing can light the flame a second time (the
+ * quiet catch-up reconciles the rest), and a settle that answers nothing still
+ * leaves the practice saved. `durable` when every day is on disk, or there was
+ * none to record.
  */
 export async function settleGuestHandoff(practice: GuestPractice | null): Promise<{ ack: PersistAck; delta: GameDelta | null }> {
   const finishes = guestFinishes(practice);
   if (finishes.length === 0) return { ack: 'durable', delta: null };
   const token = await beginSettle();
+  // Every write below binds to the account active when it is asked for; one
+  // that changed while the snapshot was read is not the account that kept this.
+  if (!settleStillLive(token)) {
+    releaseSettle(token);
+    return { ack: 'failed', delta: null };
+  }
   const now = gameEnvironment().now();
   // Seen before the day exists, so no settle can ever find the day new and
   // unseen. The account is introduced here too: its practice is the one the
   // learner just kept, not practice saved before this layer, so the one-time
   // intro sheet has nothing to tell them.
   const marks = [INTRO_SEEN_KEY, ...finishes.map((finish) => celebrationKey.streak(finish.day))];
-  if ((await markSeen(marks.map((key) => ({ key, at: now })))) !== 'durable') {
-    releaseSettle(token);
-    return { ack: 'failed', delta: null };
-  }
+  const marked = await orFailed(() => markSeen(marks.map((key) => ({ key, at: now }))));
   for (const finish of finishes) {
-    if ((await recordActiveDay(finish.at)) !== 'durable') {
+    if ((await orFailed(() => recordActiveDay(finish.at))) !== 'durable') {
       releaseSettle(token);
       return { ack: 'failed', delta: null };
     }
+  }
+  if (marked !== 'durable') {
+    releaseSettle(token);
+    return { ack: 'durable', delta: null };
   }
   const last = finishes[finishes.length - 1]!;
   const delta = await finishSettle(token, { source: 'guest', at: last.at, xpEarned: 0 });

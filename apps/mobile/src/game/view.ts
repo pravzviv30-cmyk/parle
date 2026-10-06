@@ -16,6 +16,17 @@
  * - **The total never falls.** Each month counts the larger of the stored
  *   rollup and what the live rows still show, so an activity entry aging out of
  *   the log after 400 days, or a claim aging out after 62, takes nothing away.
+ *
+ * One rule about quests on two devices. A day's deal is frozen per device, and
+ * two devices can be dealt different quests for the same day (the microphone,
+ * the plan and the practice days synced so far all feed the deal). After a
+ * merge the earliest deal is the one shown, but a quest the other device dealt,
+ * the learner finished and the device credited stays earned: its claim is a
+ * persisted event, the store's monthly rollups already count it, and taking it
+ * back would make the total fall. So XP and the monthly quest count read every
+ * claim; the day's rows read the deal shown; and `done` reads all three once
+ * the chest is claimed, because the chest is only ever claimed for a deal whose
+ * three were all done.
  */
 
 import {
@@ -121,7 +132,10 @@ export interface QuestsView {
   ids: readonly QuestId[] | null;
   progress: readonly QuestProgress[];
   claimed: readonly (QuestId | typeof CHEST)[];
-  /** Today's quests claimed, 0 to 3. */
+  /**
+   * Today's quests done, 0 to 3: the dealt ones claimed, or all three once the
+   * chest is claimed, so the count and the chest never disagree.
+   */
   done: number;
   chest: boolean;
   facts: DayFacts;
@@ -279,6 +293,7 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
   const held = facts.game.questDays.find((row) => row.day === today);
   const ids = held ? [...held.ids] : null;
   const claimed = facts.game.claims.filter((c) => c.day === today).map((c) => c.questId);
+  const chest = claimed.includes(CHEST);
   const todayRaw = facts.activity.filter((e) => dayOf(e.at) === today).reduce((sum, e) => sum + Math.max(0, e.xp), 0);
   return {
     today,
@@ -292,8 +307,8 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
       ids,
       progress: ids === null ? [] : ids.map((id) => questProgress(id, dayFacts, facts.outside.goalTarget)),
       claimed,
-      done: ids === null ? 0 : ids.filter((id) => claimed.includes(id)).length,
-      chest: claimed.includes(CHEST),
+      done: ids === null ? 0 : chest ? ids.length : ids.filter((id) => claimed.includes(id)).length,
+      chest,
       facts: dayFacts,
     },
     badges: facts.game.badges,

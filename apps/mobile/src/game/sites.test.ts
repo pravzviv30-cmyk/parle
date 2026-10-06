@@ -77,7 +77,7 @@ describe('a sitting settles where it finished, and nowhere else — F744', () =>
       { file: 'ConvoScreen.tsx', source: 'convo', via: /settleSitting\(\{ source: 'convo'/ },
       { file: 'nav/RootNavigator.tsx', source: 'lesson', via: /settleSitting\(\{ source: 'lesson'/ },
       { file: 'DrillScreen.tsx', source: 'drill', via: /settleSitting\(\{ source: 'drill'/ },
-      { file: 'DrillScreen.tsx', source: 'drill', via: /finishSettle\(token, \{ source: 'drill'/ },
+      { file: 'practice/completion.ts', source: 'drill', via: /finishSettle\(token, \{ source: 'drill'/ },
       { file: 'ReviewScreen.tsx', source: 'review', via: /settleSitting\(\{ source: 'review'/ },
       { file: 'daily/DailyPracticeScreen.tsx', source: 'phrase', via: /finishSettle\(settling, \{ source: 'phrase', at, xpEarned: 0/ },
       { file: 'onboarding/GuestAccountHandoff.tsx', source: 'guest', via: /settleGuestHandoff\(guest\)/ },
@@ -100,6 +100,11 @@ describe('a sitting settles where it finished, and nowhere else — F744', () =>
     // The daily phrase settles on its durable day, and gives the token back otherwise.
     const daily = flat('daily/DailyPracticeScreen.tsx');
     assert.ok(at(daily, 'await beginSettle()') < at(daily, 'await recordActiveDay()'), 'the daily phrase writes its day before the snapshot it is measured against');
+    // The day binds to whoever is signed in when it is asked for: an account
+    // that changed while the snapshot was read records nothing.
+    assert.match(daily, /const settling = await beginSettle\(\); if \(owner !== scopeGeneration\(\)\) \{ releaseSettle\(settling\); return; \} const ack = await recordActiveDay\(\);/, 'the daily phrase records its day for an account that changed under its snapshot');
+    const handoff = flat('game/guestHandoff.ts');
+    assert.match(handoff, /const token = await beginSettle\(\); if \(!settleStillLive\(token\)\) \{ releaseSettle\(token\); return \{ ack: 'failed', delta: null \}; \}/, 'the guest hand-off writes for an account that changed under its snapshot');
     assert.match(daily, /if \(ack === 'durable'\) void finishSettle\(settling, [^;]*\); else releaseSettle\(settling\);/, 'the daily phrase settles a day that did not land');
     assert.doesNotMatch(daily, /useActiveClock\('phrase'\)/, 'the daily phrase asks for a clock kind the cutoff table does not have (review finding 13)');
 
@@ -111,14 +116,28 @@ describe('a sitting settles where it finished, and nowhere else — F744', () =>
   });
 
   test('a practice sitting settles only when the durable plan says this call completed it', () => {
+    // The plan settles where it completes, whoever ran it: the screen's finish,
+    // its retry, or the recovery three screens run at launch (review finding 9).
+    // Its behaviour is proved in game/practiceSettle.test.ts; this holds the shape.
+    const completion = stripComments(read('practice/completion.ts'));
+    const runs = completion.slice(at(completion, 'async function runAndSettle('), at(completion, 'export function completePracticeSitting(')).replace(/\s+/g, ' ');
+    // The snapshot comes first (or is the one a kept run already took), the plan writes after it.
+    assert.ok(at(runs, 'beginSettle()') < at(runs, 'runPlan('), 'the plan can write before the snapshot it is measured against');
+    assert.match(runs, /if \(done\.status === 'completed'\) \{ void finishSettle\(token, \{ source: 'drill', at: plan\.activityAt, xpEarned: plan\.xp,/, 'a practice sitting settles on a status other than completed, or at an instant the plan did not freeze');
+    assert.match(runs, /\} else if \(done\.status === 'kept'\) \{ heldSettles\.set\(plan\.sittingId, token\); \} else \{ releaseSettle\(token\); \}/, 'a kept plan drops its snapshot, or any other answer keeps one holding the catch-up back');
+    assert.match(runs, /releaseSettle\(token\); throw error;/, 'a plan that throws leaves its token open');
+    assert.equal((runs.match(/finishSettle\(/g) ?? []).length, 1);
+    // Every run of a plan goes through it: the finish, the other sitting's plan ahead of it, and the recovery.
+    const flatCompletion = completion.replace(/\s+/g, ' ');
+    assert.equal((flatCompletion.match(/\brunPlan\(/g) ?? []).length, 2, 'a plan runs somewhere that does not settle it');
+    assert.equal((flatCompletion.match(/\brunAndSettle\(/g) ?? []).length, 5);
+    const recover = flatCompletion.slice(at(flatCompletion, 'export function recoverPracticeCompletion('));
+    assert.match(recover, /return runAndSettle\(bound, slot\.plan\);/, 'a plan finished on recovery is never settled');
+
+    // The screen hands the plan over and settles nothing of its own for it.
     const screen = stripComments(read('DrillScreen.tsx'));
     const block = screen.slice(at(screen, 'const finishPractice = useCallback('), at(screen, 'const persistGrades = useCallback(')).replace(/\s+/g, ' ');
-    // The snapshot comes first, the plan writes after it (review finding 9).
-    assert.ok(at(block, 'beginSettle()') < at(block, 'completePracticeSitting('), 'the plan can write before the snapshot it is measured against');
-    assert.match(block, /if \(done\.status === 'completed'\) void finishSettle\(token, /, 'a practice sitting settles on a status other than completed');
-    assert.match(block, /else releaseSettle\(token\);/, 'a retry\'s answer leaves its token holding the catch-up back');
-    assert.match(block, /releaseSettle\(token\); throw error;/, 'a plan that throws leaves its token open');
-    assert.equal((block.match(/finishSettle\(/g) ?? []).length, 1);
+    assert.deepEqual(settleCalls(block), [], 'the drill screen settles a practice sitting beside the plan, so it could settle twice');
 
     // The bank sitting settles only when the set was worked to its end.
     const persist = screen.slice(at(screen, 'const persistGrades = useCallback('), at(screen, 'const answer = useCallback(')).replace(/\s+/g, ' ');

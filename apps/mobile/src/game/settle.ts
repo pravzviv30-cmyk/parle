@@ -30,12 +30,15 @@
  *
  * A sitting counts for the local day it finished (game.md 2.1), so one that
  * ends at 23:59 and settles a few seconds after midnight still belongs to the
- * day before. Anything older settles against today and never re-deals or
+ * day before. Anything settled later than that (a retried plan, a guest
+ * practice kept the next day) settles against today and never re-deals or
  * claims a past day's quests.
  *
  * It answers null and writes nothing more the moment the account changes, so
- * a sitting settled after a sign-out lands nowhere. A safety stop never calls
- * it (F137): the screens settle only inside their `!stopped` guards.
+ * a sitting settled after a sign-out lands nowhere, and `settleSitting` never
+ * starts a sitting's own write for an account that changed while its snapshot
+ * was read. A safety stop never calls it (F137): the screens settle only
+ * inside their `!stopped` guards.
  *
  * Until the existing-learner seed has run on this phone (F745), a settle
  * writes the sitting's facts but awards no badge and plays nothing: on a phone
@@ -57,6 +60,7 @@ import {
   questsForDay,
   questsToClaim,
   repairOffer,
+  streakFrom,
   totalXp,
   travelCover,
   utcOffsetMinutesAt,
@@ -163,6 +167,18 @@ const openSettles = new Set<{ openedAt: number }>();
 /** Keys this launch handed to the host. The catch-up leaves them to the host, and a second settle never hands them over twice. */
 const publishedThisLaunch = new Set<string>();
 
+/**
+ * Raised, synchronously, every time a sitting begins to settle. A quiet pass
+ * that read it before a sitting began can tell that one did, and stops before
+ * it claims, awards or marks seen anything that sitting may have written: those
+ * moments are the sitting's to celebrate, not the catch-up's to swallow.
+ */
+let settleEpoch = 0;
+
+export function settleEpochNow(): number {
+  return settleEpoch;
+}
+
 /** True while a sitting between `beginSettle` and `finishSettle` could still write. */
 export function settleInFlight(now: number): boolean {
   for (const marker of openSettles) {
@@ -228,6 +244,12 @@ interface ReconcileInput {
   offsetNow?: number;
   /** Badges are awarded only once the existing-learner seed has run on this phone, so none is dated by accident. */
   awardBadges: boolean;
+  /**
+   * Whether this pass may deal the day's quests. The guest hand-off may not:
+   * it runs before the app knows the plan or the microphone, and a deal is
+   * frozen for the day, so it leaves the deal to the first catch-up.
+   */
+  dealQuests: boolean;
   /** True while the account this work was bound to is still the active one. */
   live: () => boolean;
 }
@@ -325,7 +347,7 @@ export async function reconcileGame(input: ReconcileInput): Promise<Reconciled |
 
   // Dealt once, the first time a day is computed, and frozen in the store: a
   // change in eligibility later that day never reshuffles what was shown.
-  if (view.quests.ids === null) {
+  if (view.quests.ids === null && input.dealQuests) {
     const ids = questsForDay({ day: input.today, seed: input.uid, eligibility: eligibilityOf(facts, input.today, canRecord), goalTarget: outside.goalTarget });
     if (!input.live()) return null;
     await setQuestDay({ day: input.today, ids, at: input.now });
@@ -389,6 +411,7 @@ export interface SittingFacts {
  * settle answer null, and the write itself is never held back.
  */
 export async function beginSettle(): Promise<SettleToken> {
+  settleEpoch += 1;
   const marker = { openedAt: environment.now() };
   openSettles.add(marker);
   const scope = scopeGeneration();
@@ -453,16 +476,21 @@ function entriesAdded(before: readonly ActivityEntry[], after: readonly Activity
  * What this sitting's entry added to the shown total, under the one shown cap.
  *
  * `xpCreditedFor` against the log as it stood before, and never more than the
- * capped total actually rose, so a sitting that shared its day with another
- * write can claim only what the total gained. Zero when no entry of this
- * sitting landed: a replay credits nothing twice.
+ * capped total of the entry's own local day actually rose, so a sitting that
+ * shared its day with another write can claim only what the day gained. Only
+ * that day is compared: the write that adds an entry also drops entries older
+ * than 400 days, so the whole log's total can fall while this sitting's day
+ * rises, and comparing it would call an uncapped sitting capped. Zero when no
+ * entry of this sitting landed: a replay credits nothing twice.
  */
 function creditedXp(source: SittingSource, earned: number, before: readonly ActivityEntry[], after: readonly ActivityEntry[]): { counted: number; landed: boolean } {
   const kind = activityKindOf(source);
   if (earned <= 0 || kind === null) return { counted: 0, landed: false };
   const entry = entriesAdded(before, after).find((added) => added.kind === kind && added.xp === earned);
   if (entry === undefined) return { counted: 0, landed: false };
-  const gained = Math.max(0, totalXp(after) - totalXp(before));
+  const day = localDayKey(entry.at);
+  const onDay = (log: readonly ActivityEntry[]) => log.filter((held) => localDayKey(held.at) === day);
+  const gained = Math.max(0, totalXp(onDay(after)) - totalXp(onDay(before)));
   return { counted: Math.min(earned, xpCreditedFor(before, entry), gained), landed: true };
 }
 
@@ -472,11 +500,19 @@ function restoredByOf(covers: readonly StreakCover[], view: GameView): CoverKind
   return bridged?.kind ?? null;
 }
 
-/** The day a sitting's facts are worked out for: the day it finished when that is today or the day before, else today. */
+/**
+ * The day a sitting's facts are worked out for. Today, unless the sitting
+ * finished yesterday within the last `SETTLE_HOLD_MS`: one that ended at 23:59
+ * and is settled a moment after midnight. Anything from yesterday settled any
+ * later (a plan retried in the morning, a guest practice kept the next day)
+ * settles against today, so it never deals or claims quests for a day the
+ * learner has already left, or one their account did not exist on.
+ */
 function factsDayFor(at: number, now: number): DayKey {
   const today = localDayKey(now);
   const finished = localDayKey(at);
-  return finished === today || finished === addDays(today, -1) ? finished : today;
+  if (finished === today) return today;
+  return finished === addDays(today, -1) && now - at <= SETTLE_HOLD_MS ? finished : today;
 }
 
 async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<GameDelta | null> {
@@ -527,6 +563,10 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
     mode: 'practice',
     ...(sitting.source === 'guest' ? {} : { offsetNow: utcOffsetMinutesAt(at) }),
     awardBadges: introduced,
+    // The guest hand-off runs before the app has read the plan or the
+    // microphone, so it would deal the day's three blind and freeze them; the
+    // provider's first catch-up deals them instead.
+    dealQuests: sitting.source !== 'guest',
     live,
   });
   if (done === null || !live()) return null;
@@ -535,6 +575,13 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
   const after = done.view;
   const beforeView = gameViewFrom({ ...before, outside: done.facts.outside, billing: done.facts.billing }, day);
   const restoredBy = restoredByOf(done.covers, after);
+  // A milestone is one this sitting's own practice day crossed. A freeze, a
+  // travel day or a repair written in this settle only brings back a run the
+  // learner already had, so the run is measured as it stood once every cover
+  // now held had bridged it, before this sitting's day: a 10-day run brought
+  // back by a freeze is 10 going to 11, never 0 going to 11, and the 7 it
+  // passed last week is not news.
+  const bridged = streakFrom({ practiceDays: before.practiceDays, covers: [...before.game.covers, ...done.facts.game.covers], today: day });
   const ids: readonly QuestId[] = after.quests.ids ?? [];
   const claimedNow = new Set(done.claims.map((claim) => claim.questId));
   const credit = creditedXp(sitting.source, earned, before.activity, done.facts.activity);
@@ -562,7 +609,7 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
       before: beforeView.streak,
       after: after.streak,
       extendedNow: (beforeView.streak.today === 'open' && after.streak.today === 'practised') || restoredBy === 'repair',
-      milestone: milestoneCrossed(beforeView.streak.current, after.streak.current),
+      milestone: milestoneCrossed(bridged.current, after.streak.current),
       restoredBy,
     },
     quests: {
@@ -624,11 +671,29 @@ export function releaseSettle(token: SettleToken): void {
 }
 
 /**
+ * True when the account the token was taken for is still the active one. A
+ * caller that awaited `beginSettle` checks this before its own write: the
+ * stores bind a write to the account active when it is asked for, so a write
+ * started after a sign-out mid-snapshot would land in whoever is signed in now.
+ */
+export function settleStillLive(token: SettleToken): boolean {
+  return token.scope === scopeGeneration() && activeUserId() === token.uid;
+}
+
+/**
  * Begin, write, finish. `write` is the sitting's own record (its activity
- * entry, with `finished: true`); a write that does not land settles nothing.
+ * entry, with `finished: true`); a write that does not land settles nothing,
+ * and neither does one whose account changed while the snapshot was read: the
+ * write is never started, as it would have been refused before the snapshot
+ * existed (`clearActiveUserData`: a write asked for before a reset never lands
+ * after it).
  */
 export async function settleSitting(sitting: SittingFacts & { write: () => Promise<PersistAck> }): Promise<GameDelta | null> {
   const token = await beginSettle();
+  if (!settleStillLive(token)) {
+    releaseSettle(token);
+    return null;
+  }
   let ack: PersistAck;
   try {
     ack = await sitting.write();

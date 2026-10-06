@@ -60,7 +60,7 @@ import {
 import { HAIRLINE, HIT, colour, font, paper, radius, signal, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
-import { beginSettle, finishSettle, releaseSettle, settleSitting } from './game/settle.ts';
+import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
 import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -1065,29 +1065,17 @@ export function DrillScreen({
     const held = practiceRef.current;
     if (held === null) return Promise.resolve('not-saved');
     const now = Date.now();
-    const activeMs = clock.read();
-    // The snapshot is taken before the plan writes anything, and the sitting
-    // settles only when the durable plan says this call completed it: never on
-    // 'already-completed', a retry's answer (review finding 9, F744).
-    const run = beginSettle()
-      .then((token) => completePracticeSitting({
-        sittingId: held.sittingId,
-        state,
-        targets: held.targets,
-        exercises: held.exercises,
-        exposed: held.exposed,
-        assisted: assistedRef.current,
-        durationMs: Math.max(0, now - held.startedAt),
-        activeMs: activeMs,
-        now,
-      }).then((done) => {
-        if (done.status === 'completed') void finishSettle(token, { source: 'drill', at: now, xpEarned: done.xp, activeMs });
-        else releaseSettle(token);
-        return done;
-      }, (error: unknown) => {
-        releaseSettle(token);
-        throw error;
-      }))
+    const run = completePracticeSitting({
+      sittingId: held.sittingId,
+      state,
+      targets: held.targets,
+      exercises: held.exercises,
+      exposed: held.exposed,
+      assisted: assistedRef.current,
+      durationMs: Math.max(0, now - held.startedAt),
+      activeMs: clock.read(),
+      now,
+    })
       .then((done) => saveStateOfResult(done))
       .catch((): SaveState => 'not-saved');
     completionRef.current = run;

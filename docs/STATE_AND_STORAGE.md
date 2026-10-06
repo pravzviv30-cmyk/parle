@@ -415,29 +415,39 @@ nothing answered arrives with 0 XP exactly as a finished set with nothing right 
 finishes settles it once through `game/settle.ts`, and nothing else writes the game facts
 for a sitting: the conversation inside its stop guard (`ConvoScreen.tsx`; a safety stop
 settles nothing, F137), the lesson's summary callback (`nav/RootNavigator.tsx`), the bank
-drill worked to its end and the practice sitting only when its durable plan answers
-`completed` (`DrillScreen.tsx`), the review when its queue empties (`ReviewScreen.tsx`,
-banked once with the unmount path), today's phrase once its day is durable
-(`daily/DailyPracticeScreen.tsx`) and a kept guest practice (`game/guestHandoff.ts`, which
-writes each guest day's `streak:<day>` into `game.seen` before recording the day). Each
-passes `finished: true` to its own write, so a zero-XP finished sitting still records
-its day in the activity log's `activeDays` (`recordActivityOnce` honours it too, for the
-practice plan); a sitting left early passes nothing and records nothing. `beginSettle`
-snapshots the activity log, the practice days and `game` before the write; `finishSettle`
-then runs alone on one chain, for the local day the sitting finished (the day before,
-for one that ended just before midnight), and writes in order: a `game.sittings` row for
-a zero-XP sitting; the +5 `bonus` for a win nothing grades (`phrase:<day>`,
+drill worked to its end (`DrillScreen.tsx`), the practice sitting wherever its durable
+plan answers `completed` (`practice/completion.ts`: the screen's finish, its retry, or
+the recovery Practice, the next-task card and the drill screen run at launch), the review
+when its queue empties (`ReviewScreen.tsx`, banked once with the unmount path), today's
+phrase once its day is durable (`daily/DailyPracticeScreen.tsx`) and a kept guest practice
+(`game/guestHandoff.ts`, which writes each guest day's `streak:<day>` into `game.seen`
+before recording the day). Each passes `finished: true` to its own write, so a zero-XP
+finished sitting still records its day in the activity log's `activeDays`
+(`recordActivityOnce` honours it too, for the practice plan); a sitting left early passes
+nothing and records nothing. `beginSettle` snapshots the activity log, the practice days
+and `game` before the write, and a caller whose account changed during that read never
+starts the write. A practice plan keeps its first snapshot across a `kept` answer and
+settles at the instant the plan froze, so a retry reports what the sitting earned and
+never makes a second practice day after midnight. `finishSettle` then runs alone on one
+chain. Its facts are for today, or for the day before when the sitting ended just before
+midnight and is settled within two minutes; anything later settles against today, so no
+quest is dealt or claimed for a day already over. It writes in order: a `game.sittings`
+row for a zero-XP sitting; the +5 `bonus` for a win nothing grades (`phrase:<day>`,
 `guest:<day>`, `review:<ms>` when nothing was recalled); `covers` (travel, freezes, then
 a repair, only for a plan `capabilitiesFor(plan, lapsed).streakProtection` opens, with
 `paidSince` and `lastPracticeOffsetMin` kept in `gameLocal`); `goalDays`; `questDays`
 (dealt once and frozen, with no live-minute quest unless the server confirmed minutes
-and no recording quest unless the microphone is granted); `claims`; `xpMonths` (the
-store folds `questMonths` and `bonusMonths` itself); and `badges`. It reads all of it
-back into one `GameDelta` (`game/delta.ts`), whose XP is what the capped total actually
-gained (`xpCreditedFor`), so a replay counts nothing twice; turns it into moments
-(`game/events.ts`), drops any key already in `game.seen`, queues the rest in
-`gameLocal.pending` and hands them to the host, which marks each seen once it has
-played. A changed account makes it answer null and write nothing more. Until the
+and no recording quest unless the microphone is granted; the guest hand-off deals none,
+because it runs before either is known, and leaves the day to the first catch-up);
+`claims`; `xpMonths` (the store folds `questMonths` and `bonusMonths` itself); and
+`badges`. It reads all of it back into one `GameDelta` (`game/delta.ts`). Its XP is what
+the capped total of the sitting's own day gained (`xpCreditedFor`), so a replay counts
+nothing twice and entries aging out of the log in the same write take nothing off it. Its
+milestone is one the sitting's own practice day crossed, measured against the run as the
+covers now held bridge it, so a freeze or repair never replays an old milestone. It turns
+the delta into moments (`game/events.ts`), drops any key already in `game.seen`, queues
+the rest in `gameLocal.pending` and hands them to the host, which marks each seen once it
+has played. A changed account makes it answer null and write nothing more. Until the
 existing-learner seed has run on this phone (`gameLocal.introducedAt`) a settle awards
 no badge and plays nothing. `GameProvider` runs that seed once per account per phone
 (badges derivable from saved practice, dated from the data or `null`; `xpMonths`; no
@@ -445,8 +455,13 @@ cover; every current streak, milestone, level, badge and chest key marked seen, 
 durable `intro` key) and shows the one intro sheet only to a learner with practice days
 whose account was never introduced. On mount, foreground and a screen's `refresh` it
 runs the quiet catch-up, which reconciles the same facts (freezes only), marks what is
-true seen without playing it, and replays only a durable moment a crash cut short, once.
-Re-planning tonight's reminder is Phase 4; its seam is `onSettled`.
+true seen without playing it, and replays only a durable moment a crash cut short, once;
+a sitting that begins while it runs stops it (`settleEpochNow`), so the sitting keeps its
+own moments. Two devices can be dealt different quests for one day; after a merge the
+earliest deal is shown, and a quest the other device credited stays earned (its claim
+counts in the XP total and the monthly quest count, and the day reads all three done once
+its chest is claimed). Re-planning tonight's reminder is Phase 4; its seam is
+`onSettled`.
 
 ### The pre-recap window
 
