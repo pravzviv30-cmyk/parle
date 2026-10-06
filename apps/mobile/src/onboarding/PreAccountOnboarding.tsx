@@ -254,10 +254,12 @@ export function PreAccountOnboarding({
       } else if (!value && ['practice', 'recap', 'home'].includes(page)) setPage('plan');
       setLoaded(true);
     });
+    // The player is left alone on the way out. useAudioPlayer's own cleanup
+    // runs before this one, and it has already stopped and released the
+    // player, so a call here throws on iOS and empties the screen (F792).
     return () => {
       current.current = false;
       generation.current++;
-      player.pause();
     };
   }, []);
   useEffect(() => {
