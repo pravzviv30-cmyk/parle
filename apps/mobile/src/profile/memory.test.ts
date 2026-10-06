@@ -130,8 +130,11 @@ describe('the tutor’s memory, edited by the learner', () => {
   });
 
   test('version seven upgrades to eight with empty tombstones and goals, the sync policy writes eight, and a forget on either device survives the merge', () => {
-    // F563. The chain first: a v7 blob arrives at v8 with both lists empty,
-    // because nothing that happened before the field existed is a forget.
+    // The title is pinned by the ledger (F563) and keeps its wording. The profile
+    // moved to version 9 with F730 (a twenty-minute goal), so a v7 blob now
+    // arrives at 9 and the policy writes 9; what this test guards is unchanged.
+    // F563. The chain first: a v7 blob arrives at the current version with both
+    // lists empty, because nothing that happened before the field existed is a forget.
     const v7 = { ...createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW), version: 7 } as Record<string, unknown>;
     delete v7.forgottenFacts;
     delete v7.learnerGoals;

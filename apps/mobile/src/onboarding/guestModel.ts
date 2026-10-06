@@ -133,9 +133,21 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
  * this finish instant added to `finishedAt`. Pure, so the finish is only a
  * streak day once the caller has persisted exactly this value; a save that
  * fails leaves no day behind.
+ *
+ * One instant per local day: a second finish on a day already held adds
+ * nothing, so the 31 kept are 31 days, and a guest who finishes many times
+ * in one day never pushes an earlier day out. `dayOf` is the device's local
+ * calendar unless a caller names another.
  */
-export function finishGuestPractice(guest: GuestPractice, at = Date.now()): GuestPractice {
-  return { ...guest, completed: true, finishedAt: finishes([...(guest.finishedAt ?? []), at]) };
+export function finishGuestPractice(
+  guest: GuestPractice,
+  at = Date.now(),
+  dayOf: (at: number) => DayKey = dayKeyOf,
+): GuestPractice {
+  const held = finishes(guest.finishedAt);
+  const day = Number.isFinite(at) ? dayOf(at) : null;
+  const sameDay = held.some((finished) => dayOf(finished) === day);
+  return { ...guest, completed: true, finishedAt: sameDay ? held : finishes([...held, at]) };
 }
 
 /**

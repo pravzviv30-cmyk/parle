@@ -65,6 +65,19 @@ export interface ActivityDetail {
   readonly durationMs?: number;
   /** Active learning milliseconds from the screen's `ActiveClock`. Absent when not measured. */
   readonly activeMs?: number;
+  /**
+   * True only when the caller knows the sitting reached its end: a drill set
+   * worked to its last item, a conversation that ran its course, a lesson that
+   * reached its summary. It is what lets a sitting that earned no XP still be a
+   * practice day (founder decision D3, F731).
+   *
+   * Opt-in, and absent means "not known to be finished", on purpose. Some
+   * callers bank on the way out whatever happened, and a drill opened and left
+   * from the header with nothing answered earns 0 XP on exactly the path a
+   * finished set with nothing right takes. Only the caller can tell those apart,
+   * so a zero-XP call that does not say `finished` writes nothing at all.
+   */
+  readonly finished?: boolean;
 }
 
 /**
@@ -237,19 +250,26 @@ function prune(entries: readonly ActivityEntry[], now: number): ActivityEntry[] 
 }
 
 /**
- * Record one finished sitting, and say whether it is on disk. Callers that
- * `void` it still fire and forget; nothing has to wait on it.
+ * Record one sitting, and say whether it is on disk. Callers that `void` it
+ * still fire and forget; nothing has to wait on it.
  *
- * Every caller reaches this only for a sitting that finished (a conversation
- * that was not safety-stopped, a lesson, a drill set, a review), so a sitting
- * here is a practice day whatever it earned (founder decision D3, F731).
+ * A sitting that earned XP writes an entry, and its day with it.
  *
- * A sitting that earned no XP still writes no entry, deliberately. An entry is
+ * A sitting that earned no XP never writes an entry, deliberately. An entry is
  * where XP and minutes live, and a log that carried the duration of a sitting
  * with nothing in it would let a "time spent" number climb while nothing was
  * learned, which is the one thing a minutes figure must never be able to do.
- * So it records its day through `recordActiveDay`, which writes the date and
- * nothing else: no entry, no XP, no minutes and no new activity kind.
+ *
+ * Whether it is still a practice day depends on whether it finished, and only
+ * the caller knows that. Not every caller reaches this for a finished sitting:
+ * the bank drill records on the way out, so a drill opened and left from the
+ * header with nothing answered arrives here with 0 XP too. So a zero-XP sitting
+ * marked `detail.finished` records its day through `recordActiveDay` (the date
+ * and nothing else: no entry, no XP, no minutes and no new activity kind),
+ * because any finished practice is a streak day (founder decision D3, F731).
+ * One that does not say it finished writes nothing and is honestly `durable`,
+ * as `recordActivityOnce` has always answered, because a practice day the
+ * learner did not earn is fake progress.
  *
  * A duration the validator would refuse is dropped rather than stored, so this
  * store can never hold a row its own reader throws away.
@@ -261,7 +281,7 @@ export async function recordActivity(
   detail: ActivityDetail = {},
 ): Promise<PersistAck> {
   if (!Number.isFinite(xp) || !Number.isFinite(now)) return 'failed';
-  if (xp <= 0) return recordActiveDay(now);
+  if (xp <= 0) return detail.finished === true ? recordActiveDay(now) : 'durable';
   const entry = entryOf(now, kind, xp, detail);
   return mutate((stored) => ({ ...stored, version: 2, activeDays: mergeActiveDays([...stored.entries, entry], stored.activeDays), entries: prune([...stored.entries, entry], now) }));
 }

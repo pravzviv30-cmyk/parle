@@ -28,6 +28,7 @@ import { isDayKey, type DayKey } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
 import { scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import { sameData } from '../sync/envelope.ts';
+import { isSeenKey } from './model.ts';
 
 export const GAME_LOCAL_VERSION = 1;
 
@@ -65,7 +66,6 @@ export interface GameLocal {
 
 const KEYS = ['version', 'lastPracticeOffsetMin', 'paidSince', 'nudges', 'nudgesPausedAt', 'introducedAt', 'pending'] as const;
 const VARIANTS: readonly NudgeVariant[] = ['streak', 'milestone-eve', 'routine'];
-const PENDING_KEY = /^[a-z][a-z0-9-]*(?::[a-z0-9-]+){0,4}$/;
 /** Every UTC offset in use, from -12:00 to +14:00. */
 const MAX_OFFSET_MIN = 14 * 60;
 
@@ -98,7 +98,8 @@ function isNudge(value: unknown): value is NudgeLogRow {
 function isPending(value: unknown): value is PendingCelebration {
   if (!isRecord(value)) return false;
   const keys = Object.keys(value);
-  return keys.length === 2 && keys.includes('key') && keys.includes('at') && typeof value.key === 'string' && value.key.length <= 48 && PENDING_KEY.test(value.key) && isTime(value.at);
+  // The same key rule `game.seen` reads, so a queued moment can always be marked seen once it plays.
+  return keys.length === 2 && keys.includes('key') && keys.includes('at') && isSeenKey(value.key) && isTime(value.at);
 }
 
 const nullable = <T,>(check: (value: unknown) => value is T) => (value: unknown): value is T | null => value === null || check(value);
@@ -194,6 +195,16 @@ export async function loadGameLocal(): Promise<GameLocal> {
  * edit cannot write what a read would refuse. No dirty flag: this never syncs.
  */
 export function updateGameLocal(edit: (current: GameLocal) => GameLocal): Promise<PersistAck> {
+  return change(edit, () => true);
+}
+
+/**
+ * `updateGameLocal`, with one more condition: `landed` must hold of the
+ * bounded result, or nothing is written and the answer is `failed`. A bound
+ * that cuts what the caller just offered has not stored it, and saying
+ * `durable` would let the caller forget something the disk never kept.
+ */
+function change(edit: (current: GameLocal) => GameLocal, landed: (next: GameLocal) => boolean): Promise<PersistAck> {
   return serialized(async (key, owner) => {
     const current = await readStored(key);
     if (current === null) return 'failed';
@@ -203,7 +214,7 @@ export function updateGameLocal(edit: (current: GameLocal) => GameLocal): Promis
     } catch {
       return 'failed';
     }
-    if (next === null || owner !== scopeGeneration()) return 'failed';
+    if (next === null || !landed(next) || owner !== scopeGeneration()) return 'failed';
     if (sameData(next, current)) return 'durable';
     try {
       return (await writeInUserScope(owner, () => AsyncStorage.setItem(key, JSON.stringify(next)))) ? 'durable' : 'failed';
@@ -237,8 +248,18 @@ export function markIntroduced(at: number): Promise<PersistAck> {
   return updateGameLocal((g) => ({ ...g, introducedAt: g.introducedAt ?? at }));
 }
 
+/**
+ * Queue celebrations so a crash replays them. `durable` only when every key
+ * offered is held after the bound: a batch the ceiling would cut, or a moment
+ * older than all 32 already waiting, writes nothing and answers `failed`. A
+ * newer moment may still push the oldest waiting one out, which is the
+ * ceiling doing its job, not a loss of what was just offered.
+ */
 export function enqueueCelebrations(items: readonly PendingCelebration[]): Promise<PersistAck> {
-  return updateGameLocal((g) => ({ ...g, pending: [...g.pending, ...items] }));
+  return change(
+    (g) => ({ ...g, pending: [...g.pending, ...items] }),
+    (next) => items.every((item) => next.pending.some((row) => row.key === item.key)),
+  );
 }
 
 export function dropCelebrations(keys: readonly string[]): Promise<PersistAck> {

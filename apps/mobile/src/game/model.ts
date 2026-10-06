@@ -84,7 +84,7 @@ const DAY_MS = 86_400_000;
 export interface GameSitting {
   at: number;
   source: SittingSource;
-  /** Measured active time, absent when not measured. Never filled with zero. */
+  /** Measured active time in whole milliseconds, at most a day; absent when not measured. Never filled with zero. */
   activeMs?: number;
 }
 
@@ -203,17 +203,33 @@ function hasOnly(value: Record<string, unknown>, required: readonly string[], op
   return required.every((key) => own.includes(key)) && own.every((key) => required.includes(key) || optional.includes(key));
 }
 
-/** The last moment a JavaScript date can hold. */
-const MAX_DATE_MS = 8_640_000_000_000_000;
+/** The last moment a JavaScript date can hold, and so the widest moment the reader accepts. */
+export const MAX_GAME_TIME = 8_640_000_000_000_000;
+const MAX_DATE_MS = MAX_GAME_TIME;
 
 /** An epoch millisecond this app could have written, and one a date can hold. */
 function isTime(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= MAX_DATE_MS;
 }
 
-/** A measured duration: finite and at or above zero, as `progress/activity.ts` reads one. */
-function isDuration(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+/**
+ * The most active time one sitting may carry: a whole day. No sitting comes
+ * near it; it exists so the reader has a ceiling at all.
+ */
+export const MAX_SITTING_ACTIVE_MS = DAY_MS;
+
+/**
+ * A measured active time: whole milliseconds, as `cleanActiveMs` in
+ * `progress/activeTime.ts` floors every reading, from zero to a day.
+ *
+ * Stricter than `progress/activity.ts`, on purpose and while nothing has
+ * shipped. A finite double such as 1e308 is a valid JSON number of 23
+ * characters on the phone and 309 digits once Postgres renders the jsonb as
+ * text, which is what the server's byte limit measures, so an uncapped duration
+ * could fit the envelope here and still be refused there.
+ */
+function isActiveMs(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= MAX_SITTING_ACTIVE_MS;
 }
 
 function isCount(value: unknown, max: number): value is number {
@@ -222,7 +238,15 @@ function isCount(value: unknown, max: number): value is number {
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const BADGE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const SEEN_KEY = /^[a-z][a-z0-9-]*(?::[a-z0-9-]+){0,4}$/;
+/**
+ * A celebration key: a lowercase kind, then up to four segments of letters,
+ * digits, dots, hyphens and underscores. Wide enough for every key in the
+ * Phase 1 table (`celebrate/events.ts`), a store transaction id included
+ * (`purchase:GPA.3372-1234-5678-90123..0`), and still no room for a space, so
+ * no sentence a learner wrote can ride in one. Widening it later would make an
+ * older build refuse the whole blob, which is why it is this wide now.
+ */
+const SEEN_KEY = /^[a-z][a-z0-9-]*(?::[A-Za-z0-9._-]+){0,4}$/;
 const BONUS_KEY = /^([a-z][a-z0-9-]{0,23}):(\d{4}-\d{2}-\d{2}|\d{1,13})$/;
 export const MAX_BADGE_ID = 32;
 export const MAX_SEEN_KEY = 48;
@@ -250,7 +274,9 @@ export function isBadgeId(value: unknown): value is string {
 }
 
 export function isSeenKey(value: unknown): value is string {
-  return typeof value === 'string' && value.length <= MAX_SEEN_KEY && SEEN_KEY.test(value);
+  if (typeof value !== 'string' || value.length > MAX_SEEN_KEY || !SEEN_KEY.test(value)) return false;
+  // A day-scoped kind without a real day second is not a key this build writes.
+  return !isDaySeenKey(value) || seenDay(value) !== null;
 }
 
 /** The calendar day a bonus key names, or null for a key this build would not write. */
@@ -269,13 +295,31 @@ export function isBonusKey(value: unknown): value is string {
 }
 
 /**
- * The calendar day a celebration key is about, when its second segment is one
- * (`streak:2026-10-05`, `quest:2026-10-05:xp`). Such a key is kept for
- * `SEEN_KEEP_DAYS` after the newest one; a key with no day (`level:5`,
- * `badge:streak-7`) is kept for good. A key that must outlive the window must
- * therefore not put a day second.
+ * The kinds of celebration that belong to one day, and so may be forgotten
+ * `SEEN_KEEP_DAYS` after the newest of them: the streak extended that day and
+ * the day's quest chest. Every other key is durable and kept for good, because
+ * a milestone, a level, a badge or a purchase must never play twice however
+ * long ago it was. Decided by the kind and never by the shape of the rest of
+ * the key, so `milestone:100:2026-10-05` has a date in it and still never ages
+ * out, whichever order its parts are written in.
+ *
+ * This is the one rule. `celebrate/events.ts` (Phase 1) carries a copy as
+ * `isDaySeenKey` and `SEEN_DAY_KEPT_DAYS`, and should import these instead.
+ */
+export const DAY_SEEN_KINDS = ['streak', 'chest'] as const;
+
+/** True when a seen key names a day-scoped moment (`streak:<day>`, `chest:<day>`). */
+export function isDaySeenKey(key: string): boolean {
+  return (DAY_SEEN_KINDS as readonly string[]).includes(key.split(':')[0] ?? '');
+}
+
+/**
+ * The calendar day a day-scoped celebration key is about (`streak:2026-10-05`),
+ * or null for a durable key. `isSeenKey` refuses a day-scoped kind without a
+ * real day second, so every day-scoped key the reader passes has one.
  */
 export function seenDay(key: string): DayKey | null {
+  if (!isDaySeenKey(key)) return null;
   const second = key.split(':')[1];
   return second !== undefined && isDayKey(second) ? second : null;
 }
@@ -286,7 +330,7 @@ export function isSitting(value: unknown): value is GameSitting {
     hasOnly(value, ['at', 'source'], ['activeMs']) &&
     isTime(value.at) &&
     isSittingSource(value.source) &&
-    (value.activeMs === undefined || isDuration(value.activeMs))
+    (value.activeMs === undefined || isActiveMs(value.activeMs))
   );
 }
 
@@ -614,17 +658,65 @@ export function readGame(value: unknown): StoredGame | 'newer' | null {
   return bound(value as unknown as GameRows);
 }
 
-/** True when every row offered is one this build would write. An empty offer is not a write. */
+/**
+ * True when every row offered is one this build would write. An offer with no
+ * rows at all is a valid offer of nothing; `gameRowCount` tells the two apart.
+ */
 export function isGameRowsPatch(added: Partial<GameRows>): boolean {
-  let rows = 0;
   for (const field of FIELDS) {
     const list = added[field] as unknown;
     if (list === undefined) continue;
     const check = ROW_CHECKS[field] as (row: unknown) => boolean;
     if (!Array.isArray(list) || !list.every((row) => check(row))) return false;
-    rows += list.length;
   }
-  return rows > 0;
+  return true;
+}
+
+/** How many rows an offer holds, across every field. */
+export function gameRowCount(added: Partial<GameRows>): number {
+  let rows = 0;
+  for (const field of FIELDS) {
+    const list = added[field] as unknown;
+    if (Array.isArray(list)) rows += list.length;
+  }
+  return rows;
+}
+
+/** How far ahead of this device's clock a written row may be dated. */
+export const MAX_AHEAD_MS = DAY_MS;
+
+/**
+ * True when an offered row is dated more than a day after `now`: a moment, a
+ * day, a bonus key's day, a day-scoped celebration's day or a month.
+ *
+ * Every age window in the merge is measured back from the newest row, so that
+ * two devices whose clocks disagree still cut the same rows. The price is that
+ * one row dated far ahead would age out every real row on every device. The
+ * merge cannot refuse it without a clock, and a clock would break its algebra,
+ * so the guard is at the one door this build controls: a local write. A day
+ * key is compared with the UTC day two days on, which is later than any local
+ * day anywhere on Earth a day from now.
+ */
+export function datedAhead(added: Partial<GameRows>, now: number): boolean {
+  const latest = now + MAX_AHEAD_MS;
+  const lastDay = new Date(now + 2 * DAY_MS).toISOString().slice(0, 10);
+  const lastMonth = lastDay.slice(0, 7);
+  const late = (at: number | null): boolean => at !== null && at > latest;
+  const lateDay = (day: string | null): boolean => day !== null && day > lastDay;
+  const lateMonth = (month: string): boolean => month > lastMonth;
+  return (
+    (added.sittings ?? []).some((s) => late(s.at)) ||
+    (added.covers ?? []).some((c) => late(c.at) || lateDay(c.day)) ||
+    (added.goalDays ?? []).some((d) => lateDay(d)) ||
+    (added.questDays ?? []).some((q) => late(q.at) || lateDay(q.day)) ||
+    (added.claims ?? []).some((c) => late(c.at) || lateDay(c.day)) ||
+    (added.questMonths ?? []).some((m) => lateMonth(m.month)) ||
+    (added.xpMonths ?? []).some((m) => lateMonth(m.month)) ||
+    (added.bonus ?? []).some((b) => late(b.at) || lateDay(bonusDay(b.key))) ||
+    (added.bonusMonths ?? []).some((m) => lateMonth(m.month)) ||
+    (added.badges ?? []).some((b) => late(b.at)) ||
+    (added.seen ?? []).some((s) => late(s.at) || lateDay(seenDay(s.key)))
+  );
 }
 
 /**

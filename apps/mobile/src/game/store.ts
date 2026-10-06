@@ -31,7 +31,9 @@ import { onUserScopeReset, scopeGeneration, userKey, writeInUserScope } from '..
 import { sameData } from '../sync/envelope.ts';
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import {
+  datedAhead,
   emptyGame,
+  gameRowCount,
   isGameRowsPatch,
   landedIn,
   readGame,
@@ -120,16 +122,28 @@ async function write(key: string, owner: number, value: StoredGame, origin: Writ
 }
 
 /**
+ * Whether an offer may be written at all: every row one this build would
+ * write, and none dated more than a day after this device's clock (see
+ * `datedAhead` in model.ts for why one far-future row is worth refusing).
+ */
+function admissible(added: Partial<GameRows>): boolean {
+  return isGameRowsPatch(added) && !datedAhead(added, Date.now());
+}
+
+/**
  * Add rows, rolled up and bounded, and say whether they are on disk.
  *
  * `durable` when every row offered is held by its identity, whether this write
  * put it there or an earlier one did (a replay writes nothing and raises no
- * flag). `failed` for a row this build would not write, an unreadable or newer
- * disk, a refused write, a changed account, or a row the age window cut the
- * moment it arrived.
+ * flag), and when nothing was offered: an empty list is nothing to write, as
+ * `progress/activity.ts` answers it, and the settle pipeline hands these
+ * helpers lists that are usually empty. `failed` for a row this build would not
+ * write, a row dated after tomorrow, an unreadable or newer disk, a refused
+ * write, a changed account, or a row the age window cut the moment it arrived.
  */
 function add(added: Partial<GameRows>): Promise<PersistAck> {
-  if (!isGameRowsPatch(added)) return Promise.resolve('failed');
+  if (!admissible(added)) return Promise.resolve('failed');
+  if (gameRowCount(added) === 0) return Promise.resolve('durable');
   return serialized(async (key, owner) => {
     const stored = await readStored(key);
     if (stored === 'newer' || stored === 'unreadable' || owner !== scopeGeneration()) return 'failed';
@@ -172,7 +186,7 @@ export function markGoalDay(day: DayKey): Promise<PersistAck> {
  * later that day cannot reshuffle what the learner was shown.
  */
 export function setQuestDay(row: QuestDayRow): Promise<PersistAck> {
-  if (!isGameRowsPatch({ questDays: [row] })) return Promise.resolve('failed');
+  if (!admissible({ questDays: [row] })) return Promise.resolve('failed');
   return serialized(async (key, owner) => {
     const stored = await readStored(key);
     if (stored === 'newer' || stored === 'unreadable' || owner !== scopeGeneration()) return 'failed';

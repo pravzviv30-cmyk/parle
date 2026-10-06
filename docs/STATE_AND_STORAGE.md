@@ -342,7 +342,7 @@ core from these facts and the activity log every time.
 
 | field | what one row is | merge | bound |
 |---|---|---|---|
-| `sittings` | a finished sitting that earned no XP: moment, source, optional `activeMs` | union by `(at, source)`, the measured copy wins | 60 days behind the newest, 500 rows |
+| `sittings` | a finished sitting that earned no XP: moment, source, optional `activeMs` (whole milliseconds, at most a day) | union by `(at, source)`, the measured copy wins | 60 days behind the newest, 500 rows |
 | `covers` | a streak cover: day, kind (`freeze`, `repair` or `travel`), moment | union by day, the earliest written, then travel, repair, freeze | 2,000 days, never aged |
 | `goalDays` | a local day the daily goal was met | sorted set union | 2,000 days |
 | `questDays` | the three quest ids a day was dealt, frozen the first time | union by day, the earliest | 60 days |
@@ -352,7 +352,7 @@ core from these facts and the activity log every time.
 | `bonus` | the fixed +5 "for practising" XP, keyed `<kind>:<day or epoch ms>` | union by key, the earliest | 62 days behind the newest key's day, 400 rows |
 | `bonusMonths` | fixed XP per month | the max | 600 months |
 | `badges` | a badge id and the moment it was earned, or null when counted from older practice | union by id, a dated award beats null, then the earliest | never aged; 500 ids |
-| `seen` | a celebration key already played, anywhere | union by key, the earliest | keys with a day second (`streak:2026-10-05`) 60 days behind the newest; the rest kept |
+| `seen` | a celebration key already played, anywhere | union by key, the earliest | `streak:<day>` and `chest:<day>` 60 days behind the newest; every other kind (milestone, level, badge, purchase) kept for good; 800 keys |
 
 Every rule is a set union or a maximum, every collision is settled by a total order and
 every bound keeps the last rows of a sorted set ranked by identity, so the merge is
@@ -367,19 +367,51 @@ a quest. Badges and celebration keys are opaque, so a badge a newer build awarde
 kept by an older one even when it cannot draw it. A new quest id, cover kind or sitting
 source is a new value an older build refuses, so it must raise the version.
 
+Which celebration keys age out is decided by the key's kind and nothing else
+(`isDaySeenKey` in `game/model.ts`): only `streak:` and `chest:` belong to a day. A
+milestone key holds a date and must still never age out, whichever order its parts are
+written in, or the milestone plays again. `celebrate/events.ts` (Phase 1) carries its
+own copy of that rule and should import this one. A key is a lowercase kind and up to
+four segments of letters, digits, dots, hyphens and underscores, so a store transaction
+id fits and no sentence can.
+
 Reads are strict. A blob from a newer build, a stray key, a wrong type or an unknown
 cover kind is refused, never repaired: every write answers `failed` and leaves the
-bytes, and the adopter declines. The largest blob the bounds allow is built in
-`game/capacityFixture.ts` and measured at about 427 KB sealed, inside the 512 KiB
-envelope; `scripts/verifyDataBoundaries.mjs` writes it into a disposable database too.
+bytes, and the adopter declines. An empty list offered to a write is nothing to write
+and answers `durable`, as `progress/activity.ts` does, because the settle pipeline will
+offer lists that are empty on most sittings. The largest blob the reader accepts is
+built in `game/capacityFixture.ts`, with every moment at the sixteen digits the reader
+allows, and measured at about 441 KB sealed, inside the 512 KiB envelope;
+`scripts/verifyDataBoundaries.mjs` writes it into a disposable database too, where the
+server's own byte limit measures the jsonb as text. That is why `activeMs` has a
+ceiling: an uncapped double such as 1e308 is 23 characters on the phone and 309 digits
+in the server's rendering.
+
+**A clock far ahead is the residual risk.** Every age window is measured back from the
+newest row in the union, never from a clock, so that two devices whose clocks disagree
+cut the same rows and the merge stays commutative, associative and idempotent. The price
+is that one row dated far in the future ages out every real row of that list on every
+device it reaches: sittings, claims, fixed XP and day-scoped celebration keys (monthly
+totals survive, because they are maximums). The store refuses any row dated more than a
+day after the device's own clock, which stops a bug in a caller. It cannot stop a phone
+whose clock is itself a year ahead, because to that phone the row is today. No ledger
+entry tracks this yet; one is owed.
 
 `gameLocal` (`game/gameLocal.ts`) is never synced and registers no adopter:
 `lastPracticeOffsetMin`, `paidSince`, the last 30 days of `nudges`, `nudgesPausedAt`,
-`introducedAt` and up to 32 `pending` celebrations, read as strictly as `game`.
+`introducedAt` and up to 32 `pending` celebrations, read as strictly as `game`. Queueing
+celebrations answers `failed` and writes nothing when the ceiling would cut one of the
+moments offered, so a crash-replay entry is never reported as kept when it was not.
 
 A finished sitting is a practice day whatever it earned (founder decision D3, F731).
-`recordActivity` now answers a `PersistAck`, and a sitting that earned no XP records its
-day through `recordActiveDay`: no entry, no XP, no minutes and no new activity kind.
+`recordActivity` now answers a `PersistAck`. A sitting that earned no XP never writes an
+entry. When its caller marks it `finished`, it records its day through `recordActiveDay`:
+no entry, no XP, no minutes and no new activity kind. When the caller does not, it
+writes nothing, because not every caller reaches `recordActivity` only for a finished
+sitting: the bank drill records on the way out, so a drill left from the header with
+nothing answered arrives with 0 XP exactly as a finished set with nothing right does.
+No screen passes `finished` yet; Phase 1's settle and the bank drill's finished path
+are the callers that will.
 
 ### The pre-recap window
 
@@ -859,4 +891,4 @@ The separate device-only keys are `@luvani/pre-account-onboarding/v1` for choice
 
 The server stores a hashed installation signal, usage counters and one-account ownership in a 30-day guest ledger, never replies or recordings. Service attempts expire at 24 hours and the start allowance at one day. Optional anonymous daily event counts expire at ninety days and contain only closed event, variant and evidence enums.
 
-`GuestPractice` (still version 2) gains `finishedAt`: the moments a guest practice was saved as finished, deduplicated, oldest first, the newest 31 (F732). A guest's streak day comes from these and nothing else (`guestPracticeDays`), so replies on a practice left unfinished are never a day. A record written before the field reads as having none, because a finish nobody recorded is not one this phone can vouch for. `finishGuestPractice` adds the moment and the `completed` flag together, so the day exists only once that value is saved.
+`GuestPractice` (still version 2) gains `finishedAt`: the moments a guest practice was saved as finished, one per local day, oldest first, the newest 31 (F732). A guest's streak day comes from these and nothing else (`guestPracticeDays`), so replies on a practice left unfinished are never a day. A record written before the field reads as having none, because a finish nobody recorded is not one this phone can vouch for. `finishGuestPractice` adds the moment and the `completed` flag together, so the day exists only once that value is saved, and a second finish on a day already held adds nothing, so many finishes in one day never push an earlier day out. Not wired yet: `PreAccountOnboarding.tsx` still saves `{ ...guest, completed: true }` on finish, and `guestPractice.ts` builds a new practice without carrying `finishedAt` forward, so until the first-run owner changes both, a guest records no finish day.

@@ -41,19 +41,23 @@ test('a guest streak day counts only a practice saved as finished', async () => 
   assert.equal(repairGuestPractice({ ...open, completed: true })?.finishedAt, undefined);
 
   // Saved as finished, it is one day, and it survives the disk.
-  const finished = finishGuestPractice(open, at);
+  const finished = finishGuestPractice(open, at, utcDay);
   assert.equal(finished.completed, true);
   assert.deepEqual(days(finished), ['2026-10-05']);
-  // Finishing again that day is still one day; the next day is a second.
-  const twice = finishGuestPractice(finishGuestPractice(finished, at + 3_600_000), at + 86_400_000);
+  // Finishing again that day is still one day, and keeps one instant; the next day is a second.
+  const twice = finishGuestPractice(finishGuestPractice(finished, at + 3_600_000, utcDay), at + 86_400_000, utcDay);
   assert.deepEqual(days(twice), ['2026-10-05', '2026-10-06']);
-  assert.deepEqual(repairGuestPractice(twice)?.finishedAt, [at, at + 3_600_000, at + 86_400_000]);
+  assert.deepEqual(repairGuestPractice(twice)?.finishedAt, [at, at + 86_400_000]);
   // A replayed finish instant is one instant.
-  assert.equal(finishGuestPractice(finished, at).finishedAt?.length, 1);
+  assert.equal(finishGuestPractice(finished, at, utcDay).finishedAt?.length, 1);
+  // Many finishes in one day never push an earlier day out of the bound.
+  let busy = twice;
+  for (let n = 1; n <= 40; n += 1) busy = finishGuestPractice(busy, at + 86_400_000 + n * 60_000, utcDay);
+  assert.deepEqual(days(busy), ['2026-10-05', '2026-10-06'], 'a busy day pushed an earlier finished day out');
 
   // Bounded: the newest 31 finishes, oldest first.
   let many = finished;
-  for (let n = 1; n <= 40; n += 1) many = finishGuestPractice(many, at + n * 86_400_000);
+  for (let n = 1; n <= 40; n += 1) many = finishGuestPractice(many, at + n * 86_400_000, utcDay);
   assert.equal(many.finishedAt?.length, MAX_GUEST_FINISHES);
   assert.equal(many.finishedAt?.at(-1), at + 40 * 86_400_000, 'the bound dropped the newest finish');
 

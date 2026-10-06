@@ -93,11 +93,25 @@ describe('the device-only game facts — F729', () => {
     assert.equal(nudges.length, MAX_NUDGES);
     assert.deepEqual(nudges.at(-1), { ...last, variant: 'streak', fireAt: last.fireAt + 60_000, opened: true });
 
-    // Celebrations wait once each, oldest first, up to the ceiling.
-    assert.equal(await enqueueCelebrations(Array.from({ length: MAX_PENDING + 4 }, (_, n) => ({ key: `level:${n + 2}`, at: AT + n }))), 'durable');
+    // A batch the ceiling would cut is refused whole and says so: a moment the
+    // queue did not keep must never be reported as kept for a crash to replay.
+    const beforeBatch = disk.get(key());
+    const queued = (count: number) => Array.from({ length: count }, (_, n) => ({ key: `level:${n + 2}`, at: AT + n }));
+    assert.equal(await enqueueCelebrations(queued(MAX_PENDING + 4)), 'failed', 'celebrations cut by the ceiling were reported as saved');
+    assert.equal(disk.get(key()), beforeBatch, 'a refused batch was written in part');
+    // Up to the ceiling, every one waits, once each, oldest first.
+    assert.equal(await enqueueCelebrations(queued(MAX_PENDING)), 'durable');
+    // A newer moment pushes the oldest out; one older than every waiting moment is refused.
     assert.equal(await enqueueCelebrations([{ key: `level:${MAX_PENDING + 5}`, at: AT + 999_999 }]), 'durable');
+    const full = disk.get(key());
+    assert.equal(await enqueueCelebrations([{ key: 'badge:streak-7', at: AT - 1 }]), 'failed', 'a moment the ceiling cut was reported as saved');
+    assert.equal(disk.get(key()), full);
+    // One already waiting is held, so queueing it again is no failure.
+    assert.equal(await enqueueCelebrations([{ key: 'level:3', at: AT + 1 }]), 'durable');
+    assert.equal(await enqueueCelebrations([]), 'durable', 'nothing offered is nothing to fail');
     const pending = (await loadGameLocal()).pending;
     assert.equal(pending.length, MAX_PENDING);
+    assert.equal(pending[0]?.key, 'level:3');
     assert.equal(pending.at(-1)?.key, `level:${MAX_PENDING + 5}`);
     assert.equal(await dropCelebrations([`level:${MAX_PENDING + 5}`]), 'durable');
     assert.ok(!(await loadGameLocal()).pending.some((row) => row.key === `level:${MAX_PENDING + 5}`));

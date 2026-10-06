@@ -8,6 +8,14 @@
 -- that write `game` first, or every push of it is refused again. Take the backup named in
 -- supabase/README.md first.
 -- Refuses to run until luvani.remove_game is set to 'yes' in the same session.
+--
+-- Owns its transaction, so a refused interlock aborts the delete and the constraint change
+-- too, even under a client that keeps going after an error (psql without ON_ERROR_STOP).
+-- Without it, the refusal would raise and the next statement would delete the rows anyway.
+-- scripts/verifyDataBoundaries.mjs proves the refusal, the delete scoped to `game` and a
+-- clean re-apply in disposable SQL.
+
+begin;
 
 do $$begin
   if current_setting('luvani.remove_game', true) is distinct from 'yes' then
@@ -27,3 +35,5 @@ alter table public.learner_state
     'friends', 'topics', 'journal', 'missions', 'coachMarks', 'soundChecks',
     'bookmarks', 'scenarioProgress', 'practiceHistory', 'goalSteps'
   ));
+
+commit;

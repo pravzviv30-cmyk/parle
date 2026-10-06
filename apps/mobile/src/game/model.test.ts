@@ -21,12 +21,17 @@ import {
   CLAIM_KEEP_DAYS,
   GAME_VERSION,
   MAX_COVERS,
+  MAX_GAME_TIME,
   MAX_SEEN,
+  MAX_SITTING_ACTIVE_MS,
   SEEN_KEEP_DAYS,
   SITTING_KEEP_DAYS,
   emptyGame,
+  isDaySeenKey,
+  isSeenKey,
   mergeGame,
   readGame,
+  seenDay,
   withGameRows,
   type StoredGame,
 } from './model.ts';
@@ -86,7 +91,9 @@ function genGame(pick: Chooser, scale = 1): StoredGame {
     bonusMonths: Array.from({ length: n(2) }, () => ({ month: pick.one(['2026-01', '2026-03']), xp: pick.int(200) })),
     badges: Array.from({ length: n(4) }, () => ({ id: pick.one(['streak-7', 'goal-7', 'quests-2026-01', 'a-badge-from-a-newer-build']), at: pick.bool() ? null : at(5) })),
     seen: Array.from({ length: n(8) }, () => {
-      const key = pick.bool() ? `streak:${day(130)}` : pick.one(['level:2', 'level:3', 'badge:streak-7', `quest:${day(20)}:xp`]);
+      const key = pick.bool()
+        ? `${pick.one(['streak', 'chest'])}:${day(130)}`
+        : pick.one(['level:2', 'level:3', 'badge:streak-7', `milestone:100:${day(130)}`, 'purchase:GPA.3372-1234-5678-90123..0']);
       return { key, at: at(4) };
     }),
   };
@@ -126,6 +133,14 @@ describe('the game facts merge — F729', () => {
     }
     const bytes = envelopeBytes(sealEnvelope(read, 'a-device-id-of-realistic-length', Date.now()));
     assert.ok(bytes !== null && bytes <= MAX_ENVELOPE_BYTES, `a full game blob is ${bytes} bytes, over the ${MAX_ENVELOPE_BYTES}-byte envelope, so it could never be pushed`);
+    // The fixture is the ceiling only if nothing wider reads. A duration is the
+    // one number JSON could otherwise widen without limit (1e308 is 23
+    // characters here and 309 digits in the server's rendering of it).
+    const sitting = full.sittings[0]!;
+    for (const activeMs of [MAX_SITTING_ACTIVE_MS + 1, 1e308, 1.5, -1]) {
+      assert.equal(readGame({ ...full, sittings: [{ ...sitting, activeMs }] }), null, `an active time of ${activeMs} read`);
+    }
+    assert.equal(readGame({ ...full, sittings: [{ ...sitting, at: MAX_GAME_TIME + 1 }] }), null, 'a moment past the last a date can hold read');
     // Adding one more of anything bounded does not grow it: the bound holds on write.
     const grown = withGameRows(read, { covers: [{ day: addDays(read.covers.at(-1)!.day, 1), kind: 'travel', at: BASE }] });
     assert.equal(grown.covers.length, MAX_COVERS);
@@ -199,11 +214,44 @@ describe('the game facts merge — F729', () => {
     ];
     const kept = merge({ ...emptyGame(), seen: marks }, null).seen.map((s) => s.key);
     assert.deepEqual(kept.sort(), ['level:4', `streak:${addDays(TODAY, SEEN_KEEP_DAYS + 5)}`].sort());
-    // Over the bound, the day-scoped keys go first and a key with no day is the last to go.
-    const many = Array.from({ length: MAX_SEEN + 5 }, (_, i) => ({ key: `quest:${addDays(TODAY, i % 50)}:n${i}`, at: BASE }));
-    const bounded = merge({ ...emptyGame(), seen: [...many, { key: 'level:9', at: BASE }] }, null).seen;
+    // Over the bound, the day-scoped keys go first, oldest day first, and a durable key is the last to go.
+    const days = Array.from({ length: SEEN_KEEP_DAYS }, (_, i) => addDays(TODAY, i));
+    const dated = days.flatMap((d) => [{ key: `streak:${d}`, at: BASE }, { key: `chest:${d}`, at: BASE }]);
+    const durable = Array.from({ length: MAX_SEEN - 10 }, (_, i) => ({ key: `level:${i + 2}`, at: BASE }));
+    const bounded = merge({ ...emptyGame(), seen: [...dated, ...durable] }, null).seen;
     assert.equal(bounded.length, MAX_SEEN);
-    assert.ok(bounded.some((s) => s.key === 'level:9'), 'a celebration with no day was dropped to make room for dated ones');
+    assert.ok(durable.every((d) => bounded.some((s) => s.key === d.key)), 'a durable celebration was dropped to make room for dated ones');
+    assert.ok(bounded.some((s) => s.key === `streak:${days.at(-1)}`) && !bounded.some((s) => s.key === `streak:${days[0]}`), 'the bound kept an older day over a newer one');
+  });
+
+  test('a milestone mark is kept for good though its key holds a date, and only streak and chest keys are day-scoped', () => {
+    // The 100-day milestone is written once and must never play again, so its
+    // key is durable whichever order its parts are in. Under a rule that read
+    // "a date second means day-scoped", the second spelling aged out the moment
+    // it was written and the milestone replayed.
+    const runStart = '2026-01-01';
+    const milestones = [{ key: `milestone:100:${runStart}`, at: BASE }, { key: `milestone:${runStart}:100`, at: BASE }];
+    const later = addDays(TODAY, 400);
+    const lateStreak = { key: `streak:${later}`, at: BASE + 400 * DAY };
+    const merged = merge({ ...emptyGame(), seen: milestones }, { ...emptyGame(), seen: [lateStreak] });
+    assert.deepEqual(merged.seen.map((s) => s.key).sort(), [...milestones.map((m) => m.key), lateStreak.key].sort(), 'a milestone mark aged out, so it would play again');
+    assert.deepEqual(withGameRows(merged, { seen: [{ key: `chest:${later}`, at: BASE }] }).seen.length, 4);
+
+    assert.equal(isDaySeenKey('streak:2026-10-05'), true);
+    assert.equal(isDaySeenKey('chest:2026-10-05'), true);
+    for (const key of ['milestone:100:2026-10-05', 'level:5', 'badge:streak-7', 'purchase:2000000123456789', 'quest:2026-10-05:xp']) {
+      assert.equal(isDaySeenKey(key), false, `${key} was treated as day-scoped`);
+      assert.equal(seenDay(key), null);
+    }
+    // Every key the Phase 1 table can make for a persisted moment reads, a store
+    // transaction id included; nothing with a space in it does, and a day-scoped
+    // kind without a real day is not a key.
+    for (const key of ['purchase:GPA.3372-1234-5678-90123..0', 'purchase:2000000123456789', `milestone:365:${runStart}`, 'level:12', 'badge:streak-7', 'streak:2026-10-05', 'chest:2026-10-05']) {
+      assert.equal(isSeenKey(key), true, `${key} was refused`);
+    }
+    for (const key of ['saved:Bonjour tout le monde', 'streak:yesterday', 'chest:2026-02-30', 'streak', 'Level:2', `level:${'9'.repeat(60)}`]) {
+      assert.equal(isSeenKey(key), false, `${key} was accepted`);
+    }
   });
 
   test('the version this build writes is the one the merge writes', () => {

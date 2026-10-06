@@ -90,11 +90,14 @@ describe('the game store — F729', () => {
 
     // Nothing else the store does takes one back: not a year of other writes,
     // not the age windows those writes move, and not a fold of an account copy
-    // that never heard of them.
+    // that never heard of them. The year is the one before AT, because the store
+    // refuses a row dated after tomorrow.
+    const yearBefore = AT - 400 * DAY;
     for (let n = 0; n < 5; n += 1) {
-      assert.equal(await appendSitting({ at: AT + (n * 90 + 1) * DAY, source: 'phrase' }), 'durable');
-      assert.equal(await markSeen([{ key: `streak:${new Date(AT + n * 90 * DAY).toISOString().slice(0, 10)}`, at: AT }]), 'durable');
+      assert.equal(await appendSitting({ at: yearBefore + (n * 90 + 1) * DAY, source: 'phrase' }), 'durable');
+      assert.equal(await markSeen([{ key: `streak:${new Date(yearBefore + n * 90 * DAY).toISOString().slice(0, 10)}`, at: yearBefore }]), 'durable');
     }
+    assert.equal((await loadGame()).sittings.length, 1, 'the year of writes never moved the age window');
     const adopt = adopterFor('game');
     assert.ok(adopt, 'the game store registered no adopter, so a merge could never come back');
     assert.equal(await adopt((current) => merge(current, { ...emptyGame(), badges: [] })), 'adopted');
@@ -162,6 +165,61 @@ describe('the game store — F729', () => {
     // A sitting older than the window behind the newest is cut the moment it
     // arrives, and the store says so rather than claiming it.
     assert.equal(await appendSitting({ at: AT - 61 * DAY, source: 'review' }), 'failed');
+
+    // Nothing offered is nothing to write, never a failure: the settle pipeline
+    // hands these helpers derived lists that are empty on most sittings.
+    const settled = disk.get(key());
+    const empties: [string, () => Promise<string>][] = [
+      ['covers', () => addCovers([])],
+      ['claims', () => addClaims([])],
+      ['bonus', () => addBonus([])],
+      ['months', () => raiseXpMonths([])],
+      ['badges', () => awardBadges([])],
+      ['seen', () => markSeen([])],
+    ];
+    for (const [name, write] of empties) {
+      assert.equal(await write(), 'durable', `an empty list of ${name} answered failed, which means the disk refused`);
+    }
+    assert.equal(disk.get(key()), settled, 'an empty list wrote to the disk');
+    assert.equal(dirtyStamp('game'), null, 'an empty list was flagged for the account');
+    // An empty list is still nothing to fail on a disk this build cannot read;
+    // a list with a row in it is not.
+    disk.set(key(), '{broken');
+    assert.equal(await awardBadges([]), 'durable');
+    assert.equal(await awardBadges([{ id: 'level-10', at: AT }]), 'failed');
+    assert.equal(disk.get(key()), '{broken');
+  });
+
+  test('a game row dated after tomorrow is refused, so one wrong clock cannot age out every device', async () => {
+    // Every age window is measured back from the newest row, so one row a year
+    // ahead would cut every real row on every device it reached. The local write
+    // is the door this build controls.
+    const now = Date.now();
+    const ahead = now + 2 * DAY;
+    const day = (at: number): string => new Date(at).toISOString().slice(0, 10);
+    const farDay = day(now + 4 * DAY);
+    const refused: [string, () => Promise<string>][] = [
+      ['sitting', () => appendSitting({ at: ahead, source: 'drill' })],
+      ['cover moment', () => addCovers([{ day: day(now), kind: 'freeze', at: ahead }])],
+      ['cover day', () => addCovers([{ day: farDay, kind: 'freeze', at: now }])],
+      ['goal day', () => markGoalDay(farDay)],
+      ['quest day', () => setQuestDay({ day: farDay, ids: ['finish-practice', 'phrase-of-day', 'minutes'], at: now })],
+      ['claim', () => addClaims([{ day: farDay, questId: 'xp', xp: 10, at: now }])],
+      ['bonus key', () => addBonus([{ key: `review:${now + 4 * DAY}`, xp: 5, at: now }])],
+      ['month', () => raiseXpMonths([{ month: day(now + 70 * DAY).slice(0, 7), xp: 10 }])],
+      ['badge', () => awardBadges([{ id: 'streak-7', at: ahead }])],
+      ['seen moment', () => markSeen([{ key: 'level:2', at: ahead }])],
+      ['seen day', () => markSeen([{ key: `streak:${farDay}`, at: now }])],
+    ];
+    for (const [name, write] of refused) {
+      assert.equal(await write(), 'failed', `a ${name} dated after tomorrow was written`);
+    }
+    assert.equal(disk.has(key()), false, 'a row dated after tomorrow reached the disk');
+
+    // Today, and tomorrow anywhere on Earth, are fine.
+    assert.equal(await appendSitting({ at: now, source: 'drill' }), 'durable');
+    assert.equal(await markSeen([{ key: `streak:${day(now + DAY)}`, at: now + DAY - 1 }]), 'durable');
+    assert.equal(await setQuestDay({ day: day(now + DAY), ids: ['finish-practice', 'phrase-of-day', 'minutes'], at: now }), 'durable');
   });
 
   test("a day's three quests are frozen the first time they are dealt", async () => {
