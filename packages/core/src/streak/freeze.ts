@@ -26,16 +26,25 @@ export interface FreezeInput extends StreakInput {
   entitled: boolean;
 }
 
-/** Days covered by a freeze that are still within their seven days and were not practised. */
+/**
+ * Days the streak covered with a freeze that are still within their seven days.
+ *
+ * Read from the streak's own resolved covers, not the raw list, so a freeze is
+ * spent only on a day the streak actually used it for. Two devices can write a
+ * repair and a freeze for the same day; the streak keeps one of them (the
+ * earliest written, a tie going to repair), and a freeze it did not keep was
+ * never used. A day that turns out to be practised needs no cover at all, so
+ * its freeze is refunded the same way.
+ */
 function freezesInUse(input: FreezeInput): DayKey[] {
-  const { today, practised } = streakDaysOf(input);
-  const days = new Set<DayKey>();
-  for (const cover of input.covers) {
-    if (cover.kind !== 'freeze' || !isDayKey(cover.day) || practised.has(cover.day)) continue;
-    const age = daysBetween(cover.day, today);
-    if (age >= 1 && age < FREEZE_RETURN_DAYS) days.add(cover.day);
+  const { today, covered } = streakDaysOf(input);
+  const days: DayKey[] = [];
+  for (const [day, kind] of covered) {
+    if (kind !== 'freeze') continue;
+    const age = daysBetween(day, today);
+    if (age >= 1 && age < FREEZE_RETURN_DAYS) days.push(day);
   }
-  return [...days].sort();
+  return days.sort();
 }
 
 /** Freezes ready to use today. Always 0 for a learner without a paid plan. */

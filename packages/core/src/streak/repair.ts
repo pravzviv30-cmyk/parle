@@ -18,7 +18,7 @@
  * gap a freeze could cover never becomes a repair.
  */
 
-import { addDays, isDayKey, type DayKey } from './dayKey.ts';
+import { addDays, daysBetween, isDayKey, type DayKey } from './dayKey.ts';
 import { localDayKey } from '../levels/levels.ts';
 import { runLengthEndingAt, streakDaysOf, type StreakInput } from './streak.ts';
 
@@ -30,6 +30,19 @@ export const REPAIR_PRACTICES = 2;
 
 /** 48 hours after the break, as calendar days. */
 export const REPAIR_WINDOW_DAYS = 2;
+
+/**
+ * At most one repair in this many days, measured from the day a repair
+ * covered to the first day of the new gap. 0 means no limit.
+ *
+ * No limit is set because none has been decided. The first draft of the game
+ * spec (docs/come-alive/game.md 2.4) allowed one every 30 days ("no `earned`
+ * cover exists in the last 30 days", `earned` since renamed `repair`), and
+ * founder decision D4 says nothing about how often. The founder's answer is
+ * this one number; `repairOfferWithLimit` is how the tests prove a limit holds
+ * before anyone chooses one.
+ */
+export const REPAIR_EVERY_DAYS = 0;
 
 export interface StreakBreak {
   /** The uncovered days a repair would cover, oldest first: one or two. */
@@ -84,23 +97,42 @@ export function recentBreak(input: StreakInput): StreakBreak | null {
   return { days, runBefore, windowStart, windowEnd };
 }
 
+type RepairInput = StreakInput & {
+  entitled: boolean;
+  sittings: readonly { at: number }[];
+  dayKey?: (at: number) => string;
+};
+
 /**
  * The repair a subscriber can earn now, or null.
  *
  * `sittings` are finished practices (any kind, including zero-XP ones), each
  * at the moment it finished. Null for a learner without a paid plan, for a gap
- * longer than two days, and once the window has passed.
+ * longer than two days, once the window has passed, and when a repair within
+ * `REPAIR_EVERY_DAYS` already restored a day (never, while that is 0).
  */
-export function repairOffer(
-  input: StreakInput & {
-    entitled: boolean;
-    sittings: readonly { at: number }[];
-    dayKey?: (at: number) => string;
-  },
-): RepairOffer | null {
+export function repairOffer(input: RepairInput): RepairOffer | null {
+  return repairOfferWithLimit(input, REPAIR_EVERY_DAYS);
+}
+
+/**
+ * `repairOffer` under a given limit, the way `travelCover` limits travel.
+ *
+ * Only a repair the streak actually used counts against the limit: a repair
+ * cover on a day that turned out to be practised, or one that lost its day to
+ * an earlier cover, restored nothing. Not exported from the package; the app
+ * calls `repairOffer`, so `REPAIR_EVERY_DAYS` is the one place the rule lives.
+ */
+export function repairOfferWithLimit(input: RepairInput, everyDays: number): RepairOffer | null {
   if (input.entitled !== true) return null;
   const found = recentBreak(input);
   if (!found) return null;
+  if (everyDays > 0) {
+    for (const [day, kind] of streakDaysOf(input).covered) {
+      if (kind !== 'repair') continue;
+      if (Math.abs(daysBetween(day, found.days[0]!)) < everyDays) return null;
+    }
+  }
   const dayKey = input.dayKey ?? localDayKey;
   let done = 0;
   for (const sitting of input.sittings) {

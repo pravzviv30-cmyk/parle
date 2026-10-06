@@ -2,16 +2,20 @@
  * The daily goal: a few minutes of practice a day, chosen by the learner
  * (founder decision D5 replaces the days-a-week question with it).
  *
- * The minutes rule is the app's momentum card rule (`goalFrom`,
- * apps/mobile/src/progress/momentum.ts), moved here so the goal ring, the
- * minutes quest and the momentum card can only ever agree:
+ * The minutes rule was the app's momentum card rule (`goalFrom`,
+ * apps/mobile/src/progress/momentum.ts). It lives here now, and `goalFrom`
+ * calls this function, so the goal ring, the minutes quest and the momentum
+ * card can only ever agree:
  *
  * - Only measured active learning time counts (`activeMs`): typed or spoken,
  *   with idle and away gaps already left out by the screen's clock. Wall-clock
  *   duration is never read.
  * - A sitting with no measured time is untimed. It adds nothing and marks the
  *   day as partly untimed, because nothing measured is not zero minutes of
- *   practice, and a real sitting must never be read back as a nought.
+ *   practice, and a real sitting must never be read back as a nought. A
+ *   measurement that is not a finite number counts as none.
+ * - A negative measurement adds nothing, so it never takes time away from a
+ *   real sitting.
  * - Minutes are floored. This is a claim about time the learner actually
  *   spent, and the direction to be wrong in is the modest one.
  */

@@ -150,7 +150,7 @@
  * trust.
  */
 
-import { evidenceOf, localDayKey, type ReviewCard } from '@luvani/core';
+import { evidenceOf, goalProgressFrom, localDayKey, type ReviewCard } from '@luvani/core';
 import { DAILY_GOAL_UNSET, dailyGoalOf, type GoalMinutes } from '../profile/dailyGoal.ts';
 import type { StoredProfile } from '../profile/store.ts';
 import type { ActivityEntry, ActivityKind } from './activity.ts';
@@ -716,28 +716,24 @@ function goalNote(remaining: number | null, minutes: number, untimed: boolean): 
 /**
  * Today's practice time, always a card and never an accusation.
  *
- * Sums `activeMs` only: measured active learning time, typed or spoken, with
- * idle and away gaps already left out by the screen's clock. `durationMs` is
- * wall clock and is never read here. An entry with no `activeMs` is unknown,
- * so it adds nothing and marks the day as partly untimed.
+ * The minutes rule lives once, in core's `goalProgressFrom`, so this card, the
+ * goal ring and the minutes quest can only ever agree. It sums `activeMs`
+ * only: measured active learning time, typed or spoken, with idle and away
+ * gaps already left out by the screen's clock. `durationMs` is wall clock and
+ * is never read. An entry with no readable `activeMs` is unknown, so it adds
+ * nothing and marks the day as partly untimed, and a negative one adds nothing.
  *
  * Minutes are floored, never rounded up. This is a claim about time the learner
  * actually spent, and the direction to be wrong in is the modest one.
  */
 function goalFrom(activity: readonly ActivityEntry[], profile: StoredProfile | null, now: number): MomentumGoal {
   const target = dailyGoalOf(profile);
-  const today = localDayKey(now);
+  const { activeMs, minutes, untimed } = goalProgressFrom({
+    sittings: activity.filter((entry) => PRACTICE_KINDS.includes(entry.kind)),
+    target,
+    today: localDayKey(now),
+  });
 
-  let activeMs = 0;
-  let untimed = false;
-  for (const entry of activity) {
-    if (!PRACTICE_KINDS.includes(entry.kind)) continue;
-    if (localDayKey(entry.at) !== today) continue;
-    if (entry.activeMs === undefined) untimed = true;
-    activeMs += entry.activeMs ?? 0;
-  }
-
-  const minutes = Math.floor(activeMs / 60_000);
   const timedToday = activeMs > 0;
   const remaining = target === null ? null : Math.max(0, target - minutes);
   const note = goalNote(remaining, minutes, untimed);
