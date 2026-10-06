@@ -10226,6 +10226,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the plans page pre-selects the yearly plan that covers the learner's goal and fires no selection event`
 - verified-by: `a free trial timeline appears only with a real eligible offer`
 
+### F773 — Quests end in a chest the founder decided against
+- severity: P2
+- status: [ ]
+- where: packages/core/src/quests, apps/mobile/src/game, apps/mobile/src/celebrate, apps/mobile/src/game/art
+- note: Founder decision D22 (6 October): no chests. Quests, their +10 XP and the monthly quest badge stay; finishing all three shows one quiet line with the quest sound; the chest drawing, CHEST_XP, the chest claim, the quest-chest takeover and the chest seen key go. Nothing with a chest has shipped, so no stored data needs migrating.
+- verified-by: `finishing all three quests shows one quiet line and no chest`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.

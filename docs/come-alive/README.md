@@ -42,6 +42,7 @@ six review notes and the critic are committed in step 0 as `docs/come-alive/` wi
 | D19 | (2026-10-06) A subscriber may **repair a streak at most once every 7 days** (`REPAIR_EVERY_DAYS = 7`). Freezes still cover single missed days. |
 | D20 | (2026-10-06) The first-practice **echo check keeps refusing** any reply with the same words as the tutor's question, punctuation aside, typed or spoken. The learner sees the model answer. |
 | D21 | (2026-10-06) An own-words **retry reads "Nearly there."** in the nearly tone (sun, the `nearly` sound). The reveal stays calm. |
+| D22 | (2026-10-06) **No chests.** Daily quests stay (3 a day, +10 XP each, the monthly quest badge). Finishing all three shows one quiet line, "All three quests done today.", on the end card and Home, with the `quest` sound. No chest drawing, no chest XP, no chest takeover; the takeovers are purchase, streak (milestone replaces extended), level, badge. The rest of the game art is approved by eye: flame, medal, crest, freeze and repair marks. |
 
 **KEEP regardless** (legal/truth/a11y/billing/safety): AI + Deepgram disclosure before processing
 and the 13+ order; opt-ins off; no pre-consent tracking in the first-run screen; every celebration
