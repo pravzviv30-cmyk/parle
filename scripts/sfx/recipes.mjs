@@ -9,7 +9,7 @@
  * the bell's inharmonic partials, detune and vibrato are colour, not pitches.
  *
  * Changing any recipe, or RECIPE_VERSION, changes the sound's wavSha256, which withdraws the
- * founder's approval of it until he has listened again (decision D9).
+ * founder's approval of it until they have listened again (decision D9).
  */
 
 /** Bump to re-roll every seed. Each bump makes every sound need approval again. */

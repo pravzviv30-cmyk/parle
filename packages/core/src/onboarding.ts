@@ -303,7 +303,7 @@ const variants: Readonly<Record<string, readonly string[]>> = {
  * answers. Comparing the whole normalised line to the prompt first stops that
  * without touching "Ça va" said on its own, which is an answer.
  *
- * Known cost, left open for a decision rather than guessed at: "Salut, ça va."
+ * Known cost, accepted by the founder on 2026-10-06 (D20): "Salut, ça va."
  * typed as a statement is also refused, because without punctuation it is the
  * same words as the question, and on the spoken path the punctuation is the
  * recogniser's guess rather than the learner's. Refusing it shows the model

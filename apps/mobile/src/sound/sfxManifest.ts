@@ -23,19 +23,19 @@ export const SFX_DURATION_MS: Readonly<Record<SfxId, number>> = {
 
 /**
  * True only for a sound the founder approved by ear, and only while its synthesis is the one
- * he heard (the wavSha256 in approvals.json matches). Anything false must stay silent.
+ * they heard (the wavSha256 in approvals.json matches). Anything false must stay silent.
  */
 export const SFX_APPROVED: Readonly<Record<SfxId, boolean>> = {
-  tap: false,
-  select: false,
-  correct: false,
-  nearly: false,
-  complete: false,
-  streak: false,
-  levelup: false,
-  quest: false,
-  badge: false,
-  save: false,
-  'count-tick': false,
-  whoosh: false,
+  tap: true,
+  select: true,
+  correct: true,
+  nearly: true,
+  complete: true,
+  streak: true,
+  levelup: true,
+  quest: true,
+  badge: true,
+  save: true,
+  'count-tick': true,
+  whoosh: true,
 };

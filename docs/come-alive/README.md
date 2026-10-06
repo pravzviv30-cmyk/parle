@@ -38,6 +38,10 @@ six review notes and the critic are committed in step 0 as `docs/come-alive/` wi
 | D15 | Ships on **iPhone + iPad** (portrait) now. Web is a preview that must not break. |
 | D16 | **7-day free trial** (App Store introductory offer) with **a week's worth of the plan's minutes** (allowance × 7/30: Starter ≈ 42 min, Max ≈ 70 min, computed server-side). **Annual plans**, pre-selected: Starter **$149/yr**, Max **$229/yr** (≈35% off; founder accepts that Max annual loses ≈$1/month on a learner using all 300 minutes). |
 | D17 | **Every agent runs on Opus 5.5** (builders, reviewers, judges). No Fable. |
+| D18 | (2026-10-06) **All 12 sound effects approved by ear** (recipe version 1), recorded in `scripts/sfx/approvals.json` against each sound's wavSha256. A changed recipe is silent again until heard. |
+| D19 | (2026-10-06) A subscriber may **repair a streak at most once every 7 days** (`REPAIR_EVERY_DAYS = 7`). Freezes still cover single missed days. |
+| D20 | (2026-10-06) The first-practice **echo check keeps refusing** any reply with the same words as the tutor's question, punctuation aside, typed or spoken. The learner sees the model answer. |
+| D21 | (2026-10-06) An own-words **retry reads "Nearly there."** in the nearly tone (sun, the `nearly` sound). The reveal stays calm. |
 
 **KEEP regardless** (legal/truth/a11y/billing/safety): AI + Deepgram disclosure before processing
 and the 13+ order; opt-ins off; no pre-consent tracking in the first-run screen; every celebration

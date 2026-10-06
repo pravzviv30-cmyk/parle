@@ -201,10 +201,11 @@ describe('drill feedback is pinned, plain, and kind', () => {
     assert.equal(second.feedback?.message, `Here's how it goes: «${second.feedback?.closest}».`);
 
     // Own words keys its tone on the decision, not on the verdict it maps to.
-    // A retry is a miss in the queue arithmetic, and it may follow a reply
-    // that kept none of the meaning, so it claims no "nearly" and gets no cue.
+    // A retry is an invitation to a second try: the founder chose the warm
+    // "Nearly there." with the nearly cue (2026-10-06). The reveal hands the
+    // phrase over calmly, with no cue.
     assert.deepEqual(ownWordsFeedback('good'), { tone: 'good', text: 'That works.' });
-    assert.deepEqual(ownWordsFeedback('retry'), { tone: 'calm', text: 'Have another go.' });
+    assert.deepEqual(ownWordsFeedback('retry'), { tone: 'nearly', text: 'Nearly there.' });
     assert.deepEqual(ownWordsFeedback('reveal'), { tone: 'calm', text: "Here's one way to say it." });
   });
 });

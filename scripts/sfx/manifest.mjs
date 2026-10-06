@@ -67,7 +67,7 @@ export function renderSfxManifestTs(sounds, approved) {
     '',
     '/**',
     ' * True only for a sound the founder approved by ear, and only while its synthesis is the one',
-    ' * he heard (the wavSha256 in approvals.json matches). Anything false must stay silent.',
+    ' * they heard (the wavSha256 in approvals.json matches). Anything false must stay silent.',
     ' */',
     'export const SFX_APPROVED: Readonly<Record<SfxId, boolean>> = {',
     ...sounds.map((sound) => `  ${key(sound.id)}: ${approved[sound.id] === true},`),

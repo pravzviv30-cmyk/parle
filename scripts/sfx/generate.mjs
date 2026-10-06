@@ -9,7 +9,7 @@
  * apps/mobile/assets/sfx/<id>.m4a. Then it writes apps/mobile/assets/sfx/manifest.json and the
  * generated apps/mobile/src/sound/sfxManifest.ts, whose SFX_APPROVED comes from
  * scripts/sfx/approvals.json: a sound is approved only while the wavSha256 the founder approved
- * is the wavSha256 it synthesises to now. Nothing is approved until he has listened.
+ * is the wavSha256 it synthesises to now. Nothing is approved until the founder has listened.
  *
  * --audition writes artifacts/sfx-audition/index.html (ignored by git): one card per sound and
  * the "in context" reels from scripts/sfx/reels.mjs, with the encoded files inlined so the page

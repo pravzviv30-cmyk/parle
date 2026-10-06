@@ -68,7 +68,7 @@ test('an approval counts only for the exact synthesis the founder heard', () => 
   const pair = [{ id: 'tap', wavSha256: heard }, { id: 'select', wavSha256: 'b'.repeat(64) }];
   assert.deepEqual(approvedFlags(pair, {}), { tap: false, select: false });
   assert.deepEqual(approvedFlags(pair, { tap: { on: '2026-10-06', wavSha256: heard } }), { tap: true, select: false });
-  // The recipe changed after he listened: the old approval no longer counts.
+  // The recipe changed after the founder listened: the old approval no longer counts.
   assert.equal(approvedFlags(pair, { tap: { on: '2026-10-06', wavSha256: 'c'.repeat(64) } }).tap, false);
   // An approval needs its date and its hash; a bare true is not one.
   assert.equal(approvedFlags(pair, { tap: { wavSha256: heard } }).tap, false);

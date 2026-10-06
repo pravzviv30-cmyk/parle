@@ -167,18 +167,19 @@ export type FeedbackTone = 'good' | 'nearly' | 'calm';
  * round again." while one is asking for a second try and the other is handing
  * the phrase over.
  *
- * A retry is calm, not "nearly". It follows any reply the judge found did not
- * carry the meaning, including one that kept none of it, so "nearly" would be
- * a claim nobody measured; and it is a miss in the queue arithmetic, which gets
- * no cue anywhere else in the drill. The judge's own note and the revealed
- * phrase are the screen's to add beneath these lines.
+ * A retry reads "Nearly there." in the nearly tone (sun, the nearly sound).
+ * The founder chose encouragement here on 2026-10-06, knowing a retry also
+ * follows replies that kept little of the meaning: a second try is an
+ * invitation, and the line says so warmly rather than grading the first one.
+ * The judge's own note and the revealed phrase are the screen's to add
+ * beneath these lines.
  */
 export function ownWordsFeedback(decided: OwnWordsDecision): { tone: FeedbackTone; text: string } {
   switch (decided) {
     case 'good':
       return { tone: 'good', text: 'That works.' };
     case 'retry':
-      return { tone: 'calm', text: 'Have another go.' };
+      return { tone: 'nearly', text: 'Nearly there.' };
     case 'reveal':
       return { tone: 'calm', text: "Here's one way to say it." };
   }
