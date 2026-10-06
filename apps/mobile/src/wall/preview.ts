@@ -60,8 +60,8 @@ export function previewOffering(env: PreviewEnvironment = process.env): StoreOff
   return {
     available: true,
     products: [
-      { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Starter', localizedPrice: '£14.99' },
-      { plan: 'regular', productId: 'luvani_regular_monthly_preview', title: 'Max', localizedPrice: '£24.99' },
+      { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Starter', localizedPrice: '£14.99', period: 'month', intro: null, introEligible: false },
+      { plan: 'regular', productId: 'luvani_regular_monthly_preview', title: 'Max', localizedPrice: '£24.99', period: 'month', intro: null, introEligible: false },
     ],
   };
 }

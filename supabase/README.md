@@ -74,6 +74,7 @@ transactional migration tooling. Inspect the schema before recovering a partial 
 | 34 | `migrations/20261004004023_friends_launch_guard.sql` | Friends default OFF, immutable reviewed moderation evidence with expiry and irreversible enabled-history rollback guard. No moderation service is fabricated. Prepared and proved in disposable SQL; not applied live. |
 | 35 | `migrations/20261004010327_whole_product_paid_admission.sql` | Whole-product owner-reviewed immutable quotes, nonrecycling global/account/vendor reservation and execution-day envelopes, current tutor resume and per-account session caps. OFF/zero by default; no vendor prices or capacity seeded. Prepared and proved in disposable SQL; not applied live. |
 | 36 | `migrations/20261004015000_indexed_conversation_library.sql` | Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. Prepared and proved in disposable SQL; not applied live. |
+| 37 | `migrations/20261005231742_store_trial_yearly_allowance.sql` | F733 (D16): `apply_billing_projection_v2`, which grants a store trial a week of the plan's allowance and a yearly product its monthly allowance one 30-day window at a time, by recording the ungranted part as spent; `entitlements.allowance_window_end` (the yearly window, beside a `period_end` that stays the paid year, so no lazy lapse is rewritten) with its check and a trigger that clears it with the period and starts a new usage epoch per window; `entitlements.period_start` (store answers are ordered by when their period started, so an immediate upgrade from a yearly plan to a monthly one is granted at once) and `entitlements.withheld_seconds` (the part of `seconds_used` a window withholds, so a fuller answer for the same window gives it back), cleared with the window by the same trigger and by any other writer that moves the period without them; `billing_renewals_due_v1` and a partial index for the maintenance worker's renewal sweep; `billing_projection_version()` answers 2. The six-argument projection stays for servers not yet redeployed. Safe to apply twice. Apply before the token server and maintenance worker that call it, and before any intro offer or yearly product exists in App Store Connect. Prepared and proved in disposable SQL, including over pre-existing paid rows; not applied live. |
 
 Order is load-bearing in one direction only: everything after 1 names tables and
 functions that 1 creates, so 1 first. Files 3, 4, 5, 7 and 9 are each a single `create or
@@ -164,6 +165,7 @@ depends on what the earlier ones built.
 
 | Rolling back | Script | Cost |
 |---|---|---|
+| `20261005231742_store_trial_yearly_allowance.sql` | `rollback/20261005231742_down.sql` | REOPENS-F733, behind the `luvani.reopen_trial_allowance` interlock. Remove every intro offer and yearly product from App Store Connect and redeploy servers that call the six-argument projection first; afterwards a store trial is granted the whole month. Drops `allowance_window_end`, `period_start` and `withheld_seconds`: a yearly row keeps its paid year and current minutes, and gets no further window, and answers are ordered by end alone again. Safe to run twice. Touches no allowance. |
 | `20261004015000_indexed_conversation_library.sql` | `rollback/20261004015000_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
 | `20261004010327_whole_product_paid_admission.sql` | `rollback/20261004010327_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
 | `20261004004023_friends_launch_guard.sql` | `rollback/20261004004023_down.sql` | Disable admission, drain writers and satisfy the script’s explicit never-used/maintenance interlocks. Preserve all retained history; used irreversible workflows require forward repair. |
@@ -257,7 +259,7 @@ The saved-text rollback is `rollback/20261002171317_down.sql`. It permanently re
 
 ## Rollback evidence
 
-The current release has all 36 migrations. A twelve-proof legacy harness is
+The current release has all 37 migrations. A twelve-proof legacy harness is
 historical evidence; it is not full-catalog security, rollback or restore acceptance.
 Do not execute an old destructive rollback sequence against the current schema.
 

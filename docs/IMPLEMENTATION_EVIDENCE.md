@@ -681,7 +681,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 36 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 37 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -695,7 +695,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **36 migrations** for a fresh full schema, applied once in order from
+There are **37 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -774,6 +774,8 @@ There are **36 migrations** for a fresh full schema, applied once in order from
 35. `20261004010327_whole_product_paid_admission.sql` — Whole-product owner-reviewed immutable quotes, nonrecycling global/account/vendor reservation and execution-day envelopes, current tutor resume and per-account session caps. OFF/zero by default; no vendor prices or capacity seeded. **Not applied live**; release manifest and hosted evidence must match the complete schema.
 
 36. `20261004015000_indexed_conversation_library.sql` — Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+37. `20261005231742_store_trial_yearly_allowance.sql`, F733 (D16): the projection that grants a store free trial a week of the plan's allowance and a yearly product one 30-day window at a time (the window in `allowance_window_end`, the paid year staying in `period_end`, so a missed refill never lapses the year), store answers ordered by when their period started (`period_start`, so an immediate upgrade from a yearly plan to a monthly one is granted at once), the withheld part of a window kept in `withheld_seconds`, the service-only renewal list for the maintenance worker, and projection version 2. Safe to apply twice; proved over pre-existing paid rows in disposable SQL. **Not applied live**; apply before the token server and maintenance worker that call it and before any intro offer or yearly product exists in App Store Connect.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

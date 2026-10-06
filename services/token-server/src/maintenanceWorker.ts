@@ -7,6 +7,9 @@ import { privacyJobs } from './privacyJobs.ts';
 import { reconcileTutorRooms } from './maintenance.ts';
 import { safeError } from '../../shared/safeError.ts';
 import { journalFromEnv } from './deletionJournal.ts';
+import { renewSubscriber, revenueCatReadConfiguration } from './billing/revenuecat.ts';
+import { renewalSweep, supabaseRenewalsDue } from './billing/renewals.ts';
+import { SupabaseEntitlementStore } from './store.ts';
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -18,6 +21,15 @@ if (!url || !key || !livekit || !process.env.LIVEKIT_API_KEY || !process.env.LIV
 const repository = new TutorSessionRepository(url, key);
 const erasures = privacyJobs(url, key, process.env.REVENUECAT_SECRET_API_KEY, fetch, journalFromEnv());
 const rooms = new RoomServiceClient(livekit.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:'), process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, { requestTimeout: 3, failover: false });
+// F733: the next yearly allowance window, and a monthly renewal whose webhook
+// was lost, are granted by re-reading the vendor once a period on record ends.
+// Off unless this role holds the billing mapping beside the secret key.
+const billingRead = revenueCatReadConfiguration(process.env);
+const entitlements = new SupabaseEntitlementStore(url, key);
+const renewals = billingRead === null ? null : renewalSweep({
+  due: supabaseRenewalsDue(url, key),
+  renew: row => renewSubscriber(row.userId, row.periodEnd, entitlements, billingRead),
+});
 const workerId = randomUUID();
 let stopping = false;
 let healthy = false;
@@ -36,6 +48,7 @@ try {
     try {
       const reconciliation = await reconcileTutorRooms(repository, rooms);
       const erasure = await erasures.process();
+      void renewals?.tick();
       if (Date.now() >= nextRetention) {
         const retained = await repository.rpc('run_data_retention_v1', { p_batch_size: 500 });
         console.log(JSON.stringify({ event: 'retention', analyticsDeleted: retained.analyticsDeleted, expiredRequestsDeleted: retained.expiredRequestsDeleted, installationMarkersDeleted: retained.installationMarkersDeleted }));

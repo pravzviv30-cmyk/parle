@@ -95,6 +95,7 @@ export async function serverBillingReady(userId: string): Promise<boolean> {
     return billingPairMatches(body, {
       entitlementId: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
       products: { starter: process.env.EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID, regular: process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_PRODUCT_ID },
+      yearly: { starter: process.env.EXPO_PUBLIC_REVENUECAT_STARTER_YEARLY_PRODUCT_ID, regular: process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_YEARLY_PRODUCT_ID },
     });
   } catch { return false; }
 }

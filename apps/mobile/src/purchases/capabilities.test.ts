@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { describe, test } from 'node:test';
 
 import { guiltIn } from '../copy/guilt.ts';
+import { billingStatusIn } from './billingStatus.ts';
 import { CAPABILITY_COPY, capabilitiesFor, planInclusions } from './capabilities.ts';
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -89,5 +90,33 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     assert.match(screen, /\{allowed === false && \([\s\S]*?\{MAX_ONLY_LINE\}[\s\S]*?<OutlineButton label=\{SEE_PLANS\} onPress=\{onSeePlans\}/, 'a gated learner is not told plainly, or has no way to the plans');
     assert.match(screen, /\{allowed === true && \([\s\S]*?<PillButton label=\{checking \? 'Connecting…' : REHEARSE_ACTION\}/, 'an allowed learner has no way to rehearse');
     assert.match(screen, /allowed === null && <Text accessibilityLiveRegion="polite"/, 'plan loading or failure is explained');
+  });
+
+  test('streak protection comes only with an unlapsed paid plan', () => {
+    // D4 (2026-10-05): freezes and the one-tap repair are a paid perk on either
+    // tier. A lapsed plan reads as the trial it now is, and so does a plan
+    // nobody could read: a freeze that applied because a check failed would be
+    // a perk the plan does not hold.
+    for (const plan of ['starter', 'regular'] as const) {
+      assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true }, `${plan} holds no streak protection`);
+      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 0, repair: false }, `a lapsed ${plan} kept its streak protection`);
+    }
+    for (const plan of ['trial', 'unknown'] as const) {
+      assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 0, repair: false }, `the ${plan} plan was given streak protection`);
+      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 0, repair: false });
+    }
+
+    // A store free trial is answered by the server as the plan itself, unlapsed,
+    // with a week of minutes, so the trial holds the perk as D4 says it should.
+    const storeTrial = billingStatusIn({
+      plan: 'starter', secondsRemaining: 42 * 60, periodEnd: '2026-10-12T09:00:00.000Z', lapsed: false, canStart: true, reason: null,
+    });
+    assert.ok(storeTrial, 'a store trial status did not read');
+    assert.deepEqual(capabilitiesFor(storeTrial.plan, storeTrial.lapsed).streakProtection, { freezes: 2, repair: true });
+
+    // Each answer is its own: one caller cannot spend another caller's freezes.
+    const held = capabilitiesFor('regular');
+    held.streakProtection.freezes = 0;
+    assert.equal(capabilitiesFor('regular').streakProtection.freezes, 2);
   });
 });

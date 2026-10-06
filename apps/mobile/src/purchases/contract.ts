@@ -18,11 +18,43 @@ export type PaidPlan = 'starter' | 'regular';
  */
 export const PAID_PLANS: readonly PaidPlan[] = ['starter', 'regular'];
 
+/**
+ * A store free trial, as the store describes it (founder decision D16).
+ *
+ * Every field is the store's own: the app never computes a trial length or a
+ * price. How many minutes the trial holds is the server's answer, not this.
+ */
+export interface StoreIntroOffer {
+  /** The store's formatted price for the offer period, exactly as it wrote it. */
+  priceString: string;
+  periodUnit: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
+  periodNumberOfUnits: number;
+  /** How many offer periods the store grants. */
+  cycles: number;
+}
+
 export interface StoreProduct {
   plan: PaidPlan;
   productId: string;
   title: string;
   localizedPrice: string;
+  /**
+   * How often the store bills it, read from the store's own subscription
+   * period and never assumed from an id. A product whose period is not exactly
+   * one month or one year is not offered at all.
+   */
+  period: 'month' | 'year';
+  /**
+   * The store's free trial on this product, or null. A paid introductory price
+   * is not a free trial and reads as null, so nothing can call it one.
+   */
+  intro: StoreIntroOffer | null;
+  /**
+   * Whether the store says this account can still take that offer. Unknown
+   * reads as false, which shows the plain price: the honest answer when the
+   * store could not say.
+   */
+  introEligible: boolean;
 }
 
 /**
@@ -33,10 +65,16 @@ export interface StoreProduct {
  * the app at all. A list also makes the partial answer expressible: a store
  * that knows one of the two products is a real state on a misconfigured
  * account, and it should sell the one it has rather than nothing.
+ *
+ * `products` holds the monthly products only, which is every price the plans
+ * page says "per month" beside. Yearly products (D16) travel apart in `yearly`
+ * so no screen built for monthly prices can draw a yearly one as a month;
+ * absent or empty means none is on sale. A screen offers one only once it
+ * says "a year".
  */
 export type StoreOffering =
   | { available: false }
-  | { available: true; products: readonly StoreProduct[] };
+  | { available: true; products: readonly StoreProduct[]; yearly?: readonly StoreProduct[] };
 
 export type StoreAction =
   | { ok: true }

@@ -4,15 +4,23 @@ import assert from 'node:assert/strict';
 import {
   PLANS,
   DEFAULT_COST_MODEL,
+  ALLOWANCE_WINDOW_DAYS,
   LAPSE_GRACE_SEC,
   MIN_VIABLE_SESSION_SEC,
   STORE_FEE_RATES,
+  STORE_TRIAL_DAYS,
+  YEARLY_PLANS,
+  allowanceWindowCount,
+  allowanceWindowEnd,
   canStartSession,
   estimateSessionCost,
   planMargin,
   recordUsage,
   rollPeriod,
   secondsRemaining,
+  storeTrialCostUsd,
+  storeTrialSeconds,
+  yearlyPlanMargin,
   type Entitlement,
 } from './meter.ts';
 
@@ -125,8 +133,12 @@ describe('starting a session', () => {
     assert.equal(trial.allowed === false && trial.reason, 'exhausted');
     assert.match(trial.allowed === false ? trial.message : '', /trial is finished/i);
 
+    // 5 October 2026, F733 review: a paid allowance is now a month, a store
+    // trial's week or a yearly window, so "this month" was untrue for two of
+    // the three. The paid line names no period and never the free trial.
     const paid = canStartSession({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod });
-    assert.match(paid.allowed === false ? paid.message : '', /this month/i);
+    assert.equal(paid.allowed === false ? paid.message : '', 'You have used all your minutes for now.');
+    assert.doesNotMatch(paid.allowed === false ? paid.message : '', /trial|month/i);
   });
 
   test('a learner whose paid plan lapsed is not told their free trial ended', () => {
@@ -351,5 +363,150 @@ describe('margins after the store takes its cut', () => {
     assert.equal(PLANS.trial.secondsPerPeriod, 30 * 60, note);
     assert.equal(PLANS.starter.secondsPerPeriod, 180 * 60, note);
     assert.equal(PLANS.regular.secondsPerPeriod, 300 * 60, note);
+  });
+});
+
+describe('a store free trial is a week of the plan, not a month of it (D16)', () => {
+  test('a store trial is a week of the monthly allowance: Starter 42 minutes, Max 70', () => {
+    assert.equal(STORE_TRIAL_DAYS, 7);
+    assert.equal(ALLOWANCE_WINDOW_DAYS, 30);
+    assert.equal(storeTrialSeconds('starter'), 42 * 60);
+    assert.equal(storeTrialSeconds('regular'), 70 * 60);
+    for (const plan of ['starter', 'regular'] as const) {
+      assert.ok(storeTrialSeconds(plan) < PLANS[plan].secondsPerPeriod, `${plan}'s trial grants the whole month`);
+      assert.ok(storeTrialSeconds(plan) >= MIN_VIABLE_SESSION_SEC, `${plan}'s trial is too small to hold one session`);
+      assert.equal(storeTrialSeconds(plan) % 60, 0, 'a trial in part-minutes would be said as a number the app has to round');
+    }
+  });
+
+  test('a store trial used to the last second costs a few dollars, and the ceiling is pinned', () => {
+    // Measured from DEFAULT_COST_MODEL at $0.0578 a minute: about $2.43 for
+    // Starter's 42 minutes and $4.05 for Max's 70. That is acquisition cost for a
+    // learner who never pays, on top of the free thirty minutes they already had.
+    const starter = storeTrialCostUsd('starter');
+    const max = storeTrialCostUsd('regular');
+    assert.ok(starter < 2.5, `a Starter trial now costs $${starter.toFixed(2)} to give away`);
+    assert.ok(max < 4.25, `a Max trial now costs $${max.toFixed(2)} to give away`);
+    assert.ok(max > starter);
+  });
+});
+
+describe('a yearly plan refills by the window, inside the paid year (D16)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const start = new Date('2026-10-05T09:00:00.000Z');
+  const yearEnd = new Date(start.getTime() + 365 * DAY);
+
+  test('a paid year holds exactly twelve allowance windows, the last absorbing the remainder', () => {
+    assert.equal(allowanceWindowCount(start, yearEnd), 12, 'a 365-day year is twelve allowances, not twelve and a five-day thirteenth');
+    assert.equal(allowanceWindowCount(start, new Date(start.getTime() + 366 * DAY)), 12, 'a leap year is still twelve');
+    const ends = new Set<number>();
+    for (let day = 0; day < 365; day += 1) ends.add(allowanceWindowEnd(start, yearEnd, new Date(start.getTime() + day * DAY + 1))!.getTime());
+    assert.equal(ends.size, 12, 'every day of the year falls in one of twelve windows');
+    const last = allowanceWindowEnd(start, yearEnd, new Date(start.getTime() + 340 * DAY));
+    assert.equal(last?.toISOString(), yearEnd.toISOString(), 'the last window runs to the end of the paid year');
+    assert.equal(
+      allowanceWindowEnd(start, yearEnd, new Date(start.getTime() + 329 * DAY))?.toISOString(),
+      new Date(start.getTime() + 330 * DAY).toISOString(),
+      'the eleventh window is thirty days like the ten before it',
+    );
+  });
+
+  test('every window is thirty days from the start of the paid year, and a refill begins the moment one ends', () => {
+    const first = allowanceWindowEnd(start, yearEnd, start);
+    assert.equal(first?.toISOString(), new Date(start.getTime() + 30 * DAY).toISOString());
+    assert.equal(allowanceWindowEnd(start, yearEnd, new Date(start.getTime() + 30 * DAY - 1))?.getTime(), first?.getTime());
+    assert.equal(
+      allowanceWindowEnd(start, yearEnd, new Date(start.getTime() + 30 * DAY))?.toISOString(),
+      new Date(start.getTime() + 60 * DAY).toISOString(),
+      'the second window opens exactly where the first closes',
+    );
+  });
+
+  test('a month, a trial or a sandbox year is a single window ending with its period', () => {
+    for (const lengthMs of [28 * DAY, 31 * DAY, 7 * DAY, 60 * 60 * 1000, 59 * DAY]) {
+      const end = new Date(start.getTime() + lengthMs);
+      assert.equal(allowanceWindowCount(start, end), 1);
+      assert.equal(allowanceWindowEnd(start, end, new Date(start.getTime() + lengthMs / 2))?.getTime(), end.getTime());
+    }
+  });
+
+  test('there is no window at or after the end of the paid period, or in a malformed one', () => {
+    assert.equal(allowanceWindowEnd(start, yearEnd, yearEnd), null, 'the store lapses a period at its end; a window there would outlive it');
+    assert.equal(allowanceWindowEnd(start, yearEnd, new Date(yearEnd.getTime() + DAY)), null);
+    assert.equal(allowanceWindowEnd(yearEnd, start, start), null, 'an end before its start is not a period');
+    assert.equal(allowanceWindowEnd(start, start, start), null);
+    assert.equal(allowanceWindowEnd(new Date('nonsense'), yearEnd, start), null);
+    assert.equal(allowanceWindowCount(start, new Date('nonsense')), 0);
+  });
+
+  test('a clock behind the store reads as the first window, never as no window or a later one', () => {
+    const behind = new Date(start.getTime() - 90 * 1000);
+    assert.equal(allowanceWindowEnd(start, yearEnd, behind)?.toISOString(), new Date(start.getTime() + 30 * DAY).toISOString());
+  });
+
+  test('a yearly price change is the same three-part change as a monthly one', () => {
+    const note =
+      'changing a yearly price means changing YEARLY_PLANS.priceUsd, the yearly margin floors in this file, ' +
+      'and the yearly product in App Store Connect together. The learner only ever sees the store string.';
+    assert.equal(YEARLY_PLANS.starter.priceUsd, 149, note);
+    assert.equal(YEARLY_PLANS.regular.priceUsd, 229, note);
+    assert.equal(YEARLY_PLANS.starter.plan, 'starter');
+    assert.equal(YEARLY_PLANS.regular.plan, 'regular');
+  });
+
+  test('yearly Max loses about a dollar a month at full use, which D16 accepted, and no more than that', () => {
+    // The modelled number, in the contract as the founder decision requires:
+    // twelve windows of 300 minutes cost $208.08 at DEFAULT_COST_MODEL against
+    // $194.65 received at the Small Business rate. That is -6.9% worst case, or
+    // about $1.12 a month on the heaviest possible learner. At the standard 30%
+    // rate the same learner costs about $3.98 a month, which is why enrolment
+    // stays a requirement. If this fails, the loss grew past what was accepted.
+    const max = yearlyPlanMargin('regular', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+    const lossPerMonth = (max.worstCaseCostUsd - max.netRevenueUsd) / 12;
+    assert.equal(max.priceUsd, 229);
+    assert.ok(
+      Math.abs(max.worstCaseCostUsd - 12 * planMargin('regular', 1.0).worstCaseCostUsd) < 1e-9,
+      'a paid year is twelve monthly allowances',
+    );
+    assert.ok(max.worstCaseMargin < 0, `yearly Max no longer loses at full use (${(max.worstCaseMargin * 100).toFixed(1)}%); say so in D16`);
+    assert.ok(lossPerMonth < 1.25, `yearly Max now loses $${lossPerMonth.toFixed(2)} a month at full use, past the dollar D16 accepted`);
+  });
+
+  test('yearly Starter still pays for its heaviest learner at the Small Business rate', () => {
+    // $124.85 of cost against $126.65 received: +1.4%, about fifteen cents a
+    // month. Thin, and below zero at the standard rate (-19.7%).
+    const starter = yearlyPlanMargin('starter', 1.0, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+    assert.ok(starter.worstCaseMargin >= 0, `yearly Starter loses ${(starter.worstCaseMargin * 100).toFixed(1)}% at full use`);
+  });
+
+  test('at realistic utilisation both yearly plans clear a healthy margin after the store fee', () => {
+    for (const plan of ['starter', 'regular'] as const) {
+      const m = yearlyPlanMargin(plan, 0.5, DEFAULT_COST_MODEL, STORE_FEE_RATES.smallBusiness);
+      assert.ok(m.expectedMargin > 0.4, `yearly ${plan} leaves ${(m.expectedMargin * 100).toFixed(0)}% at half utilisation`);
+    }
+  });
+});
+
+describe('a yearly window that ends is a refill owed, never a lapse (F733 review)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const bought = new Date('2026-10-05T09:00:00.000Z');
+  const yearEnd = new Date(bought.getTime() + 365 * DAY);
+
+  test('a read keeps a yearly plan whose window ended a day ago, and lapses it only after the paid year', () => {
+    // Window one spent to the last second, ended twenty-five hours ago, and no
+    // renewal sweep has run. The learner still holds the year they paid for.
+    const windowEnd = new Date(bought.getTime() + 30 * DAY);
+    const spent: Entitlement = { plan: 'regular', secondsUsed: PLANS.regular.secondsPerPeriod, periodEnd: yearEnd, windowEnd };
+    const later = new Date(windowEnd.getTime() + 25 * 60 * 60 * 1000);
+    assert.equal(rollPeriod(spent, later), spent, 'a read lapsed a learner inside their paid year');
+    const refused = canStartSession(spent);
+    assert.equal(refused.allowed === false && refused.reason, 'exhausted', 'an unrefilled window reads as a paid plan out of minutes');
+    // Said the same way for a month, a store trial's week and a yearly window,
+    // because "this month" was untrue for two of the three.
+    assert.equal(refused.allowed === false && refused.message, 'You have used all your minutes for now.');
+
+    // The paid year itself still lapses exactly as a month does.
+    assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000)), spent);
+    assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000 + 1)).lapsed, true);
   });
 });

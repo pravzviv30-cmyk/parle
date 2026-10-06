@@ -9908,18 +9908,24 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F733 — A store free trial or a yearly plan would grant the wrong allowance
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/metering/meter.ts, services/token-server/src/billing/revenuecat.ts, services/token-server/src/billing/state.ts
 - note: Founder decision D16: a 7-day introductory offer grants a week of the plan's minutes (allowance x 7/30) during the trial; Starter and Max yearly products refill the monthly allowance every 30 days inside the paid year. Today any active entitlement would grant the full monthly allowance at once and a yearly product would grant one month for a year. Money-pinned files change only with a dated reason and independent review.
+- note: 5 October review repair: the first build recorded a yearly window as period_end, so a read a day after any window the renewal sweep missed lapsed a paying learner and kept them lapsed. period_end is the paid year again and the window sits in allowance_window_end; a missed refill now costs minutes until the sweep or a restore, never the plan.
 - verified-by: `a store trial grants a week of the plan's minutes and no more`
 - verified-by: `a yearly plan refills the monthly allowance every thirty days`
+- verified-by: `a yearly learner whose window ended a day ago is not lapsed by a read, and the next refresh grants window two`
+- note: 6 October second review: a Starter yearly learner upgrading to Max monthly was never projected onto Max, because answers were ordered by period end; they are now ordered by the store's period start (entitlements.period_start), then window, then end. Re-checked SHIP by an independent verifier.
+- verified-by: `a Starter yearly learner who upgrades to Max monthly is granted Max at once`
+- verified-by: `a stale read of the old year after that upgrade moves nothing`
 
 ### F734 — Plans say nothing about streak protection
 - severity: P2
 - status: [ ]
 - where: apps/mobile/src/purchases/capabilities.ts
-- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial.
+- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor answers streakProtection (5 October), but the plans page still says nothing: the INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn. Open until that line ships with the second test below, which does not exist yet, so the gate cannot tick this early.
 - verified-by: `streak protection comes only with an unlapsed paid plan`
+- verified-by: `the plans page names streak protection on both paid plans`
 
 ### F735 — Production guest speech is off, so the first win is never spoken
 - severity: P2
@@ -10001,6 +10007,41 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/game/art
 - note: Founder decision D10: flat vectors built in code in the current style (flame, chest, medal, crest, freeze and repair marks). Kept out of the flat illustration registry so the pinned 29-drawing count (F599) stays true. The founder approves the contact sheet by eye before the art ships.
 - verified-by: `every game drawing uses palette colours only and hides from assistive technology`
+### F742 — A store trial's purchase screens describe a month
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall/WallScreen.tsx:330, apps/mobile/src/purchases/planStatus.ts:93
+- note: F733 review (5 October). The server grants a store trial a week of the plan (42 or 70 minutes), but the purchase confirmation shows the catalogue's monthly minutes with "Your speaking time each month.", and the plan card's band compares against the monthly allowance, so it reads "A little speaking time left." from the first day of a trial. Held back by runbook step 4 (no intro offer is shown to learners until the Phase 4 plans page ships); the Phase 4 wall takes the trial's minutes from the server, not the catalogue. Core's refusal now says "You have used all your minutes for now." for every paid period.
+- verified-by: `a store trial is described as a week of minutes, never a month`
+- note: Numbered F736 on the billing branch, which collided with the iOS switch entry; renumbered F742 at merge (6 October).
+
+### F747 — A store trial would get the paid phrase-audio budget
+- severity: P3
+- status: [ ]
+- where: supabase/migrations/20261002212536_*.sql, services/token-server/src/billing
+- note: Found by the 6 October billing SQL review. A trial row's plan is starter or regular, so it would get the paid phrase-audio allowance ($0.20 per 30 days) instead of the trial's lifetime $0.02. Phrase audio is off and capped at zero by default; this needs a founder decision before it is turned on. D16 covers minutes only.
+- verified-by: `a store trial gets the phrase-audio budget the founder chose`
+
+### F748 — A store extension of a paid year starts a new usage period
+- severity: P3
+- status: [ ]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql (entitlement_usage_epoch), supabase/migrations/20261005231742_store_trial_yearly_allowance.sql
+- note: Found by the 6 October billing re-check. A year the store lengthens with the same start keeps its minutes, but the older pinned epoch trigger still starts a new usage period, which could leave one in-flight session uncharged. Rare (a developer-granted extension).
+- verified-by: `a store extension of a paid year keeps the in-flight session charged`
+
+### F749 — A failed guest decode can briefly hold both shared audio decoders
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/onboardingSpeech.ts:103, services/shared/audioDecode.ts:34
+- note: Found by the 6 October guest-speech security review. The guest counter frees when decodeAudio rejects, but the killed ffmpeg keeps its slot until it closes, so for a millisecond or two a second guest decode can take the last slot and paid scoring returns unscored. Fix: a guest lane counted inside decodeAudio and released on the child close, replacing the counter in onboardingSpeech.ts.
+- verified-by: `a guest decode never holds the last shared decoder, even while a failed one is closing`
+
+### F750 — A busy guest decoder spends one of the learner's two attempts
+- severity: P3
+- status: [ ]
+- where: services/token-server/src/server.ts:428
+- note: Found by the 6 October guest-speech security review. When the guest decoder is busy the take is refused after guestAttempt has spent an attempt, so the learner loses a try although nothing was sent. Check the decoder before spending the attempt (the existing check stays as the guard), alongside the Phase 2 client that turns a 503 into a calm move to typing.
+- verified-by: `a guest take refused because the decoder is busy keeps the learner's attempt`
 
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
