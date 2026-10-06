@@ -1,10 +1,12 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { isSeenKey } from '../game/model.ts';
 import {
   attachCelebrationListener,
   celebrationKey,
   discardBufferedCelebrations,
   isDaySeenKey,
+  isRememberedInSeen,
   isTakeover,
   MAX_TAKEOVERS,
   publishCelebrations,
@@ -46,6 +48,23 @@ describe('celebration events — the contract between a fact and a moment', () =
     assert.equal(isDaySeenKey(celebrationKey.level(10)), false);
     assert.equal(isDaySeenKey(celebrationKey.badge('first-conversation')), false);
     assert.equal(isDaySeenKey(celebrationKey.purchase('tx-9')), false);
+  });
+
+  test('every takeover key is one the synced seen list accepts, and a saved phrase is never remembered there', () => {
+    const takeoverKeys = [
+      celebrationKey.purchase('2000000123456789'),
+      celebrationKey.streak('2026-10-06'),
+      celebrationKey.milestone(365, '2025-10-06'),
+      celebrationKey.chest('2026-10-06'),
+      celebrationKey.level(20),
+      celebrationKey.badge('streak-100'),
+    ];
+    for (const key of takeoverKeys) assert.ok(isSeenKey(key), `the store would refuse "${key}", so the moment would replay on every device`);
+    const level: CelebrationEvent = { type: 'level-up', key: celebrationKey.level(2), origin: 'account', at: 0, data: { before: 1, level: 2 } };
+    assert.equal(isRememberedInSeen(level), true);
+    assert.equal(isRememberedInSeen({ ...level, origin: 'guest' }), false, 'a guest has no account to sync a seen key to');
+    const saved: CelebrationEvent = { type: 'phrase-saved', key: celebrationKey.saved('p-1'), origin: 'account', at: 0, data: { phraseKey: 'p-1' } };
+    assert.equal(isRememberedInSeen(saved), false, 'a toast is confirmed in memory only');
   });
 
   test('a moment published before the host mounts waits for it, and only the newest thirty-two wait', () => {

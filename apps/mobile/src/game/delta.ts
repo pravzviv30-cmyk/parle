@@ -12,12 +12,13 @@
  * pipeline, one type.
  */
 import type { CoverKind, DailyGoalMinutes, QuestId, StreakState } from '@luvani/core';
+import type { SittingSource } from './model.ts';
 
-/** Where a finished sitting came from. Never a new activity kind (F731). */
-export type SittingSource = 'convo' | 'lesson' | 'drill' | 'review' | 'phrase' | 'guest';
+/** Where a finished sitting came from (the game store's one list). Never a new activity kind (F731). */
+export type { SittingSource };
 
 export interface GameDelta {
-  /** `sitting:${source}:${at}`, the same key the sitting is stored under. */
+  /** `sitting:${source}:${at}`, the sitting's identity on an end card. The store keys the same sitting as `${at}|${source}`. */
   readonly key: string;
   readonly source: SittingSource;
   /** Epoch ms the sitting finished. */

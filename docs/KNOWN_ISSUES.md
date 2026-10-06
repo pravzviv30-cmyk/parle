@@ -9904,6 +9904,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Founder decision D3: any finished practice is a streak day. Never add a new activity kind; record the day and the sitting in the game store.
 - note: 2026-10-06 ca/p0-data-r1: `recordActivity` answers a PersistAck; a zero-XP sitting the caller marks `finished: true` records its day through `recordActiveDay` (no entry, no XP, no minutes, no new kind) and raises the activity flag; one not marked finished writes nothing, because the bank drill banks 0 XP on a header Leave with nothing answered (pinned by `a sitting left before it finished, with no XP, writes no practice day`). No screen passes `finished` yet: Phase 1's settle and the bank drill's finished path must. The zero-XP sitting row in `game.sittings` is written by Phase 1's settle.
 - verified-by: `a finished sitting that earns no XP still records a practice day`
+- note: 6 October: the day is written only when the caller passes finished: true, so a sitting left early writes nothing. No finish site passes it yet; the Phase 1 settle pipeline (F744) passes it at every finish, and recordActivityOnce must honour it too.
 
 ### F732 — A guest practice has no record of which day it was finished
 - severity: P2
@@ -10056,6 +10057,27 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/token-server/src/server.ts:428
 - note: Found by the 6 October guest-speech security review. When the guest decoder is busy the take is refused after guestAttempt has spent an attempt, so the learner loses a try although nothing was sent. Check the decoder before spending the attempt (the existing check stays as the guard), alongside the Phase 2 client that turns a 503 into a calm move to typing.
 - verified-by: `a guest take refused because the decoder is busy keeps the learner's attempt`
+
+### F751 — A real guest practice still records no finish day
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:483, apps/mobile/src/onboarding/guestPractice.ts:65, apps/mobile/src/onboarding/guestPractice.ts:97
+- note: Found by the 6 October data reviews. F732 gave GuestPractice a finishedAt list and finishGuestPractice, but the first run still persists { ...guest, completed: true }, and starting a new practice drops earlier finish days. Persist finishGuestPractice(guest) where the practice is saved as finished, carry finishedAt forward, and take the hand-off days from guestPracticeDays. Phase 2 (first run).
+- verified-by: `a guest who finishes a practice keeps that day through a new practice and the hand-off`
+
+### F752 — The retired days-a-week answer is still written
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:292, apps/mobile/src/onboarding/createFromDraft.ts:42
+- note: Founder decision D5 replaced days a week with a daily goal, and profile v9 stops writing practiceDaysPerWeek while still reading it, but two writers remain. Remove them with the Phase 2 first run and the Phase 4 Profile goal rows.
+- verified-by: `nothing writes practiceDaysPerWeek any more`
+
+### F753 — A phone whose own clock runs far ahead can still age out recent game rows
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/game/model.ts, apps/mobile/src/game/store.ts
+- note: Found by the 6 October data reviews. The store refuses rows dated more than a day after the writing device's clock, which stops a wrong clock on another device, but a device whose own clock is far ahead still writes rows the merge treats as newest, and the 60-day windows are measured from the newest row. The merge must stay clock-free, so this is a known limit, written up in docs/STATE_AND_STORAGE.md.
+- verified-by: `a game row from a clock far ahead cannot shorten what another device keeps`
 
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 

@@ -25,6 +25,7 @@
  * played on another device from a new one.
  */
 import type { DayKey } from '@luvani/core';
+import { isDaySeenKey, isSeenKey, SEEN_KEEP_DAYS } from '../game/model.ts';
 
 /** Who the moment belongs to. A guest has no account scope, so guest moments are deduplicated in memory only. */
 export type CelebrationOrigin = 'account' | 'guest';
@@ -52,8 +53,8 @@ export const MAX_TAKEOVERS = 3;
 /** How long a queued moment may wait behind a hold before it is dropped, in ms. */
 export const CELEBRATION_TTL_MS = 10 * 60 * 1000;
 
-/** How long a day-scoped `seen` key is kept, in days. Durable keys are kept for good. */
-export const SEEN_DAY_KEPT_DAYS = 60;
+/** How long a day-scoped `seen` key is kept, in days (the game store's rule). Durable keys are kept for good. */
+export const SEEN_DAY_KEPT_DAYS = SEEN_KEEP_DAYS;
 
 export interface PurchaseConfirmedData {
   readonly transactionId: string;
@@ -124,10 +125,18 @@ export const celebrationKey = {
 /**
  * Whether a `seen` key names a day-scoped moment (pruned after SEEN_DAY_KEPT_DAYS)
  * rather than a durable one (kept for good: a milestone, level, badge or purchase
- * must never replay).
+ * must never replay). One rule, owned by the game store (game/model.ts), decided
+ * by the key's kind and never by whether it happens to contain a date.
  */
-export function isDaySeenKey(key: string): boolean {
-  return key.startsWith('streak:') || key.startsWith('chest:');
+export { isDaySeenKey };
+
+/**
+ * Whether a moment is remembered in the synced `game.seen` list. Every takeover
+ * is (account origin); a toast never is: a saved phrase is confirmed in memory
+ * only, so no phrase key ever leaves the device.
+ */
+export function isRememberedInSeen(event: CelebrationEvent): boolean {
+  return event.origin === 'account' && isTakeover(event.type) && isSeenKey(event.key);
 }
 
 export function isTakeover(type: CelebrationType): type is TakeoverType {

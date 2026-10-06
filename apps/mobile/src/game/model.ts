@@ -303,8 +303,8 @@ export function isBonusKey(value: unknown): value is string {
  * the key, so `milestone:100:2026-10-05` has a date in it and still never ages
  * out, whichever order its parts are written in.
  *
- * This is the one rule. `celebrate/events.ts` (Phase 1) carries a copy as
- * `isDaySeenKey` and `SEEN_DAY_KEPT_DAYS`, and should import these instead.
+ * This is the one rule; `celebrate/events.ts` re-exports it as `isDaySeenKey`
+ * and `SEEN_DAY_KEPT_DAYS`.
  */
 export const DAY_SEEN_KINDS = ['streak', 'chest'] as const;
 
