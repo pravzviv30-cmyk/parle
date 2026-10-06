@@ -5,8 +5,9 @@
  * LAUNCH_MARK_SIZE, centred on the brand blue, drawn from the same 256 canvas
  * (see launchTiming.ts). The native one is held up from the moment this file
  * loads; this screen is drawn over everything as soon as the app can draw, and
- * releases the native one once it has been laid out, so the swap cannot be
- * seen. Then:
+ * releases the native one once it has been laid out, so on iOS the swap cannot
+ * be seen. (Android fades its native launch out over 400 ms, so there it would
+ * show; Android is not built yet.) Then:
  *
  *   - the ring turns, the one loop;
  *   - after a beat the mark lifts and the name settles in beneath it, the one
@@ -19,8 +20,8 @@
  * Transform and opacity only, on the native driver; the SVG is never animated,
  * only the views around it. With reduce motion on, the ring stays still and
  * the stacked logo is drawn at once, so the screen leaves as soon as the app is
- * ready. And it is never held past MAX_LAUNCH_MS: a stuck load shows the app's
- * own loading state rather than hiding behind the mark.
+ * ready. And it is never held past MAX_LAUNCH_MS: a load that never finishes
+ * shows whatever the app draws while it waits, rather than hiding behind the mark.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';

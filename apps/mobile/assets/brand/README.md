@@ -25,9 +25,10 @@ Two things depend on these files and are held by tests:
 - **The launch screen** (`src/launch/LaunchScreen.tsx`) draws the geometry in
   `src/brand/hum.ts`, which is generated from the same source as
   `luvani-mark.svg`. The native splash and the launch screen are the same frame:
-  the mark at 128pt (`LAUNCH_MARK_SIZE`) on the brand blue, so the hand-off
-  between them cannot be seen. `src/launch/launchScreen.test.ts` holds the ring,
-  the size and the colour together.
+  the mark at 128pt (`LAUNCH_MARK_SIZE`) on the brand blue, so on iOS the
+  hand-off between them cannot be seen. Android fades its native splash out
+  over 400 ms, so there it would show. `src/launch/launchScreen.test.ts` holds
+  the ring, the size and the colour together.
 - **The platforms' rules** are held by `src/app/deviceBuildContract.test.ts`:
   - every slot reads a file here;
   - the store and light icons are 1024 squares without alpha;

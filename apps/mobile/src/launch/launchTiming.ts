@@ -20,9 +20,9 @@
 /**
  * The mark's size on screen, in points. app.json's `expo-splash-screen`
  * `imageWidth` is the same number, and both draw the same 256 canvas, so the
- * native launch and this screen are pixel for pixel the same frame and the
- * hand-off between them cannot be seen. src/launch/launchScreen.test.ts holds
- * the two together.
+ * native launch and this screen are pixel for pixel the same frame. On iOS,
+ * where the native launch goes in a single frame, the hand-off between them
+ * cannot be seen. src/launch/launchScreen.test.ts holds the two together.
  */
 export const LAUNCH_MARK_SIZE = 128;
 

@@ -17,16 +17,15 @@ test('the native launch is released by the identical launch screen as soon as it
   assert.doesNotMatch(app, /expo-splash-screen/, 'App.tsx releases the native launch itself again, beside the launch screen');
   assert.match(screen, /import \{ hide as hideNativeLaunch, preventAutoHideAsync \} from 'expo-splash-screen';/);
   assert.match(screen, /onLayout=\{releaseNativeLaunch\}/, 'the launch screen does not release the native one when it is laid out');
-  const start = screen.indexOf('const releaseNativeLaunch');
-  const release = screen.slice(start, screen.indexOf('}, []);', start));
-  assert.match(release, /hideNativeLaunch\(\);/, 'the release handler does not release anything');
-  // Nothing may stand between being laid out and letting go: no timer, no
-  // frame or interaction wait, no promise.
-  assert.doesNotMatch(
-    release,
-    /setTimeout|setInterval|requestAnimationFrame|InteractionManager|\.then\(|await\b/,
-    'the release waits for something before letting go',
+  // The whole handler, exactly: a guard so it runs once, then let go. Anything
+  // more is something standing between being laid out and letting go.
+  assert.match(
+    screen,
+    /const releaseNativeLaunch = useCallback\(\(\) => \{\s*if \(released\.current\) return;\s*released\.current = true;\s*hideNativeLaunch\(\);\s*\}, \[\]\);/,
+    'the release handler does something besides letting go at once',
   );
+  // F691's own matcher, kept as it was: no timer anywhere in the file comes before a release.
+  assert.doesNotMatch(screen, /setTimeout\([^]*hideNativeLaunch/, 'a timer releases the native launch');
   assert.equal(screen.match(/hideNativeLaunch\(/g)?.length, 1, 'the native launch is released somewhere other than the layout handler');
   assert.equal(screen.match(/releaseNativeLaunch\b/g)?.length, 2, 'the release handler is called from somewhere other than layout');
   assert.match(app, /\{!launched && <LaunchScreen onDone=\{finishLaunch\} \/>\}/, 'nothing draws the launch screen over the app');

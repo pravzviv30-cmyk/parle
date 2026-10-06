@@ -793,8 +793,10 @@ goes where.
 
 The launch. The native splash is the mark at 128pt on the brand blue, and it
 is held up until `launch/LaunchScreen.tsx` has drawn that exact frame over the
-app and been laid out. Only then is it released, so the hand-off cannot be
-seen. The ring turns, then the mark lifts and the name settles in beneath it,
+app and been laid out. Only then is it released, so on iPhone the hand-off
+cannot be seen. (Android fades its native splash out over 400 ms, so there it
+would show; Android is not built yet.) The ring turns, then the mark lifts and
+the name settles in beneath it,
 which leaves the stacked logo. Once nothing is loading and the name has
 arrived, it fades onto wherever the app was already going: the welcome and
 onboarding for somebody new, Home for everybody else. The screens decide that,

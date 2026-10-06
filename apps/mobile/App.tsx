@@ -88,8 +88,9 @@ import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
 import { useLaunchHold } from './src/launch/useLaunch.ts';
 
 /**
- * Every wait on the way in. While one is on screen it holds the launch, so the
- * launch screen leaves only once the app has something real to show.
+ * Every wait in this file. While one is on screen it holds the launch, so the
+ * launch screen leaves only once the app has something real to show. The waits
+ * elsewhere hold it themselves; launch/launchHold.ts lists them all.
  */
 function Loading() {
   useLaunchHold();
