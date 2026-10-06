@@ -1,6 +1,6 @@
 /**
  * The numbers the game art moves by (come alive, motion section 3 and the
- * StreakExtended and QuestComplete templates).
+ * StreakExtended template).
  *
  * Pure and engine-free, like `motion/tokens.ts` and `icons/iconMotion.ts`, so a
  * Node suite reads them. Shared durations, curves and springs come from the
@@ -41,17 +41,4 @@ export const FLAME_MOTION = {
   riseLag: 300,
   /** A flicker starts this long after it is asked for, so a flame that is lighting settles first. */
   wait: DUR.slow,
-} as const;
-
-/**
- * The chest. Opening: it bumps twice, and on the second bump the lid swings
- * open about its hinge on the pop spring. Shutting again settles the lid home.
- */
-export const CHEST_MOTION = {
-  /** Each bump grows the chest to this and back. */
-  bump: 1.06,
-  /** Half a bump. */
-  beat: 90,
-  /** The lid starts to open this long after the first bump starts. */
-  lidAt: 180,
 } as const;

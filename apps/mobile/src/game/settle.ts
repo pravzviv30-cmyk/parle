@@ -21,7 +21,7 @@
  *    with nothing recalled, the guest's first practice), once per key.
  * 3. reconciles: covers (travel, then freezes, then a repair, each only for a
  *    confirmed paid plan), the goal day, today's three quests (dealt once and
- *    frozen), quest and chest claims, the monthly XP rollups and new badges.
+ *    frozen), quest claims, the monthly XP rollups and new badges.
  * 4. reads everything back and builds the GameDelta from what is on disk.
  * 5. turns the delta into celebration moments (`game/events.ts`), drops any
  *    already in the synced `seen` list, queues them on this phone in case of a
@@ -49,8 +49,6 @@
  */
 
 import {
-  CHEST,
-  CHEST_XP,
   QUEST_XP,
   addDays,
   freezesToApply,
@@ -358,7 +356,7 @@ export async function reconcileGame(input: ReconcileInput): Promise<Reconciled |
   let claims: QuestClaimRow[] = [];
   if (view.quests.ids !== null) {
     const due = questsToClaim({ day: input.today, ids: view.quests.ids, facts: view.quests.facts, goalTarget: outside.goalTarget, claims: facts.game.claims });
-    const rows = due.map((questId) => ({ day: input.today, questId, xp: questId === CHEST ? CHEST_XP : QUEST_XP, at: input.now }));
+    const rows = due.map((questId) => ({ day: input.today, questId, xp: QUEST_XP, at: input.now }));
     if (!input.live()) return null;
     if (rows.length > 0 && (await addClaims(rows)) === 'durable') claims = rows;
   }
@@ -614,7 +612,6 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
     },
     quests: {
       completedNow: ids.filter((id) => claimedNow.has(id)),
-      chestNow: claimedNow.has(CHEST),
       done: after.quests.done,
     },
     level: { before: beforeView.level.level, after: after.level.level },

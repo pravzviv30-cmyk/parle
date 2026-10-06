@@ -21,7 +21,6 @@ import { planBurst, type TakeoverCard } from './queue.ts';
 const AT = 1_791_000_000_000;
 const streak = (current: number, lifetimeDays: number, day = '2026-10-06'): CelebrationEvent => ({ type: 'streak-extended', key: celebrationKey.streak(day), origin: 'account', at: AT, data: { day, current, lifetimeDays } });
 const milestone = (n: number): CelebrationEvent => ({ type: 'streak-milestone', key: celebrationKey.milestone(n, '2025-01-01'), origin: 'account', at: AT, data: { day: '2026-10-06', current: n, lifetimeDays: n + 20, milestone: n, runStart: '2025-01-01' } });
-const chest = (xp: number): CelebrationEvent => ({ type: 'quest-chest', key: celebrationKey.chest('2026-10-06'), origin: 'account', at: AT, data: { day: '2026-10-06', xp } });
 const level = (before: number, to: number): CelebrationEvent => ({ type: 'level-up', key: celebrationKey.level(to), origin: 'account', at: AT, data: { before, level: to } });
 const badge = (id: string): CelebrationEvent => ({ type: 'badge-earned', key: celebrationKey.badge(id), origin: 'account', at: AT, data: { id } });
 
@@ -39,13 +38,12 @@ const views: CardView[] = [
   cardView(cardOf([streak(1, 1)])),
   cardView(cardOf([streak(12, 240)])),
   ...[7, 30, 100, 365, 730].map((n) => cardView(cardOf([milestone(n)]))),
-  cardView(cardOf([chest(15)])),
   cardView(cardOf([level(1, 2)])),
   cardView(cardOf([badge('streak-7')])),
   cardView(cardOf([badge('streak-7'), badge('first-conversation'), badge('quests-2026-10')])),
   cardView(cardOf([purchaseMoment({ plan: 'starter', periodEnd: '2026-11-06T10:00:00.000Z' }, AT)!])),
   // The last card of a burst, with the rest as rows.
-  cardView(cardOf([streak(4, 9), chest(15), level(5, 6), badge('goal-7'), badge('scene-own')], 1)),
+  cardView(cardOf([streak(4, 9), level(5, 6), badge('goal-7'), badge('scene-own')], 1)),
 ];
 
 describe('what a celebration card says — F743', () => {
@@ -74,9 +72,6 @@ describe('what a celebration card says — F743', () => {
     assert.equal(week.ground, 'coral');
     assert.deepEqual(week.hero, { value: 7, unit: GAME_COPY.streak.label });
     assert.equal(week.title, 'A whole week of French.');
-
-    const box = cardView(cardOf([chest(15)]));
-    assert.deepEqual(box.lines, ["+15 XP from today's chest."]);
 
     const medals = cardView(cardOf([badge('streak-7'), badge('first-conversation')]));
     assert.equal(medals.title, 'One week, First conversation');
@@ -120,9 +115,9 @@ describe('what a celebration card says — F743', () => {
   });
 
   test('the rows under "Also today" name what did not get a card of its own', () => {
-    const last = cardView(cardOf([streak(4, 9), chest(15), level(5, 6), badge('goal-7'), badge('scene-own')], 1));
+    const last = cardView(cardOf([streak(4, 9), level(5, 6), badge('goal-7'), badge('scene-own')], 1));
     assert.equal(last.title, GAME_COPY.streak.line(4));
-    assert.deepEqual(last.rows, [GAME_COPY.chest.title, 'Level 6', 'Badge: Goal met 7 times', 'Badge: On your own']);
+    assert.deepEqual(last.rows, ['Level 6', 'Badge: Goal met 7 times', 'Badge: On your own']);
     assert.equal(rowFor(streak(9, 20)), '9 day streak');
     assert.equal(rowFor(badge('nothing-like-this')), null);
     assert.equal(spoken(['Level 4', 'Earned from the French you produced.']), 'Level 4. Earned from the French you produced.');

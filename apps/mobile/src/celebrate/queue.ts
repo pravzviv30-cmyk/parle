@@ -19,8 +19,8 @@
  *   run has ended, is left for the game pipeline's catch-up: it is not
  *   remembered as played and its crash-replay copy stays.
  * - **Merging.** A milestone replaces the same day's plain streak moment; the
- *   newest day's streak, the newest chest and the highest level each make one
- *   card; badges share a card three at a time.
+ *   newest day's streak and the highest level each make one card; badges
+ *   share a card three at a time.
  * - **Once only.** An account moment is checked against the synced `game.seen`
  *   list before it waits, and marked there when its card reaches its final
  *   frame or is skipped. Every moment that has played is also remembered in
@@ -192,8 +192,6 @@ export function isShowable(event: CelebrationEvent): boolean {
         whole(event.data.lifetimeDays, 1) &&
         whole(event.data.milestone, 1)
       );
-    case 'quest-chest':
-      return isDayKey(event.data.day) && whole(event.data.xp, 0);
     case 'level-up':
       return whole(event.data.before, 1) && whole(event.data.level, 2) && event.data.before < event.data.level;
     case 'badge-earned':
@@ -234,8 +232,7 @@ function newest<E extends { readonly data: { readonly day: string } }>(events: r
  * The cards one burst plays, in order, at most `budget` of them.
  *
  * Merges first (a milestone replaces the same day's streak moment; one card for
- * the newest streak day, the newest chest and the highest level; badges three to
- * a card), then orders by `TAKEOVER_ORDER`, then folds every card past the
+ * the newest streak day and the highest level; badges three to a card), then orders by `TAKEOVER_ORDER`, then folds every card past the
  * budget into rows on the last card it plays. A card's `covers` holds every
  * moment it stands for, so a moment folded away is remembered with it.
  */
@@ -257,9 +254,6 @@ export function planBurst(events: readonly CelebrationEvent[], budget: number): 
     const shown = milestones.length > 0 ? milestones.reduce((best, event) => (event.data.milestone > best.data.milestone ? event : best)) : sameDay[sameDay.length - 1]!;
     cards.push(planned(shown.type, [shown], streaks));
   }
-
-  const chests = of('quest-chest');
-  if (chests.length > 0) cards.push(planned('quest-chest', [newest(chests)], chests));
 
   const levels = of('level-up');
   if (levels.length > 0) {

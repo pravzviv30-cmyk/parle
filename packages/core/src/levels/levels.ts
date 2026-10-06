@@ -20,7 +20,7 @@
  * silently change what content a learner gets, so the display never reads it.
  *
  * The daily streak (founder decision D2, 2026-10-04) counts practice days, not
- * XP, and lives in `../streak`. Fixed bonuses (quests, the chest, the +5 for
+ * XP, and lives in `../streak`. Fixed bonuses (quests and the +5 for
  * practising) are kept by the app outside the activity log, so nothing in this
  * file ever sees them and no new activity kind is needed.
  */

@@ -133,8 +133,9 @@ ignites + reminder ask) → **Save progress** → account → Keep this practice
 **Paywall** (7-day trial timeline; annual pre-selected; Not now) → Home.
 
 **Core loop:** answer → sheet slides up (mint / sun / calm) with sound + haptic → living bar with
-combo glow → in-place end card (XP / time / count tiles counting up, goal ring, quest rows) → after
-leaving, ≤3 takeovers (streak → chest → level-up → badge) → Home's flame, ring and level chip tick up.
+combo glow → in-place end card (XP / time / count tiles counting up, goal ring, quest rows; the third
+quest of the day lands as one quiet line, "All three quests done today.", with the `quest` sound) →
+after leaving, ≤3 takeovers (streak → level-up → badge) → Home's flame, ring and level chip tick up.
 
 **Habit loop:** Home status (flame + n, goal ring, Level n) → quests card → Streak screen (calendar,
 freezes/repair, milestones) → one smart reminder a day at the learner's own time, skipped after
@@ -172,9 +173,9 @@ open; the fanfare plays at the recap.
   end, Continue by 600 ms, never auto-dismiss, VoiceOver modal. Idempotency: in-memory
   `FeedbackLedger(256)` + synced **`game.seen`** only.
 - **Templates**: ReplyAccepted (in place), **PracticeComplete = in-place end card** (mint, kicker
-  "Practice complete."), StreakExtended, StreakMilestone, GoalMet (merged as a ring row), QuestComplete
-  (chest — takeover only when all three are done), LevelUp ("Level {n}", never names), BadgeEarned,
-  PurchaseConfirmed, PostcardStamp. `celebrate/ConfettiStill.tsx` keeps `celebrate-confetti` drawn
+  "Practice complete."), StreakExtended, StreakMilestone, GoalMet (merged as a ring row), quest rows on
+  the end card (all three done = one quiet line, never a takeover; D22), LevelUp ("Level {n}", never
+  names), BadgeEarned, PurchaseConfirmed, PostcardStamp. `celebrate/ConfettiStill.tsx` keeps `celebrate-confetti` drawn
   (Reduce Motion final frame) so the 29-drawing pin holds.
 - **Sound (`sound/`, `scripts/sfx/`)**: 12 ids `tap select correct nearly complete streak levelup quest
   badge save count-tick whoosh`; deterministic synthesis (C-major pentatonic, ADSR, seeded) → AAC in
@@ -190,7 +191,8 @@ open; the fanfare plays at the recap.
   `correct` + `arrived()`; typo `nearly` + `soft()`; miss nothing; phrase saved `save` + `arrived()`
   everywhere; reminder set `save` + `arrived()`; plan ready `select` + one `tapSettled()` (setup is not
   learning); end card `complete` + `celebrate()` + ≤6 ticks; streak `streak`; level `levelup`; badge
-  `badge`; chest `whoosh`→`quest`; purchase `complete` + `celebrate()`; anything in a live room: none.
+  `badge`; all three quests done `quest` as the end card's quiet line lands (D22); purchase `complete` +
+  `celebrate()`; anything in a live room: none.
 
 ### B. Icons and layout
 - **Iconsax free** (founder is licensee): root devDependency `iconsax@0.1.1` (exact; refuse install
@@ -249,7 +251,7 @@ column at font scale ≥1.6.
   practices within 48 h of the break, entitled at repair time. Travel cover entitled-only.
   `core/goal` (measured `activeMs` only; moved from `momentum.ts:719-757`). `core/quests` (12 types,
   3/day by `hash(uid|day)`, frozen on first compute, never needs live minutes when billing is unknown
-  or exhausted, never requires speaking; +10 each, chest +15, monthly badge at 30). `core/badges`
+  or exhausted, never requires speaking; +10 each, no chest (D22), monthly badge at 30). `core/badges`
   (streak 7/30/100/365, 50/200 days, first conversation, first scene on your own, all A0 scenes, 25/100
   phrases, 100 recalls, goal ×7, Level 10/25, first sound check, monthly quests).
 - **XP/levels**: `levelFor` + 100/day cap stay for content difficulty only; `LEVEL_NAMES` kept in
@@ -301,7 +303,8 @@ column at font scale ≥1.6.
 - **Home**: greeting → `game/TodayHero.tsx` (flame + n → Streak; goal ring "m of g min"; Level chip;
   read failure ⇒ nothing, never 0) → StreakNudge line (copy in `game/copy.ts`) → lead card (MissionHero
   scene art; StarterContinuation IconActions) → **pinned lifetime `DayCount`** → day-one/week → 
-  `game/QuestsCard.tsx` ("Daily quests", chest, "{done} of 3") → DailyCard IconAction row (Practise it ·
+  `game/QuestsCard.tsx` ("Daily quests", "{done} of 3 quests done today", at three the quiet line "All
+  three quests done today."; no chest, D22) → DailyCard IconAction row (Practise it ·
   Save · More phrases; label "Explore my daily collection" kept where pinned) → friends. Increments from
   `home/homeSeen.ts`, never count down. Fix `useHomeRefresh` first.
 - **Progress**: `game/LevelXpCard` → `game/StreakSummaryCard` (keeps `<DayCount weekly />`) →
@@ -348,7 +351,7 @@ column at font scale ≥1.6.
 
 | Topic | Resolution |
 |---|---|
-| Takeovers | End card (in place) = XP/time/count tiles + goal ring row + quest rows. After leaving, ≤3: streak (milestone replaces extended) → chest (all 3 quests only) → level-up → badge (merged). Never inside a live room or sitting. |
+| Takeovers | End card (in place) = XP/time/count tiles + goal ring row + quest rows (the third quest done = one quiet line with the `quest` sound, D22). After leaving, ≤3: purchase → streak (milestone replaces extended) → level-up → badge (merged). No chest. Never inside a live room or sitting. |
 | Level / caps | Display via `useLevel()`/`useXp()` only (`xpLevelFor`); one shown activity cap 100; quest/bonus XP in `game`. A test bans `levelFor(` and `*Xp(` in screens. |
 | Pipeline | One module `game/settle.ts`, one type `GameDelta`; `recordActivity` → `{ack, receipt}`; `practice/completion.ts` updated. |
 | Ledger of celebrations | `game.seen` only (synced); in-memory for in-place and guest. No `userKey('celebrated')`. |
@@ -357,7 +360,7 @@ column at font scale ≥1.6.
 | Reminders | `reminders/plan.ts` canonical + `mentionStreak` + milestone-eve line; one shared `ReminderAsk`. |
 | Wall entry | `path-complete` + `pendingWall` trigger. |
 | Start sheet | "Start practice" + "Practise offline"; speaking offered on the practice page. |
-| Icons | Semantic names, prop `icon`; one `game/art/Flame.tsx` (+ Chest, Medal, Crest, FreezeMark); `ChoiceArt` delegate; `GoalDial` static on setup pages. |
+| Icons | Semantic names, prop `icon`; one `game/art/Flame.tsx` (+ Medal, Crest, FreezeMark, RepairMark; no Chest, D22); `ChoiceArt` delegate; `GoalDial` static on setup pages. |
 | Flight | `TokenFlight`, launched from `PlanCard`. |
 | Press depth | `depth="tile"` 0.95 for IconButton/tile IconAction. |
 | Copy ownership | `game/copy.ts` owns streak/goal/quest/badge strings; templates reference ids. |

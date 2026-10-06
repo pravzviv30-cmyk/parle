@@ -2,7 +2,7 @@
 
 # The icon set
 
-98 icons, 93 drawn from iconsax@0.1.1 and 5 of Luvani's own.
+97 icons, 92 drawn from iconsax@0.1.1 and 5 of Luvani's own.
 `npm run icons` generates one component per icon into `apps/mobile/src/icons/`;
 `npm run icons -- --check` fails when anything here would change. Screens draw
 them by name through `<Icon name="..." />`.
@@ -60,7 +60,6 @@ notice in its first line. Acknowledgements credits the set in the app.
 | `forward` | Iconsax `arrow-right-01` | Linear | Iconsax free licence | ArrowRight; next |
 | `freeze` | Iconsax `snowflake` | Linear, Bulk | Iconsax free licence | streak freeze (paid) |
 | `friends-place` | Iconsax `people` | Linear, Bulk | Iconsax free licence | PlaceGlyph friends |
-| `gift` | Iconsax `gift` | Linear, Bulk | Iconsax free licence | the quest chest |
 | `headphones` | Iconsax `headphone` | Linear, Bulk | Iconsax free licence | hear, say and compare; walk mode |
 | `help` | Iconsax `message-question` | Linear | Iconsax free licence | HelpGlyph; Help me out |
 | `hint` | Iconsax `lamp-charge` | Linear | Iconsax free licence | drill help |

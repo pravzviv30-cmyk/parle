@@ -1,9 +1,7 @@
 export {
   QUESTS,
   QUEST_XP,
-  CHEST_XP,
   MONTHLY_QUEST_TARGET,
-  CHEST,
   XP_QUEST_TARGETS,
   questDef,
   isQuestId,

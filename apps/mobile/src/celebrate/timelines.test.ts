@@ -99,7 +99,6 @@ describe('celebration timelines — F743', () => {
     assert.deepEqual(cues('streak-extended').haptics, ['thump', 'arrived']);
     assert.deepEqual(cues('streak-milestone').sounds, ['streak', 'badge']);
     assert.deepEqual(cues('streak-milestone').haptics, ['thump', 'celebrate']);
-    assert.deepEqual(cues('quest-chest').sounds, ['whoosh', 'quest']);
     assert.deepEqual(cues('level-up').sounds, ['levelup']);
     assert.deepEqual(cues('level-up').haptics, ['celebrate']);
     assert.deepEqual(cues('badge-earned').sounds, ['badge']);
@@ -108,6 +107,9 @@ describe('celebration timelines — F743', () => {
     assert.deepEqual(cues('purchase-confirmed').haptics, ['celebrate']);
     assert.deepEqual(cues('end-card').sounds, ['complete']);
     assert.deepEqual(cues('end-card').haptics, ['celebrate']);
+    // All three quests done (D22): the same end card, and the quest sound with its quiet line. No haptic of its own.
+    assert.deepEqual(cues('end-card-quests').sounds, ['complete', 'quest']);
+    assert.deepEqual(cues('end-card-quests').haptics, ['celebrate']);
     assert.deepEqual(cues('toast').sounds, ['save']);
     assert.deepEqual(cues('toast').haptics, ['arrived']);
     // Shown still, a card plays one of its own sounds and one of its own haptics, once.
@@ -126,11 +128,11 @@ describe('celebration timelines — F743', () => {
     const templates: [TimelineId, string][] = [
       ['streak-extended', './templates/StreakExtended.tsx'],
       ['streak-milestone', './templates/StreakMilestone.tsx'],
-      ['quest-chest', './templates/QuestChest.tsx'],
       ['level-up', './templates/LevelUp.tsx'],
       ['badge-earned', './templates/BadgeEarned.tsx'],
       ['purchase-confirmed', './templates/PurchaseConfirmed.tsx'],
       ['end-card', './EndCard.tsx'],
+      ['end-card-quests', './EndCard.tsx'],
       ['toast', './Toast.tsx'],
     ];
     for (const [id, path] of templates) {

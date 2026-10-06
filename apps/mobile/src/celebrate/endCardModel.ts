@@ -8,12 +8,17 @@
  * sitting the cap left at nothing, no time tile for a sitting nobody timed, no
  * count tile when the screen has none. Every word is `game/copy.ts`'s. Pure, so
  * `endCardModel.test.ts` can hold it.
+ *
+ * Finishing the day's third quest is said here and nowhere else: the quiet line
+ * "All three quests done today." with the `quest` sound, on the card of the
+ * sitting that finished it (founder decision D22). No chest, no takeover.
  */
 
 import { questTitle, type QuestId } from '@luvani/core';
 
-import type { GameDelta } from '../game/delta.ts';
+import { allQuestsDoneNow, type GameDelta } from '../game/delta.ts';
 import { GAME_COPY } from '../game/copy.ts';
+import type { TimelineId } from './timelines.ts';
 
 export type EndTileId = 'xp' | 'time' | 'count';
 
@@ -38,10 +43,12 @@ export interface EndCardView {
   readonly goal: EndGoal | null;
   /** "Quest complete: …" for each quest this sitting finished, in slot order. */
   readonly quests: readonly string[];
-  /** "2 of 3 quests done today", when any quest is done today. */
+  /** "2 of 3 quests done today", when any quest is done today; at three, the one quiet line "All three quests done today.". */
   readonly questProgress: string | null;
   /** Said when the daily XP limit held some of this sitting back. */
   readonly capLine: string | null;
+  /** The card's beats: `end-card-quests` (the quest sound with the quiet line) only on the sitting that finished the third quest. */
+  readonly timeline: Extract<TimelineId, 'end-card' | 'end-card-quests'>;
 }
 
 const MINUTE_S = 60;
@@ -69,8 +76,8 @@ export function endCardView(
 ): EndCardView {
   const tiles: EndTile[] = [];
   // The XP this sitting itself credited: the activity XP the cap let through and
-  // the fixed XP for a win nothing grades (D6). Quest and chest XP belong to the
-  // quests, which say so in their own rows and the chest.
+  // the fixed XP for a win nothing grades (D6). Quest XP belongs to the quests,
+  // which say so in their own rows.
   const xp = Math.max(0, Math.floor(delta.xp.counted)) + Math.max(0, Math.floor(delta.xp.bonus));
   if (xp > 0) tiles.push({ id: 'xp', value: xp, label: GAME_COPY.endCard.xpLabel });
   const seconds = delta.activeMs === null ? 0 : Math.floor(delta.activeMs / 1000);
@@ -105,5 +112,6 @@ export function endCardView(
     quests,
     questProgress: done > 0 ? GAME_COPY.quests.progress(done) : null,
     capLine: delta.xp.capped ? GAME_COPY.endCard.capLine : null,
+    timeline: allQuestsDoneNow(delta) ? 'end-card-quests' : 'end-card',
   };
 }

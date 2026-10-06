@@ -34,7 +34,7 @@ export interface GameDelta {
     readonly capped: boolean;
     /** Fixed XP credited outside the activity log for this sitting (+5 on an ungraded win, D6). */
     readonly bonus: number;
-    /** Quest and chest XP credited by this sitting. */
+    /** Quest XP credited by this sitting, +10 for each quest it finished. */
     readonly questXp: number;
     readonly totalBefore: number;
     readonly totalAfter: number;
@@ -60,9 +60,7 @@ export interface GameDelta {
   readonly quests: {
     /** Quests this sitting completed, in slot order. */
     readonly completedNow: readonly QuestId[];
-    /** True only on the sitting that completed the third quest of the day. */
-    readonly chestNow: boolean;
-    /** Quests done today after this sitting, 0 to 3. */
+    /** Quests done today after this sitting, 0 to 3. Read `allQuestsDoneNow` for the sitting that finished the third. */
     readonly done: number;
   };
   readonly level: {
@@ -72,4 +70,18 @@ export interface GameDelta {
   };
   /** Badge ids awarded by this sitting, in catalogue order. */
   readonly badges: readonly string[];
+}
+
+/** The number of quests a day deals. */
+const QUESTS_A_DAY = 3;
+
+/**
+ * True on the sitting that finished the day's third quest: it completed a
+ * quest, and after it all three are done. That sitting's end card says "All
+ * three quests done today." with the `quest` sound, and nothing else happens:
+ * no chest, no extra XP, no takeover (founder decision D22). Every later end
+ * that day still reads the quiet line, silently.
+ */
+export function allQuestsDoneNow(delta: Pick<GameDelta, 'quests'>): boolean {
+  return delta.quests.completedNow.length > 0 && delta.quests.done >= QUESTS_A_DAY;
 }

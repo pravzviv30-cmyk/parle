@@ -37,7 +37,8 @@ function deltaFrom(random: () => number): GameDelta {
   const milestone = random() < 0.3 ? pick([7, 30, 100, 365]) : null;
   const levelBefore = pick([1, 2, 9]);
   const completedNow = random() < 0.5 ? (['finish-practice', 'minutes'] as const).slice(0, pick([1, 2])) : [];
-  const chestNow = random() < 0.3;
+  // Sometimes this sitting finished the day's third quest (D22: a quiet line on the end card, never a takeover).
+  const done = completedNow.length > 0 && random() < 0.3 ? 3 : completedNow.length;
   return {
     key: `sitting:convo:${AT}`,
     source: pick(['convo', 'lesson', 'drill', 'review', 'phrase', 'guest'] as const),
@@ -48,13 +49,13 @@ function deltaFrom(random: () => number): GameDelta {
       counted: 40,
       capped: false,
       bonus: 0,
-      questXp: completedNow.length * 10 + (chestNow ? 15 : 0),
+      questXp: completedNow.length * 10,
       totalBefore: 0,
       totalAfter: 0,
     },
     goal: { target: 10, minutesBefore: 0, minutesAfter: 0, metNow: random() < 0.5 },
     streak: { before, after, extendedNow: practisedAfter && !practisedBefore, milestone, restoredBy: null },
-    quests: { completedNow: [...completedNow], chestNow, done: completedNow.length },
+    quests: { completedNow: [...completedNow], done },
     level: { before: levelBefore, after: levelBefore + pick([0, 0, 1, 2]) },
     badges: random() < 0.4 ? pick([['streak-7'], ['first-conversation', 'level-10'], []]) : [],
   };
@@ -79,10 +80,6 @@ describe('the moments a settled sitting may celebrate — F744', () => {
             assert.equal(event.data.milestone, delta.streak.milestone, 'a milestone the delta never crossed');
             assert.equal(event.key, celebrationKey.milestone(delta.streak.milestone!, delta.streak.after.runStart!));
             break;
-          case 'quest-chest':
-            assert.ok(delta.quests.chestNow, 'a chest the sitting never opened');
-            assert.equal(event.data.xp, 15);
-            break;
           case 'level-up':
             assert.ok(delta.level.after > delta.level.before, 'a level-up that did not happen');
             assert.equal(event.key, celebrationKey.level(delta.level.after));
@@ -105,11 +102,13 @@ describe('the moments a settled sitting may celebrate — F744', () => {
     const nothing: GameDelta = {
       ...quiet,
       streak: { ...quiet.streak, extendedNow: false, milestone: null },
-      quests: { completedNow: [], chestNow: false, done: 0 },
+      quests: { completedNow: [], done: 0 },
       level: { before: 3, after: 3 },
       badges: [],
     };
     assert.deepEqual(eventsFromDelta(nothing, 'account', DAY), []);
+    // Finishing all three quests is not a takeover either: the end card says it in one quiet line (D22).
+    assert.deepEqual(eventsFromDelta({ ...nothing, quests: { completedNow: ['finish-practice'], done: 3 } }, 'account', DAY), []);
   });
 });
 

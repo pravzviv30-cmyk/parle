@@ -126,7 +126,7 @@ export const RECIPES = [
     id: 'quest',
     lengthMs: 680,
     peakDbfs: -7,
-    plays: 'The chest opening when all three daily quests are done.',
+    plays: 'The third daily quest done: the end card says "All three quests done today."',
     voices: [
       { kind: 'noise', at: 0, durMs: 18, gain: 0.85, env: { attack: 1, tau: 5 }, filter: { type: 'lowpass', hz: 1200, q: 0.707 } },
       { kind: 'noise', at: 110, durMs: 18, gain: 0.85, env: { attack: 1, tau: 5 }, filter: { type: 'lowpass', hz: 1200, q: 0.707 } },

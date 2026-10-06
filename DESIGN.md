@@ -572,8 +572,8 @@ Illustrations stay static; the bounded motion hosts are listed in the Motion sec
 
 ### Game art
 
-The streak flame, the quests chest, the medal, the level crest and the freeze
-and repair marks are flat vectors built in code (come alive, decision D10), not
+The streak flame, the medal, the level crest and the freeze and repair marks
+are flat vectors built in code (come alive, decisions D10 and D22), not
 catalogue drawings, so they live in `src/game/art/` and stay out of the flat
 registry and its pinned 29. Each is a list of named parts on a 100 by 100 box in
 `src/game/art/shapes.ts`, and every part names its fill by palette token
@@ -585,8 +585,8 @@ a used freeze. On a colour ground, a drawing that uses the ground's own colour
 trades it with white, so the flame on the coral milestone card is white and
 sun. Every one is decorative: the words beside it carry the meaning, and the
 crest draws no level number or name. The flame lights from an ember and
-flickers three times while in view, and the chest's lid opens on its hinge,
-each by moving whole layers with transform and opacity; the rest are still.
+flickers three times while in view, by moving whole layers with transform and
+opacity; the rest are still. There is no chest (D22).
 `node --experimental-strip-types scripts/art/game-art-sheet.mjs` writes the
 contact sheet, `artifacts/game-art/index.html`: every drawing in every state at
 48, 96 and 160 px on paper and the four colours. The founder approves the art by
@@ -594,8 +594,7 @@ eye on that sheet before it ships, and `src/game/art/shapes.test.ts` (F746)
 holds every part to the palette and its 100 box, and every Svg to `decorative`.
 
 The celebrations draw this art on their stages: the flame on the streak cards,
-the chest on the quest chest, the crest on a level and the medals on a badge
-card. Where a confetti burst cannot be its own final frame (under reduced
+the crest on a level and the medals on a badge card. Where a confetti burst cannot be its own final frame (under reduced
 motion, and on the web once it has fallen) the catalogue's `celebrate-confetti`
 is laid over the stage instead, through `src/celebrate/ConfettiStill.tsx`, which
 is also what keeps that drawing on a screen. On a mint, sun or paper ground its
@@ -908,13 +907,17 @@ land, and every number it shows comes from the moment's own data. The queue
 - **A finished practice ends in place.** The screen draws `celebrate/EndCard.tsx`
   on the page: mint, "Practice complete.", up to three tiles counting up (XP,
   time and the screen's own count, each only when its number exists), the goal
-  ring drawing from before to now, the quests this sitting finished, and the cap
-  line when the daily XP limit held some back. It sounds `complete` with one
-  `celebrate()` once per sitting, and holds the queue while it is on screen.
+  ring drawing from before to now, the quests this sitting finished, the day so
+  far ("2 of 3 quests done today"), and the cap line when the daily XP limit held
+  some back. It sounds `complete` with one `celebrate()` once per sitting, and
+  holds the queue while it is on screen. On the sitting that finishes the day's
+  third quest, the day so far is the one quiet line "All three quests done
+  today." and it lands with the `quest` sound. Nothing more: no chest, no extra
+  XP, no takeover (D22).
 - **Then at most three takeovers**, in one order: a confirmed purchase, the
-  streak (a milestone replaces that day's plain streak moment), the chest (only
-  when all three quests are done), the level (a number from `xpLevelFor`, never a
-  rank name), the badges (up to three to a card). What the budget leaves over is
+  streak (a milestone replaces that day's plain streak moment), the level (a
+  number from `xpLevelFor`, never a rank name), the badges (up to three to a
+  card). What the budget leaves over is
   a quiet row under "Also today" on the last card, never a fourth takeover. A
   moment that arrives while that last card is up joins it as a row; one that
   arrives in the moment after it has gone is left for the game layer's

@@ -49,6 +49,7 @@ export const GAME_COPY = {
   },
 
   quests: {
+    /** The day so far. At three it is the one quiet line that says all three are done (D22). */
     progress: (done: number): string => (done >= 3 ? 'All three quests done today.' : `${done} of 3 quests done today`),
     row: (title: string): string => `Quest complete: ${title}`,
   },
@@ -69,11 +70,6 @@ export const GAME_COPY = {
     },
     /** The one calm line a free learner sees after a reset (D4). No countdown, no notification. */
     repairForSubscribers: 'Subscribers can repair a streak within 2 days.',
-  },
-
-  chest: {
-    title: 'All three quests done',
-    line: (xp: number): string => `+${xp} XP from today's chest.`,
   },
 
   level: {

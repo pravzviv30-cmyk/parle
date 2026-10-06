@@ -51,14 +51,11 @@ export const REELS = [
     beats: [{ at: 0, haptic: 'tick()' }, { at: 650, sound: 'complete', haptic: 'arrived()' }],
   },
   {
-    title: 'Chest opens',
-    where: 'All three daily quests done.',
+    title: 'All three quests done',
+    where: 'The end card of the practice that finished the third daily quest: one quiet line, "All three quests done today."',
     beats: [
-      { at: 0, sound: 'whoosh' },
-      { at: 300, haptic: 'tick()' },
-      { at: 380, haptic: 'tick()' },
-      { at: 600, sound: 'quest', haptic: 'thump()' },
-      { at: 760, haptic: 'arrived()' },
+      { at: 120, sound: 'complete', haptic: 'celebrate()' },
+      { at: 1500, sound: 'quest' },
     ],
   },
   {

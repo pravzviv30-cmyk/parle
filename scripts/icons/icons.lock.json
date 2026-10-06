@@ -348,15 +348,6 @@
       },
       "tsx": "ac5a07f7b1ab21ccff489edee6924694f7a3f27763c7b49b14a04ccb34a0f940"
     },
-    "gift": {
-      "source": "iconsax@0.1.1",
-      "from": "gift",
-      "variants": {
-        "linear": "6b9338e08ee73a0b79daf8e5b8fab7e0542cf6115f6aa7703b0e76d9d3b39328",
-        "bulk": "cdc69767bb904d645df694c973efdb17151015b8048f4181757a283cada98a08"
-      },
-      "tsx": "96480374ea32153fef0a9b7edfe317cfad45cf6dea2e84e0ec33b77bf998d34e"
-    },
     "headphones": {
       "source": "iconsax@0.1.1",
       "from": "headphone",

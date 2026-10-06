@@ -100,7 +100,6 @@ export const ICON_CONFIG = {
   forward: { source: 'iconsax', from: 'arrow-right-01', variants: L, use: 'ArrowRight; next' },
   freeze: { source: 'iconsax', from: 'snowflake', variants: LB, use: 'streak freeze (paid)' },
   'friends-place': { source: 'iconsax', from: 'people', variants: LB, use: 'PlaceGlyph friends' },
-  gift: { source: 'iconsax', from: 'gift', variants: LB, use: 'the quest chest' },
   headphones: { source: 'iconsax', from: 'headphone', variants: LB, use: 'hear, say and compare; walk mode' },
   help: { source: 'iconsax', from: 'message-question', variants: L, use: 'HelpGlyph; Help me out' },
   hint: { source: 'iconsax', from: 'lamp-charge', variants: L, use: 'drill help' },

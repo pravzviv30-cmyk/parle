@@ -13,7 +13,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { CHEST, QUEST_XP, CHEST_XP, addDays } from '@luvani/core';
+import { QUEST_XP, addDays } from '@luvani/core';
 
 import { MAX_ENVELOPE_BYTES, envelopeBytes, sameData, sealEnvelope, stableStringify } from '../sync/envelope.ts';
 import { fullGame } from './capacityFixture.ts';
@@ -78,10 +78,7 @@ function genGame(pick: Chooser, scale = 1): StoredGame {
       ids: pick.bool() ? (['finish-practice', 'phrase-of-day', 'minutes'] as ['finish-practice', 'phrase-of-day', 'minutes']) : (['practise-twice', 'conversation', 'xp'] as ['practise-twice', 'conversation', 'xp']),
       at: at(2),
     })),
-    claims: Array.from({ length: n(10) }, () => {
-      const questId = pick.bool() ? CHEST : pick.one(quests);
-      return { day: day(130), questId, xp: questId === CHEST ? CHEST_XP : QUEST_XP, at: at(2) };
-    }),
+    claims: Array.from({ length: n(10) }, () => ({ day: day(130), questId: pick.one(quests), xp: QUEST_XP, at: at(2) })),
     questMonths: Array.from({ length: n(3) }, () => ({ month: pick.one(['2026-01', '2026-02', '2026-03']), count: pick.int(40), xp: pick.int(500) })),
     xpMonths: Array.from({ length: n(3) }, () => ({ month: pick.one(['2026-01', '2026-02']), xp: pick.int(3000) })),
     bonus: Array.from({ length: n(6) }, () => {
@@ -92,7 +89,7 @@ function genGame(pick: Chooser, scale = 1): StoredGame {
     badges: Array.from({ length: n(4) }, () => ({ id: pick.one(['streak-7', 'goal-7', 'quests-2026-01', 'a-badge-from-a-newer-build']), at: pick.bool() ? null : at(5) })),
     seen: Array.from({ length: n(8) }, () => {
       const key = pick.bool()
-        ? `${pick.one(['streak', 'chest'])}:${day(130)}`
+        ? `streak:${day(130)}`
         : pick.one(['level:2', 'level:3', 'badge:streak-7', `milestone:100:${day(130)}`, 'purchase:GPA.3372-1234-5678-90123..0']);
       return { key, at: at(4) };
     }),
@@ -178,9 +175,11 @@ describe('the game facts merge — F729', () => {
   });
 
   test('claims and fixed XP roll into their months on a local write, and a month never falls', () => {
-    const claim = (day: string, questId: 'finish-practice' | 'minutes' | typeof CHEST) => ({ day, questId, xp: questId === CHEST ? CHEST_XP : QUEST_XP, at: BASE });
-    let game = withGameRows(emptyGame(), { claims: [claim('2026-01-03', 'finish-practice'), claim('2026-01-03', 'minutes'), claim('2026-01-03', CHEST)] });
-    assert.deepEqual(game.questMonths, [{ month: '2026-01', count: 2, xp: 2 * QUEST_XP + CHEST_XP }], 'the chest counted as a quest, or a claim went uncounted');
+    const claim = (day: string, questId: 'finish-practice' | 'minutes' | 'goal') => ({ day, questId, xp: QUEST_XP, at: BASE });
+    let game = withGameRows(emptyGame(), { claims: [claim('2026-01-03', 'finish-practice'), claim('2026-01-03', 'minutes'), claim('2026-01-03', 'goal')] });
+    assert.deepEqual(game.questMonths, [{ month: '2026-01', count: 3, xp: 3 * QUEST_XP }], 'a claim went uncounted');
+    // D22: the third quest of a day is one more quest, never a chest; a chest claim is refused like any row this build would not write.
+    assert.equal(withGameRows(game, { claims: [{ day: '2026-01-03', questId: 'chest' as 'goal', xp: 15, at: BASE }] }).claims.length, 3);
     game = withGameRows(game, { bonus: [{ key: 'phrase:2026-01-03', xp: 5, at: BASE }, { key: `review:${BASE}`, xp: 5, at: BASE }] });
     assert.deepEqual(game.bonusMonths, [{ month: '2026-01', xp: 10 }]);
     // A claim far later ages January's claims out; the months keep what they counted.
@@ -188,11 +187,11 @@ describe('the game facts merge — F729', () => {
     game = withGameRows(game, { claims: [claim(later, 'finish-practice')], bonus: [{ key: `phrase:${later}`, xp: 5, at: BASE }] });
     assert.ok(game.claims.every((c) => c.day === later), 'a claim older than the window survived');
     assert.ok(game.bonus.every((b) => b.key === `phrase:${later}`), 'a bonus older than the window survived');
-    assert.deepEqual(game.questMonths.find((m) => m.month === '2026-01'), { month: '2026-01', count: 2, xp: 2 * QUEST_XP + CHEST_XP }, 'the month fell when its claims aged out');
+    assert.deepEqual(game.questMonths.find((m) => m.month === '2026-01'), { month: '2026-01', count: 3, xp: 3 * QUEST_XP }, 'the month fell when its claims aged out');
     assert.deepEqual(game.bonusMonths.find((m) => m.month === '2026-01'), { month: '2026-01', xp: 10 });
     // A merge takes each month's larger figure, field by field, and never adds.
     const low = { ...emptyGame(), questMonths: [{ month: '2026-01', count: 1, xp: 90 }] };
-    assert.deepEqual(merge(game, low).questMonths.find((m) => m.month === '2026-01'), { month: '2026-01', count: 2, xp: 90 });
+    assert.deepEqual(merge(game, low).questMonths.find((m) => m.month === '2026-01'), { month: '2026-01', count: 3, xp: 90 });
   });
 
   test('a fixed-XP key aged out on one device cannot come back from a third', () => {
@@ -216,7 +215,7 @@ describe('the game facts merge — F729', () => {
     assert.deepEqual(kept.sort(), ['level:4', `streak:${addDays(TODAY, SEEN_KEEP_DAYS + 5)}`].sort());
     // Over the bound, the day-scoped keys go first, oldest day first, and a durable key is the last to go.
     const days = Array.from({ length: SEEN_KEEP_DAYS }, (_, i) => addDays(TODAY, i));
-    const dated = days.flatMap((d) => [{ key: `streak:${d}`, at: BASE }, { key: `chest:${d}`, at: BASE }]);
+    const dated = days.map((d) => ({ key: `streak:${d}`, at: BASE }));
     const durable = Array.from({ length: MAX_SEEN - 10 }, (_, i) => ({ key: `level:${i + 2}`, at: BASE }));
     const bounded = merge({ ...emptyGame(), seen: [...dated, ...durable] }, null).seen;
     assert.equal(bounded.length, MAX_SEEN);
@@ -235,10 +234,11 @@ describe('the game facts merge — F729', () => {
     const lateStreak = { key: `streak:${later}`, at: BASE + 400 * DAY };
     const merged = merge({ ...emptyGame(), seen: milestones }, { ...emptyGame(), seen: [lateStreak] });
     assert.deepEqual(merged.seen.map((s) => s.key).sort(), [...milestones.map((m) => m.key), lateStreak.key].sort(), 'a milestone mark aged out, so it would play again');
-    assert.deepEqual(withGameRows(merged, { seen: [{ key: `chest:${later}`, at: BASE }] }).seen.length, 4);
+    assert.deepEqual(withGameRows(merged, { seen: [{ key: `streak:${addDays(later, 1)}`, at: BASE }] }).seen.length, 4);
 
+    // D22: the streak is the only day-scoped kind; the retired chest kind is not day-scoped and is refused.
     assert.equal(isDaySeenKey('streak:2026-10-05'), true);
-    assert.equal(isDaySeenKey('chest:2026-10-05'), true);
+    assert.equal(isDaySeenKey('chest:2026-10-05'), false);
     for (const key of ['milestone:100:2026-10-05', 'level:5', 'badge:streak-7', 'purchase:2000000123456789', 'quest:2026-10-05:xp']) {
       assert.equal(isDaySeenKey(key), false, `${key} was treated as day-scoped`);
       assert.equal(seenDay(key), null);
@@ -246,10 +246,10 @@ describe('the game facts merge — F729', () => {
     // Every key the Phase 1 table can make for a persisted moment reads, a store
     // transaction id included; nothing with a space in it does, and a day-scoped
     // kind without a real day is not a key.
-    for (const key of ['purchase:GPA.3372-1234-5678-90123..0', 'purchase:2000000123456789', `milestone:365:${runStart}`, 'level:12', 'badge:streak-7', 'streak:2026-10-05', 'chest:2026-10-05']) {
+    for (const key of ['purchase:GPA.3372-1234-5678-90123..0', 'purchase:2000000123456789', `milestone:365:${runStart}`, 'level:12', 'badge:streak-7', 'streak:2026-10-05']) {
       assert.equal(isSeenKey(key), true, `${key} was refused`);
     }
-    for (const key of ['saved:Bonjour tout le monde', 'streak:yesterday', 'chest:2026-02-30', 'streak', 'Level:2', `level:${'9'.repeat(60)}`]) {
+    for (const key of ['saved:Bonjour tout le monde', 'streak:yesterday', 'chest:2026-02-30', 'chest:2026-10-05', 'chest', 'streak', 'Level:2', `level:${'9'.repeat(60)}`]) {
       assert.equal(isSeenKey(key), false, `${key} was accepted`);
     }
   });

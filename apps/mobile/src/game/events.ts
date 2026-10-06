@@ -12,7 +12,7 @@
  * delta. A safety stop never settles (F137), so it never reaches this file.
  */
 
-import { QUEST_XP, localDayKey, type DayKey } from '@luvani/core';
+import { localDayKey, type DayKey } from '@luvani/core';
 
 import { celebrationKey, type CelebrationEvent, type CelebrationOrigin } from '../celebrate/events.ts';
 import type { GameDelta } from './delta.ts';
@@ -49,9 +49,7 @@ export function eventsFromDelta(delta: GameDelta, origin: CelebrationOrigin, day
     });
   }
 
-  if (delta.quests.chestNow) {
-    out.push({ type: 'quest-chest', key: celebrationKey.chest(day), origin, at, data: { day, xp: chestXpOf(delta) } });
-  }
+  // All three quests done is one quiet line on the end card, never a takeover (D22).
 
   if (delta.level.after > delta.level.before) {
     out.push({ type: 'level-up', key: celebrationKey.level(delta.level.after), origin, at, data: { before: delta.level.before, level: delta.level.after } });
@@ -61,11 +59,6 @@ export function eventsFromDelta(delta: GameDelta, origin: CelebrationOrigin, day
     out.push({ type: 'badge-earned', key: celebrationKey.badge(id), origin, at, data: { id } });
   }
   return out;
-}
-
-/** The chest XP this sitting credited: the quest XP it wrote beyond its quests' own. */
-function chestXpOf(delta: GameDelta): number {
-  return Math.max(0, delta.xp.questXp - delta.quests.completedNow.length * QUEST_XP);
 }
 
 /**

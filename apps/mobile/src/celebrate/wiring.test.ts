@@ -152,7 +152,7 @@ describe('the celebration host in the app — F743', () => {
     assert.match(src('celebrate/ConfettiStill.tsx'), /<Illustration name="celebrate-confetti"/, 'the confetti drawing no longer reaches a screen (J14, F599)');
     const confetti = src('celebrate/Confetti.tsx');
     assert.match(confetti, /if \(final \|\| fallen\) return reduced \|\| web \? <ConfettiStill \/> : null;/, 'reduced motion or the web lost the still final frame');
-    for (const path of ['templates/StreakExtended.tsx', 'templates/StreakMilestone.tsx', 'templates/QuestChest.tsx', 'templates/LevelUp.tsx', 'templates/PurchaseConfirmed.tsx', 'EndCard.tsx']) {
+    for (const path of ['templates/StreakExtended.tsx', 'templates/StreakMilestone.tsx', 'templates/LevelUp.tsx', 'templates/PurchaseConfirmed.tsx', 'EndCard.tsx']) {
       assert.match(src(`celebrate/${path}`), /<Confetti\b/, `${path} throws no confetti`);
     }
   });

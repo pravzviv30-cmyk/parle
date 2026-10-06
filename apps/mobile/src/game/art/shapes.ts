@@ -1,8 +1,8 @@
 /**
  * The game's drawings, as data (come alive, decision D10).
  *
- * The flame, the chest, the medal, the level crest, the freeze mark and the
- * repair mark are flat vectors built in code in the one illustrator's style:
+ * The flame, the medal, the level crest, the freeze mark and the repair mark
+ * are flat vectors built in code in the one illustrator's style:
  * flat fills from the palette, no outlines, no gradients, no shadows, no
  * filters, no faces and no words. Each drawing is a list of named parts on a
  * 0 to 100 box, so a point is also a percentage of the drawing's size, and
@@ -19,15 +19,13 @@
  * registry is generated from ILLUSTRATIONS.md and pinned at 29 drawings.
  *
  * A part's `layer` says which parts move together. A still drawing is one
- * layer; the flame's outer, inner and core move as three, and the chest's lid
- * is its own layer so it can open about its hinge. Nothing moves a part but a
- * transform or an opacity on its whole layer.
+ * layer; the flame's outer, inner and core move as three. Nothing moves a part
+ * but a transform or an opacity on its whole layer.
  *
  * On a colour ground that a drawing also uses, that colour and white trade
  * places, so nothing vanishes into the card it sits on: a coral flame on the
- * coral milestone card is drawn white and sun, and a sun chest band on the sun
- * quest card is drawn white. A drawing that does not use the ground's colour
- * is drawn as it is.
+ * coral milestone card is drawn white and sun. A drawing that does not use the
+ * ground's colour is drawn as it is.
  */
 
 import { accent, colour, paper } from '../../palette.ts';
@@ -250,48 +248,6 @@ const FLAME: Drawing<'lit' | 'unlit', 'outer' | 'inner' | 'core'> = {
   silhouette: ['outer'],
 };
 
-/** Where the chest's lid turns: the left end of its foot. */
-export const CHEST_HINGE: ArtPoint = [12, 54];
-
-/** Where the chest stands: the middle of its base's foot. It bumps from here. */
-export const CHEST_FOOT: ArtPoint = [50, 90];
-
-/** The open lid: turned this many degrees (anticlockwise) about the hinge and lifted this far, in box units. */
-export const CHEST_OPEN = { angle: -28, lift: -5 } as const;
-
-const CHEST_BANDS = (top: number, bottom: number): string =>
-  `${roundRect([33.5, (top + bottom) / 2], 7, bottom - top, 0.5)}${roundRect([66.5, (top + bottom) / 2], 7, bottom - top, 0.5)}`;
-
-type ChestPart = 'inside' | 'base' | 'bands' | 'latch' | 'keyhole' | 'lid' | 'lidBands' | 'rim';
-
-/** Open or shut, the chest is painted the same: opening it is the lid's pose, `CHEST_OPEN`. */
-const CHEST_FILLS: Readonly<Record<ChestPart, ArtToken>> = {
-  inside: 'paper.ink',
-  base: 'colour.coral',
-  bands: 'colour.sun',
-  latch: 'colour.sun',
-  keyhole: 'paper.ink',
-  lid: 'colour.coral',
-  lidBands: 'colour.sun',
-  rim: 'colour.sun',
-};
-
-const CHEST: Drawing<'closed' | 'open', ChestPart> = {
-  parts: [
-    // The mouth: hidden under the shut lid, showing as the lid lifts.
-    { id: 'inside', layer: 'body', d: roundRect([50, 50], 64, 12, 3) },
-    { id: 'base', layer: 'body', d: roundRect([50, 70], 72, 40, 6) },
-    { id: 'bands', layer: 'body', d: CHEST_BANDS(50, 90) },
-    { id: 'latch', layer: 'body', d: roundRect([50, 63], 16, 18, 4) },
-    { id: 'keyhole', layer: 'body', d: `${circle([50, 61], 3)}${roundRect([50, 64.5], 2.6, 7, 1.3)}` },
-    { id: 'lid', layer: 'lid', d: 'M12 54V42C12 32.6 19.6 25 29 25H71C80.4 25 88 32.6 88 42V54Z' },
-    { id: 'lidBands', layer: 'lid', d: CHEST_BANDS(25, 49) },
-    { id: 'rim', layer: 'lid', d: roundRect([50, 51], 76, 6, 1) },
-  ],
-  fills: { closed: CHEST_FILLS, open: CHEST_FILLS },
-  silhouette: ['base', 'lid'],
-};
-
 const MEDAL_RIBBON = `${polygon([[31, 52], [45, 60], [39, 96], [32.5, 89], [25, 94]])}${polygon([[55, 60], [69, 52], [75, 94], [67.5, 89], [61, 96]])}`;
 
 const MEDAL: Drawing<'sun' | 'mint' | 'blue' | 'next', 'ribbon' | 'rim' | 'disc' | 'star'> = {
@@ -385,7 +341,6 @@ const REPAIR: Drawing<'mended', 'ring' | 'patch' | 'stitches'> = {
 /** Every game drawing, by name. */
 export const ART = {
   flame: FLAME,
-  chest: CHEST,
   medal: MEDAL,
   crest: CREST,
   freeze: FREEZE,
@@ -398,7 +353,6 @@ export type ArtName = keyof typeof ART;
 export type StateOf<N extends ArtName> = Extract<keyof (typeof ART)[N]['fills'], string>;
 
 export type FlameState = StateOf<'flame'>;
-export type ChestState = StateOf<'chest'>;
 export type MedalState = StateOf<'medal'>;
 export type FreezeState = StateOf<'freeze'>;
 

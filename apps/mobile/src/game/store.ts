@@ -197,7 +197,7 @@ export function setQuestDay(row: QuestDayRow): Promise<PersistAck> {
   });
 }
 
-/** Quests (and the day's chest) claimed. A claim already held is kept, earliest first. */
+/** Quests claimed. A claim already held is kept, earliest first. */
 export function addClaims(claims: readonly QuestClaimRow[]): Promise<PersistAck> {
   return add({ claims: [...claims] });
 }

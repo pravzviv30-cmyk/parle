@@ -1,7 +1,7 @@
 /**
  * The game art keeps the house style — F746 (come alive D10).
  *
- * The flame, chest, medal, crest, freeze and repair marks are data in
+ * The flame, medal, crest, freeze and repair marks are data in
  * `shapes.ts`, read here directly: every part of every drawing, in every state
  * and on every ground, is held to the palette. The components that draw them
  * load Reanimated and react-native-svg, which a Node suite cannot, so they are
@@ -15,7 +15,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { accent, colour, highlight, lilac, paper } from '../../palette.ts';
-import { CHEST_MOTION, FLAME_MOTION } from './artMotion.ts';
+import { FLAME_MOTION } from './artMotion.ts';
 import { ART, ART_GROUNDS, ART_NAMES, GROUND_TOKEN, colourOf, drawn, statesOf, type ArtName } from './shapes.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -27,18 +27,17 @@ const code = (name: string): string =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
 
-/** The six drawings' own files, each exported by index.ts. */
+/** The five drawings' own files, each exported by index.ts. There is no chest (D22). */
 const COMPONENTS: Record<string, string> = {
   'Flame.tsx': 'Flame',
-  'Chest.tsx': 'Chest',
   'Medal.tsx': 'Medal',
   'Crest.tsx': 'Crest',
   'FreezeMark.tsx': 'FreezeMark',
   'RepairMark.tsx': 'RepairMark',
 };
 
-/** The two that move. The rest are still. */
-const MOVING = ['Flame.tsx', 'Chest.tsx'];
+/** The one that moves. The rest are still. */
+const MOVING = ['Flame.tsx'];
 
 /** Every source in this folder but the tests. */
 const SOURCES = readdirSync(HERE).filter((name) => /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name));
@@ -128,9 +127,11 @@ describe('the game art is flat, palette-only and decorative — F746', () => {
   test('every game drawing uses palette colours only and hides from assistive technology', () => {
     assert.deepEqual(
       [...ART_NAMES].sort(),
-      ['chest', 'crest', 'flame', 'freeze', 'medal', 'repair'],
+      ['crest', 'flame', 'freeze', 'medal', 'repair'],
       'a game drawing is missing, or one was added without being held here',
     );
+    // D22: no chest is drawn anywhere in the game art.
+    assert.equal(existsSync(`${HERE}Chest.tsx`), false, 'game/art/Chest.tsx is back, though the founder decided against chests (D22)');
     let checked = 0;
     for (const { name, state, ground, parts } of everyDrawn()) {
       assert.ok(parts.length > 0, `${name} ${state} draws nothing`);
@@ -153,7 +154,11 @@ describe('the game art is flat, palette-only and decorative — F746', () => {
         checked += 1;
       }
     }
-    assert.ok(checked >= 200, `only ${checked} parts were checked, so this walk reads almost nothing`);
+    // Every part of every drawing, in every state, on every ground: the walk skips nothing. The floor
+    // fell from 200 with the chest's 80 parts (D22); the exact count above it is the stronger check.
+    const every = ART_NAMES.reduce((n, name) => n + ART[name].parts.length * statesOf(name).length * ART_GROUNDS.length, 0);
+    assert.equal(checked, every, `${checked} of ${every} parts were checked, so this walk skips some`);
+    assert.ok(checked >= 160, `only ${checked} parts were checked, so this walk reads almost nothing`);
 
     // The files that draw them: each drawing has its own file, exported by
     // the folder, and every Svg in the folder is hidden from assistive tech.
@@ -221,8 +226,7 @@ describe('the game art is flat, palette-only and decorative — F746', () => {
   });
 
   test('every game drawing stays inside its box', () => {
-    // A part that leaves the 100 box is cut off where the Svg ends, at every
-    // size. Only the open chest's lid rises above it, as a pose of its layer.
+    // A part that leaves the 100 box is cut off where the Svg ends, at every size.
     for (const name of ART_NAMES) {
       for (const part of drawn(name, statesOf(name)[0] as never)) {
         const box = boundsOf(part.d);
@@ -249,9 +253,6 @@ describe('the game art is flat, palette-only and decorative — F746', () => {
       assert.ok(['paper.field', 'paper.line', 'paper.card'].includes(part.fill), `the next medal's ${part.id} is ${part.fill}`);
     }
     assert.equal(drawn('freeze', 'used').find((p) => p.id === 'crystal')?.fill, 'paper.field');
-    // Open or shut, the chest is the same chest: opening it is the lid's pose.
-    assert.deepEqual(drawn('chest', 'open'), drawn('chest', 'closed'));
-    assert.deepEqual(new Set(drawn('chest', 'closed').map((p) => p.layer)), new Set(['body', 'lid']));
   });
 
   test('the game art moves whole parts only, a few times, and lands when it leaves', () => {
@@ -288,7 +289,6 @@ describe('the game art is flat, palette-only and decorative — F746', () => {
     assert.ok(Number.isInteger(FLAME_MOTION.flickers) && FLAME_MOTION.flickers >= 1 && FLAME_MOTION.flickers <= 3, 'the flame flickers for good, or too long');
     assert.ok(FLAME_MOTION.ember > 0 && FLAME_MOTION.ember < 1, 'the flame does not grow as it lights');
     assert.ok(FLAME_MOTION.stretch > 1 && FLAME_MOTION.stretch <= 1.1, 'the flicker stretches the flame out of shape');
-    assert.ok(CHEST_MOTION.bump > 1 && CHEST_MOTION.bump <= 1.1, 'the chest bumps out of shape');
     // The still drawings never move themselves; a celebration moves a wrapper around them.
     for (const file of Object.keys(COMPONENTS).filter((f) => !MOVING.includes(f))) {
       assert.doesNotMatch(code(file), /react-native-reanimated|react-native-worklets|\buse[A-Z]\w*\(/, `game/art/${file} moves or holds state`);

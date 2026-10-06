@@ -25,25 +25,29 @@ describe('celebration events — the contract between a fact and a moment', () =
     assert.equal(celebrationKey.milestone(7, '2026-09-30'), 'milestone:7:2026-09-30');
     assert.equal(celebrationKey.level(4), 'level:4');
     assert.equal(celebrationKey.badge('streak-7'), 'badge:streak-7');
-    assert.equal(celebrationKey.chest('2026-10-06'), 'chest:2026-10-06');
     assert.equal(celebrationKey.purchase('tx-1'), 'purchase:tx-1');
     assert.equal(celebrationKey.saved('p-1'), 'saved:p-1');
     assert.equal(celebrationKey.streak('2026-10-06'), celebrationKey.streak('2026-10-06'), 'a key that changed between devices would replay the moment');
   });
 
   test('takeovers play a purchase first, then the streak, the chest, the level and the badges, three at most', () => {
-    assert.deepEqual([...TAKEOVER_ORDER], ['purchase-confirmed', 'streak-milestone', 'streak-extended', 'quest-chest', 'level-up', 'badge-earned']);
+    // D22: there is no chest takeover. All three quests done is a quiet line on the end card.
+    assert.deepEqual([...TAKEOVER_ORDER], ['purchase-confirmed', 'streak-milestone', 'streak-extended', 'level-up', 'badge-earned']);
+    assert.ok(takeoverRank('purchase-confirmed') < takeoverRank('streak-milestone'));
     assert.ok(takeoverRank('streak-milestone') < takeoverRank('streak-extended'), 'a milestone replaces the same day\'s plain streak moment, so it ranks first');
-    assert.ok(takeoverRank('quest-chest') < takeoverRank('level-up'));
+    assert.ok(takeoverRank('streak-extended') < takeoverRank('level-up'));
     assert.ok(takeoverRank('level-up') < takeoverRank('badge-earned'));
+    assert.equal('chest' in celebrationKey, false, 'the key table still names a chest moment');
     assert.equal(MAX_TAKEOVERS, 3, 'README Part 6: at most three full-screen moments after one sitting');
     assert.equal(isTakeover('phrase-saved'), false, 'a saved phrase is a toast, never a takeover');
     assert.equal(isTakeover('level-up'), true);
   });
 
   test('streak and chest moments are kept for sixty days; milestones, levels, badges and purchases never replay', () => {
+    // D22: the streak is the only day-scoped moment now; a chest key is one no build writes, and the reader refuses it.
     assert.equal(isDaySeenKey(celebrationKey.streak('2026-10-06')), true);
-    assert.equal(isDaySeenKey(celebrationKey.chest('2026-10-06')), true);
+    assert.equal(isDaySeenKey('chest:2026-10-06'), false);
+    assert.equal(isSeenKey('chest:2026-10-06'), false);
     assert.equal(isDaySeenKey(celebrationKey.milestone(30, '2026-09-01')), false);
     assert.equal(isDaySeenKey(celebrationKey.level(10)), false);
     assert.equal(isDaySeenKey(celebrationKey.badge('first-conversation')), false);
@@ -55,7 +59,6 @@ describe('celebration events — the contract between a fact and a moment', () =
       celebrationKey.purchase('2000000123456789'),
       celebrationKey.streak('2026-10-06'),
       celebrationKey.milestone(365, '2025-10-06'),
-      celebrationKey.chest('2026-10-06'),
       celebrationKey.level(20),
       celebrationKey.badge('streak-100'),
     ];

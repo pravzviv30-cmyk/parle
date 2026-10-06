@@ -45,7 +45,6 @@ import { Food } from './Food.tsx';
 import { Forward } from './Forward.tsx';
 import { Freeze } from './Freeze.tsx';
 import { FriendsPlace } from './FriendsPlace.tsx';
-import { Gift } from './Gift.tsx';
 import { Headphones } from './Headphones.tsx';
 import { Help } from './Help.tsx';
 import { Hint } from './Hint.tsx';
@@ -145,7 +144,6 @@ export const ICONS: Readonly<Record<IconName, IconDrawings>> = {
   'forward': Forward,
   'freeze': Freeze,
   'friends-place': FriendsPlace,
-  'gift': Gift,
   'headphones': Headphones,
   'help': Help,
   'hint': Hint,
