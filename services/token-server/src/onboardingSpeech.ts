@@ -1,5 +1,5 @@
 import { transcribeFrenchTakeMeasured } from '../../shared/transcription.ts';
-import { decodeAudio, pcmWav } from '../../shared/audioDecode.ts';
+import { decodeAudio, pcmWav, type DecodedAudio } from '../../shared/audioDecode.ts';
 import { claimGuestSpeech, GUEST_SPEECH_LIMITS, type GuestSpeechLimits, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
 
 export interface GuestSpeechEnvironment {
@@ -63,6 +63,14 @@ export interface GuestSpeechVendor {
 }
 
 /**
+ * Anonymous guests share this process's two audio decoders with paid scoring and
+ * paid transcription, which answer nothing when both are busy. A guest take may
+ * hold one at most, so a flood of guests can never take the last.
+ */
+const GUEST_DECODERS = 1;
+let guestDecoding = 0;
+
+/**
  * One admitted take, transcribed at most once and settled exactly once.
  *
  * Without a reservation issued by the guest admission, nothing is sent. In
@@ -87,8 +95,12 @@ export async function transcribeGuestTake(
     let take = audio;
     let measured: number | null = null;
     if (env.NODE_ENV === 'production') {
+      // A busy guest decoder sends nothing, so the reservation comes back whole.
+      if (guestDecoding >= GUEST_DECODERS) return null;
       const decoder = { LUVANI_AUDIO_DECODER_PATH: env.LUVANI_AUDIO_DECODER_PATH, LUVANI_AUDIO_DECODER_SHA256: env.LUVANI_AUDIO_DECODER_SHA256 };
-      const decoded = await (vendor.decode ?? decodeAudio)(audio, { env: decoder, signal });
+      guestDecoding++;
+      let decoded: DecodedAudio;
+      try { decoded = await (vendor.decode ?? decodeAudio)(audio, { env: decoder, signal }); } finally { guestDecoding--; }
       const pcm = decoded.wav.subarray(44, 44 + reserved * 32_000);
       take = pcmWav(pcm);
       measured = pcm.length / 32_000;

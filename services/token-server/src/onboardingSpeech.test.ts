@@ -142,3 +142,43 @@ test('the guest speech daily ceiling defaults conservatively and refuses a malfo
   // The gaps name settings, never their values.
   assert.ok(guestSpeechGaps({ NODE_ENV: 'production', DEEPGRAM_API_KEY: 'synthetic-key' }).every((gap) => !gap.includes('synthetic')));
 });
+
+test('guest speech holds at most one of the shared audio decoders, so paid scoring always keeps one', async () => {
+  const ledger = new MemoryGuestSpeechLedger();
+  const admission = guestSpeechAdmission(ledger);
+  const sent: number[] = [];
+  const request: typeof fetch = async (_url, init) => {
+    sent.push((init?.body as Uint8Array).byteLength);
+    return Response.json({ results: { channels: [{ alternatives: [{ transcript: 'Merci.' }] }] } });
+  };
+  const guestUsed = async (n: number) => (await ledger.used(guestSpeechKeys(signals(n), Date.now()))).guest;
+  type Decoded = { wav: Uint8Array; audioMillis: number };
+  let decodes = 0;
+  let finishFirst: (value: Decoded) => void = () => {};
+  const held = () => { decodes++; return new Promise<Decoded>((resolve) => { finishFirst = resolve; }); };
+  const quick = async () => { decodes++; return { wav: pcmWav(new Uint8Array(2 * 32_000)), audioMillis: 2000 }; };
+  const take = async (n: number, decode: () => Promise<Decoded>) =>
+    transcribeGuestTake(audio, await admitted(admission, n), new AbortController().signal, production, { request, decode });
+
+  // One guest take is decoding. Another guest's take is not given the second decoder, sends nothing and keeps nothing.
+  const first = take(1, held);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(decodes, 1);
+  assert.equal(await take(2, quick), null);
+  assert.equal(decodes, 1, 'a second guest take reached the shared decoder');
+  assert.deepEqual(sent, []);
+  assert.equal(await guestUsed(2), 0, 'a take refused for a busy decoder kept its reservation');
+
+  // When the first take finishes, the guest's decoder is free again.
+  finishFirst({ wav: pcmWav(new Uint8Array(32_000)), audioMillis: 1000 });
+  assert.equal(await first, 'Merci.');
+  assert.equal(await guestUsed(1), 1);
+  assert.equal(await take(3, quick), 'Merci.');
+  assert.equal(decodes, 2);
+
+  // A decode that fails frees it as well.
+  assert.equal(await take(4, async () => { decodes++; throw new Error('audio-decode-refused'); }), null);
+  assert.equal(await take(5, quick), 'Merci.');
+  assert.equal(decodes, 4);
+  assert.equal(sent.length, 3);
+});

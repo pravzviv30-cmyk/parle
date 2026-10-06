@@ -1,5 +1,5 @@
 import { guestSpeechAvailable, guestSpeechGaps, guestSpeechLimits, transcribeGuestTake } from './onboardingSpeech.ts';
-import { MemoryGuestSpeechLedger, RedisGuestSpeechLedger, guestSpeechAdmission, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
+import { MemoryGuestSpeechLedger, RedisGuestSpeechLedger, guestSpeechAdmission, releaseUnclaimed, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
 import { parseGuestMetric } from './guestMetrics.ts';
 /**
  * The token server.
@@ -437,6 +437,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         const admitted = speech;
         let transcript: string | null = null;
         try { transcript = await withRequestSignal(req, res, signal => transcribeGuestTake(take, admitted, signal), 12000); } catch { /* no transcript or audio in logs */ }
+        // A request that ended before the work began never claimed its take; return those seconds. A claimed take settles itself.
+        finally { await releaseUnclaimed(admitted); }
         if (!transcript || transcript.length > 600) return json(res, 503, { error: 'transcription unavailable' });
         return json(res, 200, { ...checkStarter(task, transcript, 'spoken'), secondsUsed: feedback.secondsUsed, reply: transcript });
       }

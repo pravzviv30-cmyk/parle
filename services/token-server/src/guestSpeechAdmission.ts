@@ -206,6 +206,20 @@ export function claimGuestSpeech(reservation: GuestSpeechReservation): number | 
   return live.seconds;
 }
 
+/**
+ * Returns a reservation whose take never started, so it can no longer pay for one.
+ *
+ * A request that ends before its transcription begins leaves an unclaimed
+ * reservation that nothing else would settle. A claimed one may already be with
+ * the vendor and settles itself to what was sent, so it is left alone: settling
+ * it here would undercount. True only when this call returned the seconds.
+ */
+export async function releaseUnclaimed(reservation: GuestSpeechReservation): Promise<boolean> {
+  if (claimGuestSpeech(reservation) === null) return false;
+  await reservation.settle(0);
+  return true;
+}
+
 export function guestSpeechAdmission(ledger: GuestSpeechLedger, limits: Readonly<GuestSpeechLimits> = GUEST_SPEECH_LIMITS) {
   const caps: Record<GuestSpeechScope, number> = {
     guest: limits.guestSeconds,
@@ -213,12 +227,22 @@ export function guestSpeechAdmission(ledger: GuestSpeechLedger, limits: Readonly
     address: limits.addressDailySeconds,
     global: limits.globalDailySeconds,
   };
+  // The operator hears once per UTC day per process that the service-wide ceiling refused
+  // speech. Only the ceiling and the day are logged: never a guest, installation or address.
+  let ceilingLoggedOn: string | null = null;
+  const ceilingRefused = (now: number) => {
+    const day = utcDay(now);
+    if (ceilingLoggedOn === day) return;
+    ceilingLoggedOn = day;
+    console.warn(`[luvani] guest speech: the service-wide daily budget of ${caps.global} s is spent for ${day}; guests type until the UTC day turns.`);
+  };
   return {
     /** Books one take's worth of seconds on all four budgets before any audio is read or sent. */
     async reserve(signals: { guest: string; installation: string; address: string }, now = Date.now()): Promise<GuestSpeechDecision> {
       const keys = guestSpeechKeys(signals, now);
       const seconds = limits.attemptSeconds;
       const full = await ledger.reserve(keys, seconds, caps);
+      if (full === 'global') ceilingRefused(now);
       if (full) return { kind: 'refused', reason: `${full}-budget` };
       let settled = false;
       const reservation: GuestSpeechReservation = Object.freeze({
@@ -238,6 +262,7 @@ export function guestSpeechAdmission(ledger: GuestSpeechLedger, limits: Readonly
     /** Whether a fresh guest from this installation and address could take one turn now. Reads only. */
     async open(signals: { guest: string; installation: string; address: string }, now = Date.now()): Promise<boolean> {
       const used = await ledger.used(guestSpeechKeys(signals, now));
+      if (used.global + limits.attemptSeconds > caps.global) ceilingRefused(now);
       return SCOPES.every((scope) => used[scope] + limits.attemptSeconds <= caps[scope]);
     },
   };
