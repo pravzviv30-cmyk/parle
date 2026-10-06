@@ -9951,9 +9951,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F738 — Leaving one recording can stop another recorder or a live room
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/sound/audioSessionCore.ts:108
 - note: Found by the Phase 0 sound review. leaveRecording switches to voice mode even while another microphone hold or a live room is open, and on iOS a mode without the microphone stops a running recorder. A slow cleanup on one screen can cut off the next screen's recording.
+- note: 2026-10-06 leaveRecording asks, when its turn on the session chain comes, whether a microphone hold or a live room is open, and if so leaves the mode as it is. The title failed against the pre-change source, against a check made at queue time, and against one that ignored the live room. Not yet tried on a device.
 - verified-by: `leaving one recording never stops another or a live room`
 
 ### F739 — A freeze counts as spent on a day a repair already covers

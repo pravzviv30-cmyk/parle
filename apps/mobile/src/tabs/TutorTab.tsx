@@ -21,11 +21,12 @@ import { WALK_AVAILABLE } from '../walk/observer.ts';
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { memoryPaused } from '@luvani/brain/profile';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
@@ -117,12 +118,13 @@ export function TutorTab() {
       return;
     }
     setPlaying(true);
-    // A full voice mode first, so the sample is heard with the silent switch on (F723).
-    void enterVoicePlayback().catch(() => undefined).then(() => {
+    // A full voice mode first, so the sample is heard with the silent switch on (F723). The web has
+    // no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
+    startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
       if (ticket !== hearTicket.current || !focusedNow.current) return;
       player.replace(voiceSample(voiceKey));
       player.play();
-    });
+    }, Platform.OS === 'web');
   };
 
   useFocusEffect(

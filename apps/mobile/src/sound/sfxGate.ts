@@ -43,21 +43,24 @@ export const COUNT_TICK_GAP_MS = 90;
 export type SfxThrottle = {
   /** True when this sound may play at `nowMs`; an admitted sound is counted. */
   admit: (id: SfxId, nowMs: number) => boolean;
+  /** True when this sound may play at `nowMs`. Counts nothing: a sound is counted once it plays. */
+  allows: (id: SfxId, nowMs: number) => boolean;
 };
 
 export function createSfxThrottle(): SfxThrottle {
   let recent: number[] = [];
   let lastTick = Number.NEGATIVE_INFINITY;
+  const allows = (id: SfxId, nowMs: number): boolean => {
+    if (id === 'count-tick') return nowMs - lastTick >= COUNT_TICK_GAP_MS;
+    recent = recent.filter((at) => nowMs - at < 1000);
+    return recent.length < SFX_PER_SECOND;
+  };
   return {
+    allows,
     admit: (id, nowMs) => {
-      if (id === 'count-tick') {
-        if (nowMs - lastTick < COUNT_TICK_GAP_MS) return false;
-        lastTick = nowMs;
-        return true;
-      }
-      recent = recent.filter((at) => nowMs - at < 1000);
-      if (recent.length >= SFX_PER_SECOND) return false;
-      recent.push(nowMs);
+      if (!allows(id, nowMs)) return false;
+      if (id === 'count-tick') lastTick = nowMs;
+      else recent.push(nowMs);
       return true;
     },
   };

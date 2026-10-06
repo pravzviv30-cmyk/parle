@@ -19,7 +19,8 @@ import { fileURLToPath } from 'node:url';
 
 import { AUDIO_MODES, RECORD_MODE, SFX_MODE, VOICE_MODE, type FullAudioMode } from './audioModes.ts';
 import { createAudioSession, VOICE_BRIDGE_MS } from './audioSessionCore.ts';
-import { holdLive, holdMic, holdVoice } from './audioFocus.ts';
+import { holdLive, holdMic, holdPlayerVoice, holdVoice } from './audioFocus.ts';
+import { startVoiceLine } from './voiceLine.ts';
 import { hapticsEnabled, silenceRecordingHaptics } from '../motion/hapticPreference.ts';
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -126,6 +127,41 @@ describe('one module owns the audio session', () => {
     assert.match(speech, /onStopped: letGo/);
     // The recorded player's playback gate prepares through the session.
     assert.match(named('practice/recordedPlayer.ts').code, /playWhenCurrent\(gate, ticket, enterVoicePlayback,/);
+  });
+
+  test('a voice sample on the web starts inside the tap that asked for it', async () => {
+    // Review finding: the four voice samples played a few microtasks after the tap, once entering
+    // voice playback resolved, and iOS Safari may refuse a play outside the tap. The web has no
+    // audio modes, so there the sample starts at once; a phone still waits for the voice mode.
+    const order: string[] = [];
+    let open: () => void = () => {};
+    const ready = new Promise<void>((resolve) => { open = resolve; });
+    startVoiceLine(ready, () => order.push('web plays'), true);
+    order.push('tap ends');
+    assert.deepEqual(order, ['web plays', 'tap ends'], 'the web sample waited past the tap, where Safari may refuse it');
+    startVoiceLine(ready, () => order.push('phone plays'), false);
+    order.push('tap ends');
+    await Promise.resolve();
+    assert.deepEqual(order, ['web plays', 'tap ends', 'tap ends'], 'a phone sample started before the voice mode was set');
+    open();
+    await ready;
+    await Promise.resolve();
+    assert.deepEqual(order, ['web plays', 'tap ends', 'tap ends', 'phone plays']);
+    assert.doesNotMatch(named('sound/voiceLine.ts').code, /^import /m, 'the start rule reaches for something node cannot load');
+
+    // Each sample enters voice playback first in the text and in time (the native order), and
+    // hands its play to the rule with the platform it runs on.
+    for (const name of ['tabs/TutorTab.tsx', 'tabs/ProfileTab.tsx', 'onboarding/OnboardingFlow.tsx', 'onboarding/PreAccountOnboarding.tsx']) {
+      const code = named(name).code;
+      const flat = code.replace(/\s+/g, ' ');
+      assert.match(code, /^import \{ startVoiceLine \} from '\.\.\/sound\/voiceLine\.ts';$/m, `${name} plays its sample without the web rule`);
+      assert.match(
+        flat,
+        /startVoiceLine\(enterVoicePlayback\(\)\.catch\(\(\) => undefined\), \(\) => \{ [^]*?\.play\(\);[^]*?\}, Platform\.OS === 'web'\);/,
+        `${name} starts its web sample after the tap`,
+      );
+      assert.doesNotMatch(flat, /enterVoicePlayback\(\)\.catch\(\(\) => undefined\)\.then\(/, `${name} still waits for the mode on the web`);
+    }
   });
 
   test('every file that records holds the microphone focus', () => {
@@ -315,6 +351,153 @@ describe('the rules of the audio session', () => {
     live();
     await session.enterVoicePlayback();
     assert.deepEqual(calls, [RECORD_MODE, VOICE_MODE, VOICE_MODE]);
+  });
+
+  test('leaving one recording never stops another or a live room', async (t) => {
+    // F738: on iOS a mode without the microphone stops every recorder, so a slow cleanup on one
+    // screen used to cut off the next screen's take, or LiveKit's microphone.
+    const calls: FullAudioMode[] = [];
+    const waiting: (() => void)[] = [];
+    let slow = false;
+    const session = createAudioSession({
+      setMode: (mode) => {
+        calls.push(mode);
+        if (!slow) return Promise.resolve();
+        return new Promise<void>((resolve) => waiting.push(resolve));
+      },
+      holdVoice: () => () => {},
+      later: () => {},
+    });
+    const modes = () => calls.map((mode) => Object.entries(AUDIO_MODES).find(([, value]) => value === mode)?.[0]);
+
+    // The holds are shared by the whole file: a failure here must not leave one behind.
+    const held: (() => void)[] = [];
+    t.after(() => { for (const release of held) release(); });
+    const hold = (take: () => () => void) => {
+      const release = take();
+      held.push(release);
+      return release;
+    };
+
+    // The first screen's take ends; the next screen starts recording before its cleanup runs.
+    const first = hold(holdMic);
+    await session.enterRecording();
+    first();
+    const second = hold(holdMic);
+    await session.enterRecording();
+    await session.leaveRecording();
+    assert.deepEqual(modes(), ['record'], 'a late cleanup took the microphone from the recorder still running');
+    assert.equal(session.currentMode(), 'record');
+    second();
+
+    // Asked when its turn comes, not when it was queued: a recorder that starts while the leave
+    // waits behind a slow change still keeps its microphone.
+    slow = true;
+    session.markUnknown();
+    const again = session.enterRecording();
+    const leave = session.leaveRecording();
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    const third = hold(holdMic);
+    waiting.shift()!();
+    await again;
+    // A leave that did ask for a mode is let through, so a regression fails here and never hangs.
+    for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    slow = false;
+    for (const resolve of waiting.splice(0)) resolve();
+    await leave;
+    assert.deepEqual(modes(), ['record', 'record'], 'a leave queued before a recorder started took its microphone');
+    third();
+    await session.leaveRecording();
+    assert.deepEqual(modes(), ['record', 'record', 'voice'], 'the last recorder out never handed the session back');
+
+    // While LiveKit owns the session, leaving a recording leaves it alone.
+    const live = hold(holdLive);
+    session.markUnknown();
+    await session.leaveRecording();
+    assert.deepEqual(modes(), ['record', 'record', 'voice'], 'leaving a recording changed the live room’s session');
+    live();
+    await session.leaveRecording();
+    assert.deepEqual(modes(), ['record', 'record', 'voice', 'voice']);
+  });
+
+  test('a sound effect asked for before a slow voice line starts is refused until its player holds', async (t) => {
+    // Review finding: a 1.5 s bridge could run out before a slow player reported playing, and a
+    // sound effect asked for in that gap took the session to the silent-switch mode just before
+    // the line. The bridge now lasts until the player's own hold takes over, the device voice's
+    // line ends, or a play that never starts is given up after VOICE_BRIDGE_MS.
+    const timers: { at: number; run: () => void }[] = [];
+    let clock = 0;
+    const advance = (ms: number) => {
+      clock += ms;
+      for (const timer of timers.splice(0)) {
+        if (timer.at <= clock) timer.run();
+        else timers.push(timer);
+      }
+    };
+    const held: (() => void)[] = [];
+    t.after(() => {
+      advance(Number.POSITIVE_INFINITY);
+      for (const release of held) release();
+    });
+    const hold = (take: () => () => void) => {
+      const release = take();
+      held.push(release);
+      return release;
+    };
+    // The real voice focus decides (sound/audioFocus.ts); only the clock is a fake.
+    const session = createAudioSession({ setMode: async () => {}, later: (run, ms) => { timers.push({ at: clock + ms, run }); } });
+
+    // A slow player: three seconds between entering voice playback and reporting playing.
+    await session.enterVoicePlayback();
+    advance(3000);
+    assert.equal(await session.enterSfx(), false, 'a sound effect took the session while a voice line was still loading');
+    const playing = hold(holdPlayerVoice);
+    assert.equal(await session.enterSfx(), false);
+    playing();
+    assert.equal(await session.enterSfx(), true, 'the bridge outlived the line it was waiting for');
+
+    // A replay on the same player: the old line's hold ends before the new one starts.
+    const old = hold(holdPlayerVoice);
+    await session.enterVoicePlayback();
+    old();
+    advance(3000);
+    assert.equal(await session.enterSfx(), false, 'the gap between two clips on one player was open to a sound effect');
+    hold(holdPlayerVoice)();
+    assert.equal(await session.enterSfx(), true);
+
+    // The device voice holds its line before it enters voice playback; the bridge ends with it.
+    const line = hold(holdVoice);
+    await session.enterVoicePlayback();
+    assert.equal(await session.enterSfx(), false);
+    line();
+    assert.equal(await session.enterSfx(), true, 'the device voice finished and the bridge still kept sound effects waiting');
+
+    // A clip tapped while the device voice speaks opens its own bridge, and the line that ends
+    // under it does not close that one: the clip is still loading.
+    const speaking = hold(holdVoice);
+    await session.enterVoicePlayback();
+    await session.enterVoicePlayback();
+    speaking();
+    assert.equal(await session.enterSfx(), false, 'the end of the device voice closed the bridge of the clip tapped after it');
+    hold(holdPlayerVoice)();
+    assert.equal(await session.enterSfx(), true);
+
+    // A play that never starts (a stale ticket, a failed load) gives the session back in time.
+    await session.enterVoicePlayback();
+    advance(VOICE_BRIDGE_MS - 1);
+    assert.equal(await session.enterSfx(), false);
+    advance(1);
+    assert.equal(await session.enterSfx(), true, 'a play that never started kept sound effects quiet');
+
+    // Two taps leave one bridge, which the line that plays takes over.
+    await session.enterVoicePlayback();
+    await session.enterVoicePlayback();
+    hold(holdPlayerVoice)();
+    assert.equal(await session.enterSfx(), true, 'a second tap left a bridge behind');
+
+    // And the player's hold is the one that takes over.
+    const hook = FILES.find((file) => file.name === 'sound/useVoiceHold.ts');
+    assert.match(hook?.code ?? '', /return holdPlayerVoice\(\);/, 'a player that starts playing does not take over from the bridge');
   });
 
   test('after a live room hands the session back, the next change sets a full mode again', async () => {

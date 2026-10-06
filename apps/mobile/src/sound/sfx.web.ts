@@ -55,12 +55,12 @@ const core = createSfxCore({
   soundOn: soundEnabled,
   // Lazily, inside the first play a gesture started; `downloadFirst` stays false (no blob: URL).
   createPlayer: (id) => createAudioPlayer(SFX_SOURCES[id]),
-  // Called just before the throttle and the play, so the refusal window starts with this play.
-  mayStart: () => {
-    if (!inGestureTask()) return false;
+  mayStart: inGestureTask,
+  // Called once the throttle has admitted the sound, just before it plays, so the refusal window
+  // opens only for a play that is about to start.
+  willStart: () => {
     listenForRefusals();
     lastPlayAt = Date.now();
-    return true;
   },
 });
 

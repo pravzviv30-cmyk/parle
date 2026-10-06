@@ -46,10 +46,11 @@ import { DayCount } from '../progress/DayCount.tsx';
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
@@ -158,12 +159,13 @@ export function ProfileTab() {
       // media element (AudioPlayer.web.ts, and the same on native), so the new
       // clip starts at nought by construction, and a tap on the voice that just
       // finished plays it again rather than sitting silently at its end.
-      // A full voice mode first, so the sample is heard with the silent switch on (F723).
-      void enterVoicePlayback().catch(() => undefined).then(() => {
+      // A full voice mode first, so the sample is heard with the silent switch on (F723). The web
+      // has no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
+      startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
         if (ticket !== sampleTicket.current) return;
         samplePlayer.replace(voiceSample(next));
         samplePlayer.play();
-      });
+      }, Platform.OS === 'web');
     },
     [samplePlaying, samplePlayer],
   );
