@@ -49,10 +49,10 @@ export type TimelineId =
   | 'purchase-confirmed'
   | 'streak-milestone'
   | 'streak-extended'
-  | 'quest-chest'
   | 'level-up'
   | 'badge-earned'
   | 'end-card'
+  | 'end-card-quests'
   | 'toast';
 
 export interface Timeline {
@@ -85,6 +85,15 @@ export function beatSpan(beat: Beat): number {
   return 0;
 }
 
+/** The end card's beats, shared by both of its timelines. */
+const END_CARD_BEATS: readonly Beat[] = [
+  { t: 120, element: 'burst', transform: 'Burst of 36 from the top of the card', motion: timing('burst', 'linear'), sound: 'complete', haptic: 'celebrate' },
+  { t: 200, element: 'line', transform: 'translateY 10 to 0', motion: timing('base') },
+  { t: 420, element: 'tiles', transform: 'StaggerIn by STAGGER.tiles, each number counting up', motion: timing('count') },
+  { t: 1300, element: 'goal', transform: 'the goal ring draws from before to now', motion: timing('reveal', 'inOut') },
+  { t: 1500, element: 'rows', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
+];
+
 export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
   // 5.3, on paper: the flame lights, its sparks rise, the run arrives.
   'streak-extended': {
@@ -112,20 +121,6 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
     ],
     end: 2600,
     still: { sound: 'streak', haptic: 'celebrate' },
-  },
-  // 5.6 as the chest (README Part 6): all three quests done, the lid opens.
-  'quest-chest': {
-    id: 'quest-chest',
-    beats: [
-      { t: 0, element: 'chest', transform: 'drops in, translateY -40 to 0', motion: timing('base'), sound: 'whoosh' },
-      { t: 600, element: 'lid', transform: 'opens about its hinge', motion: springOf('pop'), sound: 'quest', haptic: 'thump' },
-      { t: 620, element: 'bloom', transform: 'DiscBloom in blue, scale 0.3 to 1', motion: timing('slow') },
-      { t: 620, element: 'burst', transform: 'Burst of 28, blue, coral and white, from the chest', motion: timing('burst', 'linear') },
-      { t: 700, element: 'lines', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
-      { t: 760, element: 'landed', transform: 'the rows have landed', motion: cue, haptic: 'arrived' },
-    ],
-    end: 2300,
-    still: { sound: 'quest', haptic: 'arrived' },
   },
   // 5.7, on blue: the crest rises, the level number changes. A number, never a name.
   'level-up': {
@@ -168,15 +163,19 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
   // 5.2 as the in-place end card (README Part 6): mint, tiles counting up, the goal ring, quest rows.
   'end-card': {
     id: 'end-card',
-    beats: [
-      { t: 120, element: 'burst', transform: 'Burst of 36 from the top of the card', motion: timing('burst', 'linear'), sound: 'complete', haptic: 'celebrate' },
-      { t: 200, element: 'line', transform: 'translateY 10 to 0', motion: timing('base') },
-      { t: 420, element: 'tiles', transform: 'StaggerIn by STAGGER.tiles, each number counting up', motion: timing('count') },
-      { t: 1300, element: 'goal', transform: 'the goal ring draws from before to now', motion: timing('reveal', 'inOut') },
-      { t: 1500, element: 'rows', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
-    ],
+    beats: END_CARD_BEATS,
     end: 2400,
     still: { sound: 'complete', haptic: 'celebrate' },
+  },
+  // The same end card on the sitting that finished the day's third quest (D22): as
+  // the quest rows come in, "All three quests done today." lands with the quest
+  // sound. One quiet line, never a takeover. Shown still, its one sound is the
+  // quest sound D22 pairs with the line, with the end card's own haptic.
+  'end-card-quests': {
+    id: 'end-card-quests',
+    beats: [...END_CARD_BEATS, { t: 1500, element: 'quests', transform: 'nothing moves', motion: cue, sound: 'quest' }],
+    end: 2400,
+    still: { sound: 'quest', haptic: 'celebrate' },
   },
   // A saved phrase: a small confirmation that comes and goes on its own and blocks nothing.
   toast: {

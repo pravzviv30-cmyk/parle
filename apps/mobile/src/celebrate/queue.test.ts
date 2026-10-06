@@ -50,9 +50,6 @@ function milestone(n = 7, day = DAY): CelebrationEvent {
   const runStart = '2026-09-30';
   return { type: 'streak-milestone', key: celebrationKey.milestone(n, runStart), origin: 'account', at: AT, data: { day, current: n, lifetimeDays: 40, milestone: n, runStart } };
 }
-function chest(day = DAY, xp = 15): CelebrationEvent {
-  return { type: 'quest-chest', key: celebrationKey.chest(day), origin: 'account', at: AT, data: { day, xp } };
-}
 function level(before: number, to: number): CelebrationEvent {
   return { type: 'level-up', key: celebrationKey.level(to), origin: 'account', at: AT, data: { before, level: to } };
 }
@@ -192,23 +189,30 @@ function harness(options: { seen?: readonly string[]; unreadable?: boolean; slow
 
 describe('the celebration queue — F743', () => {
   test('at most three takeovers play after a sitting, in streak, chest, level, badge order', async () => {
+    // D22: there is no chest takeover, so a sitting plays its streak, then its level, then its badges.
     const h = harness();
-    // One sitting's moments, published in no particular order.
-    const sitting = [badge('first-conversation'), level(3, 4), chest(), streak(), badge('streak-7')];
+    // One sitting's moments, published in no particular order: four badges make two badge cards.
+    const sitting = [badge('first-conversation'), level(3, 4), streak(), badge('streak-7'), badge('scene-own'), badge('goal-7')];
     h.queue.receive(sitting);
     await h.advance(BURST_WINDOW_MS);
     const cards = await h.playAll();
     assert.deepEqual(
       cards.map((card) => card.type),
-      ['streak-extended', 'quest-chest', 'level-up'],
-      'the takeovers play the streak, then the chest, then the level',
+      ['streak-extended', 'level-up', 'badge-earned'],
+      'the takeovers play the streak, then the level, then the badges',
     );
     assert.equal(cards.length, MAX_TAKEOVERS, 'a fourth takeover played');
     assert.deepEqual(cards[0]!.also, [], 'a row sits on a card that is not the last');
+    assert.deepEqual(cards[1]!.also, [], 'a row sits on a card that is not the last');
+    assert.deepEqual(
+      cards[2]!.shows.map((event) => event.key),
+      [celebrationKey.badge('first-conversation'), celebrationKey.badge('streak-7'), celebrationKey.badge('scene-own')],
+      'the first three badges, in the order they were earned, do not share the last card',
+    );
     assert.deepEqual(
       cards[2]!.also.map((event) => event.key),
-      [celebrationKey.badge('first-conversation'), celebrationKey.badge('streak-7')],
-      'the badges past the budget are rows on the last card, in the order they were earned',
+      [celebrationKey.badge('goal-7')],
+      'the badge past the budget is not a row on the last card',
     );
     await h.flush();
     assert.deepEqual(new Set(h.marked), new Set(sitting.map((event) => event.key)), 'a moment that became a row is not remembered as played');
@@ -224,9 +228,9 @@ describe('the celebration queue — F743', () => {
 
     // A purchase confirmed in the same burst goes first.
     const paid = harness();
-    paid.queue.receive([chest('2026-10-08'), purchase('regular.1793000000000'), streak('2026-10-08')]);
+    paid.queue.receive([level(4, 5), purchase('regular.1793000000000'), streak('2026-10-08')]);
     await paid.advance(BURST_WINDOW_MS);
-    assert.deepEqual((await paid.playAll()).map((card) => card.type), ['purchase-confirmed', 'streak-extended', 'quest-chest']);
+    assert.deepEqual((await paid.playAll()).map((card) => card.type), ['purchase-confirmed', 'streak-extended', 'level-up']);
   });
 
   test('a safety stop clears the celebration queue and refuses new moments', async () => {
@@ -235,10 +239,10 @@ describe('the celebration queue — F743', () => {
     publishCelebrations([streak('2026-10-05')]);
 
     const h = harness();
-    h.queue.receive([streak(), chest(), level(1, 2)]);
+    h.queue.receive([streak(), level(1, 2), badge('streak-7')]);
     await h.advance(BURST_WINDOW_MS);
     assert.equal(h.showing()?.type, 'streak-extended');
-    assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.chest(DAY), celebrationKey.level(2)]);
+    assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.level(2), celebrationKey.badge('streak-7')]);
     assert.equal(h.pending.size, 3, 'the waiting moments were not written to the crash-replay queue');
 
     const stopsBefore = h.stops();
@@ -299,13 +303,13 @@ describe('the celebration queue — F743', () => {
     assert.equal(other.showing(), null, 'a moment played again on a second device');
 
     // Skipped is played: Continue before the final frame still remembers it.
-    h.queue.receive([chest('2026-10-09')]);
+    h.queue.receive([streak('2026-10-09')]);
     await h.advance(BURST_WINDOW_MS);
     const skipped = h.showing();
-    assert.equal(skipped?.type, 'quest-chest');
+    assert.equal(skipped?.type, 'streak-extended');
     h.queue.dismiss(skipped!.id);
     await h.flush();
-    assert.ok(h.seen.has(celebrationKey.chest('2026-10-09')), 'a skipped moment was not remembered, so it would play again');
+    assert.ok(h.seen.has(celebrationKey.streak('2026-10-09')), 'a skipped moment was not remembered, so it would play again');
 
     // A list that cannot be read is never a reason to risk a second showing.
     const unreadable = harness({ unreadable: true });
@@ -328,20 +332,20 @@ describe('the celebration queue — F743', () => {
 
     // A moment that arrives while a card is showing joins the burst and its budget.
     const running = harness();
-    running.queue.receive([streak(), chest()]);
+    running.queue.receive([streak(), level(1, 2)]);
     await running.advance(BURST_WINDOW_MS);
     assert.equal(running.showing()?.type, 'streak-extended');
-    running.queue.receive([level(1, 2), badge('streak-7')]);
+    running.queue.receive([badge('streak-7'), badge('scene-own'), badge('goal-7'), badge('first-conversation')]);
     await running.advance(BURST_WINDOW_MS);
     const rest = await running.playAll();
-    assert.deepEqual(rest.map((card) => card.type), ['streak-extended', 'quest-chest', 'level-up']);
-    assert.deepEqual(rest[2]!.also.map((event) => event.key), [celebrationKey.badge('streak-7')], 'a late moment past the budget became a fourth takeover');
+    assert.deepEqual(rest.map((card) => card.type), ['streak-extended', 'level-up', 'badge-earned']);
+    assert.deepEqual(rest[2]!.also.map((event) => event.key), [celebrationKey.badge('first-conversation')], 'a late moment past the budget became a fourth takeover');
   });
 
   test('a moment that arrives during the third card becomes a row on it, never a fourth takeover', async () => {
     /** A run of three cards, with the third on screen. */
     async function third(h: ReturnType<typeof harness>): Promise<TakeoverCard> {
-      h.queue.receive([streak(), chest(), level(3, 4)]);
+      h.queue.receive([purchase('regular.1793000000000'), streak(), level(3, 4)]);
       await h.advance(BURST_WINDOW_MS);
       await h.playThrough();
       await h.playThrough();
@@ -448,21 +452,21 @@ describe('the celebration queue — F743', () => {
     // The app leaving the screen holds it too, and it resumes after a short pause on return.
     const h = harness();
     h.queue.setActive(false);
-    h.queue.receive([chest()]);
+    h.queue.receive([level(1, 2)]);
     await h.advance(BURST_WINDOW_MS + 5000);
     assert.equal(h.showing(), null, 'a moment started behind the app');
     h.queue.setActive(true);
     await h.advance(0);
     assert.equal(h.showing(), null, 'a moment started the instant the app came back, before the learner could see it');
     await h.advance(RESUME_AFTER_MS);
-    assert.equal(h.showing()?.type, 'quest-chest');
+    assert.equal(h.showing()?.type, 'level-up');
 
     // A card already on screen when a hold begins lands on its final frame and stays.
     const before = h.stops();
     const release = holdMic();
     assert.equal(h.queue.snapshot().paused, true, 'the card on screen was not told to land');
     assert.ok(h.stops() > before, 'the card kept sounding while the microphone opened');
-    assert.equal(h.showing()?.type, 'quest-chest', 'a hold took the card off the screen');
+    assert.equal(h.showing()?.type, 'level-up', 'a hold took the card off the screen');
     release();
     assert.equal(h.queue.snapshot().paused, false);
   });
@@ -559,7 +563,7 @@ describe('the celebration queue — F743', () => {
 
   test('signing out clears the queue and writes nothing to the account that left', async () => {
     const h = harness();
-    h.queue.receive([streak(), chest()]);
+    h.queue.receive([streak(), level(1, 2)]);
     await h.advance(BURST_WINDOW_MS);
     const card = h.showing();
     assert.equal(card?.type, 'streak-extended');
@@ -585,8 +589,8 @@ describe('the celebration queue — F743', () => {
     assert.equal(isShowable(badge('no-such-badge')), false, 'a badge with no name would draw an empty card');
     assert.equal(isShowable(level(4, 4)), false, 'a level that did not rise would say Level 4 again');
     assert.equal(isShowable(streak('not-a-day')), false);
-    const fractional: CelebrationEvent = { type: 'quest-chest', key: celebrationKey.chest(DAY), origin: 'account', at: AT, data: { day: DAY, xp: 1.5 } };
-    assert.equal(isShowable(fractional), false, 'a chest with a fractional reward would show a made-up number');
+    const fractional: CelebrationEvent = { type: 'streak-extended', key: celebrationKey.streak(DAY), origin: 'account', at: AT, data: { day: DAY, current: 1.5, lifetimeDays: 11 } };
+    assert.equal(isShowable(fractional), false, 'a streak with a fractional run would show a made-up number');
     assert.equal(isShowable(purchase('')), false, 'a purchase with no confirmed grant behind it played');
     assert.equal(isShowable(saved('p-1')), true);
   });

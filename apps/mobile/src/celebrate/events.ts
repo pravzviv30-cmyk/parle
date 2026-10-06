@@ -35,7 +35,6 @@ export const TAKEOVER_ORDER = [
   'purchase-confirmed',
   'streak-milestone',
   'streak-extended',
-  'quest-chest',
   'level-up',
   'badge-earned',
 ] as const;
@@ -73,12 +72,6 @@ export interface StreakMilestoneData extends StreakData {
   readonly runStart: DayKey;
 }
 
-export interface QuestChestData {
-  readonly day: DayKey;
-  /** The chest XP actually credited. */
-  readonly xp: number;
-}
-
 export interface LevelUpData {
   readonly before: number;
   readonly level: number;
@@ -106,7 +99,6 @@ export type CelebrationEvent =
   | Base<'purchase-confirmed', PurchaseConfirmedData>
   | Base<'streak-milestone', StreakMilestoneData>
   | Base<'streak-extended', StreakData>
-  | Base<'quest-chest', QuestChestData>
   | Base<'level-up', LevelUpData>
   | Base<'badge-earned', BadgeEarnedData>
   | Base<'phrase-saved', PhraseSavedData>;
@@ -116,7 +108,6 @@ export const celebrationKey = {
   purchase: (transactionId: string): string => `purchase:${transactionId}`,
   streak: (day: DayKey): string => `streak:${day}`,
   milestone: (milestone: number, runStart: DayKey): string => `milestone:${milestone}:${runStart}`,
-  chest: (day: DayKey): string => `chest:${day}`,
   level: (level: number): string => `level:${level}`,
   badge: (id: string): string => `badge:${id}`,
   saved: (phraseKey: string): string => `saved:${phraseKey}`,

@@ -100,7 +100,7 @@ describe('milestone badges', () => {
       title: 'October quests',
       line: 'You finished 30 quests in October.',
       hint: 'Finish 30 quests in one month',
-      art: 'chest',
+      art: 'star',
     });
     assert.equal(badgeFor('quests-2026-02')?.title, 'February quests');
     assert.equal(MONTH_NAMES.length, 12);

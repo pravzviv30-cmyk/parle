@@ -7,7 +7,7 @@
  * apps/mobile/src/palette.ts, the same data the app draws, and writes
  * artifacts/game-art/index.html (ignored by git): every drawing in every state at 48, 96 and
  * 160 px on paper and on the blue, coral, sun and mint grounds, with a plain note of where
- * each one appears, and a motion preview of the flame lighting and the chest opening.
+ * each one appears, and a motion preview of the flame lighting.
  *
  * Inline SVG, CSS and a few lines of script only, so the page opens from disk with no server
  * and nothing is fetched. The founder approves the art by eye on this page before it ships.
@@ -17,9 +17,6 @@ import { join, resolve } from 'node:path';
 import {
   ART_GROUNDS,
   ART_VIEWBOX,
-  CHEST_FOOT,
-  CHEST_HINGE,
-  CHEST_OPEN,
   FLAME_FEET,
   GROUND_TOKEN,
   colourOf,
@@ -27,7 +24,7 @@ import {
   layer,
   statesOf,
 } from '../../apps/mobile/src/game/art/shapes.ts';
-import { CHEST_MOTION, FLAME_MOTION } from '../../apps/mobile/src/game/art/artMotion.ts';
+import { FLAME_MOTION } from '../../apps/mobile/src/game/art/artMotion.ts';
 import { colour, paper } from '../../apps/mobile/src/palette.ts';
 
 const ROOT = resolve(import.meta.dirname, '..', '..');
@@ -51,15 +48,6 @@ const NOTES = {
     states: {
       lit: 'Lit: today counts. It lights once for each real streak day, then flickers three times while it is in view and rests.',
       unlit: 'Unlit: before the first practice of the day, or after a fresh start. Never sad, never crossed out.',
-    },
-  },
-  chest: {
-    title: 'Chest',
-    what: 'The daily quests chest. It opens only when all three of the day\'s quests are really done.',
-    where: ['Chest takeover, on the sun ground.', 'The Daily quests card on Home, shut until all three are done.', 'The chest row in the quests sheet.'],
-    states: {
-      closed: 'Shut: quests still to do today.',
-      open: 'Open: after two small bumps the lid swings up about its left hinge. It rises a little above the drawing, so the screen leaves room.',
     },
   },
   medal: {
@@ -110,18 +98,14 @@ function escape(text) {
   return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
 }
 
-/** The open chest's lid pose, as the app's transform about the hinge. */
-const LID_POSE = `translate(0 ${CHEST_OPEN.lift}) rotate(${CHEST_OPEN.angle} ${CHEST_HINGE[0]} ${CHEST_HINGE[1]})`;
-
 /**
  * One drawing as inline SVG.
  * @param {readonly { id: string; layer: string; d: string; fill: string }[]} parts
  * @param {number} size
  * @param {string} label
- * @param {(part: { layer: string }) => string} [pose]
  */
-function svg(parts, size, label, pose = () => '') {
-  const paths = parts.map((p) => `<path d="${p.d}" fill="${colourOf(p.fill)}"${pose(p)}/>`).join('');
+function svg(parts, size, label) {
+  const paths = parts.map((p) => `<path d="${p.d}" fill="${colourOf(p.fill)}"/>`).join('');
   const named = label === '' ? 'aria-hidden="true"' : `role="img" aria-label="${escape(label)}"`;
   return `<svg width="${size}" height="${size}" viewBox="${ART_VIEWBOX}" ${named} focusable="false" overflow="visible">${paths}</svg>`;
 }
@@ -129,9 +113,8 @@ function svg(parts, size, label, pose = () => '') {
 /** @param {string} name @param {string} state @param {string} ground */
 function tile(name, state, ground) {
   const parts = drawn(name, state, ground);
-  const pose = name === 'chest' && state === 'open' ? (p) => (p.layer === 'lid' ? ` transform="${LID_POSE}"` : '') : undefined;
   const title = NOTES[name].title;
-  const drawings = SIZES.map((size) => svg(parts, size, `${title}, ${state}, on ${GROUND_NAMES[ground].toLowerCase()}, ${size} pixels`, pose)).join('');
+  const drawings = SIZES.map((size) => svg(parts, size, `${title}, ${state}, on ${GROUND_NAMES[ground].toLowerCase()}, ${size} pixels`)).join('');
   return `
         <figure class="tile on-${ground}" style="background:${colourOf(GROUND_TOKEN[ground])}">
           <div class="sizes">${drawings}</div>
@@ -167,7 +150,6 @@ function motionPreview() {
   const size = 160;
   const lit = drawn('flame', 'lit', 'blue');
   const ember = drawn('flame', 'unlit', 'blue');
-  const chest = drawn('chest', 'closed', 'sun');
   const pct = ([x, y]) => `${x}% ${y}%`;
   const flame = `
         <div class="stage" style="background:${colourOf(GROUND_TOKEN.blue)}">
@@ -180,26 +162,14 @@ function motionPreview() {
             </div>
           </div>
         </div>`;
-  const box = `
-        <div class="stage" style="background:${colourOf(GROUND_TOKEN.sun)}">
-          <div class="box" data-motion="chest" role="img" aria-label="The chest opening on the sun quest card">
-            <div class="layer bump" style="transform-origin:${pct(CHEST_FOOT)}">
-              <div class="layer">${svg(layer(chest, 'body'), size, '')}</div>
-              <div class="layer lid" style="transform-origin:${pct(CHEST_HINGE)}">${svg(layer(chest, 'lid'), size, '')}</div>
-            </div>
-          </div>
-        </div>`;
   return `
     <section aria-labelledby="motion">
       <h2 id="motion">Motion preview</h2>
-      <p>The flame lighting and flickering three times, and the chest opening. The app runs these on its motion tokens and springs; this page draws the same layers and approximates the springs with CSS curves. Each one rests on its final frame.</p>
+      <p>The flame lighting and flickering three times. The app runs it on its motion tokens and springs; this page draws the same layers and approximates the springs with CSS curves. It rests on its final frame.</p>
       <p class="reduced-note">Your system asks for reduced motion, so these show their final frame, as the app does.</p>
       <div class="previews">
         <figure class="preview">${flame}
           <figcaption><button type="button" class="play" data-play="flame">Light the flame</button></figcaption>
-        </figure>
-        <figure class="preview">${box}
-          <figcaption><button type="button" class="play" data-play="chest">Open the chest</button></figcaption>
         </figure>
       </div>
     </section>`;
@@ -207,7 +177,6 @@ function motionPreview() {
 
 function page() {
   const F = FLAME_MOTION;
-  const C = CHEST_MOTION;
   const flickerAt = F.wait;
   const flickerAll = F.flickerMs * F.flickers;
   return `<!doctype html>
@@ -249,21 +218,15 @@ function page() {
   @keyframes core { 0% { transform: scale(0); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
   @keyframes stretch { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(${F.stretch}); } }
   @keyframes rise { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-${F.rise * 100}%); } }
-  @keyframes bump { 0%, 100% { transform: scale(1); } 25%, 60% { transform: scale(${C.bump}); } 42% { transform: scale(1); } }
-  @keyframes lid { 0% { transform: translateY(0) rotate(0deg); } 60% { transform: translateY(${CHEST_OPEN.lift * 1.12}%) rotate(${CHEST_OPEN.angle * 1.12}deg); } 100% { transform: translateY(${CHEST_OPEN.lift}%) rotate(${CHEST_OPEN.angle}deg); } }
-  .lid { transform: translateY(0) rotate(0deg); }
   .box.playing[data-motion="flame"] .ember { animation: ember ${F.fade}ms ease-in both; }
   .box.playing[data-motion="flame"] .lit { animation: light 560ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   .box.playing[data-motion="flame"] .inner { animation: inner 520ms cubic-bezier(0.22, 1, 0.36, 1) ${F.innerLag}ms both; }
   .box.playing[data-motion="flame"] .core { animation: core 520ms cubic-bezier(0.22, 1, 0.36, 1) ${F.coreLag}ms both; }
   .box.playing[data-motion="flame"] .flicker { animation: stretch ${F.flickerMs}ms cubic-bezier(0.65, 0, 0.35, 1) ${flickerAt}ms ${F.flickers}; }
   .box.playing[data-motion="flame"] .rise { animation: rise ${F.flickerMs}ms cubic-bezier(0.65, 0, 0.35, 1) ${flickerAt + F.riseLag}ms ${F.flickers}; }
-  .box.playing[data-motion="chest"] .bump { animation: bump ${C.beat * 6}ms ease-out both; }
-  .box.playing[data-motion="chest"] .lid, .box.done[data-motion="chest"] .lid { animation: lid 520ms cubic-bezier(0.22, 1, 0.36, 1) ${C.lidAt}ms both; }
   @media (prefers-reduced-motion: reduce) {
     .reduced-note { display: block; }
     .box.playing *, .box.done * { animation: none !important; }
-    .box.playing[data-motion="chest"] .lid, .box.done[data-motion="chest"] .lid { transform: translateY(${CHEST_OPEN.lift}%) rotate(${CHEST_OPEN.angle}deg); }
   }
 </style>
 </head>
@@ -276,7 +239,7 @@ function page() {
 </main>
 <script>
   // Total play time per preview, so the button can rest the drawing on its final frame.
-  const LENGTH = { flame: ${flickerAt + F.riseLag + flickerAll}, chest: ${C.lidAt + 520} };
+  const LENGTH = { flame: ${flickerAt + F.riseLag + flickerAll} };
   for (const button of document.querySelectorAll('[data-play]')) {
     button.addEventListener('click', () => {
       const name = button.getAttribute('data-play');

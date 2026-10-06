@@ -31,8 +31,6 @@ function everyLine(): string[] {
     c.streak.lifetime(240),
     ...[7, 30, 100, 365, 730, 1095].map((n) => c.streak.milestone(n)),
     c.streak.repairForSubscribers,
-    c.chest.title,
-    c.chest.line(15),
     c.level.title(1),
     c.level.title(20),
     c.level.line,

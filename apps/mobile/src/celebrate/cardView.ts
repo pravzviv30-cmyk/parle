@@ -42,7 +42,6 @@ const GROUND: Readonly<Record<TakeoverType, CardGround>> = {
   'purchase-confirmed': 'mint',
   'streak-milestone': 'coral',
   'streak-extended': 'paper',
-  'quest-chest': 'sun',
   'level-up': 'blue',
   'badge-earned': 'paper',
 };
@@ -66,8 +65,6 @@ export function rowFor(event: CelebrationEvent): string | null {
     case 'streak-milestone':
     case 'streak-extended':
       return streakValue(event.data.current);
-    case 'quest-chest':
-      return GAME_COPY.chest.title;
     case 'level-up':
       return GAME_COPY.level.title(event.data.level);
     case 'badge-earned': {
@@ -108,11 +105,6 @@ export function cardView(card: TakeoverCard): CardView {
       const { milestone, lifetimeDays } = first.data;
       const title = GAME_COPY.streak.milestone(milestone);
       return { ...base, hero: { value: milestone, unit: GAME_COPY.streak.label }, title, lines: [GAME_COPY.streak.lifetime(lifetimeDays)], announce: spoken([title, streakValue(milestone)]) };
-    }
-    case 'quest-chest': {
-      const title = GAME_COPY.chest.title;
-      const line = GAME_COPY.chest.line(first.data.xp);
-      return { ...base, hero: null, title, lines: [line], announce: spoken([title, line]) };
     }
     case 'level-up': {
       const title = GAME_COPY.level.title(first.data.level);

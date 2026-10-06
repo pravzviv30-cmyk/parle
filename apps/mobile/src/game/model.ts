@@ -44,7 +44,6 @@
  */
 
 import {
-  CHEST,
   daysBetween,
   isDayKey,
   isQuestId,
@@ -95,15 +94,15 @@ export interface QuestDayRow {
   at: number;
 }
 
-/** A quest (or the day's chest) claimed, and the XP it was worth. */
+/** A quest claimed, and the XP it was worth. */
 export interface QuestClaimRow {
   day: DayKey;
-  questId: QuestId | typeof CHEST;
+  questId: QuestId;
   xp: number;
   at: number;
 }
 
-/** Quests claimed in a calendar month (chest excluded) and all quest XP that month. */
+/** Quests claimed in a calendar month and all quest XP that month. */
 export interface QuestMonth {
   month: string;
   count: number;
@@ -275,6 +274,8 @@ export function isBadgeId(value: unknown): value is string {
 
 export function isSeenKey(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > MAX_SEEN_KEY || !SEEN_KEY.test(value)) return false;
+  // A retired kind is not a key any build writes now.
+  if ((RETIRED_SEEN_KINDS as readonly string[]).includes(value.split(':')[0] ?? '')) return false;
   // A day-scoped kind without a real day second is not a key this build writes.
   return !isDaySeenKey(value) || seenDay(value) !== null;
 }
@@ -296,8 +297,8 @@ export function isBonusKey(value: unknown): value is string {
 
 /**
  * The kinds of celebration that belong to one day, and so may be forgotten
- * `SEEN_KEEP_DAYS` after the newest of them: the streak extended that day and
- * the day's quest chest. Every other key is durable and kept for good, because
+ * `SEEN_KEEP_DAYS` after the newest of them: the streak extended that day.
+ * Every other key is durable and kept for good, because
  * a milestone, a level, a badge or a purchase must never play twice however
  * long ago it was. Decided by the kind and never by the shape of the rest of
  * the key, so `milestone:100:2026-10-05` has a date in it and still never ages
@@ -306,9 +307,16 @@ export function isBonusKey(value: unknown): value is string {
  * This is the one rule; `celebrate/events.ts` re-exports it as `isDaySeenKey`
  * and `SEEN_DAY_KEPT_DAYS`.
  */
-export const DAY_SEEN_KINDS = ['streak', 'chest'] as const;
+export const DAY_SEEN_KINDS = ['streak'] as const;
 
-/** True when a seen key names a day-scoped moment (`streak:<day>`, `chest:<day>`). */
+/**
+ * Kinds no build writes any more, refused by the reader like any other row it
+ * would not write. `chest:<day>` went with the quest chest (founder decision
+ * D22, F773) before any build that wrote it shipped, so nothing stored needs it.
+ */
+export const RETIRED_SEEN_KINDS = ['chest'] as const;
+
+/** True when a seen key names a day-scoped moment (`streak:<day>`). */
 export function isDaySeenKey(key: string): boolean {
   return (DAY_SEEN_KINDS as readonly string[]).includes(key.split(':')[0] ?? '');
 }
@@ -356,7 +364,7 @@ export function isClaim(value: unknown): value is QuestClaimRow {
     isRecord(value) &&
     hasOnly(value, ['day', 'questId', 'xp', 'at']) &&
     isDayKey(value.day) &&
-    (value.questId === CHEST || isQuestId(value.questId)) &&
+    isQuestId(value.questId) &&
     isCount(value.xp, MAX_ROW_XP) &&
     isTime(value.at)
   );
@@ -612,7 +620,7 @@ function rolledUp(rows: GameRows): GameRows {
     const held = quests.get(month) ?? { month, count: 0, xp: 0 };
     quests.set(month, {
       month,
-      count: held.count + (claim.questId === CHEST ? 0 : 1),
+      count: held.count + 1,
       xp: Math.min(MAX_MONTH_XP, held.xp + claim.xp),
     });
   }

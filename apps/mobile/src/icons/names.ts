@@ -44,7 +44,6 @@ export type IconName =
   | 'forward'
   | 'freeze'
   | 'friends-place'
-  | 'gift'
   | 'headphones'
   | 'help'
   | 'hint'
@@ -131,7 +130,6 @@ export type BulkIconName =
   | 'food'
   | 'freeze'
   | 'friends-place'
-  | 'gift'
   | 'headphones'
   | 'home'
   | 'home-place'
@@ -207,7 +205,6 @@ export const ICON_NAMES: readonly IconName[] = [
   'forward',
   'freeze',
   'friends-place',
-  'gift',
   'headphones',
   'help',
   'hint',

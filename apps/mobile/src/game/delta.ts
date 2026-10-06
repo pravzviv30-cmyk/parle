@@ -34,7 +34,7 @@ export interface GameDelta {
     readonly capped: boolean;
     /** Fixed XP credited outside the activity log for this sitting (+5 on an ungraded win, D6). */
     readonly bonus: number;
-    /** Quest and chest XP credited by this sitting. */
+    /** Quest XP credited by this sitting, +10 for each quest it finished. */
     readonly questXp: number;
     readonly totalBefore: number;
     readonly totalAfter: number;
@@ -60,10 +60,14 @@ export interface GameDelta {
   readonly quests: {
     /** Quests this sitting completed, in slot order. */
     readonly completedNow: readonly QuestId[];
-    /** True only on the sitting that completed the third quest of the day. */
-    readonly chestNow: boolean;
-    /** Quests done today after this sitting, 0 to 3. */
+    /** Quests done today after this sitting, 0 to 3. Read `allQuestsDoneNow` for the sitting that finished the third. */
     readonly done: number;
+    /**
+     * Quests done today just before this sitting's own claims landed, 0 to 3,
+     * counted from the same merged facts as `done`. A quest another phone
+     * finished, even one that synced in while this sitting ran, was done before.
+     */
+    readonly doneBefore: number;
   };
   readonly level: {
     /** Display level (xpLevelFor) before and after. Never a level name. */
@@ -72,4 +76,21 @@ export interface GameDelta {
   };
   /** Badge ids awarded by this sitting, in catalogue order. */
   readonly badges: readonly string[];
+}
+
+/** The number of quests a day deals. */
+const QUESTS_A_DAY = 3;
+
+/**
+ * True on the sitting that finished the day's third quest: its own claims took
+ * the day from fewer than three done to three. That sitting's end card says
+ * "All three quests done today." with the `quest` sound, and nothing else
+ * happens: no chest, no extra XP, no takeover (founder decision D22). Once a
+ * day reads three it stays three, so a later sitting that finishes another
+ * quest (one from another phone's deal, after a merge) is not this sitting:
+ * every later end that day still reads the quiet line, silently.
+ */
+export function allQuestsDoneNow(delta: Pick<GameDelta, 'quests'>): boolean {
+  const { completedNow, done, doneBefore } = delta.quests;
+  return completedNow.length > 0 && doneBefore < QUESTS_A_DAY && done >= QUESTS_A_DAY;
 }

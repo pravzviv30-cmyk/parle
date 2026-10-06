@@ -346,13 +346,13 @@ core from these facts and the activity log every time.
 | `covers` | a streak cover: day, kind (`freeze`, `repair` or `travel`), moment | union by day, the earliest written, then travel, repair, freeze | 2,000 days, never aged |
 | `goalDays` | a local day the daily goal was met | sorted set union | 2,000 days |
 | `questDays` | the three quest ids a day was dealt, frozen the first time | union by day, the earliest | 60 days |
-| `claims` | a quest or the day's chest claimed, with its XP | union by `(day, quest)`, the earliest | 62 days behind the newest claim |
-| `questMonths` | quests claimed (chest excluded) and quest XP per calendar month | each field the max | 600 months |
+| `claims` | a quest claimed, with its XP (+10) | union by `(day, quest)`, the earliest | 62 days behind the newest claim |
+| `questMonths` | quests claimed and quest XP per calendar month | each field the max | 600 months |
 | `xpMonths` | capped activity XP per month | the max | 600 months |
 | `bonus` | the fixed +5 "for practising" XP, keyed `<kind>:<day or epoch ms>` | union by key, the earliest | 62 days behind the newest key's day, 400 rows |
 | `bonusMonths` | fixed XP per month | the max | 600 months |
 | `badges` | a badge id and the moment it was earned, or null when counted from older practice | union by id, a dated award beats null, then the earliest | never aged; 500 ids |
-| `seen` | a celebration key already played, anywhere | union by key, the earliest | `streak:<day>` and `chest:<day>` 60 days behind the newest; every other kind (milestone, level, badge, purchase) kept for good; 800 keys |
+| `seen` | a celebration key already played, anywhere | union by key, the earliest | `streak:<day>` 60 days behind the newest; every other kind (milestone, level, badge, purchase) kept for good; 800 keys |
 
 Every rule is a set union or a maximum, every collision is settled by a total order and
 every bound keeps the last rows of a sorted set ranked by identity, so the merge is
@@ -368,7 +368,7 @@ kept by an older one even when it cannot draw it. A new quest id, cover kind or 
 source is a new value an older build refuses, so it must raise the version.
 
 Which celebration keys age out is decided by the key's kind and nothing else
-(`isDaySeenKey` in `game/model.ts`): only `streak:` and `chest:` belong to a day. A
+(`isDaySeenKey` in `game/model.ts`): only `streak:` belongs to a day. A
 milestone key holds a date and must still never age out, whichever order its parts are
 written in, or the milestone plays again. `celebrate/events.ts` (Phase 1) carries its
 own copy of that rule and should import this one. A key is a lowercase kind and up to
@@ -381,7 +381,8 @@ bytes, and the adopter declines. An empty list offered to a write is nothing to 
 and answers `durable`, as `progress/activity.ts` does, because the settle pipeline will
 offer lists that are empty on most sittings. The largest blob the reader accepts is
 built in `game/capacityFixture.ts`, with every moment at the sixteen digits the reader
-allows, and measured at about 441 KB sealed, inside the 512 KiB envelope;
+allows, and measured at about 436 KB sealed (441 KB before the chest claims went,
+D22), inside the 512 KiB envelope;
 `scripts/verifyDataBoundaries.mjs` writes it into a disposable database too, where the
 server's own byte limit measures the jsonb as text. That is why `activeMs` has a
 ceiling: an uncapped double such as 1e308 is 23 characters on the phone and 309 digits
@@ -451,7 +452,7 @@ has played. A changed account makes it answer null and write nothing more. Until
 existing-learner seed has run on this phone (`gameLocal.introducedAt`) a settle awards
 no badge and plays nothing. `GameProvider` runs that seed once per account per phone
 (badges derivable from saved practice, dated from the data or `null`; `xpMonths`; no
-cover; every current streak, milestone, level, badge and chest key marked seen, with the
+cover; every current streak, milestone, level and badge key marked seen, with the
 durable `intro` key) and shows the one intro sheet only to a learner with practice days
 whose account was never introduced. On mount, foreground and a screen's `refresh` it
 runs the quiet catch-up, which reconciles the same facts (freezes only), marks what is
@@ -459,9 +460,18 @@ true seen without playing it, and replays only a durable moment a crash cut shor
 a sitting that begins while it runs stops it (`settleEpochNow`), so the sitting keeps its
 own moments. Two devices can be dealt different quests for one day; after a merge the
 earliest deal is shown, and a quest the other device credited stays earned (its claim
-counts in the XP total and the monthly quest count, and the day reads all three done once
-its chest is claimed). Re-planning tonight's reminder is Phase 4; its seam is
-`onSettled`.
+counts in the XP total, the monthly quest count and the day's count of quests done, which
+reads every quest claimed that day up to three and so never falls after a merge).
+Re-planning tonight's reminder is Phase 4; its seam is `onSettled`.
+
+There is no quest chest (founder decision D22, F773). A claim is a quest, +10, and
+nothing else; finishing all three is one quiet line on the end card. The delta's
+`doneBefore` is the day's count from the merged facts less the sitting's own claims, so
+the line's `quest` sound plays only for the sitting whose own claims took the day to
+three, never again after a merge or a sync that lands mid-sitting. The reader refuses
+a `chest` claim and a `chest:<day>` seen key as rows no build writes
+(`RETIRED_SEEN_KINDS`). Nothing that wrote them shipped, so no stored data was
+migrated.
 
 ### The pre-recap window
 

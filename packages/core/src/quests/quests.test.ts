@@ -2,8 +2,6 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  CHEST,
-  CHEST_XP,
   MONTHLY_QUEST_TARGET,
   QUESTS,
   QUEST_XP,
@@ -214,8 +212,8 @@ describe('quest progress and claims', () => {
   });
 
   test('each quest and the chest is claimed once a day', () => {
+    // D22: there is no chest. Each quest is claimed once a day, and finishing all three claims nothing more.
     assert.equal(QUEST_XP, 10);
-    assert.equal(CHEST_XP, 15);
     const ids: QuestId[] = ['finish-practice', 'practice-set', 'minutes'];
     const day = '2026-10-05';
     const partway: DayFacts = { ...noFacts, finished: 1, practiceSets: 1, minutes: 3 };
@@ -228,9 +226,11 @@ describe('quest progress and claims', () => {
     ];
     assert.deepEqual(questsToClaim({ day, ids, facts: partway, goalTarget: 10, claims }), []);
     const done: DayFacts = { ...partway, minutes: 6 };
-    assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims }), ['minutes', CHEST]);
-    const all: QuestClaim[] = [...claims, { day, questId: 'minutes' }, { day, questId: CHEST }];
-    assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: all }), []);
+    assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims }), ['minutes'], 'finishing the third quest claimed something beyond it');
+    const all: QuestClaim[] = [...claims, { day, questId: 'minutes' }];
+    assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: all }), [], 'a day with all three claimed still had something to claim');
+    // A day whose three are all done at once claims the three, and only the three.
+    assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: [] }), ['finish-practice', 'practice-set', 'minutes']);
   });
 
   test('the monthly count goes by calendar month, counts each quest once and leaves out the chest', () => {
@@ -238,7 +238,6 @@ describe('quest progress and claims', () => {
     const claims: QuestClaim[] = [
       { day: '2026-10-01', questId: 'minutes' },
       { day: '2026-10-01', questId: 'minutes' }, // the same claim from a second device
-      { day: '2026-10-01', questId: CHEST },
       { day: '2026-10-31', questId: 'xp' },
       { day: '2026-11-01', questId: 'xp' },
       { day: '2026-09-30', questId: 'goal' },

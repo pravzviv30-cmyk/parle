@@ -10,8 +10,8 @@
  * Two rules matter most.
  *
  * - **One shown cap.** Activity XP is counted under `DAILY_XP_CAP` (100 a day),
- *   the same cap that pitches content difficulty (README Part 6). Quest, chest
- *   and the fixed +5 "for practising" XP are kept in the game store, outside the
+ *   the same cap that pitches content difficulty (README Part 6). Quest XP and
+ *   the fixed +5 "for practising" XP are kept in the game store, outside the
  *   activity log, so no new activity kind ever exists (F731).
  * - **The total never falls.** Each month counts the larger of the stored
  *   rollup and what the live rows still show, so an activity entry aging out of
@@ -24,13 +24,13 @@
  * the learner finished and the device credited stays earned: its claim is a
  * persisted event, the store's monthly rollups already count it, and taking it
  * back would make the total fall. So XP and the monthly quest count read every
- * claim; the day's rows read the deal shown; and `done` reads all three once
- * the chest is claimed, because the chest is only ever claimed for a deal whose
- * three were all done.
+ * claim; the day's rows read the deal shown; and `done` counts every quest
+ * claimed today, whichever device's deal it came from, up to three. Claims
+ * only ever join, so the day's count never falls after a merge, and "All three
+ * quests done today." is said only once three quests really were (D22).
  */
 
 import {
-  CHEST,
   DAILY_XP_CAP,
   freezesHeld,
   goalProgressFrom,
@@ -131,13 +131,12 @@ export interface QuestsView {
   /** Today's three, or null until they are dealt. */
   ids: readonly QuestId[] | null;
   progress: readonly QuestProgress[];
-  claimed: readonly (QuestId | typeof CHEST)[];
+  claimed: readonly QuestId[];
   /**
-   * Today's quests done, 0 to 3: the dealt ones claimed, or all three once the
-   * chest is claimed, so the count and the chest never disagree.
+   * Today's quests done, 0 to 3: every quest claimed today, on this device or
+   * another, up to the three a day holds. Never falls within a day.
    */
   done: number;
-  chest: boolean;
   facts: DayFacts;
 }
 
@@ -254,11 +253,10 @@ export function dayFactsFrom(facts: GameFacts, today: DayKey, goal: GoalProgress
   };
 }
 
-/** Quests claimed per month, the larger of the rollup and the live claims, chest excluded. */
+/** Quests claimed per month, the larger of the rollup and the live claims. */
 function questMonthCounts(game: StoredGame): { month: string; count: number }[] {
   const live = new Map<string, number>();
   for (const claim of game.claims) {
-    if (claim.questId === CHEST) continue;
     const month = questMonthOf(claim.day);
     live.set(month, (live.get(month) ?? 0) + 1);
   }
@@ -282,6 +280,15 @@ export function badgeFactsFrom(facts: GameFacts, view: Pick<GameView, 'streak' |
   };
 }
 
+/**
+ * A day's quests done, 0 to 3: every distinct quest claimed that day, whichever
+ * device's deal it came from, up to the three the deal holds. Nothing is done
+ * on a day not dealt yet. `settle.ts` counts a sitting's `doneBefore` with it.
+ */
+export function questsDoneOf(ids: readonly QuestId[] | null, claimed: readonly QuestId[]): number {
+  return ids === null ? 0 : Math.min(ids.length, new Set(claimed).size);
+}
+
 export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = localDayKey): GameView {
   const streakInput = { practiceDays: facts.practiceDays, covers: facts.game.covers, today };
   const streak = streakFrom(streakInput);
@@ -293,7 +300,6 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
   const held = facts.game.questDays.find((row) => row.day === today);
   const ids = held ? [...held.ids] : null;
   const claimed = facts.game.claims.filter((c) => c.day === today).map((c) => c.questId);
-  const chest = claimed.includes(CHEST);
   const todayRaw = facts.activity.filter((e) => dayOf(e.at) === today).reduce((sum, e) => sum + Math.max(0, e.xp), 0);
   return {
     today,
@@ -307,8 +313,7 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
       ids,
       progress: ids === null ? [] : ids.map((id) => questProgress(id, dayFacts, facts.outside.goalTarget)),
       claimed,
-      done: ids === null ? 0 : chest ? ids.length : ids.filter((id) => claimed.includes(id)).length,
-      chest,
+      done: questsDoneOf(ids, claimed),
       facts: dayFacts,
     },
     badges: facts.game.badges,
@@ -316,7 +321,7 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
 }
 
 /**
- * The celebration keys for what is true now: today's streak and chest, the
+ * The celebration keys for what is true now: today's streak, the
  * largest milestone of the live run, the current level and every badge held.
  * The existing-learner seed and the quiet catch-up mark these seen, so a fact
  * the learner already has never bursts onto the screen as news.
@@ -326,7 +331,6 @@ export function currentMomentKeys(view: GameView): string[] {
   if (view.streak.today === 'practised') keys.push(celebrationKey.streak(view.today));
   const milestone = milestoneCrossed(0, view.streak.current);
   if (milestone !== null && view.streak.runStart !== null) keys.push(celebrationKey.milestone(milestone, view.streak.runStart));
-  if (view.quests.chest) keys.push(celebrationKey.chest(view.today));
   if (view.level.level >= 2) keys.push(celebrationKey.level(view.level.level));
   for (const badge of view.badges) keys.push(celebrationKey.badge(badge.id));
   return keys;

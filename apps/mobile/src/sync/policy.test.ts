@@ -387,10 +387,7 @@ function genGame(pick: Chooser): unknown {
     covers: list(5, () => ({ day: day(30), kind: pick.one(['freeze', 'repair', 'travel']), at: at(3) })),
     goalDays: list(5, () => day(60)),
     questDays: list(4, () => ({ day: day(80), ids: pick.bool() ? ['finish-practice', 'phrase-of-day', 'minutes'] : ['practise-twice', 'conversation', 'xp'], at: at(2) })),
-    claims: list(8, () => {
-      const questId = pick.bool() ? 'chest' : pick.one(quests);
-      return { day: day(120), questId, xp: questId === 'chest' ? 15 : 10, at: at(2) };
-    }),
+    claims: list(8, () => ({ day: day(120), questId: pick.one(quests), xp: 10, at: at(2) })),
     questMonths: list(3, () => ({ month: pick.one(['2026-01', '2026-02', '2026-03']), count: pick.int(40), xp: pick.int(500) })),
     xpMonths: list(3, () => ({ month: pick.one(['2026-01', '2026-02']), xp: pick.int(3000) })),
     bonus: list(5, () => ({ key: pick.bool() ? `phrase:${day(120)}` : `review:${BASE + pick.int(120) * DAY}`, xp: 5, at: at(3) })),

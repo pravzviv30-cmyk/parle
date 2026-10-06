@@ -22,6 +22,8 @@ function delta(change: {
   goal?: Partial<GameDelta['goal']>;
   quests?: Partial<GameDelta['quests']>;
 } = {}): GameDelta {
+  const completedNow = change.quests?.completedNow ?? [];
+  const done = change.quests?.done ?? 0;
   return {
     key: 'sitting:drill:1791000000000',
     source: change.source ?? 'drill',
@@ -30,7 +32,8 @@ function delta(change: {
     xp: { earned: 30, counted: 30, capped: false, bonus: 0, questXp: 0, totalBefore: 100, totalAfter: 130, ...change.xp },
     goal: { target: 10, minutesBefore: 4, minutesAfter: 9, metNow: false, ...change.goal },
     streak: { before: RUN, after: RUN, extendedNow: false, milestone: null, restoredBy: null },
-    quests: { completedNow: [], chestNow: false, done: 0, ...change.quests },
+    // Unless a test says otherwise, the day stood at what this sitting's own quests added to.
+    quests: { completedNow, done, doneBefore: Math.max(0, done - completedNow.length), ...change.quests },
     level: { before: 3, after: 3 },
     badges: [],
   };
@@ -89,6 +92,12 @@ describe('the end card — F743', () => {
     assert.equal(view.questProgress, '2 of 3 quests done today');
     assert.equal(endCardView(delta({ quests: { done: 3 } })).questProgress, 'All three quests done today.');
     assert.equal(endCardView(delta()).questProgress, null);
+    // The quest sound plays with the quiet line only on the sitting that finished the third quest (D22).
+    assert.equal(endCardView(delta({ quests: { completedNow: ['goal'], done: 3 } })).timeline, 'end-card-quests');
+    assert.equal(endCardView(delta({ quests: { done: 3 } })).timeline, 'end-card', 'a day already done played the quest sound again');
+    // After a merge a day can already read three, and a sitting that then finishes a quest of its own deal did not finish the day.
+    assert.equal(endCardView(delta({ quests: { completedNow: ['conversation'], done: 3, doneBefore: 3 } })).timeline, 'end-card', 'a quest finished on a day already done played the quest sound again');
+    assert.equal(view.timeline, 'end-card', 'two of three quests played the quest sound');
     const xpQuest = endCardView(delta({ quests: { completedNow: ['xp'], done: 1 } })).quests[0]!;
     assert.doesNotMatch(xpQuest, /\{|\}/, 'a quest title kept a placeholder');
   });

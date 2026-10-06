@@ -56,7 +56,6 @@ import type { TakeoverCard } from './queue.ts';
 import { BadgeEarned } from './templates/BadgeEarned.tsx';
 import { LevelUp } from './templates/LevelUp.tsx';
 import { PurchaseConfirmed } from './templates/PurchaseConfirmed.tsx';
-import { QuestChest } from './templates/QuestChest.tsx';
 import type { StageProps } from './templates/stage.tsx';
 import { StreakExtended } from './templates/StreakExtended.tsx';
 import { StreakMilestone } from './templates/StreakMilestone.tsx';
@@ -71,7 +70,6 @@ const STAGES: Readonly<Record<TakeoverType, (props: StageProps) => ReactElement>
   'purchase-confirmed': PurchaseConfirmed,
   'streak-milestone': StreakMilestone,
   'streak-extended': StreakExtended,
-  'quest-chest': QuestChest,
   'level-up': LevelUp,
   'badge-earned': BadgeEarned,
 };

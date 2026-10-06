@@ -20,10 +20,15 @@
 
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CHEST, DAY_ONE_QUESTS, addDays, localDayKey, streakFrom, xpCreditedFor, type QuestId } from '@luvani/core';
+import { DAY_ONE_QUESTS, addDays, isQuestId, localDayKey, streakFrom, xpCreditedFor, type QuestId } from '@luvani/core';
 
+import { endCardView } from '../celebrate/endCardModel.ts';
 import { attachCelebrationListener, discardBufferedCelebrations, type CelebrationEvent } from '../celebrate/events.ts';
+import { TIMELINES } from '../celebrate/timelines.ts';
 import type { GuestPractice } from '../onboarding/guestModel.ts';
 import { loadActiveDays, loadActivity, recordActiveDay, recordActivity, recordActivityOnce } from '../progress/activity.ts';
 import { setActiveUser } from '../storage/scope.ts';
@@ -31,9 +36,10 @@ import { createSyncPolicy } from '../sync/policy.ts';
 import { resetSyncRegistry } from '../sync/registry.ts';
 import { catchUpQuietly, seedExistingLearner } from './catchUp.ts';
 import { GAME_COPY } from './copy.ts';
+import { allQuestsDoneNow } from './delta.ts';
 import { loadGameLocal, setPaidSince } from './gameLocal.ts';
 import { settleGuestHandoff } from './guestHandoff.ts';
-import type { StoredGame } from './model.ts';
+import { emptyGame, readGame, type StoredGame } from './model.ts';
 import { beginSettle, configureGameEnvironment, finishSettle, readGameFacts, settleSitting } from './settle.ts';
 import { addClaims, loadGame, setQuestDay } from './store.ts';
 import { NO_OUTSIDE_FACTS, badgeFactsFrom, gameViewFrom, type BillingFacts } from './view.ts';
@@ -160,8 +166,9 @@ describe('settling a finished sitting — F744', () => {
     assert.deepEqual(game.questDays.map((row) => [row.day, row.ids]), [[TODAY, [...DAY_ONE_QUESTS]]]);
     assert.deepEqual(game.claims.map((c) => [c.questId, c.xp]).sort(), [['finish-practice', 10], ['minutes', 10]]);
     assert.deepEqual(delta.quests.completedNow, ['finish-practice', 'minutes']);
-    assert.equal(delta.quests.chestNow, false);
+    assert.equal(allQuestsDoneNow(delta), false, 'two of three quests read as all three done');
     assert.equal(delta.quests.done, 2);
+    assert.equal(delta.quests.doneBefore, 0);
 
     // The badge, dated by the settle, and the XP and level read back from disk.
     assert.deepEqual(game.badges, [{ id: 'first-conversation', at: NOW }]);
@@ -212,15 +219,17 @@ describe('settling a finished sitting — F744', () => {
     assert.deepEqual(held.sittings, [{ at: phraseAt, source: 'phrase', activeMs: 90_000 }]);
     assert.deepEqual(held.bonus.map((b) => [b.key, b.xp]), [[`phrase:${TODAY}`, 5]]);
     assert.equal((await loadActivity({ strict: true })).length, 1, 'a zero-XP sitting wrote an activity entry');
-    // It finished today's phrase quest, the third of three, so the chest opens once.
+    // It finished today's phrase quest, the third of three: the quest's own +10 and nothing more (D22).
     assert.deepEqual(phrase.quests.completedNow, ['phrase-of-day']);
-    assert.equal(phrase.quests.chestNow, true);
-    assert.equal(phrase.xp.questXp, 25);
-    assert.deepEqual(heard.map((e) => [e.type, e.key]), [['quest-chest', `chest:${TODAY}`]]);
-    assert.deepEqual(heard[0]!.data, { day: TODAY, xp: 15 });
+    assert.equal(phrase.quests.done, 3);
+    assert.equal(phrase.quests.doneBefore, 2);
+    assert.equal(allQuestsDoneNow(phrase), true, 'the sitting that finished the third quest was not told so');
+    assert.equal(phrase.xp.questXp, 10);
+    assert.deepEqual(heard.map((e) => [e.type, e.key]), [], 'finishing the third quest played a takeover');
     const twice = await finishSettle(await beginSettle(), { source: 'phrase', at: phraseAt, xpEarned: 0, activeMs: 90_000 });
     assert.equal(twice?.xp.bonus, 0, 'the +5 for practising was credited twice');
-    assert.equal(twice?.quests.chestNow, false, 'the chest opened twice');
+    assert.equal(twice === null ? true : allQuestsDoneNow(twice), false, 'a replay said the third quest was finished again');
+    assert.equal(twice?.quests.doneBefore, 3, 'a replay counted its own day as not done yet');
     assert.equal((await loadGame()).bonus.length, 1);
   });
 
@@ -632,6 +641,7 @@ describe('settling a finished sitting, after review — F744', () => {
   });
 
   test('two devices dealt different quests keep every quest they credited after a merge, and the chest and the count agree', async () => {
+    // D22: there is no chest. The count alone says the day is done, and it never falls after a merge.
     // The phone dealt first and finished one of its three.
     const phoneDeal: [QuestId, QuestId, QuestId] = ['phrase-of-day', 'conversation', 'new-phrases'];
     assert.equal(await setQuestDay({ day: TODAY, ids: phoneDeal, at: NOW - 2 * HOUR }), 'durable');
@@ -642,14 +652,10 @@ describe('settling a finished sitting, after review — F744', () => {
     disk = installDisk();
     const tabletDeal: [QuestId, QuestId, QuestId] = ['practise-twice', 'practice-set', 'sound-check'];
     assert.equal(await setQuestDay({ day: TODAY, ids: tabletDeal, at: NOW - HOUR }), 'durable');
-    assert.equal(
-      await addClaims([
-        ...tabletDeal.map((questId) => ({ day: TODAY, questId, xp: 10, at: NOW - HOUR })),
-        { day: TODAY, questId: CHEST, xp: 15, at: NOW - HOUR },
-      ]),
-      'durable',
-    );
+    assert.equal(await addClaims(tabletDeal.map((questId) => ({ day: TODAY, questId, xp: 10, at: NOW - HOUR }))), 'durable');
     const tablet = JSON.parse(disk.get(gameKey())!) as StoredGame;
+    // On its own the tablet's day reads all three done.
+    assert.equal(gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null), TODAY).quests.done, 3);
 
     const game = merge('game', phone, tablet) as StoredGame;
     assert.deepEqual(game.questDays.map((row) => row.ids), [phoneDeal], 'the earliest deal is not the one kept');
@@ -658,18 +664,34 @@ describe('settling a finished sitting, after review — F744', () => {
     const facts = await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null);
     const view = gameViewFrom(facts, TODAY);
     assert.deepEqual(view.quests.ids, phoneDeal);
-    assert.equal(view.quests.chest, true);
-    assert.equal(view.quests.done, 3, 'the chest is open and the count says the day is not done');
-    assert.equal(view.xp.quests, 10 + 3 * 10 + 15, 'a quest one device credited was taken back by the merge');
+    assert.equal(view.quests.done, 3, 'the tablet finished three quests today and the merged count says the day is not done');
+    assert.equal(view.xp.quests, 10 + 3 * 10, 'a quest one device credited was taken back by the merge');
     assert.deepEqual(badgeFactsFrom(facts, view).questMonths, [{ month: TODAY.slice(0, 7), count: 4 }]);
 
-    // The next sitting on the merged facts takes nothing back and opens no second chest.
+    // The next sitting on the merged facts takes nothing back, adds no XP for the day being done and says nothing new.
     const delta = await drill(NOW, 10);
     assert.ok(delta);
-    assert.equal(delta.quests.chestNow, false);
+    assert.deepEqual(delta.quests.completedNow, []);
+    assert.equal(allQuestsDoneNow(delta), false, 'a sitting that finished no quest said the third was just finished');
     assert.equal(delta.quests.done, 3);
+    assert.equal(delta.xp.questXp, 0);
     assert.ok(delta.xp.totalAfter >= delta.xp.totalBefore + delta.xp.counted);
-    assert.equal((await loadGame()).claims.filter((claim) => claim.questId === CHEST).length, 1);
+    const claims = (await loadGame()).claims;
+    assert.equal(claims.length, 4);
+    assert.ok(claims.every((claim) => isQuestId(claim.questId)), 'a claim that is not a quest was written');
+
+    // A conversation later that day finishes a quest of the phone's own deal: its +10, and nothing more.
+    // The day already read all three done, so it is not the sitting that finished the third (D22).
+    const talk = await convo(NOW + HOUR, 40, 6 * MINUTE);
+    assert.ok(talk);
+    assert.deepEqual(talk.quests.completedNow, ['conversation']);
+    assert.equal(talk.xp.questXp, 10);
+    assert.equal(talk.quests.doneBefore, 3);
+    assert.equal(talk.quests.done, 3);
+    assert.equal(allQuestsDoneNow(talk), false, 'a quest finished on a day already done said the third was just finished');
+    assert.equal(endCardView(talk).questProgress, GAME_COPY.quests.progress(3));
+    assert.equal(endCardView(talk).timeline, 'end-card', 'the quest sound played a second time in one day');
+    assert.equal((await loadGame()).claims.length, 5);
   });
 
   test('a sitting whose account changes while its snapshot is read never starts its write', async () => {
@@ -749,5 +771,120 @@ describe('settling a finished sitting, after review — F744', () => {
     setActiveUser(uid);
     disk.set(activityKey(), '{broken');
     assert.equal((await settleGuestHandoff(guest)).ack, 'failed');
+  });
+});
+
+/** Every source file under a folder, tests included, as `[path, text]`. */
+function sourcesUnder(dir: string): [string, string][] {
+  return (readdirSync(dir, { recursive: true }) as string[])
+    .filter((name) => /\.(?:ts|tsx|mjs)$/.test(name))
+    .map((name) => [join(dir, name), readFileSync(join(dir, name), 'utf8')]);
+}
+
+describe('quests without a chest — F773', () => {
+  test('finishing all three quests shows one quiet line and no chest', async () => {
+    // Founder decision D22: quests stay, +10 each, and finishing all three is one quiet line with the quest sound.
+    assert.equal(await seedExistingLearner(), null);
+
+    // Two of today's three (day one, with a microphone): a conversation finishes a practice and five minutes.
+    const first = await convo(NOW, 40, 6 * MINUTE);
+    assert.ok(first);
+    assert.deepEqual(first.quests.completedNow, ['finish-practice', 'minutes']);
+    const partway = endCardView(first);
+    assert.equal(partway.questProgress, GAME_COPY.quests.progress(2));
+    assert.equal(partway.timeline, 'end-card', 'two of three quests played the quest sound');
+
+    // The third: today's phrase.
+    heard = [];
+    const phraseAt = NOW + HOUR;
+    const settling = await beginSettle();
+    assert.equal(await recordActiveDay(phraseAt), 'durable');
+    const third = await finishSettle(settling, { source: 'phrase', at: phraseAt, xpEarned: 0, activeMs: 90_000 });
+    assert.ok(third);
+    assert.deepEqual(third.quests.completedNow, ['phrase-of-day']);
+    assert.equal(third.quests.done, 3);
+    assert.equal(allQuestsDoneNow(third), true);
+
+    // No chest claim is written and no chest XP is credited: three quests at +10, and nothing more.
+    const game = await loadGame();
+    assert.deepEqual(game.claims.map((claim) => [claim.questId, claim.xp]).sort(), [['finish-practice', 10], ['minutes', 10], ['phrase-of-day', 10]], 'finishing all three wrote a claim that is not a quest');
+    assert.equal(third.xp.questXp, 10, 'finishing the third quest credited more than the quest itself');
+    assert.equal(gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null), TODAY).xp.quests, 30);
+
+    // No takeover is published for it, and no chest key is queued or remembered.
+    assert.deepEqual(heard.map((event) => event.type), [], 'finishing all three quests published a takeover');
+    assert.ok(!game.seen.some((mark) => mark.key.startsWith('chest')), 'a chest key was marked seen');
+    assert.ok(!(await loadGameLocal()).pending.some((item) => item.key.startsWith('chest')), 'a chest moment waits to play');
+
+    // The end card says the one quiet line, with the quest sound as it lands.
+    const card = endCardView(third);
+    assert.equal(card.questProgress, 'All three quests done today.');
+    assert.equal(card.timeline, 'end-card-quests');
+    assert.deepEqual(TIMELINES[card.timeline].beats.flatMap((beat) => (beat.sound === undefined ? [] : [beat.sound])), ['complete', 'quest']);
+    // A later practice that day still reads the line, without the sound again.
+    const later = await drill(NOW + 2 * HOUR, 10);
+    assert.ok(later);
+    assert.equal(endCardView(later).questProgress, 'All three quests done today.');
+    assert.equal(endCardView(later).timeline, 'end-card', 'the quest sound played for a day already done');
+
+    // The reader refuses what only a chest wrote; the rows beside it still read.
+    assert.equal(await addClaims([{ day: TODAY, questId: 'chest' as QuestId, xp: 15, at: NOW }]), 'failed', 'the store took a chest claim');
+    assert.equal(readGame({ ...emptyGame(), claims: [{ day: TODAY, questId: 'chest', xp: 15, at: NOW }] }), null);
+    assert.equal(readGame({ ...emptyGame(), seen: [{ key: `chest:${TODAY}`, at: NOW }] }), null);
+    assert.notEqual(readGame({ ...emptyGame(), seen: [{ key: `streak:${TODAY}`, at: NOW }] }), null);
+
+    // And no source in the app or in core names the chest's XP, its takeover, its template or its delta flag.
+    const banned = [['CHEST', 'XP'].join('_'), ['quest', 'chest'].join('-'), ['Quest', 'Chest'].join(''), ['chest', 'Now'].join(''), ['GAME_COPY', 'chest'].join('.'), ['celebrationKey', 'chest'].join('.')];
+    const roots = [fileURLToPath(new URL('../', import.meta.url)), fileURLToPath(new URL('../../../../packages/core/src/', import.meta.url))];
+    let read = 0;
+    for (const root of roots) {
+      for (const [path, text] of sourcesUnder(root)) {
+        read += 1;
+        for (const name of banned) assert.ok(!text.includes(name), `${path} names ${name}, which went with the chest (D22)`);
+      }
+    }
+    assert.ok(read > 300, `only ${read} sources were read, so this scan proves nothing`);
+  });
+
+  test('a day another phone finished while this one practised plays no quest sound again', async () => {
+    // The phone's deal, one of its three done.
+    const phoneDeal: [QuestId, QuestId, QuestId] = ['phrase-of-day', 'conversation', 'new-phrases'];
+    assert.equal(await setQuestDay({ day: TODAY, ids: phoneDeal, at: NOW - 2 * HOUR }), 'durable');
+    assert.equal(await addClaims([{ day: TODAY, questId: 'phrase-of-day', xp: 10, at: NOW - 2 * HOUR }]), 'durable');
+    const phone = JSON.parse(disk.get(gameKey())!) as StoredGame;
+
+    // The tablet was dealt three others and finished them all: its own end card already said so.
+    disk = installDisk();
+    const tabletDeal: [QuestId, QuestId, QuestId] = ['practise-twice', 'practice-set', 'sound-check'];
+    assert.equal(await setQuestDay({ day: TODAY, ids: tabletDeal, at: NOW - HOUR }), 'durable');
+    assert.equal(await addClaims(tabletDeal.map((questId) => ({ day: TODAY, questId, xp: 10, at: NOW - HOUR }))), 'durable');
+    const tablet = JSON.parse(disk.get(gameKey())!) as StoredGame;
+    const merged = merge('game', phone, tablet) as StoredGame;
+
+    // Back on the phone, the day reads one of three as a conversation starts.
+    disk = installDisk();
+    disk.set(gameKey(), JSON.stringify(phone));
+    assert.equal(gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null), TODAY).quests.done, 1);
+
+    // The tablet's day syncs in while the conversation runs, and the conversation finishes a quest of the phone's deal.
+    const talk = await settleSitting({
+      source: 'convo',
+      at: NOW,
+      xpEarned: 40,
+      activeMs: 6 * MINUTE,
+      write: () => {
+        disk.set(gameKey(), JSON.stringify(merged));
+        return recordActivity('convo', 40, NOW, { durationMs: 6 * MINUTE, activeMs: 6 * MINUTE, finished: true });
+      },
+    });
+    assert.ok(talk);
+    assert.deepEqual(talk.quests.completedNow, ['conversation']);
+    assert.equal(talk.xp.questXp, 10);
+    // Counted from the merged day, not from the snapshot taken as the sitting began.
+    assert.equal(talk.quests.doneBefore, 3, 'a day the tablet had already finished was counted from before it synced');
+    assert.equal(talk.quests.done, 3);
+    assert.equal(allQuestsDoneNow(talk), false, 'the phone said the third quest was just finished on a day the tablet had finished');
+    assert.equal(endCardView(talk).questProgress, 'All three quests done today.');
+    assert.equal(endCardView(talk).timeline, 'end-card', 'the quest sound played a second time in one day');
   });
 });

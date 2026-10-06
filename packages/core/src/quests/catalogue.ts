@@ -16,8 +16,9 @@
  * unknown it is not offered, because a quest the room might refuse is a
  * promise the app cannot keep.
  *
- * Quest XP (+10 each, +15 for the chest) is kept by the app as claims outside
- * the activity log, so it never touches the content-difficulty standing.
+ * Quest XP (+10 each) is kept by the app as claims outside the activity log,
+ * so it never touches the content-difficulty standing. Finishing all three is
+ * said in one quiet line and earns nothing more (founder decision D22).
  */
 
 import type { DailyGoalMinutes } from '../goal/goal.ts';
@@ -62,12 +63,8 @@ export interface QuestDef {
 }
 
 export const QUEST_XP = 10;
-export const CHEST_XP = 15;
-/** Quests (the chest excluded) in one calendar month that earn that month's badge. */
+/** Quests in one calendar month that earn that month's badge. */
 export const MONTHLY_QUEST_TARGET = 30;
-
-/** The claim id for the chest, written once all three of a day's quests are done. */
-export const CHEST = 'chest' as const;
 
 export const QUESTS: readonly QuestDef[] = [
   { id: 'finish-practice', slot: 'easy', family: 'sittings', title: 'Finish a practice', target: 1, needsLiveMinutes: false, requiresSpeaking: false },

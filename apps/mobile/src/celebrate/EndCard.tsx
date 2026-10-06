@@ -8,7 +8,9 @@
  * where it stands now, the quests this sitting finished and the cap line when
  * the daily XP limit held some back. Every number is the GameDelta's, read back
  * from disk by `game/settle.ts`, or the count the screen hands over; a tile
- * appears only when its number exists (`endCardModel.ts`).
+ * appears only when its number exists (`endCardModel.ts`). On the sitting that
+ * finished the day's third quest, the quiet line "All three quests done today."
+ * lands with the `quest` sound (`end-card-quests`, founder decision D22).
  *
  * While it is on screen it holds the celebration queue, so a streak or a level
  * waits until the learner leaves the card. It sounds `complete` and gives one
@@ -38,7 +40,6 @@ import { claimInPlace, holdCelebrations } from './queue.ts';
 import { TIMELINES, beatAt, playsStill } from './timelines.ts';
 import { useLatch, useTimeline } from './useTimeline.ts';
 
-const TIMELINE = TIMELINES['end-card'];
 const INK = textOn.mint;
 const SOFT = onColour.mint;
 /** The height of the band the confetti flies in, across the top of the card. */
@@ -65,6 +66,7 @@ export function EndCard({
   tutorName?: string | null;
 }) {
   const view = useMemo(() => endCardView(delta, { count, tutorName }), [delta, count, tutorName]);
+  const timeline = TIMELINES[view.timeline];
   const answered = useAnswered(useReduceMotion(true));
   const reduced = answered === true;
   // Once per sitting: a card that mounts again for the same sitting is drawn finished, silently.
@@ -75,16 +77,16 @@ export function EndCard({
   // The queue waits while the learner is reading this.
   useEffect(() => holdCelebrations(), []);
 
-  const elapsed = useTimeline(TIMELINE, {
+  const elapsed = useTimeline(timeline, {
     ready: answered !== null,
     final,
     // A card mounted again for the same sitting is drawn finished, and was heard the first time.
     still: playsStill({ reduced, stopped: !first }),
     onCue: first ? fireBeat : noop,
-    onStill: first ? () => fireStill(TIMELINE) : noop,
+    onStill: first ? () => fireStill(timeline) : noop,
     onEnd: noop,
   });
-  const reached = (element: string): boolean => final || elapsed >= beatAt(TIMELINE, element);
+  const reached = (element: string): boolean => final || elapsed >= beatAt(timeline, element);
 
   const [width, setWidth] = useState(0);
   const onLayout = (event: LayoutChangeEvent) => setWidth(Math.round(event.nativeEvent.layout.width));
@@ -116,7 +118,7 @@ export function EndCard({
           color={paper.ink}
           track={paper.card}
           duration={DUR.reveal}
-          delay={final ? 0 : beatAt(TIMELINE, 'goal')}
+          delay={final ? 0 : beatAt(timeline, 'goal')}
         />
         <Text style={[type.bodyStrong, st.grow, { color: INK }]}>{view.goal.line}</Text>
       </View>
@@ -163,7 +165,7 @@ export function EndCard({
       {final ? (
         <Text style={[type.title, { color: INK }]}>{view.line}</Text>
       ) : (
-        <Enter delay={beatAt(TIMELINE, 'line')}>
+        <Enter delay={beatAt(timeline, 'line')}>
           <Text style={[type.title, { color: INK }]}>{view.line}</Text>
         </Enter>
       )}
@@ -178,7 +180,7 @@ export function EndCard({
           </View>
         ) : (
           <View style={st.tiles}>
-            <StaggerIn step={STAGGER.tiles} delay={beatAt(TIMELINE, 'tiles')} itemStyle={st.tileSlot}>
+            <StaggerIn step={STAGGER.tiles} delay={beatAt(timeline, 'tiles')} itemStyle={st.tileSlot}>
               {tiles}
             </StaggerIn>
           </View>
@@ -189,7 +191,7 @@ export function EndCard({
           <View style={st.rows}>{rows}</View>
         ) : (
           <View style={st.rows}>
-            <StaggerIn delay={beatAt(TIMELINE, 'rows')}>{rows}</StaggerIn>
+            <StaggerIn delay={beatAt(timeline, 'rows')}>{rows}</StaggerIn>
           </View>
         ))}
     </View>

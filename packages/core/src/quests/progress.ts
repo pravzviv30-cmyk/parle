@@ -3,12 +3,12 @@
  *
  * Every number comes from practice the app has already persisted; this module
  * only reads the counts it is handed. Progress is capped at the target, so a
- * quest never reads "7 of 5", and a quest or chest is claimed once a day
- * however many times the app asks.
+ * quest never reads "7 of 5", and a quest is claimed once a day however many
+ * times the app asks. Finishing all three claims nothing more (D22).
  */
 
 import type { DailyGoalMinutes } from '../goal/goal.ts';
-import { CHEST, questTarget, type QuestId } from './catalogue.ts';
+import { questTarget, type QuestId } from './catalogue.ts';
 
 /** Today's facts, each counted from persisted practice. */
 export interface DayFacts {
@@ -82,13 +82,13 @@ export function questProgress(id: QuestId, facts: DayFacts, goalTarget: DailyGoa
 
 export interface QuestClaim {
   day: string;
-  questId: QuestId | typeof CHEST;
+  questId: QuestId;
 }
 
 /**
  * What to claim now: each of the day's quests that is complete and not yet
- * claimed, then the chest once all three are done (claimed earlier or now) and
- * the chest itself is not yet claimed.
+ * claimed, in the order the day's quests are listed. Nothing else is ever
+ * claimed: the third quest done is said in one quiet line, never paid twice.
  */
 export function questsToClaim(input: {
   day: string;
@@ -96,17 +96,12 @@ export function questsToClaim(input: {
   facts: DayFacts;
   goalTarget: DailyGoalMinutes | null;
   claims: readonly QuestClaim[];
-}): (QuestId | typeof CHEST)[] {
+}): QuestId[] {
   const claimed = new Set(input.claims.filter((c) => c.day === input.day).map((c) => c.questId));
-  const ids = [...new Set(input.ids)];
-  const out: (QuestId | typeof CHEST)[] = [];
-  let allDone = ids.length === 3;
-  for (const id of ids) {
-    const complete = questProgress(id, input.facts, input.goalTarget).complete;
-    if (complete && !claimed.has(id)) out.push(id);
-    if (!complete && !claimed.has(id)) allDone = false;
+  const out: QuestId[] = [];
+  for (const id of new Set(input.ids)) {
+    if (!claimed.has(id) && questProgress(id, input.facts, input.goalTarget).complete) out.push(id);
   }
-  if (allDone && !claimed.has(CHEST)) out.push(CHEST);
   return out;
 }
 
@@ -115,11 +110,11 @@ export function questMonthOf(day: string): string {
   return day.slice(0, 7);
 }
 
-/** Quests claimed in one calendar month (`YYYY-MM`), the chest excluded, each day's quest once. */
+/** Quests claimed in one calendar month (`YYYY-MM`), each day's quest once. */
 export function monthlyQuestCount(claims: readonly QuestClaim[], month: string): number {
   const seen = new Set<string>();
   for (const claim of claims) {
-    if (claim.questId === CHEST || questMonthOf(claim.day) !== month) continue;
+    if (questMonthOf(claim.day) !== month) continue;
     seen.add(`${claim.day}|${claim.questId}`);
   }
   return seen.size;

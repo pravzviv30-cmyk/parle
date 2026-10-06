@@ -17,7 +17,7 @@
 
 import { MONTHLY_QUEST_TARGET } from '../quests/catalogue.ts';
 
-export type BadgeArt = 'flame' | 'pages' | 'bubbles' | 'stamp' | 'stamps' | 'ribbon' | 'arrows' | 'ring' | 'star' | 'wave' | 'chest';
+export type BadgeArt = 'flame' | 'pages' | 'bubbles' | 'stamp' | 'stamps' | 'ribbon' | 'arrows' | 'ring' | 'star' | 'wave';
 
 /** The facts a badge reads, each counted from persisted practice. */
 export interface BadgeFacts {
@@ -43,7 +43,7 @@ export interface BadgeFacts {
   level: number;
   /** Sound checks ever tried. */
   soundChecks: number;
-  /** Quests claimed per calendar month (`YYYY-MM`), the chest excluded. */
+  /** Quests claimed per calendar month (`YYYY-MM`). */
   questMonths: readonly { month: string; count: number }[];
 }
 
@@ -104,7 +104,7 @@ function monthlyBadge(month: string): Badge {
     title: `${name} quests`,
     line: `You finished ${MONTHLY_QUEST_TARGET} quests in ${name}.`,
     hint: `Finish ${MONTHLY_QUEST_TARGET} quests in one month`,
-    art: 'chest',
+    art: 'star',
   };
 }
 

@@ -14,7 +14,7 @@
  * checks then say whether it still fits. Pure: no storage, no clock.
  */
 
-import { CHEST, QUESTS, addDays, dayKeyOf, type DayKey } from '@luvani/core';
+import { QUESTS, addDays, dayKeyOf, type DayKey } from '@luvani/core';
 
 import {
   CLAIM_KEEP_DAYS,
@@ -59,7 +59,7 @@ export function fullGame(now: number): StoredGame {
     goalDays: Array.from({ length: MAX_GOAL_DAYS }, (_, i) => addDays(today, -i)),
     questDays: Array.from({ length: QUEST_DAYS_KEPT }, (_, i) => ({ day: addDays(today, -i), ids: [ids[0]!, ids[1]!, ids[2]!], at: at(i) })),
     claims: Array.from({ length: CLAIM_KEEP_DAYS }, (_, d) =>
-      [...ids, CHEST].map((questId, q) => ({ day: addDays(today, -d), questId, xp: MAX_ROW_XP, at: at(d * 13 + q) })),
+      ids.map((questId, q) => ({ day: addDays(today, -d), questId, xp: MAX_ROW_XP, at: at(d * ids.length + q) })),
     ).flat(),
     questMonths: Array.from({ length: MAX_MONTHS }, (_, i) => ({ month: monthsBefore(month, i), count: MAX_MONTH_COUNT, xp: MAX_MONTH_XP })),
     xpMonths: Array.from({ length: MAX_MONTHS }, (_, i) => ({ month: monthsBefore(month, i), xp: MAX_MONTH_XP })),
