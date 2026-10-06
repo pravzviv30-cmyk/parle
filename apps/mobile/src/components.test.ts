@@ -1059,4 +1059,25 @@ describe('the icon controls keep their promises', () => {
     assert.match(art, /return <IconTile name=\{name\} ground=\{ground\} size=\{size\} \/>;/, 'the first run\'s choice art is not a delegate to the icon tile');
     assert.doesNotMatch(art, /<Svg\b|<Path\b/, 'the first run\'s choice art still draws by hand');
   });
+
+  test('a chosen drink on the blue hear-it page fills with the sun, so it never vanishes into the page', () => {
+    // A chosen choice on paper fills brand blue, the same blue as the hear-it
+    // page, with a border of the same colour: the card's edge disappears and
+    // only its words float. The page says it is blue, and the choice takes the sun.
+    const choice = part('Choice');
+    assert.match(choice, /const sunny = on === 'blue';/, 'a choice cannot tell it sits on the blue ground');
+    assert.match(choice, /const fill = selected \? \(sunny \? colour\.sun : accent\.brand\)/, 'a chosen choice on the blue ground does not fill with the sun');
+
+    const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
+    assert.match(screen, /const blue = page === 'hear-it';/, 'the hear-it page is no longer the blue one, so this test reads the wrong block');
+    const page = region(screen, '{blue && (', '{question && (');
+    const choices = [...page.matchAll(/<Choice\b[\s\S]*?\/>/g)].map((m) => m[0]);
+    assert.equal(choices.length, 2, 'the hear-it page no longer offers coffee and tea as two choices');
+    for (const each of choices) {
+      assert.match(each, /\bground="blue"/, `a choice on the blue hear-it page does not say it sits on blue:\n${each}`);
+    }
+    // Coffee and tea each draw their own drink rather than sharing one cup.
+    const kinds = choices.map((each) => /<ChoiceArt kind="([a-z]+)"/.exec(each)?.[1]);
+    assert.deepEqual(kinds, ['coffee', 'tea'], 'coffee and tea do not each draw their own drink');
+  });
 });

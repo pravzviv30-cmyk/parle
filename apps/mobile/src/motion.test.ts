@@ -179,7 +179,6 @@ const LEGACY_ANIMATED = [
   'components.tsx',
   'motion.ts',
   'motion/Feedback.tsx',
-  'onboarding/ChoiceCard.tsx',
   'onboarding/NextButton.tsx',
   'onboarding/OnboardingMotion.tsx',
   'recap/OnceConfetti.tsx',

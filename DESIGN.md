@@ -444,17 +444,19 @@ the new look, listed at the end, and they go with their call sites.
 The B parts, appended in revamp B Stage 2 for Stage 3 to paste:
 
 - **RoundButton** — back and close are a white disc at the touch floor with the
-  ICONS.md mark; next is a 64 disc (sun on blue or coral, ink on sun) with its
-  word beside it.
+  set's back or close icon; next is a 64 disc (sun on blue or coral, ink on
+  sun) with its word beside it.
 - **ColourCard** — the one colour card on a paper screen: one ground at the
   feature radius, words in `textOn`, the secondary in `onColour`. The whole card
   is a target only when it holds no pill of its own.
 - **StatTile / HeroNumber** — a number and one plain line on white, and the one
   giant number with its unit on a colour board. Each is one phrase to a screen
   reader.
-- **OptionRow** — a one-tap choice: a white row with a title and a line under
-  it, ending in the brand-blue check when chosen and the field ring when not.
-  The choice is said on a device and on the web.
+- **OptionRow** — a one-tap choice, now a thin name for `Choice` as a button
+  row: white with a title and a line under it and the field ring when not
+  chosen, the brand blue with white words and a white disc holding the blue
+  check when chosen. A Hear is its own speaker button beside it. The choice is
+  said on a device and on the web.
 - **Sheet** — a bottom sheet under an ink scrim at 0.45 that closes it, modal to
   VoiceOver, with a grabber and a title. No drag to dismiss.
 - **Skeleton / QuietLine** — still sand blocks that say Loading once, and a
@@ -882,8 +884,9 @@ Home comes into view and then rests. Each loop listens for what pauses it
 
 ### What never moves
 
-The tab bar, the greeting, the highlighter, the skeleton, the layout
-primitives, the flat drawings themselves (a wrapper may move one; the drawing
+The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
+greeting, the highlighter, the skeleton, the layout primitives, the flat
+drawings themselves (a wrapper may move one; the drawing
 does not), and legal or consent text. Inside a live room only the orb moves; a
 win there shows in place, and its fanfare waits for the recap.
 

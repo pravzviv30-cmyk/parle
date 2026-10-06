@@ -195,7 +195,9 @@ describe('the icon set — F726', () => {
     const safety = readFileSync(join(SRC, 'tutor', 'SafetyStopView.tsx'), 'utf8');
     assert.doesNotMatch(safety, /AnimatedIcon/, 'an animated icon plays on the safety stop');
     // Decorative, and silent: the caller that owns the event gives the haptic or the sound.
-    assert.match(animated, /<View \{\.\.\.decorative\} pointerEvents="none" style=\{\{ width: size, height: size \}\}>/, 'AnimatedIcon is not decorative');
+    // The style form: react-native-web warns on the old prop, and the icon draws on Home.
+    assert.match(animated, /<View \{\.\.\.decorative\} style=\{\{ width: size, height: size, pointerEvents: 'none' \}\}>/, 'AnimatedIcon is not decorative, or can catch a touch meant for its button');
+    assert.doesNotMatch(animated, /\bpointerEvents="/, 'AnimatedIcon passes the deprecated pointerEvents prop, which react-native-web warns about');
     assert.doesNotMatch(animated, /haptics|sound\/|playSfx|celebrate\(/, 'AnimatedIcon fires a haptic or a sound of its own');
   });
 

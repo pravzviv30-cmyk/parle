@@ -81,7 +81,7 @@ export function AnimatedIcon({ kind, size = 24, color = paper.ink, state = 'off'
   const on = state === 'on';
   const common = { size, color, reduced };
   return (
-    <View {...decorative} pointerEvents="none" style={{ width: size, height: size }}>
+    <View {...decorative} style={{ width: size, height: size, pointerEvents: 'none' }}>
       {kind === 'bell-ring' ? <BellRing {...common} on={on} /> : null}
       {kind === 'bookmark-fill' ? <BookmarkFill {...common} on={on} /> : null}
       {kind === 'check-draw' ? <CheckDraw {...common} on={on} /> : null}

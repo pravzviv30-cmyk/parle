@@ -81,7 +81,7 @@ export function Acknowledgements({ onBack }: { onBack: () => void }) {
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
       <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Acknowledgements</Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
-        Luvani is built on other people's work. The full licence text for each of these ships inside the app.
+        Luvani is built on other people's work. Each one is named here with who made it and the licence it is used under.
       </Text>
       <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
         Daily tutor recordings are synthetic speech generated with ElevenLabs Flash v2.5. The included recordings match your selected tutor and play from the app without a speech API call.

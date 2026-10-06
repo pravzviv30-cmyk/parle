@@ -11,7 +11,7 @@
  * carries the step from an empty bubble to two. Coffee and tea no longer share
  * a cup.
  *
- * `drink`, `ability`, `time` and `days` name a page rather than an answer, the
+ * `ability`, `time` and `days` name a page rather than an answer, the
  * way the first-run screens still ask for them; they keep the old grounds and
  * stay until those screens pass the answer itself. Decorative, like every
  * tile: the choice around it names itself in words.
@@ -22,7 +22,6 @@ import { IconTile, type TileGround } from '../icons/IconTile.tsx';
 import type { BulkIconName } from '../icons/names.ts';
 
 export type ChoiceArtKind =
-  | 'drink'
   | 'coffee'
   | 'tea'
   | 'food'
@@ -40,7 +39,6 @@ export type ChoiceArtKind =
 
 /** Each kind's icon and the ground it stands on. */
 const ART: Readonly<Record<ChoiceArtKind, { readonly name: BulkIconName; readonly ground: TileGround }>> = {
-  drink: { name: 'coffee', ground: 'sun' },
   coffee: { name: 'coffee', ground: 'sun' },
   tea: { name: 'tea', ground: 'sun' },
   food: { name: 'food', ground: 'sun' },

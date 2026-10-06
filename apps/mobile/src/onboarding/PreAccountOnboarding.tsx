@@ -750,16 +750,18 @@ export function PreAccountOnboarding({
                     <Text style={[type.bodyStrong, { color: ink }]}>Choose your drink.</Text>
                     <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
                       <Choice
+                        ground="blue"
                         title="Coffee"
                         selected={draft.drink === 'coffee'}
                         onPress={() => choose({ drink: 'coffee' })}
-                        glyph={<ChoiceArt kind="drink" />}
+                        glyph={<ChoiceArt kind="coffee" />}
                       />
                       <Choice
+                        ground="blue"
                         title="Tea"
                         selected={draft.drink === 'tea'}
                         onPress={() => choose({ drink: 'tea' })}
-                        glyph={<ChoiceArt kind="drink" />}
+                        glyph={<ChoiceArt kind="tea" />}
                       />
                     </View>
                     {draft.drink && (
