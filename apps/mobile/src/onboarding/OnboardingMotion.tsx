@@ -52,9 +52,9 @@ export function OnboardingArtwork({
   return (
     <Animated.View
       {...decorative}
-      pointerEvents="none"
       style={{
         alignSelf: 'center',
+        pointerEvents: 'none',
         transform: [
           {
             scale: value.interpolate({

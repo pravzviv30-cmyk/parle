@@ -120,9 +120,9 @@ export function SummaryScreen({
                   reason are there for anyone who opens them. */}
               <Text style={[type.frenchLg, { color: paper.ink, marginTop: space(2.5) }]}>{soundInWord(focusWord)}</Text>
               <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(2) }]}>{focus.phoneme.cue}</Text>
-              {focus.phoneme.trick && (
+              {focus.phoneme.trick ? (
                 <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{focus.phoneme.trick}</Text>
-              )}
+              ) : null}
               <View style={st.divider} />
               <Pressable
                 onPress={() => setSoundDetail((open) => !open)}

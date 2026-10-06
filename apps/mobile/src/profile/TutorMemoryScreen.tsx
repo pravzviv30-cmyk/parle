@@ -105,7 +105,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{MEMORY_SCOPE}</Text>
         </View>}
       </Card>
-      {(saving || memoryError) && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text>}
+      {saving || memoryError ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text> : null}
       <Card tone="journal" style={st.card}>
         {facts.length === 0 ? (
           <Text style={[type.body, { color: paper.ink }]}>{memoryEmptyLine(profile)}</Text>

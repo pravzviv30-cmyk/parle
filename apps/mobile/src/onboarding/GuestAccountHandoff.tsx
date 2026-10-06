@@ -16,6 +16,7 @@ import {
   type GuestPractice,
 } from './guestPractice.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { useLaunchHold } from '../launch/useLaunch.ts';
 /** The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it. */
 export function GuestAccountHandoff({
   draft,
@@ -41,6 +42,9 @@ export function GuestAccountHandoff({
       active = false;
     };
   }, []);
+  // Reading the guest's practice draws a blank, so the launch screen stays up
+  // over it. Above both returns, so the hook runs on every render.
+  useLaunchHold(guest === undefined);
   if (guest === null) return <>{children}</>;
   if (guest === undefined) return <View />;
   const keep = async () => {
@@ -174,14 +178,14 @@ export function GuestAccountHandoff({
           void adapter.signOut();
         }}
       />
-      {error && (
+      {error !== '' ? (
         <Text
           accessibilityLiveRegion="polite"
           style={[type.body, { color: paper.ink, marginTop: 20 }]}
         >
           {error}
         </Text>
-      )}
+      ) : null}
     </ScrollScreen>
   );
 }

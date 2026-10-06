@@ -15,7 +15,7 @@ describe('the owned sound-check read', () => {
     assert.match(flat, /setReference\(mission\?\.referencePhrases\[0\] \?\? null\); setPhase\('unread'\)/,
       'a failed read must not rotate from an invented empty history');
     assert.match(flat, /shownPhase === 'unread' \? \( <Card[\s\S]*?Retry sound checks/);
-    assert.match(flat, /shownReference && \( <Card tone="journal"[\s\S]*?tutorVoice\.speak\(shownReference\)/,
+    assert.match(flat, /shownReference \? \( <Card tone="journal"[\s\S]*?tutorVoice\.speak\(shownReference\)/,
       'the local reference cannot be heard while evidence is unread');
     assert.match(flat, /shownPhase === 'unread' \? \([\s\S]*?\) : shownPhase === 'loading' \? \([\s\S]*?\) : shownPhase === 'result'/,
       'an unread check still offers the assessment controls');

@@ -18,7 +18,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { decorative, onOrb, orb, paper, space, type } from '../theme.ts';
-import { useReduceMotion } from '../motion.ts';
+import { NATIVE_DRIVER, useReduceMotion } from '../motion.ts';
 import { MicGlyph } from '../components.tsx';
 import { orbRests } from './orbRest.ts';
 import { OrbGlyph } from './OrbGlyph.tsx';
@@ -168,13 +168,13 @@ export function VoiceOrb({
               toValue: 0.62,
               duration: look.period,
               easing: Easing.inOut(Easing.quad),
-              useNativeDriver: true,
+              useNativeDriver: NATIVE_DRIVER,
             }),
             Animated.timing(dim, {
               toValue: 1,
               duration: look.period,
               easing: Easing.inOut(Easing.quad),
-              useNativeDriver: true,
+              useNativeDriver: NATIVE_DRIVER,
             }),
           ]),
         );
@@ -193,13 +193,13 @@ export function VoiceOrb({
               toValue: 1,
               duration: look.period,
               easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
+              useNativeDriver: NATIVE_DRIVER,
             }),
             Animated.timing(driver, {
               toValue: 0,
               duration: look.period,
               easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
+              useNativeDriver: NATIVE_DRIVER,
             }),
           ]),
         );
@@ -245,11 +245,11 @@ export function VoiceOrb({
         ? { accessibilityRole: 'image' as const, accessibilityLabel: `Tutor: ${look.caption}` }
         : decorative)}
     >
-      <Animated.View pointerEvents="none" style={{ opacity: dim, transform: [{ scale: breath }] }}>
+      <Animated.View style={{ opacity: dim, transform: [{ scale: breath }], pointerEvents: 'none' }}>
         <OrbGlyph color={look.colour} size={size} />
       </Animated.View>
 
-      <Animated.View pointerEvents="none" style={[st.signal, { opacity: dim }]} {...decorative}>
+      <Animated.View style={[st.signal, { opacity: dim, pointerEvents: 'none' }]} {...decorative}>
         {look.mark === 'bars' ? (
           <View style={[st.bars, { gap: barGap, height: size * 0.4 }]}>
             {BAR_HEIGHTS.map((height, index) => (

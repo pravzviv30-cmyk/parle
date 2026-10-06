@@ -99,7 +99,7 @@ export function LiveErrorView({
             4.5 against the ground, and a line somebody is meant to act on is
             not a caption (F330). */}
         <Text style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
-        {settlementMessage && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{settlementMessage}</Text>}
+        {settlementMessage ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{settlementMessage}</Text> : null}
 
         {canType ? (
           <>

@@ -868,7 +868,7 @@ export function SettingsScreen({
             setHapticFeedback(value);
             void setHapticPreference(value).then(saved => { setHapticSaving(false); setHapticTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setHapticFeedback(previous); });
           }} />
-          {hapticTrouble && <TroubleLine message={hapticTrouble} />}
+          {hapticTrouble !== '' ? <TroubleLine message={hapticTrouble} /> : null}
         </Card>
       </View>
 

@@ -14,6 +14,7 @@ import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { brainAfterRecap } from '../profile/memory.ts';
 import { entryFor } from '../onboarding/answers.ts';
 import { AgeGateScreen } from '../onboarding/AgeGateScreen.tsx';
+import { useLaunchHold } from '../launch/useLaunch.ts';
 
 interface ProfileValue {
   profile: StoredProfile;
@@ -107,6 +108,10 @@ export function ProfileGate({
     () => (profile === null || profile === 'loading' ? null : { profile, update, updateBrain, updateMemory }),
     [profile, update, updateBrain, updateMemory],
   );
+
+  // Reading the profile draws nothing, so it holds the launch screen instead:
+  // the launch fades onto the first real screen, never onto this blank.
+  useLaunchHold(profile === 'loading');
 
   if (profile === 'loading') return null;
 

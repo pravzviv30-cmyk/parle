@@ -83,6 +83,6 @@ test('recap stories, earned postcards and week wrapped use saved evidence and pr
   has('progress/PostcardsScreen.tsx',/earnedPostcards\(missionStates/,/scopeGeneration/,/postcardIllustration/,/Choose a scene/);
   lacks('progress/PostcardsScreen.tsx',/locked|remaining|percent|collect all/);
   has('progress/WeekWrappedScreen.tsx',/storyFrom\(\{sessions,activity,packs,completions,now\}\)/,/hasStory/,/total=\{2\}/,/celebrate-wrapped/,/label=\{page===1\?'Done':'Next'\}/,/Choose a scene/,/Try loading your week again/,/readOwner===scopeGeneration\(\)/);
-  has('recap/OnceConfetti.tsx',/useReduceMotion\(true\)/,/used.current=true/,/useNativeDriver:true/,/pointerEvents="none"/);
+  has('recap/OnceConfetti.tsx',/useReduceMotion\(true\)/,/used.current=true/,/useNativeDriver:NATIVE_DRIVER/,/pointerEvents:'none'/);
   has('recap/OnceCount.tsx',/useReduceMotion\(true\)/,/used.current=true/,/clearInterval/,/no-hide-descendants/);
 });

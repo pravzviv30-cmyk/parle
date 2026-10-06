@@ -62,6 +62,7 @@ import { Choice } from './ChoiceCard.tsx';
 import { ChoiceArt } from './ChoiceArt.tsx';
 import { PlanEditRow } from './PlanEditRow.tsx';
 import { GuestRecording } from './GuestRecording.tsx';
+import { useLaunchHold } from '../launch/useLaunch.ts';
 import {
   OnboardingArtwork,
   PageArrival,
@@ -137,6 +138,9 @@ export function PreAccountOnboarding({
   const [direction, setDirection] = useState(1);
   const [guest, setGuest] = useState<GuestPractice | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Reading the guest's practice shows a loading line, so the launch screen
+  // stays up over it and fades onto the welcome itself.
+  useLaunchHold(!loaded);
   const [taskIndex, setTaskIndex] = useState(0);
   const [reply, setReply] = useState('');
   const [mode, setMode] = useState<'typed' | 'spoken'>('typed');
@@ -293,6 +297,7 @@ export function PreAccountOnboarding({
     else if (page === 'home') go('recap', true);
   };
   useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       back();
       return true;
@@ -1011,7 +1016,7 @@ export function PreAccountOnboarding({
                 )}
               </>
             )}
-            {issue && (
+            {issue !== '' ? (
               <View style={{ gap: 8 }}>
                 <Text accessibilityLiveRegion="polite" style={[type.body, { color: ink }]}>
                   {issue}
@@ -1043,12 +1048,12 @@ export function PreAccountOnboarding({
                   </>
                 )}
               </View>
-            )}
-            {storageNote && (
+            ) : null}
+            {storageNote !== '' ? (
               <Text accessibilityLiveRegion="polite" style={[type.small, { color: ink }]}>
                 {storageNote}
               </Text>
-            )}
+            ) : null}
           </PageArrival>
         </View>
       </ScrollScreen>
@@ -1160,11 +1165,11 @@ export function PreAccountOnboarding({
             )}
           </>
         )}
-        {surface !== 'start' && issue && (
+        {surface !== 'start' && issue !== '' ? (
           <Text accessibilityLiveRegion="polite" style={type.body}>
             {issue}
           </Text>
-        )}
+        ) : null}
         {surface === 'voice' && (
           <>
             {TUTOR_VOICE_OPTIONS.map((v) => (
@@ -1235,14 +1240,14 @@ export function PreAccountOnboarding({
               }}
             />
             <GhostButton label="Privacy details" onPress={() => setSurface('privacy')} />
-            {issue && (
+            {issue !== '' ? (
               <>
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
                 <GhostButton label="Try again" disabled={busy} onPress={() => void start(false)} />
               </>
-            )}
+            ) : null}
           </>
         )}
         {surface === 'privacy' && (

@@ -279,7 +279,13 @@ describe('the glyph layer draws with the same pen as the scenes', () => {
  * daily drawings, SpeakBubbles, the welcome steam, the RewardMark motion.
  */
 describe('only the orb and the highlighter move', () => {
-  const TARGET = ['components.tsx', 'motion.ts', join('tutor', 'VoiceOrb.tsx'), join('recap', 'OnceConfetti.tsx'), join('motion', 'Feedback.tsx')];
+  // 2026-10-06 (F790): the founder asked for the launch to be the mark coming
+  // alive, Hum's ring turning around the orb while the app opens. It is the orb
+  // moving, which this contract already keeps, so launch/LaunchScreen.tsx joins
+  // the target list on the same rules: one loop, one settling entrance,
+  // transform and opacity on the native driver, the final frame under reduce
+  // motion. src/launch/launchScreen.test.ts holds it to them.
+  const TARGET = ['components.tsx', 'motion.ts', join('tutor', 'VoiceOrb.tsx'), join('recap', 'OnceConfetti.tsx'), join('motion', 'Feedback.tsx'), join('launch', 'LaunchScreen.tsx')];
   // 2026-09-27, notebook Phase 3 (B1): the rotating greeting (and its hook
   // file), the DailyCard entrance and the Speak tab's settle-in entrance were
   // removed, so daily/DailyCard.tsx, home/useGreetingRotation.ts and

@@ -238,7 +238,7 @@ export function SoundCheckScreen({
             </View>
           )}
 
-          {shownReference && (
+          {shownReference ? (
             <Card tone="journal" style={{ marginTop: space(6), alignItems: 'center', paddingVertical: space(6) }}>
               <Text style={[fitDisplay(shownReference), { color: paper.ink, textAlign: 'center' }]}>{shownReference}</Text>
               <Pressable
@@ -251,7 +251,7 @@ export function SoundCheckScreen({
                 <Text style={[type.small, { color: paper.inkSoft }]}>Hear it</Text>
               </Pressable>
             </Card>
-          )}
+          ) : null}
 
           {shownPhase === 'unread' ? (
             <Card style={{ marginTop: space(5), gap: space(3) }}>
