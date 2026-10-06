@@ -88,8 +88,8 @@ describe('streak repair', () => {
   });
 
   test('a repair limit of 0 allows every repair, and 30 refuses a second repair within 30 days', () => {
-    // No limit until the founder chooses one.
-    assert.equal(REPAIR_EVERY_DAYS, 0);
+    // The founder chose seven (D19); 0 still means unlimited for repairOfferWithLimit.
+    assert.equal(REPAIR_EVERY_DAYS, 7);
     // A long run with one day already repaired on 15 September, then the 3rd of October got away.
     const long = dayRange('2026-08-25', '2026-10-02').filter((day) => day !== '2026-09-15');
     const earlier: StreakCover = { day: '2026-09-15', kind: 'repair', at: 1 };
@@ -101,8 +101,9 @@ describe('streak repair', () => {
       sittings: [{ at: noon('2026-10-04') }, { at: noon('2026-10-04', 20) }],
     };
 
-    // 0 means unlimited: the public offer and an explicit 0 both allow the second repair.
+    // The public offer (seven days) allows it: the last repair was 18 days before this gap.
     assert.equal(repairOffer(input)?.ready, true);
+    // 0 means unlimited.
     assert.equal(repairOfferWithLimit(input, 0)?.ready, true);
 
     // 30 refuses it, because the last repair was 18 days before this gap.
@@ -119,5 +120,20 @@ describe('streak repair', () => {
     // Nor does a freeze or a travel day, which are not repairs.
     const otherCovers = { ...input, covers: [{ ...earlier, kind: 'freeze' as const }] };
     assert.equal(repairOfferWithLimit(otherCovers, 30)?.ready, true);
+  });
+
+  test('a subscriber may repair a streak at most once every seven days', () => {
+    // Founder decision D19. The new gap starts on 3 October; a repair that
+    // covered 27 September is six days back and refused, 26 September is
+    // seven days back and allowed.
+    const offerWith = (repaired: string) => repairOffer({
+      practiceDays: [...dayRange('2026-08-25', '2026-10-02').filter((day) => day !== repaired), '2026-10-04'],
+      covers: [{ day: repaired, kind: 'repair', at: 1 }],
+      today: '2026-10-04',
+      entitled: true,
+      sittings: [{ at: noon('2026-10-04') }, { at: noon('2026-10-04', 20) }],
+    });
+    assert.equal(offerWith('2026-09-27'), null, 'a second repair within a week is refused');
+    assert.equal(offerWith('2026-09-26')?.ready, true, 'a repair a full week back leaves the next one open');
   });
 });

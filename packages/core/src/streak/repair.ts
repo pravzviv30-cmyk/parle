@@ -35,14 +35,13 @@ export const REPAIR_WINDOW_DAYS = 2;
  * At most one repair in this many days, measured from the day a repair
  * covered to the first day of the new gap. 0 means no limit.
  *
- * No limit is set because none has been decided. The first draft of the game
- * spec (docs/come-alive/game.md 2.4) allowed one every 30 days ("no `earned`
- * cover exists in the last 30 days", `earned` since renamed `repair`), and
- * founder decision D4 says nothing about how often. The founder's answer is
- * this one number; `repairOfferWithLimit` is how the tests prove a limit holds
- * before anyone chooses one.
+ * Seven, by founder decision D19 (6 October 2026): a subscriber may repair a
+ * streak at most once a week, so a run cannot be carried forever at half the
+ * practice rate, while a freeze still covers a single missed day. The first
+ * draft of the game spec (docs/come-alive/game.md 2.4) had 30.
+ * `repairOfferWithLimit` is how the tests prove any limit holds.
  */
-export const REPAIR_EVERY_DAYS = 0;
+export const REPAIR_EVERY_DAYS = 7;
 
 export interface StreakBreak {
   /** The uncovered days a repair would cover, oldest first: one or two. */
@@ -109,7 +108,7 @@ type RepairInput = StreakInput & {
  * `sittings` are finished practices (any kind, including zero-XP ones), each
  * at the moment it finished. Null for a learner without a paid plan, for a gap
  * longer than two days, once the window has passed, and when a repair within
- * `REPAIR_EVERY_DAYS` already restored a day (never, while that is 0).
+ * `REPAIR_EVERY_DAYS` already restored a day.
  */
 export function repairOffer(input: RepairInput): RepairOffer | null {
   return repairOfferWithLimit(input, REPAIR_EVERY_DAYS);
