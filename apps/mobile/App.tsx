@@ -87,6 +87,8 @@ import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { ReduceMotionBridge } from './src/motion/ReduceMotionBridge.tsx';
+import { FlightLayer } from './src/motion/FlightLayer.tsx';
+import { CelebrationHost } from './src/celebrate/CelebrationHost.tsx';
 
 function Loading() {
   return (
@@ -710,6 +712,11 @@ export default function App() {
           ) : (
             <Loading />
           )}
+          {/* Over everything the navigator draws, the first run included, and
+              outside it: the one celebration host and the one layer tokens fly
+              in. Both draw nothing and take no touches while idle. */}
+          <CelebrationHost />
+          <FlightLayer />
         </View>
       </AuthProvider>
     </SafeAreaProvider>

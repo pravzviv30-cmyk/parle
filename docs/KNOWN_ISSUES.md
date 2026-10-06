@@ -9993,9 +9993,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F743 — Nothing celebrates a finished practice
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/celebrate, apps/mobile/App.tsx
 - note: Founder decisions D2, D6, D7, D8 (docs/come-alive/README.md). One celebration host above the navigator plays at most three full-screen moments after a sitting (streak, chest, level, badge), holds while a microphone, live room, sheet, end card or background is in the way, and plays nothing after a safety stop (F137).
+- note 2026-10-06, ca/p1-stage (step P1-B): celebrate/queue.ts (pure) merges a 250 ms burst, plays at most three takeovers in TAKEOVER_ORDER with the rest as "Also today" rows, checks and marks account moments in the synced game.seen list (guest moments and toasts in a 256-key memory ledger), mirrors waiting account moments into gameLocal's pending queue, pauses for the sheet, end card, microphone, live room and background holds, drops after CELEBRATION_TTL_MS, clears on sign-out without a write, and on suppressCelebrations (SafetyStopView mount) clears the queue, the card on screen, the pre-attach buffer and sound effects. The host, the modal Takeover frame, six templates, the EndCard, the toast and ConfettiStill are mounted from App.tsx; WallScreen publishes purchase-confirmed only behind wallSuccess and an accepted purchase. Each title failed against queue.ts mutations (no budget, no suppression clear, seen check ignored). Nothing publishes from a sitting until the pipeline track lands; not yet seen on a device.
 - verified-by: `at most three takeovers play after a sitting, in streak, chest, level, badge order`
 - verified-by: `a safety stop clears the celebration queue and refuses new moments`
 - verified-by: `a moment already in the synced seen list never plays again`

@@ -26,6 +26,8 @@ import { wallAccount } from './wallAccount.ts';
 import { wallPlanRows } from './wallPlans.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
+import { publishCelebrations } from '../celebrate/events.ts';
+import { purchaseMoment } from '../celebrate/purchaseMoment.ts';
 
 /**
  * The subscription wall: two pages, what you get and then the plans, or one
@@ -184,6 +186,21 @@ export function WallScreen({
     if (!offeringLoaded || page === undefined) return;
     void trackProductEvent({ name: 'wall_page_seen', properties: { page, index } });
   }, [offeringLoaded, page, index]);
+
+  // The purchase celebration (come alive, F743): only when the success page
+  // below is the one showing, which needs the server's confirmed entitlement
+  // (`wallSuccess`), and only after a purchase this wall made, never a restore.
+  // Keyed by the confirmed grant, so it plays once on any device. Above every
+  // early return, so the hooks run in one order on every render.
+  const celebrated = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ownsWall || pendingRead !== 'ready' || !granted || !purchaseAccepted || confirmedGrant === null) return;
+    if (wallSuccess(confirmedGrant, latestCatalogue()) === null) return;
+    const moment = purchaseMoment(confirmedGrant, Date.now());
+    if (moment === null || celebrated.current === moment.key) return;
+    celebrated.current = moment.key;
+    publishCelebrations([moment]);
+  }, [ownsWall, pendingRead, granted, purchaseAccepted, confirmedGrant]);
 
   const leave = (destination: 'back' | 'speak' = 'back', returnToApp: () => void = onLeave) => {
     if (left.current) return;

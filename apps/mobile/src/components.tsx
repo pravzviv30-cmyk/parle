@@ -67,6 +67,7 @@ import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from '
 import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
+import { holdCelebrations } from './celebrate/queue.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -1711,6 +1712,9 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus }
     motion.current.start(({ finished }) => { if (finished && !visible) setPresent(false); });
     return () => motion.current?.stop();
   }, [visible, reduced, arrival, drag]);
+  // The sheet's Modal would sit above the celebration host, so the host waits
+  // while one is presented and goes on once it has gone (come alive, F743).
+  useEffect(() => (present ? holdCelebrations() : undefined), [present]);
   useEffect(() => {
     if (present) { wasOpen.current = true; return; }
     if (wasOpen.current && Platform.OS !== 'web') {
