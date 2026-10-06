@@ -26,7 +26,8 @@
  * what they resolve to, so a renamed import counts. Inside an async helper it
  * reads only up to the first await; an async function rejects rather than
  * throwing into its caller, so that only errs towards flagging. A late
- * rejection is a smaller fault of its own, filed as F793. It does not follow a
+ * rejection is a smaller fault of its own, F793, which recorderRelease.test.ts
+ * covers by running the two screens it was found in. It does not follow a
  * sound kept in a ref, returned whole from an app hook, or handed to a child
  * or another hook; no screen does any of that today.
  */
