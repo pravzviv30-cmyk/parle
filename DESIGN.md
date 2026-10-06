@@ -569,6 +569,38 @@ deleted. All twenty daily-pack drawings, their selector and their unused card
 are deleted. The illustration animation hook and moving layers are gone.
 `motion.test.ts` and `surfaceContract.test.ts` enforce static illustrations;
 Illustrations stay static; the bounded motion hosts are listed in the Motion section.
+
+### Game art
+
+The streak flame, the quests chest, the medal, the level crest and the freeze
+and repair marks are flat vectors built in code (come alive, decision D10), not
+catalogue drawings, so they live in `src/game/art/` and stay out of the flat
+registry and its pinned 29. Each is a list of named parts on a 100 by 100 box in
+`src/game/art/shapes.ts`, and every part names its fill by palette token
+(`colour.coral`, `paper.field`), never by value, and never the highlighter or
+lilac. They keep the one hand: flat fills, no outlines, gradients, shadows,
+faces or words. A waiting state is the same drawing in the paper greys: the
+unlit flame before the day's first practice, the next medal on the badge shelf,
+a used freeze. On a colour ground, a drawing that uses the ground's own colour
+trades it with white, so the flame on the coral milestone card is white and
+sun. Every one is decorative: the words beside it carry the meaning, and the
+crest draws no level number or name. The flame lights from an ember and
+flickers three times while in view, and the chest's lid opens on its hinge,
+each by moving whole layers with transform and opacity; the rest are still.
+`node --experimental-strip-types scripts/art/game-art-sheet.mjs` writes the
+contact sheet, `artifacts/game-art/index.html`: every drawing in every state at
+48, 96 and 160 px on paper and the four colours. The founder approves the art by
+eye on that sheet before it ships, and `src/game/art/shapes.test.ts` (F746)
+holds every part to the palette and its 100 box, and every Svg to `decorative`.
+
+The celebrations draw this art on their stages: the flame on the streak cards,
+the chest on the quest chest, the crest on a level and the medals on a badge
+card. Where a confetti burst cannot be its own final frame (under reduced
+motion, and on the web once it has fallen) the catalogue's `celebrate-confetti`
+is laid over the stage instead, through `src/celebrate/ConfettiStill.tsx`, which
+is also what keeps that drawing on a screen. On a mint, sun or paper ground its
+pieces of the ground's own colour fall away into it; the rest still read.
+
 ## Structure
 
 First run shows a captioned, recorded French exchange silently until the learner
@@ -752,11 +784,11 @@ state feedback animate. Motion answers something that really happened: a
 press, a choice, a save, a finished practice. It never stands in for content,
 never invents progress, and never holds the learner's next tap for long.
 
-Built so far (come alive, Phase 0): the tokens, the one door to the engine, the
-reduce-motion bridge, the press depth and selected ring, the haptic vocabulary
-and the primitives below. No screen uses the primitives yet. The celebration
-host and the sound effects arrive in later come-alive phases and follow this
-section when they do.
+Built so far (come alive, Phases 0 and 1): the tokens, the one door to the
+engine, the reduce-motion bridge, the press depth and selected ring, the haptic
+vocabulary, the primitives below and the celebration host. The host is mounted;
+until the game pipeline publishes from a finished sitting, the only moment that
+reaches it is a confirmed purchase.
 
 ### Principles
 
@@ -866,14 +898,62 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
 
 ### Celebrations
 
-One host in `celebrate/`, mounted once at the root, plays every celebration. It
-merges what arrives together and plays at most three takeovers after one
-practice. It holds while a microphone or a live room is open, a sheet is up, or
-the app is in the background, and it clears its queue on a safety stop: a
-safety stop gets no celebration, sound, haptic or count. The first tap skips to
-the end, Continue is ready within 600 ms, and nothing dismisses itself. Each
-celebration plays once per real event. A reply accepted and a finished practice
-show in place, on the page they belong to.
+One host, `celebrate/CelebrationHost.tsx`, is mounted once in `App.tsx`, over
+everything the navigator draws and outside it, so it covers the first run too.
+It plays every full-screen moment, and only for a fact already on disk: the game
+pipeline and the wall publish to it (`celebrate/events.ts`) after their writes
+land, and every number it shows comes from the moment's own data. The queue
+(`celebrate/queue.ts`) decides; the frame and templates draw.
+
+- **A finished practice ends in place.** The screen draws `celebrate/EndCard.tsx`
+  on the page: mint, "Practice complete.", up to three tiles counting up (XP,
+  time and the screen's own count, each only when its number exists), the goal
+  ring drawing from before to now, the quests this sitting finished, and the cap
+  line when the daily XP limit held some back. It sounds `complete` with one
+  `celebrate()` once per sitting, and holds the queue while it is on screen.
+- **Then at most three takeovers**, in one order: a confirmed purchase, the
+  streak (a milestone replaces that day's plain streak moment), the chest (only
+  when all three quests are done), the level (a number from `xpLevelFor`, never a
+  rank name), the badges (up to three to a card). What the budget leaves over is
+  a quiet row under "Also today" on the last card, never a fourth takeover. A
+  moment that arrives while that last card is up joins it as a row; one that
+  arrives in the moment after it has gone is left for the game layer's
+  catch-up rather than played as a fourth.
+- **Holds pause, they never drop.** Nothing starts while a microphone or a live
+  room holds the audio focus, a sheet or an end card is up, or the app is away; a
+  card already showing lands on its final frame and waits. A moment that waits
+  longer than ten minutes is let go. A sign-out clears the queue.
+- **Nothing after a safety stop.** `tutor/SafetyStopView.tsx` suppresses the host
+  on mount: the queue and the card on screen are cleared, sound effects fall
+  silent, and nothing new is taken until the screen has gone (F137).
+- **Once only.** An account's moment is checked against the synced `game.seen`
+  list and marked there when its card reaches its final frame or is skipped, so
+  it plays once across every device; a guest's moment and a toast are remembered
+  in memory. A moment waiting to play is also kept on the phone (`gameLocal`);
+  replaying it once after a crash is the game pipeline's catch-up, which reads
+  that copy back, not the host's.
+- **The frame** (`celebrate/Takeover.tsx`) is modal to a screen reader and
+  moves focus to its title, whose label is the title with the main value, so
+  landing there says the whole moment. It announces the moment only where focus
+  cannot land, so the two never talk over each other, and a level's number does
+  not change under a screen reader. Words sit in the shared frame's scroll in a
+  column at most 520 wide, centred on an iPad, and no line is capped. Continue
+  is always there, ready by `INPUT_READY_MS` and at once under reduced motion or
+  with a screen reader on; nothing dismisses itself. The first tap anywhere
+  skips to the end. Android's back is Continue once Continue is ready; before
+  that it skips to the end, so a back press meant for the screen underneath
+  never loses a moment unseen. Each card's beats are data in
+  `celebrate/timelines.ts`, ending by `CELEBRATION_MAX_MS`.
+- **Reduced motion** shows each card's final frame at once, watched live, and
+  still plays its one sound and haptic, because they are not motion. A card
+  that a hold or a skip landed before it began stays silent. Where a
+  burst cannot be its own final frame (reduced motion, and the web once it has
+  fallen) the still `celebrate-confetti` drawing stands in, through
+  `celebrate/ConfettiStill.tsx`.
+- **Silent and still in a live room.** No beat sounds or is felt while a
+  microphone or a live room is open. A saved phrase shows a small toast that
+  blocks nothing and is hidden from a screen reader, because the screen that
+  saved it already says so.
 
 ### Loops
 
