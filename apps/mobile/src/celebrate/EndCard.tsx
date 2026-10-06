@@ -35,7 +35,7 @@ import { Confetti } from './Confetti.tsx';
 import { countTick, fireBeat, fireStill } from './effects.ts';
 import { endCardView, timeText, xpText, type EndTile } from './endCardModel.ts';
 import { claimInPlace, holdCelebrations } from './queue.ts';
-import { TIMELINES, beatAt } from './timelines.ts';
+import { TIMELINES, beatAt, playsStill } from './timelines.ts';
 import { useLatch, useTimeline } from './useTimeline.ts';
 
 const TIMELINE = TIMELINES['end-card'];
@@ -78,6 +78,8 @@ export function EndCard({
   const elapsed = useTimeline(TIMELINE, {
     ready: answered !== null,
     final,
+    // A card mounted again for the same sitting is drawn finished, and was heard the first time.
+    still: playsStill({ reduced, stopped: !first }),
     onCue: first ? fireBeat : noop,
     onStill: first ? () => fireStill(TIMELINE) : noop,
     onEnd: noop,

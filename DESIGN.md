@@ -915,7 +915,10 @@ land, and every number it shows comes from the moment's own data. The queue
   streak (a milestone replaces that day's plain streak moment), the chest (only
   when all three quests are done), the level (a number from `xpLevelFor`, never a
   rank name), the badges (up to three to a card). What the budget leaves over is
-  a quiet row under "Also today" on the last card, never a fourth takeover.
+  a quiet row under "Also today" on the last card, never a fourth takeover. A
+  moment that arrives while that last card is up joins it as a row; one that
+  arrives in the moment after it has gone is left for the game layer's
+  catch-up rather than played as a fourth.
 - **Holds pause, they never drop.** Nothing starts while a microphone or a live
   room holds the audio focus, a sheet or an end card is up, or the app is away; a
   card already showing lands on its final frame and waits. A moment that waits
@@ -926,18 +929,24 @@ land, and every number it shows comes from the moment's own data. The queue
 - **Once only.** An account's moment is checked against the synced `game.seen`
   list and marked there when its card reaches its final frame or is skipped, so
   it plays once across every device; a guest's moment and a toast are remembered
-  in memory. A moment waiting to play is also kept on the phone, so a crash
-  replays it once.
-- **The frame** (`celebrate/Takeover.tsx`) is modal to a screen reader, moves
-  focus to its title and announces the title with the main value. Words sit in
-  the shared frame's scroll in a column at most 520 wide, centred on an iPad,
-  and no line is capped. Continue is always there, ready by `INPUT_READY_MS`
-  and at once under reduced motion or with a screen reader on; nothing
-  dismisses itself. The first tap anywhere skips to the end and Android's back
-  is Continue. Each card's beats are data in `celebrate/timelines.ts`, ending by
-  `CELEBRATION_MAX_MS`.
+  in memory. A moment waiting to play is also kept on the phone (`gameLocal`);
+  replaying it once after a crash is the game pipeline's catch-up, which reads
+  that copy back, not the host's.
+- **The frame** (`celebrate/Takeover.tsx`) is modal to a screen reader and
+  moves focus to its title, whose label is the title with the main value, so
+  landing there says the whole moment. It announces the moment only where focus
+  cannot land, so the two never talk over each other, and a level's number does
+  not change under a screen reader. Words sit in the shared frame's scroll in a
+  column at most 520 wide, centred on an iPad, and no line is capped. Continue
+  is always there, ready by `INPUT_READY_MS` and at once under reduced motion or
+  with a screen reader on; nothing dismisses itself. The first tap anywhere
+  skips to the end. Android's back is Continue once Continue is ready; before
+  that it skips to the end, so a back press meant for the screen underneath
+  never loses a moment unseen. Each card's beats are data in
+  `celebrate/timelines.ts`, ending by `CELEBRATION_MAX_MS`.
 - **Reduced motion** shows each card's final frame at once, watched live, and
-  still plays its one sound and haptic, because they are not motion. Where a
+  still plays its one sound and haptic, because they are not motion. A card
+  that a hold or a skip landed before it began stays silent. Where a
   burst cannot be its own final frame (reduced motion, and the web once it has
   fallen) the still `celebrate-confetti` drawing stands in, through
   `celebrate/ConfettiStill.tsx`.

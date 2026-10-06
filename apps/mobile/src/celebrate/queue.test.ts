@@ -72,7 +72,7 @@ afterEach(() => {
 });
 
 /** A queue on a fake clock, over fake stores that record every write. */
-function harness(options: { seen?: readonly string[]; unreadable?: boolean } = {}) {
+function harness(options: { seen?: readonly string[]; unreadable?: boolean; slowMarks?: boolean } = {}) {
   let now = AT;
   let serial = 0;
   let generation = 1;
@@ -83,6 +83,8 @@ function harness(options: { seen?: readonly string[]; unreadable?: boolean } = {
   const marked: string[] = [];
   const dropped: string[] = [];
   const asked: string[] = [];
+  // With slowMarks, a seen mark reaches the list only when the test lets the write land.
+  const unlanded: (() => void)[] = [];
   const deps: QueueDeps = {
     now: () => now,
     setTimer: (run, ms) => {
@@ -100,11 +102,20 @@ function harness(options: { seen?: readonly string[]; unreadable?: boolean } = {
       return seen.has(key);
     },
     markSeen: async (marks) => {
-      for (const mark of marks) {
-        seen.add(mark.key);
-        marked.push(mark.key);
+      for (const mark of marks) marked.push(mark.key);
+      const land = () => {
+        for (const mark of marks) seen.add(mark.key);
+      };
+      if (!options.slowMarks) {
+        land();
+        return 'durable';
       }
-      return 'durable';
+      return new Promise((resolve) => {
+        unlanded.push(() => {
+          land();
+          resolve('durable');
+        });
+      });
     },
     enqueuePending: async (items) => {
       for (const item of items) pending.add(item.key);
@@ -171,6 +182,10 @@ function harness(options: { seen?: readonly string[]; unreadable?: boolean } = {
     stops: () => stops,
     signOut: () => {
       generation += 1;
+    },
+    /** Every seen mark still being written reaches the list. */
+    landMarks: () => {
+      while (unlanded.length > 0) unlanded.shift()!();
     },
   };
 }
@@ -321,6 +336,95 @@ describe('the celebration queue — F743', () => {
     const rest = await running.playAll();
     assert.deepEqual(rest.map((card) => card.type), ['streak-extended', 'quest-chest', 'level-up']);
     assert.deepEqual(rest[2]!.also.map((event) => event.key), [celebrationKey.badge('streak-7')], 'a late moment past the budget became a fourth takeover');
+  });
+
+  test('a moment that arrives during the third card becomes a row on it, never a fourth takeover', async () => {
+    /** A run of three cards, with the third on screen. */
+    async function third(h: ReturnType<typeof harness>): Promise<TakeoverCard> {
+      h.queue.receive([streak(), chest(), level(3, 4)]);
+      await h.advance(BURST_WINDOW_MS);
+      await h.playThrough();
+      await h.playThrough();
+      const card = h.showing();
+      assert.equal(card?.type, 'level-up');
+      return card!;
+    }
+
+    // Still playing: the late moment joins the card on screen as a row.
+    const h = harness();
+    const last = await third(h);
+    h.queue.receive([badge('streak-7')]);
+    await h.advance(BURST_WINDOW_MS);
+    const now = h.showing();
+    assert.equal(now?.id, last.id, 'the third card was taken off the screen for the late moment');
+    assert.deepEqual(now!.also.map((event) => event.key), [celebrationKey.badge('streak-7')], 'the late moment is not a row on the third card');
+    assert.equal(h.queue.snapshot().current?.card, now, 'the frame was not told about its new row');
+    h.queue.reachedFinal(now!.id);
+    await h.flush();
+    assert.ok(h.seen.has(celebrationKey.badge('streak-7')), 'a row on the final frame was not remembered as played');
+    h.queue.dismiss(now!.id);
+    await h.advance(RESUME_AFTER_MS + BURST_WINDOW_MS + 1000);
+    assert.equal(h.showing(), null, 'a fourth takeover played after the third');
+    assert.deepEqual(h.queue.waitingKeys(), []);
+
+    // Already landed: the row is drawn on the final frame, so it is remembered at once.
+    const landed = harness();
+    const done = await third(landed);
+    landed.queue.reachedFinal(done.id);
+    landed.queue.receive([level(4, 5), badge('scene-own')]);
+    await landed.advance(BURST_WINDOW_MS);
+    assert.deepEqual(
+      landed.showing()!.also.map((event) => event.key),
+      [celebrationKey.level(5), celebrationKey.badge('scene-own')],
+      'the late moments are not rows on the landed card, in order',
+    );
+    assert.ok(landed.seen.has(celebrationKey.level(5)) && landed.seen.has(celebrationKey.badge('scene-own')), 'a row added to a landed card was never remembered');
+    assert.equal(landed.pending.has(celebrationKey.level(5)), false, 'a row already drawn would replay after a crash');
+    landed.queue.dismiss(done.id);
+    await landed.advance(RESUME_AFTER_MS + BURST_WINDOW_MS);
+    assert.equal(landed.showing(), null, 'a fourth takeover played after the third');
+
+    // After the third card has gone, before the run has ended: never a fourth card, and never remembered as played.
+    const gap = harness();
+    const gone = await third(gap);
+    gap.queue.reachedFinal(gone.id);
+    gap.queue.dismiss(gone.id);
+    gap.queue.receive([badge('first-conversation')]);
+    await gap.advance(RESUME_AFTER_MS + BURST_WINDOW_MS + 1000);
+    assert.equal(gap.showing(), null, 'a fourth takeover played straight after the third');
+    assert.equal(gap.seen.has(celebrationKey.badge('first-conversation')), false, 'a moment nobody saw was remembered as played');
+    assert.ok(gap.pending.has(celebrationKey.badge('first-conversation')), 'a moment left for the catch-up lost its crash-replay copy');
+
+    // The run has ended, so the next moment starts a burst of its own, and the one left behind can come back.
+    gap.queue.receive([badge('first-conversation')]);
+    await gap.advance(BURST_WINDOW_MS);
+    assert.equal(gap.showing()?.type, 'badge-earned', 'the queue never started another burst after the budget was spent');
+
+    // A spent budget belongs to the account that spent it, even before the sign-out reaches the queue.
+    const next = harness();
+    const theirs = await third(next);
+    next.queue.reachedFinal(theirs.id);
+    next.queue.dismiss(theirs.id);
+    next.signOut();
+    next.queue.receive([badge('scene-own', 'guest')]);
+    await next.advance(RESUME_AFTER_MS + BURST_WINDOW_MS);
+    assert.equal(next.showing()?.type, 'badge-earned', 'the account that left spent the next one\'s budget');
+  });
+
+  test('a moment published again while its seen mark is still being written plays once', async () => {
+    const h = harness({ slowMarks: true });
+    h.queue.receive([badge('streak-7')]);
+    await h.advance(BURST_WINDOW_MS);
+    const card = h.showing();
+    assert.equal(card?.type, 'badge-earned');
+    await h.playThrough();
+    assert.equal(h.seen.has(celebrationKey.badge('streak-7')), false, 'the seen mark landed, so this test proves nothing');
+    h.queue.receive([badge('streak-7')]);
+    await h.advance(BURST_WINDOW_MS + RESUME_AFTER_MS);
+    assert.equal(h.showing(), null, 'a moment played twice because its seen mark had not landed yet');
+    h.landMarks();
+    await h.flush();
+    assert.ok(h.seen.has(celebrationKey.badge('streak-7')));
   });
 
   test('a hold pauses the queue and never drops a moment', async () => {

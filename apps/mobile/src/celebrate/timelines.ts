@@ -221,6 +221,16 @@ export function beatEffects(beat: Beat, focus: FocusNow): Effects {
   return { sound: beat.sound ?? null, haptic: beat.haptic ?? null };
 }
 
+/**
+ * Whether a card drawn final before its clock ever ran plays its one still
+ * sound and haptic. Only when it is still because movement is reduced: a card
+ * that a hold (a sheet, the app leaving the screen) or a skip landed before it
+ * started stays silent, because a hold and a skip both ask for quiet.
+ */
+export function playsStill(card: { readonly reduced: boolean; readonly stopped: boolean }): boolean {
+  return card.reduced && !card.stopped;
+}
+
 /** The one sound and haptic of a card shown still, under reduced motion. Nothing while a microphone or a live room is open. */
 export function stillEffects(timeline: Timeline, focus: FocusNow): Effects {
   if (focus.micLive || focus.liveRoom) return NOTHING;

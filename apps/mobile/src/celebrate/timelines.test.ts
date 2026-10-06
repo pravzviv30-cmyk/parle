@@ -16,7 +16,7 @@ import { CELEBRATION_MAX_MS } from '../motion/tokens.ts';
 import { SFX_APPROVED, SFX_IDS } from '../sound/sfxManifest.ts';
 import type { SfxId } from '../sound/sfxIds.ts';
 import { TAKEOVER_ORDER } from './events.ts';
-import { TIMELINES, beatAt, beatEffects, beatSpan, beatTimes, springSettleMs, stillEffects, type HapticCue, type TimelineId } from './timelines.ts';
+import { TIMELINES, beatAt, beatEffects, beatSpan, beatTimes, playsStill, springSettleMs, stillEffects, type HapticCue, type TimelineId } from './timelines.ts';
 
 const ALL = Object.values(TIMELINES);
 const HELD = [
@@ -79,6 +79,19 @@ describe('celebration timelines — F743', () => {
       }
       assert.deepEqual(stillEffects(timeline, FREE), timeline.still);
     }
+  });
+
+  test('a card a hold or a skip lands before it starts makes no sound', () => {
+    assert.equal(playsStill({ reduced: true, stopped: false }), true, 'a card shown still under reduced motion lost its one sound');
+    assert.equal(playsStill({ reduced: true, stopped: true }), false, 'a card a sheet or a skip landed sounded anyway');
+    assert.equal(playsStill({ reduced: false, stopped: true }), false, 'a card a hold landed before it started sounded anyway');
+    assert.equal(playsStill({ reduced: false, stopped: false }), false);
+    // The clock asks once, the first time the card is final, and only sounds a card that is still for reduced motion.
+    const clock = read('./useTimeline.ts');
+    assert.match(clock, /if \(latest\.current\.still\) latest\.current\.onStill\(\);/, 'the clock sounds every card that is final before it started');
+    assert.match(read('./Takeover.tsx'), /still: playsStill\(\{ reduced, stopped: landed \|\| paused \}\),/, 'a takeover a hold or a skip landed still sounds');
+    assert.match(read('./EndCard.tsx'), /still: playsStill\(\{ reduced, stopped: !first \}\),/);
+    assert.match(read('./Toast.tsx'), /still: playsStill\(\{ reduced: still, stopped: false \}\),/);
   });
 
   test('each moment sounds and feels the way the master table says', () => {

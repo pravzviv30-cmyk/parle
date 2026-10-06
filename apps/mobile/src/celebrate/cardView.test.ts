@@ -14,7 +14,7 @@ import { GAME_COPY } from '../game/copy.ts';
 import { isSeenKey } from '../game/model.ts';
 import { WALL_READY } from '../wall/wallCopy.ts';
 import { celebrationKey, isRememberedInSeen, type CelebrationEvent } from './events.ts';
-import { cardView, rowFor, spoken, type CardView } from './cardView.ts';
+import { cardView, rowFor, shownTitle, spoken, type CardView } from './cardView.ts';
 import { purchaseMoment, purchaseTransactionId } from './purchaseMoment.ts';
 import { planBurst, type TakeoverCard } from './queue.ts';
 
@@ -96,6 +96,27 @@ describe('what a celebration card says — F743', () => {
     assert.deepEqual(view.lines, [GAME_COPY.level.line]);
     assert.equal(view.ground, 'blue');
     assert.equal(cardView(cardOf([level(2, 3), level(3, 5)])).titleBefore, 'Level 2', 'two levels in one sitting do not count from the first');
+  });
+
+  test('the title a screen reader lands on says the whole moment, and a level never changes under it', () => {
+    // The header's label is the announcement; the big number is hidden from a screen reader, so the header must say it.
+    for (const view of views) {
+      if (view.hero !== null) assert.ok(view.announce.includes(`${view.hero.value} ${view.hero.unit}`), `"${view.announce}" leaves out the number a screen reader cannot see`);
+      else if (view.lines.length > 0) assert.ok(view.announce.includes(view.lines[0]!), `"${view.announce}" leaves out the card's main line`);
+    }
+
+    const rise = cardView(cardOf([level(3, 4)]));
+    // For the eye: the old level until the title beat, then the new one.
+    assert.equal(shownTitle(rise, { titleReached: false, screenReader: false }), 'Level 3');
+    assert.equal(shownTitle(rise, { titleReached: true, screenReader: false }), 'Level 4');
+    // Before the OS has answered, the swap plays, so a sighted learner never sees 4, then 3, then 4.
+    assert.equal(shownTitle(rise, { titleReached: false, screenReader: null }), 'Level 3');
+    // With a screen reader on, the header the reader stands on never changes.
+    assert.equal(shownTitle(rise, { titleReached: false, screenReader: true }), 'Level 4', 'the header changed under a screen reader, so its focus is lost');
+    assert.equal(shownTitle(rise, { titleReached: true, screenReader: true }), 'Level 4');
+    // A card with nothing to swap always shows its title.
+    const run = cardView(cardOf([streak(12, 240)]));
+    assert.equal(shownTitle(run, { titleReached: false, screenReader: false }), run.title);
   });
 
   test('the rows under "Also today" name what did not get a card of its own', () => {

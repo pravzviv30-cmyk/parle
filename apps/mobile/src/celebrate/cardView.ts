@@ -79,6 +79,19 @@ export function rowFor(event: CelebrationEvent): string | null {
   }
 }
 
+/**
+ * The title a card shows at this instant. A level card shows the old level
+ * until its title beat, then the new one, but never while a screen reader is
+ * on: changing the header under the reader would take its place away, and the
+ * header already says the new level with the main value. Until the OS has
+ * answered (null) the swap plays, so a sighted learner never sees the new
+ * level, then the old, then the new again.
+ */
+export function shownTitle(view: CardView, at: { readonly titleReached: boolean; readonly screenReader: boolean | null }): string {
+  if (view.titleBefore === null || at.titleReached || at.screenReader === true) return view.title;
+  return view.titleBefore;
+}
+
 export function cardView(card: TakeoverCard): CardView {
   const rows = card.also.map(rowFor).filter((row): row is string => row !== null);
   const base = { ground: GROUND[card.type], timeline: card.type, rows, titleBefore: null, badges: [] as Badge[] };

@@ -108,6 +108,30 @@ describe('the celebration host in the app — F743', () => {
     }
   });
 
+  test('the stage and the words remount under keys of their own when a card turns final', () => {
+    const frame = src('celebrate/Takeover.tsx');
+    // Two siblings under one key: React keeps one, and the playing stage would never unmount (its loops and listeners leak).
+    assert.doesNotMatch(frame, /key=\{mode\}/, 'a sibling is keyed by the mode alone, so the stage and the words can share a key');
+    const stage = frame.match(/<Stage key=\{(`[^`]*`)\}/)?.[1];
+    const words = frame.match(/<Words key=\{(`[^`]*`)\}/)?.[1];
+    assert.ok(stage && words, 'the stage or the words no longer remount when the card turns final');
+    assert.match(stage, /\$\{mode\}/, 'the stage does not remount when the card turns final, so a primitive is left halfway');
+    assert.match(words, /\$\{mode\}/, 'the words do not remount when the card turns final, so a line is left halfway');
+    assert.notEqual(stage, words, 'the stage and the words share a key');
+  });
+
+  test('a screen reader keeps its place on the title of a takeover and hears the whole moment there', () => {
+    const frame = src('celebrate/Takeover.tsx');
+    const words = region(frame, 'function Words(');
+    assert.match(words, /accessibilityRole="header"\s+accessibilityLabel=\{view\.announce\}/, 'the title a reader lands on does not say the main value');
+    assert.match(words, /<View \{\.\.\.decorative\} style=\{st\.hero\}>/, 'the big number is read out as well as the title that says it');
+    assert.match(frame, /shownTitle\(view, \{ titleReached: [^}]*, screenReader: reader \}\)/, 'a level title changes under a screen reader, so its focus is lost');
+    assert.match(words, /<Enter key=\{shown\}/);
+    // Focus is placed again whenever the words are redrawn, and the moment is announced only where focus cannot land.
+    assert.match(frame, /\}, \[mode, shown, view\.announce\]\);/, 'focus is not placed again when the words remount');
+    assert.match(frame, /if \(focusTitle\(\) \|\| announced\.current\) return;/, 'an announcement is said over the focus that says the same, and is cut off');
+  });
+
   test('the toast blocks nothing and is hidden from assistive technology', () => {
     const toast = src('celebrate/Toast.tsx');
     assert.match(toast, /<View \{\.\.\.decorative\} style=\{st\.layer\}>/, 'the toast is announced, though the screen already said it was saved');

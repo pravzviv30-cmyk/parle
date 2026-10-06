@@ -5,9 +5,12 @@
  *   ready   false until the OS has said whether movement is reduced; nothing
  *           starts before, for at most ANSWER_WAIT_MS (motion/landing.ts).
  *   final   the card shows its final frame. Every beat counts as reached and
- *           no beat fires after this. A card that is final before it ever
- *           started (reduced motion) plays its one still sound and haptic once,
- *           because sound and touch are not motion.
+ *           no beat fires after this.
+ *   still   the card is final because movement is reduced, and nothing (a
+ *           hold, a skip) stopped it (`playsStill`). A card that is final
+ *           before it ever started plays its one still sound and haptic once
+ *           only then, because sound and touch are not motion; one that a hold
+ *           or a skip landed first stays silent for good.
  *
  * `onEnd` is said once, when the last beat is reached or the card goes final,
  * which is when the queue remembers the moment as seen. A clock restarted by a
@@ -36,21 +39,23 @@ export function useTimeline(
   {
     ready,
     final,
+    still,
     onCue,
     onStill,
     onEnd,
   }: {
     ready: boolean;
     final: boolean;
+    still: boolean;
     onCue: (beat: Beat) => void;
     onStill: () => void;
     onEnd: () => void;
   },
 ): number {
   const [elapsed, setElapsed] = useState(-1);
-  const latest = useRef({ onCue, onStill, onEnd });
+  const latest = useRef({ still, onCue, onStill, onEnd });
   useEffect(() => {
-    latest.current = { onCue, onStill, onEnd };
+    latest.current = { still, onCue, onStill, onEnd };
   });
   const startedAt = useRef<number | null>(null);
   const fired = useRef(new Set<number>());
@@ -84,9 +89,10 @@ export function useTimeline(
   useEffect(() => {
     if (!final) return;
     setElapsed(timeline.end);
+    // Decided once, the first time the card is final: a card a hold landed never sounds later.
     if (startedAt.current === null && !stilled.current) {
       stilled.current = true;
-      latest.current.onStill();
+      if (latest.current.still) latest.current.onStill();
     }
     if (!ended.current) {
       ended.current = true;

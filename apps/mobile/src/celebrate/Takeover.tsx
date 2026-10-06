@@ -3,8 +3,11 @@
  * and 5).
  *
  * - Modal to assistive technology and to the hardware back button: a screen
- *   reader stays inside it, focus moves to its title, and the title and the
- *   main value are announced as it appears.
+ *   reader stays inside it and focus moves to its title, whose label is the
+ *   title and the main value, so landing there says the whole moment. A
+ *   separate announcement would be cut off by that, so the moment is announced
+ *   only where focus has nowhere to land. The title never changes under a
+ *   screen reader, and focus is placed again whenever the words are redrawn.
  * - The stage (the template's art) on top, then the number, the title, the
  *   lines and any "Also today" rows, in a column at most `COLUMN_MAX` wide and
  *   centred on an iPad, inside the shared frame's scroll, so text at any
@@ -17,7 +20,10 @@
  * - Reduced motion shows the final frame at once and is watched live; its one
  *   sound and haptic still play once, because they are not motion.
  * - A hold (a microphone, a live room, a sheet, the app leaving the screen)
- *   lands the card on its final frame and keeps it there; it never replays.
+ *   lands the card on its final frame and keeps it there; it never replays,
+ *   and a card a hold or a skip landed before it started makes no sound.
+ * - The stage and the words remount under keys of their own when the card
+ *   turns final, so nothing from the playing frame is left behind.
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
@@ -42,9 +48,9 @@ import { useAnswered } from '../motion/landing.ts';
 import { Enter } from '../motion/layout.tsx';
 import { StaggerIn } from '../motion/StaggerIn.tsx';
 import { DUR, INPUT_READY_MS, IPAD_WIDTH } from '../motion/tokens.ts';
-import { colour, onColour, paper, space, textOn, type } from '../theme.ts';
+import { colour, decorative, onColour, paper, space, textOn, type } from '../theme.ts';
 import type { TakeoverType } from './events.ts';
-import { cardView, type CardGround, type CardView } from './cardView.ts';
+import { cardView, shownTitle, type CardGround, type CardView } from './cardView.ts';
 import { fireBeat, fireStill, stopEffects } from './effects.ts';
 import type { TakeoverCard } from './queue.ts';
 import { BadgeEarned } from './templates/BadgeEarned.tsx';
@@ -54,7 +60,7 @@ import { QuestChest } from './templates/QuestChest.tsx';
 import type { StageProps } from './templates/stage.tsx';
 import { StreakExtended } from './templates/StreakExtended.tsx';
 import { StreakMilestone } from './templates/StreakMilestone.tsx';
-import { TIMELINES, beatAt, type Timeline } from './timelines.ts';
+import { TIMELINES, beatAt, playsStill, type Timeline } from './timelines.ts';
 import { useScreenReader } from './useScreenReader.ts';
 import { useLatch, useTimeline } from './useTimeline.ts';
 
@@ -120,6 +126,7 @@ export function Takeover({
   const elapsed = useTimeline(timeline, {
     ready: answered !== null,
     final,
+    still: playsStill({ reduced, stopped: landed || paused }),
     onCue: fireBeat,
     onStill: () => fireStill(timeline),
     onEnd: () => onFinal(card.id),
@@ -150,27 +157,39 @@ export function Takeover({
     if (measured > 0 && measured !== columnWidth) setColumnWidth(measured);
   };
 
-  const title = useRef<Text>(null);
-  const focusTitle = () => {
-    if (Platform.OS === 'web') {
-      (title.current as unknown as { focus?: () => void } | null)?.focus?.();
-      return;
-    }
-    const handle = findNodeHandle(title.current);
-    if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
-  };
-  useEffect(() => {
-    AccessibilityInfo.announceForAccessibility(view.announce);
-    // The title enters over DUR.base; focus lands once it is there to land on.
-    const timer = setTimeout(focusTitle, DUR.base);
-    return () => clearTimeout(timer);
-  }, [view.announce]);
-
   const groundName = view.ground;
   const { ink, soft } = inks(groundName);
   const reached = (element: string): boolean => final || elapsed >= beatAt(timeline, element);
+  // Only a level card has a title beat; asking any other timeline for one would throw.
+  const shown = shownTitle(view, { titleReached: view.titleBefore === null || reached('title'), screenReader: reader });
   const Stage = STAGES[card.type];
   const mode = final ? 'final' : 'play';
+
+  const title = useRef<Text>(null);
+  /** Moves a screen reader to the title. False when there is nothing there to move it to. */
+  const focusTitle = (): boolean => {
+    if (Platform.OS === 'web') {
+      const node = title.current as unknown as { focus?: () => void } | null;
+      if (typeof node?.focus !== 'function') return false;
+      node.focus();
+      return true;
+    }
+    const handle = findNodeHandle(title.current);
+    if (!handle) return false;
+    AccessibilityInfo.setAccessibilityFocus(handle);
+    return true;
+  };
+  const announced = useRef(false);
+  useEffect(() => {
+    // The title enters over DUR.base; focus lands once it is there to land on. The words
+    // remount when the card turns final or its title changes, so focus is placed again then.
+    const timer = setTimeout(() => {
+      if (focusTitle() || announced.current) return;
+      announced.current = true;
+      AccessibilityInfo.announceForAccessibility(view.announce);
+    }, DUR.base);
+    return () => clearTimeout(timer);
+  }, [mode, shown, view.announce]);
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={back} supportedOrientations={['portrait']}>
@@ -187,8 +206,8 @@ export function Takeover({
           >
             <Pressable accessible={false} focusable={false} onPress={skip} style={st.tap}>
               <View style={st.column} onLayout={onColumn}>
-                <Stage key={mode} card={card} view={view} final={final} reduced={reduced} reached={reached} width={columnWidth} height={stageHeight(dims.width, dims.height)} />
-                <Words key={mode} view={view} timeline={timeline} final={final} reached={reached} ink={ink} soft={soft} titleRef={title} />
+                <Stage key={`stage:${mode}`} card={card} view={view} final={final} reduced={reduced} reached={reached} width={columnWidth} height={stageHeight(dims.width, dims.height)} />
+                <Words key={`words:${mode}`} view={view} shown={shown} timeline={timeline} final={final} ink={ink} soft={soft} titleRef={title} />
               </View>
             </Pressable>
           </ScrollScreen>
@@ -201,27 +220,28 @@ export function Takeover({
 /** The number, the title, the lines and the "Also today" rows, each arriving on its beat. */
 function Words({
   view,
+  shown,
   timeline,
   final,
-  reached,
   ink,
   soft,
   titleRef,
 }: {
   view: CardView;
+  /** The title as it reads this instant (`shownTitle`). */
+  shown: string;
   timeline: Timeline;
   final: boolean;
-  reached: (element: string) => boolean;
   ink: string;
   soft: string;
   titleRef: { current: Text | null };
 }) {
-  const swapping = view.titleBefore !== null && !reached('title');
-  const shownTitle = swapping ? view.titleBefore! : view.title;
+  const swapping = shown !== view.title;
   const linesAt = final ? 0 : beatAt(timeline, 'lines');
 
+  // Hidden from assistive technology: the title's label already says the value.
   const hero = view.hero === null ? null : (
-    <View accessible accessibilityLabel={`${view.hero.value} ${view.hero.unit}`} style={st.hero}>
+    <View {...decorative} style={st.hero}>
       <Text style={[type.hero, { color: ink }]}>{view.hero.value}</Text>
       <Text style={[type.title, st.unit, { color: ink }]}>{view.hero.unit}</Text>
     </View>
@@ -231,18 +251,20 @@ function Words({
     <Text
       ref={titleRef}
       accessibilityRole="header"
-      accessibilityLabel={view.title}
+      // The title and the main value, so wherever focus lands on it the whole moment is heard.
+      accessibilityLabel={view.announce}
       // The web moves focus only to something focusable; -1 keeps it out of the tab order, as the Sheet's title does.
       {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
       style={[type.title, st.centre, { color: ink }]}
     >
-      {shownTitle}
+      {shown}
     </Text>
   );
 
+  // Keyed by place as well as words: a row can join the last card while it shows, and two may read alike.
   const lines = [
-    ...view.lines.map((line) => (
-      <Text key={`line:${line}`} style={[type.body, st.centre, { color: soft }]}>
+    ...view.lines.map((line, i) => (
+      <Text key={`line:${i}:${line}`} style={[type.body, st.centre, { color: soft }]}>
         {line}
       </Text>
     )),
@@ -250,8 +272,8 @@ function Words({
       ? [
           <View key="also" style={st.also}>
             <Text style={[type.label, st.centre, { color: ink }]}>{GAME_COPY.endCard.alsoToday}</Text>
-            {view.rows.map((row) => (
-              <Text key={`row:${row}`} style={[type.body, st.centre, { color: soft }]}>
+            {view.rows.map((row, i) => (
+              <Text key={`row:${i}:${row}`} style={[type.body, st.centre, { color: soft }]}>
                 {row}
               </Text>
             ))}
@@ -276,7 +298,7 @@ function Words({
           {hero}
         </Enter>
       )}
-      <Enter key={shownTitle} distance={swapping || view.titleBefore === null ? 10 : 24}>
+      <Enter key={shown} distance={swapping || view.titleBefore === null ? 10 : 24}>
         {heading}
       </Enter>
       {lines.length > 0 && <StaggerIn delay={linesAt}>{lines}</StaggerIn>}

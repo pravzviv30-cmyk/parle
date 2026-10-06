@@ -11,16 +11,22 @@
  *
  * What it decides:
  * - **The burst.** Moments that arrive within `BURST_WINDOW_MS` of each other,
- *   or while a card is showing, are one burst. A burst plays at most
- *   `MAX_TAKEOVERS` cards in `TAKEOVER_ORDER`; whatever is left over becomes a
- *   row under "Also today" on the last card, never a fourth takeover.
+ *   or while a run of cards is still going, are one burst. A burst plays at
+ *   most `MAX_TAKEOVERS` cards in `TAKEOVER_ORDER`; whatever is left over
+ *   becomes a row under "Also today" on the last card, never a fourth
+ *   takeover. A moment that arrives while that last card is on screen becomes
+ *   a row on it too. One that arrives after the last card has gone, before the
+ *   run has ended, is left for the game pipeline's catch-up: it is not
+ *   remembered as played and its crash-replay copy stays.
  * - **Merging.** A milestone replaces the same day's plain streak moment; the
  *   newest day's streak, the newest chest and the highest level each make one
  *   card; badges share a card three at a time.
  * - **Once only.** An account moment is checked against the synced `game.seen`
  *   list before it waits, and marked there when its card reaches its final
- *   frame or is skipped. A guest moment and a toast are remembered in memory
- *   only (`MEMORY_LEDGER_LIMIT`), keyed by the scope generation.
+ *   frame or is skipped. Every moment that has played is also remembered in
+ *   memory (`MEMORY_LEDGER_LIMIT`), keyed by the scope generation, so one
+ *   published again before its `seen` mark has landed never plays twice. A
+ *   guest moment and a toast are remembered in memory only.
  * - **A crash.** An account moment waiting to play is also written to this
  *   phone's pending queue (`gameLocal`), and dropped from it once it has played,
  *   been skipped, timed out or been cleared by a safety stop.
@@ -336,14 +342,16 @@ export interface CelebrationQueue {
 }
 
 type Entry = { readonly event: CelebrationEvent; readonly receivedAt: number; readonly generation: number };
-type Showing = { readonly card: TakeoverCard; readonly generation: number; final: boolean };
+type Showing = { card: TakeoverCard; readonly generation: number; final: boolean };
 
 export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
   let waiting: Entry[] = [];
   let checking = 0;
   const inFlight = new Set<string>();
   let showing: Showing | null = null;
-  let shownInBurst = 0;
+  // Cards put on screen since the run began. The run ends only when nothing is showing, waiting, being checked or about to resume.
+  let presentedInBurst = 0;
+  let burstGeneration: number | null = null;
   let toast: ToastItem | null = null;
   let active = true;
   let windowTimer: unknown = null;
@@ -371,8 +379,9 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
   function publish(): void {
     const current = showing === null ? null : { card: showing.card, final: showing.final };
     const next: QueueSnapshot = { current, paused: showing !== null && held(), toast };
+    // The card itself, not its id: a row added to the card on screen is news to the frame.
     const same =
-      snap.current?.card.id === next.current?.card.id &&
+      snap.current?.card === next.current?.card &&
       snap.current?.final === next.current?.final &&
       snap.paused === next.paused &&
       snap.toast?.id === next.toast?.id;
@@ -440,11 +449,13 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
     }, Math.max(0, due - deps.now()));
   }
 
+  /** The run has put on screen every card its budget allows. */
+  const spent = (): boolean => presentedInBurst >= MAX_TAKEOVERS;
+
   function present(): void {
-    if (shownInBurst >= MAX_TAKEOVERS) shownInBurst = 0;
     const [first] = planBurst(
       waiting.map((entry) => entry.event),
-      MAX_TAKEOVERS - shownInBurst,
+      MAX_TAKEOVERS - presentedInBurst,
     );
     if (first === undefined) {
       waiting = [];
@@ -453,26 +464,61 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
     const covered = new Set(first.covers.map((event) => event.key));
     waiting = waiting.filter((entry) => !covered.has(entry.event.key));
     serial += 1;
+    presentedInBurst += 1;
     showing = { card: { ...first, id: `card-${serial}` }, generation: deps.generation(), final: false };
+  }
+
+  /**
+   * The budget is spent and its last card is on screen: whatever arrives now
+   * becomes a row on that card, never a fourth takeover. A card that has
+   * already landed remembers its new rows at once, because they are drawn on
+   * its final frame.
+   */
+  function foldIntoLast(card: Showing): void {
+    const joining = planBurst(
+      waiting.map((entry) => entry.event),
+      Number.MAX_SAFE_INTEGER,
+    );
+    waiting = [];
+    if (joining.length === 0) return;
+    const also = joining.flatMap((planned) => planned.shows);
+    const covers = joining.flatMap((planned) => planned.covers);
+    card.card = { ...card.card, also: [...card.card.also, ...also], covers: [...card.card.covers, ...covers] };
+    if (card.final) remember(covers, card.generation);
   }
 
   function pump(): void {
     expire();
-    if (showing !== null && showing.generation !== deps.generation()) {
+    const generation = deps.generation();
+    // A run belongs to one account: the next one starts with the whole budget.
+    if (generation !== burstGeneration) {
+      burstGeneration = generation;
+      presentedInBurst = 0;
+    }
+    if (showing !== null && showing.generation !== generation) {
       showing = null;
       deps.stopEffects();
     }
-    if (showing === null && !held() && windowTimer === null && resumeTimer === null && checking === 0) {
-      if (waiting.length === 0) shownInBurst = 0;
-      else present();
+    if (spent() && waiting.length > 0) {
+      if (showing !== null) foldIntoLast(showing);
+      // The last card has gone and the run is still ending: a fourth card now
+      // would break the budget, and there is no card left to carry a row. The
+      // moment is not remembered and its crash-replay copy stays, for the game
+      // pipeline's catch-up to bring back on its own.
+      else waiting = [];
     }
+    const settled = windowTimer === null && resumeTimer === null && checking === 0;
+    if (showing === null && waiting.length === 0 && settled) presentedInBurst = 0;
+    else if (showing === null && waiting.length > 0 && settled && !held()) present();
     scheduleTtl();
     publish();
   }
 
-  function remember(card: TakeoverCard, generation: number): void {
-    const durable = card.covers.filter(isRememberedInSeen).map((event) => event.key);
-    for (const event of card.covers) if (!isRememberedInSeen(event)) ledger.add(memoryKey(generation, event));
+  /** Moments that have played (reached their final frame, been skipped, or been drawn as a row there). */
+  function remember(events: readonly CelebrationEvent[], generation: number): void {
+    // In memory as well, so one published again before its `seen` mark has landed never plays twice.
+    for (const event of events) ledger.add(memoryKey(generation, event));
+    const durable = events.filter(isRememberedInSeen).map((event) => event.key);
     if (durable.length === 0 || generation !== deps.generation()) return;
     const at = deps.now();
     safely(() => deps.markSeen(durable.map((key) => ({ key, at }))));
@@ -488,7 +534,7 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
     ttlTimer = null;
     resumeTimer = null;
     waiting = [];
-    shownInBurst = 0;
+    presentedInBurst = 0;
     toast = null;
     if (showing !== null) {
       showing = null;
@@ -559,12 +605,13 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
         continue;
       }
       if (!isTakeover(event.type) || isQueued(event.key) || inFlight.has(event.key)) continue;
+      // Played in this session: its `seen` mark may still be on its way to the disk.
+      if (ledger.has(memoryKey(generation, event))) continue;
       if (isRememberedInSeen(event)) {
         arrived = true;
         check(event, generation);
         continue;
       }
-      if (ledger.has(memoryKey(generation, event))) continue;
       arrived = true;
       admit(event, generation);
     }
@@ -601,17 +648,16 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
     reachedFinal(id) {
       if (showing === null || showing.card.id !== id || showing.final) return;
       showing.final = true;
-      remember(showing.card, showing.generation);
+      remember(showing.card.covers, showing.generation);
       publish();
     },
     dismiss(id) {
       if (showing === null || showing.card.id !== id) return;
       if (!showing.final) {
         showing.final = true;
-        remember(showing.card, showing.generation);
+        remember(showing.card.covers, showing.generation);
       }
       showing = null;
-      shownInBurst += 1;
       startResume();
       pump();
     },

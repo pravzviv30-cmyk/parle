@@ -28,7 +28,7 @@ import { colour, decorative, paper, radius, space, type } from '../theme.ts';
 import { fireBeat, fireStill } from './effects.ts';
 import type { ToastItem } from './queue.ts';
 import { COLUMN_MAX } from './Takeover.tsx';
-import { TIMELINES, beatAt } from './timelines.ts';
+import { TIMELINES, beatAt, playsStill } from './timelines.ts';
 import { useLatch, useTimeline } from './useTimeline.ts';
 
 const TIMELINE = TIMELINES.toast;
@@ -43,6 +43,7 @@ export function Toast({ item, onDone }: { item: ToastItem; onDone: (id: string) 
   useTimeline(TIMELINE, {
     ready: answered !== null,
     final: still,
+    still: playsStill({ reduced: still, stopped: false }),
     onCue: fireBeat,
     onStill: () => fireStill(TIMELINE),
     onEnd: () => {},
