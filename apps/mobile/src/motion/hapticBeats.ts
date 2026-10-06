@@ -28,13 +28,18 @@ export const TICK_GAP_MS = 60;
 export interface BeatClock {
   setTimeout(run: () => void, ms: number): unknown;
   clearTimeout(handle: unknown): void;
+  /** Milliseconds that only go forward, so a wall-clock correction never opens or shuts a throttle. */
   now(): number;
 }
 
 export const realClock: BeatClock = {
   setTimeout: (run, ms) => setTimeout(run, ms),
   clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
-  now: () => Date.now(),
+  // clock.ts's monotonicNow, written out because this file imports nothing.
+  now: () => {
+    const clock = globalThis.performance;
+    return typeof clock?.now === 'function' ? clock.now() : Date.now();
+  },
 };
 
 export interface Beats {

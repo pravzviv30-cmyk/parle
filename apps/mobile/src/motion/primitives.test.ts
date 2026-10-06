@@ -55,6 +55,13 @@ const LANDS_THROUGH: Record<string, { file: string; use: RegExp }> = {
   'TokenFlight.tsx': { file: 'FlightLayer.tsx', use: /\bflights\.land\(/ },
 };
 
+/**
+ * The primitives whose reduced-motion answer is wholly the part they are built
+ * on. Asking again would be a second answer, and the two can land a commit
+ * apart: a cascade that started with every child at index 0 never staggers.
+ */
+const ANSWERED_BY: Record<string, string> = { 'StaggerIn.tsx': 'layout.tsx', 'BubbleIn.tsx': 'layout.tsx' };
+
 /** The primitives that draw nothing a learner reads: hidden, and every touch passes through. */
 const DECORATIVE = ['Burst.tsx', 'DiscBloom.tsx', 'Glint.tsx', 'LevelRing.tsx', 'FlightLayer.tsx', 'TokenFlight.tsx', 'ProgressRing.tsx', 'ProgressRing.web.tsx'];
 
@@ -65,9 +72,12 @@ describe('the motion primitives keep one contract', () => {
       for (const name of names) {
         assert.match(body, new RegExp(`export function ${name}\\b`), `motion/${file} no longer exports ${name}`);
       }
-      assert.match(body, /\buseReduceMotion\(/, `motion/${file} does not read reduced motion live`);
+      // Read here, or wholly in the part it is built on.
+      const answeredBy = ANSWERED_BY[file];
+      const reads = answeredBy === undefined ? body : code(answeredBy);
+      assert.match(reads, /\buseReduceMotion\(/, `motion/${file} does not read reduced motion live`);
       assert.match(
-        body,
+        reads,
         /import \{[^}]*\buseReduceMotion\b[^}]*\} from '\.\.\/motion\.ts';/,
         `motion/${file} reads a reduced-motion answer that is not motion.ts's`,
       );
@@ -83,7 +93,7 @@ describe('the motion primitives keep one contract', () => {
 
     const landing = code('landing.ts');
     assert.match(landing, /AppState\.addEventListener\('change', \(state\) => \{\s*if \(state !== 'active'\) latest\.current\(\);/, 'useLandOnLeave no longer lands when the app leaves active');
-    assert.match(landing, /return \(\) => \{\s*subscription\.remove\(\);\s*latest\.current\(\);/, 'useLandOnLeave no longer lands on unmount');
+    assert.match(landing, /return \(\) => \{\s*subscription\.remove\(\);\s*guard\.unmounted\(\(\) => latest\.current\(\)\);/, 'useLandOnLeave no longer lands on unmount');
     assert.match(landing, /setTimeout\(\(\) => setLate\(true\), ANSWER_WAIT_MS\)/, 'a one-shot waits on the OS for ever rather than playing the reduced version');
     assert.match(landing, /return late \? true : null;/, 'a one-shot that heard no answer does not play the reduced version');
   });
@@ -110,7 +120,7 @@ describe('the motion primitives keep one contract', () => {
     // A count shows its final value.
     assert.match(code('CountUp.tsx'), /if \(reduced\) \{\s*land\(\);\s*return;\s*\}/, 'a count under reduced motion does not show its final value at once');
     // The ring and the bar are drawn where they end, and still say they arrived.
-    assert.match(code('useRingDraw.ts'), /if \(reduced\) \{[\s\S]*?drawn\.value = goal;\s*setTimeout\(settle, 0\);/, 'the ring under reduced motion is not drawn at once, or never says it is done');
+    assert.match(code('useRingDraw.ts'), /if \(reduced\) \{[\s\S]*?drawn\.value = goal;[\s\S]*?answer\.current = setTimeout\(settle, 0\);/, 'the ring under reduced motion is not drawn at once, or never says it is done');
     assert.match(code('LivingBar.tsx'), /if \(reduced\) \{\s*still\(\);[\s\S]*?setTimeout\(settle, 0\);/, 'the bar under reduced motion is not full at once, or never says it filled');
     // A held glow stays; a passing one is gone.
     assert.match(code('DiscBloom.tsx'), /if \(reduced === null \|\| \(reduced && !hold\)\) return null;/, 'a passing glow draws under reduced motion');
@@ -161,5 +171,62 @@ describe('the motion primitives keep one contract', () => {
     assert.match(web, /strokeDashoffset=\{length \* \(1 - shown\)\}/, 'the web ring is not drawn from state');
     assert.match(web, /COUNT_FRAME_MS/, 'the web ring redraws faster than 30 times a second');
     for (const body of [native, web]) assert.match(body, /useRingDraw\(\{ reduced,/, 'the two halves no longer share one run');
+  });
+
+  test('a cascade and a bubble take reduced motion from Enter alone, so a late answer still staggers', () => {
+    // Enter waits for the OS and lands at once when movement is reduced, so a
+    // place in the cascade or a rise handed to it under reduced motion moves
+    // nothing. A second answer read here could arrive a commit apart from
+    // Enter's: the cascade would start at index 0 for good, or a bubble's rise
+    // would change while it travelled.
+    for (const file of Object.keys(ANSWERED_BY)) {
+      assert.doesNotMatch(code(file), /\buseReduceMotion\b|\breduced\b/, `motion/${file} asks for reduced motion beside the Enter it is built on`);
+    }
+    assert.match(code('StaggerIn.tsx'), /index=\{Math\.min\(i, cascading - 1\)\}/, 'a child is not given its real place in the cascade');
+    assert.match(code('BubbleIn.tsx'), /distance=\{shape\.rise\}/, 'a bubble is not given its rise');
+    assert.match(code('BubbleIn.tsx'), /scaleFrom=\{shape\.from\}/, 'a bubble is not given its growth');
+    // What makes that safe: Enter at rest has no rise and no growth, whatever it was handed.
+    const enter = code('layout.tsx');
+    assert.match(enter, /const reduced = useAnswered\(useReduceMotion\(true\)\);/, 'Enter does not wait for the OS answer');
+    assert.match(enter, /translateY: \(1 - shown\.value\) \* rise \}, \{ scale: scaleFrom \+ \(1 - scaleFrom\) \* shown\.value \}/, 'Enter at rest keeps some rise or growth');
+  });
+
+  test('the waiting pill takes its measured shape before the render that first draws it', () => {
+    // The shape style is used from the render after the first measure, and the
+    // effect that shapes the pill runs only once that render is on screen: left
+    // to it, the pill is drawn for one frame at 0 by 0.
+    const body = code('MorphButton.tsx');
+    const measure = body.slice(body.indexOf('const measure = '), body.indexOf('const locked = '));
+    assert.ok(measure.includes('setBox('), 'the measure no longer stores the box, so this check reads nothing');
+    const shaped = measure.indexOf('still(state, reduced, { width, height });');
+    assert.notEqual(shaped, -1, 'the measure does not shape the pill to the box it measured');
+    assert.ok(shaped < measure.indexOf('setBox('), 'the pill is shaped only after the render that first draws it');
+    assert.match(body, /\(now: MorphState, calm: boolean, size: \{ width: number; height: number \} \| null = latest\.current\.box\) => \{/, 'still cannot be handed a box that is not stored yet');
+    assert.match(body, /wide\.value = closed \? MORPH\.size : size\?\.width \?\? 0;/, 'the width is not the box handed in');
+    assert.match(body, /tall\.value = closed \? MORPH\.size : size\?\.height \?\? 0;/, 'the height is not the box handed in');
+  });
+
+  test('a next-tick answer is cleared when the ring or the bar goes, and a remount is on screen again', () => {
+    for (const file of ['useRingDraw.ts', 'LivingBar.tsx']) {
+      const body = code(file);
+      // One handle kept, replaced rather than stacked.
+      assert.match(body, /if \(answer\.current !== null\) clearTimeout\(answer\.current\);\s*answer\.current = setTimeout\(settle, 0\);/, `motion/${file} drops the handle of its next-tick answer`);
+      assert.doesNotMatch(body.replace(/answer\.current = setTimeout\(settle, 0\);/g, ''), /\bsetTimeout\(/, `motion/${file} sets a timer it does not keep`);
+      // Cleared when it goes, and on screen again when StrictMode or Fast Refresh runs the body again.
+      assert.match(
+        body,
+        /useEffect\(\(\) => \{\s*alive\.current = true;\s*return \(\) => \{\s*alive\.current = false;\s*if \(answer\.current !== null\) clearTimeout\(answer\.current\);/,
+        `motion/${file} leaves its next-tick answer running after it has gone, or stays gone after a remount`,
+      );
+    }
+  });
+
+  test('only a real unmount lands a primitive', () => {
+    // The decision itself is unmount.ts's, driven in unmount.test.ts; this holds the hook to it.
+    const landing = code('landing.ts');
+    assert.match(landing, /import \{ createUnmountGuard \} from '\.\/unmount\.ts';/, 'useLandOnLeave does not use the unmount guard');
+    assert.match(landing, /const \[guard\] = useState\(\(\) => createUnmountGuard\(\)\);/, 'useLandOnLeave builds a new guard each render');
+    assert.match(landing, /useEffect\(\(\) => \{\s*guard\.mounted\(\);/, 'a remount is not marked as on screen again');
+    assert.doesNotMatch(landing, /return \(\) => \{\s*subscription\.remove\(\);\s*latest\.current\(\);/, 'useLandOnLeave lands in the cleanup itself, so a rehearsal lands a one-shot for good');
   });
 });

@@ -8,13 +8,13 @@
  * conversation never replays its history.
  *
  * Reduced motion: the bubble is in place at once, watched live, through the
- * `Enter` it is built on. This file asks too, so a bubble under reduced motion
- * is never even asked to travel.
+ * `Enter` it is built on. This file never asks for itself: a second answer can
+ * land a commit apart from Enter's and change the rise under a bubble already
+ * travelling. Enter at rest has no rise and no growth whatever it was handed.
  */
 
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { useReduceMotion } from '../motion.ts';
 import { Enter } from './layout.tsx';
 import { BUBBLE, DUR } from './tokens.ts';
 
@@ -31,13 +31,12 @@ export function BubbleIn({
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 }) {
-  const reduced = useReduceMotion();
   const shape = BUBBLE[who];
   return (
     <Enter
       from="down"
-      distance={reduced ? 0 : shape.rise}
-      scaleFrom={reduced ? 1 : shape.from}
+      distance={shape.rise}
+      scaleFrom={shape.from}
       duration={DUR.base}
       play={play}
       style={style}

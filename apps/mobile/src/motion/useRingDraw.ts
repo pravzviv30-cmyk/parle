@@ -47,9 +47,21 @@ export function useRingDraw({
 
   // A run that has not said it is done yet.
   const owed = useRef(false);
+  // On screen. Set in the body as well as cleared in the cleanup, so a
+  // StrictMode rehearsal or a Fast Refresh does not leave it cleared for good.
   const alive = useRef(true);
-  useEffect(() => () => {
-    alive.current = false;
+  // The next-tick answer under reduced motion, one at a time: a newer one
+  // replaces it. Cleared when the ring goes, not when the run changes: reduced
+  // motion turned off within the tick, with the same goal, starts no run, so
+  // this answer is the only thing that pays what is owed.
+  const answer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      if (answer.current !== null) clearTimeout(answer.current);
+      answer.current = null;
+    };
   }, []);
   const settle = useCallback(() => {
     if (!owed.current) return;
@@ -72,7 +84,8 @@ export function useRingDraw({
       }
       cancel(drawn);
       drawn.value = goal;
-      setTimeout(settle, 0);
+      if (answer.current !== null) clearTimeout(answer.current);
+      answer.current = setTimeout(settle, 0);
       return;
     }
     if (target.current === goal) return;

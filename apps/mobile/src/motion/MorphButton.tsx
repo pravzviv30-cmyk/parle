@@ -32,6 +32,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { Press } from '../components.tsx';
 import { useReduceMotion } from '../motion.ts';
 import { accent, decorative, paper, radius, space, STROKE, type } from '../theme.ts';
+import { monotonicNow } from './clock.ts';
 import { cancel, delay, repeat, timing } from './drive.ts';
 import { arrived } from './haptics.ts';
 import { DUR, EASE, MORPH } from './tokens.ts';
@@ -94,10 +95,10 @@ export function MorphButton({
     for (const value of [wide, tall, round, words, wheel, turn, arc, tick]) cancel(value);
   }, [wide, tall, round, words, wheel, turn, arc, tick]);
 
-  // Every value at the final frame of a state, with nothing running.
+  // Every value at the final frame of a state, with nothing running. The size
+  // is the measured box unless a new measure is handed in before it is stored.
   const still = useCallback(
-    (now: MorphState, calm: boolean) => {
-      const size = latest.current.box;
+    (now: MorphState, calm: boolean, size: { width: number; height: number } | null = latest.current.box) => {
       stopAll();
       const closed = !calm && (now === 'busy' || now === 'done');
       wide.value = closed ? MORPH.size : size?.width ?? 0;
@@ -117,7 +118,7 @@ export function MorphButton({
   const spin = useCallback(
     (calm: boolean) => {
       const since = busySince.current;
-      if (calm || since === null || Date.now() - since >= MORPH.spinMax || AppState.currentState !== 'active') return;
+      if (calm || since === null || monotonicNow() - since >= MORPH.spinMax || AppState.currentState !== 'active') return;
       turn.value = 0;
       turn.value = repeat(timing(360, MORPH.turn, EASE.linear, calm), -1, false, calm);
     },
@@ -130,7 +131,7 @@ export function MorphButton({
       cancel(turn);
       return undefined;
     }
-    busySince.current = Date.now();
+    busySince.current = monotonicNow();
     const rest = setTimeout(() => cancel(turn), MORPH.spinMax);
     return () => clearTimeout(rest);
   }, [state, turn]);
@@ -238,6 +239,10 @@ export function MorphButton({
     const { width, height } = event.nativeEvent.layout;
     if (width <= 0 || height <= 0) return;
     if (box !== null && box.width === width && box.height === height) return;
+    // The shape takes the measured box before the render that first draws it.
+    // Left to the effect, which runs after that render is on screen, the pill
+    // would be drawn for one frame at 0 by 0 and blink out.
+    still(state, reduced, { width, height });
     setBox({ width, height });
   };
 

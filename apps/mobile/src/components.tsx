@@ -59,7 +59,7 @@ import {
   rungColor,
   rungLabel,
 } from './theme.ts';
-import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
@@ -1561,19 +1561,16 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
 export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, onPressIn, onPressOut, children, ...rest }: PressProps) {
   const reduced = useReduceMotion();
   const scale = useSharedValue(1);
-  const ring = useSharedValue(selected === true ? SELECT_RING_OPACITY : 0);
   const chosen = useRef(selected === true);
   const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const ringStyle = useAnimatedStyle(() => ({ opacity: ring.value, transform: [{ scale: scale.value }] }));
-  useEffect(() => () => stopMotion(scale, ring), [scale, ring]);
-  useEffect(() => { if (reduced) { pressTo(scale, 1, true); ringTo(ring, chosen.current, true); } }, [reduced, scale, ring]);
+  useEffect(() => () => stopMotion(scale), [scale]);
+  useEffect(() => { if (reduced) pressTo(scale, 1, true); }, [reduced, scale]);
   useEffect(() => {
     const now = selected === true;
     if (now === chosen.current) return;
     chosen.current = now;
-    ringTo(ring, now, reduced);
     if (now) selectPop(scale, reduced);
-  }, [selected, reduced, scale, ring]);
+  }, [selected, reduced, scale]);
   return (
     <Pressable
       accessibilityRole="button" {...rest}
@@ -1594,13 +1591,36 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
       style={frame}
     >
       {selected !== undefined ? (
-        <Reanimated.View
-          {...decorative}
-          style={[{ pointerEvents: 'none', position: 'absolute', top: -space(1), right: -space(1), bottom: -space(1), left: -space(1), borderRadius: glowRadius + space(1), backgroundColor: colour.blue }, ringStyle]}
-        />
+        <SelectRing selected={selected} scale={scale} glowRadius={glowRadius} reduced={reduced} />
       ) : null}
       <Reanimated.View style={[style, pressStyle]}>{children}</Reanimated.View>
     </Pressable>
+  );
+}
+
+/**
+ * The chosen tile's blue ring layer. `Press` mounts it only for a choice, so an
+ * action builds no ring value and no second animated style. It fades in when
+ * the choice lands here and out when it moves on, and scales with the press so
+ * the two stay one shape. Under reduced motion it is at rest at once.
+ */
+function SelectRing({ selected, scale, glowRadius, reduced }: { selected: boolean; scale: SharedValue<number>; glowRadius: number; reduced: boolean }) {
+  const ring = useSharedValue(selected ? SELECT_RING_OPACITY : 0);
+  const chosen = useRef(selected);
+  const ringStyle = useAnimatedStyle(() => ({ opacity: ring.value, transform: [{ scale: scale.value }] }));
+  useEffect(() => () => stopMotion(ring), [ring]);
+  useEffect(() => { if (reduced) ringTo(ring, chosen.current, true); }, [reduced, ring]);
+  useEffect(() => {
+    const now = selected;
+    if (now === chosen.current) return;
+    chosen.current = now;
+    ringTo(ring, now, reduced);
+  }, [selected, reduced, ring]);
+  return (
+    <Reanimated.View
+      {...decorative}
+      style={[{ pointerEvents: 'none', position: 'absolute', top: -space(1), right: -space(1), bottom: -space(1), left: -space(1), borderRadius: glowRadius + space(1), backgroundColor: colour.blue }, ringStyle]}
+    />
   );
 }
 

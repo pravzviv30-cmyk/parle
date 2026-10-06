@@ -695,7 +695,9 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(press, /<Reanimated\.View style=\{\[style, pressStyle\]\}>/, 'the drawn surface is not what shrinks');
     assert.match(press, /const pressStyle = useAnimatedStyle\(\(\) => \(\{ transform: \[\{ scale: scale\.value \}\] \}\)\);/, 'the drawn surface is not what shrinks');
     assert.match(press, /accessibilityRole="button" \{\.\.\.rest\}/, 'the press is not a button by default, or a caller cannot give it another role');
-    assert.match(press, /useEffect\(\(\) => \(\) => stopMotion\(scale, ring\), \[scale, ring\]\)/, 'a press unmounted mid-spring leaves the spring running');
+    // Come alive: the ring is its own child, mounted only for a choice, and it stops its own value.
+    assert.match(press, /useEffect\(\(\) => \(\) => stopMotion\(scale\), \[scale\]\)/, 'a press unmounted mid-spring leaves the spring running');
+    assert.match(press, /useEffect\(\(\) => \(\) => stopMotion\(ring\), \[ring\]\)/, 'a ring unmounted mid-fade leaves its fade running');
     assert.doesNotMatch(press, /pressRetentionOffset/, 'the press widens its own retention, so a scroll no longer cancels it');
     assert.doesNotMatch(press, /Animated\.spring/, 'the press writes its own spring instead of the one in motion.ts');
     assert.doesNotMatch(press, /createAnimatedComponent/, 'the press animates the Pressable itself, which motion.test.ts refuses');
