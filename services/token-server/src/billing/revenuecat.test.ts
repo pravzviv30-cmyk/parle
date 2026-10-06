@@ -464,4 +464,131 @@ describe('a store free trial and a yearly plan grant what D16 decided, on the se
     assert.equal((await store.get('odd')).secondsUsed, 10);
     assert.match(String(errors[0]?.[0]), /UNKNOWN_PRODUCT/);
   });
+
+  // F733 second review (2026-10-06). Apple applies an upgrade at once, whatever
+  // its length, and refunds the rest of the old plan. Starter yearly to Max
+  // monthly therefore arrives with an end eleven months before the year on
+  // record, and ordering answers by end alone kept the learner on Starter with
+  // no refill. Answers are ordered by when their period started first.
+  const bought = new Date(now.getTime() - 45 * DAY);
+  const starterYearEnd = new Date(bought.getTime() + 365 * DAY);
+  const starterYear = () => subscriber('luvani_starter_yearly', starterYearEnd.toISOString(), 'normal', bought.toISOString());
+  const upgradedAt = new Date(now.getTime() - 60_000);
+  const maxMonthEnd = new Date(now.getTime() + 30 * DAY);
+  const maxMonth = () => subscriber('luvani_regular_monthly', maxMonthEnd.toISOString(), 'normal', upgradedAt.toISOString());
+  const onStarterYear = (): Entitlement => {
+    const held = projectSubscriber(starterYear(), { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod }, yearly, now);
+    assert.equal(held.kind, 'active');
+    return { ...held.entitlement, secondsUsed: 10_200 };
+  };
+
+  test('a Starter yearly learner who upgrades to Max monthly is granted Max at once', () => {
+    const max = projectSubscriber(maxMonth(), onStarterYear(), yearly, now);
+    assert.equal(max.kind, 'active', `the upgrade was answered ${max.kind}`);
+    assert.equal(max.entitlement.plan, 'regular');
+    assert.equal(max.entitlement.secondsUsed, 0, 'the upgrade did not grant the Max month');
+    assert.equal(max.entitlement.periodEnd?.toISOString(), maxMonthEnd.toISOString());
+    assert.equal(max.entitlement.windowEnd, undefined, 'a monthly plan kept the old year\'s window');
+    assert.equal(max.entitlement.periodStart?.toISOString(), upgradedAt.toISOString());
+  });
+
+  test('a stale read of the old year after that upgrade moves nothing', () => {
+    const max = projectSubscriber(maxMonth(), onStarterYear(), yearly, now);
+    const spent: Entitlement = { ...max.entitlement, secondsUsed: 600 };
+    assert.deepEqual(projectSubscriber(starterYear(), spent, yearly, now), { kind: 'unchanged', reason: 'superseded', entitlement: spent },
+      'a late read of the refunded year moved the learner back to Starter');
+    // Max renews a month later: a later start is a new period, whatever its end.
+    const renewal = subscriber('luvani_regular_monthly', new Date(maxMonthEnd.getTime() + 30 * DAY).toISOString(), 'normal', maxMonthEnd.toISOString());
+    assert.equal(projectSubscriber(renewal, spent, yearly, new Date(maxMonthEnd.getTime() + 60_000)).entitlement.secondsUsed, 0);
+  });
+
+  test('a renewal check that finds a newer answer already applied says so while the store holds a plan', async () => {
+    const errors: unknown[][] = [];
+    const logger = { error: (...args: unknown[]) => errors.push(args) };
+    const held: Entitlement = { plan: 'regular', secondsUsed: 0, periodEnd: maxMonthEnd };
+    const store = {
+      beginBillingRefresh: async () => 1,
+      applyBilling: async () => ({ kind: 'unchanged' as const, reason: 'superseded' as const, entitlement: held }),
+    };
+    const request = async () => new Response(JSON.stringify(maxMonth()));
+    assert.equal(await renewSubscriber('upgraded', bought, store, yearly, { now, request, logger }), 'waiting');
+    assert.equal(errors.length, 1, 'a superseded answer for a learner the store says is paid was swallowed');
+    assert.match(String(errors[0]?.[0]), /BILLING_RENEWAL_SUPERSEDED/);
+    // A superseded answer that says the learner holds nothing is the slack's business, and quiet.
+    errors.length = 0;
+    const nothing = async () => new Response(JSON.stringify({ subscriber: { entitlements: {} } }));
+    await renewSubscriber('gone', new Date(now.getTime() - 2 * LAPSE_GRACE_SEC * 1000), store, yearly, { now, request: nothing, logger });
+    assert.deepEqual(errors, []);
+  });
+
+  test('a period read first as a trial and then as paid at the same end gives the payer the whole allowance', () => {
+    // F733 second review: RevenueCat's period_type can lag a conversion. The
+    // withheld part of the window is kept beside it, so the fuller answer for
+    // the same window gives it back.
+    const start = '2026-08-29T12:00:00.000Z';
+    const end = '2026-09-29T12:00:00.000Z';
+    const trial = projectSubscriber(subscriber('luvani_regular_monthly', end, 'trial', start), { plan: 'trial', secondsUsed: 1800 }, config, now);
+    const spent: Entitlement = { ...trial.entitlement, secondsUsed: trial.entitlement.secondsUsed + 1000 };
+    const paid = projectSubscriber(subscriber('luvani_regular_monthly', end, 'normal', start), spent, config, now);
+    assert.equal(paid.kind, 'active');
+    assert.equal(secondsRemaining(paid.entitlement), PLANS.regular.secondsPerPeriod - 1000, 'the payer stayed short by the trial\'s withheld minutes');
+    const lag = projectSubscriber(subscriber('luvani_regular_monthly', end, 'trial', start), paid.entitlement, config, now);
+    assert.equal(secondsRemaining(lag.entitlement), 70 * 60 - 1000, 'a lagging trial read handed back more than the week');
+  });
+
+  test('a worker whose entitlement id matches nothing the store holds waits, and never lapses a payer', async (t) => {
+    // F733 second review: the maintenance worker is configured on its own. A
+    // typo in its entitlement id used to read as "holds nothing" and lapse
+    // every yearly learner a day after their next window.
+    const later = new Date(now.getTime() + 2 * DAY);
+    t.mock.timers.enable({ apis: ['Date'], now: later.getTime() });
+    const typo = { ...yearly, entitlementId: 'luvanni' };
+    const errors: unknown[][] = [];
+    const logger = { error: (...args: unknown[]) => errors.push(args) };
+    const store = new InMemoryEntitlementStore();
+    const windowEnded = new Date(now.getTime() - 30 * DAY);
+    const row: Entitlement = { plan: 'regular', secondsUsed: 18_000, periodEnd: new Date(now.getTime() + 300 * DAY), windowEnd: new Date(later.getTime() - 26 * 60 * 60 * 1000) };
+    await store.save('typo', row);
+    const year = async () => new Response(JSON.stringify(subscriber('luvani_regular_yearly', row.periodEnd!.toISOString(), 'normal', windowEnded.toISOString())));
+    assert.equal(await renewSubscriber('typo', row.windowEnd!, store, typo, { now: later, request: year, logger }), 'waiting');
+    assert.equal((await store.get('typo')).plan, 'regular', 'a misconfigured entitlement id lapsed a paying learner');
+    assert.match(String(errors[0]?.[0]), /REVENUECAT_ENTITLEMENT_MISSING/);
+    // An unexpired subscription to a configured product with no entitlement at all waits too.
+    const bare = { subscriber: { entitlements: {}, subscriptions: { luvani_regular_yearly: { period_type: 'normal', expires_date: row.periodEnd!.toISOString() } } } };
+    assert.equal(projectSubscriber(bare, row, yearly, later).kind, 'unchanged');
+    // Another active entitlement under any name waits as well.
+    const other = { subscriber: { entitlements: { premium: { product_identifier: 'luvani_regular_yearly', expires_date: row.periodEnd!.toISOString() } } } };
+    assert.equal(projectSubscriber(other, row, typo, later).kind, 'unchanged');
+    // A learner whose subscriptions have all ended still lapses.
+    const ended = { subscriber: { entitlements: { luvani: { product_identifier: 'luvani_regular_monthly', expires_date: '2026-08-01T00:00:00Z' } },
+      subscriptions: { luvani_regular_monthly: { period_type: 'normal', expires_date: '2026-08-01T00:00:00Z' } } } };
+    assert.equal(projectSubscriber(ended, row, yearly, later).kind, 'lapsed');
+  });
+
+  test('a store billing grace period grants nothing new and is logged', async (t) => {
+    // F733 second review: grace periods are off in the console, and the server
+    // no longer relies on that. A renewal or a trial conversion whose payment
+    // failed is not a new paid month.
+    t.mock.timers.enable({ apis: ['Date'], now: now.getTime() });
+    const errors: unknown[][] = [];
+    const logger = { error: (...args: unknown[]) => errors.push(args) };
+    const store = new InMemoryEntitlementStore();
+    const trialEnd = new Date(now.getTime() - 60 * 60 * 1000);
+    const trialRow: Entitlement = { plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod, periodEnd: trialEnd, withheldSeconds: PLANS.starter.secondsPerPeriod - 42 * 60 };
+    await store.save('grace', trialRow);
+    const graceEnd = new Date(now.getTime() + 16 * DAY).toISOString();
+    for (const periodType of ['normal', 'trial']) {
+      const body = subscriber('luvani_starter_monthly', graceEnd, periodType, trialEnd.toISOString());
+      (body.subscriber.entitlements.luvani as Record<string, unknown>).grace_period_expires_date = graceEnd;
+      const result = await refreshSubscriber('grace', store, config, { now, request: async () => new Response(JSON.stringify(body)), logger });
+      assert.equal(result.kind, 'unchanged', `a ${periodType} answer in a grace period granted a month nobody paid for`);
+      assert.deepEqual(await store.get('grace'), trialRow);
+    }
+    assert.match(String(errors[0]?.[0]), /REVENUECAT_GRACE_PERIOD/);
+    // Once the payment lands the store moves the expiry a period on, past the old grace, and the month is granted.
+    const recovered = subscriber('luvani_starter_monthly', new Date(trialEnd.getTime() + 30 * DAY).toISOString(), 'normal', trialEnd.toISOString());
+    (recovered.subscriber.entitlements.luvani as Record<string, unknown>).grace_period_expires_date = graceEnd;
+    assert.equal((await refreshSubscriber('grace', store, config, { now, request: async () => new Response(JSON.stringify(recovered)), logger })).kind, 'active');
+    assert.equal(secondsRemaining(await store.get('grace')), PLANS.starter.secondsPerPeriod);
+  });
 });

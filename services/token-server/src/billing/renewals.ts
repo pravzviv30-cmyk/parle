@@ -21,6 +21,8 @@
  * starts a sweep and returns, and a slow vendor delays only the next sweep.
  */
 
+import { LAPSE_GRACE_SEC } from '@luvani/core';
+
 import type { RenewalOutcome } from './revenuecat.ts';
 
 export interface DueRenewal {
@@ -56,21 +58,35 @@ export interface RenewalSweep {
   tick(now?: number): Promise<void> | null;
 }
 
+/** How long a row may stay due before the sweep calls it stuck: the same day a lazy read would wait. */
+const STUCK_MS = LAPSE_GRACE_SEC * 1000;
+
 export function renewalSweep(deps: RenewalSweepDependencies, options: RenewalSweepOptions = RENEWAL_SWEEP): RenewalSweep {
   const logger = deps.logger ?? console;
   const quiet = new Map<string, number>();
+  /** When each row on the due page was last asked about, so the batch goes to whoever has waited longest. */
+  const lastAsked = new Map<string, number>();
   let nextAt = 0;
   let running: Promise<void> | null = null;
 
   async function sweep(now: number): Promise<void> {
     for (const [userId, until] of quiet) if (until <= now) quiet.delete(userId);
     const due = await deps.due(options.read);
+    const onPage = new Set(due.map(row => row.userId));
+    for (const userId of lastAsked.keys()) if (!onPage.has(userId)) lastAsked.delete(userId);
     const counts = { due: due.length, renewed: 0, lapsed: 0, waiting: 0, failed: 0, quiet: 0 };
+    // Never asked first, in the page's own order (newest end first); then the
+    // row asked longest ago. Ordering by the page alone let rows coming out of
+    // their quiet be asked again ahead of rows never asked, so a page holding
+    // sixty rows stuck on the store never reached the rest (F733 second review).
+    const order = due.map((row, index) => ({ row, index, asked: lastAsked.get(row.userId) ?? -Infinity }))
+      .sort((a, b) => a.asked - b.asked || a.index - b.index);
     let asked = 0;
-    for (const row of due) {
+    for (const { row } of order) {
       if (asked >= options.batch) break;
       if ((quiet.get(row.userId) ?? 0) > now) { counts.quiet += 1; continue; }
       asked += 1;
+      lastAsked.set(row.userId, now);
       try {
         const outcome = await deps.renew(row);
         if (outcome === 'waiting') {
@@ -91,6 +107,16 @@ export function renewalSweep(deps: RenewalSweepDependencies, options: RenewalSwe
     // vendor reads a sweep that is a launch-scale bound, not a forever one, so
     // it is said on the error stream where an alert can find it.
     if (due.length >= options.read) logger.error(JSON.stringify({ event: 'billing_renewals_backlog', due: due.length, read: options.read }));
+    // A row still due a day after its end was not renewed, lapsed or refilled
+    // by anything: a product nobody configured, a grace period, a store that
+    // keeps answering with something this server will not act on. Counted
+    // from the row's own end, so a restart does not forget it, and said on the
+    // error stream where an alert can find it.
+    const stuck = due.filter(row => now - row.periodEnd.getTime() > STUCK_MS);
+    if (stuck.length > 0) {
+      const oldestHours = Math.floor(Math.max(...stuck.map(row => now - row.periodEnd.getTime())) / 3_600_000);
+      logger.error(JSON.stringify({ event: 'billing_renewals_stuck', stuck: stuck.length, oldestHours }));
+    }
   }
 
   return {

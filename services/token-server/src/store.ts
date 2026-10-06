@@ -317,11 +317,14 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
       if (!record(row) || !['trial','starter','regular'].includes(String(row.plan))
         || typeof row.secondsUsed !== 'number' || !Number.isFinite(row.secondsUsed) || row.secondsUsed < 0
         || (row.periodEnd !== undefined && (typeof row.periodEnd !== 'string' || !Number.isFinite(Date.parse(row.periodEnd))))
-        || (row.windowEnd !== undefined && (typeof row.windowEnd !== 'string' || !Number.isFinite(Date.parse(row.windowEnd))))) {
+        || (row.windowEnd !== undefined && (typeof row.windowEnd !== 'string' || !Number.isFinite(Date.parse(row.windowEnd))))
+        || (row.periodStart !== undefined && (typeof row.periodStart !== 'string' || !Number.isFinite(Date.parse(row.periodStart))))
+        || (row.withheldSeconds !== undefined && (!Number.isInteger(row.withheldSeconds) || Number(row.withheldSeconds) < 0))) {
         throw new Error('Invalid entitlement ledger balance');
       }
       rows[id] = { ...row, ...(row.periodEnd ? { periodEnd: new Date(row.periodEnd as string) } : {}),
-        ...(row.windowEnd ? { windowEnd: new Date(row.windowEnd as string) } : {}) } as Entitlement;
+        ...(row.windowEnd ? { windowEnd: new Date(row.windowEnd as string) } : {}),
+        ...(row.periodStart ? { periodStart: new Date(row.periodStart as string) } : {}) } as Entitlement;
     }
     if (versioned) {
       if (!record(parsed.epochs) || !record(parsed.sessions)) throw new Error('Invalid entitlement ledger proof');
@@ -378,6 +381,9 @@ interface SupabaseEntitlementRow {
   period_end: string | null;
   /** A yearly product's current allowance window, when it ends before the paid year (F733). */
   allowance_window_end?: string | null;
+  /** When the store says the period on record began, and how much of seconds_used a window withholds (F733 second review). */
+  period_start?: string | null;
+  withheld_seconds?: number | null;
   lapsed_from_paid?: boolean;
 }
 
@@ -385,8 +391,10 @@ function entitlementFrom(row: SupabaseEntitlementRow): Entitlement {
   return {
     plan: row.plan,
     secondsUsed: row.seconds_used,
+    ...(row.period_start ? { periodStart: new Date(row.period_start) } : {}),
     ...(row.period_end ? { periodEnd: new Date(row.period_end) } : {}),
     ...(row.allowance_window_end ? { windowEnd: new Date(row.allowance_window_end) } : {}),
+    ...(typeof row.withheld_seconds === 'number' && row.withheld_seconds > 0 ? { withheldSeconds: row.withheld_seconds } : {}),
     ...(row.lapsed_from_paid === true ? { lapsed: true } : {}),
   };
 }
@@ -527,7 +535,8 @@ export class SupabaseEntitlementStore implements EntitlementStore {
         p_plan: snapshot.kind === 'active' ? snapshot.plan : null,
         p_period_end: snapshot.kind === 'active' ? snapshot.periodEnd.toISOString() : null, p_event_id: eventId ?? null,
         p_grant_seconds: snapshot.kind === 'active' ? snapshot.grantSeconds : null,
-        p_window_end: snapshot.kind === 'active' && snapshot.windowEnd ? snapshot.windowEnd.toISOString() : null }),
+        p_window_end: snapshot.kind === 'active' && snapshot.windowEnd ? snapshot.windowEnd.toISOString() : null,
+        p_period_start: snapshot.kind === 'active' && snapshot.periodStart ? snapshot.periodStart.toISOString() : null }),
     });
     if (!response.ok) throw new Error(`billing projection failed (${response.status})`);
     const body = await response.json() as { kind?: unknown; reason?: unknown; entitlement?: SupabaseEntitlementRow };

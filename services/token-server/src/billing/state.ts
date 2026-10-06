@@ -3,7 +3,8 @@ import { PLANS, lapsedEntitlement, type Entitlement } from '@luvani/core';
 /**
  * What the vendor says a learner holds, reduced to what the meter needs.
  *
- * `periodEnd` is the end of the paid period the vendor holds: a monthly
+ * `periodStart` is when the vendor says that period began (its purchase date),
+ * when it says. `periodEnd` is the end of the paid period the vendor holds: a monthly
  * product's store period, a store trial's end, or a yearly product's whole paid
  * year. It is the instant a plan lapses from, so it is never cut short.
  * `windowEnd` is set only for a yearly product: the end of the current 30-day
@@ -17,9 +18,15 @@ import { PLANS, lapsedEntitlement, type Entitlement } from '@luvani/core';
  * and a late refill costs minutes for a while, never the plan.
  */
 export type BillingSnapshot =
-  | { kind: 'active'; plan: 'starter' | 'regular'; periodEnd: Date; windowEnd?: Date; grantSeconds: number }
+  | { kind: 'active'; plan: 'starter' | 'regular'; periodStart?: Date; periodEnd: Date; windowEnd?: Date; grantSeconds: number }
   | { kind: 'inactive' }
-  | { kind: 'unknown-product' };
+  /**
+   * Nothing this server may act on. `hold` says why, when it is not a product
+   * id nobody configured: a store billing grace period, which is not a paid
+   * period, or a subscriber who holds something this server's entitlement id
+   * does not name, which must never read as holding nothing (F733 second review).
+   */
+  | { kind: 'unknown-product'; hold?: 'grace-period' | 'entitlement-missing' };
 export type BillingProjection =
   | { kind: 'active' | 'lapsed'; entitlement: Entitlement }
   | { kind: 'unchanged'; reason: 'unknown-product' | 'not-paid' | 'superseded'; entitlement: Entitlement };
@@ -62,9 +69,40 @@ function grantedWindowEnd(snapshot: Extract<BillingSnapshot, { kind: 'active' }>
 }
 
 /**
+ * Which of two vendor answers is newer: 1 a new period or window, 0 the same
+ * window, -1 an older answer read late. Exactly the ordering
+ * apply_billing_projection_v2 applies in the database.
+ *
+ * A later start is a new period whatever its end: Apple applies an upgrade at
+ * once and refunds the rest of the old plan, so Starter yearly to Max monthly
+ * ends eleven months before the year on record and is still the newer answer.
+ * An earlier start is older whatever its end, which is the refunded year read
+ * late. With the same start, a later window is the next window and a later end
+ * with the same window is the same period lengthened. With either start
+ * unknown (a row from before starts were recorded) the end decides, as it
+ * always has (F733 second review, 2026-10-06).
+ */
+function billingOrder(current: Entitlement, start: number | undefined, end: number, window: number): -1 | 0 | 1 {
+  if (current.plan === 'trial' || !current.periodEnd) return 1;
+  const before = second(current.periodEnd);
+  const beforeWindow = current.windowEnd ? second(current.windowEnd) : before;
+  const beforeStart = current.periodStart ? second(current.periodStart) : undefined;
+  if (start !== undefined && beforeStart !== undefined) {
+    if (start !== beforeStart) return start > beforeStart ? 1 : -1;
+    if (window !== beforeWindow) return window > beforeWindow ? 1 : -1;
+    return end < before ? -1 : 0;
+  }
+  if (end < before || (end === before && window < beforeWindow)) return -1;
+  return end > before || window > beforeWindow ? 1 : 0;
+}
+
+/**
  * A later paid period, or a later window of the same one, starts from what it
- * grants. The same window keeps what was spent in it. An older period or an
- * older window of the same period, read late, moves nothing.
+ * grants. The same window keeps what was spent in it: the part it withheld
+ * before is swapped for the part it withholds now, so a trial read that lagged
+ * a conversion is made whole by the paid read that follows (F733 second
+ * review). An older period or an older window of the same period, read late,
+ * moves nothing.
  */
 export function applyBillingSnapshot(current: Entitlement, snapshot: BillingSnapshot): BillingProjection {
   if (snapshot.kind === 'unknown-product') return { kind: 'unchanged', reason: 'unknown-product', entitlement: current };
@@ -74,15 +112,18 @@ export function applyBillingSnapshot(current: Entitlement, snapshot: BillingSnap
   const withheld = withheldSeconds(snapshot.plan, snapshot.grantSeconds);
   const end = second(snapshot.periodEnd);
   const window = grantedWindowEnd(snapshot, end);
-  const before = current.periodEnd ? second(current.periodEnd) : undefined;
-  const beforeWindow = current.windowEnd ? second(current.windowEnd) : before;
-  if (current.plan !== 'trial' && before !== undefined && beforeWindow !== undefined
-    && (end < before || (end === before && window < beforeWindow))) {
-    return { kind: 'unchanged', reason: 'superseded', entitlement: current };
-  }
-  const renewed = before === undefined || beforeWindow === undefined || end > before || window > beforeWindow;
+  const start = snapshot.periodStart === undefined ? undefined : second(snapshot.periodStart);
+  if (start !== undefined && (!Number.isFinite(start) || start >= end)) throw new RangeError('a billing period must start before it ends');
+  const order = billingOrder(current, start, end, window);
+  if (order < 0) return { kind: 'unchanged', reason: 'superseded', entitlement: current };
   const allowance = PLANS[snapshot.plan].secondsPerPeriod;
-  return { kind: 'active', entitlement: { plan: snapshot.plan, periodEnd: new Date(end),
+  const spent = order > 0 ? withheld
+    : Math.min(allowance, Math.max(current.secondsUsed - (current.withheldSeconds ?? 0) + withheld, withheld));
+  const kept = start ?? (order === 0 && current.periodStart ? second(current.periodStart) : undefined);
+  return { kind: 'active', entitlement: { plan: snapshot.plan,
+    ...(kept !== undefined ? { periodStart: new Date(kept) } : {}),
+    periodEnd: new Date(end),
     ...(window < end ? { windowEnd: new Date(window) } : {}),
-    secondsUsed: renewed ? withheld : Math.min(allowance, Math.max(current.secondsUsed, withheld)), lapsed: false } };
+    ...(withheld > 0 ? { withheldSeconds: withheld } : {}),
+    secondsUsed: spent, lapsed: false } };
 }

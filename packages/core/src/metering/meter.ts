@@ -191,6 +191,19 @@ export interface Entitlement {
    * verified vendor read grants the next window; a read never refills them.
    */
   windowEnd?: Date;
+  /**
+   * When the store says the paid period on record began (its purchase date),
+   * when known. Store answers are ordered by this before their end: an upgrade
+   * Apple applies at once can end long before the plan it replaced, and is
+   * still the newer answer (F733 second review, 2026-10-06).
+   */
+  periodStart?: Date;
+  /**
+   * How much of `secondsUsed` is the part of the allowance the current window
+   * withholds rather than time spent (a store trial's ungranted weeks). Absent
+   * means none. Kept so a fuller answer for the same window can give it back.
+   */
+  withheldSeconds?: number;
   /** The exhausted trial represents a former paid period, not a first trial. */
   lapsed?: boolean;
 }

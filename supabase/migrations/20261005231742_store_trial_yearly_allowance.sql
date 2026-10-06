@@ -7,7 +7,10 @@
 -- records the part of the allowance a window does not grant as already spent,
 -- so every debit, reservation, refund and lapse function that reads
 -- tutor_cap_v1(plan) - seconds_used enforces the trial cap unchanged, and no
--- second allowance column exists to disagree with the first.
+-- second allowance column exists to disagree with the first. How much of
+-- seconds_used is that withheld part is kept beside it in withheld_seconds, so
+-- a later, fuller answer for the same window (a trial read that lagged a
+-- conversion) can hand it back.
 --
 -- period_end stays what it has always been: the end of the paid period the
 -- store holds. For a yearly product that is the whole paid year, so every lazy
@@ -19,51 +22,95 @@
 -- (F733 review: writing the window as period_end lapsed a paying yearly learner
 -- a day after any window the sweep missed, and kept them lapsed).
 --
+-- period_start is when the store says the paid period on record began (the
+-- vendor's purchase date). Store answers are ordered by it first, and by their
+-- end only when the starts agree or one is unknown (F733 second review,
+-- 2026-10-06): Apple applies an upgrade at once whatever its length, so Starter
+-- yearly to Max monthly arrives with an end a year earlier than the one on
+-- record, and ordering by end alone kept that learner on Starter, unrefilled.
+--
 -- A monthly product grants its whole allowance (p_grant_seconds equal to the
 -- cap) and no window, which is exactly what apply_billing_projection did. That
 -- six-argument function stays in place so a server not yet redeployed keeps
--- working. billing_projection_version() moves to 2: a redeployed server reports
--- purchases ready only against a database that has this function, and a server
--- not yet redeployed reports them not ready until it is.
+-- working; when it moves a paid period, the trigger below drops the window,
+-- start and withheld part it knows nothing about. billing_projection_version()
+-- moves to 2: a redeployed server reports purchases ready only against a
+-- database that has this function, and a server not yet redeployed reports
+-- them not ready until it is.
+--
+-- Safe to apply twice: every statement below is guarded or replaces.
 --
 -- Deploy order: this migration, then the token server API and maintenance
 -- worker, and only then an introductory offer or a yearly product in App Store
 -- Connect. An intro offer configured first is granted the full month by the
 -- old projection.
 
-alter table public.entitlements add column allowance_window_end timestamptz;
+alter table public.entitlements add column if not exists allowance_window_end timestamptz;
+alter table public.entitlements add column if not exists period_start timestamptz;
+alter table public.entitlements add column if not exists withheld_seconds integer not null default 0;
+alter table public.entitlements drop constraint if exists entitlements_allowance_window_inside_period;
 alter table public.entitlements add constraint entitlements_allowance_window_inside_period check (
   allowance_window_end is null
   or (plan in ('starter', 'regular') and period_end is not null and allowance_window_end < period_end)
 );
+alter table public.entitlements drop constraint if exists entitlements_withheld_on_paid_plan;
+alter table public.entitlements add constraint entitlements_withheld_on_paid_plan check (
+  withheld_seconds >= 0 and (withheld_seconds = 0 or plan in ('starter', 'regular'))
+);
 
--- A window belongs to the paid period it was granted in. Every path that ends
--- a paid period (the projection, and the lazy lapse inside the debit, refund
--- and reservation functions) sets the plan to trial or clears period_end, and
--- this clears the window with it, so none of those functions is rewritten. A
--- new window is a new usage period, exactly as a new period_end is in
--- advance_usage_epoch: a session granted in the last window is neither charged
--- to nor refunded into the next one. Named to fire after entitlement_usage_epoch
--- (triggers fire in name order), so its epoch stands.
-create function luvani_private.allowance_window_epoch_v1() returns trigger
+-- A window, a start and a withheld part belong to the paid period they were
+-- granted in. Every path that ends a paid period (the projection, and the lazy
+-- lapse inside the debit, refund and reservation functions) sets the plan to
+-- trial or clears period_end, and this clears them with it, so none of those
+-- functions is rewritten. A writer other than apply_billing_projection_v2 that
+-- moves a paid period without writing them (the six-argument projection of a
+-- server not yet redeployed, a direct service write) knows nothing of them, so
+-- they go too: a stale window beside a new period would refill on the old
+-- schedule, or fail the window check. A writer that does set one keeps it, and
+-- the window check still judges it. The v2 projection marks its own writes for
+-- the transaction, because a period it lengthens keeps the window it computed.
+--
+-- A new window, or a later period start, is a new usage period, exactly as a
+-- new period_end is in advance_usage_epoch: a session granted in the last
+-- window is neither charged to nor refunded into the next one. Named to fire
+-- after entitlement_usage_epoch (triggers fire in name order), so its epoch
+-- stands.
+create or replace function luvani_private.allowance_window_epoch_v1() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.plan = 'trial' or new.period_end is null then new.allowance_window_end := null; end if;
-  if new.allowance_window_end is distinct from old.allowance_window_end then
+  if new.plan = 'trial' or new.period_end is null then
+    new.allowance_window_end := null;
+    new.period_start := null;
+    new.withheld_seconds := 0;
+  elsif new.period_end is distinct from old.period_end
+    and pg_catalog.current_setting('luvani.allowance_projection', true) is distinct from 'v2' then
+    if new.allowance_window_end is not distinct from old.allowance_window_end then new.allowance_window_end := null; end if;
+    if new.period_start is not distinct from old.period_start then new.period_start := null; end if;
+    if new.withheld_seconds is not distinct from old.withheld_seconds then new.withheld_seconds := 0; end if;
+  end if;
+  if new.allowance_window_end is distinct from old.allowance_window_end
+    or (new.period_start is not null and old.period_start is not null and new.period_start <> old.period_start) then
     new.usage_epoch := pg_catalog.gen_random_uuid();
   end if;
   return new;
 end $$;
 revoke all on function luvani_private.allowance_window_epoch_v1() from public, anon, authenticated;
+drop trigger if exists entitlements_window_epoch on public.entitlements;
 create trigger entitlements_window_epoch before update on public.entitlements
   for each row execute function luvani_private.allowance_window_epoch_v1();
 
 create or replace function public.billing_projection_version()
 returns integer language sql security definer set search_path = '' as $$ select 2 $$;
 
+-- The first F733 build had no period start. Nothing has called it outside a
+-- disposable database, and leaving it beside this one would let a caller skip
+-- the ordering this one exists for.
+drop function if exists public.apply_billing_projection_v2(uuid, bigint, text, text, timestamptz, text, integer, timestamptz);
+
 create or replace function public.apply_billing_projection_v2(
   p_user_id uuid, p_ticket bigint, p_kind text, p_plan text,
-  p_period_end timestamptz, p_event_id text, p_grant_seconds integer, p_window_end timestamptz
+  p_period_end timestamptz, p_event_id text, p_grant_seconds integer, p_window_end timestamptz,
+  p_period_start timestamptz
 )
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
@@ -71,12 +118,15 @@ declare
   event_done timestamptz;
   projection_kind text := 'unchanged';
   projection_reason text;
+  normalized_start timestamptz;
   normalized_end timestamptz;
   normalized_window timestamptz;
+  recorded_start timestamptz;
   recorded_end timestamptz;
   recorded_window timestamptz;
   allowance integer;
   withheld integer;
+  ordering integer;
 begin
   if p_user_id is null or p_ticket is null or p_ticket < 1 then raise exception 'invalid billing ticket'; end if;
   if p_kind is null or p_kind not in ('active', 'inactive', 'unknown-product') then raise exception 'invalid billing state'; end if;
@@ -94,8 +144,12 @@ begin
     if p_window_end is not null and (not isfinite(p_window_end) or p_window_end > p_period_end) then
       raise exception 'invalid active billing allowance window';
     end if;
+    -- A period starts before it ends. Unknown is allowed, and orders by end.
+    if p_period_start is not null and (not isfinite(p_period_start) or p_period_start >= p_period_end) then
+      raise exception 'invalid active billing period start';
+    end if;
     withheld := allowance - p_grant_seconds;
-  elsif p_grant_seconds is not null or p_window_end is not null then
+  elsif p_grant_seconds is not null or p_window_end is not null or p_period_start is not null then
     raise exception 'only an active billing state grants an allowance';
   end if;
   if p_event_id is not null then
@@ -107,8 +161,10 @@ begin
   end if;
   select * into current_row from public.entitlements where user_id = p_user_id for update;
   if not found or p_ticket > current_row.billing_sequence then raise exception 'unissued billing ticket'; end if;
+  normalized_start := date_trunc('second', p_period_start);
   normalized_end := date_trunc('second', p_period_end);
   normalized_window := least(date_trunc('second', coalesce(p_window_end, p_period_end)), normalized_end);
+  recorded_start := date_trunc('second', current_row.period_start);
   recorded_end := date_trunc('second', current_row.period_end);
   recorded_window := date_trunc('second', coalesce(current_row.allowance_window_end, current_row.period_end));
   if event_done is not null or p_ticket <= current_row.billing_applied_sequence then
@@ -123,28 +179,56 @@ begin
       -- lapse, a day after the paid period, ever ends a plan without the vendor
       -- saying it holds nothing.
       projection_reason := 'superseded';
-    elsif current_row.plan in ('starter', 'regular') and recorded_end is not null
-      and (normalized_end < recorded_end or (normalized_end = recorded_end and normalized_window < recorded_window)) then
-      projection_reason := 'superseded';
     else
-    -- A new period or window starts from what it grants. The same window keeps
-    -- what was spent in it, never less than it withheld and never more than the cap.
-    update public.entitlements set
-      plan = p_plan,
-      seconds_used = case
-        when recorded_end is null or normalized_end > recorded_end or normalized_window > recorded_window then withheld
-        else least(greatest(seconds_used, withheld), allowance)
-      end,
-      period_end = normalized_end,
-      allowance_window_end = case when normalized_window < normalized_end then normalized_window end,
-      lapsed_from_paid = false, updated_at = now()
-      where user_id = p_user_id returning * into current_row;
-    projection_kind := 'active';
+      -- Which answer is newer: 1 a new period or window, 0 the same window,
+      -- -1 an older answer read late. A later start is a new period whatever
+      -- its end (an upgrade); an earlier start is older whatever its end (the
+      -- year an upgrade refunded). With the same start, a later window is the
+      -- next window, and a later end with the same window is the same period
+      -- lengthened. With either start unknown, the end decides, as it always has.
+      if current_row.plan not in ('starter', 'regular') or recorded_end is null then
+        ordering := 1;
+      elsif normalized_start is not null and recorded_start is not null then
+        ordering := case
+          when normalized_start > recorded_start then 1
+          when normalized_start < recorded_start then -1
+          when normalized_window > recorded_window then 1
+          when normalized_window < recorded_window or normalized_end < recorded_end then -1
+          else 0 end;
+      else
+        ordering := case
+          when normalized_end < recorded_end or (normalized_end = recorded_end and normalized_window < recorded_window) then -1
+          when normalized_end > recorded_end or normalized_window > recorded_window then 1
+          else 0 end;
+      end if;
+      if ordering < 0 then
+        projection_reason := 'superseded';
+      else
+        -- A new period or window starts from what it grants. The same window
+        -- keeps what was spent in it: what it withheld before is swapped for
+        -- what it withholds now, never below that and never past the cap.
+        perform pg_catalog.set_config('luvani.allowance_projection', 'v2', true);
+        update public.entitlements set
+          plan = p_plan,
+          seconds_used = case
+            when ordering > 0 then withheld
+            else least(greatest(seconds_used - withheld_seconds + withheld, withheld), allowance)
+          end,
+          withheld_seconds = withheld,
+          period_start = coalesce(normalized_start, case when ordering = 0 then recorded_start end),
+          period_end = normalized_end,
+          allowance_window_end = case when normalized_window < normalized_end then normalized_window end,
+          lapsed_from_paid = false, updated_at = now()
+          where user_id = p_user_id returning * into current_row;
+        perform pg_catalog.set_config('luvani.allowance_projection', '', true);
+        projection_kind := 'active';
+      end if;
     end if;
   elsif current_row.plan in ('starter', 'regular') then
     -- Only the vendor saying the learner holds nothing ends a plan here.
     update public.entitlements set plan = 'trial', seconds_used = 1800,
-      period_end = null, allowance_window_end = null, lapsed_from_paid = true, updated_at = now()
+      period_end = null, allowance_window_end = null, period_start = null, withheld_seconds = 0,
+      lapsed_from_paid = true, updated_at = now()
       where user_id = p_user_id returning * into current_row;
     projection_kind := 'lapsed';
   else
@@ -184,9 +268,9 @@ returns jsonb language sql stable security definer set search_path = '' as $$
 $$;
 
 revoke all on function public.billing_projection_version() from public, anon, authenticated;
-revoke all on function public.apply_billing_projection_v2(uuid, bigint, text, text, timestamptz, text, integer, timestamptz) from public, anon, authenticated;
+revoke all on function public.apply_billing_projection_v2(uuid, bigint, text, text, timestamptz, text, integer, timestamptz, timestamptz) from public, anon, authenticated;
 revoke all on function public.billing_renewals_due_v1(integer) from public, anon, authenticated;
 grant execute on function public.billing_projection_version() to service_role;
-grant execute on function public.apply_billing_projection_v2(uuid, bigint, text, text, timestamptz, text, integer, timestamptz) to service_role;
+grant execute on function public.apply_billing_projection_v2(uuid, bigint, text, text, timestamptz, text, integer, timestamptz, timestamptz) to service_role;
 grant execute on function public.billing_renewals_due_v1(integer) to service_role;
 notify pgrst, 'reload schema';

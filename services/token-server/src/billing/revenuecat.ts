@@ -124,11 +124,14 @@ interface RevenueCatEntitlement {
   expires_date?: unknown;
   product_identifier?: unknown;
   purchase_date?: unknown;
+  grace_period_expires_date?: unknown;
 }
 
 interface RevenueCatSubscription {
   period_type?: unknown;
   purchase_date?: unknown;
+  expires_date?: unknown;
+  grace_period_expires_date?: unknown;
 }
 
 interface RevenueCatSubscriberBody {
@@ -170,6 +173,34 @@ function instant(value: unknown): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/** An expiry that has not passed. No expiry at all is a purchase that never ends. */
+function unexpired(value: unknown, now: Date): boolean {
+  if (value === null || value === undefined) return true;
+  const end = instant(value);
+  return end !== null && end > now;
+}
+
+/**
+ * Whether the subscriber holds anything live, read without the configured
+ * entitlement id: another unexpired entitlement under any name, or an
+ * unexpired subscription to a product this server sells.
+ *
+ * Only asked when the configured entitlement is missing. A wrong
+ * `REVENUECAT_ENTITLEMENT_ID` on the maintenance worker, which is configured on
+ * its own and has no readiness pairing, would otherwise read every paying
+ * learner as holding nothing, and the sweep would lapse each yearly learner a
+ * day after their next window (F733 second review, 2026-10-06).
+ */
+function holdsSomethingElse(subscriber: NonNullable<RevenueCatSubscriberBody['subscriber']>, config: RevenueCatReadConfiguration, now: Date): boolean {
+  for (const entitlement of Object.values(subscriber.entitlements ?? {})) {
+    if (entitlement && typeof entitlement === 'object' && unexpired(entitlement.expires_date, now)) return true;
+  }
+  const subscriptions = subscriber.subscriptions;
+  if (!subscriptions || typeof subscriptions !== 'object' || Array.isArray(subscriptions)) return false;
+  return Object.entries(subscriptions).some(([product, subscription]) =>
+    soldProduct(product, config) !== null && Boolean(subscription) && typeof subscription === 'object' && unexpired(subscription.expires_date, now));
+}
+
 /**
  * Every variant carries the entitlement that stands after the projection.
  *
@@ -207,18 +238,41 @@ function subscriberSnapshot(body: RevenueCatSubscriberBody, config: RevenueCatRe
       const subscriptions = body.subscriber.subscriptions;
       const subscription = subscriptions && typeof subscriptions === 'object' && !Array.isArray(subscriptions) && Object.hasOwn(subscriptions, product)
         ? subscriptions[product] : undefined;
+      // A store billing grace period keeps access open while a failed renewal
+      // or trial conversion is retried, with the grace end as the expiry and
+      // nothing yet paid. It grants nothing new: the period on record stands
+      // until its own lapse, and a payment that lands moves the expiry a whole
+      // period on, past the grace end, which is then granted as usual. Grace
+      // periods are off in the console; this is so that switch is not the only
+      // thing between a failed payment and a free month (F733 second review).
+      const grace = instant(vendor.grace_period_expires_date) ?? instant(subscription?.grace_period_expires_date);
+      if (grace && end <= grace) return { kind: 'unknown-product', hold: 'grace-period' };
       const kind = periodKind(subscription);
       if (kind === null) return { kind: 'unknown-product' };
-      if (kind === 'trial') return { kind: 'active', plan: sold.plan, periodEnd: end, grantSeconds: storeTrialSeconds(sold.plan) };
+      // When the period began, so a newer answer is told from an older one by
+      // more than its end (F733 second review). Dropped when it is not before
+      // the end, which leaves the end to decide, as it always has.
+      const bought = instant(vendor.purchase_date) ?? instant(subscription?.purchase_date);
+      const start = bought && bought < end ? bought : null;
+      const began = start ? { periodStart: start } : {};
+      if (kind === 'trial') return { kind: 'active', plan: sold.plan, ...began, periodEnd: end, grantSeconds: storeTrialSeconds(sold.plan) };
       const allowance = PLANS[sold.plan].secondsPerPeriod;
-      if (sold.period === 'month') return { kind: 'active', plan: sold.plan, periodEnd: end, grantSeconds: allowance };
-      const start = instant(vendor.purchase_date) ?? instant(subscription?.purchase_date);
+      if (sold.period === 'month') return { kind: 'active', plan: sold.plan, ...began, periodEnd: end, grantSeconds: allowance };
       const windowEnd = start ? allowanceWindowEnd(start, end, now) : null;
       if (!windowEnd) return { kind: 'unknown-product' };
-      return { kind: 'active', plan: sold.plan, periodEnd: end, windowEnd, grantSeconds: allowance };
+      return { kind: 'active', plan: sold.plan, ...began, periodEnd: end, windowEnd, grantSeconds: allowance };
     }
+    return { kind: 'inactive' };
   }
-  return { kind: 'inactive' };
+  return holdsSomethingElse(body.subscriber, config, now) ? { kind: 'unknown-product', hold: 'entitlement-missing' } : { kind: 'inactive' };
+}
+
+/** One loud line for an answer this server will not act on, named for why. */
+function logHeld(snapshot: Extract<BillingSnapshot, { kind: 'unknown-product' }>, userId: string, logger: Pick<Console, 'error'>): void {
+  const line = snapshot.hold === 'grace-period' ? '[luvani] REVENUECAT_GRACE_PERIOD'
+    : snapshot.hold === 'entitlement-missing' ? '[luvani] REVENUECAT_ENTITLEMENT_MISSING'
+      : '[luvani] REVENUECAT_UNKNOWN_PRODUCT';
+  logger.error(line, { userId });
 }
 
 export function projectSubscriber(body: RevenueCatSubscriberBody, current: Entitlement, config: RevenueCatReadConfiguration, now = new Date()): SubscriberProjection {
@@ -259,8 +313,8 @@ export async function refreshSubscriber(
   const body = await fetchSubscriber(userId, config, options.request);
   const snapshot = subscriberSnapshot(body, config, options.now);
   const projection = await store.applyBilling(userId, ticket, snapshot, options.eventId);
-  if (projection.kind === 'unchanged' && projection.reason === 'unknown-product') {
-    (options.logger ?? console).error('[luvani] REVENUECAT_UNKNOWN_PRODUCT', { userId });
+  if (snapshot.kind === 'unknown-product' && projection.kind === 'unchanged' && projection.reason === 'unknown-product') {
+    logHeld(snapshot, userId, options.logger ?? console);
   }
   return projection;
 }
@@ -289,10 +343,11 @@ export async function renewSubscriber(
   options: { request?: typeof fetch; now?: Date; logger?: Pick<Console, 'error'> } = {},
 ): Promise<RenewalOutcome> {
   const now = options.now ?? new Date();
+  const logger = options.logger ?? console;
   const ticket = await store.beginBillingRefresh(userId);
   const snapshot = subscriberSnapshot(await fetchSubscriber(userId, config, options.request), config, now);
   if (snapshot.kind === 'unknown-product') {
-    (options.logger ?? console).error('[luvani] REVENUECAT_UNKNOWN_PRODUCT', { userId });
+    logHeld(snapshot, userId, logger);
     return 'waiting';
   }
   if (snapshot.kind === 'inactive' && now.getTime() <= periodEnd.getTime() + LAPSE_GRACE_SEC * 1000) return 'waiting';
@@ -301,5 +356,10 @@ export async function renewSubscriber(
   // A row a read had already lapsed is as finished as one this lapsed. A
   // superseded ticket means a newer read got there first; ask again later.
   if (projection.kind === 'lapsed' || (projection.kind === 'unchanged' && projection.reason === 'not-paid')) return 'lapsed';
+  // The store holds a plan and the row on record is still due, yet nothing
+  // moved. Said out loud, because a row that stays here is asked again every
+  // half hour, and the Starter-yearly-to-Max upgrade defect hid in exactly
+  // this silence (F733 second review, 2026-10-06).
+  if (snapshot.kind === 'active') logger.error('[luvani] BILLING_RENEWAL_SUPERSEDED', { userId, plan: snapshot.plan });
   return 'waiting';
 }

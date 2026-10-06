@@ -76,6 +76,44 @@ describe('the renewal sweep re-reads ended periods from the vendor (F733)', () =
     assert.deepEqual(errors, [], 'a sweep with room to spare raised a backlog');
   });
 
+  test('the rows asked longest ago go first, so a page of rows stuck waiting never hides the rest', async () => {
+    // F733 second review (2026-10-06): rows out of their quiet were asked again
+    // ahead of rows never asked, so once sixty rows of a hundred were stuck,
+    // rows sixty-one to a hundred were never asked at all.
+    const asked = new Set<string>();
+    const renewed = new Set<string>();
+    const { logger } = quietLogger();
+    const sweep = renewalSweep({
+      due: async () => Array.from({ length: 100 }, (_, n) => row(n + 1)).filter(due => !renewed.has(due.userId)),
+      renew: async (due) => {
+        asked.add(due.userId);
+        if (Number(due.userId.slice(-12)) <= 60) return 'waiting';
+        renewed.add(due.userId);
+        return 'renewed';
+      },
+      logger,
+    }, { everyMs: 5 * 60_000, read: 100, batch: 10, quietMs: 30 * 60_000 });
+    for (let minute = 0; minute < 60; minute += 5) await sweep.tick(minute * 60_000);
+    const starved = Array.from({ length: 40 }, (_, n) => id(n + 61)).filter(user => !asked.has(user));
+    assert.deepEqual(starved, [], `${starved.length} due rows were never asked in an hour`);
+  });
+
+  test('a row that has been due for more than a day is reported as stuck', async () => {
+    const errors: string[] = [];
+    const logger = { log: () => {}, error: (line: string) => errors.push(line) };
+    const now = Date.parse('2026-10-06T12:00:00.000Z');
+    const at = (hoursAgo: number, n: number): DueRenewal => ({ userId: id(n), periodEnd: new Date(now - hoursAgo * 60 * 60 * 1000) });
+    const sweep = renewalSweep({ due: async () => [at(1, 1), at(25, 2), at(49, 3)], renew: async () => 'waiting', logger },
+      { everyMs: 1_000, read: 100, batch: 1, quietMs: 1_000 });
+    await sweep.tick(now);
+    assert.match(errors.join('\n'), /"event":"billing_renewals_stuck","stuck":2,"oldestHours":49/);
+    errors.length = 0;
+    const fresh = renewalSweep({ due: async () => [at(1, 1), at(23, 2)], renew: async () => 'waiting', logger },
+      { everyMs: 1_000, read: 100, batch: 1, quietMs: 1_000 });
+    await fresh.tick(now);
+    assert.deepEqual(errors, [], 'a row inside its first day was reported as stuck');
+  });
+
   test('a failed read of the due list is logged and the next sweep still runs', async () => {
     const { lines, logger } = quietLogger();
     let calls = 0;

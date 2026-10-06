@@ -158,8 +158,30 @@ test('billing projection uses one RPC carrying vendor state but never a stale us
   // carries the window's grant; the usage counter still never crosses the wire.
   assert.match(calls[0]!.url,/rpc\/apply_billing_projection_v2$/);
   // F733 review (2026-10-05): a monthly period carries no allowance window.
-  assert.deepEqual(calls[0]!.body,{p_user_id:'owner',p_ticket:2,p_kind:'active',p_plan:'regular',p_period_end:'2027-01-01T00:00:00.000Z',p_event_id:'event-1',p_grant_seconds:18000,p_window_end:null});
+  // F733 second review (2026-10-06): a snapshot with no purchase date sends no start, and the database orders it by end.
+  assert.deepEqual(calls[0]!.body,{p_user_id:'owner',p_ticket:2,p_kind:'active',p_plan:'regular',p_period_end:'2027-01-01T00:00:00.000Z',p_event_id:'event-1',p_grant_seconds:18000,p_window_end:null,p_period_start:null});
   assert.equal('seconds_used' in calls[0]!.body,false);
+});
+
+test('a projection sends when the store says the period began, and reads the start and the withheld part back', async () => {
+  // F733 second review (2026-10-06): store answers are ordered by start, so an
+  // upgrade Apple applies at once is not mistaken for a stale read.
+  const calls: Record<string, unknown>[] = [];
+  const request = async (_input: string | URL | Request, init?: RequestInit) => {
+    calls.push(JSON.parse(String(init?.body)));
+    return new Response(JSON.stringify({ kind: 'active', entitlement: { user_id: 'owner', plan: 'regular', seconds_used: 13800,
+      period_start: '2026-10-06T09:00:00+00:00', period_end: '2026-10-13T09:00:00+00:00', withheld_seconds: 13800 } }));
+  };
+  const store = new SupabaseEntitlementStore('https://db.test', 'secret', request as typeof fetch);
+  const result = await store.applyBilling('owner', 4, { kind: 'active', plan: 'regular', periodStart: new Date('2026-10-06T09:00:00Z'),
+    periodEnd: new Date('2026-10-13T09:00:00Z'), grantSeconds: 4200 });
+  assert.equal(calls[0]!.p_period_start, '2026-10-06T09:00:00.000Z');
+  assert.equal(result.entitlement.periodStart?.toISOString(), '2026-10-06T09:00:00.000Z');
+  assert.equal(result.entitlement.withheldSeconds, 13800);
+  // Nothing at all withheld reads as nothing, not as a zero to compare.
+  const plain = new SupabaseEntitlementStore('https://db.test', 'secret', (async () => new Response(JSON.stringify({ kind: 'unchanged', reason: 'superseded',
+    entitlement: { user_id: 'owner', plan: 'starter', seconds_used: 60, period_end: '2026-11-01T00:00:00Z', period_start: null, withheld_seconds: 0 } }))) as typeof fetch);
+  assert.deepEqual((await plain.applyBilling('owner', 5, { kind: 'inactive' })).entitlement, { plan: 'starter', secondsUsed: 60, periodEnd: new Date('2026-11-01T00:00:00Z') });
 });
 
 test('a yearly projection sends the paid year as the period and the window beside it, and reads both back', async () => {

@@ -64,6 +64,19 @@ const FILES: Record<string, string> = {
   // billingStatus.ts); the sweep logs a full page (renewals.ts); core's refusal
   // says "for now" instead of "this month". Prices, allowances, margins and every
   // FUNCTIONS pin unchanged. Independent revenue review still owed.
+  // 6 October 2026, F733 second review repair (D16, same step): two independent
+  // reviews found an immediate Apple upgrade from Starter yearly to Max monthly
+  // read as a stale answer, keeping the learner on Starter with no refill.
+  // Store answers are now ordered by when their period started (meter.ts
+  // Entitlement.periodStart and withheldSeconds, state.ts, revenuecat.ts passing
+  // the purchase date, store.ts sending p_period_start and reading both back,
+  // the migration's period_start and withheld_seconds columns). The withheld part
+  // of a window is swapped, not kept, so a lagging trial read cannot short a
+  // payer; a billing grace period and a missing entitlement id hold rather than
+  // grant or lapse; the sweep asks longest-unasked rows first and reports stuck
+  // rows (renewals.ts); the migration is idempotent. Prices, allowances, the
+  // trial week, margins and every FUNCTIONS pin unchanged. Independent revenue
+  // review of these hashes is owed before this lands.
   // 3 October 2026, F692: simulator exposed Metro's native adapter self-cycle.
   // Unchanged shared contract moved to a neutral filename; native's sole code
   // change is the import target. Root and independent Sol reconstructed both
@@ -82,8 +95,8 @@ const FILES: Record<string, string> = {
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
   'apps/mobile/src/purchases/billingStatus.ts': '3104923354eec188303c25d0fc1e78abe4954daad392d7ad1427d32ce15392b1',
   'apps/mobile/src/purchases/capabilities.ts': '5bbb732e5c0c0e2d55c6459578dea4e86f4f77103e80dd656490386344ad7502',
-  'packages/core/src/metering/meter.ts': '04c8619f417f00f44af6ec87947b3653d32ab68d97982b0ed2d5f53da8778208',
-  'services/token-server/src/billing/revenuecat.ts': '8692c9be8ee868d6c9499522ceeb6f29a1719acaedc59505c602a526f4b737c0',
+  'packages/core/src/metering/meter.ts': '05817207f16be48db63522f337e74af0d602a8c9b5a779a2f708333a18474786',
+  'services/token-server/src/billing/revenuecat.ts': '4e07d74fbbaa577f6bee720e8d762e91e6c669be30ce20388cbc80216e8f34e1',
   'services/token-server/src/billingStatus.ts': '9ff5789bf23cb987b55e067230d3aa50fffdd0253d9c98d232717ddb6d3d2730',
   // 3 October 2026: founder-authorized Report 36 confirmed service-failure
   // refunds and Report 32 approved audio spending ceilings. Sol independently
@@ -103,7 +116,7 @@ const FILES: Record<string, string> = {
   // tests and 38 billing tests. SQL admission supersedes stale snapshots;
   // store changes remove raw error logging only. Prices/allowances remain pinned.
   'services/token-server/src/tokens.ts': 'f298cb76bdfc3320da98066b801d15b3a2632af35c6b7ff402598f2c11164e74',
-  'services/token-server/src/store.ts': '11db37e086cb08179a40002368f85fe4254e18a6b1e8f6d183c117cbd2bcf6ae',
+  'services/token-server/src/store.ts': '56d3cc9d2798d8aef972d269086c809bb8c13f9436613ef234906e246dcc3674',
   'packages/core/src/metering/index.ts': '54f3732c3ab86e02bc35088e0ca32bd47443a1c4e3e6b52bbade5345011613e5',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
   'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',
@@ -118,7 +131,7 @@ const FILES: Record<string, string> = {
   'apps/mobile/src/purchases/storeSettlement.ts': '6b1fd0203883dfa7631f78fdd8b07e0714fb3e1c31ce22193a1c771b0e5f23dd',
   'apps/mobile/src/purchases/storeQueue.ts': 'e082c5feb556e5eda675884e56255ebf2ef4365ddfa783d26ad0005c271d9c74',
   'apps/mobile/src/purchases/billingReadiness.ts': '547ecad442783e73afe1436c69332c9c11c5178c056f29ee12cfada8a9b3a92d',
-  'services/token-server/src/billing/state.ts': 'b3ba46b383ffcb63266b0dca0d3a9136824eafbe96ce56163c50292db0dd72db',
+  'services/token-server/src/billing/state.ts': 'e564bd2e58a25fea9dc942c7e4a52563802bbcc309fc3caa4cbeaea2ec3abc17',
   // 2 October 2026, Report 45: founder-authorized optional consented funnel evidence.
   // Sol accepted the separate-savepoint trial RPC, strict server event boundaries
   // and ordered ownership-bound restore tracking; allowance/debit policy is unchanged.
@@ -127,8 +140,10 @@ const FILES: Record<string, string> = {
   'supabase/migrations/20261002154637_atomic_billing_projection.sql': '9353bfd992c71eb42cb581b169c16dc320a509323a240e5913d8812c8f3bb40c',
   // 5 October 2026, F733: the trial and yearly projection and the renewal sweep, new money code pinned as written.
   // Same day, review repair: the window column, its trigger and lapse-only-on-inactive; the sweep's backlog log.
-  'supabase/migrations/20261005231742_store_trial_yearly_allowance.sql': 'd4518fd0216676d1622eaf07bc02d5bbb59d24d72f37287e5b2d18e0027f8283',
-  'services/token-server/src/billing/renewals.ts': '67b0927812501806f7e39b874a5a206fdb270bef322882db445be2e813315c4f',
+  // 6 October 2026, second review repair: period_start ordering, withheld_seconds, idempotent DDL, the
+  // trigger clearing what a non-v2 writer leaves behind; the sweep's longest-unasked order and stuck log.
+  'supabase/migrations/20261005231742_store_trial_yearly_allowance.sql': '367afb228236bfe4f5a28d50cabc25317b49ee28eedecb305e5418d78addc4f0',
+  'services/token-server/src/billing/renewals.ts': '77df4d1f06a8870a21a65330d84885a90ab2743d3dbfcd8a0639b6c95e65e481',
 };
 
 /**
