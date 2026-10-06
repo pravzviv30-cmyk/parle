@@ -35,10 +35,12 @@ export const REPAIR_WINDOW_DAYS = 2;
  * At most one repair in this many days, measured from the day a repair
  * covered to the first day of the new gap. 0 means no limit.
  *
- * No limit is set because none has been decided: an early draft of the game
- * spec had "no repair in the last 30 days", and founder decision D4 is silent
- * on it. The founder's answer is this one number; `repairOfferWithLimit` is
- * how the tests prove a limit holds before anyone chooses one.
+ * No limit is set because none has been decided. The first draft of the game
+ * spec (docs/come-alive/game.md 2.4) allowed one every 30 days ("no `earned`
+ * cover exists in the last 30 days", `earned` since renamed `repair`), and
+ * founder decision D4 says nothing about how often. The founder's answer is
+ * this one number; `repairOfferWithLimit` is how the tests prove a limit holds
+ * before anyone chooses one.
  */
 export const REPAIR_EVERY_DAYS = 0;
 

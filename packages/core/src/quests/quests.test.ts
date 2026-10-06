@@ -79,6 +79,7 @@ describe('picking a day\'s quests', () => {
   });
 
   test('day one is the same three for everyone', () => {
+    // Everyone who can record. A learner who cannot gets DAY_ONE_QUIET_QUESTS (F740, below).
     assert.deepEqual([...DAY_ONE_QUESTS], ['finish-practice', 'phrase-of-day', 'minutes']);
     for (const seed of ['a', 'b', 'learner-1']) {
       assert.deepEqual(
@@ -115,6 +116,7 @@ describe('picking a day\'s quests', () => {
 
   test('every quest has a quiet way through, and each rule of eligibility holds', () => {
     assert.equal(QUESTS.length, 12);
+    // Today's phrase is the one exception, so it is offered only to a learner who can record (F740).
     assert.deepEqual(QUESTS.filter((q) => q.requiresSpeaking).map((q) => q.id), ['phrase-of-day'], "only today's phrase needs a recording");
     assert.ok(!questEligible('practise-twice', { ...everything, practiceDaysBefore: 0 }, 10));
     assert.ok(!questEligible('review-recall', { ...everything, phraseCards: 4 }, 10));
@@ -140,13 +142,17 @@ describe('a learner who cannot record', () => {
     assert.equal(questEligible('phrase-of-day', { ...everything, canRecord: false }, 10), false);
 
     // Day one has no choice, so the fixed set swaps today's phrase for something quiet.
+    // A brand-new learner has no deck, no conversations, perhaps no goal, and no minutes read yet.
     const muted = { ...everything, canRecord: false };
-    for (const seed of ['a', 'b', 'learner-1']) {
-      const dayOne = questsForDay({ day: '2026-10-05', seed, eligibility: { ...muted, practiceDaysBefore: 0 }, goalTarget: 10 });
-      assert.deepEqual(dayOne, [...DAY_ONE_QUIET_QUESTS]);
-      for (const id of dayOne) {
-        assert.ok(!recording.includes(id), `day one set ${id}, which needs a recording`);
-        assert.ok(questEligible(id, { ...muted, practiceDaysBefore: 0 }, 10), `day one set ${id}, which a new learner cannot be offered`);
+    const brandNew: QuestEligibility = { practiceDaysBefore: 0, phraseCards: 0, conversations: 0, liveSecondsRemaining: null, canRecord: false };
+    for (const [eligibility, goalTarget] of [[{ ...muted, practiceDaysBefore: 0 }, 10], [brandNew, null]] as const) {
+      for (const seed of ['a', 'b', 'learner-1']) {
+        const dayOne = questsForDay({ day: '2026-10-05', seed, eligibility, goalTarget });
+        assert.deepEqual(dayOne, [...DAY_ONE_QUIET_QUESTS]);
+        for (const id of dayOne) {
+          assert.ok(!recording.includes(id), `day one set ${id}, which needs a recording`);
+          assert.ok(questEligible(id, eligibility, goalTarget), `day one set ${id}, which a new learner cannot be offered`);
+        }
       }
     }
     assert.equal(new Set(DAY_ONE_QUIET_QUESTS.map((id) => questDef(id).family)).size, 3, 'the quiet day one repeats a family');
