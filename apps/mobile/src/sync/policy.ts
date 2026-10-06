@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, twenty-five namespaces, no exceptions.
+ * What happens when two devices disagree — one table, twenty-seven namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
- * copies of a learner become one. Fourteen namespaces are synced under three merge classes;
- * eleven are excluded with a stated reason, because a namespace that is silently absent
+ * copies of a learner become one. Fifteen namespaces are synced under three merge classes;
+ * twelve are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -33,6 +33,10 @@
  * |               |            | validator, canonical pick, oldest first, last 150.         |
  * | `goalSteps`   | set-union  | union by whole row under goals/model.ts's strict validator,|
  * |               |            | oldest first, last 60. Nothing is attributed by time.      |
+ * | `game`        | set-union  | game/model.ts's merge: sittings, covers, goal days, quest  |
+ * |               |            | days and claims, fixed XP, badges and seen keys union by   |
+ * |               |            | identity with the earliest record (a measured sitting and |
+ * |               |            | a dated badge first); monthly rollups take the max.        |
  * | `practiceSession` | **excluded** — see SYNC_EXCLUSIONS                      |
  * | `journal`     | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `friends`     | **excluded** — see SYNC_EXCLUSIONS                          |
@@ -44,6 +48,7 @@
  * | `packMarks`   | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `pendingPurchase` | **excluded** — see SYNC_EXCLUSIONS                     |
  * | `onboarding-practice` | **excluded** — see SYNC_EXCLUSIONS                 |
+ * | `gameLocal`   | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -110,6 +115,7 @@ import { upgradeStored } from '../profile/upgrade.ts';
 import { exerciseIdentity, mergeExerciseBank } from '../drill/merge.ts';
 import { mergePracticeHistory, PRACTICE_HISTORY_VERSION } from '../practice/history.ts';
 import { GOAL_STEPS_VERSION, mergeGoalSteps } from '../goals/model.ts';
+import { GAME_VERSION, mergeGame } from '../game/model.ts';
 
 // ─────────────────────────────────────────────────────── the stores' own caps
 //
@@ -670,12 +676,12 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     merges: 'structured',
     // Moves with `StoredProfile.version`, and moves in the same commit the store
     // does. v5 added `ageStopAt`, v6 the chosen `tutorVoice`, v7 `preferTyping`,
-    // v8 `forgottenFacts` and `learnerGoals`; left a version
+    // v8 `forgottenFacts` and `learnerGoals`, v9 the twenty-minute goal; left a version
     // behind, this build calls its own merge output a newer schema and goes
     // pull-quiet on every profile cycle, forever, with nothing in the log. What
     // a learner would see is the voice they picked on one phone never reaching
     // the other. `policy.test.ts` reads the number back out of profile/store.ts.
-    writes: 8,
+    writes: 9,
     rule: 'phrases and error patterns union with max counts and mastered ORed; forgotten facts union as a set; the rest whole from the evidence-heavier side',
     merge: mergeProfile,
   },
@@ -774,6 +780,15 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     rule: 'union by whole row of strictly validated goal-step events, oldest first, last sixty, nothing attributed by time',
     merge: (local, remote) => mergeGoalSteps(local, remote),
   },
+  {
+    namespace: 'game',
+    merges: 'set-union',
+    // Moves with GAME_VERSION in game/model.ts, imported rather than copied
+    // because that file is pure and shares its strict reader with the store.
+    writes: GAME_VERSION,
+    rule: 'sittings, covers, goal days, quest days and claims, fixed XP, badges and seen keys union by identity with the earliest record (a measured sitting and a dated badge first); monthly XP and quest rollups take the max',
+    merge: (local, remote) => mergeGame(local, remote),
+  },
 ];
 
 export interface SyncExclusion {
@@ -783,13 +798,14 @@ export interface SyncExclusion {
 }
 
 /**
- * The eleven namespaces that are on the device and stay on the device.
+ * The twelve namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
+  { namespace: 'gameLocal', reason: "The OS schedule, timezone and the plan observed are facts about this phone; syncing them would nudge one learner twice and let one device's billing read decide another's." },
   { namespace: 'onboarding-practice', reason: 'A temporary first-use task on this phone. Its explicitly saved phrase enters the ordinary synced review deck; the local guest capability never syncs.' },
   { namespace: 'pendingPurchase', reason: 'A checkout started on this phone stays fenced here until its matching paid entitlement is verified. It is transaction recovery, never learning evidence or cross-device billing authority.' },
   {

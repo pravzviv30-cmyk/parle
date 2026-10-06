@@ -52,7 +52,10 @@ the most personal text the app holds), `practiceHistory` (completed conversation
 practice, account-synced: see "Conversation-practice history" below), `goalSteps`
 (which conversations were opened from one of the learner's goals, and their own "used
 outside" reports, account-synced, ids and the normalised goal key only: see "Goal steps"
-below), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
+below), `game` (the account-synced facts behind the streak, the daily goal, quests and
+badges: see "The game layer" below), `gameLocal` (the game facts that belong to this
+phone: the reminder log, the plan it last saw, the time zone of the last practice and
+the celebrations still queued; device-local), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
 (the one unfinished practice sitting on this phone and the frozen plan that finishes
 it, device-local), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because
@@ -83,7 +86,12 @@ the session's phrases outright.
 
 ### The age stop, and exactly how strong it is
 
-`profile` is at **version 8**. Version 8 added `forgottenFacts`, the normalised
+`profile` is at **version 9**. Version 9 adds no field: `dailyGoalMin` may now hold
+20 (Intense) beside 5, 10 and 15, and the version moved because an older build reads
+20 as no goal and would merge that loss to every device; with the version moved it goes
+quiet on profile sync until it updates instead. `upgradeStored` keeps a 20 from any
+envelope, and `practiceDaysPerWeek` is no longer asked for but is still read and
+carried wherever a disk holds one. Version 8 added `forgottenFacts`, the normalised
 keys of memory facts the learner asked the tutor to forget, kept as tombstones
 because the extraction would otherwise write the fact back the next session that
 mentions it, and `learnerGoals`, up to three lines the learner wrote about what
@@ -319,6 +327,92 @@ deletion sweeps the key with every other suffix. The self-report touches nothing
 review card, activity entry, drill, momentum, XP or practice time, and
 `goals/store.test.ts` holds that byte for byte.
 
+### The game layer: streak, goal, quests and badges
+
+**Status: the stores, the merge and the database migration exist and are tested
+locally; nothing reads them in a screen yet (`game/settle.ts` is Phase 1 of Come alive).
+The server half, `20261006120000_learner_state_game.sql`, is prepared and not applied to
+any project. It must be applied before any build that writes `game` ships: until then
+every push of `game` is refused at the door and retried forever, exactly as F411
+described, and the facts stay on the phone that made them.**
+
+`game` (`game/model.ts`, `game/store.ts`), inner version 1, holds facts and never a
+number derived from them. The streak, the level and quest progress are computed by
+core from these facts and the activity log every time.
+
+| field | what one row is | merge | bound |
+|---|---|---|---|
+| `sittings` | a finished sitting that earned no XP: moment, source, optional `activeMs` (whole milliseconds, at most a day) | union by `(at, source)`, the measured copy wins | 60 days behind the newest, 500 rows |
+| `covers` | a streak cover: day, kind (`freeze`, `repair` or `travel`), moment | union by day, the earliest written, then travel, repair, freeze | 2,000 days, never aged |
+| `goalDays` | a local day the daily goal was met | sorted set union | 2,000 days |
+| `questDays` | the three quest ids a day was dealt, frozen the first time | union by day, the earliest | 60 days |
+| `claims` | a quest or the day's chest claimed, with its XP | union by `(day, quest)`, the earliest | 62 days behind the newest claim |
+| `questMonths` | quests claimed (chest excluded) and quest XP per calendar month | each field the max | 600 months |
+| `xpMonths` | capped activity XP per month | the max | 600 months |
+| `bonus` | the fixed +5 "for practising" XP, keyed `<kind>:<day or epoch ms>` | union by key, the earliest | 62 days behind the newest key's day, 400 rows |
+| `bonusMonths` | fixed XP per month | the max | 600 months |
+| `badges` | a badge id and the moment it was earned, or null when counted from older practice | union by id, a dated award beats null, then the earliest | never aged; 500 ids |
+| `seen` | a celebration key already played, anywhere | union by key, the earliest | `streak:<day>` and `chest:<day>` 60 days behind the newest; every other kind (milestone, level, badge, purchase) kept for good; 800 keys |
+
+Every rule is a set union or a maximum, every collision is settled by a total order and
+every bound keeps the last rows of a sorted set ranked by identity, so the merge is
+commutative, associative and idempotent; `policy.test.ts` and `game/model.test.ts`
+property-test it over generated blobs that cross every age window and bound. The
+monthly rollups are folded from the store's own claims and fixed XP on every local
+write, before anything ages out, and never by the merge (a merge that derived them would
+depend on which rows each grouping had already aged out). The named cost: two devices
+that each claimed different quests in one month and did not sync for two months keep
+the larger of their two counts, not the sum. A rollup can undercount; it never invents
+a quest. Badges and celebration keys are opaque, so a badge a newer build awarded is
+kept by an older one even when it cannot draw it. A new quest id, cover kind or sitting
+source is a new value an older build refuses, so it must raise the version.
+
+Which celebration keys age out is decided by the key's kind and nothing else
+(`isDaySeenKey` in `game/model.ts`): only `streak:` and `chest:` belong to a day. A
+milestone key holds a date and must still never age out, whichever order its parts are
+written in, or the milestone plays again. `celebrate/events.ts` (Phase 1) carries its
+own copy of that rule and should import this one. A key is a lowercase kind and up to
+four segments of letters, digits, dots, hyphens and underscores, so a store transaction
+id fits and no sentence can.
+
+Reads are strict. A blob from a newer build, a stray key, a wrong type or an unknown
+cover kind is refused, never repaired: every write answers `failed` and leaves the
+bytes, and the adopter declines. An empty list offered to a write is nothing to write
+and answers `durable`, as `progress/activity.ts` does, because the settle pipeline will
+offer lists that are empty on most sittings. The largest blob the reader accepts is
+built in `game/capacityFixture.ts`, with every moment at the sixteen digits the reader
+allows, and measured at about 441 KB sealed, inside the 512 KiB envelope;
+`scripts/verifyDataBoundaries.mjs` writes it into a disposable database too, where the
+server's own byte limit measures the jsonb as text. That is why `activeMs` has a
+ceiling: an uncapped double such as 1e308 is 23 characters on the phone and 309 digits
+in the server's rendering.
+
+**A clock far ahead is the residual risk.** Every age window is measured back from the
+newest row in the union, never from a clock, so that two devices whose clocks disagree
+cut the same rows and the merge stays commutative, associative and idempotent. The price
+is that one row dated far in the future ages out every real row of that list on every
+device it reaches: sittings, claims, fixed XP and day-scoped celebration keys (monthly
+totals survive, because they are maximums). The store refuses any row dated more than a
+day after the device's own clock, which stops a bug in a caller. It cannot stop a phone
+whose clock is itself a year ahead, because to that phone the row is today. No ledger
+entry tracks this yet; one is owed.
+
+`gameLocal` (`game/gameLocal.ts`) is never synced and registers no adopter:
+`lastPracticeOffsetMin`, `paidSince`, the last 30 days of `nudges`, `nudgesPausedAt`,
+`introducedAt` and up to 32 `pending` celebrations, read as strictly as `game`. Queueing
+celebrations answers `failed` and writes nothing when the ceiling would cut one of the
+moments offered, so a crash-replay entry is never reported as kept when it was not.
+
+A finished sitting is a practice day whatever it earned (founder decision D3, F731).
+`recordActivity` now answers a `PersistAck`. A sitting that earned no XP never writes an
+entry. When its caller marks it `finished`, it records its day through `recordActiveDay`:
+no entry, no XP, no minutes and no new activity kind. When the caller does not, it
+writes nothing, because not every caller reaches `recordActivity` only for a finished
+sitting: the bank drill records on the way out, so a drill left from the header with
+nothing answered arrives with 0 XP exactly as a finished set with nothing right does.
+No screen passes `finished` yet; Phase 1's settle and the bank drill's finished path
+are the callers that will.
+
 ### The pre-recap window
 
 **Owner: tutor-agent. Closed in code; deployment proof is still required.**
@@ -456,8 +550,8 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fourteen synced, eleven excluded once
-`goalSteps` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
+stores; `sync/policy.ts` is the count of record (fifteen synced, twelve excluded once
+`game` and `gameLocal` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -487,13 +581,13 @@ Four pieces, and each has one file:
 | `sync/engine.ts` | when to reconcile, the compare-and-swap, quarantine, the size refusal |
 | `sync/policy.ts` | **what the answer is** when two devices disagree |
 
-`sync/policy.ts` is the one to read. Fourteen namespaces under three merge classes:
+`sync/policy.ts` is the one to read. Fifteen namespaces under three merge classes:
 
 - **structured** — `profile`, delegated to `@luvani/brain`'s `mergeStoredProfiles`.
 - **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`,
   `bookmarks`, `scenarioProgress`.
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
-  `tutorIntro`, `practiceHistory`, `goalSteps`.
+  `tutorIntro`, `practiceHistory`, `goalSteps`, `game`.
 
 Two of those per-item rules are worth stating, because the obvious smaller shape
 is wrong in both cases. `bookmarks` unions by situation and keeps the **newer
@@ -514,7 +608,11 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Eleven are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
+Twelve are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `gameLocal` holds
+the facts about this phone that the game layer needs: the OS schedule of streak
+reminders, the time zone of the last practice and the plan this phone last observed.
+Syncing them would nudge one learner twice and let one device's billing read decide
+another's. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
 is the unfinished sitting and its completion plan: its meaning is local to this device's
 bank and deck, and a copy on a second device could finish the same sitting again, so
 completed sittings travel through `practiceHistory` instead. `packMarks`
@@ -584,14 +682,14 @@ when the credentials are absent.
 `apps/mobile/src/profile/store.ts` holds `StoredProfile`:
 
 ```ts
-{ version: 8, name, dob, ageConfirmed, ageStopAt, tutorVoice, preferTyping, forgottenFacts, learnerGoals, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
+{ version: 9, name, dob, ageConfirmed, ageStopAt, tutorVoice, preferTyping, forgottenFacts, learnerGoals, motivation, dailyGoalMin, onboardedAt, username, brain: LearnerProfile }
 ```
 
 `brain` is `@luvani/brain`'s learner model, stored verbatim — the app is its
 storage, not its author.
 
 `apps/mobile/src/profile/upgrade.ts` is the app-side forward migration.
-`upgradeStored` takes whatever was on disk and returns a version-8 profile or
+`upgradeStored` takes whatever was on disk and returns a version-9 profile or
 `null` if it cannot be read at all. Version 1 and version 2 records both gain
 `username: null`; a version-3 record keeps the username it already has. Every
 branch below 5 writes no `ageStopAt`, every branch below 6 no `tutorVoice`,
@@ -792,3 +890,5 @@ provider billing remains labelled as abandoned rather than claimed free.
 The separate device-only keys are `@luvani/pre-account-onboarding/v1` for choices, `@luvani/guest-practice/v2` for bounded guest replies/capability, `@luvani/has-used-app/v1` (and native SecureStore `luvani.has-used-app.v1`) for a non-personal used-app hint, `@luvani/interaction-haptics/v1` for the device haptics preference, and `@luvani/interaction-sound/v1` for the device sound-effects preference. Neither hint identifies an account. Guest/draft deletion drains queued writes and invalidates pending work. Refusal deletes the guest/draft keys and leaves no refusal marker. iOS keychain reinstall persistence is best effort; Android uninstall clears it.
 
 The server stores a hashed installation signal, usage counters and one-account ownership in a 30-day guest ledger, never replies or recordings. Service attempts expire at 24 hours and the start allowance at one day. Optional anonymous daily event counts expire at ninety days and contain only closed event, variant and evidence enums.
+
+`GuestPractice` (still version 2) gains `finishedAt`: the moments a guest practice was saved as finished, one per local day, oldest first, the newest 31 (F732). A guest's streak day comes from these and nothing else (`guestPracticeDays`), so replies on a practice left unfinished are never a day. A record written before the field reads as having none, because a finish nobody recorded is not one this phone can vouch for. `finishGuestPractice` adds the moment and the `completed` flag together, so the day exists only once that value is saved, and a second finish on a day already held adds nothing, so many finishes in one day never push an earlier day out. Not wired yet: `PreAccountOnboarding.tsx` still saves `{ ...guest, completed: true }` on finish, and `guestPractice.ts` builds a new practice without carrying `finishedAt` forward, so until the first-run owner changes both, a guest records no finish day.

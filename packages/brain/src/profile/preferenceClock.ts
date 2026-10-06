@@ -21,7 +21,8 @@ export function preferenceValue(profile: unknown, field: PreferenceField): unkno
 
 function validValue(field: PreferenceField, value: unknown): value is PreferenceValue {
   switch (field) {
-    case 'dailyGoalMin': return value === null || value === 5 || value === 10 || value === 15;
+    // 20 (Intense) since the app's profile v9, beside the three goals offered before it.
+    case 'dailyGoalMin': return value === null || value === 5 || value === 10 || value === 15 || value === 20;
     case 'tutorVoice': return value === null || isTutorVoiceKey(value);
     case 'preferTyping': return typeof value === 'boolean';
     case 'name': case 'username': return value === null || (typeof value === 'string' && value.length <= 512);

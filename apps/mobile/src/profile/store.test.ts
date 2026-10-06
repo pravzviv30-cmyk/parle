@@ -44,7 +44,7 @@ describe('a new profile — what the app writes down about someone who just join
     const profile = createStoredProfile({ name: 'Camille', ageConfirmed: true, motivation: 'travel' }, NOW);
     assert.equal(profile.dob, null, 'the product stopped asking for a date, so there is none to keep');
     assert.equal(profile.ageConfirmed, true, 'what they actually told us is that they are old enough');
-    assert.equal(profile.version, 8);
+    assert.equal(profile.version, 9);
     assert.deepEqual(profile.forgottenFacts, [], 'nobody arrives having forgotten anything');
     assert.deepEqual(profile.learnerGoals, [], 'nobody arrives with a goal written');
     assert.equal(profile.preferTyping, false, 'nobody arrives preferring to type; the row in Profile is where that is said');
@@ -134,6 +134,59 @@ describe('the daily goal — one field, one write path', () => {
     assert.equal(after.dailyGoalMin, 15);
     assert.deepEqual({ ...after, dailyGoalMin: null }, before, 'the goal row edits the goal, not the learner');
   });
+
+  test('a twenty-minute goal survives every profile read', async () => {
+    const { upgradeStored } = await import('./upgrade.ts');
+    const { dailyGoalOf, goalKeyOf, goalLine, DAILY_GOAL_UNSET } = await import('./dailyGoal.ts');
+    const { createSyncPolicy } = await import('../sync/policy.ts');
+    const { preferenceClocks } = await import('@luvani/brain/profile/merge');
+
+    const map = new Map<string, string>();
+    const shared = AsyncStorage as unknown as Record<string, unknown>;
+    shared.getItem = (key: string): Promise<string | null> => Promise.resolve(map.get(key) ?? null);
+    shared.setItem = (key: string, value: string): Promise<void> => {
+      map.set(key, value);
+      return Promise.resolve();
+    };
+    setActiveUser('20202020-2020-4020-8020-202020202020');
+
+    // Intense, chosen through the goal's one door.
+    const intense = withDailyGoal(existing({ dailyGoalMin: null }), 20);
+    assert.equal(intense.dailyGoalMin, 20);
+
+    // 1. Load: the store's own round trip, the version chain and the repair door.
+    assert.equal(await saveProfile(intense), true, 'the profile holding twenty minutes could not be saved');
+    const loaded = await loadProfile();
+    assert.ok(loaded, 'the profile did not survive its own round trip');
+    assert.equal(loaded.dailyGoalMin, 20, 'a saved twenty read back as no goal');
+    assert.equal(loaded.version, 9);
+    assert.equal(preferenceClocks(loaded).dailyGoalMin?.value, 20, 'the edit lost its clock, so a sync could quietly undo it');
+
+    // 2. Upgrade: a v8 envelope carrying the answer keeps it, and arrives at v9.
+    const v8 = { ...(JSON.parse(JSON.stringify(loaded)) as Record<string, unknown>), version: 8 };
+    const upgraded = upgradeStored(v8, NOW);
+    assert.ok(upgraded);
+    assert.equal(upgraded.version, 9);
+    assert.equal(upgraded.dailyGoalMin, 20, 'the version chain discarded a twenty-minute goal');
+    assert.equal(upgradeStored({ ...v8, dailyGoalMin: 15 }, NOW)?.dailyGoalMin, 15, 'an older goal stopped reading');
+    assert.equal(upgradeStored({ ...v8, dailyGoalMin: 25 }, NOW)?.dailyGoalMin, null, 'a goal nobody offered read as an answer');
+
+    // 3. Sync: another device with an older, unclocked goal does not undo it, either way round.
+    const policy = createSyncPolicy({ now: () => NOW });
+    const other = existing({ dailyGoalMin: 10 });
+    for (const [local, remote] of [[loaded, other], [other, loaded], [loaded, loaded]] as const) {
+      const merged = policy.merge({ namespace: 'profile', local, remote });
+      assert.equal(merged.kind, 'merged', 'the profile merge went quiet on a version-9 profile');
+      const data = merged.kind === 'merged' ? (merged.data as { dailyGoalMin?: unknown } | null) : null;
+      assert.equal(data?.dailyGoalMin, 20, 'a sync merge discarded the twenty-minute goal');
+    }
+
+    // 4. The row's readers: twenty minutes, said in words, and never "No target".
+    assert.equal(dailyGoalOf(loaded), 20);
+    assert.equal(goalLine(loaded), 'Twenty minutes as a flexible routine. Local practice is free; connected tutor time uses live minutes.');
+    assert.notEqual(goalLine(loaded), DAILY_GOAL_UNSET);
+    assert.equal(goalKeyOf(loaded), null, 'a goal the row has no segment for was marked as No target');
+  });
 });
 
 describe("the tutor's voice — one field, one write path", () => {
@@ -201,7 +254,7 @@ describe('preferring typing — one field, one write path', () => {
     const reloaded = await loadProfile();
     assert.ok(reloaded, 'the profile did not survive its own round trip');
     assert.equal(reloaded.preferTyping, true, 'the preference reset itself on the next launch');
-    assert.equal(reloaded.version, 8);
+    assert.equal(reloaded.version, 9);
     assert.equal(reloaded.name, 'Camille', 'and the learner kept everything else');
 
     await saveProfile(withPreferTyping(reloaded, false));

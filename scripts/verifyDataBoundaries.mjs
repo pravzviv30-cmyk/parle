@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createProfile, MAX_PHRASES } from '@luvani/brain/profile';
 import { buildConversationPack, newCard } from '@luvani/core';
 import { sealEnvelope, MAX_ENVELOPE_BYTES } from '../apps/mobile/src/sync/envelope.ts';
+import { fullGame } from '../apps/mobile/src/game/capacityFixture.ts';
 
 const { PGlite } = await import(process.env.PGLITE_MODULE ? pathToFileURL(process.env.PGLITE_MODULE).href : '@electric-sql/pglite');
 const db = new PGlite();
@@ -109,6 +110,41 @@ try {
   await db.exec('drop trigger aaa_test_parent_lock on learner_state; drop function public.assert_test_parent_lock();');
   await db.exec(statementFunction.replace('create function','create or replace function'));
   pass('all 16 namespaces; numeric tutorIntro; 200-phrase profile; 50 sessions; 1,200 constructed review cards; 5,000 activity entries; 3,000 bookmarks; offline burst/CAS');
+
+  // F729: the largest game blob the bounds in game/model.ts allow, written by a
+  // learner of its own so the one-minute burst arithmetic above is untouched (a
+  // calendar-minute bucket would reset if this walk pushed it over a boundary).
+  // Measured against the client envelope and the database's byte, item and depth limits.
+  const fullGameEnvelope=envelope(fullGame(now));
+  assert.ok(Buffer.byteLength(JSON.stringify(fullGameEnvelope))<=MAX_ENVELOPE_BYTES,'a full game blob exceeds the mobile byte bound');
+  await role('authenticated',id(29)); await state(id(29),'game',fullGameEnvelope); await admin();
+  assert.equal((await db.query("select count(*)::integer as n from learner_state where user_id=$1 and namespace='game'",[id(29)])).rows[0].n,1);
+  pass('a game blob at every cap fits the envelope and the database byte, item and depth limits');
+
+  // F729 rollback, disposable only: refused by default with nothing deleted (the
+  // script owns its transaction, so the delete after a refused interlock never
+  // runs); authorised, it deletes game rows and nothing else and restores the
+  // sixteen-name check; the migration then re-applies, twice, and game is accepted again.
+  const gameUp=await readFile(`${root}/supabase/migrations/20261006120000_learner_state_game.sql`,'utf8');
+  const gameDown=await readFile(`${root}/supabase/rollback/20261006120000_down.sql`,'utf8');
+  // One exec here is one implicit transaction either way; psql without ON_ERROR_STOP is not, so the file must own one.
+  assert.match(gameDown,/^begin;[\s\S]*luvani\.remove_game[\s\S]*delete from public\.learner_state\s+where namespace = 'game';[\s\S]*^commit;\s*$/m,'the game rollback does not own its transaction around the interlock and the delete');
+  await role('authenticated',id(29)); await state(id(29),'history',envelope([])); await admin();
+  const gameOwnerRows=async()=>(await db.query('select namespace from learner_state where user_id=$1 order by namespace',[id(29)])).rows.map(row=>row.namespace);
+  assert.deepEqual(await gameOwnerRows(),['game','history']);
+  await assert.rejects(db.exec(gameDown),/Refusing to delete game rows/);
+  await db.exec('rollback');
+  assert.deepEqual(await gameOwnerRows(),['game','history'],'the game rollback deleted rows past its interlock');
+  await db.query("select set_config('luvani.remove_game','yes',false)");
+  await db.exec(gameDown);
+  await db.query("select set_config('luvani.remove_game','',false)");
+  assert.deepEqual(await gameOwnerRows(),['history'],'the game rollback deleted more than game rows, or none');
+  await role('authenticated',id(29));
+  try { await assert.rejects(state(id(29),'game',envelope({})),/learner_state_namespace_check/); } finally { await admin(); }
+  await db.exec(gameUp); await db.exec(gameUp);
+  await role('authenticated',id(29)); await state(id(29),'game',envelope({})); await admin();
+  assert.deepEqual(await gameOwnerRows(),['game','history']);
+  pass('game rollback refuses by default and deletes nothing; authorised it deletes only game rows and restores the sixteen-name check; the migration re-applies cleanly');
 
   await role('authenticated',a);
   const nearLimit=envelope({text:'quoted : space, comma, and café 👋',pad:''});

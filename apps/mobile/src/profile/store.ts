@@ -67,6 +67,14 @@
  * about what they want from French; they ride into a conversation appended
  * after the remembered facts, because the agent sends the last five. Both live
  * in `profile/memory.ts`, which is the only thing that writes either.
+ *
+ * Version 9 is the one with the fourth daily goal (founder decision D5):
+ * `dailyGoalMin` may now be 20, Intense, beside 5, 10 and 15. No field is
+ * added; the version moves because an older build reads 20 as "no goal", and
+ * a profile it merged would push that loss to every device. With the version
+ * moved, an older build goes quiet on profile sync until it updates instead.
+ * `practiceDaysPerWeek` is no longer asked for; a value already on a disk is
+ * still read and carried, never dropped.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -82,7 +90,7 @@ import { upgradeStored } from './upgrade.ts';
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
-  version: 8;
+  version: 9;
   /** Exact-value-bound setting edits. No age, DOB, entitlement or identity authority. */
   preferenceClocks?: PreferenceClocks;
   practiceDaysPerWeek?: 3 | 5 | 7 | 'none' | null;
@@ -144,8 +152,8 @@ export interface StoredProfile {
   learnerGoals: string[];
   /** Why they came, as the tag chosen during onboarding. Null when skipped. */
   motivation: string | null;
-  /** The daily practice promise, set in Profile. Null until they pick one. */
-  dailyGoalMin: 5 | 10 | 15 | null;
+  /** The daily practice promise in minutes, set in Profile. Null until they pick one. 20 since v9. */
+  dailyGoalMin: 5 | 10 | 15 | 20 | null;
   onboardedAt: number;
   /** Friends identity, e.g. 'camille.4821'. Null until first claimed. */
   username: string | null;
@@ -170,7 +178,7 @@ export interface OnboardingAnswers {
   dob?: string | null;
   motivation: string | null;
   /** Transitional — the old goal page. The goal is a Profile row now. */
-  dailyGoalMin?: 5 | 10 | 15 | null;
+  dailyGoalMin?: 5 | 10 | 15 | 20 | null;
 }
 
 /**
@@ -402,7 +410,7 @@ function confirmedFrom(answers: OnboardingAnswers, now: Date): boolean | null {
 
 export function createStoredProfile(answers: OnboardingAnswers, now = Date.now()): StoredProfile {
   return {
-    version: 8,
+    version: 9,
     name: answers.name,
     // Data minimisation, discharged without touching one stored record: from
     // v4 on nobody is asked for a date, so nobody has one written down. While
@@ -487,10 +495,17 @@ export function withAgeGatePassed(existing: StoredProfile): StoredProfile {
  * Set the daily practice promise. A plain spread, named so the field has one
  * write path — the goal is asked in Profile now, from exactly one row.
  */
-export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15 | null): StoredProfile {
+export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15 | 20 | null): StoredProfile {
   return withPreferenceEdit(existing, { ...existing, dailyGoalMin }, 'dailyGoalMin');
 }
 
+/**
+ * The days-a-week answer, which the daily goal replaces (decision D5).
+ *
+ * Kept only while the Profile row that calls it is still on screen; the field
+ * itself is read and carried by the version chain for as long as any disk holds
+ * one. Nothing new should write it.
+ */
 export function withPracticeDays(existing: StoredProfile, practiceDaysPerWeek: 3 | 5 | 7 | 'none'): StoredProfile {
   return { ...existing, practiceDaysPerWeek };
 }
