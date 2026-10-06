@@ -65,6 +65,12 @@ const NOTICES: readonly Notice[] = [
     licence: 'MIT License',
     note: 'Keeps that movement smooth while the app is busy.',
   },
+  {
+    name: 'Iconsax',
+    by: 'Vuesax (iconsax.io)',
+    licence: 'Iconsax Free License',
+    note: 'The icons on buttons, rows and choices, built into the app. They are not shared as icon files.',
+  },
 ];
 
 export function Acknowledgements({ onBack }: { onBack: () => void }) {

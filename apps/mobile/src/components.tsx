@@ -5,8 +5,8 @@ import { Feedback } from './motion/Feedback.tsx';
  * White cards with no hairline and no shadow, ledger rows ruled by hairlines,
  * one fully rounded ink pill for the one primary action, underlined text links
  * for everything second, and a single highlighter band behind one French line.
- * Every tappable part presses through `Press`, the one spring. Icons are
- * ICONS.md's marks at its one stroke of 2.
+ * Every tappable part presses through `Press`, the one spring. Icons are the
+ * generated set in `src/icons/` (come alive, D11), drawn through `Icon`.
  *
  * Append-only: `components.test.ts` slices this file between adjacent exports,
  * so a new component goes at the end, after the stylesheet.
@@ -35,7 +35,8 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle, G, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
+import { Icon } from './icons/Icon.tsx';
 import {
   accent,
   colour,
@@ -55,7 +56,6 @@ import {
   type,
   HAIRLINE,
   HIT,
-  STROKE,
   rungColor,
   rungLabel,
 } from './theme.ts';
@@ -66,182 +66,81 @@ import { OrbGlyph } from './tutor/OrbGlyph.tsx';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
-// ICONS.md's marks, ported path for path: a 24 box, no fill, the one STROKE,
-// round caps and joins. Where ICONS.md has no match the notebook drawing stays
-// at the new stroke until its callers retire (F602, F605). The brand marks are
-// the only filled glyphs, filled in the mark's own colour.
+// Come alive (D11): every mark below is now a delegate to the generated icon
+// set in `src/icons/`, edited in place so each keeps its name, its default size
+// and colour, and its place between the exports this file is sliced by. New
+// code draws `<Icon name=... />` directly. The brand marks stay drawn here:
+// they are Apple's and Google's, filled in the one colour they are given.
 
-/** ICONS.md `next`. */
+/** Next: an arrow. */
 export function ArrowRight({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M4 12h16" />
-        <Path d="M13 5l7 7-7 7" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="forward" size={size} color={color} />;
 }
 
-/** ICONS.md `back`. */
+/** Back: a chevron pointing left. */
 export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <Path d="M15 5l-7 7 7 7" fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+  return <Icon name="back" size={size} color={color} />;
 }
 
 /**
- * ICONS.md `chevron-right`: the mirror of ChevronLeft, and the one mark at the
- * end of a row that opens. It is a mark beside words that already say where the
- * row goes, never a word itself.
+ * The mirror of ChevronLeft, and the one mark at the end of a row that opens.
+ * It is a mark beside words that already say where the row goes, never a word
+ * itself.
  */
 export function ChevronRight({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <Path d="M9 5l7 7-7 7" fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+  return <Icon name="chevron-right" size={size} color={color} />;
 }
 
 /**
- * ICONS.md `mic`, which is also its `speak`: the Speak tab and the control are
- * the same microphone on purpose, so `nav/icons.tsx` re-exports this one.
+ * The microphone, which is also Speak: the Speak tab and the control are the
+ * same microphone on purpose, so `nav/icons.tsx` re-exports this one, and the
+ * tab bar passes `focused` to draw it Bulk when Speak is the selected tab.
  */
-export function MicGlyph({ size = 30, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Rect x={9} y={3} width={6} height={11} rx={3} />
-        <Path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
-        <Path d="M12 18v3" />
-        <Path d="M8.5 21h7" />
-      </G>
-    </Svg>
-  );
+export function MicGlyph({ size = 30, color = paper.ink, focused = false }: { size?: number; color?: string; focused?: boolean }) {
+  return <Icon name="microphone" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }
 
-/** ICONS.md `speaker`: sound arriving, not being captured. */
+/** The speaker: sound arriving, not being captured. */
 export function EarGlyph({ size = 26, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M4 9.5h3.5L13 5v14l-5.5-4.5H4Z" />
-        <Path d="M16.5 9.5a3.5 3.5 0 0 1 0 5" />
-        <Path d="M19 7a7 7 0 0 1 0 10" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="speaker" size={size} color={color} />;
 }
 
-/** ICONS.md `lifebuoy`: help, drawn as a ring you can hold rather than a question. */
+/** Help: a question in a speech bubble. */
 export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Circle cx={12} cy={12} r={9.5} />
-        <Circle cx={12} cy={12} r={4} />
-        <Path d="M5.3 5.3l3.9 3.9M18.7 5.3l-3.9 3.9M5.3 18.7l3.9-3.9M18.7 18.7l-3.9-3.9" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="help" size={size} color={color} />;
 }
 
 /**
- * The mark beside the days a learner has been active.
- *
- * The founder's mockup draws an emoji flame here. This app has no emoji in it
- * anywhere, and one would be the first thing on any screen not drawn in the pen
- * the rest of it uses, at a weight and a palette nothing else shares. So the
- * flame is drawn: the same shape, the same meaning beside the same number, in
- * the one stroke weight.
- *
- * It is a flame and not a chain. The tile it sits on counts days that have
- * happened and can only go up, and nothing in this app asks a learner to
- * protect it, which is what PRODUCT.md refused twice. The picture is warmth,
- * not debt.
- *
- * ICONS.md has no match, so it is kept as drawn until F602 and F605 retire it.
+ * The mark beside the days a learner has been active: a flame, the warmth of
+ * the days that have happened, in the one stroke weight. No caller today; the
+ * streak's own flame is `game/art`'s and moves through `AnimatedIcon`.
  */
 export function FlameGlyph({ size = 18, color = signal.correspondance }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M13 2.6c3.4 3 5 5.8 5 8.6a6 6 0 0 1-12 0c0-1.5.5-2.9 1.6-4.2.3 1.2.9 2 1.8 2.3.5-2.7 1.7-5 3.6-6.7z" />
-        <Path d="M12 20a2.7 2.7 0 0 1-2.7-2.7c0-1.3.9-2.4 2.7-4 1.8 1.6 2.7 2.7 2.7 4A2.7 2.7 0 0 1 12 20z" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="flame" size={size} color={color} />;
 }
 
-/**
- * A seedling: a stem and two leaves. ICONS.md has no match, so it is kept as
- * drawn, at the new stroke, until its callers retire (F602, F605).
- */
+/** A seedling: Luvani's own drawing in the set, kept until its callers retire (F602, F605). */
 export function SproutGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M12 21c-.2-5 .1-8 .8-10.4" />
-        <Path d="M12.8 12.6c.4-4 3-6.4 6.8-6.6.2 3.8-2.4 6.4-6.4 6.8z" />
-        <Path d="M11.4 16.4c-.4-3.4-2.6-5.6-6-5.8-.2 3.2 2 5.6 5.6 5.8z" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="sprout" size={size} color={color} />;
 }
 
-/**
- * An outline bookmark. Drawn on the control that saves a situation, not on a
- * saved one. Kept as drawn until F602 and F605 retire it.
- */
+/** An outline bookmark, drawn on the control that saves a situation, not on a saved one. */
 export function BookmarkGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <Path
-        d="M6.4 4.2h11.2v16.2L12 16.6l-5.6 3.8z"
-        fill="none"
-        stroke={color}
-        strokeWidth={STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <Icon name="bookmark" size={size} color={color} />;
 }
 
-/**
- * Concentric rings. The mark beside a goal for today, so the number it sits
- * next to reads as something aimed at rather than something scored. Kept until
- * F602 and F605 retire it; its centre is a stroked dot, the way ICONS.md draws
- * a dot, because the brand marks are the only filled glyphs.
- */
+/** The mark beside a goal for today, so the number beside it reads as aimed at rather than scored. */
 export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
-        <Circle cx={12} cy={12} r={8.6} />
-        <Circle cx={12} cy={12} r={4.4} />
-        <Path d="M12 12h.01" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="flag" size={size} color={color} />;
 }
 
 /**
- * ICONS.md `check-circle`: a tick inside a ring, beside how much of the deck is
- * coming back, drawn as a check and not a medal because the figure under it is
- * what a learner remembered rather than a prize somebody handed them.
+ * A tick inside a ring, beside how much of the deck is coming back: a check and
+ * not a medal, because the figure under it is what a learner remembered rather
+ * than a prize somebody handed them.
  */
 export function BadgeGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Circle cx={12} cy={12} r={9.5} />
-        <Path d="M8 12.5l2.8 2.8L16.5 9.5" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="tick-circle" size={size} color={color} />;
 }
 
 /** ICONS.md `google`: the brand mark, filled in the one colour it is given. */
@@ -1604,27 +1503,14 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
   );
 }
 
-/** ICONS.md `close`: the way out of a sheet or a story. */
+/** Close: the way out of a sheet or a story. A delegate to the icon set (D11). */
 export function CloseGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M6 6l12 12" />
-        <Path d="M18 6 6 18" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="close" size={size} color={color} />;
 }
 
-/** ICONS.md `check`: the chosen option's tick. */
+/** The chosen option's tick: Luvani's own drawing in the icon set. */
 export function CheckGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M5 12.5l4.5 4.5L19 7" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="check" size={size} color={color} />;
 }
 
 /**
@@ -2005,22 +1891,15 @@ export function canDoSentence(canDo: string): string {
 }
 
 /**
- * ICONS.md `alert`: beside a field's error line. Errors are never red.
+ * The alert, beside a field's error line. Errors are never red. A delegate to
+ * the icon set (D11), drawn decorative: the error words are what is read.
  *
  * It lives here rather than in `glyphs.tsx` because `Field` draws it, and
  * `glyphs.tsx` already imports from this file, so the reverse edge would be a
  * cycle. `glyphs.tsx` re-exports it, the way it re-exports the speaker.
  */
 export function AlertGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z" />
-        <Path d="M12 9.5v4" />
-        <Path d="M12 17h.01" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="alert" size={size} color={color} />;
 }
 
 const sp = StyleSheet.create({

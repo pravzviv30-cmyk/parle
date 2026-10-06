@@ -9,6 +9,10 @@
  * sizes wrap the labels and grow the bar; nothing truncates or caps font
  * scaling. Changes are announced to assistive technology, and the practice
  * badge comes from the real due deck.
+ *
+ * Come alive (F737): the selected icon is the Bulk drawing and pops once when
+ * its tab becomes the selected one. That movement lives in `TabGlyph.tsx`,
+ * which this bar hands each icon to; the bar itself still moves nothing (F600).
  */
 
 import { useEffect, useState } from 'react';
@@ -19,6 +23,7 @@ import { Press } from '../components.tsx';
 import { dueCount } from '../review/store.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { HomeIcon, TutorIcon, PracticeIcon, MyFrenchIcon, type TabIconProps } from './icons.tsx';
+import { TabGlyph } from './TabGlyph.tsx';
 import { navigationWidth } from '../responsiveLayout.ts';
 
 const ICONS: Record<string, (p: TabIconProps) => React.ReactElement> = {
@@ -57,7 +62,9 @@ function labelsWrapUnderGlyph(fontScale: number): boolean {
 export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
   // The badge is a fact about the review deck, so it is re-read whenever the
   // learner moves between tabs — finishing a sitting must be able to clear it.
-  const [due, setDue] = useState(0);
+  // Null until the first read, so a deck already due at launch is not mistaken
+  // for one that just became due.
+  const [due, setDue] = useState<number | null>(null);
   // The window is watched so the bar re-renders when the learner changes the OS
   // text size while the app is open; PixelRatio is what the text is actually
   // drawn at, and on the web the window reports 1 whatever the browser does.
@@ -83,7 +90,9 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
         const focused = state.index === index;
         const Icon = ICONS[route.name];
         const label = LABELS[route.name] ?? route.name;
-        const badged = route.name === 'Practice' && due > 0;
+        // The Practice dot: null until the deck has been read.
+        const dot = route.name === 'Practice' ? (due === null ? null : due > 0) : false;
+        const badged = dot === true;
         if (!Icon) return null;
 
         const onPress = () => {
@@ -115,10 +124,9 @@ export function LuvaniTabBar({ state, navigation, insets }: BottomTabBarProps) {
             // fact the learner needs and matches the forward framing elsewhere.
             accessibilityLabel={badged ? `${label}, practice ready` : label}
           >
-            <View style={st.iconBox}>
-              <Icon size={24} color={focused ? accent.brand : paper.inkSoft} />
-              {badged ? <View style={st.badge} /> : null}
-            </View>
+            <TabGlyph focused={focused} badged={dot}>
+              {(bulk) => <Icon size={24} color={focused ? accent.brand : paper.inkSoft} focused={bulk} />}
+            </TabGlyph>
             <Text
               style={[
                 st.label,
@@ -174,15 +182,5 @@ const st = StyleSheet.create({
     flexShrink: 0,
     paddingHorizontal: space(0.5),
   },
-  iconBox: { width: HIT, height: 24, alignItems: 'center', justifyContent: 'center' },
   label: { ...type.tabLabel, textAlign: 'center' },
-  badge: {
-    position: 'absolute',
-    top: -1,
-    right: -2,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: paper.ink,
-  },
 });

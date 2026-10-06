@@ -9859,9 +9859,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F726 — The app has no shared icon set, so options repeat one glyph
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/ChoiceArt.tsx, apps/mobile/src/glyphs.tsx, scripts/icons
 - note: Founder decision D11: Iconsax free icons, licensed to the founder as an individual, generated into react-native-svg components at the one stroke. All needed names exist in iconsax 0.1.1 (eight under renamed ids such as arrow-left-01 and refresh-left), so the Phosphor fallback is not needed.
+- note 2026-10-06, ca/p0-icons (step D1): npm run icons generates 98 icons (93 Iconsax, 5 Luvani originals) into src/icons with the licence notice; Icon, IconPart, IconTile, GoalDial, places, AnimatedIcon and TabGlyph are in, every glyph export is a delegate, Acknowledgements credits Iconsax. Both titles failed under a mutation. Screens still draw ChoiceArt; the Choice and IconButton sweep is D2.
 - verified-by: `every generated icon is decorative, token-coloured and drawn at the one stroke`
 - verified-by: `the icon set credits its licence in Acknowledgements`
 
@@ -9937,9 +9938,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F737 — The selected tab icon never shows it was chosen
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/LuvaniTabBar.tsx, apps/mobile/src/nav/TabGlyph.tsx
 - note: Founder decision D7 (richer motion on flat controls). The selected tab icon pops once inside nav/TabGlyph.tsx and lands still under Reduce Motion; LuvaniTabBar.tsx itself still moves nothing, so the F600 assertion stays true.
+- note 2026-10-06, ca/p0-icons (step D1): TabGlyph pops the newly selected icon (up 2, to 1.15, home on SPRING.pop) with the Bulk drawing fading in over DUR.micro, never on mount or a re-tap; the Practice dot pops only when the read deck goes from none due to some. The title failed with the re-tap guard or the reduced landing removed. Not yet seen on a device.
 - verified-by: `the selected tab icon springs in TabGlyph and lands still under Reduce Motion`
 
 ### F738 — Leaving one recording can stop another recorder or a live room

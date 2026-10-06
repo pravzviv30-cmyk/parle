@@ -745,9 +745,9 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(round, /<Press haptic="light"/, 'the round button does not press through the one spring');
     assert.match(round, /ground === 'white' \? paper\.card : ground === 'sun' \? colour\.sun : paper\.ink/, 'the disc is not white, sun or ink');
     assert.doesNotMatch(round, /\b(44|64)\b/, 'the round button writes a raw size instead of the touch floor');
-    const close = part('CloseGlyph');
-    assert.ok(close.includes('M6 6l12 12') && close.includes('M18 6 6 18'), 'CloseGlyph is not ICONS.md\'s close');
-    assert.ok(part('CheckGlyph').includes('M5 12.5l4.5 4.5L19 7'), 'CheckGlyph is not ICONS.md\'s check');
+    // Come alive (D11): close and check are delegates to the generated set.
+    assert.ok(part('CloseGlyph').includes('<Icon name="close" size={size} color={color} />'), 'CloseGlyph is not the generated close');
+    assert.ok(part('CheckGlyph').includes('<Icon name="check" size={size} color={color} />'), 'CheckGlyph is not the generated check');
   });
 
   test('a colour card is one ground with its words in the palette\'s colours for it, and a stat tile and a hero number each read as one phrase', () => {
@@ -857,13 +857,16 @@ describe('the Start parts keep their promises — F601', () => {
     assert.match(field, /AccessibilityInfo\.announceForAccessibility\(error\)/, 'iOS is left with an error nothing speaks');
     assert.match(field, /aria-label=\{name != null && error != null \? `\$\{name\}, \$\{error\}` : name\}/, 'a failed field no longer folds its error into its name');
 
-    // The mark is ICONS.md's alert, drawn here because Field draws it, and
-    // hidden from assistive tech like every other glyph.
+    // The mark is the generated alert (come alive, D11), named here because
+    // Field draws it, and hidden from assistive tech like every other icon: the
+    // generated file is decorative, drawn in the one pen and never filled.
     const alert = part('AlertGlyph');
-    assert.match(alert, /<Svg [^>]*\{\.\.\.decorative\}>/, 'the alert mark is announced as an unlabelled image');
-    assert.match(alert, /strokeWidth=\{STROKE\}/, 'the alert mark is not drawn in the one pen');
-    assert.match(alert, /fill="none"/, 'the alert mark is filled');
-    assert.ok(alert.includes('M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z'), 'the alert is not ICONS.md\'s mark');
+    assert.ok(alert.includes('<Icon name="alert" size={size} color={color} />'), 'the alert mark is not the generated alert');
+    const drawn = stripComments(readFileSync(join(SRC, 'icons', 'Alert.tsx'), 'utf8'));
+    assert.match(drawn, /<Svg [^>]*\{\.\.\.decorative\}>/, 'the alert mark is announced as an unlabelled image');
+    assert.match(drawn, /strokeWidth=\{STROKE\}/, 'the alert mark is not drawn in the one pen');
+    assert.match(drawn, /fill="none"/, 'the alert mark is filled');
+    assert.doesNotMatch(drawn, /fill=\{color\}/, 'the alert mark is filled');
     // glyphs.tsx imports from this file, so this file never imports back.
     assert.doesNotMatch(source, /from '\.\/glyphs\.tsx'/, 'components.tsx imports from glyphs.tsx, which imports from it: a cycle');
   });
