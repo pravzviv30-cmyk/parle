@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { GhostButton, Press, MicGlyph } from '../components.tsx';
+import { recorderUri } from '../daily/recorderUri.ts';
 import { silenceRecordingHaptics } from '../motion/hapticPreference.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { colour, paper, type } from '../theme.ts';
@@ -18,6 +19,8 @@ export function GuestRecording({
   onRecordingChange: (recording: boolean) => void;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // A take can end after expo-audio has released the recorder; this still finds its file.
+  const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const [recording, setRecording] = useState(false);
   const [note, setNote] = useState('');
   const active = useRef(true);
@@ -35,7 +38,7 @@ export function GuestRecording({
       releaseHaptics.current?.();
       releaseHaptics.current = null;
       await setAudioModeAsync({ allowsRecording: false });
-      const uri = recorder.uri;
+      const uri = recorderUri(recorder, preparedUri.current);
       if (active.current) setRecording(false);
       onRecordingChange(false);
       if (uri && active.current && send) await onTake(uri);
@@ -47,7 +50,7 @@ export function GuestRecording({
       }
     } finally {
       await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
-      discardRecording(recorder.uri);
+      discardRecording(recorderUri(recorder, preparedUri.current));
       releaseHaptics.current?.();
       releaseHaptics.current = null;
       working.current = false;
@@ -85,10 +88,12 @@ export function GuestRecording({
         playsInSilentMode: true,
         shouldPlayInBackground: false,
       });
+      preparedUri.current = recorderUri(recorder, preparedUri.current);
       await recorder.prepareToRecordAsync();
+      preparedUri.current = recorderUri(recorder, preparedUri.current);
       if (!active.current) {
         await recorder.stop().catch(() => {});
-        discardRecording(recorder.uri);
+        discardRecording(recorderUri(recorder, preparedUri.current));
         await setAudioModeAsync({ allowsRecording: false });
         return;
       }
@@ -108,7 +113,7 @@ export function GuestRecording({
       await recorder.stop().catch(() => {});
       releaseHaptics.current?.();
       releaseHaptics.current = null;
-      discardRecording(recorder.uri);
+      discardRecording(recorderUri(recorder, preparedUri.current));
       await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
     } finally {
       working.current = false;

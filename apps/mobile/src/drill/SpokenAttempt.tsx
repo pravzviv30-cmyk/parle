@@ -5,6 +5,7 @@ import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } fr
 import { GhostButton, SpeakCircle } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
+import { recorderUri } from '../daily/recorderUri.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { RECORDING_READY, RECORDING_LIVE, RECORDING_TYPE } from './ownWordsCopy.ts';
@@ -14,6 +15,8 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
   onTake: (uri: string | null) => void; onTyping: () => void; busy: boolean;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // A take can end after expo-audio has released the recorder; this still finds its file.
+  const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const focused = useIsFocused();
   const [recording, setRecording] = useState(false);
   const active = useRef(focused);
@@ -30,7 +33,7 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
     live.current = false;
     clearTimeout(timer.current);
     try {
-      const uri = await finishLocalTake({ stop: () => recorder.stop(), uri: () => recorder.uri,
+      const uri = await finishLocalTake({ stop: () => recorder.stop(), uri: () => recorderUri(recorder, preparedUri.current),
         resetAudio, current: () => handoff && current(), discard: discardRecording });
       if (handoff && current()) { setRecording(false); onTake(uri); }
     } catch {
@@ -57,9 +60,11 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
       if (!current()) return;
       if (!permission.granted) return onTyping();
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      preparedUri.current = recorderUri(recorder, preparedUri.current);
       await recorder.prepareToRecordAsync();
+      preparedUri.current = recorderUri(recorder, preparedUri.current);
       if (!current()) {
-        await finishLocalTake({ stop: () => recorder.stop(), uri: () => recorder.uri, resetAudio,
+        await finishLocalTake({ stop: () => recorder.stop(), uri: () => recorderUri(recorder, preparedUri.current), resetAudio,
           current: () => false, discard: discardRecording });
         return;
       }
@@ -69,7 +74,7 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
       timer.current = setTimeout(() => { void stop(true); }, 20_000);
     } catch {
       await recorder.stop().catch(() => {});
-      discardRecording(recorder.uri);
+      discardRecording(recorderUri(recorder, preparedUri.current));
       await resetAudio().catch(() => {});
       if (current()) onTyping();
     } finally { working.current = false; if (!current()) void stop(); }
