@@ -4,6 +4,8 @@
 
 ## Core loop: reward moments after onboarding, and the living conversation orb
 
+> **Superseded in part by founder decision D22 (6 October): there are no chests.** Every chest in this spec (the chest drawing, chest XP and claim, the quest-chest takeover and its seen key) is gone; finishing all three quests shows one quiet line, "All three quests done today.", with the quest sound. README Part 1 and Part 6 win.
+
 This section covers every reward moment a learner meets after onboarding. That means drills, practice, review, daily phrase practice, guided lessons, live conversations, recap, saving a phrase, purchase, friends and reminders. It also covers the voice-reactive orb in live rooms. Every claim below was checked against the code at `47fbc2ea`. Paths are relative to `apps/mobile/src/` unless they start with `packages/`, `services/` or a repo-root file.
 
 ### 0. Verified current state, and where the code disagrees with the evidence

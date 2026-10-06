@@ -4,6 +4,8 @@
 
 ## Motion, sound and haptics system
 
+> **Superseded in part by founder decision D22 (6 October): there are no chests.** Every chest in this spec (the chest drawing, chest XP and claim, the quest-chest takeover and its seen key) is gone; finishing all three quests shows one quiet line, "All three quests done today.", with the quest sound. README Part 1 and Part 6 win.
+
 This section sets up the motion, sound and haptics foundation the other sections build on. It specifies one motion engine (Reanimated 4.5.1), a shared token table, a set of primitives, one celebration host, a sound effects seam that hands the audio session back and forth safely, and a haptic vocabulary. It also lists the replacement contract tests. Every current-state claim below was checked against source on 2026-10-04. Where the evidence files were wrong or incomplete, the correction is noted.
 
 ### 0. Verified current state, and corrections to the evidence

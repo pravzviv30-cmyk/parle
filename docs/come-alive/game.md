@@ -4,6 +4,8 @@
 
 ## Game layer
 
+> **Superseded in part by founder decision D22 (6 October): there are no chests.** Every chest in this spec (the chest drawing, chest XP and claim, the quest-chest takeover and its seen key) is gone; finishing all three quests shows one quiet line, "All three quests done today.", with the quest sound. README Part 1 and Part 6 win.
+
 This part covers the daily streak, XP, levels, the daily goal, daily quests and badges: the data model, the pure logic, storage and sync, the screens, the reminders, and the product rules that have to be rewritten. Every claim about current code below was checked against the source on 2026-10-04. Paths starting `@/` are under `apps/mobile/src/`. Paths starting `core/` are under `packages/core/src/`.
 
 ### 1. What exists today (verified)

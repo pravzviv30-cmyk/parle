@@ -4,6 +4,8 @@
 
 ## Retention surfaces
 
+> **Superseded in part by founder decision D22 (6 October): there are no chests.** Every chest in this spec (the chest drawing, chest XP and claim, the quest-chest takeover and its seen key) is gone; finishing all three quests shows one quiet line, "All three quests done today.", with the quest sound. README Part 1 and Part 6 win.
+
 This section covers Home, the Progress tab, Profile, reminders and notifications, the paywall, and widgets. Everything here reads from the game layer (`useStreak`, `useQuests`, `useXp`, `useLevel`, `useBadges`). It draws through the motion primitives, `icons/`, `celebrate/` and `sound/`. None of the screen files below import Reanimated directly. A screen arranges primitives; only the primitives animate. That keeps the motion allowlist (`motion.test.ts:295`) growing by primitives only, and keeps `HomeTab.tsx` free of the word `Animated`, which a ledger-pinned test still forbids (`tabs/HomeTab.test.ts:121`).
 
 ### 0. Things the code says that change the plan (checked against source)
