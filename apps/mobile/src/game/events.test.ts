@@ -55,7 +55,7 @@ function deltaFrom(random: () => number): GameDelta {
     },
     goal: { target: 10, minutesBefore: 0, minutesAfter: 0, metNow: random() < 0.5 },
     streak: { before, after, extendedNow: practisedAfter && !practisedBefore, milestone, restoredBy: null },
-    quests: { completedNow: [...completedNow], done },
+    quests: { completedNow: [...completedNow], done, doneBefore: done - completedNow.length },
     level: { before: levelBefore, after: levelBefore + pick([0, 0, 1, 2]) },
     badges: random() < 0.4 ? pick([['streak-7'], ['first-conversation', 'level-10'], []]) : [],
   };
@@ -102,13 +102,13 @@ describe('the moments a settled sitting may celebrate — F744', () => {
     const nothing: GameDelta = {
       ...quiet,
       streak: { ...quiet.streak, extendedNow: false, milestone: null },
-      quests: { completedNow: [], done: 0 },
+      quests: { completedNow: [], done: 0, doneBefore: 0 },
       level: { before: 3, after: 3 },
       badges: [],
     };
     assert.deepEqual(eventsFromDelta(nothing, 'account', DAY), []);
     // Finishing all three quests is not a takeover either: the end card says it in one quiet line (D22).
-    assert.deepEqual(eventsFromDelta({ ...nothing, quests: { completedNow: ['finish-practice'], done: 3 } }, 'account', DAY), []);
+    assert.deepEqual(eventsFromDelta({ ...nothing, quests: { completedNow: ['finish-practice'], done: 3, doneBefore: 2 } }, 'account', DAY), []);
   });
 });
 

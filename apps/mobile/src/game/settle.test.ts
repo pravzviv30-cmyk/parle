@@ -168,6 +168,7 @@ describe('settling a finished sitting — F744', () => {
     assert.deepEqual(delta.quests.completedNow, ['finish-practice', 'minutes']);
     assert.equal(allQuestsDoneNow(delta), false, 'two of three quests read as all three done');
     assert.equal(delta.quests.done, 2);
+    assert.equal(delta.quests.doneBefore, 0);
 
     // The badge, dated by the settle, and the XP and level read back from disk.
     assert.deepEqual(game.badges, [{ id: 'first-conversation', at: NOW }]);
@@ -221,12 +222,14 @@ describe('settling a finished sitting — F744', () => {
     // It finished today's phrase quest, the third of three: the quest's own +10 and nothing more (D22).
     assert.deepEqual(phrase.quests.completedNow, ['phrase-of-day']);
     assert.equal(phrase.quests.done, 3);
+    assert.equal(phrase.quests.doneBefore, 2);
     assert.equal(allQuestsDoneNow(phrase), true, 'the sitting that finished the third quest was not told so');
     assert.equal(phrase.xp.questXp, 10);
     assert.deepEqual(heard.map((e) => [e.type, e.key]), [], 'finishing the third quest played a takeover');
     const twice = await finishSettle(await beginSettle(), { source: 'phrase', at: phraseAt, xpEarned: 0, activeMs: 90_000 });
     assert.equal(twice?.xp.bonus, 0, 'the +5 for practising was credited twice');
     assert.equal(twice === null ? true : allQuestsDoneNow(twice), false, 'a replay said the third quest was finished again');
+    assert.equal(twice?.quests.doneBefore, 3, 'a replay counted its own day as not done yet');
     assert.equal((await loadGame()).bonus.length, 1);
   });
 
@@ -676,6 +679,19 @@ describe('settling a finished sitting, after review — F744', () => {
     const claims = (await loadGame()).claims;
     assert.equal(claims.length, 4);
     assert.ok(claims.every((claim) => isQuestId(claim.questId)), 'a claim that is not a quest was written');
+
+    // A conversation later that day finishes a quest of the phone's own deal: its +10, and nothing more.
+    // The day already read all three done, so it is not the sitting that finished the third (D22).
+    const talk = await convo(NOW + HOUR, 40, 6 * MINUTE);
+    assert.ok(talk);
+    assert.deepEqual(talk.quests.completedNow, ['conversation']);
+    assert.equal(talk.xp.questXp, 10);
+    assert.equal(talk.quests.doneBefore, 3);
+    assert.equal(talk.quests.done, 3);
+    assert.equal(allQuestsDoneNow(talk), false, 'a quest finished on a day already done said the third was just finished');
+    assert.equal(endCardView(talk).questProgress, GAME_COPY.quests.progress(3));
+    assert.equal(endCardView(talk).timeline, 'end-card', 'the quest sound played a second time in one day');
+    assert.equal((await loadGame()).claims.length, 5);
   });
 
   test('a sitting whose account changes while its snapshot is read never starts its write', async () => {
@@ -828,5 +844,47 @@ describe('quests without a chest — F773', () => {
       }
     }
     assert.ok(read > 300, `only ${read} sources were read, so this scan proves nothing`);
+  });
+
+  test('a day another phone finished while this one practised plays no quest sound again', async () => {
+    // The phone's deal, one of its three done.
+    const phoneDeal: [QuestId, QuestId, QuestId] = ['phrase-of-day', 'conversation', 'new-phrases'];
+    assert.equal(await setQuestDay({ day: TODAY, ids: phoneDeal, at: NOW - 2 * HOUR }), 'durable');
+    assert.equal(await addClaims([{ day: TODAY, questId: 'phrase-of-day', xp: 10, at: NOW - 2 * HOUR }]), 'durable');
+    const phone = JSON.parse(disk.get(gameKey())!) as StoredGame;
+
+    // The tablet was dealt three others and finished them all: its own end card already said so.
+    disk = installDisk();
+    const tabletDeal: [QuestId, QuestId, QuestId] = ['practise-twice', 'practice-set', 'sound-check'];
+    assert.equal(await setQuestDay({ day: TODAY, ids: tabletDeal, at: NOW - HOUR }), 'durable');
+    assert.equal(await addClaims(tabletDeal.map((questId) => ({ day: TODAY, questId, xp: 10, at: NOW - HOUR }))), 'durable');
+    const tablet = JSON.parse(disk.get(gameKey())!) as StoredGame;
+    const merged = merge('game', phone, tablet) as StoredGame;
+
+    // Back on the phone, the day reads one of three as a conversation starts.
+    disk = installDisk();
+    disk.set(gameKey(), JSON.stringify(phone));
+    assert.equal(gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS, goalTarget: 5 }, null), TODAY).quests.done, 1);
+
+    // The tablet's day syncs in while the conversation runs, and the conversation finishes a quest of the phone's deal.
+    const talk = await settleSitting({
+      source: 'convo',
+      at: NOW,
+      xpEarned: 40,
+      activeMs: 6 * MINUTE,
+      write: () => {
+        disk.set(gameKey(), JSON.stringify(merged));
+        return recordActivity('convo', 40, NOW, { durationMs: 6 * MINUTE, activeMs: 6 * MINUTE, finished: true });
+      },
+    });
+    assert.ok(talk);
+    assert.deepEqual(talk.quests.completedNow, ['conversation']);
+    assert.equal(talk.xp.questXp, 10);
+    // Counted from the merged day, not from the snapshot taken as the sitting began.
+    assert.equal(talk.quests.doneBefore, 3, 'a day the tablet had already finished was counted from before it synced');
+    assert.equal(talk.quests.done, 3);
+    assert.equal(allQuestsDoneNow(talk), false, 'the phone said the third quest was just finished on a day the tablet had finished');
+    assert.equal(endCardView(talk).questProgress, 'All three quests done today.');
+    assert.equal(endCardView(talk).timeline, 'end-card', 'the quest sound played a second time in one day');
   });
 });

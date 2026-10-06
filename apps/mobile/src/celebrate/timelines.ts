@@ -169,13 +169,13 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
   },
   // The same end card on the sitting that finished the day's third quest (D22): as
   // the quest rows come in, "All three quests done today." lands with the quest
-  // sound. One quiet line, never a takeover. Shown still, it keeps the end card's
-  // own one sound and haptic.
+  // sound. One quiet line, never a takeover. Shown still, its one sound is the
+  // quest sound D22 pairs with the line, with the end card's own haptic.
   'end-card-quests': {
     id: 'end-card-quests',
     beats: [...END_CARD_BEATS, { t: 1500, element: 'quests', transform: 'nothing moves', motion: cue, sound: 'quest' }],
     end: 2400,
-    still: { sound: 'complete', haptic: 'celebrate' },
+    still: { sound: 'quest', haptic: 'celebrate' },
   },
   // A saved phrase: a small confirmation that comes and goes on its own and blocks nothing.
   toast: {

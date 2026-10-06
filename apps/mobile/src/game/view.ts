@@ -280,6 +280,15 @@ export function badgeFactsFrom(facts: GameFacts, view: Pick<GameView, 'streak' |
   };
 }
 
+/**
+ * A day's quests done, 0 to 3: every distinct quest claimed that day, whichever
+ * device's deal it came from, up to the three the deal holds. Nothing is done
+ * on a day not dealt yet. `settle.ts` counts a sitting's `doneBefore` with it.
+ */
+export function questsDoneOf(ids: readonly QuestId[] | null, claimed: readonly QuestId[]): number {
+  return ids === null ? 0 : Math.min(ids.length, new Set(claimed).size);
+}
+
 export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = localDayKey): GameView {
   const streakInput = { practiceDays: facts.practiceDays, covers: facts.game.covers, today };
   const streak = streakFrom(streakInput);
@@ -304,7 +313,7 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
       ids,
       progress: ids === null ? [] : ids.map((id) => questProgress(id, dayFacts, facts.outside.goalTarget)),
       claimed,
-      done: ids === null ? 0 : Math.min(ids.length, new Set(claimed).size),
+      done: questsDoneOf(ids, claimed),
       facts: dayFacts,
     },
     badges: facts.game.badges,

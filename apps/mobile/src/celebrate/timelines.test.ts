@@ -110,6 +110,8 @@ describe('celebration timelines — F743', () => {
     // All three quests done (D22): the same end card, and the quest sound with its quiet line. No haptic of its own.
     assert.deepEqual(cues('end-card-quests').sounds, ['complete', 'quest']);
     assert.deepEqual(cues('end-card-quests').haptics, ['celebrate']);
+    // Shown still under reduced motion, the line still lands with the quest sound D22 pairs it with.
+    assert.deepEqual(TIMELINES['end-card-quests'].still, { sound: 'quest', haptic: 'celebrate' });
     assert.deepEqual(cues('toast').sounds, ['save']);
     assert.deepEqual(cues('toast').haptics, ['arrived']);
     // Shown still, a card plays one of its own sounds and one of its own haptics, once.

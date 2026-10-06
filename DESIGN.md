@@ -912,8 +912,10 @@ land, and every number it shows comes from the moment's own data. The queue
   some back. It sounds `complete` with one `celebrate()` once per sitting, and
   holds the queue while it is on screen. On the sitting that finishes the day's
   third quest, the day so far is the one quiet line "All three quests done
-  today." and it lands with the `quest` sound. Nothing more: no chest, no extra
-  XP, no takeover (D22).
+  today." and it lands with the `quest` sound, which is also the card's one
+  sound under Reduce Motion. It sounds once a day: a day another phone already
+  finished reads the line silently. Nothing more: no chest, no extra XP, no
+  takeover (D22).
 - **Then at most three takeovers**, in one order: a confirmed purchase, the
   streak (a milestone replaces that day's plain streak moment), the level (a
   number from `xpLevelFor`, never a rank name), the badges (up to three to a

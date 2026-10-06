@@ -99,6 +99,7 @@ import {
   finishedSittings,
   gameViewFrom,
   protectionOf,
+  questsDoneOf,
   type BillingFacts,
   type GameFacts,
   type GameView,
@@ -613,6 +614,11 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
     quests: {
       completedNow: ids.filter((id) => claimedNow.has(id)),
       done: after.quests.done,
+      // From the merged facts this settle read back, less its own claims, never
+      // from the snapshot: a quest another phone finished counts as done before,
+      // even one that synced in while this sitting ran, so the day's third quest
+      // is announced once (D22).
+      doneBefore: questsDoneOf(after.quests.ids, after.quests.claimed.filter((id) => !claimedNow.has(id))),
     },
     level: { before: beforeView.level.level, after: after.level.level },
     badges: done.badges,

@@ -465,7 +465,10 @@ reads every quest claimed that day up to three and so never falls after a merge)
 Re-planning tonight's reminder is Phase 4; its seam is `onSettled`.
 
 There is no quest chest (founder decision D22, F773). A claim is a quest, +10, and
-nothing else; finishing all three is one quiet line on the end card. The reader refuses
+nothing else; finishing all three is one quiet line on the end card. The delta's
+`doneBefore` is the day's count from the merged facts less the sitting's own claims, so
+the line's `quest` sound plays only for the sitting whose own claims took the day to
+three, never again after a merge or a sync that lands mid-sitting. The reader refuses
 a `chest` claim and a `chest:<day>` seen key as rows no build writes
 (`RETIRED_SEEN_KINDS`). Nothing that wrote them shipped, so no stored data was
 migrated.
