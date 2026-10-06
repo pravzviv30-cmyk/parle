@@ -10179,6 +10179,53 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Found by the 6 October re-check of the merged Phase 1 (verdict SHIP, all MINOR). Settle publishes before the screen can mount its end card, so a takeover can start under it; a foreground catch-up can replay a moment in the middle of a sitting; and a safety stop during a seen read leaves crash copies that replay next launch. Fix with Phase 3's end cards: hold celebrations before settling and hand the release to the EndCard, replay only from a Home-focus refresh or a sitting hold, and drop in-flight keys on suppression.
 - verified-by: `no takeover starts under an end card or inside a sitting`
 
+### F767 — Home never shows the habit it is building
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/HomeTab.tsx, apps/mobile/src/game
+- note: Founder decisions D2, D5, D6 and README Part 5.F: Home leads with game/TodayHero (flame and streak to the Streak screen, the goal ring in measured minutes, the level chip), a factual nudge line, the pinned lifetime day count and game/QuestsCard. A read failure shows nothing, never 0, and increments animate from the last shown value.
+- verified-by: `Home's today hero shows the streak, today's measured goal minutes and the level from real records, and claims nothing it could not read`
+- verified-by: `Home's increments animate from the last shown value and never replay or count down`
+- verified-by: `the nudge line is warm, factual and appears only when the streak is real and today is unpractised`
+
+### F768 — Home re-reads its storage every minute and flashes the skeleton
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/home/useHomeRefresh.ts:9, apps/mobile/src/tabs/HomeTab.tsx:100
+- note: A refresh replaces drawn content with the loading skeleton. Once Home has drawn, a refresh keeps what is shown until the new read lands.
+- verified-by: `Home refreshes without ever showing its skeleton again once it has drawn`
+
+### F769 — Progress and Profile hide the level, the streak and the counts
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx, apps/mobile/src/tabs/ProfileTab.tsx
+- note: README Part 5.F: Progress leads with game/LevelXpCard, game/StreakSummaryCard (keeping the weekly DayCount), game/CountsGrid and game/BadgeShelf (no locked or remaining wording), then the CEFR card and the postcard shelf; Profile shows game/ProfileStats and the goal as five Choice rows.
+- verified-by: `Progress leads with the level, the streak and real counts, each from its own record`
+
+### F770 — There is no screen for the streak
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game, apps/mobile/src/nav
+- note: README Part 5.D Streak screen: hero flame with the count, lifetime and longest; a week strip and a month calendar that never say missed; the freezes card and the repair card for a subscriber; the one calm repair line for a free learner (D4); milestones; month arrows as labelled IconButtons; a web path in nav/theme.ts (F493).
+- verified-by: `the streak screen shows the run, the lifetime total, the week and the month from real days, and never says missed`
+- verified-by: `a free learner sees one calm repair line and a subscriber sees their freezes and repair`
+
+### F771 — Reminders fire on a fixed weekly schedule whether or not the learner practised
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/reminders
+- note: README Part 5.F Reminders: one planner (reminders/plan.ts), a smart time from the learner's own finishes, one dated slot a day skipped when practised, a pause note after four unanswered days then silence, copy naming the chosen tutor, taps that open their promise, re-planned after every settle, cancelled only on sign-out. Supersedes F226, F227 and F230 (their verified-by lines are replaced by these).
+- verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
+- verified-by: `a reminder names the chosen tutor and opens the place it promises`
+
+### F772 — The plans page has no yearly plans and no honest trial timeline
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/wall
+- note: Founder decision D16 and README Part 5.G: yearly and monthly rows through Choice with the yearly plan of the tier covering the learner's goal pre-selected (no plan_selected fired), prices from the store, never save N percent, the goal fit line, Not now and Keep practising free; a trial timeline only with a real eligible introductory offer; purchase success only after a confirmed entitlement.
+- verified-by: `the plans page pre-selects the yearly plan that covers the learner's goal and fires no selection event`
+- verified-by: `a free trial timeline appears only with a real eligible offer`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
