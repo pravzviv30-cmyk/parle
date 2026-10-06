@@ -10,6 +10,7 @@ import { arrived } from '../motion/haptics.ts';
 import { continuingTask, type GuestPractice } from './guestModel.ts';
 import { saveStarter } from './savedStarter.ts';
 import { trackAccountStarter } from './guestPractice.ts';
+import { keptPhrase } from './guestProgress.ts';
 
 /** Home resumes the introduced goal and the exact line, even without a connection. */
 export function StarterContinuation({
@@ -75,9 +76,10 @@ export function StarterContinuation({
     const owner = scopeGeneration();
     setBusy(true);
     try {
+      // The natural line, never the learner's unchecked spelling (F757).
       const saved = await addPhrases([
         {
-          fr: reply.trim(),
+          fr: keptPhrase(task),
           frWritten: null,
           en: task.meaning,
           enLiteral: null,

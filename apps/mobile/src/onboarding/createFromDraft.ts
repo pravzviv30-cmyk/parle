@@ -37,9 +37,10 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
     },
     now,
   );
+  // Days a week is no longer asked (founder decision D5, F752): the daily goal
+  // replaced it, so a new profile carries no days-a-week answer at all.
   const placed: StoredProfile = {
     ...built,
-    practiceDaysPerWeek: draft.frequency ?? null,
     onboardingGoal: draft.reason, onboardingDrink: draft.drink ?? null,
     brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft)) } },
   };

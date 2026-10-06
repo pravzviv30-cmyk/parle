@@ -30,7 +30,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT } from './theme.ts';
-import { compactPhone, screenInsets } from './responsiveLayout.ts';
+import { compactPhone, screenInsets, READING } from './responsiveLayout.ts';
+
+/**
+ * The reading column as a style: full width up to `READING`, centred. The first
+ * run wraps its header, body and footer in it, so an iPad reads it at a phone's
+ * measure and a phone is unchanged.
+ */
+export const readingColumn = { width: '100%', maxWidth: READING, alignSelf: 'center' } as const;
 
 /** Screens consume the frame's compact mode rather than measuring or fixing their own width. */
 export function useCompactPhone() {

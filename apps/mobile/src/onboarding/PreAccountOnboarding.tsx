@@ -1,7 +1,17 @@
 import { offlineContinuation, continuingTask } from './guestModel.ts';
 import { tutorSampleLine } from '@luvani/core';
 import { STARTER_AI, STARTER_PROCESSING, STARTER_LOCAL } from './disclosure.ts';
-/** First value before registration. Answers are deliberate; local choices never wait for a service. */
+/**
+ * First value before registration. Answers are deliberate; local choices never wait for a service.
+ *
+ * Come alive (README Part 5.C rows 1 to 8): the promise, where, level and the
+ * daily goal build a visible plan card; the plan is revealed with the real
+ * minutes; the start sheet keeps the legal order; the practice offers speaking
+ * only where the server says it is available; and the first reply is
+ * celebrated only when it is accepted and really the learner's. The new parts
+ * live in `firstRun/` and take values by props; the literals tests pin stay
+ * here. Nothing on these pages sends, stores or records activity by itself.
+ */
 import { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -11,6 +21,7 @@ import {
   Text,
   TextInput,
   View,
+  PixelRatio,
   Platform,
   findNodeHandle,
 } from 'react-native';
@@ -18,19 +29,26 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { startVoiceLine } from '../sound/voiceLine.ts';
+import { play as playSfx } from '../sound/sfx.ts';
 import { starterTasks, tutorVoice } from '@luvani/core';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, earnedChoices } from './flow.ts';
-import { Card, GhostButton, Highlight, PillButton, Press, Sheet } from '../components.tsx';
-import { Screen, ScrollScreen, useCompactPhone } from '../layout.tsx';
-import { colour, frenchText, paper, type } from '../theme.ts';
+import { Card, GhostButton, IconAction, IconActionRow, IconButton, PillButton, Sheet } from '../components.tsx';
+import { Screen, ScrollScreen, readingColumn, useCompactPhone } from '../layout.tsx';
+import { colour, decorative, frenchText, onColour, paper, radius, space, type } from '../theme.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
+import { OrbGlyph } from '../tutor/OrbGlyph.tsx';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
 import { tutorAudioForFrench } from '../daily/tutorAudio.ts';
-import { arrived, soft } from '../motion/haptics.ts';
+import { arrived, celebrate, soft, tapSettled } from '../motion/haptics.ts';
+import { Glint } from '../motion/Glint.tsx';
+import { MorphButton } from '../motion/MorphButton.tsx';
+import { DUR } from '../motion/tokens.ts';
+import type { Box } from '../motion/flights.ts';
+import { IconTile } from '../icons/IconTile.tsx';
 import { consumeRecording } from '../speech/discardRecording.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import {
@@ -46,7 +64,8 @@ import {
 import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { FIRST_LINE } from './firstRun.ts';
 import { clipFor } from './exchangeAudio.ts';
-import { REASONS, START_LEVELS } from './plan.ts';
+import { REASONS, START_LEVELS, minutesOf, planFor } from './plan.ts';
+import { starterMinutes } from './guestProgress.ts';
 import {
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
@@ -71,6 +90,16 @@ import {
   SetupProgress,
   type ArtworkResponse,
 } from './OnboardingMotion.tsx';
+import { FIRST_RUN_COPY, SLOW_CHECK_MS } from './firstRun/copy.ts';
+import { GOAL_TIERS, slotFor, suggestedMinutes } from './firstRun/planModel.ts';
+import { PlanCard, type FlyFrom } from './firstRun/PlanCard.tsx';
+import { PlanReveal, TILES_WRAP_AT } from './firstRun/PlanReveal.tsx';
+import { GoalTile } from './firstRun/GoalTile.tsx';
+import { ConsentFacts } from './firstRun/ConsentFacts.tsx';
+import { WinArt, WinCard } from './firstRun/WinCard.tsx';
+import { ExchangeSteps } from './firstRun/ExchangeSteps.tsx';
+import { winEffects, winView } from './firstRun/winModel.ts';
+import { speakingOffered, speechRefused, startMode } from './firstRun/speech.ts';
 
 type Surface =
   | 'plan'
@@ -83,27 +112,25 @@ type Surface =
   | 'exit'
   | 'policy'
   | null;
-const times = [5, 10, 15] as const;
-const frequencies = [3, 5, 7] as const;
 const goals = [...REASONS].sort(
   (a, b) =>
     ['food', 'family', 'trip', 'moving', 'work', 'because'].indexOf(a.key) -
     ['food', 'family', 'trip', 'moving', 'work', 'because'].indexOf(b.key),
 );
-const frequencyText = (value: PreAccountOnboardingDraft['frequency']) =>
-  value === 'none' ? 'No schedule' : value === 7 ? 'Every day' : `${value ?? 3} days a week`;
-const routine = (draft: PreAccountOnboardingDraft) =>
-  `${draft.minutes === 'none' ? 'Choose each time' : `${draft.minutes ?? 5} minutes`}, ${frequencyText(draft.frequency).toLowerCase()}`;
+/** Every day of the week, which is what a daily goal asks of a reminder. */
+const EVERY_DAY = [1, 2, 3, 4, 5, 6, 7];
 const headingFor = (page: PreAccountPage) =>
   (
     ({
       'hear-it': 'Try a little French.',
       reason: 'Where will you use French first?',
       'start-level': 'What can you do in French today?',
-      time: 'How long would you like to practise?',
-      frequency: 'How many days a week?',
+      time: FIRST_RUN_COPY.goalTitle,
     }) as Partial<Record<PreAccountPage, string>>
   )[page];
+/** What each question is for, said under its title. */
+const whyFor = (page: PreAccountPage) =>
+  page === 'reason' ? FIRST_RUN_COPY.reasonWhy : page === 'start-level' ? FIRST_RUN_COPY.levelWhy : FIRST_RUN_COPY.goalWhy;
 export function PreAccountOnboarding({
   initialDraft,
   onDraftChange,
@@ -124,17 +151,20 @@ export function PreAccountOnboarding({
   const compact = useCompactPhone();
   const questionOrder =
     process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? FIVE_SETUP : FULL_SETUP;
+  const five = questionOrder === FIVE_SETUP;
   const [draft, setDraft] = useState(() => initialDraft ?? freshPreAccountDraft());
+  // The retired demo and save pages open the promise again; the retired
+  // days-a-week page resumes on the daily goal that replaced it (D5).
   const [page, setPage] = useState<PreAccountPage>(() =>
     initialDraft?.page === 'first-line' || initialDraft?.page === 'save'
       ? 'hear-it'
-      : (initialDraft?.page ?? 'hear-it'),
+      : initialDraft?.page === 'frequency'
+        ? 'time'
+        : (initialDraft?.page ?? 'hear-it'),
   );
   const [surface, setSurface] = useState<Surface>(null);
   const [edit, setEdit] = useState(draft);
-  const [planField, setPlanField] = useState<
-    'reason' | 'start-level' | 'time' | 'frequency' | null
-  >(null);
+  const [planField, setPlanField] = useState<'reason' | 'start-level' | 'time' | null>(null);
   const [pose, setPose] = useState<ArtworkResponse>('welcome');
   const [event, setEvent] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -144,6 +174,7 @@ export function PreAccountOnboarding({
   const [reply, setReply] = useState('');
   const [mode, setMode] = useState<'typed' | 'spoken'>('typed');
   const [busy, setBusy] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [issue, setIssue] = useState('');
   const [storageNote, setStorageNote] = useState('');
@@ -152,14 +183,13 @@ export function PreAccountOnboarding({
     draft.reminderTime ?? DEFAULT_REMINDER_TIME,
   );
   const [reminderDays, setReminderDays] = useState<number[]>(
-    draft.reminderDays?.length
-      ? draft.reminderDays
-      : draft.frequency === 5
-        ? [2, 3, 4, 5, 6]
-        : draft.frequency === 7
-          ? [1, 2, 3, 4, 5, 6, 7]
-          : [2, 4, 6],
+    draft.reminderDays?.length ? draft.reminderDays : EVERY_DAY,
   );
+  // The plan card's flight: where the last answer was chosen (README Part 6, Flight).
+  const [flight, setFlight] = useState<FlyFrom | null>(null);
+  // The win that has just arrived from a real submit, so it plays once; a
+  // return to the page shows its final frame.
+  const [moment, setMoment] = useState<string | null>(null);
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const current = useRef(true);
@@ -169,6 +199,10 @@ export function PreAccountOnboarding({
   const heading = useRef<Text>(null);
   const scroll = useRef<ScrollViewHandle>(null);
   const offsets = useRef<Record<string, number>>({});
+  const rows = useRef<Record<string, View | null>>({});
+  const rowRef = (id: string) => (node: View | null) => {
+    rows.current[id] = node;
+  };
   const activeClock = useRef({ since: 0, milliseconds: 0 });
   useEffect(() => {
     const clock = activeClock.current;
@@ -221,6 +255,9 @@ export function PreAccountOnboarding({
     generation.current++;
     setSurface(null);
     setIssue('');
+    setMoment(null);
+    // A flight belongs to the page it was chosen on; a card met again shows its tokens in place.
+    setFlight(null);
     setDirection(backward ? -1 : 1);
     setPage(next);
     pulse(next === 'plan' ? 'ready' : 'next');
@@ -231,7 +268,7 @@ export function PreAccountOnboarding({
   const tasks = starterTasks(
     activePlan.reason,
     activePlan.drink ?? 'coffee',
-    activePlan.minutes ?? 5,
+    starterMinutes(activePlan.minutes),
   );
   const task = tasks[Math.min(taskIndex, tasks.length - 1)]!;
   const attempts = guest?.attempts.filter((a) => a.taskId === task.id) ?? [];
@@ -250,7 +287,7 @@ export function PreAccountOnboarding({
             starterTasks(
               value.plan.reason,
               value.plan.drink ?? 'coffee',
-              value.plan.minutes ?? 5,
+              starterMinutes(value.plan.minutes),
             ).findIndex((t) => t.id === value.attempts.at(-1)?.taskId),
           ),
         );
@@ -279,6 +316,15 @@ export function PreAccountOnboarding({
     if (playing) setPose('speaking');
     else setPose(page === 'practice' ? 'attentive' : 'neutral');
   }, [playing]);
+  // A reply that takes a while says so, once, after a real wait (no fake progress).
+  useEffect(() => {
+    if (!busy || page !== 'practice') {
+      setSlow(false);
+      return undefined;
+    }
+    const wait = setTimeout(() => setSlow(true), SLOW_CHECK_MS);
+    return () => clearTimeout(wait);
+  }, [busy, page]);
   const back = () => {
     if (surface) {
       setSurface(null);
@@ -307,8 +353,15 @@ export function PreAccountOnboarding({
     return () => sub.remove();
   }, [page, surface, busy, capturing]);
   const choose = (change: Partial<PreAccountOnboardingDraft>) => {
+    const [field, value] = Object.entries(change)[0] ?? [];
+    const empty = field === undefined || draftRef.current[field as keyof PreAccountOnboardingDraft] == null;
     patch(change);
     pulse('choice');
+    // The answer's token flies from the row it was chosen on into its empty
+    // slot; changing an answer swaps the token in place, with no second flight.
+    const slot = field === undefined ? null : slotFor(field as keyof PreAccountOnboardingDraft);
+    if (slot !== null && slot !== 'drink' && empty)
+      setFlight({ slot, from: { current: rows.current[`${field}:${String(value)}`] ?? null }, id: Date.now() });
   };
   const open = (next: Surface) => {
     stopSound();
@@ -368,7 +421,12 @@ export function PreAccountOnboarding({
       return false;
     }
   };
-  const start = async (speaking: boolean, offline = false) => {
+  /** The plan is ready: one select sound and one settled tap. Setup is not learning, so nothing louder. */
+  const planReady = () => {
+    playSfx('select');
+    tapSettled();
+  };
+  const start = async (offline = false) => {
     if (operation.current || !draft.eligibilityConfirmed || refused) return;
     operation.current = true;
     setBusy(true);
@@ -391,13 +449,13 @@ export function PreAccountOnboarding({
       }
       if (!current.current || ticket !== generation.current) return;
       metric('practice_started', 'none', next);
-      setMode(speaking && !offline && next.speechAvailable === true ? 'spoken' : 'typed');
+      // Speaking leads only where the server said guest speech is available (F756).
+      setMode(startMode(next));
       setTaskIndex(0);
       setReply('');
       setSurface(null);
       setPage('practice');
-      setIssue(speaking && !offline && next.speechAvailable !== true
-        ? 'Speaking is unavailable right now. Type your reply below.' : '');
+      setIssue('');
       pulse('attentive');
       onDraftChange({ ...draft, page: 'practice' });
     } catch (error) {
@@ -447,9 +505,22 @@ export function PreAccountOnboarding({
       onDraftChange({ ...draft, page: 'recap' });
       setIssue('');
       pulse(result.feedback.accepted ? 'success' : 'help');
-      if (result.feedback.accepted && result.feedback.evidence !== 'model') arrived();
+      // Only an accepted reply the learner gave is celebrated; anything else is calm (README Part 5.A).
+      const real = result.feedback.accepted && result.feedback.evidence !== 'model';
+      const effects = winEffects({ celebrate: real });
+      if (real) setMoment(`guest-win:${result.at}`);
+      playSfx(effects.sound);
+      if (effects.haptic === 'celebrate') celebrate();
+      else soft();
     } catch (error) {
       if (current.current && ticket === generation.current) {
+        if (speechRefused(error)) {
+          // The service said no to speech: nothing was sent and no attempt was spent (F756).
+          setMode('typed');
+          setGuest((value) => (value ? { ...value, speechAvailable: false } : value));
+          setIssue(FIRST_RUN_COPY.speechPaused);
+          return;
+        }
         setIssue(
           error instanceof Error && error.message === 'expired'
             ? 'Your guest practice has expired. Your phrase is still here. You can practise this offline.'
@@ -497,26 +568,61 @@ export function PreAccountOnboarding({
     });
     if (saved) {
       metric('phrase_kept');
+      playSfx('save');
+      arrived();
       setStorageNote('Phrase kept on this device.');
     }
   };
+  const nextExchange = () => {
+    setTaskIndex((i) => i + 1);
+    setReply('');
+    go('practice');
+  };
   const nextQuestion = () => {
     const index = questionOrder.indexOf(page);
-    if (index >= 0 && index < questionOrder.length - 1) return go(questionOrder[index + 1]!);
+    if (index >= 0 && index < questionOrder.length - 1) {
+      const next = questionOrder[index + 1]!;
+      const moved = go(next);
+      if (moved && next === 'plan') planReady();
+      return moved;
+    }
     return false;
   };
-  const completed = earnedChoices(draft, questionOrder === FIVE_SETUP);
-  const question = ['reason', 'start-level', 'time', 'frequency'].includes(page);
+  /** Make my plan: measure the chosen drink before the page moves on, so its token can fly to the plan card. */
+  const makePlan = () => {
+    const tile = rows.current[`drink:${draft.drink}`];
+    let said = false;
+    const leave = (box: Box | null) => {
+      if (said) return;
+      said = true;
+      if (go('reason') && box !== null) setFlight({ slot: 'drink', from: box, id: Date.now() });
+    };
+    if (!tile) {
+      leave(null);
+      return;
+    }
+    setTimeout(() => leave(null), DUR.micro);
+    try {
+      tile.measureInWindow((x, y, width, height) => leave({ x, y, width, height }));
+    } catch {
+      leave(null);
+    }
+  };
+  const completed = earnedChoices(draft, five);
+  const question = ['reason', 'start-level', 'time'].includes(page);
   const answer =
     page === 'reason'
       ? draft.reason
       : page === 'start-level'
         ? draft.startLevel
-        : page === 'time'
-          ? draft.minutes
-          : draft.frequency;
+        : draft.minutes;
+  const suggested = suggestedMinutes(draft);
+  const lastTask = last ? (tasks.find((t) => t.id === last.taskId) ?? task) : task;
+  const win = page === 'recap' && last ? winView(last, lastTask.model, taskIndex < tasks.length - 1) : null;
+  const modelAudio = tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, lastTask.model, draft.tutorVoice);
+  const drinksWrap = PixelRatio.getFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
-  const coral = page === 'recap';
+  const coral = page === 'recap' && win?.celebrate === true;
   const ground = blue
     ? colour.blue
     : coral
@@ -554,15 +660,18 @@ export function PreAccountOnboarding({
       <GhostButton label="Sign out" onPress={onSignIn} />
     ) : null
   ) : blue ? (
-    <View style={{ gap: 4 }}>
+    <View style={[readingColumn, { gap: space(1) }]}>
       <PillButton
         label="Make my plan"
         tone="white"
         disabled={!draft.drink}
-        onPress={() => go('reason')}
+        onPress={makePlan}
+        icon={<Glint when={draft.drink != null} radius={radius.control} />}
       />
-      <GhostButton
-        color={paper.card}
+      <IconAction
+        icon="forward"
+        layout="inline"
+        ground="blue"
         label="Try a practice now"
         onPress={() => {
           const next = patch({
@@ -570,78 +679,71 @@ export function PreAccountOnboarding({
             reason: 'food',
             startLevel: 'zero',
             minutes: 5,
-            frequency: 3,
           });
           setEdit(next);
-          go('plan');
+          if (go('plan')) planReady();
         }}
       />
     </View>
   ) : question ? (
-    <View>
-      <NextButton disabled={answer == null} onPress={nextQuestion} />
-      <GhostButton
-        label={
-          page === 'reason'
-            ? 'I’m exploring'
-            : page === 'start-level'
-              ? 'I’m not sure'
-              : page === 'time'
-                ? 'Choose each time'
-                : 'No schedule'
-        }
+    <View style={readingColumn}>
+      {/* Keyed by page, so each question's Continue glints once when its answer is chosen. */}
+      <NextButton disabled={answer == null} onPress={nextQuestion} key={page} />
+    </View>
+  ) : page === 'plan' ? (
+    <View style={readingColumn}>
+      <PillButton label="Try this practice" onPress={() => open('start')} icon={<Glint when radius={radius.control} />} />
+    </View>
+  ) : page === 'practice' ? (
+    mode === 'typed' ? (
+      <View style={readingColumn}>
+        <MorphButton
+          label={FIRST_RUN_COPY.sendReply}
+          busyLabel={FIRST_RUN_COPY.checking}
+          doneLabel={FIRST_RUN_COPY.checked}
+          state={busy ? 'busy' : 'idle'}
+          disabled={!reply.trim() || (guest?.token != null && !guest.offline && serviceAttempts >= 2)}
+          onPress={() => void submit()}
+        />
+      </View>
+    ) : null
+  ) : page === 'recap' ? (
+    <View style={readingColumn}>
+      <PillButton
+        tone={coral ? 'white' : 'ink'}
+        label={win?.primary ?? FIRST_RUN_COPY.continue}
+        disabled={busy}
         onPress={() => {
-          const change =
-            page === 'reason'
-              ? { reason: 'because' as const }
-              : page === 'start-level'
-                ? { startLevel: 'zero' as const }
-                : page === 'time'
-                  ? { minutes: 'none' as const }
-                  : { frequency: 'none' as const };
-          if (operation.current || Date.now() - navigationAt.current < 180) return false;
-          patch(change);
-          return nextQuestion();
+          if (taskIndex < tasks.length - 1) nextExchange();
+          else void finish();
         }}
       />
     </View>
-  ) : page === 'plan' ? (
-    <PillButton label="Try this practice" onPress={() => open('start')} />
-  ) : page === 'practice' ? (
-    mode === 'typed' ? (
-      <PillButton
-        label={busy ? 'Checking your reply…' : 'Send reply'}
-        disabled={
-          busy || !reply.trim() || (guest?.token != null && !guest.offline && serviceAttempts >= 2)
-        }
-        onPress={() => void submit()}
-      />
-    ) : null
-  ) : page === 'recap' ? (
-    <PillButton tone="white" label="Finish" disabled={busy} onPress={() => void finish()} />
   ) : (
-    <PillButton
-      label="Continue practice"
-      onPress={() => {
-        setTaskIndex(
-          guest
-            ? Math.max(
-                0,
-                tasks.findIndex((t) => t.id === continuingTask(guest).id),
-              )
-            : 0,
-        );
-        setReply('');
-        setGuest(
-          guest ? { ...guest, offline: true, completed: false } : offlineContinuation(draft, null),
-        );
-        go('practice');
-      }}
-    />
+    <View style={readingColumn}>
+      <PillButton
+        label="Continue practice"
+        onPress={() => {
+          setTaskIndex(
+            guest
+              ? Math.max(
+                  0,
+                  tasks.findIndex((t) => t.id === continuingTask(guest).id),
+                )
+              : 0,
+          );
+          setReply('');
+          setGuest(
+            guest ? { ...guest, offline: true, completed: false } : offlineContinuation(draft, null),
+          );
+          go('practice');
+        }}
+      />
+    </View>
   );
   const sheetFooter =
     surface === 'plan' || surface === 'voice' ? (
-      <View style={{ gap: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: paper.line }}>
+      <View style={{ gap: 4, paddingTop: 12 }}>
         <PillButton
           label="Done"
           onPress={() => {
@@ -653,32 +755,32 @@ export function PreAccountOnboarding({
                 reason: edit.reason,
                 startLevel: edit.startLevel,
                 minutes: edit.minutes,
-                frequency: edit.frequency,
                 quickStart: false,
               });
               setSurface(null);
               pulse('ready');
+              planReady();
             }
           }}
         />
         <GhostButton label="Cancel" onPress={closeSheet} />
       </View>
     ) : surface === 'start' ? (
-      <View style={{ gap: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: paper.line }}>
-        <PillButton
-          label={busy ? 'Connecting…' : 'Start speaking'}
-          disabled={busy || !draft.eligibilityConfirmed}
-          onPress={() => void start(true)}
+      <View style={{ gap: space(2), paddingTop: space(3) }}>
+        <MorphButton
+          label="Start practice"
+          busyLabel={FIRST_RUN_COPY.connecting}
+          doneLabel={FIRST_RUN_COPY.connected}
+          state={busy ? 'busy' : 'idle'}
+          disabled={!draft.eligibilityConfirmed}
+          onPress={() => void start()}
         />
-        <GhostButton
-          label="Type instead"
-          disabled={busy || !draft.eligibilityConfirmed}
-          onPress={() => void start(false)}
-        />
-        <GhostButton
+        <IconAction
+          icon="cloud-off"
+          layout="inline"
           label="Practise offline"
           disabled={busy || !draft.eligibilityConfirmed}
-          onPress={() => void start(false, true)}
+          onPress={() => void start(true)}
         />
       </View>
     ) : undefined;
@@ -692,45 +794,44 @@ export function PreAccountOnboarding({
           offsets.current[page] = e.nativeEvent.contentOffset.y;
         }}
         header={
-          page === 'hear-it' || refused ? undefined : (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                minHeight: 44,
-                marginBottom: compact ? 8 : 12,
-              }}
-            >
-              <GhostButton label="Back" color={ink} disabled={busy || capturing} onPress={back} />
-              {question && !draft.quickStart ? (
-                <SetupProgress completed={completed} total={questionOrder === FIVE_SETUP ? 4 : 5} />
-              ) : null}
+          page === 'hear-it' || page === 'recap' || refused ? undefined : (
+            <View style={[readingColumn, { gap: compact ? 8 : 12, marginBottom: compact ? 8 : 12 }]}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  minHeight: 44,
+                }}
+              >
+                <IconButton icon="back" tone="disc" label="Back" disabled={busy || capturing} onPress={back} />
+                {question && !draft.quickStart ? (
+                  <SetupProgress completed={completed} total={five ? 3 : 4} />
+                ) : null}
+                {page === 'practice' ? <ExchangeSteps index={taskIndex} total={tasks.length} /> : null}
+              </View>
+              {question ? <PlanCard draft={draft} five={five} flyFrom={flight} /> : null}
             </View>
           )
         }
         footer={footer}
       >
-        <View style={{ paddingBottom: 20 }}>
+        <View style={[readingColumn, { paddingBottom: 20 }]}>
           <PageArrival page={page} direction={direction} gap={question && compact ? 16 : 20}>
-            {!refused && (blue || page === 'plan' || page === 'recap') && (
-              <OnboardingArtwork
-                name={
-                  page === 'recap'
-                    ? last?.feedback.accepted
-                      ? 'celebrate-first-line'
-                      : 'state-notebook'
-                    : draft.reason === 'trip'
-                      ? 'place-directions'
-                      : draft.reason === 'family' || draft.reason === 'work'
-                        ? 'place-apero'
-                        : draft.reason === 'moving'
-                          ? 'place-market'
-                          : 'place-cafe-counter'
-                }
-                response={pose}
-                event={event}
-              />
+            {!refused && (blue || page === 'recap') && (
+              <WinArt celebrate={coral} moment={moment}>
+                <OnboardingArtwork
+                  name={
+                    page === 'recap'
+                      ? last?.feedback.accepted
+                        ? 'celebrate-first-line'
+                        : 'state-notebook'
+                      : 'place-cafe-counter'
+                  }
+                  response={pose}
+                  event={event}
+                />
+              </WinArt>
             )}
             <Text
               ref={heading}
@@ -749,108 +850,158 @@ export function PreAccountOnboarding({
               <>
                 {blue && (
                   <>
-                    <Text style={[type.bodyStrong, { color: ink }]}>Choose your drink.</Text>
-                    <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
-                      <Choice
-                        ground="blue"
-                        title="Coffee"
-                        selected={draft.drink === 'coffee'}
-                        onPress={() => choose({ drink: 'coffee' })}
-                        glyph={<ChoiceArt kind="coffee" />}
-                      />
-                      <Choice
-                        ground="blue"
-                        title="Tea"
-                        selected={draft.drink === 'tea'}
-                        onPress={() => choose({ drink: 'tea' })}
-                        glyph={<ChoiceArt kind="tea" />}
-                      />
+                    <Text style={[type.bodyStrong, { color: ink }]}>{FIRST_RUN_COPY.promiseLead}</Text>
+                    <View
+                      accessibilityRole="radiogroup"
+                      style={{ flexDirection: drinksWrap ? 'column' : 'row', gap: space(3) }}
+                    >
+                      <View ref={rowRef('drink:coffee')} collapsable={false} style={{ flex: drinksWrap ? undefined : 1 }}>
+                        <Choice
+                          ground="blue"
+                          layout="tile"
+                          title="Coffee"
+                          selected={draft.drink === 'coffee'}
+                          onPress={() => choose({ drink: 'coffee' })}
+                          glyph={<ChoiceArt kind="coffee" />}
+                        />
+                      </View>
+                      <View ref={rowRef('drink:tea')} collapsable={false} style={{ flex: drinksWrap ? undefined : 1 }}>
+                        <Choice
+                          ground="blue"
+                          layout="tile"
+                          title="Tea"
+                          selected={draft.drink === 'tea'}
+                          onPress={() => choose({ drink: 'tea' })}
+                          glyph={<ChoiceArt kind="tea" />}
+                        />
+                      </View>
                     </View>
-                    {draft.drink && (
+                    {draft.drink ? (
                       <Card style={{ gap: 10 }}>
-                        <Text {...frenchText} style={type.frenchLg}>
-                          Bonjour, je vais prendre un {draft.drink === 'tea' ? 'thé' : 'café'}.
-                        </Text>
-                        <Text style={type.body}>Hello, I will have a {draft.drink}.</Text>
-                        {draft.drink === 'coffee' && (
-                          <GhostButton
-                            label={playing ? 'Stop' : 'Hear'}
-                            onPress={() => hear(clipFor(FIRST_LINE.reply))}
-                          />
-                        )}
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                          <View style={{ flex: 1, gap: 10 }}>
+                            <Text {...frenchText} style={type.frenchLg}>
+                              Bonjour, je vais prendre un {draft.drink === 'tea' ? 'thé' : 'café'}.
+                            </Text>
+                            <Text style={type.body}>Hello, I will have a {draft.drink}.</Text>
+                          </View>
+                          {draft.drink === 'coffee' && (
+                            <IconButton
+                              icon="speaker"
+                              tone="ink"
+                              label={playing ? 'Stop' : 'Hear'}
+                              animate="speaker-waves"
+                              active={playing}
+                              onPress={() => hear(clipFor(FIRST_LINE.reply))}
+                            />
+                          )}
+                        </View>
                       </Card>
+                    ) : (
+                      <View
+                        style={{
+                          minHeight: 96,
+                          borderRadius: radius.card,
+                          borderWidth: 1.5,
+                          borderStyle: 'dashed',
+                          borderColor: onColour.blue,
+                          padding: space(5),
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={[type.body, { color: onColour.blue }]}>{FIRST_RUN_COPY.phrasePlaceholder}</Text>
+                      </View>
                     )}
                   </>
                 )}
                 {question && (
-                  <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10 }}>
-                    {page === 'reason' &&
-                      goals
-                        .filter((v) => v.key !== 'because')
-                        .map((v) => (
-                          <Choice
-                            compact={compact}
-                            key={v.key}
-                            title={v.title}
-                            glyph={<ChoiceArt kind={v.key === 'because' ? 'food' : v.key} />}
-                            selected={draft.reason === v.key}
-                            onPress={() => choose({ reason: v.key })}
-                          />
+                  <>
+                    <Text style={[type.body, { color: paper.inkSoft }]}>{whyFor(page)}</Text>
+                    <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10 }}>
+                      {page === 'reason' &&
+                        goals.map((v) => (
+                          <View key={v.key} ref={rowRef(`reason:${v.key}`)} collapsable={false}>
+                            <Choice
+                              compact={compact}
+                              title={v.title}
+                              glyph={<ChoiceArt kind={v.key} />}
+                              selected={draft.reason === v.key}
+                              onPress={() => choose({ reason: v.key })}
+                            />
+                          </View>
                         ))}
-                    {page === 'start-level' &&
-                      START_LEVELS.map((v) => (
-                        <Choice
-                          compact={compact}
-                          key={v.key}
-                          title={v.title}
-                          glyph={<ChoiceArt kind="ability" />}
-                          selected={draft.startLevel === v.key}
-                          onPress={() => choose({ startLevel: v.key })}
+                      {page === 'start-level' &&
+                        START_LEVELS.map((v) => (
+                          <View key={v.key} ref={rowRef(`startLevel:${v.key}`)} collapsable={false}>
+                            <Choice
+                              compact={compact}
+                              title={v.title}
+                              detail={v.gloss === '' ? undefined : v.gloss}
+                              glyph={<ChoiceArt kind={v.key} />}
+                              selected={draft.startLevel === v.key}
+                              onPress={() => choose({ startLevel: v.key })}
+                            />
+                          </View>
+                        ))}
+                      {page === 'time' &&
+                        GOAL_TIERS.map((tier) => (
+                          <View key={tier.minutes} ref={rowRef(`minutes:${tier.minutes}`)} collapsable={false}>
+                            <GoalTile
+                              tier={tier}
+                              suggested={tier.minutes === suggested}
+                              selected={draft.minutes === tier.minutes}
+                              compact={compact}
+                              onPress={() => choose({ minutes: tier.minutes })}
+                            />
+                          </View>
+                        ))}
+                    </View>
+                    {page === 'time' ? (
+                      <View ref={rowRef('minutes:none')} collapsable={false}>
+                        <IconAction
+                          icon="clock"
+                          layout="inline"
+                          label={FIRST_RUN_COPY.chooseEachTime}
+                          selected={draft.minutes === 'none'}
+                          onPress={() => choose({ minutes: 'none' })}
                         />
-                      ))}
-                    {page === 'time' &&
-                      times.map((v) => (
-                        <Choice
-                          compact={compact}
-                          key={v}
-                          title={`${v} minutes`}
-                          glyph={<ChoiceArt kind="time" />}
-                          selected={draft.minutes === v}
-                          onPress={() => choose({ minutes: v })}
-                        />
-                      ))}
-                    {page === 'frequency' &&
-                      frequencies.map((v) => (
-                        <Choice
-                          compact={compact}
-                          key={v}
-                          title={v === 7 ? 'Every day' : `${v} days`}
-                          glyph={<ChoiceArt kind="days" />}
-                          selected={draft.frequency === v}
-                          onPress={() => choose({ frequency: v })}
-                        />
-                      ))}
-                  </View>
+                      </View>
+                    ) : null}
+                  </>
                 )}
                 {page === 'plan' && (
-                  <>
-                    <Text style={type.body}>{task.translation} Start with one reply.</Text>
-                    <Text style={type.body}>{STARTER_AI}</Text>
-                    <Text style={type.bodyStrong}>{routine(draft)}</Text>
-                    {draft.quickStart && (
-                      <Text style={type.small}>A suggested beginner café practice.</Text>
-                    )}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        gap: 16,
-                      }}
-                    >
-                      <GhostButton label="Change plan" onPress={() => open('plan')} />
-                      <GhostButton label="Choose tutor" onPress={() => open('voice')} />
+                  <PlanReveal
+                    minutes={minutesOf(draft)}
+                    exchanges={tasks.length}
+                    sceneTitle={planFor(draft).scenes[0]?.titleEn ?? null}
+                    tutorName={tutorVoice(draft.tutorVoice).persona.name}
+                    card={
+                      <PlanCard
+                        draft={draft}
+                        five={five}
+                        expanded
+                        trailing={<IconAction icon="edit" layout="inline" ground="sun" label="Change plan" onPress={() => open('plan')} />}
+                      />
+                    }
+                    tutorAction={<IconAction icon="orb" layout="inline" label="Choose tutor" onPress={() => open('voice')} />}
+                  >
+                    <Card style={{ gap: 10 }}>
+                      <Text style={[type.small, { color: paper.inkSoft }]}>{FIRST_RUN_COPY.firstExchange}</Text>
+                      <Text {...frenchText} style={type.frenchLg}>
+                        {task.prompt}
+                      </Text>
+                      <Text style={type.body}>{task.translation} Start with one reply.</Text>
+                    </Card>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View {...decorative}>
+                        <OrbGlyph color={paper.ink} size={28} />
+                      </View>
+                      <Text style={[type.body, { flex: 1 }]}>{STARTER_AI}</Text>
                     </View>
-                  </>
+                    {draft.quickStart ? (
+                      <Text style={type.small}>A suggested beginner café practice.</Text>
+                    ) : null}
+                  </PlanReveal>
                 )}
                 {page === 'practice' && (
                   <>
@@ -868,6 +1019,9 @@ export function PreAccountOnboarding({
                         pronunciation.
                       </Text>
                     )}
+                    {guest?.token != null && guest.offline !== true && !speakingOffered(guest) ? (
+                      <Text style={type.small}>{FIRST_RUN_COPY.typedOnly}</Text>
+                    ) : null}
                     {draft.startLevel === 'zero' && attempts.length === 0 && (
                       <Text {...frenchText} style={type.bodyStrong}>
                         {task.starter}
@@ -906,79 +1060,70 @@ export function PreAccountOnboarding({
                         }}
                       />
                     )}
-                    <Press
-                      haptic="none"
-                      disabled={busy || capturing}
-                      accessibilityLabel="Help"
-                      onPress={() => {
-                        open('help');
-                        soft();
-                      }}
-                      style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Text
-                        style={[type.label, { color: paper.ink, textDecorationLine: 'underline' }]}
-                      >
-                        Help
+                    {slow ? (
+                      <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>
+                        {FIRST_RUN_COPY.stillChecking}
                       </Text>
-                    </Press>
+                    ) : null}
+                    <IconActionRow>
+                      {mode === 'typed' && speakingOffered(guest) ? (
+                        <IconAction
+                          icon="microphone"
+                          label={FIRST_RUN_COPY.speakInstead}
+                          disabled={busy}
+                          onPress={() => {
+                            setMode('spoken');
+                            setIssue('');
+                          }}
+                        />
+                      ) : null}
+                      <IconAction
+                        icon="help"
+                        label="Help"
+                        disabled={busy || capturing}
+                        onPress={() => {
+                          open('help');
+                          soft();
+                        }}
+                      />
+                    </IconActionRow>
                   </>
                 )}
-                {page === 'recap' && last && (
+                {page === 'recap' && last && win && (
                   <>
-                    <Card style={{ gap: 16 }}>
-                      <Text {...frenchText} style={type.frenchLg}>
-                        {last.reply}
-                      </Text>
-                      <Text style={type.body}>{last.feedback.text}</Text>
-                      {!last.feedback.accepted && <Highlight text={last.feedback.model} />}
-                    </Card>
-                    {(!guest?.token || guest.offline || attempts.length < 2) && (
-                      <GhostButton
-                        label="Retry this line"
-                        color={ink}
-                        onPress={() => {
-                          metric('retry');
-                          setReply('');
-                          go('practice');
-                        }}
+                    <WinCard
+                      view={win}
+                      feedback={last.feedback.text}
+                      onHear={modelAudio != null ? () => hear(modelAudio) : undefined}
+                      playing={playing}
+                    />
+                    <IconActionRow>
+                      <IconAction
+                        icon="bookmark"
+                        label={guest?.kept ? FIRST_RUN_COPY.phraseKept : win.keepLabel}
+                        selected={guest?.kept === true}
+                        animate="bookmark-fill"
+                        onPress={() => void keepPhrase()}
                       />
-                    )}
-                    {taskIndex < tasks.length - 1 && (
-                      <GhostButton
-                        label="Try the next exchange"
-                        color={ink}
-                        onPress={() => {
-                          setTaskIndex((i) => i + 1);
-                          setReply('');
-                          go('practice');
-                        }}
+                      {(!guest?.token || guest.offline || attempts.length < 2) && (
+                        <IconAction
+                          icon="refresh"
+                          label={FIRST_RUN_COPY.retry}
+                          accessibilityLabel="Retry this line"
+                          onPress={() => {
+                            metric('retry');
+                            setReply('');
+                            go('practice');
+                          }}
+                        />
+                      )}
+                      <IconAction
+                        icon="info"
+                        label={FIRST_RUN_COPY.details}
+                        accessibilityLabel="Feedback details"
+                        onPress={() => open('feedback')}
                       />
-                    )}
-                    <GhostButton
-                      label={
-                        guest?.kept
-                          ? 'Phrase kept on this device'
-                          : last.feedback.accepted
-                            ? 'Keep this phrase'
-                            : 'Keep the example'
-                      }
-                      color={ink}
-                      onPress={() => void keepPhrase()}
-                    />
-                    <GhostButton
-                      label="Feedback details"
-                      color={ink}
-                      onPress={() => open('feedback')}
-                    />
-                    <GhostButton
-                      label="Save progress"
-                      color={ink}
-                      disabled={busy}
-                      onPress={() => {
-                        void saveAccount();
-                      }}
-                    />
+                    </IconActionRow>
                   </>
                 )}
                 {page === 'home' && (
@@ -986,7 +1131,7 @@ export function PreAccountOnboarding({
                     {last && (
                       <Card style={{ gap: 10 }}>
                         <Text {...frenchText} style={type.frenchLg}>
-                          {last.feedback.accepted ? last.reply : last.feedback.model}
+                          {last.feedback.model}
                         </Text>
                         <Text style={type.body}>Come back to this phrase whenever you like.</Text>
                       </Card>
@@ -1035,9 +1180,9 @@ export function PreAccountOnboarding({
                   issue.includes('expired') ||
                   issue.includes('attempts') ||
                   issue.includes('offline')) && (
-                  <>
-                    <GhostButton
-                      color={ink}
+                  <IconActionRow>
+                    <IconAction
+                      icon="cloud-off"
                       label="Practise this offline"
                       onPress={() => {
                         if (page === 'practice') {
@@ -1045,17 +1190,15 @@ export function PreAccountOnboarding({
                             guest ? { ...guest, offline: true } : offlineContinuation(draft, null),
                           );
                           setIssue('');
-                        } else void start(false, true);
+                        } else void start(true);
                       }}
                     />
-                    <GhostButton
-                      color={ink}
+                    <IconAction
+                      icon="refresh"
                       label="Try again"
-                      onPress={() =>
-                        page === 'practice' ? void submit() : void start(mode === 'spoken')
-                      }
+                      onPress={() => (page === 'practice' ? void submit() : void start())}
                     />
-                  </>
+                  </IconActionRow>
                 )}
               </View>
             ) : null}
@@ -1068,6 +1211,7 @@ export function PreAccountOnboarding({
         </View>
       </ScrollScreen>
       <Sheet
+        reading
         returnFocus={heading}
         visible={surface !== null}
         title={
@@ -1112,16 +1256,13 @@ export function PreAccountOnboarding({
                   onPress={() => setPlanField('start-level')}
                 />
                 <PlanEditRow
-                  label="Practice length"
+                  label="Daily goal"
                   value={
-                    edit.minutes === 'none' ? 'Choose each time' : `${edit.minutes ?? 5} minutes`
+                    minutesOf(edit) === 'none'
+                      ? FIRST_RUN_COPY.chooseEachTime
+                      : `${minutesOf(edit)} ${FIRST_RUN_COPY.minutesUnit}`
                   }
                   onPress={() => setPlanField('time')}
-                />
-                <PlanEditRow
-                  label="Routine"
-                  value={frequencyText(edit.frequency)}
-                  onPress={() => setPlanField('frequency')}
                 />
               </>
             ) : (
@@ -1135,7 +1276,7 @@ export function PreAccountOnboarding({
                       title={v.title}
                       selected={edit.reason === v.key}
                       onPress={() => setEdit({ ...edit, reason: v.key })}
-                      glyph={v.key === 'because' ? undefined : <ChoiceArt kind={v.key} />}
+                      glyph={<ChoiceArt kind={v.key} />}
                     />
                   ))}
                 {planField === 'start-level' &&
@@ -1146,31 +1287,31 @@ export function PreAccountOnboarding({
                       title={v.title}
                       selected={edit.startLevel === v.key}
                       onPress={() => setEdit({ ...edit, startLevel: v.key })}
-                      glyph={<ChoiceArt kind="ability" />}
+                      glyph={<ChoiceArt kind={v.key} />}
                     />
                   ))}
-                {planField === 'time' &&
-                  [...times, 'none' as const].map((v) => (
+                {planField === 'time' && (
+                  <>
+                    {GOAL_TIERS.map((tier) => (
+                      <Choice
+                        ground={paper.ground}
+                        key={tier.minutes}
+                        title={tier.title}
+                        detail={`${tier.minutes} ${FIRST_RUN_COPY.minutesUnit}`}
+                        selected={edit.minutes === tier.minutes}
+                        onPress={() => setEdit({ ...edit, minutes: tier.minutes })}
+                        glyph={<IconTile ground="sun" dial={tier.quarters} size={40} />}
+                      />
+                    ))}
                     <Choice
                       ground={paper.ground}
-                      key={v}
-                      title={v === 'none' ? 'Choose each time' : `${v} minutes`}
-                      selected={edit.minutes === v}
-                      onPress={() => setEdit({ ...edit, minutes: v })}
+                      title={FIRST_RUN_COPY.chooseEachTime}
+                      selected={edit.minutes === 'none'}
+                      onPress={() => setEdit({ ...edit, minutes: 'none' })}
                       glyph={<ChoiceArt kind="time" />}
                     />
-                  ))}
-                {planField === 'frequency' &&
-                  [...frequencies, 'none' as const].map((v) => (
-                    <Choice
-                      ground={paper.ground}
-                      key={v}
-                      title={frequencyText(v)}
-                      selected={edit.frequency === v}
-                      onPress={() => setEdit({ ...edit, frequency: v })}
-                      glyph={<ChoiceArt kind="days" />}
-                    />
-                  ))}
+                  </>
+                )}
               </>
             )}
           </>
@@ -1196,7 +1337,9 @@ export function PreAccountOnboarding({
                 {edit.tutorVoice === v.value && (
                   <>
                     <Text style={type.small}>{tutorSampleLine(v.value)}</Text>
-                    <GhostButton
+                    <IconAction
+                      icon="speaker"
+                      layout="inline"
                       label={playing ? 'Stop' : `Hear ${tutorVoice(v.value).persona.name}`}
                       onPress={() => hear(voiceSample(v.value))}
                     />
@@ -1208,10 +1351,8 @@ export function PreAccountOnboarding({
         )}
         {surface === 'start' && (
           <>
-            <Text style={type.body}>
-              {STARTER_AI} {STARTER_PROCESSING}
-            </Text>
-            <Text style={type.body}>{STARTER_LOCAL}</Text>
+            <ConsentFacts ai={STARTER_AI} processing={STARTER_PROCESSING} local={STARTER_LOCAL} />
+            <IconAction icon="privacy" layout="inline" label="Privacy details" onPress={() => setSurface('privacy')} />
             <Choice
               ground={paper.ground}
               title="I am 13 or older"
@@ -1249,13 +1390,12 @@ export function PreAccountOnboarding({
                 patch({ rememberLearning: value });
               }}
             />
-            <GhostButton label="Privacy details" onPress={() => setSurface('privacy')} />
             {issue !== '' ? (
               <>
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
-                <GhostButton label="Try again" disabled={busy} onPress={() => void start(false)} />
+                <GhostButton label="Try again" disabled={busy} onPress={() => void start()} />
               </>
             ) : null}
           </>

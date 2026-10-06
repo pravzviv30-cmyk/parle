@@ -1,5 +1,6 @@
 import { dayKeyOf, starterTasks, type DayKey, type StarterFeedback } from '@luvani/core';
 import { repaired, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { starterMinutes } from './guestProgress.ts';
 
 /** Finish instants kept: the newest 31, a month of daily practice. The oldest go first. */
 export const MAX_GUEST_FINISHES = 31;
@@ -61,7 +62,7 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
   )
     return null;
   const plan = repaired(value.plan);
-  const tasks = starterTasks(plan.reason, plan.drink ?? 'coffee', plan.minutes ?? 5);
+  const tasks = starterTasks(plan.reason, plan.drink ?? 'coffee', starterMinutes(plan.minutes));
   if (
     value.token !== null &&
     (typeof value.token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(value.token))
@@ -165,7 +166,7 @@ export function continuingTask(guest: GuestPractice, retry = false) {
   const tasks = starterTasks(
     guest.plan.reason,
     guest.plan.drink ?? 'coffee',
-    guest.plan.minutes ?? 5,
+    starterMinutes(guest.plan.minutes),
   );
   const last = guest.attempts.at(-1);
   const index = Math.max(

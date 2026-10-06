@@ -646,13 +646,20 @@ describe('a form says out loud what it shows — F109', () => {
  * OnboardingFlow is one file holding three pages, so it owes one heading per
  * page and the count comes from PAGES rather than from a number typed here.
  */
-const FIRST_RUN: readonly { where: string; headings: number }[] = [
+const FIRST_RUN: readonly { where: string; headings: number; part?: true }[] = [
   // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
   { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
   { where: 'tutor/TutorIntro.tsx', headings: 1 },
+  // Come alive, first run (README Part 7): the parts PreAccountOnboarding draws
+  // its pages from, read as they are added. A part owns no heading (the page's
+  // title is the screen's one) and scrolls inside the screen's ScrollScreen, so
+  // it carries no scroll container of its own; every other rule holds.
+  ...readdirSync(join(SRC, 'onboarding', 'firstRun'))
+    .filter((entry) => /\.tsx?$/.test(entry) && !entry.includes('.test.'))
+    .map((entry) => ({ where: `onboarding/firstRun/${entry}`, headings: 0, part: true as const })),
 ];
 
 describe('the first run is readable by more than the eye — F110, F114', () => {
@@ -742,7 +749,7 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
   });
 
   test('no first-run screen caps font scaling', () => {
-    for (const { where } of FIRST_RUN) {
+    for (const { where, part } of FIRST_RUN) {
       const body = named(where);
       assert.doesNotMatch(
         body,
@@ -757,12 +764,15 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       // The other way to cap text is to give it nowhere to go. Every one of
       // these screens scrolls, so a title at 200% still ends somewhere the
       // learner can reach rather than under the buttons. A ScrollScreen is a
-      // scroll container too — the frame's ScrollView — so it counts.
-      assert.match(
-        body,
-        /<Scroll(View|Screen)\b/,
-        `${where} has no scroll container, so text that grows has nowhere to go`,
-      );
+      // scroll container too — the frame's ScrollView — so it counts. A part
+      // is drawn inside its screen's, which this list holds above.
+      if (!part) {
+        assert.match(
+          body,
+          /<Scroll(View|Screen)\b/,
+          `${where} has no scroll container, so text that grows has nowhere to go`,
+        );
+      }
     }
   });
 

@@ -10,7 +10,8 @@
 import { starterTasks } from '@luvani/core';
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
@@ -57,7 +58,7 @@ describe('the plan is written at account creation', () => {
       assert.deepEqual(profile.brain.cefr.evidence, []);
       assert.match(view.startingReason, /[Hh]elp/);
       assert.equal(view.starter.id, starterTasks(reason)[0]!.id);
-      assert.equal(profile.practiceDaysPerWeek, null);
+      assert.equal(profile.practiceDaysPerWeek, undefined, 'a new profile still carries a days-a-week answer');
       assert.equal(profile.brain.memory.control?.paused, true);
     }
   });
@@ -117,5 +118,49 @@ describe('the plan is written at account creation', () => {
       'a new learner is not sent to the first scene with Today behind it',
     );
     assert.equal(firstSceneFor(null), 'mission:premier-cafe');
+  });
+});
+
+/**
+ * F752: founder decision D5 replaced days a week with a daily goal. Profile v9
+ * still reads and carries a days-a-week answer already on a disk (the version
+ * chain in `profile/upgrade.ts`), but nothing may write a new one: not account
+ * creation from the first-run draft, and not the Profile row that used to ask.
+ */
+describe('days a week is retired — F752', () => {
+  const SRC = fileURLToPath(new URL('..', import.meta.url));
+  function sources(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) out.push(...sources(full));
+      else if (/\.tsx?$/.test(entry) && !entry.includes('.test.')) out.push(full);
+    }
+    return out;
+  }
+
+  test('nothing writes practiceDaysPerWeek any more', () => {
+    // Account creation from a draft that still holds an old days answer.
+    const profile = profileFromDraft(draft({ frequency: 5, reason: 'food', minutes: 10 }), NOW);
+    assert.equal('practiceDaysPerWeek' in profile, false, 'a new account is written with a days-a-week answer');
+
+    // And in the code: the only places the field is named are the profile
+    // shape, the one retired door that nothing calls, and the version chain
+    // that carries an answer already on a disk.
+    const CARRIERS = new Set(['profile/store.ts', 'profile/upgrade.ts']);
+    const writers: string[] = [];
+    for (const path of sources(SRC)) {
+      const short = relative(SRC, path).split(sep).join('/');
+      const body = strip(readFileSync(path, 'utf8'));
+      for (const m of body.matchAll(/withPracticeDays\(/g)) {
+        const definition = body.slice(Math.max(0, (m.index ?? 0) - 'export function '.length), m.index) === 'export function ';
+        if (!definition) writers.push(`${short} calls withPracticeDays`);
+      }
+      if (!CARRIERS.has(short) && /practiceDaysPerWeek\s*[:=]/.test(body)) writers.push(`${short} writes practiceDaysPerWeek`);
+    }
+    assert.deepEqual(writers, [], `the retired days-a-week answer is still written:\n${writers.join('\n')}`);
+    // Inside the store, only the retired door itself may name a new value.
+    const store = strip(readFileSync(join(SRC, 'profile/store.ts'), 'utf8')).replace(/export function withPracticeDays\([\s\S]*?\n\}/, '');
+    assert.doesNotMatch(store, /practiceDaysPerWeek\s*[:=]/, 'the profile store writes the days answer somewhere new');
   });
 });

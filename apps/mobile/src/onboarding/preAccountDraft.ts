@@ -55,7 +55,12 @@ export type StartLevel = (typeof START_LEVEL_KEYS)[number];
 export const REASON_KEYS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
 export type Reason = (typeof REASON_KEYS)[number];
 
-export const PLAN_MINUTES = [5, 10, 15, 'none'] as const;
+/**
+ * The daily goal (founder decision D5): Casual 5, Regular 10, Serious 15 and
+ * Intense 20 minutes, or "choose each time". Twenty is a goal, not a longer
+ * starter: `guestProgress.ts` `starterMinutes` sends it to the starter as 15.
+ */
+export const PLAN_MINUTES = [5, 10, 15, 20, 'none'] as const;
 export type PlanMinutes = (typeof PLAN_MINUTES)[number];
 
 /** A first name, not a biography: long enough for any name, short enough for a greeting. */

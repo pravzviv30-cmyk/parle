@@ -17,6 +17,7 @@ import {
 } from './guestPractice.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { settleGuestHandoff } from '../game/guestHandoff.ts';
+import { keptPhrase, starterMinutes } from './guestProgress.ts';
 /** The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it. */
 export function GuestAccountHandoff({
   draft,
@@ -56,7 +57,7 @@ export function GuestAccountHandoff({
       const tasks = starterTasks(
         guest.plan.reason,
         guest.plan.drink ?? 'coffee',
-        guest.plan.minutes ?? 5,
+        starterMinutes(guest.plan.minutes),
       );
       const phrases = guest.attempts
         .filter(
@@ -67,9 +68,10 @@ export function GuestAccountHandoff({
         )
         .map((a) => {
           const task = tasks.find((t) => t.id === a.taskId);
+          // The natural line, never the learner's unchecked spelling (F757).
           return task
             ? {
-                fr: a.feedback.accepted ? a.reply : a.feedback.model,
+                fr: keptPhrase(task),
                 frWritten: null,
                 en: task.meaning,
                 enLiteral: null,
@@ -146,11 +148,7 @@ export function GuestAccountHandoff({
     >
       <Text style={type.body}>Signed in as {user?.email ?? 'your account'}.</Text>
       <Card style={{ marginTop: 20, gap: 16 }}>
-        <Text style={type.heading}>
-          {guest.attempts.at(-1)?.feedback.accepted
-            ? guest.attempts.at(-1)?.reply
-            : (guest.attempts.at(-1)?.feedback.model ?? 'Your starting plan')}
-        </Text>
+        <Text style={type.heading}>{guest.attempts.at(-1)?.feedback.model ?? 'Your starting plan'}</Text>
         <Text style={type.body}>
           {saved
             ? 'Your phrase is in Practice. Your account can sync it to another device.'

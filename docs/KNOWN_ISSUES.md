@@ -10071,10 +10071,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F752 — The retired days-a-week answer is still written
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:292, apps/mobile/src/onboarding/createFromDraft.ts:42
 - note: Founder decision D5 replaced days a week with a daily goal, and profile v9 stops writing practiceDaysPerWeek while still reading it, but two writers remain. Remove them with the Phase 2 first run and the Phase 4 Profile goal rows.
 - verified-by: `nothing writes practiceDaysPerWeek any more`
+- note: 2026-10-06 ca/p2-first-run: account creation from the first-run draft no longer writes practiceDaysPerWeek (createFromDraft.ts), and the Profile "Days a week" row, the only caller of withPracticeDays, is gone (ProfileTab.tsx); the version chain still reads and carries an answer already on a disk. withPracticeDays in profile/store.ts now has no caller, for its owner to delete.
 
 ### F753 — A phone whose own clock runs far ahead can still age out recent game rows
 - severity: P3
@@ -10095,31 +10096,35 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F755 — The start sheet hides its last controls under the footer with no cue
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:1818, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:654
 - note: The consent sheet's content runs under the footer rule on a phone and nothing says there is more. Show the footer hairline and flash the scroll indicator only when the content scrolls.
 - verified-by: `the start sheet shows a scroll cue when its content runs under the footer`
+- note: 2026-10-06 ca/p2-first-run: Sheet measures its scroll and draws a hairline over the footer only while `sheetRunsUnder` holds (content taller than the view, its end not in sight), and flashes the scroll indicator once per opening; the start sheet dropped its own footer rule and sits in the 560-point reading column on a wide screen. Seen in the web build at 320, 390 and 1024 wide (cue at 320 and 390, none at 1024 where it fits); not yet seen on a device.
 
 ### F756 — The first run offers speaking when speech is unavailable
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:381
 - note: "Start speaking" is the primary action even when the server says guest speech is off, so learners land on "Speaking is unavailable". Speaking is the default only when speechAvailable is true; otherwise typing is offered first, and a 503 from /onboarding/audio moves calmly to typing (D13).
 - verified-by: `speaking is offered in the first run only when the server says speech is available`
+- note: 2026-10-06 ca/p2-first-run: the start sheet offers Start practice and Practise offline; the practice page opens spoken only when the guest start said speechAvailable for a live, online practice (`firstRun/speech.ts`), Speak instead appears only then, and a 503 from /onboarding/audio is read as `speech-unavailable` and moves to typing with a calm line and nothing to retry. The spoken path is not yet seen on a device.
 
 ### F757 — A kept first-run phrase stores the learner's unchecked spelling
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/GuestAccountHandoff.tsx:71, apps/mobile/src/onboarding/StarterContinuation.tsx:80
 - note: The phrasebook and Home keep what the learner typed, unchecked, instead of the natural line the task models. Keep task.model.
 - verified-by: `a kept first-run phrase is the natural line, never the learner's unchecked spelling`
+- note: 2026-10-06 ca/p2-first-run: the hand-off and Home keep `keptPhrase(task)`, the task's natural line, and the hand-off card and the guest home show the natural line, never the reply as typed or heard.
 
 ### F758 — A disabled Next looks like a live button
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/NextButton.tsx:41, apps/mobile/src/components.tsx:981
 - note: A disabled pill is a slate fill that reads as live. Disabled is paper.skeleton with soft ink; enabling cross-fades to ink with a pop and a glint.
 - verified-by: `a disabled Next looks disabled on every ground`
+- note: 2026-10-06 ca/p2-first-run: Continue is the sand skeleton with soft ink words and arrow, with a hint, when off, and fades to ink with one glint when an answer is chosen; an off white PillButton on blue or coral takes blue's pale secondary. Not covered: motion/MorphButton.tsx (outside this track) still draws its off face in slate with white words, and the first run's Start practice and Send reply use it.
 
 ### F759 — A drill answer gets one line of text and no rhythm
 - severity: P2
