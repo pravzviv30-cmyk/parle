@@ -14,6 +14,10 @@
  *
  * The switch is named to assistive tech by the row's own title, because the
  * title is drawn as text rather than bound to the control.
+ *
+ * The off track is said twice: `trackColor.false` for Android and the web, and
+ * `ios_backgroundColor` for iOS, which ignores the first when it paints an off
+ * switch and would otherwise leave a bare white thumb on the card (F736).
  */
 
 import { View, Text, Switch, StyleSheet } from 'react-native';
@@ -55,6 +59,7 @@ export function SwitchRow({
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={sub}
         trackColor={{ true: accent.brand, false: paper.field }}
+        ios_backgroundColor={paper.field}
         thumbColor={paper.card}
       />
     </View>

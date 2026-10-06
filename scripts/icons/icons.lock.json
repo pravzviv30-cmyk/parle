@@ -1,0 +1,850 @@
+{
+  "package": "iconsax@0.1.1",
+  "icons": {
+    "add": {
+      "source": "iconsax@0.1.1",
+      "from": "add",
+      "variants": {
+        "linear": "6f9b08a3663f7ac38769133eee817f02a911fe08e5448a3d1ed78e84af03b062"
+      },
+      "tsx": "7b60eecd5b78181e16723fd9b6e265d342346c9b088f3a976248ceaac8dedbcb"
+    },
+    "alert": {
+      "source": "iconsax@0.1.1",
+      "from": "danger",
+      "variants": {
+        "linear": "1a7d71db3c073819e11436855d08d00a117eaecd300069335602fcb836aaa479"
+      },
+      "tsx": "cdf469dc667a40bfa702c0247a37bc1000a7f2337cc01822bc6f540d2cb1ef36"
+    },
+    "back": {
+      "source": "iconsax@0.1.1",
+      "from": "arrow-left-02",
+      "variants": {
+        "linear": "4b5d1702320cdc4466855c671c2f8d6f3800b69a7ec03d66b4be12d7329dbbc9"
+      },
+      "tsx": "526f97d4269ea9e1d83f74c55c1adb4aef2a28440ae7589d9e38ea05f1baf307"
+    },
+    "bell": {
+      "source": "iconsax@0.1.1",
+      "from": "notification",
+      "variants": {
+        "linear": "dd29b5ad0955dd85ee2c99ae0bc002b050152ca54dc1296b4749542d734cc88d",
+        "bulk": "8fbf8fc4535c351eaae96692d769b268b1d7ec2c58d7940c260833dc91e4ceda"
+      },
+      "tsx": "8c142deb7ef81c859d111046fdb204095c409f0ea2a847932e15f47c5b48bdac"
+    },
+    "bell-ring": {
+      "source": "iconsax@0.1.1",
+      "from": "notification-bing",
+      "variants": {
+        "linear": "2665a793b91ba0c939c7786e69aaac710d882ac83bc37a01333d06495a9807a1",
+        "bulk": "c27cf678936876741ef0d4f85525d918a56fdf224858dd771e92411fb441fefd"
+      },
+      "tsx": "7a0a8cd731226ef9487a30d32008e454869061391e031b4f1a99af6bf1144cfe"
+    },
+    "book": {
+      "source": "iconsax@0.1.1",
+      "from": "book",
+      "variants": {
+        "linear": "b0ed9a0d45fc79cfee5a58c0753aa0c3b69a053c7ca84d0fe2a40e083f63faba",
+        "bulk": "4b9db50095deacfe14303e3340a90dfe247cbaf0d171001dedb27220f8c9e346"
+      },
+      "tsx": "26c19559db27f12094de7b24789281a183c0a5df8f9209ff44d9e9bab60c7458"
+    },
+    "bookmark": {
+      "source": "iconsax@0.1.1",
+      "from": "bookmark",
+      "variants": {
+        "linear": "5cfd3b3caee80d532e3a471b1452973958a7f8d2cd8019377f487c62a7c7d251",
+        "bulk": "2ecc80a62964f0ed31b23d3217585006220b2485055f5909fe949283144fa737"
+      },
+      "tsx": "ddd8e277f15c2d1a531e6e8d547dc07072ab6e85054e207e66bb207be8c143e4"
+    },
+    "bubble-empty": {
+      "source": "iconsax@0.1.1",
+      "from": "message-circle",
+      "variants": {
+        "linear": "37ab2877922af9e8e8f93459a2bf66a646c23c5870254b67c64c50946f465717",
+        "bulk": "13b2f5ec027e1a5959bfbe1963e71cad71a9cd4bf564d21c4ef406652184b603"
+      },
+      "tsx": "82fba80c788b32df627f2de06f003d6250b057c926817e1e13ffc983c9ae1617"
+    },
+    "bubble-line": {
+      "source": "iconsax@0.1.1",
+      "from": "message-text",
+      "variants": {
+        "linear": "78a0a79662bd50cf7bbb1319984661050b18e5388118f276789f28c37ef91de2",
+        "bulk": "05dc16e3b0315c24f31998e81bbdd3d29f4fb970447d99caa3e024e3719c397d"
+      },
+      "tsx": "a204585b938444a51ba84285d8daa27e414d58b8f04543019a56a1cab7c0d4d6"
+    },
+    "bubbles": {
+      "source": "iconsax@0.1.1",
+      "from": "messages-2",
+      "variants": {
+        "linear": "3fda57b2049d0123f4b6ecab0f63ad6acae466f6b226ebf173213eb149cefa7a",
+        "bulk": "ac8252d364114aeb61a6318b4baa0eb73d28b90aa682227eaf32a06a2a52d509"
+      },
+      "tsx": "4945c45539a5f26810cee342b4c9a231c320cc48d75c311bb0854561b780d1bc"
+    },
+    "cafe": {
+      "source": "iconsax@0.1.1",
+      "from": "coffee",
+      "variants": {
+        "linear": "b0c341b6369269c3a059b7d4ae0c75ec8fd15b9026d6156d102600789bed1bbb",
+        "bulk": "92af9f463aef6de3dec0871b06b72329200378ed5a7da637757f4dd935d02917"
+      },
+      "tsx": "60a14062de2fd6c2673f47c19ccb9ca741a87ba2621a84c66db966ab2473012a"
+    },
+    "calendar": {
+      "source": "iconsax@0.1.1",
+      "from": "calendar",
+      "variants": {
+        "linear": "642314ffa015badb302357bcd345d31758ed16e1fc8a0469121c99e921462429",
+        "bulk": "fb4f7c9c8fdd30372e0731cf969043753227048d9506c51527863aabd6894f3a"
+      },
+      "tsx": "9011e9ef66b55d1a3d4da62dc1bd367501a69bafe9e5295e748f5ce5920738f2"
+    },
+    "calendar-tick": {
+      "source": "iconsax@0.1.1",
+      "from": "calendar-tick",
+      "variants": {
+        "linear": "8885bc027524cbf9a59ce146a313a1d0860accaf18c0272a3fc247d523dd3390",
+        "bulk": "da76f9d042d5fe0c500bdfa04d038ab60bcf429d571787525067c35172330419"
+      },
+      "tsx": "d9cf6877a4a34a7c418101bdb0fd3a1949e206011e98c99af974d5d83a153ce4"
+    },
+    "card": {
+      "source": "iconsax@0.1.1",
+      "from": "card",
+      "variants": {
+        "linear": "c64b8db56f7592335d60a43efce694b35afd38ca2164486cdff506b15a129b4e"
+      },
+      "tsx": "b587749f6e0dee159936de88b19c63b8645ab6c2bec53eabe6ccaf758644fe56"
+    },
+    "cards": {
+      "source": "iconsax@0.1.1",
+      "from": "note-2",
+      "variants": {
+        "linear": "a1f945c55116b5a3d4f9fb7b52129187253d1614a5400aa533a3558c0662c364",
+        "bulk": "388877c124f208fa39e6e291f8fc2fc437c40516e3784106bd2e2c809418dd1a"
+      },
+      "tsx": "0be505a1159fc08435cb3e9e5b8340d8c8a577f13af19339322cb0265d2bc838"
+    },
+    "chat": {
+      "source": "iconsax@0.1.1",
+      "from": "messages-2",
+      "variants": {
+        "linear": "3fda57b2049d0123f4b6ecab0f63ad6acae466f6b226ebf173213eb149cefa7a",
+        "bulk": "ac8252d364114aeb61a6318b4baa0eb73d28b90aa682227eaf32a06a2a52d509"
+      },
+      "tsx": "ebc75dd80b8dd869d35dd6d2ab25213febde866e4ba0bee0bc17c4dab1143b38"
+    },
+    "check": {
+      "source": "luvani",
+      "from": "check",
+      "variants": {
+        "linear": "b6840e7a0dc7e21a79252847951d4591cbbe7527f0d6af89f92403226d838400"
+      },
+      "tsx": "34b29b03da27361462cd406a86dda8bda7c744ed14f433442fcbcb912b9cc005"
+    },
+    "chevron-down": {
+      "source": "iconsax@0.1.1",
+      "from": "arrow-down-02",
+      "variants": {
+        "linear": "78ac71b8d93b9595a6719e2fa30b702bc4bdc9e9afbaeb2ede17c84825969314"
+      },
+      "tsx": "c2d82ec9f01813335b03c09924c56a7c853a620a3580c10ff0fd985d80098f11"
+    },
+    "chevron-right": {
+      "source": "iconsax@0.1.1",
+      "from": "arrow-right-02",
+      "variants": {
+        "linear": "87036a3945791020d7896fa3e6555875971028428789f62a4f1448eb0e4a5027"
+      },
+      "tsx": "f02ef855cf15f3f13f8c406c27154e2175a99e5acd17febfe316981505a6e758"
+    },
+    "clock": {
+      "source": "iconsax@0.1.1",
+      "from": "clock",
+      "variants": {
+        "linear": "93765154e2c94c54aba697c6aa22bdb77cfb6af0d657e4f7c2fa3068673fd00a",
+        "bulk": "0cab9de77cb9055db299d627b5d0cca27063677cdf0f21c7177e4a2191e63f17"
+      },
+      "tsx": "c27dff204b8fc72c0672810fb4680f5804fecd550e6570d7f013025c9facfbea"
+    },
+    "close": {
+      "source": "iconsax@0.1.1",
+      "from": "add",
+      "variants": {
+        "linear": "6f9b08a3663f7ac38769133eee817f02a911fe08e5448a3d1ed78e84af03b062"
+      },
+      "tsx": "a9f33447fc81d940fd08df437b4bbea8599d3526b03adb6a86408a8b259d3a2c"
+    },
+    "cloud": {
+      "source": "iconsax@0.1.1",
+      "from": "cloud",
+      "variants": {
+        "linear": "7ea30124aafa152d09431454ac297f601808eeed8f55467eba7e70f16bb37f6d",
+        "bulk": "526c39732c28755d462e69bddd24b65d85098acf862251352d552eb698ea8c4b"
+      },
+      "tsx": "11a60a862aa371e61025d148bf9d57d3f1f23f1c9ef696a6203842fb412ed26f"
+    },
+    "cloud-add": {
+      "source": "iconsax@0.1.1",
+      "from": "cloud-add",
+      "variants": {
+        "linear": "a95b210285a82ff49f7327cdedd220ae66b1d51104b28885c101f860876d525a",
+        "bulk": "bc6b3da2fc75091c192a004187352795d3b860151ed9ae6cfc6e797a2dc1f948"
+      },
+      "tsx": "49c1a4e71a8ac07ac8ac4ae737169ade79f7014aa0b3c4a4f7a17b9c63742929"
+    },
+    "cloud-off": {
+      "source": "iconsax@0.1.1",
+      "from": "cloud-cross",
+      "variants": {
+        "linear": "5a273c50ea77fdd21591868f138d7e12e95604103d067d03e0112b7052520999",
+        "bulk": "053f143ad160d4812f888b131cd625fa6f6d4c43fae25afe08f28c4eb7112a93"
+      },
+      "tsx": "24f3d1d9ca8a8dc99ad100fa699df2df08cf96a257f36c92c4ea66a8645809e9"
+    },
+    "coffee": {
+      "source": "iconsax@0.1.1",
+      "from": "coffee",
+      "variants": {
+        "linear": "b0c341b6369269c3a059b7d4ae0c75ec8fd15b9026d6156d102600789bed1bbb",
+        "bulk": "92af9f463aef6de3dec0871b06b72329200378ed5a7da637757f4dd935d02917"
+      },
+      "tsx": "595ca7f2d3f9dfeba3af6c28f930c521df99b50c8b8a30e82eed0ac2e1c0377b"
+    },
+    "crown": {
+      "source": "iconsax@0.1.1",
+      "from": "crown-1",
+      "variants": {
+        "linear": "03d52d170df05f22afb5ecb154da8a6cf6d7af6484fa0af17c7f50673fc46aa3",
+        "bulk": "c82edc76517f4e4752e999908aee7ec7cc3b7578bbe79ef6939d2d7ee5f73167"
+      },
+      "tsx": "c8434c087d257e7b5ff264711b6c3b8b0716531505355f8bf74cd85e05783801"
+    },
+    "cup": {
+      "source": "iconsax@0.1.1",
+      "from": "cup",
+      "variants": {
+        "linear": "cfd4ac13c02a916c0e01e74a1e987865f6df0eb4b09df49948d511134c77140d",
+        "bulk": "8254d827fc31f225f3af50411b49bbaca179aec06bb2ae6d8561574fbae222df"
+      },
+      "tsx": "9748f217b722999d9438d9a8f051ff97f488ac1fa0f28b50cff163d4b8809260"
+    },
+    "document": {
+      "source": "iconsax@0.1.1",
+      "from": "document-text",
+      "variants": {
+        "linear": "044cde363a1fa86b2670151f3a5adf1966982c443a267149173b856ed769e08a"
+      },
+      "tsx": "5ac205c520fc3c48ca3103191b8b0c437563d828767bca9193ae0bbc360f477b"
+    },
+    "download": {
+      "source": "iconsax@0.1.1",
+      "from": "document-download",
+      "variants": {
+        "linear": "c566d23967cedec88b4c992ea04c5561f04d549113ccab9d22a88a40987124f5"
+      },
+      "tsx": "fe40a5f9d76b312b4a72e02badd6460dd42e725c4795cfae2090d77c51651813"
+    },
+    "edit": {
+      "source": "iconsax@0.1.1",
+      "from": "edit-2",
+      "variants": {
+        "linear": "5b60b059b0de5d74c9b7c50bee26de4997a1f13050c314aba7d71ab2e54c11fc"
+      },
+      "tsx": "7d3a6ae52978e8a80dcb72578d556a1a5248c3b73e292ac6660705e09efd83ff"
+    },
+    "evening": {
+      "source": "iconsax@0.1.1",
+      "from": "cloud-sunny",
+      "variants": {
+        "linear": "0fc658d92168843284a2e8ff4c961a91ef2a78f6bc3f46da3a62ae7977e98810",
+        "bulk": "569c5409f9fe469a9d98b98c645201987bf55f9192e5322bf2d680f0549683f1"
+      },
+      "tsx": "47fdb8807f2425df5f829f50dafdf9b203e07ad50512aa906f803648a0813822"
+    },
+    "exploring": {
+      "source": "iconsax@0.1.1",
+      "from": "discover",
+      "variants": {
+        "linear": "4a15c6c30da261226cdd79f5815492e04be82900f708ab79463b90b9d982b26a",
+        "bulk": "831529562cae4f9bdf97a5df3528c4dbaf60f53aaaea98bf8b3721c074f82db3"
+      },
+      "tsx": "21a9af4b19b683f12cc3487d4a04113f746a5855455e83c117e9f35cb602f05b"
+    },
+    "eye": {
+      "source": "iconsax@0.1.1",
+      "from": "eye",
+      "variants": {
+        "linear": "7de1f7b6bf8f478a30d6cf2ff3b6e248082289e201a99c69ba43317361f80eb4"
+      },
+      "tsx": "714d4bfb6f53e421f763be85128b6c30fd81eed43e2a23e0d5e691ca5e0cde91"
+    },
+    "family": {
+      "source": "iconsax@0.1.1",
+      "from": "heart",
+      "variants": {
+        "linear": "29426ce2a73c61e405d19963a23cf1aab866937e914076d349a17f543f615fc8",
+        "bulk": "52b88c450ca8bb1d06b7418b2ef51624f551b573e722a7567c54cdfaad4dcc12"
+      },
+      "tsx": "9b8353e4bb9786a0b0340e4fa4d2f1e3836fa1ca43e6fd6e3749ea70cb46bebe"
+    },
+    "flag": {
+      "source": "iconsax@0.1.1",
+      "from": "flag-2",
+      "variants": {
+        "linear": "4483a21bbcf3c8ba49dab5cbb26260a80dcaff3e42222b4e98a0a6655c14730f",
+        "bulk": "6afa925d9d688432792edab5ab31a0f396961084631aea557670213204d8a9f5"
+      },
+      "tsx": "fd3d6a53f12cf7d22adc18416bbd2f4a66fc77b0f7fbe244ca1963a81ca73b98"
+    },
+    "flame": {
+      "source": "iconsax@0.1.1",
+      "from": "fire",
+      "variants": {
+        "linear": "0bccad0ee2c4b7df9d8b364fcea708f4005c70afe0d454f46ea79fde91466a6f",
+        "bulk": "5685568360b4b8abfe69662c016c6435daf012e512885e198750577c5bb4df50"
+      },
+      "tsx": "15b6fa938ba155ebe3b4aa5b2aa62b261e504a853305044b29df8424847cf1c4"
+    },
+    "food": {
+      "source": "iconsax@0.1.1",
+      "from": "reserve",
+      "variants": {
+        "linear": "141daba0482e466398bffc5962feec3b5ecfaf1af7ba19e6449244ca0a06c972",
+        "bulk": "6bde6ec701c14c39646f3785f8cd10593acb3193ca46859cad5af22220379f0c"
+      },
+      "tsx": "16b9c89afde3510abd1238cce86988c9b791b3823c85475e5ef5f35e80bc7591"
+    },
+    "forward": {
+      "source": "iconsax@0.1.1",
+      "from": "arrow-right-01",
+      "variants": {
+        "linear": "11aea931d6bc435f6a989a8adfd980dd9d498f94519fb41179e7b93b0cfe06bf"
+      },
+      "tsx": "46b7599ad3b6a4b3a966e3dd246d00468f2bb19522aea175b04d3f39637b9793"
+    },
+    "freeze": {
+      "source": "iconsax@0.1.1",
+      "from": "snowflake",
+      "variants": {
+        "linear": "ee1f2f966ae95e6d9ea479beb8cb81035d26af0d109ddc9f644848abea9074ae",
+        "bulk": "b8fe5bd2d404bfcf716e0e63f7c241810f7e782e04ae3837b5ae7f8e500c49f7"
+      },
+      "tsx": "4d91f34808a80c7c5fb583e9681accc74067e32d80e93a9a9bda0ae39184903d"
+    },
+    "friends-place": {
+      "source": "iconsax@0.1.1",
+      "from": "people",
+      "variants": {
+        "linear": "1a06b27b345592039fd3f53163d3859d2771439e8b7fec4fa104ecb1216399ad",
+        "bulk": "15f57672daaa4d4306edbaeb5dc895c76e6a2b94b78a1dd3178c3b944bbc75db"
+      },
+      "tsx": "ac5a07f7b1ab21ccff489edee6924694f7a3f27763c7b49b14a04ccb34a0f940"
+    },
+    "gift": {
+      "source": "iconsax@0.1.1",
+      "from": "gift",
+      "variants": {
+        "linear": "6b9338e08ee73a0b79daf8e5b8fab7e0542cf6115f6aa7703b0e76d9d3b39328",
+        "bulk": "cdc69767bb904d645df694c973efdb17151015b8048f4181757a283cada98a08"
+      },
+      "tsx": "96480374ea32153fef0a9b7edfe317cfad45cf6dea2e84e0ec33b77bf998d34e"
+    },
+    "headphones": {
+      "source": "iconsax@0.1.1",
+      "from": "headphone",
+      "variants": {
+        "linear": "5298ff19705d167d4b2462053533c6dbead2309db0cb5e2364d8eaef08ef4277",
+        "bulk": "68e5fdc5f5a3856c41ada72fec7b0c82667379f8581b6647bfa131491c580d94"
+      },
+      "tsx": "30aaf7a7bbd886bfa824c2f4987492eb0205a1f87125fe5d69cde3696949f9db"
+    },
+    "help": {
+      "source": "iconsax@0.1.1",
+      "from": "message-question",
+      "variants": {
+        "linear": "7fafa758517703e6d7fc98d3cc45afd1fcc9470ff380576f3cfbff1c1293262e"
+      },
+      "tsx": "a1c115aa70e5be392d99abb393fe24042632e333a5249f34bed50ce71096f4bf"
+    },
+    "hint": {
+      "source": "iconsax@0.1.1",
+      "from": "lamp-charge",
+      "variants": {
+        "linear": "ebef1b4cfc5f0e8aff9858ae42dfe113636dac8355f37c3eb69e369d890ebb27"
+      },
+      "tsx": "6cc27c4280cc70bf94a2effe5642382ccdc1f466dcc50ebd18cedb744ffb2a16"
+    },
+    "home": {
+      "source": "iconsax@0.1.1",
+      "from": "home-2",
+      "variants": {
+        "linear": "9ac779ca9da913e8e449c360730e3367bbcd354c8cdb4113675fa2803d84be35",
+        "bulk": "d3b0af79e9b8c74a3ebbd96a103fe74f39425fd3371bf51cbc25bf98abda75aa"
+      },
+      "tsx": "b0ace37a22b66db7522e48df635bee4f614b90184e925669c0d1226448f0b9f9"
+    },
+    "home-place": {
+      "source": "iconsax@0.1.1",
+      "from": "house-2",
+      "variants": {
+        "linear": "d596666c93780ee2ffcb8cbb17004dcfcb0e8c9a6c72f88e388affc4a9dc99f4",
+        "bulk": "8eb3a9b0fe1806821dc04fa06f60369b8b19ad705c8acf44ded0f111f7e5ac3f"
+      },
+      "tsx": "53441c0b2acec6d0222cf9ba77ee28a327ebb22f260fb2fa3d30c67ebe19d87d"
+    },
+    "hotel": {
+      "source": "iconsax@0.1.1",
+      "from": "building-4",
+      "variants": {
+        "linear": "e5a3b4139f301e43475c30eb39f6fb9a236b0da3c70b58dad2d7871305638264",
+        "bulk": "aef20c78be08c65b449de884d2ea5095764965d2eb754271bf73f7f76a9b1076"
+      },
+      "tsx": "3e291cd6375ad196c75201bba8bbfa513ab331e4a8dd9ab4aa2c6157ba1b3daf"
+    },
+    "info": {
+      "source": "iconsax@0.1.1",
+      "from": "info-circle",
+      "variants": {
+        "linear": "85a7f5caa2c26c2fe4534e686aaa2f58ff907ef59bd5fdfd6041f21fa632ac66"
+      },
+      "tsx": "91695bc9186bc86464eebcaa9c73b4a6335dd8a912ecae16bd588f2623c8d75d"
+    },
+    "keyboard": {
+      "source": "iconsax@0.1.1",
+      "from": "keyboard",
+      "variants": {
+        "linear": "d570db76692c3799a1a76ab5707b0d6b7cbd13bdc90ea9ee0cbe3b0ea9f4f78f"
+      },
+      "tsx": "cb850547b9028b9339bd5d54c904f135a544798b6b0768d86cc59543534a7632"
+    },
+    "lock": {
+      "source": "iconsax@0.1.1",
+      "from": "lock",
+      "variants": {
+        "linear": "eafe8c498470bd477566da1a1bba43939d1b7d24ad7975bb0698d9dd06d2dcb2",
+        "bulk": "df0757f7dc5b86566993876aecc84e9659d774fccfd7ec3f45efe225c5a1d06c"
+      },
+      "tsx": "e7beb18ad704011749806f94aeeef8fb6663ddc3e4f2aa2e304f37c761c73bf7"
+    },
+    "login": {
+      "source": "iconsax@0.1.1",
+      "from": "login-01",
+      "variants": {
+        "linear": "a0c8c3b61506bad9c20a799762aceb9c57ad2efe6ab70d62af19e24ed518fa2d"
+      },
+      "tsx": "fa06d4687dcb8a362f1324eb5256029ab71e43713b06e20b0b5cbfa3d1a5956e"
+    },
+    "logout": {
+      "source": "iconsax@0.1.1",
+      "from": "logout-01",
+      "variants": {
+        "linear": "aed87e6cc0bbcd710d0485b45a21fb570a158f860081473c59fa105b75f8cd9b"
+      },
+      "tsx": "f2c97fdad076bf0daf826b801caebcc8f2e15ac81d9d80d74a5dc977fbc35596"
+    },
+    "lunch": {
+      "source": "iconsax@0.1.1",
+      "from": "sun",
+      "variants": {
+        "linear": "02f6feba9418aff1499af5518205b575386bf2b01cb64b8fb8a086e0645e6adf",
+        "bulk": "c2c509033cfc2b2dd4fd2f25ea292bbec89cd4b2c110f205d04b0f457481a225"
+      },
+      "tsx": "76ef5bd8bc186d73052333aab9edf9418952f18c134de5857127b20db29492a6"
+    },
+    "map": {
+      "source": "iconsax@0.1.1",
+      "from": "map-1",
+      "variants": {
+        "linear": "7bfee30b76c2a4e17d64daf86ea5be0d03afa22fa197160df528b0210ff89451"
+      },
+      "tsx": "2ce5c4e55e94c9f156a8c15eb8a069ff591a6a8e85146b996970c4607b570a68"
+    },
+    "market": {
+      "source": "iconsax@0.1.1",
+      "from": "shop",
+      "variants": {
+        "linear": "5c388b2ac5562776e787228b913c867f16cb8613318a8c4b5038c8ae7a17ec98",
+        "bulk": "0ed4739fd46db211b6c6c4276fcb29ebab80a587d5f46c64801458ab069c2a03"
+      },
+      "tsx": "d424b38bf7ae5e3dfa2d34c8aa17d971f76a1a407cece0476e26e90f87ff8d7d"
+    },
+    "medal": {
+      "source": "iconsax@0.1.1",
+      "from": "medal-star",
+      "variants": {
+        "linear": "ddd56d90b90978c067862d88671e99aea9c38156747f47e007e7470291a5d216",
+        "bulk": "ddd0714adcdef3f6aa31b1638357015610a621f376f9d58f1e327a633d67d944"
+      },
+      "tsx": "0963a99d7af9aafbf5a544142b2b0a38926b73d4822f9b2f9f6a0b69ef6b2a30"
+    },
+    "microphone": {
+      "source": "iconsax@0.1.1",
+      "from": "microphone-2",
+      "variants": {
+        "linear": "1c9af26e6576f7f841c2657fe7917a05668073e88d627e6b43d474b0af391eff",
+        "bulk": "ed45a13d8c6a09cb6d4d5c72900197b8ed2c7e8be13f0c64c166706d51146755"
+      },
+      "tsx": "ff37efee40314c6ab02539ae1bfcbfbc8944546e0889873e9b356c82770532c2"
+    },
+    "microphone-off": {
+      "source": "iconsax@0.1.1",
+      "from": "microphone-slash",
+      "variants": {
+        "linear": "3216344423f009c775b64f6a589a497a22b75fd3f03f69fe5fba29e2756fe077"
+      },
+      "tsx": "5d80de3f09f8f6265ddf8b82e320eb1d2981e2effe0c2a6e45612aee2e117424"
+    },
+    "mobile": {
+      "source": "iconsax@0.1.1",
+      "from": "mobile",
+      "variants": {
+        "linear": "235241f2b841335018c9835a74509aeb059c5bf537b70ec3b4b4835a1dc0a386"
+      },
+      "tsx": "59e48b056116e03d059d5ecb751c1fae3645bb8ac52d941cba8bfbc538543b25"
+    },
+    "moment": {
+      "source": "iconsax@0.1.1",
+      "from": "timer-pause",
+      "variants": {
+        "linear": "046956e0e999ed13e318431052a743a2e70df3b6aaa0f86c6546fa140fed5da4"
+      },
+      "tsx": "c0d0c1ccd5d40f8e8c62dc1b630c8dceaa4b59febb33fc60ea0c582ff50f44f5"
+    },
+    "more": {
+      "source": "iconsax@0.1.1",
+      "from": "more",
+      "variants": {
+        "linear": "75d26d1f1ca9890ca3ccde062bc8e6d2a9c06567ee34d324e6b9380e6b968be1"
+      },
+      "tsx": "73567127721b0972c469fa03d9b8b3c3f78035815b6d7746d337dc716e306b4a"
+    },
+    "morning": {
+      "source": "iconsax@0.1.1",
+      "from": "sun-fog",
+      "variants": {
+        "linear": "0ed1310dbebccf34231b3e3deb17f19707b9575380ec699e419ea0b3559449af",
+        "bulk": "085475950c340a50855b729c7c84dfb65dcea734b26a5f5ba789ce2a89adfa0a"
+      },
+      "tsx": "443a41c96e8d44b0123f9c9b7b23da0ac1278f37a31dd1318619885102d9fe63"
+    },
+    "mouth": {
+      "source": "luvani",
+      "from": "mouth",
+      "variants": {
+        "linear": "79603a81de455da9801751cb6b1f2a01285f1fb365ed6aefb953be3eda3c10d0"
+      },
+      "tsx": "154a675deef0f9cb3596847a586828f48e56abdd44d533129b0f269b854aa1a2"
+    },
+    "moving": {
+      "source": "iconsax@0.1.1",
+      "from": "truck-fast",
+      "variants": {
+        "linear": "098056ce46d21245251f61aa57bfc719902b2e67086a14312db89246870a34d2",
+        "bulk": "9d5f760cac6bb1a1fc33c7df2a9883c89693f15643046a5e126cfb1cf5096c36"
+      },
+      "tsx": "be312434f1d3d8937236cfef6b6c67b274009c118733da2746e09c34778f8f04"
+    },
+    "music": {
+      "source": "iconsax@0.1.1",
+      "from": "music",
+      "variants": {
+        "linear": "367f218f7344c86b3dbe050ec426f49569b58b529bad5c8673c6b0a3d2c3ed31"
+      },
+      "tsx": "696a27fe350af9319a8c4c9b772803f0baf15affd7feba6e02c918de9c2a05a9"
+    },
+    "night": {
+      "source": "iconsax@0.1.1",
+      "from": "moon",
+      "variants": {
+        "linear": "cc122360b533bbd3777629a96c45cdc7af9c27b6f39a24e5cee88e2117ab9603",
+        "bulk": "4a534bb91d79b33ac1745ea776ce17e6c19a74aa07f40371cd4b941cd79ac389"
+      },
+      "tsx": "62cf97283be0b263584871d221a5cd6159523cd9c8c1ee0a2ead7e3dc640a771"
+    },
+    "pause": {
+      "source": "iconsax@0.1.1",
+      "from": "pause",
+      "variants": {
+        "linear": "527bdd500793e84c4051815b6156388c6d5578d25311263e8534d051db8b713f",
+        "bulk": "d7d900e6d11fd1fdfa3aa84d5e1cbb7aaf8ce0940868ce5d2609ff2973767087"
+      },
+      "tsx": "db1187408735e1a2d54931e3f3e429b6e08922c16dd5628a383605c6f55ca9a8"
+    },
+    "play": {
+      "source": "iconsax@0.1.1",
+      "from": "play",
+      "variants": {
+        "linear": "e274713549787c6bda30fc5793cd758c92fe11a9be080edcccc36f52672fe7ad",
+        "bulk": "0901dc4b10e82ff77167b23862d31e5c7715df4b6c473cc4845c951e6e6be6d6"
+      },
+      "tsx": "dade5b604e462d3cbeb1e375066eef3f92ec66df721c3bdc2b2b5616a5c72651"
+    },
+    "postcard": {
+      "source": "iconsax@0.1.1",
+      "from": "gallery",
+      "variants": {
+        "linear": "c7e0a6f067ae41e2ca7ba14f2aa14b673609c705456d9b8bfdc8278918f817ae",
+        "bulk": "c558376083ae0b0fbd3af9acec57b259d80b666cdb0e55dfc693f3f98bb7a8d0"
+      },
+      "tsx": "7566f7b1fcd318271f125a9f3c53ddf7f739d9b2e2b35eb402d65ce7b264406f"
+    },
+    "practice": {
+      "source": "iconsax@0.1.1",
+      "from": "weight",
+      "variants": {
+        "linear": "efc166d0b6e542ef91f01af7a77e5e3cc6bb9cd780fa5776c918cc5c294892f1",
+        "bulk": "ba872e2d7d9379a4e4d351446a0714a0864ec3bbf4de6279f9ff3108516ca155"
+      },
+      "tsx": "17eb2485523f8abaf386f720ab6e66ebf4a188fa9f0e4347c8bc88b9c19dc436"
+    },
+    "privacy": {
+      "source": "iconsax@0.1.1",
+      "from": "shield-tick",
+      "variants": {
+        "linear": "1dbff83de562addce639f7896fc5d2442049843d4d3ed05ad21f98fe61fc4315"
+      },
+      "tsx": "c3ab9bb79231c552c609656eb0e52617ac196caba00d78e238b93a2a01edd227"
+    },
+    "progress": {
+      "source": "iconsax@0.1.1",
+      "from": "routing-2",
+      "variants": {
+        "linear": "d63724931d4f38fc595ccd55f97719d2d5ca3eec65d2ac599fdf550d05b8c42e",
+        "bulk": "b1eb36d15dcdace69bc0e4d1acd1ee655e1697e7dd3ce5c6f892a19ad85ee5d8"
+      },
+      "tsx": "9fa9a55e03eccc6d5f57c0f270873f8fb09547f38c5a0ff2a0834b24742d107c"
+    },
+    "quests": {
+      "source": "iconsax@0.1.1",
+      "from": "task-square",
+      "variants": {
+        "linear": "07506b0d179bc8635bafb0011d34fb5ecaebf98ba00db3411033867f03f729b7",
+        "bulk": "1e9ca02f3f3859a39d26e0be05e9802c985d2f0115277714f0274b8af2396953"
+      },
+      "tsx": "cf36459d120e840dd16a0f57b0b8e340f2d18ee95b707627b36bf7c5b25b9099"
+    },
+    "quote": {
+      "source": "iconsax@0.1.1",
+      "from": "quote-up",
+      "variants": {
+        "linear": "32c343716779d1463a161d1a071e496dec45babf0fb318faa11a821dfe554cb8",
+        "bulk": "3c1e91795c17bc163d8d465cf7ca176e81808ca3570f24d7e2c532939546167d"
+      },
+      "tsx": "836a2764f6742fa2b03d6ab6560594a7e198a84332009525cef4964eaa645a56"
+    },
+    "refresh": {
+      "source": "iconsax@0.1.1",
+      "from": "refresh-arrow-01",
+      "variants": {
+        "linear": "844dc5770fbb4ffb028e9ed4208354dc056da4ed2ff47eb55cc5b18ca324c152"
+      },
+      "tsx": "635f501d19776e4b36af6ee6c911291fe463e1d0496d374b39cf5c5804b69260"
+    },
+    "repair": {
+      "source": "iconsax@0.1.1",
+      "from": "refresh-circle",
+      "variants": {
+        "linear": "f6dbadf33040b8ad47d0b9e76e45a638fc5e292ba780080a5108b9c392c4b659",
+        "bulk": "4c9b1ca1c9eaa18ed2bfcd97e85b8a8d776663abd43f8e7b06b308998df5a9e8"
+      },
+      "tsx": "09044da6a68c2d5d54fc33230a03fbd5d9ac031f6a1c0a7b8fa8c846c5c53e10"
+    },
+    "replay": {
+      "source": "iconsax@0.1.1",
+      "from": "repeate-one",
+      "variants": {
+        "linear": "8c6593d0b2ad526dd226c586295911c5ce123f3e89dc01f2c24e9e8b31fed57a"
+      },
+      "tsx": "1d24294c499662d42c709f92a881a0b83bfee33b646044d94a64220ac92470b1"
+    },
+    "search": {
+      "source": "iconsax@0.1.1",
+      "from": "search-normal",
+      "variants": {
+        "linear": "23a6ec9cd45c5adb996ade2ed4a5153ba6fd48d4eef9adef77b6647a42a87f1b"
+      },
+      "tsx": "449049cb73f4efb4444410a3ee862b99e868c5bf7987c83dd9b49ae4ffe133dd"
+    },
+    "settings": {
+      "source": "iconsax@0.1.1",
+      "from": "setting-2",
+      "variants": {
+        "linear": "87f5a410a728cc131653564e082cf03493202ac67bf92403eb2154945e5594e8"
+      },
+      "tsx": "c9072d9c3910d8ce949f71d1e8d69ca3edfceefa0d5e17d4708f71b349801f7e"
+    },
+    "share": {
+      "source": "iconsax@0.1.1",
+      "from": "share",
+      "variants": {
+        "linear": "31567b5c7066ab0fb35167ca948438ad9b2c677aa8a811b2da4c3084e4e9b184"
+      },
+      "tsx": "b1c29d70c9daf743c27cab6ba8fd1249dc4a21ea3d7e8028b3c1926986200dd7"
+    },
+    "sort": {
+      "source": "iconsax@0.1.1",
+      "from": "sort",
+      "variants": {
+        "linear": "a339c04fdede21b75408aecdb3e6b56209bf107b343dc8e8dbc2a508d4995bba"
+      },
+      "tsx": "d7d782b633b3e3279ba212fd9953a98fd3f916007b911b1818733d23f93c8231"
+    },
+    "speaker": {
+      "source": "iconsax@0.1.1",
+      "from": "volume-high",
+      "variants": {
+        "linear": "adbe3cacd78c5c91e79d0a3aea408ecbef96ef442a69966a06c55a1c0fe5823a",
+        "bulk": "33345e2041fffb41b399c32389aa33bfbd3e88f51a0f8b44a32d0e37a0307514"
+      },
+      "tsx": "45b8acf44e7d048e46d3e91fd2973979585d28957a99c9ebe8db6fe5ac7cc2eb"
+    },
+    "speaker-off": {
+      "source": "iconsax@0.1.1",
+      "from": "volume-slash",
+      "variants": {
+        "linear": "01d3d580883d03edc6169f20a2246ea9679c9c14394f46c72a50338601900ff1"
+      },
+      "tsx": "217f731d7584bbc3864783a4833f5bd2f26c8199bf70161d15aabe0f89ef6eb8"
+    },
+    "speaker-slow": {
+      "source": "luvani",
+      "from": "speaker-slow",
+      "variants": {
+        "linear": "fc410f28ad5c342e212d6a2aa13a991a3b0bec44b89c716ee634f22825054f4a"
+      },
+      "tsx": "a5d5d3179f9583ebc2bf34955c8f353e3c31a377b86cb816018c255b3fdcc1e5"
+    },
+    "sprout": {
+      "source": "luvani",
+      "from": "sprout",
+      "variants": {
+        "linear": "a881774cbfaedc733632cbd7bca1739f0ea3bd4d4e272b6d95c49e4fcc693fe5"
+      },
+      "tsx": "c9b1e8640c8607016c8b70ab805c736be32ce5ebe4abc5fd20e1ca7d7e61d71e"
+    },
+    "star": {
+      "source": "iconsax@0.1.1",
+      "from": "star",
+      "variants": {
+        "linear": "d32afa93213100ee655deda58a9f5347e6d3eed94367beea75ee84274a32602f",
+        "bulk": "8d1d852fc4b9382e8310457d3debc5452a6c7c6b2792dd29df6ee2b794de14c2"
+      },
+      "tsx": "4743575a50c3eff53a5568f43ae7b88a230000f88a8a0a830e18d03cf135a5de"
+    },
+    "stop": {
+      "source": "iconsax@0.1.1",
+      "from": "stop",
+      "variants": {
+        "linear": "65bc852cac515832037a09007a23a9bd29a1a2ee9e23fd3643a4be27648e246c",
+        "bulk": "0e3b6a72f0ee805deba04ffca726f114d5824533eac024f3c21d0793d85c6244"
+      },
+      "tsx": "ae62031ba9a6a3eca6716c0cd13b49b91da175c095f285c8a61eb407026765ba"
+    },
+    "street": {
+      "source": "iconsax@0.1.1",
+      "from": "location",
+      "variants": {
+        "linear": "83b5e9ce10d650cc5a4eaf05f41ef586f4845d9d05a8eea60cda4a4c1757f83a",
+        "bulk": "5ef7fdb267744d636c3ff8f9efcd6ccf87851a55b94661f618812d577316897f"
+      },
+      "tsx": "a17bf443051d5de478e727d1df9bca3773234c93d7421c8a4a74aef135358390"
+    },
+    "tea": {
+      "source": "luvani",
+      "from": "tea",
+      "variants": {
+        "linear": "9db443f8b6c120cb6ef3a1b38aba1aff17c89c17ef83df9745ec9dab9a7c95d2",
+        "bulk": "14db0eabae12ccfc1d7257380ffce0a83d8d24d7a959a998ebd468d79d75325b"
+      },
+      "tsx": "ece9b97d454943b441fc13a6aec97ab7f1b101cc5cedda2d9cc086b256fae63d"
+    },
+    "tick-circle": {
+      "source": "iconsax@0.1.1",
+      "from": "tick-circle",
+      "variants": {
+        "linear": "4c84364107bf32eec1145d015eeb60107a745793885e065d135f6454058d312a",
+        "bulk": "6340064d64e297d0d59334a47d79edc583262c82708b239d25708ab92b92efa6"
+      },
+      "tsx": "32d3dc923d88dc482ee7fd6fc64ab00ff118a8f9f128a7d8615d359d3d7c60a9"
+    },
+    "translate": {
+      "source": "iconsax@0.1.1",
+      "from": "translate",
+      "variants": {
+        "linear": "5a5844f0d4dc9d0de5b3bee635af9fba60d9d669fa9f95f51050dcd5238588f8"
+      },
+      "tsx": "f03df36902117d8b378ced5ada80c36b12d0b38319d53b32ef45829b2c129634"
+    },
+    "trip": {
+      "source": "iconsax@0.1.1",
+      "from": "airplane",
+      "variants": {
+        "linear": "5ddeb59414590ae4594ffd3f1143aec9bf5c5829c90179c3fc5c584e4369dafe",
+        "bulk": "13d4d3ea5d87a21ca2881023468adec5b241d0d276895258758cedbe18c860db"
+      },
+      "tsx": "5b15793fb86006f4e2d16ff95d41f7e230b9f6a69be159af626eb804152d2848"
+    },
+    "unlock": {
+      "source": "iconsax@0.1.1",
+      "from": "unlock",
+      "variants": {
+        "linear": "b543e2b0518eef4cfb69beb650dd17f86707f6eefbb509eb538791a05b50311a",
+        "bulk": "96f1626e0ddd15edd4b69ad7fac323f5f80ff6deab41361e60cee2ac7b798166"
+      },
+      "tsx": "adccb0968726277922e14e34a3957654d5845cc1010f060cd132c98bd5aacfa9"
+    },
+    "user": {
+      "source": "iconsax@0.1.1",
+      "from": "profile-circle",
+      "variants": {
+        "linear": "efd913a5075590d31cbe966513caf9ba778a47ea10a4423275f1d71aa1810080",
+        "bulk": "97dd01ba33590303214daf927faa6325ef4dd94598b943e0fcf0e4574977afbc"
+      },
+      "tsx": "ebe193030e2f52bdbd7ff96f681b1703caa6b6d975d37a7f0bc2b55864c04ec2"
+    },
+    "user-add": {
+      "source": "iconsax@0.1.1",
+      "from": "user-add",
+      "variants": {
+        "linear": "1fbb60ddde29f511b47a3c2311e8f81fbf080c00cfb7c14163a200bf246d9466",
+        "bulk": "c42708e3f3687d40b5e245078c943821c567c0dbc566549e0fa8656848848624"
+      },
+      "tsx": "38ada6d0fb892b1622f725e9e2a2f47474fbecb65e4470fffd9ecc450eeb9d53"
+    },
+    "users": {
+      "source": "iconsax@0.1.1",
+      "from": "people",
+      "variants": {
+        "linear": "1a06b27b345592039fd3f53163d3859d2771439e8b7fec4fa104ecb1216399ad",
+        "bulk": "15f57672daaa4d4306edbaeb5dc895c76e6a2b94b78a1dd3178c3b944bbc75db"
+      },
+      "tsx": "367b2f834c7db6d694fa721a2d24ab32360a0076403cc1da0ec02e51507fb9be"
+    },
+    "waveform": {
+      "source": "iconsax@0.1.1",
+      "from": "sound",
+      "variants": {
+        "linear": "353eb6a6ed4db23936ab45f386e67dc9a239d0768392a6596a9b9cebde81e3e7",
+        "bulk": "d8241324fb29fe23c93f841df240b412182cd3d01a82afd4e6d8dbfefd3289aa"
+      },
+      "tsx": "963c6b2b2777c42012c4718e7766f3f4b95e6c75d61dd097179f874add0de3ca"
+    },
+    "work": {
+      "source": "iconsax@0.1.1",
+      "from": "briefcase",
+      "variants": {
+        "linear": "2ee8aad2430a51d4762b642669413b03dbe575adeb1459bfa5f7a993eb76ce4e",
+        "bulk": "2dd77c5f433ab7eb47b8ffc2fc14bac5d86bdcd4a0e98c86b6e0e65e1d26aaf8"
+      },
+      "tsx": "cce31f806464ee1bf2ecf0771e10b34b31562caa7a942a9ceef3014e41bdcddf"
+    }
+  }
+}

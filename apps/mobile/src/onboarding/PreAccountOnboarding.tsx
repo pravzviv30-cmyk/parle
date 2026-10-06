@@ -752,16 +752,18 @@ export function PreAccountOnboarding({
                     <Text style={[type.bodyStrong, { color: ink }]}>Choose your drink.</Text>
                     <View accessibilityRole="radiogroup" style={{ gap: 10 }}>
                       <Choice
+                        ground="blue"
                         title="Coffee"
                         selected={draft.drink === 'coffee'}
                         onPress={() => choose({ drink: 'coffee' })}
-                        glyph={<ChoiceArt kind="drink" />}
+                        glyph={<ChoiceArt kind="coffee" />}
                       />
                       <Choice
+                        ground="blue"
                         title="Tea"
                         selected={draft.drink === 'tea'}
                         onPress={() => choose({ drink: 'tea' })}
-                        glyph={<ChoiceArt kind="drink" />}
+                        glyph={<ChoiceArt kind="tea" />}
                       />
                     </View>
                     {draft.drink && (
@@ -1024,7 +1026,7 @@ export function PreAccountOnboarding({
                 )}
               </>
             )}
-            {issue && (
+            {issue !== '' ? (
               <View style={{ gap: 8 }}>
                 <Text accessibilityLiveRegion="polite" style={[type.body, { color: ink }]}>
                   {issue}
@@ -1056,12 +1058,12 @@ export function PreAccountOnboarding({
                   </>
                 )}
               </View>
-            )}
-            {storageNote && (
+            ) : null}
+            {storageNote !== '' ? (
               <Text accessibilityLiveRegion="polite" style={[type.small, { color: ink }]}>
                 {storageNote}
               </Text>
-            )}
+            ) : null}
           </PageArrival>
         </View>
       </ScrollScreen>
@@ -1173,11 +1175,11 @@ export function PreAccountOnboarding({
             )}
           </>
         )}
-        {surface !== 'start' && issue && (
+        {surface !== 'start' && issue !== '' ? (
           <Text accessibilityLiveRegion="polite" style={type.body}>
             {issue}
           </Text>
-        )}
+        ) : null}
         {surface === 'voice' && (
           <>
             {TUTOR_VOICE_OPTIONS.map((v) => (
@@ -1248,14 +1250,14 @@ export function PreAccountOnboarding({
               }}
             />
             <GhostButton label="Privacy details" onPress={() => setSurface('privacy')} />
-            {issue && (
+            {issue !== '' ? (
               <>
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
                 <GhostButton label="Try again" disabled={busy} onPress={() => void start(false)} />
               </>
-            )}
+            ) : null}
           </>
         )}
         {surface === 'privacy' && (
