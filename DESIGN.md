@@ -791,20 +791,22 @@ and tinted faces, the Android adaptive layers, the favicon and the splash mark.
 holds the geometry the launch screen draws. Their README files say which file
 goes where.
 
-The launch. The native splash is the mark at 128pt on the brand blue.
-`launch/LaunchScreen.tsx` draws that exact frame over the app on its first
-render and releases the native splash once it is laid out, so the hand-off
-cannot be seen. The ring turns, then the mark lifts and the name settles in
-beneath it, which leaves the stacked logo. Once nothing is loading and the name
-has arrived, it fades onto wherever the app was already going: the welcome and
+The launch. The native splash is the mark at 128pt on the brand blue, and it
+is held up until `launch/LaunchScreen.tsx` has drawn that exact frame over the
+app and been laid out. Only then is it released, so the hand-off cannot be
+seen. The ring turns, then the mark lifts and the name settles in beneath it,
+which leaves the stacked logo. Once nothing is loading and the name has
+arrived, it fades onto wherever the app was already going: the welcome and
 onboarding for somebody new, Home for everybody else. The screens decide that,
-not the launch. Readiness comes from the waits themselves: App.tsx's `Loading`
-and ProfileGate's profile read each hold the launch while they are on screen
-(`launch/launchHold.ts`). A fast launch waits at most 620 ms for the name; a
-slow one waits only for itself, with the ring turning instead of a spinner. The
-launch is capped at 12 s, above the fresh-device wait, so a stuck load is never
-hidden behind the mark. Reduce motion draws the stacked logo at once and keeps
-the ring still.
+not the launch. Readiness comes from the waits themselves, each holding the
+launch while it is on screen (`launch/launchHold.ts` lists them): App.tsx's
+`Loading`, ProfileGate's profile read, and the guest-practice reads in
+GuestAccountHandoff and PreAccountOnboarding. A fast launch waits at most
+620 ms for the name; a slow one waits only for itself, with the ring turning
+instead of a spinner. The launch is capped at 12 s, above the fresh-device
+wait, so a stuck load is never hidden behind the mark. Reduce motion draws the
+stacked logo at once and keeps the ring still and upright. A screen reader
+meets the launch alone, as "Luvani", and reaches the app once it has gone.
 
 ## What has no design yet
 
