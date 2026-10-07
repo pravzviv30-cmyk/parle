@@ -12,7 +12,7 @@ import { Feedback } from './motion/Feedback.tsx';
  * so a new component goes at the end, after the stylesheet.
  */
 
-import { Children, isValidElement, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Children, isValidElement, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   AccessibilityInfo,
   Modal,
@@ -225,6 +225,7 @@ export function PillButton({
   icon,
   accessibilityLabel,
   tone = 'ink',
+  ref,
 }: {
   label: string;
   onPress: () => void;
@@ -234,9 +235,11 @@ export function PillButton({
   accessibilityLabel?: string;
   /** ink on paper, sun, mint or white; white on blue or coral. */
   tone?: 'ink' | 'white';
+  /** The pressable itself, for a caller that moves a screen reader onto it (the answer sheet's Continue). */
+  ref?: Ref<View>;
 }) {
   return (
-    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
+    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} ref={ref}>
       {icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk }]}>{label}</Text>
     </Press>
@@ -1437,6 +1440,8 @@ export type PressProps = Omit<PressableProps, 'style' | 'onPress' | 'children'> 
   selected?: boolean;
   /** The surface's corner, so the ring around it follows it. Defaults to the control radius. */
   glowRadius?: number;
+  /** The pressable itself, for a caller that moves a screen reader onto it. */
+  ref?: Ref<View>;
   children: ReactNode;
 };
 

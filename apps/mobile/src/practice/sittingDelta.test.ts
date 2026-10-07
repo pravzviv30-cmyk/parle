@@ -235,3 +235,70 @@ describe('an end card is the settle pipeline\'s read-back — F760', () => {
     assert.equal(again.settlesAt, null);
   });
 });
+
+describe('a finish shown in words stays in words — F775', () => {
+  test('a drill end that waited out its delta keeps the words-only finish', async () => {
+    // What the drill end draws for each state, as DrillScreen draws it (held
+    // to that below): the end card, the wait, or the finish in words. The card
+    // and the words each give the finish's one haptic as they mount (the card
+    // its celebrate, the words FinishFelt's tapSettled).
+    type Drawn = 'card' | 'wait' | 'words';
+    const drawn = (state: ReturnType<typeof sittingEnd>['state']): Drawn => (state === 'settled' ? 'card' : state === 'waiting' ? 'wait' : 'words');
+    const finishesFelt = (states: readonly Drawn[]): number => states.filter((now, i) => now !== 'wait' && now !== states[i - 1]).length;
+
+    // A finished drill set whose settle is slow: the page waits, the wait runs out, and then the delta lands.
+    const at = clock;
+    const match = { source: 'drill', at } as const;
+    const seen: Drawn[] = [];
+    seen.push(drawn(sittingEnd(match, watch.find(match), false).state));
+    assert.deepEqual(seen, ['wait']);
+    // SETTLE_WAIT_MS later, nothing has come: the finish stands in words.
+    seen.push(drawn(sittingEnd(match, watch.find(match), true).state));
+    // The settle answers late, for this very sitting.
+    const late = await settleDrill(at, 12, 4 * MINUTE);
+    await settled();
+    const landed = watch.find(match);
+    assert.ok(landed !== null && late !== null, 'the late settle published nothing, so this reads nothing');
+    assert.equal(sittingEnd(match, landed, false).state, 'settled', 'a delta that lands in time is no longer drawn');
+    const after = sittingEnd(match, landed, true);
+    assert.deepEqual(after, { state: 'unsettled' }, 'a delta that landed after the wait ran out swapped the words for a card');
+    seen.push(drawn(after.state));
+    // And it stays that way on every render after.
+    seen.push(drawn(sittingEnd(match, watch.find(match), true).state));
+    assert.deepEqual(seen, ['wait', 'words', 'words', 'words']);
+    assert.equal(finishesFelt(seen), 1, 'the finish was felt more than once');
+    // In time, the card is the one finish, and it is felt once too.
+    const inTime: Drawn[] = [drawn(sittingEnd(match, null, false).state), drawn(sittingEnd(match, landed, false).state)];
+    assert.deepEqual(inTime, ['wait', 'card']);
+    assert.equal(finishesFelt(inTime), 1);
+    // A new wait (a retried practice save names its sitting again) starts clean.
+    assert.deepEqual(sittingEnd({ source: 'drill', at: at + 1 }, null, false), { state: 'waiting' });
+
+    // The drill end draws exactly that. While it waits it stays inside the
+    // screen with its Done, so there is a way out; the words carry the one
+    // FinishFelt; and the card only for a settled delta.
+    const drill = flat('../DrillScreen.tsx');
+    const fromEmpty = drill.indexOf('if (session.finished && session.answered.length === 0)');
+    const endAt = drill.indexOf('if (session.finished) {', fromEmpty);
+    const end = drill.slice(endAt, drill.indexOf('const exercise = session.queue[0];', endAt));
+    assert.ok(fromEmpty > 0 && endAt > fromEmpty && end.length > 0, 'the drill end moved; this test is stale');
+    assert.doesNotMatch(end, /<Screen>/, 'the drill end waits on a bare screen with no way out');
+    assert.equal((end.match(/return \(/g) ?? []).length, 1, 'the drill end draws its wait apart from the screen it finishes on');
+    assert.match(end, /return \( <ScrollScreen footer=\{doneFooter\}>/);
+    assert.match(
+      end,
+      /\{end\.state === 'settled' \? \( <EndCard delta=\{end\.delta\} count=\{s\.resolved\} release=\{release\} \/> \) : end\.state === 'waiting' \? \( <ActivityIndicator color=\{paper\.inkSoft\} \/> \) : \( <Card> <FinishFelt \/>/,
+      'the drill end draws something other than the card, the wait or the words',
+    );
+    // The practice set's wait is inside its screen with Done too.
+    const practice = drill.slice(drill.indexOf('if (practice !== undefined && session.finished) {'), fromEmpty);
+    assert.match(practice, /if \(practiceSaved === 'waiting' \|\| held === null \|\| end\.state === 'waiting'\) \{ return \( <ScrollScreen footer=\{doneFooter\}>/, 'the practice end waits on a bare screen with no way out');
+    // One finish haptic in the whole screen, given once per mount of the words.
+    assert.equal((drill.match(/tapSettled\(\)/g) ?? []).length, 1, 'the drill gives a finish haptic somewhere else too');
+    assert.match(drill, /function FinishFelt\(\) \{ useEffect\(\(\) => \{ tapSettled\(\); \}, \[\]\); return null; \}/);
+    // And the hook only ever reports a wait that ran out once it has: the page
+    // never asks for numbers once it said it would show none.
+    const hook = flat('./useSittingEnd.ts');
+    assert.match(hook, /const end = sittingEnd\(match, delta, waitedOut\);/);
+  });
+});

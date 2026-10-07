@@ -15,7 +15,10 @@
  * A page waits at most `SETTLE_WAIT_MS`. A settle that answers nothing (the
  * account changed, the snapshot could not be read, the write was refused)
  * publishes nothing, and the page then shows its finish without numbers rather
- * than a number it cannot vouch for.
+ * than a number it cannot vouch for. Once the wait has run out that finish
+ * stands: a delta that lands later is not drawn, so the page never swaps its
+ * words for a card while they are being read, and the finish is felt once
+ * (F775).
  *
  * Pure, so `sittingDelta.test.ts` holds it.
  */
@@ -67,7 +70,7 @@ export function createDeltaWatch(keeps: number = WATCH_KEEPS): DeltaWatch {
  * Where a page's end is. `none`: nothing finished yet. `waiting`: finished,
  * its delta not here yet. `settled`: the delta is here, and only now may
  * numbers show. `unsettled`: the wait ran out with no delta, so the finish
- * shows without numbers.
+ * shows without numbers, and stays that way if the delta lands afterwards.
  */
 export type SittingEnd =
   | { readonly state: 'none' }
@@ -77,6 +80,8 @@ export type SittingEnd =
 
 export function sittingEnd(match: SittingMatch | null, delta: GameDelta | null, waitedOut: boolean): SittingEnd {
   if (match === null) return { state: 'none' };
+  // The words-only finish is already on screen and already felt: a late delta changes nothing.
+  if (waitedOut) return { state: 'unsettled' };
   if (delta !== null && matchesSitting(delta, match)) return { state: 'settled', delta };
-  return waitedOut ? { state: 'unsettled' } : { state: 'waiting' };
+  return { state: 'waiting' };
 }

@@ -472,20 +472,91 @@ describe('the celebration queue — F743', () => {
   });
 
   test('a moment held past its time to live is dropped, and leaves the crash-replay queue', async () => {
+    // Only time the queue spends unheld counts toward the time to live (F775),
+    // so the moment waits behind a card the learner has left on screen, which
+    // is not a hold: the queue is free, and the card is simply not done.
     const h = harness();
-    const release = holdMic();
+    h.queue.receive([purchase('t-1')]);
+    await h.advance(BURST_WINDOW_MS);
+    const card = h.showing();
+    assert.equal(card?.type, 'purchase-confirmed');
+    h.queue.reachedFinal(card!.id);
     h.queue.receive([level(1, 2)]);
     await h.advance(BURST_WINDOW_MS);
+    assert.equal(h.queue.snapshot().paused, false, 'the queue is held, so this reads the wrong clock');
     assert.ok(h.pending.has(celebrationKey.level(2)), 'a waiting moment is not in the crash-replay queue');
     await h.advance(CELEBRATION_TTL_MS - BURST_WINDOW_MS - 1);
     assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.level(2)], 'a moment was dropped before its time');
     await h.advance(1);
     assert.deepEqual(h.queue.waitingKeys(), [], 'a moment waited past its time to live');
     assert.equal(h.pending.has(celebrationKey.level(2)), false, 'an expired moment would replay after a crash');
-    release();
-    await h.advance(BURST_WINDOW_MS);
+    h.queue.dismiss(card!.id);
+    await h.advance(RESUME_AFTER_MS + BURST_WINDOW_MS);
     assert.equal(h.showing(), null, 'an expired moment played');
-    assert.deepEqual(h.marked, [], 'an expired moment was remembered as played');
+    assert.ok(!h.marked.includes(celebrationKey.level(2)), 'an expired moment was remembered as played');
+  });
+
+  test('a moment waiting behind a hold does not expire while the hold lasts', async () => {
+    // F775: a sitting holds the queue for as long as it is up, and a long one
+    // ran past the ten minutes, so the level it earned on the way never played.
+    const holds: [string, () => () => void][] = [
+      ['a sitting, a sheet or an end card', holdCelebrations],
+      ['a microphone', holdMic],
+      ['a live room', holdLive],
+    ];
+    for (const [what, take] of holds) {
+      const h = harness();
+      const release = take();
+      // Released however this ends, so a failure here never holds the next test's queue.
+      running.push(release);
+      h.queue.receive([level(1, 2)]);
+      await h.advance(BURST_WINDOW_MS);
+      assert.ok(h.pending.has(celebrationKey.level(2)), 'a waiting moment is not in the crash-replay queue');
+      // Three times the time to live behind the hold: still waiting, its crash-replay copy kept.
+      await h.advance(3 * CELEBRATION_TTL_MS);
+      assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.level(2)], `a moment expired behind ${what}`);
+      assert.ok(h.pending.has(celebrationKey.level(2)), `a moment waiting behind ${what} lost its crash-replay copy`);
+      assert.deepEqual(h.dropped, [], `a moment waiting behind ${what} was dropped from the crash-replay queue`);
+      release();
+      await h.advance(0);
+      assert.equal(h.showing()?.type, 'level-up', `the moment never played once ${what} let go`);
+    }
+
+    // The app away holds it too: a long time in the background does not count.
+    const away = harness();
+    away.queue.setActive(false);
+    away.queue.receive([level(2, 3)]);
+    await away.advance(2 * CELEBRATION_TTL_MS);
+    assert.deepEqual(away.queue.waitingKeys(), [celebrationKey.level(3)], 'a moment expired while the app was away');
+    away.queue.setActive(true);
+    await away.advance(RESUME_AFTER_MS);
+    assert.equal(away.showing()?.type, 'level-up');
+
+    // The clock pauses rather than restarts: time spent unheld before and after
+    // a hold adds up, and the moment goes once the two together reach the time
+    // to live, with its crash-replay copy.
+    const h = harness();
+    h.queue.receive([purchase('t-2')]);
+    await h.advance(BURST_WINDOW_MS);
+    const card = h.showing();
+    assert.equal(card?.type, 'purchase-confirmed');
+    h.queue.receive([badge('streak-7')]);
+    await h.advance(BURST_WINDOW_MS);
+    // Unheld, behind the card on screen, for all but one second of the time to live.
+    await h.advance(CELEBRATION_TTL_MS - BURST_WINDOW_MS - 1000);
+    assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.badge('streak-7')]);
+    // Held for twice the time to live: none of it counts.
+    const release = holdCelebrations();
+    running.push(release);
+    await h.advance(2 * CELEBRATION_TTL_MS);
+    assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.badge('streak-7')], 'the hold counted toward the time to live');
+    release();
+    // The second left of unheld time runs out, and the moment goes with its copy.
+    await h.advance(999);
+    assert.deepEqual(h.queue.waitingKeys(), [celebrationKey.badge('streak-7')], 'the moment went before its unheld time was up');
+    await h.advance(1);
+    assert.deepEqual(h.queue.waitingKeys(), [], 'the clock restarted after the hold instead of pausing');
+    assert.equal(h.pending.has(celebrationKey.badge('streak-7')), false, 'an expired moment would replay after a crash');
   });
 
   test('a milestone replaces the same day\'s streak moment, and badges share a card three at a time', async () => {

@@ -21,7 +21,8 @@
  *   French to read. Still no mark, no sound and no haptic.
  *
  * With a screen reader on, or not yet known to be off, nothing moves on by
- * itself: every sheet waits for Continue.
+ * itself: every sheet waits for Continue, and on a phone the reader is moved
+ * onto that Continue as the sheet arrives (`sheetArrival`).
  *
  * The own-words outcome card takes the same tones from core's
  * `ownWordsFeedback`: "That works." good, "Nearly there." in the nearly tone
@@ -152,6 +153,28 @@ export function sheetFor(input: SheetInput): AnswerSheetModel {
   const sheet = decide(input);
   // A screen reader decides its own pace: nothing moves on under it.
   return input.screenReader === false ? sheet : { ...sheet, autoAdvanceMs: null };
+}
+
+/**
+ * How a screen reader meets a sheet as it arrives (F775).
+ *
+ * - **focus-continue**: the sheet waits, so the reader is moved onto its
+ *   Continue, whose name carries the whole sheet. The learner hears it once
+ *   and is already on the way on, rather than left on an answer that has gone.
+ * - **announce**: the sheet moves on by itself, so it is said and focus stays put.
+ * - **live-region**: on the web the sheet's live region speaks for itself and
+ *   focus is left where the learner put it.
+ */
+export type SheetArrival = 'focus-continue' | 'announce' | 'live-region';
+
+export function sheetArrival(sheet: Pick<AnswerSheetModel, 'autoAdvanceMs'>, web: boolean): SheetArrival {
+  if (web) return 'live-region';
+  return sheet.autoAdvanceMs === null ? 'focus-continue' : 'announce';
+}
+
+/** What Continue is called to a screen reader: the whole sheet, then the word. */
+export function continueName(spoken: string): string {
+  return spoken === '' ? SHEET_COPY.continue : `${spoken} ${SHEET_COPY.continue}`;
 }
 
 /** The own-words outcome's tone, line, mark, sound and haptic. Null decided means nobody judged it. */
