@@ -34,7 +34,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RoomEvent } from 'livekit-client';
+import { RoomEvent, Track } from 'livekit-client';
 import { ConversationTextRecorder, DEFAULT_TUTOR_VOICE, decodeClientMessage, encodeMessage, isTutorVoiceKey, type RecapPayload, type ServerMessage } from '@luvani/core';
 import { attachCorrectionReason } from './correctionReason.ts';
 import { createProfile } from '@luvani/brain/profile';
@@ -47,7 +47,7 @@ import { afterDismiss } from './safetyState.ts';
 import { opensSession } from './sessionOpened.ts';
 import { micOpensAtConnect, modeCarriesAudio, type LiveMode } from '../tutor/choosingView.ts';
 import { stoppedBySafety, type SafetyDecision } from '../tutor/safetyView.ts';
-import { liveRoom } from '../sound/audioFocus.ts';
+import { holdLive, liveRoom } from '../sound/audioFocus.ts';
 import { recapMayTakeTheAudio } from './recapAudio.ts';
 
 const NOW = new Date(2026, 7, 27, 14).getTime();
@@ -1467,6 +1467,8 @@ describe('the microphone at the recap — F763', () => {
             closes.push({ confirm: resolve, refuse: reject });
           });
         },
+        // No microphone track left to unpublish once the mute lands (F777 drives that half).
+        getTrackPublication: (): undefined => undefined,
       },
     };
     const diagRef = { current: { micPublished: true } };
@@ -1474,6 +1476,7 @@ describe('the microphone at the recap — F763', () => {
     const startGenRef = { current: 1 };
     const confirmed: boolean[] = [];
     const closeWorld = {
+      Track,
       roomRef,
       startGenRef,
       diagRef,
@@ -1564,5 +1567,173 @@ describe('the microphone at the recap — F763', () => {
     const recapScreen = read('../RecapScreen.tsx');
     assert.match(recapScreen, /import \{ holdCelebrations \} from '\.\/celebrate\/queue\.ts';/, 'the recap cannot hold the celebration queue');
     assert.match(recapScreen, /useEffect\(\(\) => holdCelebrations\(\), \[\]\);/, 'a takeover can start over the recap once the room lets go');
+  });
+});
+
+/* ------------------------------------------------------------------------- *
+ * F777: the recap stops the microphone capture, not only mutes it.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The phone's shim, run as it is written: `globals.native.ts` reaches the
+ * native LiveKit module, so its imports are supplied by hand (the real
+ * audio-focus hold, a fake LiveKit audio session) and its exports handed back.
+ */
+function nativeShim(session: { startAudioSession: () => Promise<void>; stopAudioSession: () => Promise<void> }): {
+  ensureAudioSession: () => Promise<void>;
+  releaseAudioSession: () => Promise<void>;
+  releaseLiveHold: () => void;
+} {
+  const source = read('./globals.native.ts').replace(/^import [^;]+;$/gm, '').replace(/^export /gm, '');
+  const make = new Function(
+    'registerGlobals',
+    'AudioSession',
+    'holdLive',
+    'markUnknown',
+    `"use strict";\n${stripTypeScriptTypes(source)}\nreturn { ensureAudioSession, releaseAudioSession, releaseLiveHold };`,
+  ) as (...args: unknown[]) => ReturnType<typeof nativeShim>;
+  return make(() => {}, session, holdLive, () => {});
+}
+
+describe('the microphone capture at the recap — F777', () => {
+  test('the recap stops the microphone capture, not only mutes it', async () => {
+    const order: string[] = [];
+    const settle = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+    // The learner's published microphone, and LiveKit's participant around it.
+    // `setMicrophoneEnabled(false)` only mutes: the track stays published and
+    // the device goes on recording, which is the iPhone's indicator left on.
+    const micTrack = { kind: Track.Kind.Audio };
+    let published: typeof micTrack | null = micTrack;
+    let stopping: { confirm: () => void; refuse: (error: Error) => void } | null = null;
+    const participant = {
+      setMicrophoneEnabled: (on: boolean): Promise<void> => {
+        order.push(`setMicrophoneEnabled(${on})`);
+        return Promise.resolve();
+      },
+      getTrackPublication: (source: Track.Source) =>
+        source === Track.Source.Microphone && published !== null ? { track: published } : undefined,
+      unpublishTrack: (track: unknown, stopOnUnpublish?: boolean): Promise<void> => {
+        order.push(`unpublishTrack(${track === micTrack ? 'the microphone' : 'something else'}, stop: ${stopOnUnpublish})`);
+        return new Promise<void>((resolve, reject) => {
+          stopping = { confirm: () => { published = null; resolve(); }, refuse: reject };
+        });
+      },
+    };
+    const room = { localParticipant: participant };
+    const roomRef: { current: unknown } = { current: room };
+    const startGenRef = { current: 1 };
+    const confirmed: boolean[] = [];
+    const closeMicForRecap = (): unknown =>
+      run(CLOSE_MIC_FOR_RECAP, {
+        Track,
+        roomRef,
+        startGenRef,
+        diagRef: { current: { micPublished: true } },
+        setMicOpen: (open: boolean) => order.push(`setMicOpen(${open})`),
+        setMicClosedAtRecap: (closed: boolean) => confirmed.push(closed),
+        trace: () => {},
+      });
+    const stop = (): { confirm: () => void; refuse: (error: Error) => void } => {
+      assert.ok(stopping !== null, 'nothing was asked to stop');
+      return stopping;
+    };
+
+    // The recap frame keeps F763's order: the circle is told, the close is
+    // asked for, and only then is the recap shown.
+    const { world, seen } = switchWorld();
+    deliver({ ...world, closeMicForRecap, setRecap: (r: unknown) => { order.push('recap shown'); seen.recaps.push(r); } }, RECAP_MSG);
+    assert.deepEqual(order, ['setMicOpen(false)', 'setMicrophoneEnabled(false)', 'recap shown']);
+
+    // Then the capture itself stops: once the mute lands, the microphone track
+    // is unpublished and stopped, which is what lets the device go.
+    await settle();
+    assert.deepEqual(
+      order.filter((step) => step.startsWith('unpublishTrack')),
+      ['unpublishTrack(the microphone, stop: true)'],
+      'the recap only muted the microphone, so the capture runs on and the indicator stays on',
+    );
+    // Closed is reported only once the capture has stopped, so the room's hold
+    // goes after it, never before (the release effect waits on this).
+    assert.deepEqual(confirmed, [], 'the microphone was reported closed while it was still recording');
+    stop().confirm();
+    await settle();
+    assert.deepEqual(confirmed, [true], 'a stopped capture never reached the effect that gives the recap its moment');
+    const releases = (micClosedAtRecap: boolean): number => {
+      let released = 0;
+      run(releaseEffect(hook), {
+        recapArrived: true,
+        micClosedAtRecap,
+        tutorSpeaking: false,
+        stoppedNow: false,
+        recapMayTakeTheAudio,
+        trace: () => {},
+        releaseLiveHold: () => { released += 1; },
+      });
+      return released;
+    };
+    assert.equal(releases(false), 0, 'the hold went before the capture had stopped');
+    assert.equal(releases(true), 1);
+
+    // A capture that will not stop is never reported closed: the hold stays, and leave() ends both.
+    published = micTrack;
+    confirmed.length = 0;
+    closeMicForRecap();
+    await settle();
+    stop().refuse(new Error('negotiation failed'));
+    await settle();
+    assert.deepEqual(confirmed, [], 'a microphone that would not stop was reported closed');
+
+    // A stop that lands after the learner has left belongs to a room that is gone.
+    published = micTrack;
+    closeMicForRecap();
+    await settle();
+    roomRef.current = null;
+    stop().confirm();
+    await settle();
+    assert.deepEqual(confirmed, [], 'a stop from a room the learner has left was reported as this session\'s');
+    roomRef.current = room;
+
+    // A session with no microphone published (typed, or the circle never
+    // tapped) has no capture to stop, and is closed as soon as the mute lands.
+    order.length = 0;
+    closeMicForRecap();
+    await settle();
+    assert.deepEqual(order.filter((step) => step.startsWith('unpublishTrack')), [], 'a microphone that was never published was unpublished');
+    assert.deepEqual(confirmed, [true]);
+
+    // And a later start without leave() takes its hold again: on a phone, where
+    // LiveKit's session is still up after the recap gave its hold back, and on
+    // the web. One hold for one room, not two.
+    let activations = 0;
+    let deactivations = 0;
+    const phone = nativeShim({
+      startAudioSession: async () => { activations += 1; },
+      stopAudioSession: async () => { deactivations += 1; },
+    });
+    await phone.ensureAudioSession();
+    assert.equal(liveRoom(), true);
+    phone.releaseLiveHold();
+    assert.equal(liveRoom(), false, 'the recap still sits under the room\'s hold');
+    await phone.ensureAudioSession();
+    assert.equal(liveRoom(), true, 'a phone started a room after a recap without leaving, and the room held nothing');
+    assert.equal(activations, 2, 'the session the recap\'s sound may have let go was not made active again');
+    await phone.ensureAudioSession();
+    assert.equal(activations, 2, 'a live, held room was started over');
+    phone.releaseLiveHold();
+    assert.equal(liveRoom(), false, 'one room took two holds');
+    await phone.releaseAudioSession();
+    assert.equal(deactivations, 1);
+    assert.equal(liveRoom(), false);
+
+    const web = await import('./globals.ts');
+    await web.ensureAudioSession();
+    web.releaseLiveHold();
+    await web.ensureAudioSession();
+    assert.equal(liveRoom(), true, 'a browser started a room after a recap without leaving, and the room held nothing');
+    await web.ensureAudioSession();
+    web.releaseLiveHold();
+    assert.equal(liveRoom(), false, 'one room took two holds');
+    await web.releaseAudioSession();
+    assert.equal(liveRoom(), false);
   });
 });

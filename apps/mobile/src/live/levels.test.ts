@@ -21,6 +21,8 @@ import {
   HEARING_ON_AFTER_MS,
   LEVEL_SAMPLE_MS,
   NO_ROOM_FACTS,
+  RELEASE_MS,
+  REST_WITHIN_MS,
   ROOM_AT_REST,
   STALE_AFTER_MS,
   atRest,
@@ -37,6 +39,7 @@ import {
   micCounts,
   normaliseDb,
   normaliseRms,
+  release,
   restDue,
   rmsOf,
   settleRoom,
@@ -67,8 +70,11 @@ function sink(): LevelSink {
   return { input: { value: 0 }, bands: { value: [] }, output: { value: 0 }, inputLive: { value: false }, outputLive: { value: false } };
 }
 
-/** A clock the test moves, and the meter's timers on it. */
-function fakeClock() {
+/**
+ * A clock the test moves, and the meter's timers on it. `lateBy` makes every
+ * timer fire that much after it was asked for, as on a busy JS thread.
+ */
+function fakeClock(lateBy = 0) {
   let now = 0;
   let pending: { at: number; run: () => void; id: number }[] = [];
   let ids = 0;
@@ -76,7 +82,7 @@ function fakeClock() {
     now: () => now,
     later: (run: () => void, ms: number): unknown => {
       ids += 1;
-      pending.push({ at: now + ms, run, id: ids });
+      pending.push({ at: now + ms + lateBy, run, id: ids });
       return ids;
     },
     cancel: (handle: unknown): void => {
@@ -285,7 +291,7 @@ describe('the room hears real audio — F764, the plumbing half', () => {
 
     // The envelope rises with a voice and falls back gently, and lands on zero.
     assert.ok(envelope(0, 1) > 0.5, 'the attack is too slow to follow a syllable');
-    assert.ok(envelope(1, 0) > 0.8, 'the release drops the ring at once');
+    assert.ok(envelope(1, 0) > 0.7, 'the release drops the ring at once');
     assert.equal(envelope(0.009, 0), 0, 'a level a hair above zero never rests');
     assert.equal(isStale(null, 0), true);
     assert.equal(isStale(0, STALE_AFTER_MS - 1), false);
@@ -405,11 +411,12 @@ describe('the room says what it hears in words — F764, the orb half', () => {
     const flips = said.filter((facts, i) => i > 0 && facts.hearing !== said[i - 1]!.hearing).length;
     assert.equal(flips, 1, 'the word chattered on and off within one sentence');
 
-    // The learner stops. The meter falls to rest and then goes quiet: no more
-    // frames at all, so the watch's own timer has to take the word away.
+    // The learner's level sinks under the line without resting (a murmur, a
+    // noisy room) and then no frame comes at all, so the watch's own timer has
+    // to take the word away. A level at rest takes it at once (F777, below).
     const stopAt = clock.now() + LEVEL_SAMPLE_MS;
     clock.advanceTo(stopAt);
-    watch.frame(frame(0));
+    watch.frame(frame(quiet));
     clock.advanceTo(stopAt + HEARING_OFF_AFTER_MS - 1);
     assert.equal(said.at(-1)!.hearing, true, 'the word went before the learner had been quiet long enough');
     clock.advanceTo(stopAt + HEARING_OFF_AFTER_MS);
@@ -460,6 +467,84 @@ describe('the room says what it hears in words — F764, the orb half', () => {
       assert.match(body, /room: \{ \.\.\.facts, awake \}/, `${name} RoomLevels does not hand the orb its facts`);
       assert.match(body, /const awake = active && focused;/, `${name} RoomLevels keeps the orb awake in the background or behind another screen`);
       assert.match(body, /watch\.stop\(\);/, `${name} RoomLevels leaves the facts watch's timer running when it goes`);
+    }
+  });
+});
+
+/**
+ * F777: the levels used to fall one step per timer tick, 15 % at a time, so a
+ * full ring took over a second to rest after the learner stopped, and longer
+ * when the JS thread ran the timer late; "Hearing you" then waited 600 ms more
+ * on top. Acceptance check 7 asks for rest within 300 ms of silence.
+ */
+describe('the room rests on time, by the clock — F777', () => {
+  /** An RMS the level reads as full: the worst case, the furthest to fall. */
+  const FULL_RMS = 0.25;
+  /** Room noise under the 0.01 floor, which the web analyser and a quiet phone keep sending between words. */
+  const ROOM_NOISE_RMS = 0.004;
+  const SILENT_BANDS = [0, 0, 0, 0, 0, 0, 0];
+
+  test('a level rests within 300 ms of silence', () => {
+    assert.equal(REST_WITHIN_MS, 300, 'acceptance check 7 asks for rest within 300 ms of silence');
+
+    // The fall is counted by the clock: the same time falls the same distance
+    // however many looks it is cut into, so a late or a frequent timer cannot
+    // change when the level rests.
+    assert.equal(release(1, RELEASE_MS), 0, 'a full level is still up after the whole release');
+    let looked = 1;
+    for (let t = 0; t < RELEASE_MS; t += 10) looked = release(looked, 10);
+    assert.equal(looked, 0, 'a level looked at often falls slower than one looked at once');
+    assert.ok(Math.abs(release(release(0.8, 30), 50) - release(0.8, 80)) < 1e-9, 'two looks fell a different distance from one');
+    assert.equal(release(0.6, 1000, 0.3), 0.3, 'a quieter syllable pulled the level below what it said');
+    assert.ok(release(1, LEVEL_SAMPLE_MS) > 0.5, 'one reading of silence emptied the ring');
+
+    // Three ways the audio stops. A phone's hook sends nothing at all; a
+    // browser (and a quiet phone) keeps sending readings with nothing in them;
+    // and a busy thread runs the meter's timer at twice the interval it asked for.
+    for (const ending of ['no readings', 'silent readings', 'late timers'] as const) {
+      const clock = fakeClock(ending === 'late timers' ? LEVEL_SAMPLE_MS : 0);
+      const said: { facts: RoomFacts; at: number }[] = [];
+      const watch = createRoomFacts((facts) => said.push({ facts, at: clock.now() }), clock);
+      const orb = sink();
+      const meter = createRoomMeter(orb, clock, watch.frame);
+      meter.measuring({ mic: { track: 'mic' }, tutor: { track: 'tutor' } });
+      meter.turn(LEARNERS_TURN);
+
+      // Half a second of a full voice from both of them, a reading every 40 ms.
+      let last = 0;
+      for (let at = 0; at <= 480; at += LEVEL_SAMPLE_MS) {
+        clock.advanceTo(at);
+        meter.mic(FULL_RMS);
+        meter.tutor(TUTOR_VOICE);
+        last = at;
+      }
+      const loud = orb.input.value;
+      assert.ok(loud > 0.99, `${ending}: a full voice drew a ring of ${loud}`);
+      assert.equal(said.at(-1)!.facts.hearing, true, `${ending}: half a second of voice never said "Hearing you"`);
+
+      // Silence. Inside the hold nothing moves: that is a gap between syllables.
+      for (let at = last + LEVEL_SAMPLE_MS; at <= last + REST_WITHIN_MS; at += LEVEL_SAMPLE_MS) {
+        clock.advanceTo(at);
+        if (ending === 'silent readings') {
+          meter.mic(ROOM_NOISE_RMS);
+          meter.tutor(SILENT_BANDS);
+        }
+        if (at < last + STALE_AFTER_MS) {
+          assert.equal(orb.input.value, loud, `${ending}: the ring fell ${at - last} ms into the silence, inside the hold`);
+          assert.equal(said.at(-1)!.facts.hearing, true, `${ending}: the word went inside the hold`);
+        }
+      }
+      clock.advanceTo(last + REST_WITHIN_MS);
+
+      // And by 300 ms everything is at rest, exactly, and the word has gone.
+      assert.equal(orb.input.value, 0, `${ending}: the ring had not rested ${REST_WITHIN_MS} ms after the learner stopped`);
+      assert.deepEqual(orb.bands.value, SILENT_BANDS, `${ending}: the bars had not rested ${REST_WITHIN_MS} ms after the tutor stopped`);
+      assert.equal(orb.output.value, 0);
+      assert.equal(orb.inputLive.value, true, `${ending}: a measured silence dropped the orb back to its pretend loop`);
+      const off = said.findLast((one) => !one.facts.hearing);
+      assert.ok(off !== undefined && said.at(-1)!.facts.hearing === false, `${ending}: "Hearing you" stayed up after the learner stopped`);
+      assert.ok(off.at - last <= REST_WITHIN_MS, `${ending}: "Hearing you" went ${off.at - last} ms after the learner stopped`);
+      if (ending !== 'silent readings') assert.equal(clock.pendingCount(), 0, `${ending}: the meter keeps a timer running at rest`);
     }
   });
 });

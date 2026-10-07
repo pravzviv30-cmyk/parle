@@ -7,11 +7,12 @@
  * corner, and confetti leaves it. Every independent finish this session gets
  * it: the first earn the bigger one (`postcard-first`: the `badge` sound and a
  * full `celebrate()`), an earn again the lighter one (`postcard-again`:
- * `correct` and one success). A finish with help gets no stamp at all; the
- * recap draws that postcard still (`recap/evidence.ts` `postcardStamp`). The
- * beats are `celebrate/timelines.ts`, and the sound and haptic reach the device
- * only through `effects.ts`, which says nothing while a microphone or a live
- * room holds the learner's ears.
+ * `correct` and one success). A finish whose history could not be read
+ * (`neutral`) takes the first earn's weight. A finish with help gets no stamp
+ * at all; the recap draws that postcard still (`recap/evidence.ts`
+ * `postcardStamp`). The beats are `celebrate/timelines.ts`, and the sound and
+ * haptic reach the device only through `effects.ts`, which says nothing while
+ * a microphone or a live room holds the learner's ears.
  *
  * Once per recap: a page turned away from and back to shows the postcard
  * already stamped, silently. Reduce Motion shows the stamped postcard at once
@@ -27,6 +28,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import type { IllustrationName } from '../art/flat/index.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
+import type { PostcardStampKind } from '../recap/evidence.ts';
 import { useReduceMotion } from '../motion.ts';
 import { cancel, spring, timing } from '../motion/drive.ts';
 import { useAnswered, useLandOnLeave } from '../motion/landing.ts';
@@ -50,16 +52,20 @@ const noop = () => {};
 
 export function PostcardStamp({
   art,
-  kind,
+  kind: given,
   momentKey,
 }: {
   /** The scene's postcard. */
   art: IllustrationName;
-  /** The first earn, or an earn again. */
-  kind: 'first' | 'again';
+  /** The first earn, an earn again, or an earn whose history could not be read (`recap/evidence.ts` `postcardStamp`). */
+  kind: PostcardStampKind;
   /** The recap this stamp belongs to, so it plays once; null plays once per mount. */
   momentKey: string | null;
 }) {
+  // A finish whose history could not be read may be the first, so it stamps
+  // with the first earn's weight; the line under it claims no earlier finish
+  // and no first time (F777).
+  const kind = given === 'neutral' ? 'first' : given;
   const timeline = TIMELINES[kind === 'first' ? 'postcard-first' : 'postcard-again'];
   const answered = useAnswered(useReduceMotion(true));
   const reduced = answered === true;

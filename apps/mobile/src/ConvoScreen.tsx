@@ -618,15 +618,23 @@ export function ConvoScreen({
   // off a single render, which is why the rules are in tutor/missionWin.ts and
   // tutor/coachMarks.ts and only the wiring is here.
 
+  // The learner's finish history before this session, or null while it is
+  // unknown: not read yet, or the read failed. Unknown is said as unknown, so
+  // the postcard never claims an earlier finish nobody could see (F777).
   const priorCompletions = useRef<readonly MissionCompletion[] | null>(null);
-  const [firstEarned, setFirstEarned] = useState(false);
+  // True for a first earn, false for an earn again, null when the history was unknown at the flip.
+  const [firstEarned, setFirstEarned] = useState<boolean | null>(false);
   // This session's finish was on the learner's own (core's independence rule
   // on the rung the winning view carried), first time or not: the recap stamps
   // its postcard for every one of those and never for a finish with help.
   const [independentFinish, setIndependentFinish] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    void loadMissionCompletions({ strict: true }).then(rows => { if (!cancelled) priorCompletions.current = missionCompletionsFrom(rows); }).catch(() => {});
+    // Another account's history never stands in for this one's while it loads.
+    priorCompletions.current = null;
+    void loadMissionCompletions({ strict: true })
+      .then(rows => { if (!cancelled) priorCompletions.current = missionCompletionsFrom(rows); })
+      .catch(() => { if (!cancelled) priorCompletions.current = null; });
     return () => { cancelled = true; };
   }, [userId]);
   const [win, setWin] = useState<WinState>(NO_WIN);
