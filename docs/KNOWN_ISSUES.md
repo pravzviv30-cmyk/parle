@@ -10291,6 +10291,41 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the recap stops the microphone capture, not only mutes it`
 - verified-by: `a level rests within 300 ms of silence`
 
+### F778 — Most screens still stack underlined text links where an icon control belongs
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src (63 files; docs/come-alive/icons-layout.md section 2)
+- note: README Part 5.B GhostButton sweep: about 160 of 222 links become IconButton, IconAction or Choice, keeping their labels. Words stay for legal and billing links, destructive and account actions, decline and Not now, leave confirmations and the age refusal. A ratchet test holds the remaining count and the KEEP categories.
+- verified-by: `underlined text links remain only where words must stay: legal, billing, account, decline and leave`
+
+### F779 — Every paper screen draws a footer rule, so a short page looks cut off
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:127
+- note: icons-layout.md 3.5: the footer hairline appears only when the content scrolls under it, toggled with no animation.
+- verified-by: `a footer hairline appears only when the content scrolls under it`
+
+### F780 — An iPad shows the phone layout stretched across a wide screen
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/responsiveLayout.ts, apps/mobile/src/layout.tsx
+- note: icons-layout.md 3.6 and README Part 5.B: layoutClass and <Columns> on regular width (two columns on the tabs), FOOTER_MAX 480, the reading width for first-run pages, takeovers and sheets.
+- verified-by: `on a regular-width screen the tabs use two columns and sheets keep the reading width`
+
+### F781 — Empty lists show a bare sentence and no way forward
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src (Phrasebook, Conversations, Tutor memory)
+- note: README Part 5.B: each empty list shows one of the existing state drawings and one first action.
+- verified-by: `every empty list shows its drawing and one first action`
+
+### F782 — Tapping a disabled Next does nothing a learner can notice
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/NextButton.tsx
+- note: icons-layout.md 3.4: the press is taken while the button stays disabled: a soft haptic, the options lift by 3 points with a 40 ms stagger (never a shake) and the live region says "Choose one to continue."; Reduce Motion gives the words only. The pinned disabled={answer == null} stays.
+- verified-by: `tapping a disabled Next lifts the choices and says to choose one, never a shake`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
