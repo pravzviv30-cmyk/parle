@@ -55,7 +55,7 @@ import { IconTile } from '../icons/IconTile.tsx';
 import { consumeRecording } from '../speech/discardRecording.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
-import { REMINDERS_AVAILABLE } from '../reminders/schedule.ts';
+import { REMINDERS_AVAILABLE, cancelReminder } from '../reminders/schedule.ts';
 import { ReminderAsk, type ReminderAnswer } from '../reminders/ReminderAsk.tsx';
 import { celebrationKey } from '../celebrate/events.ts';
 import { GAME_COPY } from '../game/copy.ts';
@@ -63,7 +63,7 @@ import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { FIRST_LINE } from './firstRun.ts';
 import { clipFor } from './exchangeAudio.ts';
 import { REASONS, START_LEVELS, minutesOf, planFor } from './plan.ts';
-import { GUEST_PAGES, guestInvestment, guestStreak, resumePage, starterMinutes } from './guestProgress.ts';
+import { GUEST_PAGES, guestInvestment, guestStreak, keptPhrase, resumePage, savedPhraseTasks, starterMinutes } from './guestProgress.ts';
 import {
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
@@ -267,6 +267,9 @@ export function PreAccountOnboarding({
     starterMinutes(activePlan.minutes),
   );
   const task = tasks[Math.min(taskIndex, tasks.length - 1)]!;
+  // The plan page always shows where the practice starts, even when Back
+  // reaches it from a later exchange.
+  const firstTask = tasks[0]!;
   const attempts = guest?.attempts.filter((a) => a.taskId === task.id) ?? [];
   const serviceAttempts = attempts.filter((attempt) => !attempt.offline).length;
   const last = guest?.attempts.at(-1);
@@ -539,7 +542,8 @@ export function PreAccountOnboarding({
     } catch (error) {
       if (current.current && ticket === generation.current) {
         if (speechRefused(error)) {
-          // The service said no to speech: nothing was sent and no attempt was spent (F756).
+          // The service said guest speech is closed: the take was never
+          // transcribed and no attempt was spent (F756).
           setMode('typed');
           setGuest((value) => (value ? { ...value, speechAvailable: false } : value));
           setIssue(FIRST_RUN_COPY.speechPaused);
@@ -662,6 +666,9 @@ export function PreAccountOnboarding({
         : draft.minutes;
   const suggested = suggestedMinutes(draft);
   const lastTask = last ? (tasks.find((t) => t.id === last.taskId) ?? task) : task;
+  // The guest home names only a phrase the hand-off would save: the natural
+  // line of the newest accepted or kept reply, never a refused one (F757).
+  const homePhrase = page === 'home' ? (savedPhraseTasks(guest).at(-1) ?? null) : null;
   const win = page === 'recap' && last ? winView(last, lastTask.model, taskIndex < tasks.length - 1) : null;
   const modelAudio = tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, lastTask.model, draft.tutorVoice);
   const drinksWrap = PixelRatio.getFontScale() >= TILES_WRAP_AT;
@@ -689,7 +696,7 @@ export function PreAccountOnboarding({
     ? 'Luvani is for learners thirteen and up.'
     : (headingFor(page) ??
       (page === 'plan'
-        ? `${task.title}.`
+        ? `${firstTask.title}.`
         : page === 'practice'
           ? task.title
           : page === 'recap'
@@ -1068,9 +1075,9 @@ export function PreAccountOnboarding({
                     <Card style={{ gap: 10 }}>
                       <Text style={[type.small, { color: paper.inkSoft }]}>{FIRST_RUN_COPY.firstExchange}</Text>
                       <Text {...frenchText} style={type.frenchLg}>
-                        {task.prompt}
+                        {firstTask.prompt}
                       </Text>
-                      <Text style={type.body}>{task.translation} Start with one reply.</Text>
+                      <Text style={type.body}>{firstTask.translation} Start with one reply.</Text>
                     </Card>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       <View {...decorative}>
@@ -1233,10 +1240,10 @@ export function PreAccountOnboarding({
                 {page === 'home' && (
                   <>
                     {streak !== null ? <StreakCard streak={streak} today={today} /> : null}
-                    {last && (
+                    {homePhrase && (
                       <Card style={{ gap: 10 }}>
                         <Text {...frenchText} style={type.frenchLg}>
-                          {last.feedback.model}
+                          {keptPhrase(homePhrase)}
                         </Text>
                         <Text style={type.body}>Come back to this phrase whenever you like.</Text>
                       </Card>
@@ -1474,6 +1481,8 @@ export function PreAccountOnboarding({
               label="I am younger than that"
               onPress={() => {
                 stopSound();
+                // A reminder set on day one goes with the plan it belongs to.
+                if (draftRef.current.reminderEnabled === true) void cancelReminder();
                 void clearGuestPractice();
                 onRefuse?.();
                 generation.current++;

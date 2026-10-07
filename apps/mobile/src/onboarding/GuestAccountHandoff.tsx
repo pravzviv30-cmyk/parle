@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { phraseKeyOf, starterTasks } from '@luvani/core';
+import { phraseKeyOf } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { Card, GhostButton, PillButton } from '../components.tsx';
@@ -20,7 +20,7 @@ import { settleGuestHandoff } from '../game/guestHandoff.ts';
 import { celebrationKey, publishCelebrations } from '../celebrate/events.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
-import { keptPhrase, starterMinutes } from './guestProgress.ts';
+import { keptPhrase, savedPhraseTasks } from './guestProgress.ts';
 import { tutorTimeLine } from './firstRun/copy.ts';
 /**
  * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
@@ -29,8 +29,10 @@ import { tutorTimeLine } from './firstRun/copy.ts';
  * line (F757), says "Saved to your phrasebook." once the phrasebook write is
  * durable, settles the guest's finished days into the account's streak (F744),
  * and then says how much time with the tutor the server holds for this
- * account. `onDone(kept)` tells the app whether the practice was kept, which is
- * what opens the first-run offer once (App.tsx).
+ * account. The card names only a phrase the save writes (`savedPhraseTasks`):
+ * with none, it says the practice is saved and names no phrase. `onDone(kept)`
+ * tells the app whether the practice was kept, which is what opens the
+ * first-run offer once (App.tsx).
  */
 export function GuestAccountHandoff({
   draft,
@@ -70,44 +72,16 @@ export function GuestAccountHandoff({
     try {
       const balance = await adoptGuestUsage(guest, uid);
       if (owner !== scopeGeneration() || activeUserId() !== uid) return;
-      const tasks = starterTasks(
-        guest.plan.reason,
-        guest.plan.drink ?? 'coffee',
-        starterMinutes(guest.plan.minutes),
-      );
-      const phrases = guest.attempts
-        .filter(
-          (a, index) =>
-            a.feedback.accepted ||
-            a.kept === true ||
-            (guest.kept && index === guest.attempts.length - 1),
-        )
-        .map((a) => {
-          const task = tasks.find((t) => t.id === a.taskId);
-          // The natural line, never the learner's unchecked spelling (F757).
-          return task
-            ? {
-                fr: keptPhrase(task),
-                frWritten: null,
-                en: task.meaning,
-                enLiteral: null,
-                register: 'courant' as const,
-                note: null,
-              }
-            : null;
-        })
-        .filter(
-          (
-            p,
-          ): p is {
-            fr: string;
-            frWritten: null;
-            en: string;
-            enLiteral: null;
-            register: 'courant';
-            note: null;
-          } => p !== null,
-        );
+      // Each accepted or kept reply's task, as its natural line, never the
+      // learner's unchecked spelling (F757).
+      const phrases = savedPhraseTasks(guest).map((task) => ({
+        fr: keptPhrase(task),
+        frWritten: null,
+        en: task.meaning,
+        enLiteral: null,
+        register: 'courant' as const,
+        note: null,
+      }));
       if ((await addPhrases(phrases)) !== 'durable')
         throw new Error('Your phrase could not be saved. Try again.');
       // Said only now that the phrasebook write is durable: one toast for the
@@ -172,9 +146,11 @@ export function GuestAccountHandoff({
       : remaining !== null
         ? tutorTimeLine(remaining, null)
         : null;
+  // The phrase the card names is the newest one the save writes, or none.
+  const shown = savedPhraseTasks(guest).at(-1);
   return (
     <ScrollScreen
-      header={<ScreenHeader title={saved ? 'Your phrase is saved.' : 'Keep this practice?'} />}
+      header={<ScreenHeader title={saved ? (shown ? 'Your phrase is saved.' : 'Your practice is saved.') : 'Keep this practice?'} />}
       footer={
         <PillButton
           label={saved ? 'Continue' : busy ? 'Saving…' : 'Keep this practice'}
@@ -187,11 +163,15 @@ export function GuestAccountHandoff({
     >
       <Text style={type.body}>Signed in as {user?.email ?? 'your account'}.</Text>
       <Card style={{ marginTop: 20, gap: 16 }}>
-        <Text style={type.heading}>{guest.attempts.at(-1)?.feedback.model ?? 'Your starting plan'}</Text>
+        {shown ? <Text style={type.heading}>{keptPhrase(shown)}</Text> : null}
         <Text style={type.body}>
           {saved
-            ? 'Your phrase is in Practice. Your account can sync it to another device.'
-            : 'Keep the phrase from this phone. Your account’s existing learning and preferences stay yours.'}
+            ? shown
+              ? 'Your phrase is in Practice. Your account can sync it to another device.'
+              : 'Your practice from this phone is kept with your account.'
+            : shown
+              ? 'Keep the phrase from this phone. Your account’s existing learning and preferences stay yours.'
+              : 'Keep the practice from this phone. Your account’s existing learning and preferences stay yours.'}
         </Text>
         {timeLine !== null && <Text style={type.bodyStrong}>{timeLine}</Text>}
       </Card>

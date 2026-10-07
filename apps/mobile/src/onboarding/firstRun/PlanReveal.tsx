@@ -73,7 +73,8 @@ export function PlanReveal({
 }) {
   const each = minutes === 'none';
   const wraps = PixelRatio.getFontScale() >= TILES_WRAP_AT;
-  const said = each ? FIRST_RUN_COPY.eachDay : `${minutes} ${FIRST_RUN_COPY.minutesUnit}`;
+  // Choose each time sets no daily target: the ring is its empty track and says so.
+  const said = each ? FIRST_RUN_COPY.noFixedGoal : `${minutes} ${FIRST_RUN_COPY.minutesUnit}`;
   return (
     <View style={st.reveal}>
       {/* The plan card grows into place from the questions' smaller one. */}
@@ -84,7 +85,7 @@ export function PlanReveal({
         <ProgressRing to={ringShare(minutes)} size={132} stroke={8} color={paper.ink} track={paper.skeleton} delay={RING_WAIT} accessibilityLabel={`Your daily goal: ${said}`}>
           <View {...decorative} style={st.centre}>
             {each ? (
-              <Text style={[type.bodyStrong, { color: paper.ink }]}>{FIRST_RUN_COPY.eachDay}</Text>
+              <Text style={[type.bodyStrong, st.centreWords]}>{FIRST_RUN_COPY.noFixedGoal}</Text>
             ) : (
               <>
                 <CountUp to={minutes} textStyle={[type.stat, { color: paper.ink }]} label={said} />
@@ -113,6 +114,7 @@ const st = StyleSheet.create({
   reveal: { gap: space(5) },
   ringRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(5) },
   centre: { alignItems: 'center', justifyContent: 'center' },
+  centreWords: { color: paper.ink, textAlign: 'center' },
   streak: { color: paper.ink, flex: 1, minWidth: space(40) },
   tiles: { flexDirection: 'row', gap: space(3) },
   tilesWrapped: { flexDirection: 'column' },

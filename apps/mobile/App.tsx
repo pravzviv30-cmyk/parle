@@ -76,9 +76,10 @@ import { paywallSurface } from './src/purchases/paywallView.ts';
 import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
-import { profileFromDraft, reminderFromDraft } from './src/onboarding/createFromDraft.ts';
+import { profileFromDraft, reminderFromDraft, reminderSummary } from './src/onboarding/createFromDraft.ts';
 import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
 import { saveReminder } from './src/reminders/store.ts';
+import { cancelReminder } from './src/reminders/schedule.ts';
 import {
   clearPreAccountDraft,
   loadPreAccountDraft,
@@ -204,8 +205,8 @@ function PreAccountProfileBootstrap({
       }
       if (owner !== scopeGeneration()) return;
       try {
-        // The plan's reminder time, kept off: no notification permission has
-        // been asked for, and the recap is where it is offered.
+        // The plan's reminder as the first run left it: on only when the
+        // learner said yes on day one and the system scheduled it, off otherwise.
         await saveReminder(reminderFromDraft(draft));
       } catch {
         // Nothing stored reads as off, which is what was meant anyway.
@@ -225,6 +226,13 @@ function PreAccountProfileBootstrap({
   if (bootstrapError) return <ScrollScreen><Text style={type.body}>{bootstrapError}</Text><PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} /></ScrollScreen>;
   if (!confirmed) {
     const plan = planFor(draft);
+    // A reminder the first run set belongs to the plan being put aside, so it
+    // leaves the phone first; otherwise it would keep nudging under a Settings
+    // row that says Off.
+    const startAgain = async () => {
+      if (draft.reminderEnabled === true) await cancelReminder();
+      onConsumed();
+    };
     return <ScrollScreen bottom="inset" header={<ScreenHeader title="Use this starting plan?" />}
       footer={<PillButton label="Use this plan for my account" onPress={() => setConfirmed(true)} />}>
       <Text style={[type.body, { color: paper.ink }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
@@ -234,9 +242,9 @@ function PreAccountProfileBootstrap({
         <Text style={type.body}>{plan.startingReason}</Text>
         {plan.goal && <Text style={type.body}>{plan.goal}</Text>}
         <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
-        <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. The reminder is off. You can change these choices in Settings.</Text>
+        <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. {reminderSummary(draft)} You can change these choices in Settings.</Text>
       </Card>
-      <GhostButton label="Start a new plan instead" onPress={onConsumed} />
+      <GhostButton label="Start a new plan instead" onPress={() => void startAgain()} />
     </ScrollScreen>;
   }
   return <Loading />;
@@ -654,11 +662,15 @@ function Gate() {
     void clearPreAccountDraft();
   }, []);
 
-  /** "I am younger than that": hold the refusal for the launch and clear the draft, first name and all. */
+  /**
+   * "I am younger than that": hold the refusal for the launch and clear the
+   * draft, first name and all, and any reminder that draft set on day one.
+   */
   const refusePreAccount = useCallback(() => {
     setPreAccountRefused(true);
+    if (preAccountDraft?.reminderEnabled === true) void cancelReminder();
     discardPreAccountDraft();
-  }, [discardPreAccountDraft]);
+  }, [discardPreAccountDraft, preAccountDraft]);
 
   /**
    * The whole of deleting an account, wired to the real adapter and the real

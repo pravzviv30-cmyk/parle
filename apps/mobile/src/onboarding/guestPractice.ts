@@ -11,7 +11,7 @@ import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 const KEY = '@luvani/guest-practice/v2';
 import { repairGuestPractice, type GuestPractice, type GuestAttempt } from './guestModel.ts';
 import { keepFinishes, starterMinutes } from './guestProgress.ts';
-import { SPEECH_UNAVAILABLE } from './firstRun/speech.ts';
+import { starterFailure } from './firstRun/speech.ts';
 export type { GuestPractice, GuestAttempt } from './guestModel.ts';
 let writes: Promise<unknown> = Promise.resolve();
 let writeGeneration = 0;
@@ -59,18 +59,20 @@ async function post(
     body: (bytes ?? JSON.stringify(value)) as BodyInit,
   });
   // A take the service will not transcribe (guest speech closed or its budget
-  // spent) is a 503 from /onboarding/audio. It spent no attempt, so the first
-  // run moves calmly to typing rather than saying the tutor cannot connect (F756).
-  if (!response.ok)
-    throw new Error(
-      response.status === 410
-        ? 'expired'
-        : response.status === 409
-          ? 'limit'
-          : response.status === 503 && path === 'audio'
-            ? SPEECH_UNAVAILABLE
-            : 'unavailable',
-    );
+  // spent) is a 503 from /onboarding/audio that says so. It spent no attempt,
+  // so the first run moves calmly to typing rather than saying the tutor cannot
+  // connect (F756). A failed transcription is a 503 from the same path after
+  // the attempt was reserved: that one is a broken connection, with Try again.
+  if (!response.ok) {
+    const said =
+      response.status === 503 && path === 'audio'
+        ? await response.json().then(
+            (body: unknown) => (body as { error?: unknown } | null)?.error,
+            () => undefined,
+          )
+        : undefined;
+    throw new Error(starterFailure(response.status, path, said));
+  }
   return (await response.json()) as Record<string, unknown>;
 }
 /**

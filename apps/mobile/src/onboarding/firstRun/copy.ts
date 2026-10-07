@@ -29,7 +29,8 @@ export const FIRST_RUN_COPY = {
 
   /** The plan reveal. */
   minutesUnit: 'minutes a day',
-  eachDay: 'Each day',
+  /** The ring's words when the learner chose each time: no target is set, so none is drawn. */
+  noFixedGoal: 'No fixed goal',
   streakLine: 'Any finished practice counts for your streak, even offline.',
   firstExchange: 'Your first exchange',
   exchangeTileLabel: 'in your first practice',

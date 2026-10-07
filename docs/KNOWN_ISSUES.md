@@ -10126,7 +10126,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/onboarding/NextButton.tsx:41, apps/mobile/src/components.tsx:981
 - note: A disabled pill is a slate fill that reads as live. Disabled is paper.skeleton with soft ink; enabling cross-fades to ink with a pop and a glint.
 - verified-by: `a disabled Next looks disabled on every ground`
-- note: 2026-10-06 ca/p2-first-run: Continue is the sand skeleton with soft ink words and arrow, with a hint, when off, and fades to ink with one glint when an answer is chosen; an off white PillButton on blue or coral takes blue's pale secondary. Not covered: motion/MorphButton.tsx (outside this track) still draws its off face in slate with white words, and the first run's Start practice and Send reply use it.
+- note: 2026-10-06 ca/p2-first-run: Continue is the sand skeleton with soft ink words and arrow, with a hint, when off, and fades to ink with one glint when an answer is chosen; an off white PillButton on blue or coral takes blue's pale secondary. 2026-10-07 ca/p2-first-run-2-r1: motion/MorphButton.tsx, which the first run's Start practice and Send reply use, now draws its off face the same way, sand for ink and blue's pale secondary for white with soft ink words (`a disabled MorphButton never draws the live face`).
 
 ### F759 — A drill answer gets one line of text and no rhythm
 - severity: P2

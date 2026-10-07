@@ -17,7 +17,8 @@ import { fileURLToPath } from 'node:url';
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { SEEDED_GOAL, START_LEVELS, REASONS, firstSceneFor, presetMinutes, planFor } from './plan.ts';
-import { profileFromDraft, reminderFromDraft } from './createFromDraft.ts';
+import { profileFromDraft, reminderFromDraft, reminderSummary } from './createFromDraft.ts';
+import { streakGuiltIn } from '../copy/guilt.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setActiveUser } from '../storage/scope.ts';
 import { loadProfile, saveProfile } from '../profile/store.ts';
@@ -100,6 +101,30 @@ describe('the plan is written at account creation', () => {
   test('the reminder is saved at the plan’s time and stays off', () => {
     assert.deepEqual(reminderFromDraft(freshPreAccountDraft()), { enabled: false, time: DEFAULT_REMINDER_TIME });
     assert.deepEqual(reminderFromDraft(draft({ reminderTime: 'night' })), { enabled: false, time: 'night' });
+  });
+
+  test('the account review says the reminder is on only when the first run set it, and starting again takes it off the phone', () => {
+    // The words follow the fact the bootstrap saves, never a fixed "off".
+    assert.equal(reminderSummary(freshPreAccountDraft()), 'The reminder is off.');
+    assert.equal(reminderSummary(draft({ reminderTime: 'night' })), 'The reminder is off.', 'a time chosen and never scheduled is said as on');
+    assert.equal(reminderSummary(draft({ reminderEnabled: true, reminderTime: 'morning', reminderDays: [] })), 'The reminder is on at about 8:00 am.');
+    assert.equal(reminderSummary(draft({ reminderEnabled: true })), 'The reminder is on at about 6:00 pm.', 'a set reminder with no time is not said at the evening it runs at');
+    for (const answer of [freshPreAccountDraft(), draft({ reminderEnabled: true, reminderTime: 'lunch' }), draft({ reminderEnabled: false, reminderTime: 'night' })]) {
+      const line = reminderSummary(answer);
+      assert.equal(line.includes(' on at about '), reminderFromDraft(answer).enabled, `"${line}" disagrees with the reminder the account saves`);
+      assert.equal(streakGuiltIn(line), undefined, `"${line}" nags`);
+      assert.doesNotMatch(line, /[—–·!]/);
+    }
+
+    // The review card reads the draft, and Start a new plan instead takes a
+    // first-run reminder off the phone before it lets the draft go.
+    const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function RememberCompletedAccount')).replace(/\s+/g, ' ');
+    assert.ok(boot.includes('Use this starting plan?'), 'the review screen moved; this check reads nothing');
+    assert.match(boot, /Optional usage data: \{draft\.analyticsConsent \? 'on' : 'off'\}\. \{reminderSummary\(draft\)\} You can change these choices in Settings\./, 'the review card says something other than the reminder the draft holds');
+    assert.doesNotMatch(boot, /The reminder is off\./, 'the review card says off whatever the draft holds');
+    assert.match(boot, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\); onConsumed\(\); \};/, 'starting again leaves the first run\'s reminder on the phone, or lets the draft go first');
+    assert.match(boot, /<GhostButton label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    assert.match(APP, /import \{ cancelReminder \} from '\.\/src\/reminders\/schedule\.ts';/);
   });
 
   test('App.tsx writes consent and the reminder before it releases the app, and opens the first scene', () => {

@@ -12,8 +12,10 @@
  *   - the voice through `withChosenVoice`, so a default nobody changed still
  *     reads "never chosen" only if nobody touched it;
  *   - the first name becomes the profile name;
- *   - the reminder goes through `saveReminder`, always `enabled: false`, because
- *     no notification permission has been asked for.
+ *   - the reminder goes through `saveReminder`, on only when the learner said
+ *     yes to the day-one ask and the system scheduled it (`reminderEnabled` is
+ *     set only then), and off otherwise; `reminderSummary` says which on the
+ *     account's review screen.
  *
  * Kept apart from `plan.ts` on purpose: this module reaches the profile store,
  * and the plan page must not load anything that can (`disclosure.test.ts`).
@@ -21,7 +23,7 @@
 
 import { carryPreferenceEdits, createStoredProfile, type StoredProfile } from '../profile/store.ts';
 import { withLearnerGoal, withMemoryPaused } from '../profile/memory.ts';
-import type { StoredReminder } from '../reminders/reminder.ts';
+import { reminderTime, type StoredReminder } from '../reminders/reminder.ts';
 import { withChosenVoice } from './voiceStep.ts';
 import { SEEDED_GOAL, levelOf, minutesOf, reminderOf, startEstimate } from './plan.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
@@ -52,4 +54,14 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
 /** The reminder time chosen on the plan, saved off until the OS has said yes. */
 export function reminderFromDraft(draft: PreAccountOnboardingDraft): StoredReminder {
   return { enabled: draft.reminderEnabled === true, time: reminderOf(draft), ...(draft.reminderDays?.length ? { days: draft.reminderDays } : {}) };
+}
+
+/**
+ * The reminder as the account's review screen says it ("Use this starting
+ * plan?"): the same fact `reminderFromDraft` saves, so the screen never says off
+ * about a reminder the phone already has scheduled.
+ */
+export function reminderSummary(draft: PreAccountOnboardingDraft): string {
+  const reminder = reminderFromDraft(draft);
+  return reminder.enabled ? `The reminder is on at about ${reminderTime(reminder.time).gloss}.` : 'The reminder is off.';
 }

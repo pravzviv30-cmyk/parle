@@ -31,7 +31,7 @@ import Reanimated, { useAnimatedProps, useAnimatedStyle, useSharedValue } from '
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Press } from '../components.tsx';
 import { useReduceMotion } from '../motion.ts';
-import { accent, decorative, paper, radius, space, STROKE, type } from '../theme.ts';
+import { accent, decorative, onColour, paper, radius, space, STROKE, type } from '../theme.ts';
 import { monotonicNow } from './clock.ts';
 import { cancel, delay, repeat, timing } from './drive.ts';
 import { arrived } from './haptics.ts';
@@ -247,8 +247,8 @@ export function MorphButton({
   };
 
   const locked = disabled || state === 'busy' || state === 'done';
-  const fill = disabled ? st.off : tone === 'white' ? st.white : st.ink;
-  const ink = tone === 'white' && !disabled ? paper.ink : paper.onInk;
+  const fill = disabled ? (tone === 'white' ? st.offOnColour : st.off) : tone === 'white' ? st.white : st.ink;
+  const ink = disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk;
   const shown = reduced ? (state === 'busy' ? busyLabel : state === 'done' ? doneLabel : label) : label;
   const spoken = state === 'busy' ? busyLabel : state === 'done' ? doneLabel : accessibilityLabel ?? label;
   const longest = [label, busyLabel, doneLabel].reduce((a, b) => (b.length > a.length ? b : a));
@@ -319,10 +319,13 @@ const st = StyleSheet.create({
   unseen: { opacity: 0 },
   centre: { alignItems: 'center', justifyContent: 'center' },
   surface: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  // PillButton's three fills: ink, white on blue or coral, and soft ink when off.
+  // PillButton's fills: ink, white on blue or coral, and off as PillButton says
+  // it (F758): the sand skeleton for ink, the blue ground's pale secondary for
+  // white, both with soft ink words.
   ink: { backgroundColor: accent.primary },
   white: { backgroundColor: paper.card },
-  off: { backgroundColor: paper.inkFaint },
+  off: { backgroundColor: paper.skeleton },
+  offOnColour: { backgroundColor: onColour.blue },
   unmeasured: { alignSelf: 'stretch', flex: 1, borderRadius: radius.control },
   words: { textAlign: 'center', paddingHorizontal: space(6) },
   mark: { position: 'absolute', width: MARK, height: MARK },

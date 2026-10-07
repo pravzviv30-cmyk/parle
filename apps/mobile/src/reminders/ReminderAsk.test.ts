@@ -78,6 +78,12 @@ describe('the reminder ask — F754', () => {
     assert.equal(resumePage('remind', false, guestPracticeDays(finished, utcDay), today), 'plan', 'day one opened with no guest record');
     // A run that has since lapsed has no day one to show: the save card opens.
     assert.equal(resumePage('remind', true, guestPracticeDays(finished, utcDay), utcDay(at + 3 * 86_400_000)), 'keep');
+    // The guest home, whose Set a reminder opens the same ask, needs a finish
+    // too. A record the previous build saved as { ...guest, completed: true }
+    // holds no finish day, so it opens the win, whose Continue finishes it.
+    assert.equal(resumePage('home', true, guestPracticeDays(replied, utcDay), today), 'recap', 'the guest home opened with no finished practice on the phone');
+    assert.equal(resumePage('home', true, guestPracticeDays(finished, utcDay), today), 'home');
+    assert.equal(resumePage('home', false, guestPracticeDays(finished, utcDay), today), 'plan');
     for (const page of ['hear-it', 'reason', 'plan'] as const) assert.equal(resumePage(page, false, [], today), page);
     assert.ok(GUEST_PAGES.includes('remind') && GUEST_PAGES.includes('keep'), 'day one or the save card can open without a guest record');
 
@@ -125,6 +131,26 @@ describe('the reminder ask — F754', () => {
       /const answer = \(value: ReminderAnswer\) => \{ if \(answered\.current\) return; answered\.current = true; onDone\(value\); \};/,
       'the ask can answer twice',
     );
+  });
+
+  test('a reminder the first run set leaves the phone with the plan it belongs to', () => {
+    // An under-13 answer clears the draft and the guest record, and a reminder
+    // set on day one goes with them: in the start sheet, and in the launch's
+    // own refusal, whichever hears it first. Both only when one was set.
+    const screen = evidence(SCREEN);
+    const younger = screen.slice(screen.indexOf('label="I am younger than that"'), screen.indexOf('/>', screen.indexOf('label="I am younger than that"')));
+    assert.ok(younger.length > 0, 'the younger link moved; this check reads nothing');
+    assert.match(younger, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/, 'an under-13 answer leaves the first run\'s reminder on the phone');
+    assert.ok(younger.indexOf('cancelReminder()') < younger.indexOf('onRefuse?.()'));
+    assert.equal((screen.match(/cancelReminder\(/g) ?? []).length, 1, 'the first run takes a reminder away somewhere other than the refusal');
+    const app = evidence('apps/mobile/App.tsx');
+    const refuse = app.slice(app.indexOf('const refusePreAccount = useCallback('), app.indexOf('const deleteAccount'));
+    assert.match(refuse, /if \(preAccountDraft\?\.reminderEnabled === true\) void cancelReminder\(\); discardPreAccountDraft\(\); \}, \[discardPreAccountDraft, preAccountDraft\]\);/, 'the launch\'s refusal clears the draft and leaves its reminder running');
+    // Create one on a returning sign-in screen starts a fresh draft, so the old
+    // draft's reminder goes too.
+    const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
+    const newAccount = flow.slice(flow.indexOf('const newAccount = () => {'), flow.indexOf('const signIn ='));
+    assert.match(newAccount, /void clearGuestPractice\(\); if \(initialDraft\?\.reminderEnabled === true\) void cancelReminder\(\);/, 'a fresh introduction leaves the old draft\'s reminder on the phone');
   });
 
   test('the reminder ask speaks plainly and names the chosen tutor', () => {

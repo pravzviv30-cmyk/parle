@@ -72,7 +72,7 @@ describe('a kept first-run phrase — F757', () => {
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
     const guestHome = screen.slice(screen.indexOf("{page === 'home' && ("));
     assert.ok(guestHome.length > 0, 'the guest home moved; this check reads nothing');
-    assert.match(guestHome, /\{last\.feedback\.model\}/, 'the guest home no longer shows the natural line');
+    assert.match(guestHome, /\{keptPhrase\(homePhrase\)\}/, 'the guest home no longer shows the natural line');
     assert.doesNotMatch(guestHome, /\{last\.reply\}|last\.feedback\.accepted \? last\.reply/, 'the guest home shows the learner\'s spelling as the phrase');
   });
 });
@@ -179,7 +179,8 @@ describe('the save card — F754', () => {
     assert.deepEqual(full.map((row) => row.text), [
       'Day 1 of your streak',
       '2 French replies that work',
-      '1 phrase kept',
+      // b's line, kept, and a's, the last reply's task in a practice kept as a whole.
+      '2 phrases kept',
       `${a.title}, 10 minutes a day`,
       `Your AI tutor: ${tutor}`,
       'Reminder at about 8:00 am',
@@ -197,9 +198,15 @@ describe('the save card — F754', () => {
     assert.deepEqual(keys({ practice: { attempts: [attempt(a, a.model, 'model')], kept: false, plan }, days: [], today, draft }), ['plan', 'tutor']);
     // Two days in a run say two.
     assert.equal(guestInvestment({ practice, days: ['2026-10-04', today], today, draft })[0]!.text, 'Day 2 of your streak');
-    // Phrases kept are counted from the record.
+    // Phrases kept are counted from the record, one per task: a kept phrase
+    // is always its task's natural line, so keeping it twice is one phrase.
     const allKept = { ...practice, attempts: practice.attempts.map((x) => ({ ...x, kept: true })) };
-    assert.equal(guestInvestment({ practice: allKept, days: [], today, draft }).find((row) => row.key === 'kept')?.text, '4 phrases kept');
+    assert.equal(guestInvestment({ practice: allKept, days: [], today, draft }).find((row) => row.key === 'kept')?.text, '2 phrases kept');
+    const keptRow = (input: Pick<GuestPractice, 'attempts' | 'kept' | 'plan'>) => guestInvestment({ practice: input, days: [], today, draft }).find((row) => row.key === 'kept')?.text;
+    assert.equal(keptRow({ attempts: [attempt(a, a.model, 'typed', { kept: true }), attempt(a, a.model, 'typed', { kept: true })], kept: true, plan }), '1 phrase kept', 'one phrase kept twice is counted twice');
+    // A practice kept as a whole keeps its last reply's task, once.
+    assert.equal(keptRow({ attempts: [attempt(a, a.model, 'typed', { kept: true }), attempt(b, 'xyz', 'typed')], kept: true, plan }), '2 phrases kept');
+    assert.equal(keptRow({ attempts: [attempt(a, a.model, 'typed'), attempt(b, 'xyz', 'typed')], kept: false, plan }), undefined, 'nothing kept is listed as kept');
     // A goal chosen each time names the practice alone.
     const each = { ...practice, plan: { ...plan, minutes: 'none' as const } };
     const [single] = starterTasks('food', 'coffee', starterMinutes('none'));

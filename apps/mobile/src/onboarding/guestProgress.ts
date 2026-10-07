@@ -16,6 +16,8 @@
  *   accepted reply is checked against a short list of authored answers, not for
  *   spelling, so the learner's own words can carry a typo into the phrasebook
  *   and onto Home (F757).
+ * - `savedPhraseTasks`: the tasks whose natural line a guest's practice saves,
+ *   so the hand-off and the guest home never name a phrase that is not saved.
  * - `keepFinishes`: a new practice carries the days the guest already finished
  *   (F751), so starting again never takes a finished day away.
  * - `guestStreak`, `guestInvestment` and `resumePage`: day one, the save card
@@ -44,6 +46,23 @@ export function starterMinutes(minutes: PlanMinutes | null | undefined): Starter
 /** The French a kept first-run phrase saves: the task's natural line (F757). */
 export function keptPhrase(task: Pick<StarterTask, 'model'>): string {
   return task.model;
+}
+
+/**
+ * The tasks whose natural line a guest's practice saves, oldest first: one for
+ * each reply that was accepted or kept, and the last reply when the practice
+ * itself was kept. The hand-off writes exactly these to the phrasebook, and the
+ * hand-off card and the guest home show the newest of them, so neither ever
+ * names a refused line that was never saved.
+ */
+export function savedPhraseTasks(practice: Pick<GuestPractice, 'attempts' | 'kept' | 'plan'> | null): StarterTask[] {
+  if (practice === null) return [];
+  const tasks = starterTasks(practice.plan.reason, practice.plan.drink ?? 'coffee', starterMinutes(practice.plan.minutes));
+  const last = practice.attempts.length - 1;
+  return practice.attempts
+    .filter((attempt, index) => attempt.feedback.accepted || attempt.kept === true || (practice.kept && index === last))
+    .map((attempt) => tasks.find((task) => task.id === attempt.taskId))
+    .filter((task): task is StarterTask => task !== undefined);
 }
 
 /**
@@ -110,7 +129,8 @@ export interface InvestmentRow {
  * - the live run, from the finish days;
  * - replies that work: accepted replies the learner gave, typed or spoken (a
  *   played model is accepted and is nobody's reply);
- * - phrases kept, from the guest record;
+ * - phrases kept, from the guest record: one per task, because a kept phrase
+ *   is always that task's natural line, so keeping it twice is one phrase;
  * - the plan the practice ran on: its first task and the daily goal;
  * - the tutor chosen on this phone (the default counts: it is the plan's);
  * - the reminder, only once one is really scheduled (`reminderEnabled` is set
@@ -130,8 +150,10 @@ export function guestInvestment(input: {
   const attempts = practice?.attempts ?? [];
   const working = attempts.filter((attempt) => attempt.feedback.accepted && attempt.feedback.evidence !== 'model').length;
   if (working > 0) rows.push({ key: 'replies', icon: 'chat', text: KEEP_ROWS.replies(working) });
-  const markedKept = attempts.filter((attempt) => attempt.kept === true).length;
-  const kept = practice?.kept === true ? Math.max(1, markedKept) : markedKept;
+  const keptTasks = new Set(attempts.filter((attempt) => attempt.kept === true).map((attempt) => attempt.taskId));
+  const newest = attempts.at(-1);
+  if (practice?.kept === true && newest !== undefined) keptTasks.add(newest.taskId);
+  const kept = keptTasks.size;
   if (kept > 0) rows.push({ key: 'kept', icon: 'bookmark', text: KEEP_ROWS.kept(kept) });
   if (practice !== null) {
     const plan = practice.plan;
@@ -153,12 +175,15 @@ export const GUEST_PAGES: readonly PreAccountPage[] = ['practice', 'recap', 'rem
  * Day one, and the reminder ask on it, come only after a finished practice
  * (F754): with no finish day on this phone it is the plan, and with a run that
  * has since lapsed there is no day one to show, so the save card opens. The
- * save card itself needs a finished practice too.
+ * save card and the guest home need a finished practice too: a guest home
+ * saved before finishes were kept opens the win, whose Continue finishes the
+ * practice, so the home's Set a reminder never comes before a finish.
  */
 export function resumePage(page: PreAccountPage, hasGuest: boolean, days: readonly DayKey[], today: DayKey): PreAccountPage {
   if (!GUEST_PAGES.includes(page)) return page;
   if (!hasGuest) return 'plan';
   if (page === 'remind') return guestStreak(days, today) !== null ? 'remind' : days.length > 0 ? 'keep' : 'plan';
   if (page === 'keep') return days.length > 0 ? 'keep' : 'plan';
+  if (page === 'home') return days.length > 0 ? 'home' : 'recap';
   return page;
 }

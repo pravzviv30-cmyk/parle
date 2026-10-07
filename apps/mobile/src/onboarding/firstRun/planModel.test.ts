@@ -12,6 +12,7 @@ import { evidence } from '../../../test/evidence.ts';
 import { presetMinutes } from '../plan.ts';
 import { freshPreAccountDraft, REASON_KEYS, START_LEVEL_KEYS, type PreAccountOnboardingDraft } from '../preAccountDraft.ts';
 import { GOAL_TIERS, planCardLabel, planSlots, planToken, planTokens, ringShare, slotFor, suggestedMinutes, tierLabel } from './planModel.ts';
+import { FIRST_RUN_COPY } from './copy.ts';
 
 const fresh = (extra: Partial<PreAccountOnboardingDraft> = {}): PreAccountOnboardingDraft => ({ ...freshPreAccountDraft(), ...extra });
 
@@ -27,7 +28,7 @@ describe('the plan card and the daily goal', () => {
     const all = fresh({ drink: 'coffee', reason: 'because', startLevel: 'zero', minutes: 20 });
     assert.deepEqual(planTokens(all).map((t) => t?.label), ['Coffee', 'Exploring', 'New to French', '20 min a day']);
     assert.equal(planToken(all, 'goal')?.dial, 4, 'an Intense goal does not draw a full dial');
-    assert.equal(planToken(fresh({ minutes: 'none' }), 'goal')?.label, 'Each day');
+    assert.equal(planToken(fresh({ minutes: 'none' }), 'goal')?.label, FIRST_RUN_COPY.chooseEachTime, 'a goal chosen each time reads as a target that is set');
     for (const reason of REASON_KEYS) assert.ok(planToken(fresh({ reason }), 'reason'), `${reason} has no token`);
     for (const startLevel of START_LEVEL_KEYS) assert.ok(planToken(fresh({ startLevel }), 'level'), `${startLevel} has no token`);
     assert.equal(slotFor('drink'), 'drink');
@@ -46,6 +47,12 @@ describe('the plan card and the daily goal', () => {
     assert.equal(suggestedMinutes(fresh({ reason: 'work', startLevel: 'zero' })), 15);
     assert.equal(suggestedMinutes(fresh({ reason: 'food', startLevel: 'zero' })), 5);
     assert.equal(suggestedMinutes(fresh({ reason: 'trip', startLevel: 'few' })), 10);
+    // Never from an answer nobody gave: where the level was not asked (the
+    // short variant), only work or a move point at a tier.
+    for (const reason of [null, ...REASON_KEYS]) {
+      const unasked = suggestedMinutes(fresh({ reason, startLevel: null }));
+      assert.equal(unasked, reason === 'work' || reason === 'moving' ? 15 : null, `${String(reason)} with no level answer suggests ${String(unasked)}`);
+    }
     assert.equal(tierLabel(GOAL_TIERS[1]!, true), 'Regular, 10 minutes a day, suggested');
     assert.equal(tierLabel(GOAL_TIERS[1]!, false), 'Regular, 10 minutes a day');
 
@@ -66,7 +73,7 @@ describe('the plan card and the daily goal', () => {
     assert.deepEqual(GOAL_TIERS.map((t) => [t.minutes, t.quarters]), [[5, 1], [10, 2], [15, 3], [20, 4]]);
     assert.equal(ringShare(5), 0.25);
     assert.equal(ringShare(20), 1);
-    assert.equal(ringShare('none'), 1, '"each day" draws a part ring as if it were a number');
+    assert.equal(ringShare('none'), 0, 'a goal chosen each time draws a ring as if a target were set');
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
     assert.match(screen, /<PlanReveal minutes=\{minutesOf\(draft\)\} exchanges=\{tasks\.length\}/, 'the reveal counts something other than the real plan');
     assert.match(screen, /const planReady = \(\) => \{ playSfx\('select'\); tapSettled\(\); \};/, 'the plan is louder than one select and one settled tap');
@@ -76,5 +83,26 @@ describe('the plan card and the daily goal', () => {
     assert.match(reveal, /<CountUp to=\{minutes\}/);
     assert.match(reveal, /FIRST_RUN_COPY\.streakLine/);
     assert.doesNotMatch(reveal, /HeroNumber|Building|building|shimmer|playSfx|tick=/, 'the reveal fakes work or ticks');
+  });
+
+  test('a goal chosen each time draws an empty ring that says no fixed goal', () => {
+    assert.equal(FIRST_RUN_COPY.noFixedGoal, 'No fixed goal');
+    assert.equal(ringShare('none'), 0);
+    const reveal = evidence('apps/mobile/src/onboarding/firstRun/PlanReveal.tsx');
+    assert.match(reveal, /const said = each \? FIRST_RUN_COPY\.noFixedGoal : `\$\{minutes\} \$\{FIRST_RUN_COPY\.minutesUnit\}`;/, 'the ring\'s label says a goal is set');
+    assert.match(reveal, /accessibilityLabel=\{`Your daily goal: \$\{said\}`\}/);
+    assert.match(reveal, /\{each \? \( <Text style=\{\[type\.bodyStrong, st\.centreWords\]\}>\{FIRST_RUN_COPY\.noFixedGoal\}<\/Text>/, 'the ring\'s centre says a goal is set');
+    assert.match(reveal, /<ProgressRing to=\{ringShare\(minutes\)\}/);
+    assert.doesNotMatch(reveal, /eachDay|Each day/, 'the reveal still says Each day');
+  });
+
+  test('the plan page shows the first exchange even when Back reaches it from a later one', () => {
+    const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
+    assert.match(screen, /const firstTask = tasks\[0\]!;/);
+    assert.match(screen, /\(page === 'plan' \? `\$\{firstTask\.title\}\.`/, 'the plan page is titled with the exchange the learner is on');
+    const plan = screen.slice(screen.indexOf("{page === 'plan' && ("), screen.indexOf("{page === 'practice' && ("));
+    assert.ok(plan.length > 0, 'the plan page moved; this check reads nothing');
+    assert.match(plan, /\{FIRST_RUN_COPY\.firstExchange\}<\/Text> <Text \{\.\.\.frenchText\} style=\{type\.frenchLg\}> \{firstTask\.prompt\} <\/Text> <Text style=\{type\.body\}>\{firstTask\.translation\} Start with one reply\.<\/Text>/);
+    assert.doesNotMatch(plan, /\btask\.(prompt|translation|title)\b/, 'the first-exchange card shows a later exchange');
   });
 });
