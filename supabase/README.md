@@ -4,6 +4,33 @@ This is the ordered schema, backup, rollback and verification runbook. SQL can b
 applied through the Supabase migration connector, CLI, or SQL Editor. PostgREST
 cannot apply DDL. Track applied migrations; do not blindly replay the whole folder.
 
+**7 October 2026 staging reconciliation.** The owner confirmed Parle
+(`cfimkuustkhthujdpjlq`) is development/staging now and is intended for production
+at publication. Applied 27 missing source migrations without changing their bytes.
+The full application catalog matches the 39-migration replay: 47 tables, 85 routines,
+all constraints/indexes/policies/ACLs/default grants included; PostgreSQL 17.6.
+The replay now explicitly reproduces the reviewed Supabase-managed default grants.
+No catalog field is ignored. Catalog SHA-256:
+`eba9e51c4ac8ce41606ece3414a971592bbc7685db180f7f50c9ebcd756985af`.
+
+Migration history was reconciled under a table lock after matching the complete
+catalog: 27 exact SQL receipts and four older receipts retain their SQL and now use
+the source filenames' versions; eight pre-history entries are explicitly marked as
+catalog-verified baselines, not executions today. The old history was captured before
+repair. All 39 versions now match the source inventory. PostgREST reload was notified.
+Accounts (1), learner-state rows (2), packs (1), and entitlements (0) were unchanged.
+Phrase audio ($0.02 trial/$0.20 paid), tutor admission and Friends remain disabled.
+No backend worker, vendor rate, production credential or payment switch was enabled.
+
+Security advisors report no ERROR: 43 service/private tables intentionally have
+RLS without client policies; two authenticated definer RPCs intentionally implement
+owned-account checks. Leaked-password protection is disabled and must be configured
+before password-based production signup; see
+[Supabase password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+The full runtime/provider/store/concurrency and backup/restore checks remain in
+`docs/RELEASE_GATE.md`. The deployment notes below describe earlier runs and original
+migration readiness; this dated reconciliation supersedes their staging-application status.
+
 On 20 September 2026 the owner authorised restoring Parle for testing. Its missing
 Conversation Packs prerequisite and the three practice-recovery migrations below
 were applied there. Queue RLS and service-only RPC privileges were checked remotely.
@@ -19,8 +46,9 @@ corresponding entries in this project's reported migration history. Reconcile
 history against the actual schema before any future CLI `db push`; do not blindly
 reapply local files or mark unverified migrations as applied.
 
-**What must never be in these tables:** raw audio, and full transcripts. Nothing in the
-schema stores either today. `product_events` is content-free by database trigger,
+**Raw audio must never be stored in these tables.** Conversation text is stored only
+in the separate, explicitly opted-in `saved_conversation_text` flow added by migration 22;
+it is not a default session transcript. `product_events` is content-free by database trigger,
 `trial_installations` holds two deployment-salted HMACs and no advertising id, email,
 Supabase uid or raw install id, and `billing_events` holds a vendor event id, an owner, a
 vendor event name and a timestamp — no amount, no card, no receipt. Adding a column that

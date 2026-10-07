@@ -5,7 +5,7 @@ it does not prove a legal notice, a store purchase, a physical phone or a
 deployment that nobody has run. The release owner records each item below with
 the date, environment and evidence location. A blank item is a release block.
 
-**7 October 2026 status.** The repository has 39 ordered migrations. The Come Alive branches are integrated and local fixes are under verification. Production deployment and device/store acceptance remain held. Ledger
+**7 October 2026 status.** The repository has 39 ordered migrations. The Come Alive branches are integrated and the implementation is locally verified. Staging Parle has the exact 39-migration catalog; runtime/store/device acceptance remains separate. Production deployment and device/store acceptance remain held. Ledger
 F263–F270 are closed for their local code fixes, with named tests and, where
 stated there, disposable database proofs. Those closures do not attest hosted
 migrations, real RevenueCat delivery, native export cleanup, provider sign-in,
@@ -22,8 +22,12 @@ asks for those missing release proofs rather than reopening the fixed defects.
   reopen while online, and verify exactly one server-owned Conversation Pack
   becomes ready with review, continuation and delete-one/delete-all Pack
   controls. Verify that deleting history leaves earned phrases and review cards.
-- [ ] Reconcile and apply the 26-migration inventory in `supabase/README.md` to the target Supabase project, reload its API
-  schema cache and run `npm run verify:supabase` against it.
+- [x] Reconcile and apply the 39-migration inventory to staging Parle and request API
+  schema-cache reload (7 October 2026; `supabase/staging-verification.json`).
+- [ ] Run `npm run verify:supabase` against the deployed runtime with the test accounts
+  and independently verify concurrent billing/session operations.
+- [ ] Enable leaked-password protection before password-based production signup;
+  the staging security advisor reports it disabled.
 - [ ] Execute the rollback evidence procedure in `supabase/README.md` on a
   disposable project, including a backup/restore and re-application.
 - [ ] Run RevenueCat sandbox purchase, renewal, cancellation, refund/revoke and

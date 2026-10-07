@@ -67,6 +67,19 @@ export async function migrationInventory(root = ROOT) {
   }));
 }
 
+// Supabase-managed public-schema defaults captured and reviewed on Parle,
+// PostgreSQL 17.6, 7 October 2026. Reproduce the grants; never discard ACL fields
+// from comparison. Explicit revokes in migrations must still protect every RPC.
+export const MANAGED_DEFAULT_PRIVILEGES_SQL = `
+  create role supabase_admin;
+  alter default privileges for role postgres in schema public grant all on tables to postgres,anon,authenticated,service_role;
+  alter default privileges for role postgres in schema public grant all on sequences to postgres,anon,authenticated,service_role;
+  alter default privileges for role postgres in schema public grant all on functions to postgres,anon,authenticated,service_role;
+  alter default privileges for role supabase_admin in schema public grant all on tables to postgres,anon,authenticated,service_role;
+  alter default privileges for role supabase_admin in schema public grant all on sequences to postgres,anon,authenticated,service_role;
+  alter default privileges for role supabase_admin in schema public grant all on functions to postgres,anon,authenticated,service_role;
+`;
+
 export async function buildSchemaManifest(root = ROOT) {
   const migrations = await migrationInventory(root);
   const { PGlite } = await import('@electric-sql/pglite');
@@ -79,6 +92,7 @@ export async function buildSchemaManifest(root = ROOT) {
       grant usage on schema public,auth to anon,authenticated,service_role;
       alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
       alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
+    await db.exec(MANAGED_DEFAULT_PRIVILEGES_SQL);
     for (const item of migrations) await db.exec(await readFile(resolve(root,'supabase/migrations',item.name),'utf8'));
     const catalog = (await db.query(CATALOG_SQL)).rows[0].catalog;
     const critical = ['active_tutor_identity_v1','reserve_tutor_session_v1','claim_tutor_session_v1','checkpoint_tutor_session_v1',

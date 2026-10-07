@@ -1,3 +1,4 @@
+import { afterPurchase, type ResumeRoute } from '../live/afterPurchase.ts';
 import { WalkIntro } from '../walk/WalkIntro.tsx';
 /**
  * The navigator.
@@ -541,12 +542,16 @@ function TermsRoute() {
 
 function WallRoute() {
   const nav = useNavigation<{
+    getState: () => { index: number; routes: ResumeRoute[] };
+    reset: (state: NonNullable<ReturnType<typeof afterPurchase>>) => void;
     goBack: () => void;
     canGoBack: () => boolean;
     replace: (screen: string, params?: object) => void;
     navigate: (screen: string, params?: object) => void;
   }>();
-  const { entry } = useRoute<RouteProp<RootStackParamList, 'Wall'>>().params;
+  const route = useRoute<RouteProp<RootStackParamList, 'Wall'>>();
+  const { entry, resumeRouteKey } = route.params;
+  const owner = useRef(scopeGeneration()).current;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
   // to. Falling through to the tabs is the difference between a way out and a
@@ -557,7 +562,13 @@ function WallRoute() {
     <WallScreen
       entry={entry}
       onLeave={leave}
-      onStartSpeaking={() => nav.replace('Convo')}
+      onStartSpeaking={(canResume) => {
+        if (owner !== scopeGeneration()) return;
+        if (entry !== 'refused') { nav.replace('Convo'); return; }
+        const resumed = afterPurchase({ granted: canResume, canStart: canResume,
+          ownsAccount: owner === scopeGeneration(), resumeRouteKey, wallKey: route.key, state: nav.getState() });
+        if (resumed !== null) nav.reset(resumed); else leave();
+      }}
       onOpenPractice={() => nav.replace('Tabs', { screen: 'Practice' })}
       onOpenBank={() => nav.navigate('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}

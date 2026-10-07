@@ -134,8 +134,8 @@ describe('the shared paywall — F250', () => {
       const page = /<OutOfMinutesView\b/.test(branch) ? read('../live/OutOfMinutesView.tsx') : branch;
       assert.match(branch, /<OutOfMinutesView label=\{live.status.label\} message=\{live.status.message\}/);
       assert.match(page, /<Sheet visible title=\{label\} onClose=\{onExit\}/);
-      assert.match(page, /nav.navigate\('Wall', \{ entry: 'refused' \}\)/);
-      assert.match(page, /label="Back to my French" onPress=\{onExit\}/);
+      assert.match(page, /nav.navigate\('Wall', \{ entry: 'refused', resumeRouteKey: route.key \}\)/);
+      assert.match(page, /label="Back to practice" onPress=\{onExit\}/);
       assert.doesNotMatch(page, /<Paywall/);
     }
   });

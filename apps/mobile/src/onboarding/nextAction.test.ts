@@ -13,6 +13,11 @@ test('tapping a disabled Next lifts the choices and says to choose one, never a 
   assert.equal(explanations, 1);
   const next = readFileSync(new URL('./NextButton.tsx', import.meta.url), 'utf8');
   assert.match(next, /nextAction\(disabled, onPress, onDisabledPress\)/);
+  assert.match(next, /Platform.OS === 'web'/);
+  assert.match(next, /onKeyDown:/);
+  assert.match(next, /'aria-disabled': disabled/);
+  assert.match(next, /event.preventDefault\(\)/);
+  assert.match(next, /!event.repeat/);
   assert.match(next, /accessibilityState=\{\{ disabled \}\}/);
   assert.doesNotMatch(next, /disabled=\{disabled\}/, 'the explanatory touch must still arrive');
   const page = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');

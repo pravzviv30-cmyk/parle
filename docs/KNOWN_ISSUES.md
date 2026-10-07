@@ -4725,7 +4725,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F302 — A ticked ledger entry can name a describe block and still count as verified
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:222
 - note: found by the work-judge while checking this repo's own tick discipline, which makes it the
   most interesting entry in the batch: it is a hole in the mechanism the whole ledger rests on.
@@ -7041,7 +7041,6 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
      `tutorNameOf(profile)` again inline. Three call sites is three chances to drift.
   7. `ConvoScreen.tsx:107` has a second import block sitting after executable code. Legal,
      and it hides sixteen imports from anyone reading the header.
-- verified-by: `the live surfaces sit inside the one frame, F444`
 - update 2026-10-03: title clipping was already removed in B. Remaining source fixes use a single backward history walk, committed opening time, a fixed recap deadline invoking the latest committed leave callback, one tutor name and a consolidated import header. Only the latest typed tutor row has Android live-region updates; iOS announces that one row once per ID. Native screen-reader behavior still requires device QA.
 - verified-by: `conversation opening and recap timeout use committed state without resetting the deadline`
 - verified-by: `the conversation announces only its newest typed tutor reply`
@@ -8209,7 +8208,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the order is the offer, whatever order the store answered in`
 - verified-by: `a store selling one tier draws one card, not a gap and not a decoy`
 - verified-by: `the subscription terms are on the surface that sells it`
-- verified-by: `a chosen plan says so to a screen reader`
+- verified-by: `a chosen way to pay says it is checked on a device and on the web`
 - verified-by: `every root screen the navigator can push has a path it can be read back from`
 
 ### F520 — The wall led with what a learner could already do, even when the gap was what they came back for
@@ -8556,12 +8555,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F566 — A purchase from a refused conversation returns the learner to the Tutor tab rather than the conversation
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/afterPurchase.ts:1
 - note: after the other session's Phase 1 lands. The wall's Done goes to the Tutor tab, and the brief
   asks that a purchase return the learner to the conversation that was refused. The route carries
   what to resume, a pure rule decides where Done goes from the purchase outcome, and the refused
-  screen reconnects when its retry param changes.
+  session unmounts before a fresh route starts with its original context. Cancelled, stale-account and unconfirmed outcomes never resume.
 - verified-by: `a purchase that granted minutes returns to the conversation that was refused, and nothing else does`
 
 ### F567 — Restore has no funnel event, and a return from the wall is invisible
@@ -9242,7 +9241,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/WallYoursPage.tsx:68
 - note: found by the F602 judge. `Ledger` now draws one hairline between its rows (components.tsx), but `WallYoursPage.tsx` (`st.ruled`) and `myfrench/PhraseBank.tsx` still give each row its own bottom border, so inside the white card they show two rules between rows and a stray rule under the last. The Wall's Yours page is where Home's "See the plans" lands. Take the row's own border off so the list's rule is the only one: the Wall in F607, PhraseBank in F605 (or leave it if F605 stops drawing it).
 - verified-by: `a row inside the white list draws no rule of its own, so the list's hairline is the only one between rows`
@@ -10363,3 +10362,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/purchases/billingChanges.ts, apps/mobile/src/game/GameProvider.tsx
 - note: Confirmed billing refresh invalidates game facts only for the still-current account and scope. Read generations prevent a slower earlier response from overwriting a newer one. Late successful reads after the loading deadline still update the view.
 - verified-by: `confirmed billing refresh invalidates game facts for only the current account`
+
+### F784 — New build-tool and image-decoder advisories were not yet patched
+- severity: P1
+- status: [x]
+- where: package.json, package-lock.json, services/token-server/src/dependencyPatches.test.ts
+- note: 7 October 2026 audit found compression GHSA-vc2v-76pw-4v95, shell-quote GHSA-pqg4-j6r4-53mv, source-map-js GHSA-68fv-2mgg-jv7q and Sharp GHSA-wq5f-xc86-pv6w. Exact overrides use compression 1.8.2, shell-quote 1.11.0, source-map-js 1.2.2 and Sharp 0.35.5 with libvips 1.3.4/librsvg 2.63.2. All unrelated versions and the pinned LiveKit SDK/plugin set are retained. Clean npm ci succeeds; hostile quote/map inputs are rejected, and the tutor RGB/resize/PNG path works. No new advisory was accepted or audit threshold weakened.
+- verified-by: `October dependency patches reject shell line injection and unbounded indexed source maps`
+- verified-by: `patched Sharp retains the tutor RGB resize and PNG encoding path`
+- verified-by: `every Sharp copy is patched and retains its cross-platform native assets`

@@ -22,13 +22,29 @@ of the list.
 
 ## Current landing snapshot
 
-- 7 October 2026 Come Alive completion: **4,887 tests, 0 failing**; core 794,
-  brain 468, tutor agent 609, token server 422, playground 26, mobile 2568.
+- 7 October 2026 Come Alive completion: **4,892 tests, 0 failing**; core 794,
+  brain 468, tutor agent 609, token server 425, playground 26, mobile 2570.
   All six workspaces typecheck. The final local source snapshot ran all 39 migrations
   through eight disposable SQL proof programs. All 77 shared release/provider checks pass, including the two decoder lease
   proofs. The complete gate is green with the raised workspace floors.
   This is branch evidence, not production deployment. Six Phase 4 branches and the
-  recovered reminder repairs are integrated; F747–F750, F753, F778–F783 have local fixes.
+  recovered reminder repairs are integrated; F747–F750, F753, F778–F783 have local fixes. Follow-up F566 preserves refused conversation context after a confirmed purchase; F650 removes duplicate row separators; F302 requires individual passing test events for ledger proof.
+- Staging Parle was explicitly identified by the owner and reconciled on 7 October:
+  27 missing migrations applied, 39 source versions recorded, and the full catalog
+  (47 tables, 85 routines, including managed default grants) matches the local replay.
+  Existing account/state/pack/entitlement counts are unchanged. Source and capture
+  hashes are recorded in `supabase/staging-verification.json`; runtime/provider/store
+  acceptance remains separate. See `supabase/README.md` for the migration-history
+  baseline and remaining Auth setting.
+- Web Continue now exposes its disabled state while explaining missing choices.
+  Browser verification exercised an unanswered pointer activation and confirmed
+  keyboard Enter advances after choosing an answer; the native control is retained.
+- F784 patches four newly reported dependency advisories with exact overrides:
+  compression 1.8.2, shell-quote 1.11.0, source-map-js 1.2.2 and Sharp 0.35.5.
+  Clean npm ci and targeted hostile-input/image compatibility tests pass.
+  `audit:ci` passes with zero critical advisories; pre-existing time-limited
+  braces/node-forge exceptions and the moderate uuid decision remain explicit.
+  This is not a claim that the dependency tree has zero advisories.
 - The production web export and unsigned iOS Simulator Xcode build succeed.
   Simulator Home and Progress and browser onboarding at phone/tablet widths were
   inspected. Device/store/provider acceptance remains pending as recorded in

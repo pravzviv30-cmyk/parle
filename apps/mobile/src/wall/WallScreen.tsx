@@ -68,7 +68,7 @@ export function WallScreen({
 }: {
   entry: WallEntry;
   onLeave: () => void;
-  onStartSpeaking: () => void;
+  onStartSpeaking: (canResume: boolean) => void;
   onOpenPractice: () => void;
   onOpenBank: () => void;
   onOpenPolicy: () => void;
@@ -266,7 +266,7 @@ export function WallScreen({
     if (left.current) return;
     left.current = true;
     if (user) void trackProductEvent({ name: 'wall_left', properties: { entry, outcome: granted ? 'granted' : 'unchanged', destination } }, { userId: user.id, generation: scopeGeneration() });
-    if (destination === 'speak') onStartSpeaking(); else returnToApp();
+    if (destination === 'speak') onStartSpeaking(granted && confirmedGrant?.canStart === true); else returnToApp();
   };
   const back = () => (index > 0 && !granted ? setIndex((at) => at - 1) : leave());
   useHardwareBack(true, back);

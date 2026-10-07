@@ -135,6 +135,10 @@
   "overrides": {
     "onnxruntime-node": {
       "adm-zip": "0.6.1"
-    }
+    },
+    "compression": "1.8.2",
+    "shell-quote": "1.11.0",
+    "source-map-js": "1.2.2",
+    "sharp": "0.35.5"
   }
 }

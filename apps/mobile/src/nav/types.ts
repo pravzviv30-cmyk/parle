@@ -167,7 +167,7 @@ export type RootStackParamList = {
    * property the `wall_shown` event carries, so the funnel is split by the same
    * doors the code has. It is a string union and stays serialisable.
    */
-  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' };
+  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; resumeRouteKey?: string };
   /**
    * The two documents, as routes rather than sheets inside Settings.
    *

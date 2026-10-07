@@ -1,0 +1,48 @@
+{
+  "status": "matched-captured-catalog",
+  "gitSha": "a3f45f191e560e69ff0a9017f49de8c760f9cfed",
+  "dirtySource": true,
+  "migrationCount": 39,
+  "catalogSha256": "eba9e51c4ac8ce41606ece3414a971592bbc7685db180f7f50c9ebcd756985af",
+  "captureCanonicalSha256": "1db18a5fcbb651aeed9b1b22c76b34e08aa1d0480a9bc464970f93d34432bf1d",
+  "target": {
+    "projectUrl": "https://cfimkuustkhthujdpjlq.supabase.co"
+  },
+  "executedAt": "2026-10-07T14:38:15.717918+00:00",
+  "postgresVersion": "17.6",
+  "capturedProvenanceVerified": false,
+  "hostedRuntimeVerified": false,
+  "concurrentVerified": false,
+  "limitation": "Offline comparison of operator-captured bytes; target/transport provenance, managed Auth/Storage/config, RLS behavior and concurrency require separate independent acceptance.",
+  "requestArtifactSha256": "897db5c3a24497c2ab5af22d6bf44c3e4435ea83b064bfe1eeee733b0ed6a61a",
+  "captureArtifactSha256": "6cba9014b6af29e1419749bbfb2498e443405553cfe386c5fb55cc068f6364e9",
+  "transport": "Supabase connector, project cfimkuustkhthujdpjlq",
+  "sourceInventorySha256": "a1e57f2bdb1045009c4baf7ec232bd256a1cb9a0639aa206b4d322828c34d1d2",
+  "counts": {
+    "tables": 47,
+    "routines": 85,
+    "accountsBeforeAndAfter": 1,
+    "learnerRowsBeforeAndAfter": 2,
+    "packsBeforeAndAfter": 1,
+    "entitlementsBeforeAndAfter": 0
+  },
+  "historyReconciliation": {
+    "exactNewExecutionReceipts": 27,
+    "preservedOlderReceipts": 4,
+    "explicitCatalogVerifiedBaselineReceipts": 8
+  },
+  "activation": {
+    "phraseAudio": false,
+    "tutorAdmission": false,
+    "friends": false
+  },
+  "securityAdvisor": {
+    "errors": 0,
+    "intentionalRlsWithoutClientPolicies": 43,
+    "intentionalAuthenticatedDefinerRpcs": [
+      "luvani_social",
+      "own_account_active_v1"
+    ],
+    "leakedPasswordProtection": "disabled; production configuration pending"
+  }
+}

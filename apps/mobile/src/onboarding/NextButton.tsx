@@ -15,7 +15,7 @@
  */
 
 import { nextAction } from './nextAction.ts';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, createElement, type KeyboardEvent } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { ArrowRight, Press } from '../components.tsx';
 import { decorative, radius, space, type } from '../theme.ts';
@@ -53,6 +53,37 @@ export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: ()
       </Animated.View>
     </>
   );
+  const contents = (<>
+      <View style={st.row}>{face(NEXT_OFF.words)}</View>
+      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }]}>
+        <View {...decorative} style={st.face}>
+          {face(NEXT_ON.words)}
+        </View>
+      </LiveFace>
+      <Glint when={!disabled} wait={DUR.fast} radius={radius.control} />
+  </>);
+  // RN Web Pressable overwrites aria-disabled from its interaction-disabled
+  // prop. This explanatory action must remain clickable without advertising
+  // that Continue is available. A semantic web button owns both input paths.
+  if (Platform.OS === 'web') {
+    const webEvents = {
+      tabIndex: 0 as const,
+      onPointerDown: () => { if (!disabled) move(4); },
+      onPointerUp: () => move(0),
+      onPointerLeave: () => move(0),
+      onClick: () => nextAction(disabled, onPress, onDisabledPress),
+      onKeyDown: (event: KeyboardEvent) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        if (!event.repeat) nextAction(disabled, onPress, onDisabledPress);
+      },
+    };
+    return createElement('div', {
+      ...webEvents, role: 'button', 'aria-label': NEXT_LABEL, 'aria-disabled': disabled,
+      'aria-description': disabled ? NEXT_OFF_HINT : undefined,
+      style: { position: 'relative', minHeight: 56, borderRadius: radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
+    }, contents);
+  }
   return (
     <Press
       haptic={disabled ? 'none' : 'light'}
@@ -64,13 +95,7 @@ export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: ()
       onPressOut={() => move(0)}
       style={[st.surface, { backgroundColor: NEXT_OFF.fill }]}
     >
-      <View style={st.row}>{face(NEXT_OFF.words)}</View>
-      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }]}>
-        <View {...decorative} style={st.face}>
-          {face(NEXT_ON.words)}
-        </View>
-      </LiveFace>
-      <Glint when={!disabled} wait={DUR.fast} radius={radius.control} />
+      {contents}
     </Press>
   );
 }
