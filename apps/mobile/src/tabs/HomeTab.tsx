@@ -42,7 +42,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
 
-import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { Columns, useLayoutClass, ScrollScreen, TabHeader } from '../layout.tsx';
 import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import { Card, IconAction, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
@@ -77,6 +77,7 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { STARTING_LABEL, startingPoint, weekLines, type StartingPoint } from '../home/todayView.ts';
 
 export function HomeTab() {
+  const regular = useLayoutClass() === 'regular';
   // A bottom tab stays mounted after its first visit, so the midnight and
   // foreground refresh listens to whether this tab is the one on top.
   const focused = useIsFocused();
@@ -163,7 +164,7 @@ export function HomeTab() {
 
         {/* The habit first: it reads the game layer itself, and draws nothing
             it could not read rather than a nought. */}
-        <TodayHero />
+        {regular ? <Columns><TodayHero /><QuestsCard /></Columns> : <TodayHero />}
 
         {/* HomeLoading: the storage read has not answered, so still sand blocks
             shaped like the page, and nothing else. The brief is outside every
@@ -205,7 +206,7 @@ export function HomeTab() {
               </View>
             )}
 
-            <QuestsCard />
+            {!regular && <QuestsCard />}
 
             <DailyCard item={daily.phrase} variant="today" />
 

@@ -264,7 +264,7 @@ describe('a colour ground is a whole page — F601', () => {
     assert.match(screen, /const onPaper = ground === paper\.ground;/, 'the frame does not ask whether it is on paper');
     assert.match(
       screen,
-      /\.\.\.\(onPaper \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\)/,
+      /\.\.\.\(onPaper && overflowing \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\)/,
       'the footer\'s hairline is not drawn only on paper',
     );
     assert.doesNotMatch(

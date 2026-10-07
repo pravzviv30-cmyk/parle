@@ -1,5 +1,5 @@
 import { transcribeFrenchTakeMeasured } from '../../shared/transcription.ts';
-import { decodeAudio, pcmWav, type DecodedAudio } from '../../shared/audioDecode.ts';
+import { decodeAudio, pcmWav, reserveGuestDecoder, type DecoderReservation, type DecodedAudio } from '../../shared/audioDecode.ts';
 import { claimGuestSpeech, GUEST_SPEECH_LIMITS, type GuestSpeechLimits, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
 
 export interface GuestSpeechEnvironment {
@@ -67,8 +67,7 @@ export interface GuestSpeechVendor {
  * paid transcription, which answer nothing when both are busy. A guest take may
  * hold one at most, so a flood of guests can never take the last.
  */
-const GUEST_DECODERS = 1;
-let guestDecoding = 0;
+
 
 /**
  * One admitted take, transcribed at most once and settled exactly once.
@@ -86,21 +85,23 @@ export async function transcribeGuestTake(
   signal: AbortSignal,
   env: GuestSpeechEnvironment = process.env,
   vendor: GuestSpeechVendor = {},
+  decoderReservation?: DecoderReservation,
 ): Promise<string | null> {
   const reserved = claimGuestSpeech(admitted);
   if (reserved === null) return null;
   let used = 0;
+  let decoderLease = decoderReservation;
   try {
     if (!guestSpeechAvailable(env) || signal.aborted) return null;
     let take = audio;
     let measured: number | null = null;
     if (env.NODE_ENV === 'production') {
       // A busy guest decoder sends nothing, so the reservation comes back whole.
-      if (guestDecoding >= GUEST_DECODERS) return null;
+      decoderLease ??= reserveGuestDecoder() ?? undefined;
+      if (!decoderLease) return null;
       const decoder = { LUVANI_AUDIO_DECODER_PATH: env.LUVANI_AUDIO_DECODER_PATH, LUVANI_AUDIO_DECODER_SHA256: env.LUVANI_AUDIO_DECODER_SHA256 };
-      guestDecoding++;
       let decoded: DecodedAudio;
-      try { decoded = await (vendor.decode ?? decodeAudio)(audio, { env: decoder, signal }); } finally { guestDecoding--; }
+      try { decoded = await (vendor.decode ?? decodeAudio)(audio, { env: decoder, signal, reservation: decoderLease }); } finally { decoderLease.release(); }
       const pcm = decoded.wav.subarray(44, 44 + reserved * 32_000);
       take = pcmWav(pcm);
       measured = pcm.length / 32_000;
@@ -113,6 +114,7 @@ export async function transcribeGuestTake(
   } catch {
     return null;
   } finally {
+    decoderLease?.release();
     await admitted.settle(used);
   }
 }

@@ -190,7 +190,7 @@ describe('the quiet door, taken where the learner is standing — F201', () => {
       1,
       'something else on the conversation flips the session mode, which is what restarts the session',
     );
-    assert.match(convo, /GhostButton label=\{QUIET_DOOR\} onPress=\{goQuiet\}/, 'the choosing screen has its own door again');
+    assert.match(convo, /IconAction layout="inline" icon="keyboard" label=\{QUIET_DOOR\} onPress=\{goQuiet\}/, 'the choosing screen has its own door again');
     assert.match(
       convo,
       /onType=\{!walkMode && typedDoorFor\(live\.status\.failure, \{ typing \}\) \? goQuiet : null\}/,

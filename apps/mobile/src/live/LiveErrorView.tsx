@@ -26,7 +26,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-n
 import { openPhoneSettings } from '../settings/phoneSettings.ts';
 import { paper, space, type, HIT } from '../theme.ts';
 import { Screen } from '../layout.tsx';
-import { Card, Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
+import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
 
@@ -108,7 +108,7 @@ export function LiveErrorView({
                 : <PillButton label="Continue by typing" onPress={onType} disabled={retryBlocked} />}
             </View>
             <View style={st.secondary}>
-              <GhostButton label="Back" onPress={onBack} />
+              <IconAction layout="inline" icon="back" label="Back" onPress={onBack} />
             </View>
           </>
         ) : (
@@ -118,7 +118,7 @@ export function LiveErrorView({
         )}
 
         {failure.startsWith('mic-') && <View style={st.secondary}>
-          <GhostButton label="Check microphone settings" onPress={() => {
+          <IconAction layout="inline" icon="settings" label="Check microphone settings" onPress={() => {
             setSettingsHelp(true);
             void openPhoneSettings();
           }} />

@@ -18,6 +18,12 @@
  * time; offered a preset (the first run, whose draft keeps presets), only the
  * presets.
  *
+ * When tapping Remind me will raise the phone's dialog, the card says so in
+ * one line first (retention-paywall.md section 4.6), because a dialog that
+ * arrives unannounced is one most people decline and iOS never shows twice.
+ * The recap passes what it has already read (`asks`); a caller that has not
+ * read it leaves it out and the card reads it itself, which raises nothing.
+ *
  * `onDone` is called exactly once, with `enabled: true` only after the OS took
  * the schedule, so a caller that records the answer never records a reminder
  * that does not exist. On the web there is no reminder to give, so there is no
@@ -40,7 +46,7 @@ import { play as playSfx } from '../sound/sfx.ts';
 import { paper, radius, space, type } from '../theme.ts';
 import { REMINDER_REFUSED, REMINDER_SMART_LABEL, REMINDER_TIMES, SMART_FALLBACK, clockGloss, reminderTime, smartGloss, type ClockTime, type ReminderMode, type ReminderTimeId } from './reminder.ts';
 import { smartReminderTime, turnOnReminder } from './ReminderPlanner.tsx';
-import { REMINDERS_AVAILABLE, askReminderPermission } from './schedule.ts';
+import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission } from './schedule.ts';
 
 /**
  * What the learner decided. `enabled` only once the OS has taken the plan. A
@@ -51,6 +57,7 @@ export type ReminderAnswer<T extends ReminderMode = ReminderTimeId> = { readonly
 export const REMINDER_ASK_COPY = {
   title: 'A daily nudge from {tutor}?',
   body: 'One a day at about {time}, and never on a day you have already practised.',
+  asks: 'Your phone will ask to allow notifications.',
   changeTime: 'Change time',
   remindMe: 'Remind me at {time}',
   notNow: 'Not now',
@@ -68,12 +75,15 @@ type Step = 'ask' | 'busy' | 'refused' | 'failed';
 export function ReminderAsk<T extends ReminderMode>({
   time,
   tutor,
+  asks,
   onDone,
 }: {
   /** The time offered first: the learner's own choice, or their own rhythm (`smart`). */
   time: T;
   /** The chosen tutor's name, which the reminders will name too. */
   tutor: string;
+  /** Whether Remind me will raise the phone's dialog, when the caller has read it; the card reads it otherwise. */
+  asks?: boolean;
   /** Called once, with what the learner decided. */
   onDone: (answer: ReminderAnswer<T | ReminderTimeId>) => void;
 }): ReactElement | null {
@@ -104,6 +114,20 @@ export function ReminderAsk<T extends ReminderMode>({
       live = false;
     };
   }, [time]);
+  // A read, never a dialog: whether Remind me will raise one, when the caller did not say.
+  const [undecided, setUndecided] = useState(false);
+  useEffect(() => {
+    if (asks !== undefined) return;
+    let live = true;
+    void reminderPermission()
+      .then((permission) => {
+        if (live) setUndecided(permission === 'undetermined');
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [asks]);
   // VoiceOver has no live region, so the one line that says what happened is announced.
   useEffect(() => {
     if (step === 'refused') AccessibilityInfo.announceForAccessibility(REMINDER_REFUSED);
@@ -145,6 +169,7 @@ export function ReminderAsk<T extends ReminderMode>({
 
   const gloss = chosen === 'smart' ? clockGloss(smart ?? SMART_FALLBACK) : reminderTime(chosen).gloss;
   const settled = step === 'refused' || step === 'failed';
+  const dialogComing = asks ?? undecided;
   const busy = step === 'busy';
   return (
     <View style={st.card}>
@@ -159,6 +184,7 @@ export function ReminderAsk<T extends ReminderMode>({
       ) : (
         <>
           <Text style={[type.body, st.ink]}>{said(REMINDER_ASK_COPY.body, { time: gloss })}</Text>
+          {dialogComing ? <Text style={[type.small, st.soft]}>{REMINDER_ASK_COPY.asks}</Text> : null}
           <IconAction
             icon="clock"
             layout="inline"
@@ -217,6 +243,7 @@ const st = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   words: { ...ROW_WORDS, color: paper.ink },
   ink: { color: paper.ink },
+  soft: { color: paper.inkSoft },
   times: { gap: space(2) },
   actions: { gap: space(1), paddingTop: space(1) },
 });

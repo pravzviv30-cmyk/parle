@@ -1,0 +1,242 @@
+[
+  {
+    "file": "auth/SetNewPasswordScreen.tsx",
+    "label": "{leaving ? 'Signing out\u2026' : 'Cancel and sign out'}"
+  },
+  {
+    "file": "auth/SignInScreen.tsx",
+    "label": "{authButtonLabel('sendReset', pending === 'sendReset')}"
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Keep conversation\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Delete this conversation\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Keep conversation\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Delete this unavailable conversation\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Keep conversations\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Delete all saved conversations\""
+  },
+  {
+    "file": "conversationPacks/SavedTextScreen.tsx",
+    "label": "\"Delete this conversation text\""
+  },
+  {
+    "file": "drill/FixLineSheet.tsx",
+    "label": "\"Done\""
+  },
+  {
+    "file": "drill/FocusDrillPlayer.tsx",
+    "label": "\"Finish here\""
+  },
+  {
+    "file": "friends/AddFriendsScreen.tsx",
+    "label": "\"Add\""
+  },
+  {
+    "file": "friends/AddFriendsScreen.tsx",
+    "label": "\"Save the request\""
+  },
+  {
+    "file": "friends/AddFriendsScreen.tsx",
+    "label": "\"Accept\""
+  },
+  {
+    "file": "friends/AddFriendsScreen.tsx",
+    "label": "\"Decline\""
+  },
+  {
+    "file": "friends/InviteFriendsScreen.tsx",
+    "label": "{r.direction === 'incoming' ? 'Decline' : 'Cancel request'}"
+  },
+  {
+    "file": "friends/SocialSettingsScreen.tsx",
+    "label": "\"Unblock\""
+  },
+  {
+    "file": "friends/SocialSettingsScreen.tsx",
+    "label": "\"Confirm: remove my connections\""
+  },
+  {
+    "file": "friends/SocialSettingsScreen.tsx",
+    "label": "\"Stay in Friends\""
+  },
+  {
+    "file": "friends/SocialSettingsScreen.tsx",
+    "label": "\"Leave Friends\""
+  },
+  {
+    "file": "layout.tsx",
+    "label": "{confirmLabel}"
+  },
+  {
+    "file": "live/OutOfMinutesView.tsx",
+    "label": "\"Back to my French\""
+  },
+  {
+    "file": "live/RoomWait.tsx",
+    "label": "{leaveLabel}"
+  },
+  {
+    "file": "onboarding/AgeGateScreen.tsx",
+    "label": "{AGE_DENY}"
+  },
+  {
+    "file": "onboarding/AgeRefusal.tsx",
+    "label": "{AGE_REFUSAL_EXIT}"
+  },
+  {
+    "file": "onboarding/GuestAccountHandoff.tsx",
+    "label": "\"Start fresh\""
+  },
+  {
+    "file": "onboarding/GuestAccountHandoff.tsx",
+    "label": "\"Sign out\""
+  },
+  {
+    "file": "onboarding/OnboardingFlow.tsx",
+    "label": "{AGE_DENY}"
+  },
+  {
+    "file": "onboarding/OnboardingFlow.tsx",
+    "label": "{VOICE_SKIP}"
+  },
+  {
+    "file": "onboarding/PreAccountOnboarding.tsx",
+    "label": "\"Sign out\""
+  },
+  {
+    "file": "onboarding/PreAccountOnboarding.tsx",
+    "label": "{FIRST_RUN_COPY.notNow}"
+  },
+  {
+    "file": "onboarding/PreAccountOnboarding.tsx",
+    "label": "\"Cancel\""
+  },
+  {
+    "file": "onboarding/PreAccountOnboarding.tsx",
+    "label": "\"I am younger than that\""
+  },
+  {
+    "file": "onboarding/PreAccountOnboarding.tsx",
+    "label": "\"Read privacy policy\""
+  },
+  {
+    "file": "onboarding/PreAccountOnboarding.tsx",
+    "label": "\"Leave practice\""
+  },
+  {
+    "file": "onboarding/StarterContinuation.tsx",
+    "label": "\"Leave practice\""
+  },
+  {
+    "file": "profile/TutorMemoryScreen.tsx",
+    "label": "{FORGET_ONE}"
+  },
+  {
+    "file": "profile/TutorMemoryScreen.tsx",
+    "label": "{FORGET_ALL}"
+  },
+  {
+    "file": "profile/TutorMemoryScreen.tsx",
+    "label": "{REMOVE_GOAL}"
+  },
+  {
+    "file": "profile/TutorMemoryScreen.tsx",
+    "label": "\"Cancel edit\""
+  },
+  {
+    "file": "purchases/Paywall.tsx",
+    "label": "{action === 'restoring' ? RESTORE_BUSY : view.restoreLabel}"
+  },
+  {
+    "file": "purchases/Paywall.tsx",
+    "label": "{action === 'restoring' ? RESTORE_BUSY : surface.restoreLabel}"
+  },
+  {
+    "file": "purchases/Paywall.tsx",
+    "label": "{privacy}"
+  },
+  {
+    "file": "purchases/Paywall.tsx",
+    "label": "{terms}"
+  },
+  {
+    "file": "reminders/ReminderAsk.tsx",
+    "label": "{REMINDER_ASK_COPY.notNow}"
+  },
+  {
+    "file": "settings/SettingsScreen.tsx",
+    "label": "{deleting ? 'Verifying\u2026' : 'Verify and delete permanently'}"
+  },
+  {
+    "file": "settings/SettingsScreen.tsx",
+    "label": "\"Cancel\""
+  },
+  {
+    "file": "tabs/FriendsTab.tsx",
+    "label": "{FRIENDS_PRIVACY_LINK}"
+  },
+  {
+    "file": "tabs/FriendsTab.tsx",
+    "label": "{c.incoming ? 'Decline' : 'Cancel invitation'}"
+  },
+  {
+    "file": "tabs/FriendsTab.tsx",
+    "label": "\"Leave challenge\""
+  },
+  {
+    "file": "tabs/FriendsTab.tsx",
+    "label": "\"Remove friend\""
+  },
+  {
+    "file": "tabs/FriendsTab.tsx",
+    "label": "\"Block this person\""
+  },
+  {
+    "file": "tutor/MissionWin.tsx",
+    "label": "{card.finishLabel}"
+  },
+  {
+    "file": "tutor/RealMomentScreen.tsx",
+    "label": "\"Not now\""
+  },
+  {
+    "file": "tutor/SafetyStopView.tsx",
+    "label": "{surface.buttonLabel}"
+  },
+  {
+    "file": "walk/WalkRoom.tsx",
+    "label": "\"End now\""
+  },
+  {
+    "file": "wall/WallPlansPage.tsx",
+    "label": "{WALL_LEAVE}"
+  },
+  {
+    "file": "wall/WallScreen.tsx",
+    "label": "\"Restore purchases\""
+  },
+  {
+    "file": "wall/WallYoursPage.tsx",
+    "label": "{YOURS_DECLINE}"
+  },
+  {
+    "file": "App.tsx",
+    "label": "\"Sign out\""
+  }
+]

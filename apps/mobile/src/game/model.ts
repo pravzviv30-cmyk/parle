@@ -21,8 +21,8 @@
  * Every field is a set union on an identity or a per-month maximum, and every
  * collision is settled by a total order (earliest `at`, then a field order,
  * then the canonical rendering). Every bound is "keep the last k of a sorted
- * set", ranked by the identity alone and in the same order the age window
- * prunes in. That makes the merge commutative, associative and idempotent,
+ * set", ranked by the identity alone. Version 2 uses count bounds rather
+ * than a date cutoff, so a clock far ahead cannot age out a whole history. That makes the merge commutative, associative and idempotent,
  * which `policy.test.ts` property-tests over generated blobs.
  *
  * Monthly rollups are a maximum, not a sum, and the merge never derives them.
@@ -44,7 +44,6 @@
  */
 
 import {
-  daysBetween,
   isDayKey,
   isQuestId,
   questMonthOf,
@@ -57,24 +56,21 @@ import {
 import { stableStringify } from '../sync/envelope.ts';
 
 /** The inner schema version this build writes. `sync/policy.ts` imports it. */
-export const GAME_VERSION = 1;
+export const GAME_VERSION = 2;
 
 /** Where a finished sitting came from. */
 export type SittingSource = 'convo' | 'lesson' | 'drill' | 'review' | 'phrase' | 'guest';
 export const SITTING_SOURCES: readonly SittingSource[] = ['convo', 'lesson', 'drill', 'review', 'phrase', 'guest'];
 
 /** Ages and bounds. Each one is a decision about what a learner may forget. */
-export const SITTING_KEEP_DAYS = 60;
 export const MAX_SITTINGS = 500;
 export const MAX_COVERS = 2000;
 export const MAX_GOAL_DAYS = 2000;
 export const QUEST_DAYS_KEPT = 60;
-export const CLAIM_KEEP_DAYS = 62;
-export const BONUS_KEEP_DAYS = 62;
+export const CLAIM_DAYS_KEPT = 62;
 export const MAX_BONUS = 400;
 export const MAX_MONTHS = 600;
 export const MAX_BADGES = 500;
-export const SEEN_KEEP_DAYS = 60;
 export const MAX_SEEN = 800;
 
 const DAY_MS = 86_400_000;
@@ -296,8 +292,8 @@ export function isBonusKey(value: unknown): value is string {
 }
 
 /**
- * The kinds of celebration that belong to one day, and so may be forgotten
- * `SEEN_KEEP_DAYS` after the newest of them: the streak extended that day.
+ * Day-scoped celebrations have lower priority within the bounded key set:
+ * for example, the streak extended that day.
  * Every other key is durable and kept for good, because
  * a milestone, a level, a badge or a purchase must never play twice however
  * long ago it was. Decided by the kind and never by the shape of the rest of
@@ -481,12 +477,9 @@ function boundSittings(rows: readonly GameSitting[]): GameSitting[] {
   const held = [...unionBy(rows, (s) => `${s.at}|${s.source}`, measured).values()].sort(
     (x, y) => x.at - y.at || compareText(x.source, y.source),
   );
-  const last = held[held.length - 1];
-  if (last === undefined) return [];
-  // Against the newest sitting in the union, never a clock, so two devices
-  // whose clocks disagree still cut the same rows.
-  const cutoff = last.at - SITTING_KEEP_DAYS * DAY_MS;
-  return newest(held.filter((s) => s.at >= cutoff), MAX_SITTINGS).map(sittingOf);
+  // A far-ahead clock may occupy a slot, but never advances an age cutoff
+  // that erases every other device's recent rows (v2, F753).
+  return newest(held, MAX_SITTINGS).map(sittingOf);
 }
 
 function boundCovers(rows: readonly StreakCover[]): StreakCover[] {
@@ -507,9 +500,9 @@ function boundClaims(rows: readonly QuestClaimRow[]): QuestClaimRow[] {
   const held = [...unionBy(rows, (c) => `${c.day}|${c.questId}`, earliest).values()].sort(
     (x, y) => compareText(x.day, y.day) || compareText(x.questId, y.questId),
   );
-  const last = held[held.length - 1];
-  if (last === undefined) return [];
-  return held.filter((c) => daysBetween(c.day, last.day) < CLAIM_KEEP_DAYS).map(claimOf);
+  const days = newest([...new Set(held.map((claim) => claim.day))], CLAIM_DAYS_KEPT);
+  const retained = new Set(days);
+  return held.filter((claim) => retained.has(claim.day)).map(claimOf);
 }
 
 function boundQuestMonths(rows: readonly QuestMonth[]): QuestMonth[] {
@@ -527,16 +520,13 @@ function boundXpMonths(rows: readonly XpMonth[]): XpMonth[] {
 }
 
 function boundBonus(rows: readonly BonusRow[]): BonusRow[] {
-  // Aged and ranked by the day the key names, never by `at`: `at` is a copy's
+  // Ranked by the day the key names, never by `at`: `at` is a copy's
   // own detail and two devices hold different ones, so a window over it would
   // let a pruned key come back from a third device.
   const held = [...unionBy(rows, (b) => b.key, earliest).values()]
     .map((row) => ({ row, day: bonusDay(row.key) ?? '' }))
     .sort((x, y) => compareText(x.day, y.day) || compareText(x.row.key, y.row.key));
-  const last = held[held.length - 1];
-  if (last === undefined) return [];
-  const kept = held.filter((b) => daysBetween(b.day, last.day) < BONUS_KEEP_DAYS);
-  return newest(kept, MAX_BONUS).map((b) => bonusOf(b.row));
+  return newest(held, MAX_BONUS).map((b) => bonusOf(b.row));
 }
 
 function boundBadges(rows: readonly BadgeAward[]): BadgeAward[] {
@@ -553,13 +543,7 @@ function boundSeen(rows: readonly SeenMark[]): SeenMark[] {
   const held = [...unionBy(rows, (s) => s.key, earliest).values()]
     .map((mark) => ({ mark, day: seenDay(mark.key) }))
     .sort((x, y) => compareText(x.day ?? NO_DAY, y.day ?? NO_DAY) || compareText(x.mark.key, y.mark.key));
-  let newestDay: DayKey | null = null;
-  for (const { day } of held) if (day !== null && (newestDay === null || day > newestDay)) newestDay = day;
-  const kept =
-    newestDay === null
-      ? held
-      : held.filter(({ day }) => day === null || daysBetween(day, newestDay as DayKey) < SEEN_KEEP_DAYS);
-  return newest(kept, MAX_SEEN).map(({ mark }) => seenOf(mark));
+  return newest(held, MAX_SEEN).map(({ mark }) => seenOf(mark));
 }
 
 /** Every readable row of one side, field by field. A side that is not a record has none. */
@@ -657,7 +641,7 @@ export function withGameRows(stored: StoredGame, added: Partial<GameRows>): Stor
 export function readGame(value: unknown): StoredGame | 'newer' | null {
   if (!isRecord(value)) return null;
   if (typeof value.version === 'number' && Number.isFinite(value.version) && value.version > GAME_VERSION) return 'newer';
-  if (value.version !== GAME_VERSION || !hasOnly(value, ['version', ...FIELDS])) return null;
+  if ((value.version !== 1 && value.version !== GAME_VERSION) || !hasOnly(value, ['version', ...FIELDS])) return null;
   for (const field of FIELDS) {
     const list = value[field];
     const check = ROW_CHECKS[field] as (row: unknown) => boolean;

@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates } from '@luvani/core';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { GhostButton, PillButton, ProgressDots } from '../components.tsx';
+import { IconAction, GhostButton, PillButton, ProgressDots } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { loadHistory } from './store.ts';
 import { loadActivity } from './activity.ts';
@@ -43,10 +43,10 @@ export function WeekWrappedScreen() {
   const populated=current && model!==null && hasStory(model.story);
   return <ScrollScreen ground={populated ? palette.blue : paper.ground} bottom="inset" header={<ScreenHeader title={populated ? <Text style={[type.heading,{color:paper.onInk}]}>Your week in French</Text> : "Your week in French"} back={{onPress:back}} />} footer={populated ? <View style={{gap:space(2)}}>
     <PillButton label={page===1?'Done':'Next'} tone="white" onPress={()=>page===1?back():setPage(page+1)} />
-    {page===1 && <GhostButton label="Choose a scene" color={paper.onInk} onPress={()=>nav.navigate('Missions')} />}
-    {page>0 && <GhostButton label="Previous" color={paper.onInk} onPress={()=>setPage(page-1)} />}
+    {page===1 && <IconAction layout="inline" icon="map" label="Choose a scene" ground="blue" onPress={()=>nav.navigate('Missions')} />}
+    {page>0 && <IconAction layout="inline" icon="back" label="Previous" ground="blue" onPress={()=>setPage(page-1)} />}
   </View> : undefined}>
-    {current && failed ? <View style={{gap:space(3)}}><Text style={type.body}>Your week could not be read.</Text><GhostButton label="Try loading your week again" onPress={()=>setReadAttempt((n)=>n+1)} /></View> : populated ? <View style={{gap:space(5)}}>
+    {current && failed ? <View style={{gap:space(3)}}><Text style={type.body}>Your week could not be read.</Text><IconAction layout="inline" icon="refresh" label="Try loading your week again" onPress={()=>setReadAttempt((n)=>n+1)} /></View> : populated ? <View style={{gap:space(5)}}>
       <ProgressDots total={2} index={page} ground="blue" />
       {page===0 ? <><Illustration name="celebrate-wrapped" fit="small" /><Text style={[type.small,{color:paper.onInk}]}>From your last seven days</Text><Text style={[type.title,{color:paper.onInk}]}>{model.story.sentences[0]}</Text>{model.story.sentences.slice(1).map(line=><Text key={line} style={[type.body,{color:paper.onInk}]}>{line}</Text>)}</> : <Text style={[type.heading,{color:paper.onInk}]}>{model.next ?? "Choose a scene that interests you next."}</Text>}
     </View> : current && model ? <View style={{gap:space(4)}}><Illustration name="state-notebook" fit="small" /><Text style={type.body}>Your week will take shape as you practise. Start with a scene that interests you.</Text><PillButton label="Choose a scene" onPress={()=>nav.navigate('Missions')} /></View> : <Text style={type.body}>Finding your week.</Text>}

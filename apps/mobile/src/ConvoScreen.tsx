@@ -52,7 +52,7 @@ import {
   type Rung,
 } from '@luvani/core';
 import { accent, paper, signal, space, type, radius, HAIRLINE, HIT } from './theme.ts';
-import {
+import { IconAction,
   Card,
   Label,
   OutlineButton,
@@ -1091,7 +1091,7 @@ export function ConvoScreen({
             // the room that is already open, so the tutor does not start again
             // and the account's own lease is never asked a second question.
             <View style={st.quietDoor}>
-              <GhostButton label={QUIET_DOOR} onPress={goQuiet} />
+              <IconAction layout="inline" icon="keyboard" label={QUIET_DOOR} onPress={goQuiet} />
             </View>
           ) : null}
         </View>
@@ -1342,8 +1342,8 @@ export function ConvoScreen({
               {controls.showTypeInstead && <ControlTile label="Type instead" glyph={<KeyboardGlyph size={24} color={paper.ink} />} onPress={() => { closeMark(); goQuiet(); }} accessibilityLabel="Type your reply instead of saying it" />}
             </View>
             <View style={st.helpRow}>
-              <GhostButton label="Give me a moment" onPress={askForAMoment} />
-              {!typing && <GhostButton label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
+              <IconAction layout="inline" icon="moment" label="Give me a moment" onPress={askForAMoment} />
+              {!typing && <IconAction layout="inline" icon="translate" label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
             </View>
           </View>
           </>

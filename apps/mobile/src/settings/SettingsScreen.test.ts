@@ -185,7 +185,7 @@ describe('the daily reminder on Settings', () => {
     assert.match(TAB, /const reminderUnread = unreadReminderOwner\?\.scope === currentReminderScope && unreadReminderOwner\.userId === currentReminderUser && unreadReminderOwner\.userId === activeUserId\(\)/);
     assert.match(TAB, /const row = notifications === null \|\| !reminderOwned \? null : reminderRow\(stored, notifications\)/, 'the switch can show Off before the owned read succeeds');
     assert.match(REMINDER_CARD, /reminderUnknown && <View[\s\S]*?Reminder status could not be read\. Try again before changing it\./, 'an unread choice has no visible explanation');
-    assert.match(REMINDER_CARD, /reminderUnread && <GhostButton label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
+    assert.match(REMINDER_CARD, /reminderUnread && <IconAction layout="inline" icon="refresh" label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
     assert.match(TAB, /\}, \[user, reminderAttempt\]\)/, 'Retry cannot reread the owned value');
     for (const name of HANDLERS) {
       const body = bodyOf(TAB, name);
@@ -303,7 +303,12 @@ describe('the daily reminder on Settings', () => {
         writtenBefore(body, "ack === 'failed'", 'replanReminders('),
         `${name} schedules a notification the app may not remember asking for`,
       );
-      assert.ok(body.includes('cancelReminder()'), `${name} can turn the row off without stopping the notification`);
+      // Off goes to the planner too (Come alive Phase 4 review), which takes
+      // the plan back on its one chain; plan.test.ts runs that take-back.
+      assert.ok(
+        body.includes('const outcome = await replanReminders({ choice: wanted });') && !body.includes('honest.on ? await replanReminders'),
+        `${name} can turn the row off without stopping the notification`,
+      );
     }
 
     // The OS is reached only through the platform pair F230 owns.
@@ -430,7 +435,7 @@ describe('a schedule the phone would not take', () => {
       // the sign flipped: the row would say Off while the notification kept
       // arriving daily, from the one control the learner would use to stop it.
       assert.ok(
-        body.includes('honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder()'),
+        body.includes('const outcome = await replanReminders({ choice: wanted });'),
         `${name} does not read what the OS answered`,
       );
       assert.ok(
@@ -547,7 +552,7 @@ describe('a schedule the phone would not take', () => {
 
     // And the shape the screen actually ships passes each of them.
     const shipped =
-      "{ const outcome = honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder();" +
+      "{ const outcome = await replanReminders({ choice: wanted });" +
       " if (outcome === 'failed') { await saveReminder(reverted); setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); return; }" +
       ' setStored(wanted); }';
     assert.equal(writtenBefore(shipped, "outcome === 'failed'", 'setStored(wanted)'), true);

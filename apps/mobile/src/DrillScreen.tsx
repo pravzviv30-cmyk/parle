@@ -544,7 +544,7 @@ function TranslationView({
         )}
         {canHelp && !help.shown && (
           <View style={{ marginTop: space(3) }}>
-            <GhostButton label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
+            <IconAction layout="inline" icon="hint" label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
           </View>
         )}
       </Card>
@@ -686,7 +686,7 @@ function RepeatThisView({
                 out loud in the control's own copy keeps the report honest. */}
             <View style={ds.saidIt}>
               <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
-              <GhostButton label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
+              <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
             </View>
           </>
         ) : (
@@ -1747,9 +1747,9 @@ export function DrillScreen({
                 again. The store replays the frozen plan, so it awards nothing twice. */}
             {card.retry && (
               <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
-                <GhostButton
+                <IconAction layout="inline" icon="refresh" busy={practiceRetrying}
                   label={practiceRetrying ? PRACTICE_END.retrying : PRACTICE_END.retry}
-                  color={paper.ink}
+
                   disabled={practiceRetrying}
                   onPress={retryPractice}
                 />

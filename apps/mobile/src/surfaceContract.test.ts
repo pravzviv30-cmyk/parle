@@ -906,7 +906,7 @@ describe('a tap that starts with a network probe — F154', () => {
     assert.match(tutor, /const modes = startModes\(prefersTyping\(/, 'Speak no longer reads the learner\'s standing typing choice');
     assert.match(
       named('home/MissionHero.tsx'),
-      /<GhostButton label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
+      /<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
       'the quiet door is gone, and a learner who cannot speak aloud has no way through',
     );
     assert.deepEqual(
@@ -2183,7 +2183,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
     assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 0, 'the shared task owns the primary; connection retry is secondary');
-    assert.match(tutor, /const primary = <GhostButton/);
+    assert.match(tutor, /const primary = <IconAction/);
   });
 
   /**

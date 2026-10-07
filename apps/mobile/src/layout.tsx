@@ -15,7 +15,7 @@
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
-import { type ReactNode, type Ref } from 'react';
+import { Children, useState, type ReactNode, type Ref } from 'react';
 import {
   View,
   ScrollView,
@@ -29,8 +29,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
-import { colour, paper, space, type, HAIRLINE, HIT } from './theme.ts';
-import { compactPhone, screenInsets, READING } from './responsiveLayout.ts';
+import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
+import { footerOverflow } from './footerOverflow.ts';
+import { compactPhone, screenInsets, READING, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
 
 /**
  * The reading column as a style: full width up to `READING`, centred. The first
@@ -43,6 +44,21 @@ export const readingColumn = { width: '100%', maxWidth: READING, alignSelf: 'cen
 export function useCompactPhone() {
   const { width, height } = useWindowDimensions();
   return compactPhone(width, height);
+}
+
+/** The frame follows safe areas and split view; large text keeps a single column. */
+export function useLayoutClass() {
+  const { width, fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  return fontScale >= 1.6 ? 'compact' : layoutClass(width, insets.left, insets.right);
+}
+
+/** Paired content preserves reading order when the tablet returns to a phone width. */
+export function Columns({ children }: { children: ReactNode }) {
+  const regular = useLayoutClass() === 'regular';
+  return <View style={{ flexDirection: regular ? 'row' : 'column', gap: RHYTHM.block }}>
+    {Children.toArray(children).map((child, index) => <View key={index} style={{ flex: regular ? 1 : undefined, minWidth: 0 }}>{child}</View>)}
+  </View>;
 }
 
 /** Where the bottom of a screen ends. */
@@ -65,6 +81,8 @@ type ScreenProps = {
   footer?: ReactNode;
   /** Lift the content above the keyboard when a field is focused. */
   avoidKeyboard?: boolean;
+  /** Measured scroll content remains below the viewport. */
+  overflowing?: boolean;
 };
 
 /**
@@ -104,6 +122,7 @@ export function Screen({
   header,
   footer,
   avoidKeyboard,
+  overflowing = false,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -131,11 +150,11 @@ export function Screen({
           style={{
             ...horizontal,
             paddingTop: space(3),
-            ...(onPaper ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null),
+            ...(onPaper && overflowing ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null),
             backgroundColor: ground,
           }}
         >
-          {footer}
+          <View style={{ width: '100%', maxWidth: FOOTER_MAX, alignSelf: 'center' }}>{footer}</View>
         </View>
       ) : null}
     </View>
@@ -183,6 +202,10 @@ export function ScrollScreen({
   footer,
   avoidKeyboard,
 }: ScrollScreenProps) {
+  const [contentHeight, setContentHeight] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const overflowing = footerOverflow(contentHeight, viewportHeight, offset);
   if (embedded) {
     return <View style={{ gap: space(4) }}>{children}{footer}</View>;
   }
@@ -195,10 +218,16 @@ export function ScrollScreen({
       header={header}
       footer={footer}
       avoidKeyboard={avoidKeyboard}
+      overflowing={overflowing}
     >
       <ScrollView
         ref={scrollRef}
-        onScroll={onScroll}
+        onContentSizeChange={(_, height) => setContentHeight(height)}
+        onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+        onScroll={(event) => {
+          setOffset(event.nativeEvent.contentOffset.y);
+          onScroll?.(event);
+        }}
         scrollEventThrottle={100}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{

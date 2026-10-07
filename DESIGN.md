@@ -860,11 +860,11 @@ state feedback animate. Motion answers something that really happened: a
 press, a choice, a save, a finished practice. It never stands in for content,
 never invents progress, and never holds the learner's next tap for long.
 
-Built so far (come alive, Phases 0 and 1): the tokens, the one door to the
-engine, the reduce-motion bridge, the press depth and selected ring, the haptic
-vocabulary, the primitives below and the celebration host. The host is mounted;
-until the game pipeline publishes from a finished sitting, the only moment that
-reaches it is a confirmed purchase.
+The motion engine, live reduced-motion bridge, press depth, selection feedback,
+voice orb, first-run flow and game celebration host are integrated. Persisted
+practice outcomes publish through the settlement pipeline; purchase feedback
+follows the confirmed store result. The host waits while a live room or recap
+holds its queue. No daily chest or extra completion reward is drawn.
 
 ### Principles
 

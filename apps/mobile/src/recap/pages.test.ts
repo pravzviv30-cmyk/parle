@@ -29,7 +29,7 @@ test('recap page navigation leaves saving independent and retries the exact kept
   assert.match(source, /onPractice\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)/);
   const save = source.slice(source.indexOf('useEffect(() => {\n    if (keptPhrase'), source.indexOf('const acceptReminder'));
   assert.doesNotMatch(save, /page ===|page,/);
-  assert.match(source, /GhostButton label="Finish conversation"[^>]+onPress=\{onDone\}/);
+  assert.match(source, /RoundButton kind="close" accessibilityLabel="Finish conversation"[^>]+onPress=\{onDone\}/);
 });
 
 

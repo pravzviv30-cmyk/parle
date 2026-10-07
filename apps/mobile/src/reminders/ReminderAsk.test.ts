@@ -281,4 +281,27 @@ describe('the ask keeps its promise — F774', () => {
     assert.match(ask, /\{time === 'smart' \? \(\s*<Choice/, 'the learner\'s own rhythm is not offered first');
     assert.match(ask, /<GhostButton label=\{REMINDER_ASK_COPY\.notNow\}/, 'there is no quiet way to say no');
   });
+
+  test('the ask says the phone will ask before it does, and only when it will', () => {
+    // retention-paywall.md section 4.6: one line, only while the permission is
+    // undecided, because a dialog that arrives unannounced is one most people
+    // decline and iOS never shows twice.
+    assert.equal(askCopy().asks, 'Your phone will ask to allow notifications.');
+    const ask = code('./ReminderAsk.tsx');
+    assert.match(ask, /asks\?: boolean;/);
+    assert.match(ask, /const dialogComing = asks \?\? undecided;/, 'the line ignores what the caller read');
+    assert.match(ask, /\{dialogComing \? <Text style=\{\[type\.small, st\.soft\]\}>\{REMINDER_ASK_COPY\.asks\}<\/Text> : null\}/);
+    assert.equal((ask.match(/REMINDER_ASK_COPY\.asks/g) ?? []).length, 1, 'the dialog line is drawn somewhere it was not decided');
+    // Drawn with the ask's own words, before Remind me, and gone once it is answered.
+    const asking = ask.slice(ask.indexOf('{settled ? ('), ask.indexOf('<View style={st.actions}>'));
+    assert.ok(asking.indexOf('REMINDER_ASK_COPY.body') < asking.indexOf('REMINDER_ASK_COPY.asks') && asking.indexOf('REMINDER_ASK_COPY.asks') < asking.indexOf('REMINDER_ASK_COPY.changeTime'), 'the dialog line is not with the ask');
+    // A caller that has not read the permission leaves it to the card, which reads and never asks.
+    const read = effects(ask).find((effect) => effect.includes('reminderPermission()'));
+    assert.ok(read !== undefined, 'the card never reads whether a dialog is coming');
+    assert.match(read, /if \(asks !== undefined\) return;/, 'the card second-guesses what the caller read');
+    assert.match(read, /setUndecided\(permission === 'undetermined'\)/, 'the line is shown over a permission already decided');
+    // The recap hands it what it read, so the offer's own fact is the one shown.
+    const recap = code('../RecapScreen.tsx');
+    assert.match(recap, /<ReminderAsk\s+time=\{offer\.choice\}\s+tutor=\{tutorNameOf\(profile\)\}\s+asks=\{offer\.asks\}/, 'the recap no longer says a dialog is coming');
+  });
 });

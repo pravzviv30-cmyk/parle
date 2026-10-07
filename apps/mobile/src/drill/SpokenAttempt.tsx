@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
-import { GhostButton, SpeakCircle } from '../components.tsx';
+import { IconAction, GhostButton, SpeakCircle } from '../components.tsx';
 import { colour, paper, space, type } from '../theme.ts';
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
 import { LevelRing } from '../motion/LevelRing.tsx';
@@ -103,7 +103,7 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
       <SpeakCircle active={recording} disabled={busy} size={SPEAK} onPress={() => { void toggle(); }} accessibilityLabel={recording ? 'Stop recording' : 'Record your French'} />
     </View>
     <Text style={[type.small, { color: paper.inkSoft }]}>{recording ? RECORDING_LIVE : RECORDING_READY}</Text>
-    <GhostButton label={RECORDING_TYPE} disabled={busy} onPress={() => { void stop(false).then(onTyping); }} />
+    <IconAction layout="inline" icon="keyboard" label={RECORDING_TYPE} disabled={busy} onPress={() => { void stop(false).then(onTyping); }} />
   </View>;
 }
 

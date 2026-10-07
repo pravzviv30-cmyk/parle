@@ -18,15 +18,18 @@ export function GoalTile({
   selected,
   onPress,
   compact = false,
+  layout = 'row',
 }: {
   tier: GoalTier;
   suggested: boolean;
   selected: boolean;
   onPress: () => void;
   compact?: boolean;
+  layout?: 'row' | 'tile';
 }) {
   return (
     <Choice
+      layout={layout}
       title={tier.title}
       detail={suggested ? `${tierLine(tier.minutes)}. ${FIRST_RUN_COPY.suggested}` : tierLine(tier.minutes)}
       tile={<IconTile ground="sun" dial={tier.quarters} size={44} />}

@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearActiveUserData, setActiveUser } from '../storage/scope.ts';
 import { adopterFor, clearDirty, dirtyStamp, resetSyncRegistry } from '../sync/registry.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
-import { emptyGame } from './model.ts';
+import { emptyGame, GAME_VERSION } from './model.ts';
 import {
   addBonus,
   addClaims,
@@ -97,7 +97,7 @@ describe('the game store — F729', () => {
       assert.equal(await appendSitting({ at: yearBefore + (n * 90 + 1) * DAY, source: 'phrase' }), 'durable');
       assert.equal(await markSeen([{ key: `streak:${new Date(yearBefore + n * 90 * DAY).toISOString().slice(0, 10)}`, at: yearBefore }]), 'durable');
     }
-    assert.equal((await loadGame()).sittings.length, 1, 'the year of writes never moved the age window');
+    assert.equal((await loadGame()).sittings.length, 5, 'later dates erased earlier sittings within the count bound');
     const adopt = adopterFor('game');
     assert.ok(adopt, 'the game store registered no adopter, so a merge could never come back');
     assert.equal(await adopt((current) => merge(current, { ...emptyGame(), badges: [] })), 'adopted');
@@ -107,7 +107,7 @@ describe('the game store — F729', () => {
     // a stray key, a wrong type, a cover kind this build has never heard of.
     const good = disk.get(key())!;
     const refused: unknown[] = [
-      { ...JSON.parse(good), version: 2 },
+      { ...JSON.parse(good), version: GAME_VERSION + 1 },
       { ...JSON.parse(good), streak: 9 },
       { ...JSON.parse(good), sittings: [{ at: String(AT), source: 'phrase' }] },
       { ...JSON.parse(good), covers: [{ day: '2026-10-04', kind: 'earned', at: AT }] },
@@ -162,9 +162,12 @@ describe('the game store — F729', () => {
     assert.equal(await hasSeen('streak:2026-10-05'), true);
     assert.equal(await hasSeen('streak:2026-10-06'), false);
 
-    // A sitting older than the window behind the newest is cut the moment it
-    // arrives, and the store says so rather than claiming it.
-    assert.equal(await appendSitting({ at: AT - 61 * DAY, source: 'review' }), 'failed');
+    // v2 retains an older sitting within the count bound; a newer timestamp
+    // cannot age out another device's evidence.
+    assert.equal(await appendSitting({ at: AT - 61 * DAY, source: 'review' }), 'durable');
+    const olderStamp = dirtyStamp('game');
+    assert.notEqual(olderStamp, null);
+    clearDirty('game', olderStamp!);
 
     // Nothing offered is nothing to write, never a failure: the settle pipeline
     // hands these helpers derived lists that are empty on most sittings.

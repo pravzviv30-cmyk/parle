@@ -35,7 +35,6 @@ import { getMission, spineFrom, type MissionProgress } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
 import {
   DEFAULT_REMINDER_MODE,
-  REMINDER_EXPLAIN,
   REMINDER_REFUSED,
   reminderMode,
   reminderRow,
@@ -94,13 +93,12 @@ export interface ReminderOffer {
   choice: ReminderMode;
   /** The preset behind the choice, and the evening for `smart` until the rhythm shows. */
   time: ReminderTime;
-  /** True when accepting will raise the phone's notification dialog. */
+  /**
+   * True when accepting will raise the phone's notification dialog. The ask
+   * says so in one line before it does (`ReminderAsk` `asks`); its other
+   * words are the ask's own, so the offer carries none.
+   */
   asks: boolean;
-  title: string;
-  /** Says a dialog is coming when one is, and what the reminder is either way. */
-  body: string;
-  accept: string;
-  decline: string;
 }
 
 /**
@@ -126,15 +124,7 @@ export function reminderOffer(facts: {
   const choice = facts.stored === null ? DEFAULT_REMINDER_MODE : reminderMode(facts.stored.time);
   const time = reminderTime(choice);
   const asks = facts.permission === 'undetermined';
-  return {
-    choice,
-    time,
-    asks,
-    title: choice === 'smart' ? 'A daily reminder around when you usually practise?' : `A daily reminder at ${time.gloss}?`,
-    body: asks ? REMINDER_EXPLAIN : 'One a day, and never on a day you have already practised.',
-    accept: 'Remind me',
-    decline: 'Not now',
-  };
+  return { choice, time, asks };
 }
 
 export type ReminderAnswer = 'on' | 'refused' | 'failed';

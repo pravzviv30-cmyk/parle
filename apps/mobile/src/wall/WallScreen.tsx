@@ -7,7 +7,7 @@ import { useAuth } from '../auth/useAuth.tsx';
 import { beginPendingPurchase, clearPendingPurchase, confirmsPendingPurchase, loadPendingPurchase, type PendingPurchase } from '../purchases/pendingPurchase.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { trackProductEvent } from '../analytics/track.ts';
-import { Card, GhostButton, HeroNumber, PillButton, ProgressDots } from '../components.tsx';
+import { IconAction, Card, GhostButton, HeroNumber, PillButton, ProgressDots } from '../components.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { purchasePill, successLine, wallSuccess } from './wallSuccess.ts';
 import { WALL_CONFIRMING, buyLabel, perWeekLine } from './wallCopy.ts';
@@ -406,7 +406,7 @@ export function WallScreen({
   if (pendingRead !== 'ready') return (
     <ScrollScreen header={<ScreenHeader title="Checking purchase status" />}>
       <Text style={[type.body, { color: paper.inkSoft }]}>{pendingRead === 'loading' ? 'Checking whether a purchase is already in progress on this phone.' : 'Your purchase status on this phone could not be read. Try again before opening another store purchase.'}</Text>
-      {pendingRead === 'unread' && <GhostButton label="Check purchase status again" onPress={() => setPendingAttempt(value => value + 1)} />}
+      {pendingRead === 'unread' && <IconAction layout="inline" icon="refresh" label="Check purchase status again" onPress={() => setPendingAttempt(value => value + 1)} />}
       <PillButton label="Back to practice" onPress={() => leave('back', onOpenPractice)} />
     </ScrollScreen>
   );
@@ -441,7 +441,7 @@ export function WallScreen({
           {grantReadPending ? 'Checking your speaking allowance.' : 'We couldn’t read your speaking allowance.'}
         </Text>
         <Text style={[type.body, { color: paper.ink, marginTop: space(3) }]}>Your purchase or restore was confirmed. Please do not buy again. Free local practice is available while we check your plan.</Text>
-        <GhostButton label="Check my allowance again" disabled={grantReadPending} onPress={() => setRetry((value) => value + 1)} />
+        <IconAction layout="inline" icon="refresh" busy={grantReadPending} label="Check my allowance again" disabled={grantReadPending} onPress={() => setRetry((value) => value + 1)} />
       </ScrollScreen>
     );
   }
@@ -452,7 +452,7 @@ export function WallScreen({
       <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>A store purchase was started on this phone. Its matching paid plan has not been confirmed. Please do not buy again. Free local practice is available while confirmation catches up.</Text>
       {purchaseAccepted && <Text style={[type.small, { color: paper.inkSoft }]}>The store accepted the purchase; its speaking allowance is still being checked.</Text>}
       {message !== null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{message}</Text>}
-      <GhostButton label={busy ? 'Checking your purchase' : 'Check my purchase again'} disabled={busy} onPress={() => void checkAcceptedPurchase()} />
+      <IconAction layout="inline" icon="refresh" busy={busy} label={busy ? 'Checking your purchase' : 'Check my purchase again'} disabled={busy} onPress={() => void checkAcceptedPurchase()} />
     </ScrollScreen>
   );
 
@@ -477,7 +477,7 @@ export function WallScreen({
           </Text>
         </Card>
         {unavailable && <>
-          <GhostButton label="Try again" disabled={busy} onPress={() => setRetry((value) => value + 1)} />
+          <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => setRetry((value) => value + 1)} />
           <GhostButton label="Restore purchases" disabled={busy} onPress={() => void restore()} />
         </>}
         {message !== null && <Text accessibilityLiveRegion="polite" style={type.small}>{message}</Text>}

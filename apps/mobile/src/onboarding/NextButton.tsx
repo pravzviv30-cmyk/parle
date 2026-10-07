@@ -14,6 +14,7 @@
  * once and no glint passes, watched live.
  */
 
+import { nextAction } from './nextAction.ts';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { ArrowRight, Press } from '../components.tsx';
@@ -24,7 +25,7 @@ import { DUR } from '../motion/tokens.ts';
 import { LiveFace } from './firstRun/LiveFace.tsx';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './firstRun/nextFace.ts';
 
-export function NextButton({ onPress, disabled }: { onPress: () => boolean; disabled: boolean }) {
+export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void }) {
   const reduced = useReduceMotion();
   const arrow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -54,13 +55,12 @@ export function NextButton({ onPress, disabled }: { onPress: () => boolean; disa
   );
   return (
     <Press
-      haptic="light"
-      disabled={disabled}
+      haptic={disabled ? 'none' : 'light'}
       accessibilityLabel={NEXT_LABEL}
       accessibilityHint={disabled ? NEXT_OFF_HINT : undefined}
       accessibilityState={{ disabled }}
-      onPress={onPress}
-      onPressIn={() => move(4)}
+      onPress={() => nextAction(disabled, onPress, onDisabledPress)}
+      onPressIn={() => { if (!disabled) move(4); }}
       onPressOut={() => move(0)}
       style={[st.surface, { backgroundColor: NEXT_OFF.fill }]}
     >

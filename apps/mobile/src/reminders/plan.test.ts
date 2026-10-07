@@ -18,11 +18,15 @@ import { reminderOpenOf, routeForReminder } from './openTarget.ts';
 import {
   PLAN_DAYS,
   UNANSWERED_LIMIT,
+  closeLog,
   emptyLog,
+  heldLog,
   noteAnswered,
   noteOpened,
   planReminders,
+  plannedLog,
   plannedSlots,
+  replanStep,
   settleLog,
   slotDay,
   smartTime,
@@ -312,5 +316,113 @@ describe('the reminder planner — F771', () => {
       const today = planReminders(input({ log: { ...emptyLog(), last: { day: day(-1), line: said.id } } }));
       assert.notEqual(today[0]?.line, said.id, `${said.id} went out yesterday and again today`);
     }
+  });
+});
+
+describe('only what the phone held counts — F771 review', () => {
+  /** A plan handed to the OS this morning, and the log as it was written then. */
+  const planned = at(TODAY, 9);
+  const window = () => planReminders(input({ now: planned }));
+  const handed = () => plannedLog(emptyLog(), window(), planned);
+  const later = at(day(10), 9);
+
+  test('a reminder taken back from the phone never counts as sent, so it can never pause itself', () => {
+    // The OS held the plan the whole time and nobody answered: the note went out, and the pause is real.
+    assert.equal(window().length, UNANSWERED_LIMIT + 1);
+    const real = settleLog(heldLog(handed(), planned), later);
+    assert.equal(real.pauseSent, true, 'a plan the phone held to the end no longer pauses');
+    assert.equal(real.log.sent.length, UNANSWERED_LIMIT + 1);
+    // Settling a stale log on its own would pause it, which is why nothing settles without asking what the OS holds.
+    assert.equal(settleLog(handed(), later).pauseSent, true);
+
+    // Turned off in Settings the next lunchtime: what had arrived stays arrived, and the rest never will.
+    const closed = closeLog(handed(), at(day(1), 12));
+    assert.deepEqual(closed.sent, [TODAY]);
+    assert.deepEqual(closed.slots, []);
+    assert.equal(closed.plannedAt, undefined, 'a closed log still names a plan the OS no longer holds');
+    assert.equal(settleLog(closed, later).pauseSent, false, 'a reminder turned off came back paused');
+    assert.deepEqual(settleLog(closed, later).log.sent, [TODAY]);
+
+    // Signed out, so the account's log could not be written: the device says no plan is held, and none of it counts.
+    for (const held of [null, planned + 1]) {
+      const dropped = heldLog(handed(), held);
+      assert.deepEqual(dropped.slots, [], `a plan the OS does not hold (${String(held)}) kept its slots`);
+      assert.equal(settleLog(dropped, later).pauseSent, false, 'a reminder left behind at a sign-out came back paused');
+      assert.deepEqual(settleLog(dropped, later).log.sent, []);
+    }
+    // A log from before plans were named has nothing the OS can vouch for.
+    assert.deepEqual(heldLog({ ...emptyLog(), slots: plannedSlots(window()) }, planned).slots, []);
+
+    // Each of the review's three flows, through the one decision the planner makes.
+    // (a) Off in Settings, then days later on again; (b) sign-out, sign-in days
+    // later; (c) the permission revoked, then granted again. None of them pauses.
+    const off = replanStep({ now: at(day(1), 12), choice: { enabled: false, time: 'evening' }, chosenNow: true, permitted: false, log: handed(), held: planned });
+    assert.equal(off.kind, 'take-back');
+    assert.deepEqual(off.log.slots, []);
+    const revoked = replanStep({ now: at(day(1), 12), choice: { enabled: true, time: 'evening' }, chosenNow: false, permitted: false, log: handed(), held: planned });
+    assert.equal(revoked.kind, 'take-back');
+    assert.equal(revoked.kind === 'take-back' && revoked.pause, false);
+    const flows: readonly [string, ReminderLog][] = [
+      ['off, then on again from disk', off.log],
+      ['signed out and back', handed()],
+      ['permission back', revoked.log],
+    ];
+    for (const [name, log] of flows) {
+      const back = replanStep({ now: later, choice: { enabled: true, time: 'evening' }, chosenNow: false, permitted: true, log, held: null });
+      assert.equal(back.kind, 'plan', `${name}: the reminder paused itself without its note ever going out`);
+    }
+    // Paused and off still plan nothing, and a pause is only ever for a reminder that is on.
+    assert.equal(replanStep({ now: later, choice: { enabled: true, time: 'evening', paused: true }, chosenNow: false, permitted: true, log: handed(), held: planned }).kind, 'take-back');
+    const offAfterNote = replanStep({ now: later, choice: { enabled: false, time: 'evening' }, chosenNow: false, permitted: true, log: handed(), held: planned });
+    assert.equal(offAfterNote.kind === 'take-back' && offAfterNote.pause, false, 'a reminder that is off was marked paused');
+
+    // On a phone: every place the planner lets go of the OS's slots says so
+    // first, and it settles only through the decision above.
+    const planner = code('./ReminderPlanner.tsx');
+    assert.doesNotMatch(planner, /settleLog\(/, 'the planner settles a log without asking which plan the OS holds');
+    assert.equal((planner.match(/cancelReminder\(\)/g) ?? []).length, 2, 'the planner cancels somewhere other than its take-back and the sign-out');
+    assert.match(planner, /if \(held !== null\) await saveHeldPlan\(null\);\s*await record\(\);\s*return cancelReminder\(\);/, 'a take-back cancels before it says the plan is gone');
+    assert.match(planner, /return alone\(async \(\) => \{\s*await saveHeldPlan\(null\);\s*return cancelReminder\(\);\s*\}\);/, 'a sign-out cancels without saying the plan is gone');
+    assert.equal((planner.match(/schedulePlan\(/g) ?? []).length, 1);
+    assert.match(planner, /await saveHeldPlan\(null\);\s*const outcome = await schedulePlan\(slots\);/, 'a new plan replaces the old before the old is let go');
+    assert.match(planner, /if \(outcome !== 'done'\) \{\s*await record\(closeLog\(log, now\)\);/, 'a refused plan leaves the old slots counting');
+    assert.match(planner, /if \(\(await record\(plannedLog\(log, slots, now\)\)\) === 'durable'\) await saveHeldPlan\(now\);/);
+    // Settings turns the reminder off through the planner's one chain, never around it.
+    const settings = code('../settings/SettingsScreen.tsx');
+    assert.doesNotMatch(settings, /cancelReminder/, 'Settings cancels behind the planner, so a plan in flight can land after the off');
+    assert.equal((settings.match(/const outcome = await replanReminders\(\{ choice: wanted \}\);/g) ?? []).length, 2);
+    // And the sign-out cancel is keyed on who is signed in, so the
+    // password-recovery screen (the same learner) cancels nothing.
+    const app = code('../../App.tsx');
+    assert.equal((app.match(/stopReminders\(\)/g) ?? []).length, 1);
+    assert.match(app, /const signedInAs = status === 'signedIn' \? user\?\.id \?\? null : null;/);
+    assert.match(app, /useLayoutEffect\(\(\) => \{\s*if \(status === 'loading'\) return;\s*const was = lastSignedIn\.current;\s*lastSignedIn\.current = signedInAs;\s*if \(was !== null && was !== signedInAs\) void stopReminders\(\);\s*\}, \[status, signedInAs\]\);/);
+    const signedInRoot = app.slice(app.indexOf('function SignedInRoot('), app.indexOf('function Gate('));
+    assert.ok(signedInRoot.length > 0, 'SignedInRoot moved; this check reads nothing');
+    assert.doesNotMatch(signedInRoot, /stopReminders/, 'leaving the signed-in tree (the recovery screen) cancels the reminder');
+  });
+
+  test('a yes after days with the reminder off plans the full window, never a pause', () => {
+    // Off in Settings the day after it was planned, and ten days later the
+    // recap's Remind me. The yes is a choice made now: it plans, and a visit
+    // (the learner is in the app) clears the count, so the full window returns.
+    const off = closeLog(handed(), at(day(1), 12));
+    for (const chosenNow of [true, false]) {
+      const yes = replanStep({ now: later, choice: { enabled: true, time: 'evening' }, chosenNow, permitted: true, log: off, held: null });
+      assert.equal(yes.kind, 'plan', 'a yes after a long time off was read as a pause');
+      const slots = planReminders(input({ now: later, log: noteOpened(yes.log, later, UTC) }));
+      assert.equal(slots.length, UNANSWERED_LIMIT + 1, 'a yes after a long time off planned less than the full window');
+      assert.ok(slots.every((slot) => slot.day >= day(10)));
+    }
+    // Even over a log that would pause, a choice made now plans.
+    assert.equal(replanStep({ now: later, choice: { enabled: true, time: 'evening' }, chosenNow: true, permitted: true, log: handed(), held: planned }).kind, 'plan');
+
+    // On a phone: the ask plans the very choice it wrote, and its put-back
+    // after a refusal restores what was there rather than writing off.
+    const planner = code('./ReminderPlanner.tsx');
+    assert.match(planner, /const yes = \(mode: ReminderMode\): StoredReminder => \(\{ \.\.\.\(stored \?\? \{\}\), enabled: true, time: mode, paused: false \}\);/);
+    assert.match(planner, /schedule: \(mode\) => replanReminders\(\{ tutor, choice: yes\(mode\) \}\),/, 'the ask plans without its choice, so a fresh yes can be read as a pause');
+    assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/);
+    assert.match(planner, /const step = replanStep\(\{ now, choice, chosenNow: options\.choice !== undefined, permitted, log: stored, held \}\);/);
   });
 });

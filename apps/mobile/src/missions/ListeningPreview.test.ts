@@ -89,7 +89,7 @@ describe('the listening preview control — Stage 4 item 4', () => {
       /const silence = useCallback\(\(\) => \{ ticket\.current \+= 1; releaseDailyPlayback\(player\); stopOwnVoice\(\); \}, \[player, stopOwnVoice\]\);/,
       'leaving stops only one of the two sources',
     );
-    assert.match(FLAT, /<GhostButton label=\{PREVIEW_COPY\.stop\} color=\{ink\} onPress=\{silence\} \/>/);
+    assert.match(FLAT, /<IconAction layout="inline" icon="speaker" label=\{PREVIEW_COPY\.stop\} ground=\{ground === \'blue\' \? \'blue\' : \'paper\'\} onPress=\{silence\} \/>/);
   });
 
   test('it stops the device voice only when it started it — Stage 4 review (2026-09-25)', () => {

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { ScrollScreen } from '../layout.tsx';
-import { GhostButton, PillButton } from '../components.tsx';
+import { IconActionRow, IconAction, GhostButton, PillButton } from '../components.tsx';
 import { VoiceOrb } from '../tutor/VoiceOrb.tsx';
 import { paper, type, space } from '../theme.ts';
 export function WalkRoom({ tutor, speaking, micOpen, finishing, safety, onExit, onMic, onHear, onSlower, onFinish }: {
@@ -15,11 +15,11 @@ export function WalkRoom({ tutor, speaking, micOpen, finishing, safety, onExit, 
       {safety}
       <VoiceOrb size={170} state={speaking ? 'speaking' : micOpen ? 'listening' : 'idle'} />
       <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.onInk }]}>{finishing ? `${tutor} is preparing your recap.` : speaking ? `${tutor} is speaking.` : micOpen ? 'Ready to hear you.' : 'The microphone is quiet.'}</Text>
-      {!finishing && <>
-        {!micOpen && <GhostButton label="Open microphone" color={paper.onInk} onPress={onMic} />}
-        <GhostButton label="Say it again" color={paper.onInk} onPress={onHear} />
-        <GhostButton label="A little slower" color={paper.onInk} onPress={onSlower} />
-      </>}
+      {!finishing && <IconActionRow>
+        {!micOpen && <IconAction layout="tile" icon="microphone" label="Open microphone" ground="blue" onPress={onMic} />}
+        <IconAction layout="tile" icon="replay" label="Say it again" ground="blue" onPress={onHear} />
+        <IconAction layout="tile" icon="speaker-slow" label="A little slower" ground="blue" onPress={onSlower} />
+      </IconActionRow>}
       <Text style={[type.small, { color: paper.onInk }]}>Listening continues while locked, within your minutes and the 15-minute limit. A call or audio interruption ends this room.</Text>
     </View>
   </ScrollScreen>;

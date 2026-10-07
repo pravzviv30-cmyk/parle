@@ -33,7 +33,7 @@ import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { ownedReadStatus } from './ownedRead.ts';
 
-import { Card, GhostButton, Label, Ledger, LedgerRow, TutorCard, SceneMark, Press } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, TutorCard, SceneMark, Press } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -225,7 +225,7 @@ export function TutorTab() {
     nav.navigate(way.screen);
   };
 
-  const primary = <GhostButton
+  const primary = <IconAction layout="inline" icon="refresh" busy={checking}
     label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
     disabled={checking} onPress={() => open(heldBack?.textMode ?? modes.textMode, heldBack ? pendingStart.current : next.params)} />;
 
@@ -233,7 +233,7 @@ export function TutorTab() {
     <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
     <Card style={st.offline}>
       <Text style={[type.body, { color: paper.ink }]}>{renderHistoryStatus === 'loading' ? 'Finding your next conversation.' : 'Your conversation history could not be read just now.'}</Text>
-      {renderHistoryStatus === 'unread' && <GhostButton label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
+      {renderHistoryStatus === 'unread' && <IconAction layout="inline" icon="refresh" label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
       <LocalPracticeCard />
     </Card>
   </ScrollScreen>;
@@ -272,7 +272,7 @@ export function TutorTab() {
       <View style={st.start}><NextTaskCard /></View>
 
 
-      {WALK_AVAILABLE && <GhostButton label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
+      {WALK_AVAILABLE && <IconAction layout="inline" icon="headphones" label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
 
       {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
 
@@ -316,7 +316,7 @@ export function TutorTab() {
       )}
 
       <View style={st.quiet}>
-        <GhostButton label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
+        <IconAction layout="inline" icon="info" label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
         <Text style={st.notice}>{MICROPHONE_NOTICE}</Text>
       </View>
     </ScrollScreen>

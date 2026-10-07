@@ -22,6 +22,20 @@ of the list.
 
 ## Current landing snapshot
 
+- 7 October 2026 Come Alive completion: **4,887 tests, 0 failing**; core 794,
+  brain 468, tutor agent 609, token server 422, playground 26, mobile 2568.
+  All six workspaces typecheck. The final local source snapshot ran all 39 migrations
+  through eight disposable SQL proof programs. All 77 shared release/provider checks pass, including the two decoder lease
+  proofs. The complete gate is green with the raised workspace floors.
+  This is branch evidence, not production deployment. Six Phase 4 branches and the
+  recovered reminder repairs are integrated; F747–F750, F753, F778–F783 have local fixes.
+- The production web export and unsigned iOS Simulator Xcode build succeed.
+  Simulator Home and Progress and browser onboarding at phone/tablet widths were
+  inspected. Device/store/provider acceptance remains pending as recorded in
+  `DEVICE_VERIFICATION.md` and `RELEASE_GATE.md`. Cloud-offloaded parent metadata
+  stalled verification on this Mac; the full suites also ran in an identical local
+  source snapshot with disposable Git metadata retaining the original objects/index.
+
 - The revamp A branch gate (`claude/luvani-ui-revamp-d75581`, on top of the app upgrade
   commit `17f4fb3`) passes **3,055 tests, 0 failing**; core 623, brain 395, tutor agent 446,
   token server 200, playground 26, mobile 1365. Typecheck is clean in all six workspaces. The
@@ -681,7 +695,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 38 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 39 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -695,7 +709,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **38 migrations** for a fresh full schema, applied once in order from
+There are **39 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -777,6 +791,7 @@ There are **38 migrations** for a fresh full schema, applied once in order from
 
 37. `20261005231742_store_trial_yearly_allowance.sql`, F733 (D16): the projection that grants a store free trial a week of the plan's allowance and a yearly product one 30-day window at a time (the window in `allowance_window_end`, the paid year staying in `period_end`, so a missed refill never lapses the year), store answers ordered by when their period started (`period_start`, so an immediate upgrade from a yearly plan to a monthly one is granted at once), the withheld part of a window kept in `withheld_seconds`, the service-only renewal list for the maintenance worker, and projection version 2. Safe to apply twice; proved over pre-existing paid rows in disposable SQL. **Not applied live**; apply before the token server and maintenance worker that call it and before any intro offer or yearly product exists in App Store Connect.
 38. `20261006120000_learner_state_game.sql`, F729: widens the `learner_state` namespace whitelist to accept `game`, the account-synced facts behind the streak, daily goal, quests and badges (zero-XP sittings, streak covers, goal days, quest days and claims, fixed XP, monthly rollups, badge ids and celebration keys; no free text). Without it every push of `game` is refused with a 400 the sync engine retries (F411). **Not applied live**; apply before any build that writes `game` ships. Its rollback is destructive and guarded by `luvani.remove_game`.
+39. `20261007121856_preserve_store_trial_budget_and_year_extension.sql`, F747/F748: trial phrase audio retains the $0.02 lifetime allowance; extending the same paid year preserves charging for an in-flight session. SQL projection proofs pass, including rollback and reapply. Prepared, not applied live. Roll back this migration before the store trial/year migration, using its guarded rollback.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

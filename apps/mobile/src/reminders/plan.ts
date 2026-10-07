@@ -26,6 +26,14 @@
  *    it will stand if nothing else is practised before then, which is truthful
  *    because every practice re-plans.
  *
+ * 5. **Only what the phone held counts.** A slot counts as arrived only while
+ *    the OS still held its plan when its time came. Every plan is named by the
+ *    instant it was handed over (`plannedAt`), and the device remembers which
+ *    plan the OS holds (`store.ts` `loadHeldPlan`). A log whose plan was taken
+ *    back (the reminder turned off, a sign-out, a refused permission, a refused
+ *    schedule) counts none of its slots, so a reminder the learner turned off
+ *    can never come back paused (`replanStep`).
+ *
  * At most five slots are ever pending (the pause note is the fifth), far under
  * the 64 iOS keeps for one app.
  */
@@ -119,6 +127,12 @@ export interface ReminderLog {
   opened: DayKey[];
   /** The slots last handed to the OS. */
   slots: PlannedSlot[];
+  /**
+   * The instant those slots were handed to the OS, which names their plan.
+   * Absent once the plan is taken back: slots with no plan the OS holds never
+   * count as arrived (`heldLog`).
+   */
+  plannedAt?: number;
   /** The last reminder that arrived, so the next day never repeats its line. */
   last?: SentLine;
 }
@@ -185,8 +199,14 @@ export function boundLog(log: ReminderLog): ReminderLog {
     answered: capDays(log.answered),
     opened: capDays(log.opened),
     slots: [...slots.values()].sort((a, b) => a.at - b.at).slice(0, PLAN_DAYS),
+    ...(isInstant(log.plannedAt) ? { plannedAt: log.plannedAt } : {}),
     ...(last !== undefined && isDayKey(last.day) && typeof last.line === 'string' && last.line.length > 0 ? { last: { day: last.day, line: last.line } } : {}),
   };
+}
+
+/** An epoch instant this build would have written. */
+function isInstant(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
 }
 
 /**
@@ -194,9 +214,10 @@ export function boundLog(log: ReminderLog): ReminderLog {
  * so its day joins `sent` and it leaves `slots`. `pauseSent` is true when the
  * pause note was among them, which is when the reminder pauses itself.
  *
- * Sound because nothing else removes a planned slot: every re-plan replaces the
- * whole list, so a slot still planned when its time came was handed to the OS
- * and fired.
+ * Sound only for a log whose plan the OS still holds, so the planner never
+ * calls it on anything else: `heldLog` first drops the slots of a plan that
+ * was taken back at a moment nobody wrote down (a sign-out), and every place
+ * the planner takes a plan back closes the log as it does (`closeLog`).
  */
 export function settleLog(log: ReminderLog, now: number): { log: ReminderLog; pauseSent: boolean } {
   const fired = log.slots.filter((slot) => slot.at <= now).sort((a, b) => a.at - b.at);
@@ -211,6 +232,70 @@ export function settleLog(log: ReminderLog, now: number): { log: ReminderLog; pa
     }),
     pauseSent: fired.some((slot) => slot.pause === true),
   };
+}
+
+/**
+ * The log as far as the OS can vouch for it. `held` is the plan the OS holds
+ * now (`store.ts` `loadHeldPlan`). A log whose plan is not that one was taken
+ * back at some moment nobody could write down, a sign-out being the usual
+ * one, so none of its slots is known to have arrived and they are dropped
+ * rather than counted. Counting too few only delays a pause; counting a slot
+ * that never arrived pauses a reminder the learner never ignored.
+ */
+export function heldLog(log: ReminderLog, held: number | null): ReminderLog {
+  if (log.plannedAt !== undefined && log.plannedAt === held) return log;
+  return closedLog(log);
+}
+
+/** The log with no plan in the OS: its history kept, its slots and their plan gone. */
+function closedLog(log: ReminderLog): ReminderLog {
+  return boundLog({ sent: log.sent, answered: log.answered, opened: log.opened, slots: [], ...(log.last !== undefined ? { last: log.last } : {}) });
+}
+
+/**
+ * The log as the planner takes its plan back from the OS at `now`: what had
+ * arrived by then is kept as arrived, and what was still to come never will.
+ * Settling a closed log later finds nothing, so it can never pause.
+ */
+export function closeLog(log: ReminderLog, now: number): ReminderLog {
+  return closedLog(settleLog(log, now).log);
+}
+
+/** The log once the OS has taken `slots`, named by the instant it took them. */
+export function plannedLog(log: ReminderLog, slots: readonly ReminderSlot[], now: number): ReminderLog {
+  return boundLog({ ...log, slots: plannedSlots(slots), plannedAt: now });
+}
+
+/** What one re-plan knows before it decides. */
+export interface ReplanFacts {
+  now: number;
+  /** The learner's choice, or null when there is none. A guest's pause rides in `paused`. */
+  choice: StoredReminder | null;
+  /** The caller has just made this choice (Settings, the ask): that is a turning on, never a pause. */
+  chosenNow: boolean;
+  /** The OS allows notifications. */
+  permitted: boolean;
+  /** The log as stored. */
+  log: ReminderLog;
+  /** The plan the OS holds (`store.ts` `loadHeldPlan`), or null. */
+  held: number | null;
+}
+
+/**
+ * Plan, or take the plan back. Either way the log comes back settled up to
+ * `now` from what the OS really held, and for a take-back it is closed, so
+ * nothing it planned can be counted later. `pause` is true when the pause
+ * note has gone out and nobody has just turned the reminder on: the caller
+ * records the pause, and nothing is planned until it is turned on again.
+ */
+export type ReplanStep = { kind: 'take-back'; log: ReminderLog; pause: boolean } | { kind: 'plan'; log: ReminderLog };
+
+export function replanStep(facts: ReplanFacts): ReplanStep {
+  const settled = settleLog(heldLog(facts.log, facts.held), facts.now);
+  const on = facts.choice !== null && facts.choice.enabled === true && facts.choice.paused !== true;
+  const pause = on && settled.pauseSent && !facts.chosenNow;
+  if (!on || pause || !facts.permitted) return { kind: 'take-back', log: closedLog(settled.log), pause };
+  return { kind: 'plan', log: settled.log };
 }
 
 /**

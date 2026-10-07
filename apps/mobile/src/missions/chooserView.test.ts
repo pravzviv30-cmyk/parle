@@ -262,7 +262,7 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
     // "Start this one", and a second filled button beside it would be two
     // primary actions on a screen whose whole job is one choice.
     const footer = SCREEN.slice(SCREEN.indexOf('<View style={st.footer}>'));
-    assert.match(footer, /<GhostButton/, 'the lesson door is not the app\'s outline button');
+    assert.match(footer, /<IconAction layout="tile" icon="book"/, 'the lesson door is not a labelled action tile');
     assert.doesNotMatch(footer, /<PillButton/, 'the lesson door took the screen\'s second pill');
     assert.equal(
       (SCREEN.match(/<PillButton\b/g) ?? []).length,

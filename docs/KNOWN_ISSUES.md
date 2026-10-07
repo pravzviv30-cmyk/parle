@@ -3791,7 +3791,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   for F237 says "files 6b never touched", which F229's exclusion row in `sync/policy.ts` makes
   slightly untrue; the operative fact, that the NUL bytes are not 6b's, holds and is worded
   correctly in the roadmap.
-- note 2026-10-07, ca/p4-reminders: closed by the planner (F771). Skipping a practised day is now the design (founder decision D2) and lives in one place: a practice settles through game/settle.ts and the planner re-plans from onSettled, so no practice surface imports the reminder. The named test, in reminder.test.ts, holds that only the Settings reminder row (Profile's until F576) writes the reminder off, names every module that may cancel pending reminders, and scans the practice surfaces for any reminder import.
+- note 2026-10-07, ca/p4-reminders (review repair on ca/p4-reminders-r1): closed by the planner (F771). Skipping a practised day is now the design (founder decision D2) and lives in one place: a practice settles through game/settle.ts and the planner re-plans from onSettled, so no practice surface imports the reminder. The named test, in reminder.test.ts, holds that only the Settings reminder row (Profile's until F576) writes `enabled: false` over a choice that was on; the planner's other writes are a yes from the ask, the pause once its note has gone out (D2's Paused state, which Settings shows and turns back on, not off), and after the OS refuses a yes, a put-back of exactly the choice that was there before. It also names every module that may cancel pending reminders (the row's off now goes through the planner) and scans the practice surfaces for any reminder import.
 - verified-by: `only the profile row can turn the reminder off`
 ### F242 — The first voice session on a phone refuses a working microphone
 - severity: P1
@@ -10049,31 +10049,35 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F747 — A store trial would get the paid phrase-audio budget
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: supabase/migrations/20261002212536_*.sql, services/token-server/src/billing
 - note: Found by the 6 October billing SQL review. A trial row's plan is starter or regular, so it would get the paid phrase-audio allowance ($0.20 per 30 days) instead of the trial's lifetime $0.02. Phrase audio is off and capped at zero by default; this needs a founder decision before it is turned on. D16 covers minutes only.
 - verified-by: `a store trial gets the phrase-audio budget the founder chose`
+- note: 2026-10-07 completion: Uses the lifetime trial phrase-audio bucket while a verified store trial is active; conversion invalidates old dispatch without resetting spend. Founder delegated the budget choice on 7 October; $0.02 was chosen. Feature flags and caps remain off by default.
 
 ### F748 — A store extension of a paid year starts a new usage period
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql (entitlement_usage_epoch), supabase/migrations/20261005231742_store_trial_yearly_allowance.sql
 - note: Found by the 6 October billing re-check. A year the store lengthens with the same start keeps its minutes, but the older pinned epoch trigger still starts a new usage period, which could leave one in-flight session uncharged. Rare (a developer-granted extension).
 - verified-by: `a store extension of a paid year keeps the in-flight session charged`
+- note: 2026-10-07 completion: The usage epoch survives only a verified extension of the same paid annual window. SQL proof charges an already admitted session and still rotates at the next monthly window.
 
 ### F749 — A failed guest decode can briefly hold both shared audio decoders
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/onboardingSpeech.ts:103, services/shared/audioDecode.ts:34
 - note: Found by the 6 October guest-speech security review. The guest counter frees when decodeAudio rejects, but the killed ffmpeg keeps its slot until it closes, so for a millisecond or two a second guest decode can take the last slot and paid scoring returns unscored. Fix: a guest lane counted inside decodeAudio and released on the child close, replacing the counter in onboardingSpeech.ts.
 - verified-by: `a guest decode never holds the last shared decoder, even while a failed one is closing`
+- note: 2026-10-07 completion: A shared opaque decoder lease reserves the guest lane through child close, even after the request fails.
 
 ### F750 — A busy guest decoder spends one of the learner's two attempts
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:428
 - note: Found by the 6 October guest-speech security review. When the guest decoder is busy the take is refused after guestAttempt has spent an attempt, so the learner loses a try although nothing was sent. Check the decoder before spending the attempt (the existing check stays as the guard), alongside the Phase 2 client that turns a 503 into a calm move to typing.
 - verified-by: `a guest take refused because the decoder is busy keeps the learner's attempt`
+- note: 2026-10-07 completion: Production guest speech reserves decoder capacity before spending an attempt. Busy reservations release no attempt.
 
 ### F751 — A real guest practice still records no finish day
 - severity: P2
@@ -10093,10 +10097,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F753 — A phone whose own clock runs far ahead can still age out recent game rows
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game/model.ts, apps/mobile/src/game/store.ts
 - note: Found by the 6 October data reviews. The store refuses rows dated more than a day after the writing device's clock, which stops a wrong clock on another device, but a device whose own clock is far ahead still writes rows the merge treats as newest, and the 60-day windows are measured from the newest row. The merge must stay clock-free, so this is a known limit, written up in docs/STATE_AND_STORAGE.md.
 - verified-by: `a game row from a clock far ahead cannot shorten what another device keeps`
+- note: 2026-10-07 completion: Game format v2 retains count-bounded identities rather than using the newest timestamp as a pruning clock. Reads v1, preserves merge laws, and prevents old builds from reapplying v1 pruning. Previously discarded data cannot be recovered.
 
 ### F754 — The first run shows no plan, celebrates nothing and asks for things at the wrong moment
 - severity: P2
@@ -10248,7 +10253,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/reminders
 - note: README Part 5.F Reminders: one planner (reminders/plan.ts), a smart time from the learner's own finishes, one dated slot a day skipped when practised, a pause note after four unanswered days then silence, copy naming the chosen tutor, taps that open their promise, re-planned after every settle, cancelled only on sign-out. Supersedes F226, F227 and F230 (their verified-by lines are replaced by these).
-- note 2026-10-07, ca/p4-reminders: done. plan.ts plans up to five dated `practice:{day}` slots in a seven-day window (smart time: median first finish less 30 minutes, on the quarter hour, 08:00 to 21:30, 18:00 until three days), skips a practised day, rotates twelve lines naming the chosen tutor (milestone eve, mentionStreak) with no line twice in a row, and puts the pause note in the fifth unanswered slot. store.ts is v2 (choice plus a day-key log, v1 migrated). schedule.native.ts schedules once per slot with DATE triggers, cancels only `practice:` by identifier, has no handler and no badge, and hears taps (cold start included). ReminderPlanner.tsx re-plans on mount, foreground, every settle, tutor change, Settings and the ask; App.tsx follows taps (Home, today's phrase, Settings) and cancels on sign-out only. The titles failed against fbe958ce (plan.ts did not exist).
+- note 2026-10-07, ca/p4-reminders: done. plan.ts plans up to five dated `practice:{day}` slots in a seven-day window (smart time: median first finish less 30 minutes, on the quarter hour, 08:00 to 21:30, 18:00 until three days), skips a practised day, rotates twelve lines naming the chosen tutor (milestone eve, mentionStreak) with no line twice in a row, and puts the pause note in the fifth unanswered slot. store.ts is v2 (choice plus a day-key log, v1 migrated). schedule.native.ts schedules once per slot with DATE triggers, cancels only `practice:` by identifier, has no handler and no badge, and hears taps (cold start included). ReminderPlanner.tsx re-plans on mount, foreground, every settle, tutor change, Settings and the ask; App.tsx follows taps (Home, today's phrase, Settings) and cancels on sign-out only. The titles failed against fbe958ce (plan.ts did not exist). Review repair (ca/p4-reminders-r1): a slot counts as arrived only while the OS held its plan (a device key names the held plan, cleared before every take-back and at sign-out), so a reminder turned off, refused or signed out of can never come back paused; Settings' off goes through the planner's chain, the ask plans the choice it wrote, and the sign-out cancel is keyed on who is signed in (the recovery screen cancels nothing).
 - verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
 - verified-by: `a reminder names the chosen tutor and opens the place it promises`
 
@@ -10310,35 +10315,39 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F778 — Most screens still stack underlined text links where an icon control belongs
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src (63 files; docs/come-alive/icons-layout.md section 2)
 - note: README Part 5.B GhostButton sweep: about 160 of 222 links become IconButton, IconAction or Choice, keeping their labels. Words stay for legal and billing links, destructive and account actions, decline and Not now, leave confirmations and the age refusal. A ratchet test holds the remaining count and the KEEP categories.
 - verified-by: `underlined text links remain only where words must stay: legal, billing, account, decline and leave`
+- note: 2026-10-07 completion: Converted 127 ordinary controls, grouped practice actions into labelled tiles, and removed the duplicate recap exit. The AST ratchet allows at most 60 retained legal/account/billing/decline/exit controls, including dormant legacy screens.
 
 ### F779 — Every paper screen draws a footer rule, so a short page looks cut off
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/layout.tsx:127
 - note: icons-layout.md 3.5: the footer hairline appears only when the content scrolls under it, toggled with no animation.
 - verified-by: `a footer hairline appears only when the content scrolls under it`
+- note: 2026-10-07 completion: The footer rule follows measured content, viewport and scroll offset; it disappears when there is no content beneath the footer.
 
 ### F780 — An iPad shows the phone layout stretched across a wide screen
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/responsiveLayout.ts, apps/mobile/src/layout.tsx
 - note: icons-layout.md 3.6 and README Part 5.B: layoutClass and <Columns> on regular width (two columns on the tabs), FOOTER_MAX 480, the reading width for first-run pages, takeovers and sheets.
 - verified-by: `on a regular-width screen the tabs use two columns and sheets keep the reading width`
+- note: 2026-10-07 completion: Home, Progress and Practice use regular-width columns; onboarding uses option grids. Large text and narrow/split widths return to stacked layout. Browser checks at 375 and 834 points; physical tablet/Dynamic Type acceptance remains separate.
 
 ### F781 — Empty lists show a bare sentence and no way forward
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src (Phrasebook, Conversations, Tutor memory)
 - note: README Part 5.B: each empty list shows one of the existing state drawings and one first action.
 - verified-by: `every empty list shows its drawing and one first action`
+- note: 2026-10-07 completion: Phrasebook, conversation library and tutor memory empty states show the existing notebook drawing and a Choose a scene action.
 
 ### F782 — Tapping a disabled Next does nothing a learner can notice
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/NextButton.tsx
 - note: icons-layout.md 3.4: the press is taken while the button stays disabled: a soft haptic, the options lift by 3 points with a 40 ms stagger (never a shake) and the live region says "Choose one to continue."; Reduce Motion gives the words only. The pinned disabled={answer == null} stays.
 - verified-by: `tapping a disabled Next lifts the choices and says to choose one, never a shake`
@@ -10346,3 +10355,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
+- note: 2026-10-07 completion: Disabled Next routes touch to a choice lift and polite explanation, without advancing. Reduce Motion gets the words only. Browser tap verified.
+
+### F783 — Purchase refresh leaves the game entitlement facts stale
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/purchases/billingChanges.ts, apps/mobile/src/game/GameProvider.tsx
+- note: Confirmed billing refresh invalidates game facts only for the still-current account and scope. Read generations prevent a slower earlier response from overwriting a newer one. Late successful reads after the loading deadline still update the view.
+- verified-by: `confirmed billing refresh invalidates game facts for only the current account`

@@ -13,7 +13,11 @@ the resolutions that override the detailed specs where they disagree. Part 7 = g
 reviewers found (the specific ways this build would otherwise go red). Parts 8–11 = build order,
 verification, risks, founder actions. The detailed specs (~360k characters, every file:line), the
 six review notes and the critic are committed in step 0 as `docs/come-alive/` with
-`00-RESOLUTIONS.md` (Parts 6–7 of this file) as the authority where they conflict.
+Parts 6–7 of this file as the authority where they conflict.
+
+## Integration status — 7 October 2026
+
+All six Phase 4 branches are integrated into this worktree, including the recovered reminder repairs. The completion pass addresses the remaining local findings F747–F750, F753 and F778–F782, plus the purchase-refresh race F783. The implementation and remaining release acceptance are recorded in `docs/IMPLEMENTATION_EVIDENCE.md` and `docs/DEVICE_VERIFICATION.md`. This status is not approval to deploy, enable paid provider paths, or ship store offers.
 
 ---
 

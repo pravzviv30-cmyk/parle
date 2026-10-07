@@ -132,7 +132,7 @@ describe('a spoken take the tutor did not hear — F776', () => {
     assert.match(younger, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/);
     const app = evidence('apps/mobile/App.tsx');
     assert.match(app, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\);/);
-    assert.match(app, /<GhostButton label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    assert.match(app, /<IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
     const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
     const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn ='));
     assert.match(newAccount, /if \(initialDraft\?\.reminderEnabled === true\) void cancelReminder\(\);/);

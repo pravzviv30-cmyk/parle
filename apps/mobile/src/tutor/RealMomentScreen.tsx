@@ -29,7 +29,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
-import { Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, OptionRow } from '../components.tsx';
+import { IconAction, Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, OptionRow } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -190,7 +190,7 @@ export function RealMomentScreen({
         <Label>Included with Max</Label>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Choose your situation and practise with your tutor before it happens.</Text>
         {allowed === null && <Text accessibilityLiveRegion="polite" style={st.planLine}>{planError ? PLAN_READ_FAILED : PLAN_CHECKING}</Text>}
-        {planError && <GhostButton label="Check my plan again" onPress={() => setPlanAttempt((attempt) => attempt + 1)} />}
+        {planError && <IconAction layout="inline" icon="refresh" label="Check my plan again" onPress={() => setPlanAttempt((attempt) => attempt + 1)} />}
         {allowed === false && (
           <View style={st.gate}>
             <Text style={st.gateLine}>{MAX_ONLY_LINE}</Text>
@@ -267,7 +267,7 @@ export function RealMomentScreen({
       {momentsStatus === 'unread' && (
         <View style={st.again}>
           <Text style={st.planLine}>We couldn’t load your saved moments.</Text>
-          <GhostButton label="Try loading saved moments again" onPress={() => setMomentsAttempt((n) => n + 1)} />
+          <IconAction layout="inline" icon="refresh" label="Try loading saved moments again" onPress={() => setMomentsAttempt((n) => n + 1)} />
         </View>
       )}
       {visibleMoments.length > 0 && (

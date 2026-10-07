@@ -21,3 +21,9 @@ export function compactPhone(width: number, height: number) {
  * across the content column.
  */
 export const READING = 560;
+
+/** Regular width is based on usable space, including iPad split view. */
+export function layoutClass(width: number, left: number, right: number): 'compact' | 'regular' {
+  return width - left - right >= 700 ? 'regular' : 'compact';
+}
+export const FOOTER_MAX = 480;

@@ -22,7 +22,7 @@ founder decision about money. Those are under the table as well, in the last sec
 
 **3 October 2026 supersession for migration and credential status.** This table
 retains its dated Phase 1–7 measurements, which were made on disposable or
-local systems unless a row says otherwise. The current runbook inventories 38
+local systems unless a row says otherwise. The current runbook inventories 39
 migrations; none of this continuation's new migrations is thereby proved applied
 to a hosted release project. F80's repository history was pruned in August.
 The founder later confirmed revoking the older Groq, Deepgram, ElevenLabs and
@@ -33,7 +33,7 @@ failure or release approval. The credential row below reflects that update.
 
 | Risk | Severity | Owner | Control now | Evidence state | Remaining action |
 |---|---|---|---|---|---|
-| Local migration is mistaken for deployed RLS | P0 | data-sync, qa | Earlier schema proofs ran on a disposable project; the current runbook lists 38 migrations | measured locally: 12 of 12 earlier proofs passed, exit 0, after a first run that failed 6; no hosted-release attestation | Reconcile and apply all 38 migrations to the target project, then capture the full current hosted catalog/history and run `scripts/verifyCurrentHostedSchema.mjs` plus current role/runtime proofs; the legacy harness is insufficient |
+| Local migration is mistaken for deployed RLS | P0 | data-sync, qa | Earlier schema proofs ran on a disposable project; the current runbook lists 39 migrations | measured locally: 12 of 12 earlier proofs passed, exit 0, after a first run that failed 6; no hosted-release attestation | Reconcile and apply all 39 migrations to the target project, then capture the full current hosted catalog/history and run `scripts/verifyCurrentHostedSchema.mjs` plus current role/runtime proofs; the legacy harness is insufficient |
 | **`claim_trial` grants the trial it should refuse** | P0 | revenue, security, data-sync | Forward migration `202608240001` makes the guard null-safe; the contract test evaluates it in real three-valued logic | measured: a second account on one device refused, one account signal refused across devices, and 1 of 6 racing claims granted | Apply `202608240001` with the others. Applying only `202608230001` leaves the defect live |
 | **`consume_entitlement` bills a replayed session id every time** | P0 | revenue, data-sync | Forward migration `202608250001`, the same null-safe guard in the other money function | measured: found live at 120s, 240s, 540s for one session id; after the fix, 120s billed once across two identical reports | F79: the join path still does not consult `session_usage`, so the replay refusal is worker-local |
 | **A failed room charges the learner** | P0 | voice, revenue | `learnerTurns` counts only real learner input, in both `tutor.ts` and `convo.ts`, and billing keys off it rather than off the turn index the silence rescue advances | measured: found at 60s billed for a room with no learner turn, and 0s after the fix, re-run live | Induce a failure that is not silence — a recogniser outage mid-scene — and measure that too |

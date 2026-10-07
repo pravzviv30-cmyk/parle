@@ -57,7 +57,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
 import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour, decorative } from './theme.ts';
-import { Card, GhostButton, Label, OutlineButton, PillButton, ProgressDots, RoundButton } from './components.tsx';
+import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton, ProgressDots, RoundButton } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { arrived } from './motion/haptics.ts';
 import { holdCelebrations } from './celebrate/queue.ts';
@@ -290,18 +290,17 @@ export function RecapScreen({
           ? <PillButton label="Practise this phrase" onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />
           : <PillButton tone={currentPage === 'result' ? 'white' : 'ink'} label={nextPage === null ? 'Finish conversation' : 'Next'}
               onPress={() => nextPage === null ? onDone() : setPage(nextPage)} />}
-        {nextPage !== null || canPractise ? <GhostButton label="Finish conversation" color={ground === 'coral' ? paper.onInk : paper.ink} onPress={onDone} /> : null}
-        {previousPage !== null && <GhostButton label="Previous" color={paper.ink} onPress={() => setPage(previousPage)} />}
+        {previousPage !== null && <IconAction layout="inline" icon="back" label="Previous"  onPress={() => setPage(previousPage)} />}
       </View>}>
       <View style={st.stack}>
         {contextFailed && <Card>
           <Text accessibilityLiveRegion="polite" style={type.body}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
-          <GhostButton label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
+          <IconAction layout="inline" icon="refresh" label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
         </Card>}
         {currentPage === 'result' && <View style={st.head}>
           {keptPhrase !== null ? <><KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
             {saveState === 'failed' && <OutlineButton label="Retry save" onPress={retrySave} />}
-            {canPractise && <GhostButton label="Practise this phrase" color={paper.onInk} onPress={() => onPractice!({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />}
+            {canPractise && <IconAction layout="inline" icon="microphone" label="Practise this phrase" ground="blue" onPress={() => onPractice!({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />}
           </> : lines.length > 0 ? <Card><Label>Your French</Label><Text {...frenchText} style={type.french}>{lines[lines.length - 1]}</Text></Card> : null}
           <ResultArt moment={moment} burst={scene.burst} seed={`recap:${momentKey ?? recap.headline}`}>
             {mission ? <Illustration name={sceneIllustration(mission.id)} fit="small" /> : lines.length > 0 ? <Illustration name="celebrate-first-line" fit="small" /> : <Illustration name="state-waiting" fit="small" />}
@@ -341,7 +340,7 @@ export function RecapScreen({
           <Text {...frenchText} style={type.french}>{closure.repair.better}</Text>
           <Text style={type.body}>{closure.repair.betterEn}</Text>
           <Text style={type.small}>{closure.repair.why}</Text>
-          <GhostButton label="Try this version" onPress={() => setFixingLine(true)} />
+          <IconAction layout="inline" icon="microphone" label="Try this version" onPress={() => setFixingLine(true)} />
         </Card>}
 
         {/* One phrase kept, on the screen's one highlighter. */}
@@ -350,7 +349,7 @@ export function RecapScreen({
             <KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
             {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
             {onPractice !== undefined ? (
-              <GhostButton
+              <IconAction layout="inline" icon="microphone"
                 label="Practise this phrase"
                 disabled={saveState !== 'saved'}
                 onPress={() => onPractice({ fr: keptPhrase.fr, en: keptPhrase.en, situation })}
@@ -428,6 +427,7 @@ export function RecapScreen({
               <ReminderAsk
                 time={offer.choice}
                 tutor={tutorNameOf(profile)}
+                asks={offer.asks}
                 onDone={(answer) => {
                   if (!mounted.current || scopeGeneration() !== ownerScope) return;
                   setReminder(answer.enabled ? { on: answer.time } : 'declined');

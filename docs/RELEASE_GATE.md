@@ -5,7 +5,7 @@ it does not prove a legal notice, a store purchase, a physical phone or a
 deployment that nobody has run. The release owner records each item below with
 the date, environment and evidence location. A blank item is a release block.
 
-**3 October 2026 status.** The repository has 26 ordered migrations. Ledger
+**7 October 2026 status.** The repository has 39 ordered migrations. The Come Alive branches are integrated and local fixes are under verification. Production deployment and device/store acceptance remain held. Ledger
 F263–F270 are closed for their local code fixes, with named tests and, where
 stated there, disposable database proofs. Those closures do not attest hosted
 migrations, real RevenueCat delivery, native export cleanup, provider sign-in,

@@ -481,7 +481,7 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
     const card = mark('TutorCard');
     assert.match(card, /<OrbGlyph color=\{orb\.ready\}/, 'the tutor is not drawn as the orb');
     assert.match(card, /accessibilityLabel=\{playing \? `Stop \$\{name\}` : `Hear \$\{name\}`\}/, 'the sample offers to play what is already playing');
-    assert.match(card, /<GhostButton label=\{changeLabel\}/, 'changing tutor is not a quiet link');
+    assert.match(card, /<IconAction layout="inline" icon="edit" label=\{changeLabel\}/, 'changing tutor is not a quiet link');
     assert.match(card, /type\.french/, 'the signature line is not set in the French serif');
     // Revamp B, F601: the sample is a 44 ink disc that presses through the one
     // spring, with the white speaker mark, and no Pressable of its own.
@@ -505,8 +505,8 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
       return i;
     };
     assert.ok(at('<OrbGlyph') < at('{name}'), 'the orb does not lead the row');
-    assert.ok(at('{voice}') < at('<GhostButton'), 'the change link is not under the voice');
-    assert.ok(at('<GhostButton') < at('<Press haptic="light"'), 'the play disc does not end the row');
+    assert.ok(at('{voice}') < at('<IconAction'), 'the change link is not under the voice');
+    assert.ok(at('<IconAction') < at('<Press haptic="light"'), 'the play disc does not end the row');
     assert.ok(at('<Press haptic="light"') < at('{signature}'), 'the signature is not under the row');
     // The signature is French, and said in a French voice.
     assert.match(card, /<Text \{\.\.\.frenchText\} style=\{\[type\.french, \{ color: paper\.ink \}\]\}>/, 'the signature is not marked as French');

@@ -50,10 +50,10 @@ describe('the sound journey screen — Stage 4 item 2', () => {
     // the same words the sound check's cold state uses, and it is a ghost link,
     // not a pill, because a record is not a task.
     assert.equal(JOURNEY_COPY.choose, 'Choose a situation');
-    assert.match(stripComments(read('./SoundCheckScreen.tsx')), /<GhostButton label="Choose a situation"/, 'the sound check changed its words, and this door no longer matches them');
+    assert.match(stripComments(read('./SoundCheckScreen.tsx')), /<IconAction layout="inline" icon="map" label="Choose a situation"/, 'the sound check changed its words, and this door no longer matches them');
     assert.match(
       FLAT,
-      /\{shownStatus === 'ready' && journey === null && \( <View style=\{st\.block\}> <Text style=\{st\.soft\}>\{JOURNEY_COPY\.none\}<\/Text> <GhostButton label=\{JOURNEY_COPY\.choose\} color=\{paper\.ink\} onPress=\{\(\) => nav\.navigate\('Missions'\)\} \/> <\/View> \)\}/,
+      /\{shownStatus === 'ready' && journey === null && \( <View style=\{st\.block\}> <Text style=\{st\.soft\}>\{JOURNEY_COPY\.none\}<\/Text> <IconAction layout="inline" icon="map" label=\{JOURNEY_COPY\.choose\} onPress=\{\(\) => nav\.navigate\('Missions'\)\} \/> <\/View> \)\}/,
       'a learner with no journey yet is offered only the way back',
     );
   });

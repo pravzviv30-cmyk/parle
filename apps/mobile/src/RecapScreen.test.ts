@@ -106,7 +106,7 @@ describe('the conversation closes with something useful', () => {
   });
 
   test('practice is the recommended next action and finishing stays available', () => {
-    assert.match(screen, /<GhostButton\s+label="Practise this phrase"/);
+    assert.match(screen, /<IconAction layout="inline" icon="microphone"\s+label="Practise this phrase"/);
     assert.match(code, /nextPage === null && canPractise\s*\? <PillButton[\s\S]*?: <PillButton/, 'the two exclusive primary states are not one practice-or-next choice');
     assert.match(screen, /nextPage === null \? 'Finish conversation' : 'Next'/);
     assert.match(screen, /accessibilityLabel="Finish conversation" onPress=\{onDone\}/);

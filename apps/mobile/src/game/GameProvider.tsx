@@ -32,6 +32,7 @@ import { localDayKey, type GoalProgress, type StreakState, type XpLevel } from '
 
 import { celebrationsHeld, onCelebrationHoldChange } from '../celebrate/queue.ts';
 import { PillButton, Sheet } from '../components.tsx';
+import { onBillingChange } from '../purchases/billingChanges.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import { microphonePermission } from '../settings/phoneSettings.ts';
 import { liveRoom, micLive, subscribe as subscribeToFocus } from '../sound/audioFocus.ts';
@@ -118,6 +119,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [intro, setIntro] = useState<IntroFacts | null>(null);
   const billing = useRef<BillingFacts | null>(null);
   const billingReadAt = useRef(0);
+  const billingRequest = useRef(0);
   const reading = useRef<Promise<void> | null>(null);
   const again = useRef(false);
   const mounted = useRef(true);
@@ -162,12 +164,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const uid = activeUserId();
     if (uid === null) return;
     if (!force && Date.now() - billingReadAt.current < BILLING_FRESH_MS) return;
+    const request = ++billingRequest.current;
     const status = await fetchBillingStatus(uid);
-    if (status !== null && current() && activeUserId() === uid) {
+    if (status !== null && request === billingRequest.current && current() && activeUserId() === uid) {
       billing.current = { plan: status.plan, lapsed: status.lapsed, secondsRemaining: status.secondsRemaining, canStart: status.canStart };
       billingReadAt.current = Date.now();
+      read();
     }
-  }, [current]);
+  }, [current, read]);
 
   /** Seed once, then catch up quietly, then read. Nothing here takes over the screen. */
   const catchUp = useCallback(async (): Promise<void> => {
@@ -221,6 +225,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       owed = false;
       catchUpNow();
     });
+    const offBilling = onBillingChange(({ userId, owner }) => {
+      if (!current() || owner !== scopeGeneration() || userId !== activeUserId()) return;
+      // Re-read authority after purchase AND restore; the event itself grants nothing.
+      void loadBilling(true);
+    });
     const offSettled = onSettled(() => {
       if (current()) read();
     });
@@ -232,6 +241,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       restore();
       foreground.remove();
       offHolds();
+      offBilling();
       offSettled();
       offDirty();
     };

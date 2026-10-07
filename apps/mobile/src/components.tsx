@@ -251,7 +251,7 @@ export function PillButton({
 }) {
   const waiting = state !== 'idle';
   return (
-    <Press ref={ref} haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined}>
+    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={tone === 'white' ? paper.ink : paper.onInk} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk }]}>{label}</Text>
     </Press>
@@ -1271,7 +1271,7 @@ export function TutorCard({
           <Text style={[type.heading, { color: paper.ink }]}>{name}</Text>
           <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text>
           <View style={ls.tutorChange}>
-            <GhostButton label={changeLabel} onPress={onChange} color={paper.ink} />
+            <IconAction layout="inline" icon="edit" label={changeLabel} onPress={onChange}  />
           </View>
         </View>
         <Press haptic="light" onPress={onHear} style={ls.hear}
@@ -1527,7 +1527,7 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
   return (
     <Pressable
       accessibilityRole="button" {...rest}
-      disabled={disabled}
+      disabled={disabled || undefined}
       onPressIn={(event) => {
         pressTo(scale, depth === 'tile' ? PRESS_SCALE_TILE : PRESS_SCALE, reduced);
         onPressIn?.(event);

@@ -1,3 +1,4 @@
+import { reserveGuestDecoder } from '../../shared/audioDecode.ts';
 import { guestSpeechAvailable, guestSpeechGaps, guestSpeechLimits, transcribeGuestTake } from './onboardingSpeech.ts';
 import { MemoryGuestSpeechLedger, RedisGuestSpeechLedger, guestSpeechAdmission, releaseUnclaimed, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
 import { parseGuestMetric } from './guestMetrics.ts';
@@ -419,6 +420,9 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         const task = starterTasks(guest.goal, guest.drink, guest.minutes).find(task => task.id === taskId);
         if (!task) return json(res, 400, { error: 'unknown starter task' });
         if (!audio && (typeof body.reply !== 'string' || !body.reply.trim() || body.reply.length > 600)) return json(res, 400, { error: 'reply required' });
+        const decoderLease = audio && process.env.NODE_ENV === 'production' ? reserveGuestDecoder() : null;
+        if (audio && process.env.NODE_ENV === 'production' && !decoderLease) return json(res, 503, { error: 'guest speech busy; type instead' });
+        try {
         // Speech seconds are booked before the attempt, so a full budget never spends one of the learner's attempts.
         let speech: GuestSpeechReservation | null = null;
         if (audio) {
@@ -436,11 +440,12 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         if (!take.length) { await speech.settle(0); return json(res, 400, { error: 'recording required' }); }
         const admitted = speech;
         let transcript: string | null = null;
-        try { transcript = await withRequestSignal(req, res, signal => transcribeGuestTake(take, admitted, signal), 12000); } catch { /* no transcript or audio in logs */ }
+        try { transcript = await withRequestSignal(req, res, signal => transcribeGuestTake(take, admitted, signal, process.env, {}, decoderLease ?? undefined), 12000); } catch { /* no transcript or audio in logs */ }
         // A request that ended before the work began never claimed its take; return those seconds. A claimed take settles itself.
         finally { await releaseUnclaimed(admitted); }
         if (!transcript || transcript.length > 600) return json(res, 503, { error: 'transcription unavailable' });
         return json(res, 200, { ...checkStarter(task, transcript, 'spoken'), secondsUsed: feedback.secondsUsed, reply: transcript });
+        } finally { decoderLease?.release(); }
       }
       return json(res, 404, { error: 'unknown starter route' });
     }

@@ -9,7 +9,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DAILY_SCENARIOS, MISSIONS, isEarned, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 import { ColourCard, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
-import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { onColour, paper, space, type } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
@@ -203,8 +203,10 @@ export function MyFrenchTab() {
 
       {gameCards && (
         <View style={st.group}>
-          <LevelXpCard />
-          <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
+          <Columns>
+            <LevelXpCard />
+            <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
+          </Columns>
           <CountsGrid phrases={kept.phrases} conversations={kept.conversations} />
           <BadgeShelf />
         </View>

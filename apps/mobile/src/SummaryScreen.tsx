@@ -21,7 +21,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
 import { HAIRLINE, HIT, paper, signal, space, type } from './theme.ts';
 import { SOUND_DETAIL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
-import { Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
+import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
@@ -223,7 +223,7 @@ export function SummaryScreen({
           </Card>
         )}
 
-        <GhostButton label="Finish lesson" onPress={onDone} />
+        <IconAction layout="inline" icon="tick-circle" label="Finish lesson" onPress={onDone} />
 
         {/* ── More: everything else, one tap away and closed by default ──
             Drawn after Done so opening it never pushes the way out down. */}
@@ -275,7 +275,7 @@ export function SummaryScreen({
                     </View>
                   )}
                   <View style={{ marginTop: space(1.5) }}>
-                    <GhostButton label="Export to Anki" onPress={exportCards} />
+                    <IconAction layout="inline" icon="download" label="Export to Anki" onPress={exportCards} />
                   </View>
                   <Text style={[type.small, { color: paper.inkSoft, marginTop: space(1.5), textAlign: 'center' }]}>
                     Downloads your words as flashcards you can import into Anki or any deck app.

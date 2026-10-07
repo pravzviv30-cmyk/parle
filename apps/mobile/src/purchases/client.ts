@@ -1,3 +1,4 @@
+import { billingChanged } from './billingChanges.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { billingPairMatches } from './billingReadiness.ts';
 import type { Plan } from '@luvani/core';
@@ -48,6 +49,7 @@ export async function refreshBilling(userId: string, owner = scopeGeneration()):
     const { refreshed, plan } = body as { refreshed?: unknown; plan?: unknown };
     if (typeof refreshed !== 'boolean') return null;
     if (typeof plan !== 'string' || !PLAN_IDS.includes(plan)) return null;
+    billingChanged({ userId, owner });
     return { granted: refreshed, plan: plan as Plan };
   } catch {
     return null;

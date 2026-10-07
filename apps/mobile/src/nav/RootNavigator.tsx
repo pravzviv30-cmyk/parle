@@ -25,7 +25,7 @@ import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFro
 import { FirstSceneScreen } from '../onboarding/FirstSceneScreen.tsx';
 import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
-import { GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { PolicyScreen } from '../legal/PolicyScreen.tsx';
@@ -274,13 +274,13 @@ function LessonRoute() {
   }, [endHold]);
 
   if (!ownsLesson()) return <Loading />;
-  if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><GhostButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
+  if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><IconAction layout="inline" icon="refresh" busy={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
 
   if (historyFailed) return (
     <View style={[st.center, { gap: space(3), padding: space(6) }]}>
       <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
       <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
-      <GhostButton label="Back to Home" onPress={leave} />
+      <IconAction layout="inline" icon="home" label="Back to Home" onPress={leave} />
     </View>
   );
   if (startRung === null) return <Loading />;
@@ -427,7 +427,7 @@ function ConvoRoute() {
         </Text>
         <LocalPracticeCard />
         <View style={st.gateAction}>
-          <GhostButton
+          <IconAction layout="inline" icon="refresh" busy={checking}
             label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
             disabled={checking}
             onPress={() => {

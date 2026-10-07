@@ -34,10 +34,12 @@ import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { startVoiceLine } from '../sound/voiceLine.ts';
 import { play as playSfx } from '../sound/sfx.ts';
 import { starterTasks, tutorVoice } from '@luvani/core';
+import { useReduceMotion } from '../motion.ts';
+import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, earnedChoices } from './flow.ts';
 import { Card, GhostButton, IconAction, IconActionRow, IconButton, PillButton, Sheet } from '../components.tsx';
-import { Screen, ScrollScreen, readingColumn, useCompactPhone } from '../layout.tsx';
+import { Screen, ScrollScreen, readingColumn, useCompactPhone, useLayoutClass } from '../layout.tsx';
 import { colour, decorative, frenchText, onColour, paper, radius, space, type } from '../theme.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
@@ -147,7 +149,10 @@ export function PreAccountOnboarding({
   onRefuse?: () => void;
   signedIn?: boolean;
 }) {
+  const reduced = useReduceMotion();
   const compact = useCompactPhone();
+  const regular = useLayoutClass() === 'regular';
+  const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
   const questionOrder =
     process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? FIVE_SETUP : FULL_SETUP;
   const five = questionOrder === FIVE_SETUP;
@@ -367,6 +372,7 @@ export function PreAccountOnboarding({
     if (index > 0) go(questionOrder[index - 1]!, true);
   };
   useEffect(() => {
+    if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       back();
       return true;
@@ -754,7 +760,11 @@ export function PreAccountOnboarding({
   ) : question ? (
     <View style={readingColumn}>
       {/* Keyed by page, so each question's Continue glints once when its answer is chosen. */}
-      <NextButton disabled={answer == null} onPress={nextQuestion} key={page} />
+      <NextButton disabled={answer == null} onPress={nextQuestion} key={page} onDisabledPress={() => {
+        if (!reduced) soft();
+        setChoiceNudge((prior) => ({ page, event: prior.event + 1 }));
+      }} />
+      {choiceNudge.page === page && answer == null && <Text key={choiceNudge.event} accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Choose one to continue.</Text>}
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
@@ -1011,43 +1021,46 @@ export function PreAccountOnboarding({
                 {question && (
                   <>
                     <Text style={[type.body, { color: paper.inkSoft }]}>{whyFor(page)}</Text>
-                    <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10 }}>
+                    <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10, flexDirection: regular ? 'row' : 'column', flexWrap: 'wrap' }}>
                       {page === 'reason' &&
-                        goals.map((v) => (
-                          <View key={v.key} ref={rowRef(`reason:${v.key}`)} collapsable={false}>
+                        goals.map((v, index) => (
+                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '31%' : undefined}><View ref={rowRef(`reason:${v.key}`)} collapsable={false}>
                             <Choice
                               compact={compact}
+                              layout={regular ? 'tile' : 'row'}
                               title={v.title}
                               glyph={<ChoiceArt kind={v.key} />}
                               selected={draft.reason === v.key}
                               onPress={() => choose({ reason: v.key })}
                             />
-                          </View>
+                          </View></ChoiceNudge>
                         ))}
                       {page === 'start-level' &&
-                        START_LEVELS.map((v) => (
-                          <View key={v.key} ref={rowRef(`startLevel:${v.key}`)} collapsable={false}>
+                        START_LEVELS.map((v, index) => (
+                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '31%' : undefined}><View ref={rowRef(`startLevel:${v.key}`)} collapsable={false}>
                             <Choice
                               compact={compact}
+                              layout={regular ? 'tile' : 'row'}
                               title={v.title}
                               detail={v.gloss === '' ? undefined : v.gloss}
                               glyph={<ChoiceArt kind={v.key} />}
                               selected={draft.startLevel === v.key}
                               onPress={() => choose({ startLevel: v.key })}
                             />
-                          </View>
+                          </View></ChoiceNudge>
                         ))}
                       {page === 'time' &&
-                        GOAL_TIERS.map((tier) => (
-                          <View key={tier.minutes} ref={rowRef(`minutes:${tier.minutes}`)} collapsable={false}>
+                        GOAL_TIERS.map((tier, index) => (
+                          <ChoiceNudge key={tier.minutes} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '23%' : undefined}><View ref={rowRef(`minutes:${tier.minutes}`)} collapsable={false}>
                             <GoalTile
                               tier={tier}
                               suggested={tier.minutes === suggested}
                               selected={draft.minutes === tier.minutes}
                               compact={compact}
+                              layout={regular ? 'tile' : 'row'}
                               onPress={() => choose({ minutes: tier.minutes })}
                             />
-                          </View>
+                          </View></ChoiceNudge>
                         ))}
                     </View>
                     {page === 'time' ? (
@@ -1394,7 +1407,7 @@ export function PreAccountOnboarding({
               </>
             ) : (
               <>
-                <GhostButton label="Back to plan choices" onPress={() => setPlanField(null)} />
+                <IconAction layout="inline" icon="back" label="Back to plan choices" onPress={() => setPlanField(null)} />
                 {planField === 'reason' &&
                   goals.map((v) => (
                     <Choice
@@ -1524,7 +1537,7 @@ export function PreAccountOnboarding({
                 <Text accessibilityLiveRegion="polite" style={type.body}>
                   {issue}
                 </Text>
-                <GhostButton label="Try again" disabled={busy} onPress={() => void start()} />
+                <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />
               </>
             ) : null}
           </>
@@ -1571,7 +1584,7 @@ export function PreAccountOnboarding({
               {draft.startLevel === 'getby' && attempts.length === 0 ? task.starter : task.model}
             </Text>
             <Text style={type.body}>{task.meaning}</Text>
-            <GhostButton
+            <IconButton icon="speaker"
               label={playing ? 'Stop' : 'Hear'}
               onPress={() =>
                 hear(

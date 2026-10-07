@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import { getMission } from '@luvani/core';
 
-import { Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
+import { IconAction, Card, EarGlyph, GhostButton, Label, PillButton, SpeakCircle, fitDisplay } from '../components.tsx';
 import { AcousticCard } from '../myfrench/AcousticCard.tsx';
 import { acousticFor, type Acoustic } from '../myfrench/acoustic.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -227,7 +227,7 @@ export function SoundCheckScreen({
           </Text>
           {onChooseSituation !== undefined && (
             <View style={{ marginTop: space(4) }}>
-              <GhostButton label="Choose a situation" onPress={onChooseSituation} />
+              <IconAction layout="inline" icon="map" label="Choose a situation" onPress={onChooseSituation} />
             </View>
           )}
         </Card>
@@ -269,7 +269,7 @@ export function SoundCheckScreen({
           {shownPhase === 'unread' ? (
             <Card style={{ marginTop: space(5), gap: space(3) }}>
               <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{shownReference ? 'Your earlier sound checks could not be read. You can still hear and say this known line; it will not be assessed until the read succeeds.' : 'Your earlier sound checks could not be read. Try again before checking a sound.'}</Text>
-              <GhostButton label="Retry sound checks" onPress={() => { if (ownsReadNow()) setAttempt((n) => n + 1); }} />
+              <IconAction layout="inline" icon="refresh" label="Retry sound checks" onPress={() => { if (ownsReadNow()) setAttempt((n) => n + 1); }} />
             </Card>
           ) : shownPhase === 'loading' ? (
             <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.inkSoft, marginTop: space(5) }]}>Reading your sound checks…</Text>
@@ -279,7 +279,7 @@ export function SoundCheckScreen({
               <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{shownResult.detail}</Text>
               {shownResult === MIC_DENIED && PHONE_SETTINGS_AVAILABLE && (
                 <View style={{ marginTop: space(3) }}>
-                  <GhostButton label="Open settings" onPress={() => void openPhoneSettings()} />
+                  <IconAction layout="inline" icon="settings" label="Open settings" onPress={() => void openPhoneSettings()} />
                 </View>
               )}
             </Card>
@@ -296,7 +296,7 @@ export function SoundCheckScreen({
                 {shownPhase === 'recording' ? 'Tap when you are done' : shownPhase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
               </Text>
               {!CAN_RECORD && <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
-              <GhostButton label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={() => selfGuided()} />
+              <IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={() => selfGuided()} />
             </View>
           )}
         </>

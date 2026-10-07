@@ -65,7 +65,7 @@ describe('a real moment says what the plan allows before the learner fills anyth
     // the wait and the failure, and neither mentions Max or plans.
     const unknown = RENDER.slice(at('{allowed === null && <Text'), at('{allowed === false && ('));
     assert.match(unknown, /accessibilityLiveRegion="polite"[^>]*>\{planError \? PLAN_READ_FAILED : PLAN_CHECKING\}<\/Text>/, 'a failed read and a check in flight are not said in their own words');
-    assert.match(unknown, /\{planError && <GhostButton label="Check my plan again" onPress=\{\(\) => setPlanAttempt/, 'a failed read has no retry');
+    assert.match(unknown, /\{planError && <IconAction layout="inline" icon="refresh" label="Check my plan again" onPress=\{\(\) => setPlanAttempt/, 'a failed read has no retry');
     assert.doesNotMatch(unknown, /SEE_PLANS|MAX_ONLY_LINE|onSeePlans/, 'a failed plan read is offered an upgrade');
     assert.match(SCREEN, /setAllowed\(status === null \? null : capabilitiesFor\(status\.plan, status\.lapsed\)\.customRehearsal\)/, 'an unread plan is read as a plan without Max');
     assert.match(RENDER, /\{allowed === true && <Text[^>]*>\{PLAN_INCLUDED\}<\/Text>\}/, 'a learner with Max is not told it is included');

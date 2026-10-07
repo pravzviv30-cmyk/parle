@@ -20,8 +20,15 @@
  *   a finished practice is on the disk.
  *
  * Every re-plan runs alone on one chain, so two can never interleave their
- * cancels and schedules. Signing out cancels every pending line
+ * cancels and schedules; Settings turns the reminder off through it too.
+ * Signing out, or another account signing in, cancels every pending line
  * (`stopReminders`, from `App.tsx`); signing in does not.
+ *
+ * Every plan it hands the OS is named, and the device remembers which one the
+ * OS holds (`store.ts` `saveHeldPlan`). Whenever it takes a plan back it says
+ * so first, so a log never counts a slot the OS no longer held as one that
+ * arrived (`plan.ts` `replanStep`): a reminder turned off, refused or left
+ * behind at a sign-out can never come back as a pause nobody earned.
  */
 
 import { useCallback, useEffect, useRef } from 'react';
@@ -43,15 +50,17 @@ import { reminderOpenOf, routeForReminder, type ReminderRoute } from './openTarg
 import { todayPhraseId } from './todayPhrase.ts';
 import {
   LOCAL_CALENDAR,
+  closeLog,
   emptyLog,
   noteAnswered,
   noteOpened,
   planReminders,
-  plannedSlots,
-  settleLog,
+  plannedLog,
+  replanStep,
   slotDay,
   smartTime,
   type ReminderLog,
+  type ReminderSlot,
 } from './plan.ts';
 import { DEFAULT_REMINDER_TIME, type ClockTime, type ReminderMode, type StoredReminder } from './reminder.ts';
 import {
@@ -63,12 +72,15 @@ import {
   schedulePlan,
   type ScheduleOutcome,
 } from './schedule.ts';
+import type { PersistAck } from '../storage/ack.ts';
 import {
   clearGuestReminderLog,
   loadGuestReminderLog,
+  loadHeldPlan,
   loadReminder,
   loadReminderLog,
   saveGuestReminderLog,
+  saveHeldPlan,
   saveReminder,
   saveReminderLog,
 } from './store.ts';
@@ -122,6 +134,34 @@ function visiting(): boolean {
   return AppState.currentState === 'active';
 }
 
+/**
+ * Take the plan back from the OS. The held plan is cleared first, so if
+ * anything after it fails no log can count what the OS no longer holds; then
+ * the closed log is written; then the OS lets go of this app's slots.
+ */
+async function takeBack(held: number | null, record: () => Promise<unknown>): Promise<ScheduleOutcome> {
+  if (held !== null) await saveHeldPlan(null);
+  await record();
+  return cancelReminder();
+}
+
+/**
+ * Hand `slots` to the OS in place of whatever it held, and write down that it
+ * did. The held plan is cleared before the OS is touched and named after the
+ * log is written, so a crash between the two can only make the log count too
+ * little. A refusal leaves the OS holding nothing, and the log says so.
+ */
+async function handOver(slots: readonly ReminderSlot[], log: ReminderLog, now: number, record: (log: ReminderLog) => Promise<PersistAck>): Promise<ScheduleOutcome> {
+  await saveHeldPlan(null);
+  const outcome = await schedulePlan(slots);
+  if (outcome !== 'done') {
+    await record(closeLog(log, now));
+    return outcome;
+  }
+  if ((await record(plannedLog(log, slots, now))) === 'durable') await saveHeldPlan(now);
+  return outcome;
+}
+
 async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
   const owner = scopeGeneration();
   const live = () => owner === scopeGeneration();
@@ -137,22 +177,25 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
     }
   }
   if (!live()) return 'failed';
-  if (choice === null || !choice.enabled || choice.paused === true) return cancelReminder();
-  if ((await reminderPermission()) !== 'granted') return live() ? cancelReminder() : 'failed';
-
+  const wanted = choice !== null && choice.enabled && choice.paused !== true;
+  const permitted = wanted && (await reminderPermission()) === 'granted';
   const now = Date.now();
+  const [stored, held] = await Promise.all([loadReminderLog(), loadHeldPlan()]);
+  if (!live()) return 'failed';
+  // Off, paused, not allowed, or the pause note has gone out: the plan comes
+  // back from the OS. A choice the caller has just made is a turning on, so it
+  // is never read as a pause.
+  const step = replanStep({ now, choice, chosenNow: options.choice !== undefined, permitted, log: stored, held });
+  if (step.kind === 'take-back') {
+    if (step.pause && choice !== null) await saveReminder({ ...choice, paused: true });
+    const changed = stored.slots.length > 0 || stored.plannedAt !== undefined;
+    return takeBack(held, () => (changed && live() ? saveReminderLog(step.log) : Promise.resolve()));
+  }
+  if (choice === null) return 'failed';
+
   const facts = await accountFacts();
   const tutor = options.tutor ?? tutorNameOf(await loadProfile().catch(() => null));
-  const settled = settleLog(await loadReminderLog(), now);
-  let log: ReminderLog = settled.log;
-  if (!live()) return 'failed';
-  // The pause note has gone out: the reminder pauses until it is turned on
-  // again. A choice the learner has just made is that turning on.
-  if (settled.pauseSent && options.choice === undefined) {
-    await saveReminder({ ...choice, paused: true });
-    await saveReminderLog({ ...log, slots: [] });
-    return cancelReminder();
-  }
+  let log: ReminderLog = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);
   const slots = planReminders({
     now,
@@ -166,9 +209,7 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
     todayUnknown: facts === null,
   });
   if (!live()) return 'failed';
-  const outcome = await schedulePlan(slots);
-  if (outcome === 'done' && live()) await saveReminderLog({ ...log, slots: plannedSlots(slots) });
-  return outcome;
+  return handOver(slots, log, now, (next) => (live() ? saveReminderLog(next) : Promise.resolve('failed' as const)));
 }
 
 async function replanGuest(options: ReplanOptions): Promise<ScheduleOutcome> {
@@ -178,30 +219,26 @@ async function replanGuest(options: ReplanOptions): Promise<ScheduleOutcome> {
     (draft?.reminderEnabled === true
       ? { enabled: true, time: draft.reminderTime ?? DEFAULT_REMINDER_TIME, ...(draft.reminderDays?.length ? { days: draft.reminderDays } : {}) }
       : null);
-  if (choice === null || !choice.enabled) {
-    await clearGuestReminderLog();
-    return cancelReminder();
-  }
-  if ((await reminderPermission()) !== 'granted') return cancelReminder();
+  const held = await loadHeldPlan();
+  if (choice === null || !choice.enabled) return takeBack(held, () => clearGuestReminderLog());
 
+  const resume = options.resume === true;
+  // A guest said yes again: their reminder starts afresh, unpaused.
+  const guest = resume ? { paused: false, log: emptyLog() } : await loadGuestReminderLog();
+  const permitted = (await reminderPermission()) === 'granted';
   const now = Date.now();
+  const step = replanStep({ now, choice: { ...choice, paused: guest.paused }, chosenNow: resume, permitted, log: guest.log, held });
+  if (step.kind === 'take-back') return takeBack(held, () => saveGuestReminderLog({ paused: guest.paused || step.pause, log: step.log }));
+
   const facts = await guestFacts();
   // The tutor the first run named: the one in the draft, as the ask names it.
   const tutor = options.tutor ?? tutorVoice(draft?.tutorVoice ?? DEFAULT_TUTOR_VOICE).persona.name;
-  const held = options.resume === true ? { paused: false, log: emptyLog() } : await loadGuestReminderLog();
-  const settled = settleLog(held.log, now);
-  let log = settled.log;
-  if (held.paused || (settled.pauseSent && options.resume !== true)) {
-    await saveGuestReminderLog({ paused: true, log: { ...log, slots: [] } });
-    return cancelReminder();
-  }
+  let log = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);
   const slots = planReminders({ now, calendar: LOCAL_CALENDAR, choice, ...facts, tutor, log, guest: true });
   // An account appeared while this was read: its own planner plans now.
   if (activeUserId() !== null) return 'failed';
-  const outcome = await schedulePlan(slots);
-  if (outcome === 'done') await saveGuestReminderLog({ paused: false, log: { ...log, slots: plannedSlots(slots) } });
-  return outcome;
+  return handOver(slots, log, now, (next) => saveGuestReminderLog({ paused: false, log: next }));
 }
 
 /**
@@ -216,8 +253,8 @@ export function replanReminders(options: ReplanOptions = {}): Promise<ScheduleOu
 
 /**
  * The learner said yes on the ask, and the OS has already allowed it. For an
- * account the choice is saved and then planned, and put back to off if the OS
- * will not take it (`acceptReminderOffer`); for a guest it is planned from the
+ * account the choice is saved and then planned, and put back as it was if the
+ * OS will not take it (`acceptReminderOffer`); for a guest it is planned from the
  * guest's finish days, and the first run records the answer in its draft.
  * `done` only once the OS took the plan.
  */
@@ -230,14 +267,20 @@ export async function turnOnReminder(time: ReminderMode, tutor: string): Promise
   } catch {
     return 'failed';
   }
+  // The yes, as it is written: the learner's other choices kept, unpaused.
+  const yes = (mode: ReminderMode): StoredReminder => ({ ...(stored ?? {}), enabled: true, time: mode, paused: false });
   const answer = await acceptReminderOffer(
     { choice: time, asks: false },
     {
       owns: () => owner === scopeGeneration(),
       ask: askReminderPermission,
       read: reminderPermission,
-      save: (reminder) => saveReminder({ ...(stored ?? {}), ...reminder, paused: false }),
-      schedule: () => replanReminders({ tutor }),
+      // A yes is written over what was there, and the put-back after the OS
+      // refused the plan restores exactly that: the ask can never turn off a
+      // reminder the learner had chosen.
+      save: (reminder) => (reminder.enabled ? saveReminder(yes(reminder.time)) : saveReminder(stored ?? reminder)),
+      // Planned for the choice just written, so a fresh yes is never read as a pause.
+      schedule: (mode) => replanReminders({ tutor, choice: yes(mode) }),
     },
   );
   return answer === 'on' ? 'done' : 'failed';
@@ -264,9 +307,17 @@ export function noteReminderTap(id: string): Promise<void> {
   }).catch(() => {});
 }
 
-/** Signing out: every pending line leaves with the account. Nothing else calls this. */
+/**
+ * Signing out, or another account signing in: every pending line leaves with
+ * the account. The account's own log can no longer be written by then, so the
+ * held plan is what says its slots are gone. Nothing else calls this.
+ */
 export function stopReminders(): Promise<ScheduleOutcome> {
-  return alone(() => cancelReminder());
+  if (!REMINDERS_AVAILABLE) return Promise.resolve('unavailable');
+  return alone(async () => {
+    await saveHeldPlan(null);
+    return cancelReminder();
+  });
 }
 
 /** Whether a change of app state is one worth re-planning for. */

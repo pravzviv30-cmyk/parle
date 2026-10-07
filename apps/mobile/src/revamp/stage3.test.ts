@@ -15,7 +15,7 @@ test('revamp B room controls keep typing, help and leave alongside the real wait
   has('ConvoScreen.tsx',/label="Help me out"/,/label="Simpler"/,/label="Type instead"/,/label="Give me a moment"/,/label="In English"/,/maxHeight: 100/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
   has('live/RoomWait.tsx',/state="thinking"/,/size=\{120\}/,/accessibilityLiveRegion="polite"/,/\{stage\}/,/label=\{leaveLabel\}/);
   lacks('live/RoomWait.tsx',/ProgressDots|CheckGlyph|percent|ProgressBar/);
-  has('live/LiveErrorView.tsx',/state-microphone/,/state-offline/,/<PillButton/,/<GhostButton/);
+  has('live/LiveErrorView.tsx',/state-microphone/,/state-offline/,/<PillButton/,/<IconAction/);
   has('live/LiveRoomHeader.tsx',/kind="close"/,/accessibilityHint/,/frenchText/);
   lacks('live/LiveRoomHeader.tsx',/borderBottomWidth/);
 });
@@ -65,8 +65,11 @@ test('revamp B reminder and deletion controls retain explicit choices and explai
   has('components.tsx', /accessibilityRole="header"/);
 });
 test('revamp B plans preserve catalogue and store prices, accessible selection and a single restore',()=>{
-  has('wall/WallPlansPage.tsx',/accessibilityState=\{\{ selected: chosen \}\}/,/aria-selected=\{chosen\}/,/aria-pressed=\{chosen\}/,/chosen: \{ backgroundColor: colour.blue \}/,/CheckGlyph/,/paper.field/);
-  lacks('wall/WallPlansPage.tsx',/recommended|accessibilityRole="radio"/);
+  // Come-alive D16: each store product is now a shared radio choice. Keep
+  // the actual price and selected product wired to its accessible name/state.
+  has('wall/WallPlansPage.tsx', /<Choice/, /role="radio"/, /selected=\{offer.productId === selected\}/, /title=\{billed\}/, /billedPrice\(offer.price, offer.period\)/, /accessibilityLabel=\{\[row.name, period, price\].join\(', '\)\}/);
+  has('components.tsx', /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);
+  lacks('wall/WallPlansPage.tsx', /recommended/);
   has('wall/WallScreen.tsx',/wallSuccess/,/ground=\{colour.mint\}/,/state-offline/,/Start speaking/,/restore/);
   has('wall/WallYoursPage.tsx',/<Ledger/,/YOURS_ROWS.map/,/QuoteGlyph/,/MouthGlyph/,/paper.ink/);
   lacks('wall/WallYoursPage.tsx',/borderBottomWidth/);

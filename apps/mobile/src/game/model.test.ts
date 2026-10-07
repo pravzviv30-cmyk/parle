@@ -18,14 +18,12 @@ import { QUEST_XP, addDays } from '@luvani/core';
 import { MAX_ENVELOPE_BYTES, envelopeBytes, sameData, sealEnvelope, stableStringify } from '../sync/envelope.ts';
 import { fullGame } from './capacityFixture.ts';
 import {
-  CLAIM_KEEP_DAYS,
+  CLAIM_DAYS_KEPT,
   GAME_VERSION,
   MAX_COVERS,
   MAX_GAME_TIME,
   MAX_SEEN,
   MAX_SITTING_ACTIVE_MS,
-  SEEN_KEEP_DAYS,
-  SITTING_KEEP_DAYS,
   emptyGame,
   isDaySeenKey,
   isSeenKey,
@@ -66,7 +64,7 @@ function genGame(pick: Chooser, scale = 1): StoredGame {
   const n = (k: number): number => pick.int(k * scale);
   const quests = ['finish-practice', 'phrase-of-day', 'minutes', 'xp', 'goal', 'conversation'] as const;
   return {
-    version: 1,
+    version: GAME_VERSION,
     sittings: Array.from({ length: n(8) }, () => {
       const row = { at: at(120), source: pick.one(['phrase', 'drill', 'review', 'guest'] as const) };
       return pick.bool() ? { ...row, activeMs: pick.int(4) * 1000 } : row;
@@ -152,12 +150,12 @@ describe('the game facts merge — F729', () => {
     assert.deepEqual(merge(one('repair', 5), one('travel', 5)).covers, [{ day, kind: 'travel', at: 5 }]);
   });
 
-  test('a measured sitting wins its pick, and sittings age out sixty days behind the newest', () => {
+  test('a measured sitting wins its pick, and a future sitting does not erase earlier days', () => {
     const plain = { at: BASE, source: 'phrase' as const };
     const timed = { ...plain, activeMs: 42_000 };
     assert.deepEqual(merge({ ...emptyGame(), sittings: [plain] }, { ...emptyGame(), sittings: [timed] }).sittings, [timed]);
-    const old = { at: BASE - (SITTING_KEEP_DAYS + 1) * DAY, source: 'drill' as const };
-    assert.deepEqual(merge({ ...emptyGame(), sittings: [old] }, { ...emptyGame(), sittings: [plain] }).sittings, [plain]);
+    const old = { at: BASE - (60 + 1) * DAY, source: 'drill' as const };
+    assert.deepEqual(merge({ ...emptyGame(), sittings: [old] }, { ...emptyGame(), sittings: [plain] }).sittings, [old, plain]);
   });
 
   test('a badge counted from older practice gives way to a dated award, and no merge drops one', () => {
@@ -183,10 +181,10 @@ describe('the game facts merge — F729', () => {
     game = withGameRows(game, { bonus: [{ key: 'phrase:2026-01-03', xp: 5, at: BASE }, { key: `review:${BASE}`, xp: 5, at: BASE }] });
     assert.deepEqual(game.bonusMonths, [{ month: '2026-01', xp: 10 }]);
     // A claim far later ages January's claims out; the months keep what they counted.
-    const later = addDays('2026-01-03', CLAIM_KEEP_DAYS + 10);
+    const later = addDays('2026-01-03', CLAIM_DAYS_KEPT + 10);
     game = withGameRows(game, { claims: [claim(later, 'finish-practice')], bonus: [{ key: `phrase:${later}`, xp: 5, at: BASE }] });
-    assert.ok(game.claims.every((c) => c.day === later), 'a claim older than the window survived');
-    assert.ok(game.bonus.every((b) => b.key === `phrase:${later}`), 'a bonus older than the window survived');
+    assert.equal(game.claims.length, 4, 'one later day erased earlier claims');
+    assert.equal(game.bonus.length, 3, 'one later day erased earlier bonuses');
     assert.deepEqual(game.questMonths.find((m) => m.month === '2026-01'), { month: '2026-01', count: 3, xp: 3 * QUEST_XP }, 'the month fell when its claims aged out');
     assert.deepEqual(game.bonusMonths.find((m) => m.month === '2026-01'), { month: '2026-01', xp: 10 });
     // A merge takes each month's larger figure, field by field, and never adds.
@@ -194,7 +192,7 @@ describe('the game facts merge — F729', () => {
     assert.deepEqual(merge(game, low).questMonths.find((m) => m.month === '2026-01'), { month: '2026-01', count: 3, xp: 90 });
   });
 
-  test('a fixed-XP key aged out on one device cannot come back from a third', () => {
+  test('a fixed-XP key merges consistently despite far-apart device clocks', () => {
     const old = { key: 'phrase:2026-01-01', xp: 5, at: BASE };
     const newest = { key: `phrase:${addDays(TODAY, 100)}`, xp: 5, at: BASE + 100 * DAY };
     const a = { ...emptyGame(), bonus: [old] };
@@ -202,19 +200,19 @@ describe('the game facts merge — F729', () => {
     const c = { ...emptyGame(), bonus: [{ ...old, at: BASE + 99 * DAY }] };
     const left = merge(merge(a, b), c);
     assert.ok(sameData(left, merge(a, merge(b, c))));
-    assert.deepEqual(left.bonus, [newest]);
+    assert.deepEqual(left.bonus, [old, newest]);
   });
 
-  test('celebrations with a day age out sixty days behind the newest; the rest are kept for good', () => {
+  test('celebration marks use a count bound and retain earlier days despite a future clock', () => {
     const marks = [
       { key: 'streak:2026-01-01', at: BASE },
-      { key: `streak:${addDays(TODAY, SEEN_KEEP_DAYS + 5)}`, at: BASE },
+      { key: `streak:${addDays(TODAY, 60 + 5)}`, at: BASE },
       { key: 'level:4', at: BASE },
     ];
     const kept = merge({ ...emptyGame(), seen: marks }, null).seen.map((s) => s.key);
-    assert.deepEqual(kept.sort(), ['level:4', `streak:${addDays(TODAY, SEEN_KEEP_DAYS + 5)}`].sort());
+    assert.deepEqual(kept.sort(), ['streak:2026-01-01', 'level:4', `streak:${addDays(TODAY, 60 + 5)}`].sort());
     // Over the bound, the day-scoped keys go first, oldest day first, and a durable key is the last to go.
-    const days = Array.from({ length: SEEN_KEEP_DAYS }, (_, i) => addDays(TODAY, i));
+    const days = Array.from({ length: 60 }, (_, i) => addDays(TODAY, i));
     const dated = days.map((d) => ({ key: `streak:${d}`, at: BASE }));
     const durable = Array.from({ length: MAX_SEEN - 10 }, (_, i) => ({ key: `level:${i + 2}`, at: BASE }));
     const bounded = merge({ ...emptyGame(), seen: [...dated, ...durable] }, null).seen;
@@ -258,4 +256,27 @@ describe('the game facts merge — F729', () => {
     assert.equal(merge(null, null).version, GAME_VERSION);
     assert.equal(readGame({ ...emptyGame(), version: GAME_VERSION + 1 }), 'newer');
   });
+});
+
+
+test('a game row from a clock far ahead cannot shorten what another device keeps', () => {
+  const recent = withGameRows(emptyGame(), {
+    sittings: [{ at: BASE, source: 'review' }],
+    claims: [{ day: TODAY, questId: 'finish-practice', xp: QUEST_XP, at: BASE }],
+    bonus: [{ key: `phrase:${TODAY}`, xp: 5, at: BASE }],
+    seen: [{ key: `streak:${TODAY}`, at: BASE }],
+  });
+  const future = withGameRows(emptyGame(), {
+    sittings: [{ at: BASE + 366 * DAY, source: 'review' }],
+    claims: [{ day: addDays(TODAY, 366), questId: 'finish-practice', xp: QUEST_XP, at: BASE + 366 * DAY }],
+    bonus: [{ key: `phrase:${addDays(TODAY, 366)}`, xp: 5, at: BASE + 366 * DAY }],
+    seen: [{ key: `streak:${addDays(TODAY, 366)}`, at: BASE + 366 * DAY }],
+  });
+  const result = mergeGame(recent, future);
+  for (const field of ['sittings', 'claims', 'bonus', 'seen'] as const) {
+    assert.equal(result[field].length, 2, field);
+    assert.deepEqual(result[field][0], recent[field][0], field);
+  }
+  assert.deepEqual(readGame({ ...recent, version: 1 }), recent, 'v1 upgrades without losing facts');
+  assert.equal(result.version, 2, 'old builds must refuse to rewrite the safer format');
 });

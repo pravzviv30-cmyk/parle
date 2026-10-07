@@ -34,9 +34,11 @@ import { DEFAULT_REMINDER_TIME, reminderRow } from './reminder.ts';
 import {
   clearGuestReminderLog,
   loadGuestReminderLog,
+  loadHeldPlan,
   loadReminder,
   loadReminderLog,
   saveGuestReminderLog,
+  saveHeldPlan,
   saveReminder,
   saveReminderLog,
 } from './store.ts';
@@ -299,6 +301,37 @@ describe('the reminder store — version 2 (Come alive, README Part 5.F)', () =>
     assert.equal(disk.map.size, 0);
     disk.map.set('@luvani/guest-reminder/v1', 'not json');
     assert.deepEqual(await loadGuestReminderLog(), { paused: false, log: emptyLog() }, 'an unreadable guest log read as paused');
+  });
+
+  test('which plan the phone holds is one instant on the device, written even after a sign-out, and anything unreadable reads as none', async () => {
+    const disk = installDisk();
+    const planned = Date.UTC(2026, 9, 7, 9);
+    // A log names its plan, and keeps the name round the disk.
+    const uid = nextUid();
+    setActiveUser(uid);
+    assert.equal(await saveReminder({ enabled: true, time: 'evening' }), 'durable');
+    const named: ReminderLog = { ...emptyLog(), slots: [{ day: '2026-10-07', at: planned + 9 * 3_600_000, line: 'routine-moment' }], plannedAt: planned };
+    assert.equal(await saveReminderLog(named), 'durable');
+    assert.equal((await loadReminderLog()).plannedAt, planned);
+    assert.equal(await saveReminderLog({ ...named, plannedAt: -1 }), 'durable');
+    assert.equal((await loadReminderLog()).plannedAt, undefined, 'a plan named by something that is not an instant was kept');
+
+    // Nothing held yet, then a plan, then none: one device key, one number, no account in it.
+    assert.equal(await loadHeldPlan(), null);
+    assert.equal(await saveHeldPlan(planned), 'durable');
+    assert.equal(await loadHeldPlan(), planned);
+    assert.deepEqual(JSON.parse(disk.map.get('@luvani/reminder-held/v1')!), { version: 1, plan: planned });
+    // A sign-out has to say the plan is gone after the account's own keys are closed.
+    setActiveUser(null);
+    assert.equal(await saveHeldPlan(null), 'durable', 'a sign-out could not say the plan was taken back');
+    assert.equal(await loadHeldPlan(), null);
+    assert.ok(![...disk.map.keys()].some((key) => key.startsWith('@luvani/') && key.includes(uid)), 'the held plan names the account');
+
+    // Unreadable is none: it only ever stops a log counting, which never invents a pause.
+    for (const raw of ['not json', '{"version":2,"plan":5}', '{"version":1,"plan":"5"}', '{"version":1,"plan":-5}']) {
+      disk.map.set('@luvani/reminder-held/v1', raw);
+      assert.equal(await loadHeldPlan(), null, `${raw} read as a plan the OS holds`);
+    }
   });
 });
 

@@ -256,7 +256,7 @@ describe('Today leads with the next scene, as a brief', () => {
     // the link is white.
     assert.match(HERO_FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/, "Today ignores the learner's standing choice to type");
     assert.match(HERO_FLAT, /onPress=\{\(\) => open\(modes\.textMode\)\}/, 'Start does not open the scene in the preferred mode');
-    assert.match(HERO_FLAT, /secondary=\{<GhostButton label=\{modes\.other\.label\} color=\{paper\.onInk\}/, 'the quiet link under Start is not the other mode, in white');
+    assert.match(HERO_FLAT, /secondary=\{<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\} ground="blue"/, 'the quiet link under Start is not the other mode, in white');
     assert.match(HERO_FLAT, /onPress=\{\(\) => open\(modes\.other\.textMode\)\}/, 'the quiet link does not open the scene the other way');
     assert.ok(!/open\((true|false)\)/.test(HERO), 'the brief hard-codes a mode instead of reading the preference');
     assert.ok(!/<TabBar\b/.test(HERO) && !/<TabBar\b/.test(SCREEN), 'a Speak/Type segmented control is back on Today');
@@ -285,7 +285,7 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.match(heldBack, /\{TUTOR_OFFLINE\.body\}/);
     // Revamp B (F602): on the blue brief the retry is a white text link, not
     // an outline, and the sentence above it is white.
-    assert.match(flat(heldBack), /<GhostButton label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} color=\{paper\.onInk\}/, 'the retry is not the white link on the blue');
+    assert.match(flat(heldBack), /<IconAction layout="inline" icon="refresh" busy=\{checking\} label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} ground="blue"/, 'the retry is not the white link on the blue');
     assert.match(HERO_FLAT, /offlineBody: \{ \.\.\.type\.body, color: paper\.onInk \}/, 'the held-back sentence is not white on the blue');
     assert.doesNotMatch(HERO, /OutlineButton/, 'an outline is back on the blue brief');
     assert.match(flat(heldBack), /onPress=\{\(\) => open\(heldBack\.textMode\)\}/, 'the retry is not the same start');
@@ -413,7 +413,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
       assert.ok(DAILY.includes(`{${field}}`), `the daily card does not draw ${field}`);
     }
     assert.match(DAILY, /<Label>\{item.label\}<\/Label>/);
-    const hear = DAILY.indexOf('<GhostButton label="Hear"');
+    const hear = DAILY.indexOf('<IconAction layout="inline" icon="speaker" label="Hear"');
     assert.ok(hear >= 0 && hear < DAILY.indexOf('{item.fr}'));
 
     // No caption line, and no caption ink. Every word on this card is a word
@@ -505,7 +505,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.ok(!SCREEN.includes('Explore my daily collection'), "a second way into the collection is left on Today beside the card's own");
     const sayIt = between(flat(DAILY), 'const sayIt = ', '; const toggle', 'the practice has one handler');
     assert.ok(sayIt.indexOf('releaseDailyPlayback(player)') < sayIt.indexOf("nav.navigate('DailyPractice', { id: item.id })"), 'the practice opens over the tutor still speaking');
-    assert.match(DAILY, /<GhostButton label="Say it" onPress=\{sayIt\} \/>/, 'the library and Today practise a phrase two ways');
+    assert.match(DAILY, /<IconAction layout="inline" icon="microphone" label="Say it" onPress=\{sayIt\} \/>/, 'the library and Today practise a phrase two ways');
     // Nothing else: no label and no example on Today.
     for (const gone of ['<Label', 'exampleFr', 'exampleEn', 'item.label']) {
       assert.ok(!today.includes(gone), `today's phrase still carries ${gone}`);

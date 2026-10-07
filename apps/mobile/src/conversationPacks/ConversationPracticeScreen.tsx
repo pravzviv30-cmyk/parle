@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { phraseKeyOf, type ConversationPack } from '@luvani/core';
-import { Card, GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { paper, radius, space, type, HIT } from '../theme.ts';
 import * as voice from '../speech/tutorVoice.ts';
@@ -109,13 +109,13 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
   };
   return <ScrollScreen header={<ScreenHeader title="Practice" back={{ onPress: onBack }} />}>
     {pack === undefined ? <ActivityIndicator accessibilityLabel="Loading conversation practice" /> : !pack ?
-      <Card><Text style={type.heading}>This conversation isn’t available here.</Text><Text style={type.body}>Return to your conversations and refresh before trying again.</Text><GhostButton label="Back to practice" onPress={onBack} /></Card> :
+      <Card><Text style={type.heading}>This conversation isn’t available here.</Text><Text style={type.body}>Return to your conversations and refresh before trying again.</Text><IconAction layout="inline" icon="back" label="Back to practice" onPress={onBack} /></Card> :
       <View style={{ gap: space(5), paddingBottom: space(6) }}>
         <View style={{ gap: space(2) }}>
           {previewPack && <Label>Design preview · Sample conversation</Label>}
           {previewPack && onLoadSample && (
             <View style={{ gap: space(1) }}>
-              <GhostButton
+              <IconAction layout="inline" icon="download"
                 label={loadingSample ? 'Loading sample' : 'Load sample conversation'}
                 disabled={loadingSample}
                 onPress={() => {
@@ -138,7 +138,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
         {pack.keyPhrases.length === 0 && pack.corrections.length === 0 ? <Card>
           <Text style={type.heading}>No practice phrases were saved this time.</Text>
           <Text style={type.body}>Your conversation summary is still available. Try another conversation when you’re ready.</Text>
-          <GhostButton label="Back to conversations" onPress={onBack} />
+          <IconAction layout="inline" icon="back" label="Back to conversations" onPress={onBack} />
         </Card> : readyForRecall ? <Card>
           <Label>Now, make it yours</Label>
           <Text style={[type.heading, { marginVertical: space(3) }]}>Try it without the choices.</Text>
@@ -163,7 +163,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
           <Card>
             {reading ? <Text style={type.french}>{current.phrase.fr}</Text> : <>
               <PillButton label={played ? 'Listen again' : 'Play the phrase'} disabled={audioReady === null} onPress={() => { voice.speak(current.phrase.fr); setPlayed(true); }} />
-              <GhostButton label="Play slowly" disabled={audioReady === null} onPress={() => { voice.speak(current.phrase.fr, { rate: 0.65 }); setPlayed(true); }} />
+              <IconAction layout="inline" icon="speaker-slow" label="Play slowly" disabled={audioReady === null} onPress={() => { voice.speak(current.phrase.fr, { rate: 0.65 }); setPlayed(true); }} />
             </>}
             <Text style={[type.small, { marginTop: space(3) }]}>{reading ? 'The same meaning, without audio.' : 'Which meaning did you hear? Audio uses your device’s French voice.'}</Text>
           </Card>
@@ -189,9 +189,9 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
               setStage('ready');
             } else setRound(round + 1);
           }} />
-          {!reading && <GhostButton label="I can’t listen now" onPress={() => { voice.stop(); setQuiet(true); }} />}
+          {!reading && <IconAction layout="inline" icon="speaker-off" label="I can’t listen now" onPress={() => { voice.stop(); setQuiet(true); }} />}
         </> : null}
-        {!readyForRecall && <GhostButton label="Skip warm-up and recall" onPress={() => { voice.stop(); setStage('ready'); }} />}
+        {!readyForRecall && <IconAction layout="inline" icon="forward" label="Skip warm-up and recall" onPress={() => { voice.stop(); setStage('ready'); }} />}
       </View>}
   </ScrollScreen>;
 }

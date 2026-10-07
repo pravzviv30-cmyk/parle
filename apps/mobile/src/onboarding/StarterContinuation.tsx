@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { checkStarter } from '@luvani/core';
-import { Card, ColourCard, GhostButton, PillButton, Sheet } from '../components.tsx';
+import { IconActionRow, IconAction, IconButton, Card, ColourCard, GhostButton, PillButton, Sheet } from '../components.tsx';
 import { frenchText, paper, type } from '../theme.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -110,9 +110,11 @@ export function StarterContinuation({
         </Text>
         <Text style={type.body}>Pick up your practice where you left it.</Text>
         <PillButton label="Continue practice" onPress={() => open(false)} />
-        <GhostButton label="Retry my last line" onPress={() => open(true)} />
-        <GhostButton label="Speak with my tutor" onPress={onTutor} />
-        <GhostButton label="See plans" onPress={onPlans} />
+        <IconActionRow>
+        <IconAction layout="tile" icon="replay" label="Retry my last line" onPress={() => open(true)} />
+        <IconAction layout="tile" icon="microphone" label="Speak with my tutor" onPress={onTutor} />
+        <IconAction layout="tile" icon="crown" label="See plans" onPress={onPlans} />
+        </IconActionRow>
       </ColourCard>
       <Sheet
         visible={visible}
@@ -164,7 +166,7 @@ export function StarterContinuation({
                   )}
                 </Card>
                 <PillButton label="Finish" onPress={() => setVisible(false)} />
-                <GhostButton
+                <IconAction layout="inline" icon="replay"
                   label="Retry this line"
                   onPress={() => {
                     setFeedback(null);
@@ -172,7 +174,7 @@ export function StarterContinuation({
                   }}
                 />
                 {feedback.accepted && (
-                  <GhostButton
+                  <IconButton icon="bookmark"
                     label="Keep this phrase"
                     disabled={busy}
                     onPress={() => {
@@ -209,7 +211,7 @@ export function StarterContinuation({
                     void submit();
                   }}
                 />
-                <GhostButton
+                <IconAction layout="inline" icon="help"
                   label="Help"
                   onPress={() => setNote(`${task.model}. ${task.meaning}`)}
                 />

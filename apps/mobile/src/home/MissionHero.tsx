@@ -44,7 +44,7 @@ import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
-import { BookmarkGlyph, GhostButton, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
+import { IconAction, BookmarkGlyph, GhostButton, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
 import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { launchLabel } from '../tutor/orbState.ts';
@@ -176,9 +176,9 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
           {heldBack !== null && (
             <View style={st.offline}>
               <Text style={st.offlineBody}>{TUTOR_OFFLINE.body}</Text>
-              <GhostButton
+              <IconAction layout="inline" icon="refresh" busy={checking}
                 label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
-                color={paper.onInk}
+                ground="blue"
                 disabled={checking}
                 onPress={() => open(heldBack.textMode)}
               />
@@ -186,7 +186,7 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
           )}
         </>
       }
-      secondary={<GhostButton label={modes.other.label} color={paper.onInk} disabled={checking} onPress={() => open(modes.other.textMode)} />}
+      secondary={<IconAction layout="inline" icon="keyboard" label={modes.other.label} ground="blue" disabled={checking} onPress={() => open(modes.other.textMode)} />}
     />
   );
 }

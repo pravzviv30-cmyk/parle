@@ -18,7 +18,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
-import { GhostButton } from '../components.tsx';
+import { IconAction, GhostButton } from '../components.tsx';
 import { HIT, onColour, frenchText, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
@@ -149,8 +149,8 @@ export function ListeningPreview({ selection, showContext = false, ground = 'whi
           <Text style={[type.small, { color: quiet }]}>{preview.note}</Text>
           {sourceKnown && preview.plays !== 'none' && (
             <View style={st.controls}>
-              <GhostButton label={preview.plays === 'first' ? PREVIEW_COPY.playFirst : PREVIEW_COPY.play} color={paper.ink} onPress={() => void play()} />
-              <GhostButton label={PREVIEW_COPY.stop} color={ink} onPress={silence} />
+              <IconAction layout="inline" icon="speaker" label={preview.plays === 'first' ? PREVIEW_COPY.playFirst : PREVIEW_COPY.play}  onPress={() => void play()} />
+              <IconAction layout="inline" icon="speaker" label={PREVIEW_COPY.stop} ground={ground === 'blue' ? 'blue' : 'paper'} onPress={silence} />
             </View>
           )}
           {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: quiet }]}>{note}</Text>}

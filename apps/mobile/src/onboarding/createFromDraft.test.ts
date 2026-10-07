@@ -123,7 +123,7 @@ describe('the plan is written at account creation', () => {
     assert.match(boot, /Optional usage data: \{draft\.analyticsConsent \? 'on' : 'off'\}\. \{reminderSummary\(draft\)\} You can change these choices in Settings\./, 'the review card says something other than the reminder the draft holds');
     assert.doesNotMatch(boot, /The reminder is off\./, 'the review card says off whatever the draft holds');
     assert.match(boot, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\); onConsumed\(\); \};/, 'starting again leaves the first run\'s reminder on the phone, or lets the draft go first');
-    assert.match(boot, /<GhostButton label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    assert.match(boot, /<IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
     assert.match(APP, /import \{ cancelReminder \} from '\.\/src\/reminders\/schedule\.ts';/);
   });
 

@@ -17,7 +17,7 @@
 import { QUESTS, addDays, dayKeyOf, type DayKey } from '@luvani/core';
 
 import {
-  CLAIM_KEEP_DAYS,
+  CLAIM_DAYS_KEPT,
   GAME_VERSION,
   MAX_BADGE_ID,
   MAX_BADGES,
@@ -58,7 +58,7 @@ export function fullGame(now: number): StoredGame {
     covers: Array.from({ length: MAX_COVERS }, (_, i) => ({ day: addDays(today, -i), kind: 'freeze' as const, at: at(i) })),
     goalDays: Array.from({ length: MAX_GOAL_DAYS }, (_, i) => addDays(today, -i)),
     questDays: Array.from({ length: QUEST_DAYS_KEPT }, (_, i) => ({ day: addDays(today, -i), ids: [ids[0]!, ids[1]!, ids[2]!], at: at(i) })),
-    claims: Array.from({ length: CLAIM_KEEP_DAYS }, (_, d) =>
+    claims: Array.from({ length: CLAIM_DAYS_KEPT }, (_, d) =>
       ids.map((questId, q) => ({ day: addDays(today, -d), questId, xp: MAX_ROW_XP, at: at(d * ids.length + q) })),
     ).flat(),
     questMonths: Array.from({ length: MAX_MONTHS }, (_, i) => ({ month: monthsBefore(month, i), count: MAX_MONTH_COUNT, xp: MAX_MONTH_XP })),

@@ -95,7 +95,7 @@ describe('Friends starts with one clear opt-in — Stage 3', () => {
     assert.ok(!outside.includes("nav.navigate('SocialSettings')"), 'the privacy door is drawn outside both states, so the empty tab offers it twice');
 
     // The privacy screen names the same start the tab does.
-    assert.match(PRIVACY, /<GhostButton label=\{FRIENDS_START\} onPress=\{\(\) => nav\.navigate\('AddFriends'\)\} \/>/, 'the privacy screen calls the same start something else');
+    assert.match(PRIVACY, /<IconAction layout="inline" icon="user-add" label=\{FRIENDS_START\} onPress=\{\(\) => nav\.navigate\('AddFriends'\)\} \/>/, 'the privacy screen calls the same start something else');
   });
 
   test('the joined tab keeps its board and doors, and nothing new is added', () => {

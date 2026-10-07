@@ -28,7 +28,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,7 +40,7 @@ import { hide as hideNativeLaunch } from 'expo-splash-screen';
 import { saveProfile, completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper, type, space } from './src/theme.ts';
-import { Card, GhostButton, PillButton } from './src/components.tsx';
+import { IconAction, Card, GhostButton, PillButton } from './src/components.tsx';
 import { ScrollScreen, ScreenHeader } from './src/layout.tsx';
 import { saveConsent } from './src/analytics/consentStore.ts';
 import { trackProductEvent } from './src/analytics/track.ts';
@@ -245,7 +245,7 @@ function PreAccountProfileBootstrap({
         <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
         <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. {reminderSummary(draft)} You can change these choices in Settings.</Text>
       </Card>
-      <GhostButton label="Start a new plan instead" onPress={() => void startAgain()} />
+      <IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress={() => void startAgain()} />
     </ScrollScreen>;
   }
   return <Loading />;
@@ -310,12 +310,6 @@ function SignedInRoot({
   // A tap on a reminder opens the place its line promised; one that launched
   // the app waits until the navigator says it is ready.
   useReminderTaps(navigationRef);
-  // Signing out (or switching account) takes every pending reminder with it, so
-  // a shared phone never shows one learner's lines to the next. Signing in
-  // cancels nothing; the planner below plans for whoever is here.
-  useEffect(() => () => {
-    void stopReminders();
-  }, []);
   const pendingInvite = useRef<string | null>(null);
   const openPendingInvite = useCallback(() => {
     if (pendingInvite.current && navigationRef.isReady()) {
@@ -651,6 +645,23 @@ function Gate() {
    * the refusal page until the app is reopened.
    */
   const [preAccountRefused, setPreAccountRefused] = useState(false);
+
+  /**
+   * Signing out, or another account signing in, takes every pending reminder
+   * with it, so a shared phone never shows one learner's lines to the next.
+   * Keyed on who is signed in rather than on the signed-in tree unmounting,
+   * so the password-recovery screen (the same learner) cancels nothing, and
+   * signing in cancels nothing. A layout effect, so the cancel is queued
+   * before the next tree's planner plans.
+   */
+  const signedInAs = status === 'signedIn' ? user?.id ?? null : null;
+  const lastSignedIn = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (status === 'loading') return;
+    const was = lastSignedIn.current;
+    lastSignedIn.current = signedInAs;
+    if (was !== null && was !== signedInAs) void stopReminders();
+  }, [status, signedInAs]);
 
   useEffect(() => {
     let cancelled = false;

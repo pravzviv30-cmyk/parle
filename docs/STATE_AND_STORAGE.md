@@ -334,30 +334,28 @@ review card, activity entry, drill, momentum, XP or practice time, and
 
 ### The game layer: streak, goal, quests and badges
 
-**Status: the stores, the merge and the database migration exist and are tested
-locally; nothing reads them in a screen yet (`game/settle.ts` is Phase 1 of Come alive).
-The server half, `20261006120000_learner_state_game.sql`, is prepared and not applied to
-any project. It must be applied before any build that writes `game` ships: until then
-every push of `game` is refused at the door and retried forever, exactly as F411
-described, and the facts stay on the phone that made them.**
+**Status: the stores, settlement, celebrations, and Home/My French quest and streak
+surfaces are integrated. The database migration `20261006120000_learner_state_game.sql`
+is still recorded as prepared, not verified live. Apply it before shipping a build
+that writes `game`; otherwise sync refuses the namespace and facts remain local.**
 
-`game` (`game/model.ts`, `game/store.ts`), inner version 1, holds facts and never a
+`game` (`game/model.ts`, `game/store.ts`), inner version 2 (reads version 1), holds facts and never a
 number derived from them. The streak, the level and quest progress are computed by
 core from these facts and the activity log every time.
 
 | field | what one row is | merge | bound |
 |---|---|---|---|
-| `sittings` | a finished sitting that earned no XP: moment, source, optional `activeMs` (whole milliseconds, at most a day) | union by `(at, source)`, the measured copy wins | 60 days behind the newest, 500 rows |
+| `sittings` | a finished sitting that earned no XP: moment, source, optional `activeMs` (whole milliseconds, at most a day) | union by `(at, source)`, the measured copy wins | latest 500 rows |
 | `covers` | a streak cover: day, kind (`freeze`, `repair` or `travel`), moment | union by day, the earliest written, then travel, repair, freeze | 2,000 days, never aged |
 | `goalDays` | a local day the daily goal was met | sorted set union | 2,000 days |
 | `questDays` | the three quest ids a day was dealt, frozen the first time | union by day, the earliest | 60 days |
-| `claims` | a quest claimed, with its XP (+10) | union by `(day, quest)`, the earliest | 62 days behind the newest claim |
+| `claims` | a quest claimed, with its XP (+10) | union by `(day, quest)`, the earliest | latest 62 distinct claim days |
 | `questMonths` | quests claimed and quest XP per calendar month | each field the max | 600 months |
 | `xpMonths` | capped activity XP per month | the max | 600 months |
-| `bonus` | the fixed +5 "for practising" XP, keyed `<kind>:<day or epoch ms>` | union by key, the earliest | 62 days behind the newest key's day, 400 rows |
+| `bonus` | the fixed +5 "for practising" XP, keyed `<kind>:<day or epoch ms>` | union by key, the earliest | latest 400 keys |
 | `bonusMonths` | fixed XP per month | the max | 600 months |
 | `badges` | a badge id and the moment it was earned, or null when counted from older practice | union by id, a dated award beats null, then the earliest | never aged; 500 ids |
-| `seen` | a celebration key already played, anywhere | union by key, the earliest | `streak:<day>` 60 days behind the newest; every other kind (milestone, level, badge, purchase) kept for good; 800 keys |
+| `seen` | a celebration key already played, anywhere | union by key, the earliest | latest 800 keys, with durable milestone/level/badge/purchase keys ranked ahead of day-scoped keys |
 
 Every rule is a set union or a maximum, every collision is settled by a total order and
 every bound keeps the last rows of a sorted set ranked by identity, so the merge is
@@ -393,15 +391,14 @@ server's own byte limit measures the jsonb as text. That is why `activeMs` has a
 ceiling: an uncapped double such as 1e308 is 23 characters on the phone and 309 digits
 in the server's rendering.
 
-**A clock far ahead is the residual risk.** Every age window is measured back from the
-newest row in the union, never from a clock, so that two devices whose clocks disagree
-cut the same rows and the merge stays commutative, associative and idempotent. The price
-is that one row dated far in the future ages out every real row of that list on every
-device it reaches: sittings, claims, fixed XP and day-scoped celebration keys (monthly
-totals survive, because they are maximums). The store refuses any row dated more than a
-day after the device's own clock, which stops a bug in a caller. It cannot stop a phone
-whose clock is itself a year ahead, because to that phone the row is today. No ledger
-entry tracks this yet; one is owed.
+**Clock-safe retention (F753, 7 October 2026).** Version 2 keeps count-bounded
+sets instead of measuring an age cutoff from the newest row. A far-ahead device
+can occupy a slot, but cannot erase a whole recent history with one timestamp.
+The merge remains clock-free, commutative, associative and idempotent. At a full
+count bound, a newer identity still replaces an older one; this is a storage bound,
+not a promise to identify an incorrect device clock. Version 1 is read and upgraded
+without discarding its surviving facts. Earlier builds refuse version 2 instead of
+applying their age cutoffs to it. Already discarded v1 rows cannot be recovered.
 
 `gameLocal` (`game/gameLocal.ts`) is never synced and registers no adopter:
 `lastPracticeOffsetMin`, `paidSince`, the last 30 days of `nudges`, `nudgesPausedAt`,
@@ -593,8 +590,9 @@ which follows their own first finish of the day), `days` when chosen, and two fl
 only when they differ from the default, `mentionStreak: false` and `paused: true`. `log` is
 what the planner needs to know when to pause: the day keys a reminder arrived (`sent`), was
 tapped (`answered`) or was followed by a visit to the app (`opened`), the last 14 of each;
-the slots last handed to the OS (day, time, which line, whether it is the pause note); and
-the last line that went out, so the next day's differs. Day keys and line ids only: no
+the slots last handed to the OS (day, time, which line, whether it is the pause note) and
+`plannedAt`, the instant they were handed over, which names that plan; and the last line
+that went out, so the next day's differs. Day keys and line ids only: no
 words, no counts, nothing the learner said. A version 1 envelope is read with its time kept
 and an empty log, so an existing evening stays the evening; a version 2 envelope missing
 either half reads as unreadable. The OS holds the schedule itself as dated one-off
@@ -606,6 +604,17 @@ A guest who said yes on day one has no account to key a log under, so their choi
 the first run's draft and their log is one device key, `@luvani/guest-reminder/v1`: whether
 the pause note has gone out, and the same day-key log. The planner clears it when the draft
 carries no reminder (a refusal, a new plan) and when an account plans instead.
+
+One more device key, `@luvani/reminder-held/v1`, is `{ version: 1, plan }`: the
+`plannedAt` of the plan the OS was last handed, or null once a plan was taken back. It is
+the device's rather than an account's because a sign-out has to write it after the account's
+own keys are closed. A slot counts as arrived only while the OS held its plan: a log whose
+`plannedAt` is not the held plan counts none of its slots (`plan.ts` `heldLog`), and every
+place the planner takes a plan back (off, paused, no permission, a refused schedule) clears
+the held plan first and closes the log, keeping what had arrived and dropping what was still
+to come. So a reminder that was turned off, refused, or left behind at a sign-out can never
+come back paused. An unreadable key reads as no plan, which can only delay a pause. One
+number, no user id, no words and no days.
 
 ### Device-level keys, and the one that retired
 

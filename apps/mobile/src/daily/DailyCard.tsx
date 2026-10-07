@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { Card, FrenchBlock, GhostButton, IconAction, IconActionRow, Label } from '../components.tsx';
+import { IconButton, Card, FrenchBlock, GhostButton, IconAction, IconActionRow, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
@@ -105,7 +105,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const retrySaveRead = () => setReadAttempt(value => value + 1);
   const saveFailure = saveUnread && <View style={{ gap: space(1) }}>
     <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
-    <GhostButton label="Retry save status" onPress={retrySaveRead} />
+    <IconAction layout="inline" icon="refresh" label="Retry save status" onPress={retrySaveRead} />
   </View>;
   // Stop this card's recording before the practice screen opens, so the
   // learner hears their own attempt and not the tutor under it.
@@ -115,20 +115,20 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const toggle = () => { if (status.playing) { playTicket.current++; releaseDailyPlayback(player); } else void play(); };
   const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
-    {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><GhostButton label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
+    {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><IconAction layout="inline" icon="eye" label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
       {/* The library states audio availability before the first listen. */}
       {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
-      {asset != null && <GhostButton label="Hear" color={paper.ink} onPress={() => void play()} />}
+      {asset != null && <IconAction layout="inline" icon="speaker" label="Hear"  onPress={() => void play()} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
         <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{item.en}</Text></View>
       </View>
       {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
       {item.exampleFr && <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
-        <GhostButton label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
-        {compact && <GhostButton label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
-        {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}
-          <GhostButton label="Say it" onPress={sayIt} /></>}
+        <IconButton icon="bookmark" label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
+        {compact && <IconAction layout="inline" icon="chevron-down" label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
+        {expanded && <>{asset != null && <IconAction layout="inline" icon="speaker-slow" label="Slow replay" onPress={() => void play(true)} />}
+          <IconAction layout="inline" icon="microphone" label="Say it" onPress={sayIt} /></>}
       </View>
     </>}
     {saveFailure}

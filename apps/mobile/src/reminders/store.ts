@@ -49,6 +49,16 @@
  * whether the pause note has gone out) is one device key,
  * `@luvani/guest-reminder/v1`, holding day keys only. The planner clears it
  * when the draft carries no reminder, and once an account plans instead.
+ *
+ * ## The plan the phone holds
+ *
+ * One more device key, `@luvani/reminder-held/v1`, holds one instant: the
+ * `plannedAt` of the plan the OS was last handed, or null once a plan was
+ * taken back. It is the device's and not an account's because a sign-out has
+ * to write it after the account's own keys can no longer be written. A log
+ * whose plan is not the one held counts none of its slots as arrived
+ * (`plan.ts` `heldLog`), so a reminder that was turned off, or that left with
+ * a sign-out, can never come back paused. No user id, no words, no days.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,6 +73,9 @@ const KEY = (): string => userKey('reminder');
 
 /** The guest's log, before any account exists. */
 const GUEST_KEY = '@luvani/guest-reminder/v1';
+
+/** Which plan the OS holds, for whoever is on the phone. */
+const HELD_KEY = '@luvani/reminder-held/v1';
 
 const VERSION = 2;
 
@@ -161,7 +174,8 @@ function slotList(value: unknown): PlannedSlot[] {
 function logOf(value: unknown): ReminderLog | null {
   if (!isRecord(value)) return null;
   const last = isRecord(value.last) && typeof value.last.day === 'string' && typeof value.last.line === 'string' ? { last: { day: value.last.day, line: value.last.line } } : {};
-  return boundLog({ sent: dayList(value.sent), answered: dayList(value.answered), opened: dayList(value.opened), slots: slotList(value.slots), ...last });
+  const plannedAt = typeof value.plannedAt === 'number' ? { plannedAt: value.plannedAt } : {};
+  return boundLog({ sent: dayList(value.sent), answered: dayList(value.answered), opened: dayList(value.opened), slots: slotList(value.slots), ...plannedAt, ...last });
 }
 
 /** The envelope on disk: null for a missing key; throws for anything this build cannot read. */
@@ -312,4 +326,40 @@ export function clearGuestReminderLog(): Promise<void> {
       // Day keys only; the next clear tries again.
     }
   });
+}
+
+// ──────────────────────────────────────────────────── the plan the OS holds
+
+let heldChain: Promise<unknown> = Promise.resolve();
+
+/**
+ * The `plannedAt` of the plan the OS holds, or null: none, taken back, or
+ * unreadable. Null is the careful answer, because it only ever stops a log
+ * counting slots, which delays a pause and never invents one.
+ */
+export async function loadHeldPlan(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(HELD_KEY);
+    if (raw === null) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isRecord(parsed) || parsed.version !== 1) return null;
+    const plan = parsed.plan;
+    return typeof plan === 'number' && Number.isSafeInteger(plan) && plan > 0 ? plan : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Say which plan the OS holds now: the instant it was handed over, or null once it is taken back. */
+export function saveHeldPlan(plan: number | null): Promise<PersistAck> {
+  const next = heldChain.then(async (): Promise<PersistAck> => {
+    try {
+      await AsyncStorage.setItem(HELD_KEY, JSON.stringify({ version: 1, plan }));
+      return 'durable';
+    } catch {
+      return 'failed';
+    }
+  });
+  heldChain = next.catch(() => {});
+  return next;
 }

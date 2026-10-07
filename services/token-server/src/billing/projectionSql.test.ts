@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
 
-import { PLANS, storeTrialSeconds } from '@luvani/core';
+import { PLANS, storeTrialSeconds, buildConversationPack } from '@luvani/core';
 
 const ROOT = path.join(import.meta.dirname, '..', '..', '..', '..');
 const MIGRATIONS = path.join(ROOT, 'supabase', 'migrations');
@@ -295,6 +295,49 @@ describe('the store trial and yearly projection in SQL (F733)', () => {
     assert.equal(extended.entitlement.seconds_used, 9000, 'a longer year with the same start refilled the window');
   });
 
+  test('a store extension of a paid year keeps the in-flight session charged', async () => {
+    const id = user(29), session = user(129);
+    const bought = inDays(-10), window = inDays(20);
+    const first = await apply(id, 'active', 'regular', inDays(355), CAP.regular, window, bought);
+    assert.equal((await db.query<{ ok: boolean }>('select public.record_session_grant($1,$2,$3,$4,$5) as ok',
+      [id, session, first.entitlement.plan, first.entitlement.seconds_used, first.entitlement.period_end])).rows[0]!.ok, true);
+    const extended = await apply(id, 'active', 'regular', inDays(360), CAP.regular, window, bought);
+    assert.equal(extended.entitlement.usage_epoch, first.entitlement.usage_epoch);
+    await db.query('select public.consume_entitlement($1,120,$2)', [id, session]);
+    assert.equal((await row(id)).seconds_used, 120);
+    assert.equal((await db.query<{ charged_seconds: number }>('select charged_seconds from public.session_usage where session_id=$1', [session])).rows[0]!.charged_seconds, 120);
+    const renewed = await apply(id, 'active', 'regular', inDays(360), CAP.regular, inDays(50), bought);
+    assert.notEqual(renewed.entitlement.usage_epoch, first.entitlement.usage_epoch, 'the next monthly window must still fence old sessions');
+  });
+
+  test('a store trial gets the phrase-audio budget the founder chose', async () => {
+    const id = user(30), session = user(130), hash = 'b'.repeat(64);
+    const end = inDays(7), start = inDays(-1);
+    await apply(id, 'active', 'starter', end, storeTrialSeconds('starter'), null, start);
+    const pack = buildConversationPack({ id: session, sessionId: session, learnerId: id,
+      createdAt: new Date().toISOString(), title: { fr: 'Au café', en: 'At the café' }, summary: 'An order.',
+      keyPhrases: [{ fr: 'Bonjour', frWritten: null, en: 'Hello' }], corrections: [] });
+    await db.query("insert into public.conversation_packs(id,session_id,user_id,state,payload) values($1,$1,$2,'ready',$3)", [session, id, JSON.stringify(pack)]);
+    await db.query('insert into public.session_usage(session_id,user_id,seconds) values($1,$2,1)', [session, id]);
+    await db.exec('update public.phrase_audio_policy set enabled=true,trial_cap_micro_usd=20000,paid_cap_micro_usd=200000,global_cap_micro_usd=1000000');
+    await db.query("insert into public.phrase_audio_rates(voice,fingerprint,micro_usd_per_utf8_byte,fixed_call_micro_usd,verified_at,expires_at) values('alexandre',$1,1,1,now(),now()+interval '1 day')", [hash]);
+    type Quote = { bucket: string; rateRevision: string; globalWindowStart: string; paidWindowStart: string | null };
+    const reserveAudio = async () => (await db.query<{ q: Quote | null }>("select public.reserve_phrase_audio($1,$2,'phrase',0,'alexandre',$3) as q", [id, session, hash])).rows[0]!.q;
+    const trial = await reserveAudio();
+    assert.equal(trial?.bucket, 'trial');
+    const dispatch = async (q: Quote) => (await db.query<{ ok: boolean }>("select public.phrase_audio_dispatch_allowed($1,$2,'phrase',0,'alexandre',$3,$4,'Bonjour',$5,$6,$7) as ok", [id,session,hash,q.rateRevision,q.bucket,q.globalWindowStart,q.paidWindowStart])).rows[0]!.ok;
+    assert.equal(await dispatch(trial!), true);
+    await db.query('update public.phrase_audio_budgets set trial_spent_micro_usd=20000 where user_id=$1', [id]);
+    assert.equal(await reserveAudio(), null, 'a store trial must not borrow from the paid budget');
+    await apply(id, 'active', 'starter', end, CAP.starter, null, start);
+    assert.equal(await dispatch(trial!), false, 'conversion invalidates a trial dispatch');
+    const paid = await reserveAudio();
+    assert.equal(paid?.bucket, 'paid');
+    assert.equal(await dispatch(paid!), true);
+    assert.equal(Number((await db.query<{ spent: string }>('select trial_spent_micro_usd as spent from public.phrase_audio_budgets where user_id=$1', [id])).rows[0]!.spent), 20000, 'conversion must not reset lifetime trial spend');
+    await db.exec('update public.phrase_audio_policy set enabled=false');
+  });
+
   test('a writer that knows nothing of windows moves the period, and the window goes with it', async () => {
     // F733 second review: a server not yet redeployed still calls the
     // six-argument projection, which never writes allowance_window_end.
@@ -380,6 +423,8 @@ describe('the store trial and yearly projection in SQL (F733)', () => {
     const down = readFileSync(ROLLBACK, 'utf8');
     await assert.rejects(db.exec(down), /explicit interlock/);
     await db.exec("select set_config('luvani.reopen_trial_allowance', 'yes', false)");
+    await db.exec("select set_config('luvani.reopen_trial_audio_and_epoch','yes',false)");
+    await db.exec(readFileSync(path.join(ROOT, 'supabase', 'rollback', '20261007121856_down.sql'), 'utf8'));
     await db.exec(down);
     assert.equal((await db.query<{ v: number }>('select public.billing_projection_version() as v')).rows[0]!.v, 1);
     assert.equal((await db.query("select 1 from pg_proc where proname in ('apply_billing_projection_v2', 'billing_renewals_due_v1', 'allowance_window_epoch_v1')")).rows.length, 0);

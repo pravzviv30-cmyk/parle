@@ -46,7 +46,7 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /<PillButton tone="white" label=\{typed \? 'Start typing' : 'Start speaking'\}/, 'the action does not preserve the selected mode');
     assert.doesNotMatch(SCREEN, /<TabBar\b/, 'the scene brief grows a mode chooser');
     assert.match(SCREEN, /const typed = route\.params\?\.textMode === true;/);
-    assert.match(SCREEN, /label=\{TYPE_INSTEAD\} color=\{paper\.onInk\} onPress=\{\(\) => open\(first, true\)\}/, 'the brief loses its quiet typed twin');
+    assert.match(SCREEN, /label=\{TYPE_INSTEAD\} ground="blue" onPress=\{\(\) => open\(first, true\)\}/, 'the brief loses its quiet typed twin');
     assert.doesNotMatch(SCREEN, /missionMinutes\(first\.mission\)/, 'an unmeasured duration dominates the brief');
     const brief = SCREEN.slice(SCREEN.indexOf('if (focus && first)'));
     assert.ok(brief.indexOf('{first.mission.title}') < brief.indexOf('<Illustration'), 'decoration precedes the actual task');

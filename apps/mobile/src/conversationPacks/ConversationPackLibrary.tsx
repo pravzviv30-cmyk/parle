@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { ConversationPack } from '@luvani/core';
-import { Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { paper, signal, space, type } from '../theme.ts';
@@ -271,7 +271,7 @@ export function ConversationPackLibrary({
               <View style={st.cardActions}>
                 <OutlineButton label="Open conversation" onPress={() => setSelected(pack)} />
                 {pack.state === 'ready' && onContinue !== undefined && (
-                  <GhostButton label="Continue talking" color={paper.ink} onPress={() => onContinue(pack)} />
+                  <IconAction layout="inline" icon="chat" label="Continue talking"  onPress={() => onContinue(pack)} />
                 )}
               </View>
             </Card>
@@ -294,7 +294,7 @@ export function ConversationPackLibrary({
 
       <View style={st.cardActions}>
         {onOlder !== undefined && <OutlineButton label="Older conversations" disabled={paginationPending || busy} onPress={onOlder} />}
-        {onNewest !== undefined && <GhostButton label="Newest conversations" disabled={paginationPending || busy} onPress={onNewest} />}
+        {onNewest !== undefined && <IconAction layout="inline" icon="sort" label="Newest conversations" disabled={paginationPending || busy} onPress={onNewest} />}
         {onRetryPage !== undefined && <OutlineButton label="Retry loading conversations" disabled={paginationPending || busy} onPress={onRetryPage} />}
       </View>
 

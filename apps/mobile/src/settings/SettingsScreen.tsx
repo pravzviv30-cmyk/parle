@@ -65,7 +65,7 @@ import { AppState, View, Text } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { paper, space, type } from '../theme.ts';
-import { Card, Field, Label, OptionRow, OutlineButton, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
+import { IconAction, Card, Field, Label, OptionRow, OutlineButton, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
@@ -108,7 +108,6 @@ import { loadReminder, saveReminder } from '../reminders/store.ts';
 import {
   REMINDERS_AVAILABLE,
   askReminderPermission,
-  cancelReminder,
   reminderPermission,
 } from '../reminders/schedule.ts';
 import { replanReminders, smartReminderTime } from '../reminders/ReminderPlanner.tsx';
@@ -539,7 +538,10 @@ export function SettingsScreen({
           setReminderTrouble(REMINDER_SAVE_TROUBLE);
           return;
         }
-        const outcome = honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder();
+        // On or off, through the planner's one chain: an off waits for any plan
+        // in flight, so nothing it schedules can land after this cancel, and
+        // the planner closes its log as it takes the plan back.
+        const outcome = await replanReminders({ choice: wanted });
         if (!ownsReminderNow()) return;
         if (outcome === 'failed') {
           await saveReminder(reverted);
@@ -582,7 +584,8 @@ export function SettingsScreen({
         setReminderTrouble(REMINDER_SAVE_TROUBLE);
         return;
       }
-      const outcome = honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder();
+      // On or off, through the planner's one chain (see `toggleReminder`).
+      const outcome = await replanReminders({ choice: wanted });
       if (!ownsReminderNow()) return;
       if (outcome === 'failed') {
         await saveReminder(reverted);
@@ -845,7 +848,7 @@ export function SettingsScreen({
             {reminderOwned && sheet !== 'reminderTime' && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
             {reminderUnknown && <View style={{ gap: space(2) }}>
               <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{reminderPending ? 'Checking reminder status…' : 'Reminder status could not be read. Try again before changing it.'}</Text>
-              {reminderUnread && <GhostButton label="Retry reminder status" onPress={() => setReminderAttempt(value => value + 1)} />}
+              {reminderUnread && <IconAction layout="inline" icon="refresh" label="Retry reminder status" onPress={() => setReminderAttempt(value => value + 1)} />}
             </View>}
             {reminders && row !== null && (
               <SwitchRow

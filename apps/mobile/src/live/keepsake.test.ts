@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import { FIRST_MISSION, SCENE_SPINE, getMission, missionStates } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { REMINDER_EXPLAIN, REMINDER_REFUSED, reminderTime, type ReminderPermission, type StoredReminder } from '../reminders/reminder.ts';
+import { REMINDER_REFUSED, reminderTime, type ReminderPermission, type StoredReminder } from '../reminders/reminder.ts';
 import {
   KEEPSAKE_COPY,
   MAX_KEEPSAKE_LINES,
@@ -79,16 +79,17 @@ describe('the reminder offer', () => {
   test('is at the learner\'s chosen time, and says a dialog is coming only when one is', () => {
     const chosen = reminderOffer({ ...base, stored: { enabled: false, time: 'morning' } })!;
     assert.equal(chosen.time.value, 'morning', 'the offer ignores the time the learner picked in their plan');
-    assert.equal(chosen.title, 'A daily reminder at 8:00 am?');
+    assert.equal(chosen.choice, 'morning', 'the offer plans a time other than the learner\'s');
     assert.equal(chosen.asks, true);
-    assert.equal(chosen.body, REMINDER_EXPLAIN, 'the phone\'s dialog is not announced before it appears');
+    // The words are the one ask's own (ReminderAsk.test.ts pins that the recap
+    // hands it `asks` and that it says a dialog is coming only then).
+    assert.deepEqual(Object.keys(chosen).sort(), ['asks', 'choice', 'time'], 'the offer carries words nothing on the recap draws');
 
     const fallback = reminderOffer(base)!;
     assert.equal(fallback.time.value, reminderTime(undefined).value, 'no stored time does not fall back to the default preset');
 
     const granted = reminderOffer({ ...base, permission: 'granted', stored: { enabled: false, time: 'lunch' } })!;
     assert.equal(granted.asks, false, 'a phone that already allows notifications is told a dialog is coming');
-    assert.notEqual(granted.body, REMINDER_EXPLAIN);
   });
 });
 
@@ -181,10 +182,6 @@ describe('the keepsake\'s words', () => {
     const offer = reminderOffer({ available: true, won: true, stored: null, permission: 'granted' })!;
     const lines = [
       ...Object.values(KEEPSAKE_COPY),
-      offer.title,
-      offer.body,
-      offer.accept,
-      offer.decline,
       reminderAnswerLine('on', offer),
       reminderAnswerLine('failed', offer),
     ];

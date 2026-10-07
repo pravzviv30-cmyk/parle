@@ -12,7 +12,7 @@ import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-na
 import { AudioModule, RecordingPresets, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder } from 'expo-audio';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
-import { Card, GhostButton, PillButton } from '../components.tsx';
+import { IconActionRow, IconAction, Card, GhostButton, PillButton } from '../components.tsx';
 import { paper, type, space, frenchText } from '../theme.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { addPhrases } from '../review/store.ts';
@@ -216,16 +216,18 @@ export function DailyPracticeScreen() {
       <Card><Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{item.en}</Text>
       <View style={{ gap: space(3), marginTop: space(4) }}>
         <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
-        {modelAsset != null && <GhostButton label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
         {recording && voice.metered && <RecordingLevel level={voice.level} />}
         {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
-        {uri && !recording && <GhostButton label="Hear my take" onPress={() => void play(true)} />}
-        {completedTake && uri && !recording && !daySaved && <GhostButton label="Try again" onPress={() => void record()} disabled={busy} />}
+        <IconActionRow>
+        {modelAsset != null && <IconAction layout="tile" icon="speaker" label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
+        {uri && !recording && <IconAction layout="tile" icon="speaker" label="Hear my take" onPress={() => void play(true)} />}
+        {completedTake && uri && !recording && !daySaved && <IconAction layout="tile" icon="refresh" busy={busy} label="Try again" onPress={() => void record()} disabled={busy} />}
+        </IconActionRow>
         {modelAsset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
         <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
         {completedTake && !recording && !daySaved && <PillButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}
         {daySaved && <PillButton label="Done" onPress={goBack} />}
-        <GhostButton label="Add to review and practise recall" onPress={() => void review()} />
+        <IconAction layout="inline" icon="cards" label="Add to review and practise recall" onPress={() => void review()} />
       </View>
     </Card>
       {/* The end card in place, once the day is durable and the settle has read

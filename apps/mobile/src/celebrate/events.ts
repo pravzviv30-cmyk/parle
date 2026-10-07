@@ -25,7 +25,7 @@
  * played on another device from a new one.
  */
 import type { DayKey } from '@luvani/core';
-import { isDaySeenKey, isSeenKey, SEEN_KEEP_DAYS } from '../game/model.ts';
+import { isDaySeenKey, isSeenKey } from '../game/model.ts';
 
 /** Who the moment belongs to. A guest has no account scope, so guest moments are deduplicated in memory only. */
 export type CelebrationOrigin = 'account' | 'guest';
@@ -53,7 +53,7 @@ export const MAX_TAKEOVERS = 3;
 export const CELEBRATION_TTL_MS = 10 * 60 * 1000;
 
 /** How long a day-scoped `seen` key is kept, in days (the game store's rule). Durable keys are kept for good. */
-export const SEEN_DAY_KEPT_DAYS = SEEN_KEEP_DAYS;
+export const SEEN_DAY_KEPT_DAYS = 60;
 
 export interface PurchaseConfirmedData {
   readonly transactionId: string;

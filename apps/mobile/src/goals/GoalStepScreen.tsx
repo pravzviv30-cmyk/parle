@@ -24,7 +24,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { MISSIONS, type ConversationPack } from '@luvani/core';
 
-import { ColourCard, GhostButton, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
+import { IconAction, ColourCard, GhostButton, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { accent, onColour, paper, space, type } from '../theme.ts';
@@ -159,7 +159,7 @@ export function GoalStepScreen() {
       {current === null && (
         <View style={st.block}>
           <Text style={st.soft}>{GOAL_GONE}</Text>
-          <GhostButton label={GOAL_GONE_OPEN} color={paper.ink} onPress={() => nav.navigate('TutorMemory')} />
+          <IconAction layout="inline" icon="edit" label={GOAL_GONE_OPEN}  onPress={() => nav.navigate('TutorMemory')} />
         </View>
       )}
 
@@ -186,16 +186,16 @@ export function GoalStepScreen() {
           <View style={st.block}>
             <Label>{GOAL_TRAIL_LABEL}</Label>
             <Text style={st.soft}>You can change or remove this goal in tutor memory. The French you have saved and practised stays with you.</Text>
-            <GhostButton label="Edit this goal" onPress={() => nav.navigate('TutorMemory')} />
+            <IconAction layout="inline" icon="edit" label="Edit this goal" onPress={() => nav.navigate('TutorMemory')} />
 
             {visibleStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{GOAL_LOADING}</Text>}
 
             {visibleStatus === 'unread' && (
               <View style={st.rows}>
                 <Text style={st.soft}>{GOAL_UNREAD}</Text>
-                <GhostButton
+                <IconAction layout="inline" icon="refresh"
                   label={GOAL_RETRY}
-                  color={paper.ink}
+
                   onPress={() => {
                     setStatus('loading');
                     setAttempt((n) => n + 1);
@@ -225,9 +225,9 @@ export function GoalStepScreen() {
                       {row.usedOutside ? (
                         <Text style={st.said}>{USED_OUTSIDE_SAID}</Text>
                       ) : (
-                        <GhostButton
+                        <IconAction layout="inline" icon="tick-circle"
                           label={USED_OUTSIDE_CONTROL}
-                          color={paper.ink}
+
                           disabled={reporting !== null}
                           onPress={() => report(row)}
                         />

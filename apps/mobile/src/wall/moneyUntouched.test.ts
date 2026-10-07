@@ -103,7 +103,10 @@ const FILES: Record<string, string> = {
   // `git diff` against the accepted b98dcaa1... shows only that doc comment.
   'apps/mobile/src/purchases/contract.ts': '8073d6a000ede59ec31d46c8c74be74aa0f4b14201ffcf0a190a7e6d75f66893',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
-  'apps/mobile/src/purchases/client.ts': '82b26ec9cdbe78aecf27a8c7ab536ab90d9d08b00fbed5221ffe72ab4651f98c',
+  // 7 October 2026: authorized completion adds account-scoped invalidation after
+  // validated billing refresh (F783); listeners re-read server authority. No grant
+  // or pricing rule changes here. billingChanges.test.ts covers the boundary.
+  'apps/mobile/src/purchases/client.ts': '4fe18b860157ad83bc474040e0dedfacb8740fe5b68d84d25b1babaf14d8bee8',
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
   'apps/mobile/src/purchases/billingStatus.ts': '3104923354eec188303c25d0fc1e78abe4954daad392d7ad1427d32ce15392b1',
   // 7 October 2026, F734 (come-alive Phase 4, ca/p4-wall): INCLUSIONS gains the

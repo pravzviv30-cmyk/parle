@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { Card, GhostButton, PillButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { loadMissionCompletions } from '../missions/store.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
@@ -40,7 +40,7 @@ export function PostcardsScreen() {
       <Text style={[type.heading,{color:paper.ink}]}>{card.mission.titleEn}</Text>
       <Text style={[type.body,{color:paper.ink}]}>{card.mission.earnedEn}</Text>
       <Text style={[type.small,{color:paper.inkSoft}]}>Earned by finishing this scene independently.</Text>
-      <GhostButton label="See scene details" onPress={()=>nav.navigate('Missions', { focus: card.mission.id })} />
+      <IconAction layout="inline" icon="forward" label="See scene details" onPress={()=>nav.navigate('Missions', { focus: card.mission.id })} />
     </Card>)}
   </ScrollScreen>;
 }

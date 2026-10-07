@@ -313,30 +313,37 @@ describe('what a reminder is not allowed to know', () => {
     // through the game layer, the planner hears it (`onSettled`) and plans the
     // next days again. No practice surface touches the reminder itself.
     //
-    // Turning the reminder off is writing `enabled: false` for this learner,
-    // and only the reminder row in Settings (Profile's, until F576 moved it)
-    // does that. The other two writers record a yes or a pause: App.tsx saves
-    // the first run's answer when the account is made, and the planner saves
-    // a yes from the ask or the pause after the note has gone out.
+    // Turning the reminder off is writing `enabled: false` over a choice that
+    // was on, and only the reminder row in Settings (Profile's, until F576
+    // moved it) does that. The other writers record a yes, a pause or a
+    // put-back: App.tsx saves the first run's answer when the account is made;
+    // the planner saves a yes from the ask, the pause once its note has gone
+    // out (founder decision D2: Paused is its own state, which Settings shows
+    // and turns back on), and, when the OS refused a yes, exactly the choice
+    // that was there before it, so the ask never turns a reminder off.
     assert.deepEqual(callers('saveReminder'), ['App.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx']);
     const app = withoutComments(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
     for (const call of app.match(/saveReminder\([^;]*;/g) ?? []) assert.match(call, /^saveReminder\(reminderFromDraft\(draft\)\);$/, `App.tsx writes a reminder of its own: ${call}`);
     const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
     assert.deepEqual(
-      (planner.match(/saveReminder\(\{[^\n]*\}\)/g) ?? []).sort(),
-      ['saveReminder({ ...(stored ?? {}), ...reminder, paused: false })', 'saveReminder({ ...choice, paused: true })'],
-      'the planner writes a choice other than a yes or a pause',
+      (planner.match(/saveReminder\((?:[^()]|\([^()]*\))*\)/g) ?? []).sort(),
+      ['saveReminder(stored ?? reminder)', 'saveReminder(yes(reminder.time))', 'saveReminder({ ...choice, paused: true })'],
+      'the planner writes a choice other than a yes, a pause or a put-back',
     );
+    assert.match(planner, /const yes = \(mode: ReminderMode\): StoredReminder => \(\{ \.\.\.\(stored \?\? \{\}\), enabled: true, time: mode, paused: false \}\);/, 'the ask writes a yes that is not on');
+    assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/, 'the put-back after a refused yes writes off over what was there');
+    assert.match(planner, /if \(step\.pause && choice !== null\) await saveReminder\(\{ \.\.\.choice, paused: true \}\);/, 'the pause is written for something other than the note having gone out');
     const settings = withoutComments(readFileSync(join(APP_SRC, 'settings', 'SettingsScreen.tsx'), 'utf8'));
     assert.match(settings, /const toggleReminder = \(next: boolean\) => \{/, 'the row no longer has its switch');
     assert.match(settings, /onChange=\{toggleReminder\}/);
 
-    // Stopping what is pending (rather than turning it off) is for the row, the
-    // planner, and the doors where a plan or an account leaves: sign-out, the
-    // under-13 answer, a new plan in place of one with a reminder.
+    // Stopping what is pending (rather than turning it off) is for the planner
+    // (which the row's off goes through, on its one chain), and the doors where
+    // a plan or an account leaves: sign-out, the under-13 answer, a new plan in
+    // place of one with a reminder.
     assert.deepEqual(
       [...new Set([...callers('cancelReminder'), ...callers('stopReminders')])].sort(),
-      ['App.tsx', 'src/auth/AuthFlow.tsx', 'src/onboarding/PreAccountOnboarding.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx'],
+      ['App.tsx', 'src/auth/AuthFlow.tsx', 'src/onboarding/PreAccountOnboarding.tsx', 'src/reminders/ReminderPlanner.tsx'],
     );
 
     // No practice surface imports the reminder at all.

@@ -38,7 +38,7 @@ test('unavailable plans return to free practice once and retain an accepted cons
   assert.deepEqual(exits, ['practice']);
   assert.deepEqual(events, [{ name: 'wall_left', properties: { entry: 'profile', outcome: 'unchanged', destination: 'back' } }]);
   assert.match(wall, /does not tell us whether you have a paid plan/);
-  assert.match(wall, /GhostButton label="Try again"[^\n]+setRetry/);
+  assert.match(wall, /IconAction layout="inline" icon="refresh" busy=\{busy\} label="Try again"[^\n]+setRetry/);
   const plans = read('../wall/WallPlansPage.tsx');
   assert.ok(plans.indexOf('{minutesAMonth(row.minutes)}</Text>') < plans.indexOf('{perWeekLine(row.perWeek)}</Text>'));
   // 7 October 2026, come alive README Part 5.G and Part 7 ("per month pins edited

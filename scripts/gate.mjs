@@ -239,10 +239,16 @@ if (!fast) {
 }
 
 if(!fast) {
-  const result=run(process.execPath,['--test','services/shared/paidExecution.test.ts','scripts/verifyPaidAdapters.test.mjs','services/shared/audioDecode.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs']);
+  const result=run(process.execPath,['--test','services/shared/paidExecution.test.ts','scripts/verifyPaidAdapters.test.mjs','services/shared/audioDecode.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs']);
   const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
   if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
-  else releaseProviderProofTests = tested;
+  else {
+    releaseProviderProofTests = tested;
+    for (const line of result.out.split('\n')) {
+      const title = line.trim();
+      if (title.startsWith('✔ ')) passed.add(title.slice(2).replace(/\s*\([\d.]+m?s\)\s*$/, '').trim());
+    }
+  }
 }
 
 // ------------------------------------------------------------------ 3. hygiene
