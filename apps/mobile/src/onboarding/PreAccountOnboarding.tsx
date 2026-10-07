@@ -88,7 +88,7 @@ import {
   SetupProgress,
   type ArtworkResponse,
 } from './OnboardingMotion.tsx';
-import { FIRST_RUN_COPY, SLOW_CHECK_MS } from './firstRun/copy.ts';
+import { FIRST_RUN_COPY, SLOW_CHECK_MS, issueActions } from './firstRun/copy.ts';
 import { GOAL_TIERS, slotFor, suggestedMinutes } from './firstRun/planModel.ts';
 import { PlanCard, type FlyFrom } from './firstRun/PlanCard.tsx';
 import { PlanReveal, TILES_WRAP_AT } from './firstRun/PlanReveal.tsx';
@@ -549,12 +549,17 @@ export function PreAccountOnboarding({
           setIssue(FIRST_RUN_COPY.speechPaused);
           return;
         }
+        // A spoken take is discarded once sent, so its failure (a failed
+        // transcription, 'unavailable', or a dropped connection) never says a
+        // reply is still here: it offers a new take or typing (F776).
         setIssue(
           error instanceof Error && error.message === 'expired'
             ? 'Your guest practice has expired. Your phrase is still here. You can practise this offline.'
             : error instanceof Error && error.message === 'limit'
               ? 'This starter has used its two attempts. You can practise this offline or finish.'
-              : 'The tutor can’t connect. Your reply is still here.',
+              : uri
+                ? FIRST_RUN_COPY.takeUnheard
+                : 'The tutor can’t connect. Your reply is still here.',
         );
         pulse('connection');
       }
@@ -686,6 +691,8 @@ export function PreAccountOnboarding({
   // and is not already set, and not again once answered on this visit.
   const askShown = REMINDERS_AVAILABLE && draft.reminderEnabled !== true && !reminderAnswered;
   const tutorName = tutorVoice(draft.tutorVoice).persona.name;
+  // What the row under a failed start or reply offers: a reply is retried only when it was typed (F776).
+  const actions = issueActions(issue, page !== 'practice' ? 'start' : mode);
   const closeSheet = () => {
     if (busy) return false;
     stopSound();
@@ -1294,10 +1301,7 @@ export function PreAccountOnboarding({
                 <Text accessibilityLiveRegion="polite" style={[type.body, { color: ink }]}>
                   {issue}
                 </Text>
-                {(issue.includes('connect') ||
-                  issue.includes('expired') ||
-                  issue.includes('attempts') ||
-                  issue.includes('offline')) && (
+                {actions.offline && (
                   <IconActionRow>
                     <IconAction
                       icon="cloud-off"
@@ -1307,15 +1311,20 @@ export function PreAccountOnboarding({
                           setGuest(
                             guest ? { ...guest, offline: true } : offlineContinuation(draft, null),
                           );
+                          // Offline checks typed words only, so a spoken page turns to typing.
+                          setMode('typed');
                           setIssue('');
                         } else void start(true);
                       }}
                     />
-                    <IconAction
-                      icon="refresh"
-                      label="Try again"
-                      onPress={() => (page === 'practice' ? void submit() : void start())}
-                    />
+                    {/* Only where it sends something: a typed reply, or the start (F776). */}
+                    {actions.retry ? (
+                      <IconAction
+                        icon="refresh"
+                        label="Try again"
+                        onPress={() => (page === 'practice' ? void submit() : void start())}
+                      />
+                    ) : null}
                   </IconActionRow>
                 )}
               </View>

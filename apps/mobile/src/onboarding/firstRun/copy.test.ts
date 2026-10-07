@@ -10,7 +10,10 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { streakGuiltIn } from '../../copy/guilt.ts';
 import { REASONS, START_LEVELS } from '../plan.ts';
-import { FIRST_RUN_COPY, FIRST_RUN_LINES, SLOW_CHECK_MS, TAKE_CAP_SECONDS, exchangeLabel, takeLength } from './copy.ts';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { evidence } from '../../../test/evidence.ts';
+import { FIRST_RUN_COPY, FIRST_RUN_LINES, SLOW_CHECK_MS, TAKE_CAP_SECONDS, exchangeLabel, issueActions, takeLength } from './copy.ts';
 import { NEXT_LABEL, NEXT_OFF_HINT } from './nextFace.ts';
 import { GOAL_TIERS, planToken, tierLabel, tierLine } from './planModel.ts';
 import { freshPreAccountDraft } from '../preAccountDraft.ts';
@@ -67,5 +70,73 @@ describe('the first run speaks plainly', () => {
     assert.equal(takeLength(8.7), '8 of 20 seconds');
     assert.equal(takeLength(-3), '0 of 20 seconds');
     assert.equal(takeLength(45), '20 of 20 seconds');
+  });
+});
+
+describe('a spoken take the tutor did not hear — F776', () => {
+  test('a failed spoken take offers to record again or type, never a Try again that does nothing', () => {
+    // The line: the take is gone, so it says what the page offers instead.
+    const unheard = FIRST_RUN_COPY.takeUnheard;
+    assert.equal(unheard, 'The tutor could not hear that take. You can record it again or type it.');
+    assert.equal(streakGuiltIn(unheard), undefined);
+    assert.doesNotMatch(unheard, /[—–·]|still here/, 'a spoken failure claims a reply is still on the page');
+
+    // The row: Practise this offline after every failure that can go offline,
+    // Try again only where pressing it sends something.
+    const failures = [
+      unheard,
+      'The tutor can’t connect. Your reply is still here.',
+      'The tutor can’t connect.',
+      'Your guest practice has expired. Your phrase is still here. You can practise this offline.',
+      'This starter has used its two attempts. You can practise this offline or finish.',
+    ];
+    for (const issue of failures) {
+      assert.deepEqual(issueActions(issue, 'spoken'), { offline: true, retry: false }, `a spoken page offers a Try again that sends nothing after "${issue}"`);
+      assert.deepEqual(issueActions(issue, 'typed'), { offline: true, retry: true }, `a typed reply cannot be sent again after "${issue}"`);
+      assert.deepEqual(issueActions(issue, 'start'), { offline: true, retry: true }, `the start cannot be tried again after "${issue}"`);
+    }
+    for (const calm of [FIRST_RUN_COPY.speechPaused, 'You can type the same reply.', FIRST_RUN_COPY.reminderSet, '']) {
+      for (const again of ['spoken', 'typed', 'start'] as const) {
+        assert.deepEqual(issueActions(calm, again), { offline: false, retry: false }, `"${calm}" grew a failure row`);
+      }
+    }
+
+    // The screen: a spoken take that fails (expired and limit aside) says the
+    // line above, and the row's Try again is drawn only on the rule's yes.
+    const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
+    assert.match(
+      screen,
+      /error\.message === 'limit' \? '[^']*' : uri \? FIRST_RUN_COPY\.takeUnheard : 'The tutor can’t connect\. Your reply is still here\.'/,
+      'a failed spoken take still says the reply is here',
+    );
+    assert.match(screen, /const actions = issueActions\(issue, page !== 'practice' \? 'start' : mode\);/, 'the row does not know whether the reply was typed');
+    const from = screen.indexOf('{actions.offline && (');
+    assert.ok(from > 0, 'the failure row is not drawn from the rule');
+    const row = screen.slice(from, screen.indexOf("{storageNote !== '' ?", from));
+    assert.match(row, /label="Practise this offline"/);
+    assert.match(row, /\{actions\.retry \? \( <IconAction icon="refresh" label="Try again"/, 'Try again is drawn whatever the reply was');
+    assert.equal((row.match(/label="Try again"/g) ?? []).length, 1);
+    // Offline checks typed words only, so going offline from a spoken page turns to typing.
+    assert.match(row, /offline: true \} : offlineContinuation\(draft, null\), \); setMode\('typed'\); setIssue\(''\);/);
+
+    // The microphone and Type instead are the way on, and both stay on the spoken page.
+    const take = evidence('apps/mobile/src/onboarding/GuestRecording.tsx');
+    assert.match(take, /onPress=\{\(\) => void record\(\)\}/);
+    assert.match(take, /label=\{FIRST_RUN_COPY\.typeInstead\}/);
+
+    // A reminder set on day one leaves with the plan it was set for, at all
+    // three doors the privacy document names, and the document says so.
+    const doc = readFileSync(fileURLToPath(new URL('../../../../../docs/PRIVACY_AND_SAFETY.md', import.meta.url)), 'utf8');
+    assert.match(doc, /reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create one" each cancel it on the phone\./);
+    const younger = screen.slice(screen.indexOf('label="I am younger than that"'), screen.indexOf('<SwitchRow'));
+    assert.match(younger, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/);
+    const app = evidence('apps/mobile/App.tsx');
+    assert.match(app, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\);/);
+    assert.match(app, /<GhostButton label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
+    const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn ='));
+    assert.match(newAccount, /if \(initialDraft\?\.reminderEnabled === true\) void cancelReminder\(\);/);
+    assert.match(flow, /<SignInScreen onCreateAccount=\{newAccount\} \/>/);
+    assert.match(evidence('apps/mobile/src/auth/SignInScreen.tsx'), /Create one/);
   });
 });

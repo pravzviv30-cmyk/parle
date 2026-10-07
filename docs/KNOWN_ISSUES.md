@@ -10278,10 +10278,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F776 — A failed spoken take offers a Try again that does nothing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:553, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1314, docs/PRIVACY_AND_SAFETY.md
 - note: Found by the 7 October first-run re-check (verdict SHIP). When a spoken take's transcription fails, the page says "Your reply is still here." and offers Try again, which submits nothing in spoken mode. Say "The tutor could not hear that take. You can record it again or type it.", show Try again only for a typed reply, keep Practise this offline. Also say in PRIVACY_AND_SAFETY.md that the under-13 answer, Start a new plan instead and Create one cancel a reminder set on day one.
 - verified-by: `a failed spoken take offers to record again or type, never a Try again that does nothing`
+- note: 2026-10-07 ca/p4-first-run-fu: a spoken take that fails ('unavailable' or a dropped connection; expired and limit keep their own lines) says FIRST_RUN_COPY.takeUnheard, the failure row comes from `issueActions` in onboarding/firstRun/copy.ts and draws Try again only for a typed reply or the start, Practise this offline stays (and now turns a spoken page to typing, since offline checks typed words), and PRIVACY_AND_SAFETY.md names the three doors that cancel a day-one reminder. The title failed on the base screen and on the base document.
 
 ### F777 — Three room details the review found: an unread history, a muted microphone and a slow rest
 - severity: P2

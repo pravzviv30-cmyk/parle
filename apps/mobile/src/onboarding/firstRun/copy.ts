@@ -56,6 +56,8 @@ export const FIRST_RUN_COPY = {
   listening: 'Listening. Tap to send.',
   hearingYou: 'Hearing you',
   waitingForVoice: 'Waiting for your voice',
+  /** A spoken take that did not reach the tutor (F776). The take is gone, so the page offers a new one or typing. */
+  takeUnheard: 'The tutor could not hear that take. You can record it again or type it.',
 
   /** The win. */
   youSaid: 'You said',
@@ -129,6 +131,21 @@ export function tutorTimeLine(seconds: number, free: boolean | null): string | n
   if (free === true) return `You have ${counted(minutes, 'free minute', 'free minutes')} with your AI tutor.`;
   if (free === false) return `You have ${counted(minutes, 'minute', 'minutes')} with your AI tutor on your plan.`;
   return `You have ${counted(minutes, 'minute', 'minutes')} with your AI tutor.`;
+}
+
+/**
+ * What the row under a failed start or reply offers (F776). Practise this
+ * offline follows any line that says the tutor could not be reached, the
+ * practice expired or spent its attempts, or a spoken take was not heard.
+ * Try again follows only where pressing it sends something: the start itself,
+ * or a typed reply still in the box. A spoken take is discarded once sent, so
+ * a Try again there would send nothing; the page's own microphone and Type
+ * instead are the way on.
+ */
+export function issueActions(issue: string, again: 'start' | 'typed' | 'spoken'): { offline: boolean; retry: boolean } {
+  const offline =
+    issue === FIRST_RUN_COPY.takeUnheard || ['connect', 'expired', 'attempts', 'offline'].some((word) => issue.includes(word));
+  return { offline, retry: offline && again !== 'spoken' };
 }
 
 /** How long the practice page waits on a reply before it says the wait out loud. */
