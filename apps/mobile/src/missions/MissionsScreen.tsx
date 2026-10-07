@@ -26,7 +26,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { earnedMissionIds, missionStates, type MissionProgress } from '@luvani/core';
 import { colour, frenchText, paper, space, type } from '../theme.ts';
-import { Card, GhostButton, Ledger, LedgerRow, PillButton, SceneMark } from '../components.tsx';
+import { IconActionRow, IconAction, Card, GhostButton, Ledger, LedgerRow, PillButton, SceneMark } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 
@@ -123,7 +123,7 @@ export function MissionsScreen() {
   const header = <ScreenHeader back={{ onPress: leave }} title={focus ? undefined : "Scenes"} ground={focus && progress !== null && first ? 'blue' : 'paper'} />;
   if (progress === null) return <ScrollScreen header={header}><View style={st.scroll}>
     <Text style={st.sub}>{readFailed ? 'Your scene history could not be read just now.' : 'Finding your scenes.'}</Text>
-    {readFailed && <GhostButton label="Try loading scenes again" onPress={() => setReadAttempt((n) => n + 1)} />}
+    {readFailed && <IconAction layout="inline" icon="refresh" label="Try loading scenes again" onPress={() => setReadAttempt((n) => n + 1)} />}
   </View></ScrollScreen>;
   if (focus && first) {
     return (
@@ -131,7 +131,7 @@ export function MissionsScreen() {
         footer={<View style={{ gap: space(2) }}>
           <Text style={[type.small, { color: paper.onInk }]}>Start speaking asks for microphone access. Speaking and typing use live minutes while the room is open.</Text>
           <PillButton tone="white" label={typed ? 'Start typing' : 'Start speaking'} onPress={() => open(first)} />
-          {!typed && <GhostButton label={TYPE_INSTEAD} color={paper.onInk} onPress={() => open(first, true)} />}
+          {!typed && <IconAction layout="inline" icon="keyboard" label={TYPE_INSTEAD} ground="blue" onPress={() => open(first, true)} />}
         </View>}>
         <View style={{ gap: space(3), paddingTop: space(3), paddingBottom: space(4) }}>
           <Text {...frenchText} style={[type.french, { color: paper.onInk }]}>{first.mission.title}</Text>
@@ -141,7 +141,7 @@ export function MissionsScreen() {
           <Card style={{ gap: space(3) }}>
             <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>One line to try</Text>
             {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
-            {first.mission.referencePhrases.length > 1 && <GhostButton label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
+            {first.mission.referencePhrases.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
             {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
             <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
           </Card>
@@ -169,10 +169,12 @@ export function MissionsScreen() {
           </Ledger>
         </View>)}
         <View style={st.footer}>
-          <GhostButton label={LESSON_DOOR.title} disabled={checking} onPress={() => openLesson(typed)} />
+          <IconActionRow>
+          <IconAction layout="tile" icon="book" label={LESSON_DOOR.title} disabled={checking} onPress={() => openLesson(typed)} />
+          <IconAction layout="tile" icon="keyboard" label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
+          <IconAction layout="tile" icon="chat" label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
+          </IconActionRow>
           <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
-          <GhostButton label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
-          <GhostButton label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
           {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
         </View>
       </View>

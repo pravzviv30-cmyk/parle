@@ -78,7 +78,7 @@ describe('Speak leads with the tutor, then one Start, then the path', () => {
     const shared = read('../practice/NextTaskCard.tsx');
     const hero = read('../home/MissionHero.tsx');
     assert.match(shared, /<MissionHero hero=\{value.hero\}/);
-    assert.match(hero, /secondary=\{<GhostButton label=\{modes.other.label\}/);
+    assert.match(hero, /secondary=\{<IconAction layout="inline" icon="keyboard" label=\{modes.other.label\}/);
     assert.match(hero, /open\(modes.other.textMode\)/);
     assert.match(FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/);
     assert.doesNotMatch(SCREEN, /<TabBar\b|Ready when you are/);

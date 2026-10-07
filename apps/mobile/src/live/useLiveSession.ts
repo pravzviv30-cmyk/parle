@@ -17,7 +17,7 @@ import { loadConsent } from '../analytics/consentStore.ts';
 
 import { TOKEN_SERVER } from './serverUrl.ts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track, type LocalAudioTrack, type RemoteAudioTrack } from 'livekit-client';
 import {
   decodeServerMessage,
   ConversationTextRecorder,
@@ -43,7 +43,8 @@ import {
   type SettlementResult,
   type CanDoEvidence,
 } from '@luvani/core';
-import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession } from './globals.ts';
+import { ensureAudioSession, ensureLiveKitGlobals, releaseAudioSession, releaseLiveHold } from './globals.ts';
+import { recapMayTakeTheAudio } from './recapAudio.ts';
 import { authHeaders } from '../auth/adapter.ts';
 import { journalRecap } from './journal.ts';
 import { noteCatalogue } from '../wall/catalogue.ts';
@@ -109,6 +110,9 @@ const READY_RETRIES_MS = [1500, 3500, 6500];
 
 /** Give up on the signal connection well before the learner does. */
 const CONNECT_TIMEOUTS = { peerConnectionTimeout: 12000, websocketTimeout: 8000 };
+
+/** No audio track in the room: before a microphone is published or the tutor is heard, and in every typed session. */
+const NO_TRACKS: LiveSession['audioTracks'] = { mic: null, tutor: null };
 
 /**
  * Hand the account's session lease back when the tutor never turned up.
@@ -400,6 +404,16 @@ export interface LiveSession {
   /** True while the browser refuses playback until it sees a user gesture. */
   audioBlocked: boolean;
   /**
+   * The room's two audio tracks, for the orb to measure (`live/RoomLevels`):
+   * the learner's published microphone and the tutor's voice.
+   *
+   * Handed over when a track is published or subscribed and taken back when it
+   * goes, so this changes a handful of times a session and never per audio
+   * frame; the levels themselves never pass through React state. Both null in a
+   * typed session, and the microphone stays null until the circle is tapped.
+   */
+  audioTracks: { mic: LocalAudioTrack | null; tutor: RemoteAudioTrack | null };
+  /**
    * True once this session is publishing a microphone.
    *
    * A free conversation connects with it closed and opens it when the learner
@@ -596,6 +610,10 @@ export function useLiveSession(
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [micOpen, setMicOpen] = useState(false);
   const [voiceless, setVoiceless] = useState(false);
+  const [audioTracks, setAudioTracks] = useState<LiveSession['audioTracks']>(NO_TRACKS);
+  // F763: the microphone this session published has been confirmed closed after
+  // the recap arrived. Read by the effect that gives the recap back its sound.
+  const [micClosedAtRecap, setMicClosedAtRecap] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [waitingForTutor, setWaitingForTutor] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
@@ -709,6 +727,51 @@ export function useLiveSession(
     send({ t: 'leave' });
   }, [send]);
 
+  /**
+   * The session is over, so the microphone closes before the recap shows (F763).
+   *
+   * The room stays open behind the recap, because the enriched profile and the
+   * drills arrive over it seconds later, and the microphone used to stay
+   * published with it until the learner tapped Done: a recap read with the
+   * microphone still live, and with the room's hold on the audio focus keeping
+   * the recap's own moment silent. The circle is told first, so nothing on the
+   * recap reads an open microphone; the close is confirmed before the recap is
+   * allowed its sound (the effect below `recapMayTakeTheAudio`). A close that
+   * fails keeps the hold, and `leave()` still ends both. A close confirmed after
+   * the learner left, or after another start took the session, belongs to a
+   * room that is gone and is not reported, so it can never give away the hold
+   * a newer room took.
+   *
+   * Closed means the capture has stopped, not only that nothing is sent
+   * (F777). `setMicrophoneEnabled(false)` mutes the published track and leaves
+   * the device recording, so the iPhone's microphone indicator stayed on over
+   * the recap. Once the mute lands, the microphone track is unpublished and
+   * stopped; that is what lets the device go. A later `openMic` or `start`
+   * makes a new track, as a first one does.
+   */
+  const closeMicForRecap = useCallback(() => {
+    const room = roomRef.current;
+    diagRef.current.micPublished = false;
+    setMicOpen(false);
+    if (room === null) return;
+    const closingGeneration = startGenRef.current;
+    const participant = room.localParticipant;
+    void participant
+      .setMicrophoneEnabled(false)
+      .then(() => {
+        const mic = participant.getTrackPublication(Track.Source.Microphone)?.track;
+        return mic === undefined ? undefined : participant.unpublishTrack(mic, true);
+      })
+      .then(() => {
+        if (roomRef.current !== room || closingGeneration !== startGenRef.current) return;
+        trace('mic-closed-for-recap');
+        setMicClosedAtRecap(true);
+      })
+      .catch((err: unknown) => {
+        trace('mic-close-failed', { error: String(err) });
+      });
+  }, []);
+
   const fail = useCallback((failure: LiveFailure) => {
     const copy = failureCopy(failure);
     diagRef.current.lastFailure = failure;
@@ -794,6 +857,8 @@ export function useLiveSession(
     conversationTextRef.current.clear();
     setThinking(false);
     setMicOpen(false);
+    setMicClosedAtRecap(false);
+    setAudioTracks(NO_TRACKS);
     setReconnecting(false);
     // A rebuilt session opens as whatever its mode says, and the mode is signed
     // into the grant. Carrying the last session's quiet across would be the app
@@ -943,6 +1008,10 @@ export function useLiveSession(
         if (!owns()) return;
         if (track.kind !== Track.Kind.Audio) return;
         diagRef.current.audioTrackSubscribed = true;
+        // The orb measures the tutor's voice from this track, on a phone as well
+        // as in a browser, so it is handed over before the web-only attach.
+        const tutor = track as RemoteAudioTrack;
+        setAudioTracks((tracks) => ({ ...tracks, tutor }));
         // On native the WebRTC session routes remote audio itself; the DOM path
         // is web-only.
         if (typeof document === 'undefined') return;
@@ -955,11 +1024,30 @@ export function useLiveSession(
       // ever removes, and disconnecting an abandoned room is exactly when its
       // elements need taking out of the document.
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        // Taken back from the orb only if it is the track the orb was given, so
+        // an abandoned room cannot clear the session the learner is in now.
+        setAudioTracks((tracks) => (tracks.tutor !== null && tracks.tutor === track ? { ...tracks, tutor: null } : tracks));
         if (typeof document === 'undefined') return;
         for (const el of track.detach()) {
           el.remove();
           audioElsRef.current = audioElsRef.current.filter((kept) => kept !== el);
         }
+      });
+      // The learner's microphone, for the orb's listening ring: handed over when
+      // it is published (at connect, or when the circle is tapped) and taken
+      // back when it goes. Never per frame; the levels are RoomLevels' business.
+      room.on(RoomEvent.LocalTrackPublished, (publication) => {
+        if (!owns()) return;
+        if (publication.source !== Track.Source.Microphone || publication.track?.kind !== Track.Kind.Audio) return;
+        const mic = publication.track as LocalAudioTrack;
+        setAudioTracks((tracks) => ({ ...tracks, mic }));
+      });
+      room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+        // Read now: LiveKit empties the publication as soon as this returns,
+        // before React runs the updater, and the recap's unpublish (F777)
+        // would otherwise leave the stopped track with the orb.
+        const gone = publication.track;
+        setAudioTracks((tracks) => (tracks.mic !== null && tracks.mic === gone ? { ...tracks, mic: null } : tracks));
       });
       // Whether anyone else is in the room at all. The difference between "the
       // tutor is thinking" and "the tutor was never dispatched" is exactly this.
@@ -1102,6 +1190,10 @@ export function useLiveSession(
             if (msg.action === 'stop') { setCanDoEvidence(null); evidenceSessionRef.current = null; }
             break;
           case 'recap':
+            // The session has ended, so the microphone closes first and the
+            // recap shows second (F763). A stopped session closes it too: the
+            // recap of a stop is never drawn, and nobody is listening any more.
+            closeMicForRecap();
             setRecap({ recap: msg.recap, profile: msg.profile });
             // Written down before anything else, because from here the learner
             // can close the app at any moment and the leave-early fallback only
@@ -1367,6 +1459,7 @@ export function useLiveSession(
     removeAudioEls,
     clearWatchdog,
     requestRecap,
+    closeMicForRecap,
     leave,
     fail,
     addTurn,
@@ -1472,6 +1565,21 @@ export function useLiveSession(
     setSafety(next);
   }, []);
 
+  // The recap's moment (F763, live/recapAudio.ts). The room held the learner's
+  // ears from the moment it took the audio session, so no sound effect played
+  // and no control gave a haptic while it was open, and it stays open behind
+  // the recap. Once the session has ended, the microphone is confirmed closed
+  // and the tutor is quiet, the hold goes and the recap may be felt. A stop
+  // keeps it: a stopped session gets no moment. LiveKit's audio session itself
+  // is still released by `leave()`.
+  const recapArrived = recap !== null;
+  const stoppedNow = stoppedBySafety(safety);
+  useEffect(() => {
+    if (!recapMayTakeTheAudio({ recapArrived, micClosed: micClosedAtRecap, tutorSpeaking, stopped: stoppedNow })) return;
+    trace('live-hold-released-for-recap');
+    releaseLiveHold();
+  }, [recapArrived, micClosedAtRecap, tutorSpeaking, stoppedNow]);
+
   // Never leave a microphone open past the component that owns it.
   useEffect(() => {
     return () => {
@@ -1514,6 +1622,7 @@ export function useLiveSession(
     turns,
     thinking,
     audioBlocked,
+    audioTracks,
     micOpen,
     voiceless,
     reconnecting,

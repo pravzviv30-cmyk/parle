@@ -15,7 +15,7 @@ test('revamp B room controls keep typing, help and leave alongside the real wait
   has('ConvoScreen.tsx',/label="Help me out"/,/label="Simpler"/,/label="Type instead"/,/label="Give me a moment"/,/label="In English"/,/maxHeight: 100/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
   has('live/RoomWait.tsx',/state="thinking"/,/size=\{120\}/,/accessibilityLiveRegion="polite"/,/\{stage\}/,/label=\{leaveLabel\}/);
   lacks('live/RoomWait.tsx',/ProgressDots|CheckGlyph|percent|ProgressBar/);
-  has('live/LiveErrorView.tsx',/state-microphone/,/state-offline/,/<PillButton/,/<GhostButton/);
+  has('live/LiveErrorView.tsx',/state-microphone/,/state-offline/,/<PillButton/,/<IconAction/);
   has('live/LiveRoomHeader.tsx',/kind="close"/,/accessibilityHint/,/frenchText/);
   lacks('live/LiveRoomHeader.tsx',/borderBottomWidth/);
 });
@@ -35,7 +35,7 @@ test('revamp B Practice leads with the short action, then an optional evidence-b
   const practice = read('tabs/PracticeTab.tsx');
   assert.ok(practice.indexOf('<Label>{NEXT_STEP.label}</Label>') < practice.indexOf('<TuneSoundCard'), 'the sound guide buries the recommended action');
   has('tabs/PracticeTab.tsx',/step !== null && \(/,/<FrenchBlock/,/<TuneSoundCard/,/shadowingPhrase/,/mode:'shadowing'/,/Hear, say and compare/);
-  has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/shouldPlayInBackground: false/);
+  has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/enterVoicePlayback\(\)/);
   lacks('daily/DailyPracticeScreen.tsx',/fetch\(|Speech.speak|pronunciationScore/);
 });
 test('revamp B retrieval and drills preserve attempted recall, honest scoring and the typed twin',()=>{
@@ -65,8 +65,11 @@ test('revamp B reminder and deletion controls retain explicit choices and explai
   has('components.tsx', /accessibilityRole="header"/);
 });
 test('revamp B plans preserve catalogue and store prices, accessible selection and a single restore',()=>{
-  has('wall/WallPlansPage.tsx',/accessibilityState=\{\{ selected: chosen \}\}/,/aria-selected=\{chosen\}/,/aria-pressed=\{chosen\}/,/chosen: \{ backgroundColor: colour.blue \}/,/CheckGlyph/,/paper.field/);
-  lacks('wall/WallPlansPage.tsx',/recommended|accessibilityRole="radio"/);
+  // Come-alive D16: each store product is now a shared radio choice. Keep
+  // the actual price and selected product wired to its accessible name/state.
+  has('wall/WallPlansPage.tsx', /<Choice/, /role="radio"/, /selected=\{offer.productId === selected\}/, /title=\{billed\}/, /billedPrice\(offer.price, offer.period\)/, /accessibilityLabel=\{\[row.name, period, price\].join\(', '\)\}/);
+  has('components.tsx', /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);
+  lacks('wall/WallPlansPage.tsx', /recommended/);
   has('wall/WallScreen.tsx',/wallSuccess/,/ground=\{colour.mint\}/,/state-offline/,/Start speaking/,/restore/);
   has('wall/WallYoursPage.tsx',/<Ledger/,/YOURS_ROWS.map/,/QuoteGlyph/,/MouthGlyph/,/paper.ink/);
   lacks('wall/WallYoursPage.tsx',/borderBottomWidth/);
@@ -79,10 +82,10 @@ test('revamp B out-of-minutes surfaces open the central wall without selling in 
   has('LiveSessionScreen.tsx',/<OutOfMinutesView/);
 });
 test('recap stories, earned postcards and week wrapped use saved evidence and provide a way out',()=>{
-  has('RecapScreen.tsx',/total=\{pages.length\}/,/recapCanDo/,/nextPage === null \? 'Finish conversation' : 'Next'/,/firstEarned/,/<OnceConfetti/,/<OnceCount/);
+  has('RecapScreen.tsx',/total=\{pages.length\}/,/recapCanDo/,/nextPage === null \? 'Finish conversation' : 'Next'/,/firstEarned/,/<PostcardStamp/,/<CountUp/);
   has('progress/PostcardsScreen.tsx',/earnedPostcards\(missionStates/,/scopeGeneration/,/postcardIllustration/,/Choose a scene/);
   lacks('progress/PostcardsScreen.tsx',/locked|remaining|percent|collect all/);
   has('progress/WeekWrappedScreen.tsx',/storyFrom\(\{sessions,activity,packs,completions,now\}\)/,/hasStory/,/total=\{2\}/,/celebrate-wrapped/,/label=\{page===1\?'Done':'Next'\}/,/Choose a scene/,/Try loading your week again/,/readOwner===scopeGeneration\(\)/);
-  has('recap/OnceConfetti.tsx',/useReduceMotion\(true\)/,/used.current=true/,/useNativeDriver:NATIVE_DRIVER/,/pointerEvents:'none'/);
-  has('recap/OnceCount.tsx',/useReduceMotion\(true\)/,/used.current=true/,/clearInterval/,/no-hide-descendants/);
+  has('celebrate/PostcardStamp.tsx',/useReduceMotion\(true\)/,/claimInPlace\(/,/from '\.\.\/motion\/drive\.ts'/,/pointerEvents: 'none'/);
+  has('motion/CountUp.tsx',/useReduceMotion\(true\)/,/if \(target\.current === to\) return;/,/useLandOnLeave\(land\)/,/\{\.\.\.decorative\}/);
 });

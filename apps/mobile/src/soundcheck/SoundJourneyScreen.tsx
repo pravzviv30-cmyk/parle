@@ -19,7 +19,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getMission } from '@luvani/core';
 
 import { MouthGuide } from '../practice/MouthGuide.tsx';
-import { Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
 import { WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { accent, HIT, paper, space, type } from '../theme.ts';
@@ -88,7 +88,7 @@ export function SoundJourneyScreen() {
       {shownStatus === 'unread' && (
         <Card style={st.block}>
           <Text style={[type.body, { color: paper.ink }]}>{JOURNEY_COPY.unread}</Text>
-          <GhostButton label={JOURNEY_COPY.retry} color={paper.ink} onPress={() => { if (!ownerMatches) return; setStatus('loading'); setAttempt((n) => n + 1); }} />
+          <IconAction layout="inline" icon="refresh" label={JOURNEY_COPY.retry}  onPress={() => { if (!ownerMatches) return; setStatus('loading'); setAttempt((n) => n + 1); }} />
         </Card>
       )}
 
@@ -96,7 +96,7 @@ export function SoundJourneyScreen() {
       {shownStatus === 'ready' && journey === null && (
         <View style={st.block}>
           <Text style={st.soft}>{JOURNEY_COPY.none}</Text>
-          <GhostButton label={JOURNEY_COPY.choose} color={paper.ink} onPress={() => nav.navigate('Missions')} />
+          <IconAction layout="inline" icon="map" label={JOURNEY_COPY.choose}  onPress={() => nav.navigate('Missions')} />
         </View>
       )}
 

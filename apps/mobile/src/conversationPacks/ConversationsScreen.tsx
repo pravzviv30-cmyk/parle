@@ -35,7 +35,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type ReviewCard } from '@luvani/core';
 
-import { Card, GhostButton, Label, Ledger, LedgerRow, OutlineButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, OutlineButton } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { accent, paper, space, type } from '../theme.ts';
@@ -272,7 +272,7 @@ export function ConversationsScreen({
       <Text style={st.purpose}>{CONVERSATIONS_PURPOSE}</Text>
       {visibleArchive !== null && <Text accessibilityLiveRegion="polite" style={st.purpose}>{pageNote}</Text>}
       {visibleUnavailable.length>0 && <Text accessibilityLiveRegion="polite" style={st.purpose}>Some saved conversations are too large for this page. Open the conversation library to inspect them. Counts and filters include the available conversations only.</Text>}
-      {adapter.kind === 'supabase' && <GhostButton label="Saved conversation text" onPress={() => nav.navigate('SavedConversationText')} />}
+      {adapter.kind === 'supabase' && <IconAction layout="inline" icon="document" label="Saved conversation text" onPress={() => nav.navigate('SavedConversationText')} />}
 
       {(visibleArchive === null || remotePending && visiblePacks.length === 0) && !visibleUnread && (
         <View style={st.block}>
@@ -309,7 +309,7 @@ export function ConversationsScreen({
 
       <View style={st.block}>
         {older !== undefined && <OutlineButton label="Older conversations" disabled={remotePending} onPress={older} />}
-        {newest !== undefined && <GhostButton label="Newest conversations" disabled={remotePending} onPress={newest} />}
+        {newest !== undefined && <IconAction layout="inline" icon="sort" label="Newest conversations" disabled={remotePending} onPress={newest} />}
         {retryPage !== undefined && <OutlineButton label="Retry loading conversations" onPress={retryPage} />}
       </View>
 

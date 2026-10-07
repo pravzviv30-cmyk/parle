@@ -118,14 +118,19 @@ describe('the flexible speaking target, chosen where it is read — F368', () =>
     //    of the screen: the choice is on the card, it writes through the store's
     //    door, and the sheet it replaced is gone rather than orphaned.
     const tab = stripComments(read('../tabs/ProfileTab.tsx'));
-    assert.match(tab, /<ChoiceRow/, 'the goal is not a choice on the row, so nothing on the card can be chosen in place');
+    // 2026-10-07, come alive Phase 4 (F769, founder decision D5): the goal is
+    // five choices on the card (No goal, Casual, Regular, Serious, Intense,
+    // `game/profileStatsView.ts`), so Intense has a choice of its own. Each
+    // still writes through the store's one door, the chosen one is marked from
+    // what is stored, and what it means is still written under them.
+    assert.match(tab, /GOAL_CHOICES\.map\(\(choice\) => \(\s*<Choice/, 'the goal is not a choice on the card, so nothing on the card can be chosen in place');
     assert.match(
       tab,
-      /update\(withDailyGoal\(profile, goalFor\(key\)\.minutes\)\)/,
+      /update\(withDailyGoal\(profile, choice\.minutes\)\)/,
       'the row changes what is on screen without writing it down',
     );
-    assert.match(tab, /active=\{goalKeyOf\(profile\)\}/, 'the control does not mark what is already set');
-    assert.match(tab, /gloss=\{goalLine\(profile\)\}/, 'the segments stand alone, so three words hide every difference between them');
+    assert.match(tab, /selected=\{goalChoiceOf\(dailyGoalOf\(profile\)\) === choice\.key\}/, 'the control does not mark what is already set');
+    assert.match(tab, /\{goalLine\(profile\)\}/, 'the choices stand alone, so their words hide what the chosen one means');
     assert.match(tab, /DAILY_GOAL_ROW/, 'the screen spells the row name itself instead of importing the one name');
     assert.ok(!tab.includes("'goal'"), 'the goal sheet is still in the screen, so there are two ways to answer one question');
     assert.ok(!tab.includes('How much time each day'), 'the sheet went and its headline stayed behind');

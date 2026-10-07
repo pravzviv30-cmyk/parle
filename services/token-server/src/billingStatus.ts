@@ -28,7 +28,12 @@ export interface BillingStatus {
   plan: Plan;
   /** Seconds left in the period. A fact, never a countdown: the app says it in words. */
   secondsRemaining: number;
-  /** The instant the current period ends, or null for the non-renewing trial. */
+  /**
+   * The instant the current allowance period ends, when the minutes start
+   * fresh, or null for the non-renewing trial. For a yearly product that is
+   * the current 30-day window, not the paid year (F733); the wire meaning is
+   * unchanged, because every caller reads it as when the minutes come back.
+   */
   periodEnd: string | null;
   /** The exhausted trial that stands where a paid period used to. */
   lapsed: boolean;
@@ -56,7 +61,7 @@ export function billingStatusFor(entitlement: Entitlement): BillingStatus {
   return {
     plan: entitlement.plan,
     secondsRemaining: secondsRemaining(entitlement),
-    periodEnd: periodEndOf(entitlement.periodEnd),
+    periodEnd: periodEndOf(entitlement.windowEnd ?? entitlement.periodEnd),
     lapsed: entitlement.lapsed === true,
     canStart: decision.allowed,
     reason: decision.allowed ? null : decision.reason,

@@ -21,16 +21,19 @@ import { WALK_AVAILABLE } from '../walk/observer.ts';
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { missionStates, type MissionProgress } from '@luvani/core';
 import { memoryPaused } from '@luvani/brain/profile';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { ownedReadStatus } from './ownedRead.ts';
 
-import { Card, GhostButton, Label, Ledger, LedgerRow, TutorCard, SceneMark, Press } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, TutorCard, SceneMark, Press } from '../components.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -99,18 +102,29 @@ export function TutorTab() {
   // tab takes the sound with it, because a bottom tab is never unmounted.
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
+  useVoiceHold(status.playing);
   const [playing, setPlaying] = useState(false);
+  // Every tap spends the ticket, so a stop or a blur during the mode change wins.
+  const hearTicket = useRef(0);
+  const focusedNow = useRef(focused);
+  focusedNow.current = focused;
   useEffect(() => { if (status.didJustFinish) setPlaying(false); }, [status.didJustFinish]);
   useEffect(() => { if (!focused) { player.pause(); setPlaying(false); } }, [focused, player]);
   const hear = () => {
+    const ticket = ++hearTicket.current;
     if (playing) {
       player.pause();
       setPlaying(false);
       return;
     }
-    player.replace(voiceSample(voiceKey));
-    player.play();
     setPlaying(true);
+    // A full voice mode first, so the sample is heard with the silent switch on (F723). The web has
+    // no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
+    startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
+      if (ticket !== hearTicket.current || !focusedNow.current) return;
+      player.replace(voiceSample(voiceKey));
+      player.play();
+    }, Platform.OS === 'web');
   };
 
   useFocusEffect(
@@ -211,7 +225,7 @@ export function TutorTab() {
     nav.navigate(way.screen);
   };
 
-  const primary = <GhostButton
+  const primary = <IconAction layout="inline" icon="refresh" busy={checking}
     label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
     disabled={checking} onPress={() => open(heldBack?.textMode ?? modes.textMode, heldBack ? pendingStart.current : next.params)} />;
 
@@ -219,7 +233,7 @@ export function TutorTab() {
     <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
     <Card style={st.offline}>
       <Text style={[type.body, { color: paper.ink }]}>{renderHistoryStatus === 'loading' ? 'Finding your next conversation.' : 'Your conversation history could not be read just now.'}</Text>
-      {renderHistoryStatus === 'unread' && <GhostButton label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
+      {renderHistoryStatus === 'unread' && <IconAction layout="inline" icon="refresh" label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
       <LocalPracticeCard />
     </Card>
   </ScrollScreen>;
@@ -258,7 +272,7 @@ export function TutorTab() {
       <View style={st.start}><NextTaskCard /></View>
 
 
-      {WALK_AVAILABLE && <GhostButton label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
+      {WALK_AVAILABLE && <IconAction layout="inline" icon="headphones" label="Try Walk mode" disabled={checking} onPress={() => open(false, { ...nextConversation(progress, null, false).params, walkMode: true })} />}
 
       {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
 
@@ -302,7 +316,7 @@ export function TutorTab() {
       )}
 
       <View style={st.quiet}>
-        <GhostButton label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
+        <IconAction layout="inline" icon="info" label="How your AI tutor works" onPress={() => nav.navigate('TutorIntro')} />
         <Text style={st.notice}>{MICROPHONE_NOTICE}</Text>
       </View>
     </ScrollScreen>

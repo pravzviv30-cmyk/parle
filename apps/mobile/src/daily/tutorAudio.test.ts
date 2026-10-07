@@ -118,10 +118,10 @@ test('daily playback is local, gated by coverage and cancelled when the selected
     assert.match(source, /ownsDailyPlayback\(player\)/);
   }
   const card = read('DailyCard.tsx'), practice = read('DailyPracticeScreen.tsx');
-  assert.match(card, /asset != null && <GhostButton label="Hear"/);
-  assert.match(card, /asset != null && <GhostButton label="Slow replay"/);
+  assert.match(card, /asset != null && <IconAction layout="inline" icon="speaker" label="Hear"/);
+  assert.match(card, /asset != null && <IconAction layout="inline" icon="speaker-slow" label="Slow replay"/);
   assert.match(card, /\[focused, player, item.id, tutorVoice\]/);
-  assert.match(practice, /modelAsset != null && <GhostButton label="Hear model"/);
+  assert.match(practice, /modelAsset != null && <IconAction layout="tile" icon="speaker" label="Hear model"/);
   for (const state of ['Record my take', 'Hear my take', 'Try again', 'Finish practice']) {
     assert.ok(practice.includes(state), `local comparison lost its ${state} state`);
   }

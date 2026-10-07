@@ -185,13 +185,13 @@ describe('the daily reminder on Settings', () => {
     assert.match(TAB, /const reminderUnread = unreadReminderOwner\?\.scope === currentReminderScope && unreadReminderOwner\.userId === currentReminderUser && unreadReminderOwner\.userId === activeUserId\(\)/);
     assert.match(TAB, /const row = notifications === null \|\| !reminderOwned \? null : reminderRow\(stored, notifications\)/, 'the switch can show Off before the owned read succeeds');
     assert.match(REMINDER_CARD, /reminderUnknown && <View[\s\S]*?Reminder status could not be read\. Try again before changing it\./, 'an unread choice has no visible explanation');
-    assert.match(REMINDER_CARD, /reminderUnread && <GhostButton label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
+    assert.match(REMINDER_CARD, /reminderUnread && <IconAction layout="inline" icon="refresh" label="Retry reminder status" onPress=\{\(\) => setReminderAttempt\(value => value \+ 1\)\}/, 'an unread choice has no retry');
     assert.match(TAB, /\}, \[user, reminderAttempt\]\)/, 'Retry cannot reread the owned value');
     for (const name of HANDLERS) {
       const body = bodyOf(TAB, name);
       assert.match(body, /if \(row === null[^\n]*!ownsReminderNow\(\)\) return;/, `${name} accepts a tap from an unknown or former owner`);
       assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'saveReminder(wanted)'), `${name} can write after a scope change during the permission read`);
-      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'scheduleReminder(wanted.time, wanted.days)'), `${name} can schedule after a scope change`);
+      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'replanReminders({ choice: wanted })'), `${name} can schedule after a scope change`);
     }
     assert.match(TAB, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\}/, 'a former owner can expose the selected reminder time');
   });
@@ -300,10 +300,15 @@ describe('the daily reminder on Settings', () => {
         `${name} moves the row before it knows the write landed`,
       );
       assert.ok(
-        writtenBefore(body, "ack === 'failed'", 'scheduleReminder('),
+        writtenBefore(body, "ack === 'failed'", 'replanReminders('),
         `${name} schedules a notification the app may not remember asking for`,
       );
-      assert.ok(body.includes('cancelReminder()'), `${name} can turn the row off without stopping the notification`);
+      // Off goes to the planner too (Come alive Phase 4 review), which takes
+      // the plan back on its one chain; plan.test.ts runs that take-back.
+      assert.ok(
+        body.includes('const outcome = await replanReminders({ choice: wanted });') && !body.includes('honest.on ? await replanReminders'),
+        `${name} can turn the row off without stopping the notification`,
+      );
     }
 
     // The OS is reached only through the platform pair F230 owns.
@@ -403,7 +408,7 @@ describe('the daily reminder on Settings', () => {
  * F239. The second, narrower route to the same dead switch.
  *
  * F231 made the row honest about permission and honest about the disk. It left
- * one gap: `saveReminder` can answer `durable` and `scheduleReminder` can then
+ * one gap: `saveReminder` can answer `durable` and the plan (`replanReminders`, which replaced `scheduleReminder`) can then
  * answer `failed`, and the row would sit on over a notification the OS never
  * accepted. Nobody could see it, because unlike permission there is no way to
  * ask the phone later whether a reminder exists — `reminderRow` takes a stored
@@ -430,11 +435,11 @@ describe('a schedule the phone would not take', () => {
       // the sign flipped: the row would say Off while the notification kept
       // arriving daily, from the one control the learner would use to stop it.
       assert.ok(
-        body.includes('honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder()'),
+        body.includes('const outcome = await replanReminders({ choice: wanted });'),
         `${name} does not read what the OS answered`,
       );
       assert.ok(
-        writtenBefore(body, 'scheduleReminder(', "outcome === 'failed'"),
+        writtenBefore(body, 'replanReminders(', "outcome === 'failed'"),
         `${name} checks an outcome it has not asked for yet`,
       );
       assert.ok(
@@ -510,7 +515,7 @@ describe('a schedule the phone would not take', () => {
 
     // And it is not a judgement call: on the only half that answers
     // `unavailable`, the row can never be on in the first place, so
-    // `scheduleReminder` is unreachable from it. Executed rather than read.
+    // `replanReminders` is unreachable from it. Executed rather than read.
     assert.equal(REMINDERS_AVAILABLE, false, 'the half under test is not the one with no scheduler');
     assert.equal(reminderRow({ enabled: true, time: 'morning' }, 'denied').on, false);
     assert.ok(TAB.includes('REMINDERS_AVAILABLE && row !== null'), 'the group is drawn on a build that cannot schedule anything');
@@ -518,7 +523,7 @@ describe('a schedule the phone would not take', () => {
 
   test('that check bites when the row moves over a schedule that was refused', () => {
     // The defect itself: the OS is asked, its answer is dropped, the row moves.
-    const dropped = "{ const outcome = await scheduleReminder(wanted.time, wanted.days); setStored(wanted); }";
+    const dropped = "{ const outcome = await replanReminders({ choice: wanted }); setStored(wanted); }";
     assert.equal(
       writtenBefore(dropped, "outcome === 'failed'", 'setStored(wanted)'),
       false,
@@ -547,7 +552,7 @@ describe('a schedule the phone would not take', () => {
 
     // And the shape the screen actually ships passes each of them.
     const shipped =
-      "{ const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();" +
+      "{ const outcome = await replanReminders({ choice: wanted });" +
       " if (outcome === 'failed') { await saveReminder(reverted); setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); return; }" +
       ' setStored(wanted); }';
     assert.equal(writtenBefore(shipped, "outcome === 'failed'", 'setStored(wanted)'), true);

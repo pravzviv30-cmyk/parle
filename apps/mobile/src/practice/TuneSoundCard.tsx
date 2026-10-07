@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, GhostButton, Label } from '../components.tsx';
+import { IconAction, IconButton, Card, GhostButton, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { MouthGuide } from './MouthGuide.tsx';
 import { SOUND_LEAD, type SoundLead } from './soundLead.ts';
@@ -36,23 +36,23 @@ export function TuneSoundCard({
       {measured !== null && (
         <View style={st.group}>
           <Text style={st.fact}>{measured.line}</Text>
-          <GhostButton label={SOUND_LEAD.check} color={paper.ink} onPress={() => onCheck(measured.missionId)} />
+          <IconAction layout="inline" icon="microphone" label={SOUND_LEAD.check}  onPress={() => onCheck(measured.missionId)} />
         </View>
       )}
       {native !== null && (
         <View style={st.group}>
           <Text style={st.line}>{native.fr}</Text>
           <Text style={st.quiet}>{native.label}</Text>
-          <GhostButton
+          <IconButton icon="speaker"
             label={playing === native.asset ? SOUND_LEAD.stop : SOUND_LEAD.hear}
-            color={paper.ink}
+
             accessibilityLabel={playing === native.asset ? SOUND_LEAD.stop : `Hear ${native.fr}. ${native.label}`}
             onPress={() => onHear(native.asset)}
           />
         </View>
       )}
       {native === null && <Text style={st.quiet}>{SOUND_LEAD.noAudio}</Text>}
-      <GhostButton label={details ? 'Hide sound guide' : 'See sound guide and symbol'} color={paper.ink} onPress={() => setDetails(value => !value)} />
+      <IconAction layout="inline" icon="chevron-down" label={details ? 'Hide sound guide' : 'See sound guide and symbol'}  onPress={() => setDetails(value => !value)} />
       {details && <View style={st.group}>
         <Text style={st.quiet}>Sound symbol: /{lead.ipa}/</Text>
         <MouthGuide ipa={lead.ipa} />

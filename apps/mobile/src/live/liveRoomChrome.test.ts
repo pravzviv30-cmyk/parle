@@ -8,10 +8,22 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { TIMELINES, beatEffects, stillEffects } from '../celebrate/timelines.ts';
+import { RECAP_AUDIO_WAIT_MS, momentMayStart } from '../recap/moment.ts';
+import { holdLive, holdMic, liveRoom, micLive, voiceBusy } from '../sound/audioFocus.ts';
+import { sfxRefusal } from '../sound/sfxGate.ts';
+import { recapMayTakeTheAudio } from './recapAudio.ts';
+
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+
+/** Comments may say anything; only what runs is under test. */
+function stripComments(source: string): string {
+  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
 const convo = read('../ConvoScreen.tsx');
 const lesson = read('../SessionView.tsx');
 const liveLesson = read('../LiveSessionScreen.tsx');
@@ -62,5 +74,82 @@ describe('quiet live-room chrome', () => {
     }
     assert.match(convo, /status=\{[\s\S]{0,220}accessibilityLiveRegion="polite"/, 'conversation status is no longer announced');
     assert.match(lesson, /status=\{[\s\S]{0,220}accessibilityLiveRegion="polite"/, 'lesson status is no longer announced');
+  });
+});
+
+/**
+ * Come alive, decision D8 and F765: the room's new moments (a goal ticking, the
+ * orb rippling, the scene's card) move, and none of them is heard or felt. A
+ * live room holds the learner's ears from the moment it takes the audio
+ * session; the microphone holds them while it records; and the recap, the one
+ * moment in a conversation meant to be heard, waits until the microphone is
+ * closed and the tutor has finished speaking.
+ */
+describe('a live room is silent and still to the touch — F765', () => {
+  /** Everything else allows a sound: approved, switched on, in the foreground, not suppressed. */
+  const conditions = () => ({
+    approved: true,
+    soundOn: true,
+    micLive: micLive(),
+    voiceBusy: voiceBusy(),
+    liveRoom: liveRoom(),
+    appActive: true,
+    suppressed: false,
+  });
+
+  test('the room plays no sound while the mic is live or the tutor speaks', () => {
+    // 1. The seam refuses. A room holds the audio focus from the moment it
+    //    takes the session; a recorder holds it while the microphone is open.
+    assert.equal(sfxRefusal(conditions()), null, 'the test starts with something already holding the audio');
+    const releaseRoom = holdLive();
+    const releaseMic = holdMic();
+    try {
+      assert.equal(sfxRefusal(conditions()), 'microphone', 'a sound effect plays into the open microphone');
+      releaseMic();
+      assert.equal(sfxRefusal(conditions()), 'live-room', 'a sound effect plays in the live room while the tutor may be speaking');
+      // Every beat of the recap's moment and of the stamp is silent and unfelt
+      // while the room or the microphone holds the learner's ears.
+      for (const id of ['recap-result', 'postcard-first', 'postcard-again'] as const) {
+        for (const focus of [{ micLive: true, liveRoom: false }, { micLive: false, liveRoom: true }]) {
+          for (const beat of TIMELINES[id].beats) {
+            assert.deepEqual(beatEffects(beat, focus), { sound: null, haptic: null }, `${id} ${beat.element} plays into the room`);
+          }
+          assert.deepEqual(stillEffects(TIMELINES[id], focus), { sound: null, haptic: null }, `${id} shown still plays into the room`);
+        }
+      }
+    } finally {
+      releaseMic();
+      releaseRoom();
+    }
+    assert.equal(sfxRefusal(conditions()), null, 'a hold outlived its release');
+
+    // 2. The room gives the learner's ears back only after the session ends,
+    //    the microphone is confirmed closed and the tutor has stopped speaking,
+    //    and never after a stop (F763). The recap's moment waits for that.
+    const ended = { recapArrived: true, micClosed: true, tutorSpeaking: false, stopped: false };
+    assert.equal(recapMayTakeTheAudio(ended), true);
+    assert.equal(recapMayTakeTheAudio({ ...ended, micClosed: false }), false, 'the recap took the audio with the microphone still open');
+    assert.equal(recapMayTakeTheAudio({ ...ended, tutorSpeaking: true }), false, 'the recap took the audio while the tutor was speaking');
+    assert.equal(recapMayTakeTheAudio({ ...ended, stopped: true }), false, 'a stopped session got its moment');
+    assert.equal(momentMayStart({ answered: true, audioFree: false, waitedOut: false }), false, 'the recap\'s moment started with the room still holding the audio');
+    assert.equal(momentMayStart({ answered: true, audioFree: true, waitedOut: false }), true);
+    assert.equal(momentMayStart({ answered: true, audioFree: false, waitedOut: true }), true, 'the recap waits for ever on a room that never lets go');
+    assert.ok(RECAP_AUDIO_WAIT_MS > 0 && RECAP_AUDIO_WAIT_MS <= 2600, 'the recap waits longer than a celebration may last');
+    const moment = stripComments(read('../recap/useRecapMoment.ts'));
+    assert.match(moment, /useSyncExternalStore\(subscribe, anyHold, anyHold\)/, 'the recap\'s moment does not watch who holds the audio');
+    assert.match(moment, /onCue: first \? fireBeat : noop/, 'the recap\'s beats reach the device around the effects module, which asks the focus again');
+
+    // 3. Nothing the room draws reaches a sound or a haptic of its own: the
+    //    goal ticks, the scene's card, the orb and its layers, and the screen.
+    const ROOM = ['../ConvoScreen.tsx', '../tutor/MissionWin.tsx', '../tutor/MissionTaskList.tsx', '../tutor/useTaskTicks.ts', '../tutor/VoiceOrb.tsx', '../tutor/Transcript.tsx'];
+    const layers = readdirSync(fileURLToPath(new URL('../tutor/', import.meta.url)))
+      .filter((name) => /^(?:Orb|LiveBars)[^/]*\.tsx?$/.test(name))
+      .map((name) => `../tutor/${name}`);
+    assert.ok(layers.length >= 5, `only ${layers.length} orb layers were found, so this reads almost nothing`);
+    for (const file of [...ROOM, ...layers]) {
+      const body = stripComments(read(file));
+      assert.doesNotMatch(body, /from '[./]*(?:sound\/sfx|motion\/haptics|celebrate\/effects)[^']*'/, `${file} reaches a sound or a haptic from inside the room`);
+      assert.doesNotMatch(body, /\b(?:tapSettled|arrived|celebrate|fireBeat|fireStill)\(/, `${file} plays a sound or a haptic in the room`);
+    }
   });
 });

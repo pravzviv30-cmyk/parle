@@ -12,15 +12,26 @@
  * A target can help somebody choose a size without turning their return into a
  * promise they can break.
  *
- * No digits anywhere. The store holds 5, 10 and 15 because minutes are a
- * number; the learner reads Five, Ten and Fifteen, because a settings label
- * that counts is a settings label that shouts.
+ * No digits anywhere. The store holds 5, 10, 15 and, since profile v9, 20
+ * because minutes are a number; the learner reads Five, Ten, Fifteen and
+ * Twenty, because a settings label that counts is a settings label that shouts.
+ *
+ * Twenty has no segment on this row yet (the goal setup that offers it is
+ * built on top of this), so a profile holding it reads as twenty minutes, marks
+ * no segment, and is never mistaken for "no target" (F730).
  */
 
 import type { StoredProfile } from './store.ts';
 
 /** The minute counts the store holds, which is the union `StoredProfile` names. */
-export type GoalMinutes = 5 | 10 | 15;
+export type GoalMinutes = 5 | 10 | 15 | 20;
+
+/** Every goal the store can hold, as words, so a line about one never shows a digit. */
+const GOAL_WORDS: Readonly<Record<GoalMinutes, string>> = { 5: 'Five', 10: 'Ten', 15: 'Fifteen', 20: 'Twenty' };
+
+function isGoalMinutes(value: unknown): value is GoalMinutes {
+  return value === 5 || value === 10 || value === 15 || value === 20;
+}
 
 /** What a segment is keyed by. A word, so nothing on this row is a numeral. */
 export type GoalKey = 'five' | 'ten' | 'fifteen' | 'none';
@@ -69,13 +80,16 @@ export const DAILY_GOAL_UNSET = 'No fixed daily target. Local practice is free; 
  */
 export function dailyGoalOf(profile: StoredProfile | null | undefined): GoalMinutes | null {
   const stored: unknown = profile?.dailyGoalMin;
-  return GOALS.some((g) => g.minutes === stored) ? (stored as GoalMinutes) : null;
+  return isGoalMinutes(stored) ? stored : null;
 }
 
-/** The chosen segment, or null when the control stands with nothing chosen. */
+/**
+ * The chosen segment, or null when the control stands with nothing chosen:
+ * a goal this row has no segment for is a real goal, not "No target".
+ */
 export function goalKeyOf(profile: StoredProfile | null | undefined): GoalKey | null {
   const minutes = dailyGoalOf(profile);
-  return minutes === null ? 'none' : (GOALS.find((g) => g.minutes === minutes)?.key ?? 'none');
+  return minutes === null ? 'none' : (GOALS.find((g) => g.minutes === minutes)?.key ?? null);
 }
 
 /** The option behind a segment key. */
@@ -91,8 +105,7 @@ export function goalFor(key: GoalKey): GoalOption {
  * the no-digits rule the rest of the settings card keeps.
  */
 export function goalLine(profile: StoredProfile | null | undefined): string {
-  const key = goalKeyOf(profile);
-  if (key === null || key === 'none') return DAILY_GOAL_UNSET;
-  const option = goalFor(key);
-  return `${option.label} minutes as a flexible routine. Local practice is free; connected tutor time uses live minutes.`;
+  const minutes = dailyGoalOf(profile);
+  if (minutes === null) return DAILY_GOAL_UNSET;
+  return `${GOAL_WORDS[minutes]} minutes as a flexible routine. Local practice is free; connected tutor time uses live minutes.`;
 }

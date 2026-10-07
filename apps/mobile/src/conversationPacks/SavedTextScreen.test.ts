@@ -7,7 +7,7 @@ const screen = readFileSync(new URL('./SavedTextScreen.tsx', import.meta.url), '
 test('saved text keeps read failures distinct from an empty opt-in list', () => {
   assert.match(screen, /rows === null \? <Text[^>]+>\{message \? 'The saved text could not be loaded\.' : 'Loading saved text…'\}/);
   assert.match(screen, /rows\.length === 0 \? <Text[^>]+>No conversation text saved\./);
-  assert.match(screen, /rows === null && message \? <GhostButton label="Try again"/);
+  assert.match(screen, /rows === null && message !== '' && <IconAction layout="inline" icon="refresh" label="Try again"/);
   assert.match(screen, /scope !== scopeGeneration\(\) \|\| user\?\.id !== ownerId/);
 });
 

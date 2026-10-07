@@ -18,6 +18,7 @@ import { starterTasks, type StarterTask, PLANS, SCENE_SPINE, getMission, type Mi
 
 import { DEFAULT_REMINDER_TIME, reminderTime, type ReminderTimeId } from '../reminders/reminder.ts';
 import type { PlanMinutes, PreAccountOnboardingDraft, Reason, StartLevel } from './preAccountDraft.ts';
+import { starterMinutes } from './guestProgress.ts';
 
 export interface AnswerOption<K extends string | number> {
   key: K;
@@ -25,9 +26,13 @@ export interface AnswerOption<K extends string | number> {
   gloss?: string;
 }
 
-/** Where are you starting? One tap; zero is the default. */
+/**
+ * Where are you starting? One tap; zero is the default. There is no "I'm not
+ * sure" any more (come alive, first run): the first row says it covers that,
+ * which is true, because a learner who is unsure gets the most help there.
+ */
 export const START_LEVELS: readonly (AnswerOption<StartLevel> & { gloss: string })[] = [
-  { key: 'zero', title: 'I haven’t started', gloss: '' },
+  { key: 'zero', title: 'I haven’t started', gloss: 'Also right if you are not sure.' },
   { key: 'few', title: 'Say hello and order a drink', gloss: '' },
   { key: 'getby', title: 'Have a short conversation', gloss: '' },
 ];
@@ -41,7 +46,7 @@ export const REASONS: readonly AnswerOption<Reason>[] = [
   { key: 'family', title: 'Talking with friends or family' },
   { key: 'moving', title: 'Everyday life after a move' },
   { key: 'work', title: 'Simple conversations at work' },
-  { key: 'because', title: 'I’m exploring' },
+  { key: 'because', title: 'Just exploring' },
 ];
 
 /**
@@ -199,7 +204,7 @@ export function planFor(draft: PreAccountOnboardingDraft): PlanView {
   const time = reminderOf(draft);
   return {
     scenes,
-    starter: starterTasks(draft.reason, draft.drink ?? 'coffee', minutesOf(draft))[0]!,
+    starter: starterTasks(draft.reason, draft.drink ?? 'coffee', starterMinutes(minutesOf(draft)))[0]!,
     minutes: minutesOf(draft),
     goal: draft.reason === null ? null : SEEDED_GOAL[draft.reason],
     startingReason: startingReasonFor(levelOf(draft)),

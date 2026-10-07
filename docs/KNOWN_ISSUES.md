@@ -3608,7 +3608,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: fixed daily copy, preset times, the explain-before-ask sentence and the refused-permission
   line, as pure constants and functions with no expo import, on the disclosure.ts discipline. The
   content builder takes no arguments so it cannot vary with practice.
-- verified-by: `the reminder says the same words every day and none of them guilt anyone`
+- note 2026-10-07, ca/p4-reminders: superseded by F771. Founder decision D2 (2026-10-04) reversed the old rule: the reminder now names the chosen tutor, states only the learner's own counts and varies by day, so the fixed-words title is retired and its verified-by points at F771's successor, which holds every line to guiltIn, streakGuiltIn and no dash.
+- verified-by: `a reminder names the chosen tutor and opens the place it promises`
 
 ### F227 — Nothing under reminders/ can see whether the learner practised
 - severity: P1
@@ -3618,7 +3619,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reminders/ imports from progress/, missions/, review/ or the history store, so a practice-aware
   reminder cannot be built without going red. A notification cancelled because you practised is a
   streak with the guilt hidden in the scheduler.
-- verified-by: `nothing under reminders can read whether the learner practised`
+- note 2026-10-07, ca/p4-reminders: superseded by F771. Founder decision D2 (2026-10-04) reversed the old rule: a reminder is skipped on a day already practised, so the planner reads practice; only reminders/ReminderPlanner.tsx (and its today's-phrase helper) may, through game/ and the guest record, and reminder.test.ts still bans the progress stores everywhere under reminders/.
+- verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
 
 ### F228 — The reminder's chosen time lives under the account scope
 - severity: P1
@@ -3644,7 +3646,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the saveFile.ts pattern: schedule.native.ts is the sole expo-notifications importer with a
   daily repeating trigger, schedule.ts is the web no-op, and no test loads the native half, which
   is what makes the dependency separable from the code.
-- verified-by: `only the native schedule module touches expo-notifications and its trigger repeats unchanged`
+- note 2026-10-07, ca/p4-reminders: superseded by F771. Founder decision D2 (2026-10-04) reversed the old rule: a repeating trigger cannot skip a practised day, so schedule.native.ts (still the sole expo-notifications importer) now schedules one dated slot per day from the plan and cancels only its own by identifier; F771's successor reads that file.
+- verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
 
 ### F231 — The Profile row explains the ask first and a refusal leaves no dead switch
 - severity: P1
@@ -3774,7 +3777,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F241 — The no-guilt boundary is guarded in one direction only
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/reminders/schedule.ts:1
 - note: F227 stops anything under `reminders/` importing `progress/`, `missions/`, `review/`,
   `practice/` or the history store, so the reminder cannot learn whether the learner practised.
@@ -3788,6 +3791,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   for F237 says "files 6b never touched", which F229's exclusion row in `sync/policy.ts` makes
   slightly untrue; the operative fact, that the NUL bytes are not 6b's, holds and is worded
   correctly in the roadmap.
+- note 2026-10-07, ca/p4-reminders (review repair on ca/p4-reminders-r1): closed by the planner (F771). Skipping a practised day is now the design (founder decision D2) and lives in one place: a practice settles through game/settle.ts and the planner re-plans from onSettled, so no practice surface imports the reminder. The named test, in reminder.test.ts, holds that only the Settings reminder row (Profile's until F576) writes `enabled: false` over a choice that was on; the planner's other writes are a yes from the ask, the pause once its note has gone out (D2's Paused state, which Settings shows and turns back on, not off), and after the OS refuses a yes, a put-back of exactly the choice that was there before. It also names every module that may cancel pending reminders (the row's off now goes through the planner) and scans the practice surfaces for any reminder import.
 - verified-by: `only the profile row can turn the reminder off`
 ### F242 — The first voice session on a phone refuses a working microphone
 - severity: P1
@@ -4721,7 +4725,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F302 — A ticked ledger entry can name a describe block and still count as verified
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:222
 - note: found by the work-judge while checking this repo's own tick discipline, which makes it the
   most interesting entry in the batch: it is a hole in the mechanism the whole ledger rests on.
@@ -7038,7 +7042,6 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
      `tutorNameOf(profile)` again inline. Three call sites is three chances to drift.
   7. `ConvoScreen.tsx:107` has a second import block sitting after executable code. Legal,
      and it hides sixteen imports from anyone reading the header.
-- verified-by: `the live surfaces sit inside the one frame, F444`
 - update 2026-10-03: title clipping was already removed in B. Remaining source fixes use a single backward history walk, committed opening time, a fixed recap deadline invoking the latest committed leave callback, one tutor name and a consolidated import header. Only the latest typed tutor row has Android live-region updates; iOS announces that one row once per ID. Native screen-reader behavior still requires device QA.
 - verified-by: `conversation opening and recap timeout use committed state without resetting the deadline`
 - verified-by: `the conversation announces only its newest typed tutor reply`
@@ -8206,7 +8209,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the order is the offer, whatever order the store answered in`
 - verified-by: `a store selling one tier draws one card, not a gap and not a decoy`
 - verified-by: `the subscription terms are on the surface that sells it`
-- verified-by: `a chosen plan says so to a screen reader`
+- verified-by: `a chosen way to pay says it is checked on a device and on the web`
 - verified-by: `every root screen the navigator can push has a path it can be read back from`
 
 ### F520 — The wall led with what a learner could already do, even when the gap was what they came back for
@@ -8553,12 +8556,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F566 — A purchase from a refused conversation returns the learner to the Tutor tab rather than the conversation
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/live/afterPurchase.ts:1
 - note: after the other session's Phase 1 lands. The wall's Done goes to the Tutor tab, and the brief
   asks that a purchase return the learner to the conversation that was refused. The route carries
   what to resume, a pure rule decides where Done goes from the purchase outcome, and the refused
-  screen reconnects when its retry param changes.
+  session unmounts before a fresh route starts with its original context. Cancelled, stale-account and unconfirmed outcomes never resume.
 - verified-by: `a purchase that granted minutes returns to the conversation that was refused, and nothing else does`
 
 ### F567 — Restore has no funnel event, and a return from the wall is invisible
@@ -9149,9 +9152,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F631 — Home's touch-floor walk reads only Pressable tags, so it goes blind when rows move onto Press
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.test.ts:466
 - note: found by the Stage 2 pass A judge; not a defect of revamp B stage 2. The F409 loop checks that every tappable row under home/ declares minHeight: HIT, but it walks only `tags(body, 'Pressable')`. Stage 3 moves Home onto the B parts, which press through `Press`. A `<Press style={st.row}>` with no floor would then pass unseen. Walk `tags(body, 'Press')` as well; `<Press\b` does not match `<Pressable`.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). HomeTab.test.ts walks `tags(body, 'Press')` beside the Pressable walk over every file under home/ and the two game cards Home draws (game/TodayHero.tsx, game/QuestsCard.tsx), proving first on synthetic rows that a Press with no floor is caught and a Pressable is not read as a Press. The title failed without the change (it did not exist).
 - verified-by: `every tappable row on Home declares the touch floor, whether it presses through Pressable or Press`
 
 ### F632 — Seven lines still send the learner to My French, which the tab bar now calls Progress
@@ -9239,7 +9243,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/WallYoursPage.tsx:68
 - note: found by the F602 judge. `Ledger` now draws one hairline between its rows (components.tsx), but `WallYoursPage.tsx` (`st.ruled`) and `myfrench/PhraseBank.tsx` still give each row its own bottom border, so inside the white card they show two rules between rows and a stray rule under the last. The Wall's Yours page is where Home's "See the plans" lands. Take the row's own border off so the list's rule is the only one: the Wall in F607, PhraseBank in F605 (or leave it if F605 stops drawing it).
 - verified-by: `a row inside the white list draws no rule of its own, so the list's hairline is the only one between rows`
@@ -9835,5 +9839,603 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: scripts/verifyDataBoundaries.mjs:158
 - note: Found 2026-10-06 while landing F793. The pre-push gate failed at line 158 with "Missing expected rejection" for /product event quota/, on a tree whose full gate had passed minutes before, for a change that touches no SQL. Nothing else differed between the two runs, and the mechanism explains it. admit_data_write_v1 (supabase/migrations/20261003230215_bounded_direct_data.sql) buckets every quota by calendar minute, date_trunc('minute', clock_timestamp()), and resets the counts when the bucket changes. The proof inserts sixty events in one statement and expects the next statement to be refused, so when the two land on either side of a minute boundary, or the bulk insert itself straddles one, the bucket resets and the sixty-first event is admitted. The learner checks above it assume the same thing: the count of 49 at line 136, and the 240-a-minute loop that expects the next write refused. The quota behaves as designed, as a fixed window; the proof's timing does not hold, and concurrent gates slowing PGlite widen the window. The fix is in the proof, for the owner of the migrations' proofs (data-sync-engineer): start each per-minute sequence at the top of a fresh minute, or check that the bucket did not change and run the sequence again if it did. Until then, a red run here on an unrelated change is worth one re-run, never --no-verify.
 - verified-by: `the data-boundary proof's per-minute quota checks cannot straddle a minute boundary`
+### F716 — A reply that only echoes the tutor's greeting and question is accepted
+- severity: P1
+- status: [x]
+- where: packages/core/src/onboarding.ts:298
+- note: Come alive (docs/come-alive). "Salut ! Ca Va" normalises to the prompt "Salut ! Ça va ?" and passes the family-hello check, so the first win praises a copied question and the raw spelling is saved as the learner's phrase. Reject a reply whose normalised form equals the prompt; "Ça va" alone stays a real answer. The token server imports core and must be redeployed.
+- note: 2026-10-05 ca/p0-copy: checkStarter compares the whole normalised reply to the normalised prompt before matching and answers an echo with "That repeats the question. Here is one way to answer: « model »"; the test failed on today's code with 'Salut ! Ça va ?' and 'Salut ! Ca Va', passes now, keeps 'Ça va' accepted, and checks no starter accepts its own prompt. Token server not yet redeployed.
+- verified-by: `a reply that only echoes the greeting and the question is not accepted`
+
+### F717 — Drill verdicts and lesson praise are French interface praise
+- severity: P2
+- status: [x]
+- where: packages/core/src/drill/session.ts:136, packages/core/src/session/session.ts:390
+- note: Founder decision D14 (warm, plain English at wins). "Nickel." and the lesson praise families become English; the first miss still shows no answer, by design.
+- note: 2026-10-05 ca/p0-copy: drill lines are 'Nicely done.', "Nearly. It's spelt «x».", 'This one comes round again.' and "Here's how it goes: «x»."; new ownWordsFeedback keys own-words copy and tone on the decision (good 'That works.', retry calm 'Have another go.', reveal calm). Lesson excellent and good families are English. Both tests failed before the change. Tutor agent not yet redeployed.
+- verified-by: `drill verdict lines are warm plain English with no score and no scold`
+- verified-by: `lesson praise families are plain English`
+
+### F718 — The copy rules refuse the founder's daily streak
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/copy/guilt.ts:33, PRODUCT.md:92
+- note: Founder decision D2 (2026-10-04) reverses the no-streak rule. Retire only the word "streak" from the shared ban, record the retirement, keep every shaming word, and add a stricter list for streak and reminder copy.
+- note: 2026-10-05 ca/p0-copy: 'streak' left BANNED_IN_COPY and is recorded in RETIRED_FROM_BAN (held to exactly one entry by the F216 test, which keeps the history in ONCE_BANNED); BANNED_IN_STREAK_COPY and streakGuiltIn added; PRODUCT.md streak and XP bullets rewritten with every F414 phrase kept. review/cardView.test.ts:568 (F220) still uses 'streak' as its matcher canary and needs a one-line swap outside this track.
+- verified-by: `streak copy states facts and never threatens`
+
+### F719 — Core has no streak, goal, quest or badge model
+- severity: P2
+- status: [x]
+- where: packages/core/src/streak, packages/core/src/goal, packages/core/src/quests, packages/core/src/badges
+- note: Pure, Node-tested logic for decisions D2 to D6: a practice day is the local date a sitting finishes; covers bridge a run and add nothing; freezes and repair only when entitled; quests deterministic per learner and day; badges awarded once.
+- note 2026-10-05: built on ca/p0-core (step C1). Covers are freeze, repair and travel; repair is a gap of at most 2 days restored by 2 finished practices on the two calendar days after the first uncovered day, entitlement checked at repair time; travel is entitled-only. Pure logic only: nothing in the app calls it yet (Phase 1 settle).
+- verified-by: `a covered day bridges the run but adds nothing to the count`
+- verified-by: `freezes and repair apply only to an entitled learner`
+- verified-by: `the same seed and day always pick the same three quests`
+- verified-by: `each badge awards at its threshold and never twice`
+- verified-by: `today's goal minutes count only measured active time`
+
+### F720 — XP is computed but nothing can display a level or the XP a sitting earned
+- severity: P2
+- status: [x]
+- where: packages/core/src/levels/levels.ts
+- note: Numbered display levels on a fixed curve, separate from the content-difficulty standing (levelFor stays as is), and the credited delta under the daily cap.
+- note 2026-10-05: built on ca/p0-core (step C1). xpLevelFor, levelThreshold, levelStep and xpCreditedFor added; totalXp takes a cap (default DAILY_XP_CAP 100, the one shown cap); levelFor, DAILY_XP_CAP and LEVEL_NAMES unchanged. No screen renders a level yet.
+- verified-by: `display levels rise on a fixed curve and never shrink a step`
+- verified-by: `credited XP respects the daily cap`
+
+### F721 — Motion has no shared engine, tokens or live reduced motion
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/motion.ts, apps/mobile/src/motion
+- note: Reanimated 4.5.1 enters through one driver that always passes the app's live reduced-motion answer, because Reanimated samples the system setting once at load.
+- note: 2026-10-05, ca/p0-motion: motion/tokens.ts, motion/drive.ts (the only with* caller, every call passes mode(reduced)), motion/ReduceMotionBridge.tsx mounted once in App.tsx, and Press on Reanimated with tile depth and the selected ring; motion.test.ts rewritten to directory allow-lists. All three tests pass and each failed under a mutation that removed what it checks.
+- verified-by: `nothing asks Reanimated for the system reduce-motion setting`
+- verified-by: `every file that moves reads reduced motion from motion.ts`
+- verified-by: `spring tokens match their response and damping derivations`
+
+### F722 — Haptics have no celebration vocabulary
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/motion/haptics.native.ts
+- note: tick, thump, celebrate and cancel, each respecting the haptic switch and silent while a microphone is open.
+- note: 2026-10-05, ca/p0-motion: tick (60 ms gate), thump, celebrate (success, medium at 140, light at 280) and cancelHaptics in haptics.native.ts with no-op twins; the timing lives in the pure motion/hapticBeats.ts, which re-asks hapticsEnabled() per beat. The test steps an injected clock and failed when the per-beat check or cancel was removed.
+- verified-by: `celebration haptics are cancellable beats that respect the haptic switch`
+
+### F723 — Partial audio modes can silence the tutor in silent mode
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/GuestRecording.tsx, apps/mobile/src/recap/PrivatePractice.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx
+- note: A partial setAudioModeAsync selects iOS .ambient, and four voice players plus TTS set no mode, so a later voice line can follow the silent switch. One audio-session module owns every mode change.
+- note: 2026-10-05 sound/audioSession.ts is the only importer of setAudioModeAsync and sets only the full VOICE, RECORD or SFX mode on one serialised chain; every voice player and the device voice enter voice playback first, pausing any sound effect. Both titles failed against the pre-change source. Not yet heard on a device with the silent switch on.
+- verified-by: `only the audio session module sets an audio mode`
+- verified-by: `every voice player enters voice playback before it plays`
+
+### F724 — Most recorders and the live room do not silence haptics
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/motion/hapticPreference.ts:9
+- note: 2026-10-05 all six recorders hold the microphone focus from before the recording mode until every exit, the LiveKit audio session holds the live focus, and hapticsEnabled is off under either. The title failed against the pre-change source.
+- verified-by: `every file that records holds the microphone focus`
+
+### F725 — There are no sound effects, and none may ship unheard
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/sound, scripts/sfx
+- note: Founder decisions D8 and D9: original synthesised sounds, on by default, obeying the silent switch, silent while a microphone, voice line or live room is open, and playable only once the founder has approved each by ear.
+- note: 2026-10-05 sound/sfxCore.ts gates every play on SFX_APPROVED, the Sound effects switch, the three focus holds, the foreground and a safety suppression, then throttles and asks the session again after the mode change. No screen plays a sound yet and every approval is still false.
+- verified-by: `an unapproved sound never plays`
+- verified-by: `every sound asset matches its approved synthesis`
+- verified-by: `sound effects stay silent while a microphone, voice line or live room is open`
+
+### F726 — The app has no shared icon set, so options repeat one glyph
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/ChoiceArt.tsx, apps/mobile/src/glyphs.tsx, scripts/icons
+- note: Founder decision D11: Iconsax free icons, licensed to the founder as an individual, generated into react-native-svg components at the one stroke. All needed names exist in iconsax 0.1.1 (eight under renamed ids such as arrow-left-01 and refresh-left), so the Phosphor fallback is not needed.
+- note 2026-10-06, ca/p0-icons (step D1): npm run icons generates 98 icons (93 Iconsax, 5 Luvani originals) into src/icons with the licence notice; Icon, IconPart, IconTile, GoalDial, places, AnimatedIcon and TabGlyph are in, every glyph export is a delegate, Acknowledgements credits Iconsax. Both titles failed under a mutation. Screens still draw ChoiceArt; the Choice and IconButton sweep is D2.
+- verified-by: `every generated icon is decorative, token-coloured and drawn at the one stroke`
+- verified-by: `the icon set credits its licence in Acknowledgements`
+
+### F727 — Underlined text links stand in for icon controls
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx
+- note 2026-10-06, ca/p0-controls (step D2): IconButton (six marks, label required, 44 or 56 from HIT, depth tile, off by ground), IconAction and IconActionRow (tile and inline, two to four, wrapping at font scale 1.6) and the one Choice (radio by default, brand or sun fill, Hear a separate IconButton) are appended to components.tsx; OptionRow is a thin wrapper over Choice, ChoiceCard re-exports it and ChoiceArt draws an IconTile. OptionCard keeps its own drawing because the F355 title pins its sounding ear. The title failed under each of ten mutations. Screens still draw GhostButton until the Phase 2 and Phase 5 sweeps; not yet seen on a device.
+- verified-by: `icon controls always carry a spoken label and a 44 point target`
+
+### F728 — Empty-string state reaches a View as a text node on web
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1014, apps/mobile/src/onboarding/StarterContinuation.tsx:216, apps/mobile/src/onboarding/GuestAccountHandoff.tsx:177, apps/mobile/src/settings/SettingsScreen.tsx:871
+- note: 335 "Unexpected text node" console errors per web onboarding run, from `{issue && (...)}` where issue is ''.
+- note 2026-10-06, ca/p0-controls (step D2): the eight sites (PreAccountOnboarding four, StarterContinuation, GuestAccountHandoff, and SettingsScreen's two trouble lines) render `{x !== '' ? (...) : null}`; src/textNodes.test.ts walks every empty-string state and failed with any one site reverted. The web console count was not re-measured in a browser.
+- verified-by: `no empty string reaches a view as a text node`
+
+### F729 — There is nowhere to keep streak covers, quest claims, badges or celebrated moments
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game, apps/mobile/src/sync/policy.ts, supabase/migrations
+- note: A synced, versioned `game` namespace (set unions and maxes, commutative and idempotent) plus a device-only `gameLocal`; the Supabase namespace check must accept `game` before any build that writes it ships.
+- note: 2026-10-06 ca/p0-data: `game/model.ts` (pure strict reader and merge: set unions and per-month maxes, every bound ranked by identity so the merge is also associative), `game/store.ts` (activity.ts shape: one chain, scope-bound writes, markDirty only for local writes, adopter at load and on reset) and `game/gameLocal.ts` (device-only, strict, never synced); `game` and `gameLocal` in USER_KEY_SUFFIXES; policy row (writes 1) and exclusion; migration `20261006120000_learner_state_game.sql` with a destructive interlocked rollback that owns its transaction (refusal, game-only delete and re-apply proved in `verifyDataBoundaries.mjs`), and a blob at the reader's widest (about 441 KB sealed) proved in PGlite. An empty list answers durable; a row dated after tomorrow is refused; day-scoped celebration keys are `streak:` and `chest:` only (`isDaySeenKey`), so a milestone is never aged out; a cut celebration queue answers failed. Residual: a phone whose own clock is far ahead can still age out every device's recent rows (no entry yet). Not applied to any project: apply before any build that writes `game` ships. Adds `bonusMonths` beside the specified rollups so fixed XP can age out without the total falling.
+- note 2026-10-06, ca/d22-no-chest (F773): there is no chest claim and no `chest:` seen key any more. `isClaim` takes quest ids only, `DAY_SEEN_KINDS` is `['streak']`, and `RETIRED_SEEN_KINDS` makes the reader refuse a `chest:` key. The widest blob is about 436 KB sealed, down from 441 KB. Nothing that wrote a chest row shipped, so nothing was migrated.
+- verified-by: `the game store refuses unknown bytes and keeps every awarded badge`
+
+### F730 — A twenty-minute daily goal is discarded on every profile read
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/profile/upgrade.ts:71, apps/mobile/src/profile/dailyGoal.ts:23
+- note: Founder decision D5 adds Intense (20 minutes); storedGoal only keeps 5, 10 or 15, so a saved 20 reads back as no goal. Profile version 9.
+- note: 2026-10-06 ca/p0-data: profile v9; `storedGoal`, brain `validValue`, `GoalMinutes` and `dailyGoalOf` accept 20; policy writes 9. The test fails on the old chain (a saved 20 loads as null) and passes now through load, a v8 upgrade, the profile sync merge and the row's readers. The Profile row has no Intense segment yet (Phase 1 goal setup); a 20 marks no segment and reads "Twenty minutes".
+- verified-by: `a twenty-minute goal survives every profile read`
+
+### F731 — A finished sitting that earns no XP records no practice day
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/progress/activity.ts:246
+- note: Founder decision D3: any finished practice is a streak day. Never add a new activity kind; record the day and the sitting in the game store.
+- note: 2026-10-06 ca/p0-data-r1: `recordActivity` answers a PersistAck; a zero-XP sitting the caller marks `finished: true` records its day through `recordActiveDay` (no entry, no XP, no minutes, no new kind) and raises the activity flag; one not marked finished writes nothing, because the bank drill banks 0 XP on a header Leave with nothing answered (pinned by `a sitting left before it finished, with no XP, writes no practice day`). No screen passes `finished` yet: Phase 1's settle and the bank drill's finished path must. The zero-XP sitting row in `game.sittings` is written by Phase 1's settle.
+- verified-by: `a finished sitting that earns no XP still records a practice day`
+- note: 6 October: the day is written only when the caller passes finished: true, so a sitting left early writes nothing. No finish site passes it yet; the Phase 1 settle pipeline (F744) passes it at every finish, and recordActivityOnce must honour it too.
+
+### F732 — A guest practice has no record of which day it was finished
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/guestModel.ts:12
+- note: The first-run streak day must come from a persisted finish, so GuestPractice v2 gains a bounded `finishedAt` list.
+- note: 2026-10-06 ca/p0-data-r1: GuestPractice stays version 2 (it already was) and gains optional `finishedAt` (one instant per local day, sorted, newest 31; absent reads as none); `finishGuestPractice` sets completed and the instant together, `guestPracticeDays` counts finishes only, and `offlineContinuation` keeps the days. Still owed by the first-run track (no entry yet): `PreAccountOnboarding.tsx` finish() must persist `finishGuestPractice(guest)` instead of `{ ...guest, completed: true }`, and `guestPractice.ts` `startGuestPractice`/`offlineGuestPractice` must carry `finishedAt` forward; until then a guest records no finish day.
+- verified-by: `a guest streak day counts only a practice saved as finished`
+
+### F733 — A store free trial or a yearly plan would grant the wrong allowance
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/meter.ts, services/token-server/src/billing/revenuecat.ts, services/token-server/src/billing/state.ts
+- note: Founder decision D16: a 7-day introductory offer grants a week of the plan's minutes (allowance x 7/30) during the trial; Starter and Max yearly products refill the monthly allowance every 30 days inside the paid year. Today any active entitlement would grant the full monthly allowance at once and a yearly product would grant one month for a year. Money-pinned files change only with a dated reason and independent review.
+- note: 5 October review repair: the first build recorded a yearly window as period_end, so a read a day after any window the renewal sweep missed lapsed a paying learner and kept them lapsed. period_end is the paid year again and the window sits in allowance_window_end; a missed refill now costs minutes until the sweep or a restore, never the plan.
+- verified-by: `a store trial grants a week of the plan's minutes and no more`
+- verified-by: `a yearly plan refills the monthly allowance every thirty days`
+- verified-by: `a yearly learner whose window ended a day ago is not lapsed by a read, and the next refresh grants window two`
+- note: 6 October second review: a Starter yearly learner upgrading to Max monthly was never projected onto Max, because answers were ordered by period end; they are now ordered by the store's period start (entitlements.period_start), then window, then end. Re-checked SHIP by an independent verifier.
+- verified-by: `a Starter yearly learner who upgrades to Max monthly is granted Max at once`
+- verified-by: `a stale read of the old year after that upgrade moves nothing`
+
+### F734 — Plans say nothing about streak protection
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/purchases/capabilities.ts
+- note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor answers streakProtection (5 October), but the plans page still says nothing: the INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn. Open until that line ships with the second test below, which does not exist yet, so the gate cannot tick this early.
+- note: 2026-10-07 ca/p4-wall: INCLUSIONS.streak "Every plan includes streak freezes and a one-tap repair." is said once on the plans page under every plan's rows, with the freeze mark; capabilities.ts re-pinned once in moneyUntouched.test.ts with a dated reason (copy only, no plan opens anything new).
+- verified-by: `streak protection comes only with an unlapsed paid plan`
+- verified-by: `the plans page names streak protection on both paid plans`
+
+### F735 — Production guest speech is off, so the first win is never spoken
+- severity: P2
+- status: [x]
+- where: services/token-server/src/onboardingSpeech.ts:10
+- note: Founder decision D13 enables guest speaking with server protection: an anonymous admission budget (per guest capability, installation, address and a global daily ceiling), about 60 seconds of speech per guest, the existing 20 s capture, 2 MiB cap and 24 h capability. Security and privacy review required.
+- note: 6 October: ticked at merge by the integrator after two independent security reviews (5cb43138 and 0386e40c, both SHIP) covering abuse, cost and privacy; no new data recipient (Deepgram is already named in STARTER_PROCESSING and legal/policy.ts). Production stays off until LUVANI_GUEST_SPEECH=1 and the runbook's staging proofs on real Redis and real iOS and Android takes. Open follow-ups: F749, F750.
+- verified-by: `guest speech is admitted only within its per-guest, per-installation, per-address and daily limits`
+
+### F736 — An off switch is invisible on iOS
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/SwitchRow.tsx:57
+- note: The false track colour is set, but iOS paints an off switch from ios_backgroundColor, so every off toggle in Settings shows as a bare thumb. The Sound effects switch joins that screen in this programme.
+- note 2026-10-06, ca/p0-controls (step D2): SwitchRow sets ios_backgroundColor to paper.field, the false track; settings/SwitchRow.test.ts holds every Switch in the app to the pair and failed with the line removed or set to another colour. Not yet seen on an iPhone.
+- verified-by: `an off switch shows its track on iOS`
+
+### F737 — The selected tab icon never shows it was chosen
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/nav/LuvaniTabBar.tsx, apps/mobile/src/nav/TabGlyph.tsx
+- note: Founder decision D7 (richer motion on flat controls). The selected tab icon pops once inside nav/TabGlyph.tsx and lands still under Reduce Motion; LuvaniTabBar.tsx itself still moves nothing, so the F600 assertion stays true.
+- note 2026-10-06, ca/p0-icons (step D1): TabGlyph pops the newly selected icon (up 2, to 1.15, home on SPRING.pop) with the Bulk drawing fading in over DUR.micro, never on mount or a re-tap; the Practice dot pops only when the read deck goes from none due to some. The title failed with the re-tap guard or the reduced landing removed. Not yet seen on a device.
+- verified-by: `the selected tab icon springs in TabGlyph and lands still under Reduce Motion`
+
+### F738 — Leaving one recording can stop another recorder or a live room
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/sound/audioSessionCore.ts:108
+- note: Found by the Phase 0 sound review. leaveRecording switches to voice mode even while another microphone hold or a live room is open, and on iOS a mode without the microphone stops a running recorder. A slow cleanup on one screen can cut off the next screen's recording.
+- note: 2026-10-06 leaveRecording asks, when its turn on the session chain comes, whether a microphone hold or a live room is open, and if so leaves the mode as it is. The title failed against the pre-change source, against a check made at queue time, and against one that ignored the live room. Not yet tried on a device.
+- verified-by: `leaving one recording never stops another or a live room`
+
+### F739 — A freeze counts as spent on a day a repair already covers
+- severity: P2
+- status: [x]
+- where: packages/core/src/streak/freeze.ts:30
+- note: Found by the Phase 0 core review. Two devices can write a repair and a freeze for the same day; the streak shows the repair, but freezesHeld still counts the freeze as used, so a subscriber loses a freeze they never needed.
+- note 2026-10-05: fixed on ca/p0-fu-core (step F-C). freezesInUse reads the streak's resolved covers (streakDaysOf().covered), so only a day the streak shows as 'freeze' spends one; a repair or travel cover that wins the day leaves both freezes held. The title failed against the previous freeze.ts.
+- verified-by: `a freeze is spent only on a day the streak used it for`
+
+### F740 — Today's phrase quest needs a recording the learner may not be able to make
+- severity: P2
+- status: [x]
+- where: packages/core/src/quests/catalogue.ts:65, apps/mobile/src/daily/DailyPracticeScreen.tsx:146
+- note: Found by the Phase 0 core review. "Say today's phrase" is marked as needing no speaking, but the daily practice only finishes after a recording of at least a second, and it is in every day-one set. A learner who declined the microphone could never close their first chest.
+- note 2026-10-05: fixed on ca/p0-fu-core (step F-C). phrase-of-day is requiresSpeaking: true, QuestEligibility gains canRecord (false when denied, unavailable or unknown), the questEligible guard refuses a recording quest without it, and day one uses DAY_ONE_QUIET_QUESTS (finish-practice, practice-set, minutes). The app must pass canRecord when Phase 1 computes quests. The title failed against the previous catalogue and selector.
+- note 2026-10-06, ca/d22-no-chest (F773): there is no chest (founder decision D22). The fix stands as written: a learner without a microphone can still finish all three of their day's quests.
+- verified-by: `a quest that needs a recording is never set for a learner who cannot record`
+
+### F741 — A streak badge says days in a row when a covered day bridged the run
+- severity: P2
+- status: [x]
+- where: packages/core/src/badges/catalogue.ts:64-67
+- note: Found by the Phase 0 core review. The longest run counts across freeze, repair and travel days, so "You practised 30 days in a row." can be untrue. Every number on a celebration must be a persisted fact.
+- note 2026-10-05: fixed on ca/p0-fu-core (step F-C). The four streak lines read "You reached a {n}-day streak."; the test bridges a 7-day run with a freeze and a repair and scans every badge for "in a row". The title failed against the previous catalogue.
+- verified-by: `a streak badge never claims more days in a row than were practised`
+
+### F743 — Nothing celebrates a finished practice
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/celebrate, apps/mobile/App.tsx
+- note: Founder decisions D2, D6, D7, D8 (docs/come-alive/README.md). One celebration host above the navigator plays at most three full-screen moments after a sitting (streak, chest, level, badge), holds while a microphone, live room, sheet, end card or background is in the way, and plays nothing after a safety stop (F137).
+- note 2026-10-06, ca/p1-stage (step P1-B): celebrate/queue.ts (pure) merges a 250 ms burst, plays at most three takeovers in TAKEOVER_ORDER with the rest as "Also today" rows, checks and marks account moments in the synced game.seen list (guest moments and toasts in a 256-key memory ledger), mirrors waiting account moments into gameLocal's pending queue, pauses for the sheet, end card, microphone, live room and background holds, drops after CELEBRATION_TTL_MS, clears on sign-out without a write, and on suppressCelebrations (SafetyStopView mount) clears the queue, the card on screen, the pre-attach buffer and sound effects. The host, the modal Takeover frame, six templates, the EndCard, the toast and ConfettiStill are mounted from App.tsx; WallScreen publishes purchase-confirmed only behind wallSuccess and an accepted purchase. Each title failed against queue.ts mutations (no budget, no suppression clear, seen check ignored). Nothing publishes from a sitting until the pipeline track lands; not yet seen on a device.
+- note 2026-10-06, ca/d22-no-chest (F773): founder decision D22 removed the quest-chest takeover. TAKEOVER_ORDER is purchase, streak milestone, streak extended, level, badge, and MAX_TAKEOVERS stays 3. The pinned titles are kept, and their assertions now play the streak, then the level, then the badges. Finishing all three quests is one quiet line on the end card with the `quest` sound (the `end-card-quests` timeline).
+- verified-by: `at most three takeovers play after a sitting, in streak, chest, level, badge order`
+- verified-by: `a safety stop clears the celebration queue and refuses new moments`
+- verified-by: `a moment already in the synced seen list never plays again`
+
+### F744 — A finished practice is never settled into a streak day, a goal, quests or badges
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game/settle.ts, apps/mobile/src/ConvoScreen.tsx, apps/mobile/src/nav/RootNavigator.tsx, apps/mobile/src/DrillScreen.tsx, apps/mobile/src/ReviewScreen.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx, apps/mobile/src/onboarding/GuestAccountHandoff.tsx
+- note: One pipeline (README Part 6): every finished sitting settles once through game/settle.ts and returns a GameDelta read back from disk. A safety stop settles nothing.
+- note 2026-10-06: fixed on ca/p1-settle (step P1-C) and repaired after review on ca/p1-settle-r1. game/settle.ts settles every finish (conversation inside its stop guard, lesson, bank drill set, review on an empty queue banked once, daily phrase, guest hand-off with streak:{day} seen first) and practice/completion.ts settles a practice plan wherever it completes (finish, retry from its first snapshot at its frozen instant, launch recovery); recordActivityOnce honours finished; GameProvider and the hooks are mounted once in App.tsx; game/display.test.ts bans levelFor( and the XP helpers in screens. Rule chosen for two devices dealt different quests: a quest either device credited stays earned (XP and the monthly count read every claim; done reads 3 once the chest is claimed). Each title failed without the change.
+- note 2026-10-06, ca/d22-no-chest (F773): no chest claim, no chest XP and no `chestNow` in the GameDelta. `allQuestsDoneNow(delta)` in game/delta.ts marks the sitting that finished the third quest. The day's `done` count now reads every quest claimed today, on any device, up to three, so after a merge it still reads all three done without a chest, and it never falls.
+- note 2026-10-06, ca/d22-no-chest-r1 (F773): the GameDelta carries `quests.doneBefore`, the day's count from the merged facts less the sitting's own claims. `allQuestsDoneNow` is true only when the sitting's own claims took the day from under three to three, so a quest finished after a merge, or after a sync that landed mid-sitting, on a day already done no longer plays the quest sound again. The pinned title asserts `doneBefore` on the first, third and replayed sittings.
+- verified-by: `settling a sitting records its day, goal, quests and badges once, and a replay changes nothing`
+- verified-by: `a safety stop settles nothing`
+- verified-by: `a kept guest practice lights day one once`
+
+### F745 — An existing learner would see a burst of old levels and badges on update
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game
+- note: game.md 3.6 with review finding 14. Seed the streak, badges and rollups from practice already saved, mark every current moment seen, and show the one intro sheet only to a learner who has practice days.
+- note 2026-10-06: fixed on ca/p1-settle (step P1-C), kept through the review repair on ca/p1-settle-r1. game/catchUp.ts seeds once per account per phone (badges dated from data or null, xpMonths, no cover, every current moment and the durable intro key seen, paidSince for a paid plan); the intro sheet shows only with practice days on an account never introduced; until the seed runs a settle awards no badge and plays nothing. The title failed without the change.
+- verified-by: `an existing learner is seeded from saved practice with every current moment marked seen`
+
+### F746 — The streak, quest, level and badge art does not exist
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game/art
+- note: Founder decision D10: flat vectors built in code in the current style (flame, chest, medal, crest, freeze and repair marks). Kept out of the flat illustration registry so the pinned 29-drawing count (F599) stays true. The founder approves the contact sheet by eye before the art ships.
+- note 2026-10-06, ca/p1-art (step P1-A): `game/art/shapes.ts` holds six drawings as token-filled parts on a 100 box (flame lit and unlit, chest shut and open, medal sun, mint, blue and next, crest, freeze ready and used, repair); a drawing on a colour ground it uses trades that colour with white. Flame (ignite per real key, three flickers per activation, never a loop) and Chest (lid on SPRING.pop about its hinge) move whole layers by transform and opacity through drive.ts and land on the final frame under Reduce Motion, on leave and on unmount; Medal, Crest, FreezeMark and RepairMark are still. The title failed with decorative removed from one Svg, an unknown token, a token from a group palette.ts lacks, a raw hex fill or colour, an extra stroke, a url( in an outline, a gradient, a fill not read through colourOf, a theme colour import, an opacity on a part and a second Svg. Contact sheet: `node --experimental-strip-types scripts/art/game-art-sheet.mjs` writes `artifacts/game-art/index.html`. Not yet approved by the founder, not yet drawn by any screen, not yet seen on a device.
+- note 2026-10-06, ca/d22-no-chest (F773): the chest drawing is gone (founder decision D22), with Chest.tsx, CHEST_MOTION and its hinge, foot and open-pose constants. Five drawings remain, and only the flame moves. The pinned title now walks 160 parts and checks the exact count of every part in every state on every ground. The old floor of 200 counted the chest's 80 parts. The founder has approved the remaining art by eye (D22).
+- verified-by: `every game drawing uses palette colours only and hides from assistive technology`
+### F742 — A store trial's purchase screens describe a month
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/WallScreen.tsx:330, apps/mobile/src/purchases/planStatus.ts:93
+- note: F733 review (5 October). The server grants a store trial a week of the plan (42 or 70 minutes), but the purchase confirmation shows the catalogue's monthly minutes with "Your speaking time each month.", and the plan card's band compares against the monthly allowance, so it reads "A little speaking time left." from the first day of a trial. Held back by runbook step 4 (no intro offer is shown to learners until the Phase 4 plans page ships); the Phase 4 wall takes the trial's minutes from the server, not the catalogue. Core's refusal now says "You have used all your minutes for now." for every paid period.
+- verified-by: `a store trial is described as a week of minutes, never a month`
+- note: Numbered F736 on the billing branch, which collided with the iOS switch entry; renumbered F742 at merge (6 October).
+- note: 2026-10-07 ca/p4-wall, repaired on ca/p4-wall-r1 after review: the server's grant decides, never the client's guess, so a grant holding no more than the plan's trial week is never said as the catalogue month. A purchase from the wall of a product carrying a free trial (whatever the store said about eligibility, and only once the store accepted it) shows the server's minutes with "Your speaking time during the free trial."; a restore during a trial, or a trial purchase confirmed after the app was reopened, shows the minutes held with "Your speaking time until {day month}." when the period ends within a week and a day; a grant holding more is said as the month. The plan card measures "a little" against a week of the plan when the period ends within a week and a day (a day of slack for a slow phone clock), which also moves a monthly learner's last week and awaits the founder's or revenue's acceptance until /billing/status reports the period kind.
+
+### F747 — A store trial would get the paid phrase-audio budget
+- severity: P3
+- status: [x]
+- where: supabase/migrations/20261002212536_*.sql, services/token-server/src/billing
+- note: Found by the 6 October billing SQL review. A trial row's plan is starter or regular, so it would get the paid phrase-audio allowance ($0.20 per 30 days) instead of the trial's lifetime $0.02. Phrase audio is off and capped at zero by default; this needs a founder decision before it is turned on. D16 covers minutes only.
+- verified-by: `a store trial gets the phrase-audio budget the founder chose`
+- note: 2026-10-07 completion: Uses the lifetime trial phrase-audio bucket while a verified store trial is active; conversion invalidates old dispatch without resetting spend. Founder delegated the budget choice on 7 October; $0.02 was chosen. Feature flags and caps remain off by default.
+
+### F748 — A store extension of a paid year starts a new usage period
+- severity: P3
+- status: [x]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql (entitlement_usage_epoch), supabase/migrations/20261005231742_store_trial_yearly_allowance.sql
+- note: Found by the 6 October billing re-check. A year the store lengthens with the same start keeps its minutes, but the older pinned epoch trigger still starts a new usage period, which could leave one in-flight session uncharged. Rare (a developer-granted extension).
+- verified-by: `a store extension of a paid year keeps the in-flight session charged`
+- note: 2026-10-07 completion: The usage epoch survives only a verified extension of the same paid annual window. SQL proof charges an already admitted session and still rotates at the next monthly window.
+
+### F749 — A failed guest decode can briefly hold both shared audio decoders
+- severity: P2
+- status: [x]
+- where: services/token-server/src/onboardingSpeech.ts:103, services/shared/audioDecode.ts:34
+- note: Found by the 6 October guest-speech security review. The guest counter frees when decodeAudio rejects, but the killed ffmpeg keeps its slot until it closes, so for a millisecond or two a second guest decode can take the last slot and paid scoring returns unscored. Fix: a guest lane counted inside decodeAudio and released on the child close, replacing the counter in onboardingSpeech.ts.
+- verified-by: `a guest decode never holds the last shared decoder, even while a failed one is closing`
+- note: 2026-10-07 completion: A shared opaque decoder lease reserves the guest lane through child close, even after the request fails.
+
+### F750 — A busy guest decoder spends one of the learner's two attempts
+- severity: P3
+- status: [x]
+- where: services/token-server/src/server.ts:428
+- note: Found by the 6 October guest-speech security review. When the guest decoder is busy the take is refused after guestAttempt has spent an attempt, so the learner loses a try although nothing was sent. Check the decoder before spending the attempt (the existing check stays as the guard), alongside the Phase 2 client that turns a 503 into a calm move to typing.
+- verified-by: `a guest take refused because the decoder is busy keeps the learner's attempt`
+- note: 2026-10-07 completion: Production guest speech reserves decoder capacity before spending an attempt. Busy reservations release no attempt.
+
+### F751 — A real guest practice still records no finish day
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:483, apps/mobile/src/onboarding/guestPractice.ts:65, apps/mobile/src/onboarding/guestPractice.ts:97
+- note: Found by the 6 October data reviews. F732 gave GuestPractice a finishedAt list and finishGuestPractice, but the first run still persists { ...guest, completed: true }, and starting a new practice drops earlier finish days. Persist finishGuestPractice(guest) where the practice is saved as finished, carry finishedAt forward, and take the hand-off days from guestPracticeDays. Phase 2 (first run).
+- verified-by: `a guest who finishes a practice keeps that day through a new practice and the hand-off`
+- note: 2026-10-06 ca/p2-first-run-2: the first run persists `finishGuestPractice(guest)` before day one (and shows a finish day only once the write lands), `startGuestPractice` and `offlineGuestPractice` take the record they replace and keep its finish days (`keepFinishes` in onboarding/guestProgress.ts, through the same repair), and the hand-off settles the record's days through `guestPracticeDays`. The title failed with the finish saved as `{ ...guest, completed: true }` and with `keepFinishes` carrying nothing.
+
+### F752 — The retired days-a-week answer is still written
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/tabs/ProfileTab.tsx:292, apps/mobile/src/onboarding/createFromDraft.ts:42
+- note: Founder decision D5 replaced days a week with a daily goal, and profile v9 stops writing practiceDaysPerWeek while still reading it, but two writers remain. Remove them with the Phase 2 first run and the Phase 4 Profile goal rows.
+- verified-by: `nothing writes practiceDaysPerWeek any more`
+- note: 2026-10-06 ca/p2-first-run: account creation from the first-run draft no longer writes practiceDaysPerWeek (createFromDraft.ts), and the Profile "Days a week" row, the only caller of withPracticeDays, is gone (ProfileTab.tsx); the version chain still reads and carries an answer already on a disk. withPracticeDays in profile/store.ts now has no caller, for its owner to delete.
+
+### F753 — A phone whose own clock runs far ahead can still age out recent game rows
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/game/model.ts, apps/mobile/src/game/store.ts
+- note: Found by the 6 October data reviews. The store refuses rows dated more than a day after the writing device's clock, which stops a wrong clock on another device, but a device whose own clock is far ahead still writes rows the merge treats as newest, and the 60-day windows are measured from the newest row. The merge must stay clock-free, so this is a known limit, written up in docs/STATE_AND_STORAGE.md.
+- verified-by: `a game row from a clock far ahead cannot shorten what another device keeps`
+- note: 2026-10-07 completion: Game format v2 retains count-bounded identities rather than using the newest timestamp as a pruning clock. Reads v1, preserves merge laws, and prevents old builds from reapplying v1 pruning. Previously discarded data cannot be recovered.
+
+### F754 — The first run shows no plan, celebrates nothing and asks for things at the wrong moment
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/firstRun
+- note: Founder decisions D5, D13, D14 and README Part 5.C: where, level and daily goal build a visible plan card; the plan is revealed with real numbers; the first win is celebrated only for an accepted real reply; day one, the reminder ask and the save card come only after a finished practice; nothing in the first-run screens sends, stores or records activity before consent.
+- verified-by: `the win shows the learner's line beside the natural line and celebrates only an accepted real reply`
+- verified-by: `the reminder is asked only after a finished practice and only on a real tap`
+- verified-by: `no first-run page component can send, store or record activity`
+- verified-by: `the save card lists only what this phone holds`
+- note: 2026-10-06 ca/p2-first-run-2: day one (`remind`) is reached only from the finish once it is saved, lights the game flame once for a day the finish added (streak sound and celebrate haptic once), counts the run from core's streak rule over the guest's finish days and shows the week; the one shared `reminders/ReminderAsk.tsx` raises the notification dialog only inside the Remind me tap and reports on only after the OS took the schedule (hidden on web); the save card (`keep`) lists only what `guestInvestment` finds on the phone; a resumed draft reaches either page only with a finished practice. Walked in a web build at 390 and 1024 wide, with and without reduced motion; the ask itself, the dialog and the sounds are not yet seen on a device. The ask's "never on a day you have already practised" holds only once the Phase 4 planner skips practised days.
+
+### F755 — The start sheet hides its last controls under the footer with no cue
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx:1818, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:654
+- note: The consent sheet's content runs under the footer rule on a phone and nothing says there is more. Show the footer hairline and flash the scroll indicator only when the content scrolls.
+- verified-by: `the start sheet shows a scroll cue when its content runs under the footer`
+- note: 2026-10-06 ca/p2-first-run: Sheet measures its scroll and draws a hairline over the footer only while `sheetRunsUnder` holds (content taller than the view, its end not in sight), and flashes the scroll indicator once per opening; the start sheet dropped its own footer rule and sits in the 560-point reading column on a wide screen. Seen in the web build at 320, 390 and 1024 wide (cue at 320 and 390, none at 1024 where it fits); not yet seen on a device.
+
+### F756 — The first run offers speaking when speech is unavailable
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:381
+- note: "Start speaking" is the primary action even when the server says guest speech is off, so learners land on "Speaking is unavailable". Speaking is the default only when speechAvailable is true; otherwise typing is offered first, and a 503 from /onboarding/audio moves calmly to typing (D13).
+- verified-by: `speaking is offered in the first run only when the server says speech is available`
+- note: 2026-10-06 ca/p2-first-run: the start sheet offers Start practice and Practise offline; the practice page opens spoken only when the guest start said speechAvailable for a live, online practice (`firstRun/speech.ts`), Speak instead appears only then, and a 503 from /onboarding/audio is read as `speech-unavailable` and moves to typing with a calm line and nothing to retry. The spoken path is not yet seen on a device.
+
+### F757 — A kept first-run phrase stores the learner's unchecked spelling
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/GuestAccountHandoff.tsx:71, apps/mobile/src/onboarding/StarterContinuation.tsx:80
+- note: The phrasebook and Home keep what the learner typed, unchecked, instead of the natural line the task models. Keep task.model.
+- verified-by: `a kept first-run phrase is the natural line, never the learner's unchecked spelling`
+- note: 2026-10-06 ca/p2-first-run: the hand-off and Home keep `keptPhrase(task)`, the task's natural line, and the hand-off card and the guest home show the natural line, never the reply as typed or heard.
+
+### F758 — A disabled Next looks like a live button
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/NextButton.tsx:41, apps/mobile/src/components.tsx:981
+- note: A disabled pill is a slate fill that reads as live. Disabled is paper.skeleton with soft ink; enabling cross-fades to ink with a pop and a glint.
+- verified-by: `a disabled Next looks disabled on every ground`
+- note: 2026-10-06 ca/p2-first-run: Continue is the sand skeleton with soft ink words and arrow, with a hint, when off, and fades to ink with one glint when an answer is chosen; an off white PillButton on blue or coral takes blue's pale secondary. 2026-10-07 ca/p2-first-run-2-r1: motion/MorphButton.tsx, which the first run's Start practice and Send reply use, now draws its off face the same way, sand for ink and blue's pale secondary for white with soft ink words (`a disabled MorphButton never draws the live face`).
+
+### F759 — A drill answer gets one line of text and no rhythm
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx, apps/mobile/src/drill
+- note: README Part 5.E: an answer sheet per verdict (good mint with sound and haptic, typo sun, first miss calm with no sound, second miss shows the form and waits for Continue, own-words retry "Nearly there." per D21), a living bar with a combo glow, and never an auto-advance while a screen reader is on.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). drill/answerSheet.ts decides each sheet (good mint with a rotating line and the run lines from three real passes, typo sun "Nearly." with the spelling, first miss calm with no French, second miss "Here's how it goes." with the form and a Continue, repeat-this "You said it.", own words through core ownWordsFeedback with retry "Nearly there." in the nearly tone per D21, never moving on by itself while a screen reader is on or unknown); drill/AnswerSheet.tsx draws it with the motion primitives and drill/sheetEffects.ts plays correct and arrived(), nearly and soft(), or nothing; drill/combo.ts and drill/SittingBar.tsx give the living bar its sun glow, which a repeat-this never extends; DrillScreen keeps one tapSettled(), for a finish shown without an end card. Both titles failed without the change.
+- verified-by: `a good answer, a typo and a miss each get their own sheet, and a screen reader never auto-advances`
+- verified-by: `a miss draws no mark, plays no sound and fires no haptic`
+
+### F760 — A finished sitting shows no end card
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx, apps/mobile/src/ReviewScreen.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx, apps/mobile/src/SummaryScreen.tsx
+- note: Every finished drill, practice set, review, daily phrase and lesson shows the in-place end card from celebrate/EndCard.tsx with numbers only from the settled GameDelta.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). The drill set, practice set, review, today's phrase and the lesson SummaryScreen draw celebrate/EndCard.tsx in place, fed only by the GameDelta the settle read back: the drill, review and daily pages hear their own sitting's delta through onSettled by its key (practice/useSittingEnd.ts, practice/sittingDelta.ts; a practice plan names the instant it settled as settlesAt), the lesson takes the delta its settle returned, and a finish the settle could not read back stands in words with no number. The title failed without the change.
+- verified-by: `an end card shows only numbers the settle pipeline read back`
+
+### F761 — A finished review and an empty deck look the same
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/ReviewScreen.tsx:176
+- note: A sitting with grades shows "Review complete." with its end card; a deck with nothing due still says "Nothing waiting." and plays nothing.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). review/sittingEnd.ts tells the pages apart by what was dealt: a sitting with grades says "Review complete." with its end card once the settle has read it back; a deck with nothing due keeps "Nothing waiting." and settles, counts and plays nothing; the sitting is still marked banked before it is written. The title failed without the change.
+- verified-by: `a finished review is told apart from a review with nothing waiting`
+
+### F762 — Keeping an own-words phrase says saved when the write failed
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/DrillScreen.tsx:1301
+- note: Say saved, fill the bookmark and play the save moment only on a durable acknowledgement.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). review/phraseSaved.ts keeps the phrase through addPhrases and answers saved only on a durable acknowledgement, and only then publishes phrase-saved (celebrationKey.saved); the drill fills the bookmark and says saved only on that answer and says plainly when a keep was refused; today's phrase added to review announces only a durable write. The title failed without the change.
+- verified-by: `a kept own-words phrase is called saved only on a durable acknowledgement`
+
+### F763 — The microphone stays published after the recap arrives
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts:1104
+- note: When the session ends the room is still open for the recap and the microphone stays published. Close it (setMicrophoneEnabled(false) and the mic-open state) before the recap shows, and release the live hold once the session has ended and the microphone is unpublished, so the recap may play its moment.
+- note 2026-10-06, ca/p3-room-audio (step P3-B): the `recap` case now calls `closeMicForRecap()` before `setRecap` (micOpen and diagnostics false, then `setMicrophoneEnabled(false)`, every session including a stop); once LiveKit confirms the close for the same room and start, an effect asks `live/recapAudio.ts` (recap arrived, close confirmed, tutor not speaking, not stopped) and only then `releaseLiveHold()` gives back the room's audio-focus hold. LiveKit's audio session still ends at `leave()`; the mute leaves the capture device open until then. `RecapScreen` holds the celebration queue while mounted so takeovers still wait for the learner to leave. The title failed with no close, with the close after `setRecap`, with micOpen left true, with the close reported before it resolved, with a late close from a left room reported, with the release ungated on the close, the tutor's line or a stop, with the web release keeping the hold, and with the recap not holding the queue. Not yet checked on a device.
+- verified-by: `the recap closes the microphone before it shows`
+
+### F764 — The conversation orb never hears or answers the voices in the room
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/VoiceOrb.tsx, apps/mobile/src/live
+- note: README Part 5.E: the listening ring follows the learner's real microphone level, the speaking bars follow the tutor's real audio, levels decay to rest after 120 ms because the hook never writes 0, thinking is honest, and the orb falls back to today's loops when levels are unavailable.
+- note 2026-10-06, ca/p3-room (step P3-C): the orb draws the levels P3-B measures. `live/levels.ts` `createRoomFacts` turns the meter's frames into the few facts the orb branches on (each level measured, the learner heard after 250 ms above 0.12 and not after 600 ms below, the room awake), `tutor/orbLayers.ts` decides the layers, and `VoiceOrb` composes `OrbLevelRing` (the shared LevelRing), `LiveBars` and `OrbPulse` (today's loop rests while they draw), `OrbThinkingArc` and `OrbRipple` in the state colours, transform and opacity only, resting when the room is asleep, paused or reduced; "Hearing you" is visual and the accessible name stays the state's word. The lesson's Speak circle wears the ring. Plumbing title plus `tutor/orbLayers.test.ts` pass; checked in a web build, not yet on a device.
+- verified-by: `the orb's levels come from real audio and decay to rest when the audio stops`
+- verified-by: `the orb draws the room's real levels only when they are measured, and today's loops otherwise`
+
+### F765 — Nothing marks a scene goal or a scene won in the room
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/MissionTaskList.tsx, apps/mobile/src/ConvoScreen.tsx
+- note: Goal ticks pop with a check and are announced; the scene won card plays in place; no sound or haptic while the microphone is live; the recap plays the scene moment and a postcard stamp for every independent finish.
+- note 2026-10-06, ca/p3-room (step P3-C): goal ticks pop their mint disc and land the check a beat later, glint once, scroll into view and are announced in the goal's words (`tutor/taskTicks.ts`); the last tick ripples the orb and holds the card for the ripple; `tutor/MissionWin.tsx` adds "Scene complete", the place drawing on blue, a mint glow and Burst 24 with "Keep talking" still the one pill and no sound or haptic; the recap's result page plays `recap-result` once the room frees the audio, with the progress strip from the settled GameDelta and the lines on `CountUp`; `celebrate/PostcardStamp.tsx` stamps every independent finish (`postcard-first` or `postcard-again`) and never an assisted one. OnceConfetti and OnceCount are retired. Not yet checked on a device.
+- verified-by: `the room plays no sound while the mic is live or the tutor speaks`
+- verified-by: `the stamp plays for every independent finish this session, never for an assisted replay`
+
+### F766 — A celebration can start under an end card or inside a sitting
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game/settle.ts:626, apps/mobile/src/celebrate/EndCard.tsx:76, apps/mobile/src/game/GameProvider.tsx:196, apps/mobile/src/celebrate/queue.ts:546
+- note: Found by the 6 October re-check of the merged Phase 1 (verdict SHIP, all MINOR). Settle publishes before the screen can mount its end card, so a takeover can start under it; a foreground catch-up can replay a moment in the middle of a sitting; and a safety stop during a seen read leaves crash copies that replay next launch. Fix with Phase 3's end cards: hold celebrations before settling and hand the release to the EndCard, replay only from a Home-focus refresh or a sitting hold, and drop in-flight keys on suppression.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). Every sitting page in the core loop holds the celebration queue while it is mounted (useSittingHold, also on the lesson route), takes a settle hold before it settles (practice/settleHold.ts) and hands it to EndCard as release, which lets it go only when the card unmounts; a page that leaves first closes the hold so a late settle takes none. GameProvider puts a foreground catch-up off while the queue is held and runs it when the hold lifts (onCelebrationHoldChange). celebrate/queue.ts suppress() also drops the crash copies of moments whose seen read is in flight. ConvoScreen is the room track's and is not changed here. The title failed without the change.
+- verified-by: `no takeover starts under an end card or inside a sitting`
+
+### F767 — Home never shows the habit it is building
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx, apps/mobile/src/game
+- note: Founder decisions D2, D5, D6 and README Part 5.F: Home leads with game/TodayHero (flame and streak to the Streak screen, the goal ring in measured minutes, the level chip), a factual nudge line, the pinned lifetime day count and game/QuestsCard. A read failure shows nothing, never 0, and increments animate from the last shown value.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). Home draws game/TodayHero above its own read (flame and run to the Streak screen, the goal ring in measured minutes, the level chip, the nudge line from game/copy.ts only while a run waits on today; nothing when unread), the scene brief with its place drawing (home/SceneArt.tsx), the pinned lifetime DayCount, game/QuestsCard (no chest, D22) and today's phrase with Practise it, Save and More phrases. Increments come from home/homeSeen.ts (device-only key home-seen, excluded from sync) and never count down or replay. Review repair on ca/p4-home-r1: what Home draws is held while Home is covered, behind the app, under a held queue or a takeover, and drawn after the takeovers (home/homeDraw.ts mayDraw, home/useHomeDraw.ts); a fall or a new day mounts a counter again rather than counting down (nextDraw), and the hero reads the game layer again when the day turns. The titles failed without the change (the modules did not exist).
+- verified-by: `Home's today hero shows the streak, today's measured goal minutes and the level from real records, and claims nothing it could not read`
+- verified-by: `Home's increments animate from the last shown value and never replay or count down`
+- verified-by: `the nudge line is warm, factual and appears only when the streak is real and today is unpractised`
+
+### F768 — Home re-reads its storage every minute and flashes the skeleton
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/home/useHomeRefresh.ts:9, apps/mobile/src/tabs/HomeTab.tsx:100
+- note: A refresh replaces drawn content with the loading skeleton. Once Home has drawn, a refresh keeps what is shown until the new read lands.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). home/homeRefresh.ts: the minute timer only asks whether the local day turned, and a read clears the page only for an account nothing was drawn for (refreshClears); HomeTab records the account it drew for when the read lands. NextTaskCard and DayCount keep what they drew across a same-account refresh too. The title failed without the change (the module did not exist).
+- verified-by: `Home refreshes without ever showing its skeleton again once it has drawn`
+
+### F769 — Progress and Profile hide the level, the streak and the counts
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchTab.tsx, apps/mobile/src/tabs/ProfileTab.tsx
+- note: README Part 5.F: Progress leads with game/LevelXpCard, game/StreakSummaryCard (keeping the weekly DayCount), game/CountsGrid and game/BadgeShelf (no locked or remaining wording), then the CEFR card and the postcard shelf; Profile shows game/ProfileStats and the goal as five Choice rows.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). Progress leads with game/LevelXpCard, game/StreakSummaryCard (holding the pinned <DayCount weekly />), game/CountsGrid and game/BadgeShelf (no locked, remaining or collect wording), each from its own record and drawn once there is practice; then the CEFR card (the one pill), progress/PostcardShelf in place of the postcards row, and IconTile ledger rows. Profile draws game/ProfileStats (a subscriber's freezes only) and the goal as five Choice rows. Review repair on ca/p4-home-r1: "Minutes practised" is the game view's minutesPractised (the goal ring's own sittings and rule, so a daily phrase counts on both), the weekly day line draws on its own whenever the game cards do not, and the level card's head is the heading a screen reader hears. The title failed without the change (the modules did not exist).
+- verified-by: `Progress leads with the level, the streak and real counts, each from its own record`
+
+### F770 — There is no screen for the streak
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game, apps/mobile/src/nav
+- note: README Part 5.D Streak screen: hero flame with the count, lifetime and longest; a week strip and a month calendar that never say missed; the freezes card and the repair card for a subscriber; the one calm repair line for a free learner (D4); milestones; month arrows as labelled IconButtons; a web path in nav/theme.ts (F493).
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). game/StreakScreen.tsx on the Streak route (nav/types.ts, RootNavigator, web path `streak` in nav/theme.ts) draws game/streakScreenView.ts: the run with the lifetime total and the longest, the week and the month from the game view's practice days and covers with full spoken labels and no missed, labelled month IconButtons, seven columns, the freezes and repair cards for a subscriber and the D4 line with See plans for a free learner only just after a reset. The titles failed without the change (the modules did not exist).
+- verified-by: `the streak screen shows the run, the lifetime total, the week and the month from real days, and never says missed`
+- verified-by: `a free learner sees one calm repair line and a subscriber sees their freezes and repair`
+
+### F771 — Reminders fire on a fixed weekly schedule whether or not the learner practised
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/reminders
+- note: README Part 5.F Reminders: one planner (reminders/plan.ts), a smart time from the learner's own finishes, one dated slot a day skipped when practised, a pause note after four unanswered days then silence, copy naming the chosen tutor, taps that open their promise, re-planned after every settle, cancelled only on sign-out. Supersedes F226, F227 and F230 (their verified-by lines are replaced by these).
+- note 2026-10-07, ca/p4-reminders: done. plan.ts plans up to five dated `practice:{day}` slots in a seven-day window (smart time: median first finish less 30 minutes, on the quarter hour, 08:00 to 21:30, 18:00 until three days), skips a practised day, rotates twelve lines naming the chosen tutor (milestone eve, mentionStreak) with no line twice in a row, and puts the pause note in the fifth unanswered slot. store.ts is v2 (choice plus a day-key log, v1 migrated). schedule.native.ts schedules once per slot with DATE triggers, cancels only `practice:` by identifier, has no handler and no badge, and hears taps (cold start included). ReminderPlanner.tsx re-plans on mount, foreground, every settle, tutor change, Settings and the ask; App.tsx follows taps (Home, today's phrase, Settings) and cancels on sign-out only. The titles failed against fbe958ce (plan.ts did not exist). Review repair (ca/p4-reminders-r1): a slot counts as arrived only while the OS held its plan (a device key names the held plan, cleared before every take-back and at sign-out), so a reminder turned off, refused or signed out of can never come back paused; Settings' off goes through the planner's chain, the ask plans the choice it wrote, and the sign-out cancel is keyed on who is signed in (the recovery screen cancels nothing).
+- verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
+- verified-by: `a reminder names the chosen tutor and opens the place it promises`
+
+### F772 — The plans page has no yearly plans and no honest trial timeline
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall
+- note: Founder decision D16 and README Part 5.G: yearly and monthly rows through Choice with the yearly plan of the tier covering the learner's goal pre-selected (no plan_selected fired), prices from the store, never save N percent, the goal fit line, Not now and Keep practising free; a trial timeline only with a real eligible introductory offer; purchase success only after a confirmed entitlement.
+- note: 2026-10-07 ca/p4-wall: each plan's yearly and monthly products are Choice radios with the store's prices (the yearly with the store's pricePerMonthString, a new display-only contract field, re-pinned); the yearly product of the cheapest plan covering the goal is chosen once, after the billing status read, with no event; the trial timeline needs an eligible free intro in days or weeks and never promises the Day 5 reminder, which nothing schedules yet; the pill keeps its tag and waits in place, its check only after the server confirms. Repaired on ca/p4-wall-r1 after review: each way to pay is titled by its billed amount and the trial's terms at the pill are drawn in ink at body weight, no trial line larger (Apple 3.1.2). Known gap, not closed by this tick: the plan catalogue reaches the phone only on a live-session start, so on a device the first-run wall (no session yet) pre-selects nothing, shows no goal line or trial minutes, and after a confirmed purchase shows "We couldn't read your speaking allowance" instead of success, until /billing/status carries the catalogue (backend work outside this track); runbook step 4 stays closed until then.
+- verified-by: `the plans page pre-selects the yearly plan that covers the learner's goal and fires no selection event`
+- verified-by: `a free trial timeline appears only with a real eligible offer`
+
+### F773 — Quests end in a chest the founder decided against
+- severity: P2
+- status: [x]
+- where: packages/core/src/quests, apps/mobile/src/game, apps/mobile/src/celebrate, apps/mobile/src/game/art
+- note: Founder decision D22 (6 October): no chests. Quests, their +10 XP and the monthly quest badge stay; finishing all three shows one quiet line with the quest sound; the chest drawing, CHEST_XP, the chest claim, the quest-chest takeover and the chest seen key go. Nothing with a chest has shipped, so no stored data needs migrating.
+- note 2026-10-06, ca/d22-no-chest: done. core/quests has no CHEST or CHEST_XP: questsToClaim returns quest ids only, and the monthly quest badge draws `star`. game/model.ts refuses a chest claim and a `chest:` seen key. settle.ts credits +10 a quest and nothing more. game/events.ts publishes no quest-chest takeover, and the template, Chest.tsx, the art and GAME_COPY.chest are deleted. The end card plays `end-card-quests` (the `quest` sound with "All three quests done today.") only on the sitting that finished the third quest. The unused `gift` icon is removed. The title failed against 2a788335.
+- note 2026-10-06, ca/d22-no-chest-r1: repaired after review. The quest sound replayed when a quest finished on a day a merge had already made three; `allQuestsDoneNow` now reads the delta's `doneBefore`, counted from the merged facts less the sitting's own claims, so it sounds once a day. The second title failed against ca/d22-no-chest. Under Reduce Motion the `end-card-quests` card's one still sound is now `quest`, the sound D22 pairs with the line. The detailed specs game.md, motion-sound.md, retention-paywall.md, reviews/game.md and reviews/critic.md still describe a chest; README Part 6 overrides them where they disagree, and they were outside this step's files.
+- verified-by: `finishing all three quests shows one quiet line and no chest`
+- verified-by: `a day another phone finished while this one practised plays no quest sound again`
+
+### F774 — The reminder ask promises a skipped practised day the scheduler does not yet skip
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/reminders/ReminderAsk.tsx:43, apps/mobile/src/reminders/schedule.native.ts:229
+- note: Found by the 7 October first-run privacy review. The day-one ask says "One a day at about {time}, and never on a day you have already practised." (README Part 5.C row 9), but the reminder is still a plain daily trigger. The Phase 4 planner (F771) must make the promise true for every learner, including a guest who never makes an account (their finish days come from guestPracticeDays), and the notification must name the tutor the ask named. Nothing ships before Phase 4 (landing is HOLD until the founder has seen it).
+- note 2026-10-07, ca/p4-reminders: done. The ask plans through turnOnReminder(at, tutor); for a guest who never makes an account the planner reads guestPracticeDays and finishedAt and names tutorVoice(draft.tutorVoice), and GuestReminderPlanner (mounted in App.tsx wherever nobody is signed in) re-plans when the draft moves, which it does once a finish is on the disk, and on the way in and out of the app. Nothing scheduled repeats, so a practised day is skipped. The title failed against fbe958ce.
+- verified-by: `the reminder ask promises a skipped practised day only when the scheduler skips it, guest finish days included`
+
+### F775 — Four small gaps the core-loop review found
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/drill/AnswerSheet.tsx:99, apps/mobile/src/nav/RootNavigator.tsx:128, apps/mobile/src/nav/useBackToHome.ts:5, apps/mobile/src/DrillScreen.tsx:1789, apps/mobile/src/celebrate/queue.ts:444
+- note: Found by the 7 October core-loop review (verdict SHIP). A waiting answer sheet leaves screen-reader focus behind; a sitting opened cold on the web is never closed, so its celebration holds never lift; a drill end that waited out its delta can swap to the end card mid-read with a second finish haptic; and a moment waiting behind a sitting hold can expire after 10 minutes and never play (also raised by the merged Phase 1 re-check).
+- note 2026-10-07, ca/p4-followups (step P4-D): a sheet that waits moves a phone's screen reader onto its Continue once it has risen (drill/answerSheet.ts sheetArrival; Continue's name carries the whole sheet, and PillButton now forwards a ref); every exit from a pushed sitting goes through nav/leave.ts backOrTabs, which resets to the tabs when nothing is behind it, so a cold sitting unmounts and its holds lift (RootNavigator and useBackToHome); the drill end waits inside its screen with Done, and practice/sittingDelta.ts sittingEnd keeps the words-only finish once the wait has run out; the queue's time to live runs only on unheld time, so a held moment keeps its crash copy. Each title failed against fbe958ce. Checked in a web build, not on a device.
+- verified-by: `a waiting answer sheet moves screen-reader focus to Continue`
+- verified-by: `leaving a sitting opened cold on the web closes it and lets its holds go`
+- verified-by: `a drill end that waited out its delta keeps the words-only finish`
+- verified-by: `a moment waiting behind a hold does not expire while the hold lasts`
+
+### F776 — A failed spoken take offers a Try again that does nothing
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:553, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1314, docs/PRIVACY_AND_SAFETY.md
+- note: Found by the 7 October first-run re-check (verdict SHIP). When a spoken take's transcription fails, the page says "Your reply is still here." and offers Try again, which submits nothing in spoken mode. Say "The tutor could not hear that take. You can record it again or type it.", show Try again only for a typed reply, keep Practise this offline. Also say in PRIVACY_AND_SAFETY.md that the under-13 answer, Start a new plan instead and Create one cancel a reminder set on day one.
+- verified-by: `a failed spoken take offers to record again or type, never a Try again that does nothing`
+- note: 2026-10-07 ca/p4-first-run-fu: a spoken take that fails ('unavailable' or a dropped connection; expired and limit keep their own lines) says FIRST_RUN_COPY.takeUnheard, the failure row comes from `issueActions` in onboarding/firstRun/copy.ts and draws Try again only for a typed reply or the start, Practise this offline stays (and now turns a spoken page to typing, since offline checks typed words), and PRIVACY_AND_SAFETY.md names the three doors that cancel a day-one reminder. The title failed on the base screen and on the base document.
+
+### F777 — Three room details the review found: an unread history, a muted microphone and a slow rest
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/recap/evidence.ts:31, apps/mobile/src/ConvoScreen.tsx:629, apps/mobile/src/live/useLiveSession.ts:745, apps/mobile/src/live/levels.ts:37
+- note: Found by the 7 October room review (verdict SHIP). A postcard stamp says "again" when the learner's finish history could not be read (truthfulness: use the neutral line); at the recap the microphone is muted, not unpublished, so capture keeps running and the iPhone microphone indicator stays on; and the levels take about a second to rest after silence where acceptance check 7 asks for 300 ms (decay by elapsed time).
+- note 2026-10-07, ca/p4-room-fu-r1 (step P4-F and its review repair): an unread history is null through `firstEarnedFinish`, the conversation's read and the recap's prop, and stamps `neutral` ("You did it on your own.", the first earn's weight); the recap mutes, then unpublishes and stops the microphone track before it reports the close, the orb lets go of that track, and a start after a recap without `leave()` takes the room's hold again; levels hold 80 ms and fall by the clock (full scale in 160 ms), at rest within 240 ms of the last sound, and "Hearing you" goes 260 ms after the last voiced reading (counted from the reading, not the ring, so a quiet voice's pauses between words do not flicker it). The faster release made `envelope(1, 0) > 0.8` false in `live/levels.test.ts`, so it reads `> 0.7`; the new `release(1, LEVEL_SAMPLE_MS) > 0.5` keeps its intent. All three titles pass; the iPhone indicator and the levels' look are not yet checked on a device.
+- verified-by: `a postcard stamp never claims an earlier finish it could not read`
+- verified-by: `the recap stops the microphone capture, not only mutes it`
+- verified-by: `a level rests within 300 ms of silence`
+
+### F778 — Most screens still stack underlined text links where an icon control belongs
+- severity: P2
+- status: [x]
+- where: apps/mobile/src (63 files; docs/come-alive/icons-layout.md section 2)
+- note: README Part 5.B GhostButton sweep: about 160 of 222 links become IconButton, IconAction or Choice, keeping their labels. Words stay for legal and billing links, destructive and account actions, decline and Not now, leave confirmations and the age refusal. A ratchet test holds the remaining count and the KEEP categories.
+- verified-by: `underlined text links remain only where words must stay: legal, billing, account, decline and leave`
+- note: 2026-10-07 completion: Converted 127 ordinary controls, grouped practice actions into labelled tiles, and removed the duplicate recap exit. The AST ratchet allows at most 60 retained legal/account/billing/decline/exit controls, including dormant legacy screens.
+
+### F779 — Every paper screen draws a footer rule, so a short page looks cut off
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/layout.tsx:127
+- note: icons-layout.md 3.5: the footer hairline appears only when the content scrolls under it, toggled with no animation.
+- verified-by: `a footer hairline appears only when the content scrolls under it`
+- note: 2026-10-07 completion: The footer rule follows measured content, viewport and scroll offset; it disappears when there is no content beneath the footer.
+
+### F780 — An iPad shows the phone layout stretched across a wide screen
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/responsiveLayout.ts, apps/mobile/src/layout.tsx
+- note: icons-layout.md 3.6 and README Part 5.B: layoutClass and <Columns> on regular width (two columns on the tabs), FOOTER_MAX 480, the reading width for first-run pages, takeovers and sheets.
+- verified-by: `on a regular-width screen the tabs use two columns and sheets keep the reading width`
+- note: 2026-10-07 completion: Home, Progress and Practice use regular-width columns; onboarding uses option grids. Large text and narrow/split widths return to stacked layout. Browser checks at 375 and 834 points; physical tablet/Dynamic Type acceptance remains separate.
+
+### F781 — Empty lists show a bare sentence and no way forward
+- severity: P2
+- status: [x]
+- where: apps/mobile/src (Phrasebook, Conversations, Tutor memory)
+- note: README Part 5.B: each empty list shows one of the existing state drawings and one first action.
+- verified-by: `every empty list shows its drawing and one first action`
+- note: 2026-10-07 completion: Phrasebook, conversation library and tutor memory empty states show the existing notebook drawing and a Choose a scene action.
+
+### F782 — Tapping a disabled Next does nothing a learner can notice
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/NextButton.tsx
+- note: icons-layout.md 3.4: the press is taken while the button stays disabled: a soft haptic, the options lift by 3 points with a 40 ms stagger (never a shake) and the live region says "Choose one to continue."; Reduce Motion gives the words only. The pinned disabled={answer == null} stays.
+- verified-by: `tapping a disabled Next lifts the choices and says to choose one, never a shake`
 
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
+
+October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
+- note: 2026-10-07 completion: Disabled Next routes touch to a choice lift and polite explanation, without advancing. Reduce Motion gets the words only. Browser tap verified.
+
+### F783 — Purchase refresh leaves the game entitlement facts stale
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/purchases/billingChanges.ts, apps/mobile/src/game/GameProvider.tsx
+- note: Confirmed billing refresh invalidates game facts only for the still-current account and scope. Read generations prevent a slower earlier response from overwriting a newer one. Late successful reads after the loading deadline still update the view.
+- verified-by: `confirmed billing refresh invalidates game facts for only the current account`
+
+### F784 — New build-tool and image-decoder advisories were not yet patched
+- severity: P1
+- status: [x]
+- where: package.json, package-lock.json, services/token-server/src/dependencyPatches.test.ts
+- note: 7 October 2026 audit found compression GHSA-vc2v-76pw-4v95, shell-quote GHSA-pqg4-j6r4-53mv, source-map-js GHSA-68fv-2mgg-jv7q and Sharp GHSA-wq5f-xc86-pv6w. Exact overrides use compression 1.8.2, shell-quote 1.11.0, source-map-js 1.2.2 and Sharp 0.35.5 with libvips 1.3.4/librsvg 2.63.2. All unrelated versions and the pinned LiveKit SDK/plugin set are retained. Clean npm ci succeeds; hostile quote/map inputs are rejected, and the tutor RGB/resize/PNG path works. No new advisory was accepted or audit threshold weakened.
+- verified-by: `October dependency patches reject shell line injection and unbounded indexed source maps`
+- verified-by: `patched Sharp retains the tutor RGB resize and PNG encoding path`
+- verified-by: `every Sharp copy is patched and retains its cross-platform native assets`

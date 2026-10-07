@@ -265,6 +265,30 @@ describe('the stuck learner — the behaviour the whole product rests on', () =>
     }
   });
 
+  test('lesson praise families are plain English', () => {
+    // F717, founder decision D14: warm, plain English at wins, and no French
+    // interface praise. "Parfait." and "Très bien." are French the learner is
+    // not being taught here, said at the one moment they should simply hear
+    // that it worked. The lesson's own French lives in the tutor's lines.
+    const ACCENTED = /[À-ÖØ-öø-ÿŒœ]/;
+    const FRENCH = /\b(parfait|voila|tres|bien|c'est|ca|exactement|nickel|bravo|oui|super|genial)\b/i;
+    const praise = [...FEEDBACK_FAMILIES.excellent, ...FEEDBACK_FAMILIES.good];
+    assert.ok(praise.length >= 4, 'both praise families are walked');
+    for (const [name, family] of Object.entries(FEEDBACK_FAMILIES)) {
+      for (const line of family) {
+        assert.doesNotMatch(line, ACCENTED, `${name} speaks French: "${line}"`);
+        assert.doesNotMatch(line, FRENCH, `${name} is French interface praise: "${line}"`);
+        assert.doesNotMatch(line, /[—–·]/, `${name} carries a dash or a middot: "${line}"`);
+        assert.match(line, /^[A-Z][^]*\.$/, `${name} is not a plain sentence: "${line}"`);
+      }
+    }
+    // And a real clean turn says one of them, so the families are what plays.
+    const clean = step(createSession(lesson), said('Bonjour', 95)).feedback.message;
+    assert.ok(FEEDBACK_FAMILIES.excellent.includes(clean), `a clean turn said "${clean}"`);
+    const accented = step(createSession(lesson), said('Bonjour', 60)).feedback.message;
+    assert.ok(FEEDBACK_FAMILIES.good.includes(accented), `an accented clean turn said "${accented}"`);
+  });
+
   test('the rotation is a function of the turn, so the same turn always says the same thing', () => {
     const first = step(createSession(lesson), said('Bonjour'));
     const again = step(createSession(lesson), said('Bonjour'));

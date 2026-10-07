@@ -72,7 +72,10 @@ describe('the fixture offering exists only where the switch does', () => {
     const offering = previewOffering(ON);
     assert.ok(offering?.available);
     assert.deepEqual(offering.products.map((p) => p.plan), ['starter', 'regular']);
-    for (const product of offering.products) {
+    // 7 October 2026 (F772): the yearly products ride with them, so the yearly
+    // rows and the trial timeline can be reviewed; they are fixtures the same way.
+    assert.deepEqual(offering.yearly?.map((p) => [p.plan, p.period]), [['starter', 'year'], ['regular', 'year']]);
+    for (const product of [...offering.products, ...(offering.yearly ?? [])]) {
       // Made up in the open. An id that did not say so could be mistaken for a
       // real store product in a bug report, and no real store has ever heard of
       // these, so no purchase can complete against one.

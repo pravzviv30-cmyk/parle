@@ -459,9 +459,11 @@ describe('a drill opened cold still has a way out', () => {
     const navigator = strip(read('./RootNavigator.tsx')).replace(/\s+/g, ' ');
     const route = navigator.slice(navigator.indexOf('function DrillRoute()'), navigator.indexOf('function ReviewRoute()'));
     assert.ok(route.length > 0, 'the drill route moved; this test is stale');
+    // backOrTabs (`leave.ts`) goes back when it can, and otherwise to the
+    // tabs, opened on the tab named here, with the drill closed (F775).
     assert.match(
       route,
-      /onDone=\{\(\) => \{ if \(nav\.canGoBack\(\)\) nav\.goBack\(\); else if \(practice !== undefined\) nav\.navigate\('Tabs', \{ screen: 'Practice' \}\); else nav\.navigate\('Tabs'\); \}\}/,
+      /onDone=\{\(\) => backOrTabs\(nav, practice !== undefined \? 'Practice' : undefined\)\}/,
       'a drill opened by a reload or a shared address has a Leave that does nothing',
     );
     assert.doesNotMatch(route, /onDone=\{\(\) => nav\.goBack\(\)\}/, 'the drill goes back unconditionally again');
@@ -488,8 +490,13 @@ describe('every pushed learning screen has a way out when opened cold — whole-
   };
 
   test('the shared fallback goes back when it can and to the tabs otherwise', () => {
-    const helper = between('function backOrTabs(', 'function LessonRoute()');
-    assert.match(helper, /\): void \{ if \(nav\.canGoBack\(\)\) nav\.goBack\(\); else nav\.navigate\('Tabs'/);
+    // The helper is pure now, in `leave.ts`, so `leave.test.ts` can run it
+    // against the real stack router; the tabs it falls back to are a reset,
+    // so a sitting opened cold is closed on the way out (F775).
+    const helper = strip(read('./leave.ts')).replace(/\s+/g, ' ');
+    assert.match(helper, /export function backOrTabs\(nav: LeavingNav, tab\?: keyof TabParamList\): void \{ if \(nav\.canGoBack\(\)\) nav\.goBack\(\); else nav\.reset\(tabsAlone\(tab\)\); \}/);
+    assert.match(navigator, /import \{ backOrTabs, type LeavingNav \} from '\.\/leave\.ts';/, 'the navigator keeps a fallback of its own');
+    assert.doesNotMatch(navigator, /function backOrTabs\(/, 'the navigator keeps a fallback of its own');
   });
 
   test('review, lesson, conversation and sound check never call a bare goBack', () => {

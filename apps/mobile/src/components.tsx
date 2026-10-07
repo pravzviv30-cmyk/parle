@@ -5,14 +5,14 @@ import { Feedback } from './motion/Feedback.tsx';
  * White cards with no hairline and no shadow, ledger rows ruled by hairlines,
  * one fully rounded ink pill for the one primary action, underlined text links
  * for everything second, and a single highlighter band behind one French line.
- * Every tappable part presses through `Press`, the one spring. Icons are
- * ICONS.md's marks at its one stroke of 2.
+ * Every tappable part presses through `Press`, the one spring. Icons are the
+ * generated set in `src/icons/` (come alive, D11), drawn through `Icon`.
  *
  * Append-only: `components.test.ts` slices this file between adjacent exports,
  * so a new component goes at the end, after the stylesheet.
  */
 
-import { Children, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Children, isValidElement, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   AccessibilityInfo,
   Modal,
@@ -26,8 +26,10 @@ import {
   Text,
   TextInput,
   Pressable,
+  PixelRatio,
   Platform,
   StyleSheet,
+  useWindowDimensions,
   type PressableProps,
   type StyleProp,
   type TextStyle,
@@ -35,7 +37,10 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle, G, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
+import { AnimatedIcon, type AnimatedIconKind } from './icons/AnimatedIcon.tsx';
+import { Icon, type IconName } from './icons/Icon.tsx';
+import { TileOnChosen } from './icons/IconTile.tsx';
 import {
   accent,
   colour,
@@ -55,192 +60,93 @@ import {
   type,
   HAIRLINE,
   HIT,
-  STROKE,
   rungColor,
   rungLabel,
 } from './theme.ts';
+import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { pressed, tapSettled } from './motion/haptics.ts';
-import { PRESS_SCALE, pressTo, useReduceMotion } from './motion.ts';
+import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
+import { holdCelebrations } from './celebrate/queue.ts';
+import { READING } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
-// ICONS.md's marks, ported path for path: a 24 box, no fill, the one STROKE,
-// round caps and joins. Where ICONS.md has no match the notebook drawing stays
-// at the new stroke until its callers retire (F602, F605). The brand marks are
-// the only filled glyphs, filled in the mark's own colour.
+// Come alive (D11): every mark below is now a delegate to the generated icon
+// set in `src/icons/`, edited in place so each keeps its name, its default size
+// and colour, and its place between the exports this file is sliced by. New
+// code draws `<Icon name=... />` directly. The brand marks stay drawn here:
+// they are Apple's and Google's, filled in the one colour they are given.
 
-/** ICONS.md `next`. */
+/** Next: an arrow. */
 export function ArrowRight({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M4 12h16" />
-        <Path d="M13 5l7 7-7 7" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="forward" size={size} color={color} />;
 }
 
-/** ICONS.md `back`. */
+/** Back: a chevron pointing left. */
 export function ChevronLeft({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <Path d="M15 5l-7 7 7 7" fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+  return <Icon name="back" size={size} color={color} />;
 }
 
 /**
- * ICONS.md `chevron-right`: the mirror of ChevronLeft, and the one mark at the
- * end of a row that opens. It is a mark beside words that already say where the
- * row goes, never a word itself.
+ * The mirror of ChevronLeft, and the one mark at the end of a row that opens.
+ * It is a mark beside words that already say where the row goes, never a word
+ * itself.
  */
 export function ChevronRight({ size = 22, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <Path d="M9 5l7 7-7 7" fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
+  return <Icon name="chevron-right" size={size} color={color} />;
 }
 
 /**
- * ICONS.md `mic`, which is also its `speak`: the Speak tab and the control are
- * the same microphone on purpose, so `nav/icons.tsx` re-exports this one.
+ * The microphone, which is also Speak: the Speak tab and the control are the
+ * same microphone on purpose, so `nav/icons.tsx` re-exports this one, and the
+ * tab bar passes `focused` to draw it Bulk when Speak is the selected tab.
  */
-export function MicGlyph({ size = 30, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Rect x={9} y={3} width={6} height={11} rx={3} />
-        <Path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
-        <Path d="M12 18v3" />
-        <Path d="M8.5 21h7" />
-      </G>
-    </Svg>
-  );
+export function MicGlyph({ size = 30, color = paper.ink, focused = false }: { size?: number; color?: string; focused?: boolean }) {
+  return <Icon name="microphone" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }
 
-/** ICONS.md `speaker`: sound arriving, not being captured. */
+/** The speaker: sound arriving, not being captured. */
 export function EarGlyph({ size = 26, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M4 9.5h3.5L13 5v14l-5.5-4.5H4Z" />
-        <Path d="M16.5 9.5a3.5 3.5 0 0 1 0 5" />
-        <Path d="M19 7a7 7 0 0 1 0 10" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="speaker" size={size} color={color} />;
 }
 
-/** ICONS.md `lifebuoy`: help, drawn as a ring you can hold rather than a question. */
+/** Help: a question in a speech bubble. */
 export function HelpGlyph({ size = 16, color = paper.inkSoft }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Circle cx={12} cy={12} r={9.5} />
-        <Circle cx={12} cy={12} r={4} />
-        <Path d="M5.3 5.3l3.9 3.9M18.7 5.3l-3.9 3.9M5.3 18.7l3.9-3.9M18.7 18.7l-3.9-3.9" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="help" size={size} color={color} />;
 }
 
 /**
- * The mark beside the days a learner has been active.
- *
- * The founder's mockup draws an emoji flame here. This app has no emoji in it
- * anywhere, and one would be the first thing on any screen not drawn in the pen
- * the rest of it uses, at a weight and a palette nothing else shares. So the
- * flame is drawn: the same shape, the same meaning beside the same number, in
- * the one stroke weight.
- *
- * It is a flame and not a chain. The tile it sits on counts days that have
- * happened and can only go up, and nothing in this app asks a learner to
- * protect it, which is what PRODUCT.md refused twice. The picture is warmth,
- * not debt.
- *
- * ICONS.md has no match, so it is kept as drawn until F602 and F605 retire it.
+ * The mark beside the days a learner has been active: a flame, the warmth of
+ * the days that have happened, in the one stroke weight. No caller today; the
+ * streak's own flame is `game/art`'s and moves through `AnimatedIcon`.
  */
 export function FlameGlyph({ size = 18, color = signal.correspondance }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M13 2.6c3.4 3 5 5.8 5 8.6a6 6 0 0 1-12 0c0-1.5.5-2.9 1.6-4.2.3 1.2.9 2 1.8 2.3.5-2.7 1.7-5 3.6-6.7z" />
-        <Path d="M12 20a2.7 2.7 0 0 1-2.7-2.7c0-1.3.9-2.4 2.7-4 1.8 1.6 2.7 2.7 2.7 4A2.7 2.7 0 0 1 12 20z" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="flame" size={size} color={color} />;
 }
 
-/**
- * A seedling: a stem and two leaves. ICONS.md has no match, so it is kept as
- * drawn, at the new stroke, until its callers retire (F602, F605).
- */
+/** A seedling: Luvani's own drawing in the set, kept until its callers retire (F602, F605). */
 export function SproutGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M12 21c-.2-5 .1-8 .8-10.4" />
-        <Path d="M12.8 12.6c.4-4 3-6.4 6.8-6.6.2 3.8-2.4 6.4-6.4 6.8z" />
-        <Path d="M11.4 16.4c-.4-3.4-2.6-5.6-6-5.8-.2 3.2 2 5.6 5.6 5.8z" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="sprout" size={size} color={color} />;
 }
 
-/**
- * An outline bookmark. Drawn on the control that saves a situation, not on a
- * saved one. Kept as drawn until F602 and F605 retire it.
- */
+/** An outline bookmark, drawn on the control that saves a situation, not on a saved one. */
 export function BookmarkGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <Path
-        d="M6.4 4.2h11.2v16.2L12 16.6l-5.6 3.8z"
-        fill="none"
-        stroke={color}
-        strokeWidth={STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+  return <Icon name="bookmark" size={size} color={color} />;
 }
 
-/**
- * Concentric rings. The mark beside a goal for today, so the number it sits
- * next to reads as something aimed at rather than something scored. Kept until
- * F602 and F605 retire it; its centre is a stroked dot, the way ICONS.md draws
- * a dot, because the brand marks are the only filled glyphs.
- */
+/** The mark beside a goal for today, so the number beside it reads as aimed at rather than scored. */
 export function TargetGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round">
-        <Circle cx={12} cy={12} r={8.6} />
-        <Circle cx={12} cy={12} r={4.4} />
-        <Path d="M12 12h.01" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="flag" size={size} color={color} />;
 }
 
 /**
- * ICONS.md `check-circle`: a tick inside a ring, beside how much of the deck is
- * coming back, drawn as a check and not a medal because the figure under it is
- * what a learner remembered rather than a prize somebody handed them.
+ * A tick inside a ring, beside how much of the deck is coming back: a check and
+ * not a medal, because the figure under it is what a learner remembered rather
+ * than a prize somebody handed them.
  */
 export function BadgeGlyph({ size = 18, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Circle cx={12} cy={12} r={9.5} />
-        <Path d="M8 12.5l2.8 2.8L16.5 9.5" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="tick-circle" size={size} color={color} />;
 }
 
 /** ICONS.md `google`: the brand mark, filled in the one colour it is given. */
@@ -306,8 +212,11 @@ export function Label({ children, color = paper.inkSoft }: { children: React.Rea
 /**
  * The one primary action on a screen (SNIPPETS button-primary): a 56pt pill,
  * fully rounded. Ink with white lettering on paper, sun, mint or white; white
- * with ink lettering on blue or coral. Disabled is soft ink with white
- * lettering in either tone, so it still reads as a control that is off.
+ * with ink lettering on blue or coral. Disabled is soft ink lettering on the
+ * sand skeleton for an ink pill, and on the blue ground's pale secondary for a
+ * white one (come alive, icons section 3.4; F758): a soft ink pill with white
+ * words read as a live one, so the off pill is quieter than any live control
+ * rather than a second dark one.
  */
 export function PillButton({
   label,
@@ -316,6 +225,8 @@ export function PillButton({
   icon,
   accessibilityLabel,
   tone = 'ink',
+  ref,
+  state = 'idle',
 }: {
   label: string;
   onPress: () => void;
@@ -325,14 +236,46 @@ export function PillButton({
   accessibilityLabel?: string;
   /** ink on paper, sun, mint or white; white on blue or coral. */
   tone?: 'ink' | 'white';
+  /** The pressable itself, for a caller that moves a screen reader onto it (the answer sheet's Continue). */
+  ref?: Ref<View>;
+  /**
+   * The pill waiting in place (come alive, README Part 5.G). `busy` turns its
+   * mark into the turning refresh; `done` draws the check where the spinner
+   * was, and is passed only for a real resolved result, such as an entitlement
+   * the server confirmed. Either keeps the live fill and takes no second press.
+   * Back to `idle` simply drops the mark: no shake. The caller's label says the
+   * state ("Opening the store…"); movement is the icons' own, still under
+   * Reduce Motion.
+   */
+  state?: 'idle' | 'busy' | 'done';
 }) {
+  const waiting = state !== 'idle';
   return (
-    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && s.pillDisabled]} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
-      {icon}
-      <Text style={[type.button, { color: tone === 'white' && !disabled ? paper.ink : paper.onInk }]}>{label}</Text>
+    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+      {waiting ? <PillWait done={state === 'done'} color={tone === 'white' ? paper.ink : paper.onInk} /> : icon}
+      <Text style={[type.button, { color: disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk }]}>{label}</Text>
     </Press>
   );
 }
+
+/**
+ * The pill's waiting mark: the check-draw mounted from the start so it draws
+ * when the result lands, with the turning refresh over it until then.
+ */
+function PillWait({ done, color }: { done: boolean; color: string }) {
+  return (
+    <View {...decorative} style={s.pillWait}>
+      <AnimatedIcon kind="check-draw" size={PILL_MARK} color={color} state={done ? 'on' : 'off'} />
+      {done ? null : (
+        <View style={StyleSheet.absoluteFill}>
+          <AnimatedIcon kind="refresh-spin" size={PILL_MARK} color={color} active />
+        </View>
+      )}
+    </View>
+  );
+}
+
+const PILL_MARK = 24;
 
 /**
  * A secondary action: a quiet text link at the touch floor, ink words with no
@@ -978,7 +921,11 @@ const s = StyleSheet.create({
     paddingVertical: space(3),
   },
   pillWhite: { backgroundColor: paper.card },
-  pillDisabled: { backgroundColor: paper.inkFaint },
+  pillWait: { width: PILL_MARK, height: PILL_MARK },
+  pillDisabled: { backgroundColor: paper.skeleton },
+  // A white pill sits on blue or coral, where the sand reads as one more live
+  // fill; off there is the blue ground's pale secondary (F758).
+  pillDisabledOnColour: { backgroundColor: onColour.blue },
   outline: {
     minHeight: HIT,
     alignItems: 'center',
@@ -1292,7 +1239,8 @@ export function LevelPath({ levels }: { levels: readonly PathLevel[] }) {
  * Revamp B (F601): a white card. The orb, then the name, the voice and the
  * change link as one column, then the sample as a 44 ink disc with the white
  * speaker mark, pressed through the one spring. The signature sits under the
- * row, marked as French so a screen reader reads it in a French voice.
+ * row, marked as French so a screen reader reads it in a French voice. Come
+ * alive: the speaker's arcs breathe while the sample really plays.
  */
 export function TutorCard({
   name,
@@ -1323,14 +1271,14 @@ export function TutorCard({
           <Text style={[type.heading, { color: paper.ink }]}>{name}</Text>
           <Text style={[type.small, { color: paper.inkSoft }]}>{voice}</Text>
           <View style={ls.tutorChange}>
-            <GhostButton label={changeLabel} onPress={onChange} color={paper.ink} />
+            <IconAction layout="inline" icon="edit" label={changeLabel} onPress={onChange}  />
           </View>
         </View>
         <Press haptic="light" onPress={onHear} style={ls.hear}
           accessibilityRole="button"
           accessibilityLabel={playing ? `Stop ${name}` : `Hear ${name}`}
         >
-          <EarGlyph size={22} color={paper.onInk} />
+          <AnimatedIcon kind="speaker-waves" size={22} active={playing} color={paper.onInk} />
         </Press>
       </View>
       <Text {...frenchText} style={[type.french, { color: paper.ink }]}>
@@ -1372,6 +1320,7 @@ export function SceneBrief({
   action,
   secondary,
   corner,
+  art,
 }: {
   /** One meta line: the label, the minutes and the tutor, already in words. */
   meta: string;
@@ -1391,9 +1340,12 @@ export function SceneBrief({
   secondary?: ReactNode;
   /** A 44pt slot at the top right: the bookmark toggle, or nothing. */
   corner?: ReactNode;
+  /** The scene's place drawing above the meta line (Phase 4): decorative, never pressable. */
+  art?: ReactNode;
 }) {
   return (
     <ColourCard ground="blue" style={ls.brief}>
+      {art != null ? art : null}
       <View style={ls.briefHead}>
         <Text style={[type.small, ROW_WORDS, { color: onColour.blue }]}>{meta}</Text>
         {corner != null ? <View style={ls.corner}>{corner}</View> : null}
@@ -1514,6 +1466,18 @@ export type PressProps = Omit<PressableProps, 'style' | 'onPress' | 'children'> 
   style?: StyleProp<ViewStyle>;
   /** The Pressable's place in its parent: flex, alignSelf, width. Never a colour. */
   frame?: StyleProp<ViewStyle>;
+  /** control: pills, links and rows go to 0.97. tile: option tiles and icon buttons press deeper, to 0.95. */
+  depth?: 'control' | 'tile';
+  /**
+   * For a choice: whether this one is the chosen one. Becoming chosen pops the
+   * surface once and fades in a blue ring layer around it. Leave it out for an
+   * action, which draws no ring at all.
+   */
+  selected?: boolean;
+  /** The surface's corner, so the ring around it follows it. Defaults to the control radius. */
+  glowRadius?: number;
+  /** The pressable itself, for a caller that moves a screen reader onto it. */
+  ref?: Ref<View>;
   children: ReactNode;
 };
 
@@ -1523,13 +1487,23 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
 /**
  * The one press (STYLE section 11): every tappable thing scales to 0.97 on the
  * press spring while the finger is down, springs back on lift, and answers
- * with a light impact for a press or a selection tick for a choice.
+ * with a light impact for a press or a selection tick for a choice. A tile
+ * (`depth="tile"`) presses deeper, to 0.95.
  *
- * Two layers, because the thing that shrinks must be the drawn surface and
- * `Animated.createAnimatedComponent(Pressable)` is refused by motion.test.ts:
- * the Pressable holds the part's place in its parent (`frame`), and the
- * Animated.View inside it is the surface (`style`). Under reduced motion the
- * scale lands at once, so the press is still felt and nothing travels.
+ * Two layers, because the thing that shrinks must be the drawn surface and an
+ * animated Pressable is refused by motion.test.ts: the Pressable holds the
+ * part's place in its parent (`frame`), and the Reanimated view inside it is
+ * the surface (`style`). The spring runs on the UI thread through
+ * `motion/drive.ts`. Under reduced motion the scale lands at once, so the press
+ * is still felt and nothing travels, and turning it on mid-press lands the
+ * surface at rest.
+ *
+ * A choice passes `selected`. When it becomes the chosen one the surface pops
+ * once (`SELECT_POP`, then the pop spring) and a blue ring layer fades in four
+ * points around it, at 0.16. The ring is a view drawn under the surface, not a
+ * cast shadow (F569), and it is decorative: the caller's fill and words, and
+ * `accessibilityState`, say what was chosen. No second haptic on select; the
+ * press already answered.
  *
  * Cancel-on-move is Pressable's own contract: when a scroll view takes the
  * responder, Pressable fires `onPressOut` and never `onPress`, so the spring
@@ -1537,24 +1511,29 @@ export type Ground = 'blue' | 'coral' | 'sun' | 'mint';
  * role wins (a segment passes `tab`). A disabled Press never presses, so it
  * neither shrinks nor ticks.
  */
-export function Press({ onPress, haptic = 'light', style, frame, disabled = false, onPressIn, onPressOut, children, ...rest }: PressProps) {
+export function Press({ onPress, haptic = 'light', style, frame, depth = 'control', selected, glowRadius = radius.control, disabled = false, onPressIn, onPressOut, children, ...rest }: PressProps) {
   const reduced = useReduceMotion();
-  const scale = useRef(new Animated.Value(1)).current;
-  const running = useRef<Animated.CompositeAnimation | null>(null);
-  useEffect(() => () => running.current?.stop(), []);
-  useEffect(() => { if (reduced) { running.current?.stop(); scale.setValue(1); } }, [reduced, scale]);
+  const scale = useSharedValue(1);
+  const chosen = useRef(selected === true);
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  useEffect(() => () => stopMotion(scale), [scale]);
+  useEffect(() => { if (reduced) pressTo(scale, 1, true); }, [reduced, scale]);
+  useEffect(() => {
+    const now = selected === true;
+    if (now === chosen.current) return;
+    chosen.current = now;
+    if (now) selectPop(scale, reduced);
+  }, [selected, reduced, scale]);
   return (
     <Pressable
       accessibilityRole="button" {...rest}
-      disabled={disabled}
+      disabled={disabled || undefined}
       onPressIn={(event) => {
-        running.current?.stop();
-        running.current = pressTo(scale, PRESS_SCALE, reduced);
+        pressTo(scale, depth === 'tile' ? PRESS_SCALE_TILE : PRESS_SCALE, reduced);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
-        running.current?.stop();
-        running.current = pressTo(scale, 1, reduced);
+        pressTo(scale, 1, reduced);
         onPressOut?.(event);
       }}
       onPress={() => {
@@ -1564,32 +1543,48 @@ export function Press({ onPress, haptic = 'light', style, frame, disabled = fals
       }}
       style={frame}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>
+      {selected !== undefined ? (
+        <SelectRing selected={selected} scale={scale} glowRadius={glowRadius} reduced={reduced} />
+      ) : null}
+      <Reanimated.View style={[style, pressStyle]}>{children}</Reanimated.View>
     </Pressable>
   );
 }
 
-/** ICONS.md `close`: the way out of a sheet or a story. */
-export function CloseGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
+/**
+ * The chosen tile's blue ring layer. `Press` mounts it only for a choice, so an
+ * action builds no ring value and no second animated style. It fades in when
+ * the choice lands here and out when it moves on, and scales with the press so
+ * the two stay one shape. Under reduced motion it is at rest at once.
+ */
+function SelectRing({ selected, scale, glowRadius, reduced }: { selected: boolean; scale: SharedValue<number>; glowRadius: number; reduced: boolean }) {
+  const ring = useSharedValue(selected ? SELECT_RING_OPACITY : 0);
+  const chosen = useRef(selected);
+  const ringStyle = useAnimatedStyle(() => ({ opacity: ring.value, transform: [{ scale: scale.value }] }));
+  useEffect(() => () => stopMotion(ring), [ring]);
+  useEffect(() => { if (reduced) ringTo(ring, chosen.current, true); }, [reduced, ring]);
+  useEffect(() => {
+    const now = selected;
+    if (now === chosen.current) return;
+    chosen.current = now;
+    ringTo(ring, now, reduced);
+  }, [selected, reduced, ring]);
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M6 6l12 12" />
-        <Path d="M18 6 6 18" />
-      </G>
-    </Svg>
+    <Reanimated.View
+      {...decorative}
+      style={[{ pointerEvents: 'none', position: 'absolute', top: -space(1), right: -space(1), bottom: -space(1), left: -space(1), borderRadius: glowRadius + space(1), backgroundColor: colour.blue }, ringStyle]}
+    />
   );
 }
 
-/** ICONS.md `check`: the chosen option's tick. */
+/** Close: the way out of a sheet or a story. A delegate to the icon set (D11). */
+export function CloseGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
+  return <Icon name="close" size={size} color={color} />;
+}
+
+/** The chosen option's tick: Luvani's own drawing in the icon set. */
 export function CheckGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M5 12.5l4.5 4.5L19 7" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="check" size={size} color={color} />;
 }
 
 /**
@@ -1711,10 +1706,12 @@ export function HeroNumber({ value, unit, ground }: { value: string; unit: strin
 }
 
 /**
- * A one-tap choice (SNIPPETS option): a white row with a title, an optional
- * line under it, and the mark at its end: the blue disc with a white check when
- * chosen, the field ring when not. The choice is said twice, once per
- * platform, the way the segmented control says it, and it ticks like a choice.
+ * A one-tap choice (SNIPPETS option): a title, an optional line under it, and
+ * the mark at its end. Come alive (icons section 1.6): a thin wrapper over the
+ * one `Choice`, so a chosen row fills with the brand blue and carries a white
+ * disc with the blue check, and the field ring marks one not chosen. It stays a
+ * button with a selected state, said on a device and on the web, because its
+ * callers have no radio group around it; a Hear beside it is its own target.
  */
 export function OptionRow({ title, detail, selected, onPress, accessibilityLabel, onHear, playing = false }: {
   title: string;
@@ -1725,22 +1722,7 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
   onHear?: () => void;
   playing?: boolean;
 }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: paper.card }}>
-      <Press haptic="selection" accessibilityRole="button" accessibilityState={{ selected }} aria-selected={selected} aria-pressed={selected}
-        accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)} onPress={onPress} frame={{ flex: 1, minWidth: 0 }} style={b.option}>
-        <View style={b.optionWords}>
-          <Text style={[type.label, { color: paper.ink }]}>{title}</Text>
-          {detail != null ? <Text style={[type.small, { color: paper.inkSoft }]}>{detail}</Text> : null}
-        </View>
-        <Feedback kind="selection" active={selected}>{selected ? <View {...decorative} style={[b.optionMark, { backgroundColor: accent.brand }]}><CheckGlyph size={18} color={paper.onInk} /></View>
-          : <View {...decorative} style={[b.optionMark, { borderWidth: 2, borderColor: paper.field }]} />}</Feedback>
-      </Press>
-      {onHear != null ? <Press haptic="light" onPress={onHear} accessibilityLabel={playing ? `Stop ${title}` : `Hear ${title}`} style={{ minHeight: HIT, minWidth: HIT, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={[type.small, { color: paper.ink }]}>{playing ? 'Stop' : 'Hear'}</Text>
-      </Press> : null}
-    </View>
-  );
+  return <Choice role="button" title={title} detail={detail} selected={selected} onPress={onPress} accessibilityLabel={accessibilityLabel} onHear={onHear} playing={playing} />;
 }
 
 /**
@@ -1756,8 +1738,15 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  * the way the old centred leave card said its question (F603). `ConfirmSheet`
  * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children, footer, returnFocus }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null } }) {
+export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean }) {
   const insets = useSafeAreaInsets();
+  // F755: while the content runs under the footer, a hairline sits over the
+  // footer and the scroll indicator flashes once per opening (`sheetRunsUnder`).
+  const scroller = useRef<ScrollView>(null);
+  const measures = useRef({ content: 0, viewport: 0, offset: 0 });
+  const [cue, setCue] = useState(false);
+  const flashed = useRef(false);
+  const measureCue = () => setCue(sheetRunsUnder(measures.current.content, measures.current.viewport, measures.current.offset));
   const reduced = useReduceMotion();
   const snapshot = useRef({ title, children, footer });
   if (visible) snapshot.current = { title, children, footer };
@@ -1776,6 +1765,22 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus }
     motion.current.start(({ finished }) => { if (finished && !visible) setPresent(false); });
     return () => motion.current?.stop();
   }, [visible, reduced, arrival, drag]);
+  // The sheet's Modal would sit above the celebration host, so the host waits
+  // while one is presented and goes on once it has gone (come alive, F743).
+  useEffect(() => (present ? holdCelebrations() : undefined), [present]);
+  // A closed sheet forgets its measures, so the next opening is measured afresh.
+  useEffect(() => {
+    if (visible) return;
+    flashed.current = false;
+    measures.current = { content: 0, viewport: 0, offset: 0 };
+    setCue(false);
+  }, [visible]);
+  useEffect(() => {
+    if (!visible || !cue || flashed.current) return undefined;
+    flashed.current = true;
+    const flash = setTimeout(() => scroller.current?.flashScrollIndicators(), SHEET_CUE_FLASH_MS);
+    return () => clearTimeout(flash);
+  }, [visible, cue]);
   useEffect(() => {
     if (present) { wasOpen.current = true; return; }
     if (wasOpen.current && Platform.OS !== 'web') {
@@ -1808,15 +1813,26 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus }
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <Animated.View accessibilityViewIsModal onAccessibilityEscape={onClose}
-            style={[b.sheetPanel, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
+            style={[b.sheetPanel, reading && b.sheetReading, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
               <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
-              <GhostButton label="Close" onPress={onClose} />
+              <IconButton icon="close" label="Close" onPress={onClose} />
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ gap: space(4) }}>{snapshot.current.children}</ScrollView>
-            {snapshot.current.footer}
+            <ScrollView
+              ref={scroller}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ gap: space(4) }}
+              scrollEventThrottle={100}
+              onLayout={(event) => { measures.current.viewport = event.nativeEvent.layout.height; measureCue(); }}
+              onContentSizeChange={(_width, height) => { measures.current.content = height; measureCue(); }}
+              onScroll={(event) => { measures.current.offset = event.nativeEvent.contentOffset.y; measureCue(); }}
+            >{snapshot.current.children}</ScrollView>
+            {snapshot.current.footer != null ? (
+              <View style={cue ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null}>{snapshot.current.footer}</View>
+            ) : null}
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
@@ -1855,6 +1871,8 @@ export function QuietLine({ children }: { children: string }) {
  * control is a disc at the touch floor that says Stop while the line sounds.
  * On white: ink words and an ink disc with a white ear. On blue: white words, the
  * blue ground's secondary for the English, and a white disc with an ink ear.
+ * Come alive: while the line really plays, the speaker's arcs breathe
+ * (`AnimatedIcon`, still under Reduce Motion); the disc itself is unchanged.
  */
 export function FrenchBlock({
   french,
@@ -1890,7 +1908,7 @@ export function FrenchBlock({
           onPress={onHear}
           style={[b.hearDisc, { backgroundColor: onBlue ? paper.card : paper.ink }]}
         >
-          <EarGlyph size={22} color={onBlue ? paper.ink : paper.onInk} />
+          <AnimatedIcon kind="speaker-waves" size={22} active={playing} color={onBlue ? paper.ink : paper.onInk} />
         </Press>
       ) : null}
     </View>
@@ -1903,20 +1921,9 @@ const b = StyleSheet.create({
   roundDisc: { alignItems: 'center', justifyContent: 'center' },
   statTile: { backgroundColor: paper.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
   heroRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2.5) },
-  option: {
-    backgroundColor: paper.card,
-    borderRadius: radius.tile,
-    minHeight: HIT + space(5),
-    paddingVertical: space(4),
-    paddingLeft: space(5),
-    paddingRight: space(4),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
-  },
-  optionWords: { ...ROW_WORDS, gap: space(0.5) },
-  optionMark: { width: space(7), height: space(7), borderRadius: space(3.5), alignItems: 'center', justifyContent: 'center' },
   sheetOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' },
+  // On an iPad the first run's sheets keep its reading column (come alive, icons section 3.6).
+  sheetReading: { alignSelf: 'center', width: '100%', maxWidth: READING },
   sheetPanel: {
     backgroundColor: paper.card,
     paddingTop: space(3),
@@ -1970,22 +1977,15 @@ export function canDoSentence(canDo: string): string {
 }
 
 /**
- * ICONS.md `alert`: beside a field's error line. Errors are never red.
+ * The alert, beside a field's error line. Errors are never red. A delegate to
+ * the icon set (D11), drawn decorative: the error words are what is read.
  *
  * It lives here rather than in `glyphs.tsx` because `Field` draws it, and
  * `glyphs.tsx` already imports from this file, so the reverse edge would be a
  * cycle. `glyphs.tsx` re-exports it, the way it re-exports the speaker.
  */
 export function AlertGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
-      <G fill="none" stroke={color} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M10.3 4.5 2.9 17.5a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z" />
-        <Path d="M12 9.5v4" />
-        <Path d="M12 17h.01" />
-      </G>
-    </Svg>
-  );
+  return <Icon name="alert" size={size} color={color} />;
 }
 
 const sp = StyleSheet.create({
@@ -2010,4 +2010,459 @@ export function ControlTile({ label, glyph, onPress, disabled = false, accessibi
       <Text style={[type.small, { color: disabled ? paper.inkSoft : paper.ink }]}>{label}</Text>
     </Press>
   );
+}
+
+// ──────────────────────────────── the icon controls (come alive, D2, F727)
+// Appended, because every region above is sliced between adjacent exports.
+// Each presses through `Press`, draws from tokens, casts no shadow, says off
+// in colour rather than opacity, and plays no sound of its own: an outcome's
+// sound comes from the event that settled it, never from a tap.
+
+/**
+ * The six actions a button may say with a picture alone (icons section 1.6):
+ * back, close, hear, keep, do this line again and remind me are read the same
+ * way everywhere. Anything else is an `IconAction`, with its word on screen.
+ */
+export type IconButtonIcon = 'back' | 'close' | 'speaker' | 'bookmark' | 'replay' | 'bell';
+
+/** What an icon button may play, each on an event its caller really holds. */
+export type IconButtonAnimation = Extract<AnimatedIconKind, 'bookmark-fill' | 'speaker-waves' | 'bell-ring' | 'refresh-spin'>;
+
+/** What a control sits on: paper (a white card or sheet counts as paper), or one of the four colour grounds. */
+export type ControlGround = 'paper' | Ground;
+
+/**
+ * A control's mark and words on its ground, and the colour that says it is
+ * off there. Soft ink is for paper and white only: on a colour the off colour
+ * is that ground's own secondary (icons review 14), and never an opacity.
+ */
+function groundInk(ground: ControlGround, disabled: boolean): string {
+  if (ground === 'paper') return disabled ? paper.inkSoft : paper.ink;
+  return disabled ? onColour[ground] : textOn[ground];
+}
+
+/** A toggle that is on draws in the brand blue where its mark would be ink, and keeps the white on a white mark. */
+function chosenInk(base: string): string {
+  return base === paper.ink ? accent.brand : base;
+}
+
+/**
+ * A button with no visible label (icons section 1.6): one of six marks at the
+ * touch floor, so it carries a spoken label, required, and that label is what
+ * a screen reader says. The mark is decorative.
+ *
+ * `plain` is the mark alone in its ground's ink; `disc` is the white disc with
+ * an ink mark that RoundButton draws; `ink` is the ink disc with a white mark
+ * that FrenchBlock draws. `md` is a 44 target with a 24 mark, `lg` a 56 disc
+ * with a 28 mark for the main audio on a page. Both sizes come from `HIT`.
+ *
+ * A toggle passes `selected` (kept, reminders on): the mark turns Bulk, in the
+ * brand blue where it would be ink, and the state is said on a device and on
+ * the web. `animate` names what moves with it, through `AnimatedIcon`, and only
+ * on the truth the caller passes: `selected` turns a one-shot on, `trigger`
+ * replays one, `active` holds a loop such as a line playing. It presses deeper,
+ * like a tile, and ticks like a choice when it is a toggle. Off is soft ink on
+ * paper and on a sand disc, or the ground's own secondary on a colour.
+ */
+export function IconButton({
+  icon,
+  label,
+  accessibilityLabel,
+  onPress,
+  tone = 'plain',
+  size = 'md',
+  ground = 'paper',
+  selected,
+  animate,
+  trigger,
+  active = false,
+  disabled = false,
+  accessibilityHint,
+  haptic,
+}: {
+  /** One of the six; anything else needs a word on screen, so it is an IconAction. */
+  icon: IconButtonIcon;
+  /** Required: nothing on screen names this button, so this is what is said. */
+  label: string;
+  /** A fuller name, when the label alone names nothing where the button sits. Falls back to label. */
+  accessibilityLabel?: string;
+  onPress: () => void | boolean;
+  tone?: 'plain' | 'disc' | 'ink';
+  size?: 'md' | 'lg';
+  /** What a plain button sits on, so its mark takes that ground's ink. */
+  ground?: ControlGround;
+  /** A toggle's state. Leave it out for an action. */
+  selected?: boolean;
+  animate?: IconButtonAnimation;
+  /** A real event's key; a change replays a one-shot once. */
+  trigger?: string | number;
+  /** A held state that loops, such as the line playing. */
+  active?: boolean;
+  disabled?: boolean;
+  accessibilityHint?: string;
+  haptic?: Haptic;
+}) {
+  const hit = size === 'lg' ? HIT + space(3) : HIT;
+  const markSize = size === 'lg' ? 28 : 24;
+  const on = selected === true;
+  const fill = tone === 'plain' ? undefined : disabled ? paper.skeleton : tone === 'ink' ? paper.ink : paper.card;
+  const base = tone === 'plain' ? groundInk(ground, disabled) : disabled ? paper.inkSoft : tone === 'ink' ? paper.onInk : paper.ink;
+  const mark = on && !disabled ? chosenInk(base) : base;
+  return (
+    <Press
+      haptic={haptic ?? (selected === undefined ? 'light' : 'selection')}
+      depth="tile"
+      disabled={disabled}
+      onPress={onPress}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={selected === undefined ? undefined : { selected }}
+      aria-pressed={selected}
+      frame={ic.buttonFrame}
+      style={[ic.button, { width: hit, height: hit, borderRadius: hit / 2 }, fill !== undefined && { backgroundColor: fill }]}
+    >
+      {animate !== undefined ? (
+        <AnimatedIcon kind={animate} size={markSize} color={mark} state={on ? 'on' : 'off'} trigger={trigger} active={active} />
+      ) : (
+        <Icon name={icon} variant={on ? 'bulk' : 'linear'} size={markSize} color={mark} />
+      )}
+    </Press>
+  );
+}
+
+/**
+ * An action with an icon and a short word (icons section 1.6), for everything
+ * that is not one of IconButton's six. The word is visible and is the default
+ * spoken name; a short word can carry a fuller one ("Details" says "Feedback
+ * details").
+ *
+ * `tile` is the icon over the word in a white tile, for a row of two to four
+ * (`IconActionRow`); it presses deeper. `inline` is the icon beside the word
+ * with no box, in the ground's words colour, at the touch floor.
+ *
+ * A tile that is `selected` (founder decision D7, fill and glow, no lip and no
+ * shadow) fills with the blue ground's pale secondary, gains a 2pt brand
+ * border and a Bulk brand icon, pops once and lights the ring layer `Press`
+ * draws around it; on a blue or coral ground the chosen fill is the sun with
+ * ink on it. It ticks as a choice. `busy` turns the icon into the turning
+ * refresh, says busy to a screen reader and takes no second press; the caller
+ * supplies the busy word ("Checking…"). Off is the sand tile with soft ink, or
+ * soft ink on paper and the ground's secondary on a colour for an inline one.
+ */
+export function IconAction({
+  icon,
+  label,
+  accessibilityLabel,
+  onPress,
+  layout = 'tile',
+  ground = 'paper',
+  selected,
+  busy = false,
+  disabled = false,
+  animate,
+  trigger,
+  accessibilityHint,
+  haptic,
+}: {
+  /** An icon from the set, or 'orb' for a tutor action: the tutor is never a person. */
+  icon: IconName | 'orb';
+  /** Visible, and the default spoken name. */
+  label: string;
+  /** The full sentence, when the visible word is short. Falls back to label. */
+  accessibilityLabel?: string;
+  onPress: () => void | boolean;
+  layout?: 'tile' | 'inline';
+  /** What the action sits on: an inline one takes that ground's words colour. */
+  ground?: ControlGround;
+  selected?: boolean;
+  busy?: boolean;
+  disabled?: boolean;
+  animate?: AnimatedIconKind;
+  trigger?: string | number;
+  accessibilityHint?: string;
+  haptic?: Haptic;
+}) {
+  const tile = layout === 'tile';
+  const on = selected === true && !disabled;
+  const warm = ground === 'blue' || ground === 'coral';
+  const iconSize = tile ? 24 : 20;
+  const words = tile ? (disabled ? paper.inkSoft : paper.ink) : groundInk(ground, disabled);
+  const mark = !on ? words : tile && warm ? paper.ink : chosenInk(words);
+  const surface = tile
+    ? {
+        backgroundColor: disabled ? paper.skeleton : on ? (warm ? colour.sun : onColour.blue) : paper.card,
+        borderColor: on ? (warm ? colour.sun : accent.brand) : 'transparent',
+      }
+    : null;
+  const variant = tile || on ? 'bulk' : 'linear';
+  return (
+    <Press
+      haptic={haptic ?? (selected === undefined ? 'light' : 'selection')}
+      depth={tile ? 'tile' : 'control'}
+      selected={tile ? selected : undefined}
+      glowRadius={radius.tile}
+      disabled={disabled}
+      onPress={() => (busy ? false : onPress())}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ selected, busy }}
+      aria-pressed={selected}
+      frame={tile ? ic.tileFrame : ic.inlineFrame}
+      style={tile ? [ic.tile, surface] : ic.inline}
+    >
+      {busy ? (
+        <AnimatedIcon kind="refresh-spin" size={iconSize} color={mark} active />
+      ) : icon === 'orb' ? (
+        <View {...decorative}>
+          <OrbGlyph color={mark} size={iconSize} />
+        </View>
+      ) : animate !== undefined ? (
+        <AnimatedIcon kind={animate} size={iconSize} color={mark} state={on ? 'on' : 'off'} trigger={trigger} />
+      ) : (
+        <Icon name={icon} variant={variant} size={iconSize} color={mark} secondaryColor={tile && !on && !disabled ? accent.brand : undefined} />
+      )}
+      <Text style={[tile ? type.small : type.label, { color: words }, tile && ic.tileWords]}>{label}</Text>
+    </Press>
+  );
+}
+
+/**
+ * The reading size at which a row of action tiles stops fitting side by side:
+ * the tab bar's threshold (`nav/LuvaniTabBar.tsx`), where words wrap under
+ * their icons, so the two rows agree about what large text means.
+ */
+const ACTION_ROW_WRAPS = 1.6;
+
+/**
+ * Two to four action tiles sharing a row equally, each allowed to shrink
+ * (`flex: 1, minWidth: 0`). At the largest reading sizes they wrap two to a
+ * line rather than squeeze, re-measured when the reading size changes while
+ * the app is open. More than four is a list, not a row.
+ */
+export function IconActionRow({ children }: { children: ReactNode }) {
+  // Watched so the row re-renders when the OS text size changes; PixelRatio is
+  // what the words are actually drawn at.
+  useWindowDimensions();
+  const wraps = PixelRatio.getFontScale() >= ACTION_ROW_WRAPS;
+  return (
+    <View style={[ic.row, wraps && ic.rowWrapped]}>
+      {Children.toArray(children).map((child, index) => (
+        <View key={isValidElement(child) && child.key != null ? child.key : index} style={wraps ? ic.cellWrapped : ic.cell}>
+          {child}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Where a choice sits: paper, a white card or sheet, or the blue or sun ground of a first-run page. */
+export type ChoiceGround = 'paper' | 'card' | 'blue' | 'sun';
+
+/**
+ * The one choice (icons section 1.6): a pick-one, or an answer, as a row or a
+ * tile. Every option, plan, voice, level, goal and time draws through this,
+ * and `OptionRow` and the first run's `Choice` are thin names for it.
+ * `OptionCard`, the answer row in sittings and drills, joins them once the
+ * voice-card test (F355) reads the Hear here rather than its own ear.
+ *
+ * A row is 72 (56 when compact) with the caller's tile at its head, the title,
+ * a line under it and a 28 disc at its end; a tile stacks the tile over the
+ * title for a grid of two. Not chosen: white with a 2pt hairline border, which
+ * never matches the ground; on a white sheet the fill is the paper instead.
+ * Chosen (founder decision D7: fill and glow, no lip, no shadow): the brand
+ * blue with white words and a white disc holding the blue check, or the sun
+ * with ink words on a blue ground, where blue would vanish. The tile inside
+ * turns white with a brand mark (`TileOnChosen`) so a blue or sun tile never
+ * disappears into the fill. Becoming chosen pops once and lights the ring
+ * layer `Press` draws; the disc settles in. It ticks like a choice.
+ *
+ * A radio by default, with its checked state said on a device and on the web;
+ * `role="button"` keeps a selected state instead, for rows that act on the tap.
+ * A French title is set and read as French. A Hear is its own `IconButton`
+ * beside the choice, never inside it, so hearing never chooses and no button
+ * sits in a button on the web. Sound for a choice comes later, from the event.
+ */
+export function Choice({
+  title,
+  detail,
+  tile,
+  glyph,
+  selected,
+  onPress,
+  role = 'radio',
+  layout = 'row',
+  ground = 'paper',
+  onHear,
+  playing = false,
+  compact = false,
+  lang,
+  accessibilityLabel,
+}: {
+  title: string;
+  detail?: string;
+  /** The mark at the head: an `IconTile`, or a `ChoiceArt` that draws one. */
+  tile?: ReactNode;
+  /** The first run's older name for `tile`, until its pages move to it. */
+  glyph?: ReactNode;
+  selected: boolean;
+  onPress: () => void;
+  /** radio, one of a set (the default); button, a row that acts on the tap. */
+  role?: 'radio' | 'button';
+  layout?: 'row' | 'tile';
+  /**
+   * What the choice sits on. `paper.ground` is the first run's older way of
+   * saying `card`: those sheets passed the fill they wanted, the paper, on the
+   * white sheet. It stays until they move to `card`.
+   */
+  ground?: ChoiceGround | typeof paper.ground;
+  /** Hear this choice without choosing it: a separate target beside it. */
+  onHear?: () => void;
+  /** The sample is sounding: the Hear says Stop and its arcs breathe. */
+  playing?: boolean;
+  compact?: boolean;
+  /** The title is a French line: set as French, and read in a French voice. */
+  lang?: 'fr';
+  /** Say something other than the title and detail. Falls back to both, joined. */
+  accessibilityLabel?: string;
+}) {
+  const on: ChoiceGround = ground === paper.ground ? 'card' : ground;
+  const sunny = on === 'blue';
+  const radio = role === 'radio';
+  const head = tile ?? glyph;
+  const isTile = layout === 'tile';
+  const fill = selected ? (sunny ? colour.sun : accent.brand) : on === 'card' ? paper.ground : paper.card;
+  const words = selected && !sunny ? paper.onInk : paper.ink;
+  const quiet = selected ? (sunny ? onColour.sun : onColour.blue) : paper.inkSoft;
+  const titleStyle = lang === 'fr' ? type.french : compact ? type.label : type.bodyStrong;
+  const disc = (
+    <Feedback kind="selection" active={selected}>
+      {selected ? (
+        <View {...decorative} style={[ch.disc, { backgroundColor: paper.card }]}>
+          <CheckGlyph size={18} color={accent.brand} />
+        </View>
+      ) : (
+        <View {...decorative} style={[ch.disc, { borderWidth: 2, borderColor: paper.field }]} />
+      )}
+    </Feedback>
+  );
+  const press = (
+    <Press
+      haptic="selection"
+      depth={isTile ? 'tile' : 'control'}
+      selected={selected}
+      glowRadius={radius.tile}
+      accessibilityRole={role}
+      accessibilityState={radio ? { checked: selected } : { selected }}
+      aria-checked={radio ? selected : undefined}
+      aria-selected={radio ? undefined : selected}
+      aria-pressed={radio ? undefined : selected}
+      accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
+      onPress={onPress}
+      frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact], { backgroundColor: fill, borderColor: selected ? fill : paper.line }]}
+    >
+      {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
+      <View style={isTile ? ch.tileWords : ch.words}>
+        <Text {...(lang === 'fr' ? frenchText : {})} style={[titleStyle, { color: words }, isTile && ch.centred]}>
+          {title}
+        </Text>
+        {detail != null ? <Text style={[type.small, { color: quiet }, isTile && ch.centred]}>{detail}</Text> : null}
+      </View>
+      {isTile ? <View style={ch.tileDisc}>{disc}</View> : disc}
+    </Press>
+  );
+  if (onHear == null) return press;
+  return (
+    <View style={isTile ? ch.hearUnder : ch.hearBeside}>
+      {press}
+      {/* Its own slot, so the button sits centred on the row rather than at its top. */}
+      <View>
+        <IconButton
+          icon="speaker"
+          label={`${playing ? 'Stop' : 'Hear'} ${title}`}
+          onPress={onHear}
+          animate="speaker-waves"
+          active={playing}
+          ground={on === 'blue' || on === 'sun' ? on : 'paper'}
+        />
+      </View>
+    </View>
+  );
+}
+
+const ic = StyleSheet.create({
+  buttonFrame: { alignSelf: 'flex-start' },
+  button: { alignItems: 'center', justifyContent: 'center' },
+  tileFrame: { flexGrow: 1 },
+  tile: {
+    flexGrow: 1,
+    minHeight: HIT + space(7),
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(1.5),
+    paddingVertical: space(3),
+    paddingHorizontal: space(2),
+    borderRadius: radius.tile,
+    borderWidth: 2,
+  },
+  tileWords: { textAlign: 'center' },
+  inlineFrame: { alignSelf: 'flex-start' },
+  inline: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(2) },
+  row: { flexDirection: 'row', gap: space(3) },
+  rowWrapped: { flexWrap: 'wrap' },
+  cell: { flex: 1, minWidth: 0 },
+  cellWrapped: { flexBasis: '47%', flexGrow: 1, minWidth: 0 },
+});
+
+const ch = StyleSheet.create({
+  row: {
+    minHeight: HIT + space(7),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    paddingVertical: space(3),
+    paddingHorizontal: space(4),
+    borderRadius: radius.tile,
+    borderWidth: 2,
+  },
+  rowCompact: { minHeight: HIT + space(3), paddingVertical: space(2) },
+  words: { ...ROW_WORDS, gap: space(0.5) },
+  disc: { width: space(7), height: space(7), borderRadius: space(3.5), alignItems: 'center', justifyContent: 'center' },
+  share: { flex: 1, minWidth: 0 },
+  tile: {
+    flexGrow: 1,
+    minHeight: space(30),
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(2),
+    padding: space(4),
+    borderRadius: radius.tile,
+    borderWidth: 2,
+  },
+  tileWords: { alignSelf: 'stretch', gap: space(0.5) },
+  tileDisc: { position: 'absolute', top: space(2.5), right: space(2.5) },
+  centred: { textAlign: 'center' },
+  hearBeside: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  hearUnder: { flex: 1, minWidth: 0, alignItems: 'center', gap: space(1) },
+});
+
+/**
+ * When a sheet says there is more below (F755; come alive, icons section 3.5).
+ * Appended, like the icon controls above, so no sliced region moves.
+ *
+ * A sheet's footer sits outside its scroll, so a tall sheet on a phone runs its
+ * last controls under the footer with nothing to say they are there: on the
+ * first run's start sheet that was the consent switches. The cue is a flat
+ * hairline over the footer, drawn only while content runs under it, and one
+ * flash of the scroll indicator `SHEET_CUE_FLASH_MS` after it first holds in an
+ * opening. A sheet whose content fits draws no rule, and neither does one
+ * scrolled to its end. Pure, so the rule is tested without a renderer.
+ */
+export const SHEET_CUE_FLASH_MS = 400;
+
+/** True while content runs under the footer: taller than the view, with its end not yet in sight. */
+export function sheetRunsUnder(content: number, viewport: number, offset: number): boolean {
+  if (!(content > 0) || !(viewport > 0)) return false;
+  const seen = Math.max(0, offset) + viewport;
+  return content > viewport + 1 && seen < content - 1;
 }

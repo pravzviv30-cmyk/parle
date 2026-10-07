@@ -16,7 +16,7 @@ test('restore and the return from the wall each carry one event the parser and t
  const wall=read('../wall/WallScreen.tsx');
  const leave=wall.slice(wall.indexOf('  const leave = '),wall.indexOf('  const back = '));
  const exits:string[]=[];const wallEvents:unknown[]=[];
- const world={left:{current:false},user:{id:'owner'},entry:'refused',granted:true,scopeGeneration:()=>5,trackProductEvent:(event:unknown)=>wallEvents.push(event),onStartSpeaking:()=>exits.push('speak'),onLeave:()=>exits.push('back')};
+ const world={left:{current:false},user:{id:'owner'},entry:'refused',granted:true,confirmedGrant:{canStart:true},scopeGeneration:()=>5,trackProductEvent:(event:unknown)=>wallEvents.push(event),onStartSpeaking:()=>exits.push('speak'),onLeave:()=>exits.push('back')};
  const fn=new Function(...Object.keys(world),stripTypeScriptTypes(leave)+"\nleave('speak');leave('back');");fn(...Object.values(world));
  assert.deepEqual(exits,['speak']); assert.deepEqual(wallEvents,[{name:'wall_left',properties:{entry:'refused',outcome:'granted',destination:'speak'}}]);
  assert.match(wall,/onPress=\{\(\) => leave\('speak'\)\}/);assert.match(wall,/onPress=\{unavailable \? \(\) => leave\('back', onOpenPractice\) : \(\) => leave\(\)\}/);assert.match(wall,/onLeave=\{\(\) => leave\(\)\}/);

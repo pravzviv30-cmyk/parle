@@ -7,10 +7,12 @@ import { Feedback } from './motion/Feedback.tsx';
  * how to grade, what a miss costs) already happened there. If logic that looks
  * like grading or selection appears in this file, it is in the wrong file.
  *
- * Feedback follows the signal vocabulary: `signal.good` for a phrase that came
- * out, `signal.correspondance` for the change-here correction, plain ink for a
- * spelling pointed at. Never a number and never a scold mid-session; the end
- * card is the one place counts are allowed, where they can be given context.
+ * Every answer gets its own sheet (`drill/answerSheet.ts`, F759): mint for a
+ * pass, sun for a typo the drill accepted, calm white paper for a miss, with
+ * no mark, sound or haptic on a miss. The living bar under the header says
+ * where the learner is, never how it is going. Never a number and never a
+ * scold mid-session; the end card is the one place counts are allowed, where
+ * they can be given context, and every count on it is the settle's read-back.
  *
  * Leaving early is honest and cheap: every exercise answered so far grades its
  * review card on the way out, and the unanswered rest simply stay due — nothing
@@ -31,7 +33,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
 import {
   answerCurrent,
   buildDrillSession,
@@ -57,13 +59,26 @@ import {
   type TranslationExercise,
   drillXp,
 } from '@luvani/core';
-import { HAIRLINE, HIT, colour, font, paper, radius, signal, space, type } from './theme.ts';
+import { HAIRLINE, HIT, colour, font, onColour, paper, radius, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
 import { recordActivity } from './progress/activity.ts';
+import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
-import { Card, GhostButton, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
+import { Card, GhostButton, IconAction, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
-import { addPhrases, gradeCards, loadDeck } from './review/store.ts';
+import { gradeCards, loadDeck } from './review/store.ts';
+import { keepPhrase as keepInPhrasebook } from './review/phraseSaved.ts';
+import { AnswerSheet } from './drill/AnswerSheet.tsx';
+import { ownWordsLook, sheetFor, type SheetTone } from './drill/answerSheet.ts';
+import { comboAfter, comboGlows, type OwnWordsDecided } from './drill/combo.ts';
+import { fireSheet } from './drill/sheetEffects.ts';
+import { DRILL_END } from './drill/endCopy.ts';
+import { SittingBar } from './drill/SittingBar.tsx';
+import { EndCard } from './celebrate/EndCard.tsx';
+import { useScreenReader } from './celebrate/useScreenReader.ts';
+import { useSittingEnd } from './practice/useSittingEnd.ts';
+import { LevelRing } from './motion/LevelRing.tsx';
+import { useRecorderLevel } from './speech/useRecorderLevel.ts';
 import { Illustration } from './art/flat/Illustration.tsx';
 import { CheckGlyph } from './components.tsx';
 import { loadDrillBank, getMicSuppressedUntil, setMicSuppressed } from './drill/store.ts';
@@ -85,7 +100,10 @@ import { completePracticeSitting, practiceOutcomes, recoverPracticeCompletion } 
 import { clearPracticeSession, loadPracticeSession, mintSittingId, savePracticeSession } from './practice/sessionStore.ts';
 import { practiceOpening } from './practice/opening.ts';
 import { sittingProgress } from './practice/sittingProgress.ts';
+import { queueFill, sittingFill } from './practice/sittingProgress.ts';
 import { scopeGeneration } from './storage/scope.ts';
+import { holdMic } from './sound/audioFocus.ts';
+import { enterRecording, leaveRecording } from './sound/audioSession.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import type { PracticeRoute } from './practice/practiceRoute.ts';
 import {
@@ -96,12 +114,15 @@ import {
   TRANSCRIPTION_UNAVAILABLE,
   OWN_WORDS_LABEL,
   OWN_WORDS_PROMPT,
+  OWN_WORDS_NOT_KEPT,
 } from './drill/ownWordsCopy.ts';
 
-/** How long a feedback line holds the floor before the next exercise deals. */
-const FEEDBACK_MS = 1600;
 /** "Can't speak now" holds for an hour, then spoken drills quietly return. */
 const MIC_SUPPRESS_MS = 60 * 60 * 1000;
+/** The speak circle's size, which the level ring around it matches. */
+const SPEAK = 108;
+/** The usual preset, metered, so the ring follows the learner's real voice. */
+const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
 
 /**
  * Web records only on a secure origin with MediaRecorder present; native Expo
@@ -135,21 +156,17 @@ function kindTag(exercise: DrillExercise): string {
 }
 
 /**
- * The verdict's colour, by the signals' fixed meanings: good is a sound that
- * worked, correspondance is "change here" (the recast in ConvoScreen uses the
- * same colour for the same reason), and a typo is plain ink — accepted, with
- * the spelling merely kept in view.
+ * The own-words outcome card's ground, by the same tones the answer sheet
+ * uses (`drill/answerSheet.ts`): mint for "That works.", sun for "Nearly
+ * there.", and the plain white card for the reveal and for a tutor nobody
+ * could reach. Ink on every one; the softer line takes its ground's own soft
+ * colour, because soft ink is never set on a colour.
  */
-function verdictColor(verdict: SettledVerdict): string {
-  switch (verdict) {
-    case 'good':
-      return signal.good;
-    case 'typo':
-      return paper.ink;
-    case 'miss':
-      return signal.correspondance;
-  }
-}
+const OUTCOME_GROUND: Readonly<Record<SheetTone, { fill: string; soft: string } | null>> = {
+  good: { fill: colour.mint, soft: onColour.mint },
+  nearly: { fill: colour.sun, soft: onColour.sun },
+  calm: null,
+};
 
 // ─────────────────────────────────────────────── the pronunciation side-channel
 
@@ -527,7 +544,7 @@ function TranslationView({
         )}
         {canHelp && !help.shown && (
           <View style={{ marginTop: space(3) }}>
-            <GhostButton label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
+            <IconAction layout="inline" icon="hint" label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
           </View>
         )}
       </Card>
@@ -557,15 +574,31 @@ function RepeatThisView({
   onNoMic: () => void;
   locked: boolean;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(METERED_TAKE);
   // 'armed': the circle records on tap. 'live': the microphone is on. 'silent':
   // the platform said no — recorder missing, permission refused, or a start
   // that threw — and the honest self-report control is back in charge, because
   // refusing the microphone must cost the learner nothing.
   const [mic, setMic] = useState<'armed' | 'live' | 'silent'>(CAN_RECORD ? 'armed' : 'silent');
+  // The ring around the live circle, from the recorder's real level; none is
+  // drawn until a level has been heard.
+  const voice = useRecorderLevel(recorder, mic === 'live');
   // The recorder's async edges must run one at a time; a double-tap cannot be
   // allowed to race prepare against stop.
   const busyRef = useRef(false);
+  // The microphone focus, held from before the mode change until the take
+  // ends, fails or the view goes, so no haptic or sound effect lands on it (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const letGoOfMic = useCallback(() => {
+    const release = micHold.current;
+    micHold.current = null;
+    if (!release) return false;
+    release();
+    return true;
+  }, []);
+  useEffect(() => () => {
+    if (letGoOfMic()) void leaveRecording().catch(() => undefined);
+  }, [letGoOfMic]);
 
   const toggleRecord = useCallback(async () => {
     if (busyRef.current || locked) return;
@@ -595,7 +628,8 @@ function RepeatThisView({
           uri = null;
         }
         // Hand the audio session back to playback, so Hear it keeps its volume.
-        void setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
+        letGoOfMic();
+        void leaveRecording().catch(() => undefined);
         setMic('armed');
         onSpoke(uri);
       } else {
@@ -605,17 +639,20 @@ function RepeatThisView({
           return;
         }
         tutorVoice.stop(); // the reference playing into the microphone scores nobody
-        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+        letGoOfMic();
+        micHold.current = holdMic();
+        await enterRecording();
         await recorder.prepareToRecordAsync();
         recorder.record();
         setMic('live');
       }
     } catch {
       setMic('silent');
+      if (letGoOfMic()) void leaveRecording().catch(() => undefined);
     } finally {
       busyRef.current = false;
     }
-  }, [mic, locked, recorder, onSpoke]);
+  }, [mic, locked, recorder, onSpoke, letGoOfMic]);
 
   return (
     <View style={{ gap: space(4) }}>
@@ -649,7 +686,7 @@ function RepeatThisView({
                 out loud in the control's own copy keeps the report honest. */}
             <View style={ds.saidIt}>
               <PillButton label="Type instead" onPress={onNoMic} disabled={locked} />
-              <GhostButton label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
+              <IconAction layout="inline" icon="tick-circle" label="I said it" onPress={() => onAnswer(exercise.reference)} disabled={locked} />
             </View>
           </>
         ) : (
@@ -659,12 +696,20 @@ function RepeatThisView({
              never marks the learner's microphone. Tapping Done grades exactly
              as I said it does; the recording only ever adds a line. */
           <View style={ds.speakBlock}>
-            <SpeakCircle
-              onPress={() => void toggleRecord()}
-              active={mic === 'live'}
-              disabled={locked}
-              accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
-            />
+            <View style={ds.speakCircle}>
+              {mic === 'live' && voice.metered && (
+                <View style={ds.speakRing}>
+                  <LevelRing level={voice.level} size={SPEAK} color={colour.mint} />
+                </View>
+              )}
+              <SpeakCircle
+                onPress={() => void toggleRecord()}
+                active={mic === 'live'}
+                disabled={locked}
+                size={SPEAK}
+                accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
+              />
+            </View>
             <Text style={[type.label, { color: paper.ink }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
           </View>
         )}
@@ -696,6 +741,8 @@ interface OwnWordsOutcome {
   exercise: OwnWordsExercise;
   /** Core's settled verdict, or null when nobody judged it and nothing moved. */
   verdict: SettledVerdict | null;
+  /** How core decided it, which sets the card's tone; null when nobody judged it. */
+  decided: OwnWordsDecided | null;
   /** Core's own feedback line, or the line that says the tutor is unreachable. */
   message: string;
   /** The judge's sentence, before a second go. */
@@ -733,6 +780,7 @@ function OwnWordsView({
   onKeep,
   keeping,
   kept,
+  keepFailed,
 }: {
   exercise: OwnWordsExercise;
   typed: string;
@@ -745,10 +793,16 @@ function OwnWordsView({
   outcome: OwnWordsOutcome | null;
   onKeep: () => void;
   keeping: boolean;
+  /** The phrasebook said its write is durable. Only then is it called saved. */
   kept: boolean;
+  /** The last keep was refused; it can be tried again. */
+  keepFailed: boolean;
 }) {
   const [typing, setTyping] = useState(!CAN_RECORD || quiet);
   const typeInstead = useCallback(() => setTyping(true), []);
+  const look = ownWordsLook(outcome?.decided ?? null);
+  const ground = look.tone === null ? null : OUTCOME_GROUND[look.tone];
+  const soft = ground === null ? paper.inkSoft : ground.soft;
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.promptCard}>
@@ -768,23 +822,19 @@ function OwnWordsView({
       />}
       {busy && <ActivityIndicator color={paper.inkSoft} />}
       {outcome !== null && (
-        <Card style={ds.outcome}>
+        <Card style={[ds.outcome, ground !== null && { backgroundColor: ground.fill }]}>
           {outcome.attempt !== null && <View style={{ gap: space(1) }}>
-            <Label>Your words</Label>
+            <Label color={soft}>Your words</Label>
             <Text style={[type.body, { color: paper.ink }]}>{outcome.attempt}</Text>
           </View>}
-          <View style={ds.outcomeRow}>
-            {/* Same rule as the feedback beat: no mark on a miss. A drawing
-                scolds louder than a word, and this card is read for longer. */}
-            {outcome.verdict !== null && outcome.verdict !== 'miss' && (
+          <View style={ds.outcomeRow} accessibilityLiveRegion="polite">
+            {/* Same rule as the answer sheet: no mark on a miss, and a retry
+                is not a pass. A drawing scolds louder than a word, and this
+                card is read for longer. */}
+            {look.mark && (
               <View style={ds.verdictMark}><CheckGlyph size={18} color={paper.ink} /></View>
             )}
-            <Text
-              style={[
-                type.bodyStrong,
-                { color: outcome.verdict === null ? paper.ink : verdictColor(outcome.verdict), flex: 1 },
-              ]}
-            >
+            <Text style={[type.bodyStrong, { color: paper.ink, flex: 1 }]}>
               {outcome.message}
             </Text>
           </View>
@@ -793,21 +843,41 @@ function OwnWordsView({
             <Text style={[type.body, { color: paper.ink }]}>{OWN_WORDS_ANOTHER(outcome.another)}</Text>
           )}
           {outcome.reveal !== null && <Text style={[type.french, { color: paper.ink }]}>{outcome.reveal}</Text>}
-          {outcome.keep &&
-            (kept ? (
-              <Text style={[type.small, { color: paper.inkSoft }]}>{MADE_FROM.phrase.saved}</Text>
-            ) : (
-              <GhostButton
-                label={MADE_FROM.phrase.save}
-                color={paper.ink}
-                disabled={keeping}
-                onPress={onKeep}
-              />
-            ))}
+          {/* Kept means the phrasebook's write came back durable, and only
+              then does the bookmark fill and the label say so (F762). A
+              refused write says it plainly and leaves the way to try again. */}
+          {outcome.keep && (
+            <IconAction
+              layout="inline"
+              ground={look.tone === 'good' ? 'mint' : 'paper'}
+              icon="bookmark"
+              animate="bookmark-fill"
+              selected={kept}
+              busy={keeping}
+              label={kept ? MADE_FROM.phrase.saved : MADE_FROM.phrase.save}
+              onPress={onKeep}
+            />
+          )}
+          {outcome.keep && keepFailed && !kept && (
+            <Text accessibilityLiveRegion="polite" style={[type.small, { color: soft }]}>{OWN_WORDS_NOT_KEPT}</Text>
+          )}
         </Card>
       )}
     </View>
   );
+}
+
+/**
+ * A finish with no end card to celebrate it is still felt: one settled tap,
+ * once, as every finished drill was before end cards. The end card gives its
+ * own `celebrate()` when the settle read the sitting back, so the two never
+ * both play for one finish. Draws nothing.
+ */
+function FinishFelt() {
+  useEffect(() => {
+    tapSettled();
+  }, []);
+  return null;
 }
 
 // ───────────────────────────────────────────────────────────────── the screen
@@ -867,6 +937,21 @@ export function DrillScreen({
   // state waits in pendingRef; the beat ends and the queue's head deals.
   const [feedback, setFeedback] = useState<DrillFeedback | null>(null);
   const pendingRef = useRef<DrillSessionState | null>(null);
+  // What the answer sheet needs beside core's feedback: the kind it answered,
+  // the run of real passes after it, and its place in the sitting, which the
+  // good lines rotate by. Set with the feedback and cleared with it.
+  const [sheetFacts, setSheetFacts] = useState<{ kind: DrillExercise['kind']; combo: number; turn: number } | null>(null);
+  // The run of real passes (drill/combo.ts): a ref for the answer that reads it
+  // and state for the bar that glows by it. Never a number on screen.
+  const comboRef = useRef(0);
+  const [combo, setCombo] = useState(0);
+  // A screen reader decides its own pace: with one on, or not yet known to be
+  // off, no sheet moves on by itself.
+  const screenReader = useScreenReader();
+  // The finished sitting's end card waits for the settle pipeline's own delta.
+  // While this screen is up the celebration queue is held, and the hold taken
+  // before the sitting settles is handed to its end card (F766).
+  const { end, holdForSettle, expect, dropSettleHold, release } = useSittingEnd();
   // The scorer's one calm line, when it arrives in time. A focus reason may
   // only land in the beat its recording earned — beatRef numbers the beats so
   // a late answer from the scorer is dropped unseen, never shown out of place.
@@ -901,6 +986,7 @@ export function DrillScreen({
   useEffect(() => { attemptAlive.current = true; return () => { attemptAlive.current = false; }; }, []);
   const [keeping, setKeeping] = useState(false);
   const [kept, setKept] = useState(false);
+  const [keepFailed, setKeepFailed] = useState(false);
 
   // The sitting could not be read. Told, rather than shown as a spinner that
   // never resolves.
@@ -1045,6 +1131,9 @@ export function DrillScreen({
     const held = practiceRef.current;
     if (held === null) return Promise.resolve('not-saved');
     const now = Date.now();
+    // The plan settles inside completion, which publishes before the end card
+    // can mount: the queue is held first, and let go if nothing settled.
+    holdForSettle();
     const run = completePracticeSitting({
       sittingId: held.sittingId,
       state,
@@ -1056,11 +1145,21 @@ export function DrillScreen({
       activeMs: clock.read(),
       now,
     })
+      // A plan this call completed settled at its frozen instant; the end card
+      // waits for exactly that sitting's delta, never a number worked out here.
+      .then((done) => {
+        if (done.settlesAt !== null) expect({ source: 'drill', at: done.settlesAt });
+        else dropSettleHold();
+        return done;
+      })
       .then((done) => saveStateOfResult(done))
-      .catch((): SaveState => 'not-saved');
+      .catch((): SaveState => {
+        dropSettleHold();
+        return 'not-saved';
+      });
     completionRef.current = run;
     return run;
-  }, [clock]);
+  }, [clock, holdForSettle, expect, dropSettleHold]);
 
   useEffect(() => {
     // A practice sitting is built by the effect above and never by this one.
@@ -1159,17 +1258,29 @@ export function DrillScreen({
     ).then(() => undefined);
     // What the sitting was worth. Clean answers count double, because getting
     // it right without being shown the spelling is the harder thing.
-    void recordActivity(
+    const xp = drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos });
+    const endedAt = Date.now();
+    const activeMs = clock.read();
+    // Only a set worked to its end says it finished, and only that settles
+    // (F744); one left from the header banks what it earned and nothing more.
+    const bank = () => recordActivity(
       'drill',
-      drillXp({ clean: summary.resolved - summary.typos, typoCorrected: summary.typos }),
-      Date.now(),
-      { durationMs: Date.now() - openedAt.current, activeMs: clock.read() },
+      xp,
+      endedAt,
+      { durationMs: endedAt - openedAt.current, activeMs: activeMs, ...(state.finished ? { finished: true } : {}) },
     );
-  }, [savePractice, finishPractice, clock]);
+    // The end card waits for this sitting's delta, read back by the settle,
+    // and the queue is held from before the settle until that card goes.
+    if (state.finished) expect({ source: 'drill', at: endedAt });
+    if (state.finished) void settleSitting({ source: 'drill', at: endedAt, xpEarned: xp, activeMs, write: bank });
+    else void bank();
+  }, [savePractice, finishPractice, clock, expect]);
 
   const answer = useCallback(
     (value: string | number) => {
       if (!session || session.finished || feedback) return;
+      const current = session.queue[0];
+      if (!current) return;
       clock.touch();
       const { state: next, feedback: fb } = answerCurrent(session, value);
       if (!fb) return;
@@ -1180,8 +1291,16 @@ export function DrillScreen({
       // will come round again included. A finished sitting completes instead.
       if (!next.finished) savePractice(next);
       setFeedback(fb);
+      const facts = { kind: current.kind, combo: comboAfter(comboRef.current, fb.verdict, current.kind), turn: session.answered.length };
+      comboRef.current = facts.combo;
+      setCombo(facts.combo);
+      setSheetFacts(facts);
+      // The sheet's one sound and haptic, now, from the tap that answered: a
+      // pass `correct` and `arrived()`, a typo `nearly` and `soft()`, a miss
+      // nothing. The seams stay silent while a microphone or a voice holds on.
+      fireSheet(sheetFor({ verdict: fb.verdict, closest: fb.closest, advanced: fb.advanced, ...facts, screenReader }));
     },
-    [session, feedback, savePractice, clock],
+    [session, feedback, savePractice, clock, screenReader],
   );
 
   // A spoken attempt. The grade is the self-report's, banked before the scorer
@@ -1243,6 +1362,7 @@ export function DrillScreen({
         setOwnWords({
           exercise: current,
           verdict: null,
+          decided: null,
           message: JUDGE_UNAVAILABLE,
           note: null,
           another: null,
@@ -1257,16 +1377,24 @@ export function DrillScreen({
       const decided = decideOwnWords(verdict, session.missesById[current.id] ?? 0);
       const { state: next, feedback: fb } = answerCurrent(session, attempt, decided);
       if (!fb) return;
+      // The line and its tone are keyed on the decision (core's
+      // ownWordsFeedback): "That works.", "Nearly there." in the nearly tone
+      // (D21), or the calm reveal.
+      const look = ownWordsLook(decided);
       setOwnWords({
         exercise: current,
         verdict: fb.verdict,
-        message: fb.message,
+        decided,
+        message: look.headline ?? fb.message,
         note: decided === 'retry' ? verdict.note : null,
         another: decided === 'good' ? verdict.betterLine : null,
         reveal: decided === 'reveal' ? current.fr : null,
         keep: decided === 'good',
         attempt,
       });
+      comboRef.current = comboAfter(comboRef.current, fb.verdict, 'own-words', decided);
+      setCombo(comboRef.current);
+      fireSheet(look);
       setTyped('');
       if (next.finished) persistGrades(next);
       else savePractice(next);
@@ -1284,51 +1412,74 @@ export function DrillScreen({
     void consumeRecording(uri, path => transcribeRecordedAttempt(userId, path, owner)).then(transcript => {
       if (!attemptAlive.current || owner !== scopeGeneration() || beat !== beatRef.current) return;
       if (transcript !== null) setTyped(transcript);
-      else setOwnWords({ exercise, verdict: null, message: TRANSCRIPTION_UNAVAILABLE, note: null, another: null, reveal: null, keep: false, attempt: null });
+      else setOwnWords({ exercise, verdict: null, decided: null, message: TRANSCRIPTION_UNAVAILABLE, note: null, another: null, reveal: null, keep: false, attempt: null });
     }).catch(() => {
-      if (attemptAlive.current && owner === scopeGeneration() && beat === beatRef.current) setOwnWords({ exercise, verdict: null, message: TRANSCRIPTION_UNAVAILABLE, note: null, another: null, reveal: null, keep: false, attempt: null });
+      if (attemptAlive.current && owner === scopeGeneration() && beat === beatRef.current) setOwnWords({ exercise, verdict: null, decided: null, message: TRANSCRIPTION_UNAVAILABLE, note: null, another: null, reveal: null, keep: false, attempt: null });
     }).finally(() => {
       attemptBusy.current = false;
       if (attemptAlive.current && owner === scopeGeneration() && beat === beatRef.current) setJudging(false);
     });
   }, [session, userId]);
 
-  /** Keep the phrase they just said their own way. The one write this card makes. */
+  /**
+   * Keep the phrase they just said their own way. The one write this card
+   * makes, and it is called saved only when the phrasebook answers durable:
+   * then the bookmark fills, the label says so and the saved moment is handed
+   * to the host (`review/phraseSaved.ts`). A refused write says so and can be
+   * tried again (F762).
+   */
   const keepPhrase = useCallback(
     (exercise: OwnWordsExercise) => {
       if (keeping || kept) return;
       setKeeping(true);
-      void addPhrases([
-        { fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null },
-      ])
-        .then(() => setKept(true))
-        .catch(() => undefined)
-        .finally(() => setKeeping(false));
+      setKeepFailed(false);
+      void keepInPhrasebook({ fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null })
+        .then((saved) => {
+          if (!attemptAlive.current) return;
+          if (saved) setKept(true);
+          else setKeepFailed(true);
+        })
+        .finally(() => {
+          if (attemptAlive.current) setKeeping(false);
+        });
     },
     [keeping, kept],
   );
 
-  // The feedback beat: hold the line, then deal the next exercise. A missed
-  // exercise is already at the back of the queue and comes around unannounced.
-  // A focus line landing mid-beat restarts the clock, so the one sentence the
-  // scorer gets to say also gets a full beat to be read.
+  // The sheet on screen, from core's feedback and the facts beside it. A
+  // screen reader that turns on mid-sheet stops it moving on by itself.
+  const sheet = feedback !== null && sheetFacts !== null
+    ? sheetFor({ verdict: feedback.verdict, closest: feedback.closest, advanced: feedback.advanced, ...sheetFacts, screenReader })
+    : null;
+
+  /**
+   * Leave the sheet and deal the next exercise. A missed exercise is already at
+   * the back of the queue and comes round unannounced. Called once per sheet,
+   * by its Continue, a tap on it, or its timer, whichever is first.
+   */
+  const advance = useCallback(() => {
+    const next = pendingRef.current;
+    if (next === null) return;
+    pendingRef.current = null;
+    beatRef.current += 1;
+    setFeedback(null);
+    setSheetFacts(null);
+    setFocusLine(null);
+    setTyped('');
+    setAssembled([]);
+    if (next.finished) persistGrades(next);
+    setSession(next);
+  }, [persistGrades]);
+
+  // A sheet that moves on by itself does so after its own time. A focus line
+  // landing mid-sheet restarts the clock, so the one sentence the scorer gets
+  // to say also gets a full beat to be read. A sheet that waits has no timer.
+  const autoAdvanceMs = sheet?.autoAdvanceMs ?? null;
   useEffect(() => {
-    if (!feedback) return;
-    const t = setTimeout(() => {
-      const next = pendingRef.current;
-      pendingRef.current = null;
-      beatRef.current += 1;
-      setFeedback(null);
-      setFocusLine(null);
-      setTyped('');
-      setAssembled([]);
-      if (next) {
-        if (next.finished) persistGrades(next);
-        setSession(next);
-      }
-    }, FEEDBACK_MS);
+    if (!feedback || autoAdvanceMs === null) return;
+    const t = setTimeout(advance, autoAdvanceMs);
     return () => clearTimeout(t);
-  }, [feedback, focusLine, persistGrades]);
+  }, [feedback, focusLine, autoAdvanceMs, advance]);
 
   /**
    * Leave, once this sitting is actually on disk.
@@ -1341,12 +1492,12 @@ export function DrillScreen({
   //
   // Core builds an empty queue already finished. That is nothing answered, and
   // nothing answered is not a sitting that marks a pack practised, so the
-  // signal also waits for answered work.
+  // signal also waits for answered work. The finish itself is felt on the end
+  // card, which gives one celebrate() once its numbers are read back.
   useEffect(() => {
     if (!session?.finished || !node || finishedRef.current) return;
     if (!hasAnsweredWork(session)) return;
     finishedRef.current = true;
-    tapSettled();
     onFinished?.(node.id);
   }, [session, node, onFinished]);
 
@@ -1368,7 +1519,6 @@ export function DrillScreen({
       // The phone-only mark follows only a completion that is safe on this
       // phone: saved, or kept to finish later. Never one that was not saved.
       if (saved === 'not-saved') return;
-      tapSettled();
       onPracticeFinished?.(packId);
     });
   }, [session, onPracticeFinished]);
@@ -1444,6 +1594,11 @@ export function DrillScreen({
   // header's quiet centre slot: never a score, a fraction or a bar, and never
   // drawn for an ordinary review sitting, whose queue is not bounded this way.
   const progress = practice !== undefined && practiceRef.current !== null ? sittingProgress(session, practiceRef.current.targets) : null;
+  // The living bar: position only, never a digit, filled by phrases settled.
+  // During a sheet it reads the state the answer just made, so the bar moves
+  // with the answer rather than after it.
+  const placed = pendingRef.current ?? session;
+  const fill = practice !== undefined && practiceRef.current !== null ? sittingFill(placed, practiceRef.current.targets) : queueFill(placed);
   const header = (
     <ScreenHeader
       leave={{ onPress: leave, label: 'Leave', accessibilityLabel: 'Leave the drills' }}
@@ -1535,6 +1690,7 @@ export function DrillScreen({
           onKeep={() => keepPhrase(holding.exercise)}
           keeping={keeping}
           kept={kept}
+          keepFailed={keepFailed}
         />
       </ScrollScreen>
       </DrillClock.Provider>
@@ -1555,16 +1711,20 @@ export function DrillScreen({
   }
 
   // A finished practice sitting. It waits for its grades to come back before it
-  // says anything, and then says only what the outcomes support.
+  // says anything, and then says only what the outcomes support. A plan this
+  // screen completed also waits, briefly, for the settle to read the sitting
+  // back, so the end card's numbers arrive with the card and never after it.
+  // The wait is drawn inside the screen with its Done, so there is a way out
+  // while it lasts (F775).
   if (practice !== undefined && session.finished) {
     const held = practiceRef.current;
-    if (practiceSaved === 'waiting' || held === null) {
+    if (practiceSaved === 'waiting' || held === null || end.state === 'waiting') {
       return (
-        <Screen>
-          <View style={ds.loading}>
+        <ScrollScreen footer={doneFooter}>
+          <View style={ds.ending}>
             <ActivityIndicator color={paper.inkSoft} />
           </View>
-        </Screen>
+        </ScrollScreen>
       );
     }
     // What the sitting showed, read by the data store's own rule, so the card
@@ -1575,22 +1735,28 @@ export function DrillScreen({
     const card = practiceEndCard(practiceSaved, statement);
     return (
       <ScrollScreen footer={doneFooter}>
-        <Feedback kind="practised" active={!card.retry} appear eventKey={`practice-${held.sittingId}`}><Card>
-          <Text style={[type.title, { color: paper.ink }]}>{card.title}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{card.body}</Text>
-          {/* Nothing is safe yet, so the one thing to offer is the same save
-              again. The store replays the frozen plan, so it awards nothing twice. */}
-          {card.retry && (
-            <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
-              <GhostButton
-                label={practiceRetrying ? PRACTICE_END.retrying : PRACTICE_END.retry}
-                color={paper.ink}
-                disabled={practiceRetrying}
-                onPress={retryPractice}
-              />
-            </View>
-          )}
-        </Card></Feedback>
+        <View style={ds.ending}>
+          {/* The end card in place, only from the delta the settle read back.
+              A sitting kept to finish saving, or not saved, has no delta and
+              shows none: its statement below says what is true. */}
+          {end.state === 'settled' ? <EndCard delta={end.delta} release={release} /> : !card.retry && <FinishFelt />}
+          <Card>
+            <Text style={[type.title, { color: paper.ink }]}>{card.title}</Text>
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{card.body}</Text>
+            {/* Nothing is safe yet, so the one thing to offer is the same save
+                again. The store replays the frozen plan, so it awards nothing twice. */}
+            {card.retry && (
+              <View style={{ marginTop: space(3), alignItems: 'flex-start' }}>
+                <IconAction layout="inline" icon="refresh" busy={practiceRetrying}
+                  label={practiceRetrying ? PRACTICE_END.retrying : PRACTICE_END.retry}
+
+                  disabled={practiceRetrying}
+                  onPress={retryPractice}
+                />
+              </View>
+            )}
+          </Card>
+        </View>
       </ScrollScreen>
     );
   }
@@ -1614,39 +1780,32 @@ export function DrillScreen({
     );
   }
 
-  // The end card — the one place numbers are allowed, where they have context.
-  // Terminal, so Done alone, no back header.
+  // The end card: the one place numbers are allowed, where they have context,
+  // and every one of them is the settle's read-back of this sitting (the
+  // count of answers it got right is the sitting's own). While the settle is
+  // still reading it back, the card waits inside the screen with its Done; if
+  // it never answers, the finish stands in words with no number at all, felt
+  // once, and a delta that lands after that is not drawn (`sittingEnd`,
+  // F775). Terminal, so Done alone, no back header.
   if (session.finished) {
     const s = summariseDrill(session);
     return (
       <ScrollScreen footer={doneFooter}>
-        <Card>
-          <View style={ds.stats}>
-            <View style={ds.stat}>
-              <Text style={[type.title, { color: paper.ink }]}>{s.total}</Text>
-              <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Drills</Text>
-            </View>
-            <View style={ds.stat}>
-              <Text style={[type.title, { color: paper.ink }]}>{s.resolved}</Text>
-              <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Got right</Text>
-            </View>
-            {s.typos > 0 && (
-              <View style={ds.stat}>
-                <Text style={[type.title, { color: paper.ink }]}>{s.typos}</Text>
-                <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Spelling slips</Text>
-              </View>
-            )}
-            {s.unresolved > 0 && (
-              <View style={ds.stat}>
-                <Text style={[type.title, { color: paper.ink }]}>{s.unresolved}</Text>
-                <Text style={[type.label, { color: paper.inkSoft, marginTop: space(1) }]}>Coming back</Text>
-              </View>
-            )}
-          </View>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>
-            Your review deck takes it from here.
+        <View style={ds.ending}>
+          {end.state === 'settled' ? (
+            <EndCard delta={end.delta} count={s.resolved} release={release} />
+          ) : end.state === 'waiting' ? (
+            <ActivityIndicator color={paper.inkSoft} />
+          ) : (
+            <Card>
+              <FinishFelt />
+              <Text style={[type.title, { color: paper.ink }]}>{DRILL_END.finished}</Text>
+            </Card>
+          )}
+          <Text style={[type.small, { color: paper.inkSoft }]}>
+            {s.unresolved > 0 ? DRILL_END.comingBack : DRILL_END.deck}
           </Text>
-        </Card>
+        </View>
       </ScrollScreen>
     );
   }
@@ -1659,29 +1818,22 @@ export function DrillScreen({
     <DrillClock.Provider value={clock}>
     <ScrollScreen
       avoidKeyboard
-      header={header}
+      header={
+        fill === null ? header : (
+          <View>
+            {header}
+            <SittingBar fill={fill} glow={comboGlows(combo)} />
+          </View>
+        )
+      }
       footer={
-        // Reserved height, so the card never jumps when a line arrives.
+        // Reserved height, so the card never jumps when a sheet arrives. The
+        // sheet draws no mark on a miss, and that is the rule rather than an
+        // oversight: a mid-session message may not scold, and a drawing scolds
+        // louder than a word. The scorer's whole say is its one muted line,
+        // core's focus reason, already learner-safe: never a score.
         <View style={ds.feedbackArea}>
-          {feedback && (
-            <View style={ds.verdictRow}>
-              {/* No mark on a miss, and that is the rule rather than an
-                  oversight: a mid-session message may not scold, and a drawing
-                  scolds louder than a word. A miss keeps the line it always
-                  had, alone. The mark is still and unmounts between beats. */}
-              {feedback.verdict !== 'miss' && <View style={ds.verdictMark}><CheckGlyph size={18} color={paper.ink} /></View>}
-              <Text style={[type.bodyStrong, { color: verdictColor(feedback.verdict), textAlign: 'center' }]}>
-                {feedback.message}
-              </Text>
-            </View>
-          )}
-          {/* The scorer's whole say is this one muted line — core's focus
-              reason, already learner-safe. Never a score, never a bar. */}
-          {feedback && focusLine !== null && (
-            <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
-              {focusLine}
-            </Text>
-          )}
+          {sheet !== null && <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} />}
         </View>
       }
     >
@@ -1732,6 +1884,7 @@ export function DrillScreen({
           onKeep={() => keepPhrase(exercise)}
           keeping={keeping}
           kept={kept}
+          keepFailed={keepFailed}
         />
       )}
     </ScrollScreen>
@@ -1741,9 +1894,12 @@ export function DrillScreen({
 
 const ds = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  feedbackArea: { minHeight: HIT + 8, justifyContent: 'center', paddingHorizontal: space(2) },
-  verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: colour.mint, alignItems: 'center', justifyContent: 'center' },
-  verdictRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2) },
+  feedbackArea: { minHeight: HIT + 8, justifyContent: 'flex-end' },
+  // The own-words outcome's check: a white disc, so it reads on the mint card
+  // as well as on paper.
+  verdictMark: { width: 28, height: 28, borderRadius: 14, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
+  // A finished sitting's end card and the words under it.
+  ending: { gap: space(4) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
   exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
@@ -1848,9 +2004,8 @@ const ds = StyleSheet.create({
   },
 
   speakBlock: { alignItems: 'center', gap: space(2) },
+  speakCircle: { width: SPEAK, height: SPEAK, alignItems: 'center', justifyContent: 'center' },
+  speakRing: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
   saidIt: { alignSelf: 'stretch' },
   noMic: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(4) },
-
-  stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space(3) },
-  stat: { width: '50%', paddingVertical: space(2.5) },
 });

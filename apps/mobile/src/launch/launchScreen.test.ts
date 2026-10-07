@@ -89,6 +89,9 @@ describe('the launch moves only in the app\'s vocabulary', () => {
   });
 
   test('the name arrives as the one settling entrance, and reduce motion draws the final frame', () => {
+    assert.match(SCREEN, /AppState\.addEventListener\('change'/);
+    assert.match(SCREEN, /if \(!active\) return undefined;/);
+    assert.match(SCREEN, /subscription\.remove\(\)/);
     assert.match(SCREEN, /useReduceMotion\(true\)/, 'the launch does not wait to learn whether movement is wanted');
     assert.match(SCREEN, /if \(reduced !== false\) return undefined;/, 'the ring turns before reduce motion is known, or despite it');
     assert.match(

@@ -2,9 +2,9 @@ import { recorderUri } from '../daily/recorderUri.ts';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder } from 'expo-audio';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { GhostButton, OutlineButton } from '../components.tsx';
+import { IconAction, GhostButton, OutlineButton } from '../components.tsx';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { dailyTutorVoice, tutorAudioForFrench } from '../daily/tutorAudio.ts';
@@ -12,6 +12,9 @@ import { claimDailyPlayback, ownsDailyPlayback, releaseDailyPlayback } from '../
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { onUserScopeReset } from '../storage/scope.ts';
+import { holdMic } from '../sound/audioFocus.ts';
+import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { paper, type, space, frenchText } from '../theme.ts';
 import { PrivateClip } from './privateClip.ts';
 
@@ -23,6 +26,7 @@ export function PrivatePractice({ french }: { french: string }) {
   const focused = useIsFocused();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const player = useAudioPlayer();
+  useVoiceHold(useAudioPlayerStatus(player).playing);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const clip = useRef(new PrivateClip(discardRecording)).current;
   const active = useRef(false);
@@ -35,6 +39,10 @@ export function PrivatePractice({ french }: { french: string }) {
     stopping.current = work; return work;
   };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The microphone focus, held from before the mode change until the take ends
+  // by any route; every route out goes through here (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const resetRecordingAudio = (): Promise<void> => { micHold.current?.(); micHold.current = null; return leaveRecording(); };
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uri, setUri] = useState<string | null>(null);
@@ -44,7 +52,7 @@ export function PrivatePractice({ french }: { french: string }) {
     try {
       const result = await clip.finish(ticket, () => finishLocalTake({
         stop: stopRecorder, uri: () => recorderUri(recorder, preparedUri.current),
-        resetAudio: () => setAudioModeAsync({ allowsRecording: false }),
+        resetAudio: resetRecordingAudio,
         current: () => active.current && clip.current(ticket), discard: discardRecording,
       }));
       if (!active.current || !clip.current(ticket)) return;
@@ -60,7 +68,7 @@ export function PrivatePractice({ french }: { french: string }) {
       releaseDailyPlayback(player);
       const abandoned = recorderUri(recorder, preparedUri.current);
       void stopRecorder().catch(() => {}).finally(() => {
-        discardRecording(abandoned); discardRecording(recorderUri(recorder, abandoned)); void setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+        discardRecording(abandoned); discardRecording(recorderUri(recorder, abandoned)); void resetRecordingAudio().catch(() => {});
       });
       setUri(null); setRecording(false);
     };
@@ -85,21 +93,22 @@ export function PrivatePractice({ french }: { french: string }) {
         if (!active.current || !clip.current(ticket)) return;
         if (!permission.granted) { setNote('Microphone access is needed for a take. You can still practise aloud.'); return; }
         clip.replace(); setUri(null);
-        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, shouldPlayInBackground: false });
-        if (!active.current || !clip.current(ticket)) { await setAudioModeAsync({ allowsRecording: false }); return; }
+        micHold.current?.(); micHold.current = holdMic();
+        await enterRecording();
+        if (!active.current || !clip.current(ticket)) { await resetRecordingAudio(); return; }
         preparedUri.current = recorderUri(recorder, preparedUri.current);
         await recorder.prepareToRecordAsync();
         preparedUri.current = recorderUri(recorder, preparedUri.current);
         if (!active.current || !clip.current(ticket)) {
           await stopRecorder().catch(() => {}); discardRecording(recorderUri(recorder, preparedUri.current));
-          await setAudioModeAsync({ allowsRecording: false }); return;
+          await resetRecordingAudio(); return;
         }
         recorder.record(); setRecording(true); setNote('Recording a fresh practice take, up to 20 seconds.');
         timer.current = setTimeout(() => { void finish(); }, 20000);
       }
     } catch {
       await stopRecorder().catch(() => {}); discardRecording(recorderUri(recorder, preparedUri.current));
-      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      await resetRecordingAudio().catch(() => {});
       if (active.current && clip.current(ticket)) { setRecording(false); setNote('Recording could not start. You can still practise aloud.'); }
     } finally { operation.current = false; if (active.current && clip.current(ticket)) setBusy(false); }
   };
@@ -110,7 +119,7 @@ export function PrivatePractice({ french }: { french: string }) {
     const ticket = clip.ticket(); const playTicket = ++playback.current;
     try {
       claimDailyPlayback(player);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: false });
+      await enterVoicePlayback();
       if (!active.current || !clip.current(ticket) || playTicket !== playback.current || !ownsDailyPlayback(player)) return;
       player.replace(typeof source === 'string' ? { uri: source } : source); player.setPlaybackRate(1); player.play();
     } catch { if (active.current && clip.current(ticket)) setNote('Audio could not play. Please try again.'); }
@@ -119,9 +128,9 @@ export function PrivatePractice({ french }: { french: string }) {
     <Text style={[type.heading, { color: paper.ink }]}>A fresh practice take</Text>
     <Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{french}</Text>
     <Text style={[type.small, { color: paper.inkSoft }]}>This is new practice, separate from your conversation. Nothing is judged or uploaded. Your clip is deleted when you leave this page.</Text>
-    {asset != null ? <GhostButton label="Hear my tutor" disabled={busy || recording} onPress={() => void play(false)} /> : <Text style={[type.small, { color: paper.inkSoft }]}>This word has no recording from your chosen tutor yet. You can still record and hear your own take.</Text>}
+    {asset != null ? <IconAction layout="inline" icon="speaker" label="Hear my tutor" disabled={busy || recording} onPress={() => void play(false)} /> : <Text style={[type.small, { color: paper.inkSoft }]}>This word has no recording from your chosen tutor yet. You can still record and hear your own take.</Text>}
     <OutlineButton label={busy ? 'One moment…' : recording ? 'Finish recording' : uri ? 'Record another take' : 'Record my practice take'} disabled={busy} onPress={() => void record()} />
-    {uri && !recording ? <GhostButton label="Hear my practice take" disabled={busy} onPress={() => void play(true)} /> : null}
+    {uri !== '' && uri != null && !recording && <IconAction layout="inline" icon="speaker" label="Hear my practice take" disabled={busy} onPress={() => void play(true)} />}
     {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{note}</Text>}
   </View>;
 }

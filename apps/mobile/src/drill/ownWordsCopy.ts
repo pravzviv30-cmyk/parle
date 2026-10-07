@@ -48,6 +48,9 @@ export const RECORDING_READY = 'Record your French. We turn it into words for yo
 export const RECORDING_LIVE = 'Up to 20 seconds. Tap to stop, or type instead.';
 export const RECORDING_TYPE = 'Type instead';
 
+/** Keeping the phrase was refused by the phone. Nothing is called saved, and it can be tried again (F762). */
+export const OWN_WORDS_NOT_KEPT = 'Your phrase could not be saved yet. Please try again.';
+
 /** Every fixed line this module can say, for the copy sweeps. */
 export const OWN_WORDS_COPY: readonly string[] = [
   OWN_WORDS_LABEL,
@@ -61,4 +64,5 @@ export const OWN_WORDS_COPY: readonly string[] = [
   RECORDING_READY,
   RECORDING_LIVE,
   RECORDING_TYPE,
+  OWN_WORDS_NOT_KEPT,
 ];

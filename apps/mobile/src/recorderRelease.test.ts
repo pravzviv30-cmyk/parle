@@ -148,11 +148,12 @@ function mount(path: string, exported: string, platform: Platform) {
       },
     },
     'react/jsx-runtime': { jsx: element, jsxs: element, Fragment: 'Fragment' },
-    'react-native': { AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Text: 'Text', View: 'View' },
+    'react-native': { StyleSheet: { create: (styles: unknown) => styles }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Text: 'Text', View: 'View' },
     '@react-navigation/native': { useIsFocused: () => focused },
     'expo-audio': {
       AudioModule: { requestRecordingPermissionsAsync: async () => ({ granted: true }) },
       RecordingPresets: { HIGH_QUALITY: {} },
+      useAudioRecorderState: () => ({ metering: -160, durationMillis: 0 }),
       setAudioModeAsync: async () => {},
       // As expo's own hook does: one recorder, released by an effect declared here,
       // and so cleaned up before any effect the screen declares after it.
@@ -164,7 +165,7 @@ function mount(path: string, exported: string, platform: Platform) {
         return own;
       },
     },
-    '../components.tsx': { GhostButton: 'GhostButton', MicGlyph: 'MicGlyph', Press: 'Press', SpeakCircle: 'SpeakCircle' },
+    '../components.tsx': { IconAction: 'IconAction', GhostButton: 'GhostButton', MicGlyph: 'MicGlyph', Press: 'Press', SpeakCircle: 'SpeakCircle' },
     '../theme.ts': { colour: {}, paper: {}, type: {}, space: (n: number) => n * 4 },
     // A live microphone silences every haptic in the app until its mute is lifted.
     '../motion/hapticPreference.ts': {
@@ -182,6 +183,13 @@ function mount(path: string, exported: string, platform: Platform) {
     '../daily/finishLocalTake.ts': { finishLocalTake },
     '../daily/recorderUri.ts': { recorderUri },
     './ownWordsCopy.ts': ownWordsCopy,
+    '../sound/audioSession.ts': { enterRecording: async () => {}, leaveRecording: async () => {} },
+    '../sound/audioFocus.ts': { holdMic: () => { mutes++; let released = false; return () => { if (!released) mutes--; released = true; }; } },
+    '../motion/LevelRing.tsx': { LevelRing: 'LevelRing' },
+    '../speech/useRecorderLevel.ts': { useRecorderLevel: () => ({ metered: false, level: 0 }) },
+    './firstRun/copy.ts': { FIRST_RUN_COPY: {}, TAKE_CAP_SECONDS: 20 },
+    './firstRun/micLevel.ts': { meterLevel: () => 0 },
+    './firstRun/MicMeter.tsx': { MicMeter: 'MicMeter' },
   };
   if (!compiled.has(path)) {
     const url = new URL(path, import.meta.url);

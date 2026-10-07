@@ -20,7 +20,8 @@
       },
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Luvani uses your microphone for spoken French conversations and practice recordings you choose to make."
+        "NSMicrophoneUsageDescription": "Luvani uses your microphone for spoken French conversations and practice recordings you choose to make.",
+        "EXDevMenuShowFloatingActionButton": false
       }
     },
     "android": {

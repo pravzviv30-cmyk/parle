@@ -304,3 +304,71 @@ test('reset waits for an already issued light-day disk write before removing dat
   assert.equal(await writing, 'failed');
   assert.equal(disk.has(`luvani.u.${uid}.activity`), false);
 });
+
+describe('a finished sitting is a practice day whatever it earned — F731', () => {
+  test('a finished sitting that earns no XP still records a practice day', async () => {
+    const { dirtyStamp, clearDirty } = await import('../sync/registry.ts');
+    const key = `luvani.u.${uid}.activity`;
+    const at = new Date(2026, 9, 2, 12).getTime();
+    const earlier = dirtyStamp('activity');
+    if (earlier !== null) clearDirty('activity', earlier);
+
+    // A drill set worked to its end with nothing right. Before this, the call
+    // returned nothing and wrote nothing, so the learner's day vanished from the streak.
+    const ack = await recordActivity('drill', 0, at, { durationMs: 600_000, activeMs: 420_000, finished: true });
+    assert.equal(ack, 'durable', 'a finished sitting with no XP did not say its day landed');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02'], 'the day of a finished sitting with no XP is missing');
+    assert.deepEqual(await loadActivity({ strict: true }), [], 'a sitting with no XP wrote an entry, so XP or minutes could follow it');
+    const stamp = dirtyStamp('activity');
+    assert.notEqual(stamp, null, 'the new day was not flagged for the account, so another device never hears of it');
+    clearDirty('activity', stamp!);
+
+    // The same day again, and a finished conversation with nothing in it: still one day, still no entry.
+    assert.equal(await recordActivity('convo', -3, at + 60_000, { finished: true }), 'durable');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02']);
+    assert.deepEqual(await loadActivity({ strict: true }), []);
+
+    // A sitting that did earn XP is unchanged: one entry, its day, and now its answer.
+    assert.equal(await recordActivity('review', 4, at + 86_400_000), 'durable');
+    assert.deepEqual(await loadActiveDays(), ['2026-10-02', '2026-10-03']);
+    assert.equal((await loadActivity({ strict: true })).length, 1);
+
+    // What cannot be a sitting records nothing and says so.
+    const before = disk.get(key);
+    assert.equal(await recordActivity('drill', Number.NaN, at, { finished: true }), 'failed');
+    assert.equal(await recordActivity('drill', 0, Number.NaN, { finished: true }), 'failed');
+    assert.equal(disk.get(key), before, 'a malformed sitting changed the log');
+
+    // An unreadable log is never replaced with a fresh one, for a day or an entry.
+    disk.set(key, '{broken');
+    assert.equal(await recordActivity('drill', 0, at, { finished: true }), 'failed');
+    assert.equal(await recordActivity('drill', 5, at), 'failed');
+    assert.equal(disk.get(key), '{broken');
+  });
+
+  test('a sitting left before it finished, with no XP, writes no practice day', async () => {
+    const { dirtyStamp, clearDirty } = await import('../sync/registry.ts');
+    const key = `luvani.u.${uid}.activity`;
+    const at = new Date(2026, 9, 2, 12).getTime();
+    const earlier = dirtyStamp('activity');
+    if (earlier !== null) clearDirty('activity', earlier);
+
+    // The bank drill records on the way out. Opened and left from the header
+    // with nothing answered, it arrives with 0 XP and a measured stay, and it
+    // never says it finished. Counting that as a day would be progress the
+    // learner did not make.
+    assert.equal(await recordActivity('drill', 0, at, { durationMs: 4_000, activeMs: 0 }), 'durable', 'nothing to write is not a failure');
+    assert.equal(await recordActivity('drill', 0, at, { durationMs: 4_000, activeMs: 0, finished: false }), 'durable');
+    assert.equal(await recordActivity('convo', -1, at), 'durable');
+    assert.equal(disk.has(key), false, 'a sitting nobody finished wrote to the log');
+    assert.deepEqual(await loadActiveDays(), [], 'a sitting nobody finished became a practice day');
+    assert.equal(dirtyStamp('activity'), null, 'a sitting nobody finished was flagged for the account');
+
+    // On a log that already holds a day, it changes nothing either.
+    assert.equal(await recordActivity('review', 3, at - 86_400_000), 'durable');
+    const bytes = disk.get(key);
+    assert.equal(await recordActivity('drill', 0, at, { durationMs: 4_000 }), 'durable');
+    assert.equal(disk.get(key), bytes);
+    assert.deepEqual(await loadActiveDays(), ['2026-10-01']);
+  });
+});

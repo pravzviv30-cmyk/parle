@@ -267,7 +267,7 @@ describe('the ci contract', () => {
     const copies = Object.entries(lock.packages).filter(([key]) => key.endsWith('node_modules/sharp'));
     assert.ok(copies.length > 0, 'the live tutor image-processing dependency must be checked');
     for (const [key, entry] of copies) {
-      assert.ok(atLeast(entry.version ?? '0.0.0', '0.35.4'), `${key} must not restore vulnerable Sharp`);
+      assert.ok(atLeast(entry.version ?? '0.0.0', '0.35.5'), `${key} must not restore vulnerable Sharp`);
       const binaries = Object.entries(entry.optionalDependencies ?? {});
       assert.ok(binaries.some(([name]) => name === '@img/sharp-linux-x64'), 'Linux CI binary is declared');
       assert.ok(binaries.some(([name]) => name === '@img/sharp-darwin-arm64'), 'Apple Silicon binary is declared');

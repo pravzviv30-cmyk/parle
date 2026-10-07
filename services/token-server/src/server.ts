@@ -1,4 +1,6 @@
-import { guestSpeechAvailable, transcribeGuestTake } from './onboardingSpeech.ts';
+import { reserveGuestDecoder } from '../../shared/audioDecode.ts';
+import { guestSpeechAvailable, guestSpeechGaps, guestSpeechLimits, transcribeGuestTake } from './onboardingSpeech.ts';
+import { MemoryGuestSpeechLedger, RedisGuestSpeechLedger, guestSpeechAdmission, releaseUnclaimed, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
 import { parseGuestMetric } from './guestMetrics.ts';
 /**
  * The token server.
@@ -94,6 +96,12 @@ import {
 
 const guestStore = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new RedisGuestStore(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestStore();
+// Guest speech books its seconds in the same durable store, or in memory locally.
+const guestSpeech = guestSpeechAdmission(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  ? new RedisGuestSpeechLedger(process.env.UPSTASH_REDIS_REST_URL, process.env.UPSTASH_REDIS_REST_TOKEN) : new MemoryGuestSpeechLedger(), guestSpeechLimits(process.env));
+if (process.env.LUVANI_GUEST_SPEECH === '1' && !guestSpeechAvailable(process.env)) {
+  console.warn(`[luvani] LUVANI_GUEST_SPEECH=1 is not in effect. Guests type until these are set: ${guestSpeechGaps(process.env).join(', ')}.`);
+}
 const GUEST_START_LIMIT = { name: 'guest-start', limit: 5, windowSec: 86400 };
 const GUEST_EVENT_LIMIT = { name: 'guest-evidence', limit: 80, windowSec: 3600 };
 const GUEST_REPLY_LIMIT = { name: 'guest-reply', limit: 20, windowSec: 3600 };
@@ -264,6 +272,11 @@ function ipCheck(req: IncomingMessage, rule: RateLimitRule): readonly [RateLimit
   return [rule, 'ip', clientIp(req, trustProxy)];
 }
 
+/** What guest speech is budgeted against, all hashed: the capability, the installation and the address. */
+function guestSpeechSignals(req: IncomingMessage, token: string, installHash: string): { guest: string; installation: string; address: string } {
+  return { guest: guestKey(token), installation: installHash, address: privateSignal(rateLimitSalt, 'ip', clientIp(req, trustProxy)) };
+}
+
 function installationChecks(req: IncomingMessage, rule: RateLimitRule): readonly (readonly [RateLimitRule, 'installation', string])[] {
   const installation = installationSignal(req);
   return installation ? [[rule, 'installation', installation]] : [];
@@ -347,8 +360,13 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (url.pathname === '/onboarding/start') {
         const body = await readJson(req, 2048);
         if (body.eligible !== true || !STARTER_GOALS.includes(body.goal as StarterGoal) || !['coffee', 'tea'].includes(String(body.drink)) || ![5, 10, 15, 'none'].includes(body.minutes as number)) return json(res, 400, { error: 'valid eligibility and plan required' });
-        try { return json(res, 200, { ...await createGuest(guestStore, { installation: installHash, eligible: true, goal: body.goal as StarterGoal, drink: body.drink as StarterDrink, minutes: body.minutes as 5 | 10 | 15 | 'none', analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' }), speechAvailable: guestSpeechAvailable(process.env) }); }
+        let started;
+        try { started = await createGuest(guestStore, { installation: installHash, eligible: true, goal: body.goal as StarterGoal, drink: body.drink as StarterDrink, minutes: body.minutes as 5 | 10 | 15 | 'none', analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' }); }
         catch { return json(res, 409, { error: 'starter already used', message: 'This device has already started its guest practice today. Your saved practice is still available offline.' }); }
+        // Speech is offered only while every guest speech budget still has a turn left; a store failure offers typing.
+        const speechAvailable = guestSpeechAvailable(process.env)
+          && await guestSpeech.open(guestSpeechSignals(req, started.token, installHash)).catch(() => false);
+        return json(res, 200, { ...started, speechAvailable });
       }
       if (url.pathname === '/onboarding/account-event') {
         const body = await readJson(req, 512);
@@ -393,25 +411,41 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (url.pathname === '/onboarding/attempt' || url.pathname === '/onboarding/audio') {
         if (guest.expiresAt <= Date.now() || guest.owner) return json(res, 410, { error: 'guest practice expired' });
         const audio = url.pathname === '/onboarding/audio';
-        // Guest capabilities are not an authenticated paid-admission context.
+        // A guest capability is not an authenticated paid-admission context. Speech
+        // needs its own anonymous admission: the configuration here, then a
+        // reservation per take. A key alone, or a local flag in production, opens nothing.
         if (audio && !guestSpeechAvailable(process.env)) return json(res, 503, { error: 'guest speech unavailable; type instead' });
         const body = audio ? {} : await readJson(req, 4096);
         const taskId = audio ? req.headers['x-luvani-task'] : body.taskId;
         const task = starterTasks(guest.goal, guest.drink, guest.minutes).find(task => task.id === taskId);
         if (!task) return json(res, 400, { error: 'unknown starter task' });
         if (!audio && (typeof body.reply !== 'string' || !body.reply.trim() || body.reply.length > 600)) return json(res, 400, { error: 'reply required' });
+        const decoderLease = audio && process.env.NODE_ENV === 'production' ? reserveGuestDecoder() : null;
+        if (audio && process.env.NODE_ENV === 'production' && !decoderLease) return json(res, 503, { error: 'guest speech busy; type instead' });
+        try {
+        // Speech seconds are booked before the attempt, so a full budget never spends one of the learner's attempts.
+        let speech: GuestSpeechReservation | null = null;
+        if (audio) {
+          const decision = await guestSpeech.reserve(guestSpeechSignals(req, token, installHash)).catch(() => null);
+          if (decision?.kind !== 'reserved') return json(res, 503, { error: 'guest speech unavailable; type instead' });
+          speech = decision.reservation;
+        }
         // Reserve before vendor work. Parallel audio calls and failures cannot buy unbounded transcription.
         let feedback;
         try { feedback = await guestAttempt(guestStore, token, task.id, audio ? 'pending transcription' : body.reply as string, audio ? 'spoken' : 'typed', Date.now(), audio ? Number(req.headers['x-luvani-active-seconds']) : Number(body.activeSeconds)); }
-        catch { return json(res, 409, { error: 'starter attempt limit reached' }); }
-        if (!audio) return json(res, 200, { ...feedback, reply: body.reply });
+        catch { await speech?.settle(0); return json(res, 409, { error: 'starter attempt limit reached' }); }
+        if (!speech) return json(res, 200, { ...feedback, reply: body.reply });
         let take;
-        try { take = await readAudio(req); } catch { return json(res, 413, { error: 'recording exceeds its limit' }); }
-        if (!take.length) return json(res, 400, { error: 'recording required' });
+        try { take = await readAudio(req); } catch { await speech.settle(0); return json(res, 413, { error: 'recording exceeds its limit' }); }
+        if (!take.length) { await speech.settle(0); return json(res, 400, { error: 'recording required' }); }
+        const admitted = speech;
         let transcript: string | null = null;
-        try { transcript = await withRequestSignal(req, res, signal => transcribeGuestTake(take, signal), 12000); } catch { /* no transcript or audio in logs */ }
+        try { transcript = await withRequestSignal(req, res, signal => transcribeGuestTake(take, admitted, signal, process.env, {}, decoderLease ?? undefined), 12000); } catch { /* no transcript or audio in logs */ }
+        // A request that ended before the work began never claimed its take; return those seconds. A claimed take settles itself.
+        finally { await releaseUnclaimed(admitted); }
         if (!transcript || transcript.length > 600) return json(res, 503, { error: 'transcription unavailable' });
         return json(res, 200, { ...checkStarter(task, transcript, 'spoken'), secondsUsed: feedback.secondsUsed, reply: transcript });
+        } finally { decoderLease?.release(); }
       }
       return json(res, 404, { error: 'unknown starter route' });
     }
@@ -454,7 +488,12 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       // Validate vendor credentials and response shape without granting time.
       const subscriber = await fetchSubscriber(resolved.userId, billing);
       projectSubscriber(subscriber, { plan: 'trial', secondsUsed: 0 }, billing);
-      return json(res, 200, { ready: true, entitlementId: billing.entitlementId, products: billing.products, projectionVersion: 1 });
+      // projectionVersion is the wire contract with the app and stays 1; the
+      // database version the store checks above is the projection's own (F733).
+      // yearlyProducts lets a build that sells a yearly product refuse to when
+      // this server would not recognise the purchase.
+      return json(res, 200, { ready: true, entitlementId: billing.entitlementId, products: billing.products,
+        yearlyProducts: billing.yearlyProducts ?? {}, projectionVersion: 1 });
     }
 
     // Learner-triggered recovery for restore and for a webhook delayed or lost.

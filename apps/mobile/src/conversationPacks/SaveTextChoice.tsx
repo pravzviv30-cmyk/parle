@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { ConversationText } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
-import { GhostButton } from '../components.tsx';
+import { IconAction, GhostButton } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { saveText } from './textClient.ts';
@@ -31,7 +31,7 @@ export function SaveTextChoice({ ownerId, conversation }: { ownerId: string; con
   return <View style={{ gap: space(2) }}>
     <Text style={[type.bodyStrong, { color: paper.ink }]}>Keep the conversation text?</Text>
     <Text style={[type.small, { color: paper.inkSoft }]}>Save the conversation and tutor coaching to your account. Speech recognition can differ from what you said. No recording is saved. You can delete this text separately from your practice.</Text>
-    {state !== 'saved' && <GhostButton label={state === 'saving' ? 'Saving conversation text…' : 'Save conversation text'} disabled={state === 'saving'} onPress={save} />}
-    {message ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{message}</Text> : null}
+    {state !== 'saved' && <IconAction layout="inline" icon="download" label={state === 'saving' ? 'Saving conversation text…' : 'Save conversation text'} disabled={state === 'saving'} onPress={save} />}
+    {message !== '' && message != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{message}</Text>}
   </View>;
 }

@@ -34,6 +34,7 @@
     "verify:upstash": "node --experimental-strip-types services/token-server/src/verify/upstashLive.ts",
     "loop": "node scripts/loop.mjs",
     "hooks": "node scripts/installHooks.mjs",
+    "icons": "node scripts/icons/build-icons.mjs",
     "postinstall": "node scripts/patchExpoModulesJsi.mjs && node scripts/installHooks.mjs"
   },
   "engines": {
@@ -128,11 +129,16 @@
     }
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.3.14"
+    "@electric-sql/pglite": "0.3.14",
+    "iconsax": "0.1.1"
   },
   "overrides": {
     "onnxruntime-node": {
       "adm-zip": "0.6.1"
-    }
+    },
+    "compression": "1.8.2",
+    "shell-quote": "1.11.0",
+    "source-map-js": "1.2.2",
+    "sharp": "0.35.5"
   }
 }

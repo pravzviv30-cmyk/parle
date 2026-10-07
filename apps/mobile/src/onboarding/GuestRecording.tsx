@@ -1,12 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
-import { GhostButton, Press, MicGlyph } from '../components.tsx';
+import { AudioModule, RecordingPresets, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { recorderUri } from '../daily/recorderUri.ts';
+import { IconAction, Press, MicGlyph } from '../components.tsx';
 import { silenceRecordingHaptics } from '../motion/hapticPreference.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
+import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
 import { colour, paper, type } from '../theme.ts';
-/** Twenty-second take, deleted after consumption. No haptic while the microphone is recording. */
+import { FIRST_RUN_COPY, TAKE_CAP_SECONDS } from './firstRun/copy.ts';
+import { meterLevel } from './firstRun/micLevel.ts';
+import { MicMeter } from './firstRun/MicMeter.tsx';
+
+/** The take's recorder, with its level reported so the meter shows the real voice (come alive, first run). */
+const TAKE_OPTIONS = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+/** How often the meter reads the recorder, in milliseconds. */
+const METER_EVERY_MS = 50;
+
+/**
+ * Twenty-second take, deleted after consumption. No haptic and no sound effect
+ * while the microphone is recording: the microphone holds audio focus. The
+ * microphone permission is asked here, on the tap that starts a take, and
+ * never before (disclosure.test.ts).
+ */
 export function GuestRecording({
   onTake,
   onTyping,
@@ -18,9 +33,9 @@ export function GuestRecording({
   busy: boolean;
   onRecordingChange: (recording: boolean) => void;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  // A take can end after expo-audio has released the recorder; this still finds its file.
+  const recorder = useAudioRecorder(TAKE_OPTIONS);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
+  const take = useAudioRecorderState(recorder, METER_EVERY_MS);
   const [recording, setRecording] = useState(false);
   const [note, setNote] = useState('');
   const active = useRef(true);
@@ -37,7 +52,7 @@ export function GuestRecording({
       await recorder.stop();
       releaseHaptics.current?.();
       releaseHaptics.current = null;
-      await setAudioModeAsync({ allowsRecording: false });
+      await leaveRecording();
       const uri = recorderUri(recorder, preparedUri.current);
       if (active.current) setRecording(false);
       onRecordingChange(false);
@@ -49,7 +64,7 @@ export function GuestRecording({
         setNote('That take could not finish. You can type instead.');
       }
     } finally {
-      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      await leaveRecording().catch(() => {});
       discardRecording(recorderUri(recorder, preparedUri.current));
       releaseHaptics.current?.();
       releaseHaptics.current = null;
@@ -83,28 +98,29 @@ export function GuestRecording({
         onTyping();
         return;
       }
-      await setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-      });
+      // The microphone focus is held from here until the take ends, so no
+      // sound effect can switch the session away from recording (F724).
+      releaseHaptics.current?.();
+      releaseHaptics.current = silenceRecordingHaptics();
+      await enterRecording();
       preparedUri.current = recorderUri(recorder, preparedUri.current);
       await recorder.prepareToRecordAsync();
       preparedUri.current = recorderUri(recorder, preparedUri.current);
       if (!active.current) {
         await recorder.stop().catch(() => {});
         discardRecording(recorderUri(recorder, preparedUri.current));
-        await setAudioModeAsync({ allowsRecording: false });
+        releaseHaptics.current?.();
+        releaseHaptics.current = null;
+        await leaveRecording();
         return;
       }
-      releaseHaptics.current = silenceRecordingHaptics();
       recorder.record();
       live.current = true;
       setRecording(true);
       onRecordingChange(true);
       timer.current = setTimeout(() => {
         void stop(true);
-      }, 20000);
+      }, TAKE_CAP_SECONDS * 1000);
     } catch {
       if (active.current) {
         setNote('The microphone could not start. You can type instead.');
@@ -114,7 +130,7 @@ export function GuestRecording({
       releaseHaptics.current?.();
       releaseHaptics.current = null;
       discardRecording(recorderUri(recorder, preparedUri.current));
-      await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      await leaveRecording().catch(() => {});
     } finally {
       working.current = false;
       if (!active.current) void stop(false);
@@ -122,6 +138,7 @@ export function GuestRecording({
   };
   return (
     <View style={{ alignItems: 'center', gap: 12 }}>
+      {recording ? <MicMeter level={meterLevel(take.metering)} seconds={take.durationMillis / 1000} /> : null}
       <Press
         haptic={recording ? 'none' : 'light'}
         disabled={busy}
@@ -138,15 +155,18 @@ export function GuestRecording({
       >
         <MicGlyph color={recording ? paper.card : paper.ink} />
       </Press>
-      <Text style={type.body}>{recording ? 'Listening. Tap to send.' : 'Tap to speak.'}</Text>
-      <GhostButton
-        label="Type instead"
+      <Text style={type.body}>{recording ? FIRST_RUN_COPY.listening : FIRST_RUN_COPY.tapToSpeak}</Text>
+      <IconAction
+        icon="keyboard"
+        layout="inline"
+        label={FIRST_RUN_COPY.typeInstead}
         disabled={busy}
+        haptic={recording ? 'none' : undefined}
         onPress={() => {
           void stop(false).then(onTyping);
         }}
       />
-      {note ? (
+      {note !== '' ? (
         <Text accessibilityLiveRegion="polite" style={type.small}>
           {note}
         </Text>

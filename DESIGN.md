@@ -250,6 +250,26 @@ the primary control of the whole product, so it takes the primary colour exactly
 as the primary action does, and it changes to a state colour when the orb
 reports state.
 
+**The living orb** (come alive, October 2026). Inside a conversation room the
+orb answers the room's real audio, in the same state colours and the same
+drawing, through layers that move by transform and opacity only and are decided
+in `tutor/orbLayers.ts`. While it is the learner's turn, two rings behind it
+swell with their real microphone level (`OrbLevelRing`, the shared `LevelRing`),
+and the word under it reads "Hearing you" once they have been heard for a
+quarter second; the orb's accessible name keeps the state's own word, so a
+screen reader is never told twice a sentence. While the tutor speaks, the seven
+bars follow the tutor's voice band by band and the core grows a little with its
+loudness (`LiveBars`, `OrbPulse`), and the breathing loop rests so the core never
+moves two ways at once. While the tutor is really thinking, a sun segment of the
+outer ring goes round once every 1.2 seconds (`OrbThinkingArc`). On the goal
+tick that completes a scene the orb ripples once, two rings and eight dots in
+the state colour (`OrbRipple`). A level that is not measured draws nothing new:
+the orb keeps the loops above, so it never invents a voice. Every layer rests
+behind another screen, with the app in the background, when paused and with
+movement reduced (the arc then holds still and the ripple never plays). Outside
+a room (the Tutor tab, the intro, the waiting screens) the orb is exactly the
+drawing above. The lesson's Speak circle wears the same level ring.
+
 ### The rungs share one fill
 
 A rung colour is a fill under an ink numeral, not a state mark, so it is held to
@@ -276,7 +296,10 @@ wrapper in production source. There are no transitional allowances.
 ### Shadow
 
 No interface shadow. White cards separate content from warm paper; the live
-orb carries its state through the core, rings, glyph and caption.
+orb carries its state through the core, rings, glyph and caption. The selected
+glow is a ring layer, not a shadow: a translucent blue view drawn under a
+chosen tile (see Motion, The press). The live microphone glow remains the only
+shadow.
 
 **The whisper is deleted.** The theme exports no shadow token. `theme.test.ts`
 refuses the retired alias, and `surfaceContract.test.ts` refuses shadow styles
@@ -365,10 +388,15 @@ the new look, listed at the end, and they go with their call sites.
   "Step 2 of 6".
 - **Label** — the meta line a card may carry: small, soft ink, sentence case.
 - **Tab bar** — white with a top hairline, four labelled icons and no dock,
-  shadow, chartreuse wash or independent animation. Selected is brand blue in
-  Outfit Bold; unselected is soft ink in Outfit SemiBold. Cells keep a 60pt
-  floor and labels wrap at large text. The words are Home, Speak, Practice and
-  Progress; Friends is an optional Profile route.
+  shadow or chartreuse wash. Selected is the Bulk icon and the word in brand
+  blue, Outfit Bold; unselected is the Linear icon and the word in soft ink,
+  Outfit SemiBold. The bar itself moves nothing: when a tab becomes the
+  selected one its icon pops once in `nav/TabGlyph.tsx` (up 2pt and to 1.15,
+  home on the pop spring, the Bulk drawing fading in over the Linear), never on
+  launch or on a tap of the open tab, and under Reduce Motion it simply swaps.
+  The Practice dot pops in once when practice becomes due while the bar is
+  open. Cells keep a 60pt floor and labels wrap at large text. The words are
+  Home, Speak, Practice and Progress; Friends is an optional Profile route.
 - **Highlight** — the highlighter (SNIPPETS highlight): a still band in
   `highlight` behind one French line, at most once per screen and only on white
   or paper. The band is decorative; the line on it is what is read, marked as
@@ -400,15 +428,21 @@ the new look, listed at the end, and they go with their call sites.
   surface. Green-ringed when waiting, green-filled (with the live glow, the
   only shadow in the app) when live — green means "you speak", matching the
   voice circle — hairline-muted when the tutor holds the floor.
-- **Icons** — ICONS.md's marks, ported path for path at its one stroke of 2 on
-  a 24 box, ink by default: `components.tsx` for the controls (with `CloseGlyph`
-  and `CheckGlyph` beside the parts that draw them), `glyphs.tsx` for the row
-  marks and the Round 1 additions, `nav/icons.tsx` for the tabs, where Speak is
-  the same microphone as the control. All are held to the one stroke by
-  `motion.test.ts` and `glyphs.test.ts`. The Apple and Google marks are the only
-  filled glyphs, in the one colour they are given. The few older drawings
-  ICONS.md has no match for are kept at the new stroke until their callers
-  retire.
+- **Icons** — Iconsax-sourced, generated, Linear for controls, Bulk for tiles
+  and states. One family: Iconsax free icons (held by the founder under the
+  Iconsax free licence) plus a few of Luvani's own drawings, generated by
+  `npm run icons` from `scripts/icons/icons.config.mjs` into `src/icons/`, every
+  stroke at the one pen of 2 on a 24 box, coloured only by the tokens the
+  caller passes, and decorative: the control around an icon names it. A screen
+  draws `<Icon name="..." />`; `IconTile` sets a Bulk icon on one of six grounds
+  with the one mark colour that may sit on it, and `GoalDial` draws a daily
+  goal's size. What moves is `AnimatedIcon`, around a still drawing, and only
+  for a real event. The older names in `components.tsx`, `glyphs.tsx` and
+  `nav/icons.tsx` are delegates to the set until their callers move, and Speak
+  is still the same microphone as the control. No Iconsax file is ever
+  committed loose; each generated file carries the licence notice, and
+  `docs/design-assets/ICON_SET.md` lists every icon. The Apple and Google marks
+  stay drawn by hand, filled in the one colour they are given.
 - **Art** — the single raster renderer, using registry sizes or its compact
   variant. Illustrations sit within content panels, never behind headings.
 - **TabHeader**: the tab's title block. A `display` title on the left, one plain
@@ -430,23 +464,61 @@ the new look, listed at the end, and they go with their call sites.
 The B parts, appended in revamp B Stage 2 for Stage 3 to paste:
 
 - **RoundButton** — back and close are a white disc at the touch floor with the
-  ICONS.md mark; next is a 64 disc (sun on blue or coral, ink on sun) with its
-  word beside it.
+  set's back or close icon; next is a 64 disc (sun on blue or coral, ink on
+  sun) with its word beside it.
 - **ColourCard** — the one colour card on a paper screen: one ground at the
   feature radius, words in `textOn`, the secondary in `onColour`. The whole card
   is a target only when it holds no pill of its own.
 - **StatTile / HeroNumber** — a number and one plain line on white, and the one
   giant number with its unit on a colour board. Each is one phrase to a screen
   reader.
-- **OptionRow** — a one-tap choice: a white row with a title and a line under
-  it, ending in the brand-blue check when chosen and the field ring when not.
-  The choice is said on a device and on the web.
+- **OptionRow** — a one-tap choice, now a thin name for `Choice` as a button
+  row: white with a title and a line under it and the field ring when not
+  chosen, the brand blue with white words and a white disc holding the blue
+  check when chosen. A Hear is its own speaker button beside it. The choice is
+  said on a device and on the web.
 - **Sheet** — a bottom sheet under an ink scrim at 0.45 that closes it, modal to
   VoiceOver, with a grabber and a title. No drag to dismiss.
 - **Skeleton / QuietLine** — still sand blocks that say Loading once, and a
   small centred reassurance.
 - **FrenchBlock** — a French line, large and marked as French, the English
   under it, and a 44pt hear disc that says Stop while the line sounds.
+
+The icon controls, appended in come alive (D2, F727). Each presses through
+`Press`, casts no shadow, says off in colour rather than opacity, and plays no
+sound of its own:
+
+- **IconButton** — a button with no visible label carries a spoken label. It
+  draws one of six marks every phone reads the same way (back, close, hear,
+  keep, replay and remind), and anything else is an `IconAction` with its word
+  on screen. The label is required and is what a screen reader says; the mark
+  is decorative. The target is the 44pt touch floor, or a 56pt disc for the main
+  audio on a page, both from `HIT`. Plain is the mark in its ground's ink, disc
+  is the white disc with an ink mark, ink is the ink disc with a white mark. A
+  toggle that is on (kept, reminders on) turns its mark Bulk, in brand blue
+  where it would be ink, and says so on a device and on the web; it moves only
+  through `AnimatedIcon`, on a real event. Off is soft ink on paper or white, a
+  sand disc, or the ground's own secondary on a colour. It presses as deep as a
+  tile.
+- **IconAction / IconActionRow** — an icon with its short word, for every
+  other action. A tile is the icon over the word in a white tile, 72pt tall,
+  two to four sharing a row and wrapping two to a line at the largest reading
+  sizes; inline is the icon beside the word at the touch floor, in the ground's
+  words colour. A chosen tile takes the blue ground's pale secondary, a 2pt
+  brand border and a Bulk brand icon, pops once and lights the ring layer; on a
+  blue or coral ground it takes the sun with ink. Busy turns the icon into the
+  turning refresh and says busy. Off is the sand tile with soft ink.
+- **Choice** — the one choice, for every option, plan, voice, level, goal and
+  time: a 72pt row with the tile at its head, the title, a line under it and a
+  28pt disc, or a tile for a grid of two. Not chosen, it is white with a 2pt
+  hairline (the paper on a white sheet), so it never matches its ground.
+  Chosen, it is the brand blue with white words and a white disc holding the
+  blue check, or the sun with ink on a blue ground; the tile inside turns white
+  with a brand mark, and it pops once and lights the ring layer. It is a radio
+  by default, said on a device and on the web. A Hear is its own speaker button
+  beside it, so hearing never chooses. `OptionRow` and the first run's `Choice`
+  are thin names for it, and `ChoiceArt` draws an `IconTile`. `OptionCard`, the
+  answer row in sittings and drills, still draws its own until it joins them.
 
 The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers
 are deleted. Callers use LedgerRow, Card and SceneBrief directly. No tint or
@@ -502,8 +574,8 @@ registry and its map retired with revamp B (F599). Nothing in the app imports
 `Image`, and every picture is a vector. The welcome, cake, wave, empty table,
 recap postcard, phrasebook and wall-map rasters went before them.
 
-The daily library and Today show no pictures. Their French, glosses, notes,
-examples and audio remain.
+The daily library and today's phrase show no pictures of places. Their French,
+glosses, notes, examples and audio remain.
 
 ### Inline SVG
 
@@ -517,6 +589,37 @@ deleted. All twenty daily-pack drawings, their selector and their unused card
 are deleted. The illustration animation hook and moving layers are gone.
 `motion.test.ts` and `surfaceContract.test.ts` enforce static illustrations;
 Illustrations stay static; the bounded motion hosts are listed in the Motion section.
+
+### Game art
+
+The streak flame, the medal, the level crest and the freeze and repair marks
+are flat vectors built in code (come alive, decisions D10 and D22), not
+catalogue drawings, so they live in `src/game/art/` and stay out of the flat
+registry and its pinned 29. Each is a list of named parts on a 100 by 100 box in
+`src/game/art/shapes.ts`, and every part names its fill by palette token
+(`colour.coral`, `paper.field`), never by value, and never the highlighter or
+lilac. They keep the one hand: flat fills, no outlines, gradients, shadows,
+faces or words. A waiting state is the same drawing in the paper greys: the
+unlit flame before the day's first practice, the next medal on the badge shelf,
+a used freeze. On a colour ground, a drawing that uses the ground's own colour
+trades it with white, so the flame on the coral milestone card is white and
+sun. Every one is decorative: the words beside it carry the meaning, and the
+crest draws no level number or name. The flame lights from an ember and
+flickers three times while in view, by moving whole layers with transform and
+opacity; the rest are still. There is no chest (D22).
+`node --experimental-strip-types scripts/art/game-art-sheet.mjs` writes the
+contact sheet, `artifacts/game-art/index.html`: every drawing in every state at
+48, 96 and 160 px on paper and the four colours. The founder approves the art by
+eye on that sheet before it ships, and `src/game/art/shapes.test.ts` (F746)
+holds every part to the palette and its 100 box, and every Svg to `decorative`.
+
+The celebrations draw this art on their stages: the flame on the streak cards,
+the crest on a level and the medals on a badge card. Where a confetti burst cannot be its own final frame (under reduced
+motion, and on the web once it has fallen) the catalogue's `celebrate-confetti`
+is laid over the stage instead, through `src/celebrate/ConfettiStill.tsx`, which
+is also what keeps that drawing on a screen. On a mint, sun or paper ground its
+pieces of the ground's own colour fall away into it; the rest still read.
+
 ## Structure
 
 First run shows a captioned, recorded French exchange silently until the learner
@@ -534,11 +637,11 @@ avatar. Friends is a Profile route and retains shared challenges and moderation.
 
 | Tab | What it is |
 |---|---|
-| Home | One shared next task: unfinished personal practice, usable practice, then a scene; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today’s French and free local practice. |
+| Home | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
 | Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
-| Progress | A first task when empty; independently earned can-dos before the A0/A1 level card, a weekly day line, saved phrases, sound evidence, conversations and goals; earned postcards and a week story appear only with evidence. |
-| Profile (avatar) | Settings first, the learner’s monogram and name, lifetime days, the chosen tutor, memory and learning choices. Voice and name choices open sheets over the page. |
+| Progress | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
+| Profile (avatar) | Settings first, the learner’s monogram and name, the chosen tutor and memory, the run and the level as two tiles that open the Streak screen and Progress (`game/ProfileStats`, with a subscriber's freezes), lifetime days, and learning choices with the daily goal as five choices: No goal, Casual, Regular, Serious, Intense. Voice and name choices open sheets over the page. |
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
 with the shared header's one chevron, and each was moved rather than cut, because
@@ -646,12 +749,69 @@ control. At most one on screen, at most one *new* one per conversation, each
 shown once ever. That last pair of rules is what stops three notes becoming the
 manual again, spread out.
 
+**The goals tick as they are reached.** The scene's goals sit under its title
+with no count. When the learner reaches one, its mint disc pops in and the
+check lands in it a beat later, the row glints once, the list scrolls it into
+view, and a screen reader hears "Goal reached:" and the goal's own words. At
+rest a tick is the ink check on mint it always was (the Iconsax tick-circle's
+own disc would set the check on a dark teal and halve its contrast). A goal
+already reached when the list appears is simply drawn ticked, and nothing ticks
+after a safety stop. On the last goal the orb ripples once, and the scene's card
+waits for that ripple (under a second) before it arrives; with movement reduced
+it arrives at once.
+
 **The completion moment** is a card in the support card's own place, so the
-screen keeps its shape. It carries the mission's own sentence about what the
-learner did, one pill (**Keep talking**, with a line under it saying plainly
-that carrying on uses minutes) and one ghost (**Finish and see your recap**).
-No confetti, no score, no percentage, nothing about how well. It arrives on the
-app's one settle and shows exactly once, at the turn the mission completes.
+screen keeps its shape. Above the mission's own sentence about what the learner
+did, the kicker **Scene complete** and the scene's place drawing on the
+scene's blue (its white parts would vanish on the white card; left out on a
+short screen or at a large text size, so the doors never leave the screen);
+then one pill (**Keep talking**, with a line under it saying plainly that
+carrying on uses minutes) and one ghost (**Finish and see your recap**). A mint
+glow opens behind the drawing and 24 pieces of confetti leave the card's top
+edge. No score, no
+percentage, nothing about how well, and nothing is heard or felt: the room holds
+the learner's ears, so the fanfare waits for the recap. Both doors work from the
+first frame. It shows exactly once, at the turn the mission completes, and with
+movement reduced it is simply there, with no glow and no confetti.
+
+**End cards** close every finished sitting in place, on the page that ran it:
+a drill set, a practice set, a review, today's phrase and a lesson. One mint
+card under "Practice complete." (`celebrate/EndCard.tsx`) carries up to three
+tiles that count up (XP, time and the sitting's own count), the goal ring and
+any quest the sitting finished. Every number on it is the GameDelta that
+`game/settle.ts` read back from disk once the sitting's writes landed. A tile
+appears only when its number exists, and a finish the settle could not read
+back stands in words with no number at all. It sounds `complete` with one
+`celebrate()`, once per sitting. While a sitting page is open, and from before
+it settles until its end card goes, the celebration queue is held, so a streak,
+a level or a badge plays only after the learner leaves. A review with
+nothing due still says "Nothing waiting." and plays nothing, and a safety stop
+has no end card.
+
+**The answer sheet** rises from the foot of a drill after each answer. A pass is
+mint with a check and a short warm line, `correct` and a light arrival haptic,
+and moves on by itself after 1.4 seconds. A typo the drill accepted is sun,
+"Nearly." and the real spelling, `nearly` and a soft haptic. A miss is calm
+white paper with no mark, no sound and no haptic: the first hands nothing over
+("This one comes round again."), and the second shows the French and waits for
+Continue. With a screen reader on, no sheet moves on by itself. The living bar
+under the header fills as phrases settle, carries no digit, glows sun after
+three real passes in a row, and never moves back.
+
+**Lines arrive.** A line said while the thread is on screen rises into place
+(`BubbleIn`): the learner's a little further, from the orb's side, the tutor's
+only fading in. Lines already there when the thread opens are in place.
+
+**The recap is where the conversation is celebrated.** It is the conversation's
+end card. Once the room has given the learner's ears back (the microphone
+closed, the tutor quiet), its coral result page plays the moment the room held
+back: a sun glow behind the drawing, the `complete` sound and one `celebrate()`,
+confetti when the scene was finished on the learner's own, and a progress strip
+from the settled practice (the XP it credited, the day streak, today's goal
+ring). The lines page counts up to the number of lines said. On the can-do page
+every finish on the learner's own this session gets its postcard stamped, the
+first one louder than the rest; a finish with help shows the postcard still.
+Each plays once per recap, and with movement reduced every part is at rest.
 
 ## Copy
 
@@ -695,71 +855,268 @@ Two hard rules, held from the enamel era:
 
 ## Motion
 
-The voice orb, shared press, once-only earned recap celebration and bounded
-state feedback animate. `motion/Feedback.tsx` is the shared host for the
-approved selection, context, save, practice, help and reopen responses.
-The orb is the only continuous animation: in the conversation, and as the mark
-on the launch screen, where Hum's ring turns while the app opens. Press uses the shared spring;
-recap confetti falls once on the first earned finish in that scene, and its
-real line count rises once. Navigating back does not replay either flourish.
-The source allow-list is `components.tsx`, `motion.ts`, `tutor/VoiceOrb.tsx`
-`recap/OnceConfetti.tsx`, `motion/Feedback.tsx` and `launch/LaunchScreen.tsx`. The count uses a short-lived timer with cleanup.
-The launch keeps the vocabulary: the ring's turn is its one loop, linear and
-2.4 s a turn; the name arriving is its one settling entrance, on `settleIn`'s
-380 ms; and it leaves on the same 380 ms as a fade.
-Illustrations, the greeting and the tab bar stay static.
+The voice orb, shared press, motion primitives, celebration host and bounded
+state feedback animate. Motion answers something that really happened: a
+press, a choice, a save, a finished practice. It never stands in for content,
+never invents progress, and never holds the learner's next tap for long.
+The Hum launch screen keeps its ring turn (2.4 seconds), name entrance and exit
+fade (380 ms). It waits for the app's loading holds, draws a still final frame
+with Reduce Motion, and hides the underlying app from screen readers until it leaves.
 
-`useReduceMotion` observes the OS preference. Reduced motion shows the final
-frame rather than hiding content: a press lands at its scale at once, and the
-orb holds still. VoiceOrb owns its speaking, listening and thinking movement and
-stands down when paused. The orb keeps its captions, its mark and its state
-colours when still; motion never carries information on its own.
+The motion engine, live reduced-motion bridge, press depth, selection feedback,
+voice orb, first-run flow and game celebration host are integrated. Persisted
+practice outcomes publish through the settlement pipeline; purchase feedback
+follows the confirmed store result. The host waits while a live room or recap
+holds its queue. No daily chest or extra completion reward is drawn.
+
+### Principles
+
+- Motion answers a real, persisted event. Nothing celebrates a guess, a fake
+  count or a safety stop.
+- Content is never withheld. Reduced motion shows the final frame, never
+  nothing.
+- Input is never blocked for more than `INPUT_READY_MS`, 600 ms, and a
+  celebration's last beat ends by `CELEBRATION_MAX_MS`, 2600 ms.
+- Reduced motion is watched, not sampled. `useReduceMotion` in `motion.ts`
+  subscribes to the OS setting. Reanimated reads the setting once, when it
+  loads, so `motion/ReduceMotionBridge.tsx`, mounted once in `App.tsx`, hands it
+  the live answer, and every call through `motion/drive.ts` passes the same
+  answer explicitly. In development Reanimated logs one warning when the bridge
+  mounts; that warning is the bridge working.
+- Transform, opacity and dash offsets only. Layout props never animate, except
+  the busy `MorphButton` closing to a circle.
+
+### Engine and tokens
+
+Reanimated 4.5.1 with Worklets 0.10.1 is the one engine. It is imported as
+`Reanimated`; `Animated` always means React Native's legacy module, which the
+files still on it keep until they move. That list only shrinks. The numbers are
+`motion/tokens.ts`, and nothing else writes a spring:
+
+| Group | Tokens |
+|---|---|
+| `DUR` (ms) | instant 0, micro 120, fast 180, base 260, settle 380, slow 420, flight 480, reveal 650, count 900, celebrate 900, burst 1400 |
+| `STAGGER` (ms) | tight 40 (words), base 60 (rows), loose 90 (icon rows), tiles 140 (stat tiles) |
+| `EASE` | out (0.22, 1, 0.36, 1), settle (0.33, 1, 0.68, 1), inOut (0.65, 0, 0.35, 1), in (0.55, 0, 1, 0.45), linear |
+| Press | `PRESS_SCALE` 0.97 for controls, `PRESS_SCALE_TILE` 0.95 for tiles, `SELECT_POP` 1.03 |
+| Budgets | `INPUT_READY_MS` 600, `CELEBRATION_MAX_MS` 2600, `BURST_MAX` phone 36, iPad 56, web 24 |
+
+Each spring is described the way iOS describes one, a response and a damping
+ratio, and converted rather than eyeballed: stiffness = (2π / response)²,
+damping = 2 × ratio × √stiffness, mass 1. `tokens.test.ts` holds every spring
+to its description.
+
+| Spring | Response | Ratio | Stiffness | Damping | Use |
+|---|---|---|---|---|---|
+| press | 0.30 s | 0.70 | 439 | 29.3 | the press |
+| pop | 0.35 s | 0.55 | 322 | 19.7 | the select pop, chips, medals, numbers |
+| settle | 0.50 s | 0.85 | 158 | 21.4 | bars and cards |
+| snap | 0.20 s | 0.80 | 987 | 50.3 | detents |
 
 ### The press
 
 Every tappable part presses through `Press` in `components.tsx`: the drawn
-surface scales to `PRESS_SCALE`, 0.97, on `pressTo`, the one `Animated.spring`
-in the app, and springs back on lift. STYLE gives the spring the way iOS
-describes one, response 0.3 s and damping ratio 0.7. Animated takes physical
-numbers, so they are converted rather than eyeballed:
+surface scales to `PRESS_SCALE`, 0.97, on `pressTo` and the press spring, and
+springs back on lift. Option tiles and icon buttons pass `depth="tile"` and
+press deeper, to 0.95. A ratio of 0.7 overshoots a little on release by design.
+Do not round the numbers further; a clamped press is a change to STYLE first.
 
-| Number | Derivation | Value |
-|---|---|---|
-| stiffness | (2π / 0.3)² = 438.6 | 439 |
-| damping | 2 × 0.7 × √439 = 29.33 | 29.3 |
-| mass | | 1 |
+A choice passes `selected`. When it becomes the chosen one the surface rises to
+1.03 and settles home on the pop spring, and a blue ring layer fades in four
+points around it, resting at 0.16 opacity. The ring is a view under the
+surface, not a shadow. The caller swaps fill and words at once and
+`accessibilityState` says what was chosen, so the ring is decorative. There is
+no second haptic on select. Under reduced motion the scale lands at once, the
+ring shows at rest and nothing pops.
 
-A ratio of 0.7 overshoots a little on release by design. Do not round the
-numbers further; a clamped press is a change to STYLE first. The spring asks for
-the native driver everywhere but the web (`NATIVE_DRIVER`), where the native
-module is absent and a spring asked to cross stalls. A press is cancelled by
-Pressable itself: when a scroll takes the responder it fires `onPressOut` and
-never `onPress`, so the spring returns and nothing happens. `motion.test.ts`
-holds the spring to `motion.ts` and to these numbers, and `components.test.ts`
-holds the pill, the link, the ledger row and the segmented control to `Press`.
+A press is cancelled by Pressable itself: when a scroll takes the responder it
+fires `onPressOut` and never `onPress`, so the spring returns and nothing
+happens.
 
-The highlighter no longer draws in. It is SNIPPETS' band, whole from the first
+The highlighter does not draw in. It is SNIPPETS' band, whole from the first
 frame. `drawIn` and `DRAW_MS` stay exported with no caller until Stage 6
 retires them.
 
-The enforced rules:
+### Primitives
 
-- Transform and opacity only. Loops and entrances use `useNativeDriver: true`;
-  the press spring uses `NATIVE_DRIVER`.
-- Never animate SVG geometry or layout dimensions.
-- One spring, the press, written once in `motion.ts`. Nothing else bounces.
-- No scene loops, animated greeting swaps or moving tab washes.
-- Reduced motion is watched, not sampled only once.
+The primitives live in `motion/`, and screens compose them; a screen never
+imports the engine. Each takes its answer from `useReduceMotion()`, is
+`pointerEvents="none"` and decorative when it is decoration, and stops on its
+final frame when it unmounts or the app leaves the foreground
+(`motion/landing.ts`). A one-shot waits at most `ANSWER_WAIT_MS`, 300 ms, for
+the OS to say whether movement is reduced, then plays the reduced version. Each
+primitive's own numbers are named groups in `motion/tokens.ts`.
+
+- `StaggerIn`: children arrive in turn, once, on first mount, the whole cascade
+  starting within 480 ms.
+- `CountUp`: a real number counts to its value at most 30 redraws a second; a
+  screen reader hears only the final value, and the widest value holds the
+  width. Ticks follow `motion/countTicks.ts`: by touch at most 12, 70 ms apart;
+  by sound at most 10, 90 ms apart; never on the final value.
+- `ProgressRing`: a ring draws by its dash offset to a stored fraction. On the
+  web it redraws from state at most 30 times a second, because an animated Svg
+  prop there is unproven.
+- `LivingBar`: a fill springs to its real position from the left, with a shine,
+  a spark at its edge, and one stretch when it fills.
+- `Burst`: seeded flat confetti (`motion/particles.ts`) in the four colours and
+  the card's white, never the highlighter or lilac, and never the ground's own
+  colour, at most `BURST_MAX` pieces. Nothing under reduced motion.
+- `DiscBloom`: three flat discs open behind a win. It is the spec's Bloom under
+  another name, because `Bloom` is a retired export.
+- `TokenFlight`: a chosen token travels to where it is kept, at most two at
+  once, drawn by the one `FlightLayer` at the root. It lands at once, with
+  nothing drawn, whenever it cannot fly.
+- `Glint`: one pass of light across a pill that has just become available.
+- `MorphButton`: a button that shows it is busy, and done only from a real
+  result; an error opens it back with no shake. Under reduced motion only its
+  words change.
+- `Enter`, `Reflow`, `Exit`: entrances, reflows and exits in a layout.
+- `BubbleIn`: a transcript line added after the transcript opened arrives.
+- `LevelRing`: two rings swell with a live sound level; under reduced motion,
+  three opacity steps and no scale.
+
+### Celebrations
+
+One host, `celebrate/CelebrationHost.tsx`, is mounted once in `App.tsx`, over
+everything the navigator draws and outside it, so it covers the first run too.
+It plays every full-screen moment, and only for a fact already on disk: the game
+pipeline and the wall publish to it (`celebrate/events.ts`) after their writes
+land, and every number it shows comes from the moment's own data. The queue
+(`celebrate/queue.ts`) decides; the frame and templates draw.
+
+- **A finished practice ends in place.** The screen draws `celebrate/EndCard.tsx`
+  on the page: mint, "Practice complete.", up to three tiles counting up (XP,
+  time and the screen's own count, each only when its number exists), the goal
+  ring drawing from before to now, the quests this sitting finished, the day so
+  far ("2 of 3 quests done today"), and the cap line when the daily XP limit held
+  some back. It sounds `complete` with one `celebrate()` once per sitting, and
+  holds the queue while it is on screen. On the sitting that finishes the day's
+  third quest, the day so far is the one quiet line "All three quests done
+  today." and it lands with the `quest` sound, which is also the card's one
+  sound under Reduce Motion. It sounds once a day: a day another phone already
+  finished reads the line silently. Nothing more: no chest, no extra XP, no
+  takeover (D22).
+- **Then at most three takeovers**, in one order: a confirmed purchase, the
+  streak (a milestone replaces that day's plain streak moment), the level (a
+  number from `xpLevelFor`, never a rank name), the badges (up to three to a
+  card). What the budget leaves over is
+  a quiet row under "Also today" on the last card, never a fourth takeover. A
+  moment that arrives while that last card is up joins it as a row; one that
+  arrives in the moment after it has gone is left for the game layer's
+  catch-up rather than played as a fourth.
+- **Holds pause, they never drop.** Nothing starts while a microphone or a live
+  room holds the audio focus, a sheet or an end card is up, or the app is away; a
+  card already showing lands on its final frame and waits. A moment that waits
+  longer than ten minutes is let go. A sign-out clears the queue.
+- **Nothing after a safety stop.** `tutor/SafetyStopView.tsx` suppresses the host
+  on mount: the queue and the card on screen are cleared, sound effects fall
+  silent, and nothing new is taken until the screen has gone (F137).
+- **Once only.** An account's moment is checked against the synced `game.seen`
+  list and marked there when its card reaches its final frame or is skipped, so
+  it plays once across every device; a guest's moment and a toast are remembered
+  in memory. A moment waiting to play is also kept on the phone (`gameLocal`);
+  replaying it once after a crash is the game pipeline's catch-up, which reads
+  that copy back, not the host's.
+- **The frame** (`celebrate/Takeover.tsx`) is modal to a screen reader and
+  moves focus to its title, whose label is the title with the main value, so
+  landing there says the whole moment. It announces the moment only where focus
+  cannot land, so the two never talk over each other, and a level's number does
+  not change under a screen reader. Words sit in the shared frame's scroll in a
+  column at most 520 wide, centred on an iPad, and no line is capped. Continue
+  is always there, ready by `INPUT_READY_MS` and at once under reduced motion or
+  with a screen reader on; nothing dismisses itself. The first tap anywhere
+  skips to the end. Android's back is Continue once Continue is ready; before
+  that it skips to the end, so a back press meant for the screen underneath
+  never loses a moment unseen. Each card's beats are data in
+  `celebrate/timelines.ts`, ending by `CELEBRATION_MAX_MS`.
+- **Reduced motion** shows each card's final frame at once, watched live, and
+  still plays its one sound and haptic, because they are not motion. A card
+  that a hold or a skip landed before it began stays silent. Where a
+  burst cannot be its own final frame (reduced motion, and the web once it has
+  fallen) the still `celebrate-confetti` drawing stands in, through
+  `celebrate/ConfettiStill.tsx`.
+- **Silent and still in a live room.** No beat sounds or is felt while a
+  microphone or a live room is open. A saved phrase shows a small toast that
+  blocks nothing and is hidden from a screen reader, because the screen that
+  saved it already says so.
+
+### Loops
+
+Four things loop: the live orb, a busy `MorphButton`, a held icon state such as
+a speaker that is playing, and the Home flame, which flickers three times when
+Home comes into view and then rests. Each loop listens for what pauses it
+(focus, the app state, or its own `playing` or `paused` prop) and stops there.
+
+### What never moves
+
+The tab bar itself (its selected icon pops once in `nav/TabGlyph.tsx`), the
+greeting, the highlighter, the skeleton, the layout primitives, the flat
+drawings themselves (a wrapper may move one; the drawing
+does not), and legal or consent text. Inside a live room only the orb, the
+goal ticks, the arriving lines and the scene's card move, and nothing is heard
+or felt; the fanfare waits for the recap.
 
 ### Haptics
 
-STYLE section 11, through `motion/haptics.native.ts`, with safe no-ops on the
-web. A press is a light impact (`pressed()`), a choice or a toggle is a
-selection tick (`tapSettled()`), something earned is a success
-(`arrived()`), a hint arriving is soft (`soft()`), and an error is nothing.
-`Press` takes `haptic`: `light` by default, `selection` for a choice, and `none`
-where the caller answers for itself, as the tab bar does. A haptic refusal never
-blocks navigation or learning state.
+Through `motion/haptics.native.ts`, with safe no-ops on the web, and on a device
+only while the haptic setting is on, no recorder holds the microphone and no
+spoken live room holds the audio session (`hapticsEnabled()` in
+`motion/hapticPreference.ts`, over the holds in `sound/audioFocus.ts`; a typed
+live room opens no audio session, so it takes no hold). Every native call
+swallows its own refusal, so a haptic never blocks navigation or learning state.
+
+| Moment | Haptic |
+|---|---|
+| Any press (the default) | `pressed()`, a light impact |
+| A choice, a toggle, a tab | `tapSettled()`, a selection tick |
+| A hint arriving | `soft()`, the softest impact |
+| Something earned arriving | `arrived()`, one success |
+| A step in a count | `tick()`, a selection tick at least 60 ms after the last |
+| A weight landing, a flame lighting | `thump()`, a medium impact |
+| A real win: a finished practice, a level, a confirmed purchase | `celebrate()`: success, then medium at 140 ms, then light at 280 ms |
+| An error, a refusal, a safety stop, anything while a spoken live room holds the audio session | nothing |
+
+Each beat of `celebrate()` asks the setting again as it fires, so a microphone
+opening mid-pattern silences the rest, and `cancelHaptics()` drops whatever has
+not fired. `Press` takes `haptic`: `light` by default, `selection` for a choice,
+and `none` where the caller answers for itself, as the tab bar does.
+
+### Sound
+
+Twelve short sounds, synthesised for Luvani: tap, select, correct, nearly,
+complete, streak, levelup, quest, badge, save, count-tick and whoosh. None plays
+until the founder has approved it by ear. Sound effects follow the silent
+switch, have their own Settings switch, mix with the learner's music, and never
+play while a microphone is open, the tutor is speaking or a live room is open.
+
+### Enforcement
+
+`motion.test.ts` holds the rules:
+
+0. `Animated` means React Native's legacy module; Reanimated is imported as
+   `Reanimated`.
+1. The engine is imported only in `motion/`, `celebrate/`, `game/art/`,
+   `onboarding/firstRun/`, `icons/AnimatedIcon.tsx`, `nav/TabGlyph.tsx`,
+   `drill/AnswerSheet.tsx`, the orb layers in `tutor/`, `live/RoomLevels`,
+   `speech/useRecorderLevel.ts`, and in `components.tsx` only by `Press`.
+2. The legacy `Animated` file list only shrinks.
+3. Every file that moves reads reduced motion from `motion.ts`, and nothing asks
+   Reanimated for the system setting: no `useReducedMotion`, no
+   `ReduceMotion.System`, and `ReducedMotionConfig` only in the bridge.
+4. A loop runs only where it can be paused.
+5. The engine's animation calls (`withTiming`, `withSpring` and the rest) live
+   only in `motion/drive.ts`, and every spring is a named token.
+6. Only dash offsets and opacity animate through props, and only `MorphButton`
+   animates a layout prop.
+7. No test imports a module that imports the engine, `expo-audio` or
+   `expo-haptics`, because a suite that cannot load disappears.
+
+`tokens.test.ts` holds the springs to their derivations, `components.test.ts`
+holds the pill, the link, the ledger row and the segmented control to `Press`,
+and `motion/haptics.test.ts` holds the haptic vocabulary. `motion/primitives.test.ts`
+holds the primitives' shared promises, and `countTicks.test.ts`,
+`particles.test.ts` and `flights.test.ts` hold the ticks, the confetti and the
+tokens in the air.
 
 No interface surface casts a shadow.
 ## Evidence and remaining work
@@ -827,9 +1184,9 @@ in `motion/feedbackPolicy.ts`; the existing earned-only confetti falls once over
 controls remain available throughout. Reduce Motion shows the final state;
 unknown settings wait conservatively. Backgrounding and unmount stop motion.
 Event identifiers deduplicate responses in bounded session memory and are never persisted or transmitted.
-The existing press spring and controlled VoiceOrb remain the only spring and
-continuous movement. No animation library, fake progress, audio, punitive mascot
-or artificial processing delay is added.
+At that review the press spring and the controlled VoiceOrb were the only
+spring and continuous movement; the Motion section now governs both. No fake
+progress, punitive mascot or artificial processing delay is added.
 
 Four primary tabs: Home, Speak, Practice, Progress. Friends is an optional stack
 screen reached from Profile, preserving its URL, invitations and privacy controls.
@@ -842,6 +1199,10 @@ The first recap view leads with actual French, never a count or illustration.
 
 ## Onboarding interaction update — October 2026
 
-The opening, goal choices and result use existing vibrant vector brand illustrations with no mascot. Omit decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions lead with one readable heading, illustrated full-width options and deliberate Next; the shared primary control uses radius.control. Keep meaningful native secondary sheets over the parent page.
+The opening, goal choices and result use existing vibrant vector brand illustrations with no mascot. Omit decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions lead with one readable heading, illustrated full-width options and a deliberate Continue; the shared primary control uses radius.control. Keep meaningful native secondary sheets over the parent page.
 
-Onboarding motion is interruptible and event-driven: card 180 ms; Next arrow 100/140 ms; page opacity/translation 270 ms; progress transform 220 ms; illustration pulse 140/220 ms or 300 ms success settle; sheet 310/250 ms. No loops or blocking celebrations. Native uses supported opacity/transform drivers; web uses its supported driver. Live Reduce Motion changes cancel to final states. One accepted-action haptic, no duplicate selection tick and no vibration during recording; honor the Settings preference. Preserve screen-reader heading focus, modal trapping/restoration, keyboard/safe-area behavior and the visible Close/Cancel action.
+Come alive (README Part 5.C, first run). The promise, where, level and daily goal build a visible "Your French plan" card on the sun: one slot per answer, empty until the learner answers, each answer flying into its slot from where it was chosen (TokenFlight, launched by the card). Answers are icon tiles (Iconsax Bulk on a coloured ground), nothing is preselected, and "Suggested" marks only the daily goal the learner's own answers point at. A disabled Continue or pill is the sand skeleton with soft ink words (a white pill on blue or coral takes blue's pale secondary); turning on fades the ink in and glints once. The plan reveal draws the real daily minutes as a ring with a count-up (Choose each time sets no target, so its ring is the empty track with "No fixed goal") and three real tiles, with one select sound and one settled tap, because setup is not learning. The start sheet keeps the legal order and plays nothing. The first win sets the learner's line beside the natural line; only an accepted reply the learner gave turns the page coral with a held bloom, the drawing rising and one burst of confetti, the correct sound and the celebrate haptic, and anything else stays calm on paper with the nearly sound and one soft haptic. Nothing sounds or buzzes while the microphone is open. Under Reduce Motion every part lands on its final frame and the microphone meter becomes words.
+
+After the win (README Part 5.C rows 9 to 12), day one is paper: the game's one flame lights from an ember only for a day the saved finish really added, the run counts up from the run before it, and this week sits beneath as seven discs (a sun disc with a tick for a practised day, an ink ring for today, a plain outline for a past day and sand for a day ahead; nothing is ever marked missed). The streak sound and the celebrate haptic play once with the lighting; any later visit is the lit flame and the final number in silence. The reminder ask is one shared white card with a sun bell tile: while it is on the page its Remind me pill and Not now link are the page's actions, so there is still one pill. The save card lists only what the phone holds, one icon tile per row arriving 60 ms apart, under a quiet "On this phone only"; its arrival is silent. The guest home leads with a small flame and the week, then the natural line kept, then a row of action tiles. The first-run offer is the existing wall, opened once after a kept practice. Under Reduce Motion the flame is lit and still, the number final, the rows and today's disc in place.
+
+Onboarding motion is interruptible and event-driven: card 180 ms; Continue arrow 100/140 ms; page opacity/translation 270 ms; progress transform 220 ms; illustration pulse 140/220 ms or 300 ms success settle; sheet 310/250 ms. No loops or blocking celebrations. Native uses supported opacity/transform drivers; web uses its supported driver. Live Reduce Motion changes cancel to final states. One accepted-action haptic, no duplicate selection tick and no vibration during recording; honor the Settings preference. Preserve screen-reader heading focus, modal trapping/restoration, keyboard/safe-area behavior and the visible Close/Cancel action.

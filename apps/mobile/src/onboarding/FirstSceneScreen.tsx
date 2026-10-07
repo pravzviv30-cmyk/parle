@@ -23,7 +23,7 @@ import { AudioModule } from 'expo-audio';
 import { getMission, type MissionId } from '@luvani/core';
 
 import { HAIRLINE, colour, frenchText, onColour, paper, space, textOn, type } from '../theme.ts';
-import { Card, GhostButton, Label, MicGlyph, PillButton, canDoSentence } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, MicGlyph, PillButton, canDoSentence } from '../components.tsx';
 import { KeyboardGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
@@ -114,9 +114,9 @@ export function FirstSceneScreen({
             onPress={() => act(view.primary.act)}
           />
           {view.secondary !== null && (
-            <GhostButton
+            <IconAction layout="inline" icon="keyboard"
               label={view.secondary.label}
-              color={refused ? paper.ink : paper.onInk}
+              ground={refused ? 'paper' : 'blue'}
               onPress={() => act(view.secondary!.act)}
             />
           )}
@@ -145,7 +145,7 @@ export function FirstSceneScreen({
               {lines.slice(0, 1).map((line, at) => (
                 <Text key={line} {...frenchText} style={[st.line, at > 0 && st.lineRuled]}>{line}</Text>
               ))}
-              {lines.length > 1 && <GhostButton label={showMore ? 'Fewer examples' : 'More examples'} onPress={() => setShowMore((open) => !open)} />}
+              {lines.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showMore ? 'Fewer examples' : 'More examples'} onPress={() => setShowMore((open) => !open)} />}
               {showMore && lines.slice(1).map((line) => <Text key={line} {...frenchText} style={st.line}>{line}</Text>)}
             </Card>
           )}

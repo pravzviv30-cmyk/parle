@@ -1,3 +1,4 @@
+import { billingChanged } from './billingChanges.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { billingPairMatches } from './billingReadiness.ts';
 import type { Plan } from '@luvani/core';
@@ -48,6 +49,7 @@ export async function refreshBilling(userId: string, owner = scopeGeneration()):
     const { refreshed, plan } = body as { refreshed?: unknown; plan?: unknown };
     if (typeof refreshed !== 'boolean') return null;
     if (typeof plan !== 'string' || !PLAN_IDS.includes(plan)) return null;
+    billingChanged({ userId, owner });
     return { granted: refreshed, plan: plan as Plan };
   } catch {
     return null;
@@ -95,6 +97,7 @@ export async function serverBillingReady(userId: string): Promise<boolean> {
     return billingPairMatches(body, {
       entitlementId: process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID,
       products: { starter: process.env.EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID, regular: process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_PRODUCT_ID },
+      yearly: { starter: process.env.EXPO_PUBLIC_REVENUECAT_STARTER_YEARLY_PRODUCT_ID, regular: process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_YEARLY_PRODUCT_ID },
     });
   } catch { return false; }
 }

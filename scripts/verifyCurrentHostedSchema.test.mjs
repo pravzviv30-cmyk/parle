@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { requestIdentity,validateRequest,captureSql,validateCapture,catalogDifferences } from './verifyCurrentHostedSchema.mjs';
-import { canonical,sha256,CATALOG_SQL } from './releaseSchemaManifest.mjs';
+import { canonical,sha256,CATALOG_SQL,MANAGED_DEFAULT_PRIVILEGES_SQL } from './releaseSchemaManifest.mjs';
 const now=Date.parse('2026-10-04T12:00:00Z');
 function fixtures(){
  const catalog={roles:[],schemas:[],tables:[{schema:'public',name:'example_fixture',rls:true,privileges:{anon:{select:false}}}],policies:[],routines:[],sequences:[],defaultPrivileges:[]};
@@ -58,6 +58,7 @@ test('prepared full SQL actually executes READ ONLY and captures every replayed 
    alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
    alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;
    create schema supabase_migrations;create table supabase_migrations.schema_migrations(version text primary key);`);
+  await db.exec(MANAGED_DEFAULT_PRIVILEGES_SQL);
   for(const migration of schema.migrations){await db.exec(await readFile(`${ROOT}/supabase/migrations/${migration.name}`,'utf8'));await db.query('insert into supabase_migrations.schema_migrations(version) values($1)',[migration.version]);}
   const outputs=await db.exec(captureSql(request));
   const capture=outputs.find(result=>result.rows?.[0]?.capture)?.rows[0].capture;

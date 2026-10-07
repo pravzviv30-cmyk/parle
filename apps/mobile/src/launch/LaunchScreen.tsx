@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, AppState, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 import { hide as hideNativeLaunch, preventAutoHideAsync } from 'expo-splash-screen';
@@ -62,6 +62,11 @@ preventAutoHideAsync().catch(() => undefined);
 export function LaunchScreen({ onDone }: { onDone: () => void }) {
   const reduced = useReduceMotion(true);
   const appReady = useLaunchReady();
+  const [active, setActive] = useState(AppState.currentState === 'active');
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => setActive(state === 'active'));
+    return () => subscription.remove();
+  }, []);
   const spin = useRef(new Animated.Value(0)).current;
   const entrance = useRef(new Animated.Value(0)).current;
   const presence = useRef(new Animated.Value(1)).current;
@@ -82,6 +87,7 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
   // for good when the learner has asked for less movement.
   useEffect(() => {
     if (reduced !== false) return undefined;
+    if (!active) return undefined;
     const loop = Animated.loop(
       Animated.timing(spin, {
         toValue: 1,
@@ -97,7 +103,7 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
       loop.stop();
       spin.setValue(0);
     };
-  }, [reduced, spin]);
+  }, [reduced, spin, active]);
 
   // The one settling entrance: the mark lifts and the name arrives beneath it.
   useEffect(() => {

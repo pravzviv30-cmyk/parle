@@ -18,6 +18,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { streakGuiltIn } from './copy/guilt.ts';
+import { TIMELINES } from './celebrate/timelines.ts';
+import { earnedFinish, firstEarnedFinish, postcardLine, postcardStamp } from './recap/evidence.ts';
+import { recapMoment } from './recap/moment.ts';
+
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 const screen = read('./RecapScreen.tsx');
 const convo = read('./ConvoScreen.tsx');
@@ -38,7 +43,9 @@ describe('the recap is a keepsake', () => {
     assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.lines}'), 'the kept phrase comes before the learner\'s own lines');
     assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
     assert.ok(at('{KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
-    assert.ok(at('{nextTime}') < at('{offer.title}'), 'the reminder is offered before the keepsake is over');
+    // The offer is the one shared ask now (Come alive Phase 4); its own pins
+    // live in reminders/ReminderAsk.test.ts.
+    assert.ok(at('{nextTime}') < at('<ReminderAsk'), 'the reminder is offered before the keepsake is over');
     assert.match(render, /currentPage === 'next' &&/);
     assert.match(render, /footer=\{/);
     assert.ok(at('footer={') < at('expanded: more'), 'Finish stays pinned outside the More content');
@@ -53,27 +60,6 @@ describe('the recap is a keepsake', () => {
     // Every block appears only once it has something true to show.
     assert.match(render, /\{lines\.length > 0 && \(/, 'an empty "Your lines" block is drawn');
     assert.match(render, /\{nextTime !== null && /, '"Next time" is drawn with nothing to name');
-  });
-
-  test('the notification permission is asked only when the learner accepts the reminder offer', () => {
-    // Offered only after a win, at the chosen time, from facts already read.
-    assert.match(code, /const won = lines\.length > 0 \|\| keptPhrase !== null;/, 'the offer is not gated on the first win');
-    assert.match(code, /const offer = reminderOffer\(\{ available: REMINDERS_AVAILABLE, won, stored: offeredReminder, permission \}\);/);
-    // Read on the way in, never asked.
-    assert.match(code, /Promise\.all\(\[loadReminder\(\{ strict: true \}\), reminderPermission\(\)\]\)/, 'the recap does not read the permission it offers against');
-    for (const effect of code.split('useEffect(').slice(1)) {
-      const body = effect.slice(0, effect.indexOf('}, ['));
-      assert.ok(!body.includes('askReminderPermission'), 'an effect raises the notification dialog nobody accepted');
-    }
-    // Asked in exactly one place: the accept handler, through the model.
-    assert.equal((code.match(/\baskReminderPermission\b/g) ?? []).length, 2, 'the dialog is reachable from somewhere other than the accept handler');
-    const accept = code.slice(code.indexOf('const acceptReminder = '), code.indexOf('};', code.indexOf('const acceptReminder = ')));
-    assert.match(accept, /acceptReminderOffer\(offer, \{ owns, ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder \}\)/);
-    assert.match(render, /<OutlineButton label=\{offer\.accept\}[^>]*onPress=\{acceptReminder\}/, 'the accept control does not accept');
-    assert.match(render, /REMINDER_TIMES.map/);
-    assert.match(render, /onPress=\{\(\) => setOfferTime\(time.value\)\}/);
-    assert.match(render, /<GhostButton label=\{offer\.decline\}/, 'there is no quiet way to say no');
-    assert.match(render, /reminderAnswerLine\(reminder, offer\)/, 'the answer is not said once the learner has chosen');
   });
 
   test('everything else the closure chose is one tap away under a closed More', () => {
@@ -120,7 +106,7 @@ describe('the conversation closes with something useful', () => {
   });
 
   test('practice is the recommended next action and finishing stays available', () => {
-    assert.match(screen, /<GhostButton\s+label="Practise this phrase"/);
+    assert.match(screen, /<IconAction layout="inline" icon="microphone"\s+label="Practise this phrase"/);
     assert.match(code, /nextPage === null && canPractise\s*\? <PillButton[\s\S]*?: <PillButton/, 'the two exclusive primary states are not one practice-or-next choice');
     assert.match(screen, /nextPage === null \? 'Finish conversation' : 'Next'/);
     assert.match(screen, /accessibilityLabel="Finish conversation" onPress=\{onDone\}/);
@@ -145,5 +131,108 @@ describe('the conversation closes with something useful', () => {
       /accessibilityLabel=\{OPEN_MIC_LABEL\}[\s\S]*?<VoiceOrb state=\{orbState\} size=\{SCENE_ORB\} announce=\{false\} \/>/,
       'the VoiceOrb announces itself inside a Pressable that already owns the Tap to talk name',
     );
+  });
+});
+
+/**
+ * Come alive, core loop 2.9 (F765, F766): the recap is the conversation's end
+ * card, so the fanfare the room held back plays here, the progress strip draws
+ * what the settle read back, and every independent finish gets its postcard
+ * stamped.
+ */
+describe('the recap is where the conversation is celebrated — F765', () => {
+  const SCENE = 'mission:premier-cafe' as const;
+  const at = new Date(2026, 9, 2, 12).getTime();
+
+  test('the stamp plays for every independent finish this session, never for an assisted replay', () => {
+    // A first finish on the learner's own: the bigger stamp.
+    const firstTime = { id: SCENE, rung: 4 };
+    assert.equal(earnedFinish(firstTime), true);
+    assert.equal(postcardStamp({ independent: earnedFinish(firstTime), firstEarned: firstEarnedFinish([], firstTime) }), 'first');
+    // On their own again, with the can-do earned before: stamped again, the lighter one.
+    const again = { id: SCENE, rung: 4 };
+    const earnedBefore = [{ id: SCENE, rung: 4 as const, at }];
+    assert.equal(firstEarnedFinish(earnedBefore, again), false);
+    assert.equal(postcardStamp({ independent: earnedFinish(again), firstEarned: firstEarnedFinish(earnedBefore, again) }), 'again', 'a second independent finish went unstamped');
+    // A replay with help, on a can-do earned before: no stamp, whatever the history.
+    for (const rung of [1, 2, 3]) {
+      const helped = { id: SCENE, rung };
+      assert.equal(earnedFinish(helped), false, `a finish on rung ${rung} was taken for one on the learner's own`);
+      assert.equal(postcardStamp({ independent: earnedFinish(helped), firstEarned: firstEarnedFinish(earnedBefore, helped) }), null, `an assisted replay on rung ${rung} was stamped`);
+    }
+    assert.equal(earnedFinish({ id: 'mission:zeppelin', rung: 4 }), false, 'a scene this build does not know was stamped');
+    assert.equal(postcardStamp({ independent: false, firstEarned: true }), null, 'a stamp without an independent finish');
+
+    // What the page says under the postcard, true of this session.
+    assert.equal(postcardLine('first'), 'Your first independent finish here.');
+    assert.equal(postcardLine('again'), 'You did it on your own again.');
+    assert.equal(postcardLine(null), 'A can-do you have earned.');
+    for (const line of [postcardLine('first'), postcardLine('again'), postcardLine(null)]) {
+      assert.doesNotMatch(line, /\d|[—–·]/);
+      assert.equal(streakGuiltIn(line), undefined);
+    }
+
+    // The two stamps sound and feel as the master table says.
+    const sounds = (id: 'postcard-first' | 'postcard-again') => TIMELINES[id].beats.flatMap((beat) => (beat.sound ? [beat.sound] : []));
+    const haptics = (id: 'postcard-first' | 'postcard-again') => TIMELINES[id].beats.flatMap((beat) => (beat.haptic ? [beat.haptic] : []));
+    assert.deepEqual(sounds('postcard-first'), ['badge']);
+    assert.deepEqual(haptics('postcard-first'), ['celebrate']);
+    assert.deepEqual(sounds('postcard-again'), ['correct']);
+    assert.deepEqual(haptics('postcard-again'), ['arrived']);
+
+    // The screens ask these rules. The conversation decides independence at
+    // the flip, from the rung the winning view carried; the recap stamps only
+    // what that said, and draws an assisted finish's postcard still.
+    assert.match(convo, /setIndependentFinish\(earnedFinish\(step\.record\)\);/, 'the conversation never says whether this finish was on the learner\'s own');
+    assert.match(convo, /independentFinish=\{win\.seen && independentFinish\}/, 'a finish from another session reaches the recap');
+    assert.match(code, /const stamp = postcardStamp\(\{ independent: independentFinish, firstEarned \}\);/);
+    assert.match(
+      render,
+      /\{stamp !== null\s*\? <PostcardStamp art=\{postcardIllustration\(mission\.id\)\} kind=\{stamp\} momentKey=\{momentKey\} \/>\s*: <Illustration name=\{postcardIllustration\(mission\.id\)\} \/>\}/,
+      'the stamp plays without an independent finish, or an assisted finish lost its postcard',
+    );
+    assert.match(render, /\{postcardLine\(stamp\)\}/);
+    const stamp = read('./celebrate/PostcardStamp.tsx');
+    assert.match(stamp, /claimInPlace\(`\$\{scopeGeneration\(\)\}:stamp:\$\{momentKey\}`\)/, 'the stamp replays when its page is turned back to');
+    assert.match(stamp, /TIMELINES\[kind === 'first' \? 'postcard-first' : 'postcard-again'\]/);
+    assert.match(stamp, /onCue: first \? fireBeat : noop,/, 'the stamp sounds on a replay, or around the effects module');
+  });
+
+  test('the recap plays the moment the room held back, and its strip draws only what the settle read back', () => {
+    // A conversation that won something plays; a scene on the learner's own adds confetti.
+    assert.deepEqual(recapMoment({ won: true, sceneFinished: false, independentFinish: false }), { plays: true, burst: false });
+    assert.deepEqual(recapMoment({ won: true, sceneFinished: true, independentFinish: false }), { plays: true, burst: false }, 'a scene finished with help threw the confetti of one finished alone');
+    assert.deepEqual(recapMoment({ won: true, sceneFinished: true, independentFinish: true }), { plays: true, burst: true });
+    assert.deepEqual(recapMoment({ won: false, sceneFinished: false, independentFinish: false }), { plays: false, burst: false }, 'a recap with nothing in it celebrated');
+    const beats = TIMELINES['recap-result'].beats;
+    assert.deepEqual(beats.flatMap((beat) => (beat.sound ? [beat.sound] : [])), ['complete']);
+    assert.deepEqual(beats.flatMap((beat) => (beat.haptic ? [beat.haptic] : [])), ['celebrate']);
+
+    assert.match(code, /const moment = useRecapMoment\(\{ key: momentKey, plays: scene\.plays \}\);/);
+    assert.match(render, /<ResultArt moment=\{moment\} burst=\{scene\.burst\}/, 'the result page has no moment around its drawing');
+    assert.match(code, /const strip = progressStripView\(delta\);/, 'the strip is not drawn from the settled delta');
+    assert.match(render, /\{strip !== null && moment\.reached\('strip'\) \? <ProgressStrip view=\{strip\} final=\{moment\.final\} \/> : null\}/);
+    assert.match(convo, /\}\)\.then\(setConvoDelta\);/, 'the conversation drops what the settle read back');
+    assert.match(convo, /delta=\{convoDelta\}/);
+    // The lines count up to the number said, once, and are read out once at that number.
+    assert.match(render, /<CountUp from=\{linesShown\.current \? lines\.length : 0\} to=\{lines\.length\} label=\{`\$\{lines\.length\} \$\{linesUnit\}`\}/);
+    // XP is never worked out on this screen.
+    assert.doesNotMatch(code, /conversationXp\(|xpCreditedFor\(|totalXp\(/, 'the recap computes XP itself');
+  });
+
+  test('the conversation holds the celebration queue from before it settles until the recap is showing — F766', () => {
+    const flat = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1').replace(/\s+/g, ' ');
+    const room = flat(convo);
+    const hold = room.indexOf('settleHold.current ??= holdCelebrations();');
+    const settle = room.indexOf("settleSitting({ source: 'convo'");
+    assert.ok(hold !== -1 && settle !== -1 && hold < settle, 'the conversation settles before the queue is held');
+    assert.match(room, /useEffect\(\(\) => \{ if \(!recapShown\) return; settleHold\.current\?\.\(\); settleHold\.current = null; \}, \[recapShown\]\);/, 'the hold is never handed back once the recap shows');
+    assert.match(room, /useEffect\(\(\) => \(\) => \{ settleHold\.current\?\.\(\); settleHold\.current = null; \}, \[\]\);/, 'leaving the room keeps the queue held for ever');
+    assert.match(room, /onResultShown=\{resultShown\}/);
+    // The recap takes its own hold first, then says it is showing.
+    const recap = flat(screen);
+    const own = recap.indexOf('useEffect(() => holdCelebrations(), []);');
+    const shown = recap.indexOf('resultShown.current?.();');
+    assert.ok(own !== -1 && shown !== -1 && own < shown, 'the recap lets the conversation\'s hold go before taking its own');
   });
 });

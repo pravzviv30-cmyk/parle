@@ -1,40 +1,50 @@
 import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 import { DayCount } from '../progress/DayCount.tsx';
 /**
- * Today: the learner's next scene, what it lets them say, and where they are.
+ * Today: the habit, the learner's next scene, what it lets them say, and where
+ * they are.
  *
- * Rebuilt 2026-09-27 (notebook Phase 3, B1), and redrawn for revamp B (F602).
- * The page opens on a still greeting ("Bonsoir, Name." or "Bonsoir.") and the
- * hour's question, set as the one working tab title. Until storage answers it
- * draws still sand blocks shaped like the page and nothing else, so no card is
- * drawn before the lead it sits under.
+ * Rebuilt 2026-09-27 (notebook Phase 3, B1), redrawn for revamp B (F602), and
+ * given the habit in come alive Phase 4 (F767). The page opens on a still
+ * greeting ("Bonsoir, Name." or "Bonsoir.") and the hour's question, set as the
+ * one working tab title. Under it, `game/TodayHero` reads the game layer on its
+ * own: the flame and the run (to the Streak screen), today's goal ring in
+ * measured minutes, the level chip, and the one nudge line while a run is
+ * waiting on today. It draws nothing it could not read.
+ *
+ * Until storage answers, the rest draws still sand blocks shaped like the page
+ * and nothing else, so no card is drawn before the lead it sits under. A
+ * refresh keeps what is drawn until the new read lands (F768): only a read for
+ * an account nothing was drawn for brings the sand back.
  *
  * Then the shared `NextTaskCard` leads with owned unfinished or usable practice,
- * scheduled authored review, the next scene, or a genuine offline café task.
- * It owns the live allowance read; this screen does not decide a second lead.
+ * scheduled authored review, the next scene on the scene brief with its place
+ * drawing, or a genuine offline café task. It owns the live allowance read;
+ * this screen does not decide a second lead.
  *
- * Under the lead, white: day one lists where the learner starts, one scene
- * mark per can-do, the first one next. After that, at most two plain sentences
- * about the week with no label over them, and nothing at all on a quiet week.
- * Where the lifetime count will go (F609) there is a slot and no number. Then
- * today's phrase as a
- * white card with a play disc and "Practise it", the friends card, and the way
- * into the daily collection.
+ * Under the lead, white: the lifetime day count in its pinned slot, then day
+ * one's list of where the learner starts, one scene mark per can-do, the first
+ * one next; after that, at most two plain sentences about the week with no
+ * label over them, and nothing at all on a quiet week. Then today's three
+ * quests (`game/QuestsCard`), today's phrase as a white card with a play disc
+ * and its three actions (practise it, save, more phrases), and the friends
+ * card.
  *
  * The four momentum tiles, the seven-dot rail, the expanding weekly details and
- * every rank name left this page. The level and what has been earned are
- * My French's to draw; the XP standing is read here only to pitch the daily
- * pool, and none of it is shown. All data is re-read on focus with one clock.
+ * every rank name left this page. The level is a number from the game layer,
+ * and what has been earned is My French's to draw; the content standing is
+ * read here only to pitch the daily pool, and none of it is shown. All data is
+ * re-read on focus with one clock.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
 
-import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { Columns, useLayoutClass, ScrollScreen, TabHeader } from '../layout.tsx';
 import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
-import { Card, GhostButton, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
+import { Card, IconAction, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
 import { loadSavedStarter } from '../onboarding/savedStarter.ts';
@@ -56,6 +66,9 @@ import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { missionCompletionsFrom } from '../missions/chooserView.ts';
 import { firstNameOf } from '../tutor/dashboard.ts';
 import { useHomeRefresh } from '../home/useHomeRefresh.ts';
+import { refreshClears } from '../home/homeRefresh.ts';
+import { TodayHero } from '../game/TodayHero.tsx';
+import { QuestsCard } from '../game/QuestsCard.tsx';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import { loadPracticeHistory } from '../practice/historyStore.ts';
 import { allConversations } from '../myfrench/recentConversations.ts';
@@ -64,6 +77,7 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { STARTING_LABEL, startingPoint, weekLines, type StartingPoint } from '../home/todayView.ts';
 
 export function HomeTab() {
+  const regular = useLayoutClass() === 'regular';
   // A bottom tab stays mounted after its first visit, so the midnight and
   // foreground refresh listens to whether this tab is the one on top.
   const focused = useIsFocused();
@@ -82,6 +96,9 @@ export function HomeTab() {
   const [readOwner, setReadOwner] = useState(() => scopeGeneration());
   const [readFailed, setReadFailed] = useState(false);
   const [readAttempt, setReadAttempt] = useState(0);
+  // The account the last landed read drew for, so a refresh for the same
+  // account keeps the page on screen instead of the sand blocks (F768).
+  const drawnFor = useRef<number | null>(null);
   const [start, setStart] = useState<StartingPoint | null>(null);
   const [week, setWeek] = useState<readonly string[]>([]);
   const [daily, setDaily] = useState(() => todayItems(0, Date.now()));
@@ -96,11 +113,15 @@ export function HomeTab() {
       // account is dropped rather than drawn for this one.
       const scope = scopeGeneration();
       setReadOwner(scope);
-      setDaily(todayItems(0, now));
-      setHero(null);
-      setStarter(null);
-      setStart(null);
-      setWeek([]);
+      // A refresh keeps what is drawn until the new read lands; only a read for
+      // an account nothing was drawn for clears the page first.
+      if (refreshClears(drawnFor.current, scope)) {
+        setDaily(todayItems(0, now));
+        setHero(null);
+        setStarter(null);
+        setStart(null);
+        setWeek([]);
+      }
       setReadFailed(false);
       void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadHistory(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadPracticeHistory(), loadSavedStarter()])
         .then(([activity, deck, completions, records, history, packs, checks, events, savedStarter]) => {
@@ -118,6 +139,7 @@ export function HomeTab() {
           setStart(startingPoint(progress));
           const story = storyFrom({ sessions: history, activity, packs, completions, now });
           setWeek(weekLines({ story, reflection: reflectionFrom({ story, recent: allConversations({ packs, events }), checks, progress, now }) }));
+          drawnFor.current = scope;
         })
         .catch(() => {
           if (cancelled || scopeGeneration() !== scope) return;
@@ -140,6 +162,10 @@ export function HomeTab() {
           <TabHeader title={greeting.title} purpose={greeting.subline} trailing={<ProfileButton />} />
         </View>
 
+        {/* The habit first: it reads the game layer itself, and draws nothing
+            it could not read rather than a nought. */}
+        {regular ? <Columns><TodayHero /><QuestsCard /></Columns> : <TodayHero />}
+
         {/* HomeLoading: the storage read has not answered, so still sand blocks
             shaped like the page, and nothing else. The brief is outside every
             other gate once it has: a first run meets it too. */}
@@ -148,7 +174,7 @@ export function HomeTab() {
             <Text style={[type.bodyStrong, { color: paper.ink }]}>Your next scene could not be loaded.</Text>
             <Text style={[type.body, { color: paper.inkSoft }]}>We could not check your saved work. Today's phrase is available on this phone while we try again.</Text>
             <PillButton label="Practise today's phrase" onPress={() => nav.navigate('DailyPractice', { id: daily.phrase.id })} />
-            <GhostButton label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
+            <IconAction layout="inline" icon="refresh" label="Try loading my scenes again" onPress={() => { setHero(null); setReadAttempt((n) => n + 1); }} />
           </Card>
         ) : hero === null || unowned ? (
           <Skeleton blocks={[{ height: 328, radius: radius.feature }, { height: 24, width: '60%', radius: radius.field }, { height: 68, radius: radius.tile }, { height: 132, radius: radius.card }]} />
@@ -180,10 +206,11 @@ export function HomeTab() {
               </View>
             )}
 
+            {!regular && <QuestsCard />}
+
             <DailyCard item={daily.phrase} variant="today" />
 
-            {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Text style={[type.small, { color: paper.inkSoft }]}>French with friends</Text><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><GhostButton label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}
-            <GhostButton label="Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />
+            {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Text style={[type.small, { color: paper.inkSoft }]}>French with friends</Text><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><IconAction layout="inline" icon="users" label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}
           </>
         )}
       </View>

@@ -222,6 +222,187 @@ failure available here, so the machinery is deliberately explicit:
   A session nobody listened to must never render the same card as a session that
   went well. `unavailable` says so in plain words.
 
+## Audio levels in the room, and the microphone at the recap
+
+Come alive (core loop 3.1 to 3.7, ledger F763 and F764) gives the conversation
+orb the room's real audio. This is the plumbing; the orb's drawing reads it.
+
+**Where the levels come from.** `useLiveSession` hands over the room's two audio
+tracks as `audioTracks: { mic, tutor }`: the learner's microphone when it is
+published (`RoomEvent.LocalTrackPublished`) and the tutor's voice when it is
+subscribed (`TrackSubscribed`, before the web-only attach). Each is taken back
+when it goes, by identity, so an abandoned room cannot clear the live one. That
+state changes a handful of times a session and never per audio frame.
+`live/RoomLevels` measures them, one file per platform:
+
+| | Phone (`RoomLevels.native.tsx`) | Browser (`RoomLevels.tsx`) |
+|---|---|---|
+| Learner | `useTrackVolume(mic)`, an RMS every 40 ms | `createAudioAnalyser`, the RMS of `getFloatTimeDomainData` |
+| Tutor | `useMultibandTrackVolume(tutor)`, 7 bands, 150 Hz to 4 kHz, every 40 ms | the same analyser, 7 log bands out of `getByteFrequencyData` |
+| Pace | the native renderer's 40 ms | animation frames, at most one sample per 40 ms |
+
+LiveKit's hooks set React state on every reading, so each lives in a leaf that
+renders nothing; only the leaf re-renders. Every reading goes through
+`live/levels.ts`, which is pure and tested, and the result is written into
+shared values (`live/OrbAudio.tsx`, `OrbAudioContext`) the orb reads on the UI
+thread. The web analyser is opened once its track exists, which is after the
+learner's start tap, and a context the browser keeps suspended reads silence.
+
+**The rules** (`live/levels.ts`):
+
+- The learner's RMS becomes a level by `((rms - 0.01) / 0.20) ** 0.6`,
+  clamped; room noise under 0.01 draws nothing. A recorder's dBFS uses
+  `((db + 50) / 40) ** 0.8`.
+- An envelope: it rises by 0.6 of the way per reading, and falls **by the
+  clock**, the whole scale in 160 ms, so the same time falls the same distance
+  however often it is looked at (F777). Falling towards zero, anything under
+  0.01 is written as exactly zero, so a still ring is still.
+- **The zero trap.** LiveKit's native volume hook only ever writes a reading
+  that is not zero, so when the audio stops the last loud value stays put. A
+  level with no new reading for 80 ms is silence (one reading may go missing
+  without the ring moving). It is believed then but dated from the first
+  reading that did not come, 40 ms after the last one that did, and falls from
+  there, so a quiet level (a quarter of the scale or less) rests the moment
+  the silence is believed. That is the ring; "Hearing you" keeps its own,
+  longer wait (below). A reading with nothing in it (room noise under the floor, which the
+  web analyser and a quiet phone keep sending) is no news either, so both
+  platforms rest the same way. The meter runs its own timer while anything is
+  above rest, because after the audio stops there may be no readings to drive
+  it, and stops the timer at rest. A timer that fires late does not slow the
+  fall, because the fall is counted from the clock.
+- **Rest within 300 ms of silence** (acceptance check 7, F777). The ring's
+  worst case is a full level: 40 ms to the first missed reading, 160 ms of
+  release, and up to one more 40 ms tick before the meter looks again, so
+  240 ms. "Hearing you" goes 260 ms after the learner's last voiced reading,
+  300 ms if its timer runs one sample late. Before 7 October 2026 the release
+  was 15 % a step after a 120 ms wait, which took over a second, and longer on
+  a busy thread.
+- The learner's level counts only on their turn: microphone open and the tutor
+  not speaking. Otherwise it falls to rest; the tutor's voice coming back
+  through the speaker is not the learner speaking.
+- The tutor's seven bands are drawn against one running peak (decay 0.995 a
+  step, floor 0.05), so the shape of the voice survives.
+- **Fallback.** A track's level is `live` only once that track has produced a
+  reading above zero. A processor that never starts, a browser whose audio
+  context never runs, or a build without the native module leaves it false, and
+  the orb keeps the loops it has always had. A new track has to prove itself
+  again. Nothing is invented.
+
+The constants as they stand (`live/levels.ts`):
+
+| Constant | Value | What it does |
+|---|---|---|
+| `LEVEL_SAMPLE_MS` | 40 | The readings' pace, on both platforms |
+| `STALE_AFTER_MS` | 80 | No reading this long is silence (two missed readings) |
+| `ATTACK` | 0.6 | The share of the way a level rises per louder reading |
+| `RELEASE_MS` | 160 | A full level falls to rest in this long, by the clock |
+| `REST_WITHIN_MS` | 300 | The promise: at rest, and "Hearing you" gone, this soon after the last sound |
+| `REST_BELOW` | 0.01 | Under this, on the way to silence, a level is exactly zero |
+| `PEAK_DECAY`, `PEAK_FLOOR` | 0.995 a reading, 0.05 | The tutor's running peak |
+| `HEARING_ABOVE` | 0.12 | The line for "Hearing you" |
+| `HEARING_ON_AFTER_MS` | 250 | Above the line this long before the word shows |
+| `HEARING_OFF_AFTER_MS` | 600 | Below the line with readings still coming (a murmur), this long before it goes |
+| `HEARING_SILENCE_OFF_MS` | 260 | No voiced reading this long and it goes, whatever the level reads; a shorter pause keeps it |
+
+The timing ones (`STALE_AFTER_MS`, `RELEASE_MS`, `REST_WITHIN_MS`,
+`HEARING_SILENCE_OFF_MS`) were set on 7 October 2026 to keep acceptance check 7,
+and are held there by the tests `a level rests within 300 ms of silence` and
+`the hearing word holds through the pauses between words, through the real
+meter`. None of them **has yet been tuned by eye on a device**; tuned values
+replace them here. The target is under 2 ms of
+JS work per 40 ms sample on an iPhone 12 class phone, measured with the Hermes
+profiler; that has not been measured yet.
+
+**Lifecycle.** The meters run only while the app is in front of the learner
+(`AppState`) and the room is the focused screen (`ConvoScreen` passes
+`useIsFocused()` in, so `RoomLevels` never reaches for the navigator itself);
+unmounting a leaf deletes its native processor, and leaving the room stops the
+meter and writes rest. `ConvoScreen` wraps both of its rooms, the choosing
+moment and the scene, so the levels carry across from one to the other. Under Reduce Motion the orb's bars hold
+still, so the tutor is not measured; the learner is, because the listening ring
+keeps three opacity steps. A meter that throws (a missing native method, a
+refused analyser) is caught by `LevelsGuard`, logs
+`[luvani:live] levels-unavailable` once, and costs the orb its levels, never the
+learner their conversation. Nothing is recorded, kept or sent: the levels are
+numbers read on the device and dropped.
+
+**What the orb draws from them** (F764). The levels stay on the UI thread; the
+orb branches on a few facts instead, which `createRoomFacts` in `live/levels.ts`
+takes from every frame the meter writes and hands to `OrbAudio` as `room`:
+whether each level is measured, whether the learner is being heard (their level
+above 0.12 for 250 ms; back 260 ms after their last voiced reading, so within
+300 ms of silence (F777), or after 600 ms below the line while readings keep
+coming, a murmur or a noisy room), and whether the room is awake (`RoomLevels`
+is focused and the app is active). The silence is counted from the reading,
+never from the ring: a quiet voice's ring rests in the pauses between words,
+and a word that followed it would go and come back several times a sentence.
+A pause shorter than 260 ms keeps the word; a longer one is the end of a
+phrase, and the next is heard after its own 250 ms. They change a few times a conversation, so the orb
+re-renders a few times a conversation. `tutor/orbLayers.ts` decides the layers
+from them: the listening ring from the learner's level, the live bars and the
+core pulse from the tutor's bands (today's loop rests while they draw), the
+thinking arc while `thinking` is true, the "Hearing you" word under the orb (its
+accessible name stays the state's own), and one ripple on the goal tick that
+completes a scene. A level that is not measured draws nothing new, and every
+layer rests while the room is asleep, the caller pauses the orb, or movement is
+reduced. `LiveSessionScreen` wraps the lesson in `RoomLevels` too, with the
+microphone only, so its Speak circle wears the same level ring; nothing in a
+lesson draws the tutor's voice, so it is not measured there.
+
+**Silent in the room** (F765, decision D8). The goal ticks, the orb's ripple
+and the scene's card move, and none of them plays a sound or a haptic: the
+room's files import neither. A spoken room also holds the audio focus from the
+moment it takes the session, and the microphone holds it while it is open, so
+the sound gate and the haptic switch would refuse anyway; a typed room takes no
+audio session and is silent because nothing in it asks. The recap is where the
+conversation is heard: its result page starts its moment once nothing holds the
+audio focus (`recap/useRecapMoment.ts`, after the release below), or after two
+seconds, when a beat that still meets a held room is simply silent.
+
+**An honest long wait.** `live/thinking.ts` `thinkingLine`: once the tutor has
+really been thinking for 6 seconds (from the final transcript, see `thinking`),
+the scene header reads "Still thinking. This can take a few seconds." when the
+connection line has nothing to say. It goes with the answer. No artificial
+minimum, no progress, no "analysing".
+
+**The microphone at the recap (F763).** A conversation's recap renders inside
+the room it ended in, because the enriched profile and the drills arrive over it
+afterwards. The microphone used to stay published until the learner tapped Done.
+Now, the moment the `recap` frame arrives and before the recap is set:
+
+1. `closeMicForRecap` tells the circle (`micOpen` false, diagnostics
+   `micPublished` false) and calls `setMicrophoneEnabled(false)`. A stopped
+   session closes it too.
+2. Once the mute lands, the microphone track is unpublished and stopped
+   (`unpublishTrack(track, true)`, F777). A mute alone sends nothing but leaves
+   the device recording, so the iPhone's microphone indicator stayed on over
+   the recap. A session that never published a microphone has nothing to stop.
+3. When the capture has stopped, `micClosedAtRecap` is set. A close that
+   fails is never reported closed, and neither is one confirmed after the
+   learner left or another start took the session (the room and the start
+   generation are checked again when it resolves).
+4. An effect asks `live/recapAudio.ts`: the recap has arrived, the close is
+   confirmed, the tutor is not speaking, and the session was not stopped for
+   safety. Only then does `releaseLiveHold()` give back the room's hold on the
+   audio focus (`sound/audioFocus.ts`), so sound effects and haptics are allowed
+   again and the recap may play its moment. A stop keeps the hold: it gets no
+   moment, and its message may still be playing.
+
+What this does not do: LiveKit's audio session stays up until `leave()` runs
+`releaseAudioSession`, as before (on a phone the release also marks the audio
+mode unknown, so the next sound sets a full mode). A start that comes after
+the recap without `leave()` finds LiveKit's session still up: on a phone
+`ensureAudioSession` takes the hold again and makes the session active again
+(the recap's sound may have let the OS deactivate it), and on the web it takes
+the hold again, so a live room is never left unheld (F777). The quiet door
+(`switchToText`) still only mutes: it stays in the same room, and the circle
+reopens the same track. And the
+celebration queue does not start over the recap: `RecapScreen` holds it while it
+is mounted, as every end card does, so the takeovers play after the learner
+leaves. Device check outstanding: expo-audio setting the sound-effect mode while
+LiveKit's audio unit is still running on iOS. If that reroutes or ducks audio on
+the founder's phone, recap sounds wait for `leave()` instead (core loop risk 2).
+
 ## Serialisation
 
 Two events can arrive at once — the rescue timer at four seconds, and the learner

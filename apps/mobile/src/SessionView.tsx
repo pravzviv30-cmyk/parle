@@ -17,6 +17,11 @@ import { MORE_HINT, MORE_LABEL, showsActionRow, soundNoteIn } from './lessonFoot
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { useProfile } from './app/ProfileContext.tsx';
 import { LiveRoomHeader } from './live/LiveRoomHeader.tsx';
+import { useOrbAudio } from './live/OrbAudio.tsx';
+import { LevelRing } from './motion/LevelRing.tsx';
+
+/** The Speak circle's own size (`SpeakCircle` in components.tsx draws it at 108 unless told otherwise). */
+const SPEAK_CIRCLE = 108;
 
 /**
  * What the support block can render. A structural superset of the lesson path's
@@ -198,6 +203,8 @@ export function SessionView(props: SessionViewProps) {
   // of ambient fact as the safe-area inset above: whose voice this session is
   // in belongs to the learner, not to whatever is driving the turns.
   const tutorName = tutorNameOf(useProfile().profile);
+  // The live lesson's audio levels, or null on the mock path and outside a room.
+  const room = useOrbAudio();
   const { prompt, listening, flash } = props;
   const rung = prompt.directive.rung;
   const [draft, setDraft] = useState('');
@@ -280,13 +287,24 @@ export function SessionView(props: SessionViewProps) {
           </View>
         ) : (
           <>
-            <SpeakCircle
-              onPress={props.onMicPress}
-              active={listening}
-              muted={!listening}
-              disabled={!props.onMicPress}
-              accessibilityLabel={listening ? 'Speak your answer' : `${tutorName} is speaking`}
-            />
+            <View style={st.speak}>
+              {/* In a live lesson the circle is ringed by the learner's real
+                  microphone level (live/RoomLevels, come alive core loop 3.6),
+                  once it is measured and while the room is in front of them.
+                  The circle itself is unchanged; the mock lesson has no ring. */}
+              {room !== null && room.room.inputLive && room.room.awake ? (
+                <View style={st.speakRing}>
+                  <LevelRing level={room.input} size={SPEAK_CIRCLE} />
+                </View>
+              ) : null}
+              <SpeakCircle
+                onPress={props.onMicPress}
+                active={listening}
+                muted={!listening}
+                disabled={!props.onMicPress}
+                accessibilityLabel={listening ? 'Speak your answer' : `${tutorName} is speaking`}
+              />
+            </View>
             {/* The caption under the voice circle reports which of us has the
                 floor. It is words, so it clears the text floor in soft ink when
                 the tutor holds it, not the faint ink a mark gets (F330). */}
@@ -399,6 +417,9 @@ export function SessionView(props: SessionViewProps) {
 }
 
 const st = StyleSheet.create({
+  // The circle and, behind it, the ring its live level draws, centred on it.
+  speak: { alignItems: 'center', justifyContent: 'center' },
+  speakRing: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), alignSelf: 'stretch' },
   input: {
     flex: 1,

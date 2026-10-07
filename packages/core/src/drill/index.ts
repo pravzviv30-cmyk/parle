@@ -35,6 +35,8 @@ export {
   GOOD_FEEDBACK,
   typoFeedback,
   missFeedback,
+  ownWordsFeedback,
+  type FeedbackTone,
   DRILL_STAGES,
   MAX_MISSES,
   type DrillStage,

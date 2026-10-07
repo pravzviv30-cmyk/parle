@@ -22,6 +22,61 @@ of the list.
 
 ## Current landing snapshot
 
+- 7 October 2026 main integration: compared remote `7d399b79` with Come Alive
+  `8f639d3f` from common base `47fbc2ea`. Retained all 13 main-only commits:
+  Hum artwork/launch and loading holds, Expo 57.0.27 alignment, web render fixes,
+  released-player cleanup and abandoned guest/drill take deletion. The recording
+  fixes now coexist with metering, microphone focus and shared audio-session ownership.
+  The only deleted source files are `recap/OnceConfetti.tsx` and `recap/OnceCount.tsx`,
+  replaced by shared celebrations and `motion/CountUp.tsx`; no callers remain.
+  Hum's legacy animation remains bounded and now pauses in the background.
+- Combined verification: **4,920 tests, 0 failing**; core 794, brain 468, tutor agent 609,
+  token server 425, playground 26, mobile 2598;
+  all six typechecks, eight database proofs replaying 39 migrations, and 77 shared
+  release/provider checks pass. Floors raised only through `gate:bless`. A clean
+  locked install, production web export and the existing dependency-audit policy pass.
+  Local-development browser smoke verified launch-to-welcome, plan selection,
+  missing-choice feedback and keyboard progression with no captured console errors.
+  A production build without Auth configuration correctly refuses to run; the smoke
+  used explicit development mode, not a deployed environment.
+- Rollback: revert the integration merge with parent 1 to restore the previous main
+  source. This does not undo the earlier staging migrations, stored learner data or
+  native runtime changes; use the guarded migration procedures separately if needed.
+  Main's existing open F794–F796 and the device/provider/store acceptance requirements
+  remain visible. This integration does not certify production, an Android build or
+  signed-device behavior. The other session's uncommitted TypeSafe/Jev work in the
+  canonical checkout is excluded and untouched.
+
+- 7 October 2026 Come Alive completion: **4,892 tests, 0 failing**; core 794,
+  brain 468, tutor agent 609, token server 425, playground 26, mobile 2570.
+  All six workspaces typecheck. The final local source snapshot ran all 39 migrations
+  through eight disposable SQL proof programs. All 77 shared release/provider checks pass, including the two decoder lease
+  proofs. The complete gate is green with the raised workspace floors.
+  This is branch evidence, not production deployment. Six Phase 4 branches and the
+  recovered reminder repairs are integrated; F747–F750, F753, F778–F783 have local fixes. Follow-up F566 preserves refused conversation context after a confirmed purchase; F650 removes duplicate row separators; F302 requires individual passing test events for ledger proof.
+- Staging Parle was explicitly identified by the owner and reconciled on 7 October:
+  27 missing migrations applied, 39 source versions recorded, and the full catalog
+  (47 tables, 85 routines, including managed default grants) matches the local replay.
+  Existing account/state/pack/entitlement counts are unchanged. Source and capture
+  hashes are recorded in `supabase/staging-verification.json`; runtime/provider/store
+  acceptance remains separate. See `supabase/README.md` for the migration-history
+  baseline and remaining Auth setting.
+- Web Continue now exposes its disabled state while explaining missing choices.
+  Browser verification exercised an unanswered pointer activation and confirmed
+  keyboard Enter advances after choosing an answer; the native control is retained.
+- F784 patches four newly reported dependency advisories with exact overrides:
+  compression 1.8.2, shell-quote 1.11.0, source-map-js 1.2.2 and Sharp 0.35.5.
+  Clean npm ci and targeted hostile-input/image compatibility tests pass.
+  `audit:ci` passes with zero critical advisories; pre-existing time-limited
+  braces/node-forge exceptions and the moderate uuid decision remain explicit.
+  This is not a claim that the dependency tree has zero advisories.
+- The production web export and unsigned iOS Simulator Xcode build succeed.
+  Simulator Home and Progress and browser onboarding at phone/tablet widths were
+  inspected. Device/store/provider acceptance remains pending as recorded in
+  `DEVICE_VERIFICATION.md` and `RELEASE_GATE.md`. Cloud-offloaded parent metadata
+  stalled verification on this Mac; the full suites also ran in an identical local
+  source snapshot with disposable Git metadata retaining the original objects/index.
+
 - The revamp A branch gate (`claude/luvani-ui-revamp-d75581`, on top of the app upgrade
   commit `17f4fb3`) passes **3,055 tests, 0 failing**; core 623, brain 395, tutor agent 446,
   token server 200, playground 26, mobile 1365. Typecheck is clean in all six workspaces. The
@@ -681,7 +736,7 @@ Each line names a blocker used in a table above.
 - **`vendor-key-rotation`** — rotate the Groq, Deepgram, ElevenLabs and LiveKit credentials
   found in commit `576bc53`. Treat all four as live until their vendor consoles confirm
   rotation, even though the object is no longer reachable and was never pushed.
-- **`phase-3-schema-apply`** — apply all 36 migrations, including the onboarding event
+- **`phase-3-schema-apply`** — apply all 39 migrations, including the onboarding event
   property fix, after reconciling current hosted history/catalog with the release
   manifest. Run the current hosted verifier and role/runtime proofs below; the
   legacy twelve-proof harness is insufficient for the current schema.
@@ -695,7 +750,7 @@ Not a Phase 1 blocker, because the proofs have run. It is the single most danger
 instruction in this document, because an operator who applies part of it deploys the two
 money defects this phase found.
 
-There are **36 migrations** for a fresh full schema, applied once in order from
+There are **39 migrations** for a fresh full schema, applied once in order from
 `supabase/README.md`:
 
 1. `202608220001_luvani_learning.sql` — the tables, the RLS policies, the first debit.
@@ -774,6 +829,10 @@ There are **36 migrations** for a fresh full schema, applied once in order from
 35. `20261004010327_whole_product_paid_admission.sql` — Whole-product owner-reviewed immutable quotes, nonrecycling global/account/vendor reservation and execution-day envelopes, current tutor resume and per-account session caps. OFF/zero by default; no vendor prices or capacity seeded. **Not applied live**; release manifest and hosted evidence must match the complete schema.
 
 36. `20261004015000_indexed_conversation_library.sql` — Owned indexed twenty-row keyset history and independent pack-ID lookup with microsecond cursor; no REST row-limit truncation. **Not applied live**; release manifest and hosted evidence must match the complete schema.
+
+37. `20261005231742_store_trial_yearly_allowance.sql`, F733 (D16): the projection that grants a store free trial a week of the plan's allowance and a yearly product one 30-day window at a time (the window in `allowance_window_end`, the paid year staying in `period_end`, so a missed refill never lapses the year), store answers ordered by when their period started (`period_start`, so an immediate upgrade from a yearly plan to a monthly one is granted at once), the withheld part of a window kept in `withheld_seconds`, the service-only renewal list for the maintenance worker, and projection version 2. Safe to apply twice; proved over pre-existing paid rows in disposable SQL. **Not applied live**; apply before the token server and maintenance worker that call it and before any intro offer or yearly product exists in App Store Connect.
+38. `20261006120000_learner_state_game.sql`, F729: widens the `learner_state` namespace whitelist to accept `game`, the account-synced facts behind the streak, daily goal, quests and badges (zero-XP sittings, streak covers, goal days, quest days and claims, fixed XP, monthly rollups, badge ids and celebration keys; no free text). Without it every push of `game` is refused with a 400 the sync engine retries (F411). **Not applied live**; apply before any build that writes `game` ships. Its rollback is destructive and guarded by `luvani.remove_game`.
+39. `20261007121856_preserve_store_trial_budget_and_year_extension.sql`, F747/F748: trial phrase audio retains the $0.02 lifetime allowance; extending the same paid year preserves charging for an in-flight session. SQL projection proofs pass, including rollback and reapply. Prepared, not applied live. Roll back this migration before the store trial/year migration, using its guarded rollback.
 
 
 Current hosted acceptance uses the complete inventory above. For an existing target,

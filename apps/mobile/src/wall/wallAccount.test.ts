@@ -36,11 +36,13 @@ describe('the account in hand, in minutes', () => {
   test('the trial is said in minutes, and in conversations rounded down', () => {
     const account = wallAccount(status({ secondsRemaining: 1100 }), PLANS, NOW);
     assert.ok(account);
-    assert.equal(account.title, 'Free trial');
+    // 7 October 2026 (come alive, README Part 5.G): the thirty metered minutes
+    // are "free minutes" now, because a free trial is the store's own offer.
+    assert.equal(account.title, 'Free minutes');
     // 30 free minutes is three ten-minute conversations. 1100 seconds is 18.3
     // minutes, which is eighteen and one whole conversation, never nineteen or two.
     assert.deepEqual(account.lines, [
-      'Your free trial is 30 minutes, about 3 conversations.',
+      'You start with 30 free minutes, about 3 conversations.',
       '18 minutes left, about 1 conversation.',
     ]);
   });

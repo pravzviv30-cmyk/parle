@@ -20,8 +20,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 
-import { GhostButton, Ledger } from '../components.tsx';
-import { HAIRLINE, paper, space, type } from '../theme.ts';
+import { IconButton, Ledger } from '../components.tsx';
+import { paper, space, type } from '../theme.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
 import { NOTEBOOK, phraseControlLabel, type PhraseBankRow } from './notebook.ts';
@@ -78,9 +78,9 @@ export function PhraseBank({ rows }: { rows: readonly PhraseBankRow[] }) {
             <Text style={st.gloss}>{row.en}</Text>
             <Text style={st.gloss}>{row.audio.label}</Text>
           </View>
-          <GhostButton
+          <IconButton icon="speaker"
             label={isPlaying(row) ? NOTEBOOK.stop : NOTEBOOK.hear}
-            color={paper.ink}
+
             accessibilityLabel={phraseControlLabel(row.fr, row.audio.label, isPlaying(row))}
             onPress={() => play(row)}
           />
@@ -96,8 +96,6 @@ const st = StyleSheet.create({
     alignItems: 'center',
     gap: space(3),
     paddingVertical: space(3),
-    borderBottomWidth: HAIRLINE,
-    borderBottomColor: paper.line,
   },
   words: { flex: 1, minWidth: 0, gap: space(0.5) },
   french: { ...type.frenchSm, color: paper.ink },

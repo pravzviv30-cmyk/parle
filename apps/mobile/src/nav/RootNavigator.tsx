@@ -1,3 +1,4 @@
+import { afterPurchase, type ResumeRoute } from '../live/afterPurchase.ts';
 import { WalkIntro } from '../walk/WalkIntro.tsx';
 /**
  * The navigator.
@@ -25,7 +26,7 @@ import { CAFE_LESSON, FIRST_MISSION, getMission, lessonXp, previousCorrectionFro
 import { FirstSceneScreen } from '../onboarding/FirstSceneScreen.tsx';
 import { loadDeck } from '../review/store.ts';
 import { paper, space, type } from '../theme.ts';
-import { GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, GhostButton, Label, PillButton } from '../components.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { PolicyScreen } from '../legal/PolicyScreen.tsx';
@@ -36,6 +37,10 @@ import { useLive } from '../app/LiveContext.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
+import { settleSitting } from '../game/settle.ts';
+import type { GameDelta } from '../game/delta.ts';
+import { createSettleHold } from '../practice/settleHold.ts';
+import { useSittingHold } from '../practice/useSittingEnd.ts';
 import { bankLesson } from '../live/journal.ts';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -71,12 +76,14 @@ import { SocialSettingsScreen } from '../friends/SocialSettingsScreen.tsx';
 import { DailyPracticeScreen } from '../daily/DailyPracticeScreen.tsx';
 import { PostcardsScreen } from '../progress/PostcardsScreen.tsx';
 import { WeekWrappedScreen } from '../progress/WeekWrappedScreen.tsx';
+import { StreakScreen } from '../game/StreakScreen.tsx';
 import { DailyLibraryScreen } from '../daily/DailyLibraryScreen.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
+import { backOrTabs, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 
@@ -109,20 +116,14 @@ function Loading() {
   );
 }
 
-/**
- * Back when there is a screen behind this one, otherwise the tabs. On the web
- * a pushed screen can be opened cold by a reload or a shared address, and a
- * bare goBack then does nothing at all (GO_BACK not handled), leaving the
- * learner on a Done or Leave that is dead.
+/*
+ * Every way out of a pushed learning screen is `backOrTabs` (`./leave.ts`):
+ * back when there is a screen behind it, otherwise the tabs with the screen
+ * closed. On the web a pushed screen can be opened cold by a reload or a
+ * shared address; a bare goBack then does nothing at all (GO_BACK not
+ * handled), and a navigate would leave the sitting mounted under the tabs,
+ * still holding the celebration queue (F775).
  */
-function backOrTabs(nav: {
-  canGoBack: () => boolean;
-  goBack: () => void;
-  navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
-}, tab?: keyof TabParamList): void {
-  if (nav.canGoBack()) nav.goBack();
-  else nav.navigate('Tabs', tab === undefined ? undefined : { screen: tab });
-}
 
 /**
  * A brand-new learner's first scene, behind the microphone primer (notebook
@@ -146,9 +147,7 @@ function FirstSceneRoute() {
 
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
+  const nav = useNavigation<LeavingNav & {
     navigate: ((screen: 'Tabs', params?: { screen: keyof TabParamList }) => void) &
       ((screen: keyof RootStackParamList) => void);
     setParams: (p: { textMode?: boolean }) => void;
@@ -161,6 +160,20 @@ function LessonRoute() {
   const [checking, setChecking] = useState(false);
   const [startRung, setStartRung] = useState<Rung | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
+  // The finished lesson's delta, as the settle read it back, for its end card.
+  const [delta, setDelta] = useState<GameDelta | null>(null);
+  // While the lesson is up the celebration queue is held, so no takeover
+  // starts over the lesson, its summary or a lesson started again; and the
+  // hold taken before the lesson settles is handed to its end card (F766).
+  useSittingHold();
+  const [endHold] = useState(createSettleHold);
+  useEffect(() => {
+    endHold.open();
+    return () => endHold.close();
+  }, [endHold]);
+  // Which finish a delta belongs to: one that lands after "Go again" is not
+  // the next lesson's to show.
+  const finishes = useRef(0);
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
   const [historyRead, setHistoryRead] = useState(0);
@@ -197,16 +210,38 @@ function LessonRoute() {
     // than from a second clock this screen would have to keep. Home's speaking
     // goal is the only reader; a summary written before F395 carries no
     // duration and counts zero minutes, which is honest.
-    void recordActivity(
-      'lesson',
-      lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate }),
-      Date.now(),
-      // Active learning time only when the screen measured it. A driver that
-      // reports none writes none: the wall-clock duration is never copied in.
-      timing === undefined
-        ? { durationMs: Math.round(s.durationSec * 1000) }
-        : { durationMs: Math.round(s.durationSec * 1000), activeMs: timing.activeMs },
-    );
+    // A lesson that reached its summary is a finished sitting, and settles once
+    // (F744). The live lesson withholds its summary after a safety stop (F137),
+    // so a stopped lesson never reaches this line and settles nothing.
+    const endedAt = Date.now();
+    const xp = lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate });
+    // The end card shows the delta this settle returns, read back from disk,
+    // and nothing when it returns none (F760). The queue is held before the
+    // settle publishes, and the end card lets the hold go when it goes.
+    const mine = ++finishes.current;
+    setDelta(null);
+    endHold.take();
+    endHold.claim();
+    void settleSitting({
+      source: 'lesson',
+      at: endedAt,
+      xpEarned: xp,
+      ...(timing === undefined ? {} : { activeMs: timing.activeMs }),
+      write: () => recordActivity(
+        'lesson',
+        xp,
+        endedAt,
+        // Active learning time only when the screen measured it. A driver that
+        // reports none writes none: the wall-clock duration is never copied in.
+        timing === undefined
+          ? { durationMs: Math.round(s.durationSec * 1000), finished: true }
+          : { durationMs: Math.round(s.durationSec * 1000), activeMs: timing.activeMs, finished: true },
+      ),
+    }).then((settled) => {
+      if (mine !== finishes.current) return;
+      if (settled !== null && ownsLesson()) setDelta(settled);
+      else endHold.release();
+    });
     // The session's words become review cards, through the outbox the
     // conversation has used since Phase 4. `addFromSummary` still compiles and
     // still writes, and that is exactly the trap: it awaited the disk's answer
@@ -214,6 +249,7 @@ function LessonRoute() {
     // the whole deck without a word. Only `bankLesson` keeps the summary for
     // the next launch to try again.
     void bankLesson(s);
+    // endHold is a state value made once, so it is not a dependency.
   }, [user]);
 
   /**
@@ -229,20 +265,23 @@ function LessonRoute() {
    */
   const again = useCallback(() => {
     if (!ownsLesson()) return;
+    finishes.current += 1;
+    endHold.release();
     setSummary(null);
+    setDelta(null);
     setReport(null);
     setStartRung(null);
     setHistoryRead(value => value + 1);
-  }, []);
+  }, [endHold]);
 
   if (!ownsLesson()) return <Loading />;
-  if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><GhostButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
+  if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><IconAction layout="inline" icon="refresh" busy={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
 
   if (historyFailed) return (
     <View style={[st.center, { gap: space(3), padding: space(6) }]}>
       <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
       <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
-      <GhostButton label="Back to Home" onPress={leave} />
+      <IconAction layout="inline" icon="home" label="Back to Home" onPress={leave} />
     </View>
   );
   if (startRung === null) return <Loading />;
@@ -251,6 +290,8 @@ function LessonRoute() {
       <SummaryScreen
         lesson={CAFE_LESSON}
         summary={summary}
+        delta={delta}
+        release={endHold.release}
         report={report}
         historySaveFailed={historySaveFailed}
         onAgain={again}
@@ -286,10 +327,7 @@ function LessonRoute() {
  * Practice can reach this route too.
  */
 function ConvoRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
-    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
+  const nav = useNavigation<LeavingNav & {
     replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
   }>();
   const leave = () => backOrTabs(nav);
@@ -390,7 +428,7 @@ function ConvoRoute() {
         </Text>
         <LocalPracticeCard />
         <View style={st.gateAction}>
-          <GhostButton
+          <IconAction layout="inline" icon="refresh" busy={checking}
             label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
             disabled={checking}
             onPress={() => {
@@ -455,11 +493,7 @@ async function markPractisedNode(nodeId: string): Promise<void> {
 }
 
 function DrillRoute() {
-  const nav = useNavigation<{
-    goBack: () => void;
-    canGoBack: () => boolean;
-    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
-  }>();
+  const nav = useNavigation<LeavingNav>();
   const route = useRoute<RouteProp<RootStackParamList, 'Drill'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
@@ -476,12 +510,10 @@ function DrillRoute() {
       // that cannot resume) comes through here. With a screen behind it, back
       // is back. Opened cold, by a reload or a shared address, there is nothing
       // behind it, so a practice sitting returns to the Practice tab and any
-      // other drill to the tabs, rather than a Leave that does nothing.
-      onDone={() => {
-        if (nav.canGoBack()) nav.goBack();
-        else if (practice !== undefined) nav.navigate('Tabs', { screen: 'Practice' });
-        else nav.navigate('Tabs');
-      }}
+      // other drill to the tabs, rather than a Leave that does nothing; and the
+      // drill is closed on the way, so its holds on the celebration queue lift
+      // (F775).
+      onDone={() => backOrTabs(nav, practice !== undefined ? 'Practice' : undefined)}
       onFinished={(nodeId) => void markPractisedNode(nodeId)}
       // The existing phone-only mark, kept for compatibility with the next
       // step and the session cards. Only a pack whose own targets were
@@ -494,11 +526,7 @@ function DrillRoute() {
 }
 
 function ReviewRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
-    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
-  }>();
+  const nav = useNavigation<LeavingNav>();
   return <ReviewScreen onDone={() => backOrTabs(nav, 'Practice')} />;
 }
 
@@ -514,12 +542,16 @@ function TermsRoute() {
 
 function WallRoute() {
   const nav = useNavigation<{
+    getState: () => { index: number; routes: ResumeRoute[] };
+    reset: (state: NonNullable<ReturnType<typeof afterPurchase>>) => void;
     goBack: () => void;
     canGoBack: () => boolean;
     replace: (screen: string, params?: object) => void;
     navigate: (screen: string, params?: object) => void;
   }>();
-  const { entry } = useRoute<RouteProp<RootStackParamList, 'Wall'>>().params;
+  const route = useRoute<RouteProp<RootStackParamList, 'Wall'>>();
+  const { entry, resumeRouteKey } = route.params;
+  const owner = useRef(scopeGeneration()).current;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
   // to. Falling through to the tabs is the difference between a way out and a
@@ -530,7 +562,13 @@ function WallRoute() {
     <WallScreen
       entry={entry}
       onLeave={leave}
-      onStartSpeaking={() => nav.replace('Convo')}
+      onStartSpeaking={(canResume) => {
+        if (owner !== scopeGeneration()) return;
+        if (entry !== 'refused') { nav.replace('Convo'); return; }
+        const resumed = afterPurchase({ granted: canResume, canStart: canResume,
+          ownsAccount: owner === scopeGeneration(), resumeRouteKey, wallKey: route.key, state: nav.getState() });
+        if (resumed !== null) nav.reset(resumed); else leave();
+      }}
       onOpenPractice={() => nav.replace('Tabs', { screen: 'Practice' })}
       onOpenBank={() => nav.navigate('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}
@@ -621,11 +659,7 @@ function ConversationPracticeRoute() {
 }
 
 function SoundCheckRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
-    navigate: (screen: 'Tabs' | 'Missions', params?: { screen: keyof TabParamList }) => void;
-  }>();
+  const nav = useNavigation<LeavingNav & { navigate: (screen: 'Missions') => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
@@ -693,6 +727,7 @@ export function RootNavigator({
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
       <Stack.Screen name="Postcards" component={PostcardsScreen} />
       <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
+      <Stack.Screen name="Streak" component={StreakScreen} />
       {/* Settings is where sign out and delete account live now (F473), so it
           takes the two callbacks Profile used to, through the same children
           function idiom and for the same reason: they are functions, and a

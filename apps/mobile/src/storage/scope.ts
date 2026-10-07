@@ -156,6 +156,19 @@ export const USER_KEY_SUFFIXES = [
   'syncState',
   // A checkout fence contains only the selected store product and paid plan.
   'pendingPurchase',
+  // The game layer's facts (Come alive): zero-XP sittings, streak covers, goal
+  // days, quest days and claims, fixed XP, monthly rollups, badges and the
+  // celebrations already played. Account-synced; a reset that left it would
+  // keep a streak and badges for a learner whose practice is gone.
+  'game',
+  // The game facts that belong to this phone: the reminder log, the plan this
+  // phone last saw, the time zone of the last practice and the celebrations
+  // still queued. Device-local, and cleared with the account all the same.
+  'gameLocal',
+  // What Home last drew (Phase 4): the streak, today's minutes, the level,
+  // quests done and lifetime days, so a rise counts up once. Device-local;
+  // a reset that left it would start the next learner's numbers from these.
+  'home-seen',
 ] as const;
 
 /**

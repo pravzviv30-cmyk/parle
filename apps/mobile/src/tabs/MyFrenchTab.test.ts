@@ -135,7 +135,9 @@ describe('My French is the level, the phrases, the sounds and the conversations 
 
   test('every row goes somewhere and names itself', () => {
     const rows = tags(FLAT, 'LedgerRow');
-    assert.equal(rows.length, 5, 'retry, scene path, saved materials, week story and postcards');
+    // 2026-10-07, come alive Phase 4 (F769): the postcards row became the
+    // postcard shelf, whose heading row is the one door to Postcards.
+    assert.equal(rows.length, 4, 'retry, scene path, saved materials and week story');
     for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
     assert.match(FLAT, /key=\{row.id\}/);
   });

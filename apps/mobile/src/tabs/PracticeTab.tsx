@@ -11,9 +11,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 import { paper, space, type } from '../theme.ts';
-import { Card, FrenchBlock, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
+import { IconActionRow, IconAction, Card, FrenchBlock, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
-import { ScrollScreen, TabHeader } from '../layout.tsx';
+import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { UNREAD } from '../practice/archive.ts';
 import { ALTERNATIVES, FIRST_PRACTICE_PURPOSE, PRACTICE_PURPOSE, PRACTICE_TITLE } from '../practice/copy.ts';
@@ -308,6 +308,8 @@ export function PracticeTab() {
           </View>
         )}
 
+        <Columns>
+        <View>
         {/* The exact next action stays in the first viewport, including on day one. */}
         {ownerMatches && step !== null && (
           <View style={st.block}>
@@ -319,6 +321,8 @@ export function PracticeTab() {
           </View>
         )}
 
+        </View>
+        <View>
         {/* One sentence, on day one only: what this page becomes. */}
         {dayOne && <Text style={st.starterLine}>{STARTER.line}</Text>}
 
@@ -365,21 +369,25 @@ export function PracticeTab() {
           </View>
         )}
 
+        </View>
+        </Columns>
         {/* The quieter doors at the foot, each only when it has something behind it. */}
         {ownerMatches && step !== null && (
           <View style={st.doors}>
-            {step.doors.choose !== null && <GhostButton label={step.doors.choose} color={paper.ink} onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />}
+          <IconActionRow>
+            {step.doors.choose !== null && <IconAction layout="tile" icon="chat" label={step.doors.choose}  onPress={() => { if (ownsReadNow()) nav.navigate('Conversations'); }} />}
             {step.doors.revisit !== null && (
               <View>
-                <GhostButton
+                <IconAction layout="tile" icon="replay"
                   label={step.doors.revisit.label}
-                  color={paper.ink}
+
                   accessibilityLabel={`${step.doors.revisit.label}. ${step.doors.revisit.uses}`}
                   onPress={() => revisitWithTutor(step.doors.revisit!.packId)}
                 />
                 <Text style={st.doorNote}>{step.doors.revisit.uses}</Text>
               </View>
             )}
+          </IconActionRow>
           </View>
         )}
       </View>

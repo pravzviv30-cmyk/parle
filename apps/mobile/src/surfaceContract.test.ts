@@ -289,6 +289,17 @@ describe('one motion vocabulary, not four — J12', () => {
         `${path} asks for reduce motion itself instead of using useReduceMotion`,
       );
     }
+    // Come alive (F721): Reanimated is a fifth way to ask, and it samples the
+    // setting once at load. So its own hook and its System mode are refused,
+    // and its global switch is set in one place, the bridge, from the live hook.
+    for (const { path, body } of SOURCES) {
+      assert.doesNotMatch(body, /\buseReducedMotion\b/, `${rel(path)} asks Reanimated for reduce motion, which it sampled once at load`);
+      assert.doesNotMatch(body, /\bReduceMotion\.System\b/, `${rel(path)} leaves reduce motion to Reanimated's sampled answer`);
+      if (rel(path) !== 'motion/ReduceMotionBridge.tsx') {
+        assert.doesNotMatch(body, /\bReducedMotionConfig\b/, `${rel(path)} sets Reanimated's reduce motion outside the bridge`);
+      }
+    }
+    assert.match(named('motion/ReduceMotionBridge.tsx'), /<ReducedMotionConfig mode=\{reduced \? ReduceMotion\.Always : ReduceMotion\.Never\} \/>/, 'the bridge does not hand Reanimated the live answer');
   });
 
   test('the settling entrance has one set of numbers', () => {
@@ -635,13 +646,20 @@ describe('a form says out loud what it shows — F109', () => {
  * OnboardingFlow is one file holding three pages, so it owes one heading per
  * page and the count comes from PAGES rather than from a number typed here.
  */
-const FIRST_RUN: readonly { where: string; headings: number }[] = [
+const FIRST_RUN: readonly { where: string; headings: number; part?: true }[] = [
   // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
   { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
   { where: 'tutor/TutorIntro.tsx', headings: 1 },
+  // Come alive, first run (README Part 7): the parts PreAccountOnboarding draws
+  // its pages from, read as they are added. A part owns no heading (the page's
+  // title is the screen's one) and scrolls inside the screen's ScrollScreen, so
+  // it carries no scroll container of its own; every other rule holds.
+  ...readdirSync(join(SRC, 'onboarding', 'firstRun'))
+    .filter((entry) => /\.tsx?$/.test(entry) && !entry.includes('.test.'))
+    .map((entry) => ({ where: `onboarding/firstRun/${entry}`, headings: 0, part: true as const })),
 ];
 
 describe('the first run is readable by more than the eye — F110, F114', () => {
@@ -731,7 +749,7 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
   });
 
   test('no first-run screen caps font scaling', () => {
-    for (const { where } of FIRST_RUN) {
+    for (const { where, part } of FIRST_RUN) {
       const body = named(where);
       assert.doesNotMatch(
         body,
@@ -746,12 +764,15 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       // The other way to cap text is to give it nowhere to go. Every one of
       // these screens scrolls, so a title at 200% still ends somewhere the
       // learner can reach rather than under the buttons. A ScrollScreen is a
-      // scroll container too — the frame's ScrollView — so it counts.
-      assert.match(
-        body,
-        /<Scroll(View|Screen)\b/,
-        `${where} has no scroll container, so text that grows has nowhere to go`,
-      );
+      // scroll container too — the frame's ScrollView — so it counts. A part
+      // is drawn inside its screen's, which this list holds above.
+      if (!part) {
+        assert.match(
+          body,
+          /<Scroll(View|Screen)\b/,
+          `${where} has no scroll container, so text that grows has nowhere to go`,
+        );
+      }
     }
   });
 
@@ -885,7 +906,7 @@ describe('a tap that starts with a network probe — F154', () => {
     assert.match(tutor, /const modes = startModes\(prefersTyping\(/, 'Speak no longer reads the learner\'s standing typing choice');
     assert.match(
       named('home/MissionHero.tsx'),
-      /<GhostButton label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
+      /<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\}[^>]*onPress=\{\(\) => open\(modes\.other\.textMode\)\}/,
       'the quiet door is gone, and a learner who cannot speak aloud has no way through',
     );
     assert.deepEqual(
@@ -1756,8 +1777,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // 2026-09-27, Phase 3: each tab's own surfaces as it imports them today. Home no longer draws
   // AbilitiesCard; My French draws its phrase bank and sounds map instead of SituationsCard. The row test
   // below fails if a listed file stops being drawn, so this list cannot go stale silently.
+  // 2026-10-07, come alive Phase 4: the game cards each tab now draws, every one
+  // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx'],
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx'],
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
@@ -1765,8 +1788,16 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
     ],
-    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/LevelCard.tsx'],
-    'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx'],
+    'tabs/MyFrenchTab.tsx': [
+      'tabs/MyFrenchTab.tsx',
+      'myfrench/LevelCard.tsx',
+      'game/LevelXpCard.tsx',
+      'game/StreakSummaryCard.tsx',
+      'game/CountsGrid.tsx',
+      'game/BadgeShelf.tsx',
+      'progress/PostcardShelf.tsx',
+    ],
+    'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx', 'game/ProfileStats.tsx'],
   };
 
   test('a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406', () => {
@@ -1817,8 +1848,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // yours in their own card files.
       'tabs/PracticeTab.tsx': 4,
       // Conversations and their "see all", the phrase shelf, the collection,
-      // goals, the daily collection and the door to every situation.
-      'tabs/MyFrenchTab.tsx': 5,
+      // goals, the daily collection and the door to every situation. Phase 4
+      // (2026-10-07): the postcards row became the postcard shelf, 5 to 4.
+      'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };
@@ -2135,8 +2167,11 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     const design = readFileSync(join(ROOT, 'DESIGN.md'), 'utf8');
     const home = named('tabs/HomeTab.tsx');
     const tutor = named('tabs/TutorTab.tsx');
-    assert.match(design, /voice orb, shared press, once-only earned recap celebration and bounded\s+state feedback animate/);
-    assert.match(design, /daily library and Today\s+show no pictures/);
+    assert.match(design, /voice orb, shared press, motion primitives, celebration host and bounded\s+state feedback animate/);
+    // 2026-10-07, come alive Phase 4 (README Part 6): Home now draws the
+    // scene's place on its brief and the game art, so the sentence is held to
+    // what stays picture-free, the daily library and today's phrase.
+    assert.match(design, /daily library and today's phrase\s+show no pictures/);
     // Revamp B (F599): the places are flat drawings now, and the doc must not
     // go on saying the retired watercolours ship.
     assert.match(design, /seven place drawings/);
@@ -2148,7 +2183,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
     assert.equal((tutor.match(/<PillButton\b/g) ?? []).length, 0, 'the shared task owns the primary; connection retry is secondary');
-    assert.match(tutor, /const primary = <GhostButton/);
+    assert.match(tutor, /const primary = <IconAction/);
   });
 
   /**

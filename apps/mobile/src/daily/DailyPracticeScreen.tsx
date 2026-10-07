@@ -3,14 +3,16 @@ import { recorderUri } from './recorderUri.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { finishLocalTake } from './finishLocalTake.ts';
 import { recordActiveDay } from '../progress/activity.ts';
+import { useActiveClock } from '../progress/useActiveClock.ts';
+import { beginSettle, finishSettle, releaseSettle } from '../game/settle.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioRecorder } from 'expo-audio';
+import { AudioModule, RecordingPresets, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder } from 'expo-audio';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
-import { Card, GhostButton, PillButton } from '../components.tsx';
+import { IconActionRow, IconAction, Card, GhostButton, PillButton } from '../components.tsx';
 import { paper, type, space, frenchText } from '../theme.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { addPhrases } from '../review/store.ts';
@@ -20,6 +22,20 @@ import { dailyTutorVoice, tutorAudioFor } from './tutorAudio.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import type { RootStackParamList } from '../nav/types.ts';
+import { holdMic } from '../sound/audioFocus.ts';
+import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { announcePhraseSaved } from '../review/phraseSaved.ts';
+import { useSittingEnd } from '../practice/useSittingEnd.ts';
+import { EndCard } from '../celebrate/EndCard.tsx';
+import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
+import { RecordingLevel } from './RecordingLevel.tsx';
+
+/**
+ * The daily take's recorder: the usual preset, metered, so the ring beside the
+ * take follows the learner's real voice (`speech/useRecorderLevel.ts`).
+ */
+const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
 
 /** Local listen/record/compare. Recordings are never uploaded or graded. */
 export function DailyPracticeScreen() {
@@ -32,10 +48,22 @@ export function DailyPracticeScreen() {
   const tutorVoice = dailyTutorVoice(profile.tutorVoice);
   const modelAsset = item ? tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice) : undefined;
   const focused = useIsFocused();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // Today's phrase has no clock kind of its own, so it keeps review's 30 s
+  // stretch (review finding 13): hearing, recording and finishing are the work.
+  const clock = useActiveClock('review');
+  const recorder = useAudioRecorder(METERED_TAKE);
   const player = useAudioPlayer();
+  useVoiceHold(useAudioPlayerStatus(player).playing);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const [recording, setRecording] = useState(false);
+  // The ring beside a take in progress, from the recorder's real level; none
+  // is drawn until the recorder has metered one.
+  const voice = useRecorderLevel(recorder, recording);
+  // Today's phrase, once its day is durable, shows its end card from the
+  // settle's own read-back: the +5 for practising, the day, the goal. While
+  // this screen is up the celebration queue is held, and the hold taken before
+  // the sitting settles is handed to its end card (F766).
+  const { end, holdForSettle, expect, dropSettleHold, release } = useSittingEnd();
   const [busy, setBusy] = useState(false);
   const [uri, setUri] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -55,6 +83,10 @@ export function DailyPracticeScreen() {
     stopping.current = work; return work;
   };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The microphone focus, held from before the mode change until the take ends
+  // by any route; every route out goes through here (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const resetRecordingAudio = (): Promise<void> => { micHold.current?.(); micHold.current = null; return leaveRecording(); };
   const finish = (): Promise<void> => {
     if (finishing.current) return finishing.current;
     const ticket = generation.current;
@@ -62,7 +94,7 @@ export function DailyPracticeScreen() {
     if (timer.current) clearTimeout(timer.current);
     const recorded = await finishLocalTake({
       stop: stopRecorder, uri: () => recorderUri(recorder, preparedUri.current),
-      resetAudio: () => setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }),
+      resetAudio: resetRecordingAudio,
       current: () => live.current && ticket === generation.current,
       discard: discardRecording,
     });
@@ -88,7 +120,7 @@ export function DailyPracticeScreen() {
       releaseDailyPlayback(player);
       const abandoned = recorderUri(recorder, preparedUri.current);
       discardRecording(held.current); held.current = null;
-      void stopRecorder().catch(() => {}).finally(() => { discardRecording(abandoned); discardRecording(recorderUri(recorder, abandoned)); void setAudioModeAsync({ allowsRecording: false }).catch(() => {}); });
+      void stopRecorder().catch(() => {}).finally(() => { discardRecording(abandoned); discardRecording(recorderUri(recorder, abandoned)); void resetRecordingAudio().catch(() => {}); });
     };
     if (!focused) { stop(); setUri(null); setRecording(false); }
     const subscription = AppState.addEventListener('change', state => { live.current = focused && state === 'active'; if (live.current && !operation.current) setBusy(false); if (state !== 'active') { stop(); setUri(null); setRecording(false); } });
@@ -99,7 +131,7 @@ export function DailyPracticeScreen() {
     return () => { playbackTicket.current++; releaseDailyPlayback(player); };
   }, [tutorVoice, player, item?.id]);
   const record = async () => {
-    if (operation.current || !live.current) return; operation.current = true; setBusy(true);
+    if (operation.current || !live.current) return; operation.current = true; setBusy(true); clock.touch();
     const ticket = generation.current;
     try {
       playbackTicket.current++; releaseDailyPlayback(player);
@@ -109,26 +141,28 @@ export function DailyPracticeScreen() {
         if (!live.current || ticket !== generation.current) return;
         if (!permission.granted) { setNote('Microphone access is needed to record. You can still listen and practise aloud.'); return; }
         discardRecording(held.current); held.current = null; setUri(null);
-        await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+        micHold.current?.(); micHold.current = holdMic();
+        await enterRecording();
         preparedUri.current = recorderUri(recorder, preparedUri.current);
         await recorder.prepareToRecordAsync();
         preparedUri.current = recorderUri(recorder, preparedUri.current);
-        if (!live.current || ticket !== generation.current) { await stopRecorder(); discardRecording(recorderUri(recorder, preparedUri.current)); await setAudioModeAsync({ allowsRecording: false }); return; }
+        if (!live.current || ticket !== generation.current) { await stopRecorder(); discardRecording(recorderUri(recorder, preparedUri.current)); await resetRecordingAudio(); return; }
         startedRecording.current = Date.now(); setCompletedTake(false); recorder.record(); setRecording(true); setNote('Recording, up to 20 seconds.');
         timer.current = setTimeout(() => { void finish().catch(() => { setRecording(false); setNote('That take could not finish. Try again.'); }); }, 20000);
       }
-    } catch { if (live.current) { setNote('Recording could not start. You can still practise aloud.'); setRecording(false); } await setAudioModeAsync({ allowsRecording: false }).catch(() => {}); }
+    } catch { if (live.current) { setNote('Recording could not start. You can still practise aloud.'); setRecording(false); } await resetRecordingAudio().catch(() => {}); }
     finally { operation.current = false; if (live.current) setBusy(false); }
   };
   const play = async (own = false) => {
     if (!item || recording || busy) return;
+    clock.touch();
     const source = own ? uri : modelAsset;
     if (source == null) return;
     const ticket = generation.current;
     const playback = ++playbackTicket.current;
     try {
       claimDailyPlayback(player);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, shouldPlayInBackground: false });
+      await enterVoicePlayback();
       if (!live.current || ticket !== generation.current || playback !== playbackTicket.current || !ownsDailyPlayback(player)) return;
       player.pause(); player.replace(typeof source === 'string' ? { uri: source } : source); player.setPlaybackRate(1); player.play();
     } catch { if (live.current) setNote('Audio could not play. Please try again.'); }
@@ -137,6 +171,8 @@ export function DailyPracticeScreen() {
     if (!item || operation.current || recording) return; operation.current = true; setBusy(true);
     try {
       const ack = await addPhrases([{ fr: item.fr, en: item.en, frWritten: null, enLiteral: null, register: 'neutral', note: item.note }]);
+      // Saved means durable, and only then is the saved moment handed over.
+      announcePhraseSaved(ack, item.fr);
       if (!live.current) return;
       if (ack === 'durable') { player.pause(); nav.navigate('Review'); } else setNote('Your phrase could not be saved yet. Please try again.');
     } catch { if (live.current) setNote('Your phrase could not be saved yet. Please try again.'); }
@@ -147,27 +183,57 @@ export function DailyPracticeScreen() {
     operation.current = true; setBusy(true);
     const owner = scopeGeneration();
     try {
+      // Finishing is the last piece of work. `at` names the sitting; the day is
+      // read off the clock a moment later, and should the two ever fall either
+      // side of midnight the settle also records the day `at` falls on.
+      clock.touch();
+      const at = Date.now();
+      // The queue is held before the snapshot, so nothing this sitting earns
+      // can start before its end card is up to hold it.
+      holdForSettle();
+      const settling = await beginSettle();
+      // The day binds to whoever is signed in when it is asked for, so an
+      // account that changed while the snapshot was read records nothing.
+      if (owner !== scopeGeneration()) { releaseSettle(settling); return; }
       const ack = await recordActiveDay();
+      // The practice happened whether or not this screen is still showing, so
+      // it settles on the durable day alone: a quest, the goal, the +5 (F744).
+      // The end card waits for exactly this sitting's read-back.
+      if (ack === 'durable') expect({ source: 'phrase', at });
+      if (ack === 'durable') void finishSettle(settling, { source: 'phrase', at, xpEarned: 0, activeMs: clock.read() });
+      else releaseSettle(settling);
       if (!live.current || owner !== scopeGeneration()) return;
       if (ack === 'durable') { setDaySaved(true); setNote('This practice counts as a day of French. Your recording stays on this device until you leave.'); }
       else setNote('Your day could not be saved yet. Try finishing practice again.');
-    } finally { operation.current = false; if (live.current && owner === scopeGeneration()) setBusy(false); }
+    } finally {
+      // Nothing settled, so no end card will take the hold over.
+      dropSettleHold();
+      operation.current = false; if (live.current && owner === scopeGeneration()) setBusy(false);
+    }
   };
   return <ScrollScreen bottom="inset" header={<ScreenHeader title={shadowing ? 'Hear, say and compare' : 'A little French'} back={{ onPress: goBack }} />}>
     {item ? <View style={{gap:space(4)}}>
       <Card><Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{item.en}</Text>
       <View style={{ gap: space(3), marginTop: space(4) }}>
         <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
-        {modelAsset != null && <GhostButton label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
+        {recording && voice.metered && <RecordingLevel level={voice.level} />}
         {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
-        {uri && !recording ? <GhostButton label="Hear my take" onPress={() => void play(true)} /> : null}
-        {completedTake && uri && !recording && !daySaved ? <GhostButton label="Try again" onPress={() => void record()} disabled={busy} /> : null}
+        <IconActionRow>
+        {modelAsset != null && <IconAction layout="tile" icon="speaker" label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
+        {uri !== '' && uri != null && !recording && <IconAction layout="tile" icon="speaker" label="Hear my take" onPress={() => void play(true)} />}
+        {completedTake && uri !== null && !recording && !daySaved && <IconAction layout="tile" icon="refresh" busy={busy} label="Try again" onPress={() => void record()} disabled={busy} />}
+        </IconActionRow>
         {modelAsset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
         <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
         {completedTake && !recording && !daySaved && <PillButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}
         {daySaved && <PillButton label="Done" onPress={goBack} />}
-        <GhostButton label="Add to review and practise recall" onPress={() => void review()} />
+        <IconAction layout="inline" icon="cards" label="Add to review and practise recall" onPress={() => void review()} />
       </View>
-    </Card>{shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
+    </Card>
+      {/* The end card in place, once the day is durable and the settle has read
+          it back: only the delta's numbers. While it is still being read, or if
+          it never is, the line above already says the practice counted. */}
+      {daySaved && end.state === 'settled' && <EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />}
+      {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
   </ScrollScreen>;
 }

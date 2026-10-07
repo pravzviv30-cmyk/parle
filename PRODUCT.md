@@ -89,48 +89,71 @@ may replace.
 
 Two hard behavioural commitments, both derived from confirmed research:
 
-- **No streak guilt.** Streaks are a guilt mechanic implicated in intermediate-
-  plateau churn. Progress is framed forward ("three sounds from unlocking the café
-  scenario"), never as a loss to protect. Reaffirmed when the five-tab redesign
-  asked for a days-active streak: the streak was dropped and a level ladder
-  shipped instead.
+- **No streak guilt.** Luvani counts a daily streak, and it is built so that it
+  never shames or threatens. The product refused a streak twice, as a guilt
+  mechanic implicated in intermediate-plateau churn. The founder reversed that
+  refusal on 2026-10-04 (decision D2 in `docs/come-alive/README.md`), and the
+  streak keeps the promise this bullet is named for. The streak, the XP display,
+  quests and badges are being built in that programme; until each one ships,
+  these are the rules it is built to.
 
-  Asked a third time, by the daily-Home mockup, the answer was different and the
-  reason is worth keeping. Home carried a **Days active** tile, and it was not
-  the thing that was refused twice. A streak is a chain: it reads yesterday, it
-  can be broken, and the product asks you to protect it. The tile counted the
-  distinct days that have an entry, so it only ever rises, a quiet day costs
-  nothing, yesterday is never read, and there is no state a loss could be written
-  into. It was present from the first day and worded as a start: where the count
-  would be nought no numeral was drawn at all, the line beside it pointed
-  forward, and it named no target to fall short of. That was the founder's
-  decision of 2026-09-05, overturning an earlier rule that kept the whole block
-  absent until there was a number in it.
+  A streak day is any finished practice on the learner's local calendar day: a
+  live conversation, a guided lesson, a practice set, a review, today's phrase,
+  or free offline practice. Running out of live minutes never breaks a streak,
+  because the free practices count too. A safety stop earns no day. The number
+  is the practice days in the current run.
 
-  The tile left Today with the notebook redesign on 2026-09-27. Nothing renders
-  `apps/mobile/src/progress/MomentumCards.tsx` now, and Today shows at most two
-  sentences about the week (`weekLines` in `apps/mobile/src/home/todayView.ts`).
-  The rule outlives the tile. Any count of days that comes back, on any screen,
-  keeps every property above: it only ever rises, yesterday is never read, there
-  is no state a loss could be written into, it is present from the first day, and
-  it is worded as a start. Those properties are still held by name in
-  `apps/mobile/src/progress/momentum.ts` and its suite. Every word a learner can
-  read still has to pass the ban list in `apps/mobile/src/copy/guilt.ts`, which
-  is why the word "streak" appears nowhere a learner can read it.
+  Freezes and repair come with a paid plan. A freeze is applied automatically,
+  and a covered day keeps the run without adding to it. For a free learner a
+  missed day starts a new run. Just after a run ends, a free learner sees one
+  calm line on the Streak screen and a way to see plans:
+  "Subscribers can repair a streak within 2 days." There is no notification
+  about it, no countdown, and never "save your streak".
 
-- **The level path displays evidence; it is not a new incentive.** A learner
-  sees a CEFR level (A0, then A1) and one can-do line per scene. Before a scene
-  is earned the line says what they will be able to do ("Order a coffee at the
-  counter"). Once it is earned the line says what they can do ("You can order a
-  coffee"). A scene is earned only on independence evidence: a finish with
-  nothing handed over, read from the best-ever attempt, so a replay with more
-  help never takes it back (`isEarned` in `packages/core/src/missions/missions.ts`,
-  `spineFrom` in `packages/core/src/missions/spine.ts`). No screen names a rank.
-  XP still exists inside `packages/core/src/levels/` and is never shown. It
-  counts only French the learner produced: words said, turns composed unaided,
-  phrases resolved, cards recalled. Never minutes elapsed, sessions started, or
-  app opens, and it is capped per day so a marathon cannot buy anything. It
-  measures returning, not bingeing, and it cannot be ground.
+  Streak copy states facts ("Your 12-day streak is waiting") and never threatens:
+  no loss, no "at risk", no "last chance", no countdowns, no sad faces. Every
+  streak and reminder line passes `BANNED_IN_STREAK_COPY` in
+  `apps/mobile/src/copy/guilt.ts`, which is the shared ban list plus the
+  countdown, the plea and the sad face in words. The word "streak" itself left
+  the shared list by the same decision, and `RETIRED_FROM_BAN` records it there.
+
+  A reset never shows a nought on its own. The lifetime count of practice days
+  sits beside the streak wherever the streak appears, and it keeps every
+  property of the **Days active** tile that came before it. History: Home
+  carried that tile from 2026-09-05 until the notebook redesign of 2026-09-27,
+  and it was not the streak refused twice. A streak is a chain: it reads
+  yesterday, and it can end. The tile counted the distinct days that have an
+  entry. So it only ever rises, and a quiet day costs nothing. For the tile,
+  yesterday is never read, and there is no state a loss could be written into.
+  It was present from the first day and worded as a start: where the count would
+  be nought no numeral was drawn, and the line beside it pointed forward. Those
+  properties now belong to the lifetime count, and they are still held by name
+  in `apps/mobile/src/progress/momentum.ts` and its suite.
+
+- **XP, levels, quests and badges are shown, and stay honest.** The level path
+  still displays evidence: a CEFR level (A0, then A1) and one can-do line per
+  scene. Before a scene is earned the line says what they will be able to do
+  ("Order a coffee at the counter"). Once it is earned the line says what they
+  can do ("You can order a coffee"). A scene is earned only on independence
+  evidence: a finish with nothing handed over, read from the best-ever attempt,
+  so a replay with more help never takes it back (`isEarned` in
+  `packages/core/src/missions/missions.ts`, `spineFrom` in
+  `packages/core/src/missions/spine.ts`).
+
+  Beside it the learner sees XP and numbered levels (Level 1, 2, 3 and on),
+  never a rank name. XP counts French the learner produced: words said, turns
+  composed unaided, phrases resolved, cards recalled. A finished practice that
+  nothing grades (today's phrase, a review where nothing was recalled, the
+  guest's first reply once an account keeps it) earns a fixed 5 XP for
+  practising, so every win counts and none is inflated. Three daily quests add
+  fixed bonuses, and each is completed only by finished practice. Milestone
+  badges mark real counts and are awarded once. XP never comes from minutes
+  elapsed, sessions started or app opens, and practice XP is capped per day, so
+  a marathon buys nothing. XP is shown on the end card of a finished practice,
+  as the XP the saved sitting actually credited, and never during one. Every
+  celebration names a persisted event, and a safety
+  stop earns and celebrates nothing. There are no leagues or leaderboards, no
+  paid currency, and no random rewards.
 - **The learner is never stranded and never scolded.** No mid-session scores, no
   "wrong", no commenting on hesitation. The tutor steps in and carries the
   conversation the way a good human tutor does.

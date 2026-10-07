@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { FRENCH_PHONEMES } from './phonemes/inventory.ts';
 import { DRILLS } from './phonemes/drills.ts';
 import { LESSONS } from './lessons/index.ts';
-import { GOOD_FEEDBACK, missFeedback, typoFeedback } from './drill/session.ts';
+import { answerCurrent, GOOD_FEEDBACK, missFeedback, ownWordsFeedback, typoFeedback } from './drill/session.ts';
 import { DRILL_FIXTURES } from './drill/fixtures.ts';
 import { learnerVisibleStrings } from './drill/validate.ts';
 import { MISSIONS } from './missions/missions.ts';
@@ -130,6 +130,12 @@ describe('learner-visible copy stays plain and human', () => {
 const SCOLD = /\b(wrong|incorrect|bad|failed)\b/i;
 const DIGIT = /[0-9]/;
 
+/** A letter English interface copy never needs. The quoted French is cut out before this runs. */
+const ACCENTED = /[À-ÖØ-öø-ÿŒœ]/;
+/** The French praise and correction words the drill used to say, and their near relations. */
+const FRENCH_PRAISE = /\b(nickel|presque|pas|tout|fait|dit|parfait|voila|tres|bien|bravo|exactement|super|genial|oui)\b/i;
+const OWN_WORDS_DECISIONS = ['good', 'retry', 'reveal'] as const;
+
 function checkDrill(kind: string, text: string): void {
   check(kind, text);
   assert.ok(!SCOLD.test(text), `${kind} scolds: "${text}"`);
@@ -140,10 +146,13 @@ describe('drill feedback is pinned, plain, and kind', () => {
   test('the three verdict lines are exactly these', () => {
     // Pinned verbatim: changing the feel of a correction is a product
     // decision, and this test is where that decision becomes deliberate.
-    assert.equal(GOOD_FEEDBACK, 'Nickel.');
-    assert.equal(typoFeedback('merci'), "Presque. Ça s'écrit «merci».");
-    assert.equal(missFeedback('un café'), 'Pas tout à fait. On dit: «un café».');
-    assert.equal(missFeedback(null), 'Pas tout à fait.');
+    // Founder decision D14 (2026-10-04): wins are warm, plain English, with no
+    // French interface praise. The French a learner is learning stays inside
+    // the guillemets; the voice around it is English.
+    assert.equal(GOOD_FEEDBACK, 'Nicely done.');
+    assert.equal(typoFeedback('merci'), "Nearly. It's spelt «merci».");
+    assert.equal(missFeedback('un café'), "Here's how it goes: «un café».");
+    assert.equal(missFeedback(null), 'This one comes round again.');
   });
 
   test('the typo line always contains the exact form it is pointing at', () => {
@@ -155,6 +164,49 @@ describe('drill feedback is pinned, plain, and kind', () => {
     for (const line of [GOOD_FEEDBACK, typoFeedback('exemple'), missFeedback('exemple'), missFeedback(null)]) {
       checkDrill('drill feedback', line);
     }
+  });
+
+  test('drill verdict lines are warm plain English with no score and no scold', () => {
+    // F717, founder decision D14. "Nickel.", "Presque." and "Pas tout à fait."
+    // were French interface praise: a beginner reads them as one more thing to
+    // decode at the exact moment they should feel what happened. The French
+    // they are learning still appears, inside the guillemets, and nowhere else.
+    const lines = [
+      GOOD_FEEDBACK,
+      typoFeedback('bonne journée'),
+      missFeedback('un café'),
+      missFeedback(null),
+      ...OWN_WORDS_DECISIONS.map((decided) => ownWordsFeedback(decided).text),
+    ];
+    for (const line of lines) {
+      checkDrill('drill verdict', line);
+      const voice = line.replace(/«[^»]*»/g, '');
+      assert.doesNotMatch(voice, ACCENTED, `"${line}" speaks French outside the guillemets`);
+      assert.doesNotMatch(voice, FRENCH_PRAISE, `"${line}" is French interface praise`);
+      assert.doesNotMatch(line, /[—–·]/, `"${line}" carries a dash or a middot`);
+      assert.doesNotMatch(line, /\bscore|\bpoints?\b|%/i, `"${line}" scores the learner mid-session`);
+      assert.doesNotMatch(line, /\b(not quite|mistake|error|try harder|oops)\b/i, `"${line}" names the miss`);
+      assert.match(line, /^[A-Z][^]*\.$/, `"${line}" is not one plain sentence`);
+    }
+
+    // The first miss still hands over no answer, by design: the retry has to
+    // test memory, not copying. Only the second miss shows the form.
+    const ex = DRILL_FIXTURES.find((e) => e.kind === 'fill-blank')!;
+    const first = answerCurrent({ queue: [ex], missesById: {}, answered: [], startedAt: 0, finished: false }, 'not this');
+    assert.equal(first.feedback?.closest, null);
+    assert.equal(first.feedback?.message, 'This one comes round again.');
+    assert.doesNotMatch(first.feedback?.message ?? '', /«/, 'the first miss gave the answer away');
+    const second = answerCurrent(first.state, 'not this');
+    assert.ok(second.feedback?.closest, 'the second miss shows the form');
+    assert.equal(second.feedback?.message, `Here's how it goes: «${second.feedback?.closest}».`);
+
+    // Own words keys its tone on the decision, not on the verdict it maps to.
+    // A retry is an invitation to a second try: the founder chose the warm
+    // "Nearly there." with the nearly cue (2026-10-06). The reveal hands the
+    // phrase over calmly, with no cue.
+    assert.deepEqual(ownWordsFeedback('good'), { tone: 'good', text: 'That works.' });
+    assert.deepEqual(ownWordsFeedback('retry'), { tone: 'nearly', text: 'Nearly there.' });
+    assert.deepEqual(ownWordsFeedback('reveal'), { tone: 'calm', text: "Here's one way to say it." });
   });
 });
 

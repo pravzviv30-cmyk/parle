@@ -142,7 +142,7 @@ describe('what the tutor remembers, drawn', () => {
     assert.ok(!SCREEN.includes('forgottenFacts') && !SCREEN.includes('memory.facts'), 'the screen reaches past memory.ts into the stored shape');
     assert.match(SCREEN, /const facts = visibleFacts\(profile\);/, 'the screen lists facts the learner forgot');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{FORGET_ONE\}: \$\{fact\.en\}`\}/, 'a forget button does not say which fact it forgets');
-    assert.match(FLAT, /\{facts\.length === 0 \? \( <Text[^>]*>\{memoryEmptyLine\(profile\)\}<\/Text> \)/, 'an empty memory draws an empty list rather than a sentence');
+    assert.match(FLAT, /\{facts\.length === 0 \? \( <View[^>]*> <Illustration name="state-notebook" fit="small" \/> <Text[^>]*>\{memoryEmptyLine\(profile\)\}<\/Text> <IconAction layout="inline" icon="chat" label="Choose a scene" onPress=\{\(\) => nav.navigate\(\x27Missions\x27\)\} \/> <\/View> \)/, 'an empty memory draws an empty list rather than a sentence');
     assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <GhostButton label=\{FORGET_ALL\}/, 'clear is offered with nothing to clear');
     assert.match(FLAT, /<ConfirmSheet visible=\{clearing\}/, 'clearing details requires an explicit confirmation');
     assert.match(SCREEN, /maxLength=\{MAX_GOAL_CHARS\}/, 'a goal can outgrow the wire');

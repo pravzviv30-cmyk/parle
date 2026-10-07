@@ -11,7 +11,9 @@ npm run gate                      # the whole bar — see LOOP.md
 
 **Run from the repo root, never from a worktree.** A `.claude/worktrees/` checkout
 has no `node_modules` of its own, so Node resolution walks up past it and can bind
-to the wrong copy of a dependency. `packages/brain` is where this bites: it
+to the wrong copy of a dependency. The exception: a worktree where `npm ci` has run
+has its own `node_modules` and is a root in its own right, so its tests resolve
+inside it (check the brain count to be sure). `packages/brain` is where this bites: it
 depends on `@anthropic-ai/sdk@^0.117.1` and gets a nested install, while
 `@livekit/agents-plugin-anthropic` pulls `^0.33.1` up to the root.
 

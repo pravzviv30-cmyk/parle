@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
 import { HAIRLINE, HIT, font, paper, radius, space, type } from '../theme.ts';
 import { CARD_START, SAID_IT, cardView, typedAttemptReady, type ReviewTurn } from '../review/cardView.ts';
 import { gradeCard } from '../review/store.ts';
@@ -111,9 +111,9 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
               onGraded();
             }}
           />
-          <GhostButton
+          <IconAction layout="inline" icon="replay"
             label={GRADE_LABELS.again}
-            color={paper.ink}
+
             onPress={() => {
               void gradeCard(line.card.id, 'again', view.gradeContext);
               setDone(true);

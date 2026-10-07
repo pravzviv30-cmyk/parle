@@ -44,6 +44,9 @@ function harness() {
     useAudioPlayer: () => player,
     useAudioPlayerStatus: () => ({ didJustFinish: false }),
     setAudioModeAsync: () => new Promise<void>(resolve => { pending.push(resolve); }),
+    // The hook prepares through the audio session now (F723); it is held open the same way.
+    enterVoicePlayback: () => new Promise<void>(resolve => { pending.push(resolve); }),
+    useVoiceHold: () => {},
     createPlaybackGate, playWhenCurrent, claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback,
     onUserScopeReset: (hook: () => void) => { resets.add(hook); return () => resets.delete(hook); },
   };

@@ -99,7 +99,24 @@ export function dismissWin(state: WinState): WinState {
   return { seen: true, showing: false };
 }
 
+/**
+ * When each part of the card arrives, in ms from its first frame (come alive,
+ * core loop 2.8): the card and a mint glow behind it at once, the kicker, the
+ * scene's drawing rising in, the line, then a burst of confetti from the card's
+ * top edge. All of it is movement only. The card plays no sound and no haptic,
+ * because a live room holds the learner's ears (decision D8): the fanfare
+ * waits for the recap. "Keep talking" works from the first frame.
+ */
+export const SCENE_WON_BEATS = { kicker: 120, art: 200, line: 260, burst: 300 } as const;
+/** The confetti from the card's top edge. */
+export const SCENE_WON_BURST = 24;
+
 export interface WinCard {
+  /**
+   * The few words above the line that name the moment (come alive, core loop
+   * 2.8). A fact about the scene, never a verdict on the learner, and no number.
+   */
+  kicker: string;
   /** The mission's own line about what the learner just did. Never praise. */
   line: string;
   keepLabel: string;
@@ -124,6 +141,7 @@ export function winCard(missionId: string | null | undefined): WinCard | null {
   const mission = missionId == null ? undefined : getMission(missionId);
   if (mission === undefined) return null;
   return {
+    kicker: 'Scene complete',
     line: mission.winEn,
     keepLabel: 'Keep talking',
     keepSub: 'Carrying on uses your minutes.',

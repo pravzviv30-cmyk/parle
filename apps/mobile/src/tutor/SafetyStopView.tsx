@@ -22,6 +22,7 @@ import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import { paper, space, type } from '../theme.ts';
 import { ScrollScreen } from '../layout.tsx';
 import { Card, GhostButton, PillButton } from '../components.tsx';
+import { suppressCelebrations } from '../celebrate/queue.ts';
 import type { SafetySurface } from './safetyView.ts';
 
 /**
@@ -64,6 +65,11 @@ export function SafetyStopView({
   onClose: () => void;
 }) {
   useAnnounced(surface.announce, surface.politeness);
+
+  // F137: a safety stop gets no celebration. While this screen is up the host
+  // clears its queue, stops the moment playing and refuses new ones, and every
+  // sound effect is silent; leaving the screen releases it.
+  useEffect(() => suppressCelebrations(), []);
 
   // The scrolling frame, because this is the one screen in the app whose words a
   // learner must be able to read at any reading size, and the message is the

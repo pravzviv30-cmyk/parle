@@ -8,6 +8,11 @@ export {
   drillXp,
   reviewXp,
   totalXp,
+  xpCreditedFor,
+  LEVEL_STEP_MAX,
+  levelStep,
+  levelThreshold,
+  xpLevelFor,
   localDayKey,
   type LevelName,
   type LevelStanding,
@@ -16,4 +21,5 @@ export {
   type DrillEvidence,
   type ReviewEvidence,
   type DatedXp,
+  type XpLevel,
 } from './levels.ts';

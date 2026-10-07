@@ -12,10 +12,12 @@
  * before this screen has redrawn. Nothing here reads the disk itself.
  */
 
+import { useNavigation } from '@react-navigation/native';
+import { Illustration } from '../art/flat/Illustration.tsx';
 import { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Field, GhostButton, Label, OutlineButton } from '../components.tsx';
+import { Card, Field, IconAction, GhostButton, Label, OutlineButton } from '../components.tsx';
 import { ConfirmSheet, ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { paper, space, type, HIT } from '../theme.ts';
@@ -56,6 +58,7 @@ import {
 } from './tutorMemory.ts';
 
 export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
+  const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile, update, updateMemory } = useProfile();
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -99,7 +102,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
       <Card style={st.card}>
         <SwitchRow first title={MEMORY_PAUSE_TITLE} accessibilityLabel={MEMORY_PAUSE_TITLE} value={memoryPaused(profile.brain)} disabled={saving} onChange={(paused) => { void commitMemory((current) => withMemoryPaused(current, paused)); }} sub={MEMORY_PAUSE_SUB} />
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Edit or forget a remembered detail below. Changes apply to your next conversation.</Text>
-        <GhostButton label={detailsOpen ? 'Hide memory details' : 'What memory uses'} onPress={() => setDetailsOpen(!detailsOpen)} />
+        <IconAction layout="inline" icon="info" label={detailsOpen ? 'Hide memory details' : 'What memory uses'} onPress={() => setDetailsOpen(!detailsOpen)} />
         {detailsOpen && <View>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{WHAT_LEAVES}</Text>
           <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{MEMORY_SCOPE}</Text>
@@ -108,7 +111,11 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
       {saving || memoryError ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text> : null}
       <Card tone="journal" style={st.card}>
         {facts.length === 0 ? (
-          <Text style={[type.body, { color: paper.ink }]}>{memoryEmptyLine(profile)}</Text>
+          <View style={{ gap: space(3) }}>
+            <Illustration name="state-notebook" fit="small" />
+            <Text style={[type.body, { color: paper.ink }]}>{memoryEmptyLine(profile)}</Text>
+            <IconAction layout="inline" icon="chat" label="Choose a scene" onPress={() => nav.navigate('Missions')} />
+          </View>
         ) : (
           facts.map((fact, index) => (
             <View key={`${fact.notedAt}:${fact.en}`} style={[st.fact, index > 0 && st.divided]}>
@@ -116,7 +123,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
                 <Text style={[type.bodyStrong, { color: paper.ink }]}>{fact.en}</Text>
                 <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{KIND_GLOSS[fact.kind]}</Text>
               </View>
-              <GhostButton
+              <IconAction layout="inline" icon="edit"
                 label="Edit"
                 accessibilityLabel={`Edit: ${fact.en}`}
                 onPress={() => setEditing({ kind: 'fact', original: fact.en, text: fact.en })}
@@ -146,7 +153,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
               <View style={st.factWords}>
                 <Text style={[type.bodyStrong, { color: paper.ink }]}>{goal}</Text>
               </View>
-              <GhostButton
+              <IconAction layout="inline" icon="edit"
                 label="Edit"
                 accessibilityLabel={`Edit goal: ${goal}`}
                 onPress={() => setEditing({ kind: 'goal', original: goal, text: goal })}

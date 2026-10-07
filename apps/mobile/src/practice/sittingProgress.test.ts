@@ -15,7 +15,7 @@ import { describe, test } from 'node:test';
 import type { DrillSessionState, PracticeTarget } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { SITTING_PROGRESS_MAX, sittingProgress } from './sittingProgress.ts';
+import { SITTING_PROGRESS_MAX, queueFill, sittingFill, sittingProgress } from './sittingProgress.ts';
 
 const target = (key: string): PracticeTarget => ({ phraseKey: key, source: { kind: 'review' }, exerciseId: `ex:${key}`, scheduled: true });
 const state = (answered: string[], finished = false): DrillSessionState => ({
@@ -59,5 +59,37 @@ describe('where a learner is in a practice sitting', () => {
       assert.ok(!label.includes('—'), `"${label}" carries an em dash`);
     }
     assert.ok(SITTING_PROGRESS_MAX >= 6, 'the words run out before core\'s own cap on a sitting');
+  });
+});
+
+describe('the living bar fills by phrases settled, and only ever fills (come alive, F759)', () => {
+  const queued = (keys: string[]): DrillSessionState['queue'] => keys.map((key) => ({ id: `ex:${key}`, phraseKey: key }) as DrillSessionState['queue'][number]);
+
+  test('a practice sitting fills by its own targets, a miss coming round moves nothing, and the last answer fills it', () => {
+    const targets = ['a', 'b', 'c', 'd'].map(target);
+    const fills = [state([]), state(['a']), state(['a', 'a']), state(['a', 'b', 'zzz']), state(['a', 'b', 'c', 'd'], true)].map((s) => sittingFill(s, targets));
+    assert.deepEqual(fills, [0, 0.25, 0.25, 0.5, 1], 'the fill is not settled phrases over phrases in the sitting');
+    for (let i = 1; i < fills.length; i += 1) assert.ok(fills[i]! >= fills[i - 1]!, 'the bar moved backwards');
+    // Nothing to place: no bar.
+    assert.equal(sittingFill(null, targets), null);
+    assert.equal(sittingFill(state([]), [target('a')]), null, 'a one-phrase sitting drew a bar with nowhere to go');
+  });
+
+  test('an ordinary sitting fills by what its queue and its answers hold', () => {
+    const start = { ...state([]), queue: queued(['a', 'b', 'c']) };
+    assert.equal(queueFill(start), 0);
+    // A miss goes to the back of the queue: same phrase, same total.
+    const missed = { ...state([]), queue: queued(['b', 'c', 'a']) };
+    assert.equal(queueFill(missed), 0, 'a miss moved the bar');
+    const one = { ...state(['a']), queue: queued(['b', 'c']) };
+    assert.equal(queueFill(one), 1 / 3);
+    assert.equal(queueFill({ ...state(['a', 'b', 'c'], true), queue: [] }), 1);
+    assert.equal(queueFill({ ...state([]), queue: queued(['a']) }), null, 'a single exercise drew a bar');
+    assert.equal(queueFill(null), null);
+    // Longer than the words strip can place, the bar is not drawn either.
+    const long = Array.from({ length: SITTING_PROGRESS_MAX + 1 }, (_, i) => `p${i}`);
+    assert.equal(queueFill({ ...state([]), queue: queued(long) }), null, 'a sitting too long to place drew a bar');
+    assert.equal(sittingFill(state([]), long.map(target)), null);
+    assert.equal(queueFill({ ...state([]), queue: queued(long.slice(0, SITTING_PROGRESS_MAX)) }), 0);
   });
 });

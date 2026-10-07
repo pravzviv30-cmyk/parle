@@ -81,6 +81,22 @@ describe('the sentences with a number in them keep the numbers off the page', ()
     }
   });
 
+  test('no line or template frames a price as a saving', () => {
+    // Come alive, README Part 5.G (D16): a yearly price is said beside the
+    // store's monthly figure, never as "save N%". Every line, and every
+    // template with the samples the scan above uses, is held to that.
+    const SAVING = /\bsave\b|%|discount|cheaper|\boff\b|best value/i;
+    for (const line of WALL_COPY) assert.doesNotMatch(line, SAVING, `a saving in wall copy: ${line}`);
+    for (const [name, template] of Object.entries(copy)) {
+      if (typeof template !== 'function') continue;
+      for (const sample of [0, 1, 4, 30]) {
+        const line = (template as (...args: unknown[]) => string)(...Array.from({ length: Math.max(1, template.length) }, () => sample));
+        assert.doesNotMatch(line, SAVING, `a saving in ${name}: ${line}`);
+      }
+    }
+    assert.match(copy.yearlyPrice('£179.99', '£15.00'), /^£179\.99 a year, about £15\.00 a month$/);
+  });
+
   test('one of anything is singular', () => {
     for (const [name, template] of Object.entries(copy)) {
       if (typeof template !== 'function') continue;

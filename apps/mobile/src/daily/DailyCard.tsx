@@ -7,15 +7,18 @@
  *
  * Two looks, one owner of the audio. `full` is the library card. `today` is
  * Home's white card (F602): the French with a play disc that stops what it
- * started, the English, and "Practise it", which is the library's "Say it".
- * It has no label, no save and no example, and it never states the audio line,
- * so a phrase with no recording still reads and still opens its practice.
+ * started, the English, and one row of three icon actions (Phase 4): "Practise
+ * it", which is the library's "Say it"; Save, the same save the library card
+ * makes, filled once the save is read back; and "More phrases", the way into
+ * the daily collection. It has no label and no example, and it never states
+ * the audio line, so a phrase with no recording still reads and still opens
+ * its practice.
  */
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
-import { Card, FrenchBlock, GhostButton, Label } from '../components.tsx';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { IconButton, Card, FrenchBlock, GhostButton, IconAction, IconActionRow, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
@@ -25,6 +28,8 @@ import type { DailyItem } from './catalogue.ts';
 import { claimDailyPlayback, releaseDailyPlayback, ownsDailyPlayback } from './playback.ts';
 import { audioLine } from './libraryView.ts';
 import { scopeGeneration } from '../storage/scope.ts';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
 
 export function DailyCard({ item, reveal = true, onSaved, compact = false, embedded = false, variant = 'full' }: {
   item: DailyItem; reveal?: boolean; onSaved?: (id: string, saved: boolean) => void; compact?: boolean; embedded?: boolean; variant?: 'full' | 'today';
@@ -36,6 +41,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const asset = tutorAudioFor(TUTOR_DAILY_AUDIO, item.id, tutorVoice);
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
+  useVoiceHold(status.playing);
   const owner = scopeGeneration();
   const [saveRead, setSaveRead] = useState<{ owner: number; saved: boolean } | null>(null);
   const saved = saveRead?.owner === owner ? saveRead.saved : null;
@@ -70,7 +76,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
     try {
       if (asset == null) { setNote('Audio is not in this pack yet. You can still practise the text.'); return; }
       claimDailyPlayback(player);
-      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, shouldPlayInBackground: false });
+      await enterVoicePlayback();
       if (!active.current || ticket !== playTicket.current || !ownsDailyPlayback(player)) return;
       player.pause(); player.replace(asset); player.setPlaybackRate(slow ? 0.75 : 1); player.play(); setNote('');
     } catch { setNote('Audio could not play. Please try again.'); }
@@ -99,7 +105,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const retrySaveRead = () => setReadAttempt(value => value + 1);
   const saveFailure = saveUnread && <View style={{ gap: space(1) }}>
     <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>Save status unavailable. You can still hear and practise this phrase.</Text>
-    <GhostButton label="Retry save status" onPress={retrySaveRead} />
+    <IconAction layout="inline" icon="refresh" label="Retry save status" onPress={retrySaveRead} />
   </View>;
   // Stop this card's recording before the practice screen opens, so the
   // learner hears their own attempt and not the tutor under it.
@@ -109,20 +115,20 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   const toggle = () => { if (status.playing) { playTicket.current++; releaseDailyPlayback(player); } else void play(); };
   const contents = <View style={{ gap: space(2) }}>
     <Label>{item.label}</Label>
-    {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><GhostButton label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
+    {!shown ? <><Text style={[type.body, { color: paper.ink }]}>{item.en}</Text><IconAction layout="inline" icon="eye" label="Try it from memory, then reveal" onPress={() => setShown(true)} /></> : <>
       {/* The library states audio availability before the first listen. */}
       {!embedded && <Text style={[type.small, { color: paper.inkSoft }]}>{audioLine(asset != null)}</Text>}
-      {asset != null && <GhostButton label="Hear" color={paper.ink} onPress={() => void play()} />}
+      {asset != null && <IconAction layout="inline" icon="speaker" label="Hear"  onPress={() => void play()} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
         <View style={{ flex: 1, minWidth: 0 }}><Text selectable={!embedded} style={[compact ? type.french : type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text selectable={!embedded} style={[type.small, { color: paper.inkSoft, marginTop: space(1) }]}>{item.en}</Text></View>
       </View>
       {(!compact || !item.exampleFr || expanded) && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.note}</Text>}
       {item.exampleFr ? <><Text selectable={!embedded} style={[type.frenchSm, { color: paper.ink }]}>{item.exampleFr}</Text>{expanded && <Text selectable={!embedded} style={[type.small, { color: paper.inkSoft }]}>{item.exampleEn}</Text>}</> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
-        <GhostButton label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
-        {compact && <GhostButton label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
-        {expanded && <>{asset != null && <GhostButton label="Slow replay" onPress={() => void play(true)} />}
-          <GhostButton label="Say it" onPress={sayIt} /></>}
+        <IconButton icon="bookmark" label={busy ? 'Saving…' : saved === null ? saveUnread ? 'Save unavailable' : 'Checking save…' : saved ? 'Saved ✓' : 'Save'} disabled={saved === null || busy} onPress={() => void save()} />
+        {compact && <IconAction layout="inline" icon="chevron-down" label={expanded ? 'Less' : 'More'} onPress={() => setExpanded(v => !v)} />}
+        {expanded && <>{asset != null && <IconAction layout="inline" icon="speaker-slow" label="Slow replay" onPress={() => void play(true)} />}
+          <IconAction layout="inline" icon="microphone" label="Say it" onPress={sayIt} /></>}
       </View>
     </>}
     {saveFailure}
@@ -131,7 +137,11 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   if (variant === 'today') {
     return <Card style={{ marginTop: space(3), gap: space(3) }}>
       <FrenchBlock french={item.fr} english={item.en} size="lg" onHear={asset != null ? toggle : undefined} playing={status.playing} />
-      <View style={{ alignItems: 'flex-end' }}><GhostButton label="Practise it" onPress={sayIt} /></View>
+      <IconActionRow>
+        <IconAction icon="microphone" label="Practise it" onPress={sayIt} accessibilityLabel="Practise today's phrase" />
+        <IconAction icon="bookmark" label={saved === true ? 'Saved' : 'Save'} accessibilityLabel={saved === true ? "Today's phrase is saved" : "Save today's phrase"} selected={saved === true} animate="bookmark-fill" busy={busy} disabled={saved === null} onPress={() => void save()} />
+        <IconAction icon="book" label="More phrases" accessibilityLabel="More phrases. Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />
+      </IconActionRow>
       {saveFailure}
       {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
     </Card>;

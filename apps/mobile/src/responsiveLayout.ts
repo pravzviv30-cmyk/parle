@@ -13,3 +13,17 @@ export function navigationWidth(width: number, left: number, right: number) {
 export function compactPhone(width: number, height: number) {
   return width <= 360 && height < 760;
 }
+
+/**
+ * The reading column (come alive, icons section 3.6): the first run's pages and
+ * sheets sit in a centred 560-point column on an iPad, so a line of copy and a
+ * row of choices stay the width a phone gives them rather than stretching
+ * across the content column.
+ */
+export const READING = 560;
+
+/** Regular width is based on usable space, including iPad split view. */
+export function layoutClass(width: number, left: number, right: number): 'compact' | 'regular' {
+  return width - left - right >= 700 ? 'regular' : 'compact';
+}
+export const FOOTER_MAX = 480;

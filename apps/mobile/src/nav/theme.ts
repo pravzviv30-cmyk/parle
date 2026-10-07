@@ -82,6 +82,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       DailyLibrary: 'daily-library',
       Postcards: 'postcards',
       WeekWrapped: 'week-in-french',
+      Streak: 'streak',
       RealMoment: 'real-moment',
       TutorMemory: 'tutor-memory',
       TutorIntro: 'tutor-guide',

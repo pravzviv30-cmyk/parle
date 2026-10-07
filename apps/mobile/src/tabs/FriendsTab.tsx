@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScrollScreen, TabHeader, ScreenHeader } from '../layout.tsx';
-import { Card, GhostButton, Label, Ledger, LedgerRow, PillButton, OutlineButton, Field } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, PillButton, OutlineButton, Field } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { useSocial } from '../friends/useSocial.ts';
@@ -31,7 +31,7 @@ export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
   };
   return <ScrollScreen bottom={pushed ? "inset" : "tab"} header={pushed ? <ScreenHeader title={false} back={{ onPress: () => { if (nav.canGoBack()) nav.goBack(); else nav.navigate('Tabs'); } }} /> : undefined}>
     <TabHeader title="Friends" purpose={FRIENDS_PURPOSE} trailing={<ProfileButton />} />
-    {error !== '' && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><GhostButton label="Try again" onPress={refresh} /></Card>}
+    {error !== '' && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><IconAction layout="inline" icon="refresh" label="Try again" onPress={refresh} /></Card>}
     {entry === 'loading' && !error && <Text style={[type.body, { color: paper.inkSoft }]}>Opening your circle…</Text>}
     {/* Before joining: one opt-in start, with privacy a quiet link beneath it
         rather than a second door beside it (Stage 3). */}
@@ -50,7 +50,7 @@ export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
       </Ledger>
       <View style={{ marginTop: space(5), gap: space(3) }}>
         <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>Learning alongside you</Text>
-        {!rows.length ? <Card><Text style={[type.body, { color: paper.ink }]}>Invite someone you know to practise French together.</Text><GhostButton label="Invite a friend" onPress={() => nav.navigate('AddFriends')} /></Card> : <Ledger>{rows.map(person => <View key={person.id} style={{ paddingVertical: space(3) }}>
+        {!rows.length ? <Card><Text style={[type.body, { color: paper.ink }]}>Invite someone you know to practise French together.</Text><IconAction layout="inline" icon="user-add" label="Invite a friend" onPress={() => nav.navigate('AddFriends')} /></Card> : <Ledger>{rows.map(person => <View key={person.id} style={{ paddingVertical: space(3) }}>
           <Text style={[type.bodyStrong, { color: paper.ink }]}>{person.name}</Text>
           <Text style={[type.small, { color: paper.inkSoft }]}>@{person.username}</Text>
         </View>)}</Ledger>}
@@ -61,16 +61,16 @@ export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
         {s.challenges.map(c => <Card key={c.id}>
           <Text style={[type.heading, { color: paper.ink }]}>You and {c.partner}</Text>
           {c.status === 'pending' ? <><Text style={[type.body, { color: paper.inkSoft }]}>{c.incoming ? 'An invitation to learn together.' : 'Invitation sent. Your partner chooses whether to join.'}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {c.incoming && <GhostButton label="Join challenge" onPress={() => void act('acceptChallenge', { id: c.id })} />}
+            {c.incoming && <IconAction layout="inline" icon="tick-circle" label="Join challenge" onPress={() => void act('acceptChallenge', { id: c.id })} />}
             <GhostButton label={c.incoming ? 'Decline' : 'Cancel invitation'} onPress={() => void act(c.incoming ? 'declineChallenge' : 'leaveChallenge', { id: c.id })} />
           </View></> : <>{c.count >= c.target ? <Text style={[type.french, { color: paper.ink }]}>{'Un peu de français, ensemble.'}</Text> : <Text style={[type.heading, { color: paper.ink }]}>{`${c.count} of ${c.target} conversations`}</Text>}
-            {c.count >= c.target ? <><Text style={[type.body, { color: paper.inkSoft }]}>Your shared postcard. Four conversations together, now part of your story.</Text><GhostButton label="Share our postcard" onPress={() => void sharePostcard(c.partner)} /></> : <><GhostButton label="Choose a French scene" onPress={() => nav.navigate('Missions')} /><GhostButton label="Leave challenge" onPress={() => void act('leaveChallenge', { id: c.id })} /></>}
+            {c.count >= c.target ? <><Text style={[type.body, { color: paper.inkSoft }]}>Your shared postcard. Four conversations together, now part of your story.</Text><IconAction layout="inline" icon="share" label="Share our postcard" onPress={() => void sharePostcard(c.partner)} /></> : <><IconAction layout="inline" icon="map" label="Choose a French scene" onPress={() => nav.navigate('Missions')} /><GhostButton label="Leave challenge" onPress={() => void act('leaveChallenge', { id: c.id })} /></>}
           </>}
         </Card>)}
         {s.friends.map(f => <Card key={f.id}>
           <Text style={[type.bodyStrong, { color: paper.ink }]}>{f.name}</Text>
-          {!s.challenges.some(c => c.partnerId === f.id) && <GhostButton label="Invite to a shared challenge" onPress={() => void act('inviteChallenge', { id: f.id })} />}
-          <GhostButton label={manage === f.id ? 'Close friend options' : 'Friend options'} onPress={() => { setManage(manage === f.id ? null : f.id); setReason(''); }} />
+          {!s.challenges.some(c => c.partnerId === f.id) && <IconAction layout="inline" icon="users" label="Invite to a shared challenge" onPress={() => void act('inviteChallenge', { id: f.id })} />}
+          <IconAction layout="inline" icon="more" label={manage === f.id ? 'Close friend options' : 'Friend options'} onPress={() => { setManage(manage === f.id ? null : f.id); setReason(''); }} />
           {manage === f.id && <View style={{ gap: space(2) }}>
             <Text style={[type.small, { color: paper.inkSoft }]}>Removing or blocking also ends shared challenges. They will not be notified.</Text>
             <GhostButton label="Remove friend" onPress={() => void act('remove', { id: f.id })} />
@@ -81,10 +81,10 @@ export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
         </Card>)}
       </View>
       <View style={{ marginTop: space(5), gap: space(3) }}><Label>Small moments worth noticing</Label>
-        {s.notices.some(n => !n.read) && <GhostButton label="Mark updates as read" onPress={() => void act('read')} />}
+        {s.notices.some(n => !n.read) && <IconAction layout="inline" icon="tick-circle" label="Mark updates as read" onPress={() => void act('read')} />}
         {!s.notices.length && <Text style={[type.body, { color: paper.inkSoft }]}>Shared milestones and encouragement will appear here. Everyone controls what they share.</Text>}
         {s.notices.filter(n => n.kind !== 'result').map(n => <Card key={n.id}><Text style={[type.body, { color: paper.ink }]}>{n.body}</Text><Text style={[type.small, { color: paper.inkSoft }]}>Week of {n.week}</Text>
-          {n.actorId !== s.self.id && n.kind !== 'reaction' && <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{REACTIONS.map(reaction => <GhostButton key={reaction} label={n.reactions.includes(reaction) ? `${reaction} ✓` : reaction} onPress={() => void act('react', { id: n.id, reaction })} />)}</View>}
+          {n.actorId !== s.self.id && n.kind !== 'reaction' && <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{REACTIONS.map(reaction => <IconAction layout="inline" icon="family" key={reaction} label={n.reactions.includes(reaction) ? `${reaction} ✓` : reaction} onPress={() => void act('react', { id: n.id, reaction })} />)}</View>}
         </Card>)}
       </View>
     </>}

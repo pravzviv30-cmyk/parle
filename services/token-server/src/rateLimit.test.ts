@@ -151,6 +151,40 @@ describe('the forwarded address — who the budget actually belongs to', () => {
     assert.equal(clientIp(request({}), true), '198.51.100.7', 'no header falls back to the socket peer');
     assert.equal(clientIp(request({ 'x-forwarded-for': '   ,  ' }), true), '198.51.100.7');
   });
+
+  test('an IPv6 peer is budgeted by its /64 and an IPv4 peer by its own address', async () => {
+    // One home or mobile network holds a whole /64, so rotating inside it must not buy a fresh budget.
+    const sameNetwork = ['2001:db8:1:2::1', '2001:0DB8:0001:0002:abcd:ef01:2345:6789', '2001:db8:1:2:ffff:ffff:ffff:fffe', '2001:db8:1:2::9%en0', '2001:db8:1:2::198.51.100.7'];
+    assert.deepEqual(new Set(sameNetwork.map((address) => clientIp(request({}, address), false))), new Set(['2001:db8:1:2::/64']));
+    // Behind a trusted proxy the forwarded peer is bucketed the same way.
+    assert.equal(clientIp(request({ 'x-forwarded-for': '203.0.113.9, 2001:db8:1:2:aaaa::1' }), true), '2001:db8:1:2::/64');
+    // A different /64 is a different budget, including prefixes the address compresses.
+    assert.equal(clientIp(request({}, '2001:db8:1:3::1'), false), '2001:db8:1:3::/64');
+    assert.equal(clientIp(request({}, '2001:db8::5'), false), '2001:db8:0:0::/64');
+
+    // IPv4 is exactly as it was, in both forms a dual-stack socket reports it.
+    assert.equal(clientIp(request({}, '198.51.100.7'), false), '198.51.100.7');
+    assert.equal(clientIp(request({}, '::ffff:198.51.100.7'), false), '::ffff:198.51.100.7');
+    assert.equal(clientIp(request({}, '0:0:0:0:0:ffff:c633:6408'), false), '0:0:0:0:0:ffff:c633:6408');
+    // So is IPv4 behind the NAT64 prefix, or every IPv4 learner would share one budget.
+    assert.equal(clientIp(request({}, '64:ff9b::198.51.100.7'), false), '64:ff9b::198.51.100.7');
+    assert.notEqual(clientIp(request({}, '64:ff9b::198.51.100.7'), false), clientIp(request({}, '64:ff9b::c633:6408'), false));
+    assert.notEqual(clientIp(request({}, '::ffff:198.51.100.7'), false), clientIp(request({}, '::ffff:198.51.100.8'), false));
+    // A value that is not an address passes through unchanged, as before.
+    assert.equal(clientIp(request({ 'x-forwarded-for': 'not-an-address' }), true), 'not-an-address');
+
+    // And the /64 really does spend one budget.
+    const limiter = new MemoryRateLimiter(() => 1_000);
+    const ipRule: RateLimitRule = { ...RATE_LIMITS.sessionIp, limit: 2 };
+    const attempt = async (address: string) =>
+      (await limiter.consume(ipRule, privateSignal('deployment-salt', 'ip', clientIp(request({}, address), false)))).allowed;
+    assert.equal(await attempt('2001:db8:1:2::a'), true);
+    assert.equal(await attempt('2001:db8:1:2::b'), true);
+    assert.equal(await attempt('2001:db8:1:2::c'), false, 'a rotated interface identifier bought a third request');
+    assert.equal(await attempt('2001:db8:1:3::a'), true);
+    assert.equal(await attempt('198.51.100.7'), true);
+    assert.equal(await attempt('198.51.100.8'), true);
+  });
 });
 
 // ---------------------------------------------------------------------------

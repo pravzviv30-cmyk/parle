@@ -123,7 +123,11 @@ export function PageArrival({
     </Animated.View>
   );
 }
-export function SetupProgress({ completed, total = 5 }: { completed: number; total?: number }) {
+/**
+ * How many plan answers are in, as a bar. The track is the sand skeleton, not
+ * the field grey that drew it as a heavy rule (come alive, first run section 4).
+ */
+export function SetupProgress({ completed, total = 4 }: { completed: number; total?: number }) {
   const reduced = useReduceMotion();
   const progress = useRef(new Animated.Value(completed / total)).current;
   useEffect(() => {
@@ -144,19 +148,19 @@ export function SetupProgress({ completed, total = 5 }: { completed: number; tot
         min: 0,
         max: total,
         now: completed,
-        text: `${completed} of ${total} choices completed`,
+        text: `${completed} of ${total} plan answers chosen`,
       }}
       style={{
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: paper.field,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: paper.skeleton,
         overflow: 'hidden',
         flex: 1,
       }}
     >
       <Animated.View
         style={{
-          height: 6,
+          height: 8,
           backgroundColor: colour.blue,
           transformOrigin: 'left',
           transform: [{ scaleX: progress }],

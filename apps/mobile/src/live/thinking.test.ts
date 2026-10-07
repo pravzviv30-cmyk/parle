@@ -1,11 +1,21 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import type { ServerMessage } from '@luvani/core';
-import { thinkingAfter } from './thinking.ts';
+import { STILL_THINKING, STILL_THINKING_AFTER_MS, thinkingAfter, thinkingLine } from './thinking.ts';
+import { streakGuiltIn } from '../copy/guilt.ts';
 
 /** The learner has said something and is waiting on the tutor. */
 const WAITING = true;
+
+const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
+
+/** Comments may say anything; the source checks below read code. */
+function strip(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
+}
 
 describe('is the tutor still deciding', () => {
   test('a trouble notice stops the tutor looking like it is still thinking', () => {
@@ -48,5 +58,36 @@ describe('is the tutor still deciding', () => {
     // already have cleared it, and neither is an answer on its own.
     assert.equal(thinkingAfter(WAITING, { t: 'feedback', feedback: {} as never }), true);
     assert.equal(thinkingAfter(WAITING, { t: 'drills', exercises: [] }), true);
+  });
+});
+
+describe('a long wait is said honestly', () => {
+  test('after six seconds of real thinking the room says it is still thinking, and never before', () => {
+    assert.equal(thinkingLine(0), null);
+    assert.equal(thinkingLine(STILL_THINKING_AFTER_MS - 1), null, 'a normal wait is narrated');
+    assert.equal(STILL_THINKING_AFTER_MS, 6000);
+    assert.equal(thinkingLine(STILL_THINKING_AFTER_MS), 'Still thinking. This can take a few seconds.');
+    assert.equal(thinkingLine(60_000), STILL_THINKING, 'a long wait goes quiet again, or counts');
+    assert.equal(thinkingLine(Number.NaN), null);
+    // Warm, plain and true: no dash, no number, no blame, no pretend progress.
+    assert.doesNotMatch(STILL_THINKING, /[\u2014\u2013\u00b7\d%]|analys|almost|nearly/i);
+    assert.equal(streakGuiltIn(STILL_THINKING), undefined, "the line carries a word the copy rules ban");
+  });
+
+  test('the long-wait line is timed from real thinking and sits in the scene header under the connection line', () => {
+    // The clock: one timer per wait, armed only while the tutor is really
+    // thinking, and the words are thinkingLine's.
+    const hook = strip(read('./useThinkingLine.ts'));
+    assert.match(hook, /if \(!thinking\) return undefined;/, 'the line is timed while nothing is being thought about');
+    assert.match(hook, /setTimeout\(\(\) => setWaited\(Date\.now\(\) - from\), STILL_THINKING_AFTER_MS\)/, 'the wait is not measured from when thinking began');
+    assert.match(hook, /return \(\) => clearTimeout\(timer\);/, 'an answered wait leaves its timer running');
+    assert.match(hook, /return thinking \? thinkingLine\(waited\) : null;/, 'the line outlives the answer, or is written outside thinkingLine');
+    assert.doesNotMatch(hook, /setInterval/, 'the long-wait line ticks');
+
+    // The slot: the scene header, and only when the connection line is empty.
+    const screen = strip(read('../ConvoScreen.tsx'));
+    assert.match(screen, /const stillThinking = useThinkingLine\(live\.thinking\);/, 'the line is not timed from the session\'s own thinking flag');
+    assert.match(screen, /const headerLine = line\.text \?\? stillThinking;/, 'the long-wait line can cover a dropped connection or a notice');
+    assert.match(screen, /status=\{\s*headerLine \? \(/, 'the scene header does not show the long-wait line');
   });
 });

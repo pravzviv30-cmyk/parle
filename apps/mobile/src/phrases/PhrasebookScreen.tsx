@@ -41,7 +41,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { Card, Field, GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, Card, Field, GhostButton, Label, PillButton } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
@@ -163,7 +163,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
       {visibleBook !== null && needsPhraseSearch(visibleBook) && <Field label="Find a phrase" value={query} onChangeText={setQuery} placeholder="French or English" maxLength={120} />}
       {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={type.small}>No matching phrases.</Text>}
 
-      {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><GhostButton label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
+      {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><IconAction layout="inline" icon="refresh" label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
 
       {visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '' && <Card><Illustration name="state-notebook" fit="small" /><Text style={[type.body, { color: paper.ink }]}>Your first kept phrase lands here.</Text><PillButton label="Choose a scene" onPress={() => nav.navigate('Missions')} /></Card>}
 

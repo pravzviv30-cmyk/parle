@@ -32,6 +32,12 @@ export type RootStackParamList = {
   DailyLibrary: undefined;
   Postcards: undefined;
   WeekWrapped: undefined;
+  /**
+   * The streak (come alive Phase 4, F770): the run, the week, the month, the
+   * freezes and the milestones, opened from Home's flame and ring and from
+   * Progress and Profile. No params: it reads the game layer itself.
+   */
+  Streak: undefined;
   Tabs: undefined;
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it
@@ -161,7 +167,7 @@ export type RootStackParamList = {
    * property the `wall_shown` event carries, so the funnel is split by the same
    * doors the code has. It is a string union and stays serialisable.
    */
-  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' };
+  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; resumeRouteKey?: string };
   /**
    * The two documents, as routes rather than sheets inside Settings.
    *

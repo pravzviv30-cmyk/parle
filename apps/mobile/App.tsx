@@ -28,7 +28,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,7 +39,7 @@ import { useFonts } from 'expo-font';
 import { saveProfile, completeProfile, createStoredProfile, loadProfile, type StoredProfile } from './src/profile/store.ts';
 
 import { paper, type, space } from './src/theme.ts';
-import { Card, GhostButton, PillButton } from './src/components.tsx';
+import { IconAction, Card, GhostButton, PillButton } from './src/components.tsx';
 import { ScrollScreen, ScreenHeader } from './src/layout.tsx';
 import { saveConsent } from './src/analytics/consentStore.ts';
 import { trackProductEvent } from './src/analytics/track.ts';
@@ -65,14 +65,21 @@ import { backfillFrom } from './src/progress/activity.ts';
 import { FIRST_MISSION, lessonXp, type MissionId } from '@luvani/core';
 import { PreAccountOnboarding } from './src/onboarding/PreAccountOnboarding.tsx';
 import { loadHapticPreference } from './src/motion/hapticPreference.ts';
+import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
+import { flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
+import { fetchBillingStatus } from './src/purchases/client.ts';
+import { purchases } from './src/purchases/adapter.ts';
+import { paywallSurface } from './src/purchases/paywallView.ts';
 import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
-import { profileFromDraft, reminderFromDraft } from './src/onboarding/createFromDraft.ts';
+import { profileFromDraft, reminderFromDraft, reminderSummary } from './src/onboarding/createFromDraft.ts';
 import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
 import { saveReminder } from './src/reminders/store.ts';
+import { cancelReminder } from './src/reminders/schedule.ts';
+import { GuestReminderPlanner, ReminderPlanner, stopReminders, useReminderTaps } from './src/reminders/ReminderPlanner.tsx';
 import {
   clearPreAccountDraft,
   loadPreAccountDraft,
@@ -81,11 +88,15 @@ import {
 } from './src/onboarding/preAccountDraft.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
+import { GameProvider } from './src/game/GameProvider.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
 import { useLaunchHold } from './src/launch/useLaunch.ts';
+import { ReduceMotionBridge } from './src/motion/ReduceMotionBridge.tsx';
+import { FlightLayer } from './src/motion/FlightLayer.tsx';
+import { CelebrationHost } from './src/celebrate/CelebrationHost.tsx';
 
 /**
  * Every wait in this file. While one is on screen it holds the launch, so the
@@ -202,8 +213,8 @@ function PreAccountProfileBootstrap({
       }
       if (owner !== scopeGeneration()) return;
       try {
-        // The plan's reminder time, kept off: no notification permission has
-        // been asked for, and the recap is where it is offered.
+        // The plan's reminder as the first run left it: on only when the
+        // learner said yes on day one and the system scheduled it, off otherwise.
         await saveReminder(reminderFromDraft(draft));
       } catch {
         // Nothing stored reads as off, which is what was meant anyway.
@@ -223,6 +234,13 @@ function PreAccountProfileBootstrap({
   if (bootstrapError) return <ScrollScreen><Text style={type.body}>{bootstrapError}</Text><PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} /></ScrollScreen>;
   if (!confirmed) {
     const plan = planFor(draft);
+    // A reminder the first run set belongs to the plan being put aside, so it
+    // leaves the phone first; otherwise it would keep nudging under a Settings
+    // row that says Off.
+    const startAgain = async () => {
+      if (draft.reminderEnabled === true) await cancelReminder();
+      onConsumed();
+    };
     return <ScrollScreen bottom="inset" header={<ScreenHeader title="Use this starting plan?" />}
       footer={<PillButton label="Use this plan for my account" onPress={() => setConfirmed(true)} />}>
       <Text style={[type.body, { color: paper.ink }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
@@ -232,9 +250,9 @@ function PreAccountProfileBootstrap({
         <Text style={type.body}>{plan.startingReason}</Text>
         {plan.goal ? <Text style={type.body}>{plan.goal}</Text> : null}
         <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
-        <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. The reminder is off. You can change these choices in Settings.</Text>
+        <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. {reminderSummary(draft)} You can change these choices in Settings.</Text>
       </Card>
-      <GhostButton label="Start a new plan instead" onPress={onConsumed} />
+      <IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress={() => void startAgain()} />
     </ScrollScreen>;
   }
   return <Loading />;
@@ -296,6 +314,9 @@ function SignedInRoot({
   /** Which scene the plan put first: the spine's first, less the opener for "I can get by". */
   const firstScene = useRef<MissionId>(FIRST_MISSION);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  // A tap on a reminder opens the place its line promised; one that launched
+  // the app waits until the navigator says it is ready.
+  useReminderTaps(navigationRef);
   const pendingInvite = useRef<string | null>(null);
   const openPendingInvite = useCallback(() => {
     if (pendingInvite.current && navigationRef.isReady()) {
@@ -399,6 +420,31 @@ function SignedInRoot({
   }, [user.id, startupRead]);
 
   /**
+   * The first-run offer (come alive, README Part 5.C row 12): set when the
+   * hand-off ends with the guest's practice kept, and taken once by
+   * `openFirstRun` when the navigator is ready, after its own reset. The
+   * existing wall opens at its `path-complete` door only after the server says
+   * this account holds no paid plan and the store has plans to sell
+   * (`onboarding/firstRunWall.ts`). In memory only, so it is never shown again
+   * on its own.
+   */
+  const pendingWall = useRef(false);
+  const openPendingWall = useCallback(() => {
+    const owner = scopeGeneration();
+    void flushFirstRunWall({
+      take: () => {
+        const due = pendingWall.current;
+        pendingWall.current = false;
+        return due;
+      },
+      status: () => fetchBillingStatus(user.id),
+      storeHasPlans: async () => paywallSurface(await purchases.offering(user.id)) !== null,
+      stillHere: () => owner === scopeGeneration() && navigationRef.isReady(),
+      open: () => navigationRef.navigate('Wall', { entry: 'path-complete' }),
+    });
+  }, [navigationRef, user.id]);
+
+  /**
    * Linking owns the initial state on web, so a stale URL can resolve somewhere
    * other than where a first run belongs. Wait until that resolution is
    * complete, then replace the root exactly once. Native takes the same path
@@ -412,13 +458,17 @@ function SignedInRoot({
    * first run has no screen behind it.
    */
   const openFirstRun = useCallback(() => {
-    if (!justOnboarded || !navigationRef.isReady()) return;
-    navigationRef.resetRoot({
-      index: 1,
-      routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
-    });
-    setJustOnboarded(false);
-  }, [justOnboarded, navigationRef]);
+    if (!navigationRef.isReady()) return;
+    if (justOnboarded) {
+      navigationRef.resetRoot({
+        index: 1,
+        routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
+      });
+      setJustOnboarded(false);
+    }
+    // Then the first-run offer, once, after a kept practice (below).
+    openPendingWall();
+  }, [justOnboarded, navigationRef, openPendingWall]);
 
   if (startupFailed) return (
     <ScrollScreen header={<ScreenHeader title="Your saved learning" />}>
@@ -514,9 +564,20 @@ function SignedInRoot({
         )
       )}
     >
-      <GuestAccountHandoff draft={preAccountDraft} onDone={onPreAccountDraftConsumed}>
+      <GuestAccountHandoff
+        draft={preAccountDraft}
+        onDone={(kept) => {
+          if (kept) pendingWall.current = true;
+          onPreAccountDraftConsumed();
+        }}
+      >
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
       <RememberCompletedAccount onUsed={onAppUsed} />
+      <GameProvider>
+      {/* After the hand-off, inside the game layer: plans on mount, on the way
+          back to the foreground, after every settled sitting and when the tutor
+          changes. */}
+      <ReminderPlanner />
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
@@ -532,6 +593,7 @@ function SignedInRoot({
           />
         </NavigationContainer>
       </LiveProvider>
+      </GameProvider>
       </GuestAccountHandoff>
     </ProfileGate>
   );
@@ -591,6 +653,23 @@ function Gate() {
    */
   const [preAccountRefused, setPreAccountRefused] = useState(false);
 
+  /**
+   * Signing out, or another account signing in, takes every pending reminder
+   * with it, so a shared phone never shows one learner's lines to the next.
+   * Keyed on who is signed in rather than on the signed-in tree unmounting,
+   * so the password-recovery screen (the same learner) cancels nothing, and
+   * signing in cancels nothing. A layout effect, so the cancel is queued
+   * before the next tree's planner plans.
+   */
+  const signedInAs = status === 'signedIn' ? user?.id ?? null : null;
+  const lastSignedIn = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (status === 'loading') return;
+    const was = lastSignedIn.current;
+    lastSignedIn.current = signedInAs;
+    if (was !== null && was !== signedInAs) void stopReminders();
+  }, [status, signedInAs]);
+
   useEffect(() => {
     let cancelled = false;
     void Promise.all([loadPreAccountDraft(), hasUsedApp()]).then(([draft, used]) => {
@@ -615,11 +694,15 @@ function Gate() {
     void clearPreAccountDraft();
   }, []);
 
-  /** "I am younger than that": hold the refusal for the launch and clear the draft, first name and all. */
+  /**
+   * "I am younger than that": hold the refusal for the launch and clear the
+   * draft, first name and all, and any reminder that draft set on day one.
+   */
   const refusePreAccount = useCallback(() => {
     setPreAccountRefused(true);
+    if (preAccountDraft?.reminderEnabled === true) void cancelReminder();
     discardPreAccountDraft();
-  }, [discardPreAccountDraft]);
+  }, [discardPreAccountDraft, preAccountDraft]);
 
   /**
    * The whole of deleting an account, wired to the real adapter and the real
@@ -673,20 +756,26 @@ function Gate() {
   if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
   if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
   return (
-    <AuthFlow
-      initialDraft={preAccountDraft}
-      returning={returning}
-      onDraftChange={keepPreAccountDraft}
-      onCreateAccount={keepPreAccountDraft}
-      onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
-      refused={preAccountRefused}
-      onRefuse={refusePreAccount}
-    />
+    <>
+      {/* A guest who said yes on day one has no account yet: their reminder is
+          planned from the first run's draft and the days they finished. */}
+      <GuestReminderPlanner draft={preAccountDraft} />
+      <AuthFlow
+        initialDraft={preAccountDraft}
+        returning={returning}
+        onDraftChange={keepPreAccountDraft}
+        onCreateAccount={keepPreAccountDraft}
+        onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
+        refused={preAccountRefused}
+        onRefuse={refusePreAccount}
+      />
+    </>
   );
 }
 
 export default function App() {
   useEffect(() => { void loadHapticPreference(); }, []);
+  useEffect(() => { void loadSoundPreference(); }, []);
   const [loaded] = useFonts({
     'Outfit-Regular': require('./assets/fonts/Outfit-Regular.ttf'),
     'Outfit-Medium': require('./assets/fonts/Outfit-Medium.ttf'),
@@ -707,6 +796,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
+      <ReduceMotionBridge />
       <AuthProvider adapter={auth}>
         {/* Out of a screen reader's reach until the launch has gone, on both
             platforms: the first prop is VoiceOver's, the second TalkBack's. */}
@@ -724,6 +814,11 @@ export default function App() {
           ) : (
             <Loading />
           )}
+          {/* Over everything the navigator draws, the first run included, and
+              outside it: the one celebration host and the one layer tokens fly
+              in. Both draw nothing and take no touches while idle. */}
+          <CelebrationHost />
+          <FlightLayer />
         </View>
         {!launched && <LaunchScreen onDone={finishLaunch} />}
       </AuthProvider>

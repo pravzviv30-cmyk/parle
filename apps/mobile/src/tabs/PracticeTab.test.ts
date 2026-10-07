@@ -186,7 +186,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
   });
 
   test('the quiet doors stay quiet, gated on the model, and the tutor door says it uses live minutes', () => {
-    assert.match(FLAT, /\{step\.doors\.choose !== null && <GhostButton label=\{step\.doors\.choose\}[^>]*onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Conversations'\); \}\}/, 'choosing a conversation is not a quiet door to the list or opens stale material');
+    assert.match(FLAT, /\{step\.doors\.choose !== null && <IconAction layout="tile" icon="chat" label=\{step\.doors\.choose\}[^>]*onPress=\{\(\) => \{ if \(ownsReadNow\(\)\) nav\.navigate\('Conversations'\); \}\}/, 'choosing a conversation is not a quiet door to the list or opens stale material');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{step\.doors\.revisit\.label\}\. \$\{step\.doors\.revisit\.uses\}`\}/, 'the tutor door does not say its cost to a screen reader');
     assert.match(FLAT, /\{step\.doors\.revisit !== null && \(/, 'the tutor door is drawn without asking the model');
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');

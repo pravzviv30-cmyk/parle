@@ -23,9 +23,9 @@ test('daily French retains all its text and its save and practice actions withou
 test('daily audio leads the French on every card and stays still', () => {
   const source = card();
   assert.doesNotMatch(source, /\bAnimated\b|Easing|setTimeout|useReduceMotion|\bpicture\b/);
-  const hear = source.indexOf('<GhostButton label="Hear"');
+  const hear = source.indexOf('<IconAction layout="inline" icon="speaker" label="Hear"');
   const french = source.indexOf('{item.fr}');
   assert.ok(hear >= 0 && french > hear);
-  assert.match(source, /asset != null && <GhostButton label="Hear"/);
+  assert.match(source, /asset != null && <IconAction layout="inline" icon="speaker" label="Hear"/);
   assert.match(source, /!embedded && <Text[^>]*>\{audioLine\(asset != null\)\}/);
 });

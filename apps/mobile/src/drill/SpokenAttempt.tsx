@@ -1,31 +1,50 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Text, View } from 'react-native';
+import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
-import { GhostButton, SpeakCircle } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
+import { IconAction, GhostButton, SpeakCircle } from '../components.tsx';
+import { colour, paper, space, type } from '../theme.ts';
 import { finishLocalTake } from '../daily/finishLocalTake.ts';
 import { recorderUri } from '../daily/recorderUri.ts';
+import { LevelRing } from '../motion/LevelRing.tsx';
 import { discardRecording } from '../speech/discardRecording.ts';
+import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
 import { scopeGeneration } from '../storage/scope.ts';
+import { holdMic } from '../sound/audioFocus.ts';
+import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
 import { RECORDING_READY, RECORDING_LIVE, RECORDING_TYPE } from './ownWordsCopy.ts';
 
-/** A bounded temporary take; the consumer owns deletion after handoff. */
+/** The speak circle's size, which the level ring matches. */
+const SPEAK = 108;
+/** The usual preset, metered, so the ring follows the learner's real voice. */
+const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+
+/**
+ * A bounded temporary take; the consumer owns deletion after handoff. While it
+ * records, a mint ring swells around the circle from the recorder's real level
+ * (`speech/useRecorderLevel.ts`), and none is drawn until a level has been
+ * heard. Nothing sounds or vibrates here: the microphone hold keeps both seams
+ * still for the whole take.
+ */
 export function SpokenAttempt({ onTake, onTyping, busy }: {
   onTake: (uri: string | null) => void; onTyping: () => void; busy: boolean;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  // A take can end after expo-audio has released the recorder; this still finds its file.
+  const recorder = useAudioRecorder(METERED_TAKE);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const focused = useIsFocused();
   const [recording, setRecording] = useState(false);
+  const voice = useRecorderLevel(recorder, recording);
   const active = useRef(focused);
   const live = useRef(false);
   const working = useRef(false);
   const owner = useRef(scopeGeneration());
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const current = () => active.current && owner.current === scopeGeneration();
-  const resetAudio = () => setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
+  // The microphone focus, held from before the mode change until the take ends
+  // by any route: every route out goes through resetAudio (F724).
+  const micHold = useRef<(() => void) | null>(null);
+  const letGoOfMic = () => { micHold.current?.(); micHold.current = null; };
+  const resetAudio = () => { letGoOfMic(); return leaveRecording(); };
 
   const stop = useCallback(async (handoff = false) => {
     if (working.current || !live.current) return;
@@ -59,7 +78,9 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!current()) return;
       if (!permission.granted) return onTyping();
-      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      letGoOfMic();
+      micHold.current = holdMic();
+      await enterRecording();
       preparedUri.current = recorderUri(recorder, preparedUri.current);
       await recorder.prepareToRecordAsync();
       preparedUri.current = recorderUri(recorder, preparedUri.current);
@@ -81,8 +102,16 @@ export function SpokenAttempt({ onTake, onTyping, busy }: {
   };
 
   return <View style={{ alignItems: 'center', gap: space(3) }}>
-    <SpeakCircle active={recording} disabled={busy} onPress={() => { void toggle(); }} accessibilityLabel={recording ? 'Stop recording' : 'Record your French'} />
+    <View style={st.circle}>
+      {recording && voice.metered && <View style={st.ring}><LevelRing level={voice.level} size={SPEAK} color={colour.mint} /></View>}
+      <SpeakCircle active={recording} disabled={busy} size={SPEAK} onPress={() => { void toggle(); }} accessibilityLabel={recording ? 'Stop recording' : 'Record your French'} />
+    </View>
     <Text style={[type.small, { color: paper.inkSoft }]}>{recording ? RECORDING_LIVE : RECORDING_READY}</Text>
-    <GhostButton label={RECORDING_TYPE} disabled={busy} onPress={() => { void stop(false).then(onTyping); }} />
+    <IconAction layout="inline" icon="keyboard" label={RECORDING_TYPE} disabled={busy} onPress={() => { void stop(false).then(onTyping); }} />
   </View>;
 }
+
+const st = StyleSheet.create({
+  circle: { width: SPEAK, height: SPEAK, alignItems: 'center', justifyContent: 'center' },
+  ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
+});

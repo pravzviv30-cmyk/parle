@@ -172,6 +172,64 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
   });
 });
 
+describe('the selected tab icon pops once — F737', () => {
+  test('the selected tab icon springs in TabGlyph and lands still under Reduce Motion', () => {
+    // Come alive (D7): the selected tab shows it was chosen. The bar hands each
+    // icon to TabGlyph and still moves nothing itself (F600); TabGlyph draws the
+    // Bulk icon over the Linear one and pops it once on a real change.
+    assert.match(BAR, /^import \{ TabGlyph \} from '\.\/TabGlyph\.tsx';$/m, 'the bar does not hand its icons to TabGlyph');
+    assert.match(
+      FLAT,
+      /<TabGlyph focused=\{focused\} badged=\{dot\}> \{\(bulk\) => <Icon size=\{24\} color=\{focused \? accent\.brand : paper\.inkSoft\} focused=\{bulk\} \/>\} <\/TabGlyph>/,
+      'the cell does not wrap its icon in TabGlyph, Linear and Bulk drawn by the same icon',
+    );
+    assert.match(FLAT, /const dot = route\.name === 'Practice' \? \(due === null \? null : due > 0\) : false;/, 'the Practice dot does not wait for the first read of the deck');
+
+    const glyph = stripComments(read('./TabGlyph.tsx'));
+    const flat = glyph.replace(/\s+/g, ' ');
+    // Live reduced motion, from the one hook.
+    assert.match(glyph, /^import \{ useReduceMotion \} from '\.\.\/motion\.ts';$/m, 'TabGlyph does not read reduced motion from motion.ts');
+    assert.match(flat, /const reduced = useReduceMotion\(\);/, 'TabGlyph does not watch reduced motion live');
+    // Only on a change to selected: not selected lands at rest, and selected already (mount or a re-tap) returns.
+    assert.match(
+      flat,
+      /const before = wasFocused\.current; wasFocused\.current = focused; if \(!focused\) \{ cancel\(pop\); cancel\(fill\); pop\.value = 0; fill\.value = 0; return; \}/,
+      'leaving a tab does not put its icon back to the still Linear drawing',
+    );
+    assert.match(flat, /if \(before\) return;/, 'the icon pops on mount or on a tap of the tab already open');
+    // Under Reduce Motion the Bulk drawing is simply there, and nothing scales.
+    assert.match(flat, /if \(reduced\) \{ pop\.value = 0; fill\.value = 1; return; \}/, 'Reduce Motion does not land the selected icon still');
+    assert.match(flat, /useEffect\(\(\) => \{ if \(reduced\) land\(\); \}, \[reduced, land\]\);/, 'turning Reduce Motion on mid-pop does not land it');
+    assert.match(flat, /pop\.value = 0; fill\.value = wasFocused\.current \? 1 : 0; dot\.value = 1;/, 'landing does not put the icon at rest on its own drawing');
+    assert.match(flat, /useLandOnLeave\(land\);/, 'the pop keeps running when the app leaves the foreground');
+    // The pop: up on the select beat, home on the pop spring; the Bulk drawing fades in over DUR.micro.
+    assert.match(
+      flat,
+      /pop\.value = sequence\(reduced, timing\(1, SELECT_POP_MS, EASE\.out, reduced\), spring\(0, SPRING\.pop, reduced\)\);/,
+      'the selected icon does not rise and come home on the pop spring',
+    );
+    assert.match(flat, /fill\.value = timing\(1, DUR\.micro, EASE\.out, reduced\);/, 'the Bulk drawing does not fade in over the Linear one');
+    assert.match(
+      flat,
+      /transform: \[\{ translateY: -TAB_POP\.lift \* pop\.value \}, \{ scale: 1 \+ \(TAB_POP\.scale - 1\) \* pop\.value \}\]/,
+      'the pop does not lift and grow the icon',
+    );
+    const motion = read('../icons/iconMotion.ts');
+    assert.match(motion, /export const TAB_POP = \{ scale: 1\.15, lift: 2 \} as const;/, 'the pop is not to 1.15 and up two points');
+    // The Practice dot pops only when nothing due becomes something due.
+    assert.match(flat, /if \(badged !== true \|\| before !== false\) return;/, 'the dot pops for something other than nothing due becoming due');
+    // Transform and opacity only, no loop.
+    assert.doesNotMatch(glyph, /\brepeat\(|withRepeat|width:\s*\w+\.value|height:\s*\w+\.value/, 'TabGlyph loops or animates its size');
+    const styles = [...glyph.matchAll(/useAnimatedStyle\(\(\) => \(\{([\s\S]*?)\}\)\);/g)];
+    assert.equal(styles.length, (glyph.match(/useAnimatedStyle\(/g) ?? []).length, 'an animated style is written in a shape this check cannot read');
+    assert.ok(styles.length >= 4, 'TabGlyph has lost its lift, cross-fade or dot styles, so this check reads nothing');
+    for (const [, body] of styles) {
+      const keys = [...(body ?? '').matchAll(/(\w+):/g)].map((m) => m[1]);
+      assert.ok(keys.every((key) => ['transform', 'opacity', 'translateY', 'scale'].includes(key!)), `TabGlyph animates ${keys.join(', ')}`);
+    }
+  });
+});
+
 test('a cold Friends link exits to the main tabs instead of creating a Profile back loop', () => {
   const source = readFileSync(new URL('../tabs/FriendsTab.tsx', import.meta.url), 'utf8');
   assert.match(source, /if \(nav.canGoBack\(\)\) nav.goBack\(\); else nav.navigate\('Tabs'\)/);

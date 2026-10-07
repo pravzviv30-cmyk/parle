@@ -15,10 +15,11 @@
  *
  * **What these tests prove.** That exactly one file in apps/, packages/,
  * services/ and scripts/ imports `expo-notifications`, and that it is the
- * native half of this pair. That the trigger written in that file is a daily
- * repeating one whose hour and minute come from a preset rather than from a
- * literal or a clock, so the OS repeats it and the app never rewrites it. That
- * the web half is a real no-op which reports `unavailable` instead of
+ * native half of this pair. That it hands the OS the plan's dated slots and
+ * nothing that repeats, cancels only this app's own slots by identifier, and
+ * reads no clock (founder decision D2 retired the old daily repeating trigger,
+ * F230, which could not skip a practised day; `plan.test.ts` holds the plan).
+ * That the web half is a real no-op which reports `unavailable` instead of
  * pretending, and this half is executed, not read. That the two halves still
  * ship the same names, which the compiler cannot check because it only ever
  * sees `schedule.ts`. And that the module asks the OS for no badge of any kind
@@ -51,13 +52,15 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { emptyLog, planReminders } from './plan.ts';
 import { reminderRow } from './reminder.ts';
 import {
   REMINDERS_AVAILABLE,
   askReminderPermission,
   cancelReminder,
+  onReminderTapped,
   reminderPermission,
-  scheduleReminder,
+  schedulePlan,
 } from './schedule.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -159,8 +162,6 @@ function objectLiteralAt(source: string, from: number, what: string): string {
 
 /** The `trigger: { ... }` literal handed to the OS. */
 function triggerLiteral(source: string): string {
-  const built = source.indexOf('const triggers =');
-  if (built >= 0) return source.slice(built, source.indexOf('for (const trigger', built));
   const start = source.indexOf('trigger:');
   assert.notEqual(start, -1, 'the native module schedules nothing with a trigger');
   return objectLiteralAt(source, start, 'trigger');
@@ -217,7 +218,7 @@ function exportedNames(source: string): string[] {
 }
 
 describe('the reminder pair that talks to the OS', () => {
-  test('only the native schedule module touches expo-notifications and its trigger repeats unchanged', () => {
+  test('only the native schedule module touches expo-notifications, and it hands the OS the plan in dated slots it cancels by name', () => {
     const scanned = repoSources();
     assert.ok(scanned.length > 400, `the walk found ${scanned.length} files, which is not this repo`);
     assert.ok(scanned.includes(SOLE_IMPORTER), 'the walk never reached the native module, so it is scanning nothing');
@@ -229,40 +230,39 @@ describe('the reminder pair that talks to the OS', () => {
         'One importer is what makes a native dependency separable from the code; two makes it load-bearing everywhere.',
     );
 
-    // One scheduling call, so there is one trigger to reason about. It is also
-    // what makes cancelling everything safe: nothing else in the repo can
-    // schedule a notification, so "cancel all" means "cancel this reminder".
+    // One scheduling call, in a loop over the plan's slots, so there is one
+    // trigger to reason about.
     const scheduled = NATIVE.match(/scheduleNotificationAsync\(/g) ?? [];
-    assert.equal(scheduled.length, 1, `the native module schedules ${scheduled.length} times, so which trigger repeats is a guess`);
+    assert.equal(scheduled.length, 1, `the native module schedules ${scheduled.length} times, so which trigger fires is a guess`);
+    assert.match(NATIVE, /for \(const slot of slots\) \{\s*await Notifications\.scheduleNotificationAsync\(\{/);
 
+    // A dated one-off at the instant the plan chose, on the named channel. No
+    // literal and no clock: the time belongs to the plan.
     const trigger = triggerLiteral(NATIVE);
-    assert.match(trigger, /SchedulableTriggerInputTypes\.DAILY/, 'legacy daily reminders must remain supported');
-    assert.match(trigger, /SchedulableTriggerInputTypes\.WEEKLY/, 'selected days must repeat weekly');
-    assert.match(trigger, /weekday/, 'weekly reminders must preserve the selected weekday');
-    assert.match(trigger, /\bhour\b/, 'the trigger names no hour');
-    assert.match(trigger, /\bminute\b/, 'the trigger names no minute');
-    assert.doesNotMatch(
-      trigger,
-      /\d/,
-      `the trigger carries a literal number: ${trigger}. The hour belongs to a preset in reminder.ts, ` +
-        'and a number written here is a second opinion about when the reminder arrives.',
-    );
-
-    // A one-shot trigger plus a re-arm is a daily reminder that the app gets to
-    // decide about every day, which is exactly the decision Phase 6b refuses to
-    // let it have. The OS repeats this one and the app never sees the day pass.
-    assert.doesNotMatch(NATIVE, /TIME_INTERVAL|SchedulableTriggerInputTypes\.(?:DATE|CALENDAR|MONTHLY|YEARLY)/, 'the reminder uses a trigger that is not a plain daily repeat');
-    assert.doesNotMatch(NATIVE, /\brepeats\b/, 'a repeats flag means the trigger is one the app can switch off for a day');
+    assert.match(trigger, /type: Notifications\.SchedulableTriggerInputTypes\.DATE/);
+    assert.match(trigger, /date: slot\.at/);
+    assert.match(trigger, /channelId: REMINDER_CHANNEL_ID/);
+    assert.doesNotMatch(trigger, /\d/, `the trigger carries a literal number: ${trigger}. The time belongs to the plan.`);
+    // Nothing repeats: a repeating trigger cannot skip the day somebody practised (D2).
+    assert.doesNotMatch(NATIVE, /TIME_INTERVAL|SchedulableTriggerInputTypes\.(?:DAILY|WEEKLY|CALENDAR|MONTHLY|YEARLY)/, 'the reminder uses a trigger that repeats');
+    assert.doesNotMatch(NATIVE, /\brepeats\b/);
     assert.doesNotMatch(
       NATIVE,
       /Date\.now|new Date|setTimeout|setInterval|getHours|toISOString/,
-      'the native module reads a clock, so it is computing a next fire time instead of handing the OS a repeat',
+      'the native module reads a clock, so it is working out a fire time the plan already chose',
     );
 
-    // The words come from the builder F226 pinned at arity zero, so nothing
-    // about the learner can reach the lock screen through the content either.
-    assert.match(NATIVE, /reminderContent\(\)/, 'the notification does not use the fixed reminder copy');
-    assert.doesNotMatch(NATIVE, /reminderContent\(\s*[^)\s]/, 'the content builder is being handed something to vary with');
+    // Each slot is named for its day, so a second plan replaces the first; the
+    // words are the plan's, built in reminder.ts where the scans read them.
+    assert.match(NATIVE, /identifier: slot\.id/);
+    assert.match(NATIVE, /content: \{ title: slot\.title, body: slot\.body, data: \{ open: slot\.open \} \}/);
+
+    // Cancelled by name, and only this app's own: never everything.
+    assert.doesNotMatch(NATIVE, /cancelAllScheduledNotificationsAsync/, 'a re-plan sweeps away notifications that are not its own');
+    assert.match(NATIVE, /const pending = await Notifications\.getAllScheduledNotificationsAsync\(\);/);
+    assert.match(NATIVE, /if \(request\.identifier\.startsWith\(SLOT_PREFIX\)\) await Notifications\.cancelScheduledNotificationAsync\(request\.identifier\);/);
+    // No foreground banner: there is no notification handler at all.
+    assert.doesNotMatch(NATIVE, /setNotificationHandler/, 'a reminder arriving while the app is open is presented over the practice');
   });
 
   test('the importer scan bites, on a static import and on a lazy one, and leaves prose alone', () => {
@@ -287,8 +287,25 @@ describe('the reminder pair that talks to the OS', () => {
   test('the web half reports unavailable rather than pretending a reminder was scheduled', async () => {
     // The only half of this pair that node can execute, so it is executed.
     assert.equal(REMINDERS_AVAILABLE, false, 'the web build claims it can schedule a notification');
-    assert.equal(await scheduleReminder('morning'), 'unavailable', 'the web build answered as if a reminder had been set');
+    const plan = planReminders({
+      now: Date.UTC(2026, 9, 7, 9),
+      calendar: { dayOf: (at) => new Date(at).toISOString().slice(0, 10), minuteOf: () => 0, at: (day, hour, minute) => Date.parse(`${day}T00:00:00Z`) + (hour * 60 + minute) * 60_000 },
+      choice: { enabled: true, time: 'morning' },
+      finishes: [],
+      practiceDays: [],
+      covers: [],
+      tutor: 'Luc',
+      log: emptyLog(),
+    });
+    assert.ok(plan.length > 0, 'the plan handed to the web half is empty, so this proves nothing');
+    assert.equal(await schedulePlan(plan), 'unavailable', 'the web build answered as if a reminder had been set');
     assert.equal(await cancelReminder(), 'unavailable', 'the web build answered as if it had cancelled something');
+    let tapped = false;
+    const stop = onReminderTapped(() => {
+      tapped = true;
+    });
+    stop();
+    assert.equal(tapped, false, 'the web build heard a tap on a reminder that cannot exist');
 
     // Denied rather than undetermined, and the difference matters: undetermined
     // makes reminderRow promise a system dialog, and on the web that dialog

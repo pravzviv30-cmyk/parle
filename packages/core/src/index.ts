@@ -32,3 +32,8 @@ export * from './canDoEvidence.ts';
 export * from './correctionReason.ts';
 
 export * from './onboarding.ts';
+
+export * from './streak/index.ts';
+export * from './goal/index.ts';
+export * from './quests/index.ts';
+export * from './badges/index.ts';

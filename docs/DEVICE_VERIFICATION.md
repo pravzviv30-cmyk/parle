@@ -1,15 +1,17 @@
 # Device verification — auth, session storage, deletion, and the first run
 
-**Status: device and five-viewport matrices not run; one local web route check
-recorded.** No representative iOS or Android build of Luvani exists on the machine
-this was written on, so every row in [the matrix](#the-matrix) below says `not run`.
-This file is primarily the runbook, not the result. `F71` in
-[KNOWN_ISSUES.md](KNOWN_ISSUES.md) stays open until the matrix is filled in from a
-real device pass and the outcome is recorded here. `F114`'s checked ledger entry
-means that this runbook and its static responsive-width contracts exist; it does
-not mean the matrix was run. Release evidence remains pending until
-[the first run on five viewports](#the-first-run-on-five-viewports) has been walked
-and recorded. F58's narrower web route defect has separate runtime evidence below.
+**7 October 2026: partial runtime verification, full device matrix still pending.**
+The integrated branch builds successfully with Xcode for iOS 26.5 Simulator.
+The iPhone 13 mini simulator opens Home and Progress using the local development
+configuration; Home exposes streak, daily minutes, XP and the offline practice
+card. The browser first-run choices were inspected at 375 × 812 and 834 × 1112,
+and an unanswered Continue shows “Choose one to continue.” without advancing.
+
+The unsigned simulator reports `ERR_NOTIFICATIONS_KEYCHAIN_ACCESS` from Expo's
+persisted registration info. This does not establish signed notification behavior.
+Physical iOS/Android microphone routes, interruptions, haptics/SFX, reduced motion,
+VoiceOver/TalkBack, large text, store purchase/restore and the full viewport matrix
+remain unverified. F71 remains open. Earlier run records below are historical.
 
 Owner: `auth-engineer` for the auth steps, `onboarding-ux-engineer` for the
 first-run steps, `qa-release-engineer` for running all of them — independent

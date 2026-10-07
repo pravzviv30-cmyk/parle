@@ -41,12 +41,12 @@ import { REMINDER_TIMES, type ReminderTimeId } from '../reminders/reminder.ts';
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /**
- * The six pages before an account, in the order a learner meets them. The AI
- * disclosure is on the first, the answers follow it, and the consent switch is
- * on the last (spine contract section 4). Held here because the draft resumes
- * on one of them.
+ * Every page a draft can resume on, current and retired. Held here because
+ * the draft resumes on one of them. Day one (`remind`) and the save card
+ * (`keep`) come after the win (come alive, README Part 5.C rows 9 and 10) and
+ * are appended, so every older page keeps its place.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
 export const START_LEVEL_KEYS = ['zero', 'few', 'getby'] as const;
@@ -55,7 +55,12 @@ export type StartLevel = (typeof START_LEVEL_KEYS)[number];
 export const REASON_KEYS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
 export type Reason = (typeof REASON_KEYS)[number];
 
-export const PLAN_MINUTES = [5, 10, 15, 'none'] as const;
+/**
+ * The daily goal (founder decision D5): Casual 5, Regular 10, Serious 15 and
+ * Intense 20 minutes, or "choose each time". Twenty is a goal, not a longer
+ * starter: `guestProgress.ts` `starterMinutes` sends it to the starter as 15.
+ */
+export const PLAN_MINUTES = [5, 10, 15, 20, 'none'] as const;
 export type PlanMinutes = (typeof PLAN_MINUTES)[number];
 
 /** A first name, not a biography: long enough for any name, short enough for a greeting. */

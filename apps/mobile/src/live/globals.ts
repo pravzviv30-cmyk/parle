@@ -2,12 +2,36 @@
  * Web build of the platform shim. Browsers already have WebRTC globals, so there
  * is nothing to do. Metro picks `globals.native.ts` on iOS/Android instead.
  */
+import { holdLive } from '../sound/audioFocus.ts';
+
 export function ensureLiveKitGlobals(): void {}
 
 /**
  * Audio session management is a native concern (speaker routing, playAndRecord).
- * On web the browser owns the audio device; these exist for API parity so the
- * session hook can call them unconditionally.
+ * On web the browser owns the audio device, so there is no session to start.
+ * The room still holds the learner's ears while it is open (sound/audioFocus.ts),
+ * as it does on a phone: no sound effect plays and no control gives a haptic
+ * during a live room (decision D8). One hold however many times it is started.
  */
-export async function ensureAudioSession(): Promise<void> {}
-export async function releaseAudioSession(): Promise<void> {}
+let releaseLive: (() => void) | null = null;
+
+export async function ensureAudioSession(): Promise<void> {
+  if (releaseLive) return;
+  releaseLive = holdLive();
+}
+
+export async function releaseAudioSession(): Promise<void> {
+  releaseLive?.();
+  releaseLive = null;
+}
+
+/**
+ * The session has ended and the microphone is closed, but the room stays open
+ * for the recap (F763, `live/recapAudio.ts`). The hold goes so the recap may
+ * play its moment; on the web there is nothing else to give back. A start that
+ * follows without `leave()` takes it again in `ensureAudioSession` (F777).
+ */
+export function releaseLiveHold(): void {
+  releaseLive?.();
+  releaseLive = null;
+}

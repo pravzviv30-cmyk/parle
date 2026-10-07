@@ -61,9 +61,12 @@
  * source.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { paper, space, type } from '../theme.ts';
 import { Card, PillButton, GhostButton, Field, ProgressDots, OptionRow } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -172,19 +175,30 @@ export function OnboardingFlow({
   const [playing, setPlaying] = useState<TutorVoiceKey | null>(null);
   const player = useAudioPlayer();
   const playerStatus = useAudioPlayerStatus(player);
+  useVoiceHold(playerStatus.playing);
+  // Every tap, page change and exit spends the ticket, so a clip asked for
+  // during the mode change never starts after the learner moved on.
+  const sampleTicket = useRef(0);
   const hearVoice = useCallback(
     (key: TutorVoiceKey) => {
       const next = nextSample(playing, key);
       setPlaying(next);
+      const ticket = ++sampleTicket.current;
       if (next === null) {
         player.pause();
         return;
       }
-      // Loaded before it is told to play, or the player sounds whatever it was
-      // last handed. `replace` builds a fresh media element, so the new clip
-      // starts at nought and a tap on the one that just finished replays it.
-      player.replace(voiceSample(next));
-      player.play();
+      // A full voice mode first, so the sample is heard with the silent switch
+      // on (F723). The web has no modes and plays only inside the tap, so there
+      // it starts at once (sound/voiceLine.ts). Then loaded before it is told to
+      // play, or the player sounds whatever it was last handed. `replace` builds
+      // a fresh media element, so the new clip starts at nought and a tap on the
+      // one that just finished replays it.
+      startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
+        if (ticket !== sampleTicket.current) return;
+        player.replace(voiceSample(next));
+        player.play();
+      }, Platform.OS === 'web');
     },
     [playing, player],
   );
@@ -202,6 +216,7 @@ export function OnboardingFlow({
   // sample auditioned here would otherwise play on over the screen behind it.
   // F304.
   useEffect(() => {
+    if (page !== 'voice') sampleTicket.current += 1;
     if (page !== 'voice') player.pause();
   }, [page, player]);
 
@@ -218,6 +233,7 @@ export function OnboardingFlow({
     // The sound does not follow them into the chooser. Leaving a clip playing
     // over the next screen is the kind of thing that makes somebody put the
     // phone down in a quiet room.
+    sampleTicket.current += 1;
     player.pause();
     onDone(
       answersFrom({

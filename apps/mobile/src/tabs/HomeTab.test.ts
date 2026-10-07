@@ -26,8 +26,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { localDayKey } from '@luvani/core';
+
 import { guiltIn } from '../copy/guilt.ts';
 import { sceneMeta } from '../home/estimate.ts';
+import { DAY_CHECK_MS, dayTurned, refreshClears } from '../home/homeRefresh.ts';
 import { START, fallbackHero } from '../home/homeMission.ts';
 import { PLANS_LEAD, dueLine, homeActionFor } from '../home/nextAction.ts';
 import { launchLabel } from '../tutor/orbState.ts';
@@ -56,7 +59,18 @@ const HERO_FLAT = flat(HERO);
 const RULE = stripComments(read('../home/homeMission.ts'));
 const DAILY = stripComments(read('../daily/DailyCard.tsx'));
 
-/** Today's own file and every card it draws, which together are the surface. */
+/**
+ * Today's own file and every card it draws, which together are the surface.
+ *
+ * 2026-10-07, come alive Phase 4 (founder decisions D2, D5, D6): the hero
+ * (`game/TodayHero.tsx`), its nudge line and the quests card
+ * (`game/QuestsCard.tsx`) carry the founder-decided streak, the goal's "m of
+ * g" minutes and the numbered level on Home, under their own tests
+ * (`game/todayHeroView.test.ts`, `home/nudge.test.ts`,
+ * `game/questsCardView.test.ts`). They are not listed here: this surface is
+ * still the page's own words, and those still name no weekday, count no days
+ * this week and show no rate.
+ */
 const HOME_SURFACE = [
   ['HomeTab.tsx', SCREEN],
   ['MissionHero.tsx', HERO],
@@ -188,10 +202,19 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.doesNotMatch(brief, /fitHero\(|<Label\b/, 'the brief still sizes a serif hero or draws a caps label');
     assert.match(components, /const CAN_DO_LEAD = "You'll be able to";/);
 
-    // No picture, no tint, no reason line and no rank: every block is a true fact.
-    for (const gone of ['art=', 'artTint', 'missionTint', 'heroArt', 'reason=', 'readyLine', 'Ready for']) {
+    // No tint, no reason line and no rank: every block is a true fact.
+    for (const gone of ['artTint', 'missionTint', 'reason=', 'readyLine', 'Ready for']) {
       assert.ok(!HERO.includes(gone) && !RULE.includes(gone), `the hero still carries ${gone}`);
     }
+    // 2026-10-07, come alive Phase 4 (retention spec 1.4): a scene on the spine
+    // carries its place drawing above the meta line, from the scene map, and
+    // it is decorative and never pressable.
+    assert.match(HERO_FLAT, /art=\{hero\.kind === 'scene' \? <SceneArt mission=\{hero\.mission\.id\} \/> : undefined\}/, "the brief does not draw the scene's place");
+    const sceneArt = stripComments(read('../home/SceneArt.tsx'));
+    assert.match(sceneArt, /<Illustration name=\{sceneIllustration\(mission\)\} fit="small" \/>/, 'the place drawing is not the one the scene map names');
+    assert.match(sceneArt, /\{\.\.\.decorative\}/, 'the place drawing is announced to a screen reader');
+    assert.doesNotMatch(sceneArt, /onPress|<Press\b|<Pressable\b/, 'the place drawing became a second target on the brief');
+    assert.ok(at('{art != null ? art : null}', brief) < at('{meta}', brief), 'the drawing is not above the meta line');
     // Every word on the blue is in the blue ground's own colours.
     assert.doesNotMatch(HERO, /paper\.inkSoft/, 'the brief sets soft ink on the blue');
     assert.match(HERO_FLAT, /<BookmarkGlyph size=\{20\} color=\{saved \? textOn\.blue : onColour\.blue\} \/>/, 'the bookmark is not drawn in the blue ground\'s colours');
@@ -233,7 +256,7 @@ describe('Today leads with the next scene, as a brief', () => {
     // the link is white.
     assert.match(HERO_FLAT, /const modes = startModes\(prefersTyping\(profile\)\)/, "Today ignores the learner's standing choice to type");
     assert.match(HERO_FLAT, /onPress=\{\(\) => open\(modes\.textMode\)\}/, 'Start does not open the scene in the preferred mode');
-    assert.match(HERO_FLAT, /secondary=\{<GhostButton label=\{modes\.other\.label\} color=\{paper\.onInk\}/, 'the quiet link under Start is not the other mode, in white');
+    assert.match(HERO_FLAT, /secondary=\{<IconAction layout="inline" icon="keyboard" label=\{modes\.other\.label\} ground="blue"/, 'the quiet link under Start is not the other mode, in white');
     assert.match(HERO_FLAT, /onPress=\{\(\) => open\(modes\.other\.textMode\)\}/, 'the quiet link does not open the scene the other way');
     assert.ok(!/open\((true|false)\)/.test(HERO), 'the brief hard-codes a mode instead of reading the preference');
     assert.ok(!/<TabBar\b/.test(HERO) && !/<TabBar\b/.test(SCREEN), 'a Speak/Type segmented control is back on Today');
@@ -262,7 +285,7 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.match(heldBack, /\{TUTOR_OFFLINE\.body\}/);
     // Revamp B (F602): on the blue brief the retry is a white text link, not
     // an outline, and the sentence above it is white.
-    assert.match(flat(heldBack), /<GhostButton label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} color=\{paper\.onInk\}/, 'the retry is not the white link on the blue');
+    assert.match(flat(heldBack), /<IconAction layout="inline" icon="refresh" busy=\{checking\} label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} ground="blue"/, 'the retry is not the white link on the blue');
     assert.match(HERO_FLAT, /offlineBody: \{ \.\.\.type\.body, color: paper\.onInk \}/, 'the held-back sentence is not white on the blue');
     assert.doesNotMatch(HERO, /OutlineButton/, 'an outline is back on the blue brief');
     assert.match(flat(heldBack), /onPress=\{\(\) => open\(heldBack\.textMode\)\}/, 'the retry is not the same start');
@@ -390,7 +413,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
       assert.ok(DAILY.includes(`{${field}}`), `the daily card does not draw ${field}`);
     }
     assert.match(DAILY, /<Label>\{item.label\}<\/Label>/);
-    const hear = DAILY.indexOf('<GhostButton label="Hear"');
+    const hear = DAILY.indexOf('<IconAction layout="inline" icon="speaker" label="Hear"');
     assert.ok(hear >= 0 && hear < DAILY.indexOf('{item.fr}'));
 
     // No caption line, and no caption ink. Every word on this card is a word
@@ -442,7 +465,9 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // Everything else waits for the other branch.
     const loaded = FLAT.slice(FLAT.indexOf(') : hero === null || unowned ? ('));
     const otherwise = loaded.indexOf(') : (');
-    for (const block of ['<NextTaskCard', '{start !== null', '<DailyCard', 'friendsActivity !== null', 'Explore my daily collection']) {
+    // 2026-10-07, come alive Phase 4: the collection link left with the card's
+    // own More phrases; the quests card is what waits for storage instead.
+    for (const block of ['<NextTaskCard', '{start !== null', '<QuestsCard', '<DailyCard', 'friendsActivity !== null']) {
       assert.ok(loaded.indexOf(block) > otherwise, `${block} is drawn before storage has answered`);
     }
     assert.ok(at('<TabHeader') < at(') : hero === null || unowned ? ('), 'the greeting waits on storage');
@@ -469,13 +494,20 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     const toggle = between(flat(DAILY), 'const toggle = ', '; const contents', 'the disc has one handler');
     assert.match(toggle, /if \(status\.playing\) \{ playTicket\.current\+\+; releaseDailyPlayback\(player\); \} else void play\(\)/, 'the disc does not stop what it started');
     // "Practise it" is the library's "Say it": stop the sound, then practise.
-    assert.match(card, /<GhostButton label="Practise it" onPress=\{sayIt\} \/>/);
-    assert.match(card, /alignItems: 'flex-end'/, 'Practise it is not at the trailing edge');
+    // 2026-10-07, come alive Phase 4: one row of three icon actions, Practise
+    // it, Save (the library card's own save, filled once it is read back) and
+    // More phrases, which keeps the pinned "Explore my daily collection" in its
+    // spoken name now that the bare link under the card is gone.
+    assert.match(card, /<IconActionRow>/, "today's phrase does not draw its actions as one row");
+    assert.match(card, /<IconAction icon="microphone" label="Practise it" onPress=\{sayIt\}/);
+    assert.match(card, /<IconAction icon="bookmark" label=\{saved === true \? 'Saved' : 'Save'\}[^\n]*selected=\{saved === true\}[^\n]*disabled=\{saved === null\} onPress=\{\(\) => void save\(\)\}/, 'Save is not the read-back save, or can be pressed over unknown state');
+    assert.match(card, /<IconAction icon="book" label="More phrases" accessibilityLabel="More phrases\. Explore my daily collection" onPress=\{\(\) => nav\.navigate\('DailyLibrary'\)\}/, 'the way into the daily collection is gone');
+    assert.ok(!SCREEN.includes('Explore my daily collection'), "a second way into the collection is left on Today beside the card's own");
     const sayIt = between(flat(DAILY), 'const sayIt = ', '; const toggle', 'the practice has one handler');
     assert.ok(sayIt.indexOf('releaseDailyPlayback(player)') < sayIt.indexOf("nav.navigate('DailyPractice', { id: item.id })"), 'the practice opens over the tutor still speaking');
-    assert.match(DAILY, /<GhostButton label="Say it" onPress=\{sayIt\} \/>/, 'the library and Today practise a phrase two ways');
-    // Nothing else: no label, no save and no example on Today.
-    for (const gone of ['<Label', 'Save', 'save()', 'exampleFr', 'exampleEn', 'item.label']) {
+    assert.match(DAILY, /<IconAction layout="inline" icon="microphone" label="Say it" onPress=\{sayIt\} \/>/, 'the library and Today practise a phrase two ways');
+    // Nothing else: no label and no example on Today.
+    for (const gone of ['<Label', 'exampleFr', 'exampleEn', 'item.label']) {
       assert.ok(!today.includes(gone), `today's phrase still carries ${gone}`);
     }
     // The disc is at the touch floor.
@@ -539,7 +571,9 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
 
 describe('Today keeps its day when the disk will not answer', () => {
   test('an account switch clears the old recommendation before any new read resolves', () => {
-    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(\[\]\);/);
+    // 2026-10-07 (F768): the clearing waits on the account having changed, so
+    // a refresh for the same account keeps the page drawn.
+    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); if \(refreshClears\(drawnFor\.current, scope\)\) \{ setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(\[\]\); \}/);
     assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/);
     assert.match(FLAT, /!unowned && readFailed \? \(/);
     assert.match(FLAT, /if \(cancelled \|\| scopeGeneration\(\) !== scope\) return;/);
@@ -677,5 +711,99 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     assert.doesNotMatch(ledger, /<Pressable\b/, 'the ledger row carries a second target beside its one press');
     assert.doesNotMatch(components, /export function TintRow\b/);
     assert.equal(existsSync(fileURLToPath(new URL('../surface/IconRowCard.tsx', import.meta.url))), false);
+  });
+
+  /**
+   * F631. The walk above reads only `<Pressable` tags, and Home's rows now
+   * press through `Press`, the one spring, so a `<Press style={st.row}>` with
+   * no floor would pass it unseen. This walks both, over every file under
+   * `home/` and the two game cards Home draws (the hero and the quests), and
+   * proves on synthetic rows first that it catches a `Press` with no floor and
+   * does not read a `Pressable` as a `Press`.
+   */
+  test('every tappable row on Home declares the touch floor, whether it presses through Pressable or Press', () => {
+    const floored = (body: string, tag: string): boolean => {
+      const named = [...tag.matchAll(/(?:st|s)\.([A-Za-z]+)/g)].map((m) => m[1]!);
+      return named.some((name) => body.includes(`${name}: {`) && style(body, name).includes('minHeight: HIT'));
+    };
+    const presses = (body: string): string[] => [...tags(body, 'Pressable'), ...tags(body, 'Press')];
+
+    // The walk bites: a Press row with no floor is caught, a floored one passes,
+    // and `<Press\b` does not also count every Pressable.
+    const bare = "<Press haptic=\"light\" style={st.row} onPress={go}>x</Press>\nconst st = StyleSheet.create({ row: { flexDirection: 'row' } });";
+    const held = "<Press haptic=\"light\" frame={st.frame} style={st.row} onPress={go}>x</Press>\nconst st = StyleSheet.create({ frame: { flexGrow: 1 }, row: { minHeight: HIT, flexDirection: 'row' } });";
+    assert.equal(presses(bare).length, 1);
+    assert.equal(floored(bare, presses(bare)[0]!), false, 'a Press row with no floor passes the walk');
+    assert.equal(floored(held, presses(held)[0]!), true, 'a floored Press row fails the walk');
+    assert.equal(tags('<Pressable style={st.corner}>', 'Press').length, 0, 'the Press walk reads a Pressable as a Press');
+
+    const homeDir = fileURLToPath(new URL('../home', import.meta.url));
+    const files = [
+      ...readdirSync(homeDir)
+        .filter((name) => /\.tsx$/.test(name))
+        .map((name) => ({ path: join('home', name), body: stripComments(readFileSync(join(homeDir, name), 'utf8')) })),
+      { path: 'game/TodayHero.tsx', body: stripComments(read('../game/TodayHero.tsx')) },
+      { path: 'game/QuestsCard.tsx', body: stripComments(read('../game/QuestsCard.tsx')) },
+    ];
+    let walked = 0;
+    for (const { path, body } of files) {
+      for (const tag of presses(body)) {
+        walked += 1;
+        assert.ok(floored(body, tag), `${path} draws a tappable row that does not declare minHeight: HIT: ${flat(tag)}`);
+      }
+    }
+    // The hero's three parts press through Press, and the brief's bookmark
+    // through Pressable, so both halves of the walk read something real.
+    assert.equal(tags(files.find((file) => file.path === 'game/TodayHero.tsx')!.body, 'Press').length, 3, "the hero's three parts are not three presses");
+    assert.ok(walked >= 4, `the walk read ${walked} tappable rows on Home, so it is checking almost nothing`);
+  });
+});
+
+describe('Home keeps what it has drawn — F768', () => {
+  test('Home refreshes without ever showing its skeleton again once it has drawn', () => {
+    // The rule: a read clears the page to the sand blocks only for an account
+    // nothing has been drawn for, the first read or after a switch.
+    assert.equal(refreshClears(null, 1), true, 'the first read does not start from the sand blocks');
+    assert.equal(refreshClears(1, 1), false, 'a refresh for the same account takes the drawn page away');
+    assert.equal(refreshClears(1, 2), true, "another account's page stays drawn while this account's read is on its way");
+
+    // Walk it: draw once, refresh twice, switch account.
+    let drawnFor: number | null = null;
+    const skeletons: boolean[] = [];
+    for (const scope of [1, 1, 1, 2]) {
+      skeletons.push(refreshClears(drawnFor, scope));
+      drawnFor = scope; // the read lands
+    }
+    assert.deepEqual(skeletons, [true, false, false, true], 'Home shows its sand blocks again after it has drawn for this account');
+
+    // The minute timer asks whether the day turned, and reads nothing otherwise.
+    const noon = new Date(2026, 9, 7, 12, 0, 0).getTime();
+    const day = localDayKey(noon);
+    assert.equal(dayTurned(day, noon + DAY_CHECK_MS), false, 'a minute passing reads the page again');
+    assert.equal(dayTurned(day, noon + 11 * 60 * 60_000), false, 'an afternoon passing reads the page again');
+    assert.equal(dayTurned(day, noon + 13 * 60 * 60_000), true, 'midnight does not bring the new day in');
+    const refresh = flat(stripComments(read('../home/useHomeRefresh.ts')));
+    assert.match(refresh, /setInterval\(\(\) => \{ if \(dayTurned\(readFor\.current, Date\.now\(\)\)\) refresh\(\); \}, DAY_CHECK_MS\)/, 'the timer reads Home again without the day having turned');
+    assert.doesNotMatch(refresh, /setInterval\(refresh\b/, 'the timer still reads Home every minute');
+    assert.match(refresh, /AppState\.addEventListener\('change', state => \{ if \(state === 'active'\) refresh\(\); \}\)/, 'a return to the foreground no longer reads Home again');
+
+    // The screen holds to the rule: the page is cleared only behind it, the
+    // account it drew for is recorded only once the read has landed, and the
+    // one other clearing is the retry after a failed read, when nothing is drawn.
+    const effect = between(FLAT, 'useFocusEffect(', '}, [profile, revision, readAttempt])', 'Home reads in one focus effect');
+    const guarded = between(effect, 'if (refreshClears(drawnFor.current, scope)) {', '}', 'the clearing sits behind the refresh rule');
+    assert.match(guarded, /setHero\(null\)/);
+    assert.equal((effect.match(/setHero\(null\)/g) ?? []).length, 1, 'the focus effect clears the scene outside the refresh rule');
+    const landed = between(effect, '.then(', '.catch(', 'the read has a landing');
+    assert.match(landed, /drawnFor\.current = scope;/, 'Home never records what it drew, so every refresh clears');
+    assert.equal((FLAT.match(/setHero\(null\)/g) ?? []).length, 2, 'something other than the rule and the failed-read retry clears the scene');
+
+    // The lead card and the day count under it keep what they drew across a
+    // refresh too, so the page under the hero does not blink.
+    const task = flat(stripComments(read('../practice/NextTaskCard.tsx')));
+    assert.match(task, /setValue\(held => \(held !== null && held\.scope === scope \? held : null\)\)/, 'the lead card blinks to its loading line on every refresh');
+    assert.doesNotMatch(task, /setValue\(null\)/, 'the lead card still clears itself on every refresh');
+    const days = flat(stripComments(read('../progress/DayCount.tsx')));
+    assert.match(days, /setValue\(\(held\) => \(held !== null && held\.owner === owner \? held : null\)\)/, 'the day count blinks away on every refresh');
   });
 });

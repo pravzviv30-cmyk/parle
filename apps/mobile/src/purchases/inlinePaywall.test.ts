@@ -47,6 +47,9 @@ const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): Sto
   productId: `luvani_${plan}_monthly`,
   title,
   localizedPrice,
+  period: 'month',
+  intro: null,
+  introEligible: false,
 });
 
 /** Every string a view can put on glass, flattened. */
@@ -151,8 +154,8 @@ describe('the inline paywall always leaves a way forward — Stage 3', () => {
       assert.match(source.slice(at, at + 600), /<OutOfMinutesView label=\{live.status.label\} message=\{live.status.message\} userId=\{userId\} onExit=\{onExit\}/);
     }
     assert.match(OUT_OF_MINUTES_PAGE, /<Sheet visible title=\{label\} onClose=\{onExit\}/);
-    assert.match(OUT_OF_MINUTES_PAGE, /nav.navigate\('Wall', \{ entry: 'refused' \}\)/);
-    assert.match(OUT_OF_MINUTES_PAGE, /label="Back to my French" onPress=\{onExit\}/);
+    assert.match(OUT_OF_MINUTES_PAGE, /nav.navigate\('Wall', \{ entry: 'refused', resumeRouteKey: route.key \}\)/);
+    assert.match(OUT_OF_MINUTES_PAGE, /label="Back to practice" onPress=\{onExit\}/);
     assert.doesNotMatch(OUT_OF_MINUTES_PAGE, /<Paywall/);
 
   });

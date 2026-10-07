@@ -46,6 +46,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -176,7 +177,7 @@ const passed = new Set();
 const counts = {};
 
 for (const pkg of fast ? [] : Object.keys(floors)) {
-  const result = run('npm', ['test', `--workspace=${pkg}`]);
+  const result = run('npm', ['test', `--workspace=${pkg}`], { env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}` } });
   const num = (label) => {
     const m = result.out.match(new RegExp(`^ℹ ${label} (\\d+)$`, 'm'));
     return m ? Number(m[1]) : null;
@@ -205,11 +206,7 @@ for (const pkg of fast ? [] : Object.keys(floors)) {
     fail('tests', `${pkg}: ${tests} tests ran, floor is ${floors[pkg]}. A suite is missing, not merely failing.`);
   }
 
-  for (const line of result.out.split('\n')) {
-    const t = line.trim();
-    if (!t.startsWith('✔ ')) continue;
-    passed.add(t.slice(2).replace(/\s*\([\d.]+m?s\)\s*$/, '').trim());
-  }
+  for (const title of passingTestTitles(result.out)) passed.add(title);
 }
 
 // ------------------------------------------------------- disposable SQL proofs
@@ -239,10 +236,13 @@ if (!fast) {
 }
 
 if(!fast) {
-  const result=run(process.execPath,['--test','services/shared/paidExecution.test.ts','scripts/verifyPaidAdapters.test.mjs','services/shared/audioDecode.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs']);
+  const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,'services/shared/paidExecution.test.ts','scripts/verifyPaidAdapters.test.mjs','services/shared/audioDecode.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs']);
   const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
   if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
-  else releaseProviderProofTests = tested;
+  else {
+    releaseProviderProofTests = tested;
+    for (const title of passingTestTitles(result.out)) passed.add(title);
+  }
 }
 
 // ------------------------------------------------------------------ 3. hygiene

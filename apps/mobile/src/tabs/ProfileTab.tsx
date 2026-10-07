@@ -17,6 +17,12 @@ import { DayCount } from '../progress/DayCount.tsx';
  * is, who the tutor is, the week they have had, and the standing choices about
  * how a conversation goes.
  *
+ * Come alive Phase 4 (F769) adds the streak and the level as two tiles under
+ * the tutor (`game/ProfileStats`, with a subscriber's freezes), keeps the
+ * lifetime day count, and draws the daily goal as five choices: No goal,
+ * Casual, Regular, Serious and Intense (D5). The days-a-week question is
+ * gone.
+ *
  * ## The header is a person, not a subject
  *
  * Four tabs name a subject and read left. This one opens on the learner's own
@@ -45,14 +51,17 @@ import { DayCount } from '../progress/DayCount.tsx';
  * than growing a second one.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { enterVoicePlayback } from '../sound/audioSession.ts';
+import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { startVoiceLine } from '../sound/voiceLine.ts';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
-import { paper, space, type } from '../theme.ts';
-import { Card, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
+import { HAIRLINE, paper, space, type } from '../theme.ts';
+import { Card, Choice, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
@@ -62,8 +71,10 @@ import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
 import { LEARNING_LABEL, PROFILE_PURPOSE, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { withPracticeDays, withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
-import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
+import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
+import { DAILY_GOAL_ROW, dailyGoalOf, goalLine } from '../profile/dailyGoal.ts';
+import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
+import { ProfileStats } from '../game/ProfileStats.tsx';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
 import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
 import {
@@ -137,11 +148,16 @@ export function ProfileTab() {
   const [samplePlaying, setSamplePlaying] = useState<TutorVoiceKey | null>(null);
   const samplePlayer = useAudioPlayer();
   const sampleStatus = useAudioPlayerStatus(samplePlayer);
+  useVoiceHold(sampleStatus.playing);
+  // Every tap and every close spends the ticket, so a clip asked for during the
+  // mode change never starts after the learner moved on.
+  const sampleTicket = useRef(0);
 
   const hearVoice = useCallback(
     (key: TutorVoiceKey) => {
       const next = nextSample(samplePlaying, key);
       setSamplePlaying(next);
+      const ticket = ++sampleTicket.current;
       if (next === null) {
         samplePlayer.pause();
         return;
@@ -151,14 +167,20 @@ export function ProfileTab() {
       // media element (AudioPlayer.web.ts, and the same on native), so the new
       // clip starts at nought by construction, and a tap on the voice that just
       // finished plays it again rather than sitting silently at its end.
-      samplePlayer.replace(voiceSample(next));
-      samplePlayer.play();
+      // A full voice mode first, so the sample is heard with the silent switch on (F723). The web
+      // has no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
+      startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
+        if (ticket !== sampleTicket.current) return;
+        samplePlayer.replace(voiceSample(next));
+        samplePlayer.play();
+      }, Platform.OS === 'web');
     },
     [samplePlaying, samplePlayer],
   );
 
   /** Leaving the sheet takes the sound with it. Nobody wants a voice following them back to Profile. */
   const closeVoiceSheet = useCallback(() => {
+    sampleTicket.current += 1;
     samplePlayer.pause();
     setSamplePlaying(null);
     setSheet('none');
@@ -256,6 +278,10 @@ export function ProfileTab() {
         <Label>{TUTOR_LABEL}</Label>
         <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
 
+        {/* The streak and the level, each opening its own screen, and a
+            subscriber's freezes. Its own file with its own reads. */}
+        <ProfileStats />
+
         <DayCount />
 
         <View style={st.group}>
@@ -263,24 +289,24 @@ export function ProfileTab() {
           <Card style={{ marginTop: space(2.5) }}>
             <SettingsRow first label="Friends" value="Optional shared practice" onPress={() => nav.navigate('Friends')} />
             <SettingsRow label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
-            {/* Three words on a track, and what the chosen one means beneath. The
-                minutes are a number in the store and words on the screen. */}
-            <ChoiceRow<GoalKey>
-              title={DAILY_GOAL_ROW}
-              options={GOALS}
-              active={goalKeyOf(profile)}
-              onChange={(key) => update(withDailyGoal(profile, goalFor(key).minutes))}
-              gloss={goalLine(profile)}
-              accessibilityLabel={DAILY_GOAL_ROW}
-            />
-            <ChoiceRow<'3' | '5' | '7' | 'none'>
-              title="Days a week"
-              options={[{ key: '3', label: '3' }, { key: '5', label: '5' }, { key: '7', label: 'Every day' }, { key: 'none', label: 'No schedule' }]}
-              active={profile.practiceDaysPerWeek == null ? null : String(profile.practiceDaysPerWeek) as '3' | '5' | '7' | 'none'}
-              onChange={value => update(withPracticeDays(profile, value === 'none' ? 'none' : Number(value) as 3 | 5 | 7))}
-              gloss={profile.practiceDaysPerWeek === 'none' || !profile.practiceDaysPerWeek ? 'Choose when to practise.' : `${profile.practiceDaysPerWeek} days a week. Reminders are optional.`}
-              accessibilityLabel="Practice days a week"
-            />
+            {/* The daily goal as five choices (D5): none, then the four tiers,
+                gentlest first, each saying its size in words. What the chosen
+                one means is written beneath. */}
+            <View style={st.goal} accessibilityRole="radiogroup" accessibilityLabel={DAILY_GOAL_ROW}>
+              <Text accessibilityRole="header" style={[type.label, { color: paper.ink }]}>{DAILY_GOAL_ROW}</Text>
+              {GOAL_CHOICES.map((choice) => (
+                <Choice
+                  key={choice.key}
+                  compact
+                  ground="card"
+                  title={choice.title}
+                  detail={choice.detail}
+                  selected={goalChoiceOf(dailyGoalOf(profile)) === choice.key}
+                  onPress={() => update(withDailyGoal(profile, choice.minutes))}
+                />
+              ))}
+              <Text style={[type.small, { color: paper.inkSoft }]}>{goalLine(profile)}</Text>
+            </View>
             <ChoiceRow<Strictness>
               title={STRICTNESS_ROW}
               options={STRICTNESS_OPTIONS.map((option) => ({ key: option.value, label: option.label }))}
@@ -334,4 +360,6 @@ const st = StyleSheet.create({
   // Each labelled block keeps its own air above it; the label itself sits
   // tight to the card it names.
   group: { marginTop: space(5) },
+  // The five goal choices, under the row's name, inside the learning card.
+  goal: { paddingVertical: space(3), gap: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
 });

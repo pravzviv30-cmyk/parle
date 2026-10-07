@@ -49,7 +49,11 @@ import {
   type ReviewTurn,
 } from './review/cardView.ts';
 import { recordActivity } from './progress/activity.ts';
+import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
+import { useSittingEnd } from './practice/useSittingEnd.ts';
+import { EndCard } from './celebrate/EndCard.tsx';
+import { REVIEW_END, reviewPage } from './review/sittingEnd.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
 /** The speaker disc on the card. Wider than a hit target because it is the one control on it. */
@@ -79,11 +83,48 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // card is next due, not how a sitting went, and there is no sitting-end
   // hook to read one from.
   const recalled = useRef(0);
+  // Grades given in this sitting. A sitting that emptied its queue with at
+  // least one grade is a finished practice, recalled or not (F744).
+  const graded = useRef(0);
   const banked = useRef(false);
   // Active learning time for Practice time: only the gaps between the
   // learner's own actions (typing, an attempt, a flip, hearing, a grade) that
   // are short enough to be one stretch of work. Opening the deck adds nothing.
   const clock = useActiveClock('review');
+  // A finished sitting's end card waits for the settle pipeline's own read-back
+  // of this sitting, and shows only its numbers (F760). While this screen is
+  // up the celebration queue is held, and the hold taken before the sitting
+  // settles is handed to its end card (F766).
+  const { end, expect, release } = useSittingEnd();
+  /**
+   * Bank the sitting once, whichever way it ends, with one stopwatch for both
+   * so the sitting has one end. The queue emptying with at least one grade is
+   * a finished practice, and it settles (F744). The screen going away first
+   * banks what was recalled and settles nothing. `banked` is set before
+   * anything is written, so the two can never record one sitting twice (review
+   * finding 18). Refs only, so the unmount below can hold the first copy.
+   */
+  const bankSitting = useRef((finished: boolean) => {
+    if (banked.current || (finished ? graded.current === 0 : recalled.current === 0)) return;
+    banked.current = true;
+    // One clock read, and the sitting's start is the instant it was dealt
+    // rather than a second ref saying the same thing. Wall clock on the
+    // device, which is what Home's speaking goal measures; it is not the
+    // metered seconds and is never shown as those.
+    const endedAt = Date.now();
+    const xp = reviewXp({ recalled: recalled.current });
+    const activeMs = clock.read();
+    const write = () => recordActivity('review', xp, endedAt, {
+      durationMs: endedAt - dealtAt.current,
+      activeMs: activeMs,
+      ...(finished ? { finished: true } : {}),
+    });
+    // The end card waits for exactly this sitting, and the queue is held from
+    // before the settle until that card goes.
+    if (finished) expect({ source: 'review', at: endedAt });
+    if (finished) void settleSitting({ source: 'review', at: endedAt, xpEarned: xp, activeMs, write });
+    else void write();
+  }).current;
 
   useEffect(() => {
     let cancelled = false;
@@ -106,20 +147,15 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       tutorVoice.stop();
       // Banked here rather than on the Done button: leaving by the back
       // gesture, a tab switch or an unmount is still a sitting that happened.
-      if (!banked.current && recalled.current > 0) {
-        banked.current = true;
-        // One clock read, and the sitting's start is the instant it was dealt
-        // rather than a second ref saying the same thing. Wall clock on the
-        // device, which is what Home's speaking goal measures; it is not the
-        // metered seconds and is never shown as those.
-        const endedAt = Date.now();
-        void recordActivity('review', reviewXp({ recalled: recalled.current }), endedAt, {
-          durationMs: endedAt - dealtAt.current,
-          activeMs: clock.read(),
-        });
-      }
+      bankSitting(false);
     };
   }, []);
+
+  // The queue emptied: the sitting is finished, and it settles once.
+  const finished = queue !== null && index >= queue.length;
+  useEffect(() => {
+    if (finished) bankSitting(true);
+  }, [finished, bankSitting]);
 
   const card = queue && index < queue.length ? queue[index]! : null;
   const view = card ? cardView(card, dealtAt.current, turn) : null;
@@ -142,6 +178,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // The context is what the view knows and nothing more: an attempt that
       // came before the answer, or, on an introduction, no claim at all.
       void gradeCard(card.id, grade, view.gradeContext);
+      graded.current += 1;
       if (grade === 'good' || grade === 'easy') recalled.current += 1;
       // A missed card rejoins the end of this sitting rather than hiding until
       // its ten-minute retry — the learner meets it again while it is warm.
@@ -170,10 +207,30 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     setTurn((t) => ({ ...t, flipped: true }));
   }} />;
 
-  // Nothing due, or the sitting is done. Same calm card either way — the
-  // deck never announces a backlog and never asks for more than it dealt. A
-  // terminal card, so Done is its one door and it carries no back header.
+  // Nothing due, or the sitting is done, and the two are told apart (F761).
+  // The deck never announces a backlog and never asks for more than it dealt.
+  // A terminal card, so Done is its one door and it carries no back header.
   if (!card || !view) {
+    // Every dealt card was graded: the review is complete, and its end card
+    // shows only what the settle read back. Until it has, a quiet wait; if it
+    // never answers, the finish stands in words.
+    if (reviewPage(queue.length, index) === 'finished') {
+      return (
+        <ScrollScreen footer={primary}>
+          <View style={st.ending}>
+            <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{REVIEW_END.finished}</Text>
+            {end.state === 'settled' ? (
+              <EndCard delta={end.delta} count={recalled.current} release={release} />
+            ) : end.state === 'unsettled' ? (
+              <Text style={[type.body, { color: paper.inkSoft }]}>{REVIEW_END.finishedBody}</Text>
+            ) : (
+              <ActivityIndicator color={paper.inkSoft} />
+            )}
+          </View>
+        </ScrollScreen>
+      );
+    }
+    // Nothing was dealt: the calm card, and nothing plays, counts or settles.
     return (
       <ScrollScreen footer={primary}>
         {/* An empty deck is the good outcome, not a dead end, so it gets the
@@ -369,6 +426,8 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
 const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // A finished sitting: its heading, then its end card.
+  ending: { gap: space(4) },
   // The card itself: the SessionView main-card anatomy, content centred.
   card: { alignItems: 'center', minHeight: 240, justifyContent: 'center' },
   // The speaker disc: white, on the card, under a paper hairline. No shadow:

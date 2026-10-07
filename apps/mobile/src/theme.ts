@@ -106,6 +106,7 @@ export const heroFit = {
 
 /** 4pt base. Tight within a group, generous between groups. */
 export const space = (n: number) => n * 4;
+export const RHYTHM = { inline: space(2), item: space(3), block: space(5), section: space(8) } as const;
 
 export const radius = {
   /** The one Card and the colour card: white or colour, no shadow, never nested. */

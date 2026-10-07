@@ -39,6 +39,9 @@ const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): Sto
   productId: `luvani_${plan}_monthly`,
   title,
   localizedPrice,
+  period: 'month',
+  intro: null,
+  introEligible: false,
 });
 const SRC = fileURLToPath(new URL('..', import.meta.url));
 
@@ -131,8 +134,8 @@ describe('the shared paywall — F250', () => {
       const page = /<OutOfMinutesView\b/.test(branch) ? read('../live/OutOfMinutesView.tsx') : branch;
       assert.match(branch, /<OutOfMinutesView label=\{live.status.label\} message=\{live.status.message\}/);
       assert.match(page, /<Sheet visible title=\{label\} onClose=\{onExit\}/);
-      assert.match(page, /nav.navigate\('Wall', \{ entry: 'refused' \}\)/);
-      assert.match(page, /label="Back to my French" onPress=\{onExit\}/);
+      assert.match(page, /nav.navigate\('Wall', \{ entry: 'refused', resumeRouteKey: route.key \}\)/);
+      assert.match(page, /label="Back to practice" onPress=\{onExit\}/);
       assert.doesNotMatch(page, /<Paywall/);
     }
   });

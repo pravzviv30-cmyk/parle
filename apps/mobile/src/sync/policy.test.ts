@@ -42,6 +42,7 @@ import {
 } from './policy.ts';
 import { upgradeStored } from '../profile/upgrade.ts';
 import { GOAL_STEPS_VERSION, mergeGoalSteps } from '../goals/model.ts';
+import { GAME_VERSION, mergeGame } from '../game/model.ts';
 
 const MOBILE = fileURLToPath(new URL('../..', import.meta.url));
 const FIXED_NOW = Date.UTC(2026, 7, 26, 12, 0, 0);
@@ -366,6 +367,36 @@ function genGoalSteps(pick: Chooser): unknown {
   return { version: 1, steps };
 }
 
+/**
+ * Come alive (F729): the game facts. Copies of one row with different moments,
+ * a span longer than every age window (sixty days of sittings, sixty-two of
+ * claims and fixed XP, sixty of dated celebrations) and badges both dated and
+ * counted from older practice, so every pick and every cutoff is exercised.
+ */
+function genGame(pick: Chooser): unknown {
+  const day = (span: number): string => new Date(BASE + pick.int(span) * DAY).toISOString().slice(0, 10);
+  const at = (span: number): number => BASE + pick.int(span) * DAY + pick.int(3) * 1000;
+  const quests = ['finish-practice', 'phrase-of-day', 'minutes', 'xp'] as const;
+  const list = <T,>(n: number, make: () => T): T[] => Array.from({ length: pick.int(n) }, make);
+  return {
+    version: 1,
+    sittings: list(6, () => {
+      const row = { at: at(120), source: pick.one(['phrase', 'drill', 'review', 'guest']) };
+      return pick.bool() ? { ...row, activeMs: pick.int(4) * 1000 } : row;
+    }),
+    covers: list(5, () => ({ day: day(30), kind: pick.one(['freeze', 'repair', 'travel']), at: at(3) })),
+    goalDays: list(5, () => day(60)),
+    questDays: list(4, () => ({ day: day(80), ids: pick.bool() ? ['finish-practice', 'phrase-of-day', 'minutes'] : ['practise-twice', 'conversation', 'xp'], at: at(2) })),
+    claims: list(8, () => ({ day: day(120), questId: pick.one(quests), xp: 10, at: at(2) })),
+    questMonths: list(3, () => ({ month: pick.one(['2026-01', '2026-02', '2026-03']), count: pick.int(40), xp: pick.int(500) })),
+    xpMonths: list(3, () => ({ month: pick.one(['2026-01', '2026-02']), xp: pick.int(3000) })),
+    bonus: list(5, () => ({ key: pick.bool() ? `phrase:${day(120)}` : `review:${BASE + pick.int(120) * DAY}`, xp: 5, at: at(3) })),
+    bonusMonths: list(2, () => ({ month: pick.one(['2026-01', '2026-03']), xp: pick.int(200) })),
+    badges: list(4, () => ({ id: pick.one(['streak-7', 'goal-7', 'quests-2026-01']), at: pick.bool() ? null : at(5) })),
+    seen: list(6, () => ({ key: pick.bool() ? `streak:${day(120)}` : pick.one(['level:2', 'level:3', 'badge:streak-7']), at: at(4) })),
+  };
+}
+
 const GENERATORS: Record<string, (pick: Chooser) => unknown> = {
   profile: genProfile,
   review: genReview,
@@ -381,6 +412,7 @@ const GENERATORS: Record<string, (pick: Chooser) => unknown> = {
   tutorIntro: genTutorIntro,
   practiceHistory: genPracticeHistory,
   goalSteps: genGoalSteps,
+  game: genGame,
 };
 
 /** A blob a store might have on disk, plus the occasional absence and the occasional lie. */
@@ -427,8 +459,13 @@ describe('the per-domain conflict policy — twenty-three namespaces, three clas
     // because a merged consent is a withdrawal that can come back on its own.
     assert.deepEqual(
       [...excluded].sort(),
-      ['analytics', 'conversationPacks', 'friends', 'journal', 'moments', 'onboarding-practice', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'suggestions'],
+      // 2026-10-07, come alive Phase 4: `home-seen`, what one phone's Home last drew.
+      ['analytics', 'conversationPacks', 'friends', 'gameLocal', 'home-seen', 'journal', 'moments', 'onboarding-practice', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'suggestions'],
     );
+    // What one phone last drew is excluded, with the reason written down (Phase 4).
+    const seen = SYNC_EXCLUSIONS.find((entry) => entry.namespace === 'home-seen');
+    assert.ok(seen, 'home-seen is not excluded, so one phone would skip a rise another phone never drew');
+    assert.match(seen.reason, /this phone|one phone/, 'the home-seen reason does not say it is a fact about one phone');
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);
     }
@@ -837,6 +874,27 @@ describe('the per-domain conflict policy — twenty-three namespaces, three clas
     }
     const source = readFileSync(join(MOBILE, 'src/sync/policy.ts'), 'utf8');
     assert.match(source, /import \{[^}]*GOAL_STEPS_VERSION[^}]*\} from '\.\.\/goals\/model\.ts'/, 'the version is copied rather than imported');
+  });
+
+  test('the game facts are merged by game/model.ts, at the version it writes, never restated here — F729', () => {
+    // Imported rather than copied, like goalSteps, because that file is pure
+    // and shares its strict reader with the store.
+    const row = SYNC_POLICIES.find((entry) => entry.namespace === 'game');
+    assert.ok(row, 'game has no sync policy, so the store adopts merges nothing makes');
+    assert.equal(row.merges, 'set-union');
+    assert.equal(row.writes, GAME_VERSION);
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const a = blobFor('game', seed * 3 + 1);
+      const b = blobFor('game', seed * 5 + 2);
+      if (a === null && b === null) continue;
+      assert.ok(sameData(merge('game', a, b), mergeGame(a, b)), `seed ${seed}: the policy is not game/model.ts's merge`);
+    }
+    const source = readFileSync(join(MOBILE, 'src/sync/policy.ts'), 'utf8');
+    assert.match(source, /import \{[^}]*GAME_VERSION[^}]*\} from '\.\.\/game\/model\.ts'/, 'the version is copied rather than imported');
+    // The device-only half is excluded, with the reason written down.
+    const local = SYNC_EXCLUSIONS.find((entry) => entry.namespace === 'gameLocal');
+    assert.ok(local, 'gameLocal is not excluded, so a phone schedule or plan reading could reach another device');
+    assert.match(local.reason, /facts about this phone/);
   });
 
   test('a merge that throws costs one namespace one pass, never the cycle', () => {
