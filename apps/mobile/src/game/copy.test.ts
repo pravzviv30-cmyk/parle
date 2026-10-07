@@ -43,6 +43,38 @@ function everyLine(): string[] {
     c.intro.title,
     c.intro.body(0, 1),
     c.intro.body(12, 4),
+    // Phase 4 (2026-10-07): Home's hero, nudge and quests, the Streak screen,
+    // Progress and Profile.
+    c.goal.minutesToday(0),
+    c.goal.minutesToday(14),
+    c.quests.title,
+    c.quests.count(1, 2),
+    c.quests.done,
+    c.nudge.waiting(1),
+    c.nudge.waiting(12),
+    c.nudge.milestoneEve(7),
+    c.nudge.milestoneEve(365),
+    c.spoken.streak(4, true),
+    c.spoken.streak(4, false),
+    c.spoken.noStreak,
+    c.spoken.goal(6, 10),
+    c.spoken.minutes(6),
+    c.spoken.level(3, 130, 45),
+    ...Object.values(c.streakScreen).flatMap((value): string[] => {
+      if (typeof value === 'string') return [value];
+      if (typeof value === 'function') return [(value as (n: number) => string)(3)];
+      return Object.values(value).map((inner) => (typeof inner === 'function' ? (inner as (...n: number[]) => string)(1, 2) : inner));
+    }),
+    c.streakScreen.freezes.returns('Saturday 10 October'),
+    c.streakScreen.reachedOn('3 October 2026'),
+    c.progress.xpTotal(130),
+    c.progress.capped,
+    ...Object.values(c.progress.counts),
+    c.progress.badges,
+    c.progress.badgesEmpty,
+    c.progress.nextUp,
+    c.progress.earnedOn('3 October 2026'),
+    c.progress.countedFromSaved,
   ];
   return lines;
 }

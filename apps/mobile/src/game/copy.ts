@@ -46,12 +46,90 @@ export const GAME_COPY = {
   goal: {
     reached: 'Daily goal reached',
     progress: (minutes: number, goal: number): string => `${minutes} of ${goal} min today`,
+    /** With no goal chosen: the measured minutes alone, and no ring. */
+    minutesToday: (minutes: number): string => `${minutes} min today`,
   },
 
   quests: {
+    /** The heading over today's three on Home (Phase 4). */
+    title: 'Daily quests',
     /** The day so far. At three it is the one quiet line that says all three are done (D22). */
     progress: (done: number): string => (done >= 3 ? 'All three quests done today.' : `${done} of 3 quests done today`),
     row: (title: string): string => `Quest complete: ${title}`,
+    /** One quest's own count, or the word for a quest finished. */
+    count: (done: number, target: number): string => `${done} of ${target}`,
+    done: 'Done',
+  },
+
+  /**
+   * Home's one line under the hero (Phase 4), said only while a streak is
+   * running and today is still open. A fact and an offer, never a warning.
+   */
+  nudge: {
+    waiting: (current: number): string => `Your ${current}-day streak is waiting. A short practice today makes it ${current + 1}.`,
+    milestoneEve: (next: number): string => `One practice today reaches your ${next}-day milestone.`,
+  },
+
+  /**
+   * The Streak screen, Home's hero and Profile's tiles (Phase 4). Every number
+   * is one the game view read from disk; a covered day is said as covered and
+   * a day without practice as "no practice", never as missed.
+   */
+  streakScreen: {
+    title: 'Your streak',
+    unread: 'Your streak could not be read just now.',
+    retry: 'Read it again',
+    startStreak: 'Start a streak',
+    count: (current: number): string => `${current}-day streak`,
+    longest: (days: number): string => `Longest streak: ${days} ${days === 1 ? 'day' : 'days'}`,
+    todayCounts: 'Today counts. See you tomorrow.',
+    reachNext: (next: number): string => `Practise today to reach ${next}.`,
+    startsNext: 'Your next practice starts a streak.',
+    week: 'This week',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    day: {
+      practised: 'practised',
+      freeze: 'covered by a freeze',
+      repair: 'covered by a repair',
+      travel: 'covered by a travel day',
+      todayOpen: 'today, not practised yet',
+      open: 'no practice',
+      ahead: 'still to come',
+    },
+    freezes: {
+      title: 'Streak freezes',
+      ready: (held: number): string => `${held} ready`,
+      line: 'If a day gets away from you, a freeze covers it by itself. A used freeze comes back a week later.',
+      returns: (date: string): string => `Both freezes are in use. One comes back on ${date}.`,
+    },
+    repair: {
+      title: (runBefore: number): string => `Bring back your ${runBefore}-day streak`,
+      line: 'Finish two practices within two days and it comes back.',
+      progress: (done: number, needed: number): string => `${done} of ${needed} practices done`,
+    },
+    milestones: 'Milestones',
+    milestone: (days: number): string => `${days} days`,
+    reachedOn: (date: string): string => `Reached ${date}`,
+    reached: 'Reached',
+    nextMilestone: (days: number): string => `Your next milestone is ${days} days.`,
+  },
+
+  /** Progress (Phase 4): the level card, the counts and the badge shelf. */
+  progress: {
+    xpTotal: (xp: number): string => `${xp} XP`,
+    capped: "You reached today's XP limit. Practice still counts for your streak and goal.",
+    counts: {
+      phrases: 'Phrases kept',
+      conversations: 'Conversations',
+      minutes: 'Minutes practised',
+      days: 'Practice days',
+    },
+    badges: 'Badges',
+    badgesEmpty: 'Badges you earn show here.',
+    nextUp: 'Next up',
+    earnedOn: (date: string): string => `Earned ${date}`,
+    countedFromSaved: 'Counted from practice already saved',
   },
 
   streak: {
@@ -80,6 +158,17 @@ export const GAME_COPY = {
     title: (level: number): string => `Level ${level}`,
     line: 'Earned from the French you produced.',
     next: (toNext: number, nextLevel: number): string => `${toNext} XP to Level ${nextLevel}`,
+  },
+
+  /** What a screen reader hears for Home's three parts and Profile's tiles (Phase 4). */
+  spoken: {
+    streak: (current: number, practisedToday: boolean): string =>
+      `${current}-day streak, ${practisedToday ? 'practised today' : 'not practised yet today'}. Opens your streak.`,
+    noStreak: 'No streak running yet. Opens your streak.',
+    goal: (minutes: number, goal: number): string => `Daily goal: ${minutes} of ${goal} minutes practised today. Opens your streak.`,
+    minutes: (minutes: number): string => `${minutes} minutes practised today. Opens your streak.`,
+    level: (level: number, total: number, toNext: number): string =>
+      `Level ${level}, ${total} XP, ${toNext} XP to Level ${level + 1}. Opens Progress.`,
   },
 
   badge: {

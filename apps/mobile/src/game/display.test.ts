@@ -32,7 +32,13 @@ function withoutComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
-/** Every screen and component: the `.tsx` files, the game layer's own excepted (it is where the numbers are made). */
+/**
+ * Every screen and component: every `.tsx` file, the game layer's own cards
+ * and screens included. The numbers are made in `game/view.ts` and
+ * `game/settle.ts`, which are plain modules and never read here; a card under
+ * `game/` is a screen like any other (2026-10-07, Phase 4 review: the scan used
+ * to skip the whole folder, so Home's hero and the Streak screen sat outside it).
+ */
 function screens(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -97,8 +103,14 @@ describe('one way to a level or an XP total on screen — README Part 6, F744', 
     assert.deepEqual(calls('const xp = useXp(); const level = useLevel();'), [], 'the hooks are the sanctioned way in');
     assert.deepEqual(calls('// levelFor(xp) in a comment is not a call'), []);
 
-    const files = [...screens(SRC).filter((file) => !file.slice(SRC.length).startsWith('game/')), APP];
+    const files = [...screens(SRC), APP];
     assert.ok(files.length > 50, 'the scan found almost no screens, so it is reading the wrong place');
+    // The game layer's own screens are read too, and the two modules where the numbers are made never are.
+    const short = files.map((file) => (file === APP ? 'App.tsx' : file.slice(SRC.length)));
+    for (const screen of ['game/TodayHero.tsx', 'game/QuestsCard.tsx', 'game/LevelXpCard.tsx', 'game/ProfileStats.tsx', 'game/StreakScreen.tsx', 'game/CountsGrid.tsx']) {
+      assert.ok(short.includes(screen), `${screen} is outside the scan`);
+    }
+    assert.ok(!short.includes('game/view.ts') && !short.includes('game/settle.ts'), 'the scan reads the modules where the numbers are made');
     const offenders: string[] = [];
     const seenStanding = new Set<string>();
     const seenPriced = new Set<string>();

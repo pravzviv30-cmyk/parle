@@ -73,8 +73,10 @@ describe('one stored value, one way of saying it — Stage 3', () => {
       .filter((file) => file !== join('profile', 'store.ts'))
       .sort();
     assert.deepEqual(writers, [join('tabs', 'ProfileTab.tsx')], 'a second screen edits the speaking target');
+    // 2026-10-07, come alive Phase 4 (F769): the goal is five choices under the
+    // row's name, drawn as its heading and its group's spoken name.
     const rows = sources(SRC)
-      .filter((file) => /title=\{DAILY_GOAL_ROW\}/.test(stripComments(readFileSync(file, 'utf8'))))
+      .filter((file) => /accessibilityLabel=\{DAILY_GOAL_ROW\}/.test(stripComments(readFileSync(file, 'utf8'))))
       .map((file) => relative(SRC, file));
     assert.deepEqual(rows, [join('tabs', 'ProfileTab.tsx')], 'the speaking target row is drawn somewhere other than Profile');
   });

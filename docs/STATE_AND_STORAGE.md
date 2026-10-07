@@ -55,7 +55,12 @@ outside" reports, account-synced, ids and the normalised goal key only: see "Goa
 below), `game` (the account-synced facts behind the streak, the daily goal, quests and
 badges: see "The game layer" below), `gameLocal` (the game facts that belong to this
 phone: the reminder log, the plan it last saw, the time zone of the last practice and
-the celebrations still queued; device-local), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
+the celebrations still queued; device-local), `home-seen` (what this phone's Home last
+drew: the streak, today's minutes, the goal ring in thousandths, the level, quests done
+and lifetime days, so a number that rose since counts up once and never replays or
+counts down; written only once a value is drawn where the learner can see it, never
+while a sitting, a sheet or a takeover covers Home (`home/homeDraw.ts`); device-local,
+since come alive Phase 4), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
 (the one unfinished practice sitting on this phone and the frozen plan that finishes
 it, device-local), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because
@@ -610,8 +615,8 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fifteen synced, twelve excluded once
-`game` and `gameLocal` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
+stores; `sync/policy.ts` is the count of record (fifteen synced, thirteen excluded once
+`game`, `gameLocal` and `home-seen` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -668,11 +673,13 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Twelve are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `gameLocal` holds
+Thirteen are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `gameLocal` holds
 the facts about this phone that the game layer needs: the OS schedule of streak
 reminders, the time zone of the last practice and the plan this phone last observed.
 Syncing them would nudge one learner twice and let one device's billing read decide
-another's. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
+another's. `home-seen` is what this phone's Home last drew (`home/homeSeen.ts`): synced,
+a tablet would skip a rise the learner never saw on it, and every real number it
+mirrors already lives in the synced `game` and `activity` records. `pendingPurchase` is a device-local checkout fence written before a native store request, with the selected paid plan/product and the prior plan/period. It blocks another checkout after a restart until cancellation or fresh matching paid-period evidence resolves it; an unchanged older subscription is insufficient. Unknown storage stays unknown. It is erased and exported with the account, and is never synced as billing authority. `practiceSession`
 is the unfinished sitting and its completion plan: its meaning is local to this device's
 bank and deck, and a copy on a second device could finish the same sitting again, so
 completed sittings travel through `practiceHistory` instead. `packMarks`

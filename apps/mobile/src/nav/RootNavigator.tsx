@@ -75,6 +75,7 @@ import { SocialSettingsScreen } from '../friends/SocialSettingsScreen.tsx';
 import { DailyPracticeScreen } from '../daily/DailyPracticeScreen.tsx';
 import { PostcardsScreen } from '../progress/PostcardsScreen.tsx';
 import { WeekWrappedScreen } from '../progress/WeekWrappedScreen.tsx';
+import { StreakScreen } from '../game/StreakScreen.tsx';
 import { DailyLibraryScreen } from '../daily/DailyLibraryScreen.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
@@ -715,6 +716,7 @@ export function RootNavigator({
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
       <Stack.Screen name="Postcards" component={PostcardsScreen} />
       <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
+      <Stack.Screen name="Streak" component={StreakScreen} />
       {/* Settings is where sign out and delete account live now (F473), so it
           takes the two callbacks Profile used to, through the same children
           function idiom and for the same reason: they are functions, and a

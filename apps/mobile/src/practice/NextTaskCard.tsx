@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { dueCards, levelFor, missionStates, totalXp, type ReviewCard } from '@luvani/core';
-import { Card, ColourCard, FrenchBlock, GhostButton, PillButton } from '../components.tsx';
+import { Card, ColourCard, FrenchBlock, IconAction, PillButton } from '../components.tsx';
 import { paper, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -51,7 +51,9 @@ export function NextTaskCard() {
   useFocusEffect(useCallback(() => {
     let cancelled = false;
     const scope = scopeGeneration();
-    setValue(null); setFailed(false);
+    // A re-read keeps the card that is drawn until the new answer lands (F768);
+    // only a card read for another account is taken down first.
+    setValue(held => (held !== null && held.scope === scope ? held : null)); setFailed(false);
     void recoverPracticeCompletion().catch(() => null).then(() => Promise.all([loadDeck(), loadDrillBank(), loadConversationPacks(), loadPracticeSession(), loadMissionCompletions(), loadScenarioProgress(), loadActivity({ strict: true }), loadPackMarks()]))
       .then(([deck, bank, fetched, saved, completions, records, activity, marks]) => {
         if (cancelled || scope !== scopeGeneration()) return;
@@ -67,7 +69,7 @@ export function NextTaskCard() {
   const navigateOwned = (screen: string, params?: object) => {
     if (value !== null && value.scope === scopeGeneration()) nav.navigate(screen, params);
   };
-  if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><GhostButton label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
+  if (failed) return <View><Text style={type.body}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   if (value === null || value.scope !== scopeGeneration()) return <Text style={type.small}>Finding your next task…</Text>;
   if (value.card !== null) {
     const card = value.card;
@@ -86,6 +88,6 @@ export function NextTaskCard() {
     <Text style={[type.small, { color: paper.onInk }]}>A saved phrase, ready to revisit. Free on this phone.</Text>
     <PillButton tone="white" label="Practise review" onPress={() => navigateOwned('Review')} />
   </ColourCard>;
-  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{PLANS_LEAD.body}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><GhostButton label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
+  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{PLANS_LEAD.body}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
   return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} /> : <LocalPracticeCard />;
 }

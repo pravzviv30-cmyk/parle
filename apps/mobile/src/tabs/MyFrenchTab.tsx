@@ -8,7 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DAILY_SCENARIOS, MISSIONS, isEarned, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 import { ColourCard, Ledger, LedgerRow, PillButton } from '../components.tsx';
-import { ChatGlyph, DocumentGlyph, QuoteGlyph, WaveformGlyph } from '../glyphs.tsx';
+import { IconTile } from '../icons/IconTile.tsx';
 import { ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { onColour, paper, space, type } from '../theme.ts';
@@ -41,8 +41,23 @@ import { useProfile } from '../app/ProfileContext.tsx';
 import { goalRouteKey, goalRows } from '../goals/rows.ts';
 import { abilityProof } from '../myfrench/abilityProof.ts';
 import { ownedReadStatus } from './ownedRead.ts';
+import { LevelXpCard } from '../game/LevelXpCard.tsx';
+import { StreakSummaryCard } from '../game/StreakSummaryCard.tsx';
+import { CountsGrid } from '../game/CountsGrid.tsx';
+import { BadgeShelf } from '../game/BadgeShelf.tsx';
+import { useStreak } from '../game/GameProvider.tsx';
+import { progressShowsGame, rowTile } from '../game/progressView.ts';
+import { PostcardShelf } from '../progress/PostcardShelf.tsx';
 
-/** Evidence-based level and saved-material doors; this tab starts no audio. */
+/**
+ * Evidence-based level and saved-material doors; this tab starts no audio.
+ *
+ * Come alive Phase 4 (F769): the tab leads with the numbered level and its XP,
+ * the streak and this week (holding the pinned weekly day line), four counts
+ * and the badges, each read from its own record by the game layer, and drawn
+ * only once there is practice to show. Then the CEFR level card, the one pill;
+ * the earned postcards as a shelf; and the ledger rows, each led by its tile.
+ */
 export function MyFrenchTab() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
@@ -63,6 +78,7 @@ export function MyFrenchTab() {
   const [readyOwner, setReadyOwner] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [hasWeek, setHasWeek] = useState(false);
+  const run = useStreak();
 
   useFocusEffect(
     useCallback(() => {
@@ -139,15 +155,26 @@ export function MyFrenchTab() {
   const hasEarned = missions.some(isEarned);
   const firstVisit = isFirstVisit({ progress: missions, deck, checks, packs: packs.length });
   const journey = soundJourney(checks, now);
-  const rows = progressRows({
+  // Counted once, for the rows and for the counts grid alike.
+  const kept = {
     phrases: new Set(deck.filter((card) => card.front.trim() !== '').map((card) => phraseKeyOf(card.front))).size,
-    sounds: soundsMapFrom(checks, now).show,
     conversations: allConversations({ packs, events: history }).length,
+  };
+  const rows = progressRows({
+    phrases: kept.phrases,
+    sounds: soundsMapFrom(checks, now).show,
+    conversations: kept.conversations,
     goals: goalRows(profile.learnerGoals, MISSIONS),
     saved: model.saved,
   });
   const currentScope = scopeGeneration();
   const renderStatus = ownedReadStatus(status, readOwner, readyOwner, currentScope);
+  const showsGame = progressShowsGame(firstVisit, run === null ? null : run.lifetimeDays);
+  // The weekly day line reads its own record: inside the streak card when the
+  // game cards are drawn, and on its own when they are not (loading, a failed
+  // evidence read, a first visit), so it never depends on them.
+  const gameCards = renderStatus === 'ready' && showsGame;
+  const postcards = earnedPostcards(missions);
 
   return (
     <ScrollScreen bottom="tab">
@@ -161,7 +188,7 @@ export function MyFrenchTab() {
         <View style={st.block}>
           <Ledger>
             <LedgerRow
-              glyph={<DocumentGlyph color={paper.ink} />}
+              glyph={<IconTile ground="skeleton" name="book" size={ROW_TILE} />}
               label={MY_FRENCH_RETRY}
               title={MY_FRENCH_UNREAD}
               accessibilityLabel={`${MY_FRENCH_UNREAD} ${MY_FRENCH_RETRY}`}
@@ -171,6 +198,15 @@ export function MyFrenchTab() {
               }}
             />
           </Ledger>
+        </View>
+      )}
+
+      {gameCards && (
+        <View style={st.group}>
+          <LevelXpCard />
+          <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
+          <CountsGrid phrases={kept.phrases} conversations={kept.conversations} />
+          <BadgeShelf />
         </View>
       )}
 
@@ -192,18 +228,19 @@ export function MyFrenchTab() {
         <View style={st.group}><Text accessibilityRole="header" style={type.heading}>Your first useful phrase</Text><LocalPracticeCard /></View>
       )}
 
-      <DayCount weekly />
-      {renderStatus === 'ready' && (hasWeek || earnedPostcards(missions).length > 0) && <View style={st.group}><Ledger>
-        {hasWeek && <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Your week in French" accessibilityLabel="Your week in French, a few moments from the last seven days" gloss="A few moments from the last seven days" onPress={() => nav.navigate('WeekWrapped')} />}
-        {earnedPostcards(missions).length > 0 && <LedgerRow glyph={<DocumentGlyph color={paper.ink} />} title="Place postcards" accessibilityLabel="Place postcards, scenes you can handle on your own" gloss="Scenes you can handle on your own" onPress={() => nav.navigate('Postcards')} />}
-      </Ledger></View>}
+      {!gameCards && <DayCount weekly />}
+
+      {renderStatus === 'ready' && (hasWeek || earnedPostcards(missions).length > 0) && <View style={st.group}>
+        {postcards.length > 0 && <PostcardShelf postcards={postcards} onOpen={() => nav.navigate('Postcards')} />}
+        {hasWeek && <Ledger><LedgerRow glyph={<IconTile ground="skeleton" name="book" size={ROW_TILE} />} title="Your week in French" accessibilityLabel="Your week in French, a few moments from the last seven days" gloss="A few moments from the last seven days" onPress={() => nav.navigate('WeekWrapped')} /></Ledger>}
+      </View>}
       {renderStatus === 'ready' && rows.length > 0 && (
         <View style={st.group}>
           <Ledger>
             {rows.map((row) => (
               <LedgerRow
                 key={row.id}
-                glyph={row.kind === 'phrases' ? <QuoteGlyph color={paper.ink} /> : row.kind === 'sounds' ? <WaveformGlyph color={paper.ink} /> : row.kind === 'conversations' ? <ChatGlyph color={paper.ink} /> : <DocumentGlyph color={paper.ink} />}
+                glyph={<IconTile ground="skeleton" name={rowTile(row.kind)} size={ROW_TILE} />}
                 title={row.title}
                 gloss={row.detail}
                 accessibilityLabel={`${row.title}. ${row.detail}`}
@@ -222,6 +259,9 @@ export function MyFrenchTab() {
     </ScrollScreen>
   );
 }
+
+/** A ledger row's tile: a little under the touch floor, the row itself being the target. */
+const ROW_TILE = space(10);
 
 const st = StyleSheet.create({
   // The blocks are the scroll's own children (F383): no wrapper that can grow.
