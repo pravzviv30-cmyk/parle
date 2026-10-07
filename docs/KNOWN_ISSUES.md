@@ -10242,6 +10242,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `finishing all three quests shows one quiet line and no chest`
 - verified-by: `a day another phone finished while this one practised plays no quest sound again`
 
+### F774 — The reminder ask promises a skipped practised day the scheduler does not yet skip
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/reminders/ReminderAsk.tsx:43, apps/mobile/src/reminders/schedule.native.ts:229
+- note: Found by the 7 October first-run privacy review. The day-one ask says "One a day at about {time}, and never on a day you have already practised." (README Part 5.C row 9), but the reminder is still a plain daily trigger. The Phase 4 planner (F771) must make the promise true for every learner, including a guest who never makes an account (their finish days come from guestPracticeDays), and the notification must name the tutor the ask named. Nothing ships before Phase 4 (landing is HOLD until the founder has seen it).
+- verified-by: `the reminder ask promises a skipped practised day only when the scheduler skips it, guest finish days included`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
