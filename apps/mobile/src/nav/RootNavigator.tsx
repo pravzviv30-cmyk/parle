@@ -81,6 +81,7 @@ import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
+import { backOrTabs, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
 
@@ -113,20 +114,14 @@ function Loading() {
   );
 }
 
-/**
- * Back when there is a screen behind this one, otherwise the tabs. On the web
- * a pushed screen can be opened cold by a reload or a shared address, and a
- * bare goBack then does nothing at all (GO_BACK not handled), leaving the
- * learner on a Done or Leave that is dead.
+/*
+ * Every way out of a pushed learning screen is `backOrTabs` (`./leave.ts`):
+ * back when there is a screen behind it, otherwise the tabs with the screen
+ * closed. On the web a pushed screen can be opened cold by a reload or a
+ * shared address; a bare goBack then does nothing at all (GO_BACK not
+ * handled), and a navigate would leave the sitting mounted under the tabs,
+ * still holding the celebration queue (F775).
  */
-function backOrTabs(nav: {
-  canGoBack: () => boolean;
-  goBack: () => void;
-  navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
-}, tab?: keyof TabParamList): void {
-  if (nav.canGoBack()) nav.goBack();
-  else nav.navigate('Tabs', tab === undefined ? undefined : { screen: tab });
-}
 
 /**
  * A brand-new learner's first scene, behind the microphone primer (notebook
@@ -150,9 +145,7 @@ function FirstSceneRoute() {
 
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
+  const nav = useNavigation<LeavingNav & {
     navigate: ((screen: 'Tabs', params?: { screen: keyof TabParamList }) => void) &
       ((screen: keyof RootStackParamList) => void);
     setParams: (p: { textMode?: boolean }) => void;
@@ -332,10 +325,7 @@ function LessonRoute() {
  * Practice can reach this route too.
  */
 function ConvoRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
-    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
+  const nav = useNavigation<LeavingNav & {
     replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
   }>();
   const leave = () => backOrTabs(nav);
@@ -501,11 +491,7 @@ async function markPractisedNode(nodeId: string): Promise<void> {
 }
 
 function DrillRoute() {
-  const nav = useNavigation<{
-    goBack: () => void;
-    canGoBack: () => boolean;
-    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
-  }>();
+  const nav = useNavigation<LeavingNav>();
   const route = useRoute<RouteProp<RootStackParamList, 'Drill'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;
@@ -522,12 +508,10 @@ function DrillRoute() {
       // that cannot resume) comes through here. With a screen behind it, back
       // is back. Opened cold, by a reload or a shared address, there is nothing
       // behind it, so a practice sitting returns to the Practice tab and any
-      // other drill to the tabs, rather than a Leave that does nothing.
-      onDone={() => {
-        if (nav.canGoBack()) nav.goBack();
-        else if (practice !== undefined) nav.navigate('Tabs', { screen: 'Practice' });
-        else nav.navigate('Tabs');
-      }}
+      // other drill to the tabs, rather than a Leave that does nothing; and the
+      // drill is closed on the way, so its holds on the celebration queue lift
+      // (F775).
+      onDone={() => backOrTabs(nav, practice !== undefined ? 'Practice' : undefined)}
       onFinished={(nodeId) => void markPractisedNode(nodeId)}
       // The existing phone-only mark, kept for compatibility with the next
       // step and the session cards. Only a pack whose own targets were
@@ -540,11 +524,7 @@ function DrillRoute() {
 }
 
 function ReviewRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
-    navigate: (screen: 'Tabs', params?: { screen: keyof TabParamList }) => void;
-  }>();
+  const nav = useNavigation<LeavingNav>();
   return <ReviewScreen onDone={() => backOrTabs(nav, 'Practice')} />;
 }
 
@@ -667,11 +647,7 @@ function ConversationPracticeRoute() {
 }
 
 function SoundCheckRoute() {
-  const nav = useNavigation<{
-    canGoBack: () => boolean;
-    goBack: () => void;
-    navigate: (screen: 'Tabs' | 'Missions', params?: { screen: keyof TabParamList }) => void;
-  }>();
+  const nav = useNavigation<LeavingNav & { navigate: (screen: 'Missions') => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'SoundCheck'>>();
   const { user } = useAuth();
   if (!user) return <Loading />;

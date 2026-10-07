@@ -12,7 +12,11 @@
  * A sheet that moves on by itself can be tapped to move on sooner. One that
  * waits (the second miss, or any sheet while a screen reader is on) carries its
  * own Continue, drawn here so the drill's own pill count stays what it is
- * (`DrillScreen.test.ts`). The sheet is announced as it arrives.
+ * (`DrillScreen.test.ts`). A sheet that moves on by itself is announced as it
+ * arrives. One that waits moves a phone's screen reader onto its Continue once
+ * the sheet has risen, and Continue's name carries the whole sheet, so it is
+ * heard once and the learner is already on the way on (F775). On the web the
+ * live region speaks and focus stays where the learner put it.
  *
  * It slides up and its mark pops in through the motion primitives (`Enter`),
  * which land on the final frame under reduced motion, watched live. It plays
@@ -20,14 +24,14 @@
  * `sheetEffects.ts`, at the moment the answer settles.
  */
 
-import { useEffect } from 'react';
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, findNodeHandle } from 'react-native';
 
 import { CheckGlyph, PillButton } from '../components.tsx';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
 import { HAIRLINE, HIT, colour, decorative, frenchText, onColour, paper, radius, space, textOn, type } from '../theme.ts';
-import { SHEET_COPY, type AnswerSheetModel, type SheetTone } from './answerSheet.ts';
+import { SHEET_COPY, continueName, sheetArrival, type AnswerSheetModel, type SheetTone } from './answerSheet.ts';
 
 /** How far the sheet rises as it arrives. */
 const RISE = space(6);
@@ -58,11 +62,30 @@ export function AnswerSheet({
   const ground = GROUND[sheet.tone];
   const waits = sheet.autoAdvanceMs === null;
   const spoken = spokenSheet(sheet, note);
+  const named = continueName(spoken);
+  const arrival = sheetArrival(sheet, Platform.OS === 'web');
 
-  // Said once as it arrives, and again if the scorer's line joins it.
+  const continueRef = useRef<View>(null);
+  // True once a screen reader has been moved onto Continue for this sheet.
+  const placed = useRef(false);
+  // A sheet that waits moves the reader onto its Continue once, after it has
+  // risen, so there is something there to land on; if it cannot, the sheet is
+  // announced instead. One that moves on by itself is announced as it arrives.
+  // Either is said again if the scorer's line joins it.
   useEffect(() => {
-    if (Platform.OS !== 'web') AccessibilityInfo.announceForAccessibility(spoken);
-  }, [spoken]);
+    if (arrival === 'live-region') return undefined;
+    if (arrival === 'focus-continue' && !placed.current) {
+      const timer = setTimeout(() => {
+        placed.current = true;
+        const handle = findNodeHandle(continueRef.current);
+        if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+        else AccessibilityInfo.announceForAccessibility(spoken);
+      }, DUR.fast);
+      return () => clearTimeout(timer);
+    }
+    AccessibilityInfo.announceForAccessibility(spoken);
+    return undefined;
+  }, [spoken, arrival]);
 
   const body = (
     <View style={st.row}>
@@ -96,10 +119,10 @@ export function AnswerSheet({
         {waits ? (
           <>
             {body}
-            <PillButton label={SHEET_COPY.continue} onPress={onContinue} />
+            <PillButton ref={continueRef} label={SHEET_COPY.continue} accessibilityLabel={named} onPress={onContinue} />
           </>
         ) : (
-          <Pressable onPress={onContinue} accessibilityRole="button" accessibilityLabel={`${spoken} ${SHEET_COPY.continue}`} style={st.tap}>
+          <Pressable onPress={onContinue} accessibilityRole="button" accessibilityLabel={named} style={st.tap}>
             {body}
           </Pressable>
         )}

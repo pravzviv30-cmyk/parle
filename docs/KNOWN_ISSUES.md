@@ -10267,9 +10267,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F775 — Four small gaps the core-loop review found
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/drill/AnswerSheet.tsx:99, apps/mobile/src/nav/RootNavigator.tsx:128, apps/mobile/src/nav/useBackToHome.ts:5, apps/mobile/src/DrillScreen.tsx:1789, apps/mobile/src/celebrate/queue.ts:444
 - note: Found by the 7 October core-loop review (verdict SHIP). A waiting answer sheet leaves screen-reader focus behind; a sitting opened cold on the web is never closed, so its celebration holds never lift; a drill end that waited out its delta can swap to the end card mid-read with a second finish haptic; and a moment waiting behind a sitting hold can expire after 10 minutes and never play (also raised by the merged Phase 1 re-check).
+- note 2026-10-07, ca/p4-followups (step P4-D): a sheet that waits moves a phone's screen reader onto its Continue once it has risen (drill/answerSheet.ts sheetArrival; Continue's name carries the whole sheet, and PillButton now forwards a ref); every exit from a pushed sitting goes through nav/leave.ts backOrTabs, which resets to the tabs when nothing is behind it, so a cold sitting unmounts and its holds lift (RootNavigator and useBackToHome); the drill end waits inside its screen with Done, and practice/sittingDelta.ts sittingEnd keeps the words-only finish once the wait has run out; the queue's time to live runs only on unheld time, so a held moment keeps its crash copy. Each title failed against fbe958ce. Checked in a web build, not on a device.
 - verified-by: `a waiting answer sheet moves screen-reader focus to Continue`
 - verified-by: `leaving a sitting opened cold on the web closes it and lets its holds go`
 - verified-by: `a drill end that waited out its delta keeps the words-only finish`

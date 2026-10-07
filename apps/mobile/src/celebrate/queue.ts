@@ -40,7 +40,10 @@
  * - **Sign-out.** A new scope generation clears the queue without a write: the
  *   account that left keeps its own pending moments for its next sign-in.
  * - **Time to live.** A moment that waits longer than `CELEBRATION_TTL_MS` is
- *   dropped.
+ *   dropped, with its crash-replay copy. Only time the queue spends unheld
+ *   counts: a moment waiting behind a sitting, a sheet, a microphone or the
+ *   app being away never expires while that lasts, and keeps its crash-replay
+ *   copy (F775).
  */
 
 import { badgeFor, isDayKey } from '@luvani/core';
@@ -348,7 +351,8 @@ export interface CelebrationQueue {
   waitingKeys(): string[];
 }
 
-type Entry = { readonly event: CelebrationEvent; readonly receivedAt: number; readonly generation: number };
+/** `openAt`: the queue's unheld clock when the moment arrived (`openClock`). */
+type Entry = { readonly event: CelebrationEvent; readonly openAt: number; readonly generation: number };
 type Showing = { card: TakeoverCard; readonly generation: number; final: boolean };
 
 export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
@@ -374,6 +378,23 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
   let snap: QueueSnapshot = { current: null, paused: false, toast: null };
 
   const held = (): boolean => celebrationsHeld() || celebrationsSuppressed() || micLive() || liveRoom() || !active;
+
+  // The unheld clock: how long the queue has spent not held, in ms. A moment's
+  // time to live runs on this clock, so time behind a hold never counts
+  // (F775). Every change of hold reaches `pump` (or `suppress`, which empties
+  // the queue), and both read the clock first, so each stretch is counted in
+  // the state it was spent in.
+  let openMs = 0;
+  let markedAt: number | null = null;
+  let markedHeld = true;
+  function openClock(): number {
+    const now = deps.now();
+    if (markedAt !== null && !markedHeld) openMs += Math.max(0, now - markedAt);
+    markedAt = now;
+    markedHeld = held();
+    return openMs;
+  }
+
   const memoryKey = (generation: number, event: CelebrationEvent): string => `${generation}:${event.type}:${event.key}`;
 
   /** A store call that may throw before it returns (no account to bind a key to) or reject: either is swallowed. */
@@ -404,7 +425,7 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
 
   function admit(event: CelebrationEvent, generation: number): void {
     const now = deps.now();
-    waiting.push({ event, receivedAt: now, generation });
+    waiting.push({ event, openAt: openClock(), generation });
     if (isRememberedInSeen(event) && generation === deps.generation()) {
       const at = Number.isSafeInteger(event.at) && event.at > 0 ? event.at : now;
       safely(() => deps.enqueuePending([{ key: event.key, at }]));
@@ -427,15 +448,15 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
     }, RESUME_AFTER_MS);
   }
 
-  /** Drop what timed out and what belongs to an account that has gone. */
+  /** Drop what timed out, on the unheld clock, and what belongs to an account that has gone. */
   function expire(): void {
-    const now = deps.now();
+    const open = openClock();
     const generation = deps.generation();
     const kept: Entry[] = [];
     const timedOut: string[] = [];
     for (const entry of waiting) {
       if (entry.generation !== generation) continue;
-      if (now - entry.receivedAt >= CELEBRATION_TTL_MS) {
+      if (open - entry.openAt >= CELEBRATION_TTL_MS) {
         if (isRememberedInSeen(entry.event)) timedOut.push(entry.event.key);
         continue;
       }
@@ -450,12 +471,14 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
       deps.clearTimer(ttlTimer);
       ttlTimer = null;
     }
-    if (waiting.length === 0) return;
-    const due = Math.min(...waiting.map((entry) => entry.receivedAt + CELEBRATION_TTL_MS));
+    // Held, nothing ages: the hold's release pumps, and the timer is set again from there.
+    if (waiting.length === 0 || held()) return;
+    const open = openClock();
+    const left = Math.min(...waiting.map((entry) => entry.openAt + CELEBRATION_TTL_MS - open));
     ttlTimer = deps.setTimer(() => {
       ttlTimer = null;
       pump();
-    }, Math.max(0, due - deps.now()));
+    }, Math.max(0, left));
   }
 
   /** The run has put on screen every card its budget allows. */
@@ -559,6 +582,7 @@ export function createCelebrationQueue(deps: QueueDeps): CelebrationQueue {
    * ignored, so its copy would otherwise replay on the next launch (F766).
    */
   function suppress(): void {
+    openClock();
     const generation = deps.generation();
     const unplayed = [
       ...waiting.filter((entry) => entry.generation === generation).map((entry) => entry.event),

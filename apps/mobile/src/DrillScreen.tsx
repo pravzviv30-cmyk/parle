@@ -1714,15 +1714,17 @@ export function DrillScreen({
   // says anything, and then says only what the outcomes support. A plan this
   // screen completed also waits, briefly, for the settle to read the sitting
   // back, so the end card's numbers arrive with the card and never after it.
+  // The wait is drawn inside the screen with its Done, so there is a way out
+  // while it lasts (F775).
   if (practice !== undefined && session.finished) {
     const held = practiceRef.current;
     if (practiceSaved === 'waiting' || held === null || end.state === 'waiting') {
       return (
-        <Screen>
-          <View style={ds.loading}>
+        <ScrollScreen footer={doneFooter}>
+          <View style={ds.ending}>
             <ActivityIndicator color={paper.inkSoft} />
           </View>
-        </Screen>
+        </ScrollScreen>
       );
     }
     // What the sitting showed, read by the data store's own rule, so the card
@@ -1781,25 +1783,19 @@ export function DrillScreen({
   // The end card: the one place numbers are allowed, where they have context,
   // and every one of them is the settle's read-back of this sitting (the
   // count of answers it got right is the sitting's own). While the settle is
-  // still reading it back, the card waits; if it never answers, the finish
-  // stands in words with no number at all. Terminal, so Done alone, no back
-  // header.
+  // still reading it back, the card waits inside the screen with its Done; if
+  // it never answers, the finish stands in words with no number at all, felt
+  // once, and a delta that lands after that is not drawn (`sittingEnd`,
+  // F775). Terminal, so Done alone, no back header.
   if (session.finished) {
     const s = summariseDrill(session);
-    if (end.state === 'waiting') {
-      return (
-        <Screen>
-          <View style={ds.loading}>
-            <ActivityIndicator color={paper.inkSoft} />
-          </View>
-        </Screen>
-      );
-    }
     return (
       <ScrollScreen footer={doneFooter}>
         <View style={ds.ending}>
           {end.state === 'settled' ? (
             <EndCard delta={end.delta} count={s.resolved} release={release} />
+          ) : end.state === 'waiting' ? (
+            <ActivityIndicator color={paper.inkSoft} />
           ) : (
             <Card>
               <FinishFelt />

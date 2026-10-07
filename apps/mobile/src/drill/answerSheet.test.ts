@@ -23,7 +23,9 @@ import {
   SAID_IT_LINE,
   SHEET_AUTO_MS,
   SHEET_COPY,
+  continueName,
   ownWordsLook,
+  sheetArrival,
   sheetFor,
   type AnswerSheetModel,
   type SheetHaptic,
@@ -151,7 +153,7 @@ describe('the answer sheet — F759', () => {
     assert.match(screen, /<AnswerSheet key=\{beatRef\.current\} sheet=\{sheet\} note=\{focusLine\} onContinue=\{advance\} \/>/);
     const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
     assert.match(sheetFile, /const waits = sheet\.autoAdvanceMs === null;/);
-    assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton label=\{SHEET_COPY\.continue\} onPress=\{onContinue\} \/> <\/> \)/, 'a sheet that waits has no Continue');
+    assert.match(sheetFile, /\{waits \? \( <> \{body\} <PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/> <\/> \)/, 'a sheet that waits has no Continue');
   });
 
   test('a miss draws no mark, plays no sound and fires no haptic', () => {
@@ -197,5 +199,69 @@ describe('the answer sheet — F759', () => {
     // The own-words card: no mark for a retry or a reveal.
     const view = screen.slice(screen.indexOf('function OwnWordsView('), screen.indexOf('export function DrillScreen('));
     assert.match(view, /\{look\.mark && \(/, 'the own-words card draws its mark from something other than the decision');
+  });
+});
+
+describe('a waiting answer sheet takes the screen reader with it — F775', () => {
+  test('a waiting answer sheet moves screen-reader focus to Continue', () => {
+    const first = feedback(sitting([listen()]), 'je ne sais pas');
+    const second = sheetOf(feedback(first.state, 'toujours pas').fb, 'listen-type', false);
+    const good = sheetOf(feedback(sitting([listen()]), 'ça marche').fb, 'listen-type', false);
+    assert.equal(second.autoAdvanceMs, null, 'the second miss no longer waits, so this reads nothing');
+    assert.ok(good.autoAdvanceMs !== null);
+
+    // On a phone, a sheet that waits moves the reader onto its Continue; one
+    // that moves on by itself is said and leaves focus where it is.
+    assert.equal(sheetArrival(second, false), 'focus-continue', 'the second miss leaves the reader on an answer that has gone');
+    assert.equal(sheetArrival(good, false), 'announce');
+    // A screen reader on, or not yet known to be off: every sheet waits, so every one takes focus to Continue.
+    for (const reader of [true, null] as const) {
+      for (const sheet of [
+        sheetOf(feedback(sitting([listen()]), 'ça marche').fb, 'listen-type', reader),
+        sheetOf(feedback(sitting([listen()]), 'ça marchee').fb, 'listen-type', reader),
+        sheetOf(first.fb, 'listen-type', reader),
+      ]) {
+        assert.equal(sheetArrival(sheet, false), 'focus-continue', `"${sheet.headline}" leaves a screen reader behind (${String(reader)})`);
+      }
+    }
+    // On the web nothing is moved: the live region speaks.
+    for (const sheet of [second, good]) assert.equal(sheetArrival(sheet, true), 'live-region');
+
+    // Continue carries the whole sheet, so landing on it says the sheet once,
+    // in reading order, and then what the button does.
+    const spoken = "Here's how it goes. ça marche It'll come back in your review.";
+    assert.equal(continueName(spoken), `${spoken} Continue`);
+    assertWarm(continueName("Here's how it goes. It'll come back in your review."));
+
+    // The sheet does what the decision says: the waiting Continue holds a ref,
+    // and on a phone, once the sheet has risen, focus is moved onto it through
+    // its native handle. If there is no handle, the sheet is announced instead.
+    const sheetFile = stripComments(read('./AnswerSheet.tsx')).replace(/\s+/g, ' ');
+    assert.match(sheetFile, /const continueRef = useRef<View>\(null\);/, 'the sheet holds no ref to its Continue');
+    assert.match(sheetFile, /const arrival = sheetArrival\(sheet, Platform\.OS === 'web'\);/, 'the sheet decides its arrival some other way');
+    assert.match(sheetFile, /const named = continueName\(spoken\);/, 'Continue is not named for the sheet');
+    assert.match(sheetFile, /<PillButton ref=\{continueRef\} label=\{SHEET_COPY\.continue\} accessibilityLabel=\{named\} onPress=\{onContinue\} \/>/, 'the waiting Continue cannot be focused, or is not named for the sheet');
+    const effect = sheetFile.slice(sheetFile.indexOf('useEffect(() => {'), sheetFile.indexOf('}, [spoken, arrival]);'));
+    assert.ok(effect.length > 0, 'the arrival effect moved; this test is stale');
+    assert.match(effect, /if \(arrival === 'live-region'\) return undefined;/, 'the web moves focus or announces over its own live region');
+    assert.match(
+      effect,
+      /if \(arrival === 'focus-continue' && !placed\.current\) \{ const timer = setTimeout\(\(\) => \{ placed\.current = true; const handle = findNodeHandle\(continueRef\.current\); if \(handle\) AccessibilityInfo\.setAccessibilityFocus\(handle\); else AccessibilityInfo\.announceForAccessibility\(spoken\); \}, DUR\.fast\); return \(\) => clearTimeout\(timer\); \}/,
+      'a waiting sheet does not move the screen reader onto Continue once it has risen',
+    );
+    assert.ok(effect.indexOf('setAccessibilityFocus') < effect.lastIndexOf('AccessibilityInfo.announceForAccessibility(spoken); return undefined;'), 'a sheet that moves on by itself is no longer announced');
+    // The tap-to-move-on sheet is named the same way, so both say the sheet before the word.
+    assert.match(sheetFile, /<Pressable onPress=\{onContinue\} accessibilityRole="button" accessibilityLabel=\{named\}/, 'the tap-to-move-on sheet is named some other way');
+
+    // PillButton hands the ref to its press, and the press to the pressable that a reader lands on.
+    const components = stripComments(read('../components.tsx')).replace(/\s+/g, ' ');
+    const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function OutlineButton('));
+    assert.match(pill, /ref\?: Ref<View>;/, 'PillButton takes no ref');
+    assert.match(pill, /<Press haptic="light"[^>]*ref=\{ref\}>/, 'PillButton does not hand its ref to the press');
+    const pressProps = components.slice(components.indexOf('export type PressProps'), components.indexOf('export type Ground'));
+    assert.match(pressProps, /ref\?: Ref<View>;/, 'Press drops a ref before it reaches the pressable');
+    const press = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
+    assert.match(press, /children, \.\.\.rest \}: PressProps\)/, 'the press no longer passes the rest of its props on');
+    assert.match(press, /<Pressable accessibilityRole="button" \{\.\.\.rest\}/, 'the press does not pass the ref on to its pressable');
   });
 });
