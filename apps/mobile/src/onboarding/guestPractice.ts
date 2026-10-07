@@ -10,6 +10,8 @@ import { checkStarter, type StarterFeedback, type StarterTask } from '@luvani/co
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 const KEY = '@luvani/guest-practice/v2';
 import { repairGuestPractice, type GuestPractice, type GuestAttempt } from './guestModel.ts';
+import { keepFinishes, starterMinutes } from './guestProgress.ts';
+import { starterFailure } from './firstRun/speech.ts';
 export type { GuestPractice, GuestAttempt } from './guestModel.ts';
 let writes: Promise<unknown> = Promise.resolve();
 let writeGeneration = 0;
@@ -56,19 +58,34 @@ async function post(
     },
     body: (bytes ?? JSON.stringify(value)) as BodyInit,
   });
-  if (!response.ok)
-    throw new Error(
-      response.status === 410 ? 'expired' : response.status === 409 ? 'limit' : 'unavailable',
-    );
+  // A take the service will not transcribe (guest speech closed or its budget
+  // spent) is a 503 from /onboarding/audio that says so. It spent no attempt,
+  // so the first run moves calmly to typing rather than saying the tutor cannot
+  // connect (F756). A failed transcription is a 503 from the same path after
+  // the attempt was reserved: that one is a broken connection, with Try again.
+  if (!response.ok) {
+    const said =
+      response.status === 503 && path === 'audio'
+        ? await response.json().then(
+            (body: unknown) => (body as { error?: unknown } | null)?.error,
+            () => undefined,
+          )
+        : undefined;
+    throw new Error(starterFailure(response.status, path, said));
+  }
   return (await response.json()) as Record<string, unknown>;
 }
-export async function startGuestPractice(plan: PreAccountOnboardingDraft): Promise<GuestPractice> {
+/**
+ * A new guest practice from the service. `prior` is the record it replaces: the
+ * days it saw finished stay with the phone (F751), and nothing else of it does.
+ */
+export async function startGuestPractice(plan: PreAccountOnboardingDraft, prior: GuestPractice | null = null): Promise<GuestPractice> {
   if (!plan.eligibilityConfirmed) throw new Error('eligibility required');
   const data = await post('start', {
     eligible: true,
     goal: plan.reason ?? 'food',
     drink: plan.drink ?? 'coffee',
-    minutes: plan.minutes ?? 5,
+    minutes: starterMinutes(plan.minutes),
     analyticsAllowed: plan.analyticsConsent === true,
     variant: process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? 'five' : 'full',
   });
@@ -90,12 +107,15 @@ export async function startGuestPractice(plan: PreAccountOnboardingDraft): Promi
     completed: false,
     plan,
   };
-  const valid = repairGuestPractice(next);
+  // The carried days go through the same repair as the rest, so the new record
+  // holds them exactly as a record read back from the disk would.
+  const valid = repairGuestPractice(keepFinishes(next, prior));
   if (!valid) throw new Error('unavailable');
   return valid;
 }
-export function offlineGuestPractice(plan: PreAccountOnboardingDraft): GuestPractice {
-  return {
+/** A local practice with no capability; like a started one, it keeps the days `prior` saw finished (F751). */
+export function offlineGuestPractice(plan: PreAccountOnboardingDraft, prior: GuestPractice | null = null): GuestPractice {
+  const local: GuestPractice = {
     version: 2,
     token: null,
     expiresAt: 0,
@@ -106,6 +126,7 @@ export function offlineGuestPractice(plan: PreAccountOnboardingDraft): GuestPrac
     completed: false,
     plan,
   };
+  return keepFinishes(local, prior);
 }
 export async function sendGuestAttempt(
   guest: GuestPractice,

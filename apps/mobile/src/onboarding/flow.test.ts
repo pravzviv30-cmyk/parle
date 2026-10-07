@@ -8,10 +8,11 @@ test('device history chooses the door but a new account always receives onboardi
   assert.equal(accountEntry(true, true), 'app'); assert.equal(accountEntry(true, false), 'repair');
 });
 test('the five-surface experiment omits ability and never counts optional ability as earned progress', () => {
-  assert.equal(FULL_SETUP.length, 6); assert.equal(FIVE_SETUP.length, 5);
+  assert.equal(FULL_SETUP.length, 5); assert.equal(FIVE_SETUP.length, 4);
+  assert.ok(!FULL_SETUP.includes('frequency') && !FIVE_SETUP.includes('frequency'), 'the retired days-a-week page is still in the setup');
   const draft = { ...freshPreAccountDraft(), drink: 'tea', reason: 'trip', startLevel: 'few', minutes: 10, frequency: 5 } as const;
   assert.equal(earnedChoices(freshPreAccountDraft()), 0);
-  assert.equal(earnedChoices(draft), 5); assert.equal(earnedChoices(draft, true), 4);
+  assert.equal(earnedChoices(draft), 4); assert.equal(earnedChoices(draft, true), 3);
   assert.equal(nextSetup('reason', true), 'time'); assert.equal(nextSetup('reason'), 'start-level');
   assert.equal(nextSetup('plan'), 'plan');
 });

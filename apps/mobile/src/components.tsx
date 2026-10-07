@@ -68,6 +68,7 @@ import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
+import { READING } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
 
 // ─────────────────────────────────────────────────────────────── drawn icons
@@ -211,10 +212,11 @@ export function Label({ children, color = paper.inkSoft }: { children: React.Rea
 /**
  * The one primary action on a screen (SNIPPETS button-primary): a 56pt pill,
  * fully rounded. Ink with white lettering on paper, sun, mint or white; white
- * with ink lettering on blue or coral. Disabled is the sand skeleton with soft
- * ink lettering in either tone (come alive, icons section 3.4): a soft ink
- * pill with white words read as a live one, so the off pill is quieter than
- * any live control rather than a second dark one.
+ * with ink lettering on blue or coral. Disabled is soft ink lettering on the
+ * sand skeleton for an ink pill, and on the blue ground's pale secondary for a
+ * white one (come alive, icons section 3.4; F758): a soft ink pill with white
+ * words read as a live one, so the off pill is quieter than any live control
+ * rather than a second dark one.
  */
 export function PillButton({
   label,
@@ -234,7 +236,7 @@ export function PillButton({
   tone?: 'ink' | 'white';
 }) {
   return (
-    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && s.pillDisabled]} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
+    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
       {icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk }]}>{label}</Text>
     </Press>
@@ -886,6 +888,9 @@ const s = StyleSheet.create({
   },
   pillWhite: { backgroundColor: paper.card },
   pillDisabled: { backgroundColor: paper.skeleton },
+  // A white pill sits on blue or coral, where the sand reads as one more live
+  // fill; off there is the blue ground's pale secondary (F758).
+  pillDisabledOnColour: { backgroundColor: onColour.blue },
   outline: {
     minHeight: HIT,
     alignItems: 'center',
@@ -1692,8 +1697,15 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  * the way the old centred leave card said its question (F603). `ConfirmSheet`
  * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children, footer, returnFocus }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null } }) {
+export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean }) {
   const insets = useSafeAreaInsets();
+  // F755: while the content runs under the footer, a hairline sits over the
+  // footer and the scroll indicator flashes once per opening (`sheetRunsUnder`).
+  const scroller = useRef<ScrollView>(null);
+  const measures = useRef({ content: 0, viewport: 0, offset: 0 });
+  const [cue, setCue] = useState(false);
+  const flashed = useRef(false);
+  const measureCue = () => setCue(sheetRunsUnder(measures.current.content, measures.current.viewport, measures.current.offset));
   const reduced = useReduceMotion();
   const snapshot = useRef({ title, children, footer });
   if (visible) snapshot.current = { title, children, footer };
@@ -1715,6 +1727,19 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus }
   // The sheet's Modal would sit above the celebration host, so the host waits
   // while one is presented and goes on once it has gone (come alive, F743).
   useEffect(() => (present ? holdCelebrations() : undefined), [present]);
+  // A closed sheet forgets its measures, so the next opening is measured afresh.
+  useEffect(() => {
+    if (visible) return;
+    flashed.current = false;
+    measures.current = { content: 0, viewport: 0, offset: 0 };
+    setCue(false);
+  }, [visible]);
+  useEffect(() => {
+    if (!visible || !cue || flashed.current) return undefined;
+    flashed.current = true;
+    const flash = setTimeout(() => scroller.current?.flashScrollIndicators(), SHEET_CUE_FLASH_MS);
+    return () => clearTimeout(flash);
+  }, [visible, cue]);
   useEffect(() => {
     if (present) { wasOpen.current = true; return; }
     if (wasOpen.current && Platform.OS !== 'web') {
@@ -1747,15 +1772,26 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus }
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <Animated.View accessibilityViewIsModal onAccessibilityEscape={onClose}
-            style={[b.sheetPanel, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
+            style={[b.sheetPanel, reading && b.sheetReading, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
               <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
-              <GhostButton label="Close" onPress={onClose} />
+              <IconButton icon="close" label="Close" onPress={onClose} />
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ gap: space(4) }}>{snapshot.current.children}</ScrollView>
-            {snapshot.current.footer}
+            <ScrollView
+              ref={scroller}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={{ gap: space(4) }}
+              scrollEventThrottle={100}
+              onLayout={(event) => { measures.current.viewport = event.nativeEvent.layout.height; measureCue(); }}
+              onContentSizeChange={(_width, height) => { measures.current.content = height; measureCue(); }}
+              onScroll={(event) => { measures.current.offset = event.nativeEvent.contentOffset.y; measureCue(); }}
+            >{snapshot.current.children}</ScrollView>
+            {snapshot.current.footer != null ? (
+              <View style={cue ? { borderTopWidth: HAIRLINE, borderTopColor: paper.line } : null}>{snapshot.current.footer}</View>
+            ) : null}
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
@@ -1845,6 +1881,8 @@ const b = StyleSheet.create({
   statTile: { backgroundColor: paper.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
   heroRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2.5) },
   sheetOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' },
+  // On an iPad the first run's sheets keep its reading column (come alive, icons section 3.6).
+  sheetReading: { alignSelf: 'center', width: '100%', maxWidth: READING },
   sheetPanel: {
     backgroundColor: paper.card,
     paddingTop: space(3),
@@ -2366,3 +2404,24 @@ const ch = StyleSheet.create({
   hearBeside: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   hearUnder: { flex: 1, minWidth: 0, alignItems: 'center', gap: space(1) },
 });
+
+/**
+ * When a sheet says there is more below (F755; come alive, icons section 3.5).
+ * Appended, like the icon controls above, so no sliced region moves.
+ *
+ * A sheet's footer sits outside its scroll, so a tall sheet on a phone runs its
+ * last controls under the footer with nothing to say they are there: on the
+ * first run's start sheet that was the consent switches. The cue is a flat
+ * hairline over the footer, drawn only while content runs under it, and one
+ * flash of the scroll indicator `SHEET_CUE_FLASH_MS` after it first holds in an
+ * opening. A sheet whose content fits draws no rule, and neither does one
+ * scrolled to its end. Pure, so the rule is tested without a renderer.
+ */
+export const SHEET_CUE_FLASH_MS = 400;
+
+/** True while content runs under the footer: taller than the view, with its end not yet in sight. */
+export function sheetRunsUnder(content: number, viewport: number, offset: number): boolean {
+  if (!(content > 0) || !(viewport > 0)) return false;
+  const seen = Math.max(0, offset) + viewport;
+  return content > viewport + 1 && seen < content - 1;
+}

@@ -10,13 +10,15 @@
 import { starterTasks } from '@luvani/core';
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { SEEDED_GOAL, START_LEVELS, REASONS, firstSceneFor, presetMinutes, planFor } from './plan.ts';
-import { profileFromDraft, reminderFromDraft } from './createFromDraft.ts';
+import { profileFromDraft, reminderFromDraft, reminderSummary } from './createFromDraft.ts';
+import { streakGuiltIn } from '../copy/guilt.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setActiveUser } from '../storage/scope.ts';
 import { loadProfile, saveProfile } from '../profile/store.ts';
@@ -57,7 +59,7 @@ describe('the plan is written at account creation', () => {
       assert.deepEqual(profile.brain.cefr.evidence, []);
       assert.match(view.startingReason, /[Hh]elp/);
       assert.equal(view.starter.id, starterTasks(reason)[0]!.id);
-      assert.equal(profile.practiceDaysPerWeek, null);
+      assert.equal(profile.practiceDaysPerWeek, undefined, 'a new profile still carries a days-a-week answer');
       assert.equal(profile.brain.memory.control?.paused, true);
     }
   });
@@ -101,6 +103,30 @@ describe('the plan is written at account creation', () => {
     assert.deepEqual(reminderFromDraft(draft({ reminderTime: 'night' })), { enabled: false, time: 'night' });
   });
 
+  test('the account review says the reminder is on only when the first run set it, and starting again takes it off the phone', () => {
+    // The words follow the fact the bootstrap saves, never a fixed "off".
+    assert.equal(reminderSummary(freshPreAccountDraft()), 'The reminder is off.');
+    assert.equal(reminderSummary(draft({ reminderTime: 'night' })), 'The reminder is off.', 'a time chosen and never scheduled is said as on');
+    assert.equal(reminderSummary(draft({ reminderEnabled: true, reminderTime: 'morning', reminderDays: [] })), 'The reminder is on at about 8:00 am.');
+    assert.equal(reminderSummary(draft({ reminderEnabled: true })), 'The reminder is on at about 6:00 pm.', 'a set reminder with no time is not said at the evening it runs at');
+    for (const answer of [freshPreAccountDraft(), draft({ reminderEnabled: true, reminderTime: 'lunch' }), draft({ reminderEnabled: false, reminderTime: 'night' })]) {
+      const line = reminderSummary(answer);
+      assert.equal(line.includes(' on at about '), reminderFromDraft(answer).enabled, `"${line}" disagrees with the reminder the account saves`);
+      assert.equal(streakGuiltIn(line), undefined, `"${line}" nags`);
+      assert.doesNotMatch(line, /[—–·!]/);
+    }
+
+    // The review card reads the draft, and Start a new plan instead takes a
+    // first-run reminder off the phone before it lets the draft go.
+    const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function RememberCompletedAccount')).replace(/\s+/g, ' ');
+    assert.ok(boot.includes('Use this starting plan?'), 'the review screen moved; this check reads nothing');
+    assert.match(boot, /Optional usage data: \{draft\.analyticsConsent \? 'on' : 'off'\}\. \{reminderSummary\(draft\)\} You can change these choices in Settings\./, 'the review card says something other than the reminder the draft holds');
+    assert.doesNotMatch(boot, /The reminder is off\./, 'the review card says off whatever the draft holds');
+    assert.match(boot, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\); onConsumed\(\); \};/, 'starting again leaves the first run\'s reminder on the phone, or lets the draft go first');
+    assert.match(boot, /<GhostButton label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    assert.match(APP, /import \{ cancelReminder \} from '\.\/src\/reminders\/schedule\.ts';/);
+  });
+
   test('App.tsx writes consent and the reminder before it releases the app, and opens the first scene', () => {
     // 2026-09-27: keep the ordering pin and require proof the account may adopt a draft.
     const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function CompleteProfileDraftCleanup'));
@@ -117,5 +143,49 @@ describe('the plan is written at account creation', () => {
       'a new learner is not sent to the first scene with Today behind it',
     );
     assert.equal(firstSceneFor(null), 'mission:premier-cafe');
+  });
+});
+
+/**
+ * F752: founder decision D5 replaced days a week with a daily goal. Profile v9
+ * still reads and carries a days-a-week answer already on a disk (the version
+ * chain in `profile/upgrade.ts`), but nothing may write a new one: not account
+ * creation from the first-run draft, and not the Profile row that used to ask.
+ */
+describe('days a week is retired — F752', () => {
+  const SRC = fileURLToPath(new URL('..', import.meta.url));
+  function sources(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) out.push(...sources(full));
+      else if (/\.tsx?$/.test(entry) && !entry.includes('.test.')) out.push(full);
+    }
+    return out;
+  }
+
+  test('nothing writes practiceDaysPerWeek any more', () => {
+    // Account creation from a draft that still holds an old days answer.
+    const profile = profileFromDraft(draft({ frequency: 5, reason: 'food', minutes: 10 }), NOW);
+    assert.equal('practiceDaysPerWeek' in profile, false, 'a new account is written with a days-a-week answer');
+
+    // And in the code: the only places the field is named are the profile
+    // shape, the one retired door that nothing calls, and the version chain
+    // that carries an answer already on a disk.
+    const CARRIERS = new Set(['profile/store.ts', 'profile/upgrade.ts']);
+    const writers: string[] = [];
+    for (const path of sources(SRC)) {
+      const short = relative(SRC, path).split(sep).join('/');
+      const body = strip(readFileSync(path, 'utf8'));
+      for (const m of body.matchAll(/withPracticeDays\(/g)) {
+        const definition = body.slice(Math.max(0, (m.index ?? 0) - 'export function '.length), m.index) === 'export function ';
+        if (!definition) writers.push(`${short} calls withPracticeDays`);
+      }
+      if (!CARRIERS.has(short) && /practiceDaysPerWeek\s*[:=]/.test(body)) writers.push(`${short} writes practiceDaysPerWeek`);
+    }
+    assert.deepEqual(writers, [], `the retired days-a-week answer is still written:\n${writers.join('\n')}`);
+    // Inside the store, only the retired door itself may name a new value.
+    const store = strip(readFileSync(join(SRC, 'profile/store.ts'), 'utf8')).replace(/export function withPracticeDays\([\s\S]*?\n\}/, '');
+    assert.doesNotMatch(store, /practiceDaysPerWeek\s*[:=]/, 'the profile store writes the days answer somewhere new');
   });
 });

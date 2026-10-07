@@ -10070,17 +10070,19 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F751 — A real guest practice still records no finish day
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:483, apps/mobile/src/onboarding/guestPractice.ts:65, apps/mobile/src/onboarding/guestPractice.ts:97
 - note: Found by the 6 October data reviews. F732 gave GuestPractice a finishedAt list and finishGuestPractice, but the first run still persists { ...guest, completed: true }, and starting a new practice drops earlier finish days. Persist finishGuestPractice(guest) where the practice is saved as finished, carry finishedAt forward, and take the hand-off days from guestPracticeDays. Phase 2 (first run).
 - verified-by: `a guest who finishes a practice keeps that day through a new practice and the hand-off`
+- note: 2026-10-06 ca/p2-first-run-2: the first run persists `finishGuestPractice(guest)` before day one (and shows a finish day only once the write lands), `startGuestPractice` and `offlineGuestPractice` take the record they replace and keep its finish days (`keepFinishes` in onboarding/guestProgress.ts, through the same repair), and the hand-off settles the record's days through `guestPracticeDays`. The title failed with the finish saved as `{ ...guest, completed: true }` and with `keepFinishes` carrying nothing.
 
 ### F752 — The retired days-a-week answer is still written
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/ProfileTab.tsx:292, apps/mobile/src/onboarding/createFromDraft.ts:42
 - note: Founder decision D5 replaced days a week with a daily goal, and profile v9 stops writing practiceDaysPerWeek while still reading it, but two writers remain. Remove them with the Phase 2 first run and the Phase 4 Profile goal rows.
 - verified-by: `nothing writes practiceDaysPerWeek any more`
+- note: 2026-10-06 ca/p2-first-run: account creation from the first-run draft no longer writes practiceDaysPerWeek (createFromDraft.ts), and the Profile "Days a week" row, the only caller of withPracticeDays, is gone (ProfileTab.tsx); the version chain still reads and carries an answer already on a disk. withPracticeDays in profile/store.ts now has no caller, for its owner to delete.
 
 ### F753 — A phone whose own clock runs far ahead can still age out recent game rows
 - severity: P3
@@ -10091,41 +10093,46 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F754 — The first run shows no plan, celebrates nothing and asks for things at the wrong moment
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/firstRun
 - note: Founder decisions D5, D13, D14 and README Part 5.C: where, level and daily goal build a visible plan card; the plan is revealed with real numbers; the first win is celebrated only for an accepted real reply; day one, the reminder ask and the save card come only after a finished practice; nothing in the first-run screens sends, stores or records activity before consent.
 - verified-by: `the win shows the learner's line beside the natural line and celebrates only an accepted real reply`
 - verified-by: `the reminder is asked only after a finished practice and only on a real tap`
 - verified-by: `no first-run page component can send, store or record activity`
 - verified-by: `the save card lists only what this phone holds`
+- note: 2026-10-06 ca/p2-first-run-2: day one (`remind`) is reached only from the finish once it is saved, lights the game flame once for a day the finish added (streak sound and celebrate haptic once), counts the run from core's streak rule over the guest's finish days and shows the week; the one shared `reminders/ReminderAsk.tsx` raises the notification dialog only inside the Remind me tap and reports on only after the OS took the schedule (hidden on web); the save card (`keep`) lists only what `guestInvestment` finds on the phone; a resumed draft reaches either page only with a finished practice. Walked in a web build at 390 and 1024 wide, with and without reduced motion; the ask itself, the dialog and the sounds are not yet seen on a device. The ask's "never on a day you have already practised" holds only once the Phase 4 planner skips practised days.
 
 ### F755 — The start sheet hides its last controls under the footer with no cue
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/components.tsx:1818, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:654
 - note: The consent sheet's content runs under the footer rule on a phone and nothing says there is more. Show the footer hairline and flash the scroll indicator only when the content scrolls.
 - verified-by: `the start sheet shows a scroll cue when its content runs under the footer`
+- note: 2026-10-06 ca/p2-first-run: Sheet measures its scroll and draws a hairline over the footer only while `sheetRunsUnder` holds (content taller than the view, its end not in sight), and flashes the scroll indicator once per opening; the start sheet dropped its own footer rule and sits in the 560-point reading column on a wide screen. Seen in the web build at 320, 390 and 1024 wide (cue at 320 and 390, none at 1024 where it fits); not yet seen on a device.
 
 ### F756 — The first run offers speaking when speech is unavailable
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:381
 - note: "Start speaking" is the primary action even when the server says guest speech is off, so learners land on "Speaking is unavailable". Speaking is the default only when speechAvailable is true; otherwise typing is offered first, and a 503 from /onboarding/audio moves calmly to typing (D13).
 - verified-by: `speaking is offered in the first run only when the server says speech is available`
+- note: 2026-10-06 ca/p2-first-run: the start sheet offers Start practice and Practise offline; the practice page opens spoken only when the guest start said speechAvailable for a live, online practice (`firstRun/speech.ts`), Speak instead appears only then, and a 503 from /onboarding/audio is read as `speech-unavailable` and moves to typing with a calm line and nothing to retry. The spoken path is not yet seen on a device.
 
 ### F757 — A kept first-run phrase stores the learner's unchecked spelling
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/GuestAccountHandoff.tsx:71, apps/mobile/src/onboarding/StarterContinuation.tsx:80
 - note: The phrasebook and Home keep what the learner typed, unchecked, instead of the natural line the task models. Keep task.model.
 - verified-by: `a kept first-run phrase is the natural line, never the learner's unchecked spelling`
+- note: 2026-10-06 ca/p2-first-run: the hand-off and Home keep `keptPhrase(task)`, the task's natural line, and the hand-off card and the guest home show the natural line, never the reply as typed or heard.
 
 ### F758 — A disabled Next looks like a live button
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/NextButton.tsx:41, apps/mobile/src/components.tsx:981
 - note: A disabled pill is a slate fill that reads as live. Disabled is paper.skeleton with soft ink; enabling cross-fades to ink with a pop and a glint.
 - verified-by: `a disabled Next looks disabled on every ground`
+- note: 2026-10-06 ca/p2-first-run: Continue is the sand skeleton with soft ink words and arrow, with a hint, when off, and fades to ink with one glint when an answer is chosen; an off white PillButton on blue or coral takes blue's pale secondary. 2026-10-07 ca/p2-first-run-2-r1: motion/MorphButton.tsx, which the first run's Start practice and Send reply use, now draws its off face the same way, sand for ink and blue's pale secondary for white with soft ink words (`a disabled MorphButton never draws the live face`).
 
 ### F759 — A drill answer gets one line of text and no rhythm
 - severity: P2

@@ -107,7 +107,7 @@ describe('the pre-account hand-off', () => {
       page: ['welcome', 'ready', 3, {}, 'PLAN'],
       startLevel: ['beginner', 'A1', 0, true],
       reason: ['holiday', '', ['trip']],
-      minutes: [0, 7, '10', 20, null],
+      minutes: [0, 7, '10', 25, null],
       reminderTime: ['dawn', 18, { value: 'evening' }],
       firstName: ['', '   ', 42, 'x'.repeat(MAX_FIRST_NAME_CHARS + 1), '\u0000'],
     };

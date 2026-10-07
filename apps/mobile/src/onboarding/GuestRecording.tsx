@@ -1,12 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
-import { AudioModule, RecordingPresets, useAudioRecorder } from 'expo-audio';
-import { GhostButton, Press, MicGlyph } from '../components.tsx';
+import { AudioModule, RecordingPresets, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import { IconAction, Press, MicGlyph } from '../components.tsx';
 import { silenceRecordingHaptics } from '../motion/hapticPreference.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { enterRecording, leaveRecording } from '../sound/audioSession.ts';
 import { colour, paper, type } from '../theme.ts';
-/** Twenty-second take, deleted after consumption. No haptic while the microphone is recording. */
+import { FIRST_RUN_COPY, TAKE_CAP_SECONDS } from './firstRun/copy.ts';
+import { meterLevel } from './firstRun/micLevel.ts';
+import { MicMeter } from './firstRun/MicMeter.tsx';
+
+/** The take's recorder, with its level reported so the meter shows the real voice (come alive, first run). */
+const TAKE_OPTIONS = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
+/** How often the meter reads the recorder, in milliseconds. */
+const METER_EVERY_MS = 50;
+
+/**
+ * Twenty-second take, deleted after consumption. No haptic and no sound effect
+ * while the microphone is recording: the microphone holds audio focus. The
+ * microphone permission is asked here, on the tap that starts a take, and
+ * never before (disclosure.test.ts).
+ */
 export function GuestRecording({
   onTake,
   onTyping,
@@ -18,7 +32,8 @@ export function GuestRecording({
   busy: boolean;
   onRecordingChange: (recording: boolean) => void;
 }) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(TAKE_OPTIONS);
+  const take = useAudioRecorderState(recorder, METER_EVERY_MS);
   const [recording, setRecording] = useState(false);
   const [note, setNote] = useState('');
   const active = useRef(true);
@@ -101,7 +116,7 @@ export function GuestRecording({
       onRecordingChange(true);
       timer.current = setTimeout(() => {
         void stop(true);
-      }, 20000);
+      }, TAKE_CAP_SECONDS * 1000);
     } catch {
       if (active.current) {
         setNote('The microphone could not start. You can type instead.');
@@ -119,6 +134,7 @@ export function GuestRecording({
   };
   return (
     <View style={{ alignItems: 'center', gap: 12 }}>
+      {recording ? <MicMeter level={meterLevel(take.metering)} seconds={take.durationMillis / 1000} /> : null}
       <Press
         haptic={recording ? 'none' : 'light'}
         disabled={busy}
@@ -135,15 +151,18 @@ export function GuestRecording({
       >
         <MicGlyph color={recording ? paper.card : paper.ink} />
       </Press>
-      <Text style={type.body}>{recording ? 'Listening. Tap to send.' : 'Tap to speak.'}</Text>
-      <GhostButton
-        label="Type instead"
+      <Text style={type.body}>{recording ? FIRST_RUN_COPY.listening : FIRST_RUN_COPY.tapToSpeak}</Text>
+      <IconAction
+        icon="keyboard"
+        layout="inline"
+        label={FIRST_RUN_COPY.typeInstead}
         disabled={busy}
+        haptic={recording ? 'none' : undefined}
         onPress={() => {
           void stop(false).then(onTyping);
         }}
       />
-      {note ? (
+      {note !== '' ? (
         <Text accessibilityLiveRegion="polite" style={type.small}>
           {note}
         </Text>

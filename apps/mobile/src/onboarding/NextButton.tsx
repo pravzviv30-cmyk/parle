@@ -1,8 +1,28 @@
+/**
+ * The first run's explicit Continue (F601: a choice never advances by itself).
+ *
+ * Off, it looks off on every ground a question page has (F758; come alive,
+ * icons section 3.4): the sand skeleton with soft ink words and arrow, never
+ * the soft ink fill with white words that read as a live button. A screen
+ * reader hears it dimmed, with a hint saying what turns it on. The faces are
+ * `firstRun/nextFace.ts`.
+ *
+ * Turning on, the ink fades in over `DUR.fast` (`firstRun/LiveFace.tsx`,
+ * through motion/drive.ts) and one glint passes (`motion/Glint.tsx`), so the
+ * moment an answer is chosen the way forward says it is ready. The arrow keeps
+ * its 100/140 ms nudge under the finger. Reduced motion: the ink is there at
+ * once and no glint passes, watched live.
+ */
+
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, Text } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { ArrowRight, Press } from '../components.tsx';
-import { paper, type } from '../theme.ts';
+import { decorative, radius, space, type } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
+import { Glint } from '../motion/Glint.tsx';
+import { DUR } from '../motion/tokens.ts';
+import { LiveFace } from './firstRun/LiveFace.tsx';
+import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './firstRun/nextFace.ts';
 
 export function NextButton({ onPress, disabled }: { onPress: () => boolean; disabled: boolean }) {
   const reduced = useReduceMotion();
@@ -24,31 +44,47 @@ export function NextButton({ onPress, disabled }: { onPress: () => boolean; disa
       useNativeDriver: Platform.OS !== 'web',
     }).start();
   };
+  const face = (ink: string) => (
+    <>
+      <Text style={[type.button, { color: ink }]}>{NEXT_LABEL}</Text>
+      <Animated.View style={{ transform: [{ translateX: arrow }] }}>
+        <ArrowRight color={ink} />
+      </Animated.View>
+    </>
+  );
   return (
     <Press
       haptic="light"
       disabled={disabled}
-      accessibilityLabel="Next"
+      accessibilityLabel={NEXT_LABEL}
+      accessibilityHint={disabled ? NEXT_OFF_HINT : undefined}
       accessibilityState={{ disabled }}
       onPress={onPress}
       onPressIn={() => move(4)}
       onPressOut={() => move(0)}
-      style={{
-        minHeight: 56,
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        borderRadius: 16,
-        backgroundColor: disabled ? paper.inkSoft : paper.ink,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-      }}
+      style={[st.surface, { backgroundColor: NEXT_OFF.fill }]}
     >
-      <Text style={[type.button, { color: paper.onInk }]}>Next</Text>
-      <Animated.View style={{ transform: [{ translateX: arrow }] }}>
-        <ArrowRight color={paper.onInk} />
-      </Animated.View>
+      <View style={st.row}>{face(NEXT_OFF.words)}</View>
+      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }]}>
+        <View {...decorative} style={st.face}>
+          {face(NEXT_ON.words)}
+        </View>
+      </LiveFace>
+      <Glint when={!disabled} wait={DUR.fast} radius={radius.control} />
     </Press>
   );
 }
+
+const st = StyleSheet.create({
+  surface: { minHeight: 56, borderRadius: radius.control, overflow: 'hidden' },
+  row: {
+    minHeight: 56,
+    paddingVertical: space(3.5),
+    paddingHorizontal: space(6),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(3),
+  },
+  face: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(3) },
+});

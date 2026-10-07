@@ -7,6 +7,7 @@ import {
 } from '../onboarding/preAccountDraft.ts';
 import { signedOutEntry } from '../onboarding/flow.ts';
 import { clearGuestPractice } from '../onboarding/guestPractice.ts';
+import { cancelReminder } from '../reminders/schedule.ts';
 import { SignUpScreen } from './SignUpScreen.tsx';
 import { SignInScreen } from './SignInScreen.tsx';
 import { Sheet } from '../components.tsx';
@@ -42,6 +43,7 @@ export function AuthFlow({
   const newAccount = () => {
     const draft = refused ? refusalPage() : freshPreAccountDraft();
     void clearGuestPractice();
+    if (initialDraft?.reminderEnabled === true) void cancelReminder();
     setNewDraft(draft);
     if (!refused) onDraftChange(draft);
     setRevision((value) => value + 1);
