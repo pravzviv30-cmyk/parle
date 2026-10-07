@@ -23,10 +23,12 @@ import type { ConversationText } from '@luvani/core';
  * leads with one kept phrase and translation on the screen's one highlighter.
  * It confirms a local save before calling it saved. Then come the learner's lines and one
  * sound (a word first, the notation on request), and "Next time: <the spine's
- * next scene>". Only after all of that does it offer a daily reminder at the
- * time the learner chose, and the phone's notification dialog is raised only
- * when they accept that offer: never before the first win, and never by the
- * card opening. Every one of those decisions is `live/keepsake.ts`'s.
+ * next scene>". Only after all of that does it offer a daily reminder, through
+ * the one shared ask (`reminders/ReminderAsk.tsx`, Come alive Phase 4): at the
+ * learner's chosen time or their own rhythm, naming their tutor, and the
+ * phone's notification dialog is raised only when they tap Remind me: never
+ * before the first win, and never by the card opening. Whether to offer it at
+ * all is `live/keepsake.ts`'s `reminderOffer`.
  *
  * Everything else the closure chose (what went well, the other phrases, the
  * small fix, a focus that is not a sound) is one tap away under a closed More,
@@ -55,7 +57,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
 import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour, decorative } from './theme.ts';
-import { Card, GhostButton, Label, OutlineButton, OptionRow, PillButton, ProgressDots, RoundButton } from './components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, ProgressDots, RoundButton } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { arrived } from './motion/haptics.ts';
 import { holdCelebrations } from './celebrate/queue.ts';
@@ -68,16 +70,17 @@ import { loadMissionCompletions } from './missions/store.ts';
 import { loadDeck } from './review/store.ts';
 import { loadSoundChecks } from './soundcheck/store.ts';
 import { recapLine } from './tutor/recapLine.ts';
-import { loadReminder, saveReminder } from './reminders/store.ts';
-import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission, scheduleReminder } from './reminders/schedule.ts';
-import { REMINDER_TIMES, type ReminderTimeId, type ReminderPermission, type StoredReminder } from './reminders/reminder.ts';
+import { loadReminder } from './reminders/store.ts';
+import { REMINDERS_AVAILABLE, reminderPermission } from './reminders/schedule.ts';
+import { reminderTime, type ReminderMode, type ReminderPermission, type StoredReminder } from './reminders/reminder.ts';
+import { ReminderAsk } from './reminders/ReminderAsk.tsx';
+import { useProfile } from './app/ProfileContext.tsx';
+import { tutorNameOf } from './tutor/tutorName.ts';
 import {
   KEEPSAKE_COPY,
-  acceptReminderOffer,
   nextTimeLine,
   reminderAnswerLine,
   reminderOffer,
-  type ReminderAnswer,
 } from './live/keepsake.ts';
 
 const savedHaptics = new FeedbackLedger();
@@ -128,6 +131,7 @@ export function RecapScreen({
   conversationText?: { ownerId: string; conversation: ConversationText | null };
 }) {
   const { user, adapter } = useAuth();
+  const { profile } = useProfile();
   const ownerScope = useRef(scopeGeneration()).current;
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -154,9 +158,8 @@ export function RecapScreen({
   // way in raises a dialog, and no offer is drawn until both have answered.
   const [stored, setStored] = useState<StoredReminder | null>(null);
   const [permission, setPermission] = useState<ReminderPermission | null>(null);
-  const [offerTime, setOfferTime] = useState<ReminderTimeId | null>(null);
-  const [choosingTime, setChoosingTime] = useState(false);
-  const [reminder, setReminder] = useState<'offered' | 'asking' | 'declined' | ReminderAnswer>('offered');
+  // What the ask answered: still open, put aside, or on at the time it names.
+  const [reminder, setReminder] = useState<'offered' | 'declined' | { on: ReminderMode }>('offered');
 
 
   useEffect(() => {
@@ -206,8 +209,7 @@ export function RecapScreen({
   const nextTime = context === null ? null : nextTimeLine(context.progress);
   // The first-win gate: a recap with nothing in it offers nothing.
   const won = lines.length > 0 || keptPhrase !== null;
-  const offeredReminder = offerTime === null ? stored : { enabled: stored?.enabled ?? false, time: offerTime };
-  const offer = reminderOffer({ available: REMINDERS_AVAILABLE, won, stored: offeredReminder, permission });
+  const offer = reminderOffer({ available: REMINDERS_AVAILABLE, won, stored, permission });
   const hasMore = closure.didWell.length > 0 || otherPhrases.length > 0 || otherFocus !== null;
   const [more, setMore] = useState(false);
   const [soundDetail, setSoundDetail] = useState(false);
@@ -241,18 +243,6 @@ export function RecapScreen({
       cancelled = true;
     };
   }, [keptPhrase?.en, keptPhrase?.fr, keptPhrase?.key, onSave, situation]);
-
-  /**
-   * The learner said yes to the reminder. This is the only place on the card
-   * the phone's notification dialog can be raised, and only when the offer
-   * says a dialog is the honest next step.
-   */
-  const acceptReminder = () => {
-    const owns = () => mounted.current && scopeGeneration() === ownerScope;
-    if (offer === null || reminder !== 'offered' || !owns()) return;
-    setReminder('asking');
-    void acceptReminderOffer(offer, { owns, ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder }).then(answer => { if (owns()) setReminder(answer); });
-  };
 
   const saveLine =
     saveState === 'saved'
@@ -429,24 +419,22 @@ export function RecapScreen({
         {/* Next time: the spine's next scene, the reason to come back. */}
         {nextTime !== null && <Text style={[type.heading, { color: paper.ink }]}>{nextTime}</Text>}
 
-        {/* Only now, a reminder at the learner's chosen time. Accepting it is
-            the one thing on this card that may raise the phone's dialog. */}
+        {/* Only now, the one reminder ask. Its Remind me is the one thing on
+            this card that may raise the phone's dialog. */}
         {offer !== null && reminder !== 'declined' && (
           <View style={st.offer}>
-            {reminder === 'offered' || reminder === 'asking' ? (
-              <>
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{offer.title}</Text>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{offer.body}</Text>
-                <GhostButton label={choosingTime ? 'Keep this time' : 'Change time'} disabled={reminder === 'asking'} onPress={() => setChoosingTime(value => !value)} />
-                {choosingTime && reminder === 'offered' && REMINDER_TIMES.map(time => <OptionRow key={time.value} selected={time.value === offer.time.value} title={time.label} detail={time.gloss} onPress={() => setOfferTime(time.value)} />)}
-                <View style={st.offerActions}>
-                  <OutlineButton label={offer.accept} disabled={reminder === 'asking'} onPress={acceptReminder} />
-                  <GhostButton label={offer.decline} disabled={reminder === 'asking'} onPress={() => setReminder('declined')} />
-                </View>
-              </>
+            {reminder === 'offered' ? (
+              <ReminderAsk
+                time={offer.choice}
+                tutor={tutorNameOf(profile)}
+                onDone={(answer) => {
+                  if (!mounted.current || scopeGeneration() !== ownerScope) return;
+                  setReminder(answer.enabled ? { on: answer.time } : 'declined');
+                }}
+              />
             ) : (
               <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>
-                {reminderAnswerLine(reminder, offer)}
+                {reminderAnswerLine('on', { choice: reminder.on, time: reminderTime(reminder.on) })}
               </Text>
             )}
           </View>
@@ -536,7 +524,6 @@ const st = StyleSheet.create({
   kept: { gap: space(2) },
   savedLine: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(2) },
   offer: { gap: space(2), paddingTop: space(4), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
-  offerActions: { gap: space(1) },
   disclosure: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.6 },
   more: { gap: space(7), marginTop: space(3) },

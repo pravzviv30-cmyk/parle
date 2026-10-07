@@ -1,16 +1,19 @@
 /**
  * The reminder's copy, its honesty mapping, and the one structural promise.
  *
- * Two of the tests here are named in the ledger. F226 holds the words: the same
- * sentence every day, from a builder that takes no arguments, with nothing in
- * it that a learner could read as a debt. F227 holds the shape: no module under
- * `reminders/` may reach the stores that know what the learner has done.
+ * Founder decision D2 (2026-10-04) reversed the old rule here: the reminder
+ * now knows whether the learner practised, so it can skip that day. F226's
+ * fixed sentence and F227's "nothing under reminders can read practice" were
+ * retired with their titles, and the ledger now names F771's tests in
+ * `plan.test.ts`, which hold the new promises. What stays here is the shape
+ * the reversal keeps: exactly one module under `reminders/` may read what the
+ * learner has done, it reads it through the game layer and the guest record
+ * only, and every other module, the words included, still cannot.
  *
- * F227 is the one worth reading twice. A source scan that matches nothing
- * passes forever and defends nothing, so this file does not only run the scan
- * over the real directory — it runs the same matcher over a synthetic module
- * that *does* import `progress/`, and fails if the matcher shrugs. The scan is
- * proven to bite in the same suite that relies on it biting.
+ * A source scan that matches nothing passes forever and defends nothing, so
+ * this file does not only run the scan over the real directory — it runs the
+ * same matcher over a synthetic module that *does* import `progress/`, and
+ * fails if the matcher shrugs.
  *
  * The ban list is checked for rot too. A ban that names `todayFrom` after
  * somebody has renamed `todayFrom` is a ban on nothing, and nothing would ever
@@ -28,17 +31,23 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { guiltIn } from '../copy/guilt.ts';
 import {
+  DEFAULT_REMINDER_MODE,
   DEFAULT_REMINDER_TIME,
   REMINDER_COPY,
   REMINDER_EXPLAIN,
   REMINDER_OFF,
+  REMINDER_PAUSED,
+  REMINDER_PAUSED_VALUE,
   REMINDER_REFUSED,
+  REMINDER_SMART_LABEL,
+  REMINDER_SMART_VALUE,
   REMINDER_TIMES,
-  reminderContent,
+  clockGloss,
+  reminderChoice,
   reminderRow,
   reminderTime,
+  smartGloss,
 } from './reminder.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -132,42 +141,6 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
 }
 
 describe('the daily reminder', () => {
-  test('the reminder says the same words every day and none of them guilt anyone', () => {
-    // Arity zero is the design, not a detail. A builder that took a single
-    // argument could take the learner's day, and then the words on the lock
-    // screen would mean something about whether they had practised yet.
-    assert.equal(
-      reminderContent.length,
-      0,
-      'the content builder takes an argument, so the reminder can vary with something',
-    );
-
-    const first = reminderContent();
-    const second = reminderContent();
-    assert.deepEqual(first, second, 'two calls disagreed, so the words are not fixed');
-    assert.ok(first.title.length > 0 && first.body.length > 0);
-
-    // An arity-zero function can still read the clock, which is the same leak
-    // with the argument hidden inside.
-    const source = readFileSync(join(HERE, 'reminder.ts'), 'utf8');
-    assert.doesNotMatch(
-      source,
-      /Date\.now|new Date|performance\.now/,
-      'the reminder reads a clock, so its words can vary with the time of day',
-    );
-
-    // No digit, no count, no quota. A number on a lock screen is a score.
-    assert.doesNotMatch(`${first.title} ${first.body}`, /\d/, 'the reminder line carries a number');
-
-    assert.ok(REMINDER_COPY.length >= 8, 'the copy list is too short to be the whole surface');
-    assert.ok(REMINDER_COPY.includes(first.title) && REMINDER_COPY.includes(first.body));
-    assert.ok(REMINDER_COPY.includes(REMINDER_EXPLAIN) && REMINDER_COPY.includes(REMINDER_REFUSED));
-    for (const line of REMINDER_COPY) {
-      assert.equal(guiltIn(line), undefined, `guilt in reminder copy: ${line}`);
-      assert.doesNotMatch(line, /—/, `em dash in reminder copy: ${line}`);
-    }
-  });
-
   test('a stored reminder over a refused permission reads as off, with one honest line', () => {
     const row = reminderRow({ enabled: true, time: 'morning' }, 'denied');
     assert.equal(row.on, false, 'a switch that is on over a refusal is a switch that does nothing');
@@ -222,21 +195,171 @@ describe('the daily reminder', () => {
     assert.equal(reminderTime('nonsense').value, DEFAULT_REMINDER_TIME);
     assert.equal(reminderTime(undefined).value, DEFAULT_REMINDER_TIME);
   });
+
+  test("a reminder that paused itself reads Paused with one line, and the smart mode reads as the learner's own time", () => {
+    // Paused: the switch is off, the row says so in one word, and the line says how to bring it back.
+    const paused = reminderRow({ enabled: true, time: 'smart', paused: true }, 'granted');
+    assert.deepEqual(paused, { on: false, value: REMINDER_PAUSED_VALUE, note: REMINDER_PAUSED, asks: false });
+    assert.match(REMINDER_PAUSED, /back on/);
+    // A refusal still wins over a pause, and an undecided permission still explains the ask.
+    assert.equal(reminderRow({ enabled: true, time: 'smart', paused: true }, 'denied').note, REMINDER_REFUSED);
+    assert.equal(reminderRow({ enabled: true, time: 'smart', paused: true }, 'undetermined').note, REMINDER_EXPLAIN);
+
+    // Smart is a mode, not a preset: on, with no clock in the row, because the clock moves with the learner.
+    assert.deepEqual(reminderRow({ enabled: true, time: 'smart' }, 'granted'), { on: true, value: REMINDER_SMART_VALUE, note: '', asks: false });
+    assert.equal(DEFAULT_REMINDER_MODE, 'smart', "a new reminder does not follow the learner's own rhythm");
+    assert.deepEqual(reminderChoice(undefined), { value: 'smart', label: REMINDER_SMART_LABEL });
+    assert.deepEqual(reminderChoice('night'), { value: 'night', label: 'Before bed' });
+    assert.ok(!REMINDER_TIMES.some((time) => (time.value as string) === 'smart'), 'smart joined the presets');
+    assert.equal(smartGloss(null), '6:00 pm until your rhythm shows');
+    assert.equal(smartGloss({ hour: 18, minute: 30 }), 'About 6:30 pm');
+    assert.equal(clockGloss({ hour: 8, minute: 0 }), '8:00 am');
+    assert.equal(clockGloss({ hour: 12, minute: 15 }), '12:15 pm');
+    assert.equal(clockGloss({ hour: 21, minute: 30 }), '9:30 pm');
+
+    // The explaining sentence promises what the planner keeps (plan.test.ts).
+    assert.match(REMINDER_EXPLAIN, /at most one a day/);
+    assert.match(REMINDER_EXPLAIN, /skips days you have already practised/);
+    for (const line of [REMINDER_PAUSED, REMINDER_PAUSED_VALUE, REMINDER_SMART_VALUE, REMINDER_SMART_LABEL]) {
+      assert.ok(REMINDER_COPY.includes(line), `"${line}" is outside the scanned copy`);
+    }
+  });
 });
 
-describe('what a reminder is not allowed to know', () => {
-  test('nothing under reminders can read whether the learner practised', () => {
-    const modules = reminderModules();
-    assert.ok(modules.includes('reminder.ts'), 'the scan found no reminder.ts, so it is scanning nothing');
+/** The planner, the one module under reminders/ that reads what the learner has done, and the doors it may use. */
+const PLANNER = 'ReminderPlanner.tsx';
+/**
+ * The planner's reads: the planner itself, and the one helper it asks for
+ * today's phrase (a `.ts` file, so the phrase is picked where no screen
+ * works out a level, `game/display.test.ts`).
+ */
+const READERS: Readonly<Record<string, readonly string[]>> = {
+  [PLANNER]: ['../game/settle.ts', '../game/view.ts', '../onboarding/guestModel.ts', '../onboarding/guestPractice.ts'],
+  'todayPhrase.ts': ['../game/settle.ts', '../game/view.ts'],
+};
 
+/** Imports that reach the game layer or the guest record. */
+function practiceDoorsIn(source: string): string[] {
+  const found: string[] = [];
+  for (const match of withoutComments(source).matchAll(/(?:from|import|require)\s*\(?\s*'([^']+)'/g)) {
+    const spec = match[1];
+    if (spec === undefined) continue;
+    if (/(^|\/)game\/|guestModel|guestPractice/.test(spec)) found.push(spec);
+  }
+  return found.sort();
+}
+
+/** Every non-test app source that calls `callee(` (its own declaration aside), repo-relative from apps/mobile. */
+function callers(callee: string): string[] {
+  const app = fileURLToPath(new URL('../../App.tsx', import.meta.url));
+  const pattern = new RegExp(`(?<!function\\s)\\b${callee}\\(`);
+  return [...sourceFiles(APP_SRC), app]
+    .filter((file) => !/\.test\.tsx?$/.test(file) && pattern.test(withoutComments(readFileSync(file, 'utf8'))))
+    .map((file) => (file === app ? 'App.tsx' : `src/${file.slice(APP_SRC.length)}`))
+    .sort();
+}
+
+describe('what a reminder is not allowed to know', () => {
+  test('only the planner reads what the learner did, through the game layer and the guest record', () => {
+    const modules = reminderModules();
+    assert.ok(modules.includes('reminder.ts') && modules.includes(PLANNER) && modules.includes('plan.ts') && modules.includes('todayPhrase.ts'), 'the scan found too few modules, so it is scanning nothing');
+
+    // No module here reaches the stores that know, by path or by name, the
+    // planner included: practice arrives through the game layer's facts and the
+    // guest record's finish days, never the progress stores themselves. The
+    // one name allowed is the content standing that picks today's phrase, as
+    // Home picks it, read for its index alone.
     for (const name of modules) {
-      const found = forbiddenIn(readFileSync(join(HERE, name), 'utf8'));
-      assert.deepEqual(
-        found,
-        [],
-        `reminders/${name} can see whether the learner practised: it ${found.join(', ')}. ` +
-          'A notification cancelled because you practised is a streak with the guilt in the scheduler.',
-      );
+      const source = readFileSync(join(HERE, name), 'utf8');
+      const found = forbiddenIn(source);
+      if (name === 'todayPhrase.ts') {
+        assert.deepEqual(found, ['names totalXp'], `reminders/${name} reaches practice state beyond the standing: it ${found.join(', ')}`);
+        assert.equal((withoutComments(source).match(/\btotalXp\(/g) ?? []).length, 1);
+        assert.match(withoutComments(source), /levelFor\(totalXp\(facts\.activity\)\)\.index/, 'the standing is read for more than its index');
+        continue;
+      }
+      assert.deepEqual(found, [], `reminders/${name} reaches practice state directly: it ${found.join(', ')}`);
+    }
+
+    // And only the planner's reads use those doors.
+    for (const name of modules) {
+      const doors = practiceDoorsIn(readFileSync(join(HERE, name), 'utf8'));
+      const allowed = READERS[name];
+      if (allowed !== undefined) {
+        assert.deepEqual(doors, [...allowed].sort(), `reminders/${name} reads practice through a door this test does not know`);
+      } else {
+        assert.deepEqual(doors, [], `reminders/${name} reads what the learner did; only the planner may`);
+      }
+    }
+    const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
+    assert.match(planner, /readGameFacts\(NO_OUTSIDE_FACTS, null\)/, 'the account planner reads practice somewhere other than the streak\'s own facts');
+    assert.match(planner, /practiceDays: guestPracticeDays\(guest\), covers: \[\], finishes: guest\?\.finishedAt \?\? \[\]/, 'the guest planner reads something other than the finish days');
+
+    // The words and the plan read no clock: every instant is handed in.
+    for (const name of ['reminder.ts', 'plan.ts', 'openTarget.ts']) {
+      assert.doesNotMatch(withoutComments(readFileSync(join(HERE, name), 'utf8')), /Date\.now|performance\.now|new Date\(\)/, `${name} reads a clock`);
+    }
+    // The doors scan bites, and leaves prose alone.
+    assert.deepEqual(practiceDoorsIn("import { onSettled } from '../game/settle.ts';\n"), ['../game/settle.ts']);
+    assert.deepEqual(practiceDoorsIn("import { guestPracticeDays } from '../onboarding/guestModel.ts';\n"), ['../onboarding/guestModel.ts']);
+    assert.deepEqual(practiceDoorsIn('/** reads ../game/view.ts */\nexport const x = 1;\n'), []);
+  });
+
+  test('only the profile row can turn the reminder off', () => {
+    // F241, closed by the planner. The worry was a practice surface reaching
+    // in and cancelling the reminder from outside, a notification whose
+    // absence means you did enough. Founder decision D2 made skipping a
+    // practised day the design, and it lives in one place: a practice settles
+    // through the game layer, the planner hears it (`onSettled`) and plans the
+    // next days again. No practice surface touches the reminder itself.
+    //
+    // Turning the reminder off is writing `enabled: false` for this learner,
+    // and only the reminder row in Settings (Profile's, until F576 moved it)
+    // does that. The other two writers record a yes or a pause: App.tsx saves
+    // the first run's answer when the account is made, and the planner saves
+    // a yes from the ask or the pause after the note has gone out.
+    assert.deepEqual(callers('saveReminder'), ['App.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx']);
+    const app = withoutComments(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
+    for (const call of app.match(/saveReminder\([^;]*;/g) ?? []) assert.match(call, /^saveReminder\(reminderFromDraft\(draft\)\);$/, `App.tsx writes a reminder of its own: ${call}`);
+    const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
+    assert.deepEqual(
+      (planner.match(/saveReminder\(\{[^\n]*\}\)/g) ?? []).sort(),
+      ['saveReminder({ ...(stored ?? {}), ...reminder, paused: false })', 'saveReminder({ ...choice, paused: true })'],
+      'the planner writes a choice other than a yes or a pause',
+    );
+    const settings = withoutComments(readFileSync(join(APP_SRC, 'settings', 'SettingsScreen.tsx'), 'utf8'));
+    assert.match(settings, /const toggleReminder = \(next: boolean\) => \{/, 'the row no longer has its switch');
+    assert.match(settings, /onChange=\{toggleReminder\}/);
+
+    // Stopping what is pending (rather than turning it off) is for the row, the
+    // planner, and the doors where a plan or an account leaves: sign-out, the
+    // under-13 answer, a new plan in place of one with a reminder.
+    assert.deepEqual(
+      [...new Set([...callers('cancelReminder'), ...callers('stopReminders')])].sort(),
+      ['App.tsx', 'src/auth/AuthFlow.tsx', 'src/onboarding/PreAccountOnboarding.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx'],
+    );
+
+    // No practice surface imports the reminder at all.
+    const PRACTICE_SURFACES = /^(drill|review|daily|lesson|practice|progress|missions|game|live|tabs|recap|conversationPacks)\//;
+    for (const file of sourceFiles(APP_SRC)) {
+      const relative = file.slice(APP_SRC.length);
+      if (!PRACTICE_SURFACES.test(relative) || /\.test\.tsx?$/.test(relative)) continue;
+      // A type is not a door: `live/keepsake.ts` names the scheduler's outcome word and calls nothing.
+      const imports = [...withoutComments(readFileSync(file, 'utf8')).matchAll(/\bimport\s+(type\s+)?[^;]*?from\s*'([^']+)'|\bimport\(\s*'([^']+)'/g)]
+        .filter((m) => m[1] === undefined)
+        .map((m) => m[2] ?? m[3] ?? '');
+      const reaching = imports.filter((spec) => /reminders\/(schedule|store|ReminderPlanner)/.test(spec));
+      assert.deepEqual(reaching, [], `${relative} reaches the reminder from a practice surface`);
+    }
+    for (const name of ['DrillScreen.tsx', 'ReviewScreen.tsx', 'ConvoScreen.tsx', 'LessonScreen.tsx']) {
+      const path = join(APP_SRC, name);
+      let source = '';
+      try {
+        source = readFileSync(path, 'utf8');
+      } catch {
+        continue;
+      }
+      assert.doesNotMatch(withoutComments(source), /reminders\/(schedule|store|ReminderPlanner)/, `${name} reaches the reminder`);
     }
   });
 

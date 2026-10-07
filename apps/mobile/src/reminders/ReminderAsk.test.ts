@@ -16,13 +16,14 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { checkStarter, starterTasks } from '@luvani/core';
+import { addDays, checkStarter, starterTasks, tutorVoice } from '@luvani/core';
 import { evidence } from '../../test/evidence.ts';
 import { streakGuiltIn } from '../copy/guilt.ts';
 import { finishGuestPractice, guestPracticeDays, type GuestPractice } from '../onboarding/guestModel.ts';
 import { GUEST_PAGES, resumePage } from '../onboarding/guestProgress.ts';
 import { freshPreAccountDraft } from '../onboarding/preAccountDraft.ts';
 import { TUTOR_NAME } from '../tutor/tutorName.ts';
+import { emptyLog, planReminders, type Calendar } from './plan.ts';
 import { REMINDER_REFUSED, REMINDER_TIMES } from './reminder.ts';
 
 const ASK = 'apps/mobile/src/reminders/ReminderAsk.tsx';
@@ -108,27 +109,29 @@ describe('the reminder ask — F754', () => {
     // Answered: on only once the OS took it, every day.
     assert.match(screen, /if \(answer\.enabled\) patch\(\{ reminderEnabled: true, reminderTime: answer\.time, reminderDays: \[\] \}\);/);
 
-    // The ask: the dialog only inside the tap, then the schedule, never from an effect.
+    // The ask: the dialog only inside the tap, then the plan, never from an effect.
+    // (Phase 4: the plan is `turnOnReminder`, which replaced `scheduleReminder`.)
     const ask = code('./ReminderAsk.tsx');
     assert.equal((ask.match(/askReminderPermission\(/g) ?? []).length, 1, 'the dialog can be raised from more than one place');
-    assert.equal((ask.match(/scheduleReminder\(/g) ?? []).length, 1);
+    assert.equal((ask.match(/turnOnReminder\(/g) ?? []).length, 1);
     const handler = ask.slice(ask.indexOf('const remind = async () => {'), ask.indexOf('const gloss ='));
     assert.ok(handler.length > 0, 'the tap handler moved; this check reads nothing');
     assert.ok(handler.includes('askReminderPermission()'), 'the dialog is raised outside the tap handler');
-    assert.ok(handler.indexOf('askReminderPermission()') < handler.indexOf('scheduleReminder('), 'the reminder is scheduled before permission is asked');
+    assert.ok(handler.indexOf('askReminderPermission()') < handler.indexOf('turnOnReminder('), 'the reminder is planned before permission is asked');
     assert.match(handler, /if \(permission !== 'granted'\) \{/, 'a refused permission still schedules');
     assert.match(handler, /if \(outcome !== 'done'\) \{/, 'a refused schedule is reported as on');
     assert.ok(handler.indexOf("outcome !== 'done'") < handler.indexOf('answer({ enabled: true'), 'the answer says on before the OS took it');
     assert.equal((ask.match(/\bremind\(\)/g) ?? []).length, 1, 'the handler is called from somewhere other than the tap');
     assert.match(ask, /onPress=\{\(\) => void remind\(\)\}/, 'Remind me does not raise the dialog');
     for (const effect of effects(ask)) {
-      assert.doesNotMatch(effect, /askReminderPermission|scheduleReminder|remind\(\)/, 'an effect raises the dialog nobody tapped for');
+      assert.doesNotMatch(effect, /askReminderPermission|turnOnReminder|remind\(\)/, 'an effect raises the dialog nobody tapped for');
     }
     // No reminder to give, no card; one answer, once.
     assert.match(ask, /if \(!REMINDERS_AVAILABLE\) return null;/, 'the web shows an ask it cannot keep');
     assert.match(
       evidence(ASK),
-      /const answer = \(value: ReminderAnswer\) => \{ if \(answered\.current\) return; answered\.current = true; onDone\(value\); \};/,
+      // Phase 4: the answer may carry the smart mode when the ask was offered it.
+      /const answer = \(value: ReminderAnswer<T \| ReminderTimeId>\) => \{ if \(answered\.current\) return; answered\.current = true; onDone\(value\); \};/,
       'the ask can answer twice',
     );
   });
@@ -181,5 +184,101 @@ describe('the reminder ask — F754', () => {
     assert.match(ask, /<GhostButton label=\{REMINDER_ASK_COPY\.notNow\}/);
     assert.match(ask, /accessibilityRole="radiogroup"/);
     assert.doesNotMatch(ask, /numberOfLines|allowFontScaling=\{false\}|maxFontSizeMultiplier/, 'the ask caps its text');
+  });
+});
+
+/** A calendar with no time zone, so the test reads the same anywhere. */
+const UTC: Calendar = {
+  dayOf: utcDay,
+  minuteOf: (at) => new Date(at).getUTCHours() * 60 + new Date(at).getUTCMinutes(),
+  at: (day, hour, minute) => Date.parse(`${day}T00:00:00Z`) + (hour * 60 + minute) * 60_000,
+};
+
+describe('the ask keeps its promise — F774', () => {
+  test('the reminder ask promises a skipped practised day only when the scheduler skips it, guest finish days included', () => {
+    // The promise, as the ask says it.
+    assert.match(askCopy().body ?? '', /never on a day you have already practised/);
+
+    // A guest who never makes an account, who finished a practice this morning.
+    // The plan, fed exactly what the guest planner reads (the finish days and
+    // the draft's tutor), skips today and names the tutor the ask named.
+    const [first] = starterTasks('food', 'coffee', 5);
+    assert.ok(first);
+    const morning = Date.UTC(2026, 9, 7, 9);
+    const today = utcDay(morning);
+    const draft = { ...freshPreAccountDraft(), eligibilityConfirmed: true, reason: 'food' as const, drink: 'coffee' as const, minutes: 5 as const, tutorVoice: 'marie' as const, reminderEnabled: true, reminderTime: 'evening' as const };
+    const replied: GuestPractice = {
+      version: 2, token: null, id: null, expiresAt: 0, secondsUsed: 0, kept: false, completed: false, plan: draft,
+      attempts: [{ taskId: first.id, reply: first.model, feedback: checkStarter(first, first.model, 'typed'), at: morning, offline: true }],
+    };
+    const finished = finishGuestPractice(replied, morning, utcDay);
+    const tutor = tutorVoice(draft.tutorVoice).persona.name;
+    const plan = (guest: GuestPractice) =>
+      planReminders({
+        now: morning + 60_000,
+        calendar: UTC,
+        choice: { enabled: true, time: draft.reminderTime },
+        practiceDays: guestPracticeDays(guest, utcDay),
+        finishes: guest.finishedAt ?? [],
+        covers: [],
+        tutor,
+        log: emptyLog(),
+        guest: true,
+      });
+    const afterFinish = plan(finished);
+    assert.ok(afterFinish.length > 0);
+    assert.ok(!afterFinish.some((slot) => slot.day === today), 'a guest who finished today is reminded today');
+    assert.equal(afterFinish[0]?.day, addDays(today, 1));
+    for (const slot of afterFinish) assert.ok(`${slot.title} ${slot.body}`.includes(tutor), `"${slot.title} / ${slot.body}" does not name ${tutor}, the tutor the ask named`);
+    // Replies alone are not a finish: today is still reminded. The skip is the finish's doing.
+    assert.equal(plan(replied)[0]?.day, today);
+
+    // On a phone: the ask hands the planner the tutor it named, and a guest's
+    // yes is planned from the guest's finish days and the draft's tutor.
+    const ask = code('./ReminderAsk.tsx');
+    assert.match(ask, /const outcome = await turnOnReminder\(at, tutor\);/, 'the ask plans a reminder that may name someone else');
+    const planner = code('./ReminderPlanner.tsx');
+    assert.match(planner, /if \(activeUserId\(\) === null\) return replanReminders\(\{ choice: \{ enabled: true, time \}, tutor, resume: true \}\);/);
+    assert.match(planner, /practiceDays: guestPracticeDays\(guest\), covers: \[\], finishes: guest\?\.finishedAt \?\? \[\]/);
+    assert.match(planner, /const tutor = options\.tutor \?\? tutorVoice\(draft\?\.tutorVoice \?\? DEFAULT_TUTOR_VOICE\)\.persona\.name;/, 'a later plan names a tutor other than the one the first run named');
+    assert.match(evidence(SCREEN), /const tutorName = tutorVoice\(draft\.tutorVoice\)\.persona\.name;/);
+    // Planned again whenever the draft moves, which it does once a finish is on
+    // the disk (the finish saves, then turns to day one), and on the way in and
+    // out of the app. The guest planner is mounted wherever nobody is signed in.
+    assert.match(planner, /useEffect\(\(\) => \{\s*void replanReminders\(\{ draft: draftRef\.current \}\);\s*\}, \[moved\]\);/);
+    assert.match(planner, /draft\?\.page \?\? null/, 'a finish (which turns the page) does not re-plan');
+    assert.match(evidence(SCREEN), /if \(!refused\) onDraftChange\(\{ \.\.\.draftRef\.current, page: next \}\);/);
+    const app = code('../../App.tsx');
+    assert.match(app, /<GuestReminderPlanner draft=\{preAccountDraft\} \/>/);
+    assert.match(app, /onDraftChange=\{keepPreAccountDraft\}/);
+    // An account's practice re-plans after every settled sitting.
+    assert.match(planner, /const offSettled = onSettled\(\(\) => \{/);
+    assert.match(app, /<ReminderPlanner \/>/);
+    // And the scheduler can skip a day, because nothing it schedules repeats.
+    const native = code('./schedule.native.ts');
+    assert.doesNotMatch(native, /SchedulableTriggerInputTypes\.(?:DAILY|WEEKLY)/, 'a repeating trigger fires on the day the guest practised');
+    assert.match(native, /SchedulableTriggerInputTypes\.DATE/);
+  });
+
+  test('the notification permission is asked only when the learner accepts the reminder offer', () => {
+    // Moved from RecapScreen.test.ts with its title (Come alive Phase 4, README
+    // Part 7): the recap's reminder is the one shared ask now.
+    const recap = code('../RecapScreen.tsx');
+    // Offered only after a win, from facts already read: read on the way in, never asked.
+    assert.match(recap, /const won = lines\.length > 0 \|\| keptPhrase !== null;/, 'the offer is not gated on the first win');
+    assert.match(recap, /const offer = reminderOffer\(\{ available: REMINDERS_AVAILABLE, won, stored, permission \}\);/);
+    assert.match(recap, /Promise\.all\(\[loadReminder\(\{ strict: true \}\), reminderPermission\(\)\]\)/, 'the recap does not read the permission it offers against');
+    assert.doesNotMatch(recap, /askReminderPermission|requestPermissionsAsync|turnOnReminder|schedulePlan|saveReminder/, 'the recap raises the dialog or plans outside the one ask');
+    // The ask, once, at the learner's time or their own rhythm, naming their tutor.
+    assert.equal((recap.match(/<ReminderAsk\b/g) ?? []).length, 1);
+    assert.match(recap, /<ReminderAsk\s+time=\{offer\.choice\}\s+tutor=\{tutorNameOf\(profile\)\}/);
+    assert.match(recap, /setReminder\(answer\.enabled \? \{ on: answer\.time \} : 'declined'\);/);
+    assert.match(recap, /reminderAnswerLine\('on', \{ choice: reminder\.on, time: reminderTime\(reminder\.on\) \}\)/, 'the answer is not said once the learner has chosen');
+    // Inside the ask: the dialog only on the tap, the times to choose from, and a quiet way to say no.
+    const ask = code('./ReminderAsk.tsx');
+    assert.match(ask, /onPress=\{\(\) => void remind\(\)\}/);
+    assert.match(ask, /REMINDER_TIMES\.map\(/);
+    assert.match(ask, /\{time === 'smart' \? \(\s*<Choice/, 'the learner\'s own rhythm is not offered first');
+    assert.match(ask, /<GhostButton label=\{REMINDER_ASK_COPY\.notNow\}/, 'there is no quiet way to say no');
   });
 });

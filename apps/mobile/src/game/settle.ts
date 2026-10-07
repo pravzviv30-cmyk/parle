@@ -45,7 +45,9 @@
  * that has not been introduced, a badge or a milestone may be months old, and
  * it must never burst onto the screen as news.
  *
- * Re-planning the evening reminder is Phase 4. Its seam is `onSettled`.
+ * The reminder planner (`reminders/ReminderPlanner.tsx`, Phase 4) hears every
+ * settled sitting through `onSettled` and plans the next days again, so a
+ * practice skips today's reminder. This file knows nothing about reminders.
  */
 
 import {
@@ -424,9 +426,8 @@ type Listener = (delta: GameDelta) => void;
 const settledListeners = new Set<Listener>();
 
 /**
- * Hear every sitting once it has settled. The one seam Phase 4's reminder
- * planner hangs off (re-planning tonight's reminder after a practice); the
- * provider refreshes the hooks from it today.
+ * Hear every sitting once it has settled. The reminder planner re-plans from
+ * it (a practice skips today's reminder), and the provider refreshes the hooks.
  */
 export function onSettled(listener: Listener): () => void {
   settledListeners.add(listener);

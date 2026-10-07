@@ -71,6 +71,9 @@ describe('the reminder offer', () => {
     assert.equal(reminderOffer({ ...base, permission: null }), null, 'the offer was drawn before the permission was even read');
     assert.equal(reminderOffer({ ...base, permission: 'denied' }), null, 'the offer argues with a refusal');
     assert.equal(reminderOffer({ ...base, permission: 'granted', stored: { enabled: true, time: 'night' } }), null, 'a reminder already on was offered again');
+    assert.equal(reminderOffer({ ...base, permission: 'granted', stored: { enabled: true, time: 'smart', paused: true } }), null, 'a reminder that paused itself was offered again after it said it would stop');
+    // Nobody has chosen a time yet: the offer follows the learner's own rhythm.
+    assert.equal(reminderOffer(base)?.choice, 'smart');
   });
 
   test('is at the learner\'s chosen time, and says a dialog is coming only when one is', () => {
