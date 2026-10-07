@@ -16,7 +16,7 @@
  * rather than from a second reading of the seconds.
  */
 
-import { PLANS } from '@luvani/core';
+import { PLANS, STORE_TRIAL_DAYS, storeTrialSeconds } from '@luvani/core';
 
 import type { BillingStatus } from './billingStatus.ts';
 
@@ -25,7 +25,7 @@ export type PlanBand = 'plenty' | 'a-little' | 'none';
 export type PlanStatusView =
   | {
       known: true;
-      /** The plan's name, in the words a learner reads: Free trial, Starter, Max. */
+      /** The plan's name, in the words a learner reads: Free minutes, Starter, Max. */
       planLabel: string;
       /** The period, as a distance in words. Never a date. */
       periodLine: string;
@@ -40,8 +40,13 @@ const A_LITTLE_SHARE = 0.25;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * The free minutes every account starts with are "Free minutes", never "Free
+ * trial" (come alive, README Part 5.G): a free trial is the store's own offer
+ * now, and it reads as the plan it is a trial of.
+ */
 export const PLAN_LABELS = {
-  trial: 'Free trial',
+  trial: 'Free minutes',
   starter: PLANS.starter.label,
   regular: PLANS.regular.label,
 } as const;
@@ -84,20 +89,39 @@ function periodLineFor(status: BillingStatus, now: number): string {
   return PERIOD_LINES.renewsLater;
 }
 
-function bandFor(status: BillingStatus): { band: PlanBand; line: string } {
+/**
+ * What "a little" is measured against: the period's allowance, or in a paid
+ * period's last week a week of the plan.
+ *
+ * A store free trial is a week of the plan (allowance x 7/30, F742), and the
+ * server reports it as the plan itself with the trial's end as its period end,
+ * so measured against the month it read "A little speaking time left" from its
+ * first minute. The last week of any paid period is the same case: a week is
+ * all the time left to use the minutes in, so a week of the plan is the
+ * measure. Before that, the month is.
+ */
+function measureFor(status: BillingStatus, now: number): number {
+  const month = PLANS[status.plan].secondsPerPeriod;
+  if (status.plan === 'trial' || status.periodEnd === null) return month;
+  const left = new Date(status.periodEnd).getTime() - now;
+  if (!Number.isFinite(left) || left <= 0 || left > STORE_TRIAL_DAYS * DAY_MS) return month;
+  return Math.min(month, storeTrialSeconds(status.plan));
+}
+
+function bandFor(status: BillingStatus, now: number): { band: PlanBand; line: string } {
   if (!status.canStart) {
     if (status.reason === 'subscription-lapsed') return { band: 'none', line: BAND_LINES.lapsed };
     if (status.reason === 'insufficient-for-session') return { band: 'none', line: BAND_LINES.insufficient };
     return { band: 'none', line: BAND_LINES.exhausted };
   }
-  const allowance = PLANS[status.plan].secondsPerPeriod;
+  const allowance = measureFor(status, now);
   if (status.secondsRemaining < allowance * A_LITTLE_SHARE) return { band: 'a-little', line: BAND_LINES.aLittle };
   return { band: 'plenty', line: BAND_LINES.plenty };
 }
 
 export function planStatusFor(status: BillingStatus | null, now: number): PlanStatusView {
   if (status === null) return { known: false, line: PLAN_UNKNOWN };
-  const { band, line } = bandFor(status);
+  const { band, line } = bandFor(status, now);
   return {
     known: true,
     planLabel: PLAN_LABELS[status.plan],

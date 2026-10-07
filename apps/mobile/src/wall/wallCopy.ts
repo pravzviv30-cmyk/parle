@@ -124,6 +124,12 @@ export const ADDS_ROWS: readonly string[] = [ADDS_SITUATIONS, ADDS_FREELY, ADDS_
 
 export const YOURS_NEXT = 'See the plans';
 /**
+ * The visible way out on page one, when there is a plan to go on to (come
+ * alive, README Part 5.G). Only then: without a store the pill already says
+ * WALL_DONE, and two ways to say the same thing is one too many.
+ */
+export const YOURS_DECLINE = 'Keep practising free';
+/**
  * Where a web learner stops.
  *
  * The web adapter answers `{ available: false }` unconditionally, so page four
@@ -154,7 +160,15 @@ export const PLANS_TERMS = 'Terms of use';
  * consequences of stopping, because page three already said the true thing:
  * everything they have made stays theirs.
  */
-export const PLANS_RENEWAL = 'Plans renew every month until you cancel. You can cancel any time in the store.';
+export const PLANS_RENEWAL = 'Plans renew every month or every year until you cancel. You can cancel any time in the store.';
+
+/**
+ * The two ways to pay for a plan, as the choice under its name (founder
+ * decision D16). The store says how often a product bills (`period`), and the
+ * row says it in these words; nothing here assumes a period from an id.
+ */
+export const PLAN_YEARLY = 'Yearly';
+export const PLAN_MONTHLY = 'Monthly';
 
 /**
  * The one trust line, and both halves of it are already true.
@@ -196,11 +210,16 @@ export function conversationLength(minutes: number): string {
   return `The examples assume ${count(minutes, 'minute')} per conversation. Actual lengths vary. Connected typing also uses live minutes.`;
 }
 
-/** The trial, said in minutes, with what those minutes are in conversations. */
+/**
+ * The free minutes every account starts with, said in minutes and in
+ * conversations. "Free minutes" and never "free trial" (come alive, README
+ * Part 5.G): a free trial is now the store's own offer, and the two are
+ * different things a learner should never have to tell apart from one word.
+ */
 export function trialAllowance(minutes: number, conversations: number): string {
   return conversations >= 1
-    ? `Your free trial is ${count(minutes, 'minute')}, about ${count(conversations, 'conversation')}.`
-    : `Your free trial is ${count(minutes, 'minute')}.`;
+    ? `You start with ${count(minutes, 'free minute')}, about ${count(conversations, 'conversation')}.`
+    : `You start with ${count(minutes, 'free minute')}.`;
 }
 
 /** What is left on the account, rounded down, with what that is in conversations. */
@@ -215,6 +234,112 @@ export function startsFresh(date: string): string {
   return `They start fresh on ${date}.`;
 }
 
+// ── yearly and monthly, in the store's own prices (D16) ────────────────────────
+//
+// Every price here is the store's localised string, passed in whole. The
+// monthly figure beside a yearly price is the store's own `pricePerMonthString`
+// for that product, never a division done on the phone: a price is a formatted
+// string in the store's currency, and arithmetic on it is a price nobody set.
+// Nothing here says how much cheaper one is than another.
+
+/** A yearly price, with the store's own monthly figure when it gave one. */
+export function yearlyPrice(price: string, perMonth: string | null): string {
+  return perMonth === null ? `${price} a year` : `${price} a year, about ${perMonth} a month`;
+}
+
+/** A monthly price. */
+export function monthlyPrice(price: string): string {
+  return `${price} a month`;
+}
+
+/**
+ * The pill once a way to pay is chosen: the plan's name and what it costs per
+ * period, so the button says the same thing as the row it was chosen from.
+ */
+export function buyLabel(name: string, price: string, period: 'month' | 'year'): string {
+  return period === 'year' ? `${name}, ${price} a year` : `${name}, ${price} a month`;
+}
+
+/**
+ * Whether a plan's speaking time covers the learner's own daily goal.
+ *
+ * Both numbers are handed in: the goal the learner chose, and the plan's
+ * minutes a day as `wallPlans.ts` divides the server's catalogue, rounded down.
+ * When the plan covers less, the line says what it does cover and what does the
+ * rest, rather than what it lacks.
+ */
+export function goalFitLine(goal: number, daily: number): string {
+  return daily >= goal
+    ? `Fits your ${goal}-minute daily goal.`
+    : `About ${count(daily, 'minute')} of conversation a day. Free practice covers the rest of your ${goal}-minute goal.`;
+}
+
+// ── the store's free trial (D16), only ever with a real eligible offer ─────────
+//
+// Every number is handed in: the trial's length in days is the store's own
+// introductory period, the minutes are the server's (a week of the plan, from
+// the catalogue it sent), and the day a reminder would come is worked out by
+// the caller and passed as its own number, so no line here does arithmetic.
+
+/** A day on the trial's timeline. */
+export function trialDay(day: number): string {
+  return `Day ${day}`;
+}
+
+/** The first line of the timeline: what happens today. */
+export function trialToday(plan: string): string {
+  return `${plan} starts free. Nothing is charged today.`;
+}
+
+/** What the trial holds, in the server's minutes. Never a month. */
+export function trialMinutes(minutes: number): string {
+  return `During the trial: up to ${count(minutes, 'minute')} with your AI tutor.`;
+}
+
+/**
+ * The reminder line, for a learner who will really be reminded: notifications
+ * allowed, and the reminder scheduled once the server has confirmed the trial.
+ * Otherwise the timeline says `trialCancelBy` instead, which is always true.
+ */
+export const TRIAL_REMIND = 'We will remind you two days before your trial ends.';
+
+/** How to pay nothing, said plainly. The day is the store's last trial day. */
+export function trialCancelBy(day: number): string {
+  return `Cancel in your App Store settings before day ${day} and you pay nothing.`;
+}
+
+/** What the trial becomes, at the store's own price for its period. */
+export function trialThen(plan: string, price: string, period: 'month' | 'year'): string {
+  return period === 'year' ? `${plan} continues at ${price} a year.` : `${plan} continues at ${price} a month.`;
+}
+
+/** The pill for a plan with an eligible free trial. */
+export function startTrialLabel(days: number): string {
+  return `Start ${days}-day free trial`;
+}
+
+/** The trial's terms, right at the button (Apple Guideline 3.1.2). */
+export function trialTerms(days: number, price: string, period: 'month' | 'year'): string {
+  return period === 'year'
+    ? `Free for ${count(days, 'day')}, then ${price} a year until you cancel.`
+    : `Free for ${count(days, 'day')}, then ${price} a month until you cancel.`;
+}
+
+/** Above the timeline. */
+export const TRIAL_TITLE = 'How your free trial works';
+/** The first node's title. */
+export const TRIAL_NOW = 'Today';
+
+// ── the purchase, once the server has confirmed it ─────────────────────────────
+
+/** Under a monthly or yearly plan's minutes: the catalogue's allowance per window. */
+export const SUCCESS_MONTH = 'Your speaking time each month.';
+/**
+ * Under a store trial's minutes (F742): the server's own week of the plan,
+ * never the catalogue's month, because a trial is granted a week.
+ */
+export const SUCCESS_TRIAL = 'Your speaking time during the free trial.';
+
 /** Above the account's own lines on the plans page. */
 export const ACCOUNT_LABEL = 'Your speaking time';
 /** Under a minute is still some, so it is not said as none. */
@@ -227,7 +352,7 @@ export const ACCOUNT_FRESH_NOW = 'They start fresh about now.';
 // ── every ending, in the words each surface needs ──────────────────────────────
 
 /** The wall's own way out. Not a refusal of anything, so it apologises for nothing. */
-export const WALL_LEAVE = 'Maybe later';
+export const WALL_LEAVE = 'Not now';
 /** Forward, on any page that is not the last. */
 export const WALL_NEXT = 'Next';
 /**
@@ -240,6 +365,11 @@ export const WALL_NEXT = 'Next';
 export const WALL_DONE = 'Keep practising';
 export const WALL_READY = 'Your speaking time is ready.';
 export const WALL_BUSY = 'Opening the store…';
+/**
+ * The pill once the store has said yes and the server is confirming the plan.
+ * The check comes only after the server confirms (README Part 5.G).
+ */
+export const WALL_CONFIRMING = 'Checking your plan…';
 
 /**
  * Every line above, flattened for the scan.
@@ -269,6 +399,7 @@ export const WALL_COPY: readonly string[] = [
   ADDS_TITLE,
   ...ADDS_ROWS,
   YOURS_NEXT,
+  YOURS_DECLINE,
   YOURS_ONLY,
   PLANS_TITLE,
   PLANS_SUB,
@@ -278,7 +409,14 @@ export const WALL_COPY: readonly string[] = [
   PLANS_PRIVACY,
   PLANS_TERMS,
   PLANS_RENEWAL,
+  PLAN_YEARLY,
+  PLAN_MONTHLY,
   PLANS_TRUST,
+  TRIAL_REMIND,
+  TRIAL_TITLE,
+  TRIAL_NOW,
+  SUCCESS_MONTH,
+  SUCCESS_TRIAL,
   ACCOUNT_LABEL,
   ACCOUNT_UNDER_A_MINUTE,
   ACCOUNT_NONE_LEFT,
@@ -288,4 +426,5 @@ export const WALL_COPY: readonly string[] = [
   WALL_DONE,
   WALL_READY,
   WALL_BUSY,
+  WALL_CONFIRMING,
 ];

@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ArrowRight, BadgeGlyph, Card, Ledger } from '../components.tsx';
+import { ArrowRight, BadgeGlyph, Card, GhostButton, Ledger } from '../components.tsx';
 import { QuoteGlyph, DocumentGlyph, MouthGlyph, ChatGlyph } from '../glyphs.tsx';
 import { HAIRLINE, onColour, paper, space, type } from '../theme.ts';
 import {
   ADDS_ROWS,
   ADDS_TITLE,
+  YOURS_DECLINE,
   YOURS_ONLY,
   YOURS_ROWS,
   YOURS_SUB,
@@ -26,7 +27,7 @@ import {
  * to: if I stop paying, do I lose what I built. The answer is no, it has always
  * been no, and this page says so before it says anything about a plan.
  */
-export function WallYoursPage({ canBuy }: { canBuy: boolean }) {
+export function WallYoursPage({ canBuy, onLeave }: { canBuy: boolean; onLeave: () => void }) {
   return (
     <View>
       <Text accessibilityRole="header" style={st.title}>{YOURS_TITLE}</Text>
@@ -55,6 +56,15 @@ export function WallYoursPage({ canBuy }: { canBuy: boolean }) {
           closes on the promise it just made rather than on a door that is not
           there. */}
       {!canBuy && <Text style={st.only}>{YOURS_ONLY}</Text>}
+
+      {/* With a plan to go on to, the way out is said here too (come alive,
+          README Part 5.G), so nobody has to see the prices to decline them.
+          Without one the pill already says it. */}
+      {canBuy && (
+        <View style={st.decline}>
+          <GhostButton label={YOURS_DECLINE} onPress={onLeave} />
+        </View>
+      )}
     </View>
   );
 }
@@ -69,4 +79,5 @@ const st = StyleSheet.create({
   divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
   line: { ...type.body, color: paper.ink, flex: 1, minWidth: 0 },
   only: { ...type.body, color: onColour.sun, marginTop: space(6), textAlign: 'center' },
+  decline: { marginTop: space(5), alignItems: 'center' },
 });

@@ -9,8 +9,8 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 import { Card, GhostButton, HeroNumber, PillButton, ProgressDots } from '../components.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { wallSuccess } from './wallSuccess.ts';
-import { perWeekLine } from './wallCopy.ts';
+import { purchasePill, wallSuccess } from './wallSuccess.ts';
+import { SUCCESS_MONTH, SUCCESS_TRIAL, WALL_CONFIRMING, buyLabel, perWeekLine } from './wallCopy.ts';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
@@ -23,11 +23,21 @@ import { WallPlansAtButton, WallPlansPage } from './WallPlansPage.tsx';
 import { WallYoursPage } from './WallYoursPage.tsx';
 import { PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
-import { wallPlanRows } from './wallPlans.ts';
+import { chosenOffer, preselectedOffer, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
+import { TRIAL_REMINDER_SCHEDULED, trialTimeline } from './trialTimeline.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 import { publishCelebrations } from '../celebrate/events.ts';
 import { purchaseMoment } from '../celebrate/purchaseMoment.ts';
+import { useGoal } from '../game/GameProvider.tsx';
+import { ICON_MOTION } from '../icons/iconMotion.ts';
+import { MORPH } from '../motion/tokens.ts';
+
+/**
+ * How long the pill's check stays before the success page takes over: the
+ * check draws, then holds (MORPH.hold), so the learner sees it land.
+ */
+const CHECK_HELD_MS = ICON_MOTION.check.wipeAt + ICON_MOTION.check.wipe + MORPH.hold;
 
 /**
  * The subscription wall: two pages, what you get and then the plans, or one
@@ -67,7 +77,20 @@ export function WallScreen({
   const { user } = useAuth();
   const wallOwner = useRef({ generation: scopeGeneration(), userId: user?.id ?? null }).current;
   const ownsWall = wallOwner.generation === scopeGeneration() && wallOwner.userId === (user?.id ?? null);
-  const [selected, setSelected] = useState<PaidPlan | null>(null);
+  // The chosen way to pay, by store product id: a plan is bought yearly or
+  // monthly (D16), and the product decides which.
+  const [selected, setSelected] = useState<string | null>(null);
+  // Whether the learner has chosen for themselves. Until then the page may
+  // choose for them once (`preselectedOffer`); after it, never again.
+  const touched = useRef(false);
+  // True while the plans page's own pill answers the purchase it started: it
+  // turns while the store and then the server answer, and draws its check only
+  // once the server has confirmed the entitlement.
+  const [closing, setClosing] = useState(false);
+  // Whether that purchase was of a product with a free trial this account
+  // could take, so the success page can say the server's week (F742).
+  const boughtTrial = useRef(false);
+  const goal = useGoal()?.target ?? null;
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
@@ -91,6 +114,9 @@ export function WallScreen({
     setStatus(null);
     setConfirmedGrant(null);
     setSelected(null);
+    touched.current = false;
+    setClosing(false);
+    boughtTrial.current = false;
     setGrantReadPending(false);
     setPurchaseAccepted(false);
     storeActionInFlight.current = false;
@@ -170,6 +196,35 @@ export function WallScreen({
   const storeHasPlans = paywallSurface(offering) !== null;
   const pages = wallPages({ entry, storeHasPlans });
   const page = pages[index];
+  const planRows = wallPlanRows(offering, latestCatalogue());
+  const chosen = chosenOffer(planRows, selected);
+  const success = granted ? wallSuccess(confirmedGrant, latestCatalogue(), boughtTrial.current) : null;
+
+  // The page's own suggestion (D16, README Part 5.G): the yearly product of the
+  // plan that covers the learner's daily goal, chosen once, while nothing is,
+  // and only once the server has said what the learner holds. It is not the
+  // learner's choice, so it records nothing: `plan_selected` is fired by a tap
+  // alone, in `onSelect` below.
+  const suggestion = status === null ? null : preselectedOffer(planRows, goal, status)?.productId ?? null;
+  useEffect(() => {
+    if (touched.current || selected !== null || suggestion === null) return;
+    setSelected(suggestion);
+  }, [suggestion, selected]);
+
+  // The pill's state while it answers its own purchase. Busy while the store,
+  // and then the server, answer; done, the check, only once the server has
+  // confirmed the entitlement the success page names. A cancel or a failure is
+  // idle again: the words come back, nothing shakes.
+  const morph = purchasePill({ closing, busy, granted, purchaseAccepted, grantReadPending, success });
+  const holding = closing && morph !== 'idle';
+  useEffect(() => {
+    if (closing && morph === 'idle') setClosing(false);
+  }, [closing, morph]);
+  useEffect(() => {
+    if (morph !== 'done') return undefined;
+    const held = setTimeout(() => setClosing(false), CHECK_HELD_MS);
+    return () => clearTimeout(held);
+  }, [morph]);
 
   // Fired once per showing, with the door and the length, because a drop-off at
   // page two says nothing without knowing how many pages there were.
@@ -193,14 +248,16 @@ export function WallScreen({
   // Keyed by the confirmed grant, so it plays once on any device. Above every
   // early return, so the hooks run in one order on every render.
   const celebrated = useRef<string | null>(null);
+  // While the pill holds its check the moment waits, so it opens with the
+  // success page under it rather than over the check.
   useEffect(() => {
-    if (!ownsWall || pendingRead !== 'ready' || !granted || !purchaseAccepted || confirmedGrant === null) return;
+    if (holding || !ownsWall || pendingRead !== 'ready' || !granted || !purchaseAccepted || confirmedGrant === null) return;
     if (wallSuccess(confirmedGrant, latestCatalogue()) === null) return;
     const moment = purchaseMoment(confirmedGrant, Date.now());
     if (moment === null || celebrated.current === moment.key) return;
     celebrated.current = moment.key;
     publishCelebrations([moment]);
-  }, [ownsWall, pendingRead, granted, purchaseAccepted, confirmedGrant]);
+  }, [ownsWall, pendingRead, granted, purchaseAccepted, confirmedGrant, holding]);
 
   const leave = (destination: 'back' | 'speak' = 'back', returnToApp: () => void = onLeave) => {
     if (left.current) return;
@@ -212,8 +269,11 @@ export function WallScreen({
   useHardwareBack(true, back);
 
   const action = wallAction(pages, index);
-  const planRows = wallPlanRows(offering, latestCatalogue());
-  const chosen = planRows?.find((row) => row.plan === selected) ?? null;
+  const trial = trialTimeline({
+    offer: chosen,
+    minutes: chosen === null ? null : storeTrialMinutes(latestCatalogue(), chosen.plan),
+    remind: TRIAL_REMINDER_SCHEDULED,
+  });
 
   /**
    * The half that happens once the store has answered, shared with restore.
@@ -304,6 +364,12 @@ export function WallScreen({
 
   const forward = () => {
     if (action === 'buy') {
+      // The pill answers the purchase it starts. Only a purchase that can
+      // actually begin turns it; `buy` itself still decides whether it does.
+      if (chosen !== null && !busy && !granted && pendingPurchase === null && !storeGranted.current) {
+        boughtTrial.current = chosen.trialDays !== null;
+        setClosing(true);
+      }
       void buy();
       return;
     }
@@ -314,15 +380,19 @@ export function WallScreen({
     setIndex((at) => at + 1);
   };
 
-  const label = busy
-    ? WALL_BUSY
-    : action === 'buy'
-      ? chosen !== null ? `${chosen.name}, ${chosen.price}` : PLANS_CHOOSE
-      : action === 'to-plans'
-        ? YOURS_NEXT
-        : action === 'done'
-          ? WALL_DONE
-          : WALL_NEXT;
+  const label = morph === 'done'
+    ? WALL_READY
+    : granted && morph === 'busy'
+      ? WALL_CONFIRMING
+      : busy
+        ? WALL_BUSY
+        : action === 'buy'
+          ? chosen === null ? PLANS_CHOOSE : trial !== null ? trial.cta : buyLabel(chosen.name, chosen.price, chosen.period)
+          : action === 'to-plans'
+            ? YOURS_NEXT
+            : action === 'done'
+              ? WALL_DONE
+              : WALL_NEXT;
 
   if (!ownsWall) return (
     <ScrollScreen header={<ScreenHeader title="Speaking plans" />}>
@@ -337,19 +407,26 @@ export function WallScreen({
       <PillButton label="Back to practice" onPress={() => leave('back', onOpenPractice)} />
     </ScrollScreen>
   );
-  const success = granted ? wallSuccess(confirmedGrant, latestCatalogue()) : null;
-  if (success !== null) {
+  // The success page shows once the pill has held its check, or at once when
+  // the purchase was confirmed some other way. The purchase moment above is
+  // published under exactly this condition, and nowhere else.
+  if (success !== null && !holding) {
     return (
       <ScrollScreen ground={colour.mint} bottom="inset" header={<ScreenHeader back={{ onPress: () => leave() }} title="Your plan is ready" />}
         footer={<PillButton label="Start speaking" onPress={() => leave('speak')} />}>
         <Text style={[type.title, { color: paper.ink }]}>{success.name}</Text>
         <HeroNumber value={String(success.minutes)} unit="minutes" ground="mint" />
-        <Text style={[type.body, { color: paper.ink }]}>Your speaking time each month.</Text>
+        <Text style={[type.body, { color: paper.ink }]}>{success.trial ? SUCCESS_TRIAL : SUCCESS_MONTH}</Text>
         {success.perWeek !== null && <Text style={[type.body, { color: paper.ink }]}>{perWeekLine(success.perWeek)}</Text>}
         <Text style={[type.small, { color: paper.ink, marginTop: space(4) }]}>Your phrases and progress stay yours.</Text>
       </ScrollScreen>
     );
   }
+
+  // While the pill is answering its own purchase, the plans page stays: the
+  // store's sheet sits over it, and then the pill turns until the server
+  // confirms. A failure or a delay ends that, and the pages below take over.
+  if (holding) return plansScreen();
 
   // A confirmed store action remains confirmed even if its separate allowance
   // read fails. Do not return to Buy or guess the selected card's totals.
@@ -405,45 +482,62 @@ export function WallScreen({
     );
   }
 
-  return (
-    <ScrollScreen
-      ground={page === 'yours' ? colour.sun : paper.ground}
-      bottom="inset"
-      header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
-      footer={
-        <View>
-          <PillButton
-            label={label}
-            // Nothing to buy until a tier is chosen: a purchase needs a product id,
-            // and a pill that opens the store with none is a pill that fails.
-            disabled={busy || (action === 'buy' && chosen === null)}
-            onPress={forward}
+  return plansScreen();
+
+  /**
+   * The wall's own pages: what stays yours, then the plans. A declaration, so
+   * it is drawn from two places: as the wall's ordinary page here, and above,
+   * while the pill answers the purchase it started.
+   */
+  function plansScreen() {
+    return (
+      <ScrollScreen
+        ground={page === 'yours' ? colour.sun : paper.ground}
+        bottom="inset"
+        header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
+        footer={
+          <View>
+            <PillButton
+              label={label}
+              // While it answers its own purchase the pill keeps its fill and
+              // waits in place (`state`); any other wait (a restore) is the
+              // quiet off pill it always was. Nothing to buy until a way to pay
+              // is chosen: a purchase needs a product id, and a pill that opens
+              // the store with none is a pill that fails.
+              state={morph}
+              disabled={(busy && morph === 'idle') || (action === 'buy' && chosen === null)}
+              onPress={forward}
+            />
+            {page === 'plans' && <WallPlansAtButton trialTerms={trial?.terms ?? null} />}
+          </View>
+        }
+      >
+        {page === 'yours' && <WallYoursPage canBuy={storeHasPlans} onLeave={() => leave()} />}
+        {page === 'plans' && planRows !== null && (
+          <WallPlansPage
+            rows={planRows}
+            account={wallAccount(status, latestCatalogue(), Date.now())}
+            selected={selected}
+            goal={goal}
+            trial={trial}
+            onSelect={(offer) => {
+              // The learner's own choice, and the only place one is recorded.
+              touched.current = true;
+              setSelected(offer.productId);
+              void trackProductEvent({ name: 'plan_selected', properties: { plan: offer.plan } });
+            }}
+            onRestore={() => void restore()}
+            onOpenPolicy={onOpenPolicy}
+            onOpenTerms={onOpenTerms}
+            onLeave={() => leave()}
           />
-          {page === 'plans' && <WallPlansAtButton />}
-        </View>
-      }
-    >
-      {page === 'yours' && <WallYoursPage canBuy={storeHasPlans} />}
-      {page === 'plans' && planRows !== null && (
-        <WallPlansPage
-          rows={planRows}
-          account={wallAccount(status, latestCatalogue(), Date.now())}
-          selected={selected}
-          onSelect={(plan) => {
-            setSelected(plan);
-            void trackProductEvent({ name: 'plan_selected', properties: { plan } });
-          }}
-          onRestore={() => void restore()}
-          onOpenPolicy={onOpenPolicy}
-          onOpenTerms={onOpenTerms}
-          onLeave={() => leave()}
-        />
-      )}
-      {message !== null && (
-        <Text accessibilityLiveRegion="polite" style={{ ...type.small, color: paper.ink, marginTop: space(4), textAlign: 'center' }}>
-          {message}
-        </Text>
-      )}
-    </ScrollScreen>
-  );
+        )}
+        {message !== null && (
+          <Text accessibilityLiveRegion="polite" style={{ ...type.small, color: paper.ink, marginTop: space(4), textAlign: 'center' }}>
+            {message}
+          </Text>
+        )}
+      </ScrollScreen>
+    );
+  }
 }

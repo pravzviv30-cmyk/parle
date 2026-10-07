@@ -45,6 +45,14 @@ export interface StoreProduct {
    */
   period: 'month' | 'year';
   /**
+   * A yearly product's price per month, as the store itself works it out and
+   * formats it (`pricePerMonthString`), for the plans page's "about ... a
+   * month". Display only: nothing is bought, granted or metered by it. Null, or
+   * absent, when the product is monthly or the store did not say, and then the
+   * page names only the yearly price rather than dividing one itself.
+   */
+  localizedPricePerMonth?: string | null;
+  /**
    * The store's free trial on this product, or null. A paid introductory price
    * is not a free trial and reads as null, so nothing can call it one.
    */

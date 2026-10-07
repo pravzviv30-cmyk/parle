@@ -64,7 +64,9 @@ describe('plan status — the plan is drawn in words, never a countdown (F541)',
     if (later.known) assert.equal(later.periodLine, 'Renews in the coming weeks.');
     const trial = planStatusFor(status(), NOW);
     if (trial.known) {
-      assert.equal(trial.planLabel, 'Free trial');
+      // 7 October 2026: the thirty metered minutes are "Free minutes"; a free
+      // trial is the store's own offer now (come alive, README Part 5.G).
+      assert.equal(trial.planLabel, 'Free minutes');
       assert.equal(trial.periodLine, 'Your free minutes, once.');
     }
     const lapsed = planStatusFor(status({ secondsRemaining: 0, lapsed: true, canStart: false, reason: 'subscription-lapsed' }), NOW);

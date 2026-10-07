@@ -71,6 +71,14 @@ export const INCLUSIONS = {
   missions: 'Every everyday situation',
   rehearsal: 'Bring a real moment of your own to rehearse',
   arcs: 'Continue a conversation across sessions',
+  /**
+   * Streak protection, said once on the plans page for every plan on it (F734,
+   * D4). True of both paid tiers, monthly or yearly and during the store's free
+   * trial, because `streakProtection` above opens it for any unlapsed paid
+   * plan; the free minutes never hold it, so this is not a line of
+   * `planInclusions`, which the free minutes share with Starter.
+   */
+  streak: 'Every plan includes streak freezes and a one-tap repair.',
 } as const;
 
 export function planInclusions(plan: Plan): readonly string[] {

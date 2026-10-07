@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
 
-import { guiltIn } from '../copy/guilt.ts';
+import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
+import { PAID_PLANS } from './adapter.ts';
 import { billingStatusIn } from './billingStatus.ts';
-import { CAPABILITY_COPY, capabilitiesFor, planInclusions } from './capabilities.ts';
+import { CAPABILITY_COPY, INCLUSIONS, capabilitiesFor, planInclusions } from './capabilities.ts';
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
 
@@ -126,5 +127,33 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     const held = capabilitiesFor('regular');
     held.streakProtection.freezes = 0;
     assert.equal(capabilitiesFor('regular').streakProtection.freezes, 2);
+  });
+
+  test('the plans page names streak protection on both paid plans', () => {
+    // F734 (7 October 2026): F718 retired "streak" from the shared ban, so the
+    // plans page can say what D4 gives every paid plan. One line, written here
+    // where what a plan opens is said, and true of every plan the page sells:
+    // both tiers, monthly or yearly, during the store's free trial too.
+    assert.equal(INCLUSIONS.streak, 'Every plan includes streak freezes and a one-tap repair.');
+    assert.ok(CAPABILITY_COPY.includes(INCLUSIONS.streak), 'the streak line escapes the copy sweeps');
+    assert.equal(guiltIn(INCLUSIONS.streak), undefined);
+    assert.equal(streakGuiltIn(INCLUSIONS.streak), undefined, 'the streak line threatens');
+    assert.doesNotMatch(INCLUSIONS.streak, /\d|—|–|·|%/);
+    for (const plan of PAID_PLANS) {
+      const protection = capabilitiesFor(plan).streakProtection;
+      assert.ok(protection.freezes > 0 && protection.repair, `the plans page promises ${plan} a protection it does not hold`);
+    }
+    // The free minutes hold none, so the line is never one of theirs.
+    assert.equal(capabilitiesFor('trial').streakProtection.repair, false);
+    for (const plan of ['trial', 'starter', 'regular'] as const) {
+      assert.ok(!planInclusions(plan).includes(INCLUSIONS.streak), 'the streak line is listed per plan, where the free minutes share Starter\'s list');
+    }
+
+    // The page says it once, after every plan's rows, so it is said of both
+    // plans and never of one, with the freeze mark beside it.
+    const page = readFileSync(join(SRC, 'wall', 'WallPlansPage.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    assert.equal((page.match(/\{INCLUSIONS\.streak\}/g) ?? []).length, 1, 'the streak line is not said on the plans page, or is said twice');
+    assert.ok(page.indexOf('{INCLUSIONS.streak}') > page.lastIndexOf('row.offers.map('), 'the streak line sits inside one plan\'s rows');
+    assert.match(page, /<Icon name="freeze"/);
   });
 });

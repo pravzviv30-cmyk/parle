@@ -1,8 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { CheckGlyph, GhostButton, Label, Press } from '../components.tsx';
-import { colour, decorative, HIT, onColour, paper, radius, space, type } from '../theme.ts';
-import type { PaidPlan } from '../purchases/adapter.ts';
+import { Choice, GhostButton, IconAction, Label } from '../components.tsx';
+import { Icon, type IconName } from '../icons/Icon.tsx';
+import { StaggerIn } from '../motion/StaggerIn.tsx';
+import { STAGGER } from '../motion/tokens.ts';
+import { INCLUSIONS } from '../purchases/capabilities.ts';
+import { decorative, paper, space, type } from '../theme.ts';
 import {
   ACCOUNT_LABEL,
   PLANS_BOTH,
@@ -13,37 +16,52 @@ import {
   PLANS_TERMS,
   PLANS_TITLE,
   PLANS_TRUST,
+  PLAN_MONTHLY,
+  PLAN_YEARLY,
   WALL_LEAVE,
   conversationLength,
+  goalFitLine,
   minutesAMonth,
+  monthlyPrice,
   perWeekLine,
+  yearlyPrice,
 } from './wallCopy.ts';
 import type { WallAccount } from './wallAccount.ts';
-import { CONVERSATION_MINUTES, type WallPlanRow } from './wallPlans.ts';
+import { CONVERSATION_MINUTES, type WallPlanOffer, type WallPlanRow } from './wallPlans.ts';
+import type { TrialNodeKey, TrialTimelineView } from './trialTimeline.ts';
 
 /**
  * Page two of two. The plans, priced in conversations, and every number off the wire.
  *
- * 2026-09-27, notebook Phase 6-E. One card of ruled rows, one per plan: its
- * name, about how many ten-minute conversations a week it buys, its minutes a
- * month, and the store's own price. The chosen row is said in ink, with a filled
- * mark, rather than in the chartreuse, which is for French. The account's own
- * minutes sit above the card when the server has said them.
+ * 2026-09-27, notebook Phase 6-E: each plan says its minutes a month, about how
+ * many ten-minute conversations a week they buy, and the store's own price. The
+ * account's own minutes sit above the plans when the server has said them.
  *
- * The rows select rather than buy, and the one primary pill lives in the
- * frame's footer. Choosing a tier and committing to it are two different
+ * Come alive (founder decision D16, README Part 5.G): each plan is paid yearly
+ * or monthly, each its own store product, and the ways to pay are one set of
+ * radio choices (`Choice`, which says checked on a device and on the web). A
+ * yearly price says the store's own monthly figure beside it, never a saving.
+ * With a daily goal each plan says whether its minutes cover it. The yearly
+ * product of the plan that covers the goal arrives chosen; the screen that
+ * chooses it records nothing, so the funnel still means "the learner chose".
+ * The streak line is said once, for every plan on the page. A store free trial
+ * draws its timeline only when the chosen product really carries one this
+ * account may take.
+ *
+ * The choices select rather than buy, and the one primary pill lives in the
+ * frame's footer. Choosing a plan and committing to it are two different
  * moments, so the funnel can tell "they compared and left" apart from "they
  * tried to buy and it failed". The renewal terms and the trust line ride in
  * the same footer, right under that pill (`WallPlansAtButton` below).
  *
- * Nothing is marked recommended, best value or most popular. The founder ruled
- * out invented social proof, and with two tiers that both open every situation
- * the only honest difference is the speaking time, which each row states.
+ * Nothing is marked as the one to pick, and nothing invents social proof.
  */
 export function WallPlansPage({
   rows,
   account,
   selected,
+  goal,
+  trial,
   onSelect,
   onRestore,
   onOpenPolicy,
@@ -52,8 +70,13 @@ export function WallPlansPage({
 }: {
   rows: readonly WallPlanRow[];
   account: WallAccount | null;
-  selected: PaidPlan | null;
-  onSelect: (plan: PaidPlan) => void;
+  /** The chosen product id, or null. */
+  selected: string | null;
+  /** The learner's daily goal in minutes, or null when they have none or it is still loading. */
+  goal: number | null;
+  /** The chosen product's free trial, or null when it carries none this account may take. */
+  trial: TrialTimelineView | null;
+  onSelect: (offer: WallPlanOffer) => void;
   onRestore: () => void;
   onOpenPolicy: () => void;
   onOpenTerms: () => void;
@@ -76,52 +99,53 @@ export function WallPlansPage({
         </View>
       )}
 
-      <View style={st.card}>
-        {rows.map((row) => {
-          const chosen = row.plan === selected;
-          return (
-            <Press
-              haptic="selection"
-              key={row.plan}
-              onPress={() => onSelect(row.plan)}
-              // `button` with a `selected` state, which is what OptionCard and
-              // TabBar already use for a chosen thing. `radio` with `checked` was
-              // a parallel invention and, worse, React Native Web does not map it:
-              // both cards reported no state at all, so a screen reader could not
-              // tell which plan was picked.
-              accessibilityRole="button"
-              accessibilityState={{ selected: chosen }}
-              // Said twice, once per platform, and the two are not
-              // interchangeable. `accessibilityState` is what VoiceOver and
-              // TalkBack read; `aria-selected` is the only one react-native-web
-              // puts in the accessibility tree, and without it a learner in a
-              // browser heard two identical buttons and could not tell which
-              // plan was picked (F522, closed by F586).
-              aria-selected={chosen} aria-pressed={chosen}
-              accessibilityLabel={[row.name, row.minutes !== null ? minutesAMonth(row.minutes) : null, row.perWeek !== null ? perWeekLine(row.perWeek) : null, `${row.price} per month`].filter(Boolean).join(", ")}
-              style={[st.row, chosen ? st.chosen : st.unchosen]}
-            >
-              <View style={st.mark} {...decorative}>{chosen && <CheckGlyph size={22} color={paper.onInk} />}</View>
-              <View style={st.words}>
-                <Text style={[st.name, chosen && { color: paper.onInk }]}>{row.name}</Text>
-                {/* The conversations and the minutes are absent rather than
-                    guessed when the server has not sent a catalogue. A count
-                    invented on the phone is the one number on this page that
-                    could disagree with the meter. */}
-                {row.minutes !== null && <Text style={[st.minutes, chosen && { color: onColour.blue }]}>{minutesAMonth(row.minutes)}</Text>}
-                {row.perWeek !== null && <Text style={[st.perWeek, chosen && { color: paper.onInk }]}>{perWeekLine(row.perWeek)}</Text>}
-              </View>
-              <View>
-                <Text style={[st.price, chosen && { color: paper.onInk }]}>{row.price}</Text>
-                <Text style={[type.small, { color: chosen ? paper.onInk : paper.ink }]}>per month</Text>
-              </View>
-            </Press>
-          );
-        })}
+      <View accessibilityRole="radiogroup" style={st.plans}>
+        {rows.map((row) => (
+          <View key={row.plan} style={st.plan}>
+            <Text accessibilityRole="header" style={st.name}>{row.name}</Text>
+            {/* The minutes and conversations are absent rather than guessed when
+                the server has not sent a catalogue. A count invented on the
+                phone is the one number here that could disagree with the meter. */}
+            {row.minutes !== null && <Text style={st.minutes}>{minutesAMonth(row.minutes)}</Text>}
+            {row.perWeek !== null && <Text style={st.perWeek}>{perWeekLine(row.perWeek)}</Text>}
+            {goal !== null && row.daily !== null && <Text style={st.fit}>{goalFitLine(goal, row.daily)}</Text>}
+            <View style={st.offers}>
+              {row.offers.map((offer) => {
+                const period = offer.period === 'year' ? PLAN_YEARLY : PLAN_MONTHLY;
+                const price = offer.period === 'year' ? yearlyPrice(offer.price, offer.perMonth) : monthlyPrice(offer.price);
+                return (
+                  <Choice
+                    key={offer.productId}
+                    role="radio"
+                    compact
+                    title={period}
+                    detail={price}
+                    selected={offer.productId === selected}
+                    onPress={() => onSelect(offer)}
+                    // The plan's name rides with the period and the price, so a
+                    // screen reader that lands on a choice hears whose it is.
+                    accessibilityLabel={[row.name, period, price].join(', ')}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* One line for every plan on the page (F734, D4): both paid plans hold
+          streak freezes and the repair, monthly or yearly, trial or not. */}
+      <View style={st.perk}>
+        <View {...decorative}>
+          <Icon name="freeze" size={20} color={paper.ink} />
+        </View>
+        <Text style={st.perkLine}>{INCLUSIONS.streak}</Text>
       </View>
 
       <Text style={st.note}>{conversationLength(CONVERSATION_MINUTES)}</Text>
       <Text style={st.note}>{PLANS_BOTH}</Text>
+
+      {trial !== null && <TrialTimeline view={trial} />}
 
       {/* The way out, said rather than implied. The wall never blocks and the
           chevron goes back, but a chevron in the corner reads as navigation
@@ -130,33 +154,73 @@ export function WallPlansPage({
         <GhostButton label={WALL_LEAVE} onPress={onLeave} />
       </View>
 
+      {/* The documents and the restore Apple asks for, one wrapping row. */}
       <View style={st.links}>
-        <GhostButton label={PLANS_PRIVACY} onPress={onOpenPolicy} />
-        <GhostButton label={PLANS_TERMS} onPress={onOpenTerms} />
-        <GhostButton label={PLANS_RESTORE} onPress={onRestore} />
+        <IconAction layout="inline" icon="privacy" label={PLANS_PRIVACY} onPress={onOpenPolicy} />
+        <IconAction layout="inline" icon="document" label={PLANS_TERMS} onPress={onOpenTerms} />
+        <IconAction layout="inline" icon="refresh" label={PLANS_RESTORE} onPress={onRestore} />
       </View>
     </View>
   );
 }
 
+const NODE_ICONS: Record<TrialNodeKey, IconName> = {
+  today: 'unlock',
+  during: 'chat',
+  remind: 'bell',
+  cancel: 'calendar',
+  then: 'card',
+};
+
 /**
- * The two lines a buyer is owed, drawn right under the frame's one pill.
+ * The store free trial, day by day: today, what it holds, the day to cancel
+ * by, the day it becomes the plan. Drawn only with a real eligible offer; the
+ * lines are `trialTimeline.ts`'s. The rows arrive one after another once, and
+ * land at rest under Reduce Motion.
+ */
+function TrialTimeline({ view }: { view: TrialTimelineView }) {
+  return (
+    <View style={st.trial}>
+      <Text accessibilityRole="header" style={st.trialTitle}>{view.title}</Text>
+      <StaggerIn step={STAGGER.base}>
+        {view.nodes.map((node, index) => (
+          <View key={node.key} style={st.node}>
+            <View style={st.rail} {...decorative}>
+              <View style={st.disc}>
+                <Icon name={NODE_ICONS[node.key]} size={20} color={paper.ink} />
+              </View>
+              {index < view.nodes.length - 1 && <View style={st.connector} />}
+            </View>
+            <View style={st.nodeWords}>
+              {node.title !== null && <Text style={st.nodeTitle}>{node.title}</Text>}
+              <Text style={st.nodeLine}>{node.line}</Text>
+            </View>
+          </View>
+        ))}
+      </StaggerIn>
+    </View>
+  );
+}
+
+/**
+ * The lines a buyer is owed, drawn right under the frame's one pill.
  *
  * Apple asks for the length and the renewal on the purchase screen itself, and
  * the trust line is the other true thing worth saying at the moment of paying:
- * no adverts, and stopping costs nothing made. Both used to sit at the foot of
- * the scrolling page, a long way below the button they were about.
+ * no adverts, and stopping costs nothing made. With a free trial chosen its
+ * terms come first, because they are what the pill is about to start.
  */
-export function WallPlansAtButton() {
+export function WallPlansAtButton({ trialTerms = null }: { trialTerms?: string | null }) {
   return (
     <View style={st.atButton}>
+      {trialTerms !== null && <Text style={st.small}>{trialTerms}</Text>}
       <Text style={st.small}>{PLANS_RENEWAL}</Text>
       <Text style={st.small}>{PLANS_TRUST}</Text>
     </View>
   );
 }
 
-const MARK = 22;
+const DISC = space(9);
 
 const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink },
@@ -164,28 +228,27 @@ const st = StyleSheet.create({
   account: { marginTop: space(5) },
   accountTitle: { ...type.heading, color: paper.ink, marginTop: space(1) },
   accountLine: { ...type.body, color: paper.ink, marginTop: space(1) },
-  card: { marginTop: space(5), gap: space(4) },
-  // Ledger rows: a hairline between them, 56pt at least, growing with the text.
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(3),
-    paddingHorizontal: space(4),
-    paddingVertical: space(4),
-    minHeight: Math.max(HIT, 56),
-    borderRadius: radius.card,
-  },
-  chosen: { backgroundColor: colour.blue },
-  unchosen: { backgroundColor: paper.card, borderWidth: 1, borderColor: paper.field },
-  mark: { width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' },
-  words: { flex: 1, minWidth: 0 },
+  plans: { marginTop: space(5), gap: space(6) },
+  plan: { gap: space(1) },
   name: { ...type.heading, color: paper.ink },
-  perWeek: { ...type.small, color: paper.ink, marginTop: space(1) },
-  minutes: { ...type.bodyStrong, color: paper.inkSoft, marginTop: space(0.5) },
-  price: { ...type.heading, color: paper.ink, textAlign: 'right' },
+  minutes: { ...type.bodyStrong, color: paper.inkSoft },
+  perWeek: { ...type.small, color: paper.ink },
+  fit: { ...type.small, color: paper.ink },
+  offers: { marginTop: space(2), gap: space(2) },
+  perk: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(5) },
+  perkLine: { ...type.body, color: paper.ink, flex: 1, minWidth: 0 },
   note: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
+  trial: { marginTop: space(6) },
+  trialTitle: { ...type.heading, color: paper.ink, marginBottom: space(3) },
+  node: { flexDirection: 'row', gap: space(3) },
+  rail: { alignItems: 'center' },
+  disc: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
+  connector: { flex: 1, minHeight: space(3), borderLeftWidth: 2, borderLeftColor: paper.field },
+  nodeWords: { flex: 1, minWidth: 0, paddingBottom: space(4), gap: space(0.5) },
+  nodeTitle: { ...type.bodyStrong, color: paper.ink },
+  nodeLine: { ...type.body, color: paper.ink },
   decline: { marginTop: space(4), alignItems: 'center' },
-  links: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(3), marginTop: space(4) },
+  links: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(1), marginTop: space(4) },
   atButton: { marginTop: space(2), gap: space(1) },
   small: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
 });
