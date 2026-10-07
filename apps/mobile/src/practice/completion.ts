@@ -102,6 +102,14 @@ export interface PracticeCompletionResult {
    * not run the plan (already completed elsewhere, failed, nothing to save).
    */
   history: 'recorded' | 'aged-out' | 'pending' | 'unknown';
+  /**
+   * The instant this call settled the sitting into the game layer at (the
+   * plan's frozen activity instant), when it completed the plan; null when it
+   * settled nothing. A page that shows the sitting's end card waits for the
+   * settle pipeline's delta for exactly this sitting (`practice/sittingDelta.ts`),
+   * because the settle runs on its own chain and its delta is not this answer.
+   */
+  settlesAt: number | null;
 }
 
 export interface CompletePracticeInput {
@@ -132,7 +140,7 @@ function result(
   sittingId: string,
   extra: Partial<Omit<PracticeCompletionResult, 'status' | 'sittingId'>> = {},
 ): PracticeCompletionResult {
-  return { status, sittingId, outcomes: [], xp: 0, grades: { applied: [], skipped: [] }, pending: [], history: 'unknown', ...extra };
+  return { status, sittingId, outcomes: [], xp: 0, grades: { applied: [], skipped: [] }, pending: [], history: 'unknown', settlesAt: null, ...extra };
 }
 
 /**
@@ -311,7 +319,7 @@ async function runAndSettle(bound: Bound, plan: CompletionPlan): Promise<Practic
   } else {
     releaseSettle(token);
   }
-  return done;
+  return done.status === 'completed' ? { ...done, settlesAt: plan.activityAt } : done;
 }
 
 /**

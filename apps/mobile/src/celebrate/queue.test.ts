@@ -594,4 +594,52 @@ describe('the celebration queue — F743', () => {
     assert.equal(isShowable(purchase('')), false, 'a purchase with no confirmed grant behind it played');
     assert.equal(isShowable(saved('p-1')), true);
   });
+
+  test('a safety stop during a seen read drops that moment\'s crash-replay copy too', async () => {
+    // F766. A catch-up brings a moment back with its copy already on this
+    // phone; the stop arrives while the queue is still asking the synced list
+    // about it. The answer that lands after the stop is ignored, so unless the
+    // stop drops the copy, the moment replays on the next launch.
+    const timers = new Set<() => void>();
+    const answers: ((seen: boolean) => void)[] = [];
+    const pending = new Set<string>([celebrationKey.level(3), celebrationKey.badge('streak-7')]);
+    const queue = createCelebrationQueue({
+      now: () => AT,
+      setTimer: (run) => {
+        timers.add(run);
+        return run;
+      },
+      clearTimer: (handle) => {
+        timers.delete(handle as () => void);
+      },
+      generation: () => 1,
+      hasSeen: () => new Promise<boolean>((resolve) => answers.push(resolve)),
+      markSeen: async () => 'durable',
+      enqueuePending: async (items) => {
+        for (const item of items) pending.add(item.key);
+        return 'durable';
+      },
+      dropPending: async (keys) => {
+        for (const key of keys) pending.delete(key);
+        return 'durable';
+      },
+      stopEffects: () => {},
+    });
+    running.push(queue.start());
+    const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+    queue.receive([level(2, 3), badge('streak-7')]);
+    assert.equal(answers.length, 2, 'the queue did not ask the synced list about the moments');
+    const release = suppressCelebrations();
+    await flush();
+    assert.deepEqual([...pending], [], 'a moment whose seen read was in flight kept its crash-replay copy through the safety stop');
+    // The reads answer after the stop: nothing comes back, and nothing is written back either.
+    for (const answer of answers) answer(false);
+    await flush();
+    await flush();
+    assert.deepEqual(queue.waitingKeys(), [], 'a moment read after the stop came back');
+    assert.equal(queue.snapshot().current, null);
+    assert.deepEqual([...pending], [], 'a moment read after the stop was queued for replay again');
+    release();
+  });
 });

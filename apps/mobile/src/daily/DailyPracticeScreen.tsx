@@ -25,6 +25,17 @@ import type { RootStackParamList } from '../nav/types.ts';
 import { holdMic } from '../sound/audioFocus.ts';
 import { enterRecording, enterVoicePlayback, leaveRecording } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
+import { announcePhraseSaved } from '../review/phraseSaved.ts';
+import { useSittingEnd } from '../practice/useSittingEnd.ts';
+import { EndCard } from '../celebrate/EndCard.tsx';
+import { useRecorderLevel } from '../speech/useRecorderLevel.ts';
+import { RecordingLevel } from './RecordingLevel.tsx';
+
+/**
+ * The daily take's recorder: the usual preset, metered, so the ring beside the
+ * take follows the learner's real voice (`speech/useRecorderLevel.ts`).
+ */
+const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
 
 /** Local listen/record/compare. Recordings are never uploaded or graded. */
 export function DailyPracticeScreen() {
@@ -40,11 +51,19 @@ export function DailyPracticeScreen() {
   // Today's phrase has no clock kind of its own, so it keeps review's 30 s
   // stretch (review finding 13): hearing, recording and finishing are the work.
   const clock = useActiveClock('review');
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorder = useAudioRecorder(METERED_TAKE);
   const player = useAudioPlayer();
   useVoiceHold(useAudioPlayerStatus(player).playing);
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const [recording, setRecording] = useState(false);
+  // The ring beside a take in progress, from the recorder's real level; none
+  // is drawn until the recorder has metered one.
+  const voice = useRecorderLevel(recorder, recording);
+  // Today's phrase, once its day is durable, shows its end card from the
+  // settle's own read-back: the +5 for practising, the day, the goal. While
+  // this screen is up the celebration queue is held, and the hold taken before
+  // the sitting settles is handed to its end card (F766).
+  const { end, holdForSettle, expect, dropSettleHold, release } = useSittingEnd();
   const [busy, setBusy] = useState(false);
   const [uri, setUri] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -152,6 +171,8 @@ export function DailyPracticeScreen() {
     if (!item || operation.current || recording) return; operation.current = true; setBusy(true);
     try {
       const ack = await addPhrases([{ fr: item.fr, en: item.en, frWritten: null, enLiteral: null, register: 'neutral', note: item.note }]);
+      // Saved means durable, and only then is the saved moment handed over.
+      announcePhraseSaved(ack, item.fr);
       if (!live.current) return;
       if (ack === 'durable') { player.pause(); nav.navigate('Review'); } else setNote('Your phrase could not be saved yet. Please try again.');
     } catch { if (live.current) setNote('Your phrase could not be saved yet. Please try again.'); }
@@ -167,6 +188,9 @@ export function DailyPracticeScreen() {
       // side of midnight the settle also records the day `at` falls on.
       clock.touch();
       const at = Date.now();
+      // The queue is held before the snapshot, so nothing this sitting earns
+      // can start before its end card is up to hold it.
+      holdForSettle();
       const settling = await beginSettle();
       // The day binds to whoever is signed in when it is asked for, so an
       // account that changed while the snapshot was read records nothing.
@@ -174,12 +198,18 @@ export function DailyPracticeScreen() {
       const ack = await recordActiveDay();
       // The practice happened whether or not this screen is still showing, so
       // it settles on the durable day alone: a quest, the goal, the +5 (F744).
+      // The end card waits for exactly this sitting's read-back.
+      if (ack === 'durable') expect({ source: 'phrase', at });
       if (ack === 'durable') void finishSettle(settling, { source: 'phrase', at, xpEarned: 0, activeMs: clock.read() });
       else releaseSettle(settling);
       if (!live.current || owner !== scopeGeneration()) return;
       if (ack === 'durable') { setDaySaved(true); setNote('This practice counts as a day of French. Your recording stays on this device until you leave.'); }
       else setNote('Your day could not be saved yet. Try finishing practice again.');
-    } finally { operation.current = false; if (live.current && owner === scopeGeneration()) setBusy(false); }
+    } finally {
+      // Nothing settled, so no end card will take the hold over.
+      dropSettleHold();
+      operation.current = false; if (live.current && owner === scopeGeneration()) setBusy(false);
+    }
   };
   return <ScrollScreen bottom="inset" header={<ScreenHeader title={shadowing ? 'Hear, say and compare' : 'A little French'} back={{ onPress: goBack }} />}>
     {item ? <View style={{gap:space(4)}}>
@@ -187,6 +217,7 @@ export function DailyPracticeScreen() {
       <View style={{ gap: space(3), marginTop: space(4) }}>
         <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
         {modelAsset != null && <GhostButton label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
+        {recording && voice.metered && <RecordingLevel level={voice.level} />}
         {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
         {uri && !recording && <GhostButton label="Hear my take" onPress={() => void play(true)} />}
         {completedTake && uri && !recording && !daySaved && <GhostButton label="Try again" onPress={() => void record()} disabled={busy} />}
@@ -196,6 +227,11 @@ export function DailyPracticeScreen() {
         {daySaved && <PillButton label="Done" onPress={goBack} />}
         <GhostButton label="Add to review and practise recall" onPress={() => void review()} />
       </View>
-    </Card>{shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
+    </Card>
+      {/* The end card in place, once the day is durable and the settle has read
+          it back: only the delta's numbers. While it is still being read, or if
+          it never is, the line above already says the practice counted. */}
+      {daySaved && end.state === 'settled' && <EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />}
+      {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
   </ScrollScreen>;
 }

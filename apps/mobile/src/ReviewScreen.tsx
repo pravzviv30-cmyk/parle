@@ -51,6 +51,9 @@ import {
 import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
+import { useSittingEnd } from './practice/useSittingEnd.ts';
+import { EndCard } from './celebrate/EndCard.tsx';
+import { REVIEW_END, reviewPage } from './review/sittingEnd.ts';
 import * as tutorVoice from './speech/tutorVoice.ts';
 
 /** The speaker disc on the card. Wider than a hit target because it is the one control on it. */
@@ -88,6 +91,11 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // learner's own actions (typing, an attempt, a flip, hearing, a grade) that
   // are short enough to be one stretch of work. Opening the deck adds nothing.
   const clock = useActiveClock('review');
+  // A finished sitting's end card waits for the settle pipeline's own read-back
+  // of this sitting, and shows only its numbers (F760). While this screen is
+  // up the celebration queue is held, and the hold taken before the sitting
+  // settles is handed to its end card (F766).
+  const { end, expect, release } = useSittingEnd();
   /**
    * Bank the sitting once, whichever way it ends, with one stopwatch for both
    * so the sitting has one end. The queue emptying with at least one grade is
@@ -111,6 +119,9 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       activeMs: activeMs,
       ...(finished ? { finished: true } : {}),
     });
+    // The end card waits for exactly this sitting, and the queue is held from
+    // before the settle until that card goes.
+    if (finished) expect({ source: 'review', at: endedAt });
     if (finished) void settleSitting({ source: 'review', at: endedAt, xpEarned: xp, activeMs, write });
     else void write();
   }).current;
@@ -196,10 +207,30 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     setTurn((t) => ({ ...t, flipped: true }));
   }} />;
 
-  // Nothing due, or the sitting is done. Same calm card either way — the
-  // deck never announces a backlog and never asks for more than it dealt. A
-  // terminal card, so Done is its one door and it carries no back header.
+  // Nothing due, or the sitting is done, and the two are told apart (F761).
+  // The deck never announces a backlog and never asks for more than it dealt.
+  // A terminal card, so Done is its one door and it carries no back header.
   if (!card || !view) {
+    // Every dealt card was graded: the review is complete, and its end card
+    // shows only what the settle read back. Until it has, a quiet wait; if it
+    // never answers, the finish stands in words.
+    if (reviewPage(queue.length, index) === 'finished') {
+      return (
+        <ScrollScreen footer={primary}>
+          <View style={st.ending}>
+            <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{REVIEW_END.finished}</Text>
+            {end.state === 'settled' ? (
+              <EndCard delta={end.delta} count={recalled.current} release={release} />
+            ) : end.state === 'unsettled' ? (
+              <Text style={[type.body, { color: paper.inkSoft }]}>{REVIEW_END.finishedBody}</Text>
+            ) : (
+              <ActivityIndicator color={paper.inkSoft} />
+            )}
+          </View>
+        </ScrollScreen>
+      );
+    }
+    // Nothing was dealt: the calm card, and nothing plays, counts or settles.
     return (
       <ScrollScreen footer={primary}>
         {/* An empty deck is the good outcome, not a dead end, so it gets the
@@ -395,6 +426,8 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
 const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // A finished sitting: its heading, then its end card.
+  ending: { gap: space(4) },
   // The card itself: the SessionView main-card anatomy, content centred.
   card: { alignItems: 'center', minHeight: 240, justifyContent: 'center' },
   // The speaker disc: white, on the card, under a paper hairline. No shadow:

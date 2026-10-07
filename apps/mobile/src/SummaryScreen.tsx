@@ -26,10 +26,14 @@ import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
 import { saveTextFile } from './progress/saveFile.ts';
+import { EndCard } from './celebrate/EndCard.tsx';
+import type { GameDelta } from './game/delta.ts';
 
 export function SummaryScreen({
   lesson,
   summary,
+  delta = null,
+  release,
   report,
   historySaveFailed = false,
   onAgain,
@@ -38,6 +42,17 @@ export function SummaryScreen({
 }: {
   lesson: Lesson;
   summary: SessionSummary;
+  /**
+   * What finishing this lesson changed, as the settle pipeline read it back
+   * (`game/settle.ts`), for the end card. Null until it has, and for good when
+   * it settled nothing: then no end card is drawn and no number is guessed.
+   */
+  delta?: GameDelta | null;
+  /**
+   * The celebration hold the lesson took before it settled (F766), handed to
+   * the end card, which lets it go when the card goes.
+   */
+  release?: () => void;
   /** Progress across all stored sessions. Null until there is enough history. */
   report?: ProgressReport | null;
   /** Native storage did not confirm the history write; never present a saved total. */
@@ -91,6 +106,11 @@ export function SummaryScreen({
             {secs}s
           </Text>
         </View>
+
+        {/* The end card in place: XP, time, the goal ring and quests, every
+            number the settle's read-back of this lesson. Its words count is
+            the Stat below, so it passes no count of its own. */}
+        {delta !== null && <EndCard delta={delta} release={release} />}
 
         {historySaveFailed && <Text accessibilityRole="alert" style={[type.body, { color: paper.inkSoft }]}>Your lesson history could not be confirmed as saved. This practice card is available until you leave; totals from your saved history are not shown.</Text>}
 

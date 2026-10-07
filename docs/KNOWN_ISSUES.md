@@ -10129,31 +10129,35 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F759 — A drill answer gets one line of text and no rhythm
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx, apps/mobile/src/drill
 - note: README Part 5.E: an answer sheet per verdict (good mint with sound and haptic, typo sun, first miss calm with no sound, second miss shows the form and waits for Continue, own-words retry "Nearly there." per D21), a living bar with a combo glow, and never an auto-advance while a screen reader is on.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). drill/answerSheet.ts decides each sheet (good mint with a rotating line and the run lines from three real passes, typo sun "Nearly." with the spelling, first miss calm with no French, second miss "Here's how it goes." with the form and a Continue, repeat-this "You said it.", own words through core ownWordsFeedback with retry "Nearly there." in the nearly tone per D21, never moving on by itself while a screen reader is on or unknown); drill/AnswerSheet.tsx draws it with the motion primitives and drill/sheetEffects.ts plays correct and arrived(), nearly and soft(), or nothing; drill/combo.ts and drill/SittingBar.tsx give the living bar its sun glow, which a repeat-this never extends; DrillScreen keeps one tapSettled(), for a finish shown without an end card. Both titles failed without the change.
 - verified-by: `a good answer, a typo and a miss each get their own sheet, and a screen reader never auto-advances`
 - verified-by: `a miss draws no mark, plays no sound and fires no haptic`
 
 ### F760 — A finished sitting shows no end card
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx, apps/mobile/src/ReviewScreen.tsx, apps/mobile/src/daily/DailyPracticeScreen.tsx, apps/mobile/src/SummaryScreen.tsx
 - note: Every finished drill, practice set, review, daily phrase and lesson shows the in-place end card from celebrate/EndCard.tsx with numbers only from the settled GameDelta.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). The drill set, practice set, review, today's phrase and the lesson SummaryScreen draw celebrate/EndCard.tsx in place, fed only by the GameDelta the settle read back: the drill, review and daily pages hear their own sitting's delta through onSettled by its key (practice/useSittingEnd.ts, practice/sittingDelta.ts; a practice plan names the instant it settled as settlesAt), the lesson takes the delta its settle returned, and a finish the settle could not read back stands in words with no number. The title failed without the change.
 - verified-by: `an end card shows only numbers the settle pipeline read back`
 
 ### F761 — A finished review and an empty deck look the same
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/ReviewScreen.tsx:176
 - note: A sitting with grades shows "Review complete." with its end card; a deck with nothing due still says "Nothing waiting." and plays nothing.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). review/sittingEnd.ts tells the pages apart by what was dealt: a sitting with grades says "Review complete." with its end card once the settle has read it back; a deck with nothing due keeps "Nothing waiting." and settles, counts and plays nothing; the sitting is still marked banked before it is written. The title failed without the change.
 - verified-by: `a finished review is told apart from a review with nothing waiting`
 
 ### F762 — Keeping an own-words phrase says saved when the write failed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/DrillScreen.tsx:1301
 - note: Say saved, fill the bookmark and play the save moment only on a durable acknowledgement.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). review/phraseSaved.ts keeps the phrase through addPhrases and answers saved only on a durable acknowledgement, and only then publishes phrase-saved (celebrationKey.saved); the drill fills the bookmark and says saved only on that answer and says plainly when a keep was refused; today's phrase added to review announces only a durable write. The title failed without the change.
 - verified-by: `a kept own-words phrase is called saved only on a durable acknowledgement`
 
 ### F763 — The microphone stays published after the recap arrives
@@ -10180,9 +10184,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F766 — A celebration can start under an end card or inside a sitting
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game/settle.ts:626, apps/mobile/src/celebrate/EndCard.tsx:76, apps/mobile/src/game/GameProvider.tsx:196, apps/mobile/src/celebrate/queue.ts:546
 - note: Found by the 6 October re-check of the merged Phase 1 (verdict SHIP, all MINOR). Settle publishes before the screen can mount its end card, so a takeover can start under it; a foreground catch-up can replay a moment in the middle of a sitting; and a safety stop during a seen read leaves crash copies that replay next launch. Fix with Phase 3's end cards: hold celebrations before settling and hand the release to the EndCard, replay only from a Home-focus refresh or a sitting hold, and drop in-flight keys on suppression.
+- note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). Every sitting page in the core loop holds the celebration queue while it is mounted (useSittingHold, also on the lesson route), takes a settle hold before it settles (practice/settleHold.ts) and hands it to EndCard as release, which lets it go only when the card unmounts; a page that leaves first closes the hold so a late settle takes none. GameProvider puts a foreground catch-up off while the queue is held and runs it when the hold lifts (onCelebrationHoldChange). celebrate/queue.ts suppress() also drops the crash copies of moments whose seen read is in flight. ConvoScreen is the room track's and is not changed here. The title failed without the change.
 - verified-by: `no takeover starts under an end card or inside a sitting`
 
 ### F767 — Home never shows the habit it is building

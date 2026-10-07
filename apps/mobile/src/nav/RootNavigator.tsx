@@ -37,6 +37,9 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { lastSummaryFor, recordSession } from '../progress/store.ts';
 import { recordActivity } from '../progress/activity.ts';
 import { settleSitting } from '../game/settle.ts';
+import type { GameDelta } from '../game/delta.ts';
+import { createSettleHold } from '../practice/settleHold.ts';
+import { useSittingHold } from '../practice/useSittingEnd.ts';
 import { bankLesson } from '../live/journal.ts';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
@@ -162,6 +165,20 @@ function LessonRoute() {
   const [checking, setChecking] = useState(false);
   const [startRung, setStartRung] = useState<Rung | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
+  // The finished lesson's delta, as the settle read it back, for its end card.
+  const [delta, setDelta] = useState<GameDelta | null>(null);
+  // While the lesson is up the celebration queue is held, so no takeover
+  // starts over the lesson, its summary or a lesson started again; and the
+  // hold taken before the lesson settles is handed to its end card (F766).
+  useSittingHold();
+  const [endHold] = useState(createSettleHold);
+  useEffect(() => {
+    endHold.open();
+    return () => endHold.close();
+  }, [endHold]);
+  // Which finish a delta belongs to: one that lands after "Go again" is not
+  // the next lesson's to show.
+  const finishes = useRef(0);
   const [report, setReport] = useState<ProgressReport | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
   const [historyRead, setHistoryRead] = useState(0);
@@ -203,6 +220,13 @@ function LessonRoute() {
     // so a stopped lesson never reaches this line and settles nothing.
     const endedAt = Date.now();
     const xp = lessonXp({ wordsProduced: s.wordsProduced, unassistedRate: s.unassistedRate });
+    // The end card shows the delta this settle returns, read back from disk,
+    // and nothing when it returns none (F760). The queue is held before the
+    // settle publishes, and the end card lets the hold go when it goes.
+    const mine = ++finishes.current;
+    setDelta(null);
+    endHold.take();
+    endHold.claim();
     void settleSitting({
       source: 'lesson',
       at: endedAt,
@@ -218,6 +242,10 @@ function LessonRoute() {
           ? { durationMs: Math.round(s.durationSec * 1000), finished: true }
           : { durationMs: Math.round(s.durationSec * 1000), activeMs: timing.activeMs, finished: true },
       ),
+    }).then((settled) => {
+      if (mine !== finishes.current) return;
+      if (settled !== null && ownsLesson()) setDelta(settled);
+      else endHold.release();
     });
     // The session's words become review cards, through the outbox the
     // conversation has used since Phase 4. `addFromSummary` still compiles and
@@ -226,6 +254,7 @@ function LessonRoute() {
     // the whole deck without a word. Only `bankLesson` keeps the summary for
     // the next launch to try again.
     void bankLesson(s);
+    // endHold is a state value made once, so it is not a dependency.
   }, [user]);
 
   /**
@@ -241,11 +270,14 @@ function LessonRoute() {
    */
   const again = useCallback(() => {
     if (!ownsLesson()) return;
+    finishes.current += 1;
+    endHold.release();
     setSummary(null);
+    setDelta(null);
     setReport(null);
     setStartRung(null);
     setHistoryRead(value => value + 1);
-  }, []);
+  }, [endHold]);
 
   if (!ownsLesson()) return <Loading />;
   if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><GhostButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
@@ -263,6 +295,8 @@ function LessonRoute() {
       <SummaryScreen
         lesson={CAFE_LESSON}
         summary={summary}
+        delta={delta}
+        release={endHold.release}
         report={report}
         historySaveFailed={historySaveFailed}
         onAgain={again}

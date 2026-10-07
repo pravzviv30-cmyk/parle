@@ -13,14 +13,16 @@
  * lands with the `quest` sound (`end-card-quests`, founder decision D22).
  *
  * While it is on screen it holds the celebration queue, so a streak or a level
- * waits until the learner leaves the card. It sounds `complete` and gives one
+ * waits until the learner leaves the card; the hold its screen took before
+ * settling is handed to it as `release` and let go only when it goes (F766).
+ * It sounds `complete` and gives one
  * `celebrate()` once per sitting, never inside a live room or while a
  * microphone is open; the XP tile ticks as it counts. Under reduced motion it
  * is drawn finished at once, and its sound and haptic still play once. A card
  * that mounts again for the same sitting is drawn finished and stays silent.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { GameDelta } from '../game/delta.ts';
@@ -57,6 +59,7 @@ export function EndCard({
   delta,
   count = null,
   tutorName = null,
+  release,
 }: {
   /** What the sitting changed, from `game/settle.ts`. */
   delta: GameDelta;
@@ -64,6 +67,12 @@ export function EndCard({
   count?: number | null;
   /** The chosen tutor's name, for a quest title that names them. */
   tutorName?: string | null;
+  /**
+   * The hold the screen took on the queue before it settled this sitting
+   * (F766): settle publishes before this card can mount, so the screen holds
+   * first and hands the hold over here, and the card lets it go when it goes.
+   */
+  release?: () => void;
 }) {
   const view = useMemo(() => endCardView(delta, { count, tutorName }), [delta, count, tutorName]);
   const timeline = TIMELINES[view.timeline];
@@ -76,6 +85,13 @@ export function EndCard({
 
   // The queue waits while the learner is reading this.
   useEffect(() => holdCelebrations(), []);
+  // The hold the screen took before it settled goes with the card, never
+  // before it (F766).
+  const handed = useRef(release);
+  useEffect(() => {
+    handed.current = release;
+  });
+  useEffect(() => () => handed.current?.(), []);
 
   const elapsed = useTimeline(timeline, {
     ready: answered !== null,
