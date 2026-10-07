@@ -1701,6 +1701,29 @@ describe('the microphone capture at the recap — F777', () => {
     assert.deepEqual(order.filter((step) => step.startsWith('unpublishTrack')), [], 'a microphone that was never published was unpublished');
     assert.deepEqual(confirmed, [true]);
 
+    // The orb lets go of the stopped track. LiveKit emits the unpublish and
+    // then empties the publication (`setTrack(undefined)`), before React runs
+    // the hook's updater, so the handler has to read the track when it hears.
+    const unpublished = insideOf(hook, 'room.on(RoomEvent.LocalTrackUnpublished, (publication) => {');
+    const tutorTrack = { kind: Track.Kind.Audio };
+    type Tracks = { mic: unknown; tutor: unknown };
+    const updaters: ((tracks: Tracks) => Tracks)[] = [];
+    const setAudioTracks = (next: (tracks: Tracks) => Tracks): void => {
+      updaters.push(next);
+    };
+    const publication: { track: unknown } = { track: micTrack };
+    run(unpublished, { publication, setAudioTracks });
+    publication.track = undefined;
+    const dropMic = updaters[0];
+    assert.ok(dropMic !== undefined, 'an unpublished microphone never reached the orb\'s tracks');
+    assert.deepEqual(dropMic({ mic: micTrack, tutor: tutorTrack }), { mic: null, tutor: tutorTrack }, 'the orb kept the microphone track the recap stopped');
+    // Another track's unpublish leaves the orb's microphone where it is.
+    run(unpublished, { publication: { track: { kind: Track.Kind.Video } }, setAudioTracks });
+    const keepMic = updaters[1];
+    assert.ok(keepMic !== undefined);
+    const kept = { mic: micTrack, tutor: tutorTrack };
+    assert.equal(keepMic(kept), kept);
+
     // And a later start without leave() takes its hold again: on a phone, where
     // LiveKit's session is still up after the recap gave its hold back, and on
     // the web. One hold for one room, not two.

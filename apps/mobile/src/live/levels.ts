@@ -19,8 +19,9 @@
  * The fall is counted by the clock, not by the step (F777). A level falls the
  * whole scale in RELEASE_MS however often it is looked at, so a timer that runs
  * late on a busy thread, or a reading that comes at an odd pace, never slows it
- * down: it is at rest within REST_WITHIN_MS of the last reading that held it up,
- * and the "Hearing you" word goes with it.
+ * down: it is at rest within REST_WITHIN_MS of the last reading that held it up.
+ * The "Hearing you" word keeps the same promise on its own clock, counted from
+ * that reading rather than from the ring (`createRoomFacts`, below).
  *
  * A level is only drawn once it is real. Until a track has produced a reading
  * above zero (a processor that never started, a browser that never opened its
@@ -36,9 +37,11 @@
 export const LEVEL_SAMPLE_MS = 40;
 /**
  * A level that has heard nothing new for this long is silence: the native hook
- * never writes a zero. Two missed readings, so a gap between syllables holds.
- * The silence is believed then, but dated from the first reading that did not
- * come, one LEVEL_SAMPLE_MS after the last one that did.
+ * never writes a zero. One reading may go missing without the ring moving. The
+ * silence is believed at the second, but dated from the first reading that did
+ * not come, one LEVEL_SAMPLE_MS after the last one that did, so a quiet level
+ * (a quarter of the scale or less) is at rest the moment it is believed. That
+ * is the ring only: "Hearing you" waits HEARING_SILENCE_OFF_MS, below.
  */
 export const STALE_AFTER_MS = 80;
 /** The tutor's voice in seven bands, one for each bar the orb draws. */
@@ -54,8 +57,10 @@ export const RELEASE_MS = 160;
 /**
  * The promise the two above keep (acceptance check 7): a level is at rest, and
  * "Hearing you" has gone, this soon after the last reading that held it up.
- * The worst case is the dated silence (one sample), the whole release, and one
- * more sample before the meter's timer looks again: 40 + 160 + 40 = 240 ms.
+ * The ring's worst case is the dated silence (one sample), the whole release,
+ * and one more sample before the meter's timer looks again: 40 + 160 + 40 =
+ * 240 ms. The word's is HEARING_SILENCE_OFF_MS and a timer one sample late:
+ * 260 + 40 = 300 ms.
  */
 export const REST_WITHIN_MS = 300;
 /** Below this, falling towards silence, a level is at rest and is written as exactly zero. */
@@ -301,6 +306,12 @@ export function restDue(state: RoomLevelState): number | null {
 export interface LevelFrame {
   /** The learner's level, 0 to 1, already gated to their turn. */
   input: number;
+  /**
+   * When the learner's last voiced reading came (above room noise, on their
+   * turn), or null before the first. "Hearing you" counts its silence from
+   * here, never from the level, which may already be at rest.
+   */
+  inputAt: number | null;
   /** The tutor's voice in BAND_COUNT bands, 0 to 1 each, low to high. */
   bands: number[];
   /** The tutor's overall level, 0 to 1: the mean of the bands. */
@@ -317,6 +328,7 @@ export function frameOf(state: RoomLevelState, measuring: { mic: boolean; tutor:
   const output = bands.length === 0 ? 0 : bands.reduce((sum, l) => sum + l, 0) / bands.length;
   return {
     input: state.mic.level,
+    inputAt: state.mic.at,
     bands,
     output,
     inputLive: measuring.mic && state.mic.heard,
@@ -450,21 +462,32 @@ export function createRoomMeter(sink: LevelSink, clock: MeterClock, onFrame?: (f
  * - whether the learner is being heard: a visual "Hearing you" under the orb,
  *   once their level has stayed above HEARING_ABOVE for HEARING_ON_AFTER_MS,
  *   and back to the state's own word once it has stayed below for
- *   HEARING_OFF_AFTER_MS. The wait in each direction is what keeps the word from
- *   flickering between syllables. Silence does not wait (F777): a level at rest
- *   is a silence the meter has already waited out, through its hold and its
- *   release, so the word goes the moment the level rests, within REST_WITHIN_MS
- *   of the learner's last sound. The long wait is for a level that sinks under
- *   the line without resting: a murmur, a noisy room. The orb's accessible name
- *   never changes with it, so a screen reader is not told twice a sentence.
+ *   HEARING_OFF_AFTER_MS, or once no voiced reading has come for
+ *   HEARING_SILENCE_OFF_MS, whichever is sooner. The wait in each direction is
+ *   what keeps the word from flickering between syllables and between words.
+ *   The silence is counted from the learner's last voiced reading, never from
+ *   the ring (F777): a quiet voice's ring rests within a reading or two of a
+ *   pause, and a word that followed the ring would go and come back several
+ *   times a sentence. Counted from the reading, a pause shorter than the wait
+ *   keeps the word, and a real silence takes it within REST_WITHIN_MS. The long
+ *   wait is for a level that sinks under the line while readings keep coming:
+ *   a murmur, a noisy room. The orb's accessible name never changes with it, so
+ *   a screen reader is not told twice a sentence.
  */
 
 /** Above this level the learner is heard: a quiet voice, well over room noise. */
 export const HEARING_ABOVE = 0.12;
 /** The level stays above HEARING_ABOVE this long before "Hearing you" shows. */
 export const HEARING_ON_AFTER_MS = 250;
-/** And below it, without resting, this long before the word goes back. A level at rest takes it at once. */
+/** And below it, with readings still coming (a murmur, a noisy room), this long before the word goes back. */
 export const HEARING_OFF_AFTER_MS = 600;
+/**
+ * And with no voiced reading at all for this long, the word goes back whatever
+ * the level still reads (F777). A pause between words shorter than this keeps
+ * it. It is REST_WITHIN_MS less one sample, so a timer that runs one sample
+ * late still takes the word away within the promise.
+ */
+export const HEARING_SILENCE_OFF_MS = 260;
 
 /** The room's levels, said as facts. */
 export interface RoomFacts {
@@ -497,6 +520,8 @@ export function createRoomFacts(onChange: (facts: RoomFacts) => void, clock: Met
   let facts: RoomFacts = NO_ROOM_FACTS;
   let aboveSince: number | null = null;
   let belowSince: number | null = null;
+  /** The learner's last voiced reading, as the latest frame dates it. */
+  let voicedAt: number | null = null;
   let timer: unknown = null;
   let timerAt: number | null = null;
 
@@ -512,22 +537,41 @@ export function createRoomFacts(onChange: (facts: RoomFacts) => void, clock: Met
     timerAt = null;
   };
 
-  // The one decision: has the level stayed on one side of the line long enough?
-  // A frame arrives every 40 ms while the level moves, so a timer already set
-  // for the same moment is left alone rather than set again.
+  /** When the learner will have been silent long enough to lose the word, or null with no voiced reading dated. */
+  const silentAt = (): number | null => (voicedAt === null ? null : voicedAt + HEARING_SILENCE_OFF_MS);
+
+  /** When the word should flip, or null when nothing is waiting to flip it. */
+  const flipAt = (now: number): number | null => {
+    const silent = silentAt();
+    if (facts.hearing) {
+      const sank = belowSince === null ? null : belowSince + HEARING_OFF_AFTER_MS;
+      if (sank === null) return silent;
+      return silent === null ? sank : Math.min(sank, silent);
+    }
+    if (aboveSince === null) return null;
+    const on = aboveSince + HEARING_ON_AFTER_MS;
+    // A voice that goes quiet before it has lasted is not heard, however high
+    // its level still reads on the way down.
+    if (silent !== null && Math.max(on, now) >= silent) return null;
+    return on;
+  };
+
+  // The one decision: has the learner stayed on one side of the line, or been
+  // silent, long enough? A frame arrives every 40 ms while the level moves, and
+  // each voiced one moves the silence on, so a timer already set for the same
+  // moment or sooner is left alone; when it fires it decides again.
   const decide = (now: number): void => {
-    const since = facts.hearing ? belowSince : aboveSince;
-    if (since === null) {
+    const at = flipAt(now);
+    if (at === null) {
       quiet();
       return;
     }
-    const at = since + (facts.hearing ? HEARING_OFF_AFTER_MS : HEARING_ON_AFTER_MS);
     if (at <= now) {
       quiet();
       say({ ...facts, hearing: !facts.hearing });
       return;
     }
-    if (timer !== null && timerAt === at) return;
+    if (timer !== null && timerAt !== null && timerAt <= at) return;
     quiet();
     timerAt = at;
     timer = clock.later(() => {
@@ -545,22 +589,17 @@ export function createRoomFacts(onChange: (facts: RoomFacts) => void, clock: Met
         // behind another screen, an app in the background.
         aboveSince = null;
         belowSince = null;
+        voicedAt = null;
         quiet();
         say({ inputLive: false, outputLive: frame.outputLive, hearing: false });
         return;
       }
-      if (frame.input === 0) {
-        // At rest: the meter has already waited out its hold and its release,
-        // so this is silence and the word goes now (F777). Waiting the long
-        // wait on top would keep "Hearing you" up for most of a second after
-        // the learner stopped.
-        aboveSince = null;
-        belowSince = null;
-        quiet();
-        say({ inputLive: true, outputLive: frame.outputLive, hearing: false });
-        return;
-      }
-      if (frame.input > HEARING_ABOVE) {
+      voicedAt = frame.inputAt;
+      // A level still above the line once the silence wait has passed is the
+      // tail of a voice that stopped, so it counts as below: the next word
+      // waits its own quarter second.
+      const silent = silentAt();
+      if (frame.input > HEARING_ABOVE && (silent === null || now < silent)) {
         belowSince = null;
         if (aboveSince === null) aboveSince = now;
       } else {
@@ -573,6 +612,7 @@ export function createRoomFacts(onChange: (facts: RoomFacts) => void, clock: Met
     stop() {
       aboveSince = null;
       belowSince = null;
+      voicedAt = null;
       quiet();
       say(NO_ROOM_FACTS);
     },

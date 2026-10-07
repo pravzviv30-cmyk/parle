@@ -1043,7 +1043,11 @@ export function useLiveSession(
         setAudioTracks((tracks) => ({ ...tracks, mic }));
       });
       room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
-        setAudioTracks((tracks) => (tracks.mic !== null && tracks.mic === publication.track ? { ...tracks, mic: null } : tracks));
+        // Read now: LiveKit empties the publication as soon as this returns,
+        // before React runs the updater, and the recap's unpublish (F777)
+        // would otherwise leave the stopped track with the orb.
+        const gone = publication.track;
+        setAudioTracks((tracks) => (tracks.mic !== null && tracks.mic === gone ? { ...tracks, mic: null } : tracks));
       });
       // Whether anyone else is in the room at all. The difference between "the
       // tutor is thinking" and "the tutor was never dispatched" is exactly this.

@@ -259,20 +259,24 @@ learner's start tap, and a context the browser keeps suspended reads silence.
   0.01 is written as exactly zero, so a still ring is still.
 - **The zero trap.** LiveKit's native volume hook only ever writes a reading
   that is not zero, so when the audio stops the last loud value stays put. A
-  level with no new reading for 80 ms (two missed readings, so a gap between
-  syllables holds) is silence. It is believed then but dated from the first
+  level with no new reading for 80 ms is silence (one reading may go missing
+  without the ring moving). It is believed then but dated from the first
   reading that did not come, 40 ms after the last one that did, and falls from
-  there. A reading with nothing in it (room noise under the floor, which the
+  there, so a quiet level (a quarter of the scale or less) rests the moment
+  the silence is believed. That is the ring; "Hearing you" keeps its own,
+  longer wait (below). A reading with nothing in it (room noise under the floor, which the
   web analyser and a quiet phone keep sending) is no news either, so both
   platforms rest the same way. The meter runs its own timer while anything is
   above rest, because after the audio stops there may be no readings to drive
   it, and stops the timer at rest. A timer that fires late does not slow the
   fall, because the fall is counted from the clock.
-- **Rest within 300 ms of silence** (acceptance check 7, F777). The worst case
-  is a full level: 40 ms to the first missed reading, 160 ms of release, and up
-  to one more 40 ms tick before the meter looks again, so 240 ms. Before
-  7 October 2026 the release was 15 % a step after a 120 ms wait, which took
-  over a second, and longer on a busy thread.
+- **Rest within 300 ms of silence** (acceptance check 7, F777). The ring's
+  worst case is a full level: 40 ms to the first missed reading, 160 ms of
+  release, and up to one more 40 ms tick before the meter looks again, so
+  240 ms. "Hearing you" goes 260 ms after the learner's last voiced reading,
+  300 ms if its timer runs one sample late. Before 7 October 2026 the release
+  was 15 % a step after a 120 ms wait, which took over a second, and longer on
+  a busy thread.
 - The learner's level counts only on their turn: microphone open and the tutor
   not speaking. Otherwise it falls to rest; the tutor's voice coming back
   through the speaker is not the learner speaking.
@@ -297,12 +301,15 @@ The constants as they stand (`live/levels.ts`):
 | `PEAK_DECAY`, `PEAK_FLOOR` | 0.995 a reading, 0.05 | The tutor's running peak |
 | `HEARING_ABOVE` | 0.12 | The line for "Hearing you" |
 | `HEARING_ON_AFTER_MS` | 250 | Above the line this long before the word shows |
-| `HEARING_OFF_AFTER_MS` | 600 | Below the line, without resting, this long before it goes |
+| `HEARING_OFF_AFTER_MS` | 600 | Below the line with readings still coming (a murmur), this long before it goes |
+| `HEARING_SILENCE_OFF_MS` | 260 | No voiced reading this long and it goes, whatever the level reads; a shorter pause keeps it |
 
-The timing ones (`STALE_AFTER_MS`, `RELEASE_MS`, `REST_WITHIN_MS`) were set on
-7 October 2026 to keep acceptance check 7, and are held there by the test
-`a level rests within 300 ms of silence`. None of them **has yet been tuned by
-eye on a device**; tuned values replace them here. The target is under 2 ms of
+The timing ones (`STALE_AFTER_MS`, `RELEASE_MS`, `REST_WITHIN_MS`,
+`HEARING_SILENCE_OFF_MS`) were set on 7 October 2026 to keep acceptance check 7,
+and are held there by the tests `a level rests within 300 ms of silence` and
+`the hearing word holds through the pauses between words, through the real
+meter`. None of them **has yet been tuned by eye on a device**; tuned values
+replace them here. The target is under 2 ms of
 JS work per 40 ms sample on an iPhone 12 class phone, measured with the Hermes
 profiler; that has not been measured yet.
 
@@ -323,11 +330,14 @@ numbers read on the device and dropped.
 orb branches on a few facts instead, which `createRoomFacts` in `live/levels.ts`
 takes from every frame the meter writes and hands to `OrbAudio` as `room`:
 whether each level is measured, whether the learner is being heard (their level
-above 0.12 for 250 ms; back at once when the level rests, so within 300 ms of
-silence (F777), or after 600 ms below the line without resting, a murmur or a
-noisy room; a gap between syllables never rests, so the word does not flicker),
-and whether the room is awake (`RoomLevels` is focused and
-the app is active). They change a few times a conversation, so the orb
+above 0.12 for 250 ms; back 260 ms after their last voiced reading, so within
+300 ms of silence (F777), or after 600 ms below the line while readings keep
+coming, a murmur or a noisy room), and whether the room is awake (`RoomLevels`
+is focused and the app is active). The silence is counted from the reading,
+never from the ring: a quiet voice's ring rests in the pauses between words,
+and a word that followed it would go and come back several times a sentence.
+A pause shorter than 260 ms keeps the word; a longer one is the end of a
+phrase, and the next is heard after its own 250 ms. They change a few times a conversation, so the orb
 re-renders a few times a conversation. `tutor/orbLayers.ts` decides the layers
 from them: the listening ring from the learner's level, the live bars and the
 core pulse from the tutor's bands (today's loop rests while they draw), the
