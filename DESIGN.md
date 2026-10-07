@@ -574,8 +574,8 @@ registry and its map retired with revamp B (F599). Nothing in the app imports
 `Image`, and every picture is a vector. The welcome, cake, wave, empty table,
 recap postcard, phrasebook and wall-map rasters went before them.
 
-The daily library and Today show no pictures. Their French, glosses, notes,
-examples and audio remain.
+The daily library and today's phrase show no pictures. Their French, glosses,
+notes, examples and audio remain.
 
 ### Inline SVG
 
@@ -637,11 +637,11 @@ avatar. Friends is a Profile route and retains shared challenges and moderation.
 
 | Tab | What it is |
 |---|---|
-| Home | One shared next task: unfinished personal practice, usable practice, then a scene; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today’s French and free local practice. |
+| Home | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
 | Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
-| Progress | A first task when empty; independently earned can-dos before the A0/A1 level card, a weekly day line, saved phrases, sound evidence, conversations and goals; earned postcards and a week story appear only with evidence. |
-| Profile (avatar) | Settings first, the learner’s monogram and name, lifetime days, the chosen tutor, memory and learning choices. Voice and name choices open sheets over the page. |
+| Progress | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
+| Profile (avatar) | Settings first, the learner’s monogram and name, the chosen tutor and memory, the run and the level as two tiles that open the Streak screen and Progress (`game/ProfileStats`, with a subscriber's freezes), lifetime days, and learning choices with the daily goal as five choices: No goal, Casual, Regular, Serious, Intense. Voice and name choices open sheets over the page. |
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
 with the shared header's one chevron, and each was moved rather than cut, because

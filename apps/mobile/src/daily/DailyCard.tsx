@@ -7,15 +7,18 @@
  *
  * Two looks, one owner of the audio. `full` is the library card. `today` is
  * Home's white card (F602): the French with a play disc that stops what it
- * started, the English, and "Practise it", which is the library's "Say it".
- * It has no label, no save and no example, and it never states the audio line,
- * so a phrase with no recording still reads and still opens its practice.
+ * started, the English, and one row of three icon actions (Phase 4): "Practise
+ * it", which is the library's "Say it"; Save, the same save the library card
+ * makes, filled once the save is read back; and "More phrases", the way into
+ * the daily collection. It has no label and no example, and it never states
+ * the audio line, so a phrase with no recording still reads and still opens
+ * its practice.
  */
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { Card, FrenchBlock, GhostButton, Label } from '../components.tsx';
+import { Card, FrenchBlock, GhostButton, IconAction, IconActionRow, Label } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { loadBookmarks, setBookmark } from '../bookmarks/store.ts';
 import { TUTOR_DAILY_AUDIO } from './tutorAudioManifest.ts';
@@ -134,7 +137,11 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
   if (variant === 'today') {
     return <Card style={{ marginTop: space(3), gap: space(3) }}>
       <FrenchBlock french={item.fr} english={item.en} size="lg" onHear={asset != null ? toggle : undefined} playing={status.playing} />
-      <View style={{ alignItems: 'flex-end' }}><GhostButton label="Practise it" onPress={sayIt} /></View>
+      <IconActionRow>
+        <IconAction icon="microphone" label="Practise it" onPress={sayIt} accessibilityLabel="Practise today's phrase" />
+        <IconAction icon="bookmark" label={saved === true ? 'Saved' : 'Save'} accessibilityLabel={saved === true ? "Today's phrase is saved" : "Save today's phrase"} selected={saved === true} animate="bookmark-fill" busy={busy} disabled={saved === null} onPress={() => void save()} />
+        <IconAction icon="book" label="More phrases" accessibilityLabel="More phrases. Explore my daily collection" onPress={() => nav.navigate('DailyLibrary')} />
+      </IconActionRow>
       {saveFailure}
       {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{note}</Text>}
     </Card>;

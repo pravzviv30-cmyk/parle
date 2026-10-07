@@ -9147,9 +9147,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F631 — Home's touch-floor walk reads only Pressable tags, so it goes blind when rows move onto Press
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.test.ts:466
 - note: found by the Stage 2 pass A judge; not a defect of revamp B stage 2. The F409 loop checks that every tappable row under home/ declares minHeight: HIT, but it walks only `tags(body, 'Pressable')`. Stage 3 moves Home onto the B parts, which press through `Press`. A `<Press style={st.row}>` with no floor would then pass unseen. Walk `tags(body, 'Press')` as well; `<Press\b` does not match `<Pressable`.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). HomeTab.test.ts walks `tags(body, 'Press')` beside the Pressable walk over every file under home/ and the two game cards Home draws (game/TodayHero.tsx, game/QuestsCard.tsx), proving first on synthetic rows that a Press with no floor is caught and a Pressable is not read as a Press. The title failed without the change (it did not exist).
 - verified-by: `every tappable row on Home declares the touch floor, whether it presses through Pressable or Press`
 
 ### F632 — Seven lines still send the learner to My French, which the tab bar now calls Progress
@@ -10203,32 +10204,36 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F767 — Home never shows the habit it is building
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/HomeTab.tsx, apps/mobile/src/game
 - note: Founder decisions D2, D5, D6 and README Part 5.F: Home leads with game/TodayHero (flame and streak to the Streak screen, the goal ring in measured minutes, the level chip), a factual nudge line, the pinned lifetime day count and game/QuestsCard. A read failure shows nothing, never 0, and increments animate from the last shown value.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). Home draws game/TodayHero above its own read (flame and run to the Streak screen, the goal ring in measured minutes, the level chip, the nudge line from game/copy.ts only while a run waits on today; nothing when unread), the scene brief with its place drawing (home/SceneArt.tsx), the pinned lifetime DayCount, game/QuestsCard (no chest, D22) and today's phrase with Practise it, Save and More phrases. Increments come from home/homeSeen.ts (device-only key home-seen, excluded from sync) and never count down or replay. The titles failed without the change (the modules did not exist).
 - verified-by: `Home's today hero shows the streak, today's measured goal minutes and the level from real records, and claims nothing it could not read`
 - verified-by: `Home's increments animate from the last shown value and never replay or count down`
 - verified-by: `the nudge line is warm, factual and appears only when the streak is real and today is unpractised`
 
 ### F768 — Home re-reads its storage every minute and flashes the skeleton
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/useHomeRefresh.ts:9, apps/mobile/src/tabs/HomeTab.tsx:100
 - note: A refresh replaces drawn content with the loading skeleton. Once Home has drawn, a refresh keeps what is shown until the new read lands.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). home/homeRefresh.ts: the minute timer only asks whether the local day turned, and a read clears the page only for an account nothing was drawn for (refreshClears); HomeTab records the account it drew for when the read lands. NextTaskCard and DayCount keep what they drew across a same-account refresh too. The title failed without the change (the module did not exist).
 - verified-by: `Home refreshes without ever showing its skeleton again once it has drawn`
 
 ### F769 — Progress and Profile hide the level, the streak and the counts
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/tabs/MyFrenchTab.tsx, apps/mobile/src/tabs/ProfileTab.tsx
 - note: README Part 5.F: Progress leads with game/LevelXpCard, game/StreakSummaryCard (keeping the weekly DayCount), game/CountsGrid and game/BadgeShelf (no locked or remaining wording), then the CEFR card and the postcard shelf; Profile shows game/ProfileStats and the goal as five Choice rows.
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). Progress leads with game/LevelXpCard, game/StreakSummaryCard (holding the pinned <DayCount weekly />), game/CountsGrid and game/BadgeShelf (no locked, remaining or collect wording), each from its own record and drawn once there is practice; then the CEFR card (the one pill), progress/PostcardShelf in place of the postcards row, and IconTile ledger rows. Profile draws game/ProfileStats (a subscriber's freezes only) and the goal as five Choice rows. The title failed without the change (the modules did not exist).
 - verified-by: `Progress leads with the level, the streak and real counts, each from its own record`
 
 ### F770 — There is no screen for the streak
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game, apps/mobile/src/nav
 - note: README Part 5.D Streak screen: hero flame with the count, lifetime and longest; a week strip and a month calendar that never say missed; the freezes card and the repair card for a subscriber; the one calm repair line for a free learner (D4); milestones; month arrows as labelled IconButtons; a web path in nav/theme.ts (F493).
+- note 2026-10-07: fixed on ca/p4-home (step P4-A). game/StreakScreen.tsx on the Streak route (nav/types.ts, RootNavigator, web path `streak` in nav/theme.ts) draws game/streakScreenView.ts: the run with the lifetime total and the longest, the week and the month from the game view's practice days and covers with full spoken labels and no missed, labelled month IconButtons, seven columns, the freezes and repair cards for a subscriber and the D4 line with See plans for a free learner only just after a reset. The titles failed without the change (the modules did not exist).
 - verified-by: `the streak screen shows the run, the lifetime total, the week and the month from real days, and never says missed`
 - verified-by: `a free learner sees one calm repair line and a subscriber sees their freezes and repair`
 

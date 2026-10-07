@@ -32,6 +32,12 @@ export type RootStackParamList = {
   DailyLibrary: undefined;
   Postcards: undefined;
   WeekWrapped: undefined;
+  /**
+   * The streak (come alive Phase 4, F770): the run, the week, the month, the
+   * freezes and the milestones, opened from Home's flame and ring and from
+   * Progress and Profile. No params: it reads the game layer itself.
+   */
+  Streak: undefined;
   Tabs: undefined;
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it

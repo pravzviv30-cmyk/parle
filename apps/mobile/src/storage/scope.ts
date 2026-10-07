@@ -165,6 +165,10 @@ export const USER_KEY_SUFFIXES = [
   // phone last saw, the time zone of the last practice and the celebrations
   // still queued. Device-local, and cleared with the account all the same.
   'gameLocal',
+  // What Home last drew (Phase 4): the streak, today's minutes, the level,
+  // quests done and lifetime days, so a rise counts up once. Device-local;
+  // a reset that left it would start the next learner's numbers from these.
+  'home-seen',
 ] as const;
 
 /**

@@ -17,6 +17,12 @@ import { DayCount } from '../progress/DayCount.tsx';
  * is, who the tutor is, the week they have had, and the standing choices about
  * how a conversation goes.
  *
+ * Come alive Phase 4 (F769) adds the streak and the level as two tiles under
+ * the tutor (`game/ProfileStats`, with a subscriber's freezes), keeps the
+ * lifetime day count, and draws the daily goal as five choices: No goal,
+ * Casual, Regular, Serious and Intense (D5). The days-a-week question is
+ * gone.
+ *
  * ## The header is a person, not a subject
  *
  * Four tabs name a subject and read left. This one opens on the learner's own
@@ -54,8 +60,8 @@ import { startVoiceLine } from '../sound/voiceLine.ts';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
-import { paper, space, type } from '../theme.ts';
-import { Card, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
+import { HAIRLINE, paper, space, type } from '../theme.ts';
+import { Card, Choice, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
@@ -66,7 +72,9 @@ import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
 import { LEARNING_LABEL, PROFILE_PURPOSE, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
-import { DAILY_GOAL_ROW, GOALS, goalFor, goalKeyOf, goalLine, type GoalKey } from '../profile/dailyGoal.ts';
+import { DAILY_GOAL_ROW, dailyGoalOf, goalLine } from '../profile/dailyGoal.ts';
+import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
+import { ProfileStats } from '../game/ProfileStats.tsx';
 import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
 import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
 import {
@@ -270,6 +278,10 @@ export function ProfileTab() {
         <Label>{TUTOR_LABEL}</Label>
         <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
 
+        {/* The streak and the level, each opening its own screen, and a
+            subscriber's freezes. Its own file with its own reads. */}
+        <ProfileStats />
+
         <DayCount />
 
         <View style={st.group}>
@@ -277,16 +289,24 @@ export function ProfileTab() {
           <Card style={{ marginTop: space(2.5) }}>
             <SettingsRow first label="Friends" value="Optional shared practice" onPress={() => nav.navigate('Friends')} />
             <SettingsRow label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
-            {/* Three words on a track, and what the chosen one means beneath. The
-                minutes are a number in the store and words on the screen. */}
-            <ChoiceRow<GoalKey>
-              title={DAILY_GOAL_ROW}
-              options={GOALS}
-              active={goalKeyOf(profile)}
-              onChange={(key) => update(withDailyGoal(profile, goalFor(key).minutes))}
-              gloss={goalLine(profile)}
-              accessibilityLabel={DAILY_GOAL_ROW}
-            />
+            {/* The daily goal as five choices (D5): none, then the four tiers,
+                gentlest first, each saying its size in words. What the chosen
+                one means is written beneath. */}
+            <View style={st.goal} accessibilityRole="radiogroup" accessibilityLabel={DAILY_GOAL_ROW}>
+              <Text accessibilityRole="header" style={[type.label, { color: paper.ink }]}>{DAILY_GOAL_ROW}</Text>
+              {GOAL_CHOICES.map((choice) => (
+                <Choice
+                  key={choice.key}
+                  compact
+                  ground="card"
+                  title={choice.title}
+                  detail={choice.detail}
+                  selected={goalChoiceOf(dailyGoalOf(profile)) === choice.key}
+                  onPress={() => update(withDailyGoal(profile, choice.minutes))}
+                />
+              ))}
+              <Text style={[type.small, { color: paper.inkSoft }]}>{goalLine(profile)}</Text>
+            </View>
             <ChoiceRow<Strictness>
               title={STRICTNESS_ROW}
               options={STRICTNESS_OPTIONS.map((option) => ({ key: option.value, label: option.label }))}
@@ -340,4 +360,6 @@ const st = StyleSheet.create({
   // Each labelled block keeps its own air above it; the label itself sits
   // tight to the card it names.
   group: { marginTop: space(5) },
+  // The five goal choices, under the row's name, inside the learning card.
+  goal: { paddingVertical: space(3), gap: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
 });

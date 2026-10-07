@@ -1777,8 +1777,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // 2026-09-27, Phase 3: each tab's own surfaces as it imports them today. Home no longer draws
   // AbilitiesCard; My French draws its phrase bank and sounds map instead of SituationsCard. The row test
   // below fails if a listed file stops being drawn, so this list cannot go stale silently.
+  // 2026-10-07, come alive Phase 4: the game cards each tab now draws, every one
+  // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
-    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx'],
+    'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx'],
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
@@ -1786,8 +1788,16 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'practice/MakePhraseCard.tsx',
       'practice/TuneSoundCard.tsx',
     ],
-    'tabs/MyFrenchTab.tsx': ['tabs/MyFrenchTab.tsx', 'myfrench/LevelCard.tsx'],
-    'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx'],
+    'tabs/MyFrenchTab.tsx': [
+      'tabs/MyFrenchTab.tsx',
+      'myfrench/LevelCard.tsx',
+      'game/LevelXpCard.tsx',
+      'game/StreakSummaryCard.tsx',
+      'game/CountsGrid.tsx',
+      'game/BadgeShelf.tsx',
+      'progress/PostcardShelf.tsx',
+    ],
+    'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx', 'game/ProfileStats.tsx'],
   };
 
   test('a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406', () => {
@@ -1838,8 +1848,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // yours in their own card files.
       'tabs/PracticeTab.tsx': 4,
       // Conversations and their "see all", the phrase shelf, the collection,
-      // goals, the daily collection and the door to every situation.
-      'tabs/MyFrenchTab.tsx': 5,
+      // goals, the daily collection and the door to every situation. Phase 4
+      // (2026-10-07): the postcards row became the postcard shelf, 5 to 4.
+      'tabs/MyFrenchTab.tsx': 4,
       // Profile is cards of settings, not a list of places.
       'tabs/ProfileTab.tsx': 0,
     };
@@ -2157,7 +2168,10 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     const home = named('tabs/HomeTab.tsx');
     const tutor = named('tabs/TutorTab.tsx');
     assert.match(design, /voice orb, shared press, motion primitives, celebration host and bounded\s+state feedback animate/);
-    assert.match(design, /daily library and Today\s+show no pictures/);
+    // 2026-10-07, come alive Phase 4 (README Part 6): Home now draws the
+    // scene's place on its brief and the game art, so the sentence is held to
+    // what stays picture-free, the daily library and today's phrase.
+    assert.match(design, /daily library and today's phrase\s+show no pictures/);
     // Revamp B (F599): the places are flat drawings now, and the doc must not
     // go on saying the retired watercolours ship.
     assert.match(design, /seven place drawings/);

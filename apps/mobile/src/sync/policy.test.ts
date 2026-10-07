@@ -459,8 +459,13 @@ describe('the per-domain conflict policy — twenty-three namespaces, three clas
     // because a merged consent is a withdrawal that can come back on its own.
     assert.deepEqual(
       [...excluded].sort(),
-      ['analytics', 'conversationPacks', 'friends', 'gameLocal', 'journal', 'moments', 'onboarding-practice', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'suggestions'],
+      // 2026-10-07, come alive Phase 4: `home-seen`, what one phone's Home last drew.
+      ['analytics', 'conversationPacks', 'friends', 'gameLocal', 'home-seen', 'journal', 'moments', 'onboarding-practice', 'packMarks', 'pendingPurchase', 'practiceSession', 'reminder', 'suggestions'],
     );
+    // What one phone last drew is excluded, with the reason written down (Phase 4).
+    const seen = SYNC_EXCLUSIONS.find((entry) => entry.namespace === 'home-seen');
+    assert.ok(seen, 'home-seen is not excluded, so one phone would skip a rise another phone never drew');
+    assert.match(seen.reason, /this phone|one phone/, 'the home-seen reason does not say it is a fact about one phone');
     for (const exclusion of SYNC_EXCLUSIONS) {
       assert.ok(exclusion.reason.trim().length > 40, `${exclusion.namespace} has no real reason for being excluded`);
     }

@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, twenty-seven namespaces, no exceptions.
+ * What happens when two devices disagree — one table, twenty-eight namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Fifteen namespaces are synced under three merge classes;
- * twelve are excluded with a stated reason, because a namespace that is silently absent
+ * thirteen are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -49,6 +49,7 @@
  * | `pendingPurchase` | **excluded** — see SYNC_EXCLUSIONS                     |
  * | `onboarding-practice` | **excluded** — see SYNC_EXCLUSIONS                 |
  * | `gameLocal`   | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `home-seen`   | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -798,13 +799,14 @@ export interface SyncExclusion {
 }
 
 /**
- * The twelve namespaces that are on the device and stay on the device.
+ * The thirteen namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
+  { namespace: 'home-seen', reason: "What this phone's Home last drew, so a number that rose since counts up once. A fact about one screen on one phone: synced, a tablet would skip a rise the learner never saw on it, and the real numbers all live in the synced game and activity records." },
   { namespace: 'gameLocal', reason: "The OS schedule, timezone and the plan observed are facts about this phone; syncing them would nudge one learner twice and let one device's billing read decide another's." },
   { namespace: 'onboarding-practice', reason: 'A temporary first-use task on this phone. Its explicitly saved phrase enters the ordinary synced review deck; the local guest capability never syncs.' },
   { namespace: 'pendingPurchase', reason: 'A checkout started on this phone stays fenced here until its matching paid entitlement is verified. It is transaction recovery, never learning evidence or cross-device billing authority.' },

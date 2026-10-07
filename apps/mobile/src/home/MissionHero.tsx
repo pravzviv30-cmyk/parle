@@ -7,8 +7,10 @@
  * French title, the English under it, what the learner will be able to do as
  * one finished sentence, one line they will say, one white Start in the
  * learner's standing mode and a quiet link to the other one ("Type instead",
- * or "Speak instead" for a learner who prefers typing). No picture and no
- * reason line: every block is a fact about this scene.
+ * or "Speak instead" for a learner who prefers typing). No reason line: every
+ * block is a fact about this scene. A scene on the spine carries its place
+ * drawing above the meta line (Phase 4, `SceneArt`), decorative and never
+ * pressable.
  *
  * The Start says what Speak's Start says, from the one `launchLabel`: "Start
  * speaking" or "Start typing", or the connection check while the tutor cannot
@@ -51,6 +53,7 @@ import { prefersTyping } from '../profile/typing.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { sceneMeta } from './estimate.ts';
 import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
+import { SceneArt } from './SceneArt.tsx';
 
 export function MissionHero({ hero }: { hero: HomeMission }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -137,6 +140,7 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
       canDo={hero.canDo ? canDoSentence(hero.canDo) : undefined}
       line={hero.lines[0] ? { fr: hero.lines[0] } : undefined}
       note="The estimate is for this scene's steps. The live room uses minutes while open."
+      art={hero.kind === 'scene' ? <SceneArt mission={hero.mission.id} /> : undefined}
       corner={
         target === null ? undefined : (
           <Pressable

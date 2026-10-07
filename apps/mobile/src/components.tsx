@@ -1285,6 +1285,7 @@ export function SceneBrief({
   action,
   secondary,
   corner,
+  art,
 }: {
   /** One meta line: the label, the minutes and the tutor, already in words. */
   meta: string;
@@ -1304,9 +1305,12 @@ export function SceneBrief({
   secondary?: ReactNode;
   /** A 44pt slot at the top right: the bookmark toggle, or nothing. */
   corner?: ReactNode;
+  /** The scene's place drawing above the meta line (Phase 4): decorative, never pressable. */
+  art?: ReactNode;
 }) {
   return (
     <ColourCard ground="blue" style={ls.brief}>
+      {art != null ? art : null}
       <View style={ls.briefHead}>
         <Text style={[type.small, ROW_WORDS, { color: onColour.blue }]}>{meta}</Text>
         {corner != null ? <View style={ls.corner}>{corner}</View> : null}

@@ -38,6 +38,7 @@ import {
   milestoneCrossed,
   questMonthOf,
   questProgress,
+  repairOffer,
   streakFrom,
   xpLevelFor,
   type BadgeFacts,
@@ -47,6 +48,8 @@ import {
   type GoalProgress,
   type QuestId,
   type QuestProgress,
+  type RepairOffer,
+  type StreakCover,
   type StreakState,
   type XpLevel,
 } from '@luvani/core';
@@ -150,6 +153,16 @@ export interface GameView {
   goal: GoalProgress;
   quests: QuestsView;
   badges: readonly BadgeAward[];
+  /**
+   * The practice days and covers the streak is folded from, for the Streak
+   * screen's week strip and month calendar (Phase 4), so they draw the same
+   * days the number above counts.
+   */
+  days: { practiceDays: readonly DayKey[]; covers: readonly StreakCover[] };
+  /** What the confirmed plan opens for the streak, or null while the plan is unknown. */
+  protection: { freezes: boolean; repair: boolean } | null;
+  /** The repair a subscriber is earning now, or null: never for a free learner or an unknown plan (D4). */
+  repair: RepairOffer | null;
 }
 
 type DayOf = (at: number) => DayKey;
@@ -317,6 +330,9 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
       facts: dayFacts,
     },
     badges: facts.game.badges,
+    days: { practiceDays: facts.practiceDays, covers: facts.game.covers },
+    protection,
+    repair: protection?.repair === true ? repairOffer({ ...streakInput, entitled: true, sittings: finishedSittings(facts), dayKey: dayOf }) : null,
   };
 }
 
