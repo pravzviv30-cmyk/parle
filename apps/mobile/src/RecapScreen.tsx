@@ -109,7 +109,8 @@ export function RecapScreen({
   /** Already checked against this session’s independent finish and learner source. */
   evidenceQuote?: string | null;
   completedMissionId?: string;
-  firstEarned?: boolean;
+  /** A first earn, an earn again, or null when the learner's finish history could not be read (`recap/evidence.ts`, F777). */
+  firstEarned?: boolean | null;
   /** This session's finish of the scene was on the learner's own (`recap/evidence.ts` `earnedFinish`). */
   independentFinish?: boolean;
   /** What the conversation changed, read back by the settle; null until it lands, or if it never does. */

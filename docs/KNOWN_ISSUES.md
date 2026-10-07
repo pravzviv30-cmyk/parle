@@ -10286,9 +10286,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F777 — Three room details the review found: an unread history, a muted microphone and a slow rest
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/recap/evidence.ts:31, apps/mobile/src/ConvoScreen.tsx:629, apps/mobile/src/live/useLiveSession.ts:745, apps/mobile/src/live/levels.ts:37
 - note: Found by the 7 October room review (verdict SHIP). A postcard stamp says "again" when the learner's finish history could not be read (truthfulness: use the neutral line); at the recap the microphone is muted, not unpublished, so capture keeps running and the iPhone microphone indicator stays on; and the levels take about a second to rest after silence where acceptance check 7 asks for 300 ms (decay by elapsed time).
+- note 2026-10-07, ca/p4-room-fu-r1 (step P4-F and its review repair): an unread history is null through `firstEarnedFinish`, the conversation's read and the recap's prop, and stamps `neutral` ("You did it on your own.", the first earn's weight); the recap mutes, then unpublishes and stops the microphone track before it reports the close, the orb lets go of that track, and a start after a recap without `leave()` takes the room's hold again; levels hold 80 ms and fall by the clock (full scale in 160 ms), at rest within 240 ms of the last sound, and "Hearing you" goes 260 ms after the last voiced reading (counted from the reading, not the ring, so a quiet voice's pauses between words do not flicker it). The faster release made `envelope(1, 0) > 0.8` false in `live/levels.test.ts`, so it reads `> 0.7`; the new `release(1, LEVEL_SAMPLE_MS) > 0.5` keeps its intent. All three titles pass; the iPhone indicator and the levels' look are not yet checked on a device.
 - verified-by: `a postcard stamp never claims an earlier finish it could not read`
 - verified-by: `the recap stops the microphone capture, not only mutes it`
 - verified-by: `a level rests within 300 ms of silence`

@@ -26,8 +26,17 @@ export function ensureLiveKitGlobals(): void {
  * The OS audio session: without starting it, iOS keeps the route on the receiver
  * at call volume and remote audio can be inaudible. No ios/ dir exists yet — web
  * is the shipping platform — this is for the first dev build.
+ *
+ * Two facts, because a recap separates them (F777). `audioStarted`: a live room
+ * has started the session and holds it. `sessionUp`: LiveKit's session is
+ * active, until `leave()` stops it. A recap gives the room's hold back and the
+ * session stays up, so a start that follows without `leave()` is not started
+ * yet: it takes the hold again and makes the session active again (the recap's
+ * sound may have let the OS deactivate it; activating an active session
+ * changes nothing).
  */
 let audioStarted = false;
+let sessionUp = false;
 /**
  * The room's hold on the learner's ears (sound/audioFocus.ts): while it is held, no sound effect
  * changes the audio mode and no control gives a haptic (decision D8). Taken before the session
@@ -47,10 +56,12 @@ export async function ensureAudioSession(): Promise<void> {
   releaseLive?.();
   releaseLive = release;
   audioStarted = true;
+  sessionUp = true;
 }
 
 export async function releaseAudioSession(): Promise<void> {
-  if (!audioStarted) return;
+  if (!sessionUp) return;
+  sessionUp = false;
   audioStarted = false;
   try {
     await AudioSession.stopAudioSession();
@@ -69,13 +80,15 @@ export async function releaseAudioSession(): Promise<void> {
  * `releaseAudioSession`, which then finds no hold to release. LiveKit set its
  * own category, so the next voice, recording or sound effect sets a full mode.
  *
- * Only for a room that has finished: nothing starts a session again after its
- * recap without leaving first, and `ensureAudioSession` takes its hold only
- * when it starts LiveKit's session, after `leave()` has stopped the last one.
+ * Only for a room that has finished. A start that comes after the recap
+ * without `leave()` finds LiveKit's session still up but no room holding it,
+ * and `ensureAudioSession` takes the hold again for it (F777), so a live room
+ * is never left unheld.
  */
 export function releaseLiveHold(): void {
   if (!releaseLive) return;
   markUnknown();
   releaseLive();
   releaseLive = null;
+  audioStarted = false;
 }

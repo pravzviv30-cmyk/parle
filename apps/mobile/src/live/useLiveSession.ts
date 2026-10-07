@@ -741,6 +741,13 @@ export function useLiveSession(
    * the learner left, or after another start took the session, belongs to a
    * room that is gone and is not reported, so it can never give away the hold
    * a newer room took.
+   *
+   * Closed means the capture has stopped, not only that nothing is sent
+   * (F777). `setMicrophoneEnabled(false)` mutes the published track and leaves
+   * the device recording, so the iPhone's microphone indicator stayed on over
+   * the recap. Once the mute lands, the microphone track is unpublished and
+   * stopped; that is what lets the device go. A later `openMic` or `start`
+   * makes a new track, as a first one does.
    */
   const closeMicForRecap = useCallback(() => {
     const room = roomRef.current;
@@ -748,8 +755,13 @@ export function useLiveSession(
     setMicOpen(false);
     if (room === null) return;
     const closingGeneration = startGenRef.current;
-    void room.localParticipant
+    const participant = room.localParticipant;
+    void participant
       .setMicrophoneEnabled(false)
+      .then(() => {
+        const mic = participant.getTrackPublication(Track.Source.Microphone)?.track;
+        return mic === undefined ? undefined : participant.unpublishTrack(mic, true);
+      })
       .then(() => {
         if (roomRef.current !== room || closingGeneration !== startGenRef.current) return;
         trace('mic-closed-for-recap');
@@ -1031,7 +1043,11 @@ export function useLiveSession(
         setAudioTracks((tracks) => ({ ...tracks, mic }));
       });
       room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
-        setAudioTracks((tracks) => (tracks.mic !== null && tracks.mic === publication.track ? { ...tracks, mic: null } : tracks));
+        // Read now: LiveKit empties the publication as soon as this returns,
+        // before React runs the updater, and the recap's unpublish (F777)
+        // would otherwise leave the stopped track with the orb.
+        const gone = publication.track;
+        setAudioTracks((tracks) => (tracks.mic !== null && tracks.mic === gone ? { ...tracks, mic: null } : tracks));
       });
       // Whether anyone else is in the room at all. The difference between "the
       // tutor is thinking" and "the tutor was never dispatched" is exactly this.
