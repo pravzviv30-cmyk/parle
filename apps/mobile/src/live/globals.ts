@@ -24,3 +24,13 @@ export async function releaseAudioSession(): Promise<void> {
   releaseLive?.();
   releaseLive = null;
 }
+
+/**
+ * The session has ended and the microphone is closed, but the room stays open
+ * for the recap (F763, `live/recapAudio.ts`). The hold goes so the recap may
+ * play its moment; on the web there is nothing else to give back.
+ */
+export function releaseLiveHold(): void {
+  releaseLive?.();
+  releaseLive = null;
+}

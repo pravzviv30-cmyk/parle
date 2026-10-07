@@ -23,6 +23,7 @@ import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT } from '.
 import { EarGlyph, Highlight, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';
+import { BubbleIn } from '../motion/BubbleIn.tsx';
 import { replayEar } from './replayEar.ts';
 
 function Recast({ better, betterEn, reason, latest }: { quote: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
@@ -177,9 +178,14 @@ export function Transcript({
   const ref = useRef<ScrollView>(null);
   const nearBottom = useRef(true);
   const [newLines, setNewLines] = useState(false);
-  // The thread arrives in place (notebook Phase 4, 2026-09-27): only the orb
-  // and the highlighter move in this app. Reduce motion still decides whether
-  // the scroll to the newest line glides or jumps.
+  // A line said while the thread is on screen arrives (come alive, core loop
+  // 3.5): the learner's rises a little from the orb's side and grows into
+  // place, the tutor's rises less and only fades in, through the shared
+  // `BubbleIn`. The lines already there when the thread opened arrive in place,
+  // so opening or rejoining a conversation never replays its history. Reduce
+  // motion puts every line in place at once, and decides whether the scroll to
+  // the newest line glides or jumps.
+  const [present] = useState(() => new Set(turns.map((t) => t.id)));
   const reduced = useReduceMotion();
   // Which bubble carries the replay. Found by walking back rather than by
   // index, because the last line in the thread is usually the learner's.
@@ -217,16 +223,17 @@ export function Transcript({
         accessibilityLabel="Your conversation so far"
       >
         {turns.map((t) => (
-          <Line
-            key={t.id}
-            turn={t}
-            latestCorrection={t.id === lastCorrectionId}
-            onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined}
-            isLastTutorLine={t.id === lastTutorId}
-            tutorName={tutorName}
-            tutorSpeaking={tutorSpeaking}
-            announceReply={announceReply}
-          />
+          <BubbleIn key={t.id} who={t.who === 'learner' ? 'learner' : 'tutor'} play={!present.has(t.id)}>
+            <Line
+              turn={t}
+              latestCorrection={t.id === lastCorrectionId}
+              onReplay={onReplayTutor && t.id === lastTutorId ? onReplayTutor : undefined}
+              isLastTutorLine={t.id === lastTutorId}
+              tutorName={tutorName}
+              tutorSpeaking={tutorSpeaking}
+              announceReply={announceReply}
+            />
+          </BubbleIn>
         ))}
       </ScrollView>
       {newLines && <Pressable accessibilityRole="button" accessibilityLabel="Go to the latest message" onPress={() => { nearBottom.current = true; setNewLines(false); ref.current?.scrollToEnd({ animated: !reduced }); }} style={st.latest}>

@@ -1,11 +1,17 @@
 import { KeptPhraseCard } from './recap/KeptPhraseCard.tsx';
 import { PrivatePractice } from './recap/PrivatePractice.tsx';
-import { OnceConfetti } from './recap/OnceConfetti.tsx';
-import { OnceCount } from './recap/OnceCount.tsx';
+import { PostcardStamp } from './celebrate/PostcardStamp.tsx';
+import { CountUp } from './motion/CountUp.tsx';
 import { Illustration } from './art/flat/Illustration.tsx';
 import { sceneIllustration } from './art/flat/scenes.ts';
-import { recapCanDo } from './recap/evidence.ts';
+import { postcardLine, postcardStamp, recapCanDo } from './recap/evidence.ts';
 import { postcardIllustration } from './recap/postcardArt.ts';
+import { ResultArt } from './recap/ResultArt.tsx';
+import { ProgressStrip } from './recap/ProgressStrip.tsx';
+import { progressStripView } from './recap/progressStrip.ts';
+import { recapMoment } from './recap/moment.ts';
+import { useRecapMoment } from './recap/useRecapMoment.ts';
+import type { GameDelta } from './game/delta.ts';
 import { SaveTextChoice } from './conversationPacks/SaveTextChoice.tsx';
 import { FixLineSheet } from './drill/FixLineSheet.tsx';
 import type { ConversationText } from '@luvani/core';
@@ -29,6 +35,16 @@ import type { ConversationText } from '@luvani/core';
  * The postcard, the feature-paper header and the tinted panels left with the
  * notebook redesign, and the card sits on the shared frame rather than
  * measuring the safe area itself.
+ *
+ * Come alive (core loop 2.9): this is the conversation's end card, so it is
+ * where the fanfare the room held back plays. Once the room has given the
+ * learner's ears back (F763), the result page plays its moment
+ * (`recap/moment.ts`): a sun glow behind the scene, the `complete` sound, and
+ * confetti when the scene was finished on the learner's own; then the progress
+ * strip from the settled GameDelta (XP, the day streak, the goal ring). The
+ * lines count up to the number said. On the can-do page every independent
+ * finish this session gets its postcard stamped (`celebrate/PostcardStamp`),
+ * and a finish with help gets the postcard still. Each plays once per recap.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -38,10 +54,11 @@ import { recapPages, adjacentRecapPage, type RecapPage } from './recap/pages.ts'
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
-import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour } from './theme.ts';
+import { HAIRLINE, HIT, paper, space, type, frenchText, onColour, colour, decorative } from './theme.ts';
 import { Card, GhostButton, Label, OutlineButton, OptionRow, PillButton, ProgressDots, RoundButton } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { arrived } from './motion/haptics.ts';
+import { holdCelebrations } from './celebrate/queue.ts';
 import { FeedbackLedger } from './motion/feedbackPolicy.ts';
 import { SOUND_DETAIL, exampleFirstHeading } from './tutor/soundExample.ts';
 import { MouthGuide } from './practice/MouthGuide.tsx';
@@ -82,6 +99,10 @@ export function RecapScreen({
   conversationText,
   settlementMessage,
   evidenceQuote,
+  independentFinish = false,
+  delta = null,
+  momentKey = null,
+  onResultShown,
 }: {
   recap: RecapPayload;
   settlementMessage?: string | null;
@@ -89,6 +110,14 @@ export function RecapScreen({
   evidenceQuote?: string | null;
   completedMissionId?: string;
   firstEarned?: boolean;
+  /** This session's finish of the scene was on the learner's own (`recap/evidence.ts` `earnedFinish`). */
+  independentFinish?: boolean;
+  /** What the conversation changed, read back by the settle; null until it lands, or if it never does. */
+  delta?: GameDelta | null;
+  /** The session this recap closes, so its moments play once. */
+  momentKey?: string | null;
+  /** Said once the result page is up: the conversation's settle hold can go (F766). */
+  onResultShown?: () => void;
   /** The learner's own lines from this conversation, from `keepsakeLines`. */
   lines: readonly string[];
   onDone: () => void;
@@ -102,6 +131,18 @@ export function RecapScreen({
   const ownerScope = useRef(scopeGeneration()).current;
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  // This is the conversation's end card, and the queue waits while the learner
+  // reads it, as it does for every end card: what the conversation earned plays
+  // after they leave the room. The room's own hold on the audio focus used to do
+  // this by accident and now goes before the recap's moment (F763).
+  useEffect(() => holdCelebrations(), []);
+  // The result page is up and holding the queue itself, so the hold the
+  // conversation took before it settled can go (F766). Declared after the hold
+  // above, so the queue is never left unheld between the two.
+  const resultShown = useRef(onResultShown);
+  useEffect(() => {
+    resultShown.current?.();
+  }, []);
   // Null until the reads answer: the keepsake draws at once from the recap,
   // and the sound and "Next time" arrive a beat later.
   const [page, setPage] = useState<RecapPage>('result');
@@ -222,6 +263,12 @@ export function RecapScreen({
 
   const mission = completedMissionId ? getMission(completedMissionId) : undefined;
   const canDo = context === null ? null : recapCanDo(context.progress, completedMissionId);
+  // The moment the room held back (recap/moment.ts), on its clock, once.
+  const scene = recapMoment({ won, sceneFinished: mission !== undefined, independentFinish });
+  const moment = useRecapMoment({ key: momentKey, plays: scene.plays });
+  const strip = progressStripView(delta);
+  // Every independent finish this session is stamped; a finish with help is not.
+  const stamp = postcardStamp({ independent: independentFinish, firstEarned });
   const savableText = ownerScope === scopeGeneration() && adapter.kind === 'supabase'
     && conversationText?.ownerId === user?.id && (conversationText?.conversation?.lines.length ?? 0) > 0;
   const pages = recapPages({
@@ -235,6 +282,12 @@ export function RecapScreen({
   const previousPage = adjacentRecapPage(pages, currentPage, -1);
   const canPractise = keptPhrase !== null && saveState === 'saved' && onPractice !== undefined;
   const ground = currentPage === 'result' ? 'coral' : currentPage === 'sound' ? 'sun' : currentPage === 'ability' ? 'mint' : undefined;
+  // The lines count up the first time their page shows, and are simply there after.
+  const linesShown = useRef(false);
+  useEffect(() => {
+    if (currentPage === 'lines') linesShown.current = true;
+  }, [currentPage]);
+  const linesUnit = lines.length === 1 ? 'line you said' : 'lines you said';
   return (<>
     <ScrollScreen bottom="inset" ground={ground ? colour[ground] : paper.ground}
       header={<View style={{ flexDirection: 'row', gap: space(4), alignItems: 'center' }}>
@@ -254,14 +307,14 @@ export function RecapScreen({
           <Text accessibilityLiveRegion="polite" style={type.body}>Saved progress could not be read. You can still read this conversation's recap and keep its phrase.</Text>
           <GhostButton label="Try reading progress again" onPress={() => setContextRead(value => value + 1)} />
         </Card>}
-        <OnceConfetti active={currentPage === 'ability' && firstEarned && canDo !== null} />
-
         {currentPage === 'result' && <View style={st.head}>
           {keptPhrase !== null ? <><KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} />
             {saveState === 'failed' && <OutlineButton label="Retry save" onPress={retrySave} />}
             {canPractise && <GhostButton label="Practise this phrase" color={paper.onInk} onPress={() => onPractice!({ fr: keptPhrase.fr, en: keptPhrase.en, situation })} />}
           </> : lines.length > 0 ? <Card><Label>Your French</Label><Text {...frenchText} style={type.french}>{lines[lines.length - 1]}</Text></Card> : null}
-          {mission ? <Illustration name={sceneIllustration(mission.id)} fit="small" /> : lines.length > 0 ? <Illustration name="celebrate-first-line" fit="small" /> : <Illustration name="state-waiting" fit="small" />}
+          <ResultArt moment={moment} burst={scene.burst} seed={`recap:${momentKey ?? recap.headline}`}>
+            {mission ? <Illustration name={sceneIllustration(mission.id)} fit="small" /> : lines.length > 0 ? <Illustration name="celebrate-first-line" fit="small" /> : <Illustration name="state-waiting" fit="small" />}
+          </ResultArt>
           <Text accessibilityRole="header" style={[type.title, { color: paper.onInk }]}>
             {recap.headline}
           </Text>
@@ -270,6 +323,8 @@ export function RecapScreen({
               old score-like arithmetic is gone. */}
           <Text style={[type.body, { color: onColour.coral }]}>{recapLine(recap.stats)}</Text>
           {settlementMessage && <Text accessibilityLiveRegion="polite" style={[type.body, { color: onColour.coral }]}>{settlementMessage}</Text>}
+          {/* What the conversation changed, from the settle, on its beat. */}
+          {strip !== null && moment.reached('strip') ? <ProgressStrip view={strip} final={moment.final} /> : null}
         </View>}
 
         {currentPage === 'lines' && <View style={{ gap: space(5) }}>
@@ -314,7 +369,12 @@ export function RecapScreen({
           </View>
         ) : null}
 
-        {lines.length > 0 && <OnceCount value={lines.length} />}
+        {lines.length > 0 && (
+          <View style={st.count} accessible accessibilityLabel={`${lines.length} ${linesUnit}`}>
+            <CountUp from={linesShown.current ? lines.length : 0} to={lines.length} label={`${lines.length} ${linesUnit}`} textStyle={[type.hero, { color: paper.ink }]} />
+            <Text {...decorative} style={[type.title, { color: paper.ink, paddingBottom: space(1.5) }]}>{linesUnit}</Text>
+          </View>
+        )}
         </View>}
 
         {currentPage === 'sound' && <View>
@@ -346,8 +406,10 @@ export function RecapScreen({
         {currentPage === 'ability' && <View style={{ gap: space(4) }}>
           <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{canDo}</Text>
           {canDo !== null && mission && <>
-            <Illustration name={postcardIllustration(mission.id)} />
-            <Text style={[type.body, { color: paper.ink }]}>{firstEarned ? 'Your first independent finish here.' : 'A can-do you have earned.'}</Text>
+            {stamp !== null
+              ? <PostcardStamp art={postcardIllustration(mission.id)} kind={stamp} momentKey={momentKey} />
+              : <Illustration name={postcardIllustration(mission.id)} />}
+            <Text style={[type.body, { color: paper.ink }]}>{postcardLine(stamp)}</Text>
             {evidenceQuote && <View style={{ gap: space(2) }}>
               <Text style={[type.body, { color: paper.inkSoft }]}>Your line</Text>
               <Text accessibilityLanguage="fr" style={[type.title, { color: paper.ink }]}>{evidenceQuote}</Text>
@@ -466,6 +528,8 @@ export function RecapScreen({
 const st = StyleSheet.create({
   stack: { paddingTop: space(3), paddingBottom: space(8), gap: space(6) },
   head: { gap: space(2) },
+  // The number said and its words, set on one baseline as the hero number is.
+  count: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2) },
   lines: { marginTop: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
   line: { paddingVertical: space(2.5), borderBottomWidth: HAIRLINE, borderBottomColor: paper.line },
   keptStack: { gap: space(3) },

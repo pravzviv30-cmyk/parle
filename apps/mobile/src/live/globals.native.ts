@@ -61,3 +61,21 @@ export async function releaseAudioSession(): Promise<void> {
     releaseLive = null;
   }
 }
+
+/**
+ * The session has ended and the microphone is closed, but the room stays open
+ * for the recap (F763, `live/recapAudio.ts`): give the hold back so the recap
+ * may play its moment. LiveKit's audio session stays up until `leave()` runs
+ * `releaseAudioSession`, which then finds no hold to release. LiveKit set its
+ * own category, so the next voice, recording or sound effect sets a full mode.
+ *
+ * Only for a room that has finished: nothing starts a session again after its
+ * recap without leaving first, and `ensureAudioSession` takes its hold only
+ * when it starts LiveKit's session, after `leave()` has stopped the last one.
+ */
+export function releaseLiveHold(): void {
+  if (!releaseLive) return;
+  markUnknown();
+  releaseLive();
+  releaseLive = null;
+}

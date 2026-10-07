@@ -79,10 +79,10 @@ test('revamp B out-of-minutes surfaces open the central wall without selling in 
   has('LiveSessionScreen.tsx',/<OutOfMinutesView/);
 });
 test('recap stories, earned postcards and week wrapped use saved evidence and provide a way out',()=>{
-  has('RecapScreen.tsx',/total=\{pages.length\}/,/recapCanDo/,/nextPage === null \? 'Finish conversation' : 'Next'/,/firstEarned/,/<OnceConfetti/,/<OnceCount/);
+  has('RecapScreen.tsx',/total=\{pages.length\}/,/recapCanDo/,/nextPage === null \? 'Finish conversation' : 'Next'/,/firstEarned/,/<PostcardStamp/,/<CountUp/);
   has('progress/PostcardsScreen.tsx',/earnedPostcards\(missionStates/,/scopeGeneration/,/postcardIllustration/,/Choose a scene/);
   lacks('progress/PostcardsScreen.tsx',/locked|remaining|percent|collect all/);
   has('progress/WeekWrappedScreen.tsx',/storyFrom\(\{sessions,activity,packs,completions,now\}\)/,/hasStory/,/total=\{2\}/,/celebrate-wrapped/,/label=\{page===1\?'Done':'Next'\}/,/Choose a scene/,/Try loading your week again/,/readOwner===scopeGeneration\(\)/);
-  has('recap/OnceConfetti.tsx',/useReduceMotion\(true\)/,/used.current=true/,/useNativeDriver:true/,/pointerEvents="none"/);
-  has('recap/OnceCount.tsx',/useReduceMotion\(true\)/,/used.current=true/,/clearInterval/,/no-hide-descendants/);
+  has('celebrate/PostcardStamp.tsx',/useReduceMotion\(true\)/,/claimInPlace\(/,/from '\.\.\/motion\/drive\.ts'/,/pointerEvents: 'none'/);
+  has('motion/CountUp.tsx',/useReduceMotion\(true\)/,/if \(target\.current === to\) return;/,/useLandOnLeave\(land\)/,/\{\.\.\.decorative\}/);
 });

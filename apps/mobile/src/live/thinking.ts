@@ -55,3 +55,25 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
       return thinking;
   }
 }
+
+/**
+ * How long real thinking runs before the room says so in words.
+ *
+ * A brain turn takes four to five seconds on a good day, and the sun-coloured
+ * orb says "Thinking" for all of it. Past six seconds the learner starts to
+ * wonder whether anything is happening, so the header says that it is.
+ */
+export const STILL_THINKING_AFTER_MS = 6000;
+export const STILL_THINKING = 'Still thinking. This can take a few seconds.';
+
+/**
+ * The line for a wait that has lasted `ms` of real thinking, or null.
+ *
+ * Only ever about time already spent in `thinking` (the flag above, set by a
+ * final transcript and cleared by the answer): there is no artificial minimum,
+ * no progress and no "analysing", and a wait that never happened is never
+ * described.
+ */
+export function thinkingLine(ms: number): string | null {
+  return Number.isFinite(ms) && ms >= STILL_THINKING_AFTER_MS ? STILL_THINKING : null;
+}
