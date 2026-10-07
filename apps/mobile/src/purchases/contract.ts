@@ -45,11 +45,13 @@ export interface StoreProduct {
    */
   period: 'month' | 'year';
   /**
-   * A yearly product's price per month, as the store itself works it out and
-   * formats it (`pricePerMonthString`), for the plans page's "about ... a
-   * month". Display only: nothing is bought, granted or metered by it. Null, or
-   * absent, when the product is monthly or the store did not say, and then the
-   * page names only the yearly price rather than dividing one itself.
+   * A yearly product's price per month, as RevenueCat works it out on the
+   * device (the yearly price over twelve) and formats it in the store's
+   * currency (`pricePerMonthString`), for the plans page's "about ... a
+   * month": an approximation, which "about" says. Display only: nothing is
+   * bought, granted or metered by it. Null, or absent, when the product is
+   * monthly or RevenueCat did not say, and then the page names only the yearly
+   * price rather than dividing one itself.
    */
   localizedPricePerMonth?: string | null;
   /**

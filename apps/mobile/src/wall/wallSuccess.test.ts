@@ -4,8 +4,10 @@ import { test } from 'node:test';
 import { PLANS, storeTrialSeconds } from '@luvani/core';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { planStatusFor } from '../purchases/planStatus.ts';
-import { SUCCESS_MONTH, SUCCESS_TRIAL, trialMinutes } from './wallCopy.ts';
-import { purchasePill, wallSuccess } from './wallSuccess.ts';
+import { dayAndMonth } from './wallAccount.ts';
+import { SUCCESS_MONTH, SUCCESS_TRIAL, heldUntil, trialMinutes } from './wallCopy.ts';
+import { chosenOffer, wallPlanRows } from './wallPlans.ts';
+import { purchasePill, successLine, wallSuccess } from './wallSuccess.ts';
 
 const granted: BillingStatus = { plan: 'regular', secondsRemaining: 18000, periodEnd: '2027-01-01T00:00:00Z', lapsed: false, canStart: true, reason: null };
 
@@ -38,17 +40,48 @@ test('a store trial is described as a week of minutes, never a month', () => {
   };
 
   // The success page after a trial bought on the wall: the server's own week.
-  assert.deepEqual(wallSuccess(trial, PLANS, true), { name: 'Starter', minutes: 42, perWeek: null, trial: true });
-  assert.equal(wallSuccess({ ...trial, plan: 'regular', secondsRemaining: storeTrialSeconds('regular') }, PLANS, true)?.minutes, 70);
+  assert.deepEqual(wallSuccess(trial, PLANS, true, NOW), { name: 'Starter', minutes: 42, perWeek: null, trial: true });
+  assert.equal(wallSuccess({ ...trial, plan: 'regular', secondsRemaining: storeTrialSeconds('regular') }, PLANS, true, NOW)?.minutes, 70);
   // A trial the store did not apply in the end is a paid month on the server, and is said as one.
-  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: PLANS.starter.secondsPerPeriod }, PLANS, true), { name: 'Starter', minutes: 180, perWeek: 4 });
+  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: PLANS.starter.secondsPerPeriod }, PLANS, true, NOW), { name: 'Starter', minutes: 180, perWeek: 4 });
   // The words under the number: a month only for a month.
   assert.doesNotMatch(SUCCESS_TRIAL, /month/i, 'the trial is described as a month');
   assert.match(SUCCESS_MONTH, /each month/);
-  assert.match(screen, /\{success\.trial \? SUCCESS_TRIAL : SUCCESS_MONTH\}/, 'the success page says a month whatever was bought');
-  assert.doesNotMatch(screen, /Your speaking time each month\./, 'the month line is written into the page rather than chosen');
-  assert.match(screen, /wallSuccess\(confirmedGrant, latestCatalogue\(\), boughtTrial\.current\)/);
-  assert.match(screen, /boughtTrial\.current = chosen\.trialDays !== null;/, 'the wall does not remember that it bought a trial');
+  assert.equal(successLine({ name: 'Starter', minutes: 42, perWeek: null, trial: true }), SUCCESS_TRIAL);
+  assert.equal(successLine({ name: 'Starter', minutes: 180, perWeek: 4 }), SUCCESS_MONTH);
+  assert.match(screen, /\{successLine\(success\)\}/, 'the success page says a month whatever was bought');
+  assert.doesNotMatch(screen, /Your speaking time each month\.|SUCCESS_MONTH|SUCCESS_TRIAL/, 'the line under the minutes is written into the page rather than chosen');
+  // The trial counts only for a purchase the store accepted from this wall, so
+  // a cancelled trial purchase followed by a restore is never said as a trial.
+  assert.match(screen, /wallSuccess\(confirmedGrant, latestCatalogue\(\), purchaseAccepted && boughtTrial\.current\)/);
+  assert.match(screen, /boughtTrial\.current = chosen\.hasFreeTrial;/, 'the wall does not remember that it bought a trial');
+  // A product carrying a free trial is a trial purchase whatever the store said
+  // about eligibility: the store applies the trial it has, and the server then
+  // grants a week.
+  const unsure = chosenOffer(wallPlanRows({
+    available: true,
+    products: [{ plan: 'starter', productId: 'starter_month', title: 'Starter', localizedPrice: '£9.99', period: 'month', intro: null, introEligible: false }],
+    yearly: [{ plan: 'starter', productId: 'starter_year', title: 'Starter', localizedPrice: '£99.99', period: 'year', intro: { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOfUnits: 1, cycles: 1 }, introEligible: false }],
+  }, PLANS), 'starter_year');
+  assert.ok(unsure && unsure.trialDays === null && unsure.hasFreeTrial, 'an unknown eligibility answer made a trial purchase read as a month');
+
+  // A restore during a trial, or a trial purchase the wall confirms only after
+  // it was reopened (the pending-purchase path): nothing on the client says
+  // it was a trial, and the server's grant is a week's worth ending within the
+  // week. Never the catalogue month: the minutes held, and the day they run to.
+  const end = dayAndMonth(trial.periodEnd!);
+  assert.ok(end);
+  assert.deepEqual(wallSuccess(trial, PLANS, false, NOW), { name: 'Starter', minutes: 42, perWeek: null, until: end }, 'a restore during a trial was said as a month');
+  const reopened = { ...trial, secondsRemaining: 30 * 60, periodEnd: new Date(NOW + 5 * DAY).toISOString() };
+  assert.deepEqual(wallSuccess(reopened, PLANS, false, NOW), { name: 'Starter', minutes: 30, perWeek: null, until: dayAndMonth(reopened.periodEnd) }, 'a trial confirmed after the app reopened was said as a month');
+  const restored = successLine(wallSuccess(trial, PLANS, false, NOW)!);
+  assert.equal(restored, heldUntil(end));
+  assert.doesNotMatch(restored, /month|week|trial/i, 'a grant the client cannot name was given a period');
+  // A phone clock a minute slow on the trial's first day still sees the week.
+  const slow = { ...trial, periodEnd: new Date(NOW + 7 * DAY + 60_000).toISOString() };
+  assert.equal(wallSuccess(slow, PLANS, false, NOW)?.until, dayAndMonth(slow.periodEnd));
+  // A month with weeks to run is still the plan's month, however little is left.
+  assert.deepEqual(wallSuccess({ ...trial, secondsRemaining: 20 * 60, periodEnd: new Date(NOW + 20 * DAY).toISOString() }, PLANS, false, NOW), { name: 'Starter', minutes: 180, perWeek: 4 });
   // And the timeline's line about the minutes never says a month.
   assert.doesNotMatch(trialMinutes(42), /month/);
 
@@ -56,6 +89,8 @@ test('a store trial is described as a week of minutes, never a month', () => {
   // the trial is, not "a little" of a month it never was.
   const first = planStatusFor(trial, NOW);
   assert.ok(first.known && first.band === 'plenty', 'a fresh store trial reads as a little speaking time');
+  const slowFirst = planStatusFor(slow, NOW);
+  assert.ok(slowFirst.known && slowFirst.band === 'plenty', 'a phone clock a minute slow read a fresh trial against the month');
   // Most of the week spent is a little, of the week.
   const late = planStatusFor({ ...trial, secondsRemaining: 5 * 60, periodEnd: new Date(NOW + 2 * DAY).toISOString() }, NOW);
   assert.ok(late.known && late.band === 'a-little');

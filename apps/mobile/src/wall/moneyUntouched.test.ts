@@ -88,15 +88,20 @@ const FILES: Record<string, string> = {
   // the contract gains an optional display-only `localizedPricePerMonth` and the
   // native adapter reads it from the yearly package's `pricePerMonthString`. One
   // added line each: no period, id, eligibility, purchase, restore or grant
-  // rule moved, and every FUNCTIONS pin is unchanged. Independent revenue
-  // review of these two hashes is owed before this lands.
+  // rule moved, and every FUNCTIONS pin is unchanged. 7 October 2026: the
+  // independent P4-C review (Opus 5.5, read-only) accepted this adapter hash and
+  // the contract's b98dcaa1... as display-only, which is the revenue sign-off.
   'apps/mobile/src/purchases/adapter.native.ts': '1e5703d601d814461f6f9446d10ee3fc72728dd9c6ec4c3539d8fabc084203bb',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
   // no contract text, imports or purchase behavior changed. Sol independently
   // reconstructed that prior hash and accepted this exact-byte correction.
-  'apps/mobile/src/purchases/contract.ts': 'b98dcaa10c1ab856978642c9d713e7ab92f4b9acd43a42f26eb5794774d50962',
+  // 7 October 2026, F772 review repair (ca/p4-wall-r1): comment-only. The
+  // review asked the `localizedPricePerMonth` doc to say RevenueCat divides the
+  // yearly price by twelve on the device rather than "the store works it out".
+  // `git diff` against the accepted b98dcaa1... shows only that doc comment.
+  'apps/mobile/src/purchases/contract.ts': '8073d6a000ede59ec31d46c8c74be74aa0f4b14201ffcf0a190a7e6d75f66893',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
   'apps/mobile/src/purchases/client.ts': '82b26ec9cdbe78aecf27a8c7ab536ab90d9d08b00fbed5221ffe72ab4651f98c',
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.

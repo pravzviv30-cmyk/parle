@@ -19,10 +19,12 @@ import {
   PLAN_MONTHLY,
   PLAN_YEARLY,
   WALL_LEAVE,
+  billedPrice,
   conversationLength,
   goalFitLine,
   minutesAMonth,
   monthlyPrice,
+  payDetail,
   perWeekLine,
   yearlyPrice,
 } from './wallCopy.ts';
@@ -113,13 +115,18 @@ export function WallPlansPage({
               {row.offers.map((offer) => {
                 const period = offer.period === 'year' ? PLAN_YEARLY : PLAN_MONTHLY;
                 const price = offer.period === 'year' ? yearlyPrice(offer.price, offer.perMonth) : monthlyPrice(offer.price);
+                // The billed amount is the choice's title, so it is the most
+                // prominent price on the row; how often, and the store's
+                // monthly figure for a yearly product, sit under it, smaller
+                // (Apple Guideline 3.1.2).
+                const billed = billedPrice(offer.price, offer.period);
                 return (
                   <Choice
                     key={offer.productId}
                     role="radio"
                     compact
-                    title={period}
-                    detail={price}
+                    title={billed}
+                    detail={payDetail(offer.period, offer.perMonth)}
                     selected={offer.productId === selected}
                     onPress={() => onSelect(offer)}
                     // The plan's name rides with the period and the price, so a
@@ -208,12 +215,15 @@ function TrialTimeline({ view }: { view: TrialTimelineView }) {
  * Apple asks for the length and the renewal on the purchase screen itself, and
  * the trust line is the other true thing worth saying at the moment of paying:
  * no adverts, and stopping costs nothing made. With a free trial chosen its
- * terms come first, because they are what the pill is about to start.
+ * terms come first, because they are what the pill is about to start, and
+ * they carry the billed amount, so they are drawn in the ink and weight of a
+ * line that matters: no word of the trial on this page is larger than they
+ * are (Apple Guideline 3.1.2, held by `trialTimeline.test.ts`).
  */
 export function WallPlansAtButton({ trialTerms = null }: { trialTerms?: string | null }) {
   return (
     <View style={st.atButton}>
-      {trialTerms !== null && <Text style={st.small}>{trialTerms}</Text>}
+      {trialTerms !== null && <Text style={st.terms}>{trialTerms}</Text>}
       <Text style={st.small}>{PLANS_RENEWAL}</Text>
       <Text style={st.small}>{PLANS_TRUST}</Text>
     </View>
@@ -239,7 +249,9 @@ const st = StyleSheet.create({
   perkLine: { ...type.body, color: paper.ink, flex: 1, minWidth: 0 },
   note: { ...type.small, color: paper.inkSoft, marginTop: space(3) },
   trial: { marginTop: space(6) },
-  trialTitle: { ...type.heading, color: paper.ink, marginBottom: space(3) },
+  // Every word of the trial is drawn no larger than its terms at the button,
+  // which carry the billed amount (Apple Guideline 3.1.2).
+  trialTitle: { ...type.bodyStrong, color: paper.ink, marginBottom: space(3) },
   node: { flexDirection: 'row', gap: space(3) },
   rail: { alignItems: 'center' },
   disc: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
@@ -251,4 +263,5 @@ const st = StyleSheet.create({
   links: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space(1), marginTop: space(4) },
   atButton: { marginTop: space(2), gap: space(1) },
   small: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
+  terms: { ...type.bodyStrong, color: paper.ink, textAlign: 'center' },
 });

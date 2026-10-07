@@ -17,7 +17,7 @@ import { PLANS, storeTrialSeconds } from '@luvani/core';
 import { guiltIn } from '../copy/guilt.ts';
 import type { StoreIntroOffer, StoreProduct } from '../purchases/adapter.ts';
 import { TRIAL_REMINDER_SCHEDULED, trialTimeline } from './trialTimeline.ts';
-import { buyLabel } from './wallCopy.ts';
+import { billedPrice, buyLabel, payDetail } from './wallCopy.ts';
 import { chosenOffer, storeTrialDays, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
 
 const WEEK: StoreIntroOffer = { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOfUnits: 1, cycles: 1 };
@@ -99,5 +99,64 @@ describe('the store free trial, said only when it is real', () => {
     assert.match(screen, /<WallPlansAtButton trialTerms=\{trial\?\.terms \?\? null\} \/>/);
     const page = read('./WallPlansPage.tsx');
     assert.match(page, /\{trial !== null && <TrialTimeline view=\{trial\} \/>\}/);
+  });
+
+  test('with a free trial chosen, no word of the trial is drawn larger than the billed price', () => {
+    // Apple Guideline 3.1.2: the billed amount is the most prominent price on a
+    // subscription page, and a free trial is said no larger than it. The
+    // billed amount is in the trial's terms at the pill and is each way to
+    // pay's own title. apps/mobile has no renderer, so this reads the sizes
+    // the source asks for from the type scale it asks them of.
+    const theme = read('../theme.ts');
+    const scale = theme.slice(theme.indexOf('export const type = {'), theme.indexOf('} as const;', theme.indexOf('export const type = {')));
+    const sizes = new Map([...scale.matchAll(/^\s*(\w+): \{ fontFamily: [^}\n]*fontSize: (\d+)/gm)].map((m) => [m[1]!, Number(m[2])]));
+    const size = (token: string): number => {
+      const at = sizes.get(token);
+      assert.ok(at !== undefined, `type.${token} has no size the test can read`);
+      return at;
+    };
+
+    const page = read('./WallPlansPage.tsx');
+    const sheet = page.slice(page.indexOf('const st = StyleSheet.create({'));
+    const styles = new Map([...sheet.matchAll(/^\s*(\w+): \{ \.\.\.type\.(\w+)([^\n]*)\},?$/gm)].map((m) => [m[1]!, { token: m[2]!, rest: m[3]! }]));
+    const style = (name: string) => {
+      const at = styles.get(name);
+      assert.ok(at, `st.${name} is not drawn from the type scale`);
+      return at;
+    };
+
+    // The terms at the pill carry the billed amount, in ink and weight.
+    const button = page.slice(page.indexOf('export function WallPlansAtButton('), page.indexOf('const DISC ='));
+    assert.match(button, /\{trialTerms !== null && <Text style=\{st\.terms\}>\{trialTerms\}<\/Text>\}/, 'the trial terms are not drawn at the pill');
+    const terms = style('terms');
+    assert.match(terms.rest, /color: paper\.ink\b/, 'the billed amount at the pill is in a quiet colour');
+    assert.ok(size(terms.token) >= size('bodyStrong'), 'the billed amount at the pill is small print');
+
+    // Every word the timeline draws is no larger than those terms.
+    const timeline = page.slice(page.indexOf('function TrialTimeline('), page.indexOf('export function WallPlansAtButton('));
+    const drawn = [...timeline.matchAll(/<Text\b[^>]*style=\{st\.(\w+)\}/g)].map((m) => m[1]!);
+    assert.deepEqual([...new Set(drawn)].sort(), ['nodeLine', 'nodeTitle', 'trialTitle'], 'the timeline draws a line this test does not weigh');
+    for (const name of drawn) {
+      assert.ok(size(style(name).token) <= size(terms.token), `st.${name} (type.${style(name).token}) is larger than the billed amount`);
+    }
+    // The pill's own words ("Start 7-day free trial") are no larger either.
+    const shared = read('../components.tsx');
+    const pill = shared.slice(shared.indexOf('export function PillButton('), shared.indexOf('export function', shared.indexOf('export function PillButton(') + 1));
+    assert.match(pill, /<Text style=\{\[type\.button,/);
+    assert.ok(size('button') <= size(terms.token), 'the free trial pill is larger than the billed amount');
+
+    // Each way to pay is titled by its billed amount, with how often and the
+    // store's monthly figure under it, smaller.
+    assert.match(page, /const billed = billedPrice\(offer\.price, offer\.period\);/);
+    assert.match(page, /title=\{billed\}\s+detail=\{payDetail\(offer\.period, offer\.perMonth\)\}/);
+    const choice = shared.slice(shared.indexOf('export function Choice('), shared.indexOf('const ic = StyleSheet.create('));
+    assert.match(choice, /compact \? type\.label : type\.bodyStrong/);
+    assert.match(choice, /<Text style=\{\[type\.small, \{ color: quiet \}/);
+    assert.ok(size('label') > size('small'), 'the store\'s monthly figure is as large as the billed amount');
+    assert.equal(billedPrice('£179.99', 'year'), '£179.99 a year');
+    assert.equal(billedPrice('£24.99', 'month'), '£24.99 a month');
+    assert.equal(payDetail('year', '£15.00'), 'Yearly, about £15.00 a month');
+    assert.equal(payDetail('year', null), 'Yearly');
+    assert.equal(payDetail('month', null), 'Monthly');
   });
 });

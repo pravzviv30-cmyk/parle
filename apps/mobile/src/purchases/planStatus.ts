@@ -90,6 +90,22 @@ function periodLineFor(status: BillingStatus, now: number): string {
 }
 
 /**
+ * Whether a paid period ends within a store trial's week of `now`.
+ *
+ * A day of slack on top of the week (7 October 2026, P4-C review): the phone's
+ * clock is not the store's, and a phone a minute slow on a trial's first day
+ * read the trial's end as a little more than a week away, so a fresh trial was
+ * measured against the month again. The wall's success page asks the same
+ * question with the same slack (`wall/wallSuccess.ts`), so the two never
+ * disagree about which periods are a week long.
+ */
+export function endsWithinATrialWeek(periodEnd: string | null, now: number): boolean {
+  if (periodEnd === null) return false;
+  const left = new Date(periodEnd).getTime() - now;
+  return Number.isFinite(left) && left > 0 && left <= (STORE_TRIAL_DAYS + 1) * DAY_MS;
+}
+
+/**
  * What "a little" is measured against: the period's allowance, or in a paid
  * period's last week a week of the plan.
  *
@@ -102,9 +118,7 @@ function periodLineFor(status: BillingStatus, now: number): string {
  */
 function measureFor(status: BillingStatus, now: number): number {
   const month = PLANS[status.plan].secondsPerPeriod;
-  if (status.plan === 'trial' || status.periodEnd === null) return month;
-  const left = new Date(status.periodEnd).getTime() - now;
-  if (!Number.isFinite(left) || left <= 0 || left > STORE_TRIAL_DAYS * DAY_MS) return month;
+  if (status.plan === 'trial' || !endsWithinATrialWeek(status.periodEnd, now)) return month;
   return Math.min(month, storeTrialSeconds(status.plan));
 }
 

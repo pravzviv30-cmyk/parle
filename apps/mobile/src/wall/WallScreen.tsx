@@ -9,8 +9,8 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { trackProductEvent } from '../analytics/track.ts';
 import { Card, GhostButton, HeroNumber, PillButton, ProgressDots } from '../components.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { purchasePill, wallSuccess } from './wallSuccess.ts';
-import { SUCCESS_MONTH, SUCCESS_TRIAL, WALL_CONFIRMING, buyLabel, perWeekLine } from './wallCopy.ts';
+import { purchasePill, successLine, wallSuccess } from './wallSuccess.ts';
+import { WALL_CONFIRMING, buyLabel, perWeekLine } from './wallCopy.ts';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
@@ -87,8 +87,11 @@ export function WallScreen({
   // turns while the store and then the server answer, and draws its check only
   // once the server has confirmed the entitlement.
   const [closing, setClosing] = useState(false);
-  // Whether that purchase was of a product with a free trial this account
-  // could take, so the success page can say the server's week (F742).
+  // Whether the purchase the pill last started was of a product the store
+  // carries a free trial on, whatever it said about eligibility, so the success
+  // page can say the server's week (F742). It counts only once the store has
+  // accepted that purchase (`purchaseAccepted`), so a cancelled trial purchase
+  // followed by a restore is never said as a trial.
   const boughtTrial = useRef(false);
   const goal = useGoal()?.target ?? null;
   const [busy, setBusy] = useState(false);
@@ -198,7 +201,7 @@ export function WallScreen({
   const page = pages[index];
   const planRows = wallPlanRows(offering, latestCatalogue());
   const chosen = chosenOffer(planRows, selected);
-  const success = granted ? wallSuccess(confirmedGrant, latestCatalogue(), boughtTrial.current) : null;
+  const success = granted ? wallSuccess(confirmedGrant, latestCatalogue(), purchaseAccepted && boughtTrial.current) : null;
 
   // The page's own suggestion (D16, README Part 5.G): the yearly product of the
   // plan that covers the learner's daily goal, chosen once, while nothing is,
@@ -367,7 +370,7 @@ export function WallScreen({
       // The pill answers the purchase it starts. Only a purchase that can
       // actually begin turns it; `buy` itself still decides whether it does.
       if (chosen !== null && !busy && !granted && pendingPurchase === null && !storeGranted.current) {
-        boughtTrial.current = chosen.trialDays !== null;
+        boughtTrial.current = chosen.hasFreeTrial;
         setClosing(true);
       }
       void buy();
@@ -416,7 +419,7 @@ export function WallScreen({
         footer={<PillButton label="Start speaking" onPress={() => leave('speak')} />}>
         <Text style={[type.title, { color: paper.ink }]}>{success.name}</Text>
         <HeroNumber value={String(success.minutes)} unit="minutes" ground="mint" />
-        <Text style={[type.body, { color: paper.ink }]}>{success.trial ? SUCCESS_TRIAL : SUCCESS_MONTH}</Text>
+        <Text style={[type.body, { color: paper.ink }]}>{successLine(success)}</Text>
         {success.perWeek !== null && <Text style={[type.body, { color: paper.ink }]}>{perWeekLine(success.perWeek)}</Text>}
         <Text style={[type.small, { color: paper.ink, marginTop: space(4) }]}>Your phrases and progress stay yours.</Text>
       </ScrollScreen>

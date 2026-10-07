@@ -237,12 +237,14 @@ export function startsFresh(date: string): string {
 // ── yearly and monthly, in the store's own prices (D16) ────────────────────────
 //
 // Every price here is the store's localised string, passed in whole. The
-// monthly figure beside a yearly price is the store's own `pricePerMonthString`
-// for that product, never a division done on the phone: a price is a formatted
-// string in the store's currency, and arithmetic on it is a price nobody set.
-// Nothing here says how much cheaper one is than another.
+// monthly figure beside a yearly price is RevenueCat's `pricePerMonthString`
+// for that product: the yearly price over twelve, formatted in the store's
+// currency by the SDK, and an approximation, which is why it is "about". This
+// app does no arithmetic on a price: a price is a formatted string in the
+// store's currency, and a sum done on it here is a price nobody set. Nothing
+// here says how much cheaper one is than another.
 
-/** A yearly price, with the store's own monthly figure when it gave one. */
+/** A yearly price, with the store's monthly figure when it gave one. What a screen reader hears. */
 export function yearlyPrice(price: string, perMonth: string | null): string {
   return perMonth === null ? `${price} a year` : `${price} a year, about ${perMonth} a month`;
 }
@@ -250,6 +252,24 @@ export function yearlyPrice(price: string, perMonth: string | null): string {
 /** A monthly price. */
 export function monthlyPrice(price: string): string {
   return `${price} a month`;
+}
+
+/**
+ * The billed amount, exactly what the store will charge for one period: the
+ * title of each way to pay, and the largest price on its row (Apple Guideline
+ * 3.1.2: the billed amount is the most prominent price on the page).
+ */
+export function billedPrice(price: string, period: 'month' | 'year'): string {
+  return period === 'year' ? `${price} a year` : `${price} a month`;
+}
+
+/**
+ * Under the billed amount, smaller: how often, and for a yearly product the
+ * store's monthly figure beside it.
+ */
+export function payDetail(period: 'month' | 'year', perMonth: string | null): string {
+  if (period !== 'year') return PLAN_MONTHLY;
+  return perMonth === null ? PLAN_YEARLY : `${PLAN_YEARLY}, about ${perMonth} a month`;
 }
 
 /**
@@ -339,6 +359,15 @@ export const SUCCESS_MONTH = 'Your speaking time each month.';
  * never the catalogue's month, because a trial is granted a week.
  */
 export const SUCCESS_TRIAL = 'Your speaking time during the free trial.';
+/**
+ * Under minutes the client cannot tell a trial's week from a month's last week
+ * (a restore, or a purchase confirmed after the wall was reopened): what the
+ * server holds and the day it runs to, naming no period, which is true of both.
+ * The date is handed in, spelled, so this line prints no digit of its own.
+ */
+export function heldUntil(date: string): string {
+  return `Your speaking time until ${date}.`;
+}
 
 /** Above the account's own lines on the plans page. */
 export const ACCOUNT_LABEL = 'Your speaking time';

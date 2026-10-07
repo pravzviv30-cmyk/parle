@@ -53,7 +53,11 @@ export interface WallPlanOffer {
   period: 'month' | 'year';
   /** The store's own localised price for one period, exactly as the store wrote it. */
   price: string;
-  /** A yearly product's monthly figure, as the store worked it out, or null when it did not say. */
+  /**
+   * A yearly product's monthly figure, as RevenueCat formats it on the device
+   * (the yearly price over twelve, in the store's currency), or null when it
+   * did not say. An approximation, which is why the page says "about".
+   */
   perMonth: string | null;
   /**
    * The store's free trial in whole days, only when the store says this
@@ -61,6 +65,14 @@ export interface WallPlanOffer {
    * trial: no timeline, no "free" on the button.
    */
   trialDays: number | null;
+  /**
+   * Whether the store carries a free trial on this product at all, whatever
+   * it said about this account's eligibility. Never drawn: it is what the
+   * success page needs to know after a purchase, because the store applies
+   * the trial it has even when the eligibility answer was unknown, and the
+   * server then grants a week, which must not be said as a month (F742).
+   */
+  hasFreeTrial: boolean;
 }
 
 /**
@@ -151,6 +163,7 @@ function offerOf(product: StoreProduct): WallPlanOffer {
     price: product.localizedPrice,
     perMonth: product.period === 'year' ? product.localizedPricePerMonth?.trim() || null : null,
     trialDays: storeTrialDays(product),
+    hasFreeTrial: product.intro !== null,
   };
 }
 

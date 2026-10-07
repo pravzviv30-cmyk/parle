@@ -41,7 +41,11 @@ test('unavailable plans return to free practice once and retain an accepted cons
   assert.match(wall, /GhostButton label="Try again"[^\n]+setRetry/);
   const plans = read('../wall/WallPlansPage.tsx');
   assert.ok(plans.indexOf('{minutesAMonth(row.minutes)}</Text>') < plans.indexOf('{perWeekLine(row.perWeek)}</Text>'));
-  assert.match(plans, />per month<\/Text>/);
+  // 7 October 2026, come alive README Part 5.G and Part 7 ("per month pins edited
+  // for annual rows"): each way to pay is titled by its billed price with its
+  // own period, yearly or monthly, and a screen reader hears the same.
+  assert.match(plans, /const billed = billedPrice\(offer\.price, offer\.period\);/); assert.match(plans, /title=\{billed\}/);
+  assert.match(plans, /monthlyPrice\(offer\.price\)/); assert.match(plans, /yearlyPrice\(offer\.price, offer\.perMonth\)/);
 });
 
 test('the research protocol defines evidence windows and denominators without adding pre-account tracking or a live experiment', () => {

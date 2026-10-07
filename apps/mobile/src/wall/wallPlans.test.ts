@@ -282,6 +282,29 @@ describe('a chosen plan says so to a screen reader', () => {
     assert.match(page, /const price = offer\.period === 'year' \? yearlyPrice\(offer\.price, offer\.perMonth\) : monthlyPrice\(offer\.price\);/);
     assert.doesNotMatch(page, /accessibilityRole="radio"|checked:|markDot/);
   });
+
+  // 7 October 2026, P4-C review: the successor of the test above, whose pinned
+  // title (F607) still says "not a radio" while the rows are radios now. The
+  // integrator moves F607's verified-by here; the old title retires then.
+  test('a chosen way to pay says it is checked on a device and on the web', () => {
+    const page = code('./WallPlansPage.tsx');
+    // One radio group of the shared choice, each way to pay a radio of its own.
+    assert.match(page, /<View accessibilityRole="radiogroup"/);
+    assert.match(page, /<Choice\s+key=\{offer\.productId\}\s+role="radio"/);
+    assert.match(page, /selected=\{offer\.productId === selected\}/);
+    // The shared choice says checked on a device and on the web, and the page
+    // writes no role or state of its own beside it.
+    const shared = readFileSync(fileURLToPath(new URL('../components.tsx', import.meta.url)), 'utf8');
+    const choice = shared.slice(shared.indexOf('export function Choice('), shared.indexOf('const ic = StyleSheet.create('));
+    assert.match(choice, /accessibilityRole=\{role\}/);
+    assert.match(choice, /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, 'the shared choice does not say it is chosen on a device');
+    assert.match(choice, /aria-checked=\{radio \? selected : undefined\}/, 'the shared choice does not say it is chosen on the web');
+    assert.doesNotMatch(page, /accessibilityRole="radio"|accessibilityState=|aria-checked|aria-selected/);
+    // What a screen reader hears names the plan, how often, and the price with its period.
+    assert.match(page, /accessibilityLabel=\{\[row\.name, period, price\]\.join\(', '\)\}/);
+    assert.match(page, /const period = offer\.period === 'year' \? PLAN_YEARLY : PLAN_MONTHLY;/);
+    assert.match(page, /const price = offer\.period === 'year' \? yearlyPrice\(offer\.price, offer\.perMonth\) : monthlyPrice\(offer\.price\);/);
+  });
 });
 
 /**
