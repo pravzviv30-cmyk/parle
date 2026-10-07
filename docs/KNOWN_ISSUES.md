@@ -10254,6 +10254,16 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Found by the 7 October first-run privacy review. The day-one ask says "One a day at about {time}, and never on a day you have already practised." (README Part 5.C row 9), but the reminder is still a plain daily trigger. The Phase 4 planner (F771) must make the promise true for every learner, including a guest who never makes an account (their finish days come from guestPracticeDays), and the notification must name the tutor the ask named. Nothing ships before Phase 4 (landing is HOLD until the founder has seen it).
 - verified-by: `the reminder ask promises a skipped practised day only when the scheduler skips it, guest finish days included`
 
+### F775 — Four small gaps the core-loop review found
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/drill/AnswerSheet.tsx:99, apps/mobile/src/nav/RootNavigator.tsx:128, apps/mobile/src/nav/useBackToHome.ts:5, apps/mobile/src/DrillScreen.tsx:1789, apps/mobile/src/celebrate/queue.ts:444
+- note: Found by the 7 October core-loop review (verdict SHIP). A waiting answer sheet leaves screen-reader focus behind; a sitting opened cold on the web is never closed, so its celebration holds never lift; a drill end that waited out its delta can swap to the end card mid-read with a second finish haptic; and a moment waiting behind a sitting hold can expire after 10 minutes and never play (also raised by the merged Phase 1 re-check).
+- verified-by: `a waiting answer sheet moves screen-reader focus to Continue`
+- verified-by: `leaving a sitting opened cold on the web closes it and lets its holds go`
+- verified-by: `a drill end that waited out its delta keeps the words-only finish`
+- verified-by: `a moment waiting behind a hold does not expire while the hold lasts`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
