@@ -3,9 +3,13 @@
  * the learner last saw it, once (F767).
  *
  * Home's flame, goal minutes, level, quests done and lifetime days are each a
- * persisted fact the game layer reads. When one of them has risen since Home
- * last drew it, the number counts up from the old value to the new one. Then
- * the new value is remembered here, so the same rise never plays twice.
+ * persisted fact the game layer reads, and the goal ring is drawn from the
+ * minutes over the goal (kept in thousandths, as drawn, so a goal changed
+ * since is never drawn falling). When one of them has risen since Home last
+ * drew it, the number counts up from the old value to the new one. Then the
+ * new value is remembered here, so the same rise never plays twice. How a
+ * number moves while Home stays on screen, and when Home may draw at all, is
+ * `homeDraw.ts`.
  *
  * The rules, pure (`startFrom`, `withShown`) so they are tested without a
  * renderer:
@@ -35,12 +39,12 @@ import { readOwnedCache } from '../storage/ownedRead.ts';
 import { scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 
 /** The numbers Home counts up. */
-export type ShownField = 'streak' | 'minutes' | 'level' | 'questsDone' | 'lifetimeDays';
+export type ShownField = 'streak' | 'minutes' | 'ring' | 'level' | 'questsDone' | 'lifetimeDays';
 
-export const SHOWN_FIELDS: readonly ShownField[] = ['streak', 'minutes', 'level', 'questsDone', 'lifetimeDays'];
+export const SHOWN_FIELDS: readonly ShownField[] = ['streak', 'minutes', 'ring', 'level', 'questsDone', 'lifetimeDays'];
 
 /** The numbers that belong to one day and start each day at nought. */
-export const DAILY_FIELDS: readonly ShownField[] = ['minutes', 'questsDone'];
+export const DAILY_FIELDS: readonly ShownField[] = ['minutes', 'ring', 'questsDone'];
 
 export type ShownValues = Partial<Record<ShownField, number>>;
 

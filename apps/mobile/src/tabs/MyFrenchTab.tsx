@@ -46,7 +46,7 @@ import { StreakSummaryCard } from '../game/StreakSummaryCard.tsx';
 import { CountsGrid } from '../game/CountsGrid.tsx';
 import { BadgeShelf } from '../game/BadgeShelf.tsx';
 import { useStreak } from '../game/GameProvider.tsx';
-import { minutesPractised, progressShowsGame, rowTile } from '../game/progressView.ts';
+import { progressShowsGame, rowTile } from '../game/progressView.ts';
 import { PostcardShelf } from '../progress/PostcardShelf.tsx';
 
 /**
@@ -78,8 +78,6 @@ export function MyFrenchTab() {
   const [readyOwner, setReadyOwner] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [hasWeek, setHasWeek] = useState(false);
-  // Measured active minutes in the activity log, floored: the minutes count.
-  const [minutes, setMinutes] = useState(0);
   const run = useStreak();
 
   useFocusEffect(
@@ -98,7 +96,6 @@ export function MyFrenchTab() {
       setSaved([]);
       setChecks([]);
       setHistory([]);
-      setMinutes(0);
       void Promise.all([
         loadMissionCompletions(),
         loadDeck(),
@@ -123,7 +120,6 @@ export function MyFrenchTab() {
           setSuggested(suggestedMission(nextMissions));
           setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
           setChecks(soundChecks);
-          setMinutes(minutesPractised(activity));
           setHistory([...events, ...legacyMarkItems(marks)]);
           setReadyOwner(scope);
           setStatus('ready');
@@ -174,6 +170,10 @@ export function MyFrenchTab() {
   const currentScope = scopeGeneration();
   const renderStatus = ownedReadStatus(status, readOwner, readyOwner, currentScope);
   const showsGame = progressShowsGame(firstVisit, run === null ? null : run.lifetimeDays);
+  // The weekly day line reads its own record: inside the streak card when the
+  // game cards are drawn, and on its own when they are not (loading, a failed
+  // evidence read, a first visit), so it never depends on them.
+  const gameCards = renderStatus === 'ready' && showsGame;
   const postcards = earnedPostcards(missions);
 
   return (
@@ -201,11 +201,11 @@ export function MyFrenchTab() {
         </View>
       )}
 
-      {renderStatus === 'ready' && showsGame && (
+      {gameCards && (
         <View style={st.group}>
           <LevelXpCard />
           <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
-          <CountsGrid phrases={kept.phrases} conversations={kept.conversations} minutes={minutes} />
+          <CountsGrid phrases={kept.phrases} conversations={kept.conversations} />
           <BadgeShelf />
         </View>
       )}
@@ -227,6 +227,8 @@ export function MyFrenchTab() {
       {renderStatus === 'ready' && firstVisit && (
         <View style={st.group}><Text accessibilityRole="header" style={type.heading}>Your first useful phrase</Text><LocalPracticeCard /></View>
       )}
+
+      {!gameCards && <DayCount weekly />}
 
       {renderStatus === 'ready' && (hasWeek || earnedPostcards(missions).length > 0) && <View style={st.group}>
         {postcards.length > 0 && <PostcardShelf postcards={postcards} onOpen={() => nav.navigate('Postcards')} />}

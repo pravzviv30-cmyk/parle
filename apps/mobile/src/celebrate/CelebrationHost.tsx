@@ -27,6 +27,7 @@ import { warmSfx } from '../sound/sfx.ts';
 import { onUserScopeReset, scopeGeneration } from '../storage/scope.ts';
 import { stopEffects } from './effects.ts';
 import { attachCelebrationListener } from './events.ts';
+import { setTakeoverOnScreen } from './onScreen.ts';
 import { createCelebrationQueue, type CelebrationQueue } from './queue.ts';
 import { Takeover } from './Takeover.tsx';
 import { Toast } from './Toast.tsx';
@@ -61,6 +62,10 @@ export function CelebrationHost() {
   }, [queue]);
   // The celebration sounds are created ahead of their first moment, so the first one is not late.
   useEffect(() => warmSfx(['streak', 'levelup', 'quest', 'badge', 'complete', 'whoosh', 'save', 'count-tick']), []);
+  // Said to the screens under the card, so Home's numbers wait for it (celebrate/onScreen.ts).
+  const showing = snapshot.current !== null;
+  useEffect(() => setTakeoverOnScreen(showing), [showing]);
+  useEffect(() => () => setTakeoverOnScreen(false), []);
 
   const { current, paused, toast } = snapshot;
   if (current === null && toast === null) return null;

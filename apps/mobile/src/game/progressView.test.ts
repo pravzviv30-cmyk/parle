@@ -21,11 +21,11 @@ import {
   badgeShelfView,
   countTiles,
   levelXpCardView,
-  minutesPractised,
   progressShowsGame,
   streakSummaryView,
 } from './progressView.ts';
-import { NO_OUTSIDE_FACTS, gameViewFrom, type BillingFacts, type GameFacts } from './view.ts';
+import { todayHeroView } from './todayHeroView.ts';
+import { NO_OUTSIDE_FACTS, gameViewFrom, measuredMinutes, type BillingFacts, type GameFacts } from './view.ts';
 
 const TODAY = '2026-10-07';
 const at = (day: number, hour: number): number => new Date(2026, 9, day, hour).getTime();
@@ -87,11 +87,15 @@ describe('Progress from its own records — F769', () => {
     assert.equal(streakSummaryView(null), null);
 
     // The counts: phrases and conversations from the tab's own reads, minutes
-    // measured and floored from the log (the untimed sitting adds nothing),
-    // practice days from the streak's lifetime total.
-    assert.equal(minutesPractised(ACTIVITY), 7);
-    assert.equal(minutesPractised([{ activeMs: Number.NaN }, { activeMs: -5 * MIN }, {}]), 0, 'an unmeasured sitting counted as minutes');
-    const tiles = countTiles({ phrases: 12, conversations: 2, minutes: minutesPractised(ACTIVITY), days: view.streak.lifetimeDays });
+    // measured and floored over every finished sitting by the game view (the
+    // untimed sitting adds nothing), practice days from the streak's lifetime
+    // total.
+    // 2026-10-07 (Phase 4 review): the minutes moved from the tab's own sum
+    // of the activity log to the game view, so a zero-XP sitting the game
+    // store keeps (a daily phrase) counts here as it does on Home's ring.
+    assert.equal(view.minutesPractised, 7);
+    assert.equal(measuredMinutes([{ activeMs: Number.NaN }, { activeMs: -5 * MIN }, {}]), 0, 'an unmeasured sitting counted as minutes');
+    const tiles = countTiles({ phrases: 12, conversations: 2, minutes: view.minutesPractised, days: view.streak.lifetimeDays });
     assert.deepEqual(
       tiles.map((tile) => [tile.words, tile.value, tile.opens]),
       [
@@ -102,6 +106,23 @@ describe('Progress from its own records — F769', () => {
       ],
     );
     assert.equal(countTiles({ phrases: 1, conversations: 0, minutes: 0, days: null }).length, 3, 'unread practice days are drawn as a count');
+    assert.deepEqual(
+      countTiles({ phrases: 1, conversations: 0, minutes: null, days: 4 }).map((tile) => tile.id),
+      ['phrases', 'conversations', 'days'],
+      'unread minutes are drawn as a count',
+    );
+
+    // One daily phrase, a zero-XP sitting the game store keeps with its
+    // measured time: Home's ring and Progress's minutes say the same.
+    const phraseOnly = gameViewFrom(
+      { ...facts(), activity: [], game: { ...emptyGame(), sittings: [{ at: at(7, 8), source: 'phrase', activeMs: 3 * MIN + 20_000 }] } },
+      TODAY,
+    );
+    const ring = todayHeroView({ streak: phraseOnly.streak, goal: phraseOnly.goal, level: phraseOnly.level, xp: phraseOnly.xp })!;
+    assert.equal(ring.goal.minutes, 3);
+    assert.equal(ring.goal.words, '3 of 10 min today');
+    const phraseTile = countTiles({ phrases: 0, conversations: 0, minutes: phraseOnly.minutesPractised, days: null }).find((tile) => tile.id === 'minutes');
+    assert.equal(phraseTile?.value, 3, "Progress's minutes leave out the daily phrase that Home's ring counts");
 
     // The badges: earned newest first, with the date or the honest "counted
     // from saved practice"; at most three ahead, each with how it is earned.
@@ -136,10 +157,17 @@ describe('Progress from its own records — F769', () => {
       const after = tab.indexOf(order[i]!);
       assert.ok(before !== -1 && after !== -1 && before < after, `${order[i - 1]} is not drawn before ${order[i]}`);
     }
-    assert.match(tab, /\{renderStatus === 'ready' && showsGame && \(/, 'the game cards are drawn before the tab has read, or on an empty first visit');
+    assert.match(tab, /const gameCards = renderStatus === 'ready' && showsGame;/, 'the game cards are drawn before the tab has read, or on an empty first visit');
+    assert.match(tab, /\{gameCards && \(/);
     assert.match(tab, /const showsGame = progressShowsGame\(firstVisit, run === null \? null : run\.lifetimeDays\);/);
-    assert.match(tab, /<CountsGrid phrases=\{kept\.phrases\} conversations=\{kept\.conversations\} minutes=\{minutes\} \/>/);
-    assert.match(tab, /setMinutes\(minutesPractised\(activity\)\);/, 'the minutes are not the measured minutes in the log');
+    // The weekly day line reads its own record, so it is drawn on its own
+    // whenever the game cards are not (loading, a failed read, a first visit).
+    assert.match(tab, /\{!gameCards && <DayCount weekly \/>\}/, 'the weekly day line hides whenever the game cards do');
+    assert.equal((tab.match(/<DayCount weekly \/>/g) ?? []).length, 2);
+    // The minutes are the game view's, the ring's own fold, not a sum the tab makes.
+    assert.match(tab, /<CountsGrid phrases=\{kept\.phrases\} conversations=\{kept\.conversations\} \/>/);
+    assert.doesNotMatch(tab, /minutesPractised|activeMs/, 'the tab sums the minutes itself');
+    assert.match(read('./CountsGrid.tsx'), /const minutes = useMinutesPractised\(\);/, 'the minutes tile does not read the game view');
     assert.match(tab, /<PostcardShelf postcards=\{postcards\} onOpen=\{\(\) => nav\.navigate\('Postcards'\)\} \/>/);
     assert.doesNotMatch(tab, /<LedgerRow[^>]*title="Place postcards"/, 'the postcards are still a ledger row beside the shelf');
     assert.match(tab, /glyph=\{<IconTile ground="skeleton" name=\{rowTile\(row\.kind\)\} size=\{ROW_TILE\} \/>\}/, 'the rows are not led by their tiles');
@@ -148,6 +176,10 @@ describe('Progress from its own records — F769', () => {
     const card = read('./LevelXpCard.tsx');
     assert.match(card, /levelXpCardView\(useLevel\(\), useXp\(\)\)/);
     assert.doesNotMatch(card, /\b(?:levelFor|xpLevelFor|totalXp|displayXp)\(/);
+    // A screen reader hears the card's head as one element, and that element
+    // is the header: a role on a Text inside an accessible View is never heard.
+    assert.match(card, /<View style=\{st\.head\} accessible accessibilityRole="header" accessibilityLabel=\{card\.label\}>/, "the level card's header is not heard as a header");
+    assert.equal((card.match(/accessibilityRole="header"/g) ?? []).length, 1, 'a header role sits inside the accessible head, where it is never heard');
   });
 
   test('Profile shows the run and the level as two tiles, a subscriber\'s freezes, and the goal as five choices', () => {

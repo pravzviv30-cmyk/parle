@@ -85,11 +85,15 @@ export interface MilestoneView {
 export interface StreakScreenView {
   hero: {
     count: number;
+    /** True while a run is going: only then is the count drawn. With none, the words say how one starts. */
+    running: boolean;
     lit: boolean;
     words: string;
     lifetime: string;
     longest: string | null;
     today: string;
+    /** What a screen reader hears for the whole hero. */
+    label: string;
   };
   week: readonly DayCellView[];
   month: MonthView;
@@ -249,14 +253,21 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
   });
 
   const longest = streak.longest > 0 ? copy.longest(streak.longest) : null;
+  // With no run going there is no number to draw: "0 day streak" would be a
+  // nought said at somebody, so the words say how a streak starts instead.
+  const running = streak.current > 0;
+  const lifetime = streak.lifetimeDays > 0 ? GAME_COPY.streak.lifetime(streak.lifetimeDays) : lifetimeDayLine([]);
+  const todayLine = streak.today === 'practised' ? copy.todayCounts : running ? copy.reachNext(streak.current + 1) : copy.startsNext;
   return {
     hero: {
       count: streak.current,
+      running,
       lit: streak.today === 'practised',
-      words: GAME_COPY.streak.label,
-      lifetime: streak.lifetimeDays > 0 ? GAME_COPY.streak.lifetime(streak.lifetimeDays) : lifetimeDayLine([]),
+      words: running ? GAME_COPY.streak.label : copy.startStreak,
+      lifetime,
       longest,
-      today: streak.today === 'practised' ? copy.todayCounts : streak.current > 0 ? copy.reachNext(streak.current + 1) : copy.startsNext,
+      today: todayLine,
+      label: `${running ? copy.count(streak.current) : copy.startStreak}. ${lifetime}.${longest === null ? '' : ` ${longest}.`} ${todayLine}`,
     },
     week,
     month,

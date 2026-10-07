@@ -9,10 +9,14 @@
  * read or are not dealt yet.
  *
  * Home only shows the quests: progress and claims are the game layer's, and a
- * row is a fact rather than a door, so nothing here presses. The day's count
- * counts up once from what Home last showed (`home/homeSeen.ts`) and is said
- * once to a screen reader when it changes. No sound of its own: the end card
- * that finished a quest played it.
+ * row is a fact rather than a door, so nothing here presses. What is drawn is
+ * held while Home is covered or a celebration is up (`home/useHomeDraw.ts`).
+ * The day's count then counts up once from what Home last showed
+ * (`home/homeSeen.ts`) and is said once to a screen reader when it changes; on
+ * a new day it is drawn again at the new day's count and never runs down, and
+ * each row is keyed on its day and target, so a bar is never handed a lower
+ * fill to run back to. No sound of its own: the end card that finished a
+ * quest played it.
  */
 
 import { StyleSheet, Text, View } from 'react-native';
@@ -22,7 +26,8 @@ import { IconTile } from '../icons/IconTile.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { useShownFrom } from '../home/useShownFrom.ts';
+import { questCounts } from '../home/homeDraw.ts';
+import { useHomeDraw } from '../home/useHomeDraw.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { HIT, accent, paper, space, type } from '../theme.ts';
 import { GAME_COPY } from './copy.ts';
@@ -38,9 +43,11 @@ export function QuestsCard() {
   const { view } = useGame();
   const quests = useQuests();
   const goal = useGoal();
-  const card = questsCardView(quests, { tutorName: tutorNameOf(profile), goalTarget: goal?.target ?? null });
-  const from = useShownFrom(view?.today ?? null, card === null ? null : { questsDone: card.done });
-  if (card === null || from === null) return null;
+  const fresh = questsCardView(quests, { tutorName: tutorNameOf(profile), goalTarget: goal?.target ?? null });
+  const drawn = useHomeDraw(view?.today ?? null, fresh, questCounts);
+  if (fresh === null || drawn === null) return null;
+  const card = drawn.model;
+  const done = drawn.draw.counters.questsDone;
 
   return (
     <Card style={st.card}>
@@ -48,15 +55,18 @@ export function QuestsCard() {
         {card.title}
       </Text>
       <View accessibilityLiveRegion="polite">
-        <CountUp
-          from={Math.min(from.questsDone ?? card.done, card.done)}
-          to={card.done}
-          format={GAME_COPY.quests.progress}
-          textStyle={[card.allDone ? type.bodyStrong : type.small, { color: card.allDone ? paper.ink : paper.inkSoft }]}
-        />
+        {done !== undefined ? (
+          <CountUp
+            key={`done-${done.mount}`}
+            from={done.from}
+            to={done.to}
+            format={GAME_COPY.quests.progress}
+            textStyle={[card.allDone ? type.bodyStrong : type.small, { color: card.allDone ? paper.ink : paper.inkSoft }]}
+          />
+        ) : null}
       </View>
       {card.rows.map((row) => (
-        <View key={row.id} accessible accessibilityLabel={row.label} style={st.row}>
+        <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={st.row}>
           <IconTile ground={row.complete ? 'mint' : 'skeleton'} name={row.complete ? 'tick-circle' : row.icon} size={TILE} />
           <View style={st.words}>
             <Text style={[type.label, { color: paper.ink }]}>{row.title}</Text>

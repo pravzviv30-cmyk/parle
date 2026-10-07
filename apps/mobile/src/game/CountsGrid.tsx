@@ -3,9 +3,12 @@
  * minutes practised and practice days, two by two, each a tile at the touch
  * floor that opens where the count comes from.
  *
- * The tab hands in the counts it already read (the deck, the conversation
- * records, the activity log); the practice days are the game view's lifetime
- * total. Every number is a persisted fact; the tiles and their words are
+ * The tab hands in the counts it already read (the deck and the conversation
+ * records). The minutes and the practice days are the game view's, through its
+ * hooks: the minutes over every finished sitting by the goal ring's own rule,
+ * so a daily phrase counts here as it does on Home's ring, and the days from
+ * the streak's lifetime total. A count the game layer could not read is not
+ * drawn. Every number is a persisted fact; the tiles and their words are
  * `progressView.ts`'s. Named `CountsGrid`, never a `Stat`: the tab's own test
  * refuses the old stat tiles.
  */
@@ -16,12 +19,13 @@ import { useNavigation } from '@react-navigation/native';
 import { Press } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { HIT, paper, radius, space, type } from '../theme.ts';
-import { useStreak } from './GameProvider.tsx';
+import { useMinutesPractised, useStreak } from './GameProvider.tsx';
 import { countTiles } from './progressView.ts';
 
-export function CountsGrid({ phrases, conversations, minutes }: { phrases: number; conversations: number; minutes: number }) {
+export function CountsGrid({ phrases, conversations }: { phrases: number; conversations: number }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const run = useStreak();
+  const minutes = useMinutesPractised();
   const tiles = countTiles({ phrases, conversations, minutes, days: run === null ? null : run.lifetimeDays });
   return (
     <View style={st.grid}>

@@ -90,6 +90,11 @@ export function useQuests(): QuestsView | null {
   return useGame().view?.quests ?? null;
 }
 
+/** Measured minutes over every finished sitting, by the goal ring's rule; null while unread. */
+export function useMinutesPractised(): number | null {
+  return useGame().view?.minutesPractised ?? null;
+}
+
 /** The answer, or `fallback` once `ms` have passed. The work keeps running either way. */
 function within<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {

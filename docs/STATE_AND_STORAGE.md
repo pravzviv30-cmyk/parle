@@ -56,9 +56,11 @@ below), `game` (the account-synced facts behind the streak, the daily goal, ques
 badges: see "The game layer" below), `gameLocal` (the game facts that belong to this
 phone: the reminder log, the plan it last saw, the time zone of the last practice and
 the celebrations still queued; device-local), `home-seen` (what this phone's Home last
-drew: the streak, today's minutes, the level, quests done and lifetime days, so a number
-that rose since counts up once and never replays or counts down; device-local, since
-come alive Phase 4), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
+drew: the streak, today's minutes, the goal ring in thousandths, the level, quests done
+and lifetime days, so a number that rose since counts up once and never replays or
+counts down; written only once a value is drawn where the learner can see it, never
+while a sitting, a sheet or a takeover covers Home (`home/homeDraw.ts`); device-local,
+since come alive Phase 4), `pendingPurchase` (the local checkout fence, since the 3 October UX recovery pass), `practiceSession`
 (the one unfinished practice sitting on this phone and the frozen plan that finishes
 it, device-local), and `analytics` (one boolean: whether the learner agreed to usage data being
 sent. It is a store of its own rather than a field on `profile` because

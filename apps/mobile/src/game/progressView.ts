@@ -10,9 +10,10 @@
  *   (README Part 6, `display.test.ts`); rank names are never shown;
  * - the streak and the week from the game view's practice days and covers;
  * - phrases kept and conversations from the deck and the conversation records
- *   the tab already reads; minutes from the measured active time in the
- *   activity log, floored, untimed practice adding nothing; practice days from
- *   the streak's lifetime total;
+ *   the tab already reads; minutes from the game view (`minutesPractised`:
+ *   measured active time over every finished sitting, floored, untimed
+ *   practice adding nothing, the same sittings and rule as Home's goal ring);
+ *   practice days from the streak's lifetime total;
  * - the badges from the awards the game store keeps for good.
  *
  * A card whose record could not be read is null and is not drawn. The badge
@@ -32,7 +33,6 @@ import {
 } from '@luvani/core';
 
 import type { BulkIconName } from '../icons/names.ts';
-import type { ActivityEntry } from '../progress/activity.ts';
 import type { MedalState } from './art/shapes.ts';
 import { GAME_COPY } from './copy.ts';
 import type { BadgeAward } from './model.ts';
@@ -105,17 +105,7 @@ export interface CountTile {
   label: string;
 }
 
-/** Floored minutes of measured active time in the log. Untimed practice adds nothing. */
-export function minutesPractised(activity: readonly Pick<ActivityEntry, 'activeMs'>[]): number {
-  let ms = 0;
-  for (const entry of activity) {
-    const measured = entry.activeMs;
-    if (typeof measured === 'number' && Number.isFinite(measured) && measured > 0) ms += measured;
-  }
-  return Math.floor(ms / 60_000);
-}
-
-export function countTiles(counts: { phrases: number; conversations: number; minutes: number; days: number | null }): CountTile[] {
+export function countTiles(counts: { phrases: number; conversations: number; minutes: number | null; days: number | null }): CountTile[] {
   const said = GAME_COPY.progress.counts;
   const tile = (id: CountId, value: number, words: string, icon: BulkIconName, opens: CountTile['opens']): CountTile => ({
     id,
@@ -128,9 +118,9 @@ export function countTiles(counts: { phrases: number; conversations: number; min
   const tiles = [
     tile('phrases', counts.phrases, said.phrases, 'quote', 'Phrasebook'),
     tile('conversations', counts.conversations, said.conversations, 'chat', 'Conversations'),
-    tile('minutes', counts.minutes, said.minutes, 'clock', 'Streak'),
   ];
-  // Practice days come from the streak's record; unread, the tile is not drawn.
+  // The minutes and the practice days are the game view's; unread, a tile is not drawn rather than drawn at nought.
+  if (counts.minutes !== null) tiles.push(tile('minutes', counts.minutes, said.minutes, 'clock', 'Streak'));
   if (counts.days !== null) tiles.push(tile('days', counts.days, said.days, 'calendar-tick', 'Streak'));
   return tiles;
 }

@@ -163,6 +163,12 @@ export interface GameView {
   protection: { freezes: boolean; repair: boolean } | null;
   /** The repair a subscriber is earning now, or null: never for a free learner or an unknown plan (D4). */
   repair: RepairOffer | null;
+  /**
+   * Measured minutes over every finished sitting this phone holds, floored:
+   * the same sittings and the same rule as today's goal ring, so Progress's
+   * "Minutes practised" and Home's ring agree about a daily phrase (Phase 4).
+   */
+  minutesPractised: number;
 }
 
 type DayOf = (at: number) => DayKey;
@@ -184,6 +190,20 @@ export function finishedSittings(facts: Pick<GameFacts, 'activity' | 'game'>): {
   for (const entry of facts.activity) out.push(entry.activeMs === undefined ? { at: entry.at } : { at: entry.at, activeMs: entry.activeMs });
   for (const sitting of facts.game.sittings) out.push(sitting.activeMs === undefined ? { at: sitting.at } : { at: sitting.at, activeMs: sitting.activeMs });
   return out;
+}
+
+/**
+ * Whole minutes of measured active time over `sittings`, floored, by the goal
+ * ring's rule (`core/goal`): an untimed sitting adds nothing, and a bad
+ * measurement adds nothing rather than taking time away.
+ */
+export function measuredMinutes(sittings: readonly { activeMs?: number }[]): number {
+  let ms = 0;
+  for (const sitting of sittings) {
+    const measured = sitting.activeMs;
+    if (typeof measured === 'number' && Number.isFinite(measured)) ms += Math.max(0, measured);
+  }
+  return Math.floor(ms / 60_000);
 }
 
 /**
@@ -308,7 +328,8 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
   const protection = protectionOf(facts.billing);
   const freezes = freezesHeld({ ...streakInput, entitled: protection?.freezes === true });
   const xpParts = displayXp(facts, dayOf);
-  const goal = goalProgressFrom({ sittings: finishedSittings(facts), target: facts.outside.goalTarget, today, dayKey: dayOf });
+  const sittings = finishedSittings(facts);
+  const goal = goalProgressFrom({ sittings, target: facts.outside.goalTarget, today, dayKey: dayOf });
   const dayFacts = dayFactsFrom(facts, today, goal, dayOf);
   const held = facts.game.questDays.find((row) => row.day === today);
   const ids = held ? [...held.ids] : null;
@@ -332,7 +353,8 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
     badges: facts.game.badges,
     days: { practiceDays: facts.practiceDays, covers: facts.game.covers },
     protection,
-    repair: protection?.repair === true ? repairOffer({ ...streakInput, entitled: true, sittings: finishedSittings(facts), dayKey: dayOf }) : null,
+    repair: protection?.repair === true ? repairOffer({ ...streakInput, entitled: true, sittings, dayKey: dayOf }) : null,
+    minutesPractised: measuredMinutes(sittings),
   };
 }
 

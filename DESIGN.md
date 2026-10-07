@@ -574,8 +574,8 @@ registry and its map retired with revamp B (F599). Nothing in the app imports
 `Image`, and every picture is a vector. The welcome, cake, wave, empty table,
 recap postcard, phrasebook and wall-map rasters went before them.
 
-The daily library and today's phrase show no pictures. Their French, glosses,
-notes, examples and audio remain.
+The daily library and today's phrase show no pictures of places. Their French,
+glosses, notes, examples and audio remain.
 
 ### Inline SVG
 

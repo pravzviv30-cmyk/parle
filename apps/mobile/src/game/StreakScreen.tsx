@@ -8,8 +8,10 @@
  * file is layout. There is no "missed" anywhere: a day without practice is "no
  * practice", a covered day says what covered it.
  *
- * - The hero flame is lit only when today counts, and the run counts up to
- *   itself once; the lifetime line always sits beside it (D2).
+ * - The hero flame is lit only when today counts. The run is drawn where it
+ *   stands on every visit, never counted up from nought again, and with no
+ *   run going there is no number, only the words for how one starts. The
+ *   lifetime line always sits beside it (D2).
  * - Seven columns, Monday first, on a phone and on an iPad alike. Every cell
  *   says its full weekday or date to a screen reader; only the letter or the
  *   number is drawn.
@@ -76,10 +78,13 @@ export function StreakScreen() {
 
   return (
     <ScrollScreen bottom="inset" header={header}>
-      <View style={st.hero} accessible accessibilityLabel={`${GAME_COPY.streakScreen.count(hero.count)}. ${hero.lifetime}.${hero.longest === null ? '' : ` ${hero.longest}.`} ${hero.today}`}>
+      <View style={st.hero} accessible accessibilityLabel={hero.label}>
         <Flame size={HERO_FLAME} state={hero.lit ? 'lit' : 'unlit'} flicker={hero.lit} />
         <View style={st.heroCount}>
-          <CountUp to={hero.count} textStyle={[type.display, { color: paper.ink }]} />
+          {/* Drawn where it stands on every visit: Home is where a rise counts
+              up. A rise that lands while this screen is open counts on, and a
+              new day draws it again, so it never runs down. */}
+          {hero.running ? <CountUp key={view.today} from={hero.count} to={hero.count} textStyle={[type.display, { color: paper.ink }]} /> : null}
           <Text style={[type.heading, { color: paper.ink }]}>{hero.words}</Text>
         </View>
         <Text style={[type.bodyStrong, st.centred, { color: paper.ink }]}>{hero.lifetime}</Text>

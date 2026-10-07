@@ -26,9 +26,11 @@ export function LevelXpCard() {
   if (card === null) return null;
   return (
     <Card style={st.card}>
-      <View style={st.head} accessible accessibilityLabel={card.label}>
+      {/* One element to a screen reader, and that element is the card's
+          header: a role on the Text inside an accessible View is never heard. */}
+      <View style={st.head} accessible accessibilityRole="header" accessibilityLabel={card.label}>
         <Icon name="star" variant="bulk" size={space(8)} color={accent.brand} />
-        <Text accessibilityRole="header" style={[type.title, st.grow, { color: paper.ink }]}>{card.title}</Text>
+        <Text style={[type.title, st.grow, { color: paper.ink }]}>{card.title}</Text>
       </View>
       <LivingBar from={card.fraction} to={card.fraction} />
       <View style={st.line}>

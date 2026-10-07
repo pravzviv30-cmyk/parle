@@ -126,19 +126,23 @@ describe("Home's increments — F767", () => {
     setActiveUser(nextUid());
     assert.equal(await loadHomeSeen(), null, "one learner's last values reach the next");
 
-    // The cards count from this answer: the counters start where it says,
-    // and only its first answer sets the start, so later values count on.
-    const hook = stripComments(readFileSync(new URL('./useShownFrom.ts', import.meta.url), 'utf8'));
-    assert.match(hook, /setFrom\(\(held\) => held \?\? startsFrom\(seen, fresh, today\)\)/, 'the start is reset on every new value, so a rise could replay');
+    // The cards count from this answer. 2026-10-07 (Phase 4 review): the
+    // answer is read once, for the first draw since Home mounted
+    // (`homeDraw.ts` firstDraw), and remembered only once it is drawn where
+    // the learner can see it; after that each counter moves by `nextDraw`,
+    // held in `homeDraw.test.ts`, and the cards key every counter on its mount.
+    const hook = stripComments(readFileSync(new URL('./useHomeDraw.ts', import.meta.url), 'utf8'));
+    assert.match(hook, /const next = \{ model, draw: firstDraw\(gate \? seen : null, fresh, today\) \};/, 'the first draw does not start where home-seen says, or counts where the learner cannot see it');
     assert.match(hook, /void markShown\(fresh, today, seen\)/, 'what was drawn is not remembered');
+    assert.match(hook, /if \(!gate\) return; const next = \{ model, draw: nextDraw\(before\.draw, fresh, today\) \};/, 'a new value is drawn, and remembered, while the learner cannot see it');
     const hero = stripComments(readFileSync(new URL('../game/TodayHero.tsx', import.meta.url), 'utf8'));
-    assert.match(hero, /const from = useShownFrom\( view\?\.today \?\? null, hero === null \? null : \{ streak: hero\.flame\.count \?\? 0, minutes: hero\.goal\.minutes, level: hero\.level\.level \}, \)/);
-    assert.match(hero, /<CountUp from=\{from\.streak \?\? count\} to=\{count\}/, 'the run does not count from what was last shown');
-    assert.match(hero, /from=\{Math\.min\(1, startMinutes \/ hero\.goal\.target\)\}/, 'the ring does not draw from the minutes last shown');
-    assert.match(hero, /from=\{from\.level \?\? hero\.level\.level\}/, 'the level does not count from what was last shown');
-    assert.match(hero, /ignite=\{rose && hero\.flame\.lit/, 'the flame lights without the run having risen');
+    assert.match(hero, /useHomeDraw<HeroModel>\(today, hero === null \? null : \{ hero, nudge \}, \(model\) => heroCounts\(model\.hero\)\)/);
+    assert.match(hero, /<CountUp key=\{`run-\$\{run\.mount\}`\} from=\{run\.from\} to=\{run\.to\}/, 'the run does not count from what was last shown');
+    assert.match(hero, /<ProgressRing key=\{`ring-\$\{ring\.mount\}`\} from=\{ring\.from \/ RING_STEPS\} to=\{ring\.to \/ RING_STEPS\}/, 'the ring does not draw from what was last shown');
+    assert.match(hero, /<CountUp key=\{`level-\$\{chip\.mount\}`\} from=\{chip\.from\} to=\{chip\.to\}/, 'the level does not count from what was last shown');
+    assert.match(hero, /ignite=\{hero\.flame\.lit && risen\(run\)/, 'the flame lights without the run having risen');
     const quests = stripComments(readFileSync(new URL('../game/QuestsCard.tsx', import.meta.url), 'utf8'));
-    assert.match(quests, /useShownFrom\(view\?\.today \?\? null, card === null \? null : \{ questsDone: card\.done \}\)/);
-    assert.match(quests, /from=\{Math\.min\(from\.questsDone \?\? card\.done, card\.done\)\}/, 'the quests count from somewhere other than what was last shown');
+    assert.match(quests, /useHomeDraw\(view\?\.today \?\? null, fresh, questCounts\)/);
+    assert.match(quests, /<CountUp key=\{`done-\$\{done\.mount\}`\} from=\{done\.from\} to=\{done\.to\}/, 'the quests count from somewhere other than what was last shown');
   });
 });

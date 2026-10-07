@@ -141,6 +141,13 @@ describe('the Streak screen — F770', () => {
     assert.equal(fresh.hero.count, 0);
     assert.equal(fresh.hero.lifetime, 'Your first day of French starts with practice.');
     assert.equal(fresh.hero.longest, null);
+    // With no run going there is no nought: the words say how a streak starts,
+    // to the eye and to a screen reader alike.
+    assert.equal(fresh.hero.running, false);
+    assert.equal(fresh.hero.words, 'Start a streak');
+    assert.doesNotMatch(fresh.hero.label, /\b0\b|0-day/, 'a learner with no run is told "0 day streak"');
+    assert.equal(screen.hero.running, true);
+    assert.match(screen.hero.label, /^2-day streak\. 10 days you have practised\. Longest streak: 8 days\. Practise today to reach 3\.$/);
     assert.equal(fresh.month.canGoBack, false);
 
     // The screen: its own route with a web path, seven columns, labelled month
@@ -153,6 +160,11 @@ describe('the Streak screen — F770', () => {
     assert.match(screenFile, /const COLUMN = `\$\{100 \/ 7\}%` as const;/, 'the calendar is not seven columns');
     assert.equal((screenFile.match(/accessible accessibilityLabel=\{cell\.label\}/g) ?? []).length, 2, 'a week or month cell is not named to a screen reader');
     assert.doesNotMatch(screenFile, /\b(?:streakFrom|weekStripFrom|monthFrom|capabilitiesFor)\(/, 'the screen works out a day itself');
+    // The run is drawn where it stands on every visit (a count from nought
+    // each time would claim a rise that did not happen), only while a run is
+    // going, and drawn again on a new day so it never runs down.
+    assert.match(screenFile, /\{hero\.running \? <CountUp key=\{view\.today\} from=\{hero\.count\} to=\{hero\.count\}/, 'the run counts up from nought on every visit');
+    assert.match(screenFile, /<View style=\{st\.hero\} accessible accessibilityLabel=\{hero\.label\}>/);
     assert.match(read('../nav/types.ts'), /Streak: undefined;/);
     assert.match(read('../nav/theme.ts'), /Streak: 'streak',/);
     assert.match(read('../nav/RootNavigator.tsx'), /<Stack\.Screen name="Streak" component=\{StreakScreen\} \/>/);
