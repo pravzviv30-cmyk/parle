@@ -241,12 +241,12 @@ whole suite stop loading without anybody noticing.
   `apps/mobile/src/ConvoScreen.tsx`. `replayNote` writes the line only when the rung actually
   rises, so a learner already at the top is told nothing false.
 
-- **Honest reminders / story.** Built in 6b. One sentence at a fixed time the learner picked,
+- **Honest reminders / story.** Built in 6b. One sentence at a fixed time the learner picked (since Come alive Phase 4, founder decision D2: one planned reminder a day, skipped on a day already practised, in `apps/mobile/src/reminders/plan.ts`),
   and a weekly story they have to come and read, on Profile since F561 (`profile/FrenchLifeCard.tsx`
-  is `progress/story.ts`'s one importer). In code: `reminderContent`, `reminderTime`,
+  is `progress/story.ts`'s one importer). In code: `reminderMessage`, `reminderTime`,
   `reminderRow`, `REMINDER_TIMES` and `REMINDER_COPY` in
   `apps/mobile/src/reminders/reminder.ts`; `reminderPermission`, `askReminderPermission`,
-  `scheduleReminder`, `cancelReminder` and `REMINDERS_AVAILABLE` in
+  `schedulePlan`, `cancelReminder` and `REMINDERS_AVAILABLE` in
   `apps/mobile/src/reminders/schedule.ts`, the web half of a platform pair whose native half is
   the only file in the repository that imports the notification SDK; `loadReminder` and
   `saveReminder` in `apps/mobile/src/reminders/store.ts`, offered by `ProfileTab` in

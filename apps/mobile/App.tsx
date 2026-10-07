@@ -80,6 +80,7 @@ import { profileFromDraft, reminderFromDraft, reminderSummary } from './src/onbo
 import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
 import { saveReminder } from './src/reminders/store.ts';
 import { cancelReminder } from './src/reminders/schedule.ts';
+import { GuestReminderPlanner, ReminderPlanner, stopReminders, useReminderTaps } from './src/reminders/ReminderPlanner.tsx';
 import {
   clearPreAccountDraft,
   loadPreAccountDraft,
@@ -306,6 +307,15 @@ function SignedInRoot({
   /** Which scene the plan put first: the spine's first, less the opener for "I can get by". */
   const firstScene = useRef<MissionId>(FIRST_MISSION);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  // A tap on a reminder opens the place its line promised; one that launched
+  // the app waits until the navigator says it is ready.
+  useReminderTaps(navigationRef);
+  // Signing out (or switching account) takes every pending reminder with it, so
+  // a shared phone never shows one learner's lines to the next. Signing in
+  // cancels nothing; the planner below plans for whoever is here.
+  useEffect(() => () => {
+    void stopReminders();
+  }, []);
   const pendingInvite = useRef<string | null>(null);
   const openPendingInvite = useCallback(() => {
     if (pendingInvite.current && navigationRef.isReady()) {
@@ -563,6 +573,10 @@ function SignedInRoot({
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
       <RememberCompletedAccount onUsed={onAppUsed} />
       <GameProvider>
+      {/* After the hand-off, inside the game layer: plans on mount, on the way
+          back to the foreground, after every settled sitting and when the tutor
+          changes. */}
+      <ReminderPlanner />
       <LiveProvider>
         <NavigationContainer
           ref={navigationRef}
@@ -724,15 +738,20 @@ function Gate() {
   if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
   if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
   return (
-    <AuthFlow
-      initialDraft={preAccountDraft}
-      returning={returning}
-      onDraftChange={keepPreAccountDraft}
-      onCreateAccount={keepPreAccountDraft}
-      onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
-      refused={preAccountRefused}
-      onRefuse={refusePreAccount}
-    />
+    <>
+      {/* A guest who said yes on day one has no account yet: their reminder is
+          planned from the first run's draft and the days they finished. */}
+      <GuestReminderPlanner draft={preAccountDraft} />
+      <AuthFlow
+        initialDraft={preAccountDraft}
+        returning={returning}
+        onDraftChange={keepPreAccountDraft}
+        onCreateAccount={keepPreAccountDraft}
+        onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
+        refused={preAccountRefused}
+        onRefuse={refusePreAccount}
+      />
+    </>
   );
 }
 

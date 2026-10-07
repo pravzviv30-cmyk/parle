@@ -93,12 +93,15 @@ import { PURCHASE_TROUBLE, RESTORE_BUSY, restoreTrouble } from '../purchases/pay
 import { RESTORE_DONE, subscriptionGroup, type SubscriptionAction } from '../purchases/subscription.ts';
 import {
   REMINDER_ROW,
+  REMINDER_SMART_LABEL,
   REMINDER_TIMES,
   REMINDER_TIME_SUB,
   REMINDER_TIME_TITLE,
+  reminderChoice,
   reminderRow,
-  reminderTime,
-  type ReminderTimeId,
+  smartGloss,
+  type ClockTime,
+  type ReminderMode,
   type StoredReminder,
 } from '../reminders/reminder.ts';
 import { loadReminder, saveReminder } from '../reminders/store.ts';
@@ -107,8 +110,8 @@ import {
   askReminderPermission,
   cancelReminder,
   reminderPermission,
-  scheduleReminder,
 } from '../reminders/schedule.ts';
+import { replanReminders, smartReminderTime } from '../reminders/ReminderPlanner.tsx';
 import { openMail } from './links.ts';
 import { phoneRows, type PhonePermission } from './phone.ts';
 import { PHONE_SETTINGS_AVAILABLE, microphonePermission, openPhoneSettings } from './phoneSettings.ts';
@@ -237,6 +240,9 @@ export function SettingsScreen({
   const [unreadReminderOwner, setUnreadReminderOwner] = useState<{ scope: number; userId: string | null } | null>(null);
   const [reminderAttempt, setReminderAttempt] = useState(0);
   const [reminderBusy, setReminderBusy] = useState(false);
+  // The time the smart mode reads from the learner's own rhythm, or null until
+  // it shows. Read, never guessed: the sheet says "until your rhythm shows".
+  const [smartTime, setSmartTime] = useState<ClockTime | null>(null);
 
   const [storeBusy, setStoreBusy] = useState<StoreBusy>('none');
   const [storeMessage, setStoreMessage] = useState<string | null>(null);
@@ -328,6 +334,11 @@ export function SettingsScreen({
           .catch(() => {
             if (sameReminderOwner()) setUnreadReminderOwner(reminderOwner);
           });
+        void smartReminderTime()
+          .then((time) => {
+            if (sameReminderOwner()) setSmartTime(time);
+          })
+          .catch(() => {});
       }
       void loadConsent()
         .then((consented) => {
@@ -418,10 +429,11 @@ export function SettingsScreen({
   const reminderPending = !reminderOwned && !reminderUnread;
   const ownsReminderNow = () => reminderOwned && storedOwner.scope === scopeGeneration() && storedOwner.userId === activeUserId();
   const row = notifications === null || !reminderOwned ? null : reminderRow(stored, notifications);
-  // The preset behind the row. `reminderTime` repairs a mangled or missing id
-  // to the default, so there is no second opinion here about which hour is
-  // which, and no throw on a byte that came back wrong from disk.
-  const chosen = reminderTime(reminderOwned ? stored?.time : undefined);
+  // The time behind the row: a preset, or the learner's own rhythm.
+  // `reminderChoice` repairs a mangled or missing id to the new-setup default
+  // (smart), so there is no second opinion here about which hour is which, and
+  // no throw on a byte that came back wrong from disk.
+  const chosen = reminderChoice(reminderOwned ? stored?.time : undefined);
   // Whether there is a reminder to draw at all: a build with a scheduler, and a
   // permission that has come back. `REMINDERS_AVAILABLE` is the platform pair
   // saying the OS can be asked; `row` is null until the first read lands.
@@ -515,7 +527,7 @@ export function SettingsScreen({
         if (!ownsReminderNow()) return;
         setNotifications(fresh);
         const honest = reminderRow({ enabled: next, time: chosen.value }, fresh);
-        const wanted: StoredReminder = { ...stored, enabled: honest.on, time: chosen.value };
+        const wanted: StoredReminder = { ...stored, enabled: honest.on, time: chosen.value, paused: false };
         // What the phone is doing already, in the shape the store writes. Built
         // from `row.on`, which is reminderRow's answer for the state the row is
         // in, so putting the disk back is the module's value and never a
@@ -527,7 +539,7 @@ export function SettingsScreen({
           setReminderTrouble(REMINDER_SAVE_TROUBLE);
           return;
         }
-        const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();
+        const outcome = honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder();
         if (!ownsReminderNow()) return;
         if (outcome === 'failed') {
           await saveReminder(reverted);
@@ -554,7 +566,7 @@ export function SettingsScreen({
    * revoke notifications and come back to this sheet in the same minute. The
    * read raises no dialog, which keeps the no-re-ask rule intact.
    */
-  const chooseReminderTime = (value: ReminderTimeId) => {
+  const chooseReminderTime = (value: ReminderMode) => {
     if (row === null || !ownsReminderNow()) return;
     setReminderTrouble(null);
     void (async () => {
@@ -562,7 +574,7 @@ export function SettingsScreen({
       if (!ownsReminderNow()) return;
       setNotifications(fresh);
       const honest = reminderRow({ enabled: true, time: value }, fresh);
-      const wanted: StoredReminder = { ...stored, enabled: honest.on, time: value };
+      const wanted: StoredReminder = { ...stored, enabled: honest.on, time: value, paused: false };
       const reverted: StoredReminder = { ...stored, enabled: row.on, time: chosen.value };
       const ack = await saveReminder(wanted);
       if (!ownsReminderNow()) return;
@@ -570,7 +582,7 @@ export function SettingsScreen({
         setReminderTrouble(REMINDER_SAVE_TROUBLE);
         return;
       }
-      const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();
+      const outcome = honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder();
       if (!ownsReminderNow()) return;
       if (outcome === 'failed') {
         await saveReminder(reverted);
@@ -639,10 +651,9 @@ export function SettingsScreen({
   /**
    * Which part of the day, not which minute.
    *
-   * Four presets in the shape the voice sheet already uses. A real picker would
-   * mean a second native dependency to answer a question nobody is asking: the
-   * interesting choice is morning or evening, and a preset at 18:07 is a time
-   * picker that has been hidden rather than removed.
+   * The learner's own rhythm first (the default for a new reminder), then four
+   * presets in the shape the voice sheet already uses. A real picker would mean
+   * a second native dependency to answer a question nobody is asking.
    */
   if (sheet === 'delete') {
     // No chevron: this is the one sheet where leaving is the safe answer and it
@@ -963,6 +974,8 @@ export function SettingsScreen({
     </BottomSheet>
     <BottomSheet visible={sheet === 'reminderTime' && reminderOwned} title={REMINDER_TIME_TITLE} onClose={() => setSheet('none')} footer={<PillButton label="Done" onPress={() => setSheet('none')} />}>
       <Text style={[type.body, { color: paper.inkSoft }]}>{REMINDER_TIME_SUB}</Text>
+      <OptionRow title={REMINDER_SMART_LABEL} detail={smartGloss(smartTime)}
+        selected={chosen.value === 'smart'} onPress={() => chooseReminderTime('smart')} />
       {REMINDER_TIMES.map((option) => (
         <OptionRow key={option.value} title={option.label} detail={option.gloss}
           selected={chosen.value === option.value} onPress={() => chooseReminderTime(option.value)} />

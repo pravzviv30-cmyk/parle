@@ -54,7 +54,7 @@
  * They prove that `app.json` registers the config plugin, that the two props
  * above are not set, that `android.permissions` asks for POST_NOTIFICATIONS,
  * and that `schedule.native.ts` creates one channel under a readable name and
- * hands that same channel id to the daily trigger.
+ * hands that same channel id to every dated slot it schedules.
  *
  * They cannot prove that a notification arrives on a phone. Nothing here runs
  * prebuild, opens an Android manifest, or talks to an OS: `ios/` and
@@ -247,15 +247,15 @@ describe('what the reminder needs from the build rather than from its own logic'
 
     // Both ends, because either alone does nothing at all. A channel created
     // and never named on the trigger is a channel nothing routes to, and the
-    // builder falls back exactly as if it had not been created.
-    const begin = NATIVE.indexOf('const triggers =');
-    assert.ok(begin >= 0, 'native reminders have no trigger builder');
-    const trigger = NATIVE.slice(begin, NATIVE.indexOf('for (const trigger', begin));
-    assert.match(NATIVE, /scheduleNotificationAsync\(\{ content: reminderContent\(\), trigger \}\)/);
+    // builder falls back exactly as if it had not been created. Each dated
+    // slot the plan hands over names it (founder decision D2 retired the one
+    // repeating trigger this used to read).
+    const trigger = bracedAfter(NATIVE, 'trigger:', 'the slot trigger');
+    assert.match(NATIVE, /await Notifications\.scheduleNotificationAsync\(\{\s*identifier: slot\.id,/, 'native reminders schedule no slot from the plan');
     assert.match(
       trigger,
       /\bchannelId:\s*REMINDER_CHANNEL_ID\b/,
-      `the daily trigger names no channel: ${trigger}. expo-notifications then puts the reminder on ` +
+      `the slot trigger names no channel: ${trigger}. expo-notifications then puts the reminder on ` +
         'an auto-created fallback channel, under a name that came from an Android string resource.',
     );
 

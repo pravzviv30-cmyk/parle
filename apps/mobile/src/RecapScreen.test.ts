@@ -43,7 +43,9 @@ describe('the recap is a keepsake', () => {
     assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.lines}'), 'the kept phrase comes before the learner\'s own lines');
     assert.ok(at('<KeptPhraseCard') < at('{KEEPSAKE_COPY.sound}'), 'the sound comes before the phrase kept');
     assert.ok(at('{KEEPSAKE_COPY.sound}') < at('{nextTime}'), '"Next time" comes before the sound');
-    assert.ok(at('{nextTime}') < at('{offer.title}'), 'the reminder is offered before the keepsake is over');
+    // The offer is the one shared ask now (Come alive Phase 4); its own pins
+    // live in reminders/ReminderAsk.test.ts.
+    assert.ok(at('{nextTime}') < at('<ReminderAsk'), 'the reminder is offered before the keepsake is over');
     assert.match(render, /currentPage === 'next' &&/);
     assert.match(render, /footer=\{/);
     assert.ok(at('footer={') < at('expanded: more'), 'Finish stays pinned outside the More content');
@@ -58,27 +60,6 @@ describe('the recap is a keepsake', () => {
     // Every block appears only once it has something true to show.
     assert.match(render, /\{lines\.length > 0 && \(/, 'an empty "Your lines" block is drawn');
     assert.match(render, /\{nextTime !== null && /, '"Next time" is drawn with nothing to name');
-  });
-
-  test('the notification permission is asked only when the learner accepts the reminder offer', () => {
-    // Offered only after a win, at the chosen time, from facts already read.
-    assert.match(code, /const won = lines\.length > 0 \|\| keptPhrase !== null;/, 'the offer is not gated on the first win');
-    assert.match(code, /const offer = reminderOffer\(\{ available: REMINDERS_AVAILABLE, won, stored: offeredReminder, permission \}\);/);
-    // Read on the way in, never asked.
-    assert.match(code, /Promise\.all\(\[loadReminder\(\{ strict: true \}\), reminderPermission\(\)\]\)/, 'the recap does not read the permission it offers against');
-    for (const effect of code.split('useEffect(').slice(1)) {
-      const body = effect.slice(0, effect.indexOf('}, ['));
-      assert.ok(!body.includes('askReminderPermission'), 'an effect raises the notification dialog nobody accepted');
-    }
-    // Asked in exactly one place: the accept handler, through the model.
-    assert.equal((code.match(/\baskReminderPermission\b/g) ?? []).length, 2, 'the dialog is reachable from somewhere other than the accept handler');
-    const accept = code.slice(code.indexOf('const acceptReminder = '), code.indexOf('};', code.indexOf('const acceptReminder = ')));
-    assert.match(accept, /acceptReminderOffer\(offer, \{ owns, ask: askReminderPermission, read: reminderPermission, save: saveReminder, schedule: scheduleReminder \}\)/);
-    assert.match(render, /<OutlineButton label=\{offer\.accept\}[^>]*onPress=\{acceptReminder\}/, 'the accept control does not accept');
-    assert.match(render, /REMINDER_TIMES.map/);
-    assert.match(render, /onPress=\{\(\) => setOfferTime\(time.value\)\}/);
-    assert.match(render, /<GhostButton label=\{offer\.decline\}/, 'there is no quiet way to say no');
-    assert.match(render, /reminderAnswerLine\(reminder, offer\)/, 'the answer is not said once the learner has chosen');
   });
 
   test('everything else the closure chose is one tap away under a closed More', () => {

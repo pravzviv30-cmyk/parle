@@ -5,7 +5,9 @@
  * it is something kept rather than something scored: the lines they said, one
  * phrase kept, one sound, and "Next time" naming the spine's next scene. After
  * all of that, and only then, the recap offers a daily reminder at the time the
- * learner chooses on the offer or previously chose in Settings.
+ * learner chooses on the offer or previously chose in Settings. The offer is
+ * drawn by the one shared ask, `reminders/ReminderAsk.tsx` (Come alive, README
+ * Part 6), and accepting it plans through `reminders/ReminderPlanner.tsx`.
  *
  * ## When the phone is asked
  *
@@ -32,13 +34,15 @@ import { getMission, spineFrom, type MissionProgress } from '@luvani/core';
 
 import type { PersistAck } from '../storage/ack.ts';
 import {
+  DEFAULT_REMINDER_MODE,
   REMINDER_EXPLAIN,
   REMINDER_REFUSED,
+  reminderMode,
   reminderRow,
   reminderTime,
+  type ReminderMode,
   type ReminderPermission,
   type ReminderTime,
-  type ReminderTimeId,
   type StoredReminder,
 } from '../reminders/reminder.ts';
 import type { ScheduleOutcome } from '../reminders/schedule.ts';
@@ -86,7 +90,9 @@ export function nextTimeLine(progress: readonly MissionProgress[]): string | nul
 }
 
 export interface ReminderOffer {
-  /** The learner's chosen preset, or the default when they never chose one. */
+  /** The learner's chosen time, or their own rhythm (`smart`) when they never chose one. */
+  choice: ReminderMode;
+  /** The preset behind the choice, and the evening for `smart` until the rhythm shows. */
   time: ReminderTime;
   /** True when accepting will raise the phone's notification dialog. */
   asks: boolean;
@@ -114,13 +120,18 @@ export function reminderOffer(facts: {
   if (!facts.available || !facts.won || facts.permission === null) return null;
   if (facts.permission === 'denied') return null;
   if (reminderRow(facts.stored, facts.permission).on) return null;
-  const time = reminderTime(facts.stored?.time);
+  // A reminder that paused itself stays quiet here: it said it would stop,
+  // and Settings is where it is turned back on.
+  if (facts.stored?.paused === true) return null;
+  const choice = facts.stored === null ? DEFAULT_REMINDER_MODE : reminderMode(facts.stored.time);
+  const time = reminderTime(choice);
   const asks = facts.permission === 'undetermined';
   return {
+    choice,
     time,
     asks,
-    title: `A daily reminder at ${time.gloss}?`,
-    body: asks ? REMINDER_EXPLAIN : 'One a day at the time you pick, and it says the same thing every day.',
+    title: choice === 'smart' ? 'A daily reminder around when you usually practise?' : `A daily reminder at ${time.gloss}?`,
+    body: asks ? REMINDER_EXPLAIN : 'One a day, and never on a day you have already practised.',
     accept: 'Remind me',
     decline: 'Not now',
   };
@@ -136,20 +147,23 @@ export interface ReminderPhone {
   /** Reads the permission without raising anything. */
   read: () => Promise<ReminderPermission>;
   save: (reminder: StoredReminder) => Promise<PersistAck>;
-  schedule: (time: ReminderTimeId) => Promise<ScheduleOutcome>;
+  /** Plans the reminder once the choice is on disk (`ReminderPlanner.tsx` `replanReminders`). */
+  schedule: (time: ReminderMode) => Promise<ScheduleOutcome>;
 }
 
 /**
- * The learner said yes. Ask the phone (only now), decide with `reminderRow`,
- * write, schedule, and put the store back to off if the phone will not take it.
+ * The learner said yes. Ask the phone (only when the offer says a dialog is the
+ * honest next step), decide with `reminderRow`, write, plan, and put the store
+ * back to off if the phone will not take it. The one ask, save and plan path
+ * for an account: the shared ask reaches it through `turnOnReminder`.
  */
-export async function acceptReminderOffer(offer: ReminderOffer, phone: ReminderPhone): Promise<ReminderAnswer> {
+export async function acceptReminderOffer(offer: Pick<ReminderOffer, 'choice' | 'asks'>, phone: ReminderPhone): Promise<ReminderAnswer> {
   try {
     const owns = phone.owns ?? (() => true);
     if (!owns()) return 'failed';
     const permission = offer.asks ? await phone.ask() : await phone.read();
     if (!owns()) return 'failed';
-    const time = offer.time.value;
+    const time = offer.choice;
     if (!reminderRow({ enabled: true, time }, permission).on) return 'refused';
     if ((await phone.save({ enabled: true, time })) !== 'durable' || !owns()) return 'failed';
     if ((await phone.schedule(time)) !== 'done') {
@@ -163,7 +177,8 @@ export async function acceptReminderOffer(offer: ReminderOffer, phone: ReminderP
 }
 
 /** What the recap says once the learner has answered. */
-export function reminderAnswerLine(answer: ReminderAnswer, offer: ReminderOffer): string {
+export function reminderAnswerLine(answer: ReminderAnswer, offer: Pick<ReminderOffer, 'choice' | 'time'>): string {
+  if (answer === 'on' && offer.choice === 'smart') return 'Your reminder is on, around when you usually practise. You can change it in Settings.';
   if (answer === 'on') return `Your reminder is on for ${offer.time.gloss}. You can change it in Settings.`;
   if (answer === 'refused') return REMINDER_REFUSED;
   return 'Your phone did not set the reminder just now. You can turn it on in Settings.';

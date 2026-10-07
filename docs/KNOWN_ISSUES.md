@@ -3608,7 +3608,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: fixed daily copy, preset times, the explain-before-ask sentence and the refused-permission
   line, as pure constants and functions with no expo import, on the disclosure.ts discipline. The
   content builder takes no arguments so it cannot vary with practice.
-- verified-by: `the reminder says the same words every day and none of them guilt anyone`
+- note 2026-10-07, ca/p4-reminders: superseded by F771. Founder decision D2 (2026-10-04) reversed the old rule: the reminder now names the chosen tutor, states only the learner's own counts and varies by day, so the fixed-words title is retired and its verified-by points at F771's successor, which holds every line to guiltIn, streakGuiltIn and no dash.
+- verified-by: `a reminder names the chosen tutor and opens the place it promises`
 
 ### F227 — Nothing under reminders/ can see whether the learner practised
 - severity: P1
@@ -3618,7 +3619,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reminders/ imports from progress/, missions/, review/ or the history store, so a practice-aware
   reminder cannot be built without going red. A notification cancelled because you practised is a
   streak with the guilt hidden in the scheduler.
-- verified-by: `nothing under reminders can read whether the learner practised`
+- note 2026-10-07, ca/p4-reminders: superseded by F771. Founder decision D2 (2026-10-04) reversed the old rule: a reminder is skipped on a day already practised, so the planner reads practice; only reminders/ReminderPlanner.tsx (and its today's-phrase helper) may, through game/ and the guest record, and reminder.test.ts still bans the progress stores everywhere under reminders/.
+- verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
 
 ### F228 — The reminder's chosen time lives under the account scope
 - severity: P1
@@ -3644,7 +3646,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: the saveFile.ts pattern: schedule.native.ts is the sole expo-notifications importer with a
   daily repeating trigger, schedule.ts is the web no-op, and no test loads the native half, which
   is what makes the dependency separable from the code.
-- verified-by: `only the native schedule module touches expo-notifications and its trigger repeats unchanged`
+- note 2026-10-07, ca/p4-reminders: superseded by F771. Founder decision D2 (2026-10-04) reversed the old rule: a repeating trigger cannot skip a practised day, so schedule.native.ts (still the sole expo-notifications importer) now schedules one dated slot per day from the plan and cancels only its own by identifier; F771's successor reads that file.
+- verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
 
 ### F231 — The Profile row explains the ask first and a refusal leaves no dead switch
 - severity: P1
@@ -3774,7 +3777,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F241 — The no-guilt boundary is guarded in one direction only
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/reminders/schedule.ts:1
 - note: F227 stops anything under `reminders/` importing `progress/`, `missions/`, `review/`,
   `practice/` or the history store, so the reminder cannot learn whether the learner practised.
@@ -3788,6 +3791,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   for F237 says "files 6b never touched", which F229's exclusion row in `sync/policy.ts` makes
   slightly untrue; the operative fact, that the NUL bytes are not 6b's, holds and is worded
   correctly in the roadmap.
+- note 2026-10-07, ca/p4-reminders: closed by the planner (F771). Skipping a practised day is now the design (founder decision D2) and lives in one place: a practice settles through game/settle.ts and the planner re-plans from onSettled, so no practice surface imports the reminder. The named test, in reminder.test.ts, holds that only the Settings reminder row (Profile's until F576) writes the reminder off, names every module that may cancel pending reminders, and scans the practice surfaces for any reminder import.
 - verified-by: `only the profile row can turn the reminder off`
 ### F242 — The first voice session on a phone refuses a working microphone
 - severity: P1
@@ -10241,9 +10245,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F771 — Reminders fire on a fixed weekly schedule whether or not the learner practised
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/reminders
 - note: README Part 5.F Reminders: one planner (reminders/plan.ts), a smart time from the learner's own finishes, one dated slot a day skipped when practised, a pause note after four unanswered days then silence, copy naming the chosen tutor, taps that open their promise, re-planned after every settle, cancelled only on sign-out. Supersedes F226, F227 and F230 (their verified-by lines are replaced by these).
+- note 2026-10-07, ca/p4-reminders: done. plan.ts plans up to five dated `practice:{day}` slots in a seven-day window (smart time: median first finish less 30 minutes, on the quarter hour, 08:00 to 21:30, 18:00 until three days), skips a practised day, rotates twelve lines naming the chosen tutor (milestone eve, mentionStreak) with no line twice in a row, and puts the pause note in the fifth unanswered slot. store.ts is v2 (choice plus a day-key log, v1 migrated). schedule.native.ts schedules once per slot with DATE triggers, cancels only `practice:` by identifier, has no handler and no badge, and hears taps (cold start included). ReminderPlanner.tsx re-plans on mount, foreground, every settle, tutor change, Settings and the ask; App.tsx follows taps (Home, today's phrase, Settings) and cancels on sign-out only. The titles failed against fbe958ce (plan.ts did not exist).
 - verified-by: `a reminder is skipped on a day already practised, at most one a day, and pauses after four unanswered`
 - verified-by: `a reminder names the chosen tutor and opens the place it promises`
 
@@ -10268,9 +10273,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F774 — The reminder ask promises a skipped practised day the scheduler does not yet skip
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/reminders/ReminderAsk.tsx:43, apps/mobile/src/reminders/schedule.native.ts:229
 - note: Found by the 7 October first-run privacy review. The day-one ask says "One a day at about {time}, and never on a day you have already practised." (README Part 5.C row 9), but the reminder is still a plain daily trigger. The Phase 4 planner (F771) must make the promise true for every learner, including a guest who never makes an account (their finish days come from guestPracticeDays), and the notification must name the tutor the ask named. Nothing ships before Phase 4 (landing is HOLD until the founder has seen it).
+- note 2026-10-07, ca/p4-reminders: done. The ask plans through turnOnReminder(at, tutor); for a guest who never makes an account the planner reads guestPracticeDays and finishedAt and names tutorVoice(draft.tutorVoice), and GuestReminderPlanner (mounted in App.tsx wherever nobody is signed in) re-plans when the draft moves, which it does once a finish is on the disk, and on the way in and out of the app. Nothing scheduled repeats, so a practised day is skipped. The title failed against fbe958ce.
 - verified-by: `the reminder ask promises a skipped practised day only when the scheduler skips it, guest finish days included`
 
 ### F775 — Four small gaps the core-loop review found

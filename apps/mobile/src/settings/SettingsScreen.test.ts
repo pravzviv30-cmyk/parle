@@ -191,7 +191,7 @@ describe('the daily reminder on Settings', () => {
       const body = bodyOf(TAB, name);
       assert.match(body, /if \(row === null[^\n]*!ownsReminderNow\(\)\) return;/, `${name} accepts a tap from an unknown or former owner`);
       assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'saveReminder(wanted)'), `${name} can write after a scope change during the permission read`);
-      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'scheduleReminder(wanted.time, wanted.days)'), `${name} can schedule after a scope change`);
+      assert.ok(writtenBefore(body, 'if (!ownsReminderNow()) return;', 'replanReminders({ choice: wanted })'), `${name} can schedule after a scope change`);
     }
     assert.match(TAB, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\}/, 'a former owner can expose the selected reminder time');
   });
@@ -300,7 +300,7 @@ describe('the daily reminder on Settings', () => {
         `${name} moves the row before it knows the write landed`,
       );
       assert.ok(
-        writtenBefore(body, "ack === 'failed'", 'scheduleReminder('),
+        writtenBefore(body, "ack === 'failed'", 'replanReminders('),
         `${name} schedules a notification the app may not remember asking for`,
       );
       assert.ok(body.includes('cancelReminder()'), `${name} can turn the row off without stopping the notification`);
@@ -403,7 +403,7 @@ describe('the daily reminder on Settings', () => {
  * F239. The second, narrower route to the same dead switch.
  *
  * F231 made the row honest about permission and honest about the disk. It left
- * one gap: `saveReminder` can answer `durable` and `scheduleReminder` can then
+ * one gap: `saveReminder` can answer `durable` and the plan (`replanReminders`, which replaced `scheduleReminder`) can then
  * answer `failed`, and the row would sit on over a notification the OS never
  * accepted. Nobody could see it, because unlike permission there is no way to
  * ask the phone later whether a reminder exists — `reminderRow` takes a stored
@@ -430,11 +430,11 @@ describe('a schedule the phone would not take', () => {
       // the sign flipped: the row would say Off while the notification kept
       // arriving daily, from the one control the learner would use to stop it.
       assert.ok(
-        body.includes('honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder()'),
+        body.includes('honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder()'),
         `${name} does not read what the OS answered`,
       );
       assert.ok(
-        writtenBefore(body, 'scheduleReminder(', "outcome === 'failed'"),
+        writtenBefore(body, 'replanReminders(', "outcome === 'failed'"),
         `${name} checks an outcome it has not asked for yet`,
       );
       assert.ok(
@@ -510,7 +510,7 @@ describe('a schedule the phone would not take', () => {
 
     // And it is not a judgement call: on the only half that answers
     // `unavailable`, the row can never be on in the first place, so
-    // `scheduleReminder` is unreachable from it. Executed rather than read.
+    // `replanReminders` is unreachable from it. Executed rather than read.
     assert.equal(REMINDERS_AVAILABLE, false, 'the half under test is not the one with no scheduler');
     assert.equal(reminderRow({ enabled: true, time: 'morning' }, 'denied').on, false);
     assert.ok(TAB.includes('REMINDERS_AVAILABLE && row !== null'), 'the group is drawn on a build that cannot schedule anything');
@@ -518,7 +518,7 @@ describe('a schedule the phone would not take', () => {
 
   test('that check bites when the row moves over a schedule that was refused', () => {
     // The defect itself: the OS is asked, its answer is dropped, the row moves.
-    const dropped = "{ const outcome = await scheduleReminder(wanted.time, wanted.days); setStored(wanted); }";
+    const dropped = "{ const outcome = await replanReminders({ choice: wanted }); setStored(wanted); }";
     assert.equal(
       writtenBefore(dropped, "outcome === 'failed'", 'setStored(wanted)'),
       false,
@@ -547,7 +547,7 @@ describe('a schedule the phone would not take', () => {
 
     // And the shape the screen actually ships passes each of them.
     const shipped =
-      "{ const outcome = honest.on ? await scheduleReminder(wanted.time, wanted.days) : await cancelReminder();" +
+      "{ const outcome = honest.on ? await replanReminders({ choice: wanted }) : await cancelReminder();" +
       " if (outcome === 'failed') { await saveReminder(reverted); setReminderTrouble(REMINDER_SCHEDULE_TROUBLE); return; }" +
       ' setStored(wanted); }';
     assert.equal(writtenBefore(shipped, "outcome === 'failed'", 'setStored(wanted)'), true);

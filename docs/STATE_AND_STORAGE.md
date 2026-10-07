@@ -467,7 +467,8 @@ own moments. Two devices can be dealt different quests for one day; after a merg
 earliest deal is shown, and a quest the other device credited stays earned (its claim
 counts in the XP total, the monthly quest count and the day's count of quests done, which
 reads every quest claimed that day up to three and so never falls after a merge).
-Re-planning tonight's reminder is Phase 4; its seam is `onSettled`.
+The reminder planner hears every settled sitting through `onSettled` and plans the next days
+again (see "The daily reminder, version 2" below).
 
 There is no quest chest (founder decision D22, F773). A claim is a quest, +10, and
 nothing else; finishing all three is one quiet line on the end card. The delta's
@@ -582,6 +583,29 @@ exit paths, the failure discipline, and that both reset doors call the real swee
 rather than a test double. The unlink itself is a platform call that no test on a
 laptop can execute, so it is read as source instead. That half is a device check and
 it has not been run on one yet.
+
+### The daily reminder, version 2
+
+`reminder` (`reminders/store.ts`, per account, device-local, excluded from sync) is
+`{ version: 2, reminder, log }` since Come alive Phase 4 (founder decision D2, F771).
+`reminder` is the learner's choice: `enabled`, `time` (one of the four presets or `smart`,
+which follows their own first finish of the day), `days` when chosen, and two flags written
+only when they differ from the default, `mentionStreak: false` and `paused: true`. `log` is
+what the planner needs to know when to pause: the day keys a reminder arrived (`sent`), was
+tapped (`answered`) or was followed by a visit to the app (`opened`), the last 14 of each;
+the slots last handed to the OS (day, time, which line, whether it is the pause note); and
+the last line that went out, so the next day's differs. Day keys and line ids only: no
+words, no counts, nothing the learner said. A version 1 envelope is read with its time kept
+and an empty log, so an existing evening stays the evening; a version 2 envelope missing
+either half reads as unreadable. The OS holds the schedule itself as dated one-off
+notifications named `practice:{day}`; the planner cancels only those, by name, and signing
+out cancels them all. `gameLocal`'s `nudges` and `nudgesPausedAt` fields predate the planner
+and are not written by it.
+
+A guest who said yes on day one has no account to key a log under, so their choice rides in
+the first run's draft and their log is one device key, `@luvani/guest-reminder/v1`: whether
+the pause note has gone out, and the same day-key log. The planner clears it when the draft
+carries no reminder (a refusal, a new plan) and when an account plans instead.
 
 ### Device-level keys, and the one that retired
 
