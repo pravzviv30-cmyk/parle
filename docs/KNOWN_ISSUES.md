@@ -10182,6 +10182,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: README Part 5.E: the listening ring follows the learner's real microphone level, the speaking bars follow the tutor's real audio, levels decay to rest after 120 ms because the hook never writes 0, thinking is honest, and the orb falls back to today's loops when levels are unavailable.
 - note 2026-10-06, ca/p3-room (step P3-C): the orb draws the levels P3-B measures. `live/levels.ts` `createRoomFacts` turns the meter's frames into the few facts the orb branches on (each level measured, the learner heard after 250 ms above 0.12 and not after 600 ms below, the room awake), `tutor/orbLayers.ts` decides the layers, and `VoiceOrb` composes `OrbLevelRing` (the shared LevelRing), `LiveBars` and `OrbPulse` (today's loop rests while they draw), `OrbThinkingArc` and `OrbRipple` in the state colours, transform and opacity only, resting when the room is asleep, paused or reduced; "Hearing you" is visual and the accessible name stays the state's word. The lesson's Speak circle wears the ring. Plumbing title plus `tutor/orbLayers.test.ts` pass; checked in a web build, not yet on a device.
 - verified-by: `the orb's levels come from real audio and decay to rest when the audio stops`
+- verified-by: `the orb draws the room's real levels only when they are measured, and today's loops otherwise`
 
 ### F765 — Nothing marks a scene goal or a scene won in the room
 - severity: P2
