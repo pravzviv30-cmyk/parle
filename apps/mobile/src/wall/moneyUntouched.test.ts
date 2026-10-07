@@ -83,18 +83,35 @@ const FILES: Record<string, string> = {
   // previous pinned hashes exactly and accepted this split. New contract pinned
   // too; every other money pin and purchase/restore/allowance rule is unchanged.
   'apps/mobile/src/purchases/adapter.ts': '91840b3c02ac00e3eb0d3b3e9cb83b4c6f7b193bf5860778b82cbccb19f9450c',
-  'apps/mobile/src/purchases/adapter.native.ts': '7089dcbb982de4daeb9456cae039d7dc71386d7cc576dc2e72243529194a637c',
+  // 7 October 2026, F772 (come-alive Phase 4, ca/p4-wall): the plans page says a
+  // yearly price with the store's own monthly figure ("about ... a month"), so
+  // the contract gains an optional display-only `localizedPricePerMonth` and the
+  // native adapter reads it from the yearly package's `pricePerMonthString`. One
+  // added line each: no period, id, eligibility, purchase, restore or grant
+  // rule moved, and every FUNCTIONS pin is unchanged. 7 October 2026: the
+  // independent P4-C review (Opus 5.5, read-only) accepted this adapter hash and
+  // the contract's b98dcaa1... as display-only, which is the revenue sign-off.
+  'apps/mobile/src/purchases/adapter.native.ts': '1e5703d601d814461f6f9446d10ee3fc72728dd9c6ec4c3539d8fabc084203bb',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
   // no contract text, imports or purchase behavior changed. Sol independently
   // reconstructed that prior hash and accepted this exact-byte correction.
-  'apps/mobile/src/purchases/contract.ts': '69c2274e555415d10f5e46214f2eec773e6645faa83220770ac0928ecb012dcf',
+  // 7 October 2026, F772 review repair (ca/p4-wall-r1): comment-only. The
+  // review asked the `localizedPricePerMonth` doc to say RevenueCat divides the
+  // yearly price by twelve on the device rather than "the store works it out".
+  // `git diff` against the accepted b98dcaa1... shows only that doc comment.
+  'apps/mobile/src/purchases/contract.ts': '8073d6a000ede59ec31d46c8c74be74aa0f4b14201ffcf0a190a7e6d75f66893',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
   'apps/mobile/src/purchases/client.ts': '82b26ec9cdbe78aecf27a8c7ab536ab90d9d08b00fbed5221ffe72ab4651f98c',
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
   'apps/mobile/src/purchases/billingStatus.ts': '3104923354eec188303c25d0fc1e78abe4954daad392d7ad1427d32ce15392b1',
-  'apps/mobile/src/purchases/capabilities.ts': '5bbb732e5c0c0e2d55c6459578dea4e86f4f77103e80dd656490386344ad7502',
+  // 7 October 2026, F734 (come-alive Phase 4, ca/p4-wall): INCLUSIONS gains the
+  // one streak line the plans page says for every plan on it, "Every plan
+  // includes streak freezes and a one-tap repair.", now that F718 retired the
+  // word from the shared ban. Copy only: capabilitiesFor, streakProtection and
+  // planInclusions are unchanged, so no plan opens or gates anything new.
+  'apps/mobile/src/purchases/capabilities.ts': '028bd86850b49c7d440179f2ae0521dcbbd00a782120f2055d6c7a5824e1da3a',
   'packages/core/src/metering/meter.ts': '05817207f16be48db63522f337e74af0d602a8c9b5a779a2f708333a18474786',
   'services/token-server/src/billing/revenuecat.ts': '4e07d74fbbaa577f6bee720e8d762e91e6c669be30ce20388cbc80216e8f34e1',
   'services/token-server/src/billingStatus.ts': '9ff5789bf23cb987b55e067230d3aa50fffdd0253d9c98d232717ddb6d3d2730',

@@ -63,8 +63,17 @@ export function previewOffering(env: PreviewEnvironment = process.env): StoreOff
       { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Starter', localizedPrice: '£14.99', period: 'month', intro: null, introEligible: false },
       { plan: 'regular', productId: 'luvani_regular_monthly_preview', title: 'Max', localizedPrice: '£24.99', period: 'month', intro: null, introEligible: false },
     ],
+    // The yearly products and a week's free trial (D16), so the page's yearly
+    // rows and the trial timeline can be looked at too. Made up the same way:
+    // the ids say preview, and no store has ever heard of them.
+    yearly: [
+      { plan: 'starter', productId: 'luvani_starter_yearly_preview', title: 'Starter', localizedPrice: '£119.99', period: 'year', localizedPricePerMonth: '£10.00', intro: PREVIEW_WEEK, introEligible: true },
+      { plan: 'regular', productId: 'luvani_regular_yearly_preview', title: 'Max', localizedPrice: '£179.99', period: 'year', localizedPricePerMonth: '£15.00', intro: PREVIEW_WEEK, introEligible: true },
+    ],
   };
 }
+
+const PREVIEW_WEEK = { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOfUnits: 1, cycles: 1 } as const;
 
 /**
  * A catalogue for the preview, and the one place this repo compiles an allowance in.

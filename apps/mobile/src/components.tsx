@@ -226,6 +226,7 @@ export function PillButton({
   accessibilityLabel,
   tone = 'ink',
   ref,
+  state = 'idle',
 }: {
   label: string;
   onPress: () => void;
@@ -237,14 +238,44 @@ export function PillButton({
   tone?: 'ink' | 'white';
   /** The pressable itself, for a caller that moves a screen reader onto it (the answer sheet's Continue). */
   ref?: Ref<View>;
+  /**
+   * The pill waiting in place (come alive, README Part 5.G). `busy` turns its
+   * mark into the turning refresh; `done` draws the check where the spinner
+   * was, and is passed only for a real resolved result, such as an entitlement
+   * the server confirmed. Either keeps the live fill and takes no second press.
+   * Back to `idle` simply drops the mark: no shake. The caller's label says the
+   * state ("Opening the store…"); movement is the icons' own, still under
+   * Reduce Motion.
+   */
+  state?: 'idle' | 'busy' | 'done';
 }) {
+  const waiting = state !== 'idle';
   return (
-    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} ref={ref}>
-      {icon}
+    <Press ref={ref} haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined}>
+      {waiting ? <PillWait done={state === 'done'} color={tone === 'white' ? paper.ink : paper.onInk} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk }]}>{label}</Text>
     </Press>
   );
 }
+
+/**
+ * The pill's waiting mark: the check-draw mounted from the start so it draws
+ * when the result lands, with the turning refresh over it until then.
+ */
+function PillWait({ done, color }: { done: boolean; color: string }) {
+  return (
+    <View {...decorative} style={s.pillWait}>
+      <AnimatedIcon kind="check-draw" size={PILL_MARK} color={color} state={done ? 'on' : 'off'} />
+      {done ? null : (
+        <View style={StyleSheet.absoluteFill}>
+          <AnimatedIcon kind="refresh-spin" size={PILL_MARK} color={color} active />
+        </View>
+      )}
+    </View>
+  );
+}
+
+const PILL_MARK = 24;
 
 /**
  * A secondary action: a quiet text link at the touch floor, ink words with no
@@ -890,6 +921,7 @@ const s = StyleSheet.create({
     paddingVertical: space(3),
   },
   pillWhite: { backgroundColor: paper.card },
+  pillWait: { width: PILL_MARK, height: PILL_MARK },
   pillDisabled: { backgroundColor: paper.skeleton },
   // A white pill sits on blue or coral, where the sand reads as one more live
   // fill; off there is the blue ground's pale secondary (F758).

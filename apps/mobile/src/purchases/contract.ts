@@ -45,6 +45,16 @@ export interface StoreProduct {
    */
   period: 'month' | 'year';
   /**
+   * A yearly product's price per month, as RevenueCat works it out on the
+   * device (the yearly price over twelve) and formats it in the store's
+   * currency (`pricePerMonthString`), for the plans page's "about ... a
+   * month": an approximation, which "about" says. Display only: nothing is
+   * bought, granted or metered by it. Null, or absent, when the product is
+   * monthly or RevenueCat did not say, and then the page names only the yearly
+   * price rather than dividing one itself.
+   */
+  localizedPricePerMonth?: string | null;
+  /**
    * The store's free trial on this product, or null. A paid introductory price
    * is not a free trial and reads as null, so nothing can call it one.
    */

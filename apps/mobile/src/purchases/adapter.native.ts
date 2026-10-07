@@ -120,6 +120,7 @@ function productOf(plan: PaidPlan, found: PurchasesPackage, eligible: ReadonlySe
     title: found.product.title.trim() || found.product.identifier,
     localizedPrice: price,
     period: found.product.subscriptionPeriod === 'P1Y' ? 'year' : 'month',
+    localizedPricePerMonth: found.product.subscriptionPeriod === 'P1Y' ? found.product.pricePerMonthString?.trim() || null : null,
     intro,
     introEligible: intro !== null && eligible.has(found.product.identifier),
   };

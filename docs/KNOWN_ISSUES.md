@@ -9931,9 +9931,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F734 — Plans say nothing about streak protection
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/capabilities.ts
 - note: Founder decision D4: freezes and repair come with an unlapsed paid plan, including during a store trial. capabilitiesFor answers streakProtection (5 October), but the plans page still says nothing: the INCLUSIONS line "Streak freezes and a one-tap repair" waits for F718 to retire "streak" from the shared guilt ban, because CAPABILITY_COPY is swept by guiltIn. Open until that line ships with the second test below, which does not exist yet, so the gate cannot tick this early.
+- note: 2026-10-07 ca/p4-wall: INCLUSIONS.streak "Every plan includes streak freezes and a one-tap repair." is said once on the plans page under every plan's rows, with the freeze mark; capabilities.ts re-pinned once in moneyUntouched.test.ts with a dated reason (copy only, no plan opens anything new).
 - verified-by: `streak protection comes only with an unlapsed paid plan`
 - verified-by: `the plans page names streak protection on both paid plans`
 
@@ -10035,11 +10036,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every game drawing uses palette colours only and hides from assistive technology`
 ### F742 — A store trial's purchase screens describe a month
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall/WallScreen.tsx:330, apps/mobile/src/purchases/planStatus.ts:93
 - note: F733 review (5 October). The server grants a store trial a week of the plan (42 or 70 minutes), but the purchase confirmation shows the catalogue's monthly minutes with "Your speaking time each month.", and the plan card's band compares against the monthly allowance, so it reads "A little speaking time left." from the first day of a trial. Held back by runbook step 4 (no intro offer is shown to learners until the Phase 4 plans page ships); the Phase 4 wall takes the trial's minutes from the server, not the catalogue. Core's refusal now says "You have used all your minutes for now." for every paid period.
 - verified-by: `a store trial is described as a week of minutes, never a month`
 - note: Numbered F736 on the billing branch, which collided with the iOS switch entry; renumbered F742 at merge (6 October).
+- note: 2026-10-07 ca/p4-wall, repaired on ca/p4-wall-r1 after review: the server's grant decides, never the client's guess, so a grant holding no more than the plan's trial week is never said as the catalogue month. A purchase from the wall of a product carrying a free trial (whatever the store said about eligibility, and only once the store accepted it) shows the server's minutes with "Your speaking time during the free trial."; a restore during a trial, or a trial purchase confirmed after the app was reopened, shows the minutes held with "Your speaking time until {day month}." when the period ends within a week and a day; a grant holding more is said as the month. The plan card measures "a little" against a week of the plan when the period ends within a week and a day (a day of slack for a slow phone clock), which also moves a monthly learner's last week and awaits the founder's or revenue's acceptance until /billing/status reports the period kind.
 
 ### F747 — A store trial would get the paid phrase-audio budget
 - severity: P3
@@ -10247,9 +10249,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F772 — The plans page has no yearly plans and no honest trial timeline
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/wall
 - note: Founder decision D16 and README Part 5.G: yearly and monthly rows through Choice with the yearly plan of the tier covering the learner's goal pre-selected (no plan_selected fired), prices from the store, never save N percent, the goal fit line, Not now and Keep practising free; a trial timeline only with a real eligible introductory offer; purchase success only after a confirmed entitlement.
+- note: 2026-10-07 ca/p4-wall: each plan's yearly and monthly products are Choice radios with the store's prices (the yearly with the store's pricePerMonthString, a new display-only contract field, re-pinned); the yearly product of the cheapest plan covering the goal is chosen once, after the billing status read, with no event; the trial timeline needs an eligible free intro in days or weeks and never promises the Day 5 reminder, which nothing schedules yet; the pill keeps its tag and waits in place, its check only after the server confirms. Repaired on ca/p4-wall-r1 after review: each way to pay is titled by its billed amount and the trial's terms at the pill are drawn in ink at body weight, no trial line larger (Apple 3.1.2). Known gap, not closed by this tick: the plan catalogue reaches the phone only on a live-session start, so on a device the first-run wall (no session yet) pre-selects nothing, shows no goal line or trial minutes, and after a confirmed purchase shows "We couldn't read your speaking allowance" instead of success, until /billing/status carries the catalogue (backend work outside this track); runbook step 4 stays closed until then.
 - verified-by: `the plans page pre-selects the yearly plan that covers the learner's goal and fires no selection event`
 - verified-by: `a free trial timeline appears only with a real eligible offer`
 

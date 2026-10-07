@@ -33,8 +33,8 @@ function load(answer: (ids: string[]) => Promise<Record<string, { status: number
 }
 
 const week = { price: 0, priceString: '£0.00', cycles: 1, period: 'P1W', periodUnit: 'WEEK', periodNumberOfUnits: 1 };
-const pkg = (identifier: string, subscriptionPeriod: string, introPrice: unknown = null, priceString = '£149.99') => ({
-  product: { identifier, subscriptionPeriod, introPrice, priceString, title: 'Max' },
+const pkg = (identifier: string, subscriptionPeriod: string, introPrice: unknown = null, priceString = '£149.99', pricePerMonthString: string | null = '£12.49') => ({
+  product: { identifier, subscriptionPeriod, introPrice, priceString, pricePerMonthString, title: 'Max' },
 });
 
 test('a store free trial is read only as the store describes it, and offered only to an eligible account', async () => {
@@ -46,12 +46,17 @@ test('a store free trial is read only as the store describes it, and offered onl
   const month = pkg('monthly', 'P1M', week, '£24.99');
   const eligible = await introEligibleIds([{ found: year }, { found: month }]);
   assert.deepEqual(asked, [['yearly', 'monthly']], 'eligibility was asked about something other than the products with a free trial');
+  // F772 (7 October): a yearly product carries the store's own monthly figure,
+  // for "about ... a month"; a monthly product carries none.
   assert.deepEqual(productOf('regular', year, eligible), {
-    plan: 'regular', productId: 'yearly', title: 'Max', localizedPrice: '£149.99', period: 'year',
+    plan: 'regular', productId: 'yearly', title: 'Max', localizedPrice: '£149.99', period: 'year', localizedPricePerMonth: '£12.49',
     intro: { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOfUnits: 1, cycles: 1 }, introEligible: true,
   });
+  assert.equal(productOf('regular', pkg('yearly', 'P1Y', week, '£149.99', null), eligible)!.localizedPricePerMonth, null, 'a monthly figure the store did not give was made up');
+  assert.equal(productOf('regular', pkg('yearly', 'P1Y', week, '£149.99', '  '), eligible)!.localizedPricePerMonth, null);
   const monthly = productOf('regular', month, eligible)!;
   assert.equal(monthly.period, 'month');
+  assert.equal(monthly.localizedPricePerMonth, null, 'a monthly product was given a monthly figure beside its own price');
   assert.equal(monthly.introEligible, false, 'an account the store called ineligible was offered the trial');
 
   // A paid introductory price is not a free trial; a half-described offer is none.

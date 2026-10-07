@@ -31,7 +31,7 @@ import { CONVERSATION_MINUTES, wallTrial } from './wallPlans.ts';
  */
 
 export interface WallAccount {
-  /** The plan's name as Settings says it: Free trial, Starter, Max. */
+  /** The plan's name as Settings says it: Free minutes, Starter, Max. */
   title: string;
   lines: readonly string[];
 }
