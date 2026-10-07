@@ -10274,6 +10274,22 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a drill end that waited out its delta keeps the words-only finish`
 - verified-by: `a moment waiting behind a hold does not expire while the hold lasts`
 
+### F776 — A failed spoken take offers a Try again that does nothing
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:553, apps/mobile/src/onboarding/PreAccountOnboarding.tsx:1314, docs/PRIVACY_AND_SAFETY.md
+- note: Found by the 7 October first-run re-check (verdict SHIP). When a spoken take's transcription fails, the page says "Your reply is still here." and offers Try again, which submits nothing in spoken mode. Say "The tutor could not hear that take. You can record it again or type it.", show Try again only for a typed reply, keep Practise this offline. Also say in PRIVACY_AND_SAFETY.md that the under-13 answer, Start a new plan instead and Create one cancel a reminder set on day one.
+- verified-by: `a failed spoken take offers to record again or type, never a Try again that does nothing`
+
+### F777 — Three room details the review found: an unread history, a muted microphone and a slow rest
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/recap/evidence.ts:31, apps/mobile/src/ConvoScreen.tsx:629, apps/mobile/src/live/useLiveSession.ts:745, apps/mobile/src/live/levels.ts:37
+- note: Found by the 7 October room review (verdict SHIP). A postcard stamp says "again" when the learner's finish history could not be read (truthfulness: use the neutral line); at the recap the microphone is muted, not unpublished, so capture keeps running and the iPhone microphone indicator stays on; and the levels take about a second to rest after silence where acceptance check 7 asks for 300 ms (decay by elapsed time).
+- verified-by: `a postcard stamp never claims an earlier finish it could not read`
+- verified-by: `the recap stops the microphone capture, not only mutes it`
+- verified-by: `a level rests within 300 ms of silence`
+
 October 2026 onboarding supersession: the founder requested a new first-value flow and removal of the mascot and early sign-in. Evidence titles above now refer to the current setup, actual guest replies, ownership and modal contracts. Historical descriptions of demo/save pages describe earlier releases. Test floors and the quality gate are unchanged.
 
 October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-alive/README.md) replace the hand-drawn glyph set with a generated Iconsax set at the one STROKE, with Bulk variants for tiles and selected states. The F589 and F598 titles ("one pen", "an ICONS.md mark") now describe that generated set, and their assertions change only where the generated files make them false. The selected tab icon pops once inside nav/TabGlyph.tsx (F737); the F600 bar itself still moves nothing.
