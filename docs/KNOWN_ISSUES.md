@@ -5130,7 +5130,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): Home grew a purpose line of its own, the hour's greeting subline, so the
   surface contract's purpose test widened to all five tabs and was renamed for it.
 - verified-by: `every tab opens with the one tab header and draws no headline of its own`
-- verified-by: `every tab says what it is for in one line, and Home's is the hour's`
+- superseded: 2026-10-09, user-approved Direction B replaces the earlier subtitle/orb presentation. The successor test below verifies the current presentation and its retained lifecycle/accessibility contract.
+- verified-by: `Home keeps its contextual greeting; other tabs omit repeated subtitles`
 
 ### F337 — Home and Profile draw the initial with the one monogram
 - severity: P1
@@ -6082,7 +6083,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the one exception this entry recorded is gone. Home carries a purpose line
   too now, the hour's, so the test asserts the rule on all five tabs and says so in its title.
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
-- verified-by: `every tab says what it is for in one line, and Home's is the hour's`
+- superseded: 2026-10-09, user-approved Direction B replaces the earlier subtitle/orb presentation. The successor test below verifies the current presentation and its retained lifecycle/accessibility contract.
+- verified-by: `Home keeps its contextual greeting; other tabs omit repeated subtitles`
 - verified-by: `the learner's initial is drawn once, on Profile — F406`
 
 ### F407 — DESIGN.md says what Home and Tutor now are
@@ -8799,7 +8801,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A. The founder reversed the rings-over-sphere choice. The gradient is the one state
   colour thinned by opacity, so no new palette token and the mark floor holds; movement stays
   transform and opacity on the native driver.
-- verified-by: `the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking`
+- superseded: 2026-10-09, user-approved Direction B replaces the earlier subtitle/orb presentation. The successor test below verifies the current presentation and its retained lifecycle/accessibility contract.
+- verified-by: `the cloud is decorative, bounded and independent of the audio session`
 - verified-by: `reduce motion and a state with nothing to animate rest for their own reasons`
 
 ### F589 — The glyph set is one pen: every icon at one stroke, decorative
@@ -8879,7 +8882,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - superseded: F790 (2026-10-06): app.json's two launch backgrounds follow the brand blue now, not the ground; the test below is the successor.
 - verified-by: `the launch background is the brand blue wherever it is painted, and the app beneath stays on the ground`
 - verified-by: `no six-digit hex is written anywhere in source but palette.ts`
-- verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
+- superseded: 2026-10-09, user-approved Direction B replaces the earlier subtitle/orb presentation. The successor test below verifies the current presentation and its retained lifecycle/accessibility contract.
+- verified-by: `voice bars require real output bands and sit with the status below the surface`
 - verified-by: `the intro names the orb states in words, never by colour`
 
 ### F596 — The app is set in Fraunces and DM Sans, not Outfit
@@ -8905,8 +8909,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `one ink pill at 56, white on blue or coral; the second action is an underlined ink link at the touch floor; a label is the meta line`
 - verified-by: `the monogram is a white initial on an ink disc, and it is hidden from assistive tech`
 - verified-by: `the highlighter is a still band behind one French line, marked as French, and moves nothing`
-- verified-by: `the orb is two rings and a core in the state colour, with one mark per state in the glyph colour: bars while speaking, a microphone when it is your turn, three dots while thinking`
-- verified-by: `the seven bars are the speaking orb's waveform, in the glyph colour, and every other state holds a still mark`
+- superseded: 2026-10-09, user-approved Direction B replaces the earlier subtitle/orb presentation. The successor test below verifies the current presentation and its retained lifecycle/accessibility contract.
+- verified-by: `the cloud is decorative, bounded and independent of the audio session`
+- superseded: 2026-10-09, user-approved Direction B replaces the earlier subtitle/orb presentation. The successor test below verifies the current presentation and its retained lifecycle/accessibility contract.
+- verified-by: `voice bars require real output bands and sit with the status below the surface`
 - verified-by: `the segmented control is a sand track with a white chosen segment, never ink capsules, and every segment keeps the touch floor`
 - verified-by: `the B parts are appended after the stylesheet, draw from tokens, cap no words, build no pill and spell no hex`
 - verified-by: `a round button is a 44 disc for back and close and a 64 disc for next, with the ICONS.md mark`
