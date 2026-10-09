@@ -85,7 +85,7 @@ export const FRENCH_OPEN_BANK = 'Open my phrase bank';
 
 // ── page three: what stays yours ───────────────────────────────────────────────
 
-export const YOURS_TITLE = 'All of this stays yours';
+export const YOURS_TITLE = 'Keep your French moving.';
 /** The founder's free promise, in their words. */
 export const YOURS_SUB = 'You can keep practising what you learned for free.';
 
@@ -98,29 +98,28 @@ export const YOURS_SUB = 'You can keep practising what you learned for free.';
  * transcript is kept, and a Conversation Pack is curated learning data, never a
  * readable transcript (`docs/STATE_AND_STORAGE.md`).
  */
-export const YOURS_BANK = 'Your phrase bank, with the phrases picked out of your conversations';
-export const YOURS_REVIEW = 'Flashcards and review, for as long as you want them';
-export const YOURS_RECAPS = 'Every lesson recap you have earned';
-export const YOURS_DRILLS = 'Pronunciation drills and sound practice';
-export const YOURS_PROGRESS = 'Your progress, and the situations you have handled';
+export const YOURS_BANK = 'Phrase bank: phrases picked from conversations';
+export const YOURS_REVIEW = 'Review and pronunciation practice';
+export const YOURS_RECAPS = 'Your earned lesson recaps';
+export const YOURS_DRILLS = 'Pronunciation and sound practice';
+export const YOURS_PROGRESS = 'Your recaps and progress';
 
 /** The rows of page three, in the order they are drawn. */
 export const YOURS_ROWS: readonly string[] = [
   YOURS_BANK,
   YOURS_REVIEW,
-  YOURS_RECAPS,
-  YOURS_DRILLS,
   YOURS_PROGRESS,
 ];
 
-export const ADDS_TITLE = 'A plan adds new conversations';
-export const ADDS_SITUATIONS = 'New situations to walk into';
-export const ADDS_FREELY = 'Talk freely about anything you like';
-export const ADDS_AGAIN = 'Go back into any situation again';
-export const ADDS_TIME = 'Speaking time every month, and it starts fresh each month';
+export const ADDS_TITLE = 'With a plan';
+export const YOURS_FREE_TITLE = 'Always yours, free';
+export const ADDS_SITUATIONS = 'Every scene, again and again';
+export const ADDS_FREELY = 'Free conversation with your AI tutor';
+export const ADDS_AGAIN = 'Return to any scene';
+export const ADDS_TIME = 'Fresh live minutes each month';
 
 /** The rows of what a plan opens, in the order they are drawn. */
-export const ADDS_ROWS: readonly string[] = [ADDS_SITUATIONS, ADDS_FREELY, ADDS_AGAIN, ADDS_TIME];
+export const ADDS_ROWS: readonly string[] = [ADDS_SITUATIONS, ADDS_FREELY, ADDS_TIME];
 
 export const YOURS_NEXT = 'See the plans';
 /**
@@ -142,16 +141,17 @@ export const YOURS_ONLY = 'That is all yours already. Nothing to do.';
 // ── page four: the plans ───────────────────────────────────────────────────────
 
 /** The founder's paid promise, in their words. */
-export const PLANS_TITLE = 'Keep having new real conversations';
-export const PLANS_SUB = 'The speaking time each month is the only difference between them.';
+export const PLANS_TITLE = 'Speak your way.';
+export const PLANS_SUB = 'Choose your live time and the features that fit you.';
 
 /** What both plans include, said once above the two columns rather than twice inside them. */
-export const PLANS_BOTH = 'Both open every situation, and both let you talk freely about anything.';
+export const PLANS_BOTH = 'Every scene + free AI conversation';
+export const PLANS_COMPARE = 'Compare plans';
 
 export const PLANS_CHOOSE = 'Choose this plan';
-export const PLANS_RESTORE = 'Restore a previous purchase';
-export const PLANS_PRIVACY = 'Privacy policy';
-export const PLANS_TERMS = 'Terms of use';
+export const PLANS_RESTORE = 'Restore';
+export const PLANS_PRIVACY = 'Privacy';
+export const PLANS_TERMS = 'Terms';
 /**
  * What a subscription is, in plain words, on the surface that sells it.
  *
@@ -160,7 +160,7 @@ export const PLANS_TERMS = 'Terms of use';
  * consequences of stopping, because page three already said the true thing:
  * everything they have made stays theirs.
  */
-export const PLANS_RENEWAL = 'Plans renew every month or every year until you cancel. You can cancel any time in the store.';
+export const PLANS_RENEWAL = 'Renews automatically.';
 
 /**
  * The two ways to pay for a plan, as the choice under its name (founder
@@ -169,6 +169,7 @@ export const PLANS_RENEWAL = 'Plans renew every month or every year until you ca
  */
 export const PLAN_YEARLY = 'Yearly';
 export const PLAN_MONTHLY = 'Monthly';
+export const PLAN_WEEKLY = 'Weekly';
 
 /**
  * The one trust line, and both halves of it are already true.
@@ -181,7 +182,7 @@ export const PLAN_MONTHLY = 'Monthly';
  * learner none of what they made. This is the first time the purchase surface
  * says either out loud.
  */
-export const PLANS_TRUST = 'No adverts, and nothing you made goes away if you stop.';
+export const PLANS_TRUST = 'No Commitment, Cancel Anytime';
 
 // ── speaking time, in units a learner can picture ──────────────────────────────
 //
@@ -259,15 +260,16 @@ export function monthlyPrice(price: string): string {
  * title of each way to pay, and the largest price on its row (Apple Guideline
  * 3.1.2: the billed amount is the most prominent price on the page).
  */
-export function billedPrice(price: string, period: 'month' | 'year'): string {
-  return period === 'year' ? `${price} a year` : `${price} a month`;
+export function billedPrice(price: string, period: 'week' | 'month' | 'year'): string {
+  return period === 'week' ? `${price} every 7 days` : period === 'year' ? `${price} a year` : `${price} a month`;
 }
 
 /**
  * Under the billed amount, smaller: how often, and for a yearly product the
  * store's monthly figure beside it.
  */
-export function payDetail(period: 'month' | 'year', perMonth: string | null): string {
+export function payDetail(period: 'week' | 'month' | 'year', perMonth: string | null): string {
+  if (period === 'week') return PLAN_WEEKLY;
   if (period !== 'year') return PLAN_MONTHLY;
   return perMonth === null ? PLAN_YEARLY : `${PLAN_YEARLY}, about ${perMonth} a month`;
 }
@@ -276,8 +278,8 @@ export function payDetail(period: 'month' | 'year', perMonth: string | null): st
  * The pill once a way to pay is chosen: the plan's name and what it costs per
  * period, so the button says the same thing as the row it was chosen from.
  */
-export function buyLabel(name: string, price: string, period: 'month' | 'year'): string {
-  return period === 'year' ? `${name}, ${price} a year` : `${name}, ${price} a month`;
+export function buyLabel(name: string, price: string, period: 'week' | 'month' | 'year'): string {
+  return period === 'week' ? 'Subscribe weekly' : period === 'year' ? 'Subscribe yearly' : 'Subscribe monthly';
 }
 
 /**
@@ -329,7 +331,7 @@ export function trialCancelBy(day: number): string {
 }
 
 /** What the trial becomes, at the store's own price for its period. */
-export function trialThen(plan: string, price: string, period: 'month' | 'year'): string {
+export function trialThen(plan: string, price: string, period: 'week' | 'month' | 'year'): string {
   return period === 'year' ? `${plan} continues at ${price} a year.` : `${plan} continues at ${price} a month.`;
 }
 
@@ -339,7 +341,7 @@ export function startTrialLabel(days: number): string {
 }
 
 /** The trial's terms, right at the button (Apple Guideline 3.1.2). */
-export function trialTerms(days: number, price: string, period: 'month' | 'year'): string {
+export function trialTerms(days: number, price: string, period: 'week' | 'month' | 'year'): string {
   return period === 'year'
     ? `Free for ${count(days, 'day')}, then ${price} a year until you cancel.`
     : `Free for ${count(days, 'day')}, then ${price} a month until you cancel.`;
@@ -425,14 +427,19 @@ export const WALL_COPY: readonly string[] = [
   YOURS_TITLE,
   YOURS_SUB,
   ...YOURS_ROWS,
+  YOURS_RECAPS,
+  YOURS_DRILLS,
+  YOURS_FREE_TITLE,
   ADDS_TITLE,
   ...ADDS_ROWS,
+  ADDS_AGAIN,
   YOURS_NEXT,
   YOURS_DECLINE,
   YOURS_ONLY,
   PLANS_TITLE,
   PLANS_SUB,
   PLANS_BOTH,
+  PLANS_COMPARE,
   PLANS_CHOOSE,
   PLANS_RESTORE,
   PLANS_PRIVACY,
@@ -440,6 +447,7 @@ export const WALL_COPY: readonly string[] = [
   PLANS_RENEWAL,
   PLAN_YEARLY,
   PLAN_MONTHLY,
+  PLAN_WEEKLY,
   PLANS_TRUST,
   TRIAL_REMIND,
   TRIAL_TITLE,

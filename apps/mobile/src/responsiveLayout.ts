@@ -10,8 +10,24 @@ export function navigationWidth(width: number, left: number, right: number) {
 }
 
 /** Compact phones keep the five goal choices discoverable; text still scales and scrolls. */
-export function compactPhone(width: number, height: number) {
-  return width <= 360 && height < 760;
+export function compactPhone(width: number, height: number, top = 0, bottom = 0, fontScale = 1) {
+  const usableHeight = Math.max(0, height - top - bottom);
+  return width < 375 || usableHeight < 740 || fontScale >= 1.5;
+}
+
+/** Geometry follows the viewport, including rotation, safe areas and future devices. */
+export function screenGeometry(width: number, height: number, insets: { top: number; bottom: number; left: number; right: number }, fontScale = 1) {
+  const usableWidth = Math.max(0, width - insets.left - insets.right);
+  const usableHeight = Math.max(0, height - insets.top - insets.bottom);
+  const compact = compactPhone(usableWidth, height, insets.top, insets.bottom, fontScale);
+  return {
+    usableWidth,
+    usableHeight,
+    compact,
+    // A tall action area scrolls independently instead of squeezing the body away.
+    footerMaxHeight: Math.max(44, usableHeight * (compact ? 0.38 : 0.45)),
+    artMaxHeight: Math.min(220, usableHeight * (compact ? 0.2 : 0.3)),
+  };
 }
 
 /**

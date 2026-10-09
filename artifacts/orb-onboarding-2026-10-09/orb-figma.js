@@ -1,0 +1,188 @@
+const LEDGER={"vars": {"paper": "VariableID:2:5", "white": "VariableID:2:7", "ink": "VariableID:2:9", "soft": "VariableID:2:11", "line": "VariableID:2:13", "field": "VariableID:2:15", "blue": "VariableID:2:17", "coral": "VariableID:2:19", "sun": "VariableID:2:21", "mint": "VariableID:2:23", "highlight": "VariableID:2:25", "skeleton": "VariableID:2:27", "s4": "VariableID:2:28", "s8": "VariableID:2:29", "s12": "VariableID:2:30", "s16": "VariableID:2:31", "s20": "VariableID:2:32", "s24": "VariableID:2:33", "s32": "VariableID:2:34", "r16": "VariableID:2:35", "r20": "VariableID:2:36", "r24": "VariableID:2:37", "r28": "VariableID:2:38", "pill": "VariableID:2:39"}, "styles": {"display": "S:88f864323387e95a83b6ce9caa1d2f0651123684,", "title": "S:b10059a4787c4d041eec59a4e5f90b17ffa29468,", "heading": "S:f2305f8fa13c9e2d9da62b4f62fa463a1d346e62,", "body": "S:eb9f1a1ad91d76405e5ac91248d709a1466143a1,", "strong": "S:0e16d3d6c7766d0c0fd97fd0f53d5da615e26ed2,", "label": "S:f861e26158effeadd02e6d2af2d41ce08702ce3b,", "small": "S:59aebdbfa9f4b033adce30761fd11b8dbda1803b,", "french": "S:f2eec4c563c4d168e2cd6a45afef9b54c1fd05be,", "stat": "S:1b837ed688cc465f8a42214763b3dcc179e8ee2d,"}, "icons": {"Coffee": "3:120", "Check": "3:128", "Close": "3:131", "Back": "3:136", "Clock": "3:139", "Microphone": "3:143", "Book": "3:150", "Bell": "3:156", "ChevronRight": "3:161", "Lock": "3:164", "Home": "3:171", "Practice": "3:175", "Progress": "3:182", "Refresh": "3:189", "Privacy": "3:192", "Help": "3:196", "TickCircle": "3:201", "Logo": "3:205"}, "buttons": {"Tone=Primary, State=Default": {"id": "3:210", "props": {"Label": "Label#3:0"}}, "Tone=Primary, State=Busy": {"id": "3:211", "props": {"Label": "Label#3:0"}}, "Tone=Primary, State=Disabled": {"id": "3:212", "props": {"Label": "Label#3:0"}}, "Tone=Quiet, State=Default": {"id": "3:213", "props": {"Label": "Label#3:0"}}, "Tone=Quiet, State=Busy": {"id": "3:214", "props": {"Label": "Label#3:0"}}, "Tone=Quiet, State=Disabled": {"id": "3:215", "props": {"Label": "Label#3:0"}}}, "app": {"illustrations": {"place-cafe-counter": "17:1248", "place-hotel": "17:1277", "place-market": "17:1320", "place-directions": "17:1338", "celebrate-first-line": "17:1358", "celebrate-wrapped": "17:1386", "state-headphones": "17:1397", "state-notebook": "17:1408", "state-offline": "17:1418", "state-microphone": "17:1428", "postcard-cafe-counter": "17:1458"}, "addedStyles": {"display": "S:88f864323387e95a83b6ce9caa1d2f0651123684,", "hero": "S:c0e36a15e0f2d7f3392124efa83b3fd49aefc7f4,"}, "pageId": "17:1460", "createdNodeIds": ["17:1248", "17:1224", "17:1225", "17:1226", "17:1227", "17:1228", "17:1229", "17:1230", "17:1231", "17:1232", "17:1233", "17:1234", "17:1235", "17:1236", "17:1237", "17:1238", "17:1239", "17:1240", "17:1241", "17:1242", "17:1243", "17:1244", "17:1245", "17:1246", "17:1247", "17:1277", "17:1250", "17:1251", "17:1252", "17:1253", "17:1254", "17:1255", "17:1256", "17:1257", "17:1258", "17:1259", "17:1260", "17:1261", "17:1262", "17:1263", "17:1264", "17:1265", "17:1266", "17:1267", "17:1268", "17:1269", "17:1270", "17:1271", "17:1272", "17:1273", "17:1274", "17:1275", "17:1276", "17:1320", "17:1279", "17:1280", "17:1281", "17:1282", "17:1283", "17:1284", "17:1285", "17:1286", "17:1287", "17:1288", "17:1289", "17:1290", "17:1291", "17:1292", "17:1293", "17:1294", "17:1295", "17:1296", "17:1297", "17:1298", "17:1299", "17:1300", "17:1301", "17:1302", "17:1303", "17:1304", "17:1305", "17:1306", "17:1307", "17:1308", "17:1309", "17:1310", "17:1311", "17:1312", "17:1313", "17:1314", "17:1315", "17:1316", "17:1317", "17:1318", "17:1319", "17:1338", "17:1322", "17:1323", "17:1324", "17:1325", "17:1326", "17:1327", "17:1328", "17:1329", "17:1330", "17:1331", "17:1332", "17:1333", "17:1334", "17:1335", "17:1336", "17:1337", "17:1358", "17:1340", "17:1341", "17:1342", "17:1343", "17:1344", "17:1345", "17:1346", "17:1347", "17:1348", "17:1349", "17:1350", "17:1351", "17:1352", "17:1353", "17:1354", "17:1355", "17:1356", "17:1357", "17:1386", "17:1360", "17:1361", "17:1362", "17:1363", "17:1364", "17:1365", "17:1366", "17:1367", "17:1368", "17:1369", "17:1370", "17:1371", "17:1372", "17:1373", "17:1374", "17:1375", "17:1376", "17:1377", "17:1378", "17:1379", "17:1380", "17:1381", "17:1382", "17:1383", "17:1384", "17:1385", "17:1397", "17:1388", "17:1389", "17:1390", "17:1391", "17:1392", "17:1393", "17:1394", "17:1395", "17:1396", "17:1408", "17:1399", "17:1400", "17:1401", "17:1402", "17:1403", "17:1404", "17:1405", "17:1406", "17:1407", "17:1418", "17:1410", "17:1411", "17:1412", "17:1413", "17:1414", "17:1415", "17:1416", "17:1417", "17:1428", "17:1420", "17:1421", "17:1422", "17:1423", "17:1424", "17:1425", "17:1426", "17:1427", "17:1458", "17:1430", "17:1431", "17:1432", "17:1433", "17:1434", "17:1435", "17:1436", "17:1437", "17:1438", "17:1439", "17:1440", "17:1441", "17:1442", "17:1443", "17:1444", "17:1445", "17:1446", "17:1447", "17:1448", "17:1449", "17:1450", "17:1451", "17:1452", "17:1453", "17:1454", "17:1455", "17:1456", "17:1457"], "artCount": 11}, "sources": {"onboard-welcome": "18:1223", "onboard-goal": "18:1271", "onboard-level": "18:1355", "onboard-voice": "18:1407", "onboard-scene": "18:1484", "onboard-age": "18:1538", "age-refusal": "18:3028", "onboard-privacy": "18:3065", "onboard-mic": "18:3122", "onboard-save": "18:3160", "app-home": "18:3210", "home-first": "18:3311", "friends-empty": "22:2707", "friends-requests": "22:2749", "friends-invite": "22:2780", "friends-find": "22:2825", "friend-detail": "22:2846", "friends-privacy": "22:2893", "friend-report": "22:4377", "report-review": "22:4408", "sign-in": "22:4434", "sign-up": "22:4471", "password-reset": "22:4513", "reset-sent": "22:4535", "policy": "22:4566", "terms": "22:4586", "home-offline": "18:3405", "home-loading": "18:3475", "app-tutor": "18:3533", "tutor-voices": "18:3625", "tutor-memory": "18:3737", "memory-removed": "18:3771", "scenes": "18:3802", "scene-cafe": "18:3951", "scene-hotel": "18:4002", "scene-market": "18:4056", "scene-directions": "18:4124", "live-connecting": "18:4167", "live-listen": "20:1976", "live-speak": "20:2036", "live-thinking": "20:2094", "live-paused": "20:2147", "live-help": "20:2203", "live-type": "20:2246", "leave-live": "20:3731", "live-failed": "20:3753", "practice-home": "20:3785", "practice-phrase": "20:3876", "practice-shadow": "20:3926", "practice-recorded": "20:3962", "practice-sound": "20:4019", "sound-result": "20:4054", "practice-review": "20:4098", "review-card": "20:4138", "practice-conversations": "20:4187", "conversation-saved": "20:4218", "progress-home": "21:2280", "progress-empty": "21:2392", "week-wrap": "21:2469", "postcard": "21:2526", "postcards": "21:2580", "recap-line": "21:2660", "recap-earned": "21:4158", "recap-next": "21:4206", "profile": "21:4259", "profile-edit": "21:4323", "settings-main": "21:4348", "settings-notifications": "21:4414", "settings-time": "21:4466", "settings-sound": "21:4501", "settings-privacy": "21:4541", "settings-account": "21:4600", "delete-account": "21:4644", "friends-home": "21:4668"}, "prototype": {"onboard-welcome": "35:1480", "onboard-goal": "35:1558", "onboard-level": "35:1689", "onboard-voice": "35:1756", "onboard-scene": "35:1866", "onboard-age": "35:1955", "age-refusal": "35:1995", "onboard-privacy": "35:2042", "onboard-mic": "35:2114", "onboard-save": "35:2162", "app-home": "35:2242", "home-first": "35:2384", "home-offline": "35:2528", "home-loading": "35:2630", "app-tutor": "35:2711", "tutor-voices": "35:2833", "tutor-memory": "35:3002", "memory-removed": "35:3041", "scenes": "35:3082", "scene-cafe": "35:3339", "scene-hotel": "35:3416", "scene-market": "35:3499", "scene-directions": "35:3610", "live-connecting": "35:3671", "live-listen": "35:3740", "live-speak": "35:3820", "live-thinking": "35:3904", "live-paused": "35:3973", "live-help": "35:4051", "live-type": "35:4101", "leave-live": "35:4134", "live-failed": "35:4158", "practice-home": "35:4200", "practice-phrase": "35:4330", "practice-shadow": "35:4406", "practice-recorded": "35:4453", "practice-sound": "35:4534", "sound-result": "35:4579", "practice-review": "35:4643", "review-card": "35:4690", "practice-conversations": "35:4765", "conversation-saved": "35:4800", "progress-home": "35:4839", "progress-empty": "35:5007", "week-wrap": "35:5126", "postcard": "35:5220", "postcards": "35:5304", "recap-line": "35:5435", "recap-earned": "35:5509", "recap-next": "35:5593", "profile": "35:5675", "profile-edit": "35:5756", "settings-main": "35:5783", "settings-notifications": "35:5863", "settings-time": "35:5931", "settings-sound": "35:5972", "settings-privacy": "35:6019", "settings-account": "35:6090", "delete-account": "35:6142", "friends-home": "35:6168", "friends-empty": "35:6256", "friends-requests": "35:6318", "friends-invite": "35:6353", "friends-find": "35:6418", "friend-detail": "38:1480", "friends-privacy": "38:1542", "friend-report": "38:1576", "report-review": "38:1611", "sign-in": "38:1639", "sign-up": "38:1682", "password-reset": "38:1730", "reset-sent": "38:1753", "policy": "38:3327", "terms": "38:3418", "first-recap": "38:3440", "home": "38:3476", "later-recap": "38:3547", "locked": "38:3583", "welcome-empty": "38:3618", "free-settings": "38:3657", "reinstall": "38:3709", "yearly-trial": "38:3763", "monthly": "38:3864", "weekly": "38:3955", "yearly-paid": "38:4047", "yearly-unknown": "38:4138", "unselected": "38:4230", "max": "38:4317", "return": "38:4391", "two-offer": "38:4482", "partial-offers": "38:4574", "offers-loading": "38:4658", "offers-unavailable": "38:4699", "store-opening": "38:4744", "confirming": "38:4782", "pending": "38:4826", "checkout-cancelled": "38:4871", "payment-failed": "38:4964", "slow-verify": "38:5056", "restore-found": "38:5100", "restore-none": "38:5144", "restore-linked": "38:5182", "restore-offline": "38:5220", "success-trial": "38:5258", "success-weekly": "38:5306", "success-monthly": "38:5347", "success-yearly": "38:5388", "success-max": "38:5430", "paid-empty": "38:5471", "trial-empty": "38:5513", "max-empty": "38:5551", "manage-trial": "38:5586", "manage-weekly": "38:5638", "manage-monthly": "38:5690", "manage-yearly": "38:5742", "manage-max": "38:5794", "cancelled-paid": "38:5846", "cancelled-trial": "38:5898", "grace": "38:5950", "retry": "38:5995", "lapsed": "38:6037", "revoked": "38:6079", "status-unknown": "38:6121", "change-scheduled": "38:6163", "change-review": "38:6201", "reminder-scheduled": "38:6238", "reminder-denied": "38:6275", "reminder-off": "38:6313", "metering": "38:6351", "billing-reminder": "38:6413"}};
+const LOBES=["M60 60 C26 51 20 15 48 7 C82 -2 116 23 113 59 C102 42 79 33 60 60Z", "M60 60 C69 26 105 20 113 48 C122 82 97 116 61 113 C78 102 87 79 60 60Z", "M60 60 C94 69 100 105 72 113 C38 122 4 97 7 61 C18 78 41 87 60 60Z", "M60 60 C51 94 15 100 7 72 C-2 38 23 4 59 7 C42 18 33 41 60 60Z"];
+/**
+ * createComponentWithVariants
+ *
+ * Creates a component set by generating all combinations of `variantAxes`,
+ * building one Figma component per combination, then calling
+ * `figma.combineAsVariants` to produce the component set. After combining,
+ * the variants are repositioned into a grid so they don't all stack at (0, 0).
+ *
+ * @param {{
+ *   name: string,
+ *   description?: string,
+ *   variantAxes: Record<string, string[]>,
+ *   baseProps: {
+ *     width: number,
+ *     height: number,
+ *     fills?: Paint[],
+ *     padding?: {top?: number, bottom?: number, left?: number, right?: number},
+ *     radius?: number,
+ *     layoutMode?: 'HORIZONTAL' | 'VERTICAL' | 'NONE',
+ *     itemSpacing?: number
+ *   },
+ *   page: PageNode
+ * }} config
+ *   - `name`: Component set name (e.g. "Button").
+ *   - `description`: Optional human-readable purpose and usage guidance.
+ *   - `variantAxes`: Each key is a variant property name; each value is an array of
+ *     allowed values. All combinations are generated (Cartesian product).
+ *     Example: { Size: ['Small', 'Medium', 'Large'], Style: ['Primary', 'Ghost'] }
+ *     produces 6 variants.
+ *   - `baseProps`: Visual properties applied to every variant.
+ *   - `page`: The PageNode to create components on (must be set as current page by caller).
+ * @returns {Promise<{
+ *   componentSet: ComponentSetNode,
+ *   variants: ComponentNode[]
+ * }>}
+ */
+async function createComponentWithVariants(config) {
+  const { name, variantAxes, baseProps, page } = config
+
+  // Ensure we are on the correct page
+  await figma.setCurrentPageAsync(page)
+
+  // Compute Cartesian product of variant axes
+  const axisNames = Object.keys(variantAxes)
+  const axisValues = axisNames.map((k) => variantAxes[k])
+  const combinations = cartesianProduct(axisValues)
+
+  // Build one component per combination
+  const components = []
+  for (const combo of combinations) {
+    const comp = figma.createComponent()
+
+    // Name: "Property=Value, Property=Value, ..."
+    comp.name = axisNames.map((ax, i) => `${ax}=${combo[i]}`).join(', ')
+
+    // Base geometry
+    comp.resize(baseProps.width, baseProps.height)
+
+    // Fills
+    if (baseProps.fills !== undefined) {
+      comp.fills = baseProps.fills
+    } else {
+      comp.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }]
+    }
+
+    // Corner radius
+    if (baseProps.radius !== undefined) {
+      comp.cornerRadius = baseProps.radius
+    }
+
+    // Auto-layout
+    if (baseProps.layoutMode && baseProps.layoutMode !== 'NONE') {
+      comp.layoutMode = baseProps.layoutMode
+      comp.primaryAxisAlignItems = 'CENTER'
+      comp.counterAxisAlignItems = 'CENTER'
+      if (baseProps.itemSpacing !== undefined) {
+        comp.itemSpacing = baseProps.itemSpacing
+      }
+    }
+
+    // Padding
+    if (baseProps.padding) {
+      comp.paddingTop = baseProps.padding.top ?? 0
+      comp.paddingBottom = baseProps.padding.bottom ?? 0
+      comp.paddingLeft = baseProps.padding.left ?? 0
+      comp.paddingRight = baseProps.padding.right ?? 0
+    }
+
+    page.appendChild(comp)
+    components.push(comp)
+  }
+
+  // Combine into a component set
+  const componentSet = figma.combineAsVariants(components, page)
+  componentSet.name = name
+  if (config.description) {
+    componentSet.description = config.description
+  }
+
+  // Grid layout — variants stack at (0, 0) after combineAsVariants; reposition them.
+  const GRID_GAP = 16
+  const cols = Math.max(1, axisValues[axisValues.length - 1]?.length ?? 1)
+  const variantWidth = baseProps.width
+  const variantHeight = baseProps.height
+
+  componentSet.children.forEach((variant, idx) => {
+    const col = idx % cols
+    const row = Math.floor(idx / cols)
+    variant.x = col * (variantWidth + GRID_GAP)
+    variant.y = row * (variantHeight + GRID_GAP)
+  })
+
+  // Resize component set to wrap its children with padding
+  const totalCols = Math.min(cols, combinations.length)
+  const totalRows = Math.ceil(combinations.length / cols)
+  const PADDING = 40
+  componentSet.resize(
+    totalCols * variantWidth + (totalCols - 1) * GRID_GAP + PADDING * 2,
+    totalRows * variantHeight + (totalRows - 1) * GRID_GAP + PADDING * 2,
+  )
+
+  // Position component set at a safe canvas location
+  componentSet.x = 480
+  componentSet.y = 80
+
+  return { componentSet, variants: componentSet.children }
+}
+
+/**
+ * Computes the Cartesian product of multiple arrays.
+ * cartesianProduct([[A, B], [1, 2]]) → [[A,1], [A,2], [B,1], [B,2]]
+ *
+ * @param {Array<string[]>} arrays
+ * @returns {string[][]}
+ */
+function cartesianProduct(arrays) {
+  return arrays.reduce(
+    (acc, curr) => acc.flatMap((combo) => curr.map((val) => [...combo, val])),
+    [[]],
+  )
+}
+
+await Promise.all(['Regular','Medium','SemiBold','Bold','ExtraBold'].map(style=>figma.loadFontAsync({family:'Outfit',style})));
+const page=await figma.getNodeByIdAsync('0:1');
+const vars={};for(const[k,id]of Object.entries(LEDGER.vars))vars[k]=await figma.variables.getVariableByIdAsync(id);
+const palette={paper:'#FFF6E9',white:'#FFFFFF',ink:'#16123A',soft:'#5C5A74',blue:'#3B2FE0',coral:'#D63A22',sun:'#FFC93C',mint:'#2FD18B'};
+const rgb=h=>({r:parseInt(h.slice(1,3),16)/255,g:parseInt(h.slice(3,5),16)/255,b:parseInt(h.slice(5,7),16)/255});
+function paint(k){return[figma.variables.setBoundVariableForPaint({type:'SOLID',color:rgb(palette[k])},'color',vars[k])];}
+const createdNodeIds=[],mutatedNodeIds=[];const track=n=>(createdNodeIds.push(n.id),n);
+const style=(await figma.getLocalTextStylesAsync()).find(s=>s.id===LEDGER.styles.label);
+const names=['ready','connecting','listening','speaking','thinking','idle','error'];
+const tones={ready:'blue',connecting:'blue',listening:'mint',speaking:'coral',thinking:'sun',idle:'soft',error:'ink'};
+// Helper performs the call's single page switch. Main components stay in the library area.
+const existing=page.query('COMPONENT_SET[name="Tutor/Orb"]').first();
+if(existing)return{existingId:existing.id,createdNodeIds:[],mutatedNodeIds:[]};
+const built=await createComponentWithVariants({name:'Tutor/Orb',description:'Native SVG adaptation of Orb UI radial theme (MIT). State is driven by the existing room. Input ring follows microphone level; speaking pulse and bars follow output. Rest when paused, backgrounded or Reduce Motion is on. No additional audio connection.',variantAxes:{State:names},baseProps:{width:190,height:190,fills:[],layoutMode:'NONE'},page});
+createdNodeIds.push(built.componentSet.id,...built.variants.map(n=>n.id));
+built.componentSet.x=3000;built.componentSet.y=15468;
+const variants={};
+for(const comp of built.variants){
+ const state=comp.name.split('=')[1],tone=tones[state];variants[state]=comp.id;
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="190" height="190" viewBox="0 0 120 120"><defs><clipPath id="clip"><circle cx="60" cy="60" r="53"/></clipPath><linearGradient id="base" x1="10%" y1="0%" x2="85%" y2="100%"><stop offset="0" stop-color="${palette.blue}"/><stop offset=".55" stop-color="${palette.ink}"/><stop offset="1" stop-color="${palette.blue}"/></linearGradient><linearGradient id="light"><stop offset="0" stop-color="${palette.white}"/><stop offset=".28" stop-color="${palette.mint}"/><stop offset="1" stop-color="${palette.blue}"/></linearGradient><linearGradient id="accent" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0" stop-color="${palette.blue}"/><stop offset=".64" stop-color="${palette[tone]}"/><stop offset="1" stop-color="${palette.white}"/></linearGradient><radialGradient id="shine" cx="28%" cy="18%" r="80%"><stop offset="0" stop-color="${palette.white}" stop-opacity=".7"/><stop offset=".45" stop-color="${palette.white}" stop-opacity=".08"/><stop offset="1" stop-color="${palette.white}" stop-opacity="0"/></radialGradient></defs><circle cx="60" cy="60" r="58" fill="none" stroke="${palette[tone]}" stroke-opacity=".22" stroke-width="1"/><circle cx="60" cy="60" r="53" fill="url(#base)"/><g clip-path="url(#clip)">${LOBES.map((d,i)=>`<path d="${d}" fill="url(#${i%2===0?'light':'accent'})"/>`).join('')}<path d="M10 23 C45 12 40 57 60 60 C80 63 75 108 110 97" fill="none" stroke="${palette.white}" stroke-width="2.4" stroke-opacity=".82"/><circle cx="60" cy="60" r="53" fill="url(#shine)"/></g><circle cx="60" cy="60" r="53" fill="none" stroke="${palette.white}" stroke-opacity=".6" stroke-width="1"/></svg>`;
+ const surface=figma.createNodeFromSvg(svg);comp.appendChild(surface);surface.name='Orb / radial surface';surface.x=0;surface.y=0;createdNodeIds.push(surface.id,...surface.findAll(()=>true).map(n=>n.id));
+ const keyFor=c=>Object.keys(palette).find(k=>{const p=rgb(palette[k]);return Math.abs(c.r-p.r)<.002&&Math.abs(c.g-p.g)<.002&&Math.abs(c.b-p.b)<.002});
+ for(const node of surface.findAll(()=>true))for(const prop of ['fills','strokes'])if(prop in node&&Array.isArray(node[prop]))node[prop]=node[prop].map(p=>{
+  if(p.type==='SOLID'){const k=keyFor(p.color);return k?figma.variables.setBoundVariableForPaint(p,'color',vars[k]):p;}
+  if(p.type.startsWith('GRADIENT'))return{...p,gradientStops:p.gradientStops.map(s=>{const k=keyFor(s.color);return k?{...s,boundVariables:{color:{type:'VARIABLE_ALIAS',id:vars[k].id}}}:s;})};return p;
+ });
+ const disk=track(figma.createEllipse());comp.appendChild(disk);disk.name='Signal contrast';disk.resize(87.4,87.4);disk.x=51.3;disk.y=51.3;disk.fills=paint('ink');disk.opacity=.86;
+ if(state==='speaking'){
+  const bars=track(figma.createAutoLayout('HORIZONTAL'));comp.appendChild(bars);bars.name='Output / measured bands';bars.resize(44,72.2);bars.layoutSizingVertical='FIXED';bars.layoutSizingHorizontal='HUG';bars.itemSpacing=3.4;bars.counterAxisAlignItems='CENTER';bars.fills=[];
+  for(const h of [.1,.17,.27,.38,.27,.17,.1]){const n=track(figma.createRectangle());bars.appendChild(n);n.resize(3.4,190*h);n.cornerRadius=1.7;n.fills=paint('white');}
+  bars.x=(190-bars.width)/2;bars.y=58.9;
+ }else if(state==='thinking'){
+  for(let i=0;i<3;i++){const dot=track(figma.createEllipse());comp.appendChild(dot);dot.name='Thinking / dot '+i;dot.resize(12.66,12.66);dot.x=67.25+i*22.16;dot.y=88.67;dot.fills=paint('white');}
+ }else{
+  const mic=(await figma.getNodeByIdAsync(LEDGER.icons.Microphone)).createInstance();comp.appendChild(mic);createdNodeIds.push(mic.id,...mic.findAll(()=>true).map(n=>n.id));mic.name='Input / microphone';mic.resize(50.66,50.66);mic.x=69.67;mic.y=69.67;
+  for(const n of mic.findAll(()=>true))for(const prop of ['fills','strokes'])if(prop in n&&Array.isArray(n[prop]))n[prop]=n[prop].map(p=>p.type==='SOLID'?figma.variables.setBoundVariableForPaint(p,'color',vars.white):p);
+ }
+}
+const review=track(figma.createAutoLayout('VERTICAL'));page.appendChild(review);review.name='Orb / seven native states';review.x=3000;review.y=15830;review.resize(1000,10);review.layoutSizingVertical='HUG';review.paddingTop=24;review.paddingBottom=24;review.paddingLeft=24;review.paddingRight=24;review.itemSpacing=24;review.fills=paint('paper');
+for(const group of [names.slice(0,4),names.slice(4)]){
+ const row=track(figma.createAutoLayout('HORIZONTAL'));review.appendChild(row);row.name='State specimens';row.itemSpacing=24;row.fills=[];
+ for(const state of group){const card=track(figma.createAutoLayout('VERTICAL'));row.appendChild(card);card.name=state;card.resize(210,10);card.layoutSizingVertical='HUG';card.paddingTop=12;card.paddingBottom=12;card.paddingLeft=10;card.paddingRight=10;card.itemSpacing=12;card.fills=paint('white');card.setBoundVariable('cornerRadius',vars.r24);const face=(await figma.getNodeByIdAsync(variants[state])).createInstance();card.appendChild(face);createdNodeIds.push(face.id,...face.findAll(()=>true).map(n=>n.id));const label=track(figma.createText());label.fontName=style.fontName;label.textStyleId=style.id;label.characters=state;label.fills=paint('ink');card.appendChild(label);}
+}
+return {createdNodeIds,mutatedNodeIds,componentSetId:built.componentSet.id,variants,reviewId:review.id,variantCount:built.variants.length,bindings:built.variants.map(n=>({state:n.name,gradientStops:n.query('VECTOR,ELLIPSE').map(a=>Array.isArray(a.fills)?a.fills.filter(p=>p.type.startsWith('GRADIENT')).reduce((sum,p)=>sum+p.gradientStops.filter(s=>s.boundVariables?.color).length,0):0).reduce((a,b)=>a+b,0)})),bounds:{width:review.width,height:review.height}};

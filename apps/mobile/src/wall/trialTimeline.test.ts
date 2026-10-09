@@ -47,7 +47,7 @@ describe('the store free trial, said only when it is real', () => {
     assert.equal(trialTimeline({ offer: chosen(yearly({ ...WEEK, cycles: 2 }, true)), minutes, remind: false }), null);
     assert.equal(trialTimeline({ offer: chosen(yearly({ ...WEEK, periodUnit: 'DAY', periodNumberOfUnits: 2 }, true)), minutes, remind: false }), null);
     assert.equal(chosen(yearly(WEEK, false))?.trialDays, null);
-    assert.equal(buyLabel('Max', '£179.99', 'year'), 'Max, £179.99 a year');
+    assert.equal(buyLabel('Max', '£179.99', 'year'), 'Subscribe yearly');
 
     // The store's days, in days or weeks only.
     assert.equal(storeTrialDays({ intro: WEEK, introEligible: true }), 7);
@@ -96,7 +96,7 @@ describe('the store free trial, said only when it is real', () => {
     const screen = read('./WallScreen.tsx');
     assert.match(screen, /const trial = trialTimeline\(\{\s*offer: chosen,\s*minutes: chosen === null \? null : storeTrialMinutes\(latestCatalogue\(\), chosen\.plan\),\s*remind: TRIAL_REMINDER_SCHEDULED,\s*\}\);/);
     assert.match(screen, /chosen === null \? PLANS_CHOOSE : trial !== null \? trial\.cta : buyLabel\(chosen\.name, chosen\.price, chosen\.period\)/);
-    assert.match(screen, /<WallPlansAtButton trialTerms=\{trial\?\.terms \?\? null\} \/>/);
+    assert.match(screen, /<WallPlansAtButton trialTerms=\{trial\?\.terms \?\? null\} priceTerms=\{chosen \? billedPrice\(chosen.price, chosen.period\) : null\} \/>/);
     const page = read('./WallPlansPage.tsx');
     assert.match(page, /\{trial !== null && <TrialTimeline view=\{trial\} \/>\}/);
   });
@@ -127,7 +127,7 @@ describe('the store free trial, said only when it is real', () => {
 
     // The terms at the pill carry the billed amount, in ink and weight.
     const button = page.slice(page.indexOf('export function WallPlansAtButton('), page.indexOf('const DISC ='));
-    assert.match(button, /\{trialTerms !== null && <Text style=\{st\.terms\}>\{trialTerms\}<\/Text>\}/, 'the trial terms are not drawn at the pill');
+    assert.match(button, /\{trialTerms !== null && <Text style=\{st\.terms\}>\{trialTerms\} \{PLANS_RENEWAL\}<\/Text>\}/, 'the trial terms are not drawn at the pill');
     const terms = style('terms');
     assert.match(terms.rest, /color: paper\.ink\b/, 'the billed amount at the pill is in a quiet colour');
     assert.ok(size(terms.token) >= size('bodyStrong'), 'the billed amount at the pill is small print');
@@ -135,7 +135,7 @@ describe('the store free trial, said only when it is real', () => {
     // Every word the timeline draws is no larger than those terms.
     const timeline = page.slice(page.indexOf('function TrialTimeline('), page.indexOf('export function WallPlansAtButton('));
     const drawn = [...timeline.matchAll(/<Text\b[^>]*style=\{st\.(\w+)\}/g)].map((m) => m[1]!);
-    assert.deepEqual([...new Set(drawn)].sort(), ['nodeLine', 'nodeTitle', 'trialTitle'], 'the timeline draws a line this test does not weigh');
+    assert.deepEqual([...new Set(drawn)].sort(), ['nodeLine', 'nodeTitle'], 'the timeline draws a line this test does not weigh');
     for (const name of drawn) {
       assert.ok(size(style(name).token) <= size(terms.token), `st.${name} (type.${style(name).token}) is larger than the billed amount`);
     }
@@ -148,7 +148,7 @@ describe('the store free trial, said only when it is real', () => {
     // Each way to pay is titled by its billed amount, with how often and the
     // store's monthly figure under it, smaller.
     assert.match(page, /const billed = billedPrice\(offer\.price, offer\.period\);/);
-    assert.match(page, /title=\{billed\}\s+detail=\{payDetail\(offer\.period, offer\.perMonth\)\}/);
+    assert.match(page, /title=\{`\$\{period\} · \$\{offer.price\}`\}/);
     const choice = shared.slice(shared.indexOf('export function Choice('), shared.indexOf('const ic = StyleSheet.create('));
     assert.match(choice, /compact \? type\.label : type\.bodyStrong/);
     assert.match(choice, /<Text style=\{\[type\.small, \{ color: quiet \}/);

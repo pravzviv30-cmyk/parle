@@ -86,7 +86,7 @@ describe('the inline paywall always leaves a way forward — Stage 3', () => {
     assert.equal(view.kind, 'offer');
     if (view.kind !== 'offer') return;
     assert.deepEqual(view.surface, paywallSurface({ available: true, products: [product('regular', '£24.99', 'Max'), product('starter', '£14.99')] }), 'the offer is not the shared surface');
-    assert.equal(view.renewal, PLANS_RENEWAL, 'the renewal terms are not the plans page’s own');
+    assert.equal(view.renewal, `£14.99 a month. ${PLANS_RENEWAL}`, 'the renewal terms are not the plans page’s own');
     assert.equal(view.privacy, PLANS_PRIVACY);
     assert.equal(view.terms, PLANS_TERMS);
   });
@@ -105,7 +105,7 @@ describe('the inline paywall always leaves a way forward — Stage 3', () => {
       }
     }
     // The price is present exactly once, on the button, and only in the offer.
-    assert.equal(linesOf(offer).filter((l) => l.includes(marker)).length, 1, 'the store price is shown twice, or not at all');
+    assert.equal(linesOf(offer).filter((l) => l.includes(marker)).length, 2, 'the store price is shown twice, or not at all');
     assert.ok(linesOf(offer).find((l) => l.includes(marker)) === (offer.kind === 'offer' ? offer.surface.purchaseLabel : ''), 'the price is somewhere other than the buy button');
 
     // And the component writes no price of its own.

@@ -1,5 +1,7 @@
+import { WEEKLY_STARTER_SECONDS } from '@luvani/core';
 /** Public configuration only. A mismatch must never open a store purchase. */
 export interface ClientBillingConfiguration {
+  weeklyStarterProduct?: string;
   entitlementId: string | undefined;
   products: { starter: string | undefined; regular: string | undefined };
   /**
@@ -24,5 +26,7 @@ export function billingPairMatches(body: unknown, expected: ClientBillingConfigu
     if (sold.includes(id) || serverYearly[plan] !== id) return false;
     sold.push(id);
   }
+  if (expected.weeklyStarterProduct && (sold.includes(expected.weeklyStarterProduct)
+    || value.weeklyStarterProduct !== expected.weeklyStarterProduct || value.weeklyStarterSeconds !== WEEKLY_STARTER_SECONDS)) return false;
   return true;
 }

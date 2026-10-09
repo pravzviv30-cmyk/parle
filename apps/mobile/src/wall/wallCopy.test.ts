@@ -130,7 +130,7 @@ describe("the two promises the founder wrote, in their words", () => {
   });
 
   test('the paid promise is about having conversations, not about keeping anything', () => {
-    assert.equal(PLANS_TITLE, 'Keep having new real conversations');
+    assert.equal(PLANS_TITLE, 'Speak your way.');
     // The mechanism the founder chose, stated as a refusal: the wall converts on
     // wanting the next conversation and never on fearing the loss of the last one.
     for (const line of WALL_COPY) {
@@ -158,9 +158,10 @@ describe('no sentence carries a number that prose cannot keep true', () => {
   });
 
   test('the plans page says what a subscription is, which Apple asks for and a learner is owed', () => {
-    assert.match(PLANS_RENEWAL, /renew/, 'the purchase surface does not say the plan renews');
-    assert.match(PLANS_RENEWAL, /month/, 'the purchase surface does not say how long a period is');
-    assert.match(PLANS_RENEWAL, /cancel/, 'the purchase surface does not say it can be cancelled');
+    assert.match(PLANS_RENEWAL, /renew/i, 'the purchase surface does not say the plan renews');
+    assert.match(copy.payDetail('month', null), /Monthly/);
+    assert.match(copy.payDetail('year', null), /Yearly/);
+    assert.equal(copy.PLANS_TRUST, 'No Commitment, Cancel Anytime');
   });
 });
 

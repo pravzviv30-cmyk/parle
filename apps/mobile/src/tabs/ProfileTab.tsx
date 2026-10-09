@@ -69,7 +69,7 @@ import { ChoiceRow } from '../settings/ChoiceRow.tsx';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
 import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
-import { LEARNING_LABEL, PROFILE_PURPOSE, TUTOR_LABEL } from '../profile/frenchLife.ts';
+import { LEARNING_LABEL, TUTOR_LABEL } from '../profile/frenchLife.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
 import { DAILY_GOAL_ROW, dailyGoalOf, goalLine } from '../profile/dailyGoal.ts';
@@ -268,7 +268,6 @@ export function ProfileTab() {
             align="center"
             leading={<Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />}
             title={profile.name ?? 'You'}
-            purpose={PROFILE_PURPOSE}
           />
         </View>
 

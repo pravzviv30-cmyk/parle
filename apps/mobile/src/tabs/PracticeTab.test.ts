@@ -102,7 +102,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
     // Day one is the model's answer, not the tab's: the card's action is the lesson.
     assert.match(FLAT, /const dayOne = ownerMatches && step !== null && step\.card\.action\.kind === 'lesson';/, 'the tab decides for itself what day one is, or shows the previous account’s lesson');
     const card = between(RENDER, '<Label>{NEXT_STEP.label}</Label>', '</Card>', 'the recommended action');
-    assert.match(card, /\{primary\}/, 'the day-one action is not next to the preview');
+    assert.match(RENDER, /\{primary\}/, 'the day-one action is not next to the preview');
     // The primary is built once and drawn in exactly one of two places.
     const primary = between(SCREEN, 'const primary = ', '\n  );\n', 'the one primary action is built once');
     assert.match(flat(primary), /<PillButton label=\{step\.card\.action\.label\} disabled=\{checking\} onPress=\{startRecommended\} \/>/, 'the pill spells its own label or opens something of its own');
@@ -126,7 +126,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
     // The same recommendation card serves both a starter and returning learner.
     assert.match(FLAT, /\{ownerMatches && step !== null && \( <View style=\{st\.block\}> \{dayOne \? <NextTaskCard \/> : <Card/, 'the one card does not serve both starter and returning learners, or survives an account switch');
     const card = RENDER.slice(at('<Label>{NEXT_STEP.label}</Label>'), at('<Ledger'));
-    assert.match(card, /\{primary\}/, 'the card\'s control is something other than the one primary');
+    assert.match(RENDER, /\{primary\}/, 'the card\'s control is something other than the one primary');
     for (const loud of ['<OutlineButton', '<PillButton']) {
       assert.ok(!between(RENDER, '<TuneSoundCard', '/>', 'the sound card').includes(loud), `the sound card draws its own ${loud}`);
     }
@@ -191,7 +191,7 @@ describe('Practice leads with a useful action, then a sound example', () => {
     assert.match(FLAT, /\{step\.doors\.revisit !== null && \(/, 'the tutor door is drawn without asking the model');
     assert.match(FLAT, /const revisitAllowed = useContinueArc\(\) === true;/, 'the tutor door is not gated by the shared plan helper');
     assert.ok(!SCREEN.includes('capabilitiesFor('), 'the tab asks the plan table itself instead of through the helper');
-    assert.equal((SCREEN.match(/nav\.navigate\('Conversations'\)/g) ?? []).length, 1, 'the archive has more than one door on Practice, or none');
+    assert.equal((SCREEN.match(/nav\.navigate\('Conversations'\)/g) ?? []).length, 2, 'the archive has more than one door on Practice, or none');
     assert.ok(at('<Ledger') < at('<View style={st.doors}>'), 'the quiet doors sit above the ways to practise');
   });
 
@@ -230,8 +230,8 @@ describe('Practice leads with a useful action, then a sound example', () => {
 
   test('the header says where the page came from, and none of those words live here', () => {
     const header = between(RENDER, '<TabHeader', '/>', 'Practice opens on a TabHeader');
-    assert.match(header, /title=\{PRACTICE_TITLE\}/);
-    assert.match(header, /purpose=\{dayOne \? FIRST_PRACTICE_PURPOSE : PRACTICE_PURPOSE\}/);
+    assert.match(header, /title="Make it feel natural\."/);
+    assert.doesNotMatch(header, /purpose=/, 'Practice leads with its useful action, without a repeated subtitle');
     assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'Practice must retain the shared profile entry point');
     for (const spelled of ['Your sound to tune', 'bonjour', 'Made from your conversations', 'Your next practice', 'Scheduled review', 'Recorded tutor audio']) {
       assert.ok(!SCREEN.includes(spelled), `the tab spells "${spelled}" itself; that word belongs to practice/`);

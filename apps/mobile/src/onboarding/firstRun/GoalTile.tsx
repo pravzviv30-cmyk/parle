@@ -9,8 +9,7 @@
 
 import { Choice } from '../../components.tsx';
 import { IconTile } from '../../icons/IconTile.tsx';
-import { FIRST_RUN_COPY } from './copy.ts';
-import { tierLabel, tierLine, type GoalTier } from './planModel.ts';
+import { tierLabel, type GoalTier } from './planModel.ts';
 
 export function GoalTile({
   tier,
@@ -30,8 +29,8 @@ export function GoalTile({
   return (
     <Choice
       layout={layout}
-      title={tier.title}
-      detail={suggested ? `${tierLine(tier.minutes)}. ${FIRST_RUN_COPY.suggested}` : tierLine(tier.minutes)}
+      title={`${tier.minutes} min`}
+      detail={suggested ? 'Suggested' : undefined}
       tile={<IconTile ground="sun" dial={tier.quarters} size={44} />}
       selected={selected}
       onPress={onPress}

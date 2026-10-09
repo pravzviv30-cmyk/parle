@@ -1,4 +1,4 @@
-import { ALLOWANCE_WINDOW_DAYS, STORE_TRIAL_DAYS, type Plan, type PlanSpec } from '@luvani/core';
+import { ALLOWANCE_WINDOW_DAYS, STORE_TRIAL_DAYS, WEEKLY_STARTER_SECONDS, type Plan, type PlanSpec } from '@luvani/core';
 
 import { purchasable } from '../purchases/paywallView.ts';
 import type { PaidPlan, StoreOffering, StoreProduct } from '../purchases/adapter.ts';
@@ -50,7 +50,7 @@ export interface WallPlanOffer {
   /** What `purchase` is called with. Never shown. */
   productId: string;
   /** How often the store bills it, from the store's own subscription period. */
-  period: 'month' | 'year';
+  period: 'week' | 'month' | 'year';
   /** The store's own localised price for one period, exactly as the store wrote it. */
   price: string;
   /**
@@ -162,8 +162,8 @@ function offerOf(product: StoreProduct): WallPlanOffer {
     period: product.period,
     price: product.localizedPrice,
     perMonth: product.period === 'year' ? product.localizedPricePerMonth?.trim() || null : null,
-    trialDays: storeTrialDays(product),
-    hasFreeTrial: product.intro !== null,
+    trialDays: product.period === 'year' ? storeTrialDays(product) : null,
+    hasFreeTrial: product.period === 'year' && product.intro !== null,
   };
 }
 
@@ -184,12 +184,14 @@ export function wallPlanRows(
   // monthly prices can draw one as a month. They join the tier the store also
   // sells monthly; one with no priced monthly sibling is not drawn, because the
   // page frames every plan by its monthly allowance.
+  const weekly = offering.available ? (offering.weekly ?? []) : [];
   const yearly = offering.available ? (offering.yearly ?? []) : [];
 
-  return products.map((product): WallPlanRow => {
+  return products.filter((product, index) => products.findIndex(candidate => candidate.plan === product.plan) === index).map((product): WallPlanRow => {
     const spec = catalogue === null ? null : catalogue[product.plan];
     const minutes = spec === undefined || spec === null ? null : Math.floor(spec.secondsPerPeriod / 60);
     const year = yearly.find((candidate) => candidate.plan === product.plan && candidate.period === 'year' && candidate.localizedPrice.trim().length > 0);
+    const week = weekly.find(candidate => candidate.plan === product.plan && candidate.plan === 'starter' && candidate.period === 'week' && candidate.intro === null && candidate.localizedPrice.trim().length > 0);
     return {
       plan: product.plan,
       productId: product.productId,
@@ -201,7 +203,7 @@ export function wallPlanRows(
       perWeek: minutes === null || spec === undefined || spec === null ? null : conversationsAWeek(minutes, spec.periodDays),
       price: product.localizedPrice,
       daily: minutes === null || spec === undefined || spec === null ? null : dailyMinutes(minutes, spec.periodDays),
-      offers: year === undefined ? [offerOf(product)] : [offerOf(year), offerOf(product)],
+      offers: [...(week ? [offerOf(week)] : []), ...products.filter(candidate => candidate.plan === product.plan && candidate.period === 'month').map(offerOf), ...(year ? [offerOf(year)] : [])],
     };
   });
 }
@@ -219,6 +221,11 @@ export function chosenOffer(rows: readonly WallPlanRow[] | null, productId: stri
   return null;
 }
 
+/** Comparing tiers keeps the chosen billing period when that tier sells it. */
+export function offerForTier(row: WallPlanRow, current: Pick<WallPlanOffer, 'period'> | null): WallPlanOffer | null {
+  return row.offers.find(offer => offer.period === current?.period) ?? row.offers[0] ?? null;
+}
+
 /**
  * The way to pay the page chooses before the learner does (D16), or null.
  *
@@ -234,8 +241,9 @@ export function preselectedOffer(
   goal: number | null,
   standing: Pick<BillingStatus, 'plan' | 'lapsed'> | null,
 ): WallPlanOffer | null {
-  if (rows === null || goal === null) return null;
+  if (rows === null) return null;
   if (standing !== null && standing.plan !== 'trial' && !standing.lapsed) return null;
+  if (goal === null) return rows[0]?.offers[0] ?? null;
   const covering = rows.find((row) => row.daily !== null && row.daily >= goal);
   if (covering === undefined) return null;
   return covering.offers.find((offer) => offer.period === 'year') ?? null;
@@ -258,4 +266,9 @@ export function wallTrial(catalogue: Record<Plan, PlanSpec> | null): WallTrial |
   if (spec === undefined || spec === null) return null;
   const minutes = Math.floor(spec.secondsPerPeriod / 60);
   return { minutes, conversations: conversationsIn(minutes) };
+}
+
+/** Weekly allowance is enabled only by the matching server billing contract. */
+export function offerMinutes(row: WallPlanRow, offer: WallPlanOffer | null): number | null {
+  return offer?.period === 'week' ? WEEKLY_STARTER_SECONDS / 60 : row.minutes;
 }

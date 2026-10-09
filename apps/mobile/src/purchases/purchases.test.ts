@@ -77,7 +77,7 @@ describe('the purchases platform pair — F249', () => {
     // the store to ask about it. This read `!STARTER_PRODUCT` when starter was
     // the only tier the app could buy.
     assert.match(NATIVE, /if \(!key \|\| configuredPlans\(\)\.length === 0\) return false/);
-    assert.match(NATIVE, /if \(products\.length === 0\) return \{ available: false \}/);
+    assert.match(NATIVE, /if \(priced\.length === 0\) return \{ available: false \}/);
     assert.match(NATIVE, /ExecutionEnvironment\.StoreClient/);
     assert.match(WEB, /return \{ available: false \}/);
   });

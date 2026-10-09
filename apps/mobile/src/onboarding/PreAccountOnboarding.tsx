@@ -24,7 +24,6 @@ import {
   Text,
   TextInput,
   View,
-  PixelRatio,
   Platform,
   findNodeHandle,
 } from 'react-native';
@@ -39,12 +38,11 @@ import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, earnedChoices } from './flow.ts';
 import { Card, GhostButton, IconAction, IconActionRow, IconButton, PillButton, Sheet } from '../components.tsx';
-import { Screen, ScrollScreen, readingColumn, useCompactPhone, useLayoutClass } from '../layout.tsx';
+import { Screen, ScrollScreen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
 import { colour, decorative, frenchText, onColour, paper, radius, space, type } from '../theme.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
-import { OrbGlyph } from '../tutor/OrbGlyph.tsx';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { DAILY_ITEMS } from '../daily/catalogue.ts';
 import { tutorAudioForFrench } from '../daily/tutorAudio.ts';
@@ -65,6 +63,7 @@ import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { FIRST_LINE } from './firstRun.ts';
 import { clipFor } from './exchangeAudio.ts';
 import { REASONS, START_LEVELS, minutesOf, planFor } from './plan.ts';
+import { personalPlanTitle, REASON_LABELS, storyGround } from './story.ts';
 import { GUEST_PAGES, guestInvestment, guestStreak, keptPhrase, resumePage, savedPhraseTasks, starterMinutes } from './guestProgress.ts';
 import {
   freshPreAccountDraft,
@@ -124,15 +123,12 @@ const goals = [...REASONS].sort(
 const headingFor = (page: PreAccountPage) =>
   (
     ({
-      'hear-it': 'Try a little French.',
-      reason: 'Where will you use French first?',
-      'start-level': 'What can you do in French today?',
+      'hear-it': 'Your first French moment.',
+      reason: 'Make French yours.',
+      'start-level': 'Start where you are.',
       time: FIRST_RUN_COPY.goalTitle,
     }) as Partial<Record<PreAccountPage, string>>
   )[page];
-/** What each question is for, said under its title. */
-const whyFor = (page: PreAccountPage) =>
-  page === 'reason' ? FIRST_RUN_COPY.reasonWhy : page === 'start-level' ? FIRST_RUN_COPY.levelWhy : FIRST_RUN_COPY.goalWhy;
 export function PreAccountOnboarding({
   initialDraft,
   onDraftChange,
@@ -153,6 +149,7 @@ export function PreAccountOnboarding({
   const reduced = useReduceMotion();
   const compact = useCompactPhone();
   const regular = useLayoutClass() === 'regular';
+  const [welcome, setWelcome] = useState(initialDraft === null);
   const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
   const questionOrder =
     process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? FIVE_SETUP : FULL_SETUP;
@@ -688,17 +685,13 @@ export function PreAccountOnboarding({
   const homePhrase = page === 'home' ? (savedPhraseTasks(guest).at(-1) ?? null) : null;
   const win = page === 'recap' && last ? winView(last, lastTask.model, taskIndex < tasks.length - 1) : null;
   const modelAudio = tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, lastTask.model, draft.tutorVoice);
-  const drinksWrap = PixelRatio.getFontScale() >= TILES_WRAP_AT;
+  const drinksWrap = useFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
   const coral = page === 'recap' && win?.celebrate === true;
-  const ground = blue
-    ? colour.blue
-    : coral
-      ? colour.coral
-      : page === 'plan'
-        ? colour.sun
-        : paper.ground;
-  const ink = blue || coral ? paper.card : paper.ink;
+  const ground = storyGround(page, coral);
+  const ink = ground === colour.blue || ground === colour.coral ? paper.card : paper.ink;
+  const reasonGrid = !drinksWrap;
+  const goalGrid = !drinksWrap;
   // The reminder is asked once on day one, only where a reminder can be given
   // and is not already set, and not again once answered on this visit.
   const askShown = REMINDERS_AVAILABLE && draft.reminderEnabled !== true && !reminderAnswered;
@@ -715,7 +708,7 @@ export function PreAccountOnboarding({
     ? 'Luvani is for learners thirteen and up.'
     : (headingFor(page) ??
       (page === 'plan'
-        ? `${firstTask.title}.`
+        ? personalPlanTitle(draft.reason)
         : page === 'practice'
           ? task.title
           : page === 'recap'
@@ -733,6 +726,18 @@ export function PreAccountOnboarding({
         <Text style={type.body}>Loading your practice…</Text>
       </Screen>
     );
+  if (welcome && blue && !refused) return (
+    <ScrollScreen ground={colour.blue} footer={<View style={{ gap: space(2) }}>
+      <PillButton label="Let’s try it" tone="sun" onPress={() => setWelcome(false)} />
+      {!signedIn && <IconAction icon="forward" layout="inline" ground="blue" label="I already have an account" onPress={onSignIn} />}
+    </View>}>
+      <View style={[readingColumn, { gap: space(4) }]}>
+        <Text accessibilityRole="header" style={[type.display, { color: paper.onInk }]}>A little French.{'\n'}A real moment.</Text>
+        <OnboardingArtwork name="place-cafe-counter" response="welcome" event={0} />
+        <Text style={[type.body, { color: paper.onInk }]}>Start with your first café order.</Text>
+      </View>
+    </ScrollScreen>
+  );
   const footer = refused ? (
     signedIn ? (
       <GhostButton label="Sign out" onPress={onSignIn} />
@@ -770,7 +775,7 @@ export function PreAccountOnboarding({
         if (!reduced) soft();
         setChoiceNudge((prior) => ({ page, event: prior.event + 1 }));
       }} />
-      {choiceNudge.page === page && answer == null && <Text key={choiceNudge.event} accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Choose one to continue.</Text>}
+      {choiceNudge.page === page && answer == null && <Text key={choiceNudge.event} accessibilityLiveRegion="polite" style={[type.small, { color: ink, textAlign: 'center' }]}>Choose one to continue.</Text>}
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
@@ -919,14 +924,22 @@ export function PreAccountOnboarding({
                 ) : null}
                 {page === 'practice' ? <ExchangeSteps index={taskIndex} total={tasks.length} /> : null}
               </View>
-              {question ? <PlanCard draft={draft} five={five} flyFrom={flight} /> : null}
             </View>
           )
         }
         footer={footer}
       >
         <View style={[readingColumn, { paddingBottom: 20 }]}>
-          <PageArrival page={page} direction={direction} gap={question && compact ? 16 : 20}>
+          <PageArrival page={page} direction={direction} gap={compact ? 12 : 16}>
+            {!refused && page === 'remind' && streak !== null ? <DayOne streak={streak} moment={moment} /> : null}
+            <Text
+              ref={heading}
+              {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
+              accessibilityRole="header"
+              style={[blue || question || page === 'plan' ? type.display : type.title, { color: ink }]}
+            >
+              {title}
+            </Text>
             {!refused && (blue || page === 'recap') && (
               <WinArt celebrate={coral} moment={moment}>
                 <OnboardingArtwork
@@ -942,15 +955,6 @@ export function PreAccountOnboarding({
                 />
               </WinArt>
             )}
-            {!refused && page === 'remind' && streak !== null ? <DayOne streak={streak} moment={moment} /> : null}
-            <Text
-              ref={heading}
-              {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
-              accessibilityRole="header"
-              style={[blue ? type.display : type.title, { color: ink }]}
-            >
-              {title}
-            </Text>
             {refused ? (
               <View style={{ gap: 16 }}>
                 <Illustration name="state-postcard-frame" fit="small" />
@@ -1007,34 +1011,21 @@ export function PreAccountOnboarding({
                           )}
                         </View>
                       </Card>
-                    ) : (
-                      <View
-                        style={{
-                          minHeight: 96,
-                          borderRadius: radius.card,
-                          borderWidth: 1.5,
-                          borderStyle: 'dashed',
-                          borderColor: onColour.blue,
-                          padding: space(5),
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text style={[type.body, { color: onColour.blue }]}>{FIRST_RUN_COPY.phrasePlaceholder}</Text>
-                      </View>
-                    )}
+                    ) : null}
                   </>
                 )}
                 {question && (
                   <>
-                    <Text style={[type.body, { color: paper.inkSoft }]}>{whyFor(page)}</Text>
-                    <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10, flexDirection: regular ? 'row' : 'column', flexWrap: 'wrap' }}>
+                    {page === 'start-level' && <OnboardingArtwork name="state-notebook" response={pose} event={event} />}
+                    {page === 'time' && <OnboardingArtwork name="place-day" response={pose} event={event} />}
+                    <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10, flexDirection: regular || (page === 'reason' && reasonGrid) || (page === 'time' && goalGrid) ? 'row' : 'column', flexWrap: 'wrap' }}>
                       {page === 'reason' &&
                         goals.map((v, index) => (
-                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '31%' : undefined}><View ref={rowRef(`reason:${v.key}`)} collapsable={false}>
+                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '31%' : reasonGrid ? '48%' : undefined}><View ref={rowRef(`reason:${v.key}`)} collapsable={false}>
                             <Choice
                               compact={compact}
-                              layout={regular ? 'tile' : 'row'}
-                              title={v.title}
+                              layout={regular || reasonGrid ? 'tile' : 'row'}
+                              title={REASON_LABELS[v.key]}
                               glyph={<ChoiceArt kind={v.key} />}
                               selected={draft.reason === v.key}
                               onPress={() => choose({ reason: v.key })}
@@ -1048,7 +1039,7 @@ export function PreAccountOnboarding({
                               compact={compact}
                               layout={regular ? 'tile' : 'row'}
                               title={v.title}
-                              detail={v.gloss === '' ? undefined : v.gloss}
+                              detail={v.key === 'zero' ? 'Not sure? Start here.' : undefined}
                               glyph={<ChoiceArt kind={v.key} />}
                               selected={draft.startLevel === v.key}
                               onPress={() => choose({ startLevel: v.key })}
@@ -1057,13 +1048,13 @@ export function PreAccountOnboarding({
                         ))}
                       {page === 'time' &&
                         GOAL_TIERS.map((tier, index) => (
-                          <ChoiceNudge key={tier.minutes} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '23%' : undefined}><View ref={rowRef(`minutes:${tier.minutes}`)} collapsable={false}>
+                          <ChoiceNudge key={tier.minutes} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '23%' : goalGrid ? '48%' : undefined}><View ref={rowRef(`minutes:${tier.minutes}`)} collapsable={false}>
                             <GoalTile
                               tier={tier}
                               suggested={tier.minutes === suggested}
                               selected={draft.minutes === tier.minutes}
                               compact={compact}
-                              layout={regular ? 'tile' : 'row'}
+                              layout={regular || goalGrid ? 'tile' : 'row'}
                               onPress={() => choose({ minutes: tier.minutes })}
                             />
                           </View></ChoiceNudge>
@@ -1092,25 +1083,20 @@ export function PreAccountOnboarding({
                       <PlanCard
                         draft={draft}
                         five={five}
+                        flyFrom={flight}
                         expanded
+                        concise
                         trailing={<IconAction icon="edit" layout="inline" ground="sun" label="Change plan" onPress={() => open('plan')} />}
                       />
                     }
                     tutorAction={<IconAction icon="orb" layout="inline" label="Choose tutor" onPress={() => open('voice')} />}
                   >
                     <Card style={{ gap: 10 }}>
-                      <Text style={[type.small, { color: paper.inkSoft }]}>{FIRST_RUN_COPY.firstExchange}</Text>
                       <Text {...frenchText} style={type.frenchLg}>
                         {firstTask.prompt}
                       </Text>
-                      <Text style={type.body}>{firstTask.translation} Start with one reply.</Text>
+                      <Text style={type.body}>{firstTask.translation}</Text>
                     </Card>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View {...decorative}>
-                        <OrbGlyph color={paper.ink} size={28} />
-                      </View>
-                      <Text style={[type.body, { flex: 1 }]}>{STARTER_AI}</Text>
-                    </View>
                     {draft.quickStart ? (
                       <Text style={type.small}>A suggested beginner café practice.</Text>
                     ) : null}

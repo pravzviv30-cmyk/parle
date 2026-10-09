@@ -10,13 +10,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
-import { paper, space, type } from '../theme.ts';
-import { IconActionRow, IconAction, Card, FrenchBlock, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
+import { colour, decorative, paper, space, type } from '../theme.ts';
+import { IconActionRow, IconAction, Choice, Sheet, Card, FrenchBlock, GhostButton, Label, Ledger, LedgerRow, OutlineButton, PillButton } from '../components.tsx';
+import { Illustration } from '../art/flat/Illustration.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { UNREAD } from '../practice/archive.ts';
-import { ALTERNATIVES, FIRST_PRACTICE_PURPOSE, PRACTICE_PURPOSE, PRACTICE_TITLE } from '../practice/copy.ts';
+import { ALTERNATIVES, PRACTICE_TITLE } from '../practice/copy.ts';
 import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { NEXT_STEP } from '../practice/nextStep.ts';
@@ -54,6 +55,8 @@ import * as tutorVoice from '../speech/tutorVoice.ts';
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
 
 export function PracticeTab() {
+  const [details, setDetails] = useState(false);
+  useFocusEffect(useCallback(() => () => setDetails(false), []));
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { recheck } = useLive();
   const { user, adapter } = useAuth();
@@ -281,6 +284,7 @@ export function PracticeTab() {
   return (
     <ScrollScreen
       bottom="tab"
+      ground={colour.mint}
       // The F154 checking receipt, kept in the frame header so a tap that waits
       // on the network stays acknowledged when the title scrolls away.
       header={ownerMatches && checking && (
@@ -293,7 +297,7 @@ export function PracticeTab() {
       )}
     >
       <View>
-        <TabHeader title={PRACTICE_TITLE} purpose={dayOne ? FIRST_PRACTICE_PURPOSE : PRACTICE_PURPOSE} trailing={<ProfileButton />} />
+        <TabHeader display title="Make it feel natural." trailing={<ProfileButton />} />
 
         {/* The read did not finish. Said plainly, with the same work offered again. */}
         {showFailed && (
@@ -308,6 +312,15 @@ export function PracticeTab() {
           </View>
         )}
 
+        <View {...decorative} style={{ alignItems: 'center', marginVertical: space(3) }}><Illustration name="state-notebook" style={{ width: space(28.75), height: space(28.75) }} /></View>
+        <View style={{ gap: space(3) }}>
+          <Choice role="button" navigation outlined compact title="Saved phrases" detail="Make your French feel familiar" selected={false} onPress={() => nav.navigate('Phrasebook')} />
+          <Choice role="button" navigation outlined compact title="Sound practice" detail="One sound at a time" selected={false} onPress={() => nav.navigate('SoundCheck')} />
+          <Choice role="button" navigation outlined compact title="Conversations" detail="Pick up where you left off" selected={false} onPress={() => nav.navigate('Conversations')} />
+        </View>
+        {ownerMatches && step !== null && <View style={st.block}>{primary}</View>}
+        <IconAction layout="inline" icon="forward" label="Explore practice" onPress={() => setDetails(true)} />
+        <Sheet visible={details} title="Practice" onClose={() => { setDetails(false); recorded.stop(); tutorVoice.stop(); setPlaying(false); }}>
         <Columns>
         <View>
         {/* The exact next action stays in the first viewport, including on day one. */}
@@ -316,7 +329,7 @@ export function PracticeTab() {
             {dayOne ? <NextTaskCard /> : <Card style={{ gap: space(4) }}>
               <Label>{NEXT_STEP.label}</Label>
               <FrenchBlock french={step.card.phrase.fr} english={step.card.phrase.en} playing={playing} onHear={() => hearNext(step.card.phrase.fr)} />
-              {primary}
+
             </Card>}
           </View>
         )}
@@ -390,6 +403,7 @@ export function PracticeTab() {
           </IconActionRow>
           </View>
         )}
+        </Sheet>
       </View>
     </ScrollScreen>
   );
@@ -406,7 +420,7 @@ const st = StyleSheet.create({
   rowsHead: { marginBottom: space(2) },
   sourceLine: { ...type.small, color: paper.ink },
   action: { gap: space(1.5) },
-  costLine: { ...type.small, color: paper.inkSoft },
+  costLine: { ...type.small, color: paper.ink },
   doors: { marginTop: space(4), alignItems: 'flex-start', gap: space(1) },
   doorNote: { ...type.small, color: paper.inkSoft, marginTop: -space(1) },
 });

@@ -6,6 +6,7 @@ export {
   LAPSE_GRACE_SEC,
   STORE_TRIAL_DAYS,
   YEARLY_PLANS,
+  WEEKLY_STARTER_SECONDS,
   allowanceWindowCount,
   allowanceWindowEnd,
   canStartSession,

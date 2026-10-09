@@ -648,7 +648,7 @@ describe('a form says out loud what it shows — F109', () => {
  */
 const FIRST_RUN: readonly { where: string; headings: number; part?: true }[] = [
   // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 3 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
@@ -1607,10 +1607,10 @@ describe('the five tabs open the same way — F336', () => {
    * sentence typed into the tab is a sentence that stops changing with the hour
    * and no test would see it stop.
    */
-  test("every tab says what it is for in one line, and Home's is the hour's", () => {
+  test("Home keeps its contextual greeting; other tabs omit repeated subtitles", () => {
     assert.match(
       named('tabs/HomeTab.tsx'),
-      /purpose=\{greeting\.subline\}/,
+      /\{greeting\.title\}/,
       "Home's purpose line is not the hour's own sentence from useGreetingRotation",
     );
     assert.doesNotMatch(
@@ -1620,15 +1620,9 @@ describe('the five tabs open the same way — F336', () => {
     );
     for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx')) {
       const body = named(name);
-      // A quoted literal, a template, or a constant read from a `.ts` — the
-      // Tutor tab reads TUTOR_PURPOSE, which is where its words belong.
-      const m = /purpose=(?:"([^"]*)"|\{`([^`]*)`\}|\{([A-Za-z_]+(?: \? [A-Za-z_]+ : [A-Za-z_]+)?)\})/.exec(body);
-      assert.ok(m, `${name} opens a TabHeader with no purpose line`);
-      if (m![3] !== undefined) continue;
-      const purpose = m![1] ?? m![2] ?? '';
-      assert.ok(purpose.length > 0, `${name}'s purpose line is empty`);
-      assert.doesNotMatch(purpose, /—/, `${name}'s purpose line carries an em dash`);
-      assert.doesNotMatch(purpose, /TODO|FIXME|XXX|\bWIP\b/, `${name}'s purpose line carries a debt marker`);
+      // 9 October 2026: the founder requested shorter, action-first tabs.
+      assert.match(body, /<TabHeader/, `${name} lost its accessible page title`);
+      assert.doesNotMatch(body, /purpose=/, `${name} repeats an explanation under its title`);
     }
   });
 });
@@ -1806,13 +1800,13 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     const hero = named('home/MissionHero.tsx');
     for (const tab of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'tabs/PracticeTab.tsx']) assert.match(named(tab), /<NextTaskCard/);
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
-    assert.equal((local.match(/<PillButton\b/g) ?? []).length, 1);
-    assert.equal((hero.match(/<PillButton\b/g) ?? []).length, 1);
+    assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
+    assert.equal((hero.match(/<PillButton\b/g) ?? []).length, 2);
     assert.match(task, /if \(value.card !== null\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
     assert.match(named('tabs/HomeTab.tsx'), /!unowned && readFailed/);
-    assert.equal((named('tabs/MyFrenchTab.tsx').match(/<PillButton\b/g) ?? []).length, 1);
+    assert.equal((named('tabs/MyFrenchTab.tsx').match(/<PillButton\b/g) ?? []).length, 2);
     assert.match(named('tabs/MyFrenchTab.tsx'), /firstVisit &&/);
 
   });
@@ -2177,8 +2171,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(design, /seven place drawings/);
     assert.doesNotMatch(design, /watercolours ship|Raster scenes, retiring/);
     assert.doesNotMatch(home, /titleSwap|useGreetingRotation|<DailyCarousel|<WordOfDayCard/);
-    assert.match(home, /title=\{greeting\.title\}/);
-    assert.match(home, /purpose=\{greeting\.subline\}/);
+    assert.match(home, /\{greeting\.title\}/);
+    assert.match(home, /\{greeting\.title\}/);
     // Revamp B (F602): Today draws the white "today" look of the same card.
     assert.match(home, /<DailyCard item=\{daily\.phrase\} variant="today" \/>/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
@@ -2261,7 +2255,7 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     );
     assert.match(home, /\{!unowned && readFailed \? \(/, 'Home no longer separates failed reads from a fresh account');
     assert.match(home, /\) : hero === null \|\| unowned \? \(/, 'Home no longer waits on storage before it draws a lead');
-    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard \/>/, 'the hero is not the lead Home falls back to');
+    assert.match(home.replace(/\s+/g, ' '), /<NextTaskCard vivid \/>/, 'the hero is not the lead Home falls back to');
     // The momentum gate that used to sit beside it left Home with the block
     // itself, so the half of this check that made sure the hero was not hidden
     // behind it is now made by the line above: there is one condition on the

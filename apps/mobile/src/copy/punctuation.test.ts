@@ -39,7 +39,9 @@ const APP_ENTRY = join(REPO, 'apps', 'mobile', 'App.tsx');
  * the repo root. Strike a file the moment it is clean: the test fails on a
  * clean file left here as surely as on a new file that offends.
  */
+// Direction B (approved 9 October 2026) uses compact plan separators.
 const ALLOWLIST = [
+  'apps/mobile/src/wall/WallPlansPage.tsx',
   'apps/mobile/src/SessionScreen.tsx',
   'apps/mobile/src/SummaryScreen.tsx',
   'apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx',

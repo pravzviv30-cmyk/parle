@@ -43,8 +43,8 @@ import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/n
 import { levelFor, missionStates, totalXp } from '@luvani/core';
 
 import { Columns, useLayoutClass, ScrollScreen, TabHeader } from '../layout.tsx';
-import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
-import { Card, IconAction, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
+import { colour, HAIRLINE, paper, radius, space, type } from '../theme.ts';
+import { Card, IconAction, Sheet, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
 import { loadSavedStarter } from '../onboarding/savedStarter.ts';
@@ -77,6 +77,8 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { STARTING_LABEL, startingPoint, weekLines, type StartingPoint } from '../home/todayView.ts';
 
 export function HomeTab() {
+  const [details, setDetails] = useState(false);
+  useFocusEffect(useCallback(() => () => setDetails(false), []));
   const regular = useLayoutClass() === 'regular';
   // A bottom tab stays mounted after its first visit, so the midnight and
   // foreground refresh listens to whether this tab is the one on top.
@@ -156,15 +158,15 @@ export function HomeTab() {
 
   return (
     // bottom="tab": the tab bar owns the bottom edge.
-    <ScrollScreen bottom="tab">
+    <ScrollScreen bottom="tab" ground={colour.sun}>
       <View>
         <View style={st.head}>
-          <TabHeader title={greeting.title} purpose={greeting.subline} trailing={<ProfileButton />} />
+          <TabHeader display leading={<Text style={[type.label, { color: paper.ink }]}>{greeting.title}</Text>} title="Your next French moment." trailing={<ProfileButton />} />
         </View>
 
         {/* The habit first: it reads the game layer itself, and draws nothing
             it could not read rather than a nought. */}
-        {regular ? <Columns><TodayHero /><QuestsCard /></Columns> : <TodayHero />}
+
 
         {/* HomeLoading: the storage read has not answered, so still sand blocks
             shaped like the page, and nothing else. The brief is outside every
@@ -182,10 +184,14 @@ export function HomeTab() {
           <>
             {starter !== null && profile.brain.stats.sessions === 0 ? (
               <StarterContinuation initial={starter} onTutor={() => nav.navigate('Tutor')} onPlans={() => nav.navigate('Wall', { entry: 'recap' })} />
-            ) : <NextTaskCard />}
+            ) : <NextTaskCard vivid />}
 
             <DayCount />
 
+            <IconAction layout="inline" icon="calendar" label="See your week" onPress={() => nav.navigate('WeekWrapped')} />
+            <IconAction layout="inline" icon="forward" label="More for today" onPress={() => setDetails(true)} />
+            <Sheet visible={details} title="Today" onClose={() => setDetails(false)}>
+            {regular ? <Columns><TodayHero /><QuestsCard /></Columns> : <TodayHero />}
             {/* Day one names where the path begins, the first scene next; after
                 that, the week in plain sentences, and nothing on a quiet week. */}
             {start !== null ? (
@@ -211,6 +217,7 @@ export function HomeTab() {
             <DailyCard item={daily.phrase} variant="today" />
 
             {friendsActivity !== null && <Card style={{ marginTop: space(3), gap: space(2) }}><Text style={[type.small, { color: paper.inkSoft }]}>French with friends</Text><Text style={[type.body, { color: paper.ink }]}>{friendsActivity}</Text><IconAction layout="inline" icon="users" label="Open my circle" onPress={() => nav.navigate('Friends')} /></Card>}
+            </Sheet>
           </>
         )}
       </View>

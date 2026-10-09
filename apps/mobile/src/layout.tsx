@@ -31,7 +31,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
 import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
 import { footerOverflow } from './footerOverflow.ts';
-import { compactPhone, screenInsets, READING, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
+import { compactPhone, screenGeometry, screenInsets, READING, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
 
 /**
  * The reading column as a style: full width up to `READING`, centred. The first
@@ -42,8 +42,20 @@ export const readingColumn = { width: '100%', maxWidth: READING, alignSelf: 'cen
 
 /** Screens consume the frame's compact mode rather than measuring or fixing their own width. */
 export function useCompactPhone() {
-  const { width, height } = useWindowDimensions();
-  return compactPhone(width, height);
+  const { width, height, fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  return compactPhone(width - insets.left - insets.right, height, insets.top, insets.bottom, fontScale);
+}
+
+/** Text reflows when the system's reading size changes, without screen-local measurements. */
+export function useFontScale() {
+  return useWindowDimensions().fontScale;
+}
+
+/** Shared usable bounds for artwork and screens; safe-area policy stays here. */
+export function useScreenGeometry() {
+  const { width, height, fontScale } = useWindowDimensions();
+  return screenGeometry(width, height, useSafeAreaInsets(), fontScale);
 }
 
 /** The frame follows safe areas and split view; large text keeps a single column. */
@@ -125,7 +137,8 @@ export function Screen({
   overflowing = false,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
+  const geometry = screenGeometry(width, height, insets, fontScale);
   const horizontal = screenInsets(width, insets.left, insets.right, padded);
   const bottomPad =
     bottom === 'tab' ? space(3) : bottom === 'inset' ? insets.bottom + space(4) : 0;
@@ -154,7 +167,14 @@ export function Screen({
             backgroundColor: ground,
           }}
         >
-          <View style={{ width: '100%', maxWidth: FOOTER_MAX, alignSelf: 'center' }}>{footer}</View>
+          <ScrollView
+            style={{ width: '100%', maxWidth: FOOTER_MAX, maxHeight: geometry.footerMaxHeight, flexGrow: 0, alignSelf: 'center' }}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator
+          >
+            {footer}
+          </ScrollView>
         </View>
       ) : null}
     </View>
@@ -284,7 +304,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           // a live region); this only keeps a plain string title from vanishing.
           <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{title}</Text>
         ) : (
-          title ?? <Text style={[type.label, { color: props.ground === 'blue' || props.ground === 'coral' ? paper.onInk : paper.ink }]}>Luvani</Text>
+          title ?? null
         )}
         {props.trailing}
       </View>
@@ -318,6 +338,8 @@ export function ScreenHeader(props: ScreenHeaderProps) {
  * timing. The frame is handed the value; it never starts it.
  */
 type TabHeaderProps = {
+  /** Full-colour editorial screens use the approved display role. */
+  display?: boolean;
   /** The tab's name, set large. */
   title: string;
   /** One plain line saying what the tab is for. Home is the one tab without one. */
@@ -375,7 +397,12 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, trailing, leading, align = 'left', children }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false }: TabHeaderProps) {
+  if (display) return <View style={{ gap: space(3), marginBottom: space(4) }}>
+    {(leading != null || trailing != null) && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: space(11) }}>{leading ?? <View />}{trailing}</View>}
+    <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{title}</Text>
+    {children}
+  </View>;
   if (align === 'center') {
     return (
       <View style={{ marginBottom: space(5), alignItems: 'center', paddingVertical: space(2) }}>

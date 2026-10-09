@@ -479,7 +479,7 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
 
   test('the tutor card is white: the orb, the name and voice, a play disc and a quiet change link', () => {
     const card = mark('TutorCard');
-    assert.match(card, /<OrbGlyph color=\{orb\.ready\}/, 'the tutor is not drawn as the orb');
+    assert.match(card, /<OrbSurface color=\{orb\.ready\}/, 'the tutor is not drawn as the orb');
     assert.match(card, /accessibilityLabel=\{playing \? `Stop \$\{name\}` : `Hear \$\{name\}`\}/, 'the sample offers to play what is already playing');
     assert.match(card, /<IconAction layout="inline" icon="edit" label=\{changeLabel\}/, 'changing tutor is not a quiet link');
     assert.match(card, /type\.french/, 'the signature line is not set in the French serif');
@@ -504,7 +504,7 @@ describe('the notebook marks keep their promises — redesign Phase 1', () => {
       assert.notEqual(i, -1, `${needle} is missing from the tutor card`);
       return i;
     };
-    assert.ok(at('<OrbGlyph') < at('{name}'), 'the orb does not lead the row');
+    assert.ok(at('<OrbSurface') < at('{name}'), 'the orb does not lead the row');
     assert.ok(at('{voice}') < at('<IconAction'), 'the change link is not under the voice');
     assert.ok(at('<IconAction') < at('<Press haptic="light"'), 'the play disc does not end the row');
     assert.ok(at('<Press haptic="light"') < at('{signature}'), 'the signature is not under the row');
@@ -785,10 +785,10 @@ describe('the B parts keep their promises — F597', () => {
     const row = part('OptionRow');
     assert.match(row, /return <Choice role="button" title=\{title\} detail=\{detail\} selected=\{selected\} onPress=\{onPress\} accessibilityLabel=\{accessibilityLabel\} onHear=\{onHear\} playing=\{playing\} \/>;/, 'the option row does not hand everything it was given to the one choice, as a button');
     const choice = part('Choice');
-    assert.match(choice, /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, 'the option row does not tell a device it is selected');
-    assert.match(choice, /aria-selected=\{radio \? undefined : selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
+    assert.match(choice, /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, 'the option row does not tell a device it is selected');
+    assert.match(choice, /aria-selected=\{navigation \|\| radio \? undefined : selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
     assert.match(choice, /haptic="selection"/, 'a choice does not tick like a choice');
-    assert.match(choice, /selected \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
+    assert.match(choice, /selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
     assert.match(choice, /<View \{\.\.\.decorative\} style=\{\[ch\.disc, \{ backgroundColor: paper\.card \}\]\}>\s*<CheckGlyph size=\{18\} color=\{accent\.brand\} \/>/, 'the chosen mark is not the blue check on a white disc');
     assert.match(choice, /borderColor: paper\.field/, 'the unchosen mark is not the field ring');
     assert.match(choice, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
@@ -1030,7 +1030,7 @@ describe('the icon controls keep their promises', () => {
     // A radio by default, said on a device and on the web; a button keeps a selected state.
     assert.match(choice, /role = 'radio',/, 'a choice is not a radio by default');
     assert.match(choice, /accessibilityRole=\{role\}/, 'a choice does not say what kind of control it is');
-    assert.match(choice, /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, 'a choice does not say it is chosen');
+    assert.match(choice, /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, 'a choice does not say it is chosen');
     assert.match(choice, /aria-checked=\{radio \? selected : undefined\}/, 'a radio choice says nothing to the browser');
     assert.match(choice, /<Press\s+haptic="selection"[\s\S]*?\bselected=\{selected\}/, 'a choice does not tick, pop and ring like a choice through the one press');
     assert.equal((choice.match(/<Press\b/g) ?? []).length, 1, 'a choice is more than one press');
@@ -1068,7 +1068,7 @@ describe('the icon controls keep their promises', () => {
     // only its words float. The page says it is blue, and the choice takes the sun.
     const choice = part('Choice');
     assert.match(choice, /const sunny = on === 'blue';/, 'a choice cannot tell it sits on the blue ground');
-    assert.match(choice, /const fill = selected \? \(sunny \? colour\.sun : accent\.brand\)/, 'a chosen choice on the blue ground does not fill with the sun');
+    assert.match(choice, /const fill = selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/, 'a chosen choice on the blue ground does not fill with the sun');
 
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
     assert.match(screen, /const blue = page === 'hear-it';/, 'the hear-it page is no longer the blue one, so this test reads the wrong block');

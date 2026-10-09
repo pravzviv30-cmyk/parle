@@ -204,3 +204,11 @@ export const rungColor: Record<1 | 2 | 3 | 4, string> = {
  * disc, and none of the six hexes anywhere in source. DESIGN.md's Colour
  * section records the retirement.
  */
+
+/** Decorative cloud-orb colours; never used for text or plan status. */
+export const cloudOrb = {
+  deep: '#6670FA',
+  upper: '#7E8AFF',
+  lower: '#BECBF9',
+  milk: '#EBEFFF',
+} as const;

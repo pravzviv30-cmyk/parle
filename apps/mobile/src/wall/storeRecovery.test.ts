@@ -69,7 +69,7 @@ test('monthly plan copy is reachable only from a verified monthly native package
   // configured here, so this still asks only about the monthly package.
   const bindings = { scopeGeneration: () => 1, ready: async () => true, configuredFor: 'owner',
     configuredPlans: () => ['regular'], PRODUCT_IDS: { regular: 'monthly' },
-    configuredYearlyPlans: () => [] as string[], YEARLY_PRODUCT_IDS: {},
+    WEEKLY_STARTER_PRODUCT: undefined, configuredYearlyPlans: () => [] as string[], YEARLY_PRODUCT_IDS: {},
     Purchases: { getOfferings: async () => ({ current: { availablePackages: [] as unknown[] } }) },
   };
   const read = new Function(...Object.keys(bindings), stripTypeScriptTypes(projection) + '\nreturn paidPackages;')(...Object.values(bindings)) as (uid: string) => Promise<unknown[]>;

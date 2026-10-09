@@ -69,6 +69,7 @@ export function PlanCard({
   five = false,
   flyFrom = null,
   expanded = false,
+  concise = false,
   trailing,
 }: {
   draft: PreAccountOnboardingDraft;
@@ -76,6 +77,8 @@ export function PlanCard({
   flyFrom?: FlyFrom | null;
   /** The plan page: white on the sun, with the edit action beside the label. */
   expanded?: boolean;
+  /** Completed plan: show its reason and starting level without repeating the goal. */
+  concise?: boolean;
   trailing?: ReactNode;
 }) {
   const flight = useTokenFlight();
@@ -87,7 +90,7 @@ export function PlanCard({
   latest.current = draft;
 
   useEffect(() => {
-    if (flyFrom === null || flown.current === flyFrom.id) return;
+    if (concise || flyFrom === null || flown.current === flyFrom.id) return;
     flown.current = flyFrom.id;
     const token = planToken(latest.current, flyFrom.slot);
     if (token === null) return;
@@ -102,7 +105,20 @@ export function PlanCard({
         AccessibilityInfo.announceForAccessibility(`Added to your plan: ${token.label}`);
       },
     });
-  }, [flyFrom, flight]);
+  }, [concise, flyFrom, flight]);
+
+  if (concise) {
+    const summary = [planToken(draft, 'reason'), planToken(draft, 'level')]
+      .filter((token): token is PlanToken => token !== null)
+      .map((token) => token.label)
+      .join(', ');
+    return (
+      <View style={[st.card, st.concise]}>
+        <Text accessibilityLabel={planCardLabel(draft, five)} style={[type.small, st.summary]}>{summary}</Text>
+        {trailing}
+      </View>
+    );
+  }
 
   return (
     <View style={[st.card, { backgroundColor: expanded ? paper.card : colour.sun }]}>
@@ -154,4 +170,6 @@ const st = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: paper.field,
   },
+  concise: { backgroundColor: paper.card, flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  summary: { color: paper.ink, flex: 1, flexShrink: 1 },
 });

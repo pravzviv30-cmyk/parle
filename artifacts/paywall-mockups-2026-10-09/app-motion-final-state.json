@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"createdNodeIds\":[],\"mutatedNodeIds\":[\"18:1242\",\"18:1503\",\"18:3179\",\"21:2484\",\"21:2673\",\"21:4171\",\"20:1995\",\"20:2054\"],\"evidence\":[{\"id\":\"18:1242\",\"tracks\":[\"OPACITY\",\"TRANSLATION_Y\",\"SCALE_XY\"]},{\"id\":\"18:1503\",\"tracks\":[\"OPACITY\",\"TRANSLATION_Y\",\"SCALE_XY\"]},{\"id\":\"18:3179\",\"tracks\":[\"OPACITY\",\"TRANSLATION_Y\",\"SCALE_XY\"]},{\"id\":\"21:2484\",\"tracks\":[\"OPACITY\",\"TRANSLATION_Y\",\"SCALE_XY\"]},{\"id\":\"21:2673\",\"tracks\":[\"OPACITY\",\"TRANSLATION_Y\",\"SCALE_XY\"]},{\"id\":\"21:4171\",\"tracks\":[\"OPACITY\",\"TRANSLATION_Y\",\"SCALE_XY\"]},{\"id\":\"20:1995\",\"tracks\":[\"SCALE_XY\"]},{\"id\":\"20:2054\",\"tracks\":[\"SCALE_XY\"]}]}"
+    }
+  ],
+  "isError": false
+}

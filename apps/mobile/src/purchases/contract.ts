@@ -43,7 +43,7 @@ export interface StoreProduct {
    * period and never assumed from an id. A product whose period is not exactly
    * one month or one year is not offered at all.
    */
-  period: 'month' | 'year';
+  period: 'week' | 'month' | 'year';
   /**
    * A yearly product's price per month, as RevenueCat works it out on the
    * device (the yearly price over twelve) and formats it in the store's
@@ -84,7 +84,7 @@ export interface StoreProduct {
  */
 export type StoreOffering =
   | { available: false }
-  | { available: true; products: readonly StoreProduct[]; yearly?: readonly StoreProduct[] };
+  | { available: true; products: readonly StoreProduct[]; yearly?: readonly StoreProduct[]; weekly?: readonly StoreProduct[] };
 
 export type StoreAction =
   | { ok: true }

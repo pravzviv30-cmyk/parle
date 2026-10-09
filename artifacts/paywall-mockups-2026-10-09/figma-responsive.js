@@ -1,0 +1,7 @@
+const createdNodeIds=[],mutatedNodeIds=[],evidence=[];
+const loadFonts=new Map();for(const spec of SPECS){const root=await figma.getNodeByIdAsync(spec.id);for(const t of root.findAllWithCriteria({types:['TEXT']}))for(const s of t.getStyledTextSegments(['fontName']))loadFonts.set(JSON.stringify(s.fontName),s.fontName);}
+await Promise.all([...loadFonts.values()].map(f=>figma.loadFontAsync(f)));
+function responsive(n){if(!('children'in n)||n.type==='INSTANCE'||n.name.startsWith('Illustration /'))return;
+for(const c of n.children){if(n.layoutMode==='VERTICAL'&&'layoutSizingHorizontal'in c&&c.width>=n.width-n.paddingLeft-n.paddingRight-1){c.layoutSizingHorizontal='FILL';if(c.type==='TEXT')c.textAutoResize='HEIGHT';mutatedNodeIds.push(c.id);}if(n.name==='Your progress'||n.name==='Conversation controls'||n.name==='Tab bar')if('layoutSizingHorizontal'in c){c.layoutSizingHorizontal='FILL';mutatedNodeIds.push(c.id);}responsive(c);}}
+for(const spec of SPECS){const root=await figma.getNodeByIdAsync(spec.id);responsive(root);const content=root.findOne(n=>n.name==='Content'),vp=root.findOne(n=>n.name==='Content viewport'||n.name==='Scrollable content');evidence.push({key:spec.key,id:root.id,width:root.width,height:root.height,contentHeight:content?.height,viewportHeight:vp?.height,scrollRequired:!!content&&!!vp&&content.height>vp.height-(spec.app?32:24)});}
+return {createdNodeIds,mutatedNodeIds,evidence};

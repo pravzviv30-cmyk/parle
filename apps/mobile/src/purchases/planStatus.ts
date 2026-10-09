@@ -117,6 +117,7 @@ export function endsWithinATrialWeek(periodEnd: string | null, now: number): boo
  * measure. Before that, the month is.
  */
 function measureFor(status: BillingStatus, now: number): number {
+  if (status.allowanceSeconds !== undefined) return status.allowanceSeconds;
   const month = PLANS[status.plan].secondsPerPeriod;
   if (status.plan === 'trial' || !endsWithinATrialWeek(status.periodEnd, now)) return month;
   return Math.min(month, storeTrialSeconds(status.plan));

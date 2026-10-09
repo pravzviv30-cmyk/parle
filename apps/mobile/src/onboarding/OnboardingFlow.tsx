@@ -67,7 +67,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { startVoiceLine } from '../sound/voiceLine.ts';
-import { paper, space, type } from '../theme.ts';
+import { colour, paper, space, type } from '../theme.ts';
 import { Card, PillButton, GhostButton, Field, ProgressDots, OptionRow } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
@@ -92,6 +92,7 @@ import {
   type OnboardingAnswers,
   type Page,
 } from './answers.ts';
+import { OnboardingArtwork } from './OnboardingMotion.tsx';
 import { AgeRefusal } from './AgeRefusal.tsx';
 import {
   nameGreeting,
@@ -262,6 +263,9 @@ export function OnboardingFlow({
     setPage('name');
   };
 
+  const ground = page === 'name' ? colour.blue : page === 'meet' ? colour.mint : colour.sun;
+  const ink = page === 'name' ? paper.card : paper.ink;
+
   // The page bodies, hoisted above the return so they are written before the
   // footer in source. See the header note: the first-occurrence source walks
   // depend on body-before-footer.
@@ -274,10 +278,10 @@ export function OnboardingFlow({
           order to ask in. */}
       {page === 'age' && (
         <>
-          <Text accessibilityRole="header" style={st.question}>
+          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
             {AGE_QUESTION}
           </Text>
-          <Text style={st.sub}>{AGE_SUB}</Text>
+          <Text style={[st.sub, { color: ink }]}>{AGE_SUB}</Text>
           {refusal !== null && <AgeRefusal text={refusal} onSignOut={onSignOut} />}
           {/* Gone once they have said they are younger, so the honest refusal
               is not shown with the way to say it again still under it. */}
@@ -291,11 +295,11 @@ export function OnboardingFlow({
 
       {page === 'name' && (
         <>
-          <Text accessibilityRole="header" style={st.question}>
+          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
             {NAME_QUESTION}
           </Text>
-          <Text style={st.sub}>{nameGreeting(voice ?? existing?.tutorVoice)}</Text>
-          <View style={{ marginTop: space(6) }}>
+          <Text style={[st.sub, { color: ink }]}>{nameGreeting(voice ?? existing?.tutorVoice)}</Text>
+          <Card style={{ marginTop: space(4) }}>
             {/* A visible label rather than a placeholder alone: a
                 placeholder disappears the moment somebody types, and it is
                 the only thing assistive tech had to go on here. */}
@@ -310,14 +314,14 @@ export function OnboardingFlow({
               returnKeyType="done"
               onSubmitEditing={() => setPage('meet')}
             />
-          </View>
-          <Text style={st.hint}>{NAME_SKIP_HINT}</Text>
+          </Card>
+          <Text style={[st.hint, { color: ink }]}>{NAME_SKIP_HINT}</Text>
         </>
       )}
 
       {page === 'meet' && (
         <>
-          <Text accessibilityRole="header" style={st.question}>
+          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
             {MEET_TITLE(persona)}
           </Text>
           <View style={st.lines}>
@@ -326,7 +330,7 @@ export function OnboardingFlow({
             <Text style={st.line}>{MEET_MIC}</Text>
             <Text style={st.line}>{MEET_TYPING}</Text>
           </View>
-          <Text style={st.hint}>{MEET_MORE}</Text>
+          <Text style={[st.hint, { color: ink }]}>{MEET_MORE}</Text>
           {/* Drawn only for a learner with no record at all, which is the whole
               of "asked once". Anyone else has answered this already, on their
               own first run or in Settings, and a screen they were sent back
@@ -359,11 +363,11 @@ export function OnboardingFlow({
           selected, and both of those are a real person with a name. */}
       {page === 'voice' && (
         <>
-          <Text accessibilityRole="header" style={st.question}>
+          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
             {VOICE_TITLE}
           </Text>
-          <Text style={st.sub}>{VOICE_BODY}</Text>
-          <Text style={st.hint}>{VOICE_AI}</Text>
+          <Text style={[st.sub, { color: ink }]}>{VOICE_BODY}</Text>
+          <Text style={[st.hint, { color: ink }]}>{VOICE_AI}</Text>
           <View style={st.voices}>
             {VOICE_STEP_OPTIONS.map((option) => (
               <OptionRow
@@ -377,7 +381,7 @@ export function OnboardingFlow({
               />
             ))}
           </View>
-          <Text style={st.hint}>{VOICE_SKIP_HINT(persona)}</Text>
+          <Text style={[st.hint, { color: ink }]}>{VOICE_SKIP_HINT(persona)}</Text>
         </>
       )}
     </>
@@ -385,6 +389,7 @@ export function OnboardingFlow({
 
   return (
     <ScrollScreen
+      ground={ground}
       avoidKeyboard
       header={
         <ScreenHeader
@@ -420,7 +425,10 @@ export function OnboardingFlow({
         </>
       }
     >
-      <View style={st.page}>{body}</View>
+      <View style={st.page}>
+        <OnboardingArtwork name={page === 'name' ? 'celebrate-first-line' : page === 'meet' ? 'state-headphones' : 'state-notebook'} response="welcome" event={index} />
+        {body}
+      </View>
     </ScrollScreen>
   );
 }
@@ -430,7 +438,7 @@ const st = StyleSheet.create({
   // feature panel, its ink outline and the three retired rasters (the cake,
   // the wave, the welcome bubbles) are gone; the words and the order are not.
   page: { paddingTop: space(3), marginBottom: space(4) },
-  question: { ...type.title, color: paper.ink },
+  question: { ...type.display, color: paper.ink },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
   hint: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   lines: { gap: space(3), marginTop: space(4) },

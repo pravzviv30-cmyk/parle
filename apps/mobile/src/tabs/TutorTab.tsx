@@ -230,7 +230,7 @@ export function TutorTab() {
     disabled={checking} onPress={() => open(heldBack?.textMode ?? modes.textMode, heldBack ? pendingStart.current : next.params)} />;
 
   if (renderHistoryStatus !== 'ready') return <ScrollScreen bottom="tab">
-    <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
+    <TabHeader title={tutorHeading(tutorName)} trailing={<ProfileButton />} />
     <Card style={st.offline}>
       <Text style={[type.body, { color: paper.ink }]}>{renderHistoryStatus === 'loading' ? 'Finding your next conversation.' : 'Your conversation history could not be read just now.'}</Text>
       {renderHistoryStatus === 'unread' && <IconAction layout="inline" icon="refresh" label="Try loading conversations again" onPress={() => setHistoryAttempt((n) => n + 1)} />}
@@ -240,7 +240,7 @@ export function TutorTab() {
 
   return (
     <ScrollScreen bottom="tab">
-      <TabHeader title={tutorHeading(tutorName)} purpose="Choose a conversation with your AI tutor." trailing={<ProfileButton />} />
+      <TabHeader title={tutorHeading(tutorName)} trailing={<ProfileButton />} />
 
       {/* What the tutor remembers, from a real record only. */}
       {continuity !== null && (

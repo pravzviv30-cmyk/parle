@@ -1,0 +1,7 @@
+/* Decorative cloud palette; text and interaction colours retain their own tokens. */
+:root {
+  --orb-cloud-deep: #6670FA;
+  --orb-cloud-upper: #7E8AFF;
+  --orb-cloud-lower: #BECBF9;
+  --orb-cloud-milk: #EBEFFF;
+}

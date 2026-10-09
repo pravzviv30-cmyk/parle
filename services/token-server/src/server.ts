@@ -26,6 +26,7 @@ import {
   conversationTextCursor,
   isConversationText,
   PLANS,
+  WEEKLY_STARTER_SECONDS,
   secondsRemaining,
   revisionFromPack,
   withoutRevisionSource,
@@ -493,7 +494,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       // yearlyProducts lets a build that sells a yearly product refuse to when
       // this server would not recognise the purchase.
       return json(res, 200, { ready: true, entitlementId: billing.entitlementId, products: billing.products,
-        yearlyProducts: billing.yearlyProducts ?? {}, projectionVersion: 1 });
+        yearlyProducts: billing.yearlyProducts ?? {},
+        ...(billing.weeklyStarterProduct ? { weeklyStarterProduct: billing.weeklyStarterProduct, weeklyStarterSeconds: WEEKLY_STARTER_SECONDS } : {}), projectionVersion: 1 });
     }
 
     // Learner-triggered recovery for restore and for a webhook delayed or lost.

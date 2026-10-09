@@ -1,0 +1,29 @@
+{
+  "source": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"mutatedNodeIds\":[\"42:3083\",\"42:3085\",\"42:3086\",\"42:3087\",\"42:3089\"]}"
+      }
+    ],
+    "isError": false
+  },
+  "prototype": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"mutatedNodeIds\":[\"42:6161\",\"42:6163\",\"42:6164\",\"42:6165\",\"42:6167\"]}"
+      }
+    ],
+    "isError": false
+  },
+  "overview": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"mutatedNodeIds\":[\"45:1813\"]}"
+      }
+    ],
+    "isError": false
+  }
+}

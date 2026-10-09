@@ -1,4 +1,4 @@
-import { PLANS_PRIVACY, PLANS_RENEWAL, PLANS_RESTORE, PLANS_TERMS, PLANS_TRUST } from '../wall/wallCopy.ts';
+import { billedPrice, PLANS_PRIVACY, PLANS_RENEWAL, PLANS_RESTORE, PLANS_TERMS, PLANS_TRUST } from '../wall/wallCopy.ts';
 import { PAID_PLANS, type StoreOffering, type StoreProduct } from './adapter.ts';
 import type { RestoreOutcome } from './restore.ts';
 
@@ -23,7 +23,7 @@ export interface PaywallSurface {
  */
 export function purchasable(offering: StoreOffering): readonly StoreProduct[] | null {
   if (!offering.available) return null;
-  const priced = offering.products.filter((product) => product.localizedPrice.trim().length > 0);
+  const priced = [...offering.products, ...(offering.weekly ?? []), ...(offering.yearly ?? [])].filter((product) => product.localizedPrice.trim().length > 0);
   // Ordered here rather than trusted from the adapter, so a caller that builds
   // an offering by hand gets the same order a real store answer produces.
   const ordered = PAID_PLANS.flatMap((plan) => priced.filter((product) => product.plan === plan));
@@ -109,7 +109,7 @@ export function inlinePaywall(offering: StoreOffering): InlinePaywallView {
       trust: PLANS_TRUST,
     };
   }
-  return { kind: 'offer', surface, renewal: PLANS_RENEWAL, privacy: PLANS_PRIVACY, terms: PLANS_TERMS, trust: PLANS_TRUST };
+  return { kind: 'offer', surface, renewal: `${billedPrice(surface.product.localizedPrice, surface.product.period)}. ${PLANS_RENEWAL}`, privacy: PLANS_PRIVACY, terms: PLANS_TERMS, trust: PLANS_TRUST };
 }
 
 export const PURCHASE_TROUBLE ='The store could not finish that just now. Nothing was changed, and you can try later.';

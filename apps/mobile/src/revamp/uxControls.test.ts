@@ -40,11 +40,12 @@ test('unavailable plans return to free practice once and retain an accepted cons
   assert.match(wall, /does not tell us whether you have a paid plan/);
   assert.match(wall, /IconAction layout="inline" icon="refresh" busy=\{busy\} label="Try again"[^\n]+setRetry/);
   const plans = read('../wall/WallPlansPage.tsx');
-  assert.ok(plans.indexOf('{minutesAMonth(row.minutes)}</Text>') < plans.indexOf('{perWeekLine(row.perWeek)}</Text>'));
+  assert.match(plans, /minutesAMonth\(row.minutes\)/);
+  assert.doesNotMatch(plans, /perWeekLine\(row.perWeek\)/, 'a second estimate repeats the actual minutes allowance');
   // 7 October 2026, come alive README Part 5.G and Part 7 ("per month pins edited
   // for annual rows"): each way to pay is titled by its billed price with its
   // own period, yearly or monthly, and a screen reader hears the same.
-  assert.match(plans, /const billed = billedPrice\(offer\.price, offer\.period\);/); assert.match(plans, /title=\{billed\}/);
+  assert.match(plans, /const billed = billedPrice\(offer\.price, offer\.period\);/); assert.match(plans, /title=\{`\$\{period\} · \$\{offer.price\}`\}/);
   assert.match(plans, /monthlyPrice\(offer\.price\)/); assert.match(plans, /yearlyPrice\(offer\.price, offer\.perMonth\)/);
 });
 

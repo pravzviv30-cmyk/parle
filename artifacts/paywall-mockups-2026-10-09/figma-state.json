@@ -1,0 +1,621 @@
+{
+  "fileKey": "cJ79urCrmiQEm7MgQnoG3D",
+  "scope": {
+    "scope": "Paywall screen family",
+    "screenCount": 56,
+    "source": "Report sections 20–28",
+    "style": "Current app Revamp B / Outfit",
+    "fileKey": "cJ79urCrmiQEm7MgQnoG3D",
+    "checks": [
+      "56 editable state screens",
+      "shared bound components",
+      "main journey linked",
+      "no new checkout during pending/recovery",
+      "sample prices marked provisional",
+      "current token and font match"
+    ]
+  },
+  "foundations": {
+    "createdNodeIds": [
+      "2:49",
+      "2:50",
+      "2:51",
+      "2:52",
+      "2:53",
+      "2:54",
+      "2:55",
+      "2:56",
+      "2:57",
+      "2:58",
+      "2:59",
+      "2:60",
+      "2:61",
+      "2:62",
+      "2:63",
+      "2:64",
+      "2:65",
+      "2:66",
+      "2:67",
+      "2:68",
+      "2:69",
+      "2:70",
+      "2:71",
+      "2:72",
+      "2:73",
+      "2:74",
+      "2:75",
+      "2:76",
+      "2:77",
+      "2:78",
+      "2:79",
+      "2:80",
+      "2:81",
+      "2:82",
+      "2:83",
+      "2:84",
+      "2:85",
+      "2:86",
+      "2:87",
+      "2:88",
+      "2:89",
+      "2:90",
+      "2:91",
+      "2:92",
+      "2:93",
+      "2:94",
+      "2:95",
+      "2:96",
+      "2:97",
+      "2:98",
+      "2:99",
+      "2:100",
+      "2:101",
+      "2:102",
+      "2:103",
+      "2:104",
+      "2:105",
+      "2:106",
+      "2:107",
+      "2:108",
+      "2:109",
+      "2:110",
+      "2:111",
+      "2:112",
+      "2:113",
+      "2:114",
+      "2:115",
+      "2:116",
+      "2:117",
+      "2:118",
+      "2:119",
+      "2:120",
+      "2:121",
+      "2:122",
+      "2:123",
+      "2:124",
+      "2:125",
+      "2:126",
+      "2:127",
+      "2:128",
+      "2:129",
+      "2:130",
+      "2:131",
+      "2:132",
+      "2:133",
+      "2:134",
+      "2:135",
+      "2:136",
+      "2:137",
+      "2:138",
+      "2:139",
+      "2:140",
+      "2:141",
+      "2:142",
+      "2:143",
+      "2:144",
+      "2:145",
+      "2:146",
+      "2:147",
+      "2:148",
+      "2:149",
+      "2:150",
+      "2:151",
+      "2:152",
+      "2:153",
+      "2:154",
+      "2:155",
+      "2:156",
+      "2:157",
+      "2:158",
+      "2:159",
+      "2:160",
+      "2:161",
+      "2:162",
+      "2:163",
+      "2:164",
+      "2:165",
+      "2:166",
+      "2:167",
+      "2:168",
+      "2:169",
+      "2:170",
+      "2:171",
+      "2:172",
+      "2:173",
+      "2:174",
+      "2:175",
+      "2:176",
+      "2:177",
+      "2:178",
+      "2:179",
+      "2:180",
+      "2:181",
+      "2:182",
+      "2:183",
+      "2:184",
+      "2:185",
+      "2:186",
+      "2:187",
+      "2:188",
+      "2:189",
+      "2:190",
+      "2:191",
+      "2:192",
+      "2:193",
+      "2:194",
+      "2:195",
+      "2:196",
+      "2:197",
+      "2:198",
+      "2:199",
+      "2:200",
+      "2:201",
+      "2:202",
+      "2:203",
+      "2:204",
+      "2:205",
+      "2:206",
+      "2:207",
+      "2:208",
+      "2:209",
+      "2:210",
+      "2:211",
+      "2:212",
+      "2:213",
+      "2:214",
+      "2:215",
+      "2:216",
+      "2:217",
+      "2:218",
+      "2:219",
+      "2:220",
+      "2:221",
+      "2:222",
+      "2:223",
+      "2:224",
+      "2:225",
+      "2:226",
+      "2:227",
+      "2:228",
+      "2:229",
+      "2:230",
+      "2:231",
+      "2:232",
+      "2:233",
+      "2:234",
+      "2:235",
+      "2:236",
+      "2:237",
+      "2:238",
+      "2:239",
+      "2:240",
+      "2:241",
+      "2:242",
+      "2:243",
+      "2:244",
+      "2:245",
+      "2:246",
+      "2:247",
+      "2:248",
+      "2:249",
+      "2:250",
+      "2:251",
+      "2:252",
+      "2:253",
+      "2:254",
+      "2:255",
+      "2:256",
+      "2:257",
+      "2:258"
+    ],
+    "mutatedNodeIds": [
+      "0:1"
+    ],
+    "variableIds": [
+      "VariableID:2:4",
+      "VariableID:2:5",
+      "VariableID:2:6",
+      "VariableID:2:7",
+      "VariableID:2:8",
+      "VariableID:2:9",
+      "VariableID:2:10",
+      "VariableID:2:11",
+      "VariableID:2:12",
+      "VariableID:2:13",
+      "VariableID:2:14",
+      "VariableID:2:15",
+      "VariableID:2:16",
+      "VariableID:2:17",
+      "VariableID:2:18",
+      "VariableID:2:19",
+      "VariableID:2:20",
+      "VariableID:2:21",
+      "VariableID:2:22",
+      "VariableID:2:23",
+      "VariableID:2:24",
+      "VariableID:2:25",
+      "VariableID:2:26",
+      "VariableID:2:27",
+      "VariableID:2:28",
+      "VariableID:2:29",
+      "VariableID:2:30",
+      "VariableID:2:31",
+      "VariableID:2:32",
+      "VariableID:2:33",
+      "VariableID:2:34",
+      "VariableID:2:35",
+      "VariableID:2:36",
+      "VariableID:2:37",
+      "VariableID:2:38",
+      "VariableID:2:39"
+    ],
+    "styleIds": [
+      "S:88f864323387e95a83b6ce9caa1d2f0651123684,",
+      "S:b10059a4787c4d041eec59a4e5f90b17ffa29468,",
+      "S:f2305f8fa13c9e2d9da62b4f62fa463a1d346e62,",
+      "S:eb9f1a1ad91d76405e5ac91248d709a1466143a1,",
+      "S:0e16d3d6c7766d0c0fd97fd0f53d5da615e26ed2,",
+      "S:f861e26158effeadd02e6d2af2d41ce08702ce3b,",
+      "S:59aebdbfa9f4b033adce30761fd11b8dbda1803b,",
+      "S:f2eec4c563c4d168e2cd6a45afef9b54c1fd05be,",
+      "S:1b837ed688cc465f8a42214763b3dcc179e8ee2d,"
+    ],
+    "collectionIds": [
+      "VariableCollectionId:2:2",
+      "VariableCollectionId:2:3"
+    ],
+    "pageId": "0:1",
+    "coverId": "2:49",
+    "boards": {
+      "Entry points": "2:55",
+      "Offer choices": "2:81",
+      "Checkout and recovery": "2:116",
+      "Confirmed access": "2:157",
+      "Allowance boundaries": "2:176",
+      "Plan and subscription": "2:189",
+      "Details and aftercare": "2:230"
+    },
+    "screens": {
+      "first-recap": {
+        "id": "2:61",
+        "cell": "2:59",
+        "group": "Entry points"
+      },
+      "home": {
+        "id": "2:64",
+        "cell": "2:62",
+        "group": "Entry points"
+      },
+      "later-recap": {
+        "id": "2:67",
+        "cell": "2:65",
+        "group": "Entry points"
+      },
+      "locked": {
+        "id": "2:70",
+        "cell": "2:68",
+        "group": "Entry points"
+      },
+      "welcome-empty": {
+        "id": "2:73",
+        "cell": "2:71",
+        "group": "Entry points"
+      },
+      "free-settings": {
+        "id": "2:76",
+        "cell": "2:74",
+        "group": "Entry points"
+      },
+      "reinstall": {
+        "id": "2:80",
+        "cell": "2:78",
+        "group": "Entry points"
+      },
+      "yearly-trial": {
+        "id": "2:87",
+        "cell": "2:85",
+        "group": "Offer choices"
+      },
+      "monthly": {
+        "id": "2:90",
+        "cell": "2:88",
+        "group": "Offer choices"
+      },
+      "weekly": {
+        "id": "2:93",
+        "cell": "2:91",
+        "group": "Offer choices"
+      },
+      "yearly-paid": {
+        "id": "2:96",
+        "cell": "2:94",
+        "group": "Offer choices"
+      },
+      "yearly-unknown": {
+        "id": "2:99",
+        "cell": "2:97",
+        "group": "Offer choices"
+      },
+      "unselected": {
+        "id": "2:102",
+        "cell": "2:100",
+        "group": "Offer choices"
+      },
+      "max": {
+        "id": "2:106",
+        "cell": "2:104",
+        "group": "Offer choices"
+      },
+      "return": {
+        "id": "2:109",
+        "cell": "2:107",
+        "group": "Offer choices"
+      },
+      "two-offer": {
+        "id": "2:112",
+        "cell": "2:110",
+        "group": "Offer choices"
+      },
+      "partial-offers": {
+        "id": "2:115",
+        "cell": "2:113",
+        "group": "Offer choices"
+      },
+      "offers-loading": {
+        "id": "2:122",
+        "cell": "2:120",
+        "group": "Checkout and recovery"
+      },
+      "offers-unavailable": {
+        "id": "2:125",
+        "cell": "2:123",
+        "group": "Checkout and recovery"
+      },
+      "store-opening": {
+        "id": "2:128",
+        "cell": "2:126",
+        "group": "Checkout and recovery"
+      },
+      "confirming": {
+        "id": "2:131",
+        "cell": "2:129",
+        "group": "Checkout and recovery"
+      },
+      "pending": {
+        "id": "2:134",
+        "cell": "2:132",
+        "group": "Checkout and recovery"
+      },
+      "checkout-cancelled": {
+        "id": "2:137",
+        "cell": "2:135",
+        "group": "Checkout and recovery"
+      },
+      "payment-failed": {
+        "id": "2:141",
+        "cell": "2:139",
+        "group": "Checkout and recovery"
+      },
+      "slow-verify": {
+        "id": "2:144",
+        "cell": "2:142",
+        "group": "Checkout and recovery"
+      },
+      "restore-found": {
+        "id": "2:147",
+        "cell": "2:145",
+        "group": "Checkout and recovery"
+      },
+      "restore-none": {
+        "id": "2:150",
+        "cell": "2:148",
+        "group": "Checkout and recovery"
+      },
+      "restore-linked": {
+        "id": "2:153",
+        "cell": "2:151",
+        "group": "Checkout and recovery"
+      },
+      "restore-offline": {
+        "id": "2:156",
+        "cell": "2:154",
+        "group": "Checkout and recovery"
+      },
+      "success-trial": {
+        "id": "2:163",
+        "cell": "2:161",
+        "group": "Confirmed access"
+      },
+      "success-weekly": {
+        "id": "2:166",
+        "cell": "2:164",
+        "group": "Confirmed access"
+      },
+      "success-monthly": {
+        "id": "2:169",
+        "cell": "2:167",
+        "group": "Confirmed access"
+      },
+      "success-yearly": {
+        "id": "2:172",
+        "cell": "2:170",
+        "group": "Confirmed access"
+      },
+      "success-max": {
+        "id": "2:175",
+        "cell": "2:173",
+        "group": "Confirmed access"
+      },
+      "paid-empty": {
+        "id": "2:182",
+        "cell": "2:180",
+        "group": "Allowance boundaries"
+      },
+      "trial-empty": {
+        "id": "2:185",
+        "cell": "2:183",
+        "group": "Allowance boundaries"
+      },
+      "max-empty": {
+        "id": "2:188",
+        "cell": "2:186",
+        "group": "Allowance boundaries"
+      },
+      "manage-trial": {
+        "id": "2:195",
+        "cell": "2:193",
+        "group": "Plan and subscription"
+      },
+      "manage-weekly": {
+        "id": "2:198",
+        "cell": "2:196",
+        "group": "Plan and subscription"
+      },
+      "manage-monthly": {
+        "id": "2:201",
+        "cell": "2:199",
+        "group": "Plan and subscription"
+      },
+      "manage-yearly": {
+        "id": "2:204",
+        "cell": "2:202",
+        "group": "Plan and subscription"
+      },
+      "manage-max": {
+        "id": "2:207",
+        "cell": "2:205",
+        "group": "Plan and subscription"
+      },
+      "cancelled-paid": {
+        "id": "2:210",
+        "cell": "2:208",
+        "group": "Plan and subscription"
+      },
+      "cancelled-trial": {
+        "id": "2:214",
+        "cell": "2:212",
+        "group": "Plan and subscription"
+      },
+      "grace": {
+        "id": "2:217",
+        "cell": "2:215",
+        "group": "Plan and subscription"
+      },
+      "retry": {
+        "id": "2:220",
+        "cell": "2:218",
+        "group": "Plan and subscription"
+      },
+      "lapsed": {
+        "id": "2:223",
+        "cell": "2:221",
+        "group": "Plan and subscription"
+      },
+      "revoked": {
+        "id": "2:226",
+        "cell": "2:224",
+        "group": "Plan and subscription"
+      },
+      "status-unknown": {
+        "id": "2:229",
+        "cell": "2:227",
+        "group": "Plan and subscription"
+      },
+      "change-scheduled": {
+        "id": "2:236",
+        "cell": "2:234",
+        "group": "Details and aftercare"
+      },
+      "change-review": {
+        "id": "2:239",
+        "cell": "2:237",
+        "group": "Details and aftercare"
+      },
+      "reminder-scheduled": {
+        "id": "2:242",
+        "cell": "2:240",
+        "group": "Details and aftercare"
+      },
+      "reminder-denied": {
+        "id": "2:245",
+        "cell": "2:243",
+        "group": "Details and aftercare"
+      },
+      "reminder-off": {
+        "id": "2:248",
+        "cell": "2:246",
+        "group": "Details and aftercare"
+      },
+      "metering": {
+        "id": "2:251",
+        "cell": "2:249",
+        "group": "Details and aftercare"
+      },
+      "billing-reminder": {
+        "id": "2:255",
+        "cell": "2:253",
+        "group": "Details and aftercare"
+      }
+    },
+    "assetAreaId": "2:256",
+    "vars": {
+      "paper": "VariableID:2:5",
+      "white": "VariableID:2:7",
+      "ink": "VariableID:2:9",
+      "soft": "VariableID:2:11",
+      "line": "VariableID:2:13",
+      "field": "VariableID:2:15",
+      "blue": "VariableID:2:17",
+      "coral": "VariableID:2:19",
+      "sun": "VariableID:2:21",
+      "mint": "VariableID:2:23",
+      "highlight": "VariableID:2:25",
+      "skeleton": "VariableID:2:27",
+      "s4": "VariableID:2:28",
+      "s8": "VariableID:2:29",
+      "s12": "VariableID:2:30",
+      "s16": "VariableID:2:31",
+      "s20": "VariableID:2:32",
+      "s24": "VariableID:2:33",
+      "s32": "VariableID:2:34",
+      "r16": "VariableID:2:35",
+      "r20": "VariableID:2:36",
+      "r24": "VariableID:2:37",
+      "r28": "VariableID:2:38",
+      "pill": "VariableID:2:39"
+    },
+    "styles": {
+      "display": "S:88f864323387e95a83b6ce9caa1d2f0651123684,",
+      "title": "S:b10059a4787c4d041eec59a4e5f90b17ffa29468,",
+      "heading": "S:f2305f8fa13c9e2d9da62b4f62fa463a1d346e62,",
+      "body": "S:eb9f1a1ad91d76405e5ac91248d709a1466143a1,",
+      "strong": "S:0e16d3d6c7766d0c0fd97fd0f53d5da615e26ed2,",
+      "label": "S:f861e26158effeadd02e6d2af2d41ce08702ce3b,",
+      "small": "S:59aebdbfa9f4b033adce30761fd11b8dbda1803b,",
+      "french": "S:f2eec4c563c4d168e2cd6a45afef9b54c1fd05be,",
+      "stat": "S:1b837ed688cc465f8a42214763b3dcc179e8ee2d,"
+    },
+    "screenCount": 56,
+    "font": "Outfit"
+  }
+}

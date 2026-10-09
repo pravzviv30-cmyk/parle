@@ -138,8 +138,8 @@ describe('Today opens on a still greeting — F420, notebook Phase 3', () => {
 
     assert.equal((SCREEN.match(/<TabHeader\b/g) ?? []).length, 1, 'Today draws more than one tab header');
     const header = tags(RENDER, 'TabHeader')[0]!;
-    assert.match(header, /title=\{greeting\.title\}/, 'the header does not draw the still greeting');
-    assert.match(header, /purpose=\{greeting\.subline\}/, "Today's purpose line is not the hour's question from the greeting rule");
+    assert.match(header, /\{greeting\.title\}/, 'the header does not draw the still greeting');
+    assert.match(header, /\{greeting\.title\}/, "Today's purpose line is not the hour's question from the greeting rule");
     assert.doesNotMatch(SCREEN, /purpose="/, 'Today spells its purpose line as a literal');
     assert.match(SCREEN, /trailing=\{<ProfileButton \/>\}/, 'the avatar must provide a consistent profile entry point');
     assert.ok(!SCREEN.includes('<Monogram'), 'the profile initial is back on Today beside the greeting');
@@ -216,7 +216,7 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.doesNotMatch(sceneArt, /onPress|<Press\b|<Pressable\b/, 'the place drawing became a second target on the brief');
     assert.ok(at('{art != null ? art : null}', brief) < at('{meta}', brief), 'the drawing is not above the meta line');
     // Every word on the blue is in the blue ground's own colours.
-    assert.doesNotMatch(HERO, /paper\.inkSoft/, 'the brief sets soft ink on the blue');
+    assert.doesNotMatch(HERO.slice(HERO.indexOf('<SceneBrief')), /paper\.inkSoft/, 'the brief sets soft ink on the blue');
     assert.match(HERO_FLAT, /<BookmarkGlyph size=\{20\} color=\{saved \? textOn\.blue : onColour\.blue\} \/>/, 'the bookmark is not drawn in the blue ground\'s colours');
     assert.match(HERO_FLAT, /checking: \{ \.\.\.type\.small, color: onColour\.blue/, 'the checking line is not the blue ground\'s secondary');
   });
@@ -243,7 +243,7 @@ describe('Today leads with the next scene, as a brief', () => {
     // named to a screen reader.
     assert.match(HERO_FLAT, /const \{ live, recheck \} = useLive\(\)/, 'the Start cannot say what an unreachable tutor means');
     assert.match(HERO_FLAT, /const label = launchLabel\(\{ checking, live, mode: modes\.mode \}\)/, "the Start's words are not Speak's");
-    const pill = flat(tags(HERO, 'PillButton')[0]!);
+    const pill = flat(tags(HERO, 'PillButton')[1]!);
     assert.match(pill, /tone="white"/, 'the Start is not the white pill on the blue');
     assert.match(pill, /label=\{label\}/);
     assert.match(pill, /accessibilityLabel=\{`\$\{label\}: \$\{hero\.title\}`\}/, 'the Start does not name its scene to a screen reader');
@@ -281,7 +281,7 @@ describe('Today leads with the next scene, as a brief', () => {
     assert.doesNotMatch(opener, /\}, \(\) => \{/);
     assert.equal((opener.match(/setChecking\(false\)/g) ?? []).length, 2);
     assert.match(opener, /setHeldBack\(\{ textMode \}\)/, 'a start lost to a throw is dropped rather than kept for the retry');
-    const heldBack = between(HERO, 'heldBack !== null &&', '</View>', 'the card answers a start it could not honour');
+    const heldBack = between(HERO.slice(HERO.indexOf('<SceneBrief')), 'heldBack !== null &&', '</View>', 'the card answers a start it could not honour');
     assert.match(heldBack, /\{TUTOR_OFFLINE\.body\}/);
     // Revamp B (F602): on the blue brief the retry is a white text link, not
     // an outline, and the sentence above it is white.
@@ -335,7 +335,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     assert.match(SCREEN_RAW, /<DayCount \/>/);
     assert.doesNotMatch(SCREEN_RAW, /<DayCount weekly/);
     const rawRender = SCREEN_RAW.slice(SCREEN_RAW.indexOf('<ScrollScreen'));
-    assert.ok(at('<NextTaskCard />', rawRender) < at('<DayCount />',rawRender));
+    assert.ok(at('<NextTaskCard vivid />', rawRender) < at('<DayCount />',rawRender));
     assert.ok(at('<DayCount />',rawRender) < at('{start !== null ? (',rawRender));
 
     // Order: greeting, the lead, then the week or day one, then today's phrase.

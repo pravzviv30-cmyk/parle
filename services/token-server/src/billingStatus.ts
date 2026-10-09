@@ -17,6 +17,7 @@
 
 import {
   MIN_VIABLE_SESSION_SEC,
+  PLANS,
   canStartSession,
   secondsRemaining,
   type Entitlement,
@@ -26,6 +27,7 @@ import {
 
 export interface BillingStatus {
   plan: Plan;
+  allowanceSeconds?: number;
   /** Seconds left in the period. A fact, never a countdown: the app says it in words. */
   secondsRemaining: number;
   /**
@@ -61,6 +63,7 @@ export function billingStatusFor(entitlement: Entitlement): BillingStatus {
   return {
     plan: entitlement.plan,
     secondsRemaining: secondsRemaining(entitlement),
+    ...(entitlement.withheldSeconds ? { allowanceSeconds: PLANS[entitlement.plan].secondsPerPeriod - entitlement.withheldSeconds } : {}),
     periodEnd: periodEndOf(entitlement.windowEnd ?? entitlement.periodEnd),
     lapsed: entitlement.lapsed === true,
     canStart: decision.allowed,

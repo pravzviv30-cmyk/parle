@@ -67,11 +67,11 @@ test('revamp B reminder and deletion controls retain explicit choices and explai
 test('revamp B plans preserve catalogue and store prices, accessible selection and a single restore',()=>{
   // Come-alive D16: each store product is now a shared radio choice. Keep
   // the actual price and selected product wired to its accessible name/state.
-  has('wall/WallPlansPage.tsx', /<Choice/, /role="radio"/, /selected=\{offer.productId === selected\}/, /title=\{billed\}/, /billedPrice\(offer.price, offer.period\)/, /accessibilityLabel=\{\[row.name, period, price\].join\(', '\)\}/);
-  has('components.tsx', /accessibilityState=\{radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);
+  has('wall/WallPlansPage.tsx', /<Choice/, /role="radio"/, /selected=\{offer.productId === selected\}/, /title=\{`\$\{period\} · \$\{offer.price\}`\}/, /billedPrice\(offer.price, offer.period\)/, /accessibilityLabel=\{\[row.name, period, price\].join\(', '\)\}/);
+  has('components.tsx', /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);
   lacks('wall/WallPlansPage.tsx', /recommended/);
   has('wall/WallScreen.tsx',/wallSuccess/,/ground=\{colour.mint\}/,/state-offline/,/Start speaking/,/restore/);
-  has('wall/WallYoursPage.tsx',/<Ledger/,/YOURS_ROWS.map/,/QuoteGlyph/,/MouthGlyph/,/paper.ink/);
+  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/paper.ink/,/<Illustration/);
   lacks('wall/WallYoursPage.tsx',/borderBottomWidth/);
   has('purchases/paywallView.ts',/price/);
 });

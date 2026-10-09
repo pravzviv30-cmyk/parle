@@ -61,6 +61,9 @@ export function wallSuccess(
     const until = status.periodEnd !== null && endsWithinATrialWeek(status.periodEnd, now) ? dayAndMonth(status.periodEnd) : null;
     if (until !== null) return { name: spec.label, minutes: held, perWeek: null, until };
   }
+  if (status.allowanceSeconds !== undefined && status.allowanceSeconds < spec.secondsPerPeriod && status.periodEnd !== null) {
+    return { name: spec.label, minutes: held, perWeek: null, until: dayAndMonth(status.periodEnd) ?? undefined };
+  }
   const minutes = Math.floor(spec.secondsPerPeriod / 60);
   return { name: spec.label, minutes, perWeek: conversationsAWeek(minutes, spec.periodDays) };
 }

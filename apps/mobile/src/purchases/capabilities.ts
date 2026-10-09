@@ -71,6 +71,7 @@ export const INCLUSIONS = {
   missions: 'Every everyday situation',
   rehearsal: 'Bring a real moment of your own to rehearse',
   arcs: 'Continue a conversation across sessions',
+  maxCompact: 'Rehearse your moments + continue conversations.',
   /**
    * Streak protection, said once on the plans page for every plan on it (F734,
    * D4). True of both paid tiers, monthly or yearly and during the store's free

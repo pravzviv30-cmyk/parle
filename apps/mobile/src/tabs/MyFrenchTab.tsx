@@ -7,11 +7,11 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { DAILY_SCENARIOS, MISSIONS, isEarned, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
-import { ColourCard, Ledger, LedgerRow, PillButton } from '../components.tsx';
+import { Choice, Sheet, IconAction, ColourCard, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { onColour, paper, space, type } from '../theme.ts';
+import { colour, onColour, paper, space, type } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { loadActivity } from '../progress/activity.ts';
@@ -59,6 +59,8 @@ import { PostcardShelf } from '../progress/PostcardShelf.tsx';
  * the earned postcards as a shelf; and the ledger rows, each led by its tile.
  */
 export function MyFrenchTab() {
+  const [details, setDetails] = useState(false);
+  useFocusEffect(useCallback(() => () => setDetails(false), []));
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user, adapter } = useAuth();
   const { profile } = useProfile();
@@ -177,9 +179,9 @@ export function MyFrenchTab() {
   const postcards = earnedPostcards(missions);
 
   return (
-    <ScrollScreen bottom="tab">
+    <ScrollScreen bottom="tab" ground={colour.sun}>
       <View style={st.head}>
-        <TabHeader title={MY_FRENCH_TITLE} purpose={MY_FRENCH_PURPOSE} trailing={<ProfileButton />} />
+        <TabHeader display title={renderStatus === 'ready' && firstVisit ? 'Your French starts here.' : 'Look how far you’ve come.'} trailing={<ProfileButton />} />
       </View>
       {renderStatus === 'loading' && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>Finding your French.</Text>}
 
@@ -201,6 +203,16 @@ export function MyFrenchTab() {
         </View>
       )}
 
+      {renderStatus === 'ready' && !firstVisit && <View style={{ gap: space(4), marginTop: space(4) }}>
+        <Text style={[type.hero, { color: paper.ink }]}>{kept.phrases}</Text>
+        <Text style={[type.label, { color: paper.ink }]}>phrases you’ve saved</Text>
+        <Choice role="button" navigation outlined compact title="Your week in French" detail="See what you practised" selected={false} onPress={() => nav.navigate('WeekWrapped')} />
+        <Choice role="button" navigation outlined compact title="Your postcards" detail="Moments worth keeping" selected={false} onPress={() => nav.navigate('Postcards')} />
+        <PillButton label="Practise saved French" onPress={() => nav.navigate('Phrasebook')} />
+        <IconAction layout="inline" icon="forward" label="See all progress" onPress={() => setDetails(true)} />
+      </View>}
+      {renderStatus === 'ready' && firstVisit && <LocalPracticeCard vivid />}
+      <Sheet visible={details} title="Your progress" onClose={() => setDetails(false)}>
       {gameCards && (
         <View style={st.group}>
           <Columns>
@@ -226,9 +238,6 @@ export function MyFrenchTab() {
         </View>
       )}
 
-      {renderStatus === 'ready' && firstVisit && (
-        <View style={st.group}><Text accessibilityRole="header" style={type.heading}>Your first useful phrase</Text><LocalPracticeCard /></View>
-      )}
 
       {!gameCards && <DayCount weekly />}
 
@@ -258,6 +267,7 @@ export function MyFrenchTab() {
           </Ledger>
         </View>
       )}
+      </Sheet>
     </ScrollScreen>
   );
 }

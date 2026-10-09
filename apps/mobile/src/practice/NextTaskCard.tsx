@@ -32,7 +32,7 @@ import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { DEMO_REPLY_ID } from '../onboarding/tutorLines.ts';
 
 /** One account-bound next action across Home, Speak and an empty Practice. */
-export function NextTaskCard() {
+export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
@@ -89,5 +89,5 @@ export function NextTaskCard() {
     <PillButton tone="white" label="Practise review" onPress={() => navigateOwned('Review')} />
   </ColourCard>;
   if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{PLANS_LEAD.body}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
-  return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} /> : <LocalPracticeCard />;
+  return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} /> : <LocalPracticeCard vivid={vivid} />;
 }

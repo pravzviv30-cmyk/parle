@@ -80,7 +80,10 @@ export type PaidTier = Exclude<Plan, 'trial'>;
  * of exposure on day one, and never one month's minutes stretched over twelve,
  * which is a learner paying for twelve and getting one.
  */
-export type BillingPeriod = 'month' | 'year';
+export type BillingPeriod = 'week' | 'month' | 'year';
+
+/** Starter Weekly: one verified paid seven-day window, no rollover. */
+export const WEEKLY_STARTER_SECONDS = 45 * 60;
 
 /**
  * Days in one allowance window.

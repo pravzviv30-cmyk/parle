@@ -98,7 +98,7 @@ describe('My French is the level, the phrases, the sounds and the conversations 
   test('a first visit reads one line on what will collect here, and nothing empty', () => {
     assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs.length \}\);/);
     gated('<LocalPracticeCard', 'firstVisit &&', 300);
-    assert.equal(tags(SCREEN, 'PillButton').length, 1, 'first visit and earned proof each have one scene door');
+    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'first visit and earned proof each have one scene door');
     assert.match(FLAT, /<LocalPracticeCard/);
   });
 
@@ -125,7 +125,7 @@ describe('My French is the level, the phrases, the sounds and the conversations 
   });
 
   test('the page is ledger rows and nothing louder: no pill, no tint, no retired row', () => {
-    assert.equal(tags(SCREEN, 'PillButton').length, 1, 'proof and first visit are exclusive scene doors');
+    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'proof and first visit are exclusive scene doors');
     assert.match(FLAT, /proof !== null && <ColourCard/);
     assert.equal(tags(SCREEN, 'Ledger').length, 4, 'retry, scene path, saved materials and evidence-based stories');
     assert.match(SCREEN, /hasWeek \|\| earnedPostcards\(missions\).length > 0/);

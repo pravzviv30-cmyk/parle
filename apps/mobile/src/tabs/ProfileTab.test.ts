@@ -101,7 +101,7 @@ describe('the tab that is a person — F576', () => {
       "the learner's own mark is not above their name",
     );
     assert.match(TAB, /title=\{profile\.name \?\? 'You'\}/, 'the header says something other than the learner, or spells the fallback twice');
-    assert.match(TAB, /purpose=\{PROFILE_PURPOSE\}/, 'the line under the name is written in JSX, where no test can read it back');
+    assert.doesNotMatch(TAB, /purpose=/, 'the learner identity does not need another explanatory subtitle');
 
     // The initial is drawn once here and nowhere else on the tab, which is
     // F337's rule: that disc is the learner's, and a second one would be a

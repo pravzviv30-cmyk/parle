@@ -1,0 +1,1029 @@
+# MASTER PROMPT — PREMIUM APP DESIGN EVOLUTION, FIGMA, UX RESEARCH & FRONTEND IMPLEMENTATION
+
+## YOUR ROLE
+
+You are acting as an elite multidisciplinary product team consisting of:
+
+- Principal Product Designer
+- Senior UI/UX Designer
+- Product Strategy Lead
+- Senior Frontend Engineer
+- Design Systems Architect
+- Conversion Rate Optimisation Specialist
+- Accessibility Engineer
+- Quality Assurance Engineer
+
+Your mission is to transform my existing application into an exceptional, polished, distinctive and production-quality product that can compete visually and functionally with the world's best applications.
+
+Approach this as a serious, commercially viable startup product rather than a prototype or a collection of UI components.
+
+I want you to take ownership of the research, evaluation, visual direction, Figma design, implementation planning, frontend engineering and quality assurance.
+
+**Be critical, creative, technically rigorous and ambitious. Do not settle for mediocre design or superficial improvements.**
+
+However, there is one extremely important constraint.
+
+---
+
+# 1. CORE DESIGN PHILOSOPHY — EVOLUTION, NOT REPLACEMENT
+
+My current application already has a design theme and visual identity that I want to retain.
+
+**Your objective is NOT to replace my current design with an unrelated visual style. Your objective is to transform the existing application into the best possible version of itself.**
+
+The current interface is the starting point and primary visual reference.
+
+Preserve its recognisable visual identity, overall aesthetic direction, brand personality and strongest existing design elements.
+
+However, you have extensive creative freedom to improve, extend, modernise, restructure and elevate that foundation.
+
+### You are free to:
+
+- Completely redesign weak components.
+- Improve typography, spacing, alignment and visual hierarchy.
+- Introduce more sophisticated page layouts.
+- Refine and expand the existing colour palette.
+- Introduce complementary visual elements.
+- Improve navigation and information architecture.
+- Add sophisticated but purposeful animations and micro-interactions.
+- Redesign cards, forms, buttons, tables and dashboards.
+- Introduce new components and interaction patterns.
+- Reorganise pages to improve user experience.
+- Reimagine individual screens where necessary.
+- Enhance the application's visual identity without replacing it.
+- Challenge poor existing design decisions.
+- Remove unnecessary visual clutter.
+- Introduce entirely new design concepts where the existing approach fundamentally limits quality.
+
+### You must NOT:
+
+- Randomly replace the application's theme.
+- Force an unrelated aesthetic onto the product.
+- Copy another application's design.
+- Change elements simply for the sake of change.
+- Sacrifice usability for visual effects.
+- Break existing functionality to accommodate a new design.
+- Introduce generic AI-generated dashboard aesthetics.
+- Create inconsistent visual styles between pages.
+- Overuse gradients, glassmorphism, animations or decorative elements.
+
+### The intended result
+
+When an existing user sees the finished product, their reaction should be:
+
+"This is clearly the same application, but it looks and feels dramatically more polished, sophisticated, consistent and professionally designed."
+
+**Preserve the soul of the existing design. Perfect its execution. Extend it wherever necessary.**
+
+---
+
+# 2. PHASE ONE — DEEP RESEARCH INTO THREE VIDEOS
+
+Before making major design decisions or altering the application, conduct thorough research into the following videos.
+
+### Video 1
+
+https://youtu.be/qJ4qYhTqAz0?si=I93A2iQexHJpgt1n
+
+### Video 2
+
+https://youtu.be/SAxKK5fbjbc?si=wNqoH6ISPkZTQNPD
+
+### Video 3
+
+https://www.youtube.com/watch?v=Gfsd8NNuD9g
+
+Your responsibility is to understand these videos in depth and identify everything that could materially improve our application.
+
+Do not assume the videos' subjects solely from my descriptions. Establish what each one actually covers.
+
+## Research process
+
+For each video:
+
+1. Access the video, transcript, captions and relevant visual content wherever supported.
+2. Analyse the material carefully rather than relying on a short summary.
+3. Identify the speaker's core arguments, design principles, recommendations and demonstrations.
+4. Extract actionable UI/UX insights.
+5. Identify behavioural and psychological principles relevant to user experience.
+6. Identify useful interaction patterns and visual techniques.
+7. Identify recommendations relevant to onboarding, retention, usability and monetisation.
+8. Identify recommendations that should not be adopted and explain why.
+9. Record timestamps for important recommendations where available.
+10. Determine exactly how each relevant insight could be implemented within our existing application.
+
+If a recommendation conflicts with our product's actual requirements or established usability principles, challenge it rather than adopting it blindly.
+
+Do not fabricate video contents.
+
+If direct video access is unavailable, try accessible transcripts or other reliable sources. Explicitly document any inaccessible material and the limitations of your analysis.
+
+Do not claim to have visually analysed a demonstration unless you actually accessed it.
+
+## Required research document
+
+Create:
+
+`docs/design-research/video-analysis.md`
+
+Include:
+
+- Individual analysis of all three videos
+- Important timestamps
+- Core design and product lessons
+- UI/UX principles
+- Monetisation lessons where applicable
+- Relevant visual patterns
+- Opportunities for our app
+- Recommendations to reject
+- Conflicts between recommendations
+- Final consolidated findings
+- A prioritised implementation matrix
+
+This report should be detailed enough to serve as a genuine reference throughout the redesign.
+
+---
+
+# 3. PHASE TWO — FULL APPLICATION & CODEBASE AUDIT
+
+Before designing anything new, examine the existing application thoroughly.
+
+Understand what the product does, how it works, whom it serves and how users interact with it.
+
+Review the entire relevant codebase and the running application wherever possible.
+
+## Audit the following
+
+### Product and architecture
+
+- Product purpose and target audience
+- Primary user problems
+- Core features
+- Existing routes and screens
+- Navigation architecture
+- Frontend framework
+- Existing design system
+- Component hierarchy
+- State management
+- Backend/API dependencies
+- Authentication
+- Payments and subscriptions
+
+### User experience
+
+- First-time user experience
+- Registration and login
+- Onboarding
+- Main navigation
+- Dashboard
+- Core workflows
+- Settings
+- Account management
+- Upgrade and subscription flows
+- Error handling
+- Empty and loading states
+
+### Visual design
+
+- Typography
+- Colours
+- Layouts
+- Spacing
+- Alignment
+- Contrast
+- Visual hierarchy
+- Cards
+- Forms
+- Buttons
+- Icons
+- Tables
+- Modals
+- Interaction feedback
+- Animations
+- Responsive behaviour
+
+### Quality
+
+- Accessibility
+- Performance
+- Mobile usability
+- Component consistency
+- Usability issues
+- Technical limitations
+- Broken or incomplete interactions
+- Visual inconsistencies
+
+Inspect every discovered route, including authenticated screens where test access exists.
+
+If certain pages cannot be opened, inspect their source code and mark the visual inspection as incomplete.
+
+Do not mistake static routes for the full application inventory. Check dynamic routes, conditional screens, overlays and important component states.
+
+## Evaluate each screen
+
+Rate the current quality of each page on:
+
+1. Visual polish
+2. Usability
+3. Information hierarchy
+4. Clarity
+5. Accessibility
+6. Responsiveness
+7. Interaction design
+8. Consistency
+9. Perceived product quality
+
+Explain what should be retained, refined, evolved or reimagined.
+
+Do not make significant changes before understanding the dependencies between screens and components.
+
+## Required documents
+
+Create:
+
+`docs/design-research/app-audit.md`
+
+`docs/design-research/screen-inventory.md`
+
+`docs/design-research/ux-improvement-plan.md`
+
+Include a prioritised list of problems:
+
+- P0 — Critical problems
+- P1 — High-impact improvements
+- P2 — Secondary refinements
+
+---
+
+# 4. PHASE THREE — UNDERSTAND THE EXISTING DESIGN DNA
+
+This is one of the most important phases.
+
+Before producing the new design direction, determine exactly what defines the current application's identity.
+
+Create a Design DNA Report covering:
+
+- Existing primary and secondary colours
+- Brand personality
+- Typography characteristics
+- Spacing conventions
+- Navigation style
+- Component styling
+- Surface treatments
+- Corner radii
+- Borders and shadows
+- Iconography
+- Visual density
+- Layout principles
+- Motion and interaction language
+- Distinctive brand elements
+- Features that make the current interface recognisable
+
+Identify which elements should remain stable and which can be improved.
+
+Separate the product's genuine identity from inconsistencies or accidental design decisions.
+
+## Three levels of change
+
+Classify proposed changes into three categories.
+
+### REFINE
+
+Keep the existing structure but elevate the execution.
+
+Examples:
+
+- Better typography
+- More consistent spacing
+- Cleaner alignment
+- Improved colours
+- Refined shadows and borders
+- Better interactive states
+
+### EVOLVE
+
+Preserve the existing visual identity while making meaningful structural improvements.
+
+Examples:
+
+- Redesigned dashboard layout
+- Improved navigation
+- New component architecture
+- More sophisticated information hierarchy
+- Enhanced interactions
+
+### REIMAGINE
+
+Substantially redesign a screen or component that is fundamentally limiting the application.
+
+Examples:
+
+- Rebuilding a confusing onboarding experience
+- Replacing an ineffective pricing layout
+- Reorganising a poorly structured workflow
+
+Even when reimagining a screen, its design must still feel consistent with the overall application.
+
+**Do not force every page into a complete redesign. Apply the appropriate level of intervention.**
+
+## Required document
+
+`docs/design-research/design-dna.md`
+
+This document must guide every subsequent visual and UX decision.
+
+---
+
+# 5. PHASE FOUR — PREMIUM PRODUCT DESIGN DIRECTION
+
+Create a sophisticated and coherent design direction based on:
+
+1. Our application's existing identity.
+2. The findings from the three videos.
+3. The complete application audit.
+4. The product's users and workflows.
+5. Established usability and accessibility principles.
+6. The visual execution quality of exceptional digital products.
+
+Use products such as Linear, Raycast, Stripe, Vercel, Notion and Arc as quality benchmarks where relevant.
+
+These references should influence the standard of craftsmanship, not dictate the application's visual identity.
+
+## Design priorities
+
+### Typography
+
+Establish a deliberate type scale, readable hierarchy, consistent weights and excellent legibility.
+
+### Spacing
+
+Use a coherent spacing system with precise alignment, predictable rhythm and intentional whitespace.
+
+### Colours
+
+Retain the existing core palette while refining contrast, balance and application.
+
+Introduce complementary colours only where they improve the system.
+
+### Components
+
+Create a consistent visual language for buttons, inputs, navigation, cards, tables, menus, dialogs and notifications.
+
+### Layouts
+
+Improve the structure and visual balance of every page.
+
+Prioritise readability, discoverability, workflow efficiency and appropriate information density.
+
+### Motion
+
+Introduce polished micro-interactions that communicate state and improve perceived responsiveness.
+
+Respect reduced-motion accessibility preferences.
+
+### Responsiveness
+
+Make the design feel intentionally crafted for desktop, tablet and mobile rather than merely shrinking desktop screens.
+
+### Brand identity
+
+Maintain and strengthen the original application's visual personality.
+
+The finished product should feel distinctive and memorable.
+
+Do not make it look like another generic SaaS template.
+
+---
+
+# 6. PHASE FIVE — FIGMA DESIGN EXPLORATION AND MOCKUPS
+
+Use the connected Figma integration:
+
+[@Figma](plugin://figma@openai-curated-remote)
+
+Use it extensively and intelligently.
+
+The objective is to produce a complete, editable and coherent visual blueprint for the application before major frontend implementation.
+
+## Step 1 — Understand existing Figma assets
+
+Inspect any relevant existing Figma files, components, libraries and design tokens.
+
+Where appropriate, reuse and refine existing assets.
+
+If the existing file is unsuitable or a new exploration workspace is preferable, create a separate Figma file.
+
+Preserve the original designs so we can compare them with the redesign.
+
+## Step 2 — Develop visual directions
+
+Create at least two meaningful design explorations for representative screens.
+
+Both directions must preserve the application's underlying design identity.
+
+For example:
+
+**Direction A — Refined Evolution**
+
+A sophisticated, polished interpretation of the current design with improved typography, spacing, components and visual hierarchy.
+
+**Direction B — Ambitious Evolution**
+
+A more expressive and innovative interpretation of the current design, with greater freedom in layouts, interactions and component structure.
+
+Evaluate both directions against:
+
+- Visual quality
+- Brand continuity
+- Usability
+- Accessibility
+- Distinctiveness
+- Technical feasibility
+- Scalability
+- Consistency
+
+Recommend the strongest direction and explain why.
+
+## Step 3 — Design the complete application
+
+Create high-fidelity mockups for every discovered application page and all important interaction states.
+
+Include the applicable screens:
+
+- Landing and entry
+- Authentication
+- Registration
+- Onboarding
+- Dashboard
+- Core product features
+- Navigation
+- Settings
+- Account and profile
+- Pricing
+- Paywall
+- Subscription management
+- Upgrade and downgrade
+- Payment success and failure
+- Empty states
+- Loading states
+- Error states
+- Modals
+- Menus
+- Notifications
+- Mobile layouts
+- Tablet layouts
+
+Do not add unnecessary screens simply to satisfy this checklist.
+
+## Step 4 — Build the design system in Figma
+
+Create reusable and editable:
+
+- Colour variables
+- Typography styles
+- Spacing tokens
+- Layout patterns
+- Buttons
+- Inputs
+- Cards
+- Navigation components
+- Dialogs
+- Tables
+- Status indicators
+- Component variants
+- Interactive states
+
+Use proper naming conventions, components and Auto Layout where supported.
+
+Do not deliver flattened screenshots as substitutes for editable Figma designs.
+
+## Step 5 — Before-and-after comparison
+
+For each major page, document:
+
+- Existing design
+- Identified weaknesses
+- Proposed improvements
+- Final design
+- Expected user benefit
+
+Show before-and-after comparisons for the most important screens.
+
+## Figma deliverables
+
+Provide:
+
+1. A link to the complete Figma project
+2. Editable high-fidelity mockups
+3. Two visual design explorations
+4. A selected final design direction
+5. Reusable components and tokens
+6. Desktop and mobile layouts
+7. Screen coverage report
+8. Before-and-after comparisons
+9. Explanation of major design decisions
+
+---
+
+# 7. PHASE SIX — PAYWALL & MONETISATION OPTIMISATION
+
+Treat the paywall as one of the application's most important product experiences.
+
+Use the verified lessons from the supplied videos, the current monetisation model and relevant UX best practices.
+
+The goal is to improve clarity, trust, perceived value and sustainable conversion.
+
+## Evaluate the complete monetisation journey
+
+Investigate:
+
+- Free versus paid functionality
+- Placement of upgrade prompts
+- Timing of the paywall
+- Value communication
+- Subscription plan presentation
+- Weekly, monthly and annual pricing
+- Feature comparisons
+- Trial messaging
+- Upgrade and downgrade flows
+- Payment completion
+- Payment failures
+- Subscription cancellation
+- Subscription reactivation
+- Mobile paywall presentation
+- Trust and credibility
+
+Do not assume that adding more paywalls improves revenue.
+
+Analyse the actual user journey and identify where asking users to upgrade makes sense.
+
+## Agreed Weekly Starter subscription — required scope
+
+Include the previously agreed Weekly Starter subscription alongside Monthly and Yearly in the research, Figma explorations, final paywall, implementation plan and QA. Weekly is a required product option, not an obsolete concept or a trip-only offer.
+
+### Agreed weekly offer
+
+- Plan: Starter Weekly.
+- Target US price: US$5.49, charged every seven days.
+- Allowance: 45 live AI tutor minutes per seven-day subscription cycle.
+- Payment: Weekly and Monthly are charged immediately. The seven-day free trial is Yearly-only and requires verified eligibility. The proposed 45-minute yearly trial cap still needs approval; it is separate from the agreed 45-minute Weekly allowance.
+- Renewal: automatically every seven days until cancelled.
+- Unused minutes do not roll over. Cancellation stops future renewal; remaining paid access follows the verified entitlement and expiry.
+- Keep the reassurance copy exactly: “No Commitment, Cancel Anytime”. Show the billed amount, seven-day recurrence and automatic renewal clearly beside the purchase action.
+- Weekly serves hesitant learners and shorter-term needs as well as trip preparation. Describe it as a smaller initial payment, never as cheaper overall than Monthly or Yearly.
+
+US$5.49 is the founder-selected US target from the paywall research report. Do not convert it into an invented UK price, mix currencies in one comparison, or present a design fixture as a configured live product. Use verified localized store prices for production. Keep other plan prices, allowances and trial eligibility tied to their approved catalogue and store data.
+
+### Figma and UX coverage
+
+- Show Weekly as a genuine, selectable billing option in the main Starter paywall, with clear selected and unselected states.
+- Design the Weekly, Monthly and Yearly comparison so the essential billed amounts, allowance, renewal terms and primary action fit the normal phone viewport. Allow accessible reflow and scrolling at larger text sizes.
+- Preserve the selected duration when returning from plan details or an interrupted purchase.
+- Include Weekly purchase opening, cancellation, failure, pending verification, verified success, restore, active subscription, cancelled-but-active, expired access, billing recovery and plan-change states where supported by the actual product.
+- Keep Max discoverable separately; do not invent a Max Weekly product.
+- A Weekly + Yearly comparison may be explored as an experiment, but retain the agreed three-option baseline and do not claim a conversion improvement without measured results.
+
+### Implementation prerequisites and acceptance criteria
+
+The current native catalogue has monthly and yearly products, so treat weekly billing support as explicit implementation work rather than a copy-only change. Document the store product, purchase provider mapping, catalogue contract, entitlement verification, seven-day allowance window, renewal handling, restore and subscription management dependencies.
+
+A Weekly renewal must grant the approved 45-minute cycle allowance, never inherit a monthly 180- or 300-minute allowance. Verify cycle boundaries, duplicate or delayed renewal events, cancellation, expiry, restoration and switching between durations in safe test environments. Do not change live billing configuration or run real charges as part of design verification.
+
+Include Weekly in the screen inventory, paywall strategy, implementation plan, coverage report and QA report. Clearly distinguish approved design, implemented code and configured/live availability. Preserve the approval checkpoint before a broad frontend implementation.
+
+## Paywall design exploration
+
+Create multiple concepts in Figma.
+
+Compare them on:
+
+- Clarity
+- Visual quality
+- Ease of understanding
+- Value communication
+- Accessibility
+- Consistency with our app
+- Conversion hypotheses
+- Transparency and trust
+
+Recommend the strongest concept.
+
+Maintain the application's overall visual theme.
+
+The paywall may receive a more sophisticated treatment, but it must still feel like a natural part of the product.
+
+## Ethical conversion design
+
+Avoid:
+
+- Fake urgency
+- Misleading discounts
+- Hidden fees
+- Preselected paid options that mislead users
+- Unclear trial renewals
+- Difficult cancellation
+- Manipulative dark patterns
+
+Clearly communicate relevant prices, renewal conditions and subscription terms.
+
+Do not invent prices, entitlements or offers.
+
+Prepare the paywall architecture for future A/B testing without claiming conversion gains that have not been measured.
+
+## Required document
+
+`docs/design-research/paywall-strategy.md`
+
+---
+
+# 8. PHASE SEVEN — FULL IMPLEMENTATION PLAN
+
+Before making major frontend changes, create a detailed technical implementation plan.
+
+Map every approved Figma screen to its corresponding application route, components, functionality and backend dependencies.
+
+The plan must explain:
+
+- Which files need modification
+- Which components can be reused
+- Which components need refactoring
+- Which components should be created
+- Which design tokens need changes
+- Which user journeys need improvement
+- Which interactions must be preserved
+- Which dependencies are affected
+- How responsiveness will be implemented
+- How accessibility will be maintained
+- How the redesigned paywall integrates with billing
+
+## Technical principles
+
+Use the project's existing frontend framework and architecture unless a compelling reason exists to change them.
+
+Prefer incremental improvements over unnecessary rewrites.
+
+Avoid excessive dependencies.
+
+Preserve working backend logic, database structures, authentication flows, payment integrations and API contracts.
+
+Do not make destructive changes without explicit approval.
+
+Create a route-by-route implementation sequence with acceptance criteria.
+
+## Required document
+
+`docs/design-research/implementation-plan.md`
+
+---
+
+# 9. MANDATORY APPROVAL CHECKPOINT
+
+After completing the research, audit, design explorations, high-fidelity Figma mockups and implementation plan, stop and present the work for my review.
+
+Show me:
+
+- The video research findings
+- The current app audit
+- The Design DNA Report
+- The proposed visual improvements
+- Two design directions
+- The recommended final direction
+- Complete Figma mockups
+- Before-and-after comparisons
+- Paywall redesign concepts
+- The implementation plan
+
+Explain the most important decisions concisely.
+
+Ask me to approve the final design direction before beginning the major frontend implementation.
+
+You may perform non-destructive research, documentation, Figma exploration and local prototyping before this checkpoint.
+
+**Do not perform a broad production frontend rewrite until I approve the mockups.**
+
+If the Figma integration cannot support a requested operation, disclose the limitation instead of falsely claiming the operation was completed.
+
+---
+
+# 10. PHASE EIGHT — FRONTEND IMPLEMENTATION
+
+After approval, implement the selected design throughout the existing application.
+
+Your goal is to faithfully translate the approved design into a working, maintainable, responsive and production-quality frontend.
+
+## Implementation requirements
+
+- Preserve current functionality.
+- Maintain application logic and integrations.
+- Use reusable components.
+- Maintain consistent design tokens.
+- Match approved typography and spacing.
+- Implement responsive layouts.
+- Implement appropriate hover, focus, active and disabled states.
+- Add meaningful loading and error states.
+- Ensure every interactive element has working behaviour.
+- Respect accessibility standards.
+- Use semantic UI elements.
+- Maintain good performance.
+- Avoid unnecessary dependencies.
+- Keep the codebase clean and understandable.
+
+Use version control safeguards and work incrementally.
+
+Do not modify payment credentials, production databases or deployment configuration without explicit authorisation.
+
+Do not substitute static visual mockups for functional application screens.
+
+## Visual fidelity
+
+For each implemented route:
+
+1. Render the application.
+2. Compare its appearance with the approved Figma design.
+3. Identify layout and styling differences.
+4. Fix inconsistencies.
+5. Check interactive behaviour.
+6. Verify responsiveness.
+7. Continue refining until it meets the agreed acceptance criteria.
+
+Do not consider a page complete merely because it compiles.
+
+---
+
+# 11. PHASE NINE — COMPREHENSIVE QUALITY ASSURANCE
+
+Treat this as a commercial product approaching launch.
+
+Run all available and relevant checks.
+
+## Functional testing
+
+Verify:
+
+- Authentication
+- Navigation
+- Core user workflows
+- Forms
+- API interactions
+- Settings
+- Subscription flows
+- Paywall interactions
+- Error handling
+- Empty states
+
+## Technical testing
+
+Run, where available:
+
+- Type checking
+- Linting
+- Unit tests
+- Integration tests
+- Production build
+- Browser-based UI tests
+
+## Visual testing
+
+Inspect representative screen sizes:
+
+- Desktop
+- Tablet
+- Mobile
+
+Compare screenshots against the Figma designs.
+
+Check for:
+
+- Overflow
+- Misalignment
+- Broken layouts
+- Inconsistent colours
+- Poor contrast
+- Typography issues
+- Unexpected content clipping
+- Excessive layout shifts
+- Inconsistent components
+
+## Accessibility testing
+
+Aim for WCAG 2.2 AA where applicable.
+
+Verify:
+
+- Keyboard navigation
+- Focus indicators
+- Contrast
+- Screen-reader labels
+- Semantic structure
+- Reduced-motion support
+- Form accessibility
+- Error announcements
+
+## Payment safety
+
+Test billing-related functionality in safe test environments.
+
+Never run real charges just to verify a redesigned checkout.
+
+## Required document
+
+`docs/design-research/qa-report.md`
+
+Clearly distinguish:
+
+- Tests passed
+- Tests failed
+- Tests not run
+- Known limitations
+- Remaining defects
+- Recommended follow-up actions
+
+Do not claim the application is error-free without evidence.
+
+---
+
+# 12. PHASE TEN — FINAL DELIVERY
+
+When the implementation and testing are complete, provide a professional final handover.
+
+Include:
+
+1. Summary of the original application
+2. Findings from each video
+3. Original design weaknesses
+4. Existing Design DNA and what was preserved
+5. Major visual and UX improvements
+6. Final Figma project link
+7. Before-and-after design comparisons
+8. All implemented screens and routes
+9. Design-system components created
+10. Paywall improvements
+11. Tests performed and results
+12. Known limitations and outstanding work
+
+Highlight where you used:
+
+- Refinement
+- Evolution
+- Reimagination
+
+Explain why each major design decision was made.
+
+Deliver a realistic account of what was completed. Never label unfinished or unverified work as production-ready.
+
+---
+
+# 13. OPERATING PRINCIPLES
+
+## Be ruthless about quality
+
+If a design decision is weak, challenge it.
+
+If a page lacks clarity, improve it.
+
+If a component looks generic, refine it.
+
+If the visual hierarchy is ineffective, restructure it.
+
+If a user journey has unnecessary friction, simplify it.
+
+Do not preserve poor decisions merely because they already exist.
+
+## Preserve the brand
+
+The current application is the foundation.
+
+Maintain its recognisable identity even when making ambitious improvements.
+
+Do not drift into an unrelated aesthetic.
+
+## Think like a product team
+
+Consider how every design decision affects the user's experience.
+
+Optimise for clarity, usefulness, trust, accessibility and maintainability.
+
+## Make decisions based on evidence
+
+Use the actual codebase, video findings, product requirements and recognised design principles.
+
+Do not invent supporting research.
+
+## Maintain consistency
+
+The application must look and behave like one unified product.
+
+Every screen should share a coherent design language.
+
+## Prioritise craftsmanship
+
+Pay attention to details that separate excellent software from average software:
+
+- Alignment
+- Typography
+- Spacing
+- Proportions
+- Motion
+- Interaction feedback
+- Responsive behaviour
+- Visual hierarchy
+- Component consistency
+- Accessibility
+
+## Work independently but respect checkpoints
+
+Do not repeatedly ask broad questions when the answers can be discovered from the repository.
+
+Ask targeted questions only when essential requirements are missing.
+
+Carry out the research, auditing, planning and Figma exploration proactively.
+
+Respect the approval checkpoint before major implementation.
+
+## Be honest about limitations
+
+If a video cannot be accessed, report that.
+
+If a Figma operation cannot be completed, report that.
+
+If a page cannot be tested, report that.
+
+If an implementation remains incomplete, report that.
+
+Never fabricate finished work or verification results.
+
+---
+
+# 14. STARTING INSTRUCTIONS — EXECUTE NOW
+
+Begin immediately with the following sequence:
+
+**STEP 1 — APP DISCOVERY**
+
+Inspect the repository, understand the application, identify its features and discover all screens.
+
+**STEP 2 — VIDEO ANALYSIS**
+
+Research all three supplied videos and document verified insights.
+
+**STEP 3 — DESIGN AUDIT**
+
+Evaluate the existing user experience, visual consistency and technical structure.
+
+**STEP 4 — DESIGN DNA**
+
+Identify and document the existing theme, brand identity and strongest visual elements.
+
+**STEP 5 — IMPROVEMENT STRATEGY**
+
+Determine what should be refined, evolved or reimagined.
+
+**STEP 6 — FIGMA EXPLORATION**
+
+Use the connected Figma plugin to create at least two meaningful visual directions based on the current theme.
+
+**STEP 7 — COMPLETE FIGMA MOCKUPS**
+
+Create high-fidelity, editable mockups for all discovered screens and important states.
+
+**STEP 8 — PAYWALL STRATEGY**
+
+Apply verified lessons from the videos to optimise the paywall and monetisation journey.
+
+**STEP 9 — IMPLEMENTATION PLAN**
+
+Prepare a detailed screen-by-screen frontend engineering plan.
+
+**STEP 10 — REVIEW CHECKPOINT**
+
+Present the final mockups, research findings, visual direction and implementation plan for my approval.
+
+After I approve, proceed with implementation, browser-based visual validation, comprehensive testing and final handover.
+
+---
+
+# FINAL EXPECTATION
+
+I am not asking for a generic redesign or a superficial UI refresh.
+
+I am asking you to take an existing application with an established design identity and elevate it into an exceptional product.
+
+Retain what makes it recognisable.
+
+Improve what currently looks average.
+
+Rebuild what is fundamentally weak.
+
+Introduce new ideas where they add genuine value.
+
+Use the supplied videos as research inputs, not blindly followed instructions.
+
+Use Figma as a serious design workspace.
+
+Use the codebase as the source of truth for actual functionality.
+
+Treat visual quality, usability, accessibility, technical reliability and design consistency as equally important.
+
+**The end result should feel like the same application, but transformed into a substantially more polished, refined, distinctive and professionally engineered product.**
+
+Begin with the complete app audit and video research. Work through the phases systematically, provide the required documentation, and produce the full Figma redesign for approval before undertaking the major frontend rewrite.

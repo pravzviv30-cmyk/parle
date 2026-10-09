@@ -44,8 +44,8 @@ describe('the plans page chooses once, for a learner with a goal', () => {
     assert.ok(rows);
     // Each plan is paid yearly or monthly, yearly first, every price the store's.
     assert.deepEqual(rows.map((row) => row.offers.map((offer) => [offer.productId, offer.period, offer.price])), [
-      [['luvani_starter_year', 'year', '£119.99'], ['luvani_starter_month', 'month', '£14.99']],
-      [['luvani_regular_year', 'year', '£179.99'], ['luvani_regular_month', 'month', '£24.99']],
+      [['luvani_starter_month', 'month', '£14.99'], ['luvani_starter_year', 'year', '£119.99']],
+      [['luvani_regular_month', 'month', '£24.99'], ['luvani_regular_year', 'year', '£179.99']],
     ]);
     // Minutes a day from the server's catalogue, rounded down: Starter 180 over
     // 30 days is 6, Max 300 over 30 days is 10.
@@ -56,7 +56,7 @@ describe('the plans page chooses once, for a learner with a goal', () => {
     assert.equal(preselectedOffer(rows, 10, FREE)?.productId, 'luvani_regular_year');
     assert.equal(preselectedOffer(rows, 5, FREE)?.productId, 'luvani_starter_year', 'a dearer plan was chosen when a cheaper one covers the goal');
     // No goal, or a goal no plan covers: nothing is chosen.
-    assert.equal(preselectedOffer(rows, null, FREE), null);
+    assert.equal(preselectedOffer(rows, null, FREE)?.productId, 'luvani_starter_month');
     assert.equal(preselectedOffer(rows, 15, FREE), null);
     assert.equal(preselectedOffer(rows, 20, FREE), null);
     // A learner who holds a paid plan came to manage it, and is not steered; a lapsed one may be.

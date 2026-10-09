@@ -1,0 +1,1841 @@
+{
+  "frames": {
+    "onboard-welcome": "35:1480",
+    "onboard-goal": "35:1558",
+    "onboard-level": "35:1689",
+    "onboard-voice": "35:1756",
+    "onboard-scene": "35:1866",
+    "onboard-age": "35:1955",
+    "age-refusal": "35:1995",
+    "onboard-privacy": "35:2042",
+    "onboard-mic": "35:2114",
+    "onboard-save": "35:2162",
+    "app-home": "35:2242",
+    "home-first": "35:2384",
+    "home-offline": "35:2528",
+    "home-loading": "35:2630",
+    "app-tutor": "35:2711",
+    "tutor-voices": "35:2833",
+    "tutor-memory": "35:3002",
+    "memory-removed": "35:3041",
+    "scenes": "35:3082",
+    "scene-cafe": "35:3339",
+    "scene-hotel": "35:3416",
+    "scene-market": "35:3499",
+    "scene-directions": "35:3610",
+    "live-connecting": "35:3671",
+    "live-listen": "35:3740",
+    "live-speak": "35:3820",
+    "live-thinking": "35:3904",
+    "live-paused": "35:3973",
+    "live-help": "35:4051",
+    "live-type": "35:4101",
+    "leave-live": "35:4134",
+    "live-failed": "35:4158",
+    "practice-home": "35:4200",
+    "practice-phrase": "35:4330",
+    "practice-shadow": "35:4406",
+    "practice-recorded": "35:4453",
+    "practice-sound": "35:4534",
+    "sound-result": "35:4579",
+    "practice-review": "35:4643",
+    "review-card": "35:4690",
+    "practice-conversations": "35:4765",
+    "conversation-saved": "35:4800",
+    "progress-home": "35:4839",
+    "progress-empty": "35:5007",
+    "week-wrap": "35:5126",
+    "postcard": "35:5220",
+    "postcards": "35:5304",
+    "recap-line": "35:5435",
+    "recap-earned": "35:5509",
+    "recap-next": "35:5593",
+    "profile": "35:5675",
+    "profile-edit": "35:5756",
+    "settings-main": "35:5783",
+    "settings-notifications": "35:5863",
+    "settings-time": "35:5931",
+    "settings-sound": "35:5972",
+    "settings-privacy": "35:6019",
+    "settings-account": "35:6090",
+    "delete-account": "35:6142",
+    "friends-home": "35:6168",
+    "friends-empty": "35:6256",
+    "friends-requests": "35:6318",
+    "friends-invite": "35:6353",
+    "friends-find": "35:6418",
+    "friend-detail": "38:1480",
+    "friends-privacy": "38:1542",
+    "friend-report": "38:1576",
+    "report-review": "38:1611",
+    "sign-in": "38:1639",
+    "sign-up": "38:1682",
+    "password-reset": "38:1730",
+    "reset-sent": "38:1753",
+    "policy": "38:3327",
+    "terms": "38:3418",
+    "first-recap": "38:3440",
+    "home": "38:3476",
+    "later-recap": "38:3547",
+    "locked": "38:3583",
+    "welcome-empty": "38:3618",
+    "free-settings": "38:3657",
+    "reinstall": "38:3709",
+    "yearly-trial": "38:3763",
+    "monthly": "38:3864",
+    "weekly": "38:3955",
+    "yearly-paid": "38:4047",
+    "yearly-unknown": "38:4138",
+    "unselected": "38:4230",
+    "max": "38:4317",
+    "return": "38:4391",
+    "two-offer": "38:4482",
+    "partial-offers": "38:4574",
+    "offers-loading": "38:4658",
+    "offers-unavailable": "38:4699",
+    "store-opening": "38:4744",
+    "confirming": "38:4782",
+    "pending": "38:4826",
+    "checkout-cancelled": "38:4871",
+    "payment-failed": "38:4964",
+    "slow-verify": "38:5056",
+    "restore-found": "38:5100",
+    "restore-none": "38:5144",
+    "restore-linked": "38:5182",
+    "restore-offline": "38:5220",
+    "success-trial": "38:5258",
+    "success-weekly": "38:5306",
+    "success-monthly": "38:5347",
+    "success-yearly": "38:5388",
+    "success-max": "38:5430",
+    "paid-empty": "38:5471",
+    "trial-empty": "38:5513",
+    "max-empty": "38:5551",
+    "manage-trial": "38:5586",
+    "manage-weekly": "38:5638",
+    "manage-monthly": "38:5690",
+    "manage-yearly": "38:5742",
+    "manage-max": "38:5794",
+    "cancelled-paid": "38:5846",
+    "cancelled-trial": "38:5898",
+    "grace": "38:5950",
+    "retry": "38:5995",
+    "lapsed": "38:6037",
+    "revoked": "38:6079",
+    "status-unknown": "38:6121",
+    "change-scheduled": "38:6163",
+    "change-review": "38:6201",
+    "reminder-scheduled": "38:6238",
+    "reminder-denied": "38:6275",
+    "reminder-off": "38:6313",
+    "metering": "38:6351",
+    "billing-reminder": "38:6413"
+  },
+  "links": {
+    "35:1501": {
+      "dest": "sign-in"
+    },
+    "35:1500": {
+      "dest": "onboard-goal"
+    },
+    "35:1485": {
+      "dest": "app-home"
+    },
+    "35:1584": {
+      "dest": "onboard-level"
+    },
+    "35:1580": {
+      "dest": "onboard-level"
+    },
+    "35:1576": {
+      "dest": "onboard-level"
+    },
+    "35:1563": {
+      "dest": "onboard-welcome"
+    },
+    "35:1715": {
+      "dest": "onboard-voice"
+    },
+    "35:1711": {
+      "dest": "onboard-voice"
+    },
+    "35:1707": {
+      "dest": "onboard-voice"
+    },
+    "35:1694": {
+      "dest": "onboard-goal"
+    },
+    "35:1787": {
+      "dest": "onboard-scene"
+    },
+    "35:1781": {
+      "dest": "onboard-scene"
+    },
+    "35:1775": {
+      "dest": "onboard-scene"
+    },
+    "35:1761": {
+      "dest": "onboard-level"
+    },
+    "35:1888": {
+      "dest": "onboard-age"
+    },
+    "35:1871": {
+      "dest": "onboard-voice"
+    },
+    "35:1976": {
+      "dest": "age-refusal"
+    },
+    "35:1972": {
+      "dest": "onboard-privacy"
+    },
+    "35:1960": {
+      "dest": "onboard-scene"
+    },
+    "35:2015": {
+      "dest": "onboard-age"
+    },
+    "35:2000": {
+      "dest": "app-home"
+    },
+    "35:2077": {
+      "dest": "onboard-mic"
+    },
+    "35:2071": {
+      "dest": "policy"
+    },
+    "35:2066": {
+      "dest": "settings-privacy"
+    },
+    "35:2061": {
+      "dest": "settings-privacy"
+    },
+    "35:2047": {
+      "dest": "onboard-age"
+    },
+    "35:2135": {
+      "dest": "live-type"
+    },
+    "35:2134": {
+      "dest": "live-listen"
+    },
+    "35:2119": {
+      "dest": "onboard-privacy"
+    },
+    "35:2185": {
+      "dest": "app-home"
+    },
+    "35:2184": {
+      "dest": "sign-up"
+    },
+    "35:2167": {
+      "dest": "app-home"
+    },
+    "35:2279": {
+      "dest": "progress-home"
+    },
+    "35:2276": {
+      "dest": "practice-home"
+    },
+    "35:2273": {
+      "dest": "app-tutor"
+    },
+    "35:2270": {
+      "dest": "app-home"
+    },
+    "35:2268": {
+      "dest": "scene-cafe"
+    },
+    "35:2253": {
+      "dest": "scene-cafe"
+    },
+    "35:2248": {
+      "dest": "profile"
+    },
+    "35:2419": {
+      "dest": "progress-home"
+    },
+    "35:2416": {
+      "dest": "practice-home"
+    },
+    "35:2413": {
+      "dest": "app-tutor"
+    },
+    "35:2410": {
+      "dest": "app-home"
+    },
+    "35:2408": {
+      "dest": "scene-cafe"
+    },
+    "35:2402": {
+      "dest": "free-settings"
+    },
+    "35:2395": {
+      "dest": "scene-cafe"
+    },
+    "35:2390": {
+      "dest": "profile"
+    },
+    "35:2557": {
+      "dest": "progress-home"
+    },
+    "35:2554": {
+      "dest": "practice-home"
+    },
+    "35:2551": {
+      "dest": "app-tutor"
+    },
+    "35:2548": {
+      "dest": "app-home"
+    },
+    "35:2546": {
+      "dest": "practice-shadow"
+    },
+    "35:2534": {
+      "dest": "profile"
+    },
+    "35:2656": {
+      "dest": "progress-home"
+    },
+    "35:2653": {
+      "dest": "practice-home"
+    },
+    "35:2650": {
+      "dest": "app-tutor"
+    },
+    "35:2647": {
+      "dest": "app-home"
+    },
+    "35:2636": {
+      "dest": "profile"
+    },
+    "35:2750": {
+      "dest": "progress-home"
+    },
+    "35:2747": {
+      "dest": "practice-home"
+    },
+    "35:2744": {
+      "dest": "app-tutor"
+    },
+    "35:2741": {
+      "dest": "app-home"
+    },
+    "35:2739": {
+      "dest": "scene-cafe"
+    },
+    "35:2733": {
+      "dest": "scenes"
+    },
+    "35:2728": {
+      "dest": "tutor-voices"
+    },
+    "35:2717": {
+      "dest": "profile"
+    },
+    "35:2875": {
+      "dest": "app-tutor"
+    },
+    "35:2869": {
+      "dest": "app-tutor"
+    },
+    "35:2863": {
+      "dest": "app-tutor"
+    },
+    "35:2857": {
+      "dest": "app-tutor"
+    },
+    "35:2851": {
+      "dest": "app-tutor"
+    },
+    "35:2845": {
+      "dest": "app-tutor"
+    },
+    "35:2838": {
+      "dest": "app-tutor"
+    },
+    "35:3024": {
+      "dest": "app-tutor"
+    },
+    "35:3018": {
+      "dest": "memory-removed"
+    },
+    "35:3013": {
+      "dest": "memory-removed"
+    },
+    "35:3007": {
+      "dest": "app-tutor"
+    },
+    "35:3055": {
+      "dest": "app-tutor"
+    },
+    "35:3046": {
+      "dest": "app-home"
+    },
+    "35:3110": {
+      "dest": "scene-directions"
+    },
+    "35:3104": {
+      "dest": "scene-market"
+    },
+    "35:3098": {
+      "dest": "scene-hotel"
+    },
+    "35:3092": {
+      "dest": "scene-cafe"
+    },
+    "35:3087": {
+      "dest": "app-tutor"
+    },
+    "35:3357": {
+      "dest": "practice-phrase"
+    },
+    "35:3356": {
+      "dest": "live-connecting"
+    },
+    "35:3344": {
+      "dest": "scenes"
+    },
+    "35:3434": {
+      "dest": "practice-phrase"
+    },
+    "35:3433": {
+      "dest": "live-connecting"
+    },
+    "35:3421": {
+      "dest": "scenes"
+    },
+    "35:3517": {
+      "dest": "practice-phrase"
+    },
+    "35:3516": {
+      "dest": "live-connecting"
+    },
+    "35:3504": {
+      "dest": "scenes"
+    },
+    "35:3628": {
+      "dest": "practice-phrase"
+    },
+    "35:3627": {
+      "dest": "live-connecting"
+    },
+    "35:3615": {
+      "dest": "scenes"
+    },
+    "35:3701": {
+      "dest": "live-listen"
+    },
+    "35:3697": {
+      "dest": "live-type"
+    },
+    "35:3694": {
+      "dest": "live-help"
+    },
+    "35:3691": {
+      "dest": "live-paused"
+    },
+    "35:3678": {
+      "dest": "leave-live"
+    },
+    "35:3676": {
+      "dest": "leave-live"
+    },
+    "35:3777": {
+      "dest": "live-speak"
+    },
+    "35:3773": {
+      "dest": "live-type"
+    },
+    "35:3770": {
+      "dest": "live-help"
+    },
+    "35:3767": {
+      "dest": "live-paused"
+    },
+    "35:3747": {
+      "dest": "leave-live"
+    },
+    "35:3745": {
+      "dest": "leave-live"
+    },
+    "35:3849": {
+      "dest": "live-thinking"
+    },
+    "35:3845": {
+      "dest": "live-type"
+    },
+    "35:3842": {
+      "dest": "live-help"
+    },
+    "35:3839": {
+      "dest": "live-paused"
+    },
+    "35:3827": {
+      "dest": "leave-live"
+    },
+    "35:3825": {
+      "dest": "leave-live"
+    },
+    "35:3934": {
+      "dest": "live-listen"
+    },
+    "35:3930": {
+      "dest": "live-type"
+    },
+    "35:3927": {
+      "dest": "live-help"
+    },
+    "35:3924": {
+      "dest": "live-paused"
+    },
+    "35:3911": {
+      "dest": "leave-live"
+    },
+    "35:3909": {
+      "dest": "leave-live"
+    },
+    "35:4000": {
+      "dest": "live-speak"
+    },
+    "35:3996": {
+      "dest": "live-type"
+    },
+    "35:3993": {
+      "dest": "live-help"
+    },
+    "35:3990": {
+      "dest": "live-paused"
+    },
+    "35:3980": {
+      "dest": "leave-live"
+    },
+    "35:3978": {
+      "dest": "leave-live"
+    },
+    "35:4080": {
+      "dest": "live-speak"
+    },
+    "35:4074": {
+      "dest": "live-type"
+    },
+    "35:4069": {
+      "dest": "live-speak"
+    },
+    "35:4064": {
+      "dest": "live-listen"
+    },
+    "35:4056": {
+      "dest": "live-speak"
+    },
+    "35:4123": {
+      "dest": "live-speak"
+    },
+    "35:4122": {
+      "dest": "live-thinking"
+    },
+    "35:4106": {
+      "dest": "live-speak"
+    },
+    "35:4147": {
+      "dest": "recap-line"
+    },
+    "35:4146": {
+      "dest": "live-speak"
+    },
+    "35:4139": {
+      "dest": "live-speak"
+    },
+    "35:4173": {
+      "dest": "practice-shadow"
+    },
+    "35:4172": {
+      "dest": "live-connecting"
+    },
+    "35:4163": {
+      "dest": "app-home"
+    },
+    "35:4243": {
+      "dest": "progress-home"
+    },
+    "35:4240": {
+      "dest": "practice-home"
+    },
+    "35:4237": {
+      "dest": "app-tutor"
+    },
+    "35:4234": {
+      "dest": "app-home"
+    },
+    "35:4232": {
+      "dest": "practice-shadow"
+    },
+    "35:4226": {
+      "dest": "practice-conversations"
+    },
+    "35:4221": {
+      "dest": "practice-sound"
+    },
+    "35:4216": {
+      "dest": "practice-review"
+    },
+    "35:4206": {
+      "dest": "profile"
+    },
+    "35:4347": {
+      "dest": "practice-review"
+    },
+    "35:4346": {
+      "dest": "practice-shadow"
+    },
+    "35:4335": {
+      "dest": "practice-home"
+    },
+    "35:4424": {
+      "dest": "practice-shadow"
+    },
+    "35:4423": {
+      "dest": "practice-recorded"
+    },
+    "35:4411": {
+      "dest": "practice-home"
+    },
+    "35:4479": {
+      "dest": "practice-home"
+    },
+    "35:4478": {
+      "dest": "practice-shadow"
+    },
+    "35:4472": {
+      "dest": "practice-recorded"
+    },
+    "35:4467": {
+      "dest": "practice-shadow"
+    },
+    "35:4458": {
+      "dest": "practice-home"
+    },
+    "35:4552": {
+      "dest": "practice-sound"
+    },
+    "35:4551": {
+      "dest": "sound-result"
+    },
+    "35:4539": {
+      "dest": "practice-home"
+    },
+    "35:4596": {
+      "dest": "practice-home"
+    },
+    "35:4595": {
+      "dest": "practice-sound"
+    },
+    "35:4584": {
+      "dest": "practice-home"
+    },
+    "35:4669": {
+      "dest": "review-card"
+    },
+    "35:4663": {
+      "dest": "scene-directions"
+    },
+    "35:4658": {
+      "dest": "scene-hotel"
+    },
+    "35:4653": {
+      "dest": "practice-phrase"
+    },
+    "35:4648": {
+      "dest": "practice-home"
+    },
+    "35:4706": {
+      "dest": "review-card"
+    },
+    "35:4705": {
+      "dest": "practice-phrase"
+    },
+    "35:4695": {
+      "dest": "practice-review"
+    },
+    "35:4780": {
+      "dest": "conversation-saved"
+    },
+    "35:4775": {
+      "dest": "conversation-saved"
+    },
+    "35:4770": {
+      "dest": "practice-home"
+    },
+    "35:4819": {
+      "dest": "practice-shadow"
+    },
+    "35:4814": {
+      "dest": "practice-review"
+    },
+    "35:4805": {
+      "dest": "practice-conversations"
+    },
+    "35:4886": {
+      "dest": "progress-home"
+    },
+    "35:4883": {
+      "dest": "practice-home"
+    },
+    "35:4880": {
+      "dest": "app-tutor"
+    },
+    "35:4877": {
+      "dest": "app-home"
+    },
+    "35:4875": {
+      "dest": "scenes"
+    },
+    "35:4869": {
+      "dest": "practice-review"
+    },
+    "35:4864": {
+      "dest": "week-wrap"
+    },
+    "35:4859": {
+      "dest": "postcard"
+    },
+    "35:4845": {
+      "dest": "profile"
+    },
+    "35:5033": {
+      "dest": "progress-home"
+    },
+    "35:5030": {
+      "dest": "practice-home"
+    },
+    "35:5027": {
+      "dest": "app-tutor"
+    },
+    "35:5024": {
+      "dest": "app-home"
+    },
+    "35:5022": {
+      "dest": "scene-cafe"
+    },
+    "35:5013": {
+      "dest": "profile"
+    },
+    "35:5149": {
+      "dest": "app-home"
+    },
+    "35:5131": {
+      "dest": "progress-home"
+    },
+    "35:5237": {
+      "dest": "postcards"
+    },
+    "35:5236": {
+      "dest": "scene-hotel"
+    },
+    "35:5225": {
+      "dest": "progress-home"
+    },
+    "35:5320": {
+      "dest": "scene-hotel"
+    },
+    "35:5314": {
+      "dest": "postcard"
+    },
+    "35:5309": {
+      "dest": "progress-home"
+    },
+    "35:5452": {
+      "dest": "app-home"
+    },
+    "35:5451": {
+      "dest": "recap-earned"
+    },
+    "35:5440": {
+      "dest": "app-home"
+    },
+    "35:5524": {
+      "dest": "app-home"
+    },
+    "35:5523": {
+      "dest": "recap-next"
+    },
+    "35:5514": {
+      "dest": "recap-line"
+    },
+    "35:5610": {
+      "dest": "yearly-trial"
+    },
+    "35:5609": {
+      "dest": "scene-hotel"
+    },
+    "35:5598": {
+      "dest": "recap-earned"
+    },
+    "35:5710": {
+      "dest": "tutor-voices"
+    },
+    "35:5705": {
+      "dest": "manage-monthly"
+    },
+    "35:5700": {
+      "dest": "friends-home"
+    },
+    "35:5695": {
+      "dest": "settings-main"
+    },
+    "35:5680": {
+      "dest": "app-home"
+    },
+    "35:5772": {
+      "dest": "profile"
+    },
+    "35:5771": {
+      "dest": "profile"
+    },
+    "35:5761": {
+      "dest": "profile"
+    },
+    "35:5823": {
+      "dest": "settings-account"
+    },
+    "35:5818": {
+      "dest": "settings-privacy"
+    },
+    "35:5813": {
+      "dest": "manage-monthly"
+    },
+    "35:5808": {
+      "dest": "settings-sound"
+    },
+    "35:5803": {
+      "dest": "settings-notifications"
+    },
+    "35:5798": {
+      "dest": "tutor-voices"
+    },
+    "35:5793": {
+      "dest": "profile-edit"
+    },
+    "35:5788": {
+      "dest": "profile"
+    },
+    "35:5892": {
+      "dest": "settings-main"
+    },
+    "35:5886": {
+      "dest": "reminder-off"
+    },
+    "35:5881": {
+      "dest": "settings-time"
+    },
+    "35:5876": {
+      "dest": "reminder-off"
+    },
+    "35:5868": {
+      "dest": "settings-main"
+    },
+    "35:5949": {
+      "dest": "settings-notifications"
+    },
+    "35:5945": {
+      "dest": "settings-notifications"
+    },
+    "35:5941": {
+      "dest": "settings-notifications"
+    },
+    "35:5936": {
+      "dest": "settings-notifications"
+    },
+    "35:5998": {
+      "dest": "settings-main"
+    },
+    "35:5992": {
+      "dest": "settings-sound"
+    },
+    "35:5987": {
+      "dest": "settings-sound"
+    },
+    "35:5982": {
+      "dest": "settings-sound"
+    },
+    "35:5977": {
+      "dest": "settings-main"
+    },
+    "35:6054": {
+      "dest": "terms"
+    },
+    "35:6049": {
+      "dest": "policy"
+    },
+    "35:6044": {
+      "dest": "settings-account"
+    },
+    "35:6039": {
+      "dest": "friends-privacy"
+    },
+    "35:6034": {
+      "dest": "tutor-memory"
+    },
+    "35:6029": {
+      "dest": "settings-privacy"
+    },
+    "35:6024": {
+      "dest": "settings-main"
+    },
+    "35:6114": {
+      "dest": "delete-account"
+    },
+    "35:6110": {
+      "dest": "sign-in"
+    },
+    "35:6105": {
+      "dest": "settings-account"
+    },
+    "35:6100": {
+      "dest": "settings-account"
+    },
+    "35:6095": {
+      "dest": "settings-main"
+    },
+    "35:6156": {
+      "dest": "settings-account"
+    },
+    "35:6147": {
+      "dest": "settings-account"
+    },
+    "35:6197": {
+      "dest": "friends-privacy"
+    },
+    "35:6196": {
+      "dest": "friends-invite"
+    },
+    "35:6190": {
+      "dest": "friends-requests"
+    },
+    "35:6185": {
+      "dest": "friend-detail"
+    },
+    "35:6180": {
+      "dest": "friend-detail"
+    },
+    "35:6173": {
+      "dest": "profile"
+    },
+    "35:6271": {
+      "dest": "friends-find"
+    },
+    "35:6270": {
+      "dest": "friends-invite"
+    },
+    "35:6261": {
+      "dest": "profile"
+    },
+    "35:6334": {
+      "dest": "friends-home"
+    },
+    "35:6329": {
+      "dest": "friends-home"
+    },
+    "35:6323": {
+      "dest": "friends-home"
+    },
+    "35:6371": {
+      "dest": "friends-find"
+    },
+    "35:6358": {
+      "dest": "friends-home"
+    },
+    "35:6431": {
+      "dest": "friend-detail"
+    },
+    "35:6423": {
+      "dest": "friends-home"
+    },
+    "38:1501": {
+      "dest": "friend-report"
+    },
+    "38:1497": {
+      "dest": "friends-home"
+    },
+    "38:1492": {
+      "dest": "scene-cafe"
+    },
+    "38:1485": {
+      "dest": "friends-home"
+    },
+    "38:1557": {
+      "dest": "friends-home"
+    },
+    "38:1553": {
+      "dest": "friends-home"
+    },
+    "38:1547": {
+      "dest": "friends-home"
+    },
+    "38:1591": {
+      "dest": "report-review"
+    },
+    "38:1586": {
+      "dest": "friends-home"
+    },
+    "38:1581": {
+      "dest": "friend-detail"
+    },
+    "38:1628": {
+      "dest": "friend-detail"
+    },
+    "38:1616": {
+      "dest": "friend-detail"
+    },
+    "38:1663": {
+      "dest": "password-reset"
+    },
+    "38:1662": {
+      "dest": "app-home"
+    },
+    "38:1653": {
+      "dest": "sign-up"
+    },
+    "38:1649": {
+      "dest": "app-home"
+    },
+    "38:1644": {
+      "dest": "onboard-welcome"
+    },
+    "38:1711": {
+      "dest": "app-home"
+    },
+    "38:1710": {
+      "dest": "app-home"
+    },
+    "38:1698": {
+      "dest": "policy"
+    },
+    "38:1693": {
+      "dest": "terms"
+    },
+    "38:1687": {
+      "dest": "onboard-save"
+    },
+    "38:1744": {
+      "dest": "reset-sent"
+    },
+    "38:1735": {
+      "dest": "sign-in"
+    },
+    "38:1767": {
+      "dest": "sign-in"
+    },
+    "38:1758": {
+      "dest": "app-home"
+    },
+    "38:3409": {
+      "dest": "settings-privacy"
+    },
+    "38:3332": {
+      "dest": "settings-privacy"
+    },
+    "38:3431": {
+      "dest": "settings-privacy"
+    },
+    "38:3429": {
+      "url": "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+      "dest": null
+    },
+    "38:3423": {
+      "dest": "settings-privacy"
+    },
+    "38:3462": {
+      "dest": "metering"
+    },
+    "38:3461": {
+      "dest": "app-home"
+    },
+    "38:3458": {
+      "dest": "yearly-trial"
+    },
+    "38:3446": {
+      "dest": "app-home"
+    },
+    "38:3497": {
+      "dest": "app-home"
+    },
+    "38:3496": {
+      "dest": "yearly-trial"
+    },
+    "38:3492": {
+      "dest": "locked"
+    },
+    "38:3482": {
+      "dest": "app-home"
+    },
+    "38:3569": {
+      "dest": "app-home"
+    },
+    "38:3568": {
+      "dest": "app-home"
+    },
+    "38:3566": {
+      "dest": "yearly-trial"
+    },
+    "38:3553": {
+      "dest": "app-home"
+    },
+    "I38:3602;3:304": {
+      "dest": "reinstall"
+    },
+    "38:3601": {
+      "dest": "app-home"
+    },
+    "38:3600": {
+      "dest": "unselected"
+    },
+    "38:3589": {
+      "dest": "app-home"
+    },
+    "I38:3636;3:304": {
+      "dest": "reinstall"
+    },
+    "38:3635": {
+      "dest": "app-home"
+    },
+    "38:3634": {
+      "dest": "unselected"
+    },
+    "38:3624": {
+      "dest": "app-home"
+    },
+    "38:3675": {
+      "dest": "app-home"
+    },
+    "38:3674": {
+      "dest": "unselected"
+    },
+    "38:3670": {
+      "dest": "reinstall"
+    },
+    "38:3669": {
+      "dest": "unselected"
+    },
+    "38:3663": {
+      "dest": "app-home"
+    },
+    "38:3730": {
+      "dest": "unselected"
+    },
+    "38:3729": {
+      "dest": "restore-found"
+    },
+    "38:3726": {
+      "dest": "restore-linked"
+    },
+    "38:3725": {
+      "dest": "restore-found"
+    },
+    "38:3715": {
+      "dest": "app-home"
+    },
+    "38:3801": {
+      "dest": "metering"
+    },
+    "38:3799": {
+      "dest": "reinstall"
+    },
+    "38:3797": {
+      "dest": "app-home"
+    },
+    "38:3796": {
+      "dest": "store-opening"
+    },
+    "38:3781": {
+      "dest": "weekly"
+    },
+    "38:3780": {
+      "dest": "monthly"
+    },
+    "38:3779": {
+      "dest": "yearly-trial"
+    },
+    "38:3771": {
+      "dest": "app-home"
+    },
+    "38:3769": {
+      "dest": "max"
+    },
+    "38:3892": {
+      "dest": "metering"
+    },
+    "38:3890": {
+      "dest": "reinstall"
+    },
+    "38:3888": {
+      "dest": "app-home"
+    },
+    "38:3887": {
+      "dest": "success-monthly"
+    },
+    "38:3882": {
+      "dest": "weekly"
+    },
+    "38:3881": {
+      "dest": "monthly"
+    },
+    "38:3880": {
+      "dest": "yearly-paid"
+    },
+    "38:3872": {
+      "dest": "app-home"
+    },
+    "38:3870": {
+      "dest": "max"
+    },
+    "38:3984": {
+      "dest": "metering"
+    },
+    "38:3982": {
+      "dest": "reinstall"
+    },
+    "38:3980": {
+      "dest": "app-home"
+    },
+    "38:3979": {
+      "dest": "success-weekly"
+    },
+    "38:3973": {
+      "dest": "weekly"
+    },
+    "38:3972": {
+      "dest": "monthly"
+    },
+    "38:3971": {
+      "dest": "yearly-paid"
+    },
+    "38:3963": {
+      "dest": "app-home"
+    },
+    "38:3961": {
+      "dest": "max"
+    },
+    "38:4075": {
+      "dest": "metering"
+    },
+    "38:4073": {
+      "dest": "reinstall"
+    },
+    "38:4071": {
+      "dest": "app-home"
+    },
+    "38:4070": {
+      "dest": "success-yearly"
+    },
+    "38:4065": {
+      "dest": "weekly"
+    },
+    "38:4064": {
+      "dest": "monthly"
+    },
+    "38:4063": {
+      "dest": "yearly-paid"
+    },
+    "38:4055": {
+      "dest": "app-home"
+    },
+    "38:4053": {
+      "dest": "max"
+    },
+    "38:4167": {
+      "dest": "metering"
+    },
+    "38:4165": {
+      "dest": "reinstall"
+    },
+    "38:4163": {
+      "dest": "app-home"
+    },
+    "38:4162": {
+      "dest": "success-yearly"
+    },
+    "38:4157": {
+      "dest": "weekly"
+    },
+    "38:4156": {
+      "dest": "monthly"
+    },
+    "38:4155": {
+      "dest": "yearly-paid"
+    },
+    "38:4146": {
+      "dest": "app-home"
+    },
+    "38:4144": {
+      "dest": "max"
+    },
+    "38:4257": {
+      "dest": "metering"
+    },
+    "38:4255": {
+      "dest": "reinstall"
+    },
+    "38:4253": {
+      "dest": "app-home"
+    },
+    "38:4248": {
+      "dest": "weekly"
+    },
+    "38:4247": {
+      "dest": "monthly"
+    },
+    "38:4246": {
+      "dest": "yearly-paid"
+    },
+    "38:4238": {
+      "dest": "app-home"
+    },
+    "38:4236": {
+      "dest": "max"
+    },
+    "38:4344": {
+      "dest": "metering"
+    },
+    "38:4342": {
+      "dest": "reinstall"
+    },
+    "38:4340": {
+      "dest": "app-home"
+    },
+    "38:4339": {
+      "dest": "success-max"
+    },
+    "38:4333": {
+      "dest": "max"
+    },
+    "38:4325": {
+      "dest": "app-home"
+    },
+    "38:4323": {
+      "dest": "unselected"
+    },
+    "38:4419": {
+      "dest": "metering"
+    },
+    "38:4417": {
+      "dest": "reinstall"
+    },
+    "38:4415": {
+      "dest": "app-home"
+    },
+    "38:4414": {
+      "dest": "success-monthly"
+    },
+    "38:4409": {
+      "dest": "weekly"
+    },
+    "38:4408": {
+      "dest": "monthly"
+    },
+    "38:4407": {
+      "dest": "yearly-paid"
+    },
+    "38:4399": {
+      "dest": "app-home"
+    },
+    "38:4397": {
+      "dest": "max"
+    },
+    "38:4519": {
+      "dest": "metering"
+    },
+    "38:4517": {
+      "dest": "reinstall"
+    },
+    "38:4515": {
+      "dest": "app-home"
+    },
+    "38:4514": {
+      "dest": "store-opening"
+    },
+    "38:4499": {
+      "dest": "weekly"
+    },
+    "38:4498": {
+      "dest": "yearly-trial"
+    },
+    "38:4490": {
+      "dest": "app-home"
+    },
+    "38:4488": {
+      "dest": "max"
+    },
+    "38:4603": {
+      "dest": "metering"
+    },
+    "38:4601": {
+      "dest": "reinstall"
+    },
+    "38:4599": {
+      "dest": "app-home"
+    },
+    "38:4598": {
+      "dest": "success-weekly"
+    },
+    "38:4592": {
+      "dest": "weekly"
+    },
+    "38:4591": {
+      "dest": "monthly"
+    },
+    "38:4582": {
+      "dest": "app-home"
+    },
+    "38:4580": {
+      "dest": "max"
+    },
+    "I38:4681;3:304": {
+      "dest": "reinstall"
+    },
+    "38:4680": {
+      "dest": "app-home"
+    },
+    "38:4664": {
+      "dest": "app-home"
+    },
+    "I38:4719;3:304": {
+      "dest": "reinstall"
+    },
+    "38:4718": {
+      "dest": "app-home"
+    },
+    "38:4717": {
+      "dest": "unselected"
+    },
+    "38:4705": {
+      "dest": "app-home"
+    },
+    "I38:4763;3:304": {
+      "dest": "reinstall"
+    },
+    "38:4762": {
+      "dest": "app-home"
+    },
+    "38:4750": {
+      "dest": "app-home"
+    },
+    "I38:4802;3:304": {
+      "dest": "reinstall"
+    },
+    "38:4801": {
+      "dest": "app-home"
+    },
+    "38:4800": {
+      "dest": "success-trial"
+    },
+    "38:4788": {
+      "dest": "app-home"
+    },
+    "I38:4846;3:304": {
+      "dest": "reinstall"
+    },
+    "38:4845": {
+      "dest": "app-home"
+    },
+    "38:4844": {
+      "dest": "slow-verify"
+    },
+    "38:4832": {
+      "dest": "app-home"
+    },
+    "38:4901": {
+      "dest": "metering"
+    },
+    "38:4899": {
+      "dest": "reinstall"
+    },
+    "38:4897": {
+      "dest": "app-home"
+    },
+    "38:4896": {
+      "dest": "success-weekly"
+    },
+    "38:4890": {
+      "dest": "weekly"
+    },
+    "38:4889": {
+      "dest": "monthly"
+    },
+    "38:4888": {
+      "dest": "yearly-paid"
+    },
+    "38:4879": {
+      "dest": "app-home"
+    },
+    "38:4877": {
+      "dest": "max"
+    },
+    "38:4993": {
+      "dest": "metering"
+    },
+    "38:4991": {
+      "dest": "reinstall"
+    },
+    "38:4989": {
+      "dest": "app-home"
+    },
+    "38:4988": {
+      "dest": "success-monthly"
+    },
+    "38:4983": {
+      "dest": "weekly"
+    },
+    "38:4982": {
+      "dest": "monthly"
+    },
+    "38:4981": {
+      "dest": "yearly-paid"
+    },
+    "38:4972": {
+      "dest": "app-home"
+    },
+    "38:4970": {
+      "dest": "max"
+    },
+    "I38:5076;3:304": {
+      "dest": "reinstall"
+    },
+    "38:5075": {
+      "dest": "app-home"
+    },
+    "38:5074": {
+      "dest": "success-trial"
+    },
+    "38:5062": {
+      "dest": "app-home"
+    },
+    "I38:5120;3:304": {
+      "dest": "reinstall"
+    },
+    "38:5119": {
+      "dest": "manage-yearly"
+    },
+    "38:5118": {
+      "dest": "app-home"
+    },
+    "38:5106": {
+      "dest": "app-home"
+    },
+    "I38:5163;3:304": {
+      "dest": "reinstall"
+    },
+    "38:5162": {
+      "dest": "app-home"
+    },
+    "38:5161": {
+      "dest": "reinstall"
+    },
+    "38:5150": {
+      "dest": "app-home"
+    },
+    "I38:5201;3:304": {
+      "dest": "reinstall"
+    },
+    "38:5200": {
+      "dest": "app-home"
+    },
+    "38:5199": {
+      "dest": "reinstall"
+    },
+    "38:5188": {
+      "dest": "app-home"
+    },
+    "I38:5239;3:304": {
+      "dest": "reinstall"
+    },
+    "38:5238": {
+      "dest": "app-home"
+    },
+    "38:5237": {
+      "dest": "reinstall"
+    },
+    "38:5226": {
+      "dest": "app-home"
+    },
+    "38:5279": {
+      "dest": "manage-trial"
+    },
+    "38:5278": {
+      "dest": "scene-hotel"
+    },
+    "38:5276": {
+      "dest": "reminder-off"
+    },
+    "38:5264": {
+      "dest": "app-home"
+    },
+    "38:5326": {
+      "dest": "manage-weekly"
+    },
+    "38:5325": {
+      "dest": "scene-hotel"
+    },
+    "38:5312": {
+      "dest": "app-home"
+    },
+    "38:5367": {
+      "dest": "manage-monthly"
+    },
+    "38:5366": {
+      "dest": "scene-hotel"
+    },
+    "38:5353": {
+      "dest": "app-home"
+    },
+    "38:5409": {
+      "dest": "manage-yearly"
+    },
+    "38:5408": {
+      "dest": "scene-hotel"
+    },
+    "38:5394": {
+      "dest": "app-home"
+    },
+    "38:5450": {
+      "dest": "manage-max"
+    },
+    "38:5449": {
+      "dest": "scene-hotel"
+    },
+    "38:5436": {
+      "dest": "app-home"
+    },
+    "38:5489": {
+      "dest": "change-review"
+    },
+    "38:5488": {
+      "dest": "app-home"
+    },
+    "38:5486": {
+      "dest": "change-review"
+    },
+    "38:5477": {
+      "dest": "app-home"
+    },
+    "38:5533": {
+      "dest": "manage-trial"
+    },
+    "38:5532": {
+      "dest": "app-home"
+    },
+    "38:5519": {
+      "dest": "app-home"
+    },
+    "38:5568": {
+      "dest": "manage-max"
+    },
+    "38:5567": {
+      "dest": "app-home"
+    },
+    "38:5557": {
+      "dest": "app-home"
+    },
+    "38:5607": {
+      "dest": "reinstall"
+    },
+    "38:5605": {
+      "dest": "app-home"
+    },
+    "38:5604": {
+      "dest": "app-home"
+    },
+    "38:5601": {
+      "dest": "reminder-off"
+    },
+    "38:5592": {
+      "dest": "app-home"
+    },
+    "38:5659": {
+      "dest": "reinstall"
+    },
+    "38:5657": {
+      "dest": "app-home"
+    },
+    "38:5656": {
+      "dest": "app-home"
+    },
+    "38:5653": {
+      "dest": "change-review"
+    },
+    "38:5644": {
+      "dest": "app-home"
+    },
+    "38:5711": {
+      "dest": "reinstall"
+    },
+    "38:5709": {
+      "dest": "app-home"
+    },
+    "38:5708": {
+      "dest": "app-home"
+    },
+    "38:5705": {
+      "dest": "change-review"
+    },
+    "38:5696": {
+      "dest": "app-home"
+    },
+    "38:5763": {
+      "dest": "reinstall"
+    },
+    "38:5761": {
+      "dest": "app-home"
+    },
+    "38:5760": {
+      "dest": "app-home"
+    },
+    "38:5757": {
+      "dest": "change-review"
+    },
+    "38:5748": {
+      "dest": "app-home"
+    },
+    "38:5815": {
+      "dest": "reinstall"
+    },
+    "38:5813": {
+      "dest": "app-home"
+    },
+    "38:5812": {
+      "dest": "app-home"
+    },
+    "38:5809": {
+      "dest": "change-review"
+    },
+    "38:5800": {
+      "dest": "app-home"
+    },
+    "38:5867": {
+      "dest": "reinstall"
+    },
+    "38:5865": {
+      "dest": "app-home"
+    },
+    "38:5864": {
+      "dest": "app-home"
+    },
+    "38:5852": {
+      "dest": "app-home"
+    },
+    "38:5919": {
+      "dest": "reinstall"
+    },
+    "38:5917": {
+      "dest": "app-home"
+    },
+    "38:5916": {
+      "dest": "app-home"
+    },
+    "38:5904": {
+      "dest": "app-home"
+    },
+    "38:5970": {
+      "dest": "reinstall"
+    },
+    "38:5968": {
+      "dest": "app-home"
+    },
+    "38:5956": {
+      "dest": "app-home"
+    },
+    "38:6017": {
+      "dest": "reinstall"
+    },
+    "38:6015": {
+      "dest": "app-home"
+    },
+    "38:6001": {
+      "dest": "app-home"
+    },
+    "38:6059": {
+      "dest": "reinstall"
+    },
+    "38:6057": {
+      "dest": "app-home"
+    },
+    "38:6056": {
+      "dest": "return"
+    },
+    "38:6043": {
+      "dest": "app-home"
+    },
+    "38:6101": {
+      "dest": "reinstall"
+    },
+    "38:6099": {
+      "dest": "app-home"
+    },
+    "38:6098": {
+      "dest": "return"
+    },
+    "38:6085": {
+      "dest": "app-home"
+    },
+    "38:6143": {
+      "dest": "reinstall"
+    },
+    "38:6141": {
+      "dest": "app-home"
+    },
+    "38:6140": {
+      "dest": "manage-yearly"
+    },
+    "38:6127": {
+      "dest": "app-home"
+    },
+    "38:6182": {
+      "dest": "manage-yearly"
+    },
+    "38:6169": {
+      "dest": "app-home"
+    },
+    "38:6220": {
+      "dest": "manage-monthly"
+    },
+    "38:6207": {
+      "dest": "app-home"
+    },
+    "38:6258": {
+      "dest": "reminder-off"
+    },
+    "38:6257": {
+      "dest": "manage-trial"
+    },
+    "38:6244": {
+      "dest": "app-home"
+    },
+    "38:6296": {
+      "dest": "manage-trial"
+    },
+    "38:6281": {
+      "dest": "app-home"
+    },
+    "38:6334": {
+      "dest": "manage-trial"
+    },
+    "38:6333": {
+      "dest": "reminder-scheduled"
+    },
+    "38:6319": {
+      "dest": "app-home"
+    },
+    "38:6383": {
+      "dest": "weekly"
+    },
+    "38:6357": {
+      "dest": "app-home"
+    },
+    "38:6432": {
+      "dest": "app-home"
+    },
+    "38:6419": {
+      "dest": "app-home"
+    }
+  }
+}

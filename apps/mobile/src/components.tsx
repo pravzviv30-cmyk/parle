@@ -67,6 +67,7 @@ import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from '
 import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
+import { OrbSurface } from './tutor/OrbSurface.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { READING } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
@@ -235,7 +236,7 @@ export function PillButton({
   /** Say something other than the label to assistive tech. Falls back to label. */
   accessibilityLabel?: string;
   /** ink on paper, sun, mint or white; white on blue or coral. */
-  tone?: 'ink' | 'white';
+  tone?: 'ink' | 'white' | 'sun';
   /** The pressable itself, for a caller that moves a screen reader onto it (the answer sheet's Continue). */
   ref?: Ref<View>;
   /**
@@ -251,9 +252,9 @@ export function PillButton({
 }) {
   const waiting = state !== 'idle';
   return (
-    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
-      {waiting ? <PillWait done={state === 'done'} color={tone === 'white' ? paper.ink : paper.onInk} /> : icon}
-      <Text style={[type.button, { color: disabled ? paper.inkSoft : tone === 'white' ? paper.ink : paper.onInk }]}>{label}</Text>
+    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, tone === 'sun' && { backgroundColor: colour.sun }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+      {waiting ? <PillWait done={state === 'done'} color={tone !== 'ink' ? paper.ink : paper.onInk} /> : icon}
+      <Text style={[type.button, { color: disabled ? paper.inkSoft : tone !== 'ink' ? paper.ink : paper.onInk }]}>{label}</Text>
     </Press>
   );
 }
@@ -1265,7 +1266,7 @@ export function TutorCard({
     <Card style={ls.tutor}>
       <View style={ls.tutorHead}>
         <View {...decorative}>
-          <OrbGlyph color={orb.ready} size={HIT + space(3)} />
+          <OrbSurface color={orb.ready} size={HIT + space(3)} />
         </View>
         <View style={ROW_WORDS}>
           <Text style={[type.heading, { color: paper.ink }]}>{name}</Text>
@@ -1812,7 +1813,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: arrival.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }), backgroundColor: paper.ink }]}>
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
-          <Animated.View accessibilityViewIsModal onAccessibilityEscape={onClose}
+          <Animated.View accessibilityViewIsModal {...(Platform.OS === 'web' ? { role: 'dialog', 'aria-modal': true } as object : {})} onAccessibilityEscape={onClose}
             style={[b.sheetPanel, reading && b.sheetReading, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
@@ -2295,6 +2296,8 @@ export function Choice({
   onHear,
   playing = false,
   compact = false,
+  outlined = false,
+  navigation = false,
   lang,
   accessibilityLabel,
 }: {
@@ -2320,6 +2323,10 @@ export function Choice({
   /** The sample is sounding: the Hear says Stop and its arcs breathe. */
   playing?: boolean;
   compact?: boolean;
+  /** Calm white selection with a blue outline, used for compact plan comparisons. */
+  outlined?: boolean;
+  /** A navigation row is a plain button, never a toggle or radio. */
+  navigation?: boolean;
   /** The title is a French line: set as French, and read in a French voice. */
   lang?: 'fr';
   /** Say something other than the title and detail. Falls back to both, joined. */
@@ -2330,10 +2337,10 @@ export function Choice({
   const radio = role === 'radio';
   const head = tile ?? glyph;
   const isTile = layout === 'tile';
-  const fill = selected ? (sunny ? colour.sun : accent.brand) : on === 'card' ? paper.ground : paper.card;
-  const words = selected && !sunny ? paper.onInk : paper.ink;
-  const quiet = selected ? (sunny ? onColour.sun : onColour.blue) : paper.inkSoft;
-  const titleStyle = lang === 'fr' ? type.french : compact ? type.label : type.bodyStrong;
+  const fill = selected && !outlined ? (sunny ? colour.sun : accent.brand) : on === 'card' ? paper.ground : paper.card;
+  const words = selected && !sunny && !outlined ? paper.onInk : paper.ink;
+  const quiet = selected && !outlined ? (sunny ? onColour.sun : onColour.blue) : paper.inkSoft;
+  const titleStyle = lang === 'fr' ? type.french : outlined ? type.heading : compact ? type.label : type.bodyStrong;
   const disc = (
     <Feedback kind="selection" active={selected}>
       {selected ? (
@@ -2352,14 +2359,14 @@ export function Choice({
       selected={selected}
       glowRadius={radius.tile}
       accessibilityRole={role}
-      accessibilityState={radio ? { checked: selected } : { selected }}
+      accessibilityState={navigation ? undefined : radio ? { checked: selected } : { selected }}
       aria-checked={radio ? selected : undefined}
-      aria-selected={radio ? undefined : selected}
-      aria-pressed={radio ? undefined : selected}
+      aria-selected={navigation || radio ? undefined : selected}
+      aria-pressed={navigation || radio ? undefined : selected}
       accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
       onPress={onPress}
       frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
-      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact], { backgroundColor: fill, borderColor: selected ? fill : paper.line }]}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : paper.card) : selected ? fill : paper.line }]}
     >
       {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
       <View style={isTile ? ch.tileWords : ch.words}>
@@ -2368,7 +2375,7 @@ export function Choice({
         </Text>
         {detail != null ? <Text style={[type.small, { color: quiet }, isTile && ch.centred]}>{detail}</Text> : null}
       </View>
-      {isTile ? <View style={ch.tileDisc}>{disc}</View> : disc}
+      {navigation ? null : isTile ? <View style={ch.tileDisc}>{disc}</View> : disc}
     </Press>
   );
   if (onHear == null) return press;

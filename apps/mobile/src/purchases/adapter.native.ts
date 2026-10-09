@@ -10,6 +10,7 @@ import { PAID_PLANS, type PaidPlan, type PurchasesAdapter, type StoreAction, typ
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
+const WEEKLY_STARTER_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_STARTER_WEEKLY_PRODUCT_ID;
 const STARTER_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID;
 const REGULAR_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_PRODUCT_ID;
 const STARTER_YEARLY_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_STARTER_YEARLY_PRODUCT_ID;
@@ -98,13 +99,17 @@ async function paidPackages(userId: string): Promise<readonly { plan: PaidPlan; 
     const found = offering.availablePackages.find((candidate) => candidate.product.identifier === id);
     // Approved plan copy is monthly. Unknown or incompatible periods are not
     // offered or bought, even when a configured identifier matches.
-    if (found?.product.subscriptionPeriod === 'P1M') out.push({ plan, found });
+    if (found?.product.subscriptionPeriod === 'P1M' && found.product.introPrice == null) out.push({ plan, found });
   }
   // A yearly id sells a one-year period and nothing else, by the same rule.
   for (const plan of configuredYearlyPlans()) {
     const id = YEARLY_PRODUCT_IDS[plan];
     const found = offering.availablePackages.find((candidate) => candidate.product.identifier === id);
     if (found?.product.subscriptionPeriod === 'P1Y') out.push({ plan, found });
+  }
+  if (WEEKLY_STARTER_PRODUCT) {
+    const found = offering.availablePackages.find(candidate => candidate.product.identifier === WEEKLY_STARTER_PRODUCT);
+    if (found?.product.subscriptionPeriod === 'P1W' && found.product.introPrice == null) out.push({ plan: 'starter', found });
   }
   return out;
 }
@@ -113,13 +118,17 @@ async function paidPackages(userId: string): Promise<readonly { plan: PaidPlan; 
 function productOf(plan: PaidPlan, found: PurchasesPackage, eligible: ReadonlySet<string>): StoreProduct | null {
   const price = found.product.priceString.trim();
   if (!price) return null;
+  const period = found.product.subscriptionPeriod === 'P1W' ? 'week'
+    : found.product.subscriptionPeriod === 'P1M' ? 'month'
+    : found.product.subscriptionPeriod === 'P1Y' ? 'year' : null;
+  if (period === null) return null;
   const intro = freeTrialOf(found);
   return {
     plan,
     productId: found.product.identifier,
     title: found.product.title.trim() || found.product.identifier,
     localizedPrice: price,
-    period: found.product.subscriptionPeriod === 'P1Y' ? 'year' : 'month',
+    period,
     localizedPricePerMonth: found.product.subscriptionPeriod === 'P1Y' ? found.product.pricePerMonthString?.trim() || null : null,
     intro,
     introEligible: intro !== null && eligible.has(found.product.identifier),
@@ -183,8 +192,9 @@ export const purchases: PurchasesAdapter = {
       // products travel apart (contract.ts), so a monthly screen never draws one.
       const products = priced.filter((product) => product.period === 'month');
       const yearly = priced.filter((product) => product.period === 'year');
-      if (products.length === 0) return { available: false };
-      return { available: true, products, yearly };
+      if (priced.length === 0) return { available: false };
+      const weekly = priced.filter(product => product.period === 'week');
+      return { available: true, products, yearly, weekly };
     } catch {
       return { available: false };
     }

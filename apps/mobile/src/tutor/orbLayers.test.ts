@@ -111,15 +111,16 @@ describe('the living orb — F764, the orb half', () => {
   test("the orb's layers sit in VoiceOrb in the state's own colours, and its accessible name never changes with them", () => {
     const orb = stripComments(read('./VoiceOrb.tsx'));
     // The rule is asked once, and its answer is what the face draws.
-    assert.match(orb, /const layers = orbLayers\(\{ state: props\.state, room: audio === null \? null : audio\.room, reduced, paused: props\.paused === true \}\);/);
+    assert.match(orb, /const layers = orbLayers\(\{ state: props\.state, room: audio === null \? null : audio\.room, reduced, paused: props\.paused === true \|\| !active \}\);/);
     assert.match(orb, /paused=\{layers\.loopsRest\}/, 'today\'s loops do not rest while a live layer moves in their place');
     assert.match(orb, /layers\.ring && audio !== null \? <OrbLevelRing level=\{audio\.input\} size=\{size\} color=\{look\.colour\} \/>/, 'the ring is not the learner\'s level in the state colour');
-    assert.match(orb, /layers\.bars === 'live' && audio !== null \? \(\s*<LiveBars bands=\{audio\.bands\} heights=\{BAR_HEIGHTS\} size=\{size\} width=\{barWidth\} gap=\{barGap\} color=\{look\.glyph\} \/>/, 'the live bars are not the tutor\'s bands in the glyph colour');
+    assert.match(orb, /layers\.bars === 'live' && audio !== null && <View/);
+    assert.match(orb, /<LiveBars bands=\{audio\.bands\} heights=\{BAR_HEIGHTS\} size=\{meterSize\} width=\{barWidth\} gap=\{barGap\} color=\{paper\.ink\} \/>/);
     assert.match(orb, /<OrbPulse level=\{audio === null \? null : audio\.output\} on=\{layers\.pulse\}>/);
     assert.match(orb, /<OrbThinkingArc size=\{size\} color=\{look\.colour\} active=\{layers\.arc === 'turning'\} \/>/);
     assert.match(orb, /<OrbRipple cue=\{cue\} size=\{size\} color=\{look\.colour\} allowed=\{layers\.ripple\} \/>/);
     // Today's loop is still the fallback, drawn whenever the live bars are not.
-    assert.match(orb, /\{BAR_HEIGHTS\.map\(\(height, index\) => \(/);
+    assert.doesNotMatch(orb, /BAR_HEIGHTS\.map\(/);
 
     // "Hearing you" is a word drawn under the orb, never what a screen reader
     // is told: the name stays the state's own, and nothing announces it.

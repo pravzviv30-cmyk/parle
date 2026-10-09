@@ -138,7 +138,7 @@ describe("the week on Profile — F561, F577, and F233's importer count", () => 
     const storyModule = join('progress', 'story.ts');
     const readers = sourceFiles(SRC)
       .filter((path) => !path.endsWith(storyModule))
-      .filter((path) => /from '[^']*progress\/story\.ts'|from '\.\/story\.ts'/.test(stripComments(readFileSync(path, 'utf8'))))
+      .filter((path) => { const source = stripComments(readFileSync(path, 'utf8')); return /from '[^']*progress\/story\.ts'/.test(source) || (path.includes(join('progress', '')) && /from '\.\/story\.ts'/.test(source)); })
       .map((path) => path.slice(SRC.length));
     assert.deepEqual(
       readers,

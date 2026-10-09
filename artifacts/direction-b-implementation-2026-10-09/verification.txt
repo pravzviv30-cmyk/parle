@@ -1,0 +1,45 @@
+Direction B verification — 9 October 2026
+
+
+Mobile
+ℹ tests 2603
+ℹ suites 647
+ℹ pass 2603
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 57369.828041
+
+Billing server
+ℹ tests 428
+ℹ suites 54
+ℹ pass 428
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11948.931708
+
+Tutor agent
+ℹ tests 609
+ℹ suites 121
+ℹ pass 609
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20827.881542
+
+Money pins + Weekly projection after final configuration naming cleanup
+ℹ tests 5
+ℹ suites 1
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1014.891209
+
+Production web export
+Exported: dist

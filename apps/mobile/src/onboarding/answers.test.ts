@@ -315,7 +315,7 @@ describe('the Meet page reads as a paragraph, not a plaque — F359', () => {
     );
     assert.match(
       FLOW,
-      /question:\s*\{[^}]*\.\.\.type\.title/,
+      /question:\s*\{[^}]*\.\.\.type\.display/,
       'the recovery question must use the shared working title',
     );
   });
@@ -595,5 +595,5 @@ describe('the first run asks about usage data once, and off is the answer until 
  test("the recovery route's voice step is option rows that still sound their sample", () => {
   assert.doesNotMatch(FLOW, /<OptionCard/);
   assert.match(FLOW, /<OptionRow[\s\S]*?title=\{option.label\}[\s\S]*?detail=\{option.gloss\}[\s\S]*?selected=\{voice === option.value\}[\s\S]*?playing=\{playing === option.value\}[\s\S]*?onPress=\{\(\) => setVoice\(option.value\)\}[\s\S]*?onHear=\{\(\) => hearVoice\(option.value\)\}/);
-  assert.match(FLOW, /question: \{ \.\.\.type.title/);
+  assert.match(FLOW, /question: \{ \.\.\.type.display/);
 });

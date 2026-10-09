@@ -9,7 +9,6 @@ import { useSocial } from '../friends/useSocial.ts';
 import { friendsByName, REACTIONS } from '../friends/socialModel.ts';
 import {
   FRIENDS_PRIVACY_LINK,
-  FRIENDS_PURPOSE,
   FRIENDS_START,
   FRIENDS_START_BODY,
   FRIENDS_START_TITLE,
@@ -30,7 +29,7 @@ export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
     catch { setShareNote('The postcard could not be shared just now. Try again.'); }
   };
   return <ScrollScreen bottom={pushed ? "inset" : "tab"} header={pushed ? <ScreenHeader title={false} back={{ onPress: () => { if (nav.canGoBack()) nav.goBack(); else nav.navigate('Tabs'); } }} /> : undefined}>
-    <TabHeader title="Friends" purpose={FRIENDS_PURPOSE} trailing={<ProfileButton />} />
+    <TabHeader title="Friends" trailing={<ProfileButton />} />
     {error !== '' && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{error}</Text><IconAction layout="inline" icon="refresh" label="Try again" onPress={refresh} /></Card>}
     {entry === 'loading' && !error && <Text style={[type.body, { color: paper.inkSoft }]}>Opening your circle…</Text>}
     {/* Before joining: one opt-in start, with privacy a quiet link beneath it

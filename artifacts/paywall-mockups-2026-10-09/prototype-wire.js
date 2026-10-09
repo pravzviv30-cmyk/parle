@@ -1,0 +1,4 @@
+const page=await figma.getNodeByIdAsync('8:1665');await figma.setCurrentPageAsync(page);
+const createdNodeIds=[],mutatedNodeIds=[],wired=[],missing=[],alreadyHere=[];
+for(const item of LINKS){const n=await figma.getNodeByIdAsync(item.id);if(!n){missing.push(item.id);continue;}let root=n;while(root.parent&&root.parent.type!=='PAGE')root=root.parent;if(root.id===item.destinationId){await n.setReactionsAsync([]);mutatedNodeIds.push(n.id);alreadyHere.push(n.id);continue;}const action=item.url?{type:'URL',url:item.url}:{type:'NODE',destinationId:item.destinationId,navigation:'NAVIGATE',transition:{type:'SMART_ANIMATE',duration:.22,easing:{type:'EASE_OUT'}},resetScrollPosition:true};await n.setReactionsAsync([{trigger:{type:'ON_CLICK'},actions:[action]}]);mutatedNodeIds.push(n.id);wired.push({id:n.id,destinationId:item.destinationId,url:item.url});}
+return {createdNodeIds,mutatedNodeIds,wired,missing,alreadyHere,count:wired.length};

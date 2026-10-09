@@ -41,6 +41,13 @@ const sha = (text: string): string => createHash('sha256').update(text, 'utf8').
 // Unknown grant, period or storage never enables another purchase. Existing
 // prices, allowance/debit, restore settlement and historic SQL pins are unchanged.
 // Native sandbox and cross-device transaction proof remain explicitly unverified.
+// 9 October 2026: user approved Direction B and restoration of Starter Weekly.
+// Explicit weekly product mapping grants 2700 seconds through the existing
+// replay-safe projection; matching public client/server configuration gates sales.
+// Localized weekly offers and authoritative allowance reporting are intentional.
+// Monthly new offers are paid immediately; historical trial restore is preserved.
+// Purchase/restore settlement, usage debit and historical SQL pins are unchanged.
+// Native StoreKit sandbox qualification remains outstanding before release.
 const FILES: Record<string, string> = {
   // 5 October 2026, F733/F734: founder decisions D16 and D4 (come-alive Phase 0,
   // step F1). A store free trial grants a week of the plan (allowance x 7/30) and
@@ -91,7 +98,7 @@ const FILES: Record<string, string> = {
   // rule moved, and every FUNCTIONS pin is unchanged. 7 October 2026: the
   // independent P4-C review (Opus 5.5, read-only) accepted this adapter hash and
   // the contract's b98dcaa1... as display-only, which is the revenue sign-off.
-  'apps/mobile/src/purchases/adapter.native.ts': '1e5703d601d814461f6f9446d10ee3fc72728dd9c6ec4c3539d8fabc084203bb',
+  'apps/mobile/src/purchases/adapter.native.ts': '7ef8e5140e1fe2304b4389269411a43902adcb7051ca34712113cbc2a792e9ad',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
@@ -101,23 +108,25 @@ const FILES: Record<string, string> = {
   // review asked the `localizedPricePerMonth` doc to say RevenueCat divides the
   // yearly price by twelve on the device rather than "the store works it out".
   // `git diff` against the accepted b98dcaa1... shows only that doc comment.
-  'apps/mobile/src/purchases/contract.ts': '8073d6a000ede59ec31d46c8c74be74aa0f4b14201ffcf0a190a7e6d75f66893',
+  'apps/mobile/src/purchases/contract.ts': 'd8e6d02551b5a393cc65e769a1da62edf2fcafef4c46643a2bcb3ef899406380',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
   // 7 October 2026: authorized completion adds account-scoped invalidation after
   // validated billing refresh (F783); listeners re-read server authority. No grant
   // or pricing rule changes here. billingChanges.test.ts covers the boundary.
-  'apps/mobile/src/purchases/client.ts': '4fe18b860157ad83bc474040e0dedfacb8740fe5b68d84d25b1babaf14d8bee8',
+  'apps/mobile/src/purchases/client.ts': 'a5471c6e16c43da707e3be433151aa38134633a12090165759a57e4a8326e837',
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
-  'apps/mobile/src/purchases/billingStatus.ts': '3104923354eec188303c25d0fc1e78abe4954daad392d7ad1427d32ce15392b1',
+  'apps/mobile/src/purchases/billingStatus.ts': '188b49983524e85464e01c6d18e9066d5cd2ebd4d4f0e1d721295e3ed28844f1',
   // 7 October 2026, F734 (come-alive Phase 4, ca/p4-wall): INCLUSIONS gains the
   // one streak line the plans page says for every plan on it, "Every plan
   // includes streak freezes and a one-tap repair.", now that F718 retired the
   // word from the shared ban. Copy only: capabilitiesFor, streakProtection and
   // planInclusions are unchanged, so no plan opens or gates anything new.
-  'apps/mobile/src/purchases/capabilities.ts': '028bd86850b49c7d440179f2ae0521dcbbd00a782120f2055d6c7a5824e1da3a',
-  'packages/core/src/metering/meter.ts': '05817207f16be48db63522f337e74af0d602a8c9b5a779a2f708333a18474786',
-  'services/token-server/src/billing/revenuecat.ts': '4e07d74fbbaa577f6bee720e8d762e91e6c669be30ce20388cbc80216e8f34e1',
-  'services/token-server/src/billingStatus.ts': '9ff5789bf23cb987b55e067230d3aa50fffdd0253d9c98d232717ddb6d3d2730',
+  // 9 October 2026: founder-authorized paywall copy adds INCLUSIONS.maxCompact.
+  // Capability predicates and all purchase/grant/meter functions are unchanged.
+  'apps/mobile/src/purchases/capabilities.ts': '739cb93a99580c0c981037b166b266548bc77dfbf4fb127f511d3fc2a1a7f8b6',
+  'packages/core/src/metering/meter.ts': '4da606ef6f77984f40edd05183e795336c59558ec1291de3f4e9d03f131d16d1',
+  'services/token-server/src/billing/revenuecat.ts': '33964e5a51bf18aa5cb3f7198c9cc377dc2b815eeb13a26a0ebd2a4a0b9ba8ff',
+  'services/token-server/src/billingStatus.ts': 'e10d98aaf23ddb00e53e5f96d722c4f80faa6044b760ee5e9dbce9187d4cba2c',
   // 3 October 2026: founder-authorized Report 36 confirmed service-failure
   // refunds and Report 32 approved audio spending ceilings. Sol independently
   // reviewed bounded charge/epoch/ownership/disabled-cap repairs; disposable SQL
@@ -137,7 +146,7 @@ const FILES: Record<string, string> = {
   // store changes remove raw error logging only. Prices/allowances remain pinned.
   'services/token-server/src/tokens.ts': 'f298cb76bdfc3320da98066b801d15b3a2632af35c6b7ff402598f2c11164e74',
   'services/token-server/src/store.ts': '56d3cc9d2798d8aef972d269086c809bb8c13f9436613ef234906e246dcc3674',
-  'packages/core/src/metering/index.ts': '54f3732c3ab86e02bc35088e0ca32bd47443a1c4e3e6b52bbade5345011613e5',
+  'packages/core/src/metering/index.ts': '685fb30e1b910abf2c3a2104d93402558a32c660a193001249451688d42f7dc4',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
   'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',
   'supabase/migrations/202608220001_luvani_learning.sql': '837130edcd96955383936bb34814c38a6cf9357e5031355156dd5398eb1f8c23',
@@ -150,7 +159,7 @@ const FILES: Record<string, string> = {
   'supabase/migrations/202609100001_max_allowance_three_hundred.sql': '0e0982a4a43efa7100674848e8698eb5a7d15f44e39e4cbeac1e866c7069aadc',
   'apps/mobile/src/purchases/storeSettlement.ts': '6b1fd0203883dfa7631f78fdd8b07e0714fb3e1c31ce22193a1c771b0e5f23dd',
   'apps/mobile/src/purchases/storeQueue.ts': 'e082c5feb556e5eda675884e56255ebf2ef4365ddfa783d26ad0005c271d9c74',
-  'apps/mobile/src/purchases/billingReadiness.ts': '547ecad442783e73afe1436c69332c9c11c5178c056f29ee12cfada8a9b3a92d',
+  'apps/mobile/src/purchases/billingReadiness.ts': '00d56ec03d31717376149bf4d9e50738452d55e8cd7d2951114e70f858ec5cd6',
   'services/token-server/src/billing/state.ts': 'e564bd2e58a25fea9dc942c7e4a52563802bbcc309fc3caa4cbeaea2ec3abc17',
   // 2 October 2026, Report 45: founder-authorized optional consented funnel evidence.
   // Sol accepted the separate-savepoint trial RPC, strict server event boundaries
@@ -172,7 +181,7 @@ const FILES: Record<string, string> = {
  * the indentation and the comments inside the function as well as the code.
  */
 const FUNCTIONS: ReadonlyArray<{ file: string; from: string; to: string; hash: string }> = [
-  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function purchasable(', to: '\n}\n', hash: '43b7a449f84496d510760ee14a60d455c11f7be43951e3cd6880e86b4e233526' },
+  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function purchasable(', to: '\n}\n', hash: '356663b565acadb4db7149d52bb3b19a34db93da9cb7045dc65dcdb4381cc9d3' },
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function paywallSurface(', to: '\n}\n', hash: 'd84931dc6e9138415641ca4acde9fd0fc746b4032c318ffe52fbe22d0b8935a9' },
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: 'a42a8dbf9d09d8b44260a42e20ff35956cd51e104fdc815ee3f27a4cd0e943db' },
   { file: 'apps/mobile/src/purchases/Paywall.tsx', from: '  const finish = async (', to: '\n  };\n', hash: '84b76d1009e37cb18928dba63a23fbe243160a42d96fcc48581f6bebd76e508d' },

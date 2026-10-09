@@ -18,6 +18,7 @@ import type { Plan, StartRefusal } from '@luvani/core';
 
 export interface BillingStatus {
   plan: Plan;
+  allowanceSeconds?: number;
   secondsRemaining: number;
   /** An ISO instant, or null for the non-renewing trial. */
   periodEnd: string | null;
@@ -34,7 +35,7 @@ const REFUSALS: readonly string[] = ['exhausted', 'insufficient-for-session', 's
 
 export function billingStatusIn(body: unknown): BillingStatus | null {
   if (typeof body !== 'object' || body === null) return null;
-  const { plan, secondsRemaining, periodEnd, lapsed, canStart, reason } = body as Record<string, unknown>;
+  const { plan, allowanceSeconds, secondsRemaining, periodEnd, lapsed, canStart, reason } = body as Record<string, unknown>;
   if (typeof plan !== 'string' || !PLAN_IDS.includes(plan)) return null;
   if (typeof secondsRemaining !== 'number' || !Number.isFinite(secondsRemaining) || secondsRemaining < 0) return null;
   if (periodEnd !== null && (typeof periodEnd !== 'string' || !Number.isFinite(new Date(periodEnd).getTime()))) return null;
@@ -42,7 +43,9 @@ export function billingStatusIn(body: unknown): BillingStatus | null {
   if (reason !== null && (typeof reason !== 'string' || !REFUSALS.includes(reason))) return null;
   if (canStart && reason !== null) return null;
   if (!canStart && reason === null) return null;
+  if (allowanceSeconds !== undefined && (typeof allowanceSeconds !== 'number' || !Number.isInteger(allowanceSeconds) || allowanceSeconds <= 0 || allowanceSeconds < secondsRemaining)) return null;
   return {
+    ...(typeof allowanceSeconds === 'number' ? { allowanceSeconds } : {}),
     plan: plan as Plan,
     secondsRemaining,
     periodEnd: periodEnd as string | null,

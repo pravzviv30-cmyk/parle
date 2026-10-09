@@ -10,7 +10,7 @@
 
 export const FIRST_RUN_COPY = {
   /** Under the promise title, before the drink tiles. */
-  promiseLead: 'First, pick a drink.',
+  promiseLead: 'Coffee or tea?',
   /** The dashed card that holds the space until a drink is picked. */
   phrasePlaceholder: 'Your first French line appears here.',
 
@@ -22,7 +22,7 @@ export const FIRST_RUN_COPY = {
   goalWhy: 'Last question. You can change it any time.',
 
   /** The daily goal, one tier at a time (D5). */
-  goalTitle: 'What’s your daily goal?',
+  goalTitle: 'A little, every day.',
   chooseEachTime: 'Choose each time',
   /** Said on the one tier the learner's own answers point at, and nowhere else. */
   suggested: 'Suggested from your answers.',

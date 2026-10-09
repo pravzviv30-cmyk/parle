@@ -30,7 +30,7 @@ export function DayCount({ weekly = false }: { weekly?: boolean }) {
     }).catch(() => { if (!cancelled && owner === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [user?.id, weekly, attempt]));
-  if (failed) return <View style={{ marginTop: space(4) }}><Text style={[type.small, { color: paper.inkSoft }]}>Practice days could not be read just now.</Text><IconAction layout="inline" icon="refresh" label="Try loading practice days" onPress={() => setAttempt((n) => n + 1)} /></View>;
+  if (failed) return <View style={{ marginTop: space(4) }}><Text style={[type.small, { color: paper.ink }]}>Practice days could not be read just now.</Text><IconAction layout="inline" icon="refresh" label="Try loading practice days" onPress={() => setAttempt((n) => n + 1)} /></View>;
   if (value === null || value.owner !== scopeGeneration() || value.line === null) return null;
-  return <Text style={[type.small, { color: paper.inkSoft, marginTop: space(4) }]}>{value.line}</Text>;
+  return <Text style={[type.small, { color: paper.ink, marginTop: space(4) }]}>{value.line}</Text>;
 }

@@ -154,6 +154,6 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     const page = readFileSync(join(SRC, 'wall', 'WallPlansPage.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
     assert.equal((page.match(/\{INCLUSIONS\.streak\}/g) ?? []).length, 1, 'the streak line is not said on the plans page, or is said twice');
     assert.ok(page.indexOf('{INCLUSIONS.streak}') > page.lastIndexOf('row.offers.map('), 'the streak line sits inside one plan\'s rows');
-    assert.match(page, /<Icon name="freeze"/);
+    assert.match(page, /<Sheet visible=\{comparing\}/);
   });
 });

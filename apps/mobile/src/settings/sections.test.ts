@@ -108,7 +108,7 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     // written in JSX is a line no sweep in this workspace can read back.
     assert.match(PROFILE, /<TabHeader\s+align="center"/, 'Profile opens with a left-aligned header like the four tabs that name a subject');
     assert.match(PROFILE, /title=\{profile\.name \?\? 'You'\}/, 'the header says something other than the learner');
-    assert.match(PROFILE, /purpose=\{PROFILE_PURPOSE\}/, 'the line under the name is written in JSX, where no test can read it back');
+    assert.doesNotMatch(PROFILE, /purpose=/, 'Profile repeats an explanation under the learner name');
     assert.ok(!PROFILE.includes('Your name and your tutor.'), 'the tab still says it is about the account, which is now a screen away');
     assert.ok(!PROFILE.includes('levelName'), 'the level line is back under the name, ranking somebody who came to change a setting');
 

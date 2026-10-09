@@ -21,7 +21,7 @@ import { restorePurchases, settleStoreAction } from '../purchases/restore.ts';
 import { latestCatalogue, noteCatalogue } from './catalogue.ts';
 import { WallPlansAtButton, WallPlansPage } from './WallPlansPage.tsx';
 import { WallYoursPage } from './WallYoursPage.tsx';
-import { PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
+import { billedPrice, PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
 import { chosenOffer, preselectedOffer, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
 import { TRIAL_REMINDER_SCHEDULED, trialTimeline } from './trialTimeline.ts';
@@ -497,7 +497,7 @@ export function WallScreen({
       <ScrollScreen
         ground={page === 'yours' ? colour.sun : paper.ground}
         bottom="inset"
-        header={<ScreenHeader back={{ onPress: back }} title={<ProgressDots total={pages.length} index={index} />} />}
+        header={<ScreenHeader leave={{ label: WALL_LEAVE, onPress: () => leave() }} title={<ProgressDots total={pages.length} index={index} />} />}
         footer={
           <View>
             <PillButton
@@ -511,7 +511,7 @@ export function WallScreen({
               disabled={(busy && morph === 'idle') || (action === 'buy' && chosen === null)}
               onPress={forward}
             />
-            {page === 'plans' && <WallPlansAtButton trialTerms={trial?.terms ?? null} />}
+            {page === 'plans' && <WallPlansAtButton trialTerms={trial?.terms ?? null} priceTerms={chosen ? billedPrice(chosen.price, chosen.period) : null} />}
           </View>
         }
       >
@@ -521,7 +521,6 @@ export function WallScreen({
             rows={planRows}
             account={wallAccount(status, latestCatalogue(), Date.now())}
             selected={selected}
-            goal={goal}
             trial={trial}
             onSelect={(offer) => {
               // The learner's own choice, and the only place one is recorded.

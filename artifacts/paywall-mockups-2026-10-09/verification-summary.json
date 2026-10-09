@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-09",
+  "screens": 130,
+  "appScreens": 74,
+  "paywallStates": 56,
+  "flows": 6,
+  "deviceFixtures": 11,
+  "mobileTests": {
+    "total": 2600,
+    "passed": 2600,
+    "failed": 0
+  },
+  "affectedChecksAfterCleanup": {
+    "total": 109,
+    "passed": 109,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "diffWhitespace": "passed",
+  "pdfPages": 136,
+  "pdfLiveAllowanceVerified": true,
+  "browserChecks": [
+    "375\u00d7812 onboarding bounds",
+    "430\u00d7932 onboarding bounds",
+    "812\u00d7375 onboarding bounds",
+    "monthly selection updates amount and action",
+    "terms returns to monthly selection",
+    "Home \u2192 Practice \u2192 Profile \u2192 Settings \u2192 Privacy",
+    "connecting \u2192 tutor turn \u2192 learner turn"
+  ],
+  "releaseBoundary": "Physical iPhone, VoiceOver, native Dynamic Type/keyboard and real integrations still require acceptance testing."
+}

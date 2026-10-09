@@ -18,6 +18,7 @@
  */
 
 import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { useScreenGeometry } from '../../layout.tsx';
 
 import { decorative } from '../../theme.ts';
 import { ILLUSTRATIONS, type IllustrationEntry, type IllustrationName } from './index.ts';
@@ -34,9 +35,11 @@ export function Illustration({
 }) {
   const entry: IllustrationEntry = ILLUSTRATIONS[name];
   const [width, height] = entry[fit] ?? entry.large;
+  const geometry = useScreenGeometry();
+  const fittedWidth = Math.min(width, geometry.artMaxHeight * width / height);
   const Draw = entry.draw;
   return (
-    <View style={[{ width, height, maxWidth: '100%', pointerEvents: 'none' }, style]} {...decorative}>
+    <View style={[{ width: fittedWidth, aspectRatio: width / height, maxWidth: '100%', pointerEvents: 'none' }, style]} {...decorative}>
       <Draw width="100%" height="100%" />
     </View>
   );

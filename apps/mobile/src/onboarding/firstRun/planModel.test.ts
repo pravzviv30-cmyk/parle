@@ -62,11 +62,11 @@ describe('the plan card and the daily goal', () => {
     assert.match(screen, /suggested=\{tier\.minutes === suggested\}/);
     assert.match(screen, /selected=\{draft\.minutes === tier\.minutes\}/);
     assert.match(screen, /onPress=\{\(\) => choose\(\{ minutes: 'none' \}\)\}/, 'Choose each time is no longer an answer of its own');
-    assert.match(screen, /<PlanCard draft=\{draft\} five=\{five\} flyFrom=\{flight\} \/>/);
+    assert.match(screen, /<PlanCard\s+draft=\{draft\}\s+five=\{five\}\s+flyFrom=\{flight\}\s+expanded/);
     assert.doesNotMatch(screen, /<Chip|<Label|<TokenFlight|useTokenFlight/, 'the flight is launched from the screen rather than the plan card');
     assert.match(evidence('apps/mobile/src/onboarding/firstRun/PlanCard.tsx'), /flight\.launch\(\{/);
     const goal = evidence('apps/mobile/src/onboarding/firstRun/GoalTile.tsx');
-    assert.match(goal, /suggested \? `\$\{tierLine\(tier\.minutes\)\}\. \$\{FIRST_RUN_COPY\.suggested\}` : tierLine\(tier\.minutes\)/);
+    assert.match(goal, /accessibilityLabel=\{tierLabel\(tier, suggested\)\}/);
   });
 
   test('the plan reveal draws the real daily minutes and plays only the plan-ready sound', () => {
@@ -78,10 +78,10 @@ describe('the plan card and the daily goal', () => {
     assert.match(screen, /<PlanReveal minutes=\{minutesOf\(draft\)\} exchanges=\{tasks\.length\}/, 'the reveal counts something other than the real plan');
     assert.match(screen, /const planReady = \(\) => \{ playSfx\('select'\); tapSettled\(\); \};/, 'the plan is louder than one select and one settled tap');
     assert.equal((screen.match(/planReady\(\)/g) ?? []).length, 3, 'the plan-ready sound plays somewhere other than arriving on a new plan');
-    assert.match(screen, /<View \{\.\.\.decorative\}> <OrbGlyph color=\{paper\.ink\} size=\{28\} \/> <\/View> <Text style=\{\[type\.body, \{ flex: 1 \}\]\}>\{STARTER_AI\}<\/Text>/, 'the AI line lost its orb or its words');
     const reveal = evidence('apps/mobile/src/onboarding/firstRun/PlanReveal.tsx');
+    assert.match(reveal, /\{tutorName\}, AI tutor/, 'the selected tutor is not identified as AI');
     assert.match(reveal, /<CountUp to=\{minutes\}/);
-    assert.match(reveal, /FIRST_RUN_COPY\.streakLine/);
+    assert.match(reveal, /sceneTitle/);
     assert.doesNotMatch(reveal, /HeroNumber|Building|building|shimmer|playSfx|tick=/, 'the reveal fakes work or ticks');
   });
 
@@ -99,10 +99,11 @@ describe('the plan card and the daily goal', () => {
   test('the plan page shows the first exchange even when Back reaches it from a later one', () => {
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
     assert.match(screen, /const firstTask = tasks\[0\]!;/);
-    assert.match(screen, /\(page === 'plan' \? `\$\{firstTask\.title\}\.`/, 'the plan page is titled with the exchange the learner is on');
+    assert.match(screen, /personalPlanTitle\(draft\.reason\)/, 'the plan title uses the learner’s reason');
     const plan = screen.slice(screen.indexOf("{page === 'plan' && ("), screen.indexOf("{page === 'practice' && ("));
     assert.ok(plan.length > 0, 'the plan page moved; this check reads nothing');
-    assert.match(plan, /\{FIRST_RUN_COPY\.firstExchange\}<\/Text> <Text \{\.\.\.frenchText\} style=\{type\.frenchLg\}> \{firstTask\.prompt\} <\/Text> <Text style=\{type\.body\}>\{firstTask\.translation\} Start with one reply\.<\/Text>/);
+    assert.match(plan, /\{firstTask\.prompt\}/);
+    assert.match(plan, /\{firstTask\.translation\}/);
     assert.doesNotMatch(plan, /\btask\.(prompt|translation|title)\b/, 'the first-exchange card shows a later exchange');
   });
 });

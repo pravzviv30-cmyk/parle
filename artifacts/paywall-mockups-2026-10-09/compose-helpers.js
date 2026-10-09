@@ -1,0 +1,36 @@
+const page=await figma.getNodeByIdAsync(LEDGER.pageId);await figma.setCurrentPageAsync(page);
+await Promise.all(['Regular','Medium','SemiBold','Bold','ExtraBold'].map(style=>figma.loadFontAsync({family:'Outfit',style})));
+const createdNodeIds=[],mutatedNodeIds=[],links=[],evidence=[],vars={},styles={},masters={};
+await Promise.all(Object.entries(LEDGER.vars).map(async([k,id])=>vars[k]=await figma.variables.getVariableByIdAsync(id)));
+const localStyles=await figma.getLocalTextStylesAsync();for(const[k,id]of Object.entries(LEDGER.styles))styles[k]=localStyles.find(s=>s.id===id);
+const masterIds=[...Object.values(COMP.icons),...Object.values(COMP.buttons).map(v=>v.id),...Object.values(COMP.offers).map(v=>v.id),COMP.allowance.id,COMP.info.id,COMP.timeline,COMP.recoveryLinks];
+await Promise.all(masterIds.map(async id=>masters[id]=await figma.getNodeByIdAsync(id)));
+function track(n){createdNodeIds.push(n.id);return n;}
+function paint(k){return [figma.variables.setBoundVariableForPaint({type:'SOLID',color:{r:0,g:0,b:0}},'color',vars[k])];}
+function box(p,name,dir='VERTICAL',w=342,bg=null,pad=0,gap='s12'){const n=track(figma.createAutoLayout(dir));n.name=name;n.resize(w,10);n.layoutSizingHorizontal='FIXED';n.layoutSizingVertical='HUG';n.fills=bg?paint(bg):[];n.setBoundVariable('itemSpacing',vars[gap]);if(pad)for(const k of ['paddingTop','paddingBottom','paddingLeft','paddingRight'])n.setBoundVariable(k,vars[pad]);if(p)p.appendChild(n);return n;}
+function txt(p,value,key='body',w=342,color='ink',name=null){const t=track(figma.createText());t.fontName=styles[key].fontName;t.textStyleId=styles[key].id;t.characters=value;t.name=name||value.slice(0,48);t.resize(w,10);t.textAutoResize='HEIGHT';t.fills=paint(color);p.appendChild(t);return t;}
+function inst(p,id,props=null){const n=masters[id].createInstance();track(n);createdNodeIds.push(...n.findAll(()=>true).map(c=>c.id));p.appendChild(n);if(props)n.setProperties(props);return n;}
+function values(def,data){return Object.fromEntries(Object.entries(data).map(([k,v])=>[def.props[k],v]));}
+function icon(p,name,size=24){const n=inst(p,COMP.icons[name]);n.resize(size,size);return n;}
+function action(n,dest){if(dest)links.push({id:n.id,dest});return n;}
+function button(p,label,dest=null,tone='Primary',state='Default'){const d=COMP.buttons['Tone='+tone+', State='+state];const n=inst(p,d.id,{[d.props.Label]:label});return state==='Default'?action(n,dest):n;}
+function info(p,title,detail,dest=null){return action(inst(p,COMP.info.id,values(COMP.info,{Title:title,Detail:detail})),dest);}
+function allowance(p,data){return inst(p,COMP.allowance.id,values(COMP.allowance,data));}
+function card(p,title,body,bg='white',iconName=null){const n=box(p,title,'VERTICAL',342,bg,'s20');n.setBoundVariable('cornerRadius',vars.r24);if(iconName)icon(n,iconName,32);txt(n,title,'heading',302,bg==='blue'||bg==='coral'?'white':'ink');if(body)txt(n,body,'body',302,bg==='blue'||bg==='coral'?'white':'soft');return n;}
+function evidenceCard(p,phrase,translation,color='white'){const n=box(p,'Example phrase','VERTICAL',342,color,'s20','s8');n.setBoundVariable('cornerRadius',vars.r24);txt(n,'Example from a café conversation','small',302,color==='coral'?'white':'soft');txt(n,phrase,'french',302,color==='coral'?'white':'ink');txt(n,translation,'small',302,color==='coral'?'white':'soft');return n;}
+function bullet(p,label,iconName='Check'){const r=box(p,label,'HORIZONTAL',342,null,0,'s12');r.counterAxisAlignItems='CENTER';icon(r,iconName,20);txt(r,label,'small',310);return r;}
+async function shell(spec,label='Speaking practice',back='home'){
+ const root=await figma.getNodeByIdAsync(LEDGER.screens[spec.key].id);if(root.children.length)throw new Error(spec.key+' already built');mutatedNodeIds.push(root.id);
+ const status=box(root,'Status bar','HORIZONTAL',390,null,0,'s8');status.resize(390,32);status.layoutSizingVertical='FIXED';status.paddingLeft=24;status.paddingRight=24;status.counterAxisAlignItems='CENTER';status.primaryAxisAlignItems='SPACE_BETWEEN';txt(status,'9:41','label',80);const signal=txt(status,'•••  ▰','small',80);signal.textAlignHorizontal='RIGHT';
+ const nav=box(root,'Navigation','HORIZONTAL',390,null,0,'s8');nav.resize(390,52);nav.layoutSizingVertical='FIXED';nav.paddingLeft=24;nav.paddingRight=24;nav.counterAxisAlignItems='CENTER';nav.primaryAxisAlignItems='SPACE_BETWEEN';txt(nav,label,'label',290);const hit=box(nav,'Close / back','HORIZONTAL',44);hit.resize(44,44);hit.layoutSizingVertical='FIXED';hit.primaryAxisAlignItems='CENTER';hit.counterAxisAlignItems='CENTER';icon(hit,label==='Plan and subscription'?'Back':'Close');action(hit,back);
+ const viewport=box(root,'Scrollable content','VERTICAL',390);viewport.resize(390,400);viewport.layoutSizingVertical='FILL';viewport.clipsContent=true;viewport.overflowDirection='VERTICAL';viewport.paddingLeft=24;viewport.paddingRight=24;viewport.paddingTop=12;viewport.paddingBottom=12;
+ const content=box(viewport,'Content','VERTICAL',342,null,0,'s16');content.clipsContent=false;
+ const foot=box(root,'Persistent actions','VERTICAL',390,'paper',0,'s4');foot.paddingLeft=24;foot.paddingRight=24;foot.paddingTop=12;foot.paddingBottom=4;
+ const home=box(root,'Home indicator','HORIZONTAL',390);home.resize(390,24);home.layoutSizingVertical='FIXED';home.counterAxisAlignItems='CENTER';home.primaryAxisAlignItems='CENTER';const bar=track(figma.createRectangle());bar.name='Home indicator';bar.resize(116,4);bar.fills=paint('ink');bar.cornerRadius=2;home.appendChild(bar);
+ return {root,content,foot,viewport};
+}
+function title(p,heading,body=null){txt(p,heading,'title');if(body)txt(p,body,'body',342,'soft');}
+function linksFooter(p){const n=inst(p,COMP.recoveryLinks);const texts=n.findAllWithCriteria({types:['TEXT']});for(const t of texts)if(t.characters==='Restore')action(t,'reinstall');return n;}
+async function finish(spec,s,note){s.root.placeholder=false;const cell=await figma.getNodeByIdAsync(LEDGER.screens[spec.key].cell);txt(cell,note,'small',390,'soft','Design note');mutatedNodeIds.push(cell.id);evidence.push({key:spec.key,id:s.root.id,name:spec.name,width:s.root.width,height:s.root.height,contentHeight:s.content.height,viewportHeight:s.viewport.height,footerHeight:s.foot.height,note});}
+function manageLinks(p,plan='yearly'){info(p,'Manage in the App Store','Review renewal, cancellation and billing');info(p,'Restore purchases','Recover an existing purchase','reinstall');info(p,'Billing help','Get help with your store or account');}
+const planData={trial:{name:'Seven-day yearly trial',cap:45,left:32,amount:'$199.99 every year',refresh:'Trial ends 16 Oct 2026, 11:00 BST',bill:'16 Oct 2026, 11:00 BST'},weekly:{name:'Starter Weekly',cap:45,left:28,amount:'$5.49 every seven days',refresh:'16 Oct 2026, 11:00 BST',bill:'16 Oct 2026, 11:00 BST'},monthly:{name:'Starter Monthly',cap:180,left:128,amount:'$19 every month',refresh:'9 Nov 2026, 10:00 GMT',bill:'9 Nov 2026, 10:00 GMT'},yearly:{name:'Starter Yearly',cap:180,left:128,amount:'$199.99 every year',refresh:'9 Nov 2026, 10:00 GMT',bill:'9 Oct 2027, 11:00 BST'},max:{name:'Max Monthly',cap:300,left:212,amount:'$29 every month',refresh:'9 Nov 2026, 10:00 GMT',bill:'9 Nov 2026, 10:00 GMT'}};

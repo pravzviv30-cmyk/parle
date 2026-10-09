@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-09",
+  "figma_board": "https://www.figma.com/design/cJ79urCrmiQEm7MgQnoG3D?node-id=105-416",
+  "prototype_start_node": "99:3210",
+  "changes": [
+    "Exact paywall reassurance: No Commitment, Cancel Anytime",
+    "Periwinkle and lavender cloud orb, seven state variants, reduced motion and background pause",
+    "Personal onboarding using the learner\u2019s actual reason, starting level, minutes and selected tutor",
+    "Concise plan preview with first phrase and translation visible without scrolling at reviewed default sizes",
+    "Startup-only logo",
+    "Monthly and yearly paywall paths preserve plan selection and actual trial eligibility"
+  ],
+  "verification": {
+    "typecheck": "pass",
+    "tests": 2600,
+    "suites": 647,
+    "passed": 2600,
+    "failed": 0,
+    "skipped": 0,
+    "git_diff_check": "pass",
+    "native_entry_restored": true,
+    "temporary_servers_stopped": true,
+    "browser_viewport_restored": true
+  },
+  "reviewed_web_viewports": [
+    [
+      375,
+      812
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      430,
+      932
+    ]
+  ],
+  "first_phrase_bounds": {
+    "375x812": [
+      432,
+      500
+    ],
+    "390x844": [
+      440,
+      508
+    ],
+    "430x932": [
+      440,
+      508
+    ]
+  },
+  "sources_and_limits": "RESEARCH.md",
+  "release_checks_remaining": [
+    "Physical-device safe areas and dynamic text",
+    "VoiceOver and native motion/GPU performance",
+    "Live tutor audio and microphone lifecycle on device",
+    "Sandbox App Store purchase and restore completion"
+  ],
+  "price_data": "Figma prices are GBP development fixtures; production prices and eligibility remain store-derived, allowances catalogue-derived.",
+  "proof": [
+    "figma-final-board.png",
+    "native-paywall.jpg",
+    "native-orb.jpg",
+    "native-personal-plan.jpg",
+    "cloud-orb-motion.mp4"
+  ]
+}

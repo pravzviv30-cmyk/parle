@@ -44,7 +44,7 @@ import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
-import { IconAction, BookmarkGlyph, GhostButton, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
+import { Card, IconAction, BookmarkGlyph, GhostButton, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
 import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { launchLabel } from '../tutor/orbState.ts';
@@ -55,7 +55,7 @@ import { sceneMeta } from './estimate.ts';
 import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
 import { SceneArt } from './SceneArt.tsx';
 
-export function MissionHero({ hero }: { hero: HomeMission }) {
+export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?: boolean }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
   const { profile } = useProfile();
@@ -132,6 +132,17 @@ export function MissionHero({ hero }: { hero: HomeMission }) {
       });
   };
 
+  if (vivid) return <View style={{ gap: space(4) }}>
+    {hero.kind === 'scene' && <SceneArt mission={hero.mission.id} />}
+    <Card style={{ gap: space(1) }}>
+      <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{hero.title}</Text>
+      {Boolean(hero.canDo) && <Text style={[type.small, { color: paper.inkSoft }]}>{canDoSentence(hero.canDo ?? '')}</Text>}
+      <Text style={[type.small, { color: paper.inkSoft }]}>{sceneMeta('Live practice', hero.minutes, tutorName)}</Text>
+    </Card>
+    <PillButton label={label} disabled={checking} onPress={() => open(modes.textMode)} />
+    <IconAction layout="inline" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
+    {heldBack !== null && <View><Text style={type.body}>{TUTOR_OFFLINE.body}</Text><IconAction layout="inline" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} /></View>}
+  </View>;
   return (
     <SceneBrief
       meta={sceneMeta(hero.label ?? 'Next scene', hero.minutes, tutorName)}

@@ -1,5 +1,32 @@
 # Design
 
+## 9 October 2026 · vibrant UI revision
+
+The founder requested a fuller colour treatment, joyful editable illustrations,
+shorter copy and responsive iPhone structure. This direction supersedes the
+older limits of one colour card per working page and a purpose line on every
+tab. Keep Outfit, the existing high-contrast palette, clear French and useful
+actions. Use colour to establish a screen and distinguish meaningful content;
+remove repeated subtitles when the title and action already explain the page.
+
+The complete design and handoff are in
+[Figma](https://www.figma.com/design/cJ79urCrmiQEm7MgQnoG3D?node-id=44-1481)
+and `artifacts/paywall-mockups-2026-10-09/REVIEW.md`. They cover 74 app screens
+and 56 paywall/billing states. The Figma revision is a design deliverable;
+the shared responsive primitives and copy reductions are implemented in this
+checkout. Store/server truth, permissions, privacy choices and real audio
+continue to govern actual behaviour.
+
+Layout follows viewport size, safe areas, font scale and rotation, rather than
+phone model names. Compress decorative artwork first, keep touch targets at
+least 44 points, and allow reading/action regions to scroll at large text or
+in landscape. Preserve the full billed amount and billing period near the
+purchase action. Default compact paywall mockups fit the full decision above
+the fold; large text must remain readable rather than being capped to fit.
+
+The remaining sections describe the earlier shipped composition and its
+components, except where this revision supersedes their copy/colour limits.
+
 <!-- Recorded from the built artifact, not from intentions. Every value below is
      read out of apps/mobile/src/palette.ts and the screens as shipped. The
      previous design system (enamel wayfinding, dark Métro-plaque green) lives

@@ -1,7 +1,7 @@
 import { applyBillingSnapshot, type BillingSnapshot, type BillingProjection } from './state.ts';
 import { timingSafeEqual } from 'node:crypto';
 
-import { LAPSE_GRACE_SEC, PLANS, allowanceWindowEnd, storeTrialSeconds, type BillingPeriod, type Entitlement, type PaidTier } from '@luvani/core';
+import { LAPSE_GRACE_SEC, PLANS, WEEKLY_STARTER_SECONDS, allowanceWindowEnd, storeTrialSeconds, type BillingPeriod, type Entitlement, type PaidTier } from '@luvani/core';
 import type { EntitlementStore } from '../store.ts';
 
 export interface RevenueCatConfiguration {
@@ -15,13 +15,15 @@ export interface RevenueCatConfiguration {
    * A tier missing here is simply not sold yearly, and a yearly purchase of it
    * is refused as an unknown product, exactly as any other unknown id is.
    */
+  weeklyStarterProduct?: string;
   yearlyProducts?: Readonly<Partial<Record<'starter' | 'regular', string>>>;
 }
 
 /** What reading a subscriber needs. The maintenance worker never holds the webhook secret. */
-export type RevenueCatReadConfiguration = Pick<RevenueCatConfiguration, 'secretApiKey' | 'entitlementId' | 'products' | 'yearlyProducts'>;
+export type RevenueCatReadConfiguration = Pick<RevenueCatConfiguration, 'secretApiKey' | 'entitlementId' | 'products' | 'yearlyProducts' | 'weeklyStarterProduct'>;
 
 export interface BillingEnvironment {
+  REVENUECAT_STARTER_WEEKLY_PRODUCT_ID?: string;
   REVENUECAT_SECRET_API_KEY?: string;
   LUVANI_REVENUECAT_WEBHOOK_SECRET?: string;
   REVENUECAT_ENTITLEMENT_ID?: string;
@@ -39,8 +41,8 @@ const BILLING_KEYS = [
   'REVENUECAT_REGULAR_PRODUCT_ID',
 ] as const;
 
-/** Optional, each on its own: absent means that tier is not sold yearly. */
-const YEARLY_KEYS = ['REVENUECAT_STARTER_YEARLY_PRODUCT_ID', 'REVENUECAT_REGULAR_YEARLY_PRODUCT_ID'] as const;
+/** Optional durations: absent means that product is not sold. */
+const OPTIONAL_PRODUCT_KEYS = ['REVENUECAT_STARTER_WEEKLY_PRODUCT_ID', 'REVENUECAT_STARTER_YEARLY_PRODUCT_ID', 'REVENUECAT_REGULAR_YEARLY_PRODUCT_ID'] as const;
 
 /** What the maintenance worker needs to re-read a subscriber, without the webhook secret. */
 const READ_KEYS = [
@@ -65,7 +67,7 @@ function yearlyFrom(env: BillingEnvironment): Partial<Record<'starter' | 'regula
  * of an if. Refused at startup rather than decided at a learner's expense.
  */
 function distinctProducts(config: RevenueCatReadConfiguration): RevenueCatReadConfiguration {
-  const ids = [config.products.starter, config.products.regular, ...Object.values(config.yearlyProducts ?? {})];
+  const ids = [config.products.starter, config.products.regular, ...Object.values(config.yearlyProducts ?? {}), ...(config.weeklyStarterProduct ? [config.weeklyStarterProduct] : [])];
   if (new Set(ids).size !== ids.length) throw new Error('ambiguous RevenueCat product configuration');
   return config;
 }
@@ -73,7 +75,7 @@ function distinctProducts(config: RevenueCatReadConfiguration): RevenueCatReadCo
 /** No keys means the purchase path is deliberately dark; a partial set is unsafe. */
 export function revenueCatConfiguration(env: BillingEnvironment): RevenueCatConfiguration | null {
   const present = BILLING_KEYS.filter((key) => Boolean(env[key]));
-  const yearly = YEARLY_KEYS.filter((key) => Boolean(env[key]));
+  const yearly = OPTIONAL_PRODUCT_KEYS.filter((key) => Boolean(env[key]));
   if (present.length === 0 && yearly.length === 0) return null;
   if (present.length !== BILLING_KEYS.length) {
     throw new Error('incomplete RevenueCat billing configuration');
@@ -87,6 +89,7 @@ export function revenueCatConfiguration(env: BillingEnvironment): RevenueCatConf
       regular: env.REVENUECAT_REGULAR_PRODUCT_ID!,
     },
     yearlyProducts: yearlyFrom(env),
+    ...(env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID ? { weeklyStarterProduct: env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID } : {}),
   };
   distinctProducts(config);
   return config;
@@ -101,7 +104,7 @@ export function revenueCatConfiguration(env: BillingEnvironment): RevenueCatConf
  */
 export function revenueCatReadConfiguration(env: BillingEnvironment): RevenueCatReadConfiguration | null {
   const mapping = READ_KEYS.slice(1).filter((key) => Boolean(env[key]));
-  const yearly = YEARLY_KEYS.filter((key) => Boolean(env[key]));
+  const yearly = OPTIONAL_PRODUCT_KEYS.filter((key) => Boolean(env[key]));
   if (mapping.length === 0 && yearly.length === 0) return null;
   if (READ_KEYS.some((key) => !env[key])) throw new Error('incomplete RevenueCat billing configuration');
   return distinctProducts({
@@ -109,6 +112,7 @@ export function revenueCatReadConfiguration(env: BillingEnvironment): RevenueCat
     entitlementId: env.REVENUECAT_ENTITLEMENT_ID!,
     products: { starter: env.REVENUECAT_STARTER_PRODUCT_ID!, regular: env.REVENUECAT_REGULAR_PRODUCT_ID! },
     yearlyProducts: yearlyFrom(env),
+    ...(env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID ? { weeklyStarterProduct: env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID } : {}),
   });
 }
 
@@ -143,6 +147,7 @@ interface RevenueCatSubscriberBody {
 
 /** The tier and the period a configured product id sells, or null for an id we never configured. */
 function soldProduct(productId: string, config: RevenueCatReadConfiguration): { plan: PaidTier; period: BillingPeriod } | null {
+  if (config.weeklyStarterProduct && productId === config.weeklyStarterProduct) return { plan: 'starter', period: 'week' };
   if (productId === config.products.starter) return { plan: 'starter', period: 'month' };
   if (productId === config.products.regular) return { plan: 'regular', period: 'month' };
   if (config.yearlyProducts?.starter && productId === config.yearlyProducts.starter) return { plan: 'starter', period: 'year' };
@@ -255,6 +260,11 @@ function subscriberSnapshot(body: RevenueCatSubscriberBody, config: RevenueCatRe
       const bought = instant(vendor.purchase_date) ?? instant(subscription?.purchase_date);
       const start = bought && bought < end ? bought : null;
       const began = start ? { periodStart: start } : {};
+      // Weekly is paid immediately. A misconfigured trial is not a paid weekly grant.
+      if (sold.period === 'week') {
+        if (kind !== 'paid' || !start) return { kind: 'unknown-product' };
+        return { kind: 'active', plan: sold.plan, ...began, periodEnd: end, grantSeconds: WEEKLY_STARTER_SECONDS };
+      }
       if (kind === 'trial') return { kind: 'active', plan: sold.plan, ...began, periodEnd: end, grantSeconds: storeTrialSeconds(sold.plan) };
       const allowance = PLANS[sold.plan].secondsPerPeriod;
       if (sold.period === 'month') return { kind: 'active', plan: sold.plan, ...began, periodEnd: end, grantSeconds: allowance };

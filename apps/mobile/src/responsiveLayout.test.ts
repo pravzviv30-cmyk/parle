@@ -1,12 +1,33 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { navigationWidth, screenInsets, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
+import { navigationWidth, screenInsets, screenGeometry, compactPhone, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
 
 test('phone content respects left and right safe areas', () => {
   assert.deepEqual(screenInsets(390, 0, 0), { paddingLeft: 20, paddingRight: 20 });
   assert.deepEqual(screenInsets(700, 44, 12), { paddingLeft: 64, paddingRight: 32 });
   assert.deepEqual(screenInsets(390, 0, 0, false), { paddingLeft: 0, paddingRight: 0 });
+});
+
+test('short safe viewports and large text compress decoration before content', () => {
+  assert.equal(compactPhone(375, 812, 44, 34), true);
+  assert.equal(compactPhone(390, 844, 47, 34), false);
+  assert.equal(compactPhone(430, 932, 59, 34, 1.8), true);
+  assert.equal(compactPhone(812, 375, 0, 21), true);
+});
+
+test('iPhone-sized, landscape and unfamiliar viewports leave room for content and controls', () => {
+  const viewports = [[320, 568], [375, 812], [390, 844], [393, 852], [402, 874], [414, 896], [430, 932], [440, 956], [812, 375], [700, 720]];
+  for (const [width, height] of viewports) for (const fontScale of [1, 1.5, 2, 3]) {
+    const insets = height! > width! ? { top: 59, bottom: 34, left: 0, right: 0 } : { top: 0, bottom: 21, left: 44, right: 44 };
+    const frame = screenGeometry(width!, height!, insets, fontScale);
+    assert.equal(frame.usableWidth, width! - insets.left - insets.right);
+    assert.equal(frame.usableHeight, height! - insets.top - insets.bottom);
+    assert.ok(frame.footerMaxHeight >= 44, 'primary controls keep a touch target');
+    assert.ok(frame.footerMaxHeight <= frame.usableHeight * 0.45);
+    assert.ok(frame.artMaxHeight <= frame.usableHeight * 0.3, 'art gives space to readable text');
+    assert.ok(frame.usableHeight - frame.footerMaxHeight > 100, 'the body remains scrollable');
+  }
 });
 
 test('iPad reading width is bounded and split view returns to phone geometry', () => {

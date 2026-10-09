@@ -34,6 +34,7 @@ interface Notice {
 }
 
 const NOTICES: readonly Notice[] = [
+  { name: 'orb-ui', by: 'Alexander Chen (2026)', licence: 'MIT License', note: 'Inspiration and motion model for the live tutor’s cloud orb.' },
   { name: 'toqr', by: 'Phil Pluckthun', licence: 'MIT License', note: 'Creates invitation QR codes on your device.' },
   {
     name: 'Outfit',

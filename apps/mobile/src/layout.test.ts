@@ -313,7 +313,7 @@ describe('the tab title is the working title — F602', () => {
       /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, flex: 1 \}\]\}>/,
       'the left title is not the working title in ink, rolled as a heading',
     );
-    assert.doesNotMatch(left, /type\.display/, 'a left tab title is still set at the 44 display size');
+    assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');
 
     // The working title is 30 at ExtraBold, and nothing else in the theme
     // decides it: a screen cannot nudge it.
@@ -351,7 +351,7 @@ describe('the tab title is the working title — F602', () => {
     // And the greeting is one of them: Home hands its greeting to the header
     // as the title, so it is set at the same 30 as every other tab name.
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
-    assert.match(home, /<TabHeader title=\{greeting\.title\}/, 'Home does not hand its greeting to the tab header as the title');
+    assert.match(home, /<TabHeader display leading=\{<Text[\s\S]*?\{greeting\.title\}/, 'Home does not hand its greeting to the tab header as the title');
   });
 });
 

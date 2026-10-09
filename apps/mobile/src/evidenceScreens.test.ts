@@ -137,6 +137,6 @@ describe('the practice and evidence screens wear the notebook — Phase 4 B2', (
       assert.ok(!TAGLINES.includes(line), `"${line}" is a tagline the copy pass cut`);
       assert.doesNotMatch(line, /—|\byour way\b|journey/i, `"${line}" reads as a tagline or carries an em dash`);
     }
-    assert.match(read('tabs/FriendsTab.tsx'), /purpose=\{FRIENDS_PURPOSE\}/, 'Friends types its purpose line in JSX, where no sweep can read it');
+    assert.doesNotMatch(read('tabs/FriendsTab.tsx'), /purpose=/, 'Friends repeats an explanation under its title');
   });
 });

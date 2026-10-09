@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Error: in applyManualKeyframeTrack: Property \"field\" failed validation: Expected one of the following, but none matched:\n  Expected object, received string\n    at <anonymous> (PLUGIN_1_SOURCE:1:366)\n"
+    },
+    {
+      "type": "text",
+      "text": "Figma Debug UUID: 8965593d-6158-45a8-8a99-78ed07b78e2d"
+    }
+  ],
+  "structuredContent": {
+    "error": {
+      "message": "Error: in applyManualKeyframeTrack: Property \"field\" failed validation: Expected one of the following, but none matched:\n  Expected object, received string\n    at <anonymous> (PLUGIN_1_SOURCE:1:366)\n",
+      "debugUuid": "8965593d-6158-45a8-8a99-78ed07b78e2d"
+    },
+    "safeToRetryWithoutCanvasRead": true,
+    "error_code": "INVALID_ARGUMENT"
+  },
+  "isError": true
+}
