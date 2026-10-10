@@ -12,26 +12,29 @@
  *   - the ring turns, the one loop;
  *   - after a beat the mark lifts and the name settles in beneath it, the one
  *     settling entrance (motion.ts), which leaves the stacked logo on screen;
- *   - once the app beneath has nothing left to load and the name has arrived,
- *     the screen fades out onto wherever the app has already gone: the welcome
- *     or onboarding for somebody new, Home for everybody else. Choosing that is
- *     the app's job and it is done behind this screen, not here.
+ *   - when a first-run onboarding requests the welcome, the finished mark and
+ *     name lift together and Get Started invites the learner into their plan;
+ *   - returning learners continue automatically once the app is ready and the
+ *     name has arrived. The destination is already rendered behind this screen.
  *
  * Transform and opacity only, on the native driver; the SVG is never animated,
  * only the views around it. With reduce motion on, the ring stays still and
  * the stacked logo is drawn at once, so the screen leaves as soon as the app is
- * ready. And it is never held past MAX_LAUNCH_MS: a load that never finishes
- * shows whatever the app draws while it waits, rather than hiding behind the mark.
+ * ready. MAX_LAUNCH_MS releases a load that never finishes. A ready first-run
+ * welcome remains until Get Started, including when reduce motion is enabled.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, AppState, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hide as hideNativeLaunch, preventAutoHideAsync } from 'expo-splash-screen';
 import { colour, decorative, paper } from '../theme.ts';
 import { NATIVE_DRIVER, SETTLE_MS, settleIn, useReduceMotion } from '../motion.ts';
 import { HUM_CORE, HUM_RING_PATH, HUM_VIEWBOX, HUM_WORDMARK } from '../brand/hum.ts';
+import { PillButton } from '../components.tsx';
+import { GlowAction } from '../onboarding/motion/OnboardingScenes.tsx';
 import {
   ENTRANCE_DELAY_MS,
   LAUNCH_MARK_SIZE,
@@ -39,7 +42,7 @@ import {
   RING_TURN_MS,
   launchMayLeave,
 } from './launchTiming.ts';
-import { useLaunchReady } from './useLaunch.ts';
+import { useLaunchReady, useLaunchWelcome } from './useLaunch.ts';
 
 /** The stacked logo's proportions: the ring is 1.9 times the name's height. */
 const RING_SPAN = (224 / HUM_VIEWBOX) * LAUNCH_MARK_SIZE;
@@ -62,6 +65,8 @@ preventAutoHideAsync().catch(() => undefined);
 export function LaunchScreen({ onDone }: { onDone: () => void }) {
   const reduced = useReduceMotion(true);
   const appReady = useLaunchReady();
+  const welcome = useLaunchWelcome();
+  const insets = useSafeAreaInsets();
   const [active, setActive] = useState(AppState.currentState === 'active');
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => setActive(state === 'active'));
@@ -70,7 +75,9 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
   const spin = useRef(new Animated.Value(0)).current;
   const entrance = useRef(new Animated.Value(0)).current;
   const presence = useRef(new Animated.Value(1)).current;
+  const welcomeEntrance = useRef(new Animated.Value(0)).current;
   const [entered, setEntered] = useState(false);
+  const [started, setStarted] = useState(false);
   const [capped, setCapped] = useState(false);
   const released = useRef(false);
   const leaving = useRef(false);
@@ -112,39 +119,54 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
     return () => arrival?.stop();
   }, [reduced, entrance]);
 
-  // Never held past the cap, ready or not.
+  // A failed load is released at the cap; a ready welcome awaits Get Started.
   useEffect(() => {
     const cap = setTimeout(() => setCapped(true), MAX_LAUNCH_MS);
     return () => clearTimeout(cap);
   }, []);
 
+  // The first-run mark continues into a welcome. A return visit goes straight
+  // to its existing destination and never asks for a second Get Started tap.
+  useEffect(() => {
+    welcomeEntrance.stopAnimation();
+    if (!welcome || !entered || !appReady) {
+      welcomeEntrance.setValue(0);
+      return;
+    }
+    const arrival = settleIn(welcomeEntrance, reduced !== false);
+    return () => arrival?.stop();
+  }, [welcome, entered, appReady, reduced, welcomeEntrance]);
+
   // Leave once the app is ready and the name has arrived.
   useEffect(() => {
-    if (leaving.current || !launchMayLeave({ appReady, entered, capped })) return;
+    if (leaving.current || !launchMayLeave({ appReady, entered, capped, welcome, started })) return;
     leaving.current = true;
-    Animated.timing(presence, {
+    const departure = Animated.timing(presence, {
       toValue: 0,
-      duration: SETTLE_MS,
+      duration: reduced ? 0 : SETTLE_MS,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: NATIVE_DRIVER,
-    }).start(() => onDone());
-  }, [appReady, entered, capped, presence, onDone]);
+    });
+    departure.start(({ finished }) => { if (finished) onDone(); });
+    return () => { departure.stop(); leaving.current = false; };
+  }, [appReady, entered, capped, welcome, started, reduced, presence, onDone]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const lift = entrance.interpolate({ inputRange: [0, 1], outputRange: [0, -LIFT] });
   const rise = entrance.interpolate({ inputRange: [0, 1], outputRange: [WORD_RISE, 0] });
+  const welcomeLift = welcomeEntrance.interpolate({ inputRange: [0, 1], outputRange: [0, -80] });
 
   return (
     <Animated.View
       style={[st.screen, { opacity: presence }]}
       onLayout={releaseNativeLaunch}
-      accessible
-      accessibilityRole="image"
+      accessible={!welcome}
+      accessibilityRole={welcome ? undefined : 'image'}
       accessibilityLabel="Luvani"
       accessibilityViewIsModal
     >
       <StatusBar style="light" />
-      <View style={st.mark}>
+      <Animated.View style={[st.mark, { transform: [{ translateY: welcomeLift }] }]} accessible={welcome} accessibilityRole="image" accessibilityLabel="Luvani">
         <Animated.View style={[st.group, { transform: [{ translateY: lift }] }]}>
           <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate }] }]}>
             <Svg {...decorative} width="100%" height="100%" viewBox={VIEWBOX}>
@@ -160,7 +182,12 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
             </Svg>
           </Animated.View>
         </Animated.View>
-      </View>
+      </Animated.View>
+      {welcome && entered && appReady && <Animated.View style={[st.start, { bottom: insets.bottom + 28, opacity: welcomeEntrance }]}>
+        <GlowAction tone="sun" active={!started}>
+          <PillButton tone="sun" label="Get Started" disabled={started} onPress={() => setStarted(true)} />
+        </GlowAction>
+      </Animated.View>}
     </Animated.View>
   );
 }
@@ -177,6 +204,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   mark: { width: LAUNCH_MARK_SIZE, height: LAUNCH_MARK_SIZE, overflow: 'visible' },
+  start: { position: 'absolute', width: '100%', maxWidth: 480, paddingHorizontal: 24, alignSelf: 'center' },
   group: { width: LAUNCH_MARK_SIZE, height: LAUNCH_MARK_SIZE, overflow: 'visible' },
   word: {
     position: 'absolute',

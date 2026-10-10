@@ -165,12 +165,11 @@ describe('the phone settings pair — F476', () => {
       `the phone's settings are opened outside ${PAIR}`,
     );
 
-    // And leaving the app at all is countable. Three files reach a linking or
-    // browser module: the sign-in callback, which has since long before this,
-    // and the two written for this pass.
+    // Leaving the app is countable. Native OAuth owns its exact callback and
+    // browser session; only the two settings doors need expo-linking.
     assert.deepEqual(
       filesMatching(/from 'expo-linking'/),
-      [OAUTH, LINKS, PAIR].sort(),
+      [LINKS, PAIR].sort(),
       'something else in the app reaches expo-linking; a link out is a moment the app hands somebody to software it does not control',
     );
     assert.deepEqual(

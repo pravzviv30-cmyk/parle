@@ -25,7 +25,7 @@ import { DUR } from '../motion/tokens.ts';
 import { LiveFace } from './firstRun/LiveFace.tsx';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './firstRun/nextFace.ts';
 
-export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void }) {
+export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string }) {
   const reduced = useReduceMotion();
   const arrow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -47,7 +47,7 @@ export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: ()
   };
   const face = (ink: string) => (
     <>
-      <Text style={[type.button, { color: ink }]}>{NEXT_LABEL}</Text>
+      <Text style={[type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{label}</Text>
       <Animated.View style={{ transform: [{ translateX: arrow }] }}>
         <ArrowRight color={ink} />
       </Animated.View>
@@ -79,7 +79,7 @@ export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: ()
       },
     };
     return createElement('div', {
-      ...webEvents, role: 'button', 'aria-label': NEXT_LABEL, 'aria-disabled': disabled,
+      ...webEvents, role: 'button', 'aria-label': label, 'aria-disabled': disabled,
       'aria-description': disabled ? NEXT_OFF_HINT : undefined,
       style: { position: 'relative', minHeight: 56, borderRadius: radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
     }, contents);
@@ -87,7 +87,7 @@ export function NextButton({ onPress, disabled, onDisabledPress }: { onPress: ()
   return (
     <Press
       haptic={disabled ? 'none' : 'light'}
-      accessibilityLabel={NEXT_LABEL}
+      accessibilityLabel={label}
       accessibilityHint={disabled ? NEXT_OFF_HINT : undefined}
       accessibilityState={{ disabled }}
       onPress={() => nextAction(disabled, onPress, onDisabledPress)}

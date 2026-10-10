@@ -1,8 +1,8 @@
 /**
- * This week, Monday first (come alive, README Part 5.C row 9): one disc a day,
- * from core's `weekStripFrom` and the finish days alone.
+ * Seven days, with the learner's local today first: one disc a day from the
+ * supplied week cells and real finish days alone.
  *
- * A practised day is a sun disc with a tick; today has an ink ring; a past day
+ * A practised day is a sun disc with a flame; today has an ink ring; a past day
  * without practice is a plain outline and a day still ahead is the quiet sand.
  * There is no "missed": nothing here marks a day the learner did not practise.
  *
@@ -14,7 +14,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 import type { DayKey, WeekCell } from '@luvani/core';
-import { CheckGlyph } from '../../components.tsx';
+import { Flame } from '../../game/art/index.ts';
 import { Enter } from '../../motion/layout.tsx';
 import { DUR } from '../../motion/tokens.ts';
 import { colour, decorative, paper, radius, space, type } from '../../theme.ts';
@@ -28,7 +28,7 @@ function Disc({ cell, isToday }: { cell: WeekCell; isToday: boolean }) {
   const quiet = cell.state === 'ahead' || cell.state === 'covered';
   return (
     <View style={[st.disc, practised ? st.practised : quiet ? st.ahead : st.open, isToday && st.today]}>
-      {practised ? <CheckGlyph size={16} color={paper.ink} /> : null}
+      {practised ? <Flame size={24} state="lit" flicker={isToday} /> : null}
     </View>
   );
 }

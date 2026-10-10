@@ -223,8 +223,8 @@ describe('the save card — F754', () => {
     assert.match(screen, /const days = guestPracticeDays\(guest\);/);
     assert.match(screen, /<InvestmentList rows=\{guestInvestment\(\{ practice: guest, days, today, draft \}\)\} \/>/);
     const list = evidence('apps/mobile/src/onboarding/firstRun/InvestmentList.tsx');
-    assert.match(list, /\{rows\.map\(\(row\) =>/);
-    assert.match(list, /FIRST_RUN_COPY\.onThisPhone/);
+    assert.match(list, /\{rows\.map\(\(row, index\) =>/);
+    assert.doesNotMatch(list, /FIRST_RUN_COPY\.onThisPhone/); assert.match(list, /<RevealItem key=\{row\.key\} index=\{index\}/);
     assert.doesNotMatch(list, /accessibilityRole="header"/);
   });
 
@@ -240,9 +240,19 @@ describe('the save card — F754', () => {
     // Yesterday's finish still counts until today is over, and nothing counts up.
     const waiting = guestStreak(['2026-10-04'], today);
     assert.deepEqual([waiting?.current, waiting?.before, waiting?.todayPractised, waiting?.title], [1, 1, false, GAME_COPY.streak.started]);
-    // The week is this calendar week, Monday first, with today's finish in it and nothing marked missed.
+    // The strip begins today, then the next six days, with only today's real finish lit.
     assert.equal(one.week.length, 7);
     assert.deepEqual(one.week.filter((cell) => cell.state === 'practised').map((cell) => cell.day), [today]);
     assert.ok(!one.week.some((cell) => (cell.state as string) === 'missed'));
+    assert.equal(one.week[0]!.day, today);
+    assert.deepEqual(one.week.slice(1).map(cell => cell.state), Array(6).fill('ahead'));
+    for (const day of ['2026-10-10', '2026-10-25', '2026-12-31', '2028-02-28']) {
+      const rolling = guestStreak([day, '2099-01-01'], day)!;
+      assert.equal(rolling.week[0]!.day, day);
+      assert.equal(rolling.week[0]!.name, new Date(`${day}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' }));
+      assert.deepEqual(rolling.week.slice(1).map(cell => cell.state), Array(6).fill('ahead'));
+    }
+    assert.equal(guestStreak(['2026-12-31'], '2026-12-31')!.week[1]!.day, '2027-01-01');
+    assert.equal(guestStreak(['2028-02-28'], '2028-02-28')!.week[2]!.day, '2028-03-01');
   });
 });

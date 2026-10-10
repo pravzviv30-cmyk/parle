@@ -1,0 +1,154 @@
+<Rive version="1" kind="fragment">
+    <Artboard width="320" height="320" styleId="0:5" defaultStateMachineId="0:7" name="level" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5" />
+        <Shape x="0" y="0" rotation="0" name="Confidence tick" id="0:38">
+            <PointsPath isClosed="true" name="Path">
+                <StraightVertex x="247" y="84" radius="2" />
+                <StraightVertex x="254" y="91" radius="2" />
+                <StraightVertex x="266" y="77" radius="2" />
+                <StraightVertex x="270" y="81" radius="2" />
+                <StraightVertex x="254" y="99" radius="2" />
+                <StraightVertex x="242" y="88" radius="2" />
+            </PointsPath>
+            <Fill name="Fill">
+                <SolidColor colorValue="FF16123A" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="255" y="86" rotation="0" name="Confidence spark" id="0:37">
+            <Ellipse width="56" height="56" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FF2FD18B" name="Color" />
+            </Fill>
+        </Shape>
+        <Node x="0" y="0" id="0:600" name="Floating greeting">
+            <Shape x="100" y="81" rotation="0" name="Bubble dot" id="0:36">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF16123A" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="79" y="81" rotation="0" name="Bubble dot" id="0:35">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF16123A" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="58" y="81" rotation="0" name="Bubble dot" id="0:34">
+                <Ellipse width="10" height="10" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF16123A" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="0" y="0" rotation="0" name="Hello bubble tail" id="0:33">
+                <PointsPath isClosed="true" name="Path">
+                    <StraightVertex x="50.2" y="104.1" radius="2" />
+                    <StraightVertex x="50.2" y="129.56" radius="2" />
+                    <StraightVertex x="75.16" y="108.78999999999999" radius="2" />
+                </PointsPath>
+                <Fill name="Fill">
+                    <SolidColor colorValue="FFFFC93C" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="79" y="84" rotation="0" name="Hello bubble" id="0:32">
+                <Rectangle width="96" height="67" cornerRadiusTL="20" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FFFFC93C" name="Color" />
+                </Fill>
+            </Shape>
+        </Node>
+        <Node x="0" y="0" id="0:601" name="Writing pencil">
+            <Shape x="263" y="151" rotation="0.62" name="Pencil eraser" id="0:31">
+                <Rectangle width="13" height="24" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FFD63A22" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="195" y="250" rotation="0.62" name="Pencil tip" id="0:30">
+                <Rectangle width="13" height="25" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF16123A" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="230" y="200" rotation="0.62" name="Pencil" id="0:29">
+                <Rectangle width="13" height="115" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FFFFC93C" name="Color" />
+                </Fill>
+            </Shape>
+        </Node>
+        <Shape x="148" y="199" rotation="-0.07" name="Bookmark" id="0:28">
+            <Rectangle width="19" height="26" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFC93C" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="173" y="160" rotation="-0.07" name="Line three" id="0:27">
+            <Rectangle width="54" height="6" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFB9A7FF" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="169" y="141" rotation="-0.07" name="Line two" id="0:26">
+            <Rectangle width="45" height="6" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFB9A7FF" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="173" y="123" rotation="-0.07" name="Line one" id="0:25">
+            <Rectangle width="54" height="6" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FF3B2FE0" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="159" y="158" rotation="-0.07" name="Pages" id="0:24">
+            <Rectangle width="98" height="140" cornerRadiusTL="10" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFFFFF" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="151" y="167" rotation="-0.07" name="Book cover" id="0:23">
+            <Rectangle width="130" height="156" cornerRadiusTL="15" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FF3B2FE0" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="157" y="176" rotation="-0.07" name="Book shadow" id="0:22">
+            <Rectangle width="130" height="156" cornerRadiusTL="15" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FF16123A" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="160" y="270" rotation="0" name="Ground ellipse" id="0:21">
+            <Ellipse width="172" height="22" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFF6E9" name="Color" />
+            </Fill>
+        </Shape>
+        <StateMachine name="Motion" id="0:7">
+            <StateMachineLayer name="Layer" id="0:8">
+                <AnyState x="200" y="-120" />
+                <ExitState x="400" y="-120" />
+                <EntryState>
+                    <StateTransition stateToId="0:12" />
+                </EntryState>
+                <AnimationState x="200" animationId="0:6" id="0:12" />
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation loopValue="loop" duration="180" name="Motion" id="0:6">
+            <KeyedObject objectId="0:600">
+                <KeyedProperty property="y">
+                    <KeyFrameDouble frame="0" value="0.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="90" value="-6.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="180" value="0.0" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:601">
+                <KeyedProperty property="y">
+                    <KeyFrameDouble frame="0" value="0.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="90" value="-3.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="180" value="0.0" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

@@ -34,6 +34,7 @@ export type ChoiceArtKind =
   | 'zero'
   | 'few'
   | 'getby'
+  | 'confident'
   | 'time'
   | 'days';
 
@@ -51,6 +52,7 @@ const ART: Readonly<Record<ChoiceArtKind, { readonly name: BulkIconName; readonl
   zero: { name: 'bubble-empty', ground: 'mint' },
   few: { name: 'bubble-line', ground: 'mint' },
   getby: { name: 'bubbles', ground: 'mint' },
+  confident: { name: 'bubbles', ground: 'sun' },
   time: { name: 'clock', ground: 'coral' },
   days: { name: 'calendar', ground: 'sun' },
 };

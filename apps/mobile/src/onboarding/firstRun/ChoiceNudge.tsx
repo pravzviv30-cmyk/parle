@@ -17,5 +17,7 @@ export function ChoiceNudge({ event, index, children, width }: { event: number; 
     return () => cancel(y);
   }, [event, index, reduced, y]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
-  return <Reanimated.View style={[{ width }, style]}>{children}</Reanimated.View>;
+  // A row must claim the available width before its flexing words are laid
+  // out. An unspecified width shrink-wrapped to the icon and hid its label.
+  return <Reanimated.View style={[{ width: width ?? '100%', minWidth: 0 }, style]}>{children}</Reanimated.View>;
 }

@@ -647,19 +647,19 @@ describe('a form says out loud what it shows — F109', () => {
  * page and the count comes from PAGES rather than from a number typed here.
  */
 const FIRST_RUN: readonly { where: string; headings: number; part?: true }[] = [
-  // 2026-09-27, Phase 5: six pages (hear it, first line, start level, reason, plan, save), one title each.
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 3 },
+  // A shared page title and the policy section template. DayOne owns the streak title.
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
   { where: 'tutor/TutorIntro.tsx', headings: 1 },
   // Come alive, first run (README Part 7): the parts PreAccountOnboarding draws
-  // its pages from, read as they are added. A part owns no heading (the page's
-  // title is the screen's one) and scrolls inside the screen's ScrollScreen, so
-  // it carries no scroll container of its own; every other rule holds.
+  // its pages from, read as they are added. DayOne owns the streak title; the
+  // other parts borrow the page's heading. A part uses the screen's frame and
+  // carries no scroll container of its own; every other rule holds.
   ...readdirSync(join(SRC, 'onboarding', 'firstRun'))
     .filter((entry) => /\.tsx?$/.test(entry) && !entry.includes('.test.'))
-    .map((entry) => ({ where: `onboarding/firstRun/${entry}`, headings: 0, part: true as const })),
+    .map((entry) => ({ where: `onboarding/firstRun/${entry}`, headings: entry === 'DayOne.tsx' ? 1 : 0, part: true as const })),
 ];
 
 describe('the first run is readable by more than the eye — F110, F114', () => {
@@ -689,6 +689,8 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
         `${where} marks ${found} of its ${headings} title(s) as a heading; add accessibilityRole="header" to the Text that carries the title`,
       );
     }
+    assert.match(named('onboarding/PreAccountOnboarding.tsx'), /\{page !== 'remind' && <Text[\s\S]*?accessibilityRole="header"/, 'the shared title duplicates the streak heading');
+    assert.match(named('onboarding/firstRun/DayOne.tsx'), /<Animated\.Text accessibilityRole="header"/, 'the streak entrance lost its heading role');
   });
 
   test('every first-run screen leads with a heading role and its art is decorative', () => {
@@ -810,8 +812,21 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
     // stopwatch-and-simulator job, and DEVICE_VERIFICATION.md holds the matrix.
     for (const { where } of FIRST_RUN) {
       const body = named(where);
+      let widthBody = body;
+      if (where === 'onboarding/firstRun/ChoiceNudge.tsx') {
+        // Zero permits flexing words to shrink; it does not impose a phone width.
+        // This one wrapper must claim the row before its choice label is laid out.
+        assert.match(body, /width\?: `\$\{number\}%`/, 'ChoiceNudge accepts a fixed width instead of a percentage');
+        assert.match(body, /width: width \?\? '100%', minWidth: 0/, 'the choice wrapper can shrink-wrap its label again');
+        widthBody = body.replace(/\bminWidth: 0\b/, '');
+      } else if (where === 'auth/SignUpScreen.tsx') {
+        // OAuth controls share the row evenly and can shrink when text grows.
+        // Permit only this zero floor, not a fixed minimum for the form.
+        assert.match(body, /provider: \{ flex: 1, minWidth: 0 \}/, 'the OAuth provider wrapper cannot shrink within its row');
+        widthBody = body.replace(/provider: \{ flex: 1, minWidth: 0 \}/, 'provider: { flex: 1 }');
+      }
       assert.doesNotMatch(
-        body,
+        widthBody,
         /\b(width|maxWidth|minWidth):\s*\d/,
         `${where} writes a pixel width into a style instead of letting the layout be told how wide it is`,
       );
@@ -1051,6 +1066,8 @@ const ADOPTERS = [
 const SAFE_AREA_ALLOW = [
   'layout.tsx',
   'components.tsx', // Sheet's native Modal is outside its caller's frame and owns its inset.
+  'launch/LaunchScreen.tsx', // Startup overlay is outside Screen; its Get Started footer owns the bottom inset.
+  'dev/OnboardingPreview.tsx', // Synthetic QA fixture's overlay badge stays above the notch, outside its screen frame.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
@@ -1102,6 +1119,17 @@ describe('every screen sits inside the one frame — F307', () => {
         SAFE_AREA_ALLOW.some((a) => path.endsWith(a)),
         `${rel(path)} reads the safe area and is neither the frame nor a screen still waiting to be adopted; adopt it or add it to SAFE_AREA_ALLOW with a reason`,
       );
+    }
+    const launch = named('launch/LaunchScreen.tsx');
+    assert.match(launch, /const insets = useSafeAreaInsets\(\);/, 'the startup action cannot account for the home indicator');
+    assert.match(launch, /bottom: insets\.bottom \+ 28/, 'Get Started can overlap the home indicator');
+    assert.deepEqual([...launch.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), ['bottom'], 'startup pays an inset outside its footer and moves the native splash handoff frame');
+    const preview = SOURCES.find(source => source.path.endsWith('dev/OnboardingPreview.tsx'))?.body;
+    if (preview) {
+      assert.deepEqual([...preview.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), ['top'], 'the synthetic preview badge pays a screen inset more than once');
+      const app = stripComments(readFileSync(join(APP, 'App.tsx'), 'utf8'));
+      assert.match(app, /__DEV__ && process\.env\.EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW === '1' \? <OnboardingPreview \/> : <Gate \/>/, 'the synthetic QA fixture can bypass the release and explicit preview guards');
+      assert.equal((app.match(/<OnboardingPreview\b/g) ?? []).length, 1, 'a second preview route is not protected by the reviewed release guard');
     }
   });
 });

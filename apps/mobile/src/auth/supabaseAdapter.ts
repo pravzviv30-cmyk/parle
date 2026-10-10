@@ -14,6 +14,7 @@ import { authenticationIsRecent, verifiedAuthenticationAt } from '@luvani/core';
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
 import { createClient, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
@@ -23,6 +24,7 @@ import { googleAvailable, appleAvailable } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
 import { installationId } from './installation.ts';
+import { ensureAuthRandom } from './cryptoRandom.ts';
 
 function toUser(session: Session | null): AuthUser | null {
   const user = session?.user;
@@ -40,6 +42,7 @@ function toUser(session: Session | null): AuthUser | null {
 }
 
 export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter {
+  if (Platform.OS !== 'web') ensureAuthRandom(globalThis, Crypto.getRandomValues);
   const nativeSessionStorage = createSecureSessionStorage(
     {
       getItem: (key) => SecureStore.getItemAsync(key),
@@ -101,7 +104,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         // The project requires email confirmation; say what happens next.
         return { ok: true, message: 'Almost there. Check your email for a confirmation link, then sign in.' };
       }
-      return { ok: true };
+      return { ok: true, createdUserId: data.session.user.id };
     },
 
     async signInWithPassword(email, password): Promise<AuthResult> {

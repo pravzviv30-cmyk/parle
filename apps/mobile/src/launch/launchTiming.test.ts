@@ -43,4 +43,12 @@ describe('the launch leaves when the app is ready and the name has arrived', () 
     assert.ok(RING_TURN_MS >= 1800 && RING_TURN_MS <= 4000, `one turn takes ${RING_TURN_MS}ms`);
     assert.ok(LAUNCH_MARK_SIZE >= 96 && LAUNCH_MARK_SIZE <= 200, `the launch mark is ${LAUNCH_MARK_SIZE}pt`);
   });
+
+  test('a ready first run waits for Get Started even after the loading cap', () => {
+    assert.equal(launchMayLeave({ appReady: true, entered: true, capped: false, welcome: true, started: false }), false);
+    assert.equal(launchMayLeave({ appReady: true, entered: true, capped: true, welcome: true, started: false }), false);
+    assert.equal(launchMayLeave({ appReady: true, entered: true, capped: false, welcome: true, started: true }), true);
+    assert.equal(launchMayLeave({ appReady: true, entered: false, capped: false, welcome: true, started: true }), false);
+    assert.equal(launchMayLeave({ appReady: false, entered: true, capped: true, welcome: true, started: false }), true, 'a stuck load still reveals the app loading/error view');
+  });
 });

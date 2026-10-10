@@ -85,8 +85,10 @@ describe('the first-run offer', () => {
     // the navigator is ready and after the first-run reset, opening the
     // existing wall at its path-complete door.
     const app = evidence('apps/mobile/App.tsx');
-    assert.match(app, /onDone=\{\(kept\) => \{ if \(kept\) pendingWall\.current = true; onPreAccountDraftConsumed\(\); \}\}/, 'something other than a kept practice sets the offer');
+    assert.match(app, /onDone=\{\(kept\) => \{ if \(kept && !newlyCreated\) pendingWall\.current = true; onPreAccountDraftConsumed\(\); \}\}/, 'something other than a kept existing-account practice sets the offer');
     assert.equal((app.match(/pendingWall\.current = true/g) ?? []).length, 1);
+    assert.match(app, /const newlyCreated = newAccountUserId === user\.id;/, 'automatic signup adoption must be bound to the verified new account');
+    assert.match(app, /newlyCreated=\{newlyCreated\}/);
     assert.match(app, /onReady=\{\(\) => \{ openFirstRun\(\); openPendingInvite\(\); \}\}/, 'the navigator no longer settles before the first-run navigation');
     const firstRun = app.slice(app.indexOf('const openFirstRun = useCallback('), app.indexOf('}, [justOnboarded, navigationRef, openPendingWall]);'));
     assert.ok(firstRun.length > 0, 'openFirstRun moved; this check reads nothing');

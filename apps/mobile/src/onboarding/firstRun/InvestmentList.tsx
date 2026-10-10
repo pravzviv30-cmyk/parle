@@ -12,7 +12,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ROW_WORDS } from '../../components.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import { IconTile, type TileGround } from '../../icons/IconTile.tsx';
-import { StaggerIn } from '../../motion/StaggerIn.tsx';
+import { RevealItem } from '../motion/OnboardingScenes.tsx';
 import { STAGGER } from '../../motion/tokens.ts';
 import { decorative, paper, radius, space, type } from '../../theme.ts';
 import type { InvestmentRow } from '../guestProgress.ts';
@@ -31,26 +31,18 @@ const GROUND: Readonly<Record<InvestmentRow['key'], TileGround>> = {
 export function InvestmentList({ rows }: { rows: readonly InvestmentRow[] }) {
   return (
     <View style={st.card}>
-      <View style={st.head}>
-        <View {...decorative}>
-          <Icon name="mobile" size={20} color={paper.inkSoft} />
-        </View>
-        <Text style={[type.small, st.soft]}>{FIRST_RUN_COPY.onThisPhone}</Text>
-      </View>
-      <StaggerIn step={STAGGER.base}>
-        {rows.map((row) => (
-          <View key={row.key} style={st.row}>
-            <IconTile name={row.icon} ground={GROUND[row.key]} size={40} />
+        {rows.map((row, index) => (
+          <RevealItem key={row.key} index={index}><View style={st.row}>
+            <IconTile name={row.icon} ground={GROUND[row.key]} size={32} />
             <Text style={[type.body, st.words]}>{row.text}</Text>
-          </View>
+          </View></RevealItem>
         ))}
-      </StaggerIn>
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  card: { backgroundColor: paper.card, borderRadius: radius.card, padding: space(5), gap: space(3) },
+  card: { backgroundColor: paper.card, borderRadius: radius.card, padding: space(4), gap: space(2) },
   head: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   soft: { color: paper.inkSoft },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: space(11) },

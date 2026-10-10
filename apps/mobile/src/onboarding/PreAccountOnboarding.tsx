@@ -4,18 +4,14 @@ import { STARTER_AI, STARTER_PROCESSING, STARTER_LOCAL } from './disclosure.ts';
 /**
  * First value before registration. Answers are deliberate; local choices never wait for a service.
  *
- * Come alive (README Part 5.C rows 1 to 10): the promise, where, level and the
- * daily goal build a visible plan card; the plan is revealed with the real
- * minutes; the start sheet keeps the legal order; the practice offers speaking
- * only where the server says it is available; and the first reply is
- * celebrated only when it is accepted and really the learner's. Only once a
- * finished practice is on the phone does day one light, with the one reminder
- * ask; then the save card lists what the phone holds, and Not now leads to the
- * guest home. The new parts live in `firstRun/` and take values by props; the
- * literals tests pin stay here. Nothing on these pages sends, stores or records
- * activity by itself.
+ * Purpose, level, confidence, practice focus and daily goal create a personal
+ * plan. A deliberate tutor choice precedes the eligibility and privacy sheet.
+ * The first practice only offers speaking when the service permits it; a real
+ * completed practice earns the streak and saved achievements. New accounts
+ * receive their celebration after the progress handoff is durable. Decorative
+ * animation never creates learning activity or answers on the user's behalf.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   AppState,
@@ -32,11 +28,11 @@ import { enterVoicePlayback } from '../sound/audioSession.ts';
 import { useVoiceHold } from '../sound/useVoiceHold.ts';
 import { startVoiceLine } from '../sound/voiceLine.ts';
 import { play as playSfx } from '../sound/sfx.ts';
-import { starterTasks, tutorVoice } from '@luvani/core';
+import { starterTasks, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { useReduceMotion } from '../motion.ts';
 import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
-import { FULL_SETUP, FIVE_SETUP, earnedChoices } from './flow.ts';
+import { FULL_SETUP, FIVE_SETUP, earnedChoices, nextSetupLabel } from './flow.ts';
 import { Card, GhostButton, IconAction, IconActionRow, IconButton, PillButton, Sheet } from '../components.tsx';
 import { Screen, ScrollScreen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
 import { colour, decorative, frenchText, onColour, paper, radius, space, type } from '../theme.ts';
@@ -62,7 +58,7 @@ import { GAME_COPY } from '../game/copy.ts';
 import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { FIRST_LINE } from './firstRun.ts';
 import { clipFor } from './exchangeAudio.ts';
-import { REASONS, START_LEVELS, minutesOf, planFor } from './plan.ts';
+import { REASONS, START_LEVELS, CONFIDENCE_OPTIONS, FOCUS_OPTIONS, initialPracticeMode, minutesOf, practiceForecast } from './plan.ts';
 import { personalPlanTitle, REASON_LABELS, storyGround } from './story.ts';
 import { GUEST_PAGES, guestInvestment, guestStreak, keptPhrase, resumePage, savedPhraseTasks, starterMinutes } from './guestProgress.ts';
 import {
@@ -83,7 +79,7 @@ import { Choice } from './ChoiceCard.tsx';
 import { ChoiceArt } from './ChoiceArt.tsx';
 import { PlanEditRow } from './PlanEditRow.tsx';
 import { GuestRecording } from './GuestRecording.tsx';
-import { useLaunchHold } from '../launch/useLaunch.ts';
+import { setLaunchWelcome, useLaunchHold } from '../launch/useLaunch.ts';
 import {
   OnboardingArtwork,
   PageArrival,
@@ -93,7 +89,11 @@ import {
 import { FIRST_RUN_COPY, SLOW_CHECK_MS, issueActions } from './firstRun/copy.ts';
 import { GOAL_TIERS, slotFor, suggestedMinutes } from './firstRun/planModel.ts';
 import { PlanCard, type FlyFrom } from './firstRun/PlanCard.tsx';
-import { PlanReveal, TILES_WRAP_AT } from './firstRun/PlanReveal.tsx';
+import { TILES_WRAP_AT } from './firstRun/PlanReveal.tsx';
+import { PersonalPlan } from './PersonalPlan.tsx';
+import { TutorSelection } from './TutorSelection.tsx';
+import { GlowAction, OnboardingScene, RevealItem } from './motion/OnboardingScenes.tsx';
+import { Enter } from '../motion/layout.tsx';
 import { GoalTile } from './firstRun/GoalTile.tsx';
 import { ConsentFacts } from './firstRun/ConsentFacts.tsx';
 import { WinArt, WinCard } from './firstRun/WinCard.tsx';
@@ -123,10 +123,13 @@ const goals = [...REASONS].sort(
 const headingFor = (page: PreAccountPage) =>
   (
     ({
-      'hear-it': 'Your first French moment.',
+      'hear-it': 'Welcome to Luvani',
       reason: 'Make French yours.',
-      'start-level': 'Start where you are.',
-      time: FIRST_RUN_COPY.goalTitle,
+      'start-level': 'How’s Your French?',
+      confidence: 'How does speaking feel?',
+      focus: 'What would help you most?',
+      time: 'Your daily French moment.',
+      'choose-tutor': 'Choose your tutor.',
     }) as Partial<Record<PreAccountPage, string>>
   )[page];
 export function PreAccountOnboarding({
@@ -149,7 +152,11 @@ export function PreAccountOnboarding({
   const reduced = useReduceMotion();
   const compact = useCompactPhone();
   const regular = useLayoutClass() === 'regular';
-  const [welcome, setWelcome] = useState(initialDraft === null);
+  useLayoutEffect(() => {
+    setLaunchWelcome(initialDraft === null);
+    return () => setLaunchWelcome(false);
+  }, []);
+  const [sampleVoice, setSampleVoice] = useState<TutorVoiceKey | null>(null);
   const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
   const questionOrder =
     process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? FIVE_SETUP : FULL_SETUP;
@@ -249,6 +256,7 @@ export function PreAccountOnboarding({
   const stopSound = () => {
     hearTicket.current += 1;
     player.pause();
+    setSampleVoice(null);
   };
   const go = (next: PreAccountPage, backward = false) => {
     if (operation.current || (!backward && Date.now() - navigationAt.current < 180)) return false;
@@ -327,6 +335,7 @@ export function PreAccountOnboarding({
       const handle = findNodeHandle(node);
       if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
     }
+    if (page === 'remind') AccessibilityInfo.announceForAccessibility(streak?.title ?? 'Your Streak has started');
   }, [page]);
   useEffect(() => {
     if (playing) setPose('speaking');
@@ -371,6 +380,7 @@ export function PreAccountOnboarding({
       go(days.length > 0 ? 'keep' : 'recap', true);
       return;
     }
+    if (page === 'choose-tutor') { go('plan', true); return; }
     const index = questionOrder.indexOf(page);
     if (index > 0) go(questionOrder[index - 1]!, true);
   };
@@ -404,8 +414,8 @@ export function PreAccountOnboarding({
       pulse('help');
     }
   };
-  const hear = (asset: number | undefined) => {
-    if (playing) {
+  const hear = (asset: number | undefined, replace = false) => {
+    if (playing && !replace) {
       stopSound();
       return;
     }
@@ -476,7 +486,7 @@ export function PreAccountOnboarding({
       const next = offline
         ? offlineContinuation(draft, guest)
         : same && guest.token && guest.expiresAt > Date.now()
-          ? guest
+          ? { ...guest, plan: draft }
           : await startGuestPractice(draft, guest);
       if (!current.current || ticket !== generation.current) return;
       if (!(await persist(next))) {
@@ -486,7 +496,7 @@ export function PreAccountOnboarding({
       if (!current.current || ticket !== generation.current) return;
       metric('practice_started', 'none', next);
       // Speaking leads only where the server said guest speech is available (F756).
-      setMode(startMode(next));
+      setMode(initialPracticeMode(draft) === 'spoken' && speakingOffered(next) ? 'spoken' : 'typed');
       setTaskIndex(0);
       setReply('');
       setSurface(null);
@@ -650,34 +660,18 @@ export function PreAccountOnboarding({
     }
     return false;
   };
-  /** Make my plan: measure the chosen drink before the page moves on, so its token can fly to the plan card. */
-  const makePlan = () => {
-    const tile = rows.current[`drink:${draft.drink}`];
-    let said = false;
-    const leave = (box: Box | null) => {
-      if (said) return;
-      said = true;
-      if (go('reason') && box !== null) setFlight({ slot: 'drink', from: box, id: Date.now() });
-    };
-    if (!tile) {
-      leave(null);
-      return;
-    }
-    setTimeout(() => leave(null), DUR.micro);
-    try {
-      tile.measureInWindow((x, y, width, height) => leave({ x, y, width, height }));
-    } catch {
-      leave(null);
-    }
-  };
   const completed = earnedChoices(draft, five);
-  const question = ['reason', 'start-level', 'time'].includes(page);
+  const question = ['reason', 'start-level', 'confidence', 'focus', 'time'].includes(page);
   const answer =
     page === 'reason'
       ? draft.reason
       : page === 'start-level'
         ? draft.startLevel
-        : draft.minutes;
+        : page === 'confidence'
+          ? draft.speakingConfidence
+          : page === 'focus'
+            ? draft.practiceFocus
+            : draft.minutes;
   const suggested = suggestedMinutes(draft);
   const lastTask = last ? (tasks.find((t) => t.id === last.taskId) ?? task) : task;
   // The guest home names only a phrase the hand-off would save: the natural
@@ -708,7 +702,7 @@ export function PreAccountOnboarding({
     ? 'Luvani is for learners thirteen and up.'
     : (headingFor(page) ??
       (page === 'plan'
-        ? personalPlanTitle(draft.reason)
+        ? 'Your plan is ready.'
         : page === 'practice'
           ? task.title
           : page === 'recap'
@@ -716,7 +710,7 @@ export function PreAccountOnboarding({
               ? 'That reply works.'
               : 'Try this small change.'
             : page === 'remind'
-              ? (streak?.title ?? GAME_COPY.streak.started)
+              ? (streak?.current && streak.current > 1 ? streak.title : 'Your Streak has started')
               : page === 'keep'
                 ? FIRST_RUN_COPY.keepTitle
                 : 'Keep going with your French.'));
@@ -726,52 +720,19 @@ export function PreAccountOnboarding({
         <Text style={type.body}>Loading your practice…</Text>
       </Screen>
     );
-  if (welcome && blue && !refused) return (
-    <ScrollScreen ground={colour.blue} footer={<View style={{ gap: space(2) }}>
-      <PillButton label="Let’s try it" tone="sun" onPress={() => setWelcome(false)} />
-      {!signedIn && <IconAction icon="forward" layout="inline" ground="blue" label="I already have an account" onPress={onSignIn} />}
-    </View>}>
-      <View style={[readingColumn, { gap: space(4) }]}>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.onInk }]}>A little French.{'\n'}A real moment.</Text>
-        <OnboardingArtwork name="place-cafe-counter" response="welcome" event={0} />
-        <Text style={[type.body, { color: paper.onInk }]}>Start with your first café order.</Text>
-      </View>
-    </ScrollScreen>
-  );
   const footer = refused ? (
     signedIn ? (
       <GhostButton label="Sign out" onPress={onSignIn} />
     ) : null
   ) : blue ? (
-    <View style={[readingColumn, { gap: space(1) }]}>
-      <PillButton
-        label="Make my plan"
-        tone="white"
-        disabled={!draft.drink}
-        onPress={makePlan}
-        icon={<Glint when={draft.drink != null} radius={radius.control} />}
-      />
-      <IconAction
-        icon="forward"
-        layout="inline"
-        ground="blue"
-        label="Try a practice now"
-        onPress={() => {
-          const next = patch({
-            quickStart: true,
-            reason: 'food',
-            startLevel: 'zero',
-            minutes: 5,
-          });
-          setEdit(next);
-          if (go('plan')) planReady();
-        }}
-      />
+    <View style={[readingColumn, { gap: space(2) }]}>
+      <GlowAction tone="sun"><PillButton label="Start Your Personal Plan" tone="sun" onPress={() => go('reason')} /></GlowAction>
+      {!signedIn && <IconAction icon="forward" layout="inline" ground="blue" label="I already have an account" onPress={onSignIn} />}
     </View>
   ) : question ? (
     <View style={readingColumn}>
-      {/* Keyed by page, so each question's Continue glints once when its answer is chosen. */}
-      <NextButton disabled={answer == null} onPress={nextQuestion} key={page} onDisabledPress={() => {
+      {/* Keyed by page, so each question responds once when its answer is chosen. */}
+      <NextButton disabled={answer == null} label={nextSetupLabel(page, five)} onPress={nextQuestion} key={page} onDisabledPress={() => {
         if (!reduced) soft();
         setChoiceNudge((prior) => ({ page, event: prior.event + 1 }));
       }} />
@@ -779,8 +740,10 @@ export function PreAccountOnboarding({
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
-      <PillButton label="Try this practice" onPress={() => open('start')} icon={<Glint when radius={radius.control} />} />
+      <GlowAction tone="blue"><PillButton label="Next: Choose Your Tutor" onPress={() => go('choose-tutor')} icon={<Glint when radius={radius.control} />} /></GlowAction>
     </View>
+  ) : page === 'choose-tutor' ? (
+    <View style={readingColumn}><GlowAction active={draft.tutorChosen === true} tone="sun"><PillButton label="Start Your First Practice" tone="sun" disabled={draft.tutorChosen !== true} onPress={() => open('start')} /></GlowAction></View>
   ) : page === 'practice' ? (
     mode === 'typed' ? (
       <View style={readingColumn}>
@@ -807,32 +770,9 @@ export function PreAccountOnboarding({
       />
     </View>
   ) : page === 'remind' ? (
-    // While the ask is on the page its own Remind me and Not now are the
-    // actions; without one (the web, a reminder already set, an answer
-    // given) Continue leads on.
-    askShown ? null : (
-      <View style={readingColumn}>
-        <PillButton label={FIRST_RUN_COPY.continue} onPress={() => go('keep')} />
-      </View>
-    )
+    <View style={readingColumn}><GlowAction tone="blue"><PillButton label="Start Your French" onPress={() => go('keep')} /></GlowAction></View>
   ) : page === 'keep' ? (
-    <View style={[readingColumn, { gap: space(1) }]}>
-      <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: space(4) }}>
-        {!signedIn ? (
-          <IconAction
-            icon="login"
-            layout="inline"
-            label="Sign in"
-            onPress={() => {
-              stopSound();
-              onSignIn();
-            }}
-          />
-        ) : null}
-        <GhostButton label={FIRST_RUN_COPY.notNow} disabled={busy} onPress={() => go('home')} />
-      </View>
-    </View>
+    <View style={readingColumn}><RevealItem index={5}><PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} /></RevealItem></View>
   ) : (
     <View style={readingColumn}>
       <PillButton
@@ -920,7 +860,7 @@ export function PreAccountOnboarding({
               >
                 <IconButton icon="back" tone="disc" label="Back" disabled={busy || capturing} onPress={back} />
                 {question && !draft.quickStart ? (
-                  <SetupProgress completed={completed} total={five ? 3 : 4} />
+                  <SetupProgress completed={completed} total={five ? 4 : 5} />
                 ) : null}
                 {page === 'practice' ? <ExchangeSteps index={taskIndex} total={tasks.length} /> : null}
               </View>
@@ -929,18 +869,19 @@ export function PreAccountOnboarding({
         }
         footer={footer}
       >
-        <View style={[readingColumn, { paddingBottom: 20 }]}>
+        <View style={[readingColumn, { paddingBottom: compact ? 8 : 16 }]}>
           <PageArrival page={page} direction={direction} gap={compact ? 12 : 16}>
-            {!refused && page === 'remind' && streak !== null ? <DayOne streak={streak} moment={moment} /> : null}
-            <Text
+
+            {page !== 'remind' && <Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
               accessibilityRole="header"
-              style={[blue || question || page === 'plan' ? type.display : type.title, { color: ink }]}
+              style={[!compact && (blue || question || page === 'plan') ? type.display : type.title, { color: ink }]}
+              nativeID={`onboarding-${page}-heading`}
             >
               {title}
-            </Text>
-            {!refused && (blue || page === 'recap') && (
+            </Text>}
+            {!refused && page === 'recap' && (
               <WinArt celebrate={coral} moment={moment}>
                 <OnboardingArtwork
                   name={
@@ -964,60 +905,19 @@ export function PreAccountOnboarding({
               <>
                 {blue && (
                   <>
-                    <Text style={[type.bodyStrong, { color: ink }]}>{FIRST_RUN_COPY.promiseLead}</Text>
-                    <View
-                      accessibilityRole="radiogroup"
-                      style={{ flexDirection: drinksWrap ? 'column' : 'row', gap: space(3) }}
-                    >
-                      <View ref={rowRef('drink:coffee')} collapsable={false} style={{ flex: drinksWrap ? undefined : 1 }}>
-                        <Choice
-                          ground="blue"
-                          layout="tile"
-                          title="Coffee"
-                          selected={draft.drink === 'coffee'}
-                          onPress={() => choose({ drink: 'coffee' })}
-                          glyph={<ChoiceArt kind="coffee" />}
-                        />
-                      </View>
-                      <View ref={rowRef('drink:tea')} collapsable={false} style={{ flex: drinksWrap ? undefined : 1 }}>
-                        <Choice
-                          ground="blue"
-                          layout="tile"
-                          title="Tea"
-                          selected={draft.drink === 'tea'}
-                          onPress={() => choose({ drink: 'tea' })}
-                          glyph={<ChoiceArt kind="tea" />}
-                        />
-                      </View>
+                    <OnboardingScene kind="welcome" size={compact ? 180 : 240} />
+                    <Text style={[type.body, { color: ink }]}>French for the moments that matter to you.</Text>
+                    <View style={{ gap: 14 }}>
+                      {['A plan built around your goals', 'An AI tutor you can talk to', 'Small daily steps. Real practice.'].map((line, index) => <RevealItem key={line} index={index}><View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}><IconTile name={index === 0 ? 'calendar' : index === 1 ? 'chat' : 'flame'} ground={index === 0 ? 'sun' : index === 1 ? 'mint' : 'coral'} size={36} /><Text style={[type.bodyStrong, { color: ink, flex: 1 }]}>{line}</Text></View></RevealItem>)}
                     </View>
-                    {draft.drink ? (
-                      <Card style={{ gap: 10 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-                          <View style={{ flex: 1, gap: 10 }}>
-                            <Text {...frenchText} style={type.frenchLg}>
-                              Bonjour, je vais prendre un {draft.drink === 'tea' ? 'thé' : 'café'}.
-                            </Text>
-                            <Text style={type.body}>Hello, I will have a {draft.drink}.</Text>
-                          </View>
-                          {draft.drink === 'coffee' && (
-                            <IconButton
-                              icon="speaker"
-                              tone="ink"
-                              label={playing ? 'Stop' : 'Hear'}
-                              animate="speaker-waves"
-                              active={playing}
-                              onPress={() => hear(clipFor(FIRST_LINE.reply))}
-                            />
-                          )}
-                        </View>
-                      </Card>
-                    ) : null}
                   </>
                 )}
                 {question && (
                   <>
-                    {page === 'start-level' && <OnboardingArtwork name="state-notebook" response={pose} event={event} />}
-                    {page === 'time' && <OnboardingArtwork name="place-day" response={pose} event={event} />}
+                    {page === 'start-level' && <OnboardingScene kind="level" size={compact ? 84 : 116} />}
+                    {page === 'confidence' && <OnboardingScene kind="level" size={compact ? 90 : 140} />}
+                    {page === 'focus' && <OnboardingScene kind="welcome" size={compact ? 90 : 140} />}
+                    {page === 'time' && <OnboardingScene kind="plan" size={compact ? 90 : 140} />}
                     <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10, flexDirection: regular || (page === 'reason' && reasonGrid) || (page === 'time' && goalGrid) ? 'row' : 'column', flexWrap: 'wrap' }}>
                       {page === 'reason' &&
                         goals.map((v, index) => (
@@ -1034,17 +934,26 @@ export function PreAccountOnboarding({
                         ))}
                       {page === 'start-level' &&
                         START_LEVELS.map((v, index) => (
-                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '31%' : undefined}><View ref={rowRef(`startLevel:${v.key}`)} collapsable={false}>
+                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width="100%"><View ref={rowRef(`startLevel:${v.key}`)} collapsable={false}>
                             <Choice
                               compact={compact}
-                              layout={regular ? 'tile' : 'row'}
+                              layout="row"
                               title={v.title}
-                              detail={v.key === 'zero' ? 'Not sure? Start here.' : undefined}
+                              detail={undefined}
                               glyph={<ChoiceArt kind={v.key} />}
                               selected={draft.startLevel === v.key}
                               onPress={() => choose({ startLevel: v.key })}
                             />
                           </View></ChoiceNudge>
+                        ))}
+                      {(page === 'confidence' || page === 'focus') &&
+                        (page === 'confidence' ? CONFIDENCE_OPTIONS : FOCUS_OPTIONS).map((option, index) => (
+                          <ChoiceNudge key={option.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width="100%">
+                            <Choice compact={compact} ground={page === 'focus' ? 'blue' : 'sun'} title={option.title}
+                              glyph={<IconTile name={page === 'confidence' ? 'chat' : index === 0 ? 'speaker' : index === 1 ? 'microphone' : 'bubble-line'} ground={index === 0 ? 'mint' : index === 1 ? 'sun' : 'coral'} size={36} />}
+                              selected={page === 'confidence' ? draft.speakingConfidence === option.key : draft.practiceFocus === option.key}
+                              onPress={() => choose(page === 'confidence' ? { speakingConfidence: option.key as PreAccountOnboardingDraft['speakingConfidence'] } : { practiceFocus: option.key as PreAccountOnboardingDraft['practiceFocus'] })} />
+                          </ChoiceNudge>
                         ))}
                       {page === 'time' &&
                         GOAL_TIERS.map((tier, index) => (
@@ -1073,42 +982,20 @@ export function PreAccountOnboarding({
                     ) : null}
                   </>
                 )}
-                {page === 'plan' && (
-                  <PlanReveal
-                    minutes={minutesOf(draft)}
-                    exchanges={tasks.length}
-                    sceneTitle={planFor(draft).scenes[0]?.titleEn ?? null}
-                    tutorName={tutorVoice(draft.tutorVoice).persona.name}
-                    card={
-                      <PlanCard
-                        draft={draft}
-                        five={five}
-                        flyFrom={flight}
-                        expanded
-                        concise
-                        trailing={<IconAction icon="edit" layout="inline" ground="sun" label="Change plan" onPress={() => open('plan')} />}
-                      />
-                    }
-                    tutorAction={<IconAction icon="orb" layout="inline" label="Choose tutor" onPress={() => open('voice')} />}
-                  >
-                    <Card style={{ gap: 10 }}>
-                      <Text {...frenchText} style={type.frenchLg}>
-                        {firstTask.prompt}
-                      </Text>
-                      <Text style={type.body}>{firstTask.translation}</Text>
-                    </Card>
-                    {draft.quickStart ? (
-                      <Text style={type.small}>A suggested beginner café practice.</Text>
-                    ) : null}
-                  </PlanReveal>
-                )}
+                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} onEdit={() => open('plan')} />}
+                {page === 'choose-tutor' && <TutorSelection chosen={draft.tutorChosen ? draft.tutorVoice : null} playing={playing ? sampleVoice : null}
+                  onChoose={(voice) => { stopSound(); choose({ tutorVoice: voice, tutorChosen: true }); }}
+                  onHear={(voice) => {
+                    if (playing && sampleVoice === voice) { stopSound(); return; }
+                    stopSound(); setSampleVoice(voice); hear(voiceSample(voice), true);
+                  }} />}
                 {page === 'practice' && (
                   <>
                     <Card style={{ gap: 12 }}>
                       <Text {...frenchText} style={type.frenchLg}>
                         {task.prompt}
                       </Text>
-                      {draft.startLevel !== 'getby' && (
+                      {(draft.startLevel !== 'getby' && draft.startLevel !== 'confident' || draft.speakingConfidence === 'hesitant') && (
                         <Text style={type.body}>{task.translation}</Text>
                       )}
                     </Card>
@@ -1121,7 +1008,7 @@ export function PreAccountOnboarding({
                     {guest?.token != null && guest.offline !== true && !speakingOffered(guest) ? (
                       <Text style={type.small}>{FIRST_RUN_COPY.typedOnly}</Text>
                     ) : null}
-                    {draft.startLevel === 'zero' && attempts.length === 0 && (
+                    {(draft.startLevel === 'zero' || draft.speakingConfidence === 'hesitant') && attempts.length === 0 && (
                       <Text {...frenchText} style={type.bodyStrong}>
                         {task.starter}
                       </Text>
@@ -1165,6 +1052,10 @@ export function PreAccountOnboarding({
                       </Text>
                     ) : null}
                     <IconActionRow>
+                      {draft.practiceFocus === 'listening' && tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, task.model, draft.tutorVoice) != null ? (
+                        <IconAction icon="speaker" label={playing ? 'Stop model' : 'Hear the model'} disabled={busy || capturing}
+                          onPress={() => hear(tutorAudioForFrench(TUTOR_DAILY_AUDIO, DAILY_ITEMS, task.model, draft.tutorVoice))} />
+                      ) : null}
                       {mode === 'typed' && speakingOffered(guest) ? (
                         <IconAction
                           icon="microphone"
@@ -1225,28 +1116,20 @@ export function PreAccountOnboarding({
                     </IconActionRow>
                   </>
                 )}
-                {page === 'remind' && (
+                {page === 'remind' && streak !== null && (
                   <>
-                    {streak !== null ? <WeekStrip week={streak.week} today={today} moment={moment} /> : null}
-                    <Text style={[type.body, { color: paper.ink }]}>{FIRST_RUN_COPY.remindLine}</Text>
-                    {askShown ? (
-                      <ReminderAsk
-                        time={draft.reminderTime ?? DEFAULT_REMINDER_TIME}
-                        tutor={tutorName}
-                        onDone={(answer) => {
-                          answerReminder(answer);
-                          go('keep');
-                        }}
-                      />
-                    ) : null}
+                    <DayOne streak={streak} moment={moment} />
+                    <Enter delay={700}><Text style={[type.heading, { textAlign: 'center', color: paper.ink }]}>Practice Everyday to Carry on the Streak</Text></Enter>
+                    <Enter delay={1000}><WeekStrip week={streak.week} today={today} moment={moment} /></Enter>
                   </>
                 )}
                 {page === 'keep' && (
                   <>
                     <InvestmentList rows={guestInvestment({ practice: guest, days, today, draft })} />
-                    <Text style={[type.body, { color: paper.ink }]}>
-                      {signedIn ? FIRST_RUN_COPY.keepLineSignedIn : FIRST_RUN_COPY.keepLine}
-                    </Text>
+                    {practiceForecast(minutesOf(activePlan)) && <RevealItem index={4}><Card style={{ gap: 6, backgroundColor: colour.sun }}>
+                      <Text style={[type.heading, { color: paper.ink }]}>{practiceForecast(minutesOf(activePlan))!.line}</Text>
+                      <Text style={[type.small, { color: paper.ink }]}>More time to listen, speak and build your confidence. Your pace will be your own.</Text>
+                    </Card></RevealItem>}
                   </>
                 )}
                 {page === 'home' && (

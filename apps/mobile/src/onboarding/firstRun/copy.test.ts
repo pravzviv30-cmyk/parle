@@ -60,9 +60,9 @@ describe('the first run speaks plainly', () => {
     assert.equal(FIRST_RUN_COPY.chooseEachTime, 'Choose each time');
     assert.deepEqual(GOAL_TIERS.map((t) => t.title), ['Casual', 'Regular', 'Serious', 'Intense']);
     assert.ok(REASONS.some((r) => r.key === 'because' && r.title === 'Just exploring'), 'Just exploring is not the sixth answer');
-    assert.equal(START_LEVELS.length, 3, 'the level question gained or lost an answer');
-    assert.match(START_LEVELS[0]!.gloss, /^Also right if you are not sure/);
-    assert.ok(!all.some((line) => /not sure/i.test(line) && line !== START_LEVELS[0]!.gloss), 'an "I am not sure" answer came back');
+    assert.equal(START_LEVELS.length, 4, 'the requested four self-reported starting points are incomplete');
+    assert.match(START_LEVELS[0]!.title, /new to French/);
+    assert.ok(START_LEVELS.every(level => level.title.length > 0 && level.gloss.length > 0), 'a level choice lacks its readable label');
 
     // Honest waits: the slow line comes after a real wait, the take is counted against its real cap.
     assert.equal(SLOW_CHECK_MS, 4000);

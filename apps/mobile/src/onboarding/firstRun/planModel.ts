@@ -87,6 +87,7 @@ const LEVEL_TOKEN: Readonly<Record<StartLevel, { label: string; icon: BulkIconNa
   zero: { label: 'New to French', icon: 'bubble-empty' },
   few: { label: 'Hello and a drink', icon: 'bubble-line' },
   getby: { label: 'Short conversations', icon: 'bubbles' },
+  confident: { label: 'Comfortable talking', icon: 'bubbles' },
 };
 
 /** The slots the card has: four, or three in the short variant, which never asks the level. */

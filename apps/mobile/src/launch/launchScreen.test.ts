@@ -112,9 +112,9 @@ describe('the launch opens wherever the app was already going', () => {
       /export function useLaunchReady\(\): boolean \{\s*const \[ready, setReady\] = useState\(launchHolds\.ready\(\)\);\s*useEffect\(\(\) => launchHolds\.subscribe\(setReady\), \[\]\);\s*return ready;\s*\}/,
       'the launch screen does not start from where the app stands, or never hears it change',
     );
-    assert.match(SCREEN, /launchMayLeave\(\{ appReady, entered, capped \}\)/, 'the launch decides to leave somewhere other than launchTiming');
+    assert.match(SCREEN, /launchMayLeave\(\{ appReady, entered, capped, welcome, started \}\)/, 'the launch decides to leave somewhere other than launchTiming');
     assert.match(SCREEN, /setTimeout\(\(\) => setCapped\(true\), MAX_LAUNCH_MS\)/, 'the launch has no cap');
-    assert.match(SCREEN, /\.start\(\(\) => onDone\(\)\)/, 'the launch never hands back');
+    assert.match(SCREEN, /departure\.start\(\(\{ finished \}\) => \{ if \(finished\) onDone\(\); \}\)/, 'the launch hands back only after its completed departure');
   });
 
   test('every wait on the way in holds the launch, so it fades onto a real screen', () => {

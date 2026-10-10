@@ -32,6 +32,12 @@ import {
   reminderLine,
   sceneOrder,
   startEstimate,
+  CONFIDENCE_OPTIONS,
+  FOCUS_OPTIONS,
+  startingSupport,
+  initialPracticeMode,
+  practiceForecast,
+  tutorGoalsFor,
 } from './plan.ts';
 
 const draft = (extra: Partial<PreAccountOnboardingDraft>): PreAccountOnboardingDraft => ({ ...freshPreAccountDraft(), ...extra });
@@ -41,9 +47,11 @@ describe('answers to a plan', () => {
     assert.deepEqual(sceneOrder('zero'), SCENE_SPINE);
     assert.deepEqual(sceneOrder('few'), SCENE_SPINE);
     assert.deepEqual(sceneOrder('getby'), SCENE_SPINE.filter((id) => id !== 'mission:premier-cafe'));
+    assert.deepEqual(sceneOrder('confident'), sceneOrder('getby'));
     assert.equal(firstSceneFor('zero'), 'mission:premier-cafe');
     assert.equal(firstSceneFor('few'), 'mission:premier-cafe');
     assert.equal(firstSceneFor('getby'), 'mission:cafe');
+    assert.equal(firstSceneFor('confident'), 'mission:cafe');
     assert.equal(firstSceneFor(null), 'mission:premier-cafe', 'an unanswered level starts at the start');
   });
 
@@ -51,7 +59,7 @@ describe('answers to a plan', () => {
     assert.equal(presetMinutes('zero', null), 5);
     assert.equal(presetMinutes('few', null), 10);
     assert.equal(presetMinutes('getby', null), 10);
-    for (const level of ['zero', 'few', 'getby'] as const) {
+    for (const level of ['zero', 'few', 'getby', 'confident'] as const) {
       assert.equal(presetMinutes(level, 'work'), 15);
       assert.equal(presetMinutes(level, 'moving'), 15);
       assert.equal(presetMinutes(level, 'trip'), presetMinutes(level, null));
@@ -62,6 +70,7 @@ describe('answers to a plan', () => {
     assert.deepEqual(startEstimate('zero'), { estimate: 'A0', confidence: 'low' });
     assert.deepEqual(startEstimate('few'), { estimate: 'A0', confidence: 'low' });
     assert.deepEqual(startEstimate('getby'), { estimate: 'A1', confidence: 'low' });
+    assert.deepEqual(startEstimate('confident'), { estimate: 'A1', confidence: 'low' });
   });
 
   test('one seeded goal per reason, short enough to be kept whole', () => {
@@ -164,5 +173,44 @@ describe('answers to a plan', () => {
         assert.ok(MISSIONS.some((m) => m.id === id && m.canDoEn.length > 0), `${id} is not a mission with a can-do line`);
       }
     }
+  });
+});
+
+describe('the extra personal questions change real support', () => {
+  test('every confidence and focus answer produces support and bounded tutor goals', () => {
+    assert.equal(START_LEVELS.length, 4);
+    assert.equal(new Set(START_LEVELS.map(level => level.key)).size, 4);
+    for (const confidence of CONFIDENCE_OPTIONS) for (const focus of FOCUS_OPTIONS) {
+      const answer = draft({ reason: 'family', startLevel: 'confident', speakingConfidence: confidence.key, practiceFocus: focus.key });
+      const view = planFor(answer);
+      assert.equal(view.startingReason, startingSupport(answer));
+      assert.equal(view.tutorGoals.length, 3);
+      assert.equal(view.tutorGoals[0], SEEDED_GOAL.family);
+      assert.deepEqual(view.tutorGoals, tutorGoalsFor(answer));
+      for (const goal of view.tutorGoals) assert.ok(goal.length > 0 && goal.length <= MAX_GOAL_CHARS);
+      if (confidence.key === 'hesitant') {
+        assert.match(view.startingReason, /model and translation/);
+        assert.equal(initialPracticeMode(answer), 'typed', 'hesitant learners are not put into speaking by their level');
+      } else assert.equal(initialPracticeMode(answer), focus.key === 'speaking' ? 'spoken' : 'typed');
+      if (focus.key === 'listening') assert.match(view.method, /Hear the model/);
+      if (focus.key === 'words') assert.match(view.method, /useful words and translation/);
+    }
+    assert.deepEqual(tutorGoalsFor(freshPreAccountDraft()), []);
+    assert.equal(initialPracticeMode(freshPreAccountDraft()), 'typed');
+  });
+  test('a commitment forecast is exact practice time without a promised proficiency', () => {
+    for (const [minutes, hours] of [[5, 7.5], [10, 15], [15, 22.5], [20, 30]] as const) {
+      const forecast = practiceForecast(minutes);
+      assert.ok(forecast);
+      assert.equal(forecast.days, 90);
+      assert.equal(forecast.dailyMinutes, minutes);
+      assert.equal(forecast.totalMinutes, minutes * 90);
+      assert.equal(forecast.hours, hours);
+      assert.match(forecast.line, new RegExp(`${hours} hours`));
+      assert.doesNotMatch(forecast.line, /fluen|guarantee|you will|you’ll|months|conversation/i);
+    }
+    assert.equal(practiceForecast('none'), null);
+    assert.equal(practiceForecast(null), null);
+    assert.equal(practiceForecast(undefined), null);
   });
 });

@@ -104,7 +104,7 @@ export function createMockAdapter(): AuthAdapter {
       };
       const next: MockStore = { ...store, users: { ...store.users, [key]: account } };
       await setSession(next, account);
-      return { ok: true };
+      return { ok: true, createdUserId: account.id };
     },
 
     async signInWithPassword(email, password): Promise<AuthResult> {

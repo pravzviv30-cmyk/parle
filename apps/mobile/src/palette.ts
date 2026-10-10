@@ -212,3 +212,6 @@ export const cloudOrb = {
   lower: '#BECBF9',
   milk: '#EBEFFF',
 } as const;
+
+/** Password feedback colours: strength always also has a readable label. */
+export const passwordMeter = { low: colour.coral, medium: colour.sun, good: '#17623F' } as const;

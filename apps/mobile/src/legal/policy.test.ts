@@ -795,6 +795,7 @@ describe('the privacy notice — F479', () => {
     // yet carries the ceiling.
     const row = DOC.split('\n').find((line) => line.startsWith('| ') && line.includes('`@luvani/pre-account-onboarding/v1`'));
     assert.ok(row, 'the holdings table has no row for the first-run draft');
+    assert.match(row, /speaking confidence, practice focus and deliberate tutor selection/, 'the holdings row must disclose every new local personalisation answer');
     assert.match(row, /an optional first name/, 'the draft row does not say it can hold a first name');
     assert.match(row, /"I am younger than that" in the Start sheet/, 'the draft row does not name the refusal among what removes it');
     assert.match(
@@ -824,7 +825,7 @@ describe('the privacy notice — F479', () => {
     const fields = [...draft.slice(shapeAt, draft.indexOf('\n}', shapeAt)).matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
     assert.deepEqual(
       fields,
-      ['version', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'analyticsConsent', 'page', 'startLevel', 'reason', 'minutes', 'reminderTime', 'firstName'],
+      ['version', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'reason', 'minutes', 'reminderTime', 'firstName'],
       'the first-run draft holds a different set of fields from the ones the holdings row names',
     );
 

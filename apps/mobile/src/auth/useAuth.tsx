@@ -6,8 +6,9 @@
  * read them through `useAuth()`; the adapter does everything else.
  */
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { AuthAdapter, AuthUser } from './types.ts';
+import { trackedEmailSignup } from './signupCompletion.ts';
 
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
 
@@ -18,6 +19,10 @@ interface AuthContextValue {
   /** A reset-email link landed; the learner must set a new password. */
   recovering: boolean;
   clearRecovery: () => void;
+  /** Kept in memory so only this new email signup can adopt its own guest plan. */
+  creatingAccount: boolean;
+  newAccountUserId: string | null;
+  clearNewAccount: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,6 +31,20 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [recovering, setRecovering] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [newAccountUserId, setNewAccountUserId] = useState<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const screenAdapter = useMemo<AuthAdapter>(() => ({
+    ...adapter,
+    async signUpWithPassword(email, password) {
+      return trackedEmailSignup(adapter, email, password, {
+        begin: () => { setCreatingAccount(true); setNewAccountUserId(null); },
+        created: (id) => { if (mounted.current) setNewAccountUserId(id); },
+        finish: () => { if (mounted.current) setCreatingAccount(false); },
+      });
+    },
+  }), [adapter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +57,7 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
       if (cancelled) return;
       setUser(next);
       setStatus(next ? 'signedIn' : 'signedOut');
-      if (next === null) setRecovering(false);
+      if (next === null) { setRecovering(false); setNewAccountUserId(null); }
     });
     const offRecovery = adapter.onPasswordRecovery?.(() => {
       if (!cancelled) setRecovering(true);
@@ -51,7 +70,7 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   }, [adapter]);
 
   return (
-    <AuthContext.Provider value={{ status, user, adapter, recovering, clearRecovery: () => setRecovering(false) }}>
+    <AuthContext.Provider value={{ status, user, adapter: screenAdapter, recovering, clearRecovery: () => setRecovering(false), creatingAccount, newAccountUserId, clearNewAccount: () => setNewAccountUserId(null) }}>
       {children}
     </AuthContext.Provider>
   );

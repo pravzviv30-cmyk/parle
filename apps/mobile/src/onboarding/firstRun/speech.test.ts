@@ -43,7 +43,7 @@ describe('speaking in the first run — F756', () => {
     // The screen: the mode comes from the rule, Speak instead only on its yes,
     // and a refused take turns to typing with nothing to retry.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /setMode\(startMode\(next\)\);/, 'a fresh practice opens in a mode the server did not offer');
+    assert.match(screen, /setMode\(initialPracticeMode\(draft\) === 'spoken' && speakingOffered\(next\) \? 'spoken' : 'typed'\);/, 'a fresh practice opens in a mode the server did not offer');
     assert.match(screen, /\{mode === 'typed' && speakingOffered\(guest\) \? \( <IconAction icon="microphone" label=\{FIRST_RUN_COPY\.speakInstead\}/, 'Speak instead is offered without the server\'s yes');
     assert.equal((screen.match(/setMode\('spoken'\)/g) ?? []).length, 1, 'something other than Speak instead turns the microphone on');
     const refused = screen.slice(screen.indexOf('if (speechRefused(error)) {'), screen.indexOf('setIssue( error instanceof Error && error.message === \'expired\''));

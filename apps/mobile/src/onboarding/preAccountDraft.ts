@@ -46,11 +46,16 @@ const KEY = '@luvani/pre-account-onboarding/v1';
  * (`keep`) come after the win (come alive, README Part 5.C rows 9 and 10) and
  * are appended, so every older page keeps its place.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep', 'confidence', 'focus', 'choose-tutor'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
-export const START_LEVEL_KEYS = ['zero', 'few', 'getby'] as const;
+export const START_LEVEL_KEYS = ['zero', 'few', 'getby', 'confident'] as const;
 export type StartLevel = (typeof START_LEVEL_KEYS)[number];
+
+export const SPEAKING_CONFIDENCE_KEYS = ['hesitant', 'trying', 'comfortable'] as const;
+export type SpeakingConfidence = (typeof SPEAKING_CONFIDENCE_KEYS)[number];
+export const PRACTICE_FOCUS_KEYS = ['listening', 'speaking', 'words'] as const;
+export type PracticeFocus = (typeof PRACTICE_FOCUS_KEYS)[number];
 
 export const REASON_KEYS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
 export type Reason = (typeof REASON_KEYS)[number];
@@ -77,8 +82,13 @@ export interface PreAccountOnboardingDraft {
   reminderDays?: number[];
   /** The only eligibility fact the product needs at account creation. */
   ageConfirmed: true;
-  /** A real choice, including the displayed default, never a vendor id. */
+  /** A catalogue key for preview and practice; tutorChosen records the new-flow tap. */
   tutorVoice: TutorVoiceKey;
+  /** A catalogue default is not a choice; the dedicated tutor page needs a tap. */
+  tutorChosen?: boolean;
+  /** Closed answers used by the first practice and the tutor's saved goals. */
+  speakingConfidence?: SpeakingConfidence | null;
+  practiceFocus?: PracticeFocus | null;
   /**
    * Whether the learner agreed to usage data being sent, as asked once on the
    * first run.  False for anyone who has not said otherwise, which includes
@@ -101,6 +111,9 @@ export function freshPreAccountDraft(): PreAccountOnboardingDraft {
     version: 1,
     ageConfirmed: true,
     tutorVoice: DEFAULT_TUTOR_VOICE,
+    tutorChosen: false,
+    speakingConfidence: null,
+    practiceFocus: null,
     analyticsConsent: false,
     drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [],
     page: null,
@@ -153,6 +166,7 @@ function readable(value: unknown): boolean {
  */
 export function repaired(value: object): PreAccountOnboardingDraft {
   const draft = value as PreAccountOnboardingDraft;
+  const chosen = (value as { tutorChosen?: unknown }).tutorChosen;
   return {
     version: 1,
     ageConfirmed: true,
@@ -161,6 +175,14 @@ export function repaired(value: object): PreAccountOnboardingDraft {
     // longer in the catalogue, and that learner should meet the default tutor
     // rather than be asked every question again.
     tutorVoice: isTutorVoiceKey(draft.tutorVoice) ? draft.tutorVoice : DEFAULT_TUTOR_VOICE,
+    // A missing legacy flag keeps its real saved voice at account creation,
+    // while the new chooser still requires literal true. Junk/retired keys
+    // never count as a deliberate choice.
+    tutorChosen: isTutorVoiceKey(draft.tutorVoice)
+      ? chosen === undefined ? undefined : chosen === true
+      : false,
+    speakingConfidence: oneOf(SPEAKING_CONFIDENCE_KEYS, (value as { speakingConfidence?: unknown }).speakingConfidence),
+    practiceFocus: oneOf(PRACTICE_FOCUS_KEYS, (value as { practiceFocus?: unknown }).practiceFocus),
     analyticsConsent: (value as { analyticsConsent?: unknown }).analyticsConsent === true,
     // Every plan answer is optional on disk: a draft from before these pages
     // existed, or one with junk in a slot, reads as not answered yet.

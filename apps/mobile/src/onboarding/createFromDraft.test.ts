@@ -15,8 +15,8 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
-import { freshPreAccountDraft, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
-import { SEEDED_GOAL, START_LEVELS, REASONS, firstSceneFor, presetMinutes, planFor } from './plan.ts';
+import { freshPreAccountDraft, repaired, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { SEEDED_GOAL, START_LEVELS, REASONS, firstSceneFor, presetMinutes, planFor, tutorGoalsFor } from './plan.ts';
 import { profileFromDraft, reminderFromDraft, reminderSummary } from './createFromDraft.ts';
 import { streakGuiltIn } from '../copy/guilt.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,6 +31,43 @@ const strip = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replac
 const APP = strip(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
 
 describe('the plan is written at account creation', () => {
+  test('an untouched default is not recorded as a choice, while a legacy voice remains compatible', () => {
+    const untouched = profileFromDraft(freshPreAccountDraft(), NOW);
+    assert.equal(untouched.tutorVoice, null);
+    assert.equal(untouched.preferenceClocks?.tutorVoice, undefined);
+    const chosen = profileFromDraft(draft({ tutorVoice: 'marie', tutorChosen: true }), NOW);
+    assert.equal(chosen.tutorVoice, 'marie');
+    const legacy = draft({ tutorVoice: 'marie' });
+    delete legacy.tutorChosen;
+    const migrated = repaired(legacy);
+    assert.equal(migrated.tutorChosen, undefined);
+    assert.equal(profileFromDraft(migrated, NOW).tutorVoice, 'marie');
+    assert.equal(profileFromDraft(draft({ tutorVoice: 'marie', tutorChosen: false }), NOW).tutorVoice, null);
+  });
+  test('focus and confidence persist through existing preference and tutor-goal stores', async () => {
+    setActiveUser('onboarding-personal-plan');
+    const values = new Map<string, string>();
+    const storage = AsyncStorage as unknown as Record<string, unknown>;
+    storage.getItem = async (key: string) => values.get(key) ?? null;
+    storage.setItem = async (key: string, value: string) => { values.set(key, value); };
+    for (const [focus, confidence, preferTyping] of [
+      ['speaking', 'comfortable', false], ['speaking', 'hesitant', true], ['listening', 'trying', true], ['words', 'comfortable', true],
+    ] as const) {
+      const answer = draft({ reason: 'trip', startLevel: 'confident', tutorVoice: 'marie', tutorChosen: true, practiceFocus: focus, speakingConfidence: confidence });
+      const profile = profileFromDraft(answer, NOW);
+      assert.equal(profile.preferTyping, preferTyping);
+      assert.deepEqual(profile.learnerGoals, tutorGoalsFor(answer));
+      assert.equal(profile.brain.cefr.estimate, 'A1');
+      assert.equal(profile.brain.cefr.confidence, 'low');
+      assert.deepEqual(profile.brain.cefr.evidence, []);
+      assert.equal(await saveProfile(profile), true);
+      const loaded = await loadProfile();
+      assert.equal(loaded?.preferTyping, preferTyping);
+      assert.deepEqual(loaded?.learnerGoals, tutorGoalsFor(answer));
+      assert.equal(loaded?.preferenceClocks?.tutorVoice?.value, 'marie');
+    }
+    assert.deepEqual(profileFromDraft(freshPreAccountDraft(), NOW).learnerGoals, []);
+  });
   test('a chosen voice retains its causal edit through seeded-goal composition and the real store round trip', async () => {
     setActiveUser('onboarding-preference-voice');
     const values = new Map<string, string>();
@@ -38,7 +75,7 @@ describe('the plan is written at account creation', () => {
     storage.getItem = async (key: string) => values.get(key) ?? null;
     storage.setItem = async (key: string, value: string) => { values.set(key, value); };
     for (const reason of [null, 'work'] as const) {
-      const profile = profileFromDraft(draft({ firstName: 'Ada', reason, tutorVoice: 'marie' }), NOW);
+      const profile = profileFromDraft(draft({ firstName: 'Ada', reason, tutorVoice: 'marie', tutorChosen: true }), NOW);
       assert.equal(await saveProfile(profile), true);
       const loaded = await loadProfile();
       assert.equal(loaded?.tutorVoice, 'marie');
@@ -74,7 +111,7 @@ describe('the plan is written at account creation', () => {
   });
   test('each answer lands in the field the contract names', () => {
     const profile = profileFromDraft(
-      draft({ startLevel: 'getby', reason: 'work', minutes: 10, firstName: 'Ada', tutorVoice: 'marie' }),
+      draft({ startLevel: 'getby', reason: 'work', minutes: 10, firstName: 'Ada', tutorVoice: 'marie', tutorChosen: true }),
       NOW,
     );
     assert.equal(profile.name, 'Ada', 'the first name did not reach the profile');

@@ -1,0 +1,90 @@
+/** Bounded UI flourishes around original, locally authored Rive illustrations. */
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Animated, AppState, Easing, StyleSheet, View } from 'react-native';
+import { colour, decorative, paper, radius } from '../../theme.ts';
+import { NATIVE_DRIVER, useReduceMotion } from '../../motion.ts';
+import { RiveSceneRenderer } from './RiveSceneRenderer.tsx';
+
+export type OnboardingSceneKind = 'welcome' | 'level' | 'plan' | 'streak' | 'account';
+export type SceneKind = OnboardingSceneKind | 'confetti';
+
+export function OnboardingScene({ kind, size = 176, active = true }: {
+  kind: OnboardingSceneKind;
+  size?: number;
+  active?: boolean;
+}) {
+  return <RiveSceneRenderer kind={kind} size={size} active={active} />;
+}
+
+/** One finite 2.4 second burst. It never repeats and never carries page content. */
+export function CelebrationBurst({ play = true, size = 200 }: { play?: boolean; size?: number }) {
+  const reduced = useReduceMotion();
+  if (!play || reduced) return null;
+  return <RiveSceneRenderer kind="confetti" size={size} active={play} />;
+}
+
+/** An invitation, not an endless beacon: two slow glow cycles, then rest. */
+export function GlowAction({ children, active = true, tone = 'sun' }: {
+  children: ReactNode;
+  active?: boolean;
+  tone?: 'sun' | 'white' | 'blue' | 'mint';
+}) {
+  const reduced = useReduceMotion();
+  const glow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    glow.stopAnimation();
+    glow.setValue(0);
+    if (reduced || !active || AppState.currentState !== 'active') return;
+    const motion = Animated.sequence(Array.from({ length: 2 }, () => Animated.sequence([
+      Animated.timing(glow, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.quad), useNativeDriver: NATIVE_DRIVER }),
+      Animated.timing(glow, { toValue: 0, duration: 1000, easing: Easing.inOut(Easing.quad), useNativeDriver: NATIVE_DRIVER }),
+    ])));
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') { motion.stop(); glow.setValue(0); }
+    });
+    motion.start();
+    return () => { motion.stop(); subscription.remove(); glow.setValue(0); };
+  }, [active, glow, reduced]);
+  return (
+    <View style={styles.action}>
+      <Animated.View {...decorative} style={[styles.glow, {
+        borderColor: tone === 'white' ? paper.onInk : colour[tone],
+        opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] }),
+        transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) }],
+      }]} />
+      {children}
+    </View>
+  );
+}
+
+/** Short, staggered row reveals; assistive technology sees the full row immediately. */
+export function RevealItem({ children, index = 0, active = true }: {
+  children: ReactNode;
+  index?: number;
+  active?: boolean;
+}) {
+  const reduced = useReduceMotion(true);
+  const value = useRef(new Animated.Value(active ? 0 : 1)).current;
+  useEffect(() => {
+    if (reduced === null && active) return;
+    value.stopAnimation();
+    value.setValue(1);
+    if (reduced || !active) return;
+    value.setValue(0);
+    const entrance = Animated.timing(value, {
+      toValue: 1,
+      duration: 280,
+      delay: Math.min(Math.max(index, 0), 6) * 150,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: NATIVE_DRIVER,
+    });
+    entrance.start();
+    return () => { entrance.stop(); value.setValue(1); };
+  }, [active, index, reduced, value]);
+  return <Animated.View style={{ opacity: value, transform: [{ translateY: value.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>{children}</Animated.View>;
+}
+
+const styles = StyleSheet.create({
+  action: { position: 'relative', alignSelf: 'stretch' },
+  glow: { position: 'absolute', top: -5, bottom: -5, left: -5, right: -5, borderWidth: 3, borderRadius: radius.control + 5, pointerEvents: 'none' },
+});
