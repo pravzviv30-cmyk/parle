@@ -8,8 +8,8 @@
  * actually did.
  *
  * The other half matters just as much and is easier to get wrong: the wait is
- * bounded. A learner with no signal reaches onboarding, because a screen that
- * never resolves is a learner stranded before they have even started.
+ * bounded. A learner with no signal receives a retry outcome, keeping their
+ * existing account safe without hiding a failed restore behind the launch.
  *
  * `App.tsx` cannot be tested here — apps/mobile has no renderer and nothing in
  * this suite imports react-native. So the rule lives in a plain module over
@@ -98,7 +98,7 @@ describe('the fresh device pull — waiting for an account, but never for long',
     assert.equal(pulls, 0, 'an ordinary launch must not pay for the fresh device case');
   });
 
-  test('an offline start falls through to onboarding rather than hanging on the pull', async () => {
+  test('an offline start returns a bounded retry outcome, never a new account', async () => {
     // The time box is the whole point of the feature. A pull that never answers
     // is exactly what an aeroplane or a tunnel looks like.
     let expired: number | null = null;
@@ -202,4 +202,18 @@ describe('the fresh device pull — waiting for an account, but never for long',
     assert.equal(adoptedAnything(summary(outcome('profile', false))), false);
     assert.equal(adoptedAnything(summary(outcome('profile', false), outcome('drills', true))), true);
   });
+});
+
+
+test('a resolved pull with an unreadable profile is not evidence of a new account', async () => {
+  for (const status of ['offline', 'quarantined', 'refused', 'quiet', 'conflict', 'stopped'] as const) {
+    const start = await adoptBeforeReady({
+      hasLocalProfile: async () => false,
+      pull: async () => summary({ ...outcome('profile', false), status }),
+      expire: neverExpires,
+    });
+    assert.equal(start.kind, 'unavailable', status);
+  }
+  const missing = await adoptBeforeReady({ hasLocalProfile: async () => false, pull: async () => summary(), expire: neverExpires });
+  assert.equal(missing.kind, 'unavailable');
 });

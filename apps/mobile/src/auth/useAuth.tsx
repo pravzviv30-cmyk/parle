@@ -9,6 +9,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { AuthAdapter, AuthUser } from './types.ts';
 import { trackedEmailSignup } from './signupCompletion.ts';
+import { observeSession } from './sessionBootstrap.ts';
 
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
 
@@ -47,26 +48,11 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   }), [adapter]);
 
   useEffect(() => {
-    let cancelled = false;
-    void adapter.getSession().then((existing) => {
-      if (cancelled) return;
-      setUser(existing);
-      setStatus(existing ? 'signedIn' : 'signedOut');
-    });
-    const offAuth = adapter.onAuthStateChange((next) => {
-      if (cancelled) return;
+    return observeSession(adapter, (next) => {
       setUser(next);
       setStatus(next ? 'signedIn' : 'signedOut');
       if (next === null) { setRecovering(false); setNewAccountUserId(null); }
-    });
-    const offRecovery = adapter.onPasswordRecovery?.(() => {
-      if (!cancelled) setRecovering(true);
-    });
-    return () => {
-      cancelled = true;
-      offAuth();
-      offRecovery?.();
-    };
+    }, () => setRecovering(true));
   }, [adapter]);
 
   return (

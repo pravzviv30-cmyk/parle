@@ -96,7 +96,7 @@ describe('the launch moves only in the app\'s vocabulary', () => {
     assert.match(SCREEN, /if \(reduced !== false\) return undefined;/, 'the ring turns before reduce motion is known, or despite it');
     assert.match(
       SCREEN,
-      /settleIn\(entrance, reduced, ENTRANCE_DELAY_MS, \(\) => setEntered\(true\)\)/,
+      /settleIn\(entrance, reduced, welcome \? 0 : ENTRANCE_DELAY_MS, \(\) => setEntered\(true\)\)/,
       'the name does not arrive on the app\'s one settle',
     );
     assert.match(SCREEN, /loop\.stop\(\);\s*spin\.setValue\(0\);/, 'a ring stopped part-way is left tilted instead of upright');

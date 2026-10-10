@@ -1,0 +1,35 @@
+{
+  "fileKey": "xRSzSB8XEf4wbkBaGILXUy",
+  "prototypeUrl": "https://www.figma.com/proto/xRSzSB8XEf4wbkBaGILXUy/Luvani-Boot-Up-Flow?node-id=4-190&starting-point-node-id=4%3A190&scaling=scale-down&hide-ui=1",
+  "boardNode": "3:27",
+  "startNode": "4:190",
+  "motionReferenceNode": "11:107",
+  "prototypeNodes": [
+    "4:190",
+    "11:155",
+    "11:176",
+    "11:197",
+    "11:218",
+    "11:239",
+    "11:260"
+  ],
+  "timingMs": {
+    "still": 1500,
+    "nameSettled": 1880,
+    "buttonSettled": 2260,
+    "ringTurn": 2400
+  },
+  "verification": {
+    "figmaPlayback": "Opened direct prototype, observed final welcome, clicked Get Started and replayed.",
+    "motionSamplesSeconds": [
+      0.2,
+      1.4,
+      1.7,
+      2.0,
+      2.4
+    ],
+    "appWeb": "Fresh origin waits for Get Started then opens onboarding; existing session opens Home.",
+    "nativeReinstall": "Storage model tested; physical uninstall/reinstall not run."
+  },
+  "authContract": "History marker is a non-identifying hint only. Valid retained session required for automatic Home. Explicit logout or missing OS credentials requires sign-in. Offline profile restoration offers retry."
+}

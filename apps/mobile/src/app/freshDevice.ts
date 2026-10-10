@@ -9,11 +9,9 @@
  *
  * So on a device with no profile, and only then, the launch waits for one
  * reconcile before it lets `ProfileGate` read. The wait is time boxed, and the
- * time box is the whole point: a learner starting the app on a train with no
- * signal must reach onboarding, not a spinner that never ends. When the box
- * expires the app opens exactly as it does today and the engine keeps trying in
- * the background; the merge that eventually runs favours the evidence heavier
- * side, so nothing they did is spent.
+ * time box is the whole point: a learner without a signal reaches a retry
+ * screen rather than being mistaken for a new learner. The engine can continue
+ * restoring in the background, and retry reads that restored local profile.
  *
  * Four things are decided here rather than in `App.tsx`, because `App.tsx`
  * imports react-native and this repo has no renderer to test it with. This is
@@ -25,7 +23,7 @@
  *      new phone.
  *   2. The wait never outlives its budget.
  *   3. Nothing here can throw. A storage failure, a rejected pull and a missing
- *      engine all end at onboarding, which is a way forward.
+ *      engine are distinguished so the caller can offer the right next step.
  *   4. The caller learns which of those happened, so a launch can say so in the
  *      log without guessing. A missing engine is `no-sync`, never the
  *      `unavailable` returned by a failed account pull.
@@ -60,7 +58,7 @@ export type FreshStartKind =
   | 'adopted'
   /** The account reconciled cleanly and had nothing to give. Identity creation is unknown. */
   | 'empty'
-  /** The budget expired first. Open the app; the engine carries on behind it. */
+  /** The budget expired first. Offer retry while the engine continues. */
   | 'timed-out'
   /** No sync engine: mock auth or a build with no account project configured. */
   | 'no-sync'
@@ -164,5 +162,11 @@ export async function adoptBeforeReady(options: FreshStartOptions): Promise<Fres
   const first = await Promise.race([attempt, box]);
   if (first === TIMED_OUT) return { kind: 'timed-out', waited: true };
   if (first === FAILED) return { kind: 'unavailable', waited: true };
+  // A resolved reconcile can still contain failures (or be skipped by the
+  // retry budget). Only a successful profile read can establish whether it is empty.
+  const profile = first.outcomes.find(outcome => outcome.namespace === 'profile');
+  if (!profile || !['adopted', 'pushed', 'unchanged'].includes(profile.status)) {
+    return { kind: 'unavailable', waited: true };
+  }
   return { kind: adoptedAnything(first) ? 'adopted' : 'empty', waited: true };
 }

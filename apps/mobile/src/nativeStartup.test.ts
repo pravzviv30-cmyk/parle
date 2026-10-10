@@ -17,12 +17,11 @@ test('the native launch is released by the identical launch screen as soon as it
   assert.doesNotMatch(app, /expo-splash-screen/, 'App.tsx releases the native launch itself again, beside the launch screen');
   assert.match(screen, /import \{ hide as hideNativeLaunch, preventAutoHideAsync \} from 'expo-splash-screen';/);
   assert.match(screen, /onLayout=\{releaseNativeLaunch\}/, 'the launch screen does not release the native one when it is laid out');
-  // The whole handler, exactly: a guard so it runs once, then let go. Anything
-  // more is something standing between being laid out and letting go.
+  // Release first, then begin measuring visible time for the welcome.
   assert.match(
     screen,
-    /const releaseNativeLaunch = useCallback\(\(\) => \{\s*if \(released\.current\) return;\s*released\.current = true;\s*hideNativeLaunch\(\);\s*\}, \[\]\);/,
-    'the release handler does something besides letting go at once',
+    /const releaseNativeLaunch = useCallback\(\(\) => \{\s*if \(released\.current\) return;\s*released\.current = true;\s*hideNativeLaunch\(\);\s*setLaidOut\(true\);\s*\}, \[\]\);/,
+    'visible time starts before the native splash is released',
   );
   // F691's own matcher, kept as it was: no timer anywhere in the file comes before a release.
   assert.doesNotMatch(screen, /setTimeout\([^]*hideNativeLaunch/, 'a timer releases the native launch');

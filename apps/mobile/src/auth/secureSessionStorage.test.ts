@@ -71,3 +71,21 @@ describe('native auth storage — encrypted migration', () => {
     assert.equal(secure.values.size, 0);
   });
 });
+
+test('a reinstall with retained Keychain restores the session without old app storage', async () => {
+  const keychain = new MemoryStorage();
+  const installed = createSecureSessionStorage(keychain, new MemoryStorage());
+  await installed.setItem('sb-auth-token', 'retained-session');
+  const reinstalled = createSecureSessionStorage(keychain, new MemoryStorage());
+  assert.equal(await reinstalled.getItem('sb-auth-token'), 'retained-session');
+  await reinstalled.removeItem('sb-auth-token');
+  const afterLogoutAndReinstall = createSecureSessionStorage(keychain, new MemoryStorage());
+  assert.equal(await afterLogoutAndReinstall.getItem('sb-auth-token'), null);
+});
+
+test('an OS that removes secure storage on uninstall requires authentication again', async () => {
+  const before = createSecureSessionStorage(new MemoryStorage(), new MemoryStorage());
+  await before.setItem('sb-auth-token', 'old-session');
+  const freshInstall = createSecureSessionStorage(new MemoryStorage(), new MemoryStorage());
+  assert.equal(await freshInstall.getItem('sb-auth-token'), null);
+});

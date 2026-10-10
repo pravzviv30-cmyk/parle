@@ -5,7 +5,7 @@ import { guestPracticeDays } from './guestModel.ts';
 import { dayKeyOf, tutorSampleLine } from '@luvani/core';
 import { STARTER_AI, STARTER_PROCESSING, STARTER_LOCAL } from './disclosure.ts';
 /** Personal answers lead into one live session; recorded results drive the summary and account handoff. */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, AppState, BackHandler, type ScrollView as ScrollViewHandle, Text, View, Platform, findNodeHandle } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { enterVoicePlayback } from '../sound/audioSession.ts';
@@ -46,7 +46,7 @@ import { Choice } from './ChoiceCard.tsx';
 import { ChoiceArt } from './ChoiceArt.tsx';
 import { PlanEditRow } from './PlanEditRow.tsx';
 
-import { setLaunchWelcome, useLaunchHold } from '../launch/useLaunch.ts';
+import { useLaunchHold } from '../launch/useLaunch.ts';
 
 import { FIRST_RUN_COPY } from './firstRun/copy.ts';
 import { GOAL_TIERS, suggestedMinutes } from './firstRun/planModel.ts';
@@ -113,10 +113,6 @@ export function PreAccountOnboarding({
   const reduced = useReduceMotion();
   const compact = useCompactPhone();
   const regular = useLayoutClass() === 'regular';
-  useLayoutEffect(() => {
-    setLaunchWelcome(initialDraft === null);
-    return () => setLaunchWelcome(false);
-  }, []);
   const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => ({ ...(initialDraft ?? freshPreAccountDraft()), onboardingVariant: initialDraft?.onboardingVariant ?? (process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? 'five' : 'full') }));
   const questionOrder = draft.onboardingVariant === 'five' ? FIVE_SETUP : FULL_SETUP;

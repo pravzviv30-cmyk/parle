@@ -9,11 +9,11 @@
  * be seen. (Android fades its native launch out over 400 ms, so there it would
  * show; Android is not built yet.) Then:
  *
- *   - the ring turns, the one loop;
+ *   - a new learner sees the still mark for 1.5 seconds; then the ring turns;
  *   - after a beat the mark lifts and the name settles in beneath it, the one
  *     settling entrance (motion.ts), which leaves the stacked logo on screen;
- *   - when a first-run onboarding requests the welcome, the finished mark and
- *     name lift together and Get Started invites the learner into their plan;
+ *   - the finished mark and name stay centred while Get Started fades in at
+ *     the bottom and invites a new learner into their plan;
  *   - returning learners continue automatically once the app is ready and the
  *     name has arrived. The destination is already rendered behind this screen.
  *
@@ -33,14 +33,17 @@ import { hide as hideNativeLaunch, preventAutoHideAsync } from 'expo-splash-scre
 import { colour, decorative, paper } from '../theme.ts';
 import { NATIVE_DRIVER, SETTLE_MS, settleIn, useReduceMotion } from '../motion.ts';
 import { HUM_CORE, HUM_RING_PATH, HUM_VIEWBOX, HUM_WORDMARK } from '../brand/hum.ts';
-import { PillButton } from '../components.tsx';
+import { ArrowRight, PillButton } from '../components.tsx';
 import { GlowAction } from '../onboarding/motion/OnboardingScenes.tsx';
 import {
   ENTRANCE_DELAY_MS,
+  FIRST_LAUNCH_STILL_MS,
   LAUNCH_MARK_SIZE,
   MAX_LAUNCH_MS,
   RING_TURN_MS,
   launchMayLeave,
+  launchCanStart,
+  createVisibleDelay,
 } from './launchTiming.ts';
 import { useLaunchReady, useLaunchWelcome } from './useLaunch.ts';
 
@@ -68,6 +71,9 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
   const welcome = useLaunchWelcome();
   const insets = useSafeAreaInsets();
   const [active, setActive] = useState(AppState.currentState === 'active');
+  const [laidOut, setLaidOut] = useState(false);
+  const [stillFinished, setStillFinished] = useState(false);
+  const [actionReady, setActionReady] = useState(false);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => setActive(state === 'active'));
     return () => subscription.remove();
@@ -88,12 +94,25 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
     if (released.current) return;
     released.current = true;
     hideNativeLaunch();
+    setLaidOut(true);
   }, []);
+
+  // Start counting only when this frame is visible, even if identity is still
+  // loading. Pausing the app preserves the unspent part of the 1.5-second hold.
+  useEffect(() => {
+    if (!laidOut) return undefined;
+    const delay = createVisibleDelay(FIRST_LAUNCH_STILL_MS, () => setStillFinished(true));
+    delay.setActive(AppState.currentState === 'active');
+    const subscription = AppState.addEventListener('change', state => delay.setActive(state === 'active'));
+    return () => { delay.dispose(); subscription.remove(); };
+  }, [laidOut]);
+  const mayStart = laidOut && launchCanStart(welcome, reduced, stillFinished);
 
   // The one loop: the ring turns. Still until the setting is known, and still
   // for good when the learner has asked for less movement.
   useEffect(() => {
     if (reduced !== false) return undefined;
+    if (!mayStart) return undefined;
     if (!active) return undefined;
     const loop = Animated.loop(
       Animated.timing(spin, {
@@ -110,14 +129,15 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
       loop.stop();
       spin.setValue(0);
     };
-  }, [reduced, spin, active]);
+  }, [reduced, spin, active, mayStart]);
 
   // The one settling entrance: the mark lifts and the name arrives beneath it.
   useEffect(() => {
-    if (reduced === null) return undefined;
-    const arrival = settleIn(entrance, reduced, ENTRANCE_DELAY_MS, () => setEntered(true));
+    if (reduced === null || !mayStart || entered) return undefined;
+    if (!active) return undefined;
+    const arrival = settleIn(entrance, reduced, welcome ? 0 : ENTRANCE_DELAY_MS, () => setEntered(true));
     return () => arrival?.stop();
-  }, [reduced, entrance]);
+  }, [reduced, entrance, mayStart, active, entered, welcome]);
 
   // A failed load is released at the cap; a ready welcome awaits Get Started.
   useEffect(() => {
@@ -125,15 +145,15 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(cap);
   }, []);
 
-  // The first-run mark continues into a welcome. A return visit goes straight
-  // to its existing destination and never asks for a second Get Started tap.
+  // Keep the completed lockup centred. Only the bottom action fades in.
   useEffect(() => {
     welcomeEntrance.stopAnimation();
     if (!welcome || !entered || !appReady) {
       welcomeEntrance.setValue(0);
+      setActionReady(false);
       return;
     }
-    const arrival = settleIn(welcomeEntrance, reduced !== false);
+    const arrival = settleIn(welcomeEntrance, reduced !== false, 0, () => setActionReady(true));
     return () => arrival?.stop();
   }, [welcome, entered, appReady, reduced, welcomeEntrance]);
 
@@ -154,7 +174,6 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const lift = entrance.interpolate({ inputRange: [0, 1], outputRange: [0, -LIFT] });
   const rise = entrance.interpolate({ inputRange: [0, 1], outputRange: [WORD_RISE, 0] });
-  const welcomeLift = welcomeEntrance.interpolate({ inputRange: [0, 1], outputRange: [0, -80] });
 
   return (
     <Animated.View
@@ -166,7 +185,7 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
       accessibilityViewIsModal
     >
       <StatusBar style="light" />
-      <Animated.View style={[st.mark, { transform: [{ translateY: welcomeLift }] }]} accessible={welcome} accessibilityRole="image" accessibilityLabel="Luvani">
+      <Animated.View style={st.mark} accessible={welcome === true} accessibilityRole="image" accessibilityLabel="Luvani">
         <Animated.View style={[st.group, { transform: [{ translateY: lift }] }]}>
           <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate }] }]}>
             <Svg {...decorative} width="100%" height="100%" viewBox={VIEWBOX}>
@@ -183,9 +202,9 @@ export function LaunchScreen({ onDone }: { onDone: () => void }) {
           </Animated.View>
         </Animated.View>
       </Animated.View>
-      {welcome && entered && appReady && <Animated.View style={[st.start, { bottom: insets.bottom + 28, opacity: welcomeEntrance }]}>
-        <GlowAction tone="sun" active={!started}>
-          <PillButton tone="sun" label="Get Started" disabled={started} onPress={() => setStarted(true)} />
+      {welcome && entered && appReady && <Animated.View pointerEvents={actionReady && !started ? 'auto' : 'none'} accessibilityElementsHidden={!actionReady} importantForAccessibility={actionReady ? 'auto' : 'no-hide-descendants'} style={[st.start, { bottom: insets.bottom + 28, opacity: welcomeEntrance }]}>
+        <GlowAction tone="sun" active={actionReady && active && !started}>
+          <PillButton tone="sun" label="Get Started" trailingIcon={<ArrowRight color={paper.ink} />} onPress={() => { if (actionReady && !started) setStarted(true); }} />
         </GlowAction>
       </Animated.View>}
     </Animated.View>

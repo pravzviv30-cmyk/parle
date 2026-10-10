@@ -224,6 +224,7 @@ export function PillButton({
   onPress,
   disabled = false,
   icon,
+  trailingIcon,
   accessibilityLabel,
   tone = 'ink',
   ref,
@@ -233,6 +234,8 @@ export function PillButton({
   onPress: () => void;
   disabled?: boolean;
   icon?: React.ReactNode;
+  /** Decorative directional affordance after the label. */
+  trailingIcon?: React.ReactNode;
   /** Say something other than the label to assistive tech. Falls back to label. */
   accessibilityLabel?: string;
   /** ink on paper, sun, mint or white; white on blue or coral. */
@@ -255,6 +258,7 @@ export function PillButton({
     <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, tone === 'sun' && { backgroundColor: colour.sun }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={tone !== 'ink' ? paper.ink : paper.onInk} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : tone !== 'ink' ? paper.ink : paper.onInk }]}>{label}</Text>
+      {!waiting && trailingIcon}
     </Press>
   );
 }

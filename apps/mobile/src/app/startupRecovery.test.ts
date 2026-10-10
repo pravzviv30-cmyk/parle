@@ -22,7 +22,7 @@ async function open(unread: boolean, changed = false) {
 test('unread optional launch history and phrase recovery cannot trap the app or fabricate a backfill', async () => {
   assert.deepEqual(await open(true), ['history', 'journal', 'sync', 'fresh', 'ready']);
   assert.deepEqual(await open(false), ['history', 'journal', 'sync', 'fresh', 'ready']);
-  assert.match(app, /if \(startupFailed\) return/);
+  assert.match(app, /if \(startupFailed \|\| restoreUnavailable\) return/);
   assert.match(app, /label="Try again" onPress=\{\(\) => setStartupRead/);
 });
 test('an account switch during startup cannot backfill or start sync for the next learner', async () => {

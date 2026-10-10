@@ -155,7 +155,7 @@ describe('the plan is written at account creation', () => {
 
     // The review card reads the draft, and Start a new plan instead takes a
     // first-run reminder off the phone before it lets the draft go.
-    const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function RememberCompletedAccount')).replace(/\s+/g, ' ');
+    const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function CompleteProfileDraftCleanup')).replace(/\s+/g, ' ');
     assert.ok(boot.includes('Use this starting plan?'), 'the review screen moved; this check reads nothing');
     assert.match(boot, /Optional usage data: \{draft\.analyticsConsent \? 'on' : 'off'\}\. \{reminderSummary\(draft\)\} You can change these choices in Settings\./, 'the review card says something other than the reminder the draft holds');
     assert.doesNotMatch(boot, /The reminder is off\./, 'the review card says off whatever the draft holds');

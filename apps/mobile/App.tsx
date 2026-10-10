@@ -96,7 +96,7 @@ import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
 import { OnboardingPreview } from './src/dev/OnboardingPreview.tsx';
 import { OnboardingLayout } from './src/onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from './src/onboarding/onboardingProgress.ts';
-import { useLaunchHold } from './src/launch/useLaunch.ts';
+import { setLaunchWelcome, useLaunchHold } from './src/launch/useLaunch.ts';
 import { ReduceMotionBridge } from './src/motion/ReduceMotionBridge.tsx';
 import { FlightLayer } from './src/motion/FlightLayer.tsx';
 import { CelebrationHost } from './src/celebrate/CelebrationHost.tsx';
@@ -252,12 +252,6 @@ function PreAccountProfileBootstrap({
   return <Loading />;
 }
 
-/** A completed account reaches the app before this device hint is written. */
-function RememberCompletedAccount({ onUsed }: { onUsed: () => void }) {
-  useEffect(onUsed, [onUsed]);
-  return null;
-}
-
 /** ProfileGate mounts its children only once the signed-in profile is complete. */
 function CompleteProfileDraftCleanup({ onConsumed }: { onConsumed: () => void }) {
   useEffect(() => {
@@ -270,7 +264,6 @@ function SignedInRoot({
   user,
   preAccountDraft,
   onPreAccountDraftConsumed,
-  onAppUsed,
   refused,
   onRefuseOnboarding,
   onDeleteAccount,
@@ -278,7 +271,6 @@ function SignedInRoot({
   user: AuthUser;
   preAccountDraft: PreAccountOnboardingDraft | null;
   onPreAccountDraftConsumed: () => void;
-  onAppUsed: () => void;
   refused: boolean;
   onRefuseOnboarding: () => void;
   /**
@@ -466,10 +458,15 @@ function SignedInRoot({
     openPendingWall();
   }, [justOnboarded, navigationRef, openPendingWall]);
 
-  if (startupFailed) return (
-    <ScrollScreen header={<ScreenHeader title="Your saved learning" />}>
+  // An unreachable account is not an empty account. Keep existing learning
+  // safe and offer retry instead of treating an offline reinstall as first use.
+  const restoreUnavailable = ready && (freshStart?.kind === 'timed-out' || freshStart?.kind === 'unavailable');
+  if (startupFailed || restoreUnavailable) return (
+    <ScrollScreen header={<ScreenHeader title={startupFailed ? "Your saved learning" : "Welcome back"} />}>
       <Card>
-        <Text style={[type.body, { color: paper.ink }]}>Your saved learning could not be opened. Try again when this phone can read its storage.</Text>
+        <Text style={[type.body, { color: paper.ink }]}>{startupFailed
+          ? 'Your saved learning could not be opened. Try again when this phone can read its storage.'
+          : 'We couldn’t restore your saved learning yet. Connect to the internet and try again to pick up where you left off.'}</Text>
         <PillButton label="Try again" onPress={() => setStartupRead(value => value + 1)} />
         <GhostButton label="Sign out" onPress={() => void auth.signOut()} />
       </Card>
@@ -574,7 +571,6 @@ function SignedInRoot({
         }}
       >
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
-      <RememberCompletedAccount onUsed={onAppUsed} />
       <GameProvider>
       {/* After the hand-off, inside the game layer: plans on mount, on the way
           back to the foreground, after every settled sitting and when the tutor
@@ -677,7 +673,7 @@ function Gate() {
     void Promise.all([loadPreAccountDraft(), hasUsedApp()]).then(([draft, used]) => {
       if (!cancelled) {
         setPreAccountDraft(draft);
-        setReturning(used);
+        setReturning(previous => previous || used);
         setDraftLoaded(true);
       }
     });
@@ -685,6 +681,18 @@ function Gate() {
       cancelled = true;
     };
   }, []);
+
+  // A verified sign-in is sufficient evidence, including an account whose
+  // onboarding was interrupted. The hint contains no identity or credentials.
+  useEffect(() => {
+    if (signedInAs !== null) appUsed();
+  }, [signedInAs, appUsed]);
+
+  useLayoutEffect(() => {
+    setLaunchWelcome(status === 'loading' || !draftLoaded
+      ? null
+      : status === 'signedOut' && !returning && preAccountDraft === null);
+  }, [status, draftLoaded, returning, preAccountDraft]);
 
   const keepPreAccountDraft = useCallback((draft: PreAccountOnboardingDraft) => {
     setPreAccountDraft(draft);
@@ -743,7 +751,6 @@ function Gate() {
         user={user}
         preAccountDraft={preAccountDraft}
         onPreAccountDraftConsumed={discardPreAccountDraft}
-        onAppUsed={appUsed}
         refused={preAccountRefused}
         onRefuseOnboarding={refusePreAccount}
         onDeleteAccount={deleteAccount}
@@ -776,6 +783,9 @@ function Gate() {
 }
 
 export default function App() {
+  useLayoutEffect(() => {
+    if (__DEV__ && process.env.EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW === '1') setLaunchWelcome(false);
+  }, []);
   useEffect(() => { void loadHapticPreference(); }, []);
   useEffect(() => { void loadSoundPreference(); }, []);
   const [loaded] = useFonts({

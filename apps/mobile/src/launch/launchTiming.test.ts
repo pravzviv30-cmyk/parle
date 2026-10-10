@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   ENTRANCE_DELAY_MS,
+  FIRST_LAUNCH_STILL_MS,
+  launchCanStart,
+  createVisibleDelay,
   LAUNCH_MARK_SIZE,
   MAX_LAUNCH_MS,
   RING_TURN_MS,
@@ -51,4 +54,45 @@ describe('the launch leaves when the app is ready and the name has arrived', () 
     assert.equal(launchMayLeave({ appReady: true, entered: false, capped: false, welcome: true, started: true }), false);
     assert.equal(launchMayLeave({ appReady: false, entered: true, capped: true, welcome: true, started: false }), true, 'a stuck load still reveals the app loading/error view');
   });
+});
+
+
+test('new learners wait 1.5 visible seconds; identity and motion preferences must resolve first', () => {
+  assert.equal(FIRST_LAUNCH_STILL_MS, 1500);
+  assert.equal(launchCanStart(null, false, true), false);
+  assert.equal(launchCanStart(true, null, true), false);
+  assert.equal(launchCanStart(true, false, false), false);
+  assert.equal(launchCanStart(true, false, true), true);
+  assert.equal(launchCanStart(false, false, false), true);
+  assert.equal(launchCanStart(true, true, false), true);
+  assert.equal(launchMayLeave({appReady: true, entered: true, capped: false, welcome: null}), false);
+});
+
+test('background time does not consume the still introduction and disposal prevents completion', () => {
+  let now = 0;
+  let scheduled: (() => void) | null = null;
+  let duration = 0;
+  let completed = 0;
+  const clock = { now: () => now, schedule: (run: () => void, ms: number) => {
+    scheduled = run; duration = ms; return 1 as unknown as ReturnType<typeof setTimeout>;
+  }, cancel: () => { scheduled = null; } };
+  const delay = createVisibleDelay(1500, () => completed++, clock);
+  delay.setActive(true);
+  assert.equal(duration, 1500);
+  now = 600;
+  delay.setActive(false);
+  assert.equal(scheduled, null);
+  now = 60_000;
+  delay.setActive(true);
+  assert.equal(duration, 900);
+  (scheduled as unknown as () => void)();
+  assert.equal(completed, 1);
+  delay.setActive(false); delay.setActive(true);
+  assert.equal(completed, 1);
+  const cancelled = createVisibleDelay(1500, () => completed++, clock);
+  cancelled.setActive(true);
+  const stale = scheduled;
+  cancelled.dispose();
+  (stale as unknown as () => void)();
+  assert.equal(completed, 1);
 });

@@ -13,15 +13,20 @@ export async function hasUsedApp(): Promise<boolean> {
     /* Try the device fallback. */
   }
   try {
-    if ((await AsyncStorage.getItem(LEGACY)) === 'yes') return true;
-    return await hasCompletedLocalAccount();
+    const used = (await AsyncStorage.getItem(LEGACY)) === 'yes' || await hasCompletedLocalAccount();
+    // Upgrade older installs into Keychain while the local evidence remains.
+    // This hint chooses the sign-in door; it can never authenticate anybody.
+    if (used) await rememberAppUse();
+    return used;
   } catch {
     return false;
   }
 }
 export async function rememberAppUse(): Promise<void> {
   try {
-    await SecureStore.setItemAsync(KEY, 'yes');
+    await SecureStore.setItemAsync(KEY, 'yes', {
+      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+    });
   } catch {
     /* Device storage is best effort. */
   }
