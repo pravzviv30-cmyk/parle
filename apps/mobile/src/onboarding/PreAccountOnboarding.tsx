@@ -31,6 +31,7 @@ import { startVoiceLine } from '../sound/voiceLine.ts';
 import { play as playSfx } from '../sound/sfx.ts';
 import { starterTasks, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { useReduceMotion } from '../motion.ts';
+import { useHomeRefresh } from '../home/useHomeRefresh.ts';
 import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, nextSetupLabel } from './flow.ts';
@@ -104,8 +105,8 @@ import { WinArt, WinCard } from './firstRun/WinCard.tsx';
 import { ExchangeSteps } from './firstRun/ExchangeSteps.tsx';
 import { winEffects, winView } from './firstRun/winModel.ts';
 import { speakingOffered, speechRefused, startMode } from './firstRun/speech.ts';
-import { DayOne, StreakCard } from './firstRun/DayOne.tsx';
-import { WeekStrip } from './firstRun/WeekStrip.tsx';
+import { StreakCard } from './firstRun/StreakCard.tsx';
+import { StreakCelebrationScreen } from './firstRun/StreakCelebrationScreen.tsx';
 import { InvestmentList } from './firstRun/InvestmentList.tsx';
 
 type Surface =
@@ -309,6 +310,7 @@ export function PreAccountOnboarding({
   // Day one and the save card read the days this phone saw a practice
   // finished, and nothing else (F751, F754).
   const today = dayKeyOf(Date.now());
+  useHomeRefresh(active && (page === 'remind' || page === 'home'));
   const days = guestPracticeDays(guest);
   const streak = guestStreak(days, today);
   useEffect(() => {
@@ -367,7 +369,6 @@ export function PreAccountOnboarding({
       const handle = findNodeHandle(node);
       if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
     }
-    if (page === 'remind') AccessibilityInfo.announceForAccessibility(streak?.title ?? 'Your streak has started');
   }, [page, active]);
   useEffect(() => {
     if (playing) setPose('speaking');
@@ -654,7 +655,6 @@ export function PreAccountOnboarding({
       if (!go('remind')) return;
       if (fresh) {
         setMoment(celebrationKey.streak(day));
-        playSfx('streak'); celebrate();
       }
     } finally {
       operation.current = false;
@@ -747,7 +747,7 @@ export function PreAccountOnboarding({
               ? 'That reply works.'
               : 'Try this small change.'
             : page === 'remind'
-              ? (streak?.current && streak.current > 1 ? streak.title : 'Your streak has started')
+              ? (streak?.current && streak.current > 1 ? 'Your streak continues.' : 'Your streak has started.')
               : page === 'keep'
                 ? FIRST_RUN_COPY.keepTitle
                 : 'Keep going with your French.'));
@@ -807,7 +807,7 @@ export function PreAccountOnboarding({
       />
     </View>
   ) : page === 'remind' ? (
-    <View style={readingColumn}><GlowAction tone="blue"><PillButton label="Start your French" onPress={() => go('keep')} /></GlowAction></View>
+    null
   ) : page === 'keep' ? (
     <View style={readingColumn}><RevealItem index={5}><PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} /></RevealItem></View>
   ) : (
@@ -877,6 +877,18 @@ export function PreAccountOnboarding({
     ) : undefined;
   return (
     <>
+      {page === 'remind' ? <StreakCelebrationScreen
+        streak={streak}
+        today={today}
+        moment={moment}
+        progress={progress}
+        headingRef={heading}
+        active={active && surface === null}
+        onBack={back}
+        onContinue={() => go(streak === null ? 'practice' : 'keep')}
+        onReminder={REMINDERS_AVAILABLE && draft.reminderEnabled !== true ? () => open('reminder') : undefined}
+        notice={issue || storageNote}
+      /> : (
       <OnboardingLayout
         active={active}
         page={page}
@@ -889,7 +901,7 @@ export function PreAccountOnboarding({
         <View style={[readingColumn, { paddingBottom: compact ? 8 : 16 }]}>
           <Animated.View style={[{ gap: compact ? 12 : 16 }, pageMotion.style]}>
 
-            {page !== 'remind' && <Text
+            {<Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
               accessibilityRole="header"
@@ -1131,13 +1143,6 @@ export function PreAccountOnboarding({
                     </IconActionRow>
                   </>
                 )}
-                {page === 'remind' && streak !== null && (
-                  <>
-                    <DayOne streak={streak} moment={moment} />
-                    <Enter delay={700}><Text style={[type.heading, { textAlign: 'center', color: paper.ink }]}>Practise every day to keep your streak going</Text></Enter>
-                    <Enter delay={1000}><WeekStrip week={streak.week} today={today} moment={moment} /></Enter>
-                  </>
-                )}
                 {page === 'keep' && (
                   <>
                     <InvestmentList rows={guestInvestment({ practice: guest, days, today, draft })} />
@@ -1240,6 +1245,7 @@ export function PreAccountOnboarding({
           </Animated.View>
         </View>
       </OnboardingLayout>
+      )}
       <Sheet
         reading
         returnFocus={heading}

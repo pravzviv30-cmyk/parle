@@ -5,8 +5,8 @@ import { colour, decorative, paper, radius } from '../../theme.ts';
 import { NATIVE_DRIVER, useReduceMotion } from '../../motion.ts';
 import { RiveSceneRenderer } from './RiveSceneRenderer.tsx';
 
-export type OnboardingSceneKind = 'welcome' | 'level' | 'plan' | 'streak' | 'account';
-export type SceneKind = OnboardingSceneKind | 'confetti';
+export type OnboardingSceneKind = 'welcome' | 'level' | 'plan' | 'account';
+export type SceneKind = OnboardingSceneKind;
 
 export function OnboardingScene({ kind, size = 176, active = true }: {
   kind: OnboardingSceneKind;
@@ -14,13 +14,6 @@ export function OnboardingScene({ kind, size = 176, active = true }: {
   active?: boolean;
 }) {
   return <RiveSceneRenderer kind={kind} size={size} active={active} />;
-}
-
-/** One finite 2.4 second burst. It never repeats and never carries page content. */
-export function CelebrationBurst({ play = true, size = 200 }: { play?: boolean; size?: number }) {
-  const reduced = useReduceMotion();
-  if (!play || reduced) return null;
-  return <RiveSceneRenderer kind="confetti" size={size} active={play} />;
 }
 
 /** An invitation, not an endless beacon: two slow glow cycles, then rest. */

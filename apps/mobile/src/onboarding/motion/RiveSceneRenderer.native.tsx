@@ -9,11 +9,9 @@ const FILES = {
   welcome: require('../../../assets/rive/welcome.riv'),
   level: require('../../../assets/rive/level.riv'),
   plan: require('../../../assets/rive/plan.riv'),
-  streak: require('../../../assets/rive/streak.riv'),
   account: require('../../../assets/rive/account.riv'),
-  confetti: require('../../../assets/rive/confetti.riv'),
 } as const;
-const SINGLE_SHOT = new Set<RiveSceneProps['kind']>(['plan', 'account', 'confetti']);
+const SINGLE_SHOT = new Set<RiveSceneProps['kind']>(['plan', 'account']);
 const BURST_MS = 2400;
 
 /** Re-keying the player makes a new scene independent of the previous scene's lifecycle. */

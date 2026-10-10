@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { tutorVoice, type DayKey, type TutorVoiceKey } from '@luvani/core';
+import { addDays, tutorVoice, type DayKey, type TutorVoiceKey } from '@luvani/core';
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
@@ -15,8 +15,7 @@ import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import { TutorSelection } from '../onboarding/TutorSelection.tsx';
 import { PersonalPlan } from '../onboarding/PersonalPlan.tsx';
 import { OnboardingScene } from '../onboarding/motion/OnboardingScenes.tsx';
-import { DayOne } from '../onboarding/firstRun/DayOne.tsx';
-import { WeekStrip } from '../onboarding/firstRun/WeekStrip.tsx';
+import { StreakCelebrationScreen } from '../onboarding/firstRun/StreakCelebrationScreen.tsx';
 import { InvestmentList } from '../onboarding/firstRun/InvestmentList.tsx';
 import { guestStreak, type InvestmentRow } from '../onboarding/guestProgress.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
@@ -38,22 +37,25 @@ const previewAdapterBase: AuthAdapter = {
 };
 const previewDay = '2026-10-10' as DayKey;
 const previewStreak = guestStreak([previewDay], previewDay)!;
+const previewLongStreak = guestStreak(Array.from({ length: 7 }, (_, i) => addDays(previewDay, i - 6)), previewDay)!;
 const previewRows: InvestmentRow[] = [
   { key: 'streak', icon: 'flame', text: 'Day 1 of your streak' },
   { key: 'replies', icon: 'chat', text: 'Your first French reply' },
   { key: 'plan', icon: 'calendar', text: 'Your personal plan: 10 minutes a day' },
   { key: 'tutor', icon: 'user', text: `Your AI tutor: ${tutorVoice('emilie').persona.name}` },
 ];
-const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'streak', 'saved', 'account', 'select'] as const;
+const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'streak', 'streak-long', 'streak-empty', 'saved', 'account', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'hear-it': 'Welcome', reason: 'Purpose', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
-  plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', streak: 'Streak', saved: 'Save progress', account: 'Account ready', select: 'Screen preview',
+  plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'Save progress', account: 'Account ready', select: 'Screen preview',
 };
 function previewOptions() {
   const query = Platform.OS === 'web' && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
   const wanted = query?.get('preview');
-  return { screen: PREVIEWS.includes(wanted as Preview) ? wanted as Preview : 'tutor' as Preview, controls: query?.get('controls') !== '0' };
+  // Begin streak review from the selector so the launch overlay cannot consume
+  // its synthetic achievement; explicit setup/account/tutor links stay useful.
+  return { screen: PREVIEWS.includes(wanted as Preview) && !wanted?.startsWith('streak') ? wanted as Preview : 'select' as Preview, controls: query?.get('controls') !== '0' };
 }
 
 function TutorFixture({ chosen, onChoose, onDone }: { chosen: TutorVoiceKey | null; onChoose: (voice: TutorVoiceKey) => void; onDone: () => void }) {
@@ -134,17 +136,17 @@ export function OnboardingPreview() {
           <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service or save an account. Signup stays loading until you choose Fail or Complete in the preview controls. Listen plays the existing bundled voice samples.</Text>
           {PREVIEWS.filter(value => value !== 'select').map(value => <PillButton key={value} label={LABELS[value]} onPress={() => go(value)} />)}
         </View>
-      </ScrollScreen> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen })}>
+      </ScrollScreen> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'tutor' && <TutorFixture chosen={chosen} onChoose={setChosen} onDone={() => go('streak')} />}
           {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('select')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
-          {screen === 'streak' && <OnboardingLayout page="remind" footer={<PillButton label="Continue" onPress={() => go('saved')} />}>
-            <View style={st.story}>
-              <DayOne streak={previewStreak} moment="preview-streak" />
-              <Text style={[type.heading, st.heading]}>Practise every day to keep your streak going</Text>
-              <WeekStrip week={previewStreak.week} today={previewDay} moment="preview-streak" />
-            </View>
-          </OnboardingLayout>}
+          {(screen === 'streak' || screen === 'streak-long' || screen === 'streak-empty') && <StreakCelebrationScreen
+            streak={screen === 'streak-empty' ? null : screen === 'streak-long' ? previewLongStreak : previewStreak}
+            today={previewDay}
+            moment={screen === 'streak' || screen === 'streak-long' ? `streak:${previewDay}` : null}
+            onBack={() => go('select')}
+            onContinue={() => go(screen === 'streak-empty' ? 'select' : 'saved')}
+          />}
           {screen === 'saved' && <OnboardingLayout page="keep" footer={<PillButton label="Save my progress" onPress={() => go('signup')} />}>
             <View style={st.story}>
               <Text accessibilityRole="header" style={[type.title, st.heading]}>Save your progress</Text>
@@ -169,7 +171,7 @@ export function OnboardingPreview() {
           </OnboardingLayout>}
         </Animated.View>
       </OnboardingFrame>}
-      {options.controls && screen !== 'select' && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+      {options.controls && screen !== 'select' && !screen.startsWith('streak') && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
         <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} style={st.badge}>
           <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
         </Press>

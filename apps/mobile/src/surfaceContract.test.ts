@@ -649,20 +649,24 @@ describe('a form says out loud what it shows — F109', () => {
  * OnboardingFlow is one file holding three pages, so it owes one heading per
  * page and the count comes from PAGES rather than from a number typed here.
  */
-const FIRST_RUN: readonly { where: string; headings: number; part?: true }[] = [
-  // A shared page title and the policy section template. DayOne owns the streak title.
+const FIRST_RUN: readonly { where: string; headings: number; part?: boolean }[] = [
+  // A shared page title and the policy section template. The streak has its own full screen.
   { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
   { where: 'auth/SignInScreen.tsx', headings: 1 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
   { where: 'tutor/TutorIntro.tsx', headings: 1 },
   // Come alive, first run (README Part 7): the parts PreAccountOnboarding draws
-  // its pages from, read as they are added. DayOne owns the streak title; the
-  // other parts borrow the page's heading. A part uses the screen's frame and
-  // carries no scroll container of its own; every other rule holds.
+  // its pages from, read as they are added. StreakCelebrationScreen owns its
+  // full page, including heading and scroll
+  // frame. Other parts borrow the page's heading and frame.
   ...readdirSync(join(SRC, 'onboarding', 'firstRun'))
     .filter((entry) => /\.tsx?$/.test(entry) && !entry.includes('.test.'))
-    .map((entry) => ({ where: `onboarding/firstRun/${entry}`, headings: entry === 'DayOne.tsx' ? 1 : 0, part: true as const })),
+    .map((entry) => ({
+      where: `onboarding/firstRun/${entry}`,
+      headings: entry === 'StreakCelebrationScreen.tsx' ? 1 : 0,
+      part: entry !== 'StreakCelebrationScreen.tsx',
+    })),
 ];
 
 describe('the first run is readable by more than the eye — F110, F114', () => {
@@ -692,8 +696,12 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
         `${where} marks ${found} of its ${headings} title(s) as a heading; add accessibilityRole="header" to the Text that carries the title`,
       );
     }
-    assert.match(named('onboarding/PreAccountOnboarding.tsx'), /\{page !== 'remind' && <Text[\s\S]*?accessibilityRole="header"/, 'the shared title duplicates the streak heading');
-    assert.match(named('onboarding/firstRun/DayOne.tsx'), /<Animated\.Text accessibilityRole="header"/, 'the streak entrance lost its heading role');
+    const parent = named('onboarding/PreAccountOnboarding.tsx');
+    assert.match(parent, /\{page === 'remind' \? <StreakCelebrationScreen[\s\S]*?\/> : \([\s\S]*?<OnboardingLayout/, 'the streak and shared page frames render together, duplicating their headings');
+    assert.doesNotMatch(parent, /<DayOne\b/, 'the old streak hero duplicates the full-screen celebration');
+    assert.ok(!existsSync(join(SRC, 'onboarding', 'firstRun', 'DayOne.tsx')), 'the retired streak hero remains in the source tree');
+    assert.match(parent, /import \{ StreakCard \} from '\.\/firstRun\/StreakCard\.tsx'/, 'the guest home no longer imports its live streak card');
+    assert.match(named('onboarding/firstRun/StreakCelebrationScreen.tsx'), /<Reanimated\.Text\b[^>]*accessibilityRole="header"/, 'the streak entrance lost its heading role');
   });
 
   test('every first-run screen leads with a heading role and its art is decorative', () => {

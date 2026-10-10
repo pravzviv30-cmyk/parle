@@ -62,22 +62,55 @@ describe('the personal onboarding journey', () => {
     assert.equal(initialPracticeMode({ ...freshPreAccountDraft(), practiceFocus: 'speaking', speakingConfidence: 'hesitant' }), 'typed');
   });
 
-  test('the streak achievement leads directly to saving without a reminder interruption', () => {
-    const streak = screen.slice(screen.indexOf("{page === 'remind' && streak !== null"), screen.indexOf("{page === 'keep' && ("));
+  test('the streak achievement renders saved facts on its full screen and continues to saving', () => {
+    const streak = screen.slice(screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen"), screen.indexOf('<OnboardingLayout', screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen")));
     assert.ok(streak.length > 0);
-    assert.match(streak, /<DayOne streak=\{streak\} moment=\{moment\}/);
-    assert.match(streak, /Practise every day to keep your streak going/);
-    assert.match(streak, /<WeekStrip week=\{streak\.week\} today=\{today\}/);
-    assert.doesNotMatch(streak, /<ReminderAsk|Remind me|Not now/);
-    assert.match(screen, /label="Start your French" onPress=\{\(\) => go\('keep'\)\}/);
-    const flame = evidence('apps/mobile/src/onboarding/firstRun/DayOne.tsx');
-    assert.match(flame, /'Your streak has started'/);
-    assert.match(flame, /useReduceMotion\(\)/);
-    assert.match(flame, /if \(reduced\) return/);
-    assert.match(flame, /return \(\) => animation\.stop\(\)/);
-    const strip = evidence('apps/mobile/src/onboarding/firstRun/WeekStrip.tsx');
-    assert.match(strip, /const practised = cell\.state === 'practised'/);
-    assert.match(strip, /practised \? <Flame/);
+    assert.match(streak, /streak=\{streak\}/);
+    assert.match(streak, /today=\{today\}/);
+    assert.match(streak, /moment=\{moment\}/);
+    assert.match(streak, /progress=\{progress\}/);
+    assert.match(streak, /active=\{active && surface === null\}/);
+    const callback = streak.match(/onContinue=\{([^}]+)\}/)?.[1];
+    assert.ok(callback, 'read the actual learning continuation callback');
+    for (const run of [null, { current: 1 }, { current: 7 }]) {
+      const destinations: string[] = [];
+      const next: () => void = new Function('go', 'streak', `return (${callback});`)((page: string) => destinations.push(page), run);
+      assert.deepEqual(destinations, [], 'rendering the callback navigated on its own');
+      next();
+      assert.deepEqual(destinations, [run === null ? 'practice' : 'keep']);
+    }
+    const celebration = evidence('apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx');
+    assert.match(celebration, /streakCelebrationView\(streak, today\)/);
+    assert.match(celebration, /'Continue learning'/);
+    assert.match(celebration, /model\.countLabel/);
+    assert.doesNotMatch(celebration, /finishGuestPractice\(|saveGuestPractice\(|recordActiveDay\(|Practice Everyday|Start Your French/);
+    const words = evidence('apps/mobile/src/onboarding/firstRun/streakCelebrationView.ts');
+    assert.match(words, /Your streak has started\./);
+    assert.match(words, /Your streak continues\./);
+    assert.match(words, /Practise every day to carry on the streak\./);
+  });
+
+  test('the optional reminder opens an existing time-confirmation sheet only after an explicit choice', () => {
+    const streak = screen.slice(screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen"), screen.indexOf('<OnboardingLayout', screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen")));
+    const expression = streak.match(/onReminder=\{([^}]+)\}/)?.[1];
+    assert.ok(expression, 'read the actual reminder callback and availability gate');
+    for (const [available, enabled] of [[false, false], [true, true], [true, false]]) {
+      const opened: string[] = [];
+      const callback: (() => void) | undefined = new Function('REMINDERS_AVAILABLE', 'draft', 'open', `return (${expression});`)(available, { reminderEnabled: enabled }, (name: string) => opened.push(name));
+      assert.deepEqual(opened, [], 'visiting the celebration opened the reminder');
+      if (available && !enabled) {
+        assert.ok(callback, 'a supported reminder has no opt-in action');
+        callback();
+        assert.deepEqual(opened, ['reminder']);
+      } else assert.equal(callback, undefined);
+    }
+    const celebration = evidence('apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx');
+    assert.match(celebration, /Remind me tomorrow/);
+    assert.doesNotMatch(celebration, /askReminderPermission\(|requestPermissionsAsync\(|turnOnReminder\(/);
+    const sheet = screen.slice(screen.indexOf("{surface === 'reminder' && ("), screen.indexOf("{surface === 'exit' && ("));
+    assert.match(sheet, /<ReminderAsk/);
+    assert.match(sheet, /time=\{draft\.reminderTime \?\? DEFAULT_REMINDER_TIME\}/);
+    assert.match(sheet, /answerReminder\(answer\)/);
   });
 
   test('saved achievements reveal truthful content and the primary action opens signup', () => {

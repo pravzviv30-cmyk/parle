@@ -1,0 +1,103 @@
+{
+  "figma": "https://www.figma.com/design/N2oYPd6Ol0I4XgmD0LUpk8?node-id=2-25",
+  "background": "#1CB982",
+  "checks": {
+    "after_today_label_adjustment": {
+      "passed": 90,
+      "failed": 0,
+      "log": "/private/tmp/luvani-streak-label-check.log"
+    },
+    "typescript": "passed",
+    "rive": "Compiled with the official Rive CLI; verified and inspected without warnings.",
+    "diff_whitespace": "passed",
+    "obsolete_code_cleanup": "Removed DayOne hero, unused generic streak/confetti scene paths, standalone confetti asset and dead WeekStrip entrance. Live guest home card retained in StreakCard.",
+    "palette_documentation_contract": {
+      "passed": 30,
+      "failed": 0,
+      "log": "/private/tmp/luvani-streak-palette-check.log",
+      "coverage": "All nine scoped streak tokens match DESIGN.md row for row, are exported through theme, and navy text clears contrast on the green, cream, and gold fills."
+    },
+    "full_gate_on_initial_main_integration": {
+      "status": "passed",
+      "workspace_tests": 4988,
+      "shared_release_tests": 77,
+      "failed": 0,
+      "workspace_counts": {
+        "core": 794,
+        "brain": 468,
+        "tutor-agent": 609,
+        "token-server": 428,
+        "brain-playground": 26,
+        "mobile": 2663
+      },
+      "all_workspace_typescript": "passed",
+      "database_proofs": "Eight scripts replayed all 39 migrations.",
+      "log": "/private/tmp/luvani-streak-main-gate.log",
+      "integrated_main": "52ff0657004e9af22bc90023955ea5498cee6a07"
+    },
+    "mobile_suite_on_initial_main": {
+      "passed": 2663,
+      "failed": 0,
+      "log": "/private/tmp/luvani-streak-main-gate.log"
+    },
+    "latest_main_integration_focused": {
+      "passed": 174,
+      "failed": 0,
+      "typescript": "passed",
+      "log": "/private/tmp/luvani-streak-new-main-focused.log"
+    }
+  },
+  "runtime": {
+    "web": [
+      "Central ignition and confetti",
+      "Supporting text hidden from accessibility tree during intro",
+      "Settled reveal",
+      "Skip without activating Continue learning",
+      "One-day and seven-day synthetic fixtures",
+      "Accurate pre-practice copy",
+      "Primary action",
+      "320px scrolling layout",
+      "After latest-main integration: 390px settled streak screenshot and preserved signup preview rendered successfully.",
+      "After immersive-onboarding integration: full green scene hides the shared progress header and its accessibility nodes; Continue learning restores the header at Save progress (82%)."
+    ],
+    "ios_simulator": [
+      "Native Rive path deformation and continuous idle",
+      "Complete two-stage entrance recorded",
+      "Reduced Motion opens settled with a still flame",
+      "Reopening a claimed achievement is quiet",
+      "Background and foreground return stays settled",
+      "Larger type and non-wrapping Today label",
+      "Accessible full calendar dates",
+      "Settled primary action"
+    ],
+    "automated": [
+      "Qualifying activity rules and no awards on view",
+      "Real streak counts",
+      "Locale and week/year/leap/DST date boundaries",
+      "Preference resolution, skip and background lifecycle",
+      "Delayed Rive readiness, stale references, timeout, and cleanup",
+      "Reminder entry routes to the existing confirmation flow"
+    ]
+  },
+  "limitations": [
+    "No Rive skill was installed. Used the project Rive setup and official Rive CLI.",
+    "Notification delivery was not verified: the existing simulator binary lacks the notification keychain entitlement. The production reminder confirmation flow is integrated.",
+    "Native swipe automation did not move the scroll region at larger text. The shared scrolling layout was verified in the compact web preview; native larger-text rendering was checked visually.",
+    "Screenshots and recording use explicitly synthetic preview data for 10 October 2026; production dates and counts come from authoritative saved progress."
+  ],
+  "recording": {
+    "file": "native-animation.mp4",
+    "seconds": 7.993,
+    "resolution": [
+      1080,
+      2340
+    ]
+  },
+  "integrated_main_screenshot": "web-integrated-main.png",
+  "latest_integrated_main": "c3a6a4813b12a769abd868b03f702f15d548d7f3",
+  "final_validation": {
+    "command": "git push origin HEAD:main",
+    "required_check": "Repository pre-push hook runs the full gate against the final integration.",
+    "log": "/private/tmp/luvani-streak-main-push-retry.log"
+  }
+}

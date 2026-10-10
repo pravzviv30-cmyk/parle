@@ -48,12 +48,13 @@ const MODULES =
 describe('the first-run parts only draw — F754', () => {
   test('no first-run page component can send, store or record activity', () => {
     const parts = readdirSync(HERE).filter((name) => /\.tsx?$/.test(name) && !name.includes('.test.'));
-    // The parts the plan, the start sheet, the practice, the win, day one and
+    // The parts the plan, the start sheet, the practice, the win, the streak and
     // the save card are built from. A part moved elsewhere would leave this
     // folder and this check.
-    for (const expected of ['PlanCard.tsx', 'PlanReveal.tsx', 'GoalTile.tsx', 'ConsentFacts.tsx', 'ExchangeSteps.tsx', 'MicMeter.tsx', 'WinCard.tsx', 'LiveFace.tsx', 'DayOne.tsx', 'WeekStrip.tsx', 'InvestmentList.tsx']) {
+    for (const expected of ['PlanCard.tsx', 'PlanReveal.tsx', 'GoalTile.tsx', 'ConsentFacts.tsx', 'ExchangeSteps.tsx', 'MicMeter.tsx', 'WinCard.tsx', 'LiveFace.tsx', 'StreakCard.tsx', 'StreakCelebrationScreen.tsx', 'WeekStrip.tsx', 'InvestmentList.tsx']) {
       assert.ok(parts.includes(expected), `onboarding/firstRun/${expected} is missing, so this check no longer reads it`);
     }
+    assert.ok(!parts.includes('DayOne.tsx'), 'the retired streak hero remains alongside its replacement');
     for (const name of parts) {
       const body = code(name);
       const call = body.match(CALLS);

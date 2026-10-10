@@ -192,8 +192,7 @@ const LEGACY_ANIMATED = [
   'tutor/VoiceOrb.tsx',
   // Preserve main's independently shipped Hum launch on its existing engine.
   'launch/LaunchScreen.tsx',
-  // User-approved first-run celebration and bounded action/reveal primitives.
-  'onboarding/firstRun/DayOne.tsx',
+  // Bounded onboarding action/reveal and account primitives.
   'onboarding/motion/OnboardingScenes.tsx',
   'onboarding/AccountWelcome.tsx',
   // One shared transition/progress owner; its consumers only render its style.

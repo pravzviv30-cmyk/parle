@@ -200,6 +200,8 @@ type ScrollScreenProps = ScreenProps & {
   center?: boolean;
   scrollRef?: Ref<ScrollView>;
   onScroll?: ScrollViewProps['onScroll'];
+  /** A scene may hold scrolling until its skippable introduction has settled. */
+  scrollEnabled?: boolean;
   scrollEventThrottle?: number;
   /** Native keyboard insets are an alternative to the whole-frame avoiding view. */
   automaticallyAdjustKeyboardInsets?: boolean;
@@ -219,6 +221,7 @@ export function ScrollScreen({
   center,
   scrollRef,
   onScroll,
+  scrollEnabled,
   scrollEventThrottle = 100,
   automaticallyAdjustKeyboardInsets,
   keyboardDismissMode,
@@ -251,6 +254,7 @@ export function ScrollScreen({
     >
       <ScrollView
         ref={scrollRef}
+        scrollEnabled={scrollEnabled}
         onContentSizeChange={(_, height) => setContentHeight(height)}
         onLayout={(event) => {
           setViewportHeight(event.nativeEvent.layout.height);

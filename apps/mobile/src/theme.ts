@@ -10,7 +10,7 @@
 import { Platform } from 'react-native';
 import { paper } from './palette.ts';
 
-export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, passwordMeter } from './palette.ts';
+export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, passwordMeter, streakCelebration } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.

@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending } from './palette.ts';
+import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -116,6 +116,7 @@ describe('every raw colour lives in palette.ts — F320', () => {
 
     // And theme.ts really does re-export the five colour objects from palette.
     assert.match(theme, /export\s*\{[^}]*\bpaper\b[^}]*\}\s*from\s*'\.\/palette\.ts'/);
+    assert.match(theme, /export\s*\{[^}]*\bstreakCelebration\b[^}]*\}\s*from\s*'\.\/palette\.ts'/);
   });
 
   test('no six-digit hex is written anywhere in source but palette.ts', () => {
@@ -215,6 +216,9 @@ describe('one ground, pinned — F321', () => {
     assert.ok(contrast(accent.primary, paper.groundDeep) >= 4, `the primary ink is ${contrast(accent.primary, paper.groundDeep).toFixed(2)} on a chip fill`);
     assert.ok(contrast(accent.label, GROUND) >= TEXT, `the label accent is ${contrast(accent.label, GROUND).toFixed(2)} on the ground`);
     assert.ok(contrast(accent.brand, GROUND) >= TEXT, `the brand blue is ${contrast(accent.brand, GROUND).toFixed(2)} on the ground`);
+    for (const ground of [streakCelebration.ground, streakCelebration.cream, streakCelebration.gold]) {
+      assert.ok(contrast(streakCelebration.ink, ground) >= TEXT, `streak ink is ${contrast(streakCelebration.ink, ground).toFixed(2)} on ${ground}, under the text floor`);
+    }
   });
 
   test('soft ink clears 4.5 on a card as well as on the ground', () => {
@@ -597,6 +601,8 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(textOn)) tokens[`textOn.${k}`] = v;
   for (const [k, v] of Object.entries(onColour)) tokens[`onColour.${k}`] = v;
   for (const [k, v] of Object.entries(segmentPending)) tokens[`segmentPending.${k}`] = v;
+  // The scoped streak palette participates in the same complete documentation contract.
+  for (const [k, v] of Object.entries(streakCelebration)) tokens[`streakCelebration.${k}`] = v;
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be

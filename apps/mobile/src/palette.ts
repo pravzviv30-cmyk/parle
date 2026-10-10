@@ -6,8 +6,8 @@
  * and four saturated colours that each lead a screen or report the tutor's
  * state. The chartreuse is still a highlighter pen and never a surface.
  *
- * Twenty raw values live here and nothing else does: the paper and its inks,
- * the four colours, the highlighter, and the STYLE section 4 values that only
+ * Raw values live here: the paper and its inks,
+ * the four colours, the scoped streak palette, the highlighter, and the STYLE values that only
  * ever sit on a colour ground or inside a drawing. Every other token is a
  * reference to one of them, so a value can only drift in one place. Old token
  * names that screens still write stay as aliases of a B value until the stage
@@ -57,6 +57,19 @@ export const colour = {
   sun: '#FFC93C',
   /** Your turn, a can-do earned, a done tick. Ink on it, never white. */
   mint: '#2FD18B',
+} as const;
+
+/** The quieter earned-streak ground and its original flame illustration. */
+export const streakCelebration = {
+  ground: '#1CB982',
+  flame: '#EE6031',
+  orange: '#FF9539',
+  gold: '#FFD45A',
+  tipHighlight: '#FFF0B6',
+  coreHighlight: '#FFF6D4',
+  shadow: '#146B55',
+  cream: paper.ground,
+  ink: paper.ink,
 } as const;
 
 /**

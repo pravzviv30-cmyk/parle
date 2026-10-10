@@ -1,14 +1,25 @@
-/** Shared cream frame. Progress stays mounted when its owner switches pages. */
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
+/** Shared onboarding frame. Progress stays mounted when its owner switches pages. */
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Animated, AppState, Easing, KeyboardAvoidingView, Platform, ScrollView, View, useWindowDimensions, type ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useReduceMotion } from '../motion.ts';
-import { colour, paper, space } from '../theme.ts';
+import { colour, decorative, paper, space } from '../theme.ts';
 import { screenInsets } from '../responsiveLayout.ts';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
 
-const FrameContext = createContext<((progress: OnboardingProgressValue) => void) | null>(null);
+export type OnboardingFramePresentation = { hideProgress?: boolean; ground?: string };
+type FrameReporter = (progress: OnboardingProgressValue, presentation?: OnboardingFramePresentation) => void;
+const FrameContext = createContext<FrameReporter | null>(null);
+
+/** A dedicated surface can report its route while presenting its own chrome. */
+export function useOnboardingFramePresentation(value: OnboardingProgressValue, presentation: OnboardingFramePresentation, active = true) {
+  const report = useContext(FrameContext);
+  // Apply the dedicated surface chrome before its first visible frame.
+  useLayoutEffect(() => {
+    if (active) report?.(value, presentation);
+  }, [report, active, value.fraction, value.step, value.total, value.complete, presentation.hideProgress, presentation.ground]);
+}
 
 export function OnboardingProgress({ value }: { value: OnboardingProgressValue }) {
   const reduced = useReduceMotion();
@@ -40,11 +51,19 @@ function ProgressHeader({ value }: { value: OnboardingProgressValue }) {
 
 /** Put this above AuthFlow's page switch so signup shares the same live fill. */
 export function OnboardingFrame({ initialProgress, children }: { initialProgress: OnboardingProgressValue; children: ReactNode }) {
-  const [value, setValue] = useState(initialProgress);
-  return <FrameContext.Provider value={setValue}>
-    <View style={{ flex: 1, minHeight: 0, backgroundColor: paper.ground }}>
+  const [frame, setFrame] = useState<{ value: OnboardingProgressValue; hideProgress: boolean; ground: string }>(() => ({
+    value: initialProgress, hideProgress: false, ground: paper.ground,
+  }));
+  const report = useCallback<FrameReporter>((value, presentation) => {
+    setFrame({ value, hideProgress: presentation?.hideProgress ?? false, ground: presentation?.ground ?? paper.ground });
+  }, []);
+  return <FrameContext.Provider value={report}>
+    <View style={{ flex: 1, minHeight: 0, backgroundColor: frame.ground }}>
       <StatusBar style="dark" />
-      <ProgressHeader value={value} />
+      <View {...(frame.hideProgress ? decorative : {})} pointerEvents={frame.hideProgress ? 'none' : 'auto'}
+        style={{ height: frame.hideProgress ? 0 : undefined, opacity: frame.hideProgress ? 0 : 1, overflow: 'hidden' }}>
+        <ProgressHeader value={frame.value} />
+      </View>
       <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
     </View>
   </FrameContext.Provider>;

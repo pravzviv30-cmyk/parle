@@ -86,6 +86,8 @@ export interface GuestStreak {
   readonly before: number;
   /** Whether today is one of the days: the flame is lit, not waiting. */
   readonly todayPractised: boolean;
+  /** The newest qualifying finish day in this run, using the app's local day rule. */
+  readonly achievementDay: DayKey;
   /** Today first, then the next six local calendar days. Future dots stay neutral. */
   readonly week: readonly WeekCell[];
   /** Day one's title. */
@@ -108,6 +110,7 @@ export function guestStreak(days: readonly DayKey[], today: DayKey): GuestStreak
     current: state.current,
     before: todayPractised ? state.current - 1 : state.current,
     todayPractised,
+    achievementDay: state.lastPracticeDay!,
     week: upcomingPracticeDays(today, todayPractised),
     // A later day of a run says what is true of today; day one, or a run
     // whose newest day was yesterday, says the run has started.
