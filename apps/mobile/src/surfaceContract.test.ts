@@ -1070,6 +1070,7 @@ const SAFE_AREA_ALLOW = [
   'components.tsx', // Sheet's native Modal is outside its caller's frame and owns its inset.
   'launch/LaunchScreen.tsx', // Startup overlay is outside Screen; its Get Started footer owns the bottom inset.
   'onboarding/OnboardingLayout.tsx', // The shared onboarding frame owns the inset and scrolling once for all routes.
+  'dev/OnboardingPreview.tsx', // Developer-only overlay controls sit outside the shared frame and clear the notch themselves.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
@@ -1127,7 +1128,7 @@ describe('every screen sits inside the one frame — F307', () => {
     assert.deepEqual([...launch.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), ['bottom'], 'startup pays an inset outside its footer and moves the native splash handoff frame');
     const preview = SOURCES.find(source => source.path.endsWith('dev/OnboardingPreview.tsx'))?.body;
     if (preview) {
-      assert.deepEqual([...preview.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), [], 'the synthetic preview must use its shared frame without measuring insets');
+      assert.deepEqual([...preview.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), ['top'], 'only the developer overlay may clear the notch; preview screens use the shared frame insets');
       const app = stripComments(readFileSync(join(APP, 'App.tsx'), 'utf8'));
       assert.match(app, /__DEV__ && process\.env\.EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW === '1' \? <OnboardingPreview \/> : <Gate \/>/, 'the synthetic QA fixture can bypass the release and explicit preview guards');
       assert.equal((app.match(/<OnboardingPreview\b/g) ?? []).length, 1, 'a second preview route is not protected by the reviewed release guard');
@@ -2021,11 +2022,10 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     return body.slice(start);
   }
 
-  test('auth screens lead with Apple above Google and keep one form action in their shared frame', () => {
-    for (const name of ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
+  test('sign-in leads with Apple above Google and keeps one form action in its shared frame', () => {
+    for (const name of ['auth/SignInScreen.tsx']) {
       const body = named(name);
-      // Keyboard-aware, so the fields lift rather than hide; and the one back is
-      // the shared header, not a hand-rolled chevron.
+      // The introductory form uses the shared keyboard-aware onboarding body.
       assert.ok(usesSharedFrame(body) && /\bavoidKeyboard\b/.test(body), `${name} is not a keyboard-aware shared frame`);
       assert.match(body, /\bactionInScroll\b/, `${name} can float the onboarding action over the keyboard`);
       assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"/, `${name} exposes a visible onboarding back control`);
@@ -2070,6 +2070,39 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
         `${name} moved the switch row above a field, off the body's end`,
       );
     }
+  });
+
+  test('signup keeps its primary action after the fields and hides it while the keyboard is visible', () => {
+    const body = named('auth/SignUpScreen.tsx');
+    assert.match(body, /<OnboardingLayout\b[\s\S]*?automaticallyAdjustKeyboardInsets/, 'signup does not use the shared frame’s native keyboard insets');
+    assert.doesNotMatch(body, /footer=\{|\bavoidKeyboard\b/, 'signup pins a footer or applies competing keyboard avoidance');
+    assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"/, 'signup exposes a visible onboarding back control');
+    const frame = named('onboarding/OnboardingLayout.tsx');
+    assert.match(frame, /automaticallyAdjustKeyboardInsets=\{automaticallyAdjustKeyboardInsets\}/);
+    assert.match(frame, /onLayout=\{onViewportLayout\}/);
+    assert.doesNotMatch(body, /<OutlineButton\b/, 'signup restored the retired outline provider door');
+
+    const pills = tags(body, 'PillButton');
+    const apple = pills.find((tag) => /<AppleMark\b/.test(tag));
+    const google = pills.find((tag) => /<GoogleMark\b/.test(tag));
+    const primary = pills.find((tag) => /authButtonLabel\('createAccount'/.test(tag));
+    assert.ok(apple, 'signup lost its Apple provider door');
+    assert.ok(google, 'signup lost its Google provider door');
+    assert.ok(primary, 'signup lost its explicit Create account action');
+    assert.equal(pills.length, 3, 'signup adds an unexpected provider or primary action');
+    assert.doesNotMatch(apple, /\btone=/, 'signup’s Apple door is not an ink pill');
+    assert.match(google, /\btone="white"/, 'signup’s Google door is not a white pill');
+    assert.doesNotMatch(primary, /\btone=/, 'signup’s primary action is not an ink pill');
+    writtenBefore(body, '{appleOffered && (', apple, 'signup draws Apple where the platform cannot offer it');
+    writtenBefore(body, apple, google, 'signup places Apple below Google');
+    writtenBefore(body, google, '<Field', 'signup places a field above its provider doors');
+    assert.ok(body.lastIndexOf('<Field') < body.indexOf(primary), 'signup places Create account above a form field');
+    assert.match(body, /\{!keyboardVisible && <View style=\{st\.action\}>\s*<PillButton/, 'signup leaves its primary action or an empty strip visible during keyboard editing');
+    assert.match(primary, /disabled=\{busy \|\| !ready \|\| formOk\}/, 'signup permits incomplete or duplicate submission merely because the keyboard closes');
+
+    const switchRow = tags(body, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));
+    assert.ok(switchRow, 'signup lost its sign-in switch');
+    assert.ok(body.indexOf(primary) < body.indexOf(switchRow), 'signup moved its sign-in switch above the completed form action');
   });
 });
 

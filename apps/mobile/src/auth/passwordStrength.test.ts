@@ -11,21 +11,34 @@ test('password guidance separates the eight-character rule from colour and never
   assert.equal(passwordStrength('abcdefgh').level, 'medium');
   assert.equal(passwordStrength('aaaaaaaaaaaa').level, 'low');
   assert.equal(passwordStrength('Password123!').level, 'low');
-  assert.equal(passwordStrength('abcdefgh').text, 'Add symbols and numbers');
+  assert.equal(passwordStrength('abcdefgh').text, 'Fair');
   assert.equal(passwordStrength('long unusual passphrase').level, 'good');
-  assert.equal(passwordStrength('abcdefghijk').progress, 11 / 12);
-  assert.equal(passwordStrength('abcdefghijkl').progress, 1);
-  assert.equal(passwordStrength('a'.repeat(200)).progress, 1);
+  assert.ok(passwordStrength('abcdefghijk').progress < passwordStrength('abcdefghijkl').progress);
+  assert.ok(passwordStrength('a'.repeat(200)).progress < passwordStrength('long unusual passphrase').progress, 'length alone must not fill a low-strength value');
   assert.equal(passwordTooShort('a'.repeat(200)), false);
   assert.equal(passwordTooShort('abcdefgh'), false, 'guidance must not become a new acceptance rule');
 });
 
-test('signup gives both passwords a meter without limiting their length', () => {
+test('strength targets evaluate full values after typing, deletion, paste and autofill', () => {
+  const values = ['', 'a', 'ab', 'abcdefg', 'abcdefgh', 'abcdefghi', 'Ab1!cdef', 'Ab1!cdefmnopqrstuvwx', 'Ab1!', '', 'a'.repeat(200), 'a long unusual password-manager phrase'];
+  for (const value of values) {
+    const strength = passwordStrength(value);
+    assert.equal(strength.met, !passwordTooShort(value), 'advice must not add a registration requirement');
+    assert.ok(strength.progress >= 0 && strength.progress <= 1, 'every target stays inside the stable track');
+  }
+  assert.equal(passwordStrength('').progress, 0);
+  assert.ok(passwordStrength('Ab1!cdef').progress > passwordStrength('abcdefgh').progress);
+  assert.ok(passwordStrength('Ab1!').progress < passwordStrength('Ab1!cdef').progress);
+  assert.equal(passwordStrength('Ab1!cdefmnopqrstuvwx').progress, 1);
+  assert.equal(passwordStrength('        ').met, true, 'the existing policy does not trim password values');
+});
+
+test('signup keeps strength beneath Password and uses separate confirmation feedback', () => {
   const signup = readFileSync(new URL('./SignUpScreen.tsx', import.meta.url), 'utf8');
   assert.match(signup, /<PasswordMeter value=\{password\}/);
-  assert.match(signup, /<PasswordMeter value=\{confirm\}/);
+  assert.equal((signup.match(/<PasswordMeter\b/g) ?? []).length, 1);
+  assert.doesNotMatch(signup, /<PasswordMeter value=\{confirm\}/);
   assert.doesNotMatch(signup, /maxLength=|At least 8 characters/);
-  assert.match(signup, /EMAIL_ADVANCE_IDLE_MS/);
   const flow = readFileSync(new URL('./AuthFlow.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(flow, /<Sheet|<SignUpScreen\s+embedded/);
   assert.match(flow, /display: screen === 'welcome' \? 'flex' : 'none'/);

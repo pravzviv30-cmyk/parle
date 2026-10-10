@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-10",
+  "scope": "Local Expo web onboarding UI and bundled audio QA. Actual flow and developer fixture evidence are explicitly separated. Tutor/setup/streak captures predate integration of main commit52ff0657; signup was recaptured and its fixture rechecked after integration; the final merge preserves its signup keyboard/password behavior. See ../onboarding-redesign/validation.json for integration checks.",
+  "browser": {
+    "name": "Chrome",
+    "automation": "CUA documented browser APIs",
+    "finalState": "Temporary viewport reset; both agent-created QA tabs closed.",
+    "recording": "Unavailable: advertised browser capabilities only viewport; advertised tab capabilities only pageAssets. No video recording API was exposed. No synthetic recording was created."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8091/?preview=tutor&controls=0",
+      "mode": "developer presentation fixture",
+      "environment": {
+        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "1",
+        "EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW": "1",
+        "EXPO_NO_TELEMETRY": "1"
+      },
+      "runningWhenQAEnded": true
+    },
+    {
+      "url": "http://localhost:8092",
+      "mode": "actual main app flow",
+      "environment": {
+        "EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT": "1",
+        "EXPO_NO_TELEMETRY": "1"
+      },
+      "runningWhenQAEnded": true
+    }
+  ],
+  "startCommand": {
+    "cwd": "apps/mobile",
+    "command": "node ../../node_modules/expo/bin/cli start --web --port <8091 or 8092>",
+    "dependencySetup": "Ignored local node_modules directory links installed sibling packages and links @luvani packages to this worktree; manifests and lockfile unchanged by QA."
+  },
+  "actualFlow": {
+    "entry": "Fresh localhost:8092 origin, Get Started overlay dismissed, welcome Start your personal plan.",
+    "choices": {
+      "purpose": "Travel",
+      "level": "I know a few words",
+      "confidence": "I’ll give it a try",
+      "focus": "Speak with confidence",
+      "dailyGoal": "Regular 10 minutes",
+      "finalTutor": "Émilie"
+    },
+    "screensVisited": [
+      "Welcome",
+      "Purpose",
+      "French level",
+      "Confidence",
+      "Learning focus",
+      "Daily time",
+      "Personal plan",
+      "Choose your tutor",
+      "Start your practice disclosure"
+    ],
+    "persistedResume": [
+      {
+        "screen": "French level",
+        "result": "Reload resumed saved level screen; preceding Travel choice retained."
+      },
+      {
+        "screen": "Choose your tutor",
+        "result": "Reload resumed tutor screen with Émilie checked, enabled CTA, idle preview and no autoplay."
+      }
+    ],
+    "progress": {
+      "levelSettledFillPixels": 62.5,
+      "trackPixels": 350,
+      "tutorSettledFillPixels": 187.5,
+      "tutorAriaValueNow": 54,
+      "tutorAriaValueText": "Onboarding, step 8 of 14",
+      "ariaMin": 0,
+      "ariaMax": 100,
+      "trackHeightPixels": 8,
+      "result": "Numerical progress reflects persisted actual route rather than a fixed decorative fill. Actual pre-completion tutor progress below 100."
+    },
+    "presentation": "Observed centered headings and cream surfaces in actual setup; no visible back arrow in visited setup screens.",
+    "cta": "Initially disabled; listening alone does not select or enable. Choosing Émilie enables. Actual primary action opens practice disclosure and stops preview; closing disclosure retains choice. Age/terms not submitted and practice not started."
+  },
+  "audio": {
+    "source": "Actual local bundled M4A media via Expo AudioPlayer web runtime. No generated/paid audio.",
+    "singleTap": "After web media event race fix, first Listen tap reaches Pause without a second Resume tap; all six voices checked.",
+    "selectionIndependent": "Alexandre preview can play while Émilie remains selected; selecting a card does not begin audio.",
+    "switching": "Only newest requested voice shows Pause; previous becomes Listen. Rapid native ticket/cancel behavior additionally covered by controller tests.",
+    "completionReplayPauseResume": {
+      "completedTrack": "320/320 pixels and control returned to Listen",
+      "replayTrack": "21.859375/320 pixels near start and control Pause",
+      "pauseTrack": "27.265625/320 pixels; unchanged on subsequent inspection; control Resume",
+      "resumeTrack": "35.046875/320 pixels and control Pause"
+    },
+    "permissions": "No microphone prompt on preview playback.",
+    "raceResolved": "Expo web onplay at currentTime 0 followed by loadeddata isLoaded true and playing false must remain loading until elapsed media advances. Regression test failed before fix and passed after; actual browser order confirmed after fix.",
+    "durationSeconds": {
+      "Alexandre": 3.415,
+      "Émilie": 3.322,
+      "Guillaume": 2.951,
+      "Marie": 3.322,
+      "Anatole": 3.461,
+      "Sarah": 3.601
+    },
+    "remainingContentDependency": "Existing bundled clips are roughly 3 seconds and identity-specific bilingual introductions. Requested uniform longer comparison phrase is not present in supplied assets; subtitles use the actual existing transcript."
+  },
+  "responsiveAndAccessibility": {
+    "small320x568": {
+      "horizontalOverflow": false,
+      "documentWidth": 320,
+      "documentScrollWidth": 320,
+      "radioTargetsPixels": {
+        "width": 278,
+        "height": 91
+      },
+      "previewButtonMinPixels": 44,
+      "ctaPixels": {
+        "width": 280,
+        "height": 56
+      },
+      "listEnd": "Scrolled to Sarah and selected her, then restored final Émilie choice."
+    },
+    "phone390x844": {
+      "headingTopPixels": 32,
+      "allSixTutorsSingleColumn": true,
+      "selectedAndPlayingScreenshotHeadingVisible": true
+    },
+    "tablet768x1024": {
+      "horizontalOverflow": false,
+      "headingCenterPixels": 384,
+      "progressTrackPixels": 560,
+      "result": "Constrained content centered."
+    },
+    "shortViewportFixture": "Sign-up Confirm password focus and scrolling inspected with a short viewport; primary moved inside the scroll content. Captured image remained 390x844, so this image is not proof of a 390x440 viewport or native keyboard behavior.",
+    "webSemantics": "Named radio group and six named radio options expose checked state; independent named Listen/Pause/Resume buttons; real disabled primary; progress aria min/max/now/text verified.",
+    "unverified": [
+      "Native iOS/Android keyboard behavior",
+      "Native OS Dynamic Type/larger font",
+      "Native VoiceOver/TalkBack",
+      "Reduced-motion OS setting",
+      "Native audio route/headphone interruption",
+      "Actual network-decode failure UI; error/retry controller logic was tested without browser fault injection"
+    ]
+  },
+  "meaningfulTests": {
+    "command": "node --test --experimental-strip-types apps/mobile/src/tutor/tutorPreview.test.ts apps/mobile/src/onboarding/onboardingProgress.test.ts apps/mobile/src/onboarding/preAccountDraft.test.ts",
+    "passed": 44,
+    "failed": 0,
+    "suites": 6,
+    "coverage": [
+      "Media status race",
+      "Pause/resume/replay/error/retry",
+      "Loading watchdog",
+      "Rapid request invalidation and release",
+      "Actual route denominator and skipped/conditional steps",
+      "Resumed progress",
+      "Pre-account persistence round-trip"
+    ],
+    "globalTypecheck": "Shared implementation agent reported mobile typecheck passing after fixes; QA fixture generated no remaining type errors."
+  },
+  "rive": {
+    "runtime": "@rive-app/react-native 0.5.4 and react-native-nitro-modules 0.36.1 exist.",
+    "availableAssets": "Six existing Rive scene assets are shape/timeline assets without a numeric progress input/viewmodel.",
+    "skill": "No installed Rive skill found in supplied skill roots/plugins.",
+    "fallbackReason": "No available numeric progress Rive asset/skill, rather than a missing native runtime. Shared native Animated progress supplies actual numeric smooth progress; existing web scenes have still/vector fallbacks."
+  },
+  "screenshots": [
+    {
+      "file": "tutor-initial-fixture-390.jpg",
+      "kind": "developer fixture",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Final no-selection state, actual shared layout and actual TutorSelection. CTA disabled; idle reserved transcript area. All copy uses French, AI voice."
+    },
+    {
+      "file": "tutor-selected-actual-390.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Latest final capture after real reload, Émilie checked, idle preview, primary enabled, full heading visible."
+    },
+    {
+      "file": "tutor-playing-actual-390.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Latest final first-tap Pause Alexandre and elapsed playback bar while Émilie remains checked; full heading visible."
+    },
+    {
+      "file": "purpose-actual-390.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Purpose after Travel choice."
+    },
+    {
+      "file": "level-resumed-actual-390.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "French level after reload resumed saved route."
+    },
+    {
+      "file": "confidence-actual-390.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Confidence."
+    },
+    {
+      "file": "plan-actual-390.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Personal plan from actual choices."
+    },
+    {
+      "file": "tutor-small-actual-320.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        320,
+        568
+      ],
+      "state": "Small viewport tutor."
+    },
+    {
+      "file": "tutor-scroll-end-actual-320.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        320,
+        568
+      ],
+      "state": "Last tutor reachable at small viewport."
+    },
+    {
+      "file": "tutor-tablet-actual-768.jpg",
+      "kind": "actual main flow",
+      "viewport": [
+        768,
+        1024
+      ],
+      "state": "Tablet constrained layout, may reflect scrolled list position."
+    },
+    {
+      "file": "signup-fixture-390.jpg",
+      "kind": "developer fixture",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Final merged real sign-up component in the shared onboarding layout; controls=0 hides preview buttons, shared progress and heading visible, no back control. Synthetic in-memory password fields show Strong strength and Passwords match; email empty and Create account disabled. No account created."
+    },
+    {
+      "file": "signup-short-viewport-fixture-390.jpg",
+      "kind": "developer fixture",
+      "imageDimensions": [
+        390,
+        844
+      ],
+      "state": "Sign-up focused Confirm password; use as focus/scroll illustration only, not a native keyboard or short viewport screenshot."
+    },
+    {
+      "file": "streak-fixture-390.jpg",
+      "kind": "developer fixture",
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "Real day-one component with synthetic one-day data."
+    }
+  ],
+  "supersededEvidenceDoNotUse": [
+    {
+      "file": "welcome-actual-390.jpg",
+      "reason": "Image was actually1609x738 despite early filename; not a phone screenshot."
+    },
+    {
+      "file": "tutor-initial-actual-390.jpg",
+      "reason": "Earlier transition capture before final copy/preserved transcript changes and progress settling."
+    },
+    {
+      "file": "tutor-initial-390.jpg",
+      "reason": "Earlier pre-final fixture."
+    },
+    {
+      "file": "tutor-playing-390.jpg",
+      "reason": "Initial failing audio Resume state before race repair; not proof of final playback."
+    }
+  ],
+  "fixtureImplementation": "apps/mobile/src/dev/OnboardingPreview.tsx",
+  "figmaBoard": "artifacts/onboarding-redesign/figma-final.png",
+  "postMergeFixtureQA": {
+    "date": "2026-10-10",
+    "signup": "Final integrated SignUpScreen preserves latest-main password feedback and shared layout. No visible back control. Synthetic form draft survives selecting another fixture and returning.",
+    "deferredAdapter": "Mock-only request remains Creating account until the visible Fail or Complete fixture control is selected. Fail returns the editable retry state and expected message; Complete returns the confirmation-pending message without emitting an auth session or creating an account.",
+    "tutor": "After merge, one Listen Alexandre tap reaches Pause with elapsed media progress while no tutor is chosen and primary remains disabled. Shared heading, transcript, cards and controls=0 presentation remain intact.",
+    "types": "TypeScript project program reported zero diagnostics after shared auth merge. Preview file syntax valid; conflict markers absent.",
+    "browserCleanup": "Temporary390x844 viewport reset and QA tab closed."
+  }
+}

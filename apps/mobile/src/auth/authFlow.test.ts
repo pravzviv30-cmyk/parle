@@ -78,6 +78,46 @@ const SIGN_IN_AND_OUT = /Signing in and out again does not end it; only closing 
 /** The narrower answer the founder did not give, in either of the words it was written in. */
 const SIGN_IN_ENDS = /Signing in ends[^.]*refusal|refusal[^.]*until someone signs in/i;
 
+test('signup values survive auth-route detours without entering the saved onboarding draft', () => {
+  const formDraft = read('signUpFormDraft.ts');
+  assert.match(FLOW, /useState<SignUpFormDraft>\(emptySignUpFormDraft\)/);
+  const signup = element(FLOW, 'SignUpScreen');
+  assert.match(signup, /formDraft=\{signUpFormDraft\}/);
+  assert.match(signup, /onFormDraftChange=\{setSignUpFormDraft\}/);
+  assert.match(handler(element(FLOW, 'PreAccountOnboarding'), 'onCreateAccount'), /if \(refused\) return;[\s\S]*onCreateAccount\(accountDraft\);[\s\S]*switchScreen\('signup'\)/);
+  assert.match(APP, /onCreateAccount=\{keepPreAccountDraft\}/);
+  // Only the form updates this state; changing the route or resetting the
+  // introduction must not erase what was already entered in the form.
+  assert.doesNotMatch(FLOW, /setSignUpFormDraft\(/);
+  assert.doesNotMatch(FLOW, /onDraftChange\(signUpFormDraft\)|onCreateAccount\(signUpFormDraft\)/);
+  assert.doesNotMatch(formDraft, /Storage|setItem|JSON\.stringify|console\.|fetch\(/);
+  assert.doesNotMatch(read('..', 'onboarding', 'preAccountDraft.ts'), /SignUpFormDraft|\bpassword\b|\bconfirm\b/);
+  const form = read('SignUpScreen.tsx');
+  assert.match(form, /useState\(planDraft\?\.accountEmail \?\? formDraft\?\.email \?\? ''\)/);
+  assert.match(form, /useState\(formDraft\?\.password \?\? ''\)/);
+  assert.match(form, /useState\(formDraft\?\.confirm \?\? ''\)/);
+  assert.match(form, /onFormDraftChange\?\.\(\{ email, password, confirm \}\)/);
+  assert.match(form, /setEmail\(value\); onEmailChange\?\.\(value\)/);
+  assert.doesNotMatch(form, /useEffect\([^;]*onEmailChange/);
+});
+
+test('reopening account creation keeps an intentionally cleared email and the completed plan', () => {
+  const opening = handler(element(FLOW, 'PreAccountOnboarding'), 'onCreateAccount');
+  const expression = opening.slice('onCreateAccount={'.length, -1);
+  const writes: unknown[] = []; const created: unknown[] = []; const screens: string[] = [];
+  const bindings = { refused: false, signupDraft: { accountEmail: '' },
+    setSignupDraft: (draft: unknown) => writes.push(draft), onDraftChange: () => {},
+    onCreateAccount: (draft: unknown) => created.push(draft), switchScreen: (next: string) => screens.push(next) };
+  const make = new Function(...Object.keys(bindings), stripTypeScriptTypes('const create = ' + expression + ';') + '\nreturn create;');
+  const create = make(...Object.values(bindings)) as (draft: unknown) => void;
+  const draft = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorVoice: 'emilie', tutorChosen: true, reason: 'trip', accountEmail: 'old@example.com', page: 'keep' };
+  create(draft);
+  const expected = { ...draft, accountEmail: '', page: 'account', accountMode: 'signup', accountReturnPage: 'keep' };
+  assert.deepEqual(writes, [expected]);
+  assert.deepEqual(created, [expected]);
+  assert.deepEqual(screens, ['signup']);
+});
+
 describe('the under-13 refusal before an account holds for the launch (F637, F639, F641)', () => {
   test('the flow passes the refusal up to Gate, which holds it and clears the saved draft', () => {
     // Required, not optional: a Gate that forgot to wire either would not

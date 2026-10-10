@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-10",
+  "implementation": "Shared mobile onboarding layout, route-derived animated progress, persisted resumable drafts, six illustrated tutor cards, independent audio preview controller, and guarded auth/practice completion.",
+  "figma": {
+    "url": "https://www.figma.com/design/tjss3wkD3VGYS7OlbkuYPR?node-id=2-224",
+    "editable": true,
+    "states": [
+      "initial",
+      "selected",
+      "playing"
+    ],
+    "screenshot": "figma-final.png",
+    "ledger": "figma-ledger.json"
+  },
+  "checks": {
+    "mobileTests": {
+      "command": "npm run test --workspace=@luvani/mobile",
+      "exitCode": 0,
+      "tests": 2683,
+      "suites": 653,
+      "passed": 2683,
+      "failed": 0,
+      "skipped": 0
+    },
+    "mobileTypecheck": {
+      "command": "npm run typecheck --workspace=@luvani/mobile",
+      "exitCode": 0,
+      "verification": "Shared onboarding implementation agent ran after the final SignInScreen changes."
+    },
+    "webExport": {
+      "command": "npm run export:web --workspace=@luvani/mobile",
+      "exitCode": 0,
+      "destination": "apps/mobile/dist"
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    "browserEvidence": "../tutor-onboarding-2026-10-10/browser-evidence.json",
+    "phase": "Initial redesign before integrating main commit52ff0657; final integration is verified by the standard full repository pre-push hook."
+  },
+  "verifiedInBrowser": [
+    "Actual main onboarding route through tutor selection and practice disclosure",
+    "Reload restores answers, route, progress and selected tutor without autoplay",
+    "All six bundled voice previews start on first tap",
+    "Selection independent from playback, single-source switching, pause/resume, completion and replay",
+    "No microphone permission request for playback",
+    "Small phone and tablet layout, scrolling, accessible web control states"
+  ],
+  "remainingDependencies": [
+    "Requested uniform 5–8 second French sample phrase is absent. Existing voice-specific bilingual clips last 2.95–3.60 seconds and are reused with their actual transcript. No paid generation was performed.",
+    "No installed Rive skill or numeric-progress Rive asset was available. The installed Rive runtime and existing scene assets remain intact; shared Animated progress uses actual route state with 320ms easing and reduced-motion support.",
+    "Native iOS/Android keyboard, Dynamic Type, VoiceOver/TalkBack, OS reduced-motion and audio-route interruption verification requires a device or simulator. Those behaviors were not claimed as device-tested.",
+    "Browser recording was unsupported by the advertised CUA APIs. Screenshots are provided; no synthetic recording was created."
+  ],
+  "integration": {
+    "upstream": "52ff0657004e9af22bc90023955ea5498cee6a07",
+    "preserved": "Signup native keyboard insets, explicit Next/Done navigation, password meter, match feedback, in-memory form values and request guards.",
+    "hook": "Standard pre-push full gate: all workspace typechecks/tests, SQL proofs, release/provider proofs, source hygiene, secrets and issue-ledger validation.",
+    "beforePushChecks": {
+      "authAndConsoleTests": {
+        "passed": 102,
+        "failed": 0
+      },
+      "clearedEmailRegression": "Focused AuthFlow suite9/9 passed after adding regression.",
+      "sharedLayoutAndRouteContracts": {
+        "passed": 105,
+        "failed": 0
+      },
+      "mobileTypecheck": {
+        "exitCode": 0
+      },
+      "webExport": {
+        "exitCode": 0
+      },
+      "browser": "Signup fixture rechecked and recaptured; password feedback, retained form values, mock failure/retry/confirmation-pending and independent first-tap tutor playback verified."
+    }
+  }
+}

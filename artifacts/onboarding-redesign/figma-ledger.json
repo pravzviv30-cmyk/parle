@@ -1,0 +1,20 @@
+{
+  "title": "Luvani · Immersive onboarding",
+  "fileKey": "tjss3wkD3VGYS7OlbkuYPR",
+  "url": "https://www.figma.com/design/tjss3wkD3VGYS7OlbkuYPR",
+  "page": { "id": "0:1", "name": "Onboarding · Tutor voices" },
+  "reviewBoard": "2:224",
+  "screens": {
+    "initial": "2:227",
+    "selected": "2:464",
+    "playing": "2:703"
+  },
+  "tutorCardVariantSet": "2:223",
+  "variants": ["Selection=Off, Playback=Idle", "Selection=On, Playback=Idle", "Selection=Off, Playback=Playing", "Selection=On, Playback=Playing"],
+  "variableCollection": "VariableCollectionId:2:2",
+  "font": "Outfit",
+  "editable": "Native Auto Layout, text, vectors, components and bound variables; no flattened screen images",
+  "previewPhrase": "Existing verified catalogue introductions reused. The requested common French phrase needs new recordings from the established voice pipeline.",
+  "progress": "Full signed-out journey: step 8 of 14, displayed fraction 7.5/14. Other journeys derive their values from the app route model.",
+  "screenshot": "figma-final.png"
+}

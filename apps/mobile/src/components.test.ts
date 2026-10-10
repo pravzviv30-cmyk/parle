@@ -747,6 +747,8 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(round, /<ArrowRight size=\{28\}/, 'next is not the ICONS.md next mark at 28');
     assert.match(round, /<CloseGlyph size=\{24\}/, 'close is not the ICONS.md close mark at 24');
     assert.match(round, /<Press haptic="light"/, 'the round button does not press through the one spring');
+    assert.match(round, /disabled\?: boolean/, 'the round button cannot be disabled during a pending request');
+    assert.match(round, /<Press[^>]*disabled=\{disabled\} accessibilityState=\{\{ disabled \}\}/, 'the disabled state does not reach the round button’s press target');
     assert.match(round, /ground === 'white' \? paper\.card : ground === 'sun' \? colour\.sun : paper\.ink/, 'the disc is not white, sun or ink');
     assert.doesNotMatch(round, /\b(44|64)\b/, 'the round button writes a raw size instead of the touch floor');
     // Come alive (D11): close and check are delegates to the generated set.

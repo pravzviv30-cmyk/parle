@@ -4761,7 +4761,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   forward exit's own pause exists to prevent, missed on the one exit that does not finish
   onboarding. An effect now pauses the player whenever the page is no longer the voice step, which
   covers the chevron and any other way off the page.
-- verified-by: `a sample stops when the voice step is left by the back chevron — F304`
+- verified-by: `a sample stops when the voice step is left by system navigation — F304`
 
 ### F305 — Re-listening to a sample that had finished on its own was a dead tap
 - severity: P2
@@ -5396,17 +5396,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a refused learner is offered a sign out on both gate surfaces, and hears the refusal — F356`
 - verified-by: `the way through disappears once the learner says they are younger — F356`
 
-### F357 — The two auth screens sit inside the one frame, with the primary pinned
+### F357 — The auth screens share one keyboard-aware frame and intentional action placement
 - severity: P1
 - status: [x]
-- where: apps/mobile/src/auth/SignUpScreen.tsx:74
-- note: SignUp/SignIn keep the primary pill inside their own ScrollView (scrolls away under a keyboard) and
-  draw their own back with a `space(6)` gutter. Adopt `ScrollScreen avoidKeyboard`, `ScreenHeader back`, the
-  primary pill + Google outline in the footer; the switch row stays at the body's end so a field is visible
-  over an SE keyboard. Add both to `PUSHED_ONE_BACK`. Revamp B (F601) moved the provider doors to the top
-  of the body, Apple's ink pill above Google's white one, and the footer keeps only the one ink pill; the
-  test was renamed to say so.
-- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
+- where: apps/mobile/src/auth/SignUpScreen.tsx
+- note: Signup and introductory signin now use the shared centred onboarding frame, with no visible back control. Provider doors remain above the fields. Signup uses native keyboard insets, keeps its action after the fields and hides it while the software keyboard is visible; Confirm's Done validates and dismisses without submitting. Introductory signin scrolls its action with the fields. The returning signin route retains its existing shared frame. System back is guarded while a request runs. This replaces the historical pinned onboarding action and visible back through the shared header.
+- verified-by: `sign-in leads with Apple above Google and keeps one form action in its shared frame`
+- verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
 
 ### F358 — The step dots and the station line are one spoken element
@@ -8972,14 +8968,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
-- verified-by: `welcome and recap keep vibrant grounds with a readable sticky action`
+- verified-by: `welcome and recap share cream progress chrome with a readable bottom action`
 - verified-by: `playback selects a model but only a real submitted reply can receive success feedback`
 - verified-by: `illustrated full-width choices carry radio state and never advance on selection`
 - verified-by: `the personal plan leads with the authored first practice then a dedicated deliberate tutor choice`
 - verified-by: `eligibility is a separate start-sheet choice and refusal removes service and account actions`
-- verified-by: `the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing`
+- verified-by: `the first scene uses the shared centred frame and a refusal leads with typing`
 - verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
-- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
+- verified-by: `sign-in leads with Apple above Google and keeps one form action in its shared frame`
+- verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `choosing a new password is a working title on paper, with no card and no middot in its header`
 - verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
@@ -9183,7 +9180,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [ ]
 - where: apps/mobile/src/onboarding/OnboardingFlow.tsx:351
 - note: F601's contract says "`OptionCard` becomes `OptionRow`. Nothing else changes." It was not built. A straight swap is not possible: OptionRow has no hear control, and the voice step's cards carry `onHear` and `playing={playing === option.value}`, which F355's test pins, so the swap would take the voice samples off the recovery route. The same file keeps `question: { ...type.display }` at :415, against F601's done-when that `type.display` appears in onboarding/ only on hear-it, first-line and FirstScene. Done when OptionRow can carry a sample (a design-system change) and the voice step uses it with F355 still passing, and the question is a working title.
-- verified-by: `the recovery route's voice step is option rows that still sound their sample`
+- verified-by: `the recovery route's tutor cards keep independent selection and preview state`
 
 ### F635 — The microphone refusal tells an Android learner to find a switch Android does not have
 - severity: P2

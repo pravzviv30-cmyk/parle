@@ -213,7 +213,7 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
     assert.match(
       header,
-      /<RoundButton kind="back" onPress=\{back\.onPress\} accessibilityLabel=\{back\.label \?\? 'Back'\} \/>/,
+      /<RoundButton kind="back" onPress=\{back\.onPress\} accessibilityLabel=\{back\.label \?\? 'Back'\} disabled=\{back\.disabled\} \/>/,
       'the pushed header does not go back through the round button, or lost its fallback name',
     );
     assert.doesNotMatch(header, /<ChevronLeft/, 'the header draws a bare chevron again beside the round button');

@@ -712,10 +712,12 @@ is where that pass is recorded. Owner: `frontend-engineer` for the build,
 
 The first-run frame work (F352, F355, F356, F357, F359, F361) is verified statically
 up to a point: the surface, answers and voice-step tests read the source and fail if a
-first-run screen re-grows its own safe-area maths, if an auth pill leaves the footer, if
-the deny ghost survives a refusal, or if the Meet lines go back to centred. What they
-cannot see is the left edge holding still from the voice step into the chooser, the
-keyboard actually keeping a field and the pill visible, an ear turning violet and
+first-run screen re-grows its own safe-area maths, if the sign-in pill leaves the footer,
+if signup's primary action moves ahead of its fields or remains visible with the
+keyboard, if the deny ghost survives a refusal, or if the Meet lines go back to centred.
+What they cannot see is the left edge holding still from the voice step into the
+chooser, the keyboard actually keeping the active signup group visible while its
+inline action is hidden, an ear turning violet and
 clearing when its clip ends, the refusal being spoken on both gates, or the dense Meet
 page wrapping as left-set paragraphs at AX5. Those are a device's to prove, and this is
 where that pass is recorded. Owner: `onboarding-ux-engineer` for the build,
@@ -726,7 +728,7 @@ where that pass is recorded. Owner: `onboarding-ux-engineer` for the build,
 | Id | Check | iOS | Android |
 |---|---|---|---|
 | P3-1 | The left edge does not move as a first run advances: the back chevron, the dots and every title sit on the same gutter from the voice step into the chooser and on into Home | not run | not run |
-| P3-2 | On SignUp with the keyboard up, an SE-class phone keeps a field and the Create account pill both visible; the pill does not scroll away and the switch row is not what sits above the keys | not run | not run |
+| P3-2 | On SignUp, an SE-class phone keeps the active field and its guidance visible with the keyboard up, while Create account remains below the form and hidden; outside dismissal or valid Confirm Done reveals it without submitting, and focus changes preserve a sensible scroll position | not run | not run |
 | P3-3 | On the voice step an ear turns violet on a quiet disc when tapped, clears on a second tap and again when the clip ends on its own, and VoiceOver reads "Stop Luc" while it sounds and "Hear Luc" once it stops | not run | not run |
 | P3-4 | Saying "I am younger than that" speaks the refusal on both the first-run gate and the return gate, removes the way through, and Sign out lands back on the welcome | not run | not run |
 | P3-5 | The progress dots read "Step 1 of 4" as one element, and a chosen voice reads selected to the screen reader | not run | not run |

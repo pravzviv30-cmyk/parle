@@ -63,9 +63,14 @@ type Props = {
   center?: boolean;
   scrollRef?: Ref<ScrollView>;
   onScroll?: ScrollViewProps['onScroll'];
+  scrollEventThrottle?: number;
+  /** Native form insets can be used without a second avoiding view. */
+  automaticallyAdjustKeyboardInsets?: boolean;
+  keyboardDismissMode?: ScrollViewProps['keyboardDismissMode'];
+  onViewportLayout?: ScrollViewProps['onLayout'];
 };
 
-export function OnboardingLayout({ page, progress, children, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, center = true, scrollRef, onScroll }: Props) {
+export function OnboardingLayout({ page, progress, children, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, center = true, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout }: Props) {
   const report = useContext(FrameContext);
   const value = progress ?? onboardingProgress({ page });
   const insets = useSafeAreaInsets();
@@ -79,7 +84,9 @@ export function OnboardingLayout({ page, progress, children, footer, avoidKeyboa
   const content = <>
     <ScrollView ref={scrollRef} style={{ flex: 1, minHeight: 0 }}
       contentContainerStyle={{ flexGrow: 1, ...horizontal, paddingBottom: space(4), ...(center ? { justifyContent: 'center' as const } : null) }}
-      onScroll={onScroll} scrollEventThrottle={100} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} showsVerticalScrollIndicator={false}>
+      onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} onLayout={onViewportLayout}
+      automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
+      keyboardShouldPersistTaps="handled" keyboardDismissMode={keyboardDismissMode ?? (Platform.OS === 'ios' ? 'interactive' : 'on-drag')} showsVerticalScrollIndicator={false}>
       <View style={column}>{children}</View>
       {actionInScroll && footer != null && <View style={[column, { marginTop: space(5), paddingBottom: insets.bottom + space(4) }]}>{footer}</View>}
     </ScrollView>

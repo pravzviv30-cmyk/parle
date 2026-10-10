@@ -13,6 +13,7 @@ import { clearGuestPractice } from '../onboarding/guestPractice.ts';
 import { cancelReminder } from '../reminders/schedule.ts';
 import { SignUpScreen } from './SignUpScreen.tsx';
 import { SignInScreen } from './SignInScreen.tsx';
+import { emptySignUpFormDraft, type SignUpFormDraft } from './signUpFormDraft.ts';
 
 type AuthScreen = 'welcome' | 'signup' | 'signin';
 const refusalPage = (): PreAccountOnboardingDraft => ({
@@ -44,6 +45,9 @@ export function AuthFlow({
   const [newDraft, setNewDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [revision, setRevision] = useState(0);
   const [signupDraft, setSignupDraft] = useState<PreAccountOnboardingDraft | null>(initialDraft?.page === 'account' ? initialDraft : null);
+  // Back and sign-in detours unmount the form. Its entered values belong to
+  // this flow's lifetime, separate from the saved pre-account plan.
+  const [signUpFormDraft, setSignUpFormDraft] = useState<SignUpFormDraft>(emptySignUpFormDraft);
   const newAccount = () => {
     if (pageMotion.locked.current) return;
     const draft = refused ? refusalPage() : freshPreAccountDraft();
@@ -97,7 +101,7 @@ export function AuthFlow({
         onDraftChange={onDraftChange}
         onCreateAccount={(draft) => {
           if (refused) return;
-          const accountDraft = { ...draft, ...(signupDraft?.accountEmail ? { accountEmail: signupDraft.accountEmail } : {}), page: 'account' as const, accountMode: 'signup' as const, accountReturnPage: draft.page ?? 'keep' };
+          const accountDraft = { ...draft, ...(typeof signupDraft?.accountEmail === 'string' ? { accountEmail: signupDraft.accountEmail } : {}), page: 'account' as const, accountMode: 'signup' as const, accountReturnPage: draft.page ?? 'keep' };
           setSignupDraft(accountDraft);
           onDraftChange(accountDraft);
           onCreateAccount(accountDraft);
@@ -111,6 +115,8 @@ export function AuthFlow({
         {screen === 'signup' ? (
           <SignUpScreen
             planDraft={refused ? null : signupDraft}
+            formDraft={signUpFormDraft}
+            onFormDraftChange={setSignUpFormDraft}
             onBack={returnToIntroduction}
             onSignIn={signIn}
             onEmailChange={updateAccountEmail}

@@ -1,10 +1,12 @@
 /** Real presentation components with synthetic data. No accounts, guest sessions or paid generation. */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tutorVoice, type DayKey, type TutorVoiceKey } from '@luvani/core';
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
+import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDraft.ts';
 import { Choice, PillButton, Press } from '../components.tsx';
 import { ScrollScreen, readingColumn } from '../layout.tsx';
 import { AccountWelcome } from '../onboarding/AccountWelcome.tsx';
@@ -26,7 +28,7 @@ import { colour, HIT, paper, radius, space, type } from '../theme.ts';
 import { useTutorPreview } from '../tutor/useTutorPreview.ts';
 
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
-const previewAdapter: AuthAdapter = {
+const previewAdapterBase: AuthAdapter = {
   kind: 'mock', getSession: async () => null, onAuthStateChange: () => () => {},
   signUpWithPassword: unavailable, signInWithPassword: unavailable,
   signInWithGoogle: unavailable, signInWithApple: unavailable,
@@ -75,8 +77,43 @@ export function OnboardingPreview() {
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => ({
     ...freshPreAccountDraft(), reason: 'trip', startLevel: 'few', speakingConfidence: 'trying', practiceFocus: 'speaking', minutes: 10,
   }));
+  const [formDraft, setFormDraft] = useState<SignUpFormDraft>(emptySignUpFormDraft);
+  const [requestPending, setRequestPending] = useState(false);
+  const signupPromise = useRef<Promise<AuthResult> | null>(null);
+  const signupResolver = useRef<((result: AuthResult) => void) | null>(null);
+  // One in-memory adapter and request expose the real form's loading and retry
+  // states without transmitting credentials or creating an account.
+  const [previewAdapter] = useState<AuthAdapter>(() => ({
+    ...previewAdapterBase,
+    signUpWithPassword: () => {
+      if (signupPromise.current) return signupPromise.current;
+      const request = new Promise<AuthResult>((resolve) => { signupResolver.current = resolve; });
+      signupPromise.current = request;
+      setRequestPending(true);
+      return request;
+    },
+  }));
+  const settleSignup = (result: AuthResult) => {
+    const resolve = signupResolver.current;
+    signupResolver.current = null;
+    signupPromise.current = null;
+    setRequestPending(false);
+    resolve?.(result);
+  };
+  useEffect(() => () => {
+    const resolve = signupResolver.current;
+    signupResolver.current = null;
+    signupPromise.current = null;
+    resolve?.({ ok: false, message: 'Screen preview request cancelled.' });
+  }, []);
+  const insets = useSafeAreaInsets();
   const transition = useOnboardingTransition();
-  const go = (next: Preview) => { transition.transition(() => setScreen(next)); };
+  const go = (next: Preview) => {
+    transition.transition(() => {
+      if (next !== 'signup') settleSignup({ ok: false, message: 'Screen preview request cancelled.' });
+      setScreen(next);
+    });
+  };
   const next = () => {
     const index = FULL_SETUP.indexOf(screen as typeof FULL_SETUP[number]);
     go((FULL_SETUP[index + 1] as Preview | undefined) ?? 'tutor');
@@ -94,13 +131,13 @@ export function OnboardingPreview() {
       {screen === 'select' ? <ScrollScreen>
         <View style={[readingColumn, { gap: space(4) }]}>
           <Text accessibilityRole="header" style={[type.title, st.heading]}>Screen preview</Text>
-          <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service. Listen plays the existing bundled voice samples.</Text>
+          <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service or save an account. Signup stays loading until you choose Fail or Complete in the preview controls. Listen plays the existing bundled voice samples.</Text>
           {PREVIEWS.filter(value => value !== 'select').map(value => <PillButton key={value} label={LABELS[value]} onPress={() => go(value)} />)}
         </View>
       </ScrollScreen> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'tutor' && <TutorFixture chosen={chosen} onChoose={setChosen} onDone={() => go('streak')} />}
-          {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('select')} planDraft={draft} />}
+          {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('select')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
           {screen === 'streak' && <OnboardingLayout page="remind" footer={<PillButton label="Continue" onPress={() => go('saved')} />}>
             <View style={st.story}>
               <DayOne streak={previewStreak} moment="preview-streak" />
@@ -132,9 +169,19 @@ export function OnboardingPreview() {
           </OnboardingLayout>}
         </Animated.View>
       </OnboardingFrame>}
-      {options.controls && screen !== 'select' && <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} frame={st.badgeFrame} style={st.badge}>
-        <Text style={[type.small, st.ink]}>Screen preview</Text>
-      </Press>}
+      {options.controls && screen !== 'select' && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+        <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} style={st.badge}>
+          <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
+        </Press>
+        {requestPending && <>
+          <Press accessibilityRole="button" accessibilityLabel="Fail preview request" onPress={() => settleSignup({ ok: false, message: 'The connection dropped. Check your internet and try again.' })} style={st.badge}>
+            <Text style={[type.small, st.ink]}>Fail</Text>
+          </Press>
+          <Press accessibilityRole="button" accessibilityLabel="Complete preview request" onPress={() => settleSignup({ ok: true, message: 'Almost there. Check your email for a confirmation link, then sign in.' })} style={st.badge}>
+            <Text style={[type.small, st.ink]}>Complete</Text>
+          </Press>
+        </>}
+      </View>}
     </View>
   </AuthProvider>;
 }
@@ -145,6 +192,6 @@ const st = StyleSheet.create({
   ink: { color: paper.ink },
   heading: { color: paper.ink, textAlign: 'center' },
   caption: { color: paper.inkSoft, textAlign: 'center' },
-  badgeFrame: { position: 'absolute', right: space(4), top: space(3) },
-  badge: { minHeight: HIT, paddingHorizontal: space(3), justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colour.sun },
+  badgeFrame: { position: 'absolute', right: space(4), flexDirection: 'row', gap: space(1) },
+  badge: { minHeight: HIT, paddingHorizontal: space(3), justifyContent: 'center', borderRadius: radius.pill, backgroundColor: paper.card },
 });
