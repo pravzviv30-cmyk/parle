@@ -5406,7 +5406,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   over an SE keyboard. Add both to `PUSHED_ONE_BACK`. Revamp B (F601) moved the provider doors to the top
   of the body, Apple's ink pill above Google's white one, and the footer keeps only the one ink pill; the
   test was renamed to say so.
-- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
+- verified-by: `sign-in leads with Apple above Google, then the fields, and pins one ink pill in the frame's footer`
+- verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
 
 ### F358 — The step dots and the station line are one spoken element
@@ -8979,7 +8980,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `eligibility is a separate start-sheet choice and refusal removes service and account actions`
 - verified-by: `the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing`
 - verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
-- verified-by: `the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer`
+- verified-by: `sign-in leads with Apple above Google, then the fields, and pins one ink pill in the frame's footer`
+- verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `choosing a new password is a working title on paper, with no card and no middot in its header`
 - verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`

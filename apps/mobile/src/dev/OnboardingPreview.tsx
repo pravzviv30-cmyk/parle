@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DayKey } from '@luvani/core';
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
+import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDraft.ts';
 import { PillButton, Press } from '../components.tsx';
 import { Screen, readingColumn } from '../layout.tsx';
 import { AccountWelcome } from '../onboarding/AccountWelcome.tsx';
@@ -19,7 +20,7 @@ import { practiceForecast } from '../onboarding/plan.ts';
 // A design fixture, never an account or a completed eligibility answer. Every
 // mutation is inert; no adapter import, network call or persistent store exists.
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
-const previewAdapter: AuthAdapter = {
+const previewAdapterBase: AuthAdapter = {
   kind: 'mock',
   getSession: async () => null,
   onAuthStateChange: () => () => {},
@@ -47,11 +48,43 @@ type Preview = 'signup' | 'streak' | 'saved' | 'account' | 'select';
 /** Separate development build only: renders real screens with synthetic data. */
 export function OnboardingPreview() {
   const [screen, setScreen] = useState<Preview>('signup');
+  const [formDraft, setFormDraft] = useState<SignUpFormDraft>(emptySignUpFormDraft);
+  const [requestPending, setRequestPending] = useState(false);
+  const signupPromise = useRef<Promise<AuthResult> | null>(null);
+  const signupResolver = useRef<((result: AuthResult) => void) | null>(null);
+  // Each fixture owns one adapter and one request. A deferred response lets
+  // the real form expose loading and retry without timeouts or credentials.
+  const [previewAdapter] = useState<AuthAdapter>(() => ({
+    ...previewAdapterBase,
+    signUpWithPassword: () => {
+      if (signupPromise.current) return signupPromise.current;
+      const request = new Promise<AuthResult>((resolve) => { signupResolver.current = resolve; });
+      signupPromise.current = request;
+      setRequestPending(true);
+      return request;
+    },
+  }));
+  const settleSignup = (result: AuthResult) => {
+    const resolve = signupResolver.current;
+    signupResolver.current = null;
+    signupPromise.current = null;
+    setRequestPending(false);
+    resolve?.(result);
+  };
+  useEffect(() => () => {
+    const resolve = signupResolver.current;
+    signupResolver.current = null;
+    signupPromise.current = null;
+    resolve?.({ ok: false, message: 'Screen preview request cancelled.' });
+  }, []);
   const insets = useSafeAreaInsets();
-  const select = () => setScreen('select');
+  const select = () => {
+    settleSignup({ ok: false, message: 'Screen preview request cancelled.' });
+    setScreen('select');
+  };
   return <AuthProvider adapter={previewAdapter}>
     <View style={st.root}>
-      {screen === 'signup' && <SignUpScreen onBack={select} onSignIn={select} />}
+      {screen === 'signup' && <SignUpScreen onBack={select} onSignIn={select} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
       {screen === 'streak' && <Screen ground={colour.sun} footer={<PillButton label="Start Your French" onPress={() => setScreen('saved')} />}>
         <View style={[readingColumn, st.story]}>
           <DayOne streak={previewStreak} moment="preview-streak" />
@@ -70,16 +103,26 @@ export function OnboardingPreview() {
       {screen === 'select' && <Screen>
         <View style={[readingColumn, { gap: space(4) }]}>
           <Text accessibilityRole="header" style={[type.title, st.ink]}>Screen preview</Text>
-          <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service or save an account.</Text>
+          <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service or save an account. Signup stays loading until you choose Fail or Complete in the preview controls.</Text>
           <PillButton label="Signup" onPress={() => setScreen('signup')} />
           <PillButton label="Streak" onPress={() => setScreen('streak')} />
           <PillButton label="Saved" onPress={() => setScreen('saved')} />
           <PillButton label="Account" onPress={() => setScreen('account')} />
         </View>
       </Screen>}
-      {screen !== 'select' && <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={select} frame={[st.badgeFrame, { top: insets.top + space(2) }]} style={st.badge}>
-        <Text style={[type.small, st.ink]}>Screen preview</Text>
-      </Press>}
+      {screen !== 'select' && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+        <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={select} style={st.badge}>
+          <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
+        </Press>
+        {requestPending && <>
+          <Press accessibilityRole="button" accessibilityLabel="Fail preview request" onPress={() => settleSignup({ ok: false, message: 'The connection dropped. Check your internet and try again.' })} style={st.badge}>
+            <Text style={[type.small, st.ink]}>Fail</Text>
+          </Press>
+          <Press accessibilityRole="button" accessibilityLabel="Complete preview request" onPress={() => settleSignup({ ok: true, message: 'Almost there. Check your email for a confirmation link, then sign in.' })} style={st.badge}>
+            <Text style={[type.small, st.ink]}>Complete</Text>
+          </Press>
+        </>}
+      </View>}
     </View>
   </AuthProvider>;
 }
@@ -88,6 +131,6 @@ const st = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
   story: { flex: 1, justifyContent: 'center', gap: space(5) },
   ink: { color: paper.ink },
-  badgeFrame: { position: 'absolute', right: space(4) },
+  badgeFrame: { position: 'absolute', right: space(4), flexDirection: 'row', gap: space(1) },
   badge: { minHeight: HIT, paddingHorizontal: space(3), justifyContent: 'center', borderRadius: radius.pill, backgroundColor: paper.card },
 });

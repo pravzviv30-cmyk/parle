@@ -11,6 +11,7 @@ import { clearGuestPractice } from '../onboarding/guestPractice.ts';
 import { cancelReminder } from '../reminders/schedule.ts';
 import { SignUpScreen } from './SignUpScreen.tsx';
 import { SignInScreen } from './SignInScreen.tsx';
+import { emptySignUpFormDraft, type SignUpFormDraft } from './signUpFormDraft.ts';
 
 type AuthScreen = 'welcome' | 'signup' | 'signin';
 const refusalPage = (): PreAccountOnboardingDraft => ({
@@ -39,7 +40,9 @@ export function AuthFlow({
   const [introducing, setIntroducing] = useState(!returning);
   const [newDraft, setNewDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [revision, setRevision] = useState(0);
-  const [signupDraft, setSignupDraft] = useState<PreAccountOnboardingDraft | null>(null);
+  // Back and sign-in detours unmount the form. Its entered values belong to
+  // this flow's lifetime, separate from the saved pre-account plan.
+  const [signUpFormDraft, setSignUpFormDraft] = useState<SignUpFormDraft>(emptySignUpFormDraft);
   const newAccount = () => {
     const draft = refused ? refusalPage() : freshPreAccountDraft();
     void clearGuestPractice();
@@ -47,7 +50,6 @@ export function AuthFlow({
     setNewDraft(draft);
     if (!refused) onDraftChange(draft);
     setRevision((value) => value + 1);
-    setSignupDraft(null);
     setIntroducing(true);
     setScreen('welcome');
   };
@@ -65,7 +67,6 @@ export function AuthFlow({
         onDraftChange={onDraftChange}
         onCreateAccount={(draft) => {
           if (refused) return;
-          setSignupDraft(draft);
           onCreateAccount(draft);
           setScreen('signup');
         }}
@@ -76,7 +77,8 @@ export function AuthFlow({
       </View>
         {screen === 'signup' ? (
           <SignUpScreen
-            planDraft={refused ? null : signupDraft}
+            formDraft={signUpFormDraft}
+            onFormDraftChange={setSignUpFormDraft}
             onBack={() => setScreen('welcome')}
             onSignIn={signIn}
           />

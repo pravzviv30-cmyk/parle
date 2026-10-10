@@ -200,6 +200,11 @@ type ScrollScreenProps = ScreenProps & {
   center?: boolean;
   scrollRef?: Ref<ScrollView>;
   onScroll?: ScrollViewProps['onScroll'];
+  scrollEventThrottle?: number;
+  /** Native keyboard insets are an alternative to the whole-frame avoiding view. */
+  automaticallyAdjustKeyboardInsets?: boolean;
+  keyboardDismissMode?: ScrollViewProps['keyboardDismissMode'];
+  onViewportLayout?: ScrollViewProps['onLayout'];
 };
 
 /**
@@ -214,6 +219,10 @@ export function ScrollScreen({
   center,
   scrollRef,
   onScroll,
+  scrollEventThrottle = 100,
+  automaticallyAdjustKeyboardInsets,
+  keyboardDismissMode,
+  onViewportLayout,
   ground,
   padded,
   topGap,
@@ -243,12 +252,15 @@ export function ScrollScreen({
       <ScrollView
         ref={scrollRef}
         onContentSizeChange={(_, height) => setContentHeight(height)}
-        onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+        onLayout={(event) => {
+          setViewportHeight(event.nativeEvent.layout.height);
+          onViewportLayout?.(event);
+        }}
         onScroll={(event) => {
           setOffset(event.nativeEvent.contentOffset.y);
           onScroll?.(event);
         }}
-        scrollEventThrottle={100}
+        scrollEventThrottle={scrollEventThrottle}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{
           flexGrow: 1,
@@ -258,6 +270,8 @@ export function ScrollScreen({
           ...(center ? { justifyContent: 'center' } : null),
         }}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
+        keyboardDismissMode={keyboardDismissMode}
         showsVerticalScrollIndicator={false}
       >
         {children}
@@ -272,7 +286,7 @@ export function ScrollScreen({
  * header that offered both would let a learner think a tab switch left the room.
  */
 type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ground?: 'blue' | 'coral' | 'paper' } & (
-  | { back?: { onPress: () => void; label?: string }; leave?: never }
+  | { back?: { onPress: () => void; label?: string; disabled?: boolean }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
 
@@ -293,7 +307,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   return (
     <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
-        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} />
+        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} />
       ) : (
         <View style={{ width: HIT }} />
       )}

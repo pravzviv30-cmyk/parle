@@ -1607,6 +1607,7 @@ export function CheckGlyph({ size = 24, color = paper.ink }: { size?: number; co
 export function RoundButton({
   kind,
   onPress,
+  disabled = false,
   accessibilityLabel,
   accessibilityHint,
   tone,
@@ -1614,6 +1615,7 @@ export function RoundButton({
 }: {
   kind: 'back' | 'next' | 'close';
   onPress: () => void;
+  disabled?: boolean;
   /** Defaults to the label beside the disc, or 'Back', 'Next', 'Close'. */
   accessibilityLabel?: string;
   /** What pressing it is about to do, when the name alone does not say. Passed to Press as it is. */
@@ -1631,7 +1633,7 @@ export function RoundButton({
   const words = ground === 'sun' ? textOn.blue : paper.ink;
   const name = accessibilityLabel ?? label ?? (kind === 'back' ? 'Back' : next ? 'Next' : 'Close');
   return (
-    <Press haptic="light" onPress={onPress} accessibilityLabel={name} accessibilityHint={accessibilityHint} frame={b.roundFrame} style={b.roundRow}>
+    <Press haptic="light" onPress={onPress} disabled={disabled} accessibilityState={{ disabled }} accessibilityLabel={name} accessibilityHint={accessibilityHint} frame={b.roundFrame} style={[b.roundRow, disabled && { opacity: 0.5 }]}>
       <View style={[b.roundDisc, { width: disc, height: disc, borderRadius: disc / 2, backgroundColor: fill }]}>
         {kind === 'back' ? <ChevronLeft size={24} color={markColour} /> : null}
         {kind === 'next' ? <ArrowRight size={28} color={markColour} /> : null}

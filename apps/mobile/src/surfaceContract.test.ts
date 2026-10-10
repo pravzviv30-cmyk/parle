@@ -1988,7 +1988,7 @@ describe('the first run sits inside the one frame — F352', () => {
   });
 });
 
-describe('the auth screens pin the primary action in the footer — F357', () => {
+describe('the auth screens keep provider order and intentional action placement — F357', () => {
   /** The balanced `footer={...}` prop of a screen, braces and all. */
   function footerProp(body: string): string {
     const at = body.indexOf('footer={');
@@ -2005,8 +2005,8 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
     return body.slice(start);
   }
 
-  test("the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer", () => {
-    for (const name of ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
+  test("sign-in leads with Apple above Google, then the fields, and pins one ink pill in the frame's footer", () => {
+    for (const name of ['auth/SignInScreen.tsx']) {
       const body = named(name);
       // Keyboard-aware, so the fields lift rather than hide; and the one back is
       // the shared header, not a hand-rolled chevron.
@@ -2053,6 +2053,36 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
         `${name} moved the switch row above a field, off the body's end`,
       );
     }
+  });
+
+  test('signup keeps its primary action after the fields and hides it while the keyboard is visible', () => {
+    const body = named('auth/SignUpScreen.tsx');
+    assert.match(body, /<ScrollScreen\b[\s\S]*?automaticallyAdjustKeyboardInsets/, 'signup does not use the frame’s keyboard-aware scroll body');
+    assert.doesNotMatch(body, /footer=\{|\bavoidKeyboard\b/, 'signup pins a footer or applies competing keyboard avoidance');
+    assert.match(body, /<ScreenHeader\b[^>]*\bback=/, 'signup does not draw its one back through the shared header');
+    assert.doesNotMatch(body, /<OutlineButton\b/, 'signup restored the retired outline provider door');
+
+    const pills = tags(body, 'PillButton');
+    const apple = pills.find((tag) => /<AppleMark\b/.test(tag));
+    const google = pills.find((tag) => /<GoogleMark\b/.test(tag));
+    const primary = pills.find((tag) => /authButtonLabel\('createAccount'/.test(tag));
+    assert.ok(apple, 'signup lost its Apple provider door');
+    assert.ok(google, 'signup lost its Google provider door');
+    assert.ok(primary, 'signup lost its explicit Create account action');
+    assert.equal(pills.length, 3, 'signup adds an unexpected provider or primary action');
+    assert.doesNotMatch(apple, /\btone=/, 'signup’s Apple door is not an ink pill');
+    assert.match(google, /\btone="white"/, 'signup’s Google door is not a white pill');
+    assert.doesNotMatch(primary, /\btone=/, 'signup’s primary action is not an ink pill');
+    writtenBefore(body, '{appleOffered && (', apple, 'signup draws Apple where the platform cannot offer it');
+    writtenBefore(body, apple, google, 'signup places Apple below Google');
+    writtenBefore(body, google, '<Field', 'signup places a field above its provider doors');
+    assert.ok(body.lastIndexOf('<Field') < body.indexOf(primary), 'signup places Create account above a form field');
+    assert.match(body, /\{!keyboardVisible && <View style=\{st\.action\}>\s*<PillButton/, 'signup leaves its primary action or an empty strip visible during keyboard editing');
+    assert.match(primary, /disabled=\{busy \|\| !ready \|\| formOk\}/, 'signup permits incomplete or duplicate submission merely because the keyboard closes');
+
+    const switchRow = tags(body, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));
+    assert.ok(switchRow, 'signup lost its sign-in switch');
+    assert.ok(body.indexOf(primary) < body.indexOf(switchRow), 'signup moved its sign-in switch above the completed form action');
   });
 });
 

@@ -171,6 +171,8 @@ const ENGINE_FILES = [
   'nav/TabGlyph.tsx',
   'drill/AnswerSheet.tsx',
   'speech/useRecorderLevel.ts',
+  // The password meter animates a stable fill transform and its strength colour.
+  'auth/PasswordMeter.tsx',
   // Only inside the `Press` region; the next test holds that.
   'components.tsx',
 ];

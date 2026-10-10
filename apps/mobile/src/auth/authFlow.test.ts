@@ -77,6 +77,21 @@ const SIGN_IN_AND_OUT = /Signing in and out again does not end it; only closing 
 /** The narrower answer the founder did not give, in either of the words it was written in. */
 const SIGN_IN_ENDS = /Signing in ends[^.]*refusal|refusal[^.]*until someone signs in/i;
 
+test('signup values survive auth-route detours without entering the saved onboarding draft', () => {
+  const formDraft = read('signUpFormDraft.ts');
+  assert.match(FLOW, /useState<SignUpFormDraft>\(emptySignUpFormDraft\)/);
+  const signup = element(FLOW, 'SignUpScreen');
+  assert.match(signup, /formDraft=\{signUpFormDraft\}/);
+  assert.match(signup, /onFormDraftChange=\{setSignUpFormDraft\}/);
+  assert.match(handler(element(FLOW, 'PreAccountOnboarding'), 'onCreateAccount'), /if \(refused\) return;[\s\S]*onCreateAccount\(draft\);[\s\S]*setScreen\('signup'\)/);
+  assert.match(APP, /onCreateAccount=\{keepPreAccountDraft\}/);
+  // Only the form updates this state; changing the route or resetting the
+  // introduction must not erase what was already entered in the form.
+  assert.doesNotMatch(FLOW, /setSignUpFormDraft\(/);
+  assert.doesNotMatch(formDraft, /Storage|setItem|JSON\.stringify|console\.|fetch\(/);
+  assert.doesNotMatch(read('..', 'onboarding', 'preAccountDraft.ts'), /SignUpFormDraft|\bpassword\b|\bconfirm\b/);
+});
+
 describe('the under-13 refusal before an account holds for the launch (F637, F639, F641)', () => {
   test('the flow passes the refusal up to Gate, which holds it and clears the saved draft', () => {
     // Required, not optional: a Gate that forgot to wire either would not
