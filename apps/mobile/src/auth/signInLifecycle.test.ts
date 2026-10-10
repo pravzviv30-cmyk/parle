@@ -18,6 +18,7 @@ function form() {
   const bindings = { busy: false, requestRunning: lock, alive, email: 'camille@example.com', password: 'secret',
     looksLikeEmail: () => true, friendly: () => 'Try again.',
     setEmailError: (value: unknown) => states.push(value), setFormMessage: (value: unknown) => states.push(value),
+    setProviderMessage: (value: unknown) => states.push(value), Keyboard: { dismiss: () => {} },
     setFormOk: (value: unknown) => states.push(value), setPending: (value: unknown) => states.push(value),
     adapter: { signInWithPassword: () => adapterCall('submit'), signInWithGoogle: () => adapterCall('google'),
       signInWithApple: () => adapterCall('apple'), sendPasswordReset: () => adapterCall('forgot') } };

@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, findNodeHandle, Platform, View, Text, StyleSheet } from 'react-native';
+import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, View, Text, StyleSheet } from 'react-native';
 import { paper, space, type, HIT, HAIRLINE } from '../theme.ts';
 import { PillButton, GhostButton, Press, Field, GoogleMark, AppleMark, AlertGlyph, ROW_WORDS } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
@@ -37,6 +37,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [providerMessage, setProviderMessage] = useState<string | null>(null);
   const [formOk, setFormOk] = useState(false);
   // One flag for the screen, and it names the request that is running. Every
   // button greys while anything is in flight, because two sign-ins at once is
@@ -50,6 +51,10 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     alive.current = true;
     return () => { alive.current = false; };
   }, []);
+  useEffect(() => {
+    const message = providerMessage ?? formMessage;
+    if (message && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+  }, [providerMessage, formMessage]);
   useEffect(() => {
     if (!onboarding || embedded) return;
     const node = headingRef.current;
@@ -85,6 +90,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     const emailProblem = looksLikeEmail(email) ? null : 'That does not look like an email address.';
     setEmailError(emailProblem);
     setFormMessage(null);
+    setProviderMessage(null);
     if (emailProblem) return;
     requestRunning.current = true;
     setPending('signIn');
@@ -105,11 +111,13 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     requestRunning.current = true;
     setPending('google');
     setFormMessage(null);
+    setProviderMessage(null);
     try {
+      Keyboard.dismiss();
       const result = await adapter.signInWithGoogle();
-      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+      if (alive.current && !result.ok) setProviderMessage(result.message);
     } catch (error) {
-      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+      if (alive.current) setProviderMessage(friendly(error as { message?: string }));
     } finally {
       requestRunning.current = false;
       if (alive.current) setPending(null);
@@ -122,11 +130,13 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     requestRunning.current = true;
     setPending('apple');
     setFormMessage(null);
+    setProviderMessage(null);
     try {
+      Keyboard.dismiss();
       const result = await adapter.signInWithApple();
-      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+      if (alive.current && !result.ok) setProviderMessage(result.message);
     } catch (error) {
-      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+      if (alive.current) setProviderMessage(friendly(error as { message?: string }));
     } finally {
       requestRunning.current = false;
       if (alive.current) setPending(null);
@@ -136,6 +146,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const forgot = async () => {
     if (busy) return;
     if (requestRunning.current) return;
+    setProviderMessage(null);
     const emailProblem = looksLikeEmail(email) ? null : 'Type your email above first, then tap this again.';
     setEmailError(null);
     if (emailProblem) {
@@ -192,6 +203,13 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         />
       </View>
 
+      {providerMessage != null && (
+        <View style={[st.message, { marginTop: space(3) }]}>
+          <View style={st.messageMark}><AlertGlyph size={16} color={paper.ink} /></View>
+          <Text accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{providerMessage}</Text>
+        </View>
+      )}
+
       <View style={st.or}>
         <View style={st.rule} />
         <Text style={[type.small, { color: paper.inkSoft }]}>or</Text>
@@ -239,7 +257,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
               <AlertGlyph size={16} color={paper.ink} />
             </View>
           )}
-          <Text style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
+          <Text accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
         </View>
       )}
 

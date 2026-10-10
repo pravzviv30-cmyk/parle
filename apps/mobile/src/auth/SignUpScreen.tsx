@@ -33,6 +33,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [providerMessage, setProviderMessage] = useState<string | null>(null);
   const [formOk, setFormOk] = useState(false);
   // One flag, naming the request that is running: everything greys, and only
   // the button that started it changes its words.
@@ -104,11 +105,12 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     if (focused.current !== null) keepFocusedVisible();
   }, [emailError, passwordError, confirmError, formMessage, fontScale]);
   useEffect(() => {
-    if (formMessage && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(formMessage);
-  }, [formMessage]);
+    const message = providerMessage ?? formMessage;
+    if (message && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+  }, [providerMessage, formMessage]);
   const ready = signupReady(email, password, confirm);
   const match = passwordsMatch(password, confirm);
-  const clearResult = () => { setFormMessage(null); setFormOk(false); };
+  const clearResult = () => { setFormMessage(null); setProviderMessage(null); setFormOk(false); };
   const validateForm = () => {
     const problems = signupProblems(email, password, confirm);
     setEmailError(problems.email);
@@ -146,6 +148,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   const submit = async () => {
     if (busy || requestRunning.current) return;
     setFormMessage(null);
+    setProviderMessage(null);
     if (!validateForm()) return;
     Keyboard.dismiss();
     requestRunning.current = true;
@@ -177,12 +180,13 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     requestRunning.current = true;
     setPending('google');
     setFormMessage(null);
+    setProviderMessage(null);
     try {
       Keyboard.dismiss();
       const result = await adapter.signInWithGoogle();
-      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+      if (alive.current && !result.ok) setProviderMessage(result.message);
     } catch (error) {
-      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+      if (alive.current) setProviderMessage(friendly(error as { message?: string }));
     } finally {
       requestRunning.current = false;
       if (alive.current) setPending(null);
@@ -195,12 +199,13 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     requestRunning.current = true;
     setPending('apple');
     setFormMessage(null);
+    setProviderMessage(null);
     try {
       Keyboard.dismiss();
       const result = await adapter.signInWithApple();
-      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+      if (alive.current && !result.ok) setProviderMessage(result.message);
     } catch (error) {
-      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+      if (alive.current) setProviderMessage(friendly(error as { message?: string }));
     } finally {
       requestRunning.current = false;
       if (alive.current) setPending(null);
@@ -253,6 +258,13 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
         />
         </View>
       </View>
+
+      {providerMessage != null && (
+        <View style={[st.message, { marginTop: space(3) }]}>
+          <View style={st.messageMark}><AlertGlyph size={16} color={paper.ink} /></View>
+          <Text key={fontScale} accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{providerMessage}</Text>
+        </View>
+      )}
 
       <View style={st.or}>
         <View style={st.rule} />
