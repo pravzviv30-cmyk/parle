@@ -797,6 +797,9 @@ describe('the privacy notice — F479', () => {
     assert.ok(row, 'the holdings table has no row for the first-run draft');
     assert.match(row, /speaking confidence, practice focus and deliberate tutor selection/, 'the holdings row must disclose every new local personalisation answer');
     assert.match(row, /an optional first name/, 'the draft row does not say it can hold a first name');
+    assert.match(row, /completed and skipped steps, the onboarding variant, an optional account email/, 'the draft row omits the locally retained route and account email');
+    assert.match(row, /sign-in or sign-up form and its return page/, 'the draft row omits the retained account form and return route');
+    assert.match(row, /Passwords are never saved/, 'the draft row omits the password storage boundary');
     assert.match(row, /"I am younger than that" in the Start sheet/, 'the draft row does not name the refusal among what removes it');
     assert.match(
       DOC.slice(DOC.indexOf('## Not true yet')),
@@ -825,7 +828,7 @@ describe('the privacy notice — F479', () => {
     const fields = [...draft.slice(shapeAt, draft.indexOf('\n}', shapeAt)).matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
     assert.deepEqual(
       fields,
-      ['version', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'reason', 'minutes', 'reminderTime', 'firstName'],
+      ['version', 'onboardingCompletedSteps', 'onboardingSkippedSteps', 'onboardingVariant', 'accountEmail', 'accountMode', 'accountReturnPage', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'reason', 'minutes', 'reminderTime', 'firstName'],
       'the first-run draft holds a different set of fields from the ones the holdings row names',
     );
 

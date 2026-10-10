@@ -323,7 +323,11 @@ describe('what a reminder is not allowed to know', () => {
     // that was there before it, so the ask never turns a reminder off.
     assert.deepEqual(callers('saveReminder'), ['App.tsx', 'src/reminders/ReminderPlanner.tsx', 'src/settings/SettingsScreen.tsx']);
     const app = withoutComments(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
-    for (const call of app.match(/saveReminder\([^;]*;/g) ?? []) assert.match(call, /^saveReminder\(reminderFromDraft\(draft\)\);$/, `App.tsx writes a reminder of its own: ${call}`);
+    // Inspect the balanced call, so checking its durable acknowledgement does
+    // not get mistaken for an additional reminder value.
+    const onboardingWrites = app.match(/saveReminder\((?:[^()]|\([^()]*\))*\)/g) ?? [];
+    assert.equal(onboardingWrites.length, 2, 'both onboarding completion paths must save the draft reminder');
+    for (const call of onboardingWrites) assert.match(call, /^saveReminder\(reminderFromDraft\(draft\)\)$/, `App.tsx writes a reminder of its own: ${call}`);
     const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
     assert.deepEqual(
       (planner.match(/saveReminder\((?:[^()]|\([^()]*\))*\)/g) ?? []).sort(),

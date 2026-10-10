@@ -7,8 +7,8 @@
  * pills, the same refusal, the same rule that the confirmation is the only way
  * past. What changes is two lines of copy and everything that is NOT here.
  *
- * Nothing is asked twice. No name, no goal, no pages, no progress dots, and no
- * back chevron, because there is nothing behind this and nothing else to
+ * Nothing is asked twice. No name, no goal and no back chevron, because there
+ * is nothing behind this and nothing else to
  * answer. The learner keeps their name, their history and everything the tutor
  * knows about them, and `AGE_RETURN_SUB` says so out loud, because that is the
  * one thing anyone meeting this boundary actually wants to know.
@@ -19,9 +19,9 @@
  * words are in `answers.ts` with that argument written beside them; this file
  * is layout.
  *
- * It sits inside the shared frame like every other surface: `ScrollScreen`
- * pays the notch and anchors the story to the top, and both answers ride in
- * the footer, the quiet no above the one ink pill (revamp B, F601). The title
+ * It sits inside the shared onboarding frame. Its single-step progress comes
+ * from the shared route model, because only eligibility is being reconfirmed.
+ * Both answers ride in the footer, the quiet no above the one ink pill. The title
  * is a working title on paper, and one quiet line says how much is being asked,
  * in words that are true whichever answer comes (F636). It leaves with the
  * answers, so once refused the refusal is the only line under the sub.
@@ -30,11 +30,12 @@
  * learner meets one thing on both doors rather than two.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type } from '../theme.ts';
 import { PillButton, GhostButton, QuietLine } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { OnboardingLayout } from './OnboardingLayout.tsx';
+import { onboardingProgress } from './onboardingProgress.ts';
 import { AGE_CONFIRM, AGE_DENY, AGE_RETURN_NOTE, AGE_RETURN_SUB, AGE_RETURN_TITLE, ageGate } from './answers.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
 
@@ -42,6 +43,10 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
   // What they said on this pass. Null until they answer either way, so the
   // refusal only appears once it has been earned.
   const [oldEnough, setOldEnough] = useState<boolean | null>(null);
+  const passed = useRef(false);
+  useEffect(() => {
+    passed.current = false;
+  }, []);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
   // Gone once they have said they are younger. A refusal with the way through
@@ -54,6 +59,8 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
       <PillButton
         label={AGE_CONFIRM}
         onPress={() => {
+          if (passed.current) return;
+          passed.current = true;
           setOldEnough(true);
           onPass();
         }}
@@ -62,7 +69,7 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
   );
 
   return (
-    <ScrollScreen footer={answers || undefined}>
+    <OnboardingLayout page="age" progress={onboardingProgress({ page: 'age', eligibilityOnly: true })} footer={answers || undefined}>
       <Text accessibilityRole="header" style={st.question}>
         {AGE_RETURN_TITLE}
       </Text>
@@ -73,14 +80,13 @@ export function AgeGateScreen({ onPass, onSignOut }: { onPass: () => void; onSig
         </View>
       )}
       {refusal !== null && <AgeRefusal text={refusal} onSignOut={onSignOut} />}
-    </ScrollScreen>
+    </OnboardingLayout>
   );
 }
 
 const st = StyleSheet.create({
-  question: { ...type.title, color: paper.ink, marginTop: space(3) },
-  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
+  question: { ...type.title, color: paper.ink, marginTop: space(3), textAlign: 'center' },
+  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2), textAlign: 'center' },
   note: { marginTop: space(3) },
-  // The no sits on the left edge above the pill, the way the board draws it.
   answers: { gap: space(3), alignItems: 'stretch' },
 });

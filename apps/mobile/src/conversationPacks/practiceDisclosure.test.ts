@@ -23,7 +23,7 @@ test('French choice exercises do not give away meanings through visible or spoke
   assert.doesNotMatch(screen, /\{exercise.line.en\}/);
 });
 
-test("onboarding removes decorative chrome while retaining progress, back and separate opt-ins", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /<SetupProgress/); assert.match(screen, /label="Back"/); assert.match(screen, /title="Optional usage data"/); assert.match(screen, /title="Remember my learning"/); assert.doesNotMatch(screen, /<Chip|<Label|<ProgressDots|<TutorMark|mascot/i); });
+test("onboarding removes decorative chrome while retaining real progress and separate opt-ins without visible back controls", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /<OnboardingLayout/); assert.match(screen, /onboardingProgress\(/); assert.doesNotMatch(screen, /label="Back"|icon="back"/); assert.match(screen, /title="Optional usage data"/); assert.match(screen, /title="Remember my learning"/); assert.doesNotMatch(screen, /<Chip|<Label|<ProgressDots|<TutorMark|mascot/i); });
 
 test('a finished warm-up is recorded once as exposure, and a skip or the preview records nothing', () => {
   const screen = read('./ConversationPracticeScreen.tsx');

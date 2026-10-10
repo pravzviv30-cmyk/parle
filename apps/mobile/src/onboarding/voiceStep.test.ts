@@ -38,6 +38,10 @@ function stripComments(source: string): string {
 }
 
 const FLOW = stripComments(read('onboarding/OnboardingFlow.tsx'));
+const CARDS = stripComments(read('onboarding/TutorSelection.tsx'));
+const PREVIEW = stripComments(read('tutor/useTutorPreview.ts'));
+const CONTROLLER = stripComments(read('tutor/tutorPreview.ts'));
+
 const SHEET = stripComments(read('tabs/ProfileTab.tsx'));
 const APP = stripComments(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
 
@@ -72,25 +76,18 @@ describe('first run introduces the voices and lets the learner choose one — F2
       assert.ok(option.label.trim().length > 0, `${option.value} is offered with no name at all`);
     }
 
-    // On glass: one card per voice, each with its name, its line, and an ear.
-    assert.match(FLOW, /VOICE_STEP_OPTIONS\.map\(/, 'the voice page draws something other than the catalogue');
-    assert.match(FLOW, /title=\{option\.label\}/, 'the cards do not show the name of the voice');
-    assert.match(FLOW, /detail=\{option\.gloss\}/, "the cards do not show the catalogue's description");
-    assert.match(FLOW, /onHear=\{\(\) => hearVoice\(option\.value\)\}/, 'no voice on the first run can be heard before it is chosen');
-    assert.match(FLOW, /selected=\{voice === option\.value\}/, 'nothing marks which voice is selected');
-
-    // Playing them is the same machinery the Profile sheet uses, down to the
-    // one-at-a-time rule. One player, `nextSample` deciding the key: with six
-    // players a learner comparing two voices hears both at once.
-    assert.match(FLOW, /import \{ useAudioPlayer, useAudioPlayerStatus \} from 'expo-audio'/, 'the voice page has no player');
-    assert.match(FLOW, /nextSample\(playing, key\)/, 'the step does not stop the clip that is already playing');
-    assert.match(FLOW, /player\.replace\(voiceSample\(next\)\)/, "the step plays something other than that voice's bundled clip");
-    for (const call of ['player.pause()', 'player.play()']) {
-      assert.ok(FLOW.includes(call), `the voice page never calls ${call}`);
-    }
-    // And the sound stops at the door. A clip still playing over the mission
-    // chooser is what makes somebody put the phone down in a quiet room.
-    assert.match(FLOW, /player\.pause\(\);\s*\n\s*onDone\(/, 'leaving the first run does not stop the sample');
+    // The recovery screen shares the production cards and one owned player.
+    assert.match(FLOW, /<TutorSelection chosen=\{voice\} preview=\{preview\} onChoose=\{setVoice\}/);
+    assert.match(CARDS, /TUTOR_VOICE_OPTIONS\.map\(/);
+    assert.match(CARDS, /\{voice\.label\}/);
+    assert.match(CARDS, /\{voice\.gloss\}/);
+    assert.match(CARDS, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
+    assert.match(CARDS, /preview\.toggle\(voice\.value\)/);
+    assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
+    assert.match(PREVIEW, /createAudioPlayer/);
+    assert.match(PREVIEW, /player\.replace\(voiceSample\(voice\)\)/);
+    assert.match(CONTROLLER, /if \(fresh\) close\(\)/);
+    assert.ok(FLOW.indexOf('preview.stop();') < FLOW.indexOf('await onDone('), 'completion leaves a preview playing');
 
     // Nothing here says one of them is better than the others. None of it has
     // been measured, and a learner who picks by adjective and then dislikes the
@@ -107,8 +104,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     // "How they work": what the choice DOES, said before the list rather than
     // after the regret. Eight French names with no explanation reads as picking
     // a difficulty, or as picking which French you are going to be taught.
-    assert.match(VOICE_BODY, /\bFrench you learn is the same\b/, 'the step no longer says the choice does not change what is taught');
-    assert.match(VOICE_BODY, /\bdoes the talking\b/, 'the step no longer says the choice changes who speaks');
+    assert.equal(VOICE_BODY, 'Listen to the voices and choose who you’d like to practise with.');
   });
 
   test('the voice step can be skipped, and skipping leaves the default chosen', () => {
@@ -135,13 +131,13 @@ describe('first run introduces the voices and lets the learner choose one — F2
     // goes to the same place the pill does rather than somewhere else.
     const footer = FLOW.slice(FLOW.indexOf("{page === 'voice' && ("));
     assert.ok(footer.includes('<GhostButton label={VOICE_SKIP}'), 'the voice step offers no way past');
-    assert.match(footer, /onPress=\{\(\) => complete\(null\)\}/, 'skipping does something other than leaving with nothing chosen');
-    assert.ok(footer.includes('<PillButton label={MEET_PILL} onPress={() => complete(voice)}'), 'the voice step does not lead anywhere');
+    assert.match(footer, /onPress=\{\(\) => void complete\(null\)\}/, 'skipping does something other than leaving with nothing chosen');
+    assert.ok(footer.includes('<PillButton label={MEET_PILL} onPress={() => void complete(voice)}'), 'the voice step does not lead anywhere');
 
     // Nothing on the page is disabled or required. A step that can hold a
     // learner at a menu on the way to their first French sentence is the one
     // thing this whole flow is not allowed to be.
-    assert.doesNotMatch(footer, /disabled/, 'the way out of the voice step can be disabled');
+    assert.match(footer, /disabled=\{busy\}/, 'async completion has no duplicate-tap guard');
     assert.doesNotMatch(footer, /voice !== null|voice === null \?/, 'the voice step gates its own exit on having chosen');
 
     // And it is the LAST page, so skipping it is one tap from the chooser.
@@ -199,7 +195,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
     );
 
     // The disclosure is on the page, not merely in the module.
-    for (const name of ['VOICE_TITLE', 'VOICE_BODY', 'VOICE_AI', 'VOICE_SKIP']) {
+    for (const name of ['VOICE_TITLE', 'VOICE_AI', 'VOICE_SKIP']) {
       assert.ok(FLOW.includes(`{${name}}`), `no first-run screen puts ${name} on glass`);
     }
     // The hint is the one line here that names a person, so it is rendered for
@@ -214,7 +210,7 @@ describe('first run introduces the voices and lets the learner choose one — F2
 
     // And it says AI before the names, not underneath them.
     assert.ok(
-      FLOW.indexOf('{VOICE_AI}') < FLOW.indexOf('VOICE_STEP_OPTIONS.map('),
+      FLOW.indexOf('{VOICE_AI}') < FLOW.indexOf('<TutorSelection'),
       'the voices are introduced before the learner is told what they are',
     );
 
@@ -237,17 +233,18 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     // the selection, the skip passes null, and neither reads a state update that
     // has only been queued.
     const footer = FLOW.slice(FLOW.indexOf("{page === 'voice' && ("));
-    assert.match(footer, /onPress=\{\(\) => complete\(null\)\}/, 'the skip does not pass null on its own');
-    assert.match(footer, /onPress=\{\(\) => complete\(voice\)\}/, 'the pill does not leave with the selection');
+    assert.match(footer, /onPress=\{\(\) => void complete\(null\)\}/, 'the skip does not pass null on its own');
+    assert.match(footer, /onPress=\{\(\) => void complete\(voice\)\}/, 'the pill does not leave with the selection');
     assert.doesNotMatch(footer, /setVoice\(null\)/, 'the skip still schedules a setState it then races');
   });
 
-  test('a sample stops when the voice step is left by the back chevron — F304', () => {
+  test('a sample stops when the voice step is left by system navigation — F304', () => {
     // The chevron only moves the page; nothing on it paused the player, so a clip
     // auditioned on the voice step played on over the Meet screen behind it. An
     // effect pauses whenever the page is no longer the voice step, which is the
     // one exit `complete`'s own pause did not cover.
-    assert.match(FLOW, /if \(page !== 'voice'\) player\.pause\(\)/, 'stepping back off the voice page leaves the sample playing');
+    assert.match(FLOW, /preview\.stop\(\);\s*return pageMotion\.transition/);
+    assert.match(PREVIEW, /if \(!active\) controller\.stop\(\)/);
   });
 
   test('the voice cards show which sample is sounding, on the first run and in the Profile sheet — F355', () => {
@@ -255,16 +252,10 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     // is sounding, so the ear that is lit is the one actually playing. Walked
     // the same way F305 walks FLOW/SHEET/components: the wiring on each surface,
     // then the drawing in the primitive.
-    for (const [src, where, state] of [
-      [FLOW, 'the first run', 'playing'],
-      [SHEET, 'the Profile sheet', 'samplePlaying'],
-    ] as const) {
-      assert.match(
-        src,
-        new RegExp(`playing=\\{${state} === option\\.value\\}`),
-        `${where} never tells the card which sample is sounding, so tapping an ear changes nothing`,
-      );
-    }
+    assert.match(FLOW, /preview=\{preview\}/);
+    assert.match(CARDS, /preview\?\.voice === voice\.value \? preview\.phase/);
+    assert.match(CARDS, /phase === 'playing' \? 'Pause'/);
+    assert.match(SHEET, /playing=\{samplePlaying === option\.value\}/);
 
     // And the card draws it the way the design system says: the ear tints to the
     // accent on a quiet disc while it sounds, and its label reads Stop so a
@@ -295,13 +286,12 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     // tap. Watching the player and clearing the key the instant it finishes makes
     // the next tap a fresh play again. Both the first run and the Profile sheet
     // do it, because both run the same one-player audition.
-    for (const [src, where, reset] of [
-      [FLOW, 'the first run', 'setPlaying(null)'],
-      [SHEET, 'the Profile sheet', 'setSamplePlaying(null)'],
-    ] as const) {
-      assert.match(src, /useAudioPlayerStatus\(/, `${where} never watches the player, so a finished clip is a dead ear`);
-      assert.ok(src.includes('didJustFinish'), `${where} does not notice when a clip finishes on its own`);
-      assert.ok(src.includes(reset), `${where} does not clear the playing voice when its clip ends`);
-    }
+    assert.match(CONTROLLER, /status\.didJustFinish/);
+    assert.match(CONTROLLER, /phase: 'ended'/);
+    assert.match(CONTROLLER, /state\.phase !== 'paused' \|\| !owned/);
+    assert.match(SHEET, /useAudioPlayerStatus\(/);
+    assert.ok(SHEET.includes('didJustFinish'));
+    assert.ok(SHEET.includes('setSamplePlaying(null)'));
+
   });
 });

@@ -4,8 +4,8 @@
  * A voice, an age confirmation and the usage-data answer are enough to make the
  * account-creation hand-off personal without turning an unsigned device into a
  * second profile store.  There is deliberately no transcript, audio, or
- * free-form answer here, and the one typed value, an optional first name, is
- * bounded and stays on the device.  Once an account exists the draft is folded into that
+ * practice free-form answer here. The optional first name and account-form email
+ * are bounded and stay on the device; passwords are never stored. Once an account exists the draft is folded into that
  * account's normal, user-scoped profile and this key is cleared.
  *
  * ## The consent rides here, and the version does not move
@@ -46,7 +46,7 @@ const KEY = '@luvani/pre-account-onboarding/v1';
  * (`keep`) come after the win (come alive, README Part 5.C rows 9 and 10) and
  * are appended, so every older page keeps its place.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep', 'confidence', 'focus', 'choose-tutor'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep', 'confidence', 'focus', 'choose-tutor', 'account'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
 export const START_LEVEL_KEYS = ['zero', 'few', 'getby', 'confident'] as const;
@@ -73,6 +73,14 @@ export const MAX_FIRST_NAME_CHARS = 40;
 
 export interface PreAccountOnboardingDraft {
   version: 1;
+  /** Stable route history and experiment across interrupted sessions. */
+  onboardingCompletedSteps?: string[];
+  onboardingSkippedSteps?: string[];
+  onboardingVariant?: 'full' | 'five';
+  /** Email only; passwords are never saved in onboarding drafts. */
+  accountEmail?: string;
+  accountMode?: 'signup' | 'signin';
+  accountReturnPage?: PreAccountPage;
   drink?: 'coffee' | 'tea' | null;
   frequency?: 3 | 5 | 7 | 'none' | null;
   eligibilityConfirmed?: boolean;
@@ -170,6 +178,12 @@ export function repaired(value: object): PreAccountOnboardingDraft {
   return {
     version: 1,
     ageConfirmed: true,
+    ...(Array.isArray(draft.onboardingCompletedSteps) ? { onboardingCompletedSteps: [...new Set(draft.onboardingCompletedSteps.filter((step): step is string => typeof step === 'string' && (PRE_ACCOUNT_PAGES as readonly string[]).includes(step)))].slice(0, 20) } : {}),
+    ...(Array.isArray(draft.onboardingSkippedSteps) ? { onboardingSkippedSteps: [...new Set(draft.onboardingSkippedSteps.filter((step): step is string => typeof step === 'string' && (PRE_ACCOUNT_PAGES as readonly string[]).includes(step)))].slice(0, 20) } : {}),
+    ...(draft.onboardingVariant === 'five' || draft.onboardingVariant === 'full' ? { onboardingVariant: draft.onboardingVariant } : {}),
+    ...(oneOf(PRE_ACCOUNT_PAGES, draft.accountReturnPage) && draft.accountReturnPage !== 'account' ? { accountReturnPage: draft.accountReturnPage } : {}),
+    ...(draft.accountMode === 'signin' || draft.accountMode === 'signup' ? { accountMode: draft.accountMode } : {}),
+    ...(typeof draft.accountEmail === 'string' ? { accountEmail: draft.accountEmail.slice(0, 254) } : {}),
     // A retired key becomes the default rather than nothing. Six voices replaced
     // eight in F503, so a draft written last week can name somebody who is no
     // longer in the catalogue, and that learner should meet the default tutor

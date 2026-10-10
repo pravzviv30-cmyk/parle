@@ -53,7 +53,7 @@ describe('the first scene opens with a microphone primer', () => {
     }
   });
 
-  test('the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing', () => {
+  test('the first scene uses the shared centred frame and a refusal leads with typing', () => {
     // The view model. The brief has no title of its own (the scene is the
     // title) and no how. A refusal leads with typing, because typing cannot
     // fail, and offers the phone's settings second where there are any.
@@ -96,17 +96,19 @@ describe('the first scene opens with a microphone primer', () => {
     assert.equal(afterPermission(true), 'start');
     assert.equal(afterPermission(false), 'refused');
 
-    // The screen. The brief is a blue page, the refusal a paper one, from one
-    // ground switch, so the one header and the one pill serve both.
+    // The scene follows completed onboarding. Its primer shares the same
+    // cream frame and exposes system back without a visible arrow.
     const screen = read('./FirstSceneScreen.tsx');
-    assert.match(screen, /ground=\{refused \? paper\.ground : colour\.blue\}/, 'the brief is not blue, or the refusal is not paper');
-    assert.match(screen, /<ScreenHeader title=\{false\} divider=\{false\} back=\{\{ onPress: onBack \}\} \/>/, 'the header prints a title over the brief');
+    assert.match(screen, /<OnboardingLayout page="account-welcome" progress=\{onboardingProgress\(\{ page: 'account-welcome', signedIn: true, complete: true \}\)\}/, 'the post-onboarding primer must keep completed progress in the shared frame');
+    assert.doesNotMatch(screen, /<ScreenHeader|back=|<RoundButton/, 'the primer still exposes a visible back control');
+    assert.match(screen, /BackHandler\.addEventListener\('hardwareBackPress'/, 'platform back needs a deliberate existing-navigation handler');
+    assert.match(screen, /back\.current\(\)/);
     assert.doesNotMatch(screen, /SceneBrief/, 'the first scene is still a card on paper');
     assert.match(screen, /\{PRIMER_META\(persona\.name\)\}/, 'the brief does not say whose scene it is');
     assert.match(screen, /const persona = tutorPersonaOf\(useProfile\(\)\.profile\)/, 'the brief names a tutor the learner did not choose');
-    assert.match(screen, /accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.onInk \}\]\}>\{mission\.titleEn\}<\/Text>/, 'the English outcome is not the headline');
+    assert.match(screen, /accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, textAlign: 'center' \}\]\}>\{mission\.titleEn\}<\/Text>/, 'the English outcome is not a centred accessible headline');
     assert.match(screen, /<Text \{\.\.\.frenchText\}[^\n]*>\{mission\.title\}<\/Text>/, 'the French scene title is missing');
-    assert.match(screen, /title: \{ \.\.\.type\.display, color: textOn\.blue \}/, 'the French title is not legible on blue');
+    assert.match(screen, /style=\{\[type\.heading, \{ color: paper\.ink, textAlign: 'center' \}\]\}>\{mission\.title\}/, 'the French title must remain legible and centred');
     assert.match(screen, /\{canDoSentence\(mission\.canDoEn\)\}/, 'the can-do is not one sentence');
     assert.match(screen, /mission\.referencePhrases\.slice\(0, 3\)/, 'the brief shows other than the first three lines');
     assert.match(screen, /<Label>One line to try<\/Label>/, 'the brief lacks a first usable line');
@@ -114,8 +116,8 @@ describe('the first scene opens with a microphone primer', () => {
     assert.equal(PRIMER_LINES(3), "The three lines you'll say");
     assert.equal(PRIMER_LINES(2), "The two lines you'll say", 'a scene with two lines is promised three');
     assert.match(screen, /<Card style=\{st\.lines\}>/, 'the lines are not on a white card');
-    assert.match(screen, /tone=\{refused \? 'ink' : 'white'\}/, 'the Start is not white on blue, or the refusal pill is not ink');
-    assert.match(screen, /typing \? <KeyboardGlyph size=\{22\} color=\{paper\.onInk\} \/> : <MicGlyph size=\{22\} color=\{paper\.ink\} \/>/, 'the pill does not carry the mark of what it does');
+    assert.match(screen, /tone="ink"/, 'the primary action must stay legible against the cream frame');
+    assert.match(screen, /typing \? <KeyboardGlyph size=\{22\} color=\{paper\.onInk\} \/> : <MicGlyph size=\{22\} color=\{paper\.onInk\} \/>/, 'the pill does not carry the mark of what it does');
     assert.equal((screen.match(/<PillButton\b/g) ?? []).length, 1, 'the brief and the refusal draw more than one pill');
 
     // The refusal: the microphone drawing, the title, the note, the how, and

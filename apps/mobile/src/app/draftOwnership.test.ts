@@ -7,12 +7,13 @@ const app = readFileSync(new URL('../../App.tsx', import.meta.url), 'utf8');
 const bootstrap = app.slice(app.indexOf('function PreAccountProfileBootstrap('), app.indexOf('/** ProfileGate mounts'));
 const effect = bootstrap.slice(bootstrap.indexOf('    // React'), bootstrap.indexOf('  }, [confirmed,'));
 
-async function run(confirmed: boolean, switchAfterConsent = false) {
+async function run(confirmed: boolean, { switchAt, failAt }: { switchAt?: string; failAt?: string } = {}) {
   const calls: string[] = []; let generation = 1;
+  const preference = async (store: string) => { calls.push(store); if (switchAt === store) generation++; return failAt === store ? 'volatile' : 'durable'; };
   const bindings = { confirmed, delivered: { current: false }, draft: { analyticsConsent: true },
     scopeGeneration: () => generation, profileFromDraft: () => { calls.push('build'); return {}; },
-    reminderFromDraft: () => ({}), saveConsent: async () => { calls.push('consent'); if (switchAfterConsent) generation++; },
-    saveReminder: async () => { calls.push('reminder'); }, saveProfile: async () => { calls.push('durable'); return true; }, setBootstrapError: () => {}, done: () => calls.push('profile'), onConsumed: () => calls.push('consume'),
+    reminderFromDraft: () => ({}), saveConsent: () => preference('consent'),
+    saveReminder: () => preference('reminder'), saveProfile: async () => { calls.push('durable'); if (switchAt === 'durable') generation++; return failAt !== 'durable'; }, setBootstrapError: () => calls.push('error'), done: () => calls.push('profile'), onConsumed: () => calls.push('consume'),
   };
   new Function(...Object.keys(bindings), stripTypeScriptTypes('function runEffect() {\n' + effect + '\n}') + '\nreturn runEffect();')(...Object.values(bindings));
   await new Promise<void>(resolve => setImmediate(resolve)); return calls;
@@ -32,5 +33,58 @@ test('an empty OAuth account must confirm ownership before durable preference an
 });
 
 test('a scope change during draft adoption cannot apply the plan or reminder to the next account', async () => {
-  assert.deepEqual(await run(true, true), ['build', 'consent']);
+  assert.deepEqual(await run(true, { switchAt: 'consent' }), ['build', 'consent']);
+  assert.deepEqual(await run(true, { switchAt: 'reminder' }), ['build', 'consent', 'reminder']);
+  assert.deepEqual(await run(true, { switchAt: 'durable' }), ['build', 'consent', 'reminder', 'durable']);
+});
+
+test('an incomplete durable write leaves the plan available for retry and never releases the app', async () => {
+  assert.deepEqual(await run(true, { failAt: 'consent' }), ['build', 'consent', 'error']);
+  assert.deepEqual(await run(true, { failAt: 'reminder' }), ['build', 'consent', 'reminder', 'error']);
+  assert.deepEqual(await run(true, { failAt: 'durable' }), ['build', 'consent', 'reminder', 'durable', 'error']);
+});
+
+/** Execute the actual account-completion callbacks without mounting their JSX. */
+function completion(kind: 'new' | 'repair', bindings: Record<string, unknown>): (...args: unknown[]) => Promise<unknown> {
+  const marker = kind === 'new' ? 'onCreateAccount={async draft => {' : 'onDone={(answers) => {';
+  const begin = app.indexOf(marker);
+  assert.ok(begin > 0);
+  const start = begin + marker.indexOf('{') + 1;
+  const end = app.indexOf('            }}', start);
+  const source = app.slice(start, end + 13);
+  return new Function(...Object.keys(bindings), stripTypeScriptTypes('const run = ' + source + ';') + '\nreturn run;')(...Object.values(bindings));
+}
+
+test('signed-in setup requires durable consent, reminder and profile before completion', async () => {
+  for (const failure of [undefined, 'consent', 'reminder', 'profile']) {
+    const calls: string[] = [];
+    const invoke = completion('new', {
+      scopeGeneration: () => 1, profileFromDraft: () => ({}), reminderFromDraft: () => ({}),
+      saveConsent: async () => { calls.push('consent'); return failure === 'consent' ? 'volatile' : 'durable'; },
+      saveReminder: async () => { calls.push('reminder'); return failure === 'reminder' ? 'volatile' : 'durable'; },
+      saveProfile: async () => { calls.push('profile'); return failure !== 'profile'; },
+      firstScene: { current: null }, firstSceneFor: () => 'first', done: () => calls.push('done'),
+    });
+    assert.equal(await invoke({ eligibilityConfirmed: true }), failure === undefined);
+    const expected = failure === 'consent' ? ['consent'] : failure === 'reminder' ? ['consent', 'reminder'] : failure === 'profile' ? ['consent', 'reminder', 'profile'] : ['consent', 'reminder', 'profile', 'done'];
+    assert.deepEqual(calls, expected);
+  }
+});
+
+test('repair completion preserves an unanswered consent and aborts failed or stale durable writes', async () => {
+  for (const consent of [null, true]) for (const failure of [undefined, 'consent', 'profile', 'account']) {
+    const calls: string[] = []; let generation = 1;
+    const invoke = completion('repair', {
+      existing: {}, completeProfile: () => ({}), createStoredProfile: () => ({}), withChosenVoice: (profile: unknown) => profile,
+      scopeGeneration: () => generation,
+      saveConsent: async () => { calls.push('consent'); if (failure === 'account') generation++; return failure === 'consent' ? 'volatile' : 'durable'; },
+      saveProfile: async () => { calls.push('profile'); if (failure === 'account') generation++; return failure !== 'profile'; },
+      setJustOnboarded: () => {}, done: () => calls.push('done'), trackProductEvent: async () => { calls.push('metric'); },
+    });
+    const failed = failure === 'profile' || failure === 'account' || (consent !== null && failure === 'consent');
+    assert.equal(await invoke({ name: null, tutorVoice: null, analyticsConsent: consent }), !failed);
+    assert.equal(calls.includes('consent'), consent !== null);
+    assert.equal(calls.includes('done'), !failed);
+    assert.equal(calls.includes('metric'), !failed);
+  }
 });

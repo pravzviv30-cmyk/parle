@@ -285,14 +285,13 @@ export function PERSONA_BODY(persona: TutorPersona): string {
  * which French to be taught. It is neither, so the body says so in the sentence
  * before the list rather than in a help article nobody opens.
  */
-export const VOICE_TITLE = 'Choose a voice';
+export const VOICE_TITLE = 'Choose your tutor';
 
 /** What the choice does, said before the list rather than after the regret. */
-export const VOICE_BODY =
-  'Whoever you pick does the talking, in every conversation. The French you learn is the same either way, and so is the way it is taught.';
+export const VOICE_BODY = 'Listen to the voices and choose who you’d like to practise with.';
 
 /** The disclosure, on the page most likely to read as a cast list. */
-export const VOICE_AI = 'These are voices for one AI tutor. Tap the ear to hear one, tap a name to keep it.';
+export const VOICE_AI = 'These are AI tutor voices. Tap Listen to hear a voice, then tap a name to choose it.';
 
 /** The way past, worded as an answer rather than as a deferral. */
 export const VOICE_SKIP = 'Skip for now';

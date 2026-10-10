@@ -1,7 +1,7 @@
 /**
  * The bundled clip for each voice, so a learner can hear one before choosing.
  *
- * Eight short recordings, one per catalogue voice, made by `voice-samples` in
+ * Six short recordings, one per catalogue voice, made by `voice-samples` in
  * services/tutor-agent through the same `buildTTS` seam the live tutor speaks
  * through. Through the seam on purpose: a clip synthesised some other way would
  * be an approximation, and a learner who picks a voice from an approximation
@@ -11,9 +11,9 @@
  *
  * Metro resolves `require` at build time by reading the literal string. A loop
  * over the catalogue building `require(\`../../assets/voices/${key}.m4a\`)`
- * bundles nothing at all and fails on the device, so the eight paths have to be
+ * bundles nothing at all and fails on the device, so the six paths have to be
  * spelled. `Record<TutorVoiceKey, AudioSource>` is what stops that being a
- * maintenance trap: a ninth voice added to the catalogue is a compile error
+ * maintenance trap: another voice added to the catalogue is a compile error
  * here until its clip is bundled, rather than a silent gap that only shows up
  * as a listen button doing nothing.
  *

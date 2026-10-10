@@ -87,7 +87,7 @@ describe('the first win — F754', () => {
     assert.match(screen, /if \(effects\.haptic === 'celebrate'\) celebrate\(\); else soft\(\);/);
     assert.match(screen, /<WinArt celebrate=\{coral\} moment=\{moment\}>/);
     assert.match(screen, /<WinCard view=\{win\}/);
-    assert.match(screen, /page === 'hear-it' \|\| page === 'recap' \|\| refused \? undefined/, 'the win grew a header Back');
+    assert.match(screen, /<OnboardingLayout/); assert.doesNotMatch(screen, /icon="back"|label="Back"/, 'the win grew a visible back control');
     for (const label of ['win.keepLabel', 'FIRST_RUN_COPY.retry', 'FIRST_RUN_COPY.details']) assert.ok(screen.includes(label), `the win's action row lost ${label}`);
     assert.doesNotMatch(screen, /last\.feedback\.accepted \? last\.reply/, 'a kept or shown phrase is the learner\'s unchecked spelling again');
 

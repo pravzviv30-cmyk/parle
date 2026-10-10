@@ -3,9 +3,9 @@
  * type the email, tap the link, watch this same screen confirm the send.
  *
  * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
- * the fields above the keyboard, and draws the one back through `ScreenHeader`.
- * Only the Sign in pill rides in the footer, so a keyboard cannot scroll the
- * one ink action out of reach. The forgot-password link, the form message and
+ * the fields above the keyboard. During onboarding it shares the centred frame
+ * and progress indicator with account creation.
+ * During onboarding the primary action scrolls after the fields. The forgot-password link, the form message and
  * the "Need an account?" row stay in the body, so a field is still visible over
  * an SE-class keyboard rather than pinned under the buttons.
  *
@@ -15,20 +15,25 @@
  * devices use the full page; a guest opens it in a sheet after practice.
  */
 
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, BackHandler, findNodeHandle, Platform, View, Text, StyleSheet } from 'react-native';
 import { paper, space, type, HIT, HAIRLINE } from '../theme.ts';
 import { PillButton, GhostButton, Press, Field, GoogleMark, AppleMark, AlertGlyph, ROW_WORDS } from '../components.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { ScrollScreen } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { appleSignInOffered } from './apple.ts';
 import { SIGN_IN_PURPOSE } from './copy.ts';
+import { friendly } from './friendly.ts';
 
-export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { onBack?: () => void; onCreateAccount: () => void; embedded?: boolean }) {
+import { OnboardingLayout } from '../onboarding/OnboardingLayout.tsx';
+import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
+import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
+
+export function SignInScreen({ onBack, onCreateAccount, onboarding = false, planDraft = null, onEmailChange, embedded = false }: { onBack?: () => void; onCreateAccount: () => void; onboarding?: boolean; planDraft?: PreAccountOnboardingDraft | null; onEmailChange?: (email: string) => void; embedded?: boolean }) {
   const { adapter } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(planDraft?.accountEmail ?? '');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
@@ -38,11 +43,30 @@ export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { on
   // the bug underneath; only the button that started it changes its words.
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
+  const alive = useRef(true);
+  const requestRunning = useRef(false);
+  const headingRef = useRef<Text>(null);
+  useEffect(() => {
+    alive.current = true;
+    return () => { alive.current = false; };
+  }, []);
+  useEffect(() => {
+    if (!onboarding || embedded) return;
+    const node = headingRef.current;
+    if (Platform.OS === 'web') (node as unknown as { focus?: () => void })?.focus?.();
+    else { const handle = findNodeHandle(node); if (handle) AccessibilityInfo.setAccessibilityFocus(handle); }
+  }, [onboarding, embedded]);
   // Asked once, and false until it answers. A door is drawn only where the
   // platform can open it; Android and web use configured browser OAuth, and
   // an iPhone too old for it says no as well. Drawing the button first and
   // hiding it after would flash a door that was never there.
   const [appleOffered, setAppleOffered] = useState(false);
+  useEffect(() => {
+    if (!onboarding || !onBack || embedded) return;
+    if (Platform.OS !== 'android') return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => { if (!requestRunning.current && !busy) onBack(); return true; });
+    return () => back.remove();
+  }, [onboarding, onBack, embedded, busy]);
   useEffect(() => {
     let alive = true;
     void appleSignInOffered().then((offered) => {
@@ -57,43 +81,61 @@ export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { on
     // The keyboard's return key is not a button and cannot be greyed out, so
     // the guard is here rather than only on the pill.
     if (busy) return;
+    if (requestRunning.current) return;
     const emailProblem = looksLikeEmail(email) ? null : 'That does not look like an email address.';
     setEmailError(emailProblem);
     setFormMessage(null);
     if (emailProblem) return;
+    requestRunning.current = true;
     setPending('signIn');
-    const result = await adapter.signInWithPassword(email.trim(), password);
-    setPending(null);
-    if (!result.ok) {
-      setFormOk(false);
-      setFormMessage(result.message);
+    try {
+      const result = await adapter.signInWithPassword(email.trim(), password);
+      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+    } catch (error) {
+      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+    } finally {
+      requestRunning.current = false;
+      if (alive.current) setPending(null);
     }
   };
 
   const google = async () => {
     if (busy) return;
+    if (requestRunning.current) return;
+    requestRunning.current = true;
     setPending('google');
-    const result = await adapter.signInWithGoogle();
-    setPending(null);
-    if (!result.ok) {
-      setFormOk(false);
-      setFormMessage(result.message);
+    setFormMessage(null);
+    try {
+      const result = await adapter.signInWithGoogle();
+      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+    } catch (error) {
+      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+    } finally {
+      requestRunning.current = false;
+      if (alive.current) setPending(null);
     }
   };
 
   const apple = async () => {
     if (busy) return;
+    if (requestRunning.current) return;
+    requestRunning.current = true;
     setPending('apple');
-    const result = await adapter.signInWithApple();
-    setPending(null);
-    if (!result.ok) {
-      setFormOk(false);
-      setFormMessage(result.message);
+    setFormMessage(null);
+    try {
+      const result = await adapter.signInWithApple();
+      if (alive.current && !result.ok) { setFormOk(false); setFormMessage(result.message); }
+    } catch (error) {
+      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+    } finally {
+      requestRunning.current = false;
+      if (alive.current) setPending(null);
     }
   };
 
   const forgot = async () => {
     if (busy) return;
+    if (requestRunning.current) return;
     const emailProblem = looksLikeEmail(email) ? null : 'Type your email above first, then tap this again.';
     setEmailError(null);
     if (emailProblem) {
@@ -101,25 +143,34 @@ export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { on
       setFormMessage(emailProblem);
       return;
     }
+    requestRunning.current = true;
     setPending('sendReset');
-    const result = await adapter.sendPasswordReset(email.trim());
-    setPending(null);
-    setFormOk(result.ok);
-    setFormMessage(result.ok ? result.message ?? 'Check your email for a reset link.' : result.message);
+    try {
+      const result = await adapter.sendPasswordReset(email.trim());
+      if (!alive.current) return;
+      setFormOk(result.ok);
+      setFormMessage(result.ok ? result.message ?? 'Check your email for a reset link.' : result.message);
+    } catch (error) {
+      if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
+    } finally {
+      requestRunning.current = false;
+      if (alive.current) setPending(null);
+    }
   };
 
+  const Frame = onboarding ? OnboardingLayout : ScrollScreen;
+  const onboardingProps = onboarding ? { page: 'account', actionInScroll: true, progress: onboardingProgress({ page: 'account', five: planDraft?.onboardingVariant === 'five', skipped: planDraft?.onboardingSkippedSteps, completed: planDraft?.onboardingCompletedSteps }) } : { page: 'signin' };
   return (
-    <ScrollScreen
+    <Frame {...onboardingProps}
       embedded={embedded}
       avoidKeyboard
-      header={!embedded && onBack ? <ScreenHeader title={false} divider={false} back={{ onPress: onBack }} /> : undefined}
       footer={<PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />}
     >
       {/* A working title on the paper itself, then what is behind the door. */}
       {!embedded && <View style={st.head}>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Welcome back</Text>
+        <Text ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Welcome back</Text>
       </View>}
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{SIGN_IN_PURPOSE}</Text>
+      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
 
       {/* The provider doors lead the form. Apple is an ink pill, drawn only where
           the platform offers it; Google is the white pill beneath it. */}
@@ -151,7 +202,7 @@ export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { on
         <Field
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); }}
           placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -192,20 +243,19 @@ export function SignInScreen({ onBack, onCreateAccount, embedded = false }: { on
         </View>
       )}
 
-      {/* The switch row stays in the body, not the footer: over an SE-class
-          keyboard the footer pins to the keyboard's top and a field has to stay
-          visible above it rather than this row. */}
-      <Press haptic="light" style={st.switchRow} accessibilityRole="button" onPress={onCreateAccount}>
+      {/* The account switch stays next to the form. In onboarding the primary
+          action follows it inside the same keyboard-safe scroll area. */}
+      <Press haptic="light" style={st.switchRow} accessibilityRole="button" disabled={busy} onPress={() => { if (!requestRunning.current && !busy) onCreateAccount(); }}>
         <Text style={[type.small, { color: paper.inkSoft }]}>
           Need an account? <Text style={st.switchWord}>Create one</Text>
         </Text>
       </Press>
-    </ScrollScreen>
+    </Frame>
   );
 }
 
 const st = StyleSheet.create({
-  head: { paddingTop: space(2) },
+  head: { paddingTop: space(2), alignItems: 'center' },
   doors: { gap: space(3), marginTop: space(6) },
   or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(5) },
   rule: { flex: 1, height: HAIRLINE, backgroundColor: paper.line },

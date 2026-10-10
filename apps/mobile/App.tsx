@@ -94,6 +94,8 @@ import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
 import { OnboardingPreview } from './src/dev/OnboardingPreview.tsx';
+import { OnboardingLayout } from './src/onboarding/OnboardingLayout.tsx';
+import { onboardingProgress } from './src/onboarding/onboardingProgress.ts';
 import { useLaunchHold } from './src/launch/useLaunch.ts';
 import { ReduceMotionBridge } from './src/motion/ReduceMotionBridge.tsx';
 import { FlightLayer } from './src/motion/FlightLayer.tsx';
@@ -206,22 +208,12 @@ function PreAccountProfileBootstrap({
     // the answer under.
     void (async () => {
       try {
-        await saveConsent({ allowed: draft.analyticsConsent });
-      } catch {
-        // No scope to write under, which should not be reachable from here. The
-        // learner still gets their app, and an answer this build cannot prove
-        // was given reads as off, which is the only safe direction.
-      }
-      if (owner !== scopeGeneration()) return;
-      try {
+        if ((await saveConsent({ allowed: draft.analyticsConsent })) !== 'durable') throw new Error('storage failed');
+        if (owner !== scopeGeneration()) return;
         // The plan's reminder as the first run left it: on only when the
         // learner said yes on day one and the system scheduled it, off otherwise.
-        await saveReminder(reminderFromDraft(draft));
-      } catch {
-        // Nothing stored reads as off, which is what was meant anyway.
-      }
-      if (owner !== scopeGeneration()) return;
-      try {
+        if ((await saveReminder(reminderFromDraft(draft))) !== 'durable') throw new Error('storage failed');
+        if (owner !== scopeGeneration()) return;
         if (!(await saveProfile(built))) throw new Error('storage failed');
       } catch {
         if (owner === scopeGeneration()) { delivered.current = false; setBootstrapError('Your plan could not be saved. Try again.'); }
@@ -232,7 +224,7 @@ function PreAccountProfileBootstrap({
       if (!draft.eligibilityConfirmed) onConsumed();
     })();
   }, [confirmed, draft, done, onConsumed, bootstrapRetry]);
-  if (bootstrapError) return <ScrollScreen><Text style={type.body}>{bootstrapError}</Text><PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} /></ScrollScreen>;
+  if (bootstrapError) return <OnboardingLayout page="account-welcome" footer={<PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} />}><Text style={[type.body, { textAlign: 'center' }]}>{bootstrapError}</Text></OnboardingLayout>;
   if (!confirmed) {
     const plan = planFor(draft);
     // A reminder the first run set belongs to the plan being put aside, so it
@@ -242,9 +234,10 @@ function PreAccountProfileBootstrap({
       if (draft.reminderEnabled === true) await cancelReminder();
       onConsumed();
     };
-    return <ScrollScreen bottom="inset" header={<ScreenHeader title="Use this starting plan?" />}
+    return <OnboardingLayout page="account-welcome" progress={onboardingProgress({ page: 'account-welcome', five: draft.onboardingVariant === 'five' })}
       footer={<PillButton label="Use this plan for my account" onPress={() => setConfirmed(true)} />}>
-      <Text style={[type.body, { color: paper.ink }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
+      <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', marginBottom: space(4) }]}>Use this starting plan?</Text>
+      <Text style={[type.body, { color: paper.ink, textAlign: 'center' }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
       <Card style={{ marginTop: space(4), gap: space(2) }}>
         {draft.firstName ? <Text style={type.body}>Name: {draft.firstName}</Text> : null}
         <Text style={type.heading}>{plan.starter.title}</Text>
@@ -254,7 +247,7 @@ function PreAccountProfileBootstrap({
         <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. {reminderSummary(draft)} You can change these choices in Settings.</Text>
       </Card>
       <IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress={() => void startAgain()} />
-    </ScrollScreen>;
+    </OnboardingLayout>;
   }
   return <Loading />;
 }
@@ -512,9 +505,9 @@ function SignedInRoot({
               if (!draft.eligibilityConfirmed) return false;
               const owner = scopeGeneration();
               const built = profileFromDraft(draft);
-              await saveConsent({ allowed: draft.analyticsConsent });
-              await saveReminder(reminderFromDraft(draft));
-              if (owner !== scopeGeneration() || !(await saveProfile(built))) return false;
+              if ((await saveConsent({ allowed: draft.analyticsConsent })) !== 'durable' || owner !== scopeGeneration()) return false;
+              if ((await saveReminder(reminderFromDraft(draft))) !== 'durable' || owner !== scopeGeneration()) return false;
+              if (!(await saveProfile(built)) || owner !== scopeGeneration()) return false;
               firstScene.current = firstSceneFor(draft.startLevel, draft.reason);
               done(built);
               return true;
@@ -545,22 +538,26 @@ function SignedInRoot({
               // for it. A learner who answered this once already owns that
               // answer in Settings, and a flow they were sent back through for
               // an unrelated reason must not be able to replace it.
-              void (async () => {
+              return (async () => {
+                const owner = scopeGeneration();
                 try {
-                  if (answers.analyticsConsent !== null) await saveConsent({ allowed: answers.analyticsConsent });
+                  if (answers.analyticsConsent !== null && (await saveConsent({ allowed: answers.analyticsConsent })) !== 'durable') return false;
                 } catch {
-                  // No scope to write under. The app still opens, and the answer
-                  // reads as off until Settings says otherwise.
+                  // Keep the answers available for retry until every chosen
+                  // preference is durable under the same account.
+                  return false;
                 }
                 // Brand new, rather than someone answering a question that was
                 // added since they joined. Only the first kind is sent to the
                 // chooser; the second already has a Home worth returning to.
+                if (owner !== scopeGeneration() || !(await saveProfile(next)) || owner !== scopeGeneration()) return false;
                 setJustOnboarded(existing === null);
                 done(next);
                 await trackProductEvent({
                   name: 'onboarding_completed',
                   properties: { personalisedGreeting: answers.name !== null },
                 });
+                return true;
               })();
             }}
           />

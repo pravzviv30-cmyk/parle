@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, twenty-eight namespaces, no exceptions.
+ * What happens when two devices disagree — one table, thirty namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Fifteen namespaces are synced under three merge classes;
- * thirteen are excluded with a stated reason, because a namespace that is silently absent
+ * fifteen are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -48,6 +48,8 @@
  * | `packMarks`   | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `pendingPurchase` | **excluded** — see SYNC_EXCLUSIONS                     |
  * | `onboarding-practice` | **excluded** — see SYNC_EXCLUSIONS                 |
+ * | `onboarding-setup-draft` | **excluded** — see SYNC_EXCLUSIONS              |
+ * | `onboarding-repair-draft` | **excluded** — see SYNC_EXCLUSIONS             |
  * | `gameLocal`   | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `home-seen`   | **excluded** — see SYNC_EXCLUSIONS                          |
  *
@@ -799,7 +801,7 @@ export interface SyncExclusion {
 }
 
 /**
- * The thirteen namespaces that are on the device and stay on the device.
+ * The fifteen namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
@@ -809,6 +811,8 @@ export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
   { namespace: 'home-seen', reason: "What this phone's Home last drew, so a number that rose since counts up once. A fact about one screen on one phone: synced, a tablet would skip a rise the learner never saw on it, and the real numbers all live in the synced game and activity records." },
   { namespace: 'gameLocal', reason: "The OS schedule, timezone and the plan observed are facts about this phone; syncing them would nudge one learner twice and let one device's billing read decide another's." },
   { namespace: 'onboarding-practice', reason: 'A temporary first-use task on this phone. Its explicitly saved phrase enters the ordinary synced review deck; the local guest capability never syncs.' },
+  { namespace: 'onboarding-setup-draft', reason: 'An unfinished setup route and its answers on this device. Syncing route position could overwrite an active setup on another phone or carry device-local consent answers across devices. Completed answers enter the ordinary profile on explicit confirmation; resuming this draft is limited to the phone that started it.' },
+  { namespace: 'onboarding-repair-draft', reason: 'An unfinished profile repair on this device. Syncing it could replace a newer completed profile with an unconfirmed answer or reopen a screen on another phone. Confirmed repairs enter the ordinary profile; interrupted work resumes only on this phone.' },
   { namespace: 'pendingPurchase', reason: 'A checkout started on this phone stays fenced here until its matching paid entitlement is verified. It is transaction recovery, never learning evidence or cross-device billing authority.' },
   {
     namespace: 'suggestions',

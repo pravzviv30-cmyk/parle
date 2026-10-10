@@ -138,6 +138,27 @@ describe('the pre-account hand-off', () => {
     assert.ok(disk.has(KEY));
   });
 
+  test('an interrupted account form restores its email, mode and origin without saving a password', async () => {
+    const disk = installDisk();
+    for (const accountMode of ['signup', 'signin'] as const) {
+      const draft = { ...freshPreAccountDraft(), page: 'account' as const, accountMode, accountEmail: 'learner@example.com', accountReturnPage: 'keep' as const };
+      await savePreAccountDraft(draft);
+      assert.deepEqual(await loadPreAccountDraft(), draft);
+    }
+    disk.set(KEY, JSON.stringify({ ...freshPreAccountDraft(), page: 'account', accountMode: 'signin', accountEmail: 'x'.repeat(300), accountReturnPage: 'account', password: 'must-not-survive' }));
+    const restored = await loadPreAccountDraft();
+    assert.equal(restored?.accountEmail?.length, 254);
+    assert.equal(restored?.accountReturnPage, undefined);
+    assert.equal((restored as unknown as Record<string, unknown>).password, undefined);
+    const form = evidence('apps/mobile/src/auth/SignInScreen.tsx');
+    const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
+    assert.match(form, /useState\(planDraft\?\.accountEmail \?\? ''\)/);
+    assert.match(form, /onChangeText=\{\(value\) => \{ setEmail\(value\); onEmailChange\?\.\(value\); \}\}/);
+    assert.match(flow, /onEmailChange=\{updateAccountEmail\}/);
+    assert.match(flow, /initialDraft\.accountMode === 'signin' \? 'signin' : 'signup'/);
+    assert.match(flow, /page: basis\.accountReturnPage \?\? 'keep'/);
+  });
+
   test('first names strip Unicode formatting and controls before validation', async () => {
     const disk = installDisk();
     for (const [input, expected] of [['x\u202eevil', 'xevil'], ['\u200b\u200d', null], ['A\u0085da', 'Ada'], ['Ada\u0000', 'Ada']] as const) {
@@ -162,7 +183,7 @@ describe('the pre-account hand-off', () => {
     }
   });
 
-  test("sign-in preserves guest work until explicit account ownership handling", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /setScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='), flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx'); assert.match(handoff, /Keep this practice/); assert.match(handoff, /Start fresh/); assert.match(handoff, /adoptGuestUsage/); });
+  test("sign-in preserves guest work until explicit account ownership handling", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /switchScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='), flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx'); assert.match(handoff, /Keep this practice/); assert.match(handoff, /Start fresh/); assert.match(handoff, /adoptGuestUsage/); });
 
   test("complete accounts keep their own profile and new accounts use modern onboarding", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(app, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\)/); assert.match(app, /existing === null \? \( <PreAccountOnboarding/); assert.match(app, /<GuestAccountHandoff/); assert.match(app, /owner !== scopeGeneration\(\)/); assert.match(app, /if \(!ready \|\| freshStart === null\) return <Loading/); });
 
@@ -174,13 +195,13 @@ describe('the pre-account hand-off', () => {
     assert.equal((await loadPreAccountDraft())?.firstName?.length, MAX_FIRST_NAME_CHARS);
   });
 
-  test("setup requires a deliberate tutor after the personal plan and eligibility still precedes practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Next: Choose Your Tutor"/); assert.match(screen, /<TutorSelection chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/); assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.match(screen, /disabled=\{draft\.tutorChosen !== true\}/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draft, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}/); });
+  test("setup requires a deliberate tutor after the personal plan and eligibility still precedes practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Next: Choose your tutor"/); assert.match(screen, /<TutorSelection\s+chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/); assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.match(screen, /disabled=\{draft\.tutorChosen !== true \|\| busy\}/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draftRef\.current, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}/); });
 
   test("page and artwork motion respond to actions and stop when reduced motion changes", () => { const motion = evidence('apps/mobile/src/onboarding/OnboardingMotion.tsx'); assert.match(motion, /useReduceMotion\(\)/); assert.match(motion, /stopAnimation\(\)/); assert.match(motion, /if \(reduced\)/); assert.match(motion, /duration: 270/); assert.doesNotMatch(motion, /Animated\.loop|setInterval/); });
 
-  test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /A plan built around your goals/); assert.match(screen, /Start Your Personal Plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
+  test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /A plan built around your goals/); assert.match(screen, /Start your personal plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
 
-  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /onHear=\{\(voice\) =>/); assert.match(screen, /hear\(voiceSample\(voice\), true\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
+  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.match(screen, /onChoose=\{\(voice\) => choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
 
   test("every catalogue voice is available in a contextual sheet with a provisional selection", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /surface === 'voice'/); assert.match(screen, /TUTOR_VOICE_OPTIONS\.map/); assert.match(screen, /selected=\{edit\.tutorVoice === v\.value\}/); assert.match(screen, /setEdit\(\{ \.\.\.edit, tutorVoice: v\.value \}\)/); assert.match(screen, /patch\(\{ tutorVoice: edit\.tutorVoice \}\)/); });
 

@@ -248,7 +248,7 @@ describe('the ask keeps its promise — F774', () => {
     // out of the app. The guest planner is mounted wherever nobody is signed in.
     assert.match(planner, /useEffect\(\(\) => \{\s*void replanReminders\(\{ draft: draftRef\.current \}\);\s*\}, \[moved\]\);/);
     assert.match(planner, /draft\?\.page \?\? null/, 'a finish (which turns the page) does not re-plan');
-    assert.match(evidence(SCREEN), /if \(!refused\) onDraftChange\(\{ \.\.\.draftRef\.current, page: next \}\);/);
+    assert.match(evidence(SCREEN), /if \(!refused\) \{ onDraftChange\(persisted\)/);
     const app = code('../../App.tsx');
     assert.match(app, /<GuestReminderPlanner draft=\{preAccountDraft\} \/>/);
     assert.match(app, /onDraftChange=\{keepPreAccountDraft\}/);

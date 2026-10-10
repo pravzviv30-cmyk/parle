@@ -7,29 +7,32 @@ import { START_LEVELS, initialPracticeMode, practiceForecast } from '../plan.ts'
 const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
 
 /** Execute the production handoff function with deferred storage and account changes. */
-async function finishHandoff({ saved = true, newlyCreated = true, changeAt = '', storageFails = false } = {}) {
+async function finishHandoff({ saved = true, newlyCreated = true, changeAt = '', storageFails = false, repeated = false, unmountAt = '' } = {}) {
   const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
-  const source = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (welcoming)'));
+  const source = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (guest === null && !welcoming)'));
   assert.ok(source.startsWith('const finish'), 'this check must execute the production finish');
   let owner = 1;
   let uid = 'new-user';
   const calls: string[] = [];
+  const mounted = { current: true };
   const changeAccount = () => { owner += 1; uid = 'other-user'; };
   const bindings = {
     user: { id: 'new-user' }, guest: { completed: true }, busy: false, saved, newlyCreated,
+    operation: { current: false }, finished: { current: false }, mounted,
     scopeGeneration: () => owner, activeUserId: () => uid,
     setBusy: (value: boolean) => calls.push(value ? 'busy' : 'idle'),
     setError: (value: string) => { if (value) calls.push('error'); },
-    adoptGuestUsage: async () => { calls.push('claim'); if (changeAt === 'claim') changeAccount(); },
+    adoptGuestUsage: async () => { calls.push('claim'); if (changeAt === 'claim') changeAccount(); if (unmountAt === 'claim') mounted.current = false; },
     clearGuestPractice: async () => {
       calls.push('clear');
       if (changeAt === 'clear') changeAccount();
+      if (unmountAt === 'clear') mounted.current = false;
       if (storageFails) throw new Error('storage unavailable');
     },
     setWelcoming: () => calls.push('welcome'), setGuest: () => calls.push('guest-null'),
     onDone: (kept: boolean) => calls.push(kept ? 'done-kept' : 'done-fresh'),
   };
-  await new Function(...Object.keys(bindings), `${source}; return finish();`)(...Object.values(bindings));
+  await new Function(...Object.keys(bindings), `${source}; return ${repeated ? 'Promise.all([finish(), finish()])' : 'finish()'};`)(...Object.values(bindings));
   return calls;
 }
 
@@ -51,8 +54,9 @@ describe('the personal onboarding journey', () => {
     assert.match(screen, /chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/);
     assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/);
     assert.match(tutors, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
-    assert.match(tutors, /onPress=\{\(\) => onHear\(voice\.value\)\}/);
-    assert.match(tutors, /accessibilityState=\{\{ checked: chosen === voice\.value \}\}/);
+    assert.match(tutors, /onPress=\{\(\) => preview \? preview\.toggle\(voice\.value\) : onHear\?\.\(voice\.value\)\}/);
+    assert.match(tutors, /const selected = chosen === voice\.value/);
+    assert.match(tutors, /accessibilityState=\{\{ checked: selected \}\}/);
     assert.doesNotMatch(tutors, /requestRecordingPermissions|player\.play|onChoose\(voice\.value\);\s*onHear/);
     assert.equal(initialPracticeMode({ ...freshPreAccountDraft(), practiceFocus: 'listening' }), 'typed');
     assert.equal(initialPracticeMode({ ...freshPreAccountDraft(), practiceFocus: 'speaking', speakingConfidence: 'hesitant' }), 'typed');
@@ -62,11 +66,12 @@ describe('the personal onboarding journey', () => {
     const streak = screen.slice(screen.indexOf("{page === 'remind' && streak !== null"), screen.indexOf("{page === 'keep' && ("));
     assert.ok(streak.length > 0);
     assert.match(streak, /<DayOne streak=\{streak\} moment=\{moment\}/);
-    assert.match(streak, /Practice Everyday to Carry on the Streak/);
+    assert.match(streak, /Practise every day to keep your streak going/);
     assert.match(streak, /<WeekStrip week=\{streak\.week\} today=\{today\}/);
     assert.doesNotMatch(streak, /<ReminderAsk|Remind me|Not now/);
-    assert.match(screen, /label="Start Your French" onPress=\{\(\) => go\('keep'\)\}/);
+    assert.match(screen, /label="Start your French" onPress=\{\(\) => go\('keep'\)\}/);
     const flame = evidence('apps/mobile/src/onboarding/firstRun/DayOne.tsx');
+    assert.match(flame, /'Your streak has started'/);
     assert.match(flame, /useReduceMotion\(\)/);
     assert.match(flame, /if \(reduced\) return/);
     assert.match(flame, /return \(\) => animation\.stop\(\)/);
@@ -98,8 +103,8 @@ describe('the personal onboarding journey', () => {
     assert.match(handoff, /if \(!newlyCreated \|\| guest === undefined \|\| busy \|\| autoStarted\.current\) return;/);
     assert.match(handoff, /if \(newlyCreated && saved && !busy && guest !== null && guest !== undefined && !autoFinished\.current\) \{ autoFinished\.current = true; void finish\(\);/);
     assert.ok(handoff.indexOf('settleGuestHandoff(guest)') < handoff.indexOf('setSaved(true);'));
-    const finish = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (welcoming)'));
-    assert.match(finish, /if \(owner !== scopeGeneration\(\)\) return;/);
+    const finish = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (guest === null && !welcoming)'));
+    assert.match(finish, /if \(!mounted\.current \|\| owner !== scopeGeneration\(\)\) return;/);
     assert.ok(finish.indexOf('await clearGuestPractice();') < finish.indexOf('onDone(saved);'));
     assert.match(handoff, /'Keep this practice'/);
     const welcome = evidence('apps/mobile/src/onboarding/AccountWelcome.tsx');
@@ -107,7 +112,10 @@ describe('the personal onboarding journey', () => {
     assert.match(welcome, /animation\.start\(\(\{ finished \}\) => \{ if \(finished\) finish\(\); \}\)/);
     assert.match(welcome, /clearTimeout\(timer\)/);
     assert.match(welcome, /animation\?\.stop\(\)/);
-    assert.match(welcome, /label="Go to Home" onPress=\{finish\}/);
+    assert.match(welcome, /label="Go to home" onPress=\{finish\}/);
+    assert.match(welcome, /<OnboardingLayout page="account-welcome" progress=\{\{ \.\.\.progress, fraction: 1, complete: true \}\}/);
+    assert.match(handoff, /const journey = useRef\(draft\)/);
+    assert.match(handoff, /<AccountWelcome progress=\{progress\}/);
     assert.match(welcome, /reader === false && AppState\.currentState === 'active'/);
     assert.match(welcome, /opacity\.setValue\(1\)/);
   });
@@ -121,5 +129,14 @@ describe('the personal onboarding journey', () => {
     assert.deepEqual(await finishHandoff(), ['busy', 'clear', 'welcome', 'guest-null', 'done-kept', 'idle']);
     assert.deepEqual(await finishHandoff({ newlyCreated: false, saved: false }), ['busy', 'claim', 'clear', 'guest-null', 'done-fresh', 'idle']);
     assert.deepEqual(await finishHandoff({ storageFails: true }), ['busy', 'clear', 'error', 'idle']);
+  });
+
+  test('repeated confirmation taps finish the durable handoff once', async () => {
+    assert.deepEqual(await finishHandoff({ repeated: true, saved: false }), ['busy', 'claim', 'clear', 'welcome', 'guest-null', 'done-fresh', 'idle']);
+  });
+
+  test('an unmounted handoff never starts a welcome or updates the abandoned screen', async () => {
+    assert.deepEqual(await finishHandoff({ saved: false, unmountAt: 'claim' }), ['busy', 'claim']);
+    assert.deepEqual(await finishHandoff({ unmountAt: 'clear' }), ['busy', 'clear']);
   });
 });

@@ -3,9 +3,8 @@
  * Errors are plain sentences under the field they belong to.
  *
  * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
- * the fields above the keyboard, and draws the one back through `ScreenHeader`.
- * Only the "Create account" pill rides in the footer, so a keyboard cannot
- * scroll the one ink action out of reach. The "Already have an account? Sign
+ * the fields above the keyboard and preserves the shared progress indicator.
+ * The primary action scrolls after the fields so it never floats above the keyboard. The "Already have an account? Sign
  * in" row stays at the end of the body, where a field is still visible over an
  * SE-class keyboard rather than pinned under the buttons.
  *
@@ -15,10 +14,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, type ScrollView as AuthScrollView, TextInput, View, Text, StyleSheet } from 'react-native';
+import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, type ScrollView as AuthScrollView, TextInput, View, Text, StyleSheet } from 'react-native';
 import { paper, space, type, HIT, HAIRLINE } from '../theme.ts';
 import { PillButton, Press, GoogleMark, AppleMark, AlertGlyph, ROW_WORDS } from '../components.tsx';
-import { ScrollScreen, ScreenHeader, readingColumn, useCompactPhone } from '../layout.tsx';
+import { readingColumn, useCompactPhone } from '../layout.tsx';
+import { OnboardingLayout } from '../onboarding/OnboardingLayout.tsx';
+import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import { AccountField as Field } from './AccountField.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail, PASSWORD_MIN, passwordTooShort } from './validate.ts';
@@ -31,9 +32,9 @@ import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts
 import { focusedFieldScroll } from './focusedFieldScroll.ts';
 import { useReduceMotion } from '../motion.ts';
 
-export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = false }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null; embedded?: boolean }) {
+export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange, embedded = false }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null; onEmailChange?: (email: string) => void; embedded?: boolean }) {
   const { adapter } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(planDraft?.accountEmail ?? '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = fa
   const scrollOffset = useRef(0);
   const focusFrame = useRef<number | null>(null);
   const focusMeasurement = useRef(0);
+  const headingRef = useRef<Text>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -64,7 +66,19 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = fa
   const autoAdvanced = useRef(false);
   const alive = useRef(true);
   const requestRunning = useRef(false);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => {
+    alive.current = true;
+    const node = headingRef.current;
+    if (Platform.OS === 'web') (node as unknown as { focus?: () => void })?.focus?.();
+    else { const handle = findNodeHandle(node); if (handle) AccessibilityInfo.setAccessibilityFocus(handle); }
+    return () => { alive.current = false; };
+  }, []);
+  useEffect(() => {
+    if (embedded) return;
+    if (Platform.OS !== 'android') return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => { if (!requestRunning.current) onBack(); return true; });
+    return () => back.remove();
+  }, [onBack, embedded]);
   const keepFocusedVisible = () => {
     if (Platform.OS === 'web' || focused.current === null) return;
     const ticket = ++focusMeasurement.current;
@@ -193,13 +207,14 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = fa
   };
 
   return (
-    <ScrollScreen
+    <OnboardingLayout
+      page="account"
+      progress={onboardingProgress({ page: 'account', five: planDraft?.onboardingVariant === 'five', skipped: planDraft?.onboardingSkippedSteps, completed: planDraft?.onboardingCompletedSteps })}
+      actionInScroll
       embedded={embedded}
       scrollRef={scrollRef}
       onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
       avoidKeyboard
-      topGap={space(2)}
-      header={embedded ? undefined : <ScreenHeader title={false} divider={false} back={{ onPress: onBack }} />}
       footer={
         <PillButton
           label={authButtonLabel('createAccount', pending === 'createAccount')}
@@ -211,7 +226,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = fa
       {/* The saved plan remains in the handoff; this form needs only its task. */}
       <View style={[readingColumn, { paddingBottom: space(2) }]}>
       {!embedded && <View style={st.head}>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>Create your account</Text>
+        <Text ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Create your account</Text>
       </View>}
       {/* Apple leads when available; both choices stay above the email fields. */}
       <View style={[st.doors, compact && { marginTop: space(2), gap: space(2) }]}>
@@ -250,7 +265,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = fa
           ref={emailRef}
           label="Email"
           value={email}
-          onChangeText={(value) => { setEmail(value); if (emailError) setEmailError(null); }}
+          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); if (emailError) setEmailError(null); }}
           placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -330,12 +345,12 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, embedded = fa
         </Text>
       </Press>
       </View>
-    </ScrollScreen>
+    </OnboardingLayout>
   );
 }
 
 const st = StyleSheet.create({
-  head: {},
+  head: { alignItems: 'center' },
   doors: { flexDirection: 'row', gap: space(2), marginTop: space(3) },
   provider: { flex: 1, minWidth: 0 },
   or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(3) },

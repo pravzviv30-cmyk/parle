@@ -101,7 +101,12 @@ describe('the session side and the remaining screens wear the notebook — Phase
   test('nothing in this pass moves, and none of it draws clip-art', () => {
     for (const file of FILES) {
       const body = read(file);
-      assert.doesNotMatch(body, /\bAnimated\./, `${file} animates; only the orb and the highlighter move`);
+      if (file === 'onboarding/OnboardingFlow.tsx') {
+        assert.match(body, /useOnboardingTransition\(\)/, 'onboarding must use the shared live reduced-motion transition');
+        assert.doesNotMatch(body, /Animated\.(timing|spring|sequence|parallel)/, 'onboarding invented a second animation owner');
+      } else {
+        assert.doesNotMatch(body, /\bAnimated\./, `${file} animates outside the shared onboarding transition`);
+      }
       assert.doesNotMatch(body, /from '(\.\.\/)*\.?\/?illustrations/, `${file} draws an authored scene`);
       // One picture is allowed: the scene's place drawing on the chooser's
       // brief (revamp B, F599: the watercolour it replaced has retired).

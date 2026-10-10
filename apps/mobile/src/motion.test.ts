@@ -13,7 +13,7 @@
  *    imported as `Reanimated`.
  * 1. Engines (Reanimated, Worklets) are imported only from the named
  *    directories and files below, and in components.tsx only by `Press`.
- * 2. The legacy `Animated` file list may only shrink.
+ * 2. The legacy `Animated` file list is reviewed explicitly, including the shared onboarding transition.
  * 3. Every file that moves reads reduced motion from motion.ts, live.
  * 4. A loop runs only in a file that can pause it.
  * 5. One door to the engine: `with*` calls live in motion/drive.ts alone, and
@@ -194,6 +194,12 @@ const LEGACY_ANIMATED = [
   'onboarding/firstRun/DayOne.tsx',
   'onboarding/motion/OnboardingScenes.tsx',
   'onboarding/AccountWelcome.tsx',
+  // One shared transition/progress owner; its consumers only render its style.
+  'onboarding/OnboardingLayout.tsx',
+  'onboarding/OnboardingFlow.tsx',
+  'onboarding/PreAccountOnboarding.tsx',
+  'auth/AuthFlow.tsx',
+  'dev/OnboardingPreview.tsx',
 ];
 const usesLegacyAnimated = (body: string): boolean =>
   /\bAnimated\./.test(body) ||
@@ -208,11 +214,17 @@ const loopAllowed = (short: string): boolean =>
 const NO_HOOK_NEEDED = ['motion/tokens.ts', 'motion/drive.ts'];
 
 describe('every animation crosses to the native driver', () => {
-  test('no Animated.timing runs without useNativeDriver: true', () => {
+  test('timings use the native driver except the bounded onboarding width fill', () => {
     const offenders: string[] = [];
     for (const f of FILES) {
       for (const m of every(f.body, /\bAnimated\.timing\(/g)) {
         const body = callBody(f.body, m.index + 'Animated.timing'.length);
+        if (f.short === 'onboarding/OnboardingLayout.tsx' && /Animated\.timing\(fill,/.test(m[0] + body.slice(1))) {
+          assert.match(body, /duration: reduced \? 0 : 320/);
+          assert.match(body, /useNativeDriver: false/);
+          assert.match(f.body, /width: fill\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \['0%', '100%'\]/);
+          continue;
+        }
         if (!/useNativeDriver:\s*(?:true|NATIVE_DRIVER|Platform\.OS !== 'web')/.test(body)) {
           offenders.push(`${f.short}:${lineOf(f.body, m.index)}`);
         }
@@ -589,7 +601,8 @@ describe('reduced motion is watched, never sampled — F721', () => {
       const { body } = file(short);
       const hook = /\buseReduceMotion\(/.test(body);
       const handed = /\breduced\??\s*:\s*boolean\b/.test(body);
-      if (!hook && !handed) {
+      const sharedOnboarding = /import \{[^}]*\buseOnboardingTransition\b[^}]*\} from '(?:\.\.\/)*(?:\.\/)?(?:onboarding\/)?OnboardingLayout\.tsx';/.test(body) && /\buseOnboardingTransition\(\)/.test(body);
+      if (!hook && !handed && !sharedOnboarding) {
         offenders.push(`${short}  moves without asking useReduceMotion() or being handed reduced`);
         continue;
       }

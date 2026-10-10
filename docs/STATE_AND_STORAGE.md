@@ -648,8 +648,8 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fifteen synced, thirteen excluded once
-`game`, `gameLocal` and `home-seen` joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
+stores; `sync/policy.ts` is the count of record (fifteen synced, fifteen excluded after
+the two unfinished onboarding drafts joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -706,7 +706,14 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Thirteen are excluded, each with a written reason in `SYNC_EXCLUSIONS`. `gameLocal` holds
+Fifteen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
+`onboarding-setup-draft` and `onboarding-repair-draft` hold the current route and
+unconfirmed answers on the device that started setup. A merge must not reopen
+another device's flow, replace a completed profile with an unfinished answer, or
+carry a device-local consent answer across devices. Explicit confirmation writes
+completed answers to the existing profile stores; the local drafts clear on
+completion or account-data reset and are included in the account export.
+`gameLocal` holds
 the facts about this phone that the game layer needs: the OS schedule of streak
 reminders, the time zone of the last practice and the plan this phone last observed.
 Syncing them would nudge one learner twice and let one device's billing read decide

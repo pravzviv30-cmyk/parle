@@ -99,13 +99,13 @@ describe('one module owns the audio session', () => {
       'daily/DailyCard.tsx',
       'daily/DailyPracticeScreen.tsx',
       'missions/ListeningPreview.tsx',
-      'onboarding/OnboardingFlow.tsx',
       'onboarding/PreAccountOnboarding.tsx',
       'practice/recordedPlayer.ts',
       'recap/PrivatePractice.tsx',
       'speech/tutorVoice.ts',
       'tabs/ProfileTab.tsx',
       'tabs/TutorTab.tsx',
+      'tutor/useTutorPreview.ts',
     ]) {
       assert.ok(names.includes(expected), `${expected} no longer counts as a voice player, so this rule reads nothing there`);
     }
@@ -127,6 +127,14 @@ describe('one module owns the audio session', () => {
     assert.match(speech, /onStopped: letGo/);
     // The recorded player's playback gate prepares through the session.
     assert.match(named('practice/recordedPlayer.ts').code, /playWhenCurrent\(gate, ticket, enterVoicePlayback,/);
+    // Both onboarding routes delegate previews to the same owner, which still
+    // enters the audio-session seam and holds the voice focus.
+    for (const [name, page] of [['onboarding/OnboardingFlow.tsx', 'voice'], ['onboarding/PreAccountOnboarding.tsx', 'choose-tutor']] as const) {
+      const code = named(name).code;
+      assert.match(code, /import \{ useTutorPreview \} from '\.\.\/tutor\/useTutorPreview\.ts'/);
+      assert.ok(code.includes(`page === '${page}'`), `${name} must scope its preview to the actual voice page`);
+      assert.match(code, /const preview = useTutorPreview\(\{ active:/);
+    }
   });
 
   test('a voice sample on the web starts inside the tap that asked for it', async () => {
@@ -151,7 +159,7 @@ describe('one module owns the audio session', () => {
 
     // Each sample enters voice playback first in the text and in time (the native order), and
     // hands its play to the rule with the platform it runs on.
-    for (const name of ['tabs/TutorTab.tsx', 'tabs/ProfileTab.tsx', 'onboarding/OnboardingFlow.tsx', 'onboarding/PreAccountOnboarding.tsx']) {
+    for (const name of ['tabs/TutorTab.tsx', 'tabs/ProfileTab.tsx', 'onboarding/PreAccountOnboarding.tsx']) {
       const code = named(name).code;
       const flat = code.replace(/\s+/g, ' ');
       assert.match(code, /^import \{ startVoiceLine \} from '\.\.\/sound\/voiceLine\.ts';$/m, `${name} plays its sample without the web rule`);
@@ -162,6 +170,14 @@ describe('one module owns the audio session', () => {
       );
       assert.doesNotMatch(flat, /enterVoicePlayback\(\)\.catch\(\(\) => undefined\)\.then\(/, `${name} still waits for the mode on the web`);
     }
+  });
+
+  test('shared tutor previews use the web gesture directly and wait for native voice mode', () => {
+    const preview = named('tutor/useTutorPreview.ts').code.replace(/\s+/g, ' ');
+    const controller = named('tutor/tutorPreview.ts').code.replace(/\s+/g, ' ');
+    assert.match(preview, /web: Platform\.OS === 'web', ready: enterVoicePlayback,/, 'preview readiness must use the same voice mode seam');
+    assert.match(controller, /const ready = deps\.ready\(\); if \(deps\.web\) \{ void ready\.catch\(\(\) => \{\}\); start\(mine, voice, fresh\); \} else \{ void ready\.then\(\(\) => start\(mine, voice, fresh\), \(\) => fail\(mine\)\); \}/,
+      'the shared preview must play synchronously on web and wait for the audio mode on native');
   });
 
   test('every file that records holds the microphone focus', () => {

@@ -388,10 +388,28 @@ test('no screen touches a sound player or recorder in a cleanup that runs after 
     return !path.startsWith('..') && !path.includes('node_modules') && !/\.test\.tsx?$/.test(path) && /\.tsx?$/.test(path);
   });
   const { made, late } = walkFiles(program, files);
-  // Fifteen players and recorders on 6 October 2026. A floor, like the gate's:
+  // Tutor previews explicitly own their player, rather than competing with
+  // expo-audio hook cleanup. Keep the inventory floor by counting that audited
+  // ownership path, while applying the late-release walk only to hook objects.
+  const manual: string[] = [];
+  const checker = program.getTypeChecker();
+  for (const file of files) {
+    const visit = (node: ts.Node): void => {
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'createAudioPlayer') {
+        const declaration = declarationOf(checker.getSymbolAtLocation(node.expression), checker);
+        if (declaration?.getSourceFile().fileName.includes('/expo-audio/')) manual.push(relative(APP_ROOT, file.fileName));
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(file);
+  }
+  assert.deepEqual(manual.sort(), ['src/sound/sfx.native.ts', 'src/sound/sfx.web.ts', 'src/tutor/useTutorPreview.ts'],
+    'a manual audio owner was added or removed and needs an explicit disposal audit');
+  const previewOwners = manual.filter(name => name === 'src/tutor/useTutorPreview.ts').length;
+  // Fifteen voice players and recorders, including the manual tutor preview. A floor, like the gate's:
   // a new sound raises the count freely, and one that disappears has either
   // been removed on purpose, which lowers this by hand, or slipped past the walk.
-  assert.ok(made.length >= 15, `only ${made.length} sound objects were found, so the walk lost one or a screen's sound was removed:\n${made.join('\n')}`);
+  assert.ok(made.length + previewOwners >= 15, `only ${made.length + previewOwners} sound objects were found, so the walk lost one or a screen's sound was removed:\n${made.join('\n')}`);
   assert.ok(
     made.some((label) => label.startsWith('player from useAudioPlayer at src/onboarding/PreAccountOnboarding.tsx:')),
     `the walk no longer reads pre-account onboarding's player, where F792 was found:\n${made.join('\n')}`,
@@ -401,6 +419,13 @@ test('no screen touches a sound player or recorder in a cleanup that runs after 
     [],
     `these effect cleanups run after expo-audio has released the sound they touch, which throws on iOS and empties the screen. Leave the sound to the release, or reach it inside a try:\n${late.map((entry) => entry.touch).join('\n')}`,
   );
+  const preview = files.find(file => relative(APP_ROOT, file.fileName) === 'src/tutor/useTutorPreview.ts')?.text ?? '';
+  const controller = files.find(file => relative(APP_ROOT, file.fileName) === 'src/tutor/tutorPreview.ts')?.text ?? '';
+  assert.match(preview, /release: \(\) => player\.release\(\)/, 'the manual preview must dispose the native player');
+  assert.match(preview, /return \(\) => \{[^]*?controller\.stop\(\);[^]*?\};/, 'unmount must release the preview through its controller');
+  assert.match(controller, /const old = owned;\s*owned = null;/, 'detach ownership before disposal so queued status cannot touch the released object');
+  assert.match(controller, /safe\(old\.player\.pause\);\s*safe\(old\.player\.release\);/, 'native stop and release must tolerate an already disposed player');
+  assert.match(controller, /const safe =[^]*?try \{ run\(\); \} catch/, 'a native disposal throw must never escape into the screen cleanup');
 });
 
 test('the release walk catches a late touch directly, through a helper, an app function or an app hook, and nothing else', () => {

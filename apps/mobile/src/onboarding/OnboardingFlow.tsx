@@ -1,82 +1,12 @@
-/**
- * Onboarding, one page at a time: age, name, who is answering, and which voice
- * answers.
- *
- * Four pages, progress dots, a back chevron, and nothing to fail. The name
- * page's Continue is always live, because a name is encouraged and never
- * required. A learner migrated from the pre-account era arrives with `existing`
- * set and their old answers pre-filled, so they are asked only what is new.
- *
- * What used to be here and is not any more: a typed date of birth, the daily
- * goal, and the reason they are learning French. The date became one
- * confirmation, because the only thing the product needs to know is that the
- * learner is thirteen; the goal moved to a Profile row, because nothing on the
- * way to a first conversation should be a preference; and the why page went
- * because nothing ever read the answer. All three are the same idea: ask less
- * before the value, and never ask a question the product does not use.
- *
- * The Meet page is not a question — it is the app saying, before the first
- * scene rather than after it, that the tutor is AI, that no person hears you,
- * that the microphone is about to be asked for, and that typing is offered as a
- * choice in any scene. Every word of it comes from `onboarding/disclosure.ts`,
- * which is also where the welcome and TutorIntro get theirs, so the four cannot
- * drift apart.
- *
- * Every page that names the tutor names `persona`, and `persona` is
- * `tutorPersonaOf(existing)` rather than the default. On a first-ever run there
- * is no record and it resolves to the default, which is the right answer and is
- * why these pages were allowed to name it at all. On a second pass there is a
- * record: a migrated learner, or one sent back through by a newly required
- * answer. That learner used to be told to meet Luc and then introduced to
- * Céline by TutorIntro two screens later, which is F300 and is the same
- * mismatch F281 and F294 exist to prevent.
- *
- * The voice page is the last one, and it is the only place a learner is ever
- * shown the eight voices before they have gone looking in Profile for them.
- * It is a question that costs nothing to decline: the pill leaves with whatever
- * is selected, the ghost under it leaves with nothing selected, and both of
- * those end up talking to somebody with a name. Its rules — what it offers,
- * what a skip means, and which door the answer is written through — are in
- * `voiceStep.ts`, because a rule inside a `.tsx` is a rule nothing can check.
- *
- * Every rule this file used to hold now lives in `answers.ts`, where a test can
- * reach it. What is left here is layout.
- *
- * ## The frame, and the shape the tests read
- *
- * The screen sits inside `ScrollScreen center avoidKeyboard`: the frame pays the
- * notch, keeps the field above the keyboard, and pins the short pages to the
- * middle. The progress dots ride in the header's title slot beside the back
- * chevron (`ScreenHeader`), and the one pill per page rides in the footer.
- *
- * The page bodies are hoisted into `const body` above the return on purpose. A
- * JSX `footer={...}` prop is written before the children in source, and three
- * source walks (answers.test.ts, voiceStep.test.ts) read this file by the first
- * occurrence of `page === 'age' &&` / `page === 'voice' &&` and require the
- * `<Field>` between name and meet, and every `complete(` after the voice branch
- * opens. Body-before-footer in source keeps those walks green. F472's walk
- * reads the same way: the one `<SwitchRow` has to sit after the
- * `existing === null` guard and before the voice branch, which is what "asked
- * once, on the Meet page, and only of somebody with no record" looks like in
- * source.
- */
-
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { enterVoicePlayback } from '../sound/audioSession.ts';
-import { useVoiceHold } from '../sound/useVoiceHold.ts';
-import { startVoiceLine } from '../sound/voiceLine.ts';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, BackHandler, View, Text, StyleSheet, Platform, findNodeHandle } from 'react-native';
 import { colour, paper, space, type } from '../theme.ts';
-import { Card, PillButton, GhostButton, Field, ProgressDots, OptionRow } from '../components.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { Card, PillButton, GhostButton, Field,  } from '../components.tsx';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import type { StoredProfile } from '../profile/store.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { tutorPersonaOf } from '../tutor/tutorName.ts';
-import { nextSample, type TutorVoiceKey } from '../tutor/tutorVoice.ts';
-import { voiceSample } from '../tutor/voiceSamples.ts';
-import { VOICE_STEP_OPTIONS } from './voiceStep.ts';
+import { type TutorVoiceKey } from '../tutor/tutorVoice.ts';
 import {
   AGE_CONFIRM,
   AGE_DENY,
@@ -93,6 +23,12 @@ import {
   type Page,
 } from './answers.ts';
 import { OnboardingArtwork } from './OnboardingMotion.tsx';
+import { OnboardingLayout, useOnboardingTransition } from './OnboardingLayout.tsx';
+import { onboardingProgress } from './onboardingProgress.ts';
+import { loadRepairDraft, saveRepairDraft, clearRepairDraft } from './onboardingDraftStore.ts';
+import { TutorSelection } from './TutorSelection.tsx';
+import { useTutorPreview } from '../tutor/useTutorPreview.ts';
+import { scopeGeneration } from '../storage/scope.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
 import {
   nameGreeting,
@@ -116,7 +52,7 @@ export function OnboardingFlow({
   onSignOut,
 }: {
   existing: StoredProfile | null;
-  onDone: (answers: OnboardingAnswers) => void;
+  onDone: (answers: OnboardingAnswers) => void | Promise<boolean | void>;
   onSignOut: () => void;
 }) {
   const [page, setPage] = useState<Page>('age');
@@ -160,69 +96,57 @@ export function OnboardingFlow({
    */
   const persona = tutorPersonaOf(existing);
 
-  /**
-   * Which sample is sounding, and the one player that sounds it.
-   *
-   * Lifted from the Profile sheet unchanged, down to `nextSample` deciding the
-   * key: one player rather than one per row is what makes "one at a time" a
-   * property of the shape instead of a discipline. A learner comparing two
-   * voices taps the second while the first is still going, and with eight
-   * players would hear both at once and learn nothing about either.
-   *
-   * Declared at the top of the component rather than beside the page that uses
-   * it, because the pages are branches and a hook behind a branch is a hook
-   * that changes order.
-   */
-  const [playing, setPlaying] = useState<TutorVoiceKey | null>(null);
-  const player = useAudioPlayer();
-  const playerStatus = useAudioPlayerStatus(player);
-  useVoiceHold(playerStatus.playing);
-  // Every tap, page change and exit spends the ticket, so a clip asked for
-  // during the mode change never starts after the learner moved on.
-  const sampleTicket = useRef(0);
-  const hearVoice = useCallback(
-    (key: TutorVoiceKey) => {
-      const next = nextSample(playing, key);
-      setPlaying(next);
-      const ticket = ++sampleTicket.current;
-      if (next === null) {
-        player.pause();
-        return;
+  const [loaded, setLoaded] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [issue, setIssue] = useState('');
+  const submission = useRef(false);
+  const alive = useRef(true);
+  const heading = useRef<Text>(null);
+  const pageMotion = useOnboardingTransition();
+  const preview = useTutorPreview({ active: loaded && page === 'voice' });
+  useEffect(() => {
+    alive.current = true;
+    void loadRepairDraft().then(saved => {
+      if (!alive.current) return;
+      if (saved) {
+        setPage(saved.page); setName(saved.name); setOldEnough(saved.oldEnough);
+        setVoice(saved.voice); setCompletedSteps(saved.completedSteps);
+        if (existing === null) setAnalyticsConsent(saved.analyticsConsent ?? false);
       }
-      // A full voice mode first, so the sample is heard with the silent switch
-      // on (F723). The web has no modes and plays only inside the tap, so there
-      // it starts at once (sound/voiceLine.ts). Then loaded before it is told to
-      // play, or the player sounds whatever it was last handed. `replace` builds
-      // a fresh media element, so the new clip starts at nought and a tap on the
-      // one that just finished replays it.
-      startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
-        if (ticket !== sampleTicket.current) return;
-        player.replace(voiceSample(next));
-        player.play();
-      }, Platform.OS === 'web');
-    },
-    [playing, player],
-  );
-
-  // A clip that ends on its own leaves `playing` pointing at it, and then
-  // `nextSample` reads the next tap on that same voice as "stop" and stops
-  // nothing — a dead ear until a third tap. Clearing it the instant the sound
-  // finishes makes the next tap a fresh play. F305.
+      setLoaded(true);
+    });
+    return () => { alive.current = false; };
+  }, []);
   useEffect(() => {
-    if (playerStatus.didJustFinish) setPlaying(null);
-  }, [playerStatus.didJustFinish]);
-
-  // The sound does not follow the learner off the voice step. `complete` pauses
-  // on the way out the front, but the back chevron only moves the page, so a
-  // sample auditioned here would otherwise play on over the screen behind it.
-  // F304.
+    if (!loaded) return;
+    void saveRepairDraft({ page, name, oldEnough, voice, analyticsConsent, completedSteps });
+  }, [loaded, page, name, oldEnough, voice, analyticsConsent, completedSteps]);
+  const move = (next: Page, backward = false) => {
+    if (!loaded || submission.current || pageMotion.locked.current) return false;
+    preview.stop();
+    return pageMotion.transition(() => {
+      if (!backward) setCompletedSteps(prior => [...new Set([...prior, page])]);
+      setPage(next);
+    }, backward);
+  };
   useEffect(() => {
-    if (page !== 'voice') sampleTicket.current += 1;
-    if (page !== 'voice') player.pause();
-  }, [page, player]);
+    if (Platform.OS !== 'android') return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      const previous = pageBefore(page);
+      if (previous && oldEnough !== false) move(previous, true);
+      return true;
+    });
+    return () => back.remove();
+  }, [page, oldEnough]);
+  useEffect(() => {
+    if (!loaded) return;
+    const node = heading.current;
+    if (Platform.OS === 'web') (node as unknown as { focus?: () => void })?.focus?.();
+    else { const handle = findNodeHandle(node); if (handle) AccessibilityInfo.setAccessibilityFocus(handle); }
+  }, [page, loaded]);
 
   const index = PAGES.indexOf(page);
-  const previous = pageBefore(page);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
   // `onboarding_completed` used to be sent from here, first thing. It is sent
@@ -230,45 +154,40 @@ export function OnboardingFlow({
   // `trackProductEvent` reads that answer on every event and one sent from here
   // would race the write. The ones it would drop are exactly the learners who
   // had just said yes, which is the worst possible sample to be missing.
-  const complete = (chosen: TutorVoiceKey | null) => {
-    // The sound does not follow them into the chooser. Leaving a clip playing
-    // over the next screen is the kind of thing that makes somebody put the
-    // phone down in a quiet room.
-    sampleTicket.current += 1;
-    player.pause();
-    onDone(
-      answersFrom({
-        name,
-        ageConfirmed: oldEnough === true,
-        motivation: existing?.motivation ?? null,
-        // The pill leaves with the selection, the skip with null — passed in by
-        // the caller, never read from `voice` here. The skip sets `voice` to null
-        // and completes in the same tick, and a closure reading `voice` would
-        // still see the old selection and save a voice the learner walked past.
-        // A null skip leaves an existing learner's stored voice untouched:
-        // `completeProfile` carries it through and `withChosenVoice(_, null)`
-        // writes nothing. F303.
-        tutorVoice: chosen,
-        // Whatever the switch on the Meet page holds, and null when that page
-        // did not draw one. Read from state rather than passed in, unlike the
-        // voice: nothing about finishing changes it, so there is no tick in
-        // which a closure could be looking at the wrong value.
-        analyticsConsent,
-      }),
-    );
+  const complete = async (chosen: TutorVoiceKey | null) => {
+    if (submission.current || pageMotion.locked.current || oldEnough !== true) return;
+    submission.current = true;
+    const owner = scopeGeneration();
+    setBusy(true); setIssue(''); preview.stop();
+    try {
+      const result = await onDone(answersFrom({
+        name, ageConfirmed: oldEnough === true, motivation: existing?.motivation ?? null,
+        tutorVoice: chosen, analyticsConsent,
+      }));
+      if (owner !== scopeGeneration()) return;
+      if (result === false) throw new Error('save');
+      await clearRepairDraft();
+    } catch {
+      if (alive.current && owner === scopeGeneration()) setIssue('Your choices could not be saved. Please try again.');
+    } finally {
+      submission.current = false;
+      if (alive.current && owner === scopeGeneration()) setBusy(false);
+    }
   };
 
   const confirmAge = () => {
     setOldEnough(true);
-    setPage('name');
+    move('name');
   };
 
-  const ground = page === 'name' ? colour.blue : page === 'meet' ? colour.mint : colour.sun;
-  const ink = page === 'name' ? paper.card : paper.ink;
+  const ink = paper.ink;
+  const progress = onboardingProgress({ page, completed: completedSteps, repair: true });
 
   // The page bodies, hoisted above the return so they are written before the
   // footer in source. See the header note: the first-occurrence source walks
   // depend on body-before-footer.
+  if (!loaded) return <View style={{ flex: 1, backgroundColor: paper.ground, justifyContent: 'center', alignItems: 'center' }}><Text style={st.sub}>Loading your choices…</Text></View>;
+
   const body = (
     <>
       {/* The gate comes first, and deliberately before the name. Asking
@@ -278,7 +197,7 @@ export function OnboardingFlow({
           order to ask in. */}
       {page === 'age' && (
         <>
-          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
+          <Text ref={heading} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[st.question, { color: ink }]}>
             {AGE_QUESTION}
           </Text>
           <Text style={[st.sub, { color: ink }]}>{AGE_SUB}</Text>
@@ -295,7 +214,7 @@ export function OnboardingFlow({
 
       {page === 'name' && (
         <>
-          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
+          <Text ref={heading} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[st.question, { color: ink }]}>
             {NAME_QUESTION}
           </Text>
           <Text style={[st.sub, { color: ink }]}>{nameGreeting(voice ?? existing?.tutorVoice)}</Text>
@@ -312,7 +231,7 @@ export function OnboardingFlow({
               autoFocus={Platform.OS === 'web'}
               maxLength={40}
               returnKeyType="done"
-              onSubmitEditing={() => setPage('meet')}
+              onSubmitEditing={() => move('meet')}
             />
           </Card>
           <Text style={[st.hint, { color: ink }]}>{NAME_SKIP_HINT}</Text>
@@ -321,7 +240,7 @@ export function OnboardingFlow({
 
       {page === 'meet' && (
         <>
-          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
+          <Text ref={heading} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[st.question, { color: ink }]}>
             {MEET_TITLE(persona)}
           </Text>
           <View style={st.lines}>
@@ -363,24 +282,11 @@ export function OnboardingFlow({
           selected, and both of those are a real person with a name. */}
       {page === 'voice' && (
         <>
-          <Text accessibilityRole="header" style={[st.question, { color: ink }]}>
+          <Text ref={heading} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[st.question, { color: ink }]}>
             {VOICE_TITLE}
           </Text>
-          <Text style={[st.sub, { color: ink }]}>{VOICE_BODY}</Text>
           <Text style={[st.hint, { color: ink }]}>{VOICE_AI}</Text>
-          <View style={st.voices}>
-            {VOICE_STEP_OPTIONS.map((option) => (
-              <OptionRow
-                key={option.value}
-                title={option.label}
-                detail={option.gloss}
-                selected={voice === option.value}
-                playing={playing === option.value}
-                onPress={() => setVoice(option.value)}
-                onHear={() => hearVoice(option.value)}
-              />
-            ))}
-          </View>
+          <TutorSelection chosen={voice} preview={preview} onChoose={setVoice} />
           <Text style={[st.hint, { color: ink }]}>{VOICE_SKIP_HINT(persona)}</Text>
         </>
       )}
@@ -388,16 +294,7 @@ export function OnboardingFlow({
   );
 
   return (
-    <ScrollScreen
-      ground={ground}
-      avoidKeyboard
-      header={
-        <ScreenHeader
-          divider={false}
-          back={previous !== null ? { onPress: () => setPage(previous) } : undefined}
-          title={<ProgressDots total={PAGES.length} index={index} />}
-        />
-      }
+    <OnboardingLayout page={page} progress={progress} avoidKeyboard actionInScroll={page === 'name'}
       footer={
         // The one action per page. Gone on the gate once they have said they
         // are younger: a refusal with the way through still sitting under it is
@@ -405,12 +302,12 @@ export function OnboardingFlow({
         // app and coming back offers the question again, which is the escape
         // hatch for a mis-tap and is deliberately not a button.
         <>
-          {page === 'age' && oldEnough !== false && <PillButton label={AGE_CONFIRM} onPress={confirmAge} />}
-          {page === 'name' && <PillButton label="Continue" onPress={() => setPage('meet')} />}
-          {page === 'meet' && <PillButton label="Continue" onPress={() => setPage('voice')} />}
+          {page === 'age' && oldEnough !== false && <PillButton label={AGE_CONFIRM} onPress={confirmAge} disabled={!loaded} />}
+          {page === 'name' && <PillButton label="Continue" onPress={() => move('meet')} disabled={!loaded} />}
+          {page === 'meet' && <PillButton label="Continue" onPress={() => move('voice')} disabled={!loaded} />}
           {page === 'voice' && (
             <>
-              <PillButton label={MEET_PILL} onPress={() => complete(voice)} />
+              <PillButton label={MEET_PILL} onPress={() => void complete(voice)} disabled={busy} />
               {/* The way past, and it is a ghost rather than a second pill on
                   purpose: one solid action per screen. It goes to the same place
                   the pill does, carrying nothing, which is what makes skipping an
@@ -418,18 +315,19 @@ export function OnboardingFlow({
                   itself rather than scheduling `setVoice(null)` and completing in
                   the same tick, which a closure over `voice` would never see. */}
               <View style={st.secondary}>
-                <GhostButton label={VOICE_SKIP} onPress={() => complete(null)} />
+                <GhostButton label={VOICE_SKIP} onPress={() => void complete(null)} disabled={busy} />
               </View>
             </>
           )}
         </>
       }
     >
-      <View style={st.page}>
+      <Animated.View style={[st.page, pageMotion.style]}>
         <OnboardingArtwork name={page === 'name' ? 'celebrate-first-line' : page === 'meet' ? 'state-headphones' : 'state-notebook'} response="welcome" event={index} />
-        {body}
-      </View>
-    </ScrollScreen>
+        {loaded ? body : <Text style={st.sub}>Loading your choices…</Text>}
+        {!!issue && <Text accessibilityRole="alert" style={st.hint}>{issue}</Text>}
+      </Animated.View>
+    </OnboardingLayout>
   );
 }
 
@@ -437,9 +335,9 @@ const st = StyleSheet.create({
   // Notebook Phase 4 (2026-09-27): each page sits on the paper itself. The
   // feature panel, its ink outline and the three retired rasters (the cake,
   // the wave, the welcome bubbles) are gone; the words and the order are not.
-  page: { paddingTop: space(3), marginBottom: space(4) },
-  question: { ...type.display, color: paper.ink },
-  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
+  page: { paddingTop: space(3), marginBottom: space(4), gap: space(3) },
+  question: { ...type.display, color: paper.ink, textAlign: 'center' },
+  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2), textAlign: 'center' },
   hint: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   lines: { gap: space(3), marginTop: space(4) },
   voices: { gap: space(3), marginTop: space(5), alignSelf: 'stretch' },

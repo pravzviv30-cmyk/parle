@@ -440,7 +440,7 @@ describe('the return gate is drawn as a working screen — F601', () => {
     const confirm = answers.indexOf('<PillButton');
     assert.ok(deny > 0 && confirm > deny, 'the quiet no is not above the one ink pill');
     assert.match(answers.slice(confirm), /label=\{AGE_CONFIRM\}/, 'the pill is not the confirmation');
-    assert.match(AGE_GATE, /<ScrollScreen footer=\{answers \|\| undefined\}>/, 'the answers are not pinned in the footer');
+    assert.match(AGE_GATE, /<OnboardingLayout page="age" progress=\{onboardingProgress\(\{ page: 'age', eligibilityOnly: true \}\)\} footer=\{answers \|\| undefined\}>/, 'the return eligibility check must show its one actual step and pin its answers in the shared footer');
     assert.equal((AGE_GATE.match(/<PillButton\b/g) ?? []).length, 1, 'the age check offers more than one pill');
 
     // The refusal is unchanged: no footer, and the one way out is sign out.
@@ -465,7 +465,7 @@ describe('the return gate is drawn as a working screen — F601', () => {
 });
 
 describe('the onboarding doc counts the screens the code shows', () => {
-  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /7 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan'\]/); assert.match(doc, /sixteen-value disk registry/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
+  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /7 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan'\]/); assert.equal(PRE_ACCOUNT_PAGES.length, 17); assert.match(doc, /disk registry also accepts historical/); assert.match(doc, /Historical native correction checks, before this redesign/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
 });
 
 /**
@@ -586,14 +586,16 @@ describe('the first run asks about usage data once, and off is the answer until 
     assert.equal(untouched.analyticsConsent, null, 'a question nobody was asked became an answer on their behalf');
     assert.match(
       APP,
-      /if \(answers\.analyticsConsent !== null\) await saveConsent/,
+      /if \(answers\.analyticsConsent !== null && \(await saveConsent\(\{ allowed: answers\.analyticsConsent \}\)\) !== 'durable'\) return false;/,
       'App.tsx writes a consent for a page that never asked, which is how a stored yes is silently withdrawn',
     );
   });
 });
 
- test("the recovery route's voice step is option rows that still sound their sample", () => {
-  assert.doesNotMatch(FLOW, /<OptionCard/);
-  assert.match(FLOW, /<OptionRow[\s\S]*?title=\{option.label\}[\s\S]*?detail=\{option.gloss\}[\s\S]*?selected=\{voice === option.value\}[\s\S]*?playing=\{playing === option.value\}[\s\S]*?onPress=\{\(\) => setVoice\(option.value\)\}[\s\S]*?onHear=\{\(\) => hearVoice\(option.value\)\}/);
+ test("the recovery route's tutor cards keep independent selection and preview state", () => {
+  assert.match(FLOW, /<TutorSelection chosen=\{voice\} preview=\{preview\} onChoose=\{setVoice\}/);
+  assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
   assert.match(FLOW, /question: \{ \.\.\.type.display/);
+  assert.match(FLOW, /<OnboardingLayout/);
+  assert.doesNotMatch(FLOW, /back=|icon="back"/);
 });

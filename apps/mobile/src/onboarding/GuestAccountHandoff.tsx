@@ -3,9 +3,7 @@ import { Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { phraseKeyOf } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
-import { useProfile } from '../app/ProfileContext.tsx';
 import { Card, GhostButton, PillButton } from '../components.tsx';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { paper, type } from '../theme.ts';
 import { addPhrases } from '../review/store.ts';
 import { activeUserId, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
@@ -24,6 +22,8 @@ import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { keptPhrase, savedPhraseTasks } from './guestProgress.ts';
 import { tutorTimeLine } from './firstRun/copy.ts';
 import { AccountWelcome } from './AccountWelcome.tsx';
+import { OnboardingFrame, OnboardingLayout } from './OnboardingLayout.tsx';
+import { onboardingProgress } from './onboardingProgress.ts';
 /**
  * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
  *
@@ -62,7 +62,15 @@ export function GuestAccountHandoff({
   const [welcoming, setWelcoming] = useState(false);
   const autoStarted = useRef(false);
   const autoFinished = useRef(false);
+  const operation = useRef(false);
+  const finished = useRef(false);
+  const mounted = useRef(true);
+  // Auth has completed, but this handoff still finishes the original guest
+  // journey. Keep its conditional route when App clears the consumed draft.
+  const journey = useRef(draft);
+  if (journey.current === null && guest) journey.current = guest.plan;
   useEffect(() => {
+    mounted.current = true;
     let active = true;
     void loadGuestPractice().then((value) => {
       if (active) {
@@ -72,6 +80,7 @@ export function GuestAccountHandoff({
     });
     return () => {
       active = false;
+      mounted.current = false;
     };
   }, []);
   // Reading the guest's practice draws a blank, so the launch screen stays up
@@ -90,14 +99,15 @@ export function GuestAccountHandoff({
     }
   }, [newlyCreated, saved, busy, guest]);
   const keep = async () => {
-    if (!user || busy || !guest) return;
+    if (!user || operation.current || finished.current || !guest) return;
+    operation.current = true;
     setBusy(true);
     setError('');
     const owner = scopeGeneration();
     const uid = user.id;
     try {
       const balance = await adoptGuestUsage(guest, uid);
-      if (owner !== scopeGeneration() || activeUserId() !== uid) return;
+      if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
       // Each accepted or kept reply's task, as its natural line, never the
       // learner's unchecked spelling (F757).
       const phrases = savedPhraseTasks(guest).map((task) => ({
@@ -127,24 +137,26 @@ export function GuestAccountHandoff({
       // The guest's finished days become the account's, once, and day one
       // never lights a second time (F744). Nothing to record is not a failure.
       if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
-      if (owner !== scopeGeneration() || activeUserId() !== uid) return;
+      if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
       setRemaining(balance);
       setSaved(true);
       // Free or on a plan: the server says, after the claim above has spent the
       // guest's seconds. Read in the background, so nothing waits on it; until
       // it answers, and if it cannot, the claim's own balance is said plainly.
       void fetchBillingStatus(uid).then((answer) => {
-        if (owner === scopeGeneration() && activeUserId() === uid) setStatus(answer);
+        if (mounted.current && owner === scopeGeneration() && activeUserId() === uid) setStatus(answer);
       });
     } catch (cause) {
-      if (owner === scopeGeneration())
+      if (mounted.current && owner === scopeGeneration())
         setError(cause instanceof Error ? cause.message : 'Your practice could not be linked yet.');
     } finally {
-      if (owner === scopeGeneration()) setBusy(false);
+      operation.current = false;
+      if (mounted.current && owner === scopeGeneration()) setBusy(false);
     }
   };
   const finish = async () => {
-    if (!user || busy || !guest) return;
+    if (!user || operation.current || finished.current || !guest) return;
+    operation.current = true;
     const owner = scopeGeneration();
     setBusy(true);
     setError('');
@@ -152,22 +164,33 @@ export function GuestAccountHandoff({
       // The usage transfer is required even when the learner declines to import
       // their phrase. Declining an import cannot reset a one-time allowance.
       if (!saved) await adoptGuestUsage(guest, user.id);
-      if (owner !== scopeGeneration()) return;
+      if (!mounted.current || owner !== scopeGeneration()) return;
       await clearGuestPractice();
-      if (owner !== scopeGeneration() || activeUserId() !== user.id) return;
+      if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== user.id) return;
+      finished.current = true;
       if (newlyCreated) setWelcoming(true);
       setGuest(null);
       onDone(saved);
     } catch {
-      if (owner === scopeGeneration())
+      if (mounted.current && owner === scopeGeneration())
         setError('Your minutes could not be checked. Try again. Your practice is still here.');
     } finally {
-      if (owner === scopeGeneration()) setBusy(false);
+      operation.current = false;
+      if (mounted.current && owner === scopeGeneration()) setBusy(false);
     }
   };
-  if (welcoming) return <AccountWelcome onDone={() => { setWelcoming(false); onWelcomeDone?.(); }} />;
-  if (guest === null) return <>{children}</>;
+  if (guest === null && !welcoming) return <>{children}</>;
   if (guest === undefined) return <View />;
+  const progress = onboardingProgress({
+    page: 'account-welcome',
+    five: journey.current?.onboardingVariant === 'five' || (journey.current?.onboardingVariant == null && process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five'),
+    completed: journey.current?.onboardingCompletedSteps,
+    skipped: [...(journey.current?.onboardingSkippedSteps ?? []), ...(journey.current?.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])],
+  });
+  if (welcoming) return <OnboardingFrame initialProgress={progress}>
+    <AccountWelcome progress={progress} onDone={() => { setWelcoming(false); onWelcomeDone?.(); }} />
+  </OnboardingFrame>;
+  if (guest === null) return <>{children}</>;
   // The time with the tutor, once saved: free on the free allowance (and on a
   // lapsed plan, which the server holds as that), on a plan otherwise, and in
   // plain minutes when only the claim's balance is known.
@@ -181,8 +204,8 @@ export function GuestAccountHandoff({
   // The phrase the card names is the newest one the save writes, or none.
   const shown = savedPhraseTasks(guest).at(-1);
   return (
-    <ScrollScreen
-      header={<ScreenHeader title={saved ? (shown ? 'Your phrase is saved.' : 'Your practice is saved.') : 'Keep this practice?'} />}
+    <OnboardingFrame initialProgress={progress}>
+    <OnboardingLayout page="account-welcome" progress={progress}
       footer={
         <PillButton
           label={saved ? 'Continue' : busy ? 'Saving…' : 'Keep this practice'}
@@ -193,10 +216,13 @@ export function GuestAccountHandoff({
         />
       }
     >
-      <Text style={type.body}>Signed in as {user?.email ?? 'your account'}.</Text>
+      <Text accessibilityRole="header" style={[type.title, { textAlign: 'center', marginBottom: 16 }]}>
+        {saved ? (shown ? 'Your phrase is saved.' : 'Your practice is saved.') : 'Keep this practice?'}
+      </Text>
+      <Text style={[type.body, { textAlign: 'center' }]}>Signed in as {user?.email ?? 'your account'}.</Text>
       <Card style={{ marginTop: 20, gap: 16 }}>
-        {shown ? <Text style={type.heading}>{keptPhrase(shown)}</Text> : null}
-        <Text style={type.body}>
+        {shown ? <Text style={[type.heading, { textAlign: 'center' }]}>{keptPhrase(shown)}</Text> : null}
+        <Text style={[type.body, { textAlign: 'center' }]}>
           {saved
             ? shown
               ? 'Your phrase is in Practice. Your account can sync it to another device.'
@@ -205,7 +231,7 @@ export function GuestAccountHandoff({
               ? 'Keep the phrase from this phone. Your account’s existing learning and preferences stay yours.'
               : 'Keep the practice from this phone. Your account’s existing learning and preferences stay yours.'}
         </Text>
-        {timeLine !== null && <Text style={type.bodyStrong}>{timeLine}</Text>}
+        {timeLine !== null && <Text style={[type.bodyStrong, { textAlign: 'center' }]}>{timeLine}</Text>}
       </Card>
       {!saved && (
         <GhostButton
@@ -231,6 +257,7 @@ export function GuestAccountHandoff({
           {error}
         </Text>
       ) : null}
-    </ScrollScreen>
+    </OnboardingLayout>
+    </OnboardingFrame>
   );
 }

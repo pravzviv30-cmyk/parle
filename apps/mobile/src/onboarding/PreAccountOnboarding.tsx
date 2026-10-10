@@ -14,6 +14,7 @@ import { STARTER_AI, STARTER_PROCESSING, STARTER_LOCAL } from './disclosure.ts';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
+  Animated,
   AppState,
   BackHandler,
   type ScrollView as ScrollViewHandle,
@@ -32,9 +33,9 @@ import { starterTasks, tutorVoice, type TutorVoiceKey } from '@luvani/core';
 import { useReduceMotion } from '../motion.ts';
 import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
-import { FULL_SETUP, FIVE_SETUP, earnedChoices, nextSetupLabel } from './flow.ts';
+import { FULL_SETUP, FIVE_SETUP, nextSetupLabel } from './flow.ts';
 import { Card, GhostButton, IconAction, IconActionRow, IconButton, PillButton, Sheet } from '../components.tsx';
-import { Screen, ScrollScreen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
+import { Screen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
 import { colour, decorative, frenchText, onColour, paper, radius, space, type } from '../theme.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
@@ -59,7 +60,7 @@ import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 import { FIRST_LINE } from './firstRun.ts';
 import { clipFor } from './exchangeAudio.ts';
 import { REASONS, START_LEVELS, CONFIDENCE_OPTIONS, FOCUS_OPTIONS, initialPracticeMode, minutesOf, practiceForecast } from './plan.ts';
-import { personalPlanTitle, REASON_LABELS, storyGround } from './story.ts';
+import { personalPlanTitle, REASON_LABELS } from './story.ts';
 import { GUEST_PAGES, guestInvestment, guestStreak, keptPhrase, resumePage, savedPhraseTasks, starterMinutes } from './guestProgress.ts';
 import {
   freshPreAccountDraft,
@@ -82,8 +83,6 @@ import { GuestRecording } from './GuestRecording.tsx';
 import { setLaunchWelcome, useLaunchHold } from '../launch/useLaunch.ts';
 import {
   OnboardingArtwork,
-  PageArrival,
-  SetupProgress,
   type ArtworkResponse,
 } from './OnboardingMotion.tsx';
 import { FIRST_RUN_COPY, SLOW_CHECK_MS, issueActions } from './firstRun/copy.ts';
@@ -92,6 +91,11 @@ import { PlanCard, type FlyFrom } from './firstRun/PlanCard.tsx';
 import { TILES_WRAP_AT } from './firstRun/PlanReveal.tsx';
 import { PersonalPlan } from './PersonalPlan.tsx';
 import { TutorSelection } from './TutorSelection.tsx';
+import { useTutorPreview } from '../tutor/useTutorPreview.ts';
+import { OnboardingLayout, useOnboardingTransition } from './OnboardingLayout.tsx';
+import { onboardingProgress } from './onboardingProgress.ts';
+import { scopeGeneration } from '../storage/scope.ts';
+import { loadSetupDraft, saveSetupDraft, clearSetupDraft } from './onboardingDraftStore.ts';
 import { GlowAction, OnboardingScene, RevealItem } from './motion/OnboardingScenes.tsx';
 import { Enter } from '../motion/layout.tsx';
 import { GoalTile } from './firstRun/GoalTile.tsx';
@@ -125,11 +129,11 @@ const headingFor = (page: PreAccountPage) =>
     ({
       'hear-it': 'Welcome to Luvani',
       reason: 'Make French yours.',
-      'start-level': 'How’s Your French?',
+      'start-level': 'How’s your French?',
       confidence: 'How does speaking feel?',
       focus: 'What would help you most?',
       time: 'Your daily French moment.',
-      'choose-tutor': 'Choose your tutor.',
+      'choose-tutor': 'Choose your tutor',
     }) as Partial<Record<PreAccountPage, string>>
   )[page];
 export function PreAccountOnboarding({
@@ -140,6 +144,7 @@ export function PreAccountOnboarding({
   refused = false,
   onRefuse,
   signedIn = false,
+  active = true,
 }: {
   initialDraft: PreAccountOnboardingDraft | null;
   onDraftChange: (draft: PreAccountOnboardingDraft) => void;
@@ -148,6 +153,7 @@ export function PreAccountOnboarding({
   refused?: boolean;
   onRefuse?: () => void;
   signedIn?: boolean;
+  active?: boolean;
 }) {
   const reduced = useReduceMotion();
   const compact = useCompactPhone();
@@ -156,16 +162,14 @@ export function PreAccountOnboarding({
     setLaunchWelcome(initialDraft === null);
     return () => setLaunchWelcome(false);
   }, []);
-  const [sampleVoice, setSampleVoice] = useState<TutorVoiceKey | null>(null);
   const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
-  const questionOrder =
-    process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? FIVE_SETUP : FULL_SETUP;
+  const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => ({ ...(initialDraft ?? freshPreAccountDraft()), onboardingVariant: initialDraft?.onboardingVariant ?? (process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? 'five' : 'full') }));
+  const questionOrder = draft.onboardingVariant === 'five' ? FIVE_SETUP : FULL_SETUP;
   const five = questionOrder === FIVE_SETUP;
-  const [draft, setDraft] = useState(() => initialDraft ?? freshPreAccountDraft());
   // The retired demo and save pages open the promise again; the retired
   // days-a-week page resumes on the daily goal that replaced it (D5).
   const [page, setPage] = useState<PreAccountPage>(() =>
-    initialDraft?.page === 'first-line' || initialDraft?.page === 'save'
+    initialDraft?.page === 'account' ? initialDraft.accountReturnPage ?? 'keep' : initialDraft?.page === 'first-line' || initialDraft?.page === 'save'
       ? 'hear-it'
       : initialDraft?.page === 'frequency'
         ? 'time'
@@ -176,7 +180,8 @@ export function PreAccountOnboarding({
   const [planField, setPlanField] = useState<'reason' | 'start-level' | 'time' | null>(null);
   const [pose, setPose] = useState<ArtworkResponse>('welcome');
   const [event, setEvent] = useState(0);
-  const [direction, setDirection] = useState(1);
+  const pageMotion = useOnboardingTransition();
+  const preview = useTutorPreview({ active: active && page === 'choose-tutor' });
   const [guest, setGuest] = useState<GuestPractice | null>(null);
   const [loaded, setLoaded] = useState(false);
   // Reading the guest's practice shows a loading line, so the launch screen
@@ -220,7 +225,7 @@ export function PreAccountOnboarding({
     const app = AppState.addEventListener('change', (state) => {
       if (clock.since) clock.milliseconds += Date.now() - clock.since;
       clock.since = state === 'active' && page === 'practice' ? Date.now() : 0;
-      if (state !== 'active') player.pause();
+      if (state !== 'active') { hearTicket.current += 1; player.pause(); }
     });
     return () => {
       app.remove();
@@ -250,29 +255,43 @@ export function PreAccountOnboarding({
     const next = { ...draftRef.current, ...change };
     draftRef.current = next;
     setDraft(next);
-    if (!refused) onDraftChange({ ...next, page });
+    if (!refused) {
+      const persisted = { ...next, page };
+      onDraftChange(persisted);
+      if (signedIn) void saveSetupDraft(persisted);
+    }
     return next;
   };
   const stopSound = () => {
     hearTicket.current += 1;
     player.pause();
-    setSampleVoice(null);
+    preview.stop();
+  };
+  const showPage = (next: PreAccountPage, backward = false) => {
+    const completedSteps = backward ? (draftRef.current.onboardingCompletedSteps ?? [])
+      : [...new Set([...(draftRef.current.onboardingCompletedSteps ?? []), page])];
+    return pageMotion.transition(() => {
+      setPage(next);
+      const persisted = { ...draftRef.current, page: next, onboardingCompletedSteps: completedSteps };
+      draftRef.current = persisted;
+      setDraft(persisted);
+      if (!refused) {
+        onDraftChange(persisted);
+        if (signedIn) void saveSetupDraft(persisted);
+      }
+    }, backward);
   };
   const go = (next: PreAccountPage, backward = false) => {
-    if (operation.current || (!backward && Date.now() - navigationAt.current < 180)) return false;
+    if (operation.current || pageMotion.locked.current) return false;
     navigationAt.current = Date.now();
     stopSound();
     generation.current++;
     setSurface(null);
     setIssue('');
     setMoment(null);
-    // A flight belongs to the page it was chosen on; a card met again shows its tokens in place.
     setFlight(null);
-    setDirection(backward ? -1 : 1);
-    setPage(next);
     pulse(next === 'plan' ? 'ready' : 'next');
-    if (!refused) onDraftChange({ ...draftRef.current, page: next });
-    return true;
+    return showPage(next, backward);
   };
   const activePlan = GUEST_PAGES.includes(page) && guest ? guest.plan : draft;
   const tasks = starterTasks(
@@ -294,13 +313,25 @@ export function PreAccountOnboarding({
   const streak = guestStreak(days, today);
   useEffect(() => {
     current.current = true;
-    void loadGuestPractice().then((value) => {
+    void Promise.all([loadGuestPractice(), signedIn ? loadSetupDraft() : Promise.resolve(null)]).then(([value, savedDraft]) => {
       if (!current.current) return;
       setGuest(value);
+      const savedPage = savedDraft?.page === 'account' ? savedDraft.accountReturnPage ?? 'keep' : savedDraft?.page === 'frequency' ? 'time' : savedDraft?.page === 'save' || savedDraft?.page === 'first-line' ? 'hear-it' : savedDraft?.page;
+      if (savedDraft && !refused) {
+        const restored = { ...savedDraft, onboardingVariant: savedDraft.onboardingVariant ?? draftRef.current.onboardingVariant };
+        setDraft(restored);
+        draftRef.current = restored;
+        setRemember(restored.rememberLearning === true);
+      }
       // A guest page needs its record, and day one and the save card a
       // finished practice on this phone (F754); otherwise an earlier page opens.
-      const resumed = resumePage(page, value !== null, guestPracticeDays(value), dayKeyOf(Date.now()));
+      const resumed = resumePage(savedPage ?? page, value !== null, guestPracticeDays(value), dayKeyOf(Date.now()));
       if (resumed !== page) setPage(resumed);
+      if ((savedPage ?? page) === 'remind' && resumed === 'keep') {
+        const restored = { ...draftRef.current, page: resumed, onboardingSkippedSteps: [...new Set([...(draftRef.current.onboardingSkippedSteps ?? []), 'remind'])] };
+        draftRef.current = restored; setDraft(restored);
+        if (!refused) { onDraftChange(restored); if (signedIn) void saveSetupDraft(restored); }
+      }
       if (value && GUEST_PAGES.includes(resumed)) {
         setReply(value.attempts.at(-1)?.reply ?? '');
         setTaskIndex(
@@ -325,6 +356,7 @@ export function PreAccountOnboarding({
     };
   }, []);
   useEffect(() => {
+    if (!active) return;
     scroll.current?.scrollTo({
       y: offsets.current[page] ?? 0,
       animated: false,
@@ -335,8 +367,8 @@ export function PreAccountOnboarding({
       const handle = findNodeHandle(node);
       if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
     }
-    if (page === 'remind') AccessibilityInfo.announceForAccessibility(streak?.title ?? 'Your Streak has started');
-  }, [page]);
+    if (page === 'remind') AccessibilityInfo.announceForAccessibility(streak?.title ?? 'Your streak has started');
+  }, [page, active]);
   useEffect(() => {
     if (playing) setPose('speaking');
     else setPose(page === 'practice' ? 'attentive' : 'neutral');
@@ -404,6 +436,7 @@ export function PreAccountOnboarding({
       setFlight({ slot, from: { current: rows.current[`${field}:${String(value)}`] ?? null }, id: Date.now() });
   };
   const open = (next: Surface) => {
+    if (pageMotion.locked.current || operation.current) return;
     stopSound();
     setEdit(draft);
     setPlanField(null);
@@ -427,7 +460,7 @@ export function PreAccountOnboarding({
     // A full voice mode first, so the line is heard with the silent switch on (F723). The web has
     // no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
     startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
-      if (ticket !== hearTicket.current || !current.current || AppState.currentState === 'background') return;
+      if (ticket !== hearTicket.current || !current.current || (Platform.OS !== 'web' && AppState.currentState !== 'active' && AppState.currentState !== null)) return;
       try {
         player.replace(asset);
         player.play();
@@ -473,6 +506,7 @@ export function PreAccountOnboarding({
   };
   const start = async (offline = false) => {
     if (operation.current || !draft.eligibilityConfirmed || refused) return;
+    if (pageMotion.locked.current) return;
     operation.current = true;
     setBusy(true);
     const ticket = generation.current;
@@ -500,10 +534,9 @@ export function PreAccountOnboarding({
       setTaskIndex(0);
       setReply('');
       setSurface(null);
-      setPage('practice');
+      showPage('practice');
       setIssue('');
       pulse('attentive');
-      onDraftChange({ ...draft, page: 'practice' });
     } catch (error) {
       if (current.current && ticket === generation.current) {
         setIssue(
@@ -522,6 +555,7 @@ export function PreAccountOnboarding({
     if (
       !guest ||
       operation.current ||
+      pageMotion.locked.current ||
       (guest.token && !guest.offline && serviceAttempts >= 2) ||
       (!uri && !reply.trim())
     )
@@ -547,8 +581,7 @@ export function PreAccountOnboarding({
       if (!current.current || ticket !== generation.current) return;
       if (result.feedback.accepted) metric('useful_reply', uri ? 'spoken' : 'typed', next);
       metric('feedback_seen', uri ? 'spoken' : 'typed', next);
-      setPage('recap');
-      onDraftChange({ ...draft, page: 'recap' });
+      showPage('recap');
       setIssue('');
       pulse(result.feedback.accepted ? 'success' : 'help');
       // Only an accepted reply the learner gave is celebrated; anything else is calm (README Part 5.A).
@@ -588,40 +621,44 @@ export function PreAccountOnboarding({
     }
   };
   const saveAccount = async () => {
-    if (operation.current || refused || !draft.eligibilityConfirmed) return;
+    if (operation.current || pageMotion.locked.current || refused || !draft.eligibilityConfirmed) return;
     operation.current = true;
     setBusy(true);
     stopSound();
     metric('save_progress');
+    const owner = scopeGeneration();
     try {
-      if ((await onCreateAccount({ ...draft, page })) === false)
-        setIssue('Your plan could not be saved. Try again.');
+      const saved = await onCreateAccount({ ...draftRef.current, page });
+      if (owner !== scopeGeneration()) return;
+      if (saved === false) { if (current.current) setIssue('Your plan could not be saved. Try again.'); }
+      else if (signedIn) await clearSetupDraft();
     } catch {
-      setIssue('Your plan could not be saved. Your practice is still here. Try again.');
+      if (current.current && owner === scopeGeneration()) setIssue('Your plan could not be saved. Your practice is still here. Try again.');
     } finally {
       operation.current = false;
-      if (current.current) setBusy(false);
+      if (current.current && owner === scopeGeneration()) setBusy(false);
     }
   };
   const finish = async () => {
-    if (!guest) return;
-    const at = Date.now();
-    const day = dayKeyOf(at);
-    // The day is new only if this finish adds it: a second practice the same
-    // day is still a finish, and lights nothing again.
-    const fresh = !guestPracticeDays(guest).includes(day);
-    const finished = finishGuestPractice(guest, at);
-    // The finish, and its day, reach the disk first (F751); day one and the
-    // reminder ask come only after that (F754).
-    if (!(await persist(finished))) return;
-    metric('practice_finished');
-    if (!go('remind')) return;
-    if (fresh) {
-      // The guest's day one lights once, here, in memory; the hand-off marks
-      // it seen before the account records it (README Part 6).
-      setMoment(celebrationKey.streak(day));
-      playSfx('streak');
-      celebrate();
+    if (!guest || operation.current || pageMotion.locked.current) return;
+    operation.current = true; setBusy(true);
+    try {
+      const at = Date.now();
+      const day = dayKeyOf(at);
+      const fresh = !guestPracticeDays(guest).includes(day);
+      const finished = finishGuestPractice(guest, at);
+      // A real finish must reach disk before the streak introduction opens.
+      if (!(await persist(finished))) return;
+      metric('practice_finished');
+      operation.current = false;
+      if (!go('remind')) return;
+      if (fresh) {
+        setMoment(celebrationKey.streak(day));
+        playSfx('streak'); celebrate();
+      }
+    } finally {
+      operation.current = false;
+      if (current.current) setBusy(false);
     }
   };
   /** The reminder ask's answer: on only once the OS took it, every day, at the time chosen. */
@@ -660,7 +697,6 @@ export function PreAccountOnboarding({
     }
     return false;
   };
-  const completed = earnedChoices(draft, five);
   const question = ['reason', 'start-level', 'confidence', 'focus', 'time'].includes(page);
   const answer =
     page === 'reason'
@@ -682,8 +718,9 @@ export function PreAccountOnboarding({
   const drinksWrap = useFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
   const coral = page === 'recap' && win?.celebrate === true;
-  const ground = storyGround(page, coral);
-  const ink = ground === colour.blue || ground === colour.coral ? paper.card : paper.ink;
+  const ground = paper.ground;
+  const ink = paper.ink;
+  const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])] });
   const reasonGrid = !drinksWrap;
   const goalGrid = !drinksWrap;
   // The reminder is asked once on day one, only where a reminder can be given
@@ -710,7 +747,7 @@ export function PreAccountOnboarding({
               ? 'That reply works.'
               : 'Try this small change.'
             : page === 'remind'
-              ? (streak?.current && streak.current > 1 ? streak.title : 'Your Streak has started')
+              ? (streak?.current && streak.current > 1 ? streak.title : 'Your streak has started')
               : page === 'keep'
                 ? FIRST_RUN_COPY.keepTitle
                 : 'Keep going with your French.'));
@@ -726,7 +763,7 @@ export function PreAccountOnboarding({
     ) : null
   ) : blue ? (
     <View style={[readingColumn, { gap: space(2) }]}>
-      <GlowAction tone="sun"><PillButton label="Start Your Personal Plan" tone="sun" onPress={() => go('reason')} /></GlowAction>
+      <GlowAction tone="sun"><PillButton label="Start your personal plan" tone="sun" onPress={() => go('reason')} /></GlowAction>
       {!signedIn && <IconAction icon="forward" layout="inline" ground="blue" label="I already have an account" onPress={onSignIn} />}
     </View>
   ) : question ? (
@@ -740,10 +777,10 @@ export function PreAccountOnboarding({
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
-      <GlowAction tone="blue"><PillButton label="Next: Choose Your Tutor" onPress={() => go('choose-tutor')} icon={<Glint when radius={radius.control} />} /></GlowAction>
+      <GlowAction tone="blue"><PillButton label="Next: Choose your tutor" onPress={() => go('choose-tutor')} icon={<Glint when radius={radius.control} />} /></GlowAction>
     </View>
   ) : page === 'choose-tutor' ? (
-    <View style={readingColumn}><GlowAction active={draft.tutorChosen === true} tone="sun"><PillButton label="Start Your First Practice" tone="sun" disabled={draft.tutorChosen !== true} onPress={() => open('start')} /></GlowAction></View>
+    <View style={[readingColumn, { gap: space(2) }]}><Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{draft.tutorChosen ? `Selected: ${tutorName}.` : 'Choose a tutor to continue.'}</Text><PillButton label="Start your first practice" disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
   ) : page === 'practice' ? (
     mode === 'typed' ? (
       <View style={readingColumn}>
@@ -760,7 +797,7 @@ export function PreAccountOnboarding({
   ) : page === 'recap' ? (
     <View style={readingColumn}>
       <PillButton
-        tone={coral ? 'white' : 'ink'}
+        tone="ink"
         label={win?.primary ?? FIRST_RUN_COPY.continue}
         disabled={busy}
         onPress={() => {
@@ -770,7 +807,7 @@ export function PreAccountOnboarding({
       />
     </View>
   ) : page === 'remind' ? (
-    <View style={readingColumn}><GlowAction tone="blue"><PillButton label="Start Your French" onPress={() => go('keep')} /></GlowAction></View>
+    <View style={readingColumn}><GlowAction tone="blue"><PillButton label="Start your French" onPress={() => go('keep')} /></GlowAction></View>
   ) : page === 'keep' ? (
     <View style={readingColumn}><RevealItem index={5}><PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} /></RevealItem></View>
   ) : (
@@ -840,43 +877,23 @@ export function PreAccountOnboarding({
     ) : undefined;
   return (
     <>
-      <ScrollScreen
-        ground={ground}
+      <OnboardingLayout
+        active={active}
+        page={page}
+        progress={progress}
         avoidKeyboard
         scrollRef={scroll}
-        onScroll={(e) => {
-          offsets.current[page] = e.nativeEvent.contentOffset.y;
-        }}
-        header={
-          page === 'hear-it' || page === 'recap' || refused ? undefined : (
-            <View style={[readingColumn, { gap: compact ? 8 : 12, marginBottom: compact ? 8 : 12 }]}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                  minHeight: 44,
-                }}
-              >
-                <IconButton icon="back" tone="disc" label="Back" disabled={busy || capturing} onPress={back} />
-                {question && !draft.quickStart ? (
-                  <SetupProgress completed={completed} total={five ? 4 : 5} />
-                ) : null}
-                {page === 'practice' ? <ExchangeSteps index={taskIndex} total={tasks.length} /> : null}
-              </View>
-            </View>
-          )
-        }
+        onScroll={(e) => { offsets.current[page] = e.nativeEvent.contentOffset.y; }}
         footer={footer}
       >
         <View style={[readingColumn, { paddingBottom: compact ? 8 : 16 }]}>
-          <PageArrival page={page} direction={direction} gap={compact ? 12 : 16}>
+          <Animated.View style={[{ gap: compact ? 12 : 16 }, pageMotion.style]}>
 
             {page !== 'remind' && <Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
               accessibilityRole="header"
-              style={[!compact && (blue || question || page === 'plan') ? type.display : type.title, { color: ink }]}
+              style={[!compact && (blue || question || page === 'plan') ? type.display : type.title, { color: ink, textAlign: 'center' }]}
               nativeID={`onboarding-${page}-heading`}
             >
               {title}
@@ -906,7 +923,7 @@ export function PreAccountOnboarding({
                 {blue && (
                   <>
                     <OnboardingScene kind="welcome" size={compact ? 180 : 240} />
-                    <Text style={[type.body, { color: ink }]}>French for the moments that matter to you.</Text>
+                    <Text style={[type.body, { color: ink, textAlign: 'center' }]}>French for the moments that matter to you.</Text>
                     <View style={{ gap: 14 }}>
                       {['A plan built around your goals', 'An AI tutor you can talk to', 'Small daily steps. Real practice.'].map((line, index) => <RevealItem key={line} index={index}><View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}><IconTile name={index === 0 ? 'calendar' : index === 1 ? 'chat' : 'flame'} ground={index === 0 ? 'sun' : index === 1 ? 'mint' : 'coral'} size={36} /><Text style={[type.bodyStrong, { color: ink, flex: 1 }]}>{line}</Text></View></RevealItem>)}
                     </View>
@@ -983,12 +1000,10 @@ export function PreAccountOnboarding({
                   </>
                 )}
                 {page === 'plan' && <PersonalPlan draft={draft} compact={compact} onEdit={() => open('plan')} />}
-                {page === 'choose-tutor' && <TutorSelection chosen={draft.tutorChosen ? draft.tutorVoice : null} playing={playing ? sampleVoice : null}
-                  onChoose={(voice) => { stopSound(); choose({ tutorVoice: voice, tutorChosen: true }); }}
-                  onHear={(voice) => {
-                    if (playing && sampleVoice === voice) { stopSound(); return; }
-                    stopSound(); setSampleVoice(voice); hear(voiceSample(voice), true);
-                  }} />}
+                {page === 'choose-tutor' && <TutorSelection
+                  chosen={draft.tutorChosen ? draft.tutorVoice : null}
+                  preview={preview}
+                  onChoose={(voice) => choose({ tutorVoice: voice, tutorChosen: true })} />}
                 {page === 'practice' && (
                   <>
                     <Card style={{ gap: 12 }}>
@@ -1119,7 +1134,7 @@ export function PreAccountOnboarding({
                 {page === 'remind' && streak !== null && (
                   <>
                     <DayOne streak={streak} moment={moment} />
-                    <Enter delay={700}><Text style={[type.heading, { textAlign: 'center', color: paper.ink }]}>Practice Everyday to Carry on the Streak</Text></Enter>
+                    <Enter delay={700}><Text style={[type.heading, { textAlign: 'center', color: paper.ink }]}>Practise every day to keep your streak going</Text></Enter>
                     <Enter delay={1000}><WeekStrip week={streak.week} today={today} moment={moment} /></Enter>
                   </>
                 )}
@@ -1222,9 +1237,9 @@ export function PreAccountOnboarding({
                 {storageNote}
               </Text>
             ) : null}
-          </PageArrival>
+          </Animated.View>
         </View>
-      </ScrollScreen>
+      </OnboardingLayout>
       <Sheet
         reading
         returnFocus={heading}
@@ -1282,7 +1297,6 @@ export function PreAccountOnboarding({
               </>
             ) : (
               <>
-                <IconAction layout="inline" icon="back" label="Back to plan choices" onPress={() => setPlanField(null)} />
                 {planField === 'reason' &&
                   goals.map((v) => (
                     <Choice
@@ -1381,6 +1395,7 @@ export function PreAccountOnboarding({
                 // A reminder set on day one goes with the plan it belongs to.
                 if (draftRef.current.reminderEnabled === true) void cancelReminder();
                 void clearGuestPractice();
+                if (signedIn) void clearSetupDraft();
                 onRefuse?.();
                 generation.current++;
                 setSurface(null);
@@ -1432,7 +1447,7 @@ export function PreAccountOnboarding({
               information is in the app’s privacy policy.
             </Text>
             <GhostButton label="Read privacy policy" onPress={() => setSurface('policy')} />
-            <PillButton label="Back to practice choices" onPress={() => setSurface('start')} />
+            <PillButton label="Choose how to practise" onPress={() => setSurface('start')} />
           </>
         )}
         {surface === 'policy' && (

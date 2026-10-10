@@ -54,7 +54,7 @@ export function DayOne({ streak, moment }: { streak: GuestStreak; moment: string
         {moment !== null && <View {...decorative} style={{ position: 'absolute', inset: 0 }}><CelebrationBurst size={150} /></View>}
       </Animated.View>
       <Animated.Text accessibilityRole="header" style={[type.title, st.ink, { textAlign: 'center', opacity: settle.interpolate({ inputRange: [0, 1], outputRange: [1, 0.65] }) }]}>
-        {streak.current > 1 ? streak.title : 'Your Streak has started'}
+        {streak.current > 1 ? streak.title : 'Your streak has started'}
       </Animated.Text>
       <Text style={[type.small, st.ink]}>{runLabel(streak.current)}</Text>
     </View>

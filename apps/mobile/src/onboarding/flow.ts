@@ -38,11 +38,11 @@ export function nextSetup(page: PreAccountPage, five = false): PreAccountPage {
 export function nextSetupLabel(page: PreAccountPage, five = false): string {
   const next = nextSetup(page, five);
   const labels: Partial<Record<PreAccountPage, string>> = {
-    'start-level': 'Next: Your French Today',
-    confidence: 'Next: Find Your Confidence',
-    focus: 'Next: Your Practice Style',
-    time: 'Next: Make Time for French',
-    plan: 'Next: See Your Personal Plan',
+    'start-level': 'Next: Your French today',
+    confidence: 'Next: Find your confidence',
+    focus: 'Next: Your practice style',
+    time: 'Next: Make time for French',
+    plan: 'Next: See your personal plan',
   };
   return labels[next] ?? 'Next';
 }

@@ -3,7 +3,7 @@
  *
  * The catalogue itself is in `@luvani/core` and is shared with the token server
  * and the agent, because the chosen voice is a wire value before it is a
- * setting. What lives here is the app's half: how the eight are offered, what a
+ * setting. What lives here is the app's half: how the six are offered, what a
  * learner reads while choosing, and how a stored key is turned back into a
  * choice. Same division `strictness.ts` makes, and this file is deliberately
  * shaped like it, because it is the same kind of question: a short closed list,
@@ -46,8 +46,8 @@ export type { TutorVoiceKey };
  *
  * `Object.keys` on a frozen literal preserves insertion order for string keys,
  * and the catalogue's own comment says its order is the order a chooser shows
- * them in: the default first, then the rest. Retyping the eight here would be a
- * second list that a ninth voice would silently fall out of.
+ * them in: the default first, then the rest. Retyping the six here would be a
+ * second list that another voice would silently fall out of.
  */
 export const TUTOR_VOICE_ORDER: readonly TutorVoiceKey[] = Object.keys(TUTOR_VOICES) as TutorVoiceKey[];
 
@@ -68,7 +68,7 @@ export interface TutorVoiceOption {
 }
 
 /**
- * The eight options, in the order the sheet lists them.
+ * The six options, in the order the sheet lists them.
  *
  * Built from the catalogue at import, so adding a voice in core adds a row here
  * and nowhere else has to be told.
@@ -92,7 +92,7 @@ export const TUTOR_VOICE_SUB = 'Change this whenever you like. Your daily audio 
  *
  * The copy scan reads this list rather than the exports one by one, the way
  * `REMINDER_COPY` does, so a sentence added to this file is covered the moment
- * it is added. The catalogue's eight `sound` lines are in it because they are
+ * it is added. The catalogue's six `sound` lines are in it because they are
  * rendered by this sheet, and the rule about what a voice may be said to sound
  * like has to bite where a learner reads it.
  */

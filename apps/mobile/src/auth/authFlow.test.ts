@@ -22,6 +22,7 @@ import { evidence } from '../../test/evidence.ts';
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
@@ -108,6 +109,21 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
   test("Create one can reset an introduction but cannot bypass a launch refusal", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /const draft = refused \? refusalPage\(\) : freshPreAccountDraft\(\)/); assert.match(flow, /if \(!refused\) onDraftChange\(draft\)/); assert.match(flow, /if \(refused\) return/); assert.match(flow, /onCreateAccount=\{newAccount\}/); });
 
   test("ordinary draft changes do not remount onboarding; only an explicit new account advances its revision", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /key=\{revision\}/); assert.equal((flow.match(/setRevision\(/g) ?? []).length, 1); const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn =')); assert.match(newAccount, /setRevision/); assert.doesNotMatch(app, /<AuthFlow key=/); assert.match(app, /refused=\{preAccountRefused\}/); });
+
+  test('switching from onboarding sign-in to sign-up preserves the completed plan and email', () => {
+    const start = FLOW.indexOf('  const createFromIntroduction = ');
+    const end = FLOW.indexOf('  if (!introducing)', start);
+    assert.ok(start > 0 && end > start);
+    const saved = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorChosen: true, tutorVoice: 'emilie', reason: 'trip', firstName: 'Camille', accountEmail: 'camille@example.com', accountMode: 'signin', accountReturnPage: 'keep', page: 'account' };
+    const writes: unknown[] = []; const screens: string[] = []; let resets = 0;
+    const bindings = { pageMotion: { locked: { current: false } }, refused: false, signupDraft: saved, newDraft: null, initialDraft: null,
+      newAccount: () => { resets++; }, setSignupDraft: (value: unknown) => writes.push(value), onDraftChange: () => {}, onCreateAccount: () => {}, switchScreen: (next: string) => screens.push(next) };
+    new Function(...Object.keys(bindings), stripTypeScriptTypes(FLOW.slice(start, end)) + '\ncreateFromIntroduction();')(...Object.values(bindings));
+    assert.equal(resets, 0);
+    assert.deepEqual(writes, [{ ...saved, accountMode: 'signup' }]);
+    assert.deepEqual(screens, ['signup']);
+    assert.match(FLOW, /onCreateAccount=\{createFromIntroduction\}/);
+  });
 
   test("onboarding and privacy document refusal across authentication without storing a child marker", () => { for (const path of ['docs/ONBOARDING.md','docs/PRIVACY_AND_SAFETY.md']) { const doc = evidence(path); assert.match(doc, /sign-in and sign-out/); assert.match(doc, /remainder of the launch|rest of the launch/); assert.match(doc, /no refusal marker/); } });
 });

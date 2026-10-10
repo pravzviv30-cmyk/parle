@@ -44,6 +44,8 @@ function stripComments(source: string): string {
 
 const SOURCES = walk(SRC).map((path) => ({ path, body: stripComments(readFileSync(path, 'utf8')) }));
 const named = (name: string) => SOURCES.find((f) => f.path.endsWith(name))!.body;
+const usesSharedFrame = (body: string): boolean => /<(Screen|ScrollScreen|OnboardingLayout)\b/.test(body) ||
+  /const Frame = onboarding \? OnboardingLayout : ScrollScreen;/.test(body) && /<Frame\b/.test(body);
 
 /**
  * `first` is written before `second`, with both proven present first.
@@ -166,8 +168,8 @@ describe('drawings are drawings — J6', () => {
   });
 });
 
-describe('only the live microphone casts a shadow — F569', () => {
-  test('the live glow is the only shadow and no source uses the retired whisper', () => {
+describe('reviewed live microphone and tutor card shadows — F569', () => {
+  test('only the live glow and restrained tutor card shadow are drawn', () => {
     const exact = (name: string) => SOURCES.find((f) => rel(f.path) === name)!.body;
     const glow = (() => {
       const body = exact('components.tsx');
@@ -187,11 +189,12 @@ describe('only the live microphone casts a shadow — F569', () => {
       const outsideGlow = rel(path) === 'components.tsx' ? body.replace(glow, '') : body;
       for (const line of outsideGlow.split('\n')) {
         if (/\b(?:shadowColor|shadowOffset|shadowOpacity|shadowRadius|elevation|boxShadow)\s*:/.test(line)) {
+          if (rel(path) === 'onboarding/TutorSelection.tsx' && line.includes('boxShadow: `0px 3px 12px ${paper.ink}06`')) continue;
           offenders.push(`${rel(path)}  ${line.trim()}`);
         }
       }
     }
-    assert.deepEqual(offenders, [], `Only the live microphone may cast a shadow:\n${offenders.join('\n')}`);
+    assert.deepEqual(offenders, [], `An unreviewed shadow was introduced:\n${offenders.join('\n')}`);
   });
 });
 
@@ -769,9 +772,8 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       // scroll container too — the frame's ScrollView — so it counts. A part
       // is drawn inside its screen's, which this list holds above.
       if (!part) {
-        assert.match(
-          body,
-          /<Scroll(View|Screen)\b/,
+        assert.ok(
+          /<Scroll(View|Screen)\b/.test(body) || /<OnboardingLayout\b/.test(body) || usesSharedFrame(body) && /<Frame\b/.test(body),
           `${where} has no scroll container, so text that grows has nowhere to go`,
         );
       }
@@ -1067,7 +1069,7 @@ const SAFE_AREA_ALLOW = [
   'layout.tsx',
   'components.tsx', // Sheet's native Modal is outside its caller's frame and owns its inset.
   'launch/LaunchScreen.tsx', // Startup overlay is outside Screen; its Get Started footer owns the bottom inset.
-  'dev/OnboardingPreview.tsx', // Synthetic QA fixture's overlay badge stays above the notch, outside its screen frame.
+  'onboarding/OnboardingLayout.tsx', // The shared onboarding frame owns the inset and scrolling once for all routes.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
@@ -1090,9 +1092,8 @@ const CHEVRON_ALLOW = [
 describe('every screen sits inside the one frame — F307', () => {
   test('every tab and pushed screen is built on Screen or ScrollScreen — F307', () => {
     for (const name of ADOPTERS) {
-      assert.match(
-        named(name),
-        /<(Screen|ScrollScreen)\b/,
+      assert.ok(
+        usesSharedFrame(named(name)),
         `${name} is not built on the shared frame, so it re-derives the safe-area and keyboard maths itself`,
       );
     }
@@ -1126,7 +1127,7 @@ describe('every screen sits inside the one frame — F307', () => {
     assert.deepEqual([...launch.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), ['bottom'], 'startup pays an inset outside its footer and moves the native splash handoff frame');
     const preview = SOURCES.find(source => source.path.endsWith('dev/OnboardingPreview.tsx'))?.body;
     if (preview) {
-      assert.deepEqual([...preview.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), ['top'], 'the synthetic preview badge pays a screen inset more than once');
+      assert.deepEqual([...preview.matchAll(/\binsets\.(top|right|bottom|left)/g)].map(match => match[1]), [], 'the synthetic preview must use its shared frame without measuring insets');
       const app = stripComments(readFileSync(join(APP, 'App.tsx'), 'utf8'));
       assert.match(app, /__DEV__ && process\.env\.EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW === '1' \? <OnboardingPreview \/> : <Gate \/>/, 'the synthetic QA fixture can bypass the release and explicit preview guards');
       assert.equal((app.match(/<OnboardingPreview\b/g) ?? []).length, 1, 'a second preview route is not protected by the reviewed release guard');
@@ -1145,10 +1146,6 @@ describe('one way back, and it is the shared header — F309', () => {
     'phrases/PhrasebookScreen.tsx',
     'tutor/TutorIntro.tsx',
     'legal/Acknowledgements.tsx',
-    // Pass 3: the two auth screens are pushed from the welcome, so each shows
-    // exactly one way back and it is the shared header (F357).
-    'auth/SignUpScreen.tsx',
-    'auth/SignInScreen.tsx',
     'tutor/RealMomentScreen.tsx',
     // Revamp A's three routes. Each is a chevron and a title, and each is the
     // only way back out of a place that used to be reachable by scrolling.
@@ -1156,7 +1153,6 @@ describe('one way back, and it is the shared header — F309', () => {
     // Stage 4 (2026-09-25): both new routes are pushed, with one way back.
     'soundcheck/SoundJourneyScreen.tsx',
     'goals/GoalStepScreen.tsx',
-    'onboarding/FirstSceneScreen.tsx',
   ];
 
   test('a pushed screen has exactly one way back, and it is the shared header — F309', () => {
@@ -1948,6 +1944,26 @@ describe('one Monogram, borrowed everywhere — F344', () => {
  * =========================================================================== */
 
 describe('the first run sits inside the one frame — F352', () => {
+  test('all immersive onboarding surfaces use shared chrome and expose no visible previous control', () => {
+    const onboarding = [
+      'onboarding/PreAccountOnboarding.tsx', 'onboarding/OnboardingFlow.tsx',
+      'onboarding/AgeGateScreen.tsx', 'onboarding/FirstSceneScreen.tsx',
+      'onboarding/AccountWelcome.tsx', 'onboarding/GuestAccountHandoff.tsx',
+      'auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx',
+    ];
+    for (const name of onboarding) {
+      const body = named(name);
+      assert.ok(usesSharedFrame(body), `${name} bypasses the shared onboarding layout`);
+      assert.doesNotMatch(body, /<ScreenHeader\b|<ChevronLeft\b|\bkind="back"|accessibilityLabel="Back"|label="(?:Back|Previous)[^"]*"/, `${name} exposes a visible previous control`);
+    }
+    const frame = named('onboarding/OnboardingLayout.tsx');
+    assert.match(frame, /keyboardShouldPersistTaps="handled"/);
+    assert.match(frame, /insets\.bottom \+ space\(4\)/);
+    assert.match(frame, /maxWidth: 560/);
+    assert.match(frame, /accessibilityRole="progressbar"/);
+    assert.match(frame, /actionInScroll && footer != null/);
+    assert.match(frame, /<KeyboardAvoidingView/);
+  });
   /** The five first-run surfaces this pass moved onto the frame. */
   const FIRST_RUN_ADOPTED = [
     'onboarding/PreAccountOnboarding.tsx',
@@ -1981,14 +1997,14 @@ describe('the first run sits inside the one frame — F352', () => {
     // they are on ADOPTERS; this is the F352-named check that they are adopted.)
     for (const name of FIRST_RUN_ADOPTED) {
       const body = named(name);
-      assert.match(body, /<(Screen|ScrollScreen)\b/, `${name} is not built on the shared frame`);
+      assert.ok(usesSharedFrame(body), `${name} is not built on the shared frame`);
       assert.ok(!body.includes('useSafeAreaInsets'), `${name} still measures the safe area itself`);
       assert.ok(!body.includes('<ChevronLeft'), `${name} still hand-rolls a chevron beside the shared header`);
     }
   });
 });
 
-describe('the auth screens pin the primary action in the footer — F357', () => {
+describe('auth actions remain keyboard-aware and onboarding actions scroll with fields — F357', () => {
   /** The balanced `footer={...}` prop of a screen, braces and all. */
   function footerProp(body: string): string {
     const at = body.indexOf('footer={');
@@ -2005,13 +2021,14 @@ describe('the auth screens pin the primary action in the footer — F357', () =>
     return body.slice(start);
   }
 
-  test("the auth screens lead with Apple above Google, then the fields, and pin one ink pill in the frame's footer", () => {
+  test('auth screens lead with Apple above Google and keep one form action in their shared frame', () => {
     for (const name of ['auth/SignUpScreen.tsx', 'auth/SignInScreen.tsx']) {
       const body = named(name);
       // Keyboard-aware, so the fields lift rather than hide; and the one back is
       // the shared header, not a hand-rolled chevron.
-      assert.match(body, /<ScrollScreen\b[\s\S]*?avoidKeyboard/, `${name} is not a keyboard-aware ScrollScreen`);
-      assert.match(body, /<ScreenHeader\b[^>]*\bback=/, `${name} does not draw its one back through the shared header`);
+      assert.ok(usesSharedFrame(body) && /\bavoidKeyboard\b/.test(body), `${name} is not a keyboard-aware shared frame`);
+      assert.match(body, /\bactionInScroll\b/, `${name} can float the onboarding action over the keyboard`);
+      assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"/, `${name} exposes a visible onboarding back control`);
 
       // The footer holds one pill and nothing else, and it is the ink one (ink
       // is PillButton's default tone): the form's own action, where a keyboard

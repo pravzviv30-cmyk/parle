@@ -17,6 +17,7 @@ import { tutorTimeLine } from './firstRun/copy.ts';
 import type { GuestAttempt, GuestPractice } from './guestModel.ts';
 import { keptPhrase, savedPhraseTasks } from './guestProgress.ts';
 import { freshPreAccountDraft } from './preAccountDraft.ts';
+import { onboardingProgress } from './onboardingProgress.ts';
 
 /** A reply the starter check really returned. */
 function attempt(task: StarterTask, reply: string, extra: Partial<GuestAttempt> = {}): GuestAttempt {
@@ -24,6 +25,29 @@ function attempt(task: StarterTask, reply: string, extra: Partial<GuestAttempt> 
 }
 
 describe('the hand-off', () => {
+  test('the hand-off retains the guest route through auth until its durable welcome completes', () => {
+    const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
+    const source = handoff.slice(handoff.indexOf('const progress = onboardingProgress('), handoff.indexOf('if (welcoming)'));
+    assert.ok(source.startsWith('const progress'), 'this check must execute the production route assignment');
+    for (const onboardingVariant of ['full', 'five'] as const) {
+      for (const quickStart of [false, true]) {
+        const draft = { ...freshPreAccountDraft(), onboardingVariant, quickStart, onboardingSkippedSteps: ['remind'] };
+        const progress = new Function('journey', 'process', 'onboardingProgress', `${source}; return progress;`)(
+          { current: draft }, { env: { EXPO_PUBLIC_ONBOARDING_VARIANT: 'full' } }, onboardingProgress,
+        );
+        const signup = onboardingProgress({ page: 'account', five: onboardingVariant === 'five',
+          skipped: [...draft.onboardingSkippedSteps, ...(quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])] });
+        assert.ok(progress.fraction > signup.fraction, 'signing in must not restart progress');
+        assert.equal(progress.step, progress.total, 'the handoff is the last step of its guest journey');
+        assert.equal(progress.total, signup.total);
+        assert.equal(progress.complete, false, 'pending adoption is not completion');
+        assert.ok(progress.fraction < 1);
+      }
+    }
+    assert.match(handoff, /const journey = useRef\(draft\)/);
+    assert.match(handoff, /<AccountWelcome progress=\{progress\}/);
+  });
+
   test('the hand-off says a phrase is saved only after the durable write, and the time the server holds', () => {
     // The time with the tutor, from the server's seconds, rounded down, and
     // never a countdown: nothing when none is held, free only on the free allowance.
@@ -59,7 +83,7 @@ describe('the hand-off', () => {
     assert.ok(handoff.indexOf("userKey('onboarding-practice')") < handoff.indexOf('settleGuestHandoff(guest)'));
     assert.ok(handoff.indexOf('settleGuestHandoff(guest)') < handoff.indexOf('setSaved(true);'));
     // The time: the server's status once saved, read in the background, for this account only.
-    assert.match(handoff, /setSaved\(true\); void fetchBillingStatus\(uid\)\.then\(\(answer\) => \{ if \(owner === scopeGeneration\(\) && activeUserId\(\) === uid\) setStatus\(answer\); \}\);/);
+    assert.match(handoff, /setSaved\(true\); void fetchBillingStatus\(uid\)\.then\(\(answer\) => \{ if \(mounted\.current && owner === scopeGeneration\(\) && activeUserId\(\) === uid\) setStatus\(answer\); \}\);/);
     assert.match(handoff, /tutorTimeLine\(status\.secondsRemaining, status\.plan === 'trial' \|\| status\.lapsed\)/, 'a paid plan is called free, or the free allowance is not');
     assert.match(handoff, /tutorTimeLine\(remaining, null\)/);
     assert.doesNotMatch(handoff, /seconds remaining/, 'the hand-off still counts seconds');
@@ -89,8 +113,8 @@ describe('the hand-off', () => {
     const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
     assert.match(handoff, /const phrases = savedPhraseTasks\(guest\)\.map\(\(task\) => \(\{ fr: keptPhrase\(task\),/, 'the hand-off saves a different list from the one its card names');
     assert.match(handoff, /const shown = savedPhraseTasks\(guest\)\.at\(-1\);/);
-    assert.match(handoff, /title=\{saved \? \(shown \? 'Your phrase is saved\.' : 'Your practice is saved\.'\) : 'Keep this practice\?'\}/, 'the hand-off says a phrase is saved when none was');
-    assert.match(handoff, /\{shown \? <Text style=\{type\.heading\}>\{keptPhrase\(shown\)\}<\/Text> : null\}/);
+    assert.match(handoff, /<Text accessibilityRole="header"[^>]*> \{saved \? \(shown \? 'Your phrase is saved\.' : 'Your practice is saved\.'\) : 'Keep this practice\?'\}/, 'the hand-off says a phrase is saved when none was');
+    assert.match(handoff, /\{shown \? <Text style=\{\[type\.heading, \{ textAlign: 'center' \}\]\}>\{keptPhrase\(shown\)\}<\/Text> : null\}/);
     assert.doesNotMatch(handoff, /attempts\.at\(-1\)\?\.feedback\.model/, 'the hand-off names the last line whether or not it was saved');
     // The guest home names the same phrase.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');

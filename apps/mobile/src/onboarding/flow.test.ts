@@ -8,12 +8,12 @@ test('device history chooses the door but a new account always receives onboardi
   assert.equal(accountEntry(true, true), 'app'); assert.equal(accountEntry(true, false), 'repair');
 });
 test('Next labels name the destination in both setup variants', () => {
-  assert.equal(nextSetupLabel('reason'), 'Next: Your French Today');
-  assert.equal(nextSetupLabel('reason', true), 'Next: Find Your Confidence');
-  assert.equal(nextSetupLabel('start-level'), 'Next: Find Your Confidence');
-  assert.equal(nextSetupLabel('confidence'), 'Next: Your Practice Style');
-  assert.equal(nextSetupLabel('focus'), 'Next: Make Time for French');
-  assert.equal(nextSetupLabel('time'), 'Next: See Your Personal Plan');
+  assert.equal(nextSetupLabel('reason'), 'Next: Your French today');
+  assert.equal(nextSetupLabel('reason', true), 'Next: Find your confidence');
+  assert.equal(nextSetupLabel('start-level'), 'Next: Find your confidence');
+  assert.equal(nextSetupLabel('confidence'), 'Next: Your practice style');
+  assert.equal(nextSetupLabel('focus'), 'Next: Make time for French');
+  assert.equal(nextSetupLabel('time'), 'Next: See your personal plan');
 });
 test('the short experiment omits ability while both flows use confidence and focus answers', () => {
   assert.deepEqual(FULL_SETUP, ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan']);

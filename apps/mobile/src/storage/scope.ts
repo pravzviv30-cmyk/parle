@@ -124,6 +124,8 @@ export const USER_KEY_SUFFIXES = [
   'conversationPacks',
   'reminder',
   'onboarding-practice',
+  'onboarding-setup-draft',
+  'onboarding-repair-draft',
   'bookmarks',
   'scenarioProgress',
   'suggestions',
