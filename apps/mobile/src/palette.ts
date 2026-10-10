@@ -59,6 +59,19 @@ export const colour = {
   mint: '#2FD18B',
 } as const;
 
+/** Founder-authored sign-in divider and its short separating label. */
+export const welcomeDividerInk = '#000000';
+
+/** Decorative sign-in glow, exported from the founder's Figma motion. */
+export const welcomeGlowColour = {
+  rest: 'rgba(87, 69, 255, 0.12)',
+  peak: 'rgba(87, 69, 255, 0.3)',
+  settle: 'rgba(87, 69, 255, 0.16)',
+  insetRest: 'rgba(222, 229, 255, 0.14)',
+  insetPeak: 'rgba(222, 229, 255, 0.48)',
+  insetSettle: 'rgba(222, 229, 255, 0.2)',
+} as const;
+
 /** The quieter earned-streak ground and its original flame illustration. */
 export const streakCelebration = {
   ground: '#1CB982',

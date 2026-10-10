@@ -11,13 +11,12 @@
  * against, and this one is held to all four of them: no em dash, no digit, no
  * word from the guilt list, and short enough to read in a glance.
  *
- * It promises nothing the product does not already do. Phrases, progress and
- * the tutor's memory are three real stores behind the account gate, and the
- * sentence names them rather than selling anything.
+ * It promises nothing the product does not already do. The account restores the learner's existing state, and this
+ * short invitation describes that return without inventing progress.
  */
 
 /** Under "Welcome back": what is behind the door, in one line. */
-export const SIGN_IN_PURPOSE = 'Sign in to pick up your French where you left off.';
+export const SIGN_IN_PURPOSE = 'Pick up where you left off';
 
 /** Use a saved name only. An email address is never treated as somebody's name. */
 export function welcomeBackGreeting(firstName: string | null | undefined): string {

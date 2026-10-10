@@ -42,6 +42,7 @@ import { AnimatedIcon, type AnimatedIconKind } from './icons/AnimatedIcon.tsx';
 import { Icon, type IconName } from './icons/Icon.tsx';
 import { TileOnChosen } from './icons/IconTile.tsx';
 import {
+  STROKE,
   accent,
   colour,
   decorative,
@@ -228,6 +229,8 @@ export function PillButton({
   accessibilityLabel,
   tone = 'ink',
   compact = false,
+  outlined = false,
+  decoration,
   ref,
   state = 'idle',
 }: {
@@ -243,6 +246,10 @@ export function PillButton({
   tone?: 'ink' | 'white' | 'sun' | 'brand';
   /** Half-width auth actions retain the touch floor and allow their labels to wrap. */
   compact?: boolean;
+  /** An ink border gives a white auth action definition on cream. */
+  outlined?: boolean;
+  /** Non-interactive surface decoration, inside the pressed geometry. */
+  decoration?: React.ReactNode;
   /** The pressable itself, for a caller that moves a screen reader onto it (the answer sheet's Continue). */
   ref?: Ref<View>;
   /**
@@ -260,10 +267,11 @@ export function PillButton({
   const waiting = state !== 'idle';
   const foreground = tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
   return (
-    <Press haptic="light" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+    <Press haptic="light" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
+      {decoration}
     </Press>
   );
 }
@@ -354,19 +362,22 @@ export function GhostButton({
   onPress,
   disabled = false,
   color = paper.ink,
+  small = false,
   accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   color?: string;
+  /** Small supporting links keep the same minimum touch target. */
+  small?: boolean;
   /** Say something other than the label to assistive tech. Falls back to label. */
   accessibilityLabel?: string;
 }) {
   const { fontScale } = useWindowDimensions();
   return (
     <Press haptic="light" style={s.ghost} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
-      <Text style={[type.label, { color: disabled ? paper.inkSoft : color, textDecorationLine: 'underline' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
+      <Text style={[small ? type.small : type.label, { color: disabled ? paper.inkSoft : color, textDecorationLine: 'underline' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
     </Press>
   );
 }
@@ -932,6 +943,7 @@ const s = StyleSheet.create({
     paddingVertical: space(3),
   },
   pillWhite: { backgroundColor: paper.card },
+  pillOutlined: { borderWidth: STROKE, borderColor: paper.ink },
   pillWait: { width: PILL_MARK, height: PILL_MARK },
   pillDisabled: { backgroundColor: paper.skeleton },
   // A white pill sits on blue or coral, where the sand reads as one more live

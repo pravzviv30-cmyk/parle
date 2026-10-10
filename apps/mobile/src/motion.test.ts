@@ -173,6 +173,8 @@ const ENGINE_FILES = [
   'speech/useRecorderLevel.ts',
   // The password meter animates a stable fill transform and its strength colour.
   'auth/PasswordMeter.tsx',
+  // The founder's Figma sign-in glow pauses for auth, reduced motion and visibility.
+  'auth/WelcomeSignInGlow.tsx',
   // Only inside the `Press` region; the next test holds that.
   'components.tsx',
 ];

@@ -8,7 +8,8 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
   label: string;
   secure?: boolean;
   error?: string | null;
-}>(({ label, secure = false, error, onFocus, onBlur, onSelectionChange, style, ...props }, ref) => {
+  labelWeight?: 'medium' | 'semiBold';
+}>(({ label, secure = false, error, labelWeight = 'semiBold', onFocus, onBlur, onSelectionChange, style, ...props }, ref) => {
   const id = useId();
   const { fontScale } = useWindowDimensions();
   // Fabric can reuse text measurements after a live reading-size change when
@@ -64,7 +65,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
     setRevealed((current) => !current);
   };
   return <View style={st.group}>
-    <Text id={`${id}-label`} maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.label]}>{label}</Text>
+    <Text id={`${id}-label`} maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.label, labelWeight === 'medium' && { fontFamily: font.medium }]}>{label}</Text>
     <View style={[st.inputWrap, focused && st.focused, disabled && st.disabled]}>
       <TextInput
         {...props}
@@ -103,7 +104,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
         onLayout={(event) => setToggleWidth(event.nativeEvent.layout.width)}
         style={({ pressed }) => [st.show, (pressed || toggleFocused) && st.showActive]}
       >
-        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.showLabel]}>{revealed ? 'Hide' : 'Show'}</Text>
+        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.showLabel, labelWeight === 'medium' && { fontFamily: font.medium }]}>{revealed ? 'Hide' : 'Show'}</Text>
       </Pressable>}
     </View>
     {error != null && error !== '' && <View style={st.error}>

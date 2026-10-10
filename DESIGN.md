@@ -683,14 +683,21 @@ asks plain questions and lets them hear voices before choosing one.
 Welcome back centres an exported vector Hum illustration above the greeting,
 with cream, navy, lilac, coral and gold kept to Luvani's existing palette. A
 saved first name personalises the greeting only when it is already available.
-Apple and Google share a row, stacking for larger text, before the email form.
-Sign in is purple with an arrow, a pressed scale and a labelled loading state.
+The subtitle reads “Pick up where you left off”. Apple and Google share a row,
+stacking for larger text, before an ink divider and the email form. Google has
+an ink outline on white; field labels use Medium, and password recovery is
+centred. Sign in is purple with an arrow, a pressed scale, a labelled loading
+state and the Figma glow: a restrained 3.2-second loop, still when reduced
+motion is requested, loading is in progress or the screen is inactive.
 One brief entrance respects Reduce Motion. Returning sign-in never shows
 onboarding progress; create account retains the shared purple progress strip.
-Email advances to Password after a valid address stops changing for 900 ms.
+Email advances to Password after a valid address stops changing for 300 ms.
 The primary action hides while the software keyboard is open, and native
 insets scroll the focused field into view. Live Dynamic Type changes refresh
-text measurements without capping the system size.
+text measurements without capping the system size. Shorter viewports tighten
+spacing and use a smaller Hum; the shortest screens and larger text omit the
+decoration so the normal form fits. Tall windows centre the reading column.
+Keyboard and accessibility overflow remains scrollable to keep fields reachable.
 
 The signed-in app has four tabs, each opening Profile from the labelled
 avatar. Friends is a Profile route and retains shared challenges and moderation.
@@ -1158,7 +1165,8 @@ play while a microphone is open, the tutor is speaking or a live room is open.
 1. The engine is imported only in `motion/`, `celebrate/`, `game/art/`,
    `onboarding/firstRun/`, `icons/AnimatedIcon.tsx`, `nav/TabGlyph.tsx`,
    `drill/AnswerSheet.tsx`, the orb layers in `tutor/`, `live/RoomLevels`,
-   `speech/useRecorderLevel.ts`, and in `components.tsx` only by `Press`.
+   `speech/useRecorderLevel.ts`, `auth/PasswordMeter.tsx`, the guarded
+   `auth/WelcomeSignInGlow.tsx`, and in `components.tsx` only by `Press`.
 2. The legacy `Animated` file list only shrinks.
 3. Every file that moves reads reduced motion from `motion.ts`, and nothing asks
    Reanimated for the system setting: no `useReducedMotion`, no

@@ -183,13 +183,33 @@ describe('reviewed live microphone and tutor card shadows — F569', () => {
       return body.slice(at, end);
     })();
 
+    // The founder reviewed this sign-in loop in Figma node 3:54. The
+    // allowance covers only its exported keyframes and the decorative
+    // overlay's rest shadow; every other shadow in either file still fails.
+    const welcomeShadows = new Map<string, string[]>([
+      ['auth/welcomeGlow.ts', [
+        "'0%': { animationTimingFunction: 'ease-in-out', boxShadow: rest },",
+        "'14.063%': { animationTimingFunction: 'ease-in-out', boxShadow: rest },",
+        "'37.5%': { animationTimingFunction: 'ease-in-out', boxShadow: peak },",
+        "'71.875%': { animationTimingFunction: 'ease-in-out', boxShadow: settle },",
+        "'100%': { boxShadow: rest },",
+      ]],
+      ['auth/WelcomeSignInGlow.tsx', ['boxShadow: welcomeGlow.rest,']],
+    ]);
+    const shadowProperty = /\b(?:shadowColor|shadowOffset|shadowOpacity|shadowRadius|elevation|boxShadow)\s*:/;
+    for (const [name, reviewed] of welcomeShadows) {
+      const actual = exact(name).split('\n').filter(line => shadowProperty.test(line)).map(line => line.trim());
+      assert.deepEqual(actual, reviewed, `${name} changed the exact reviewed Figma shadow allowance`);
+    }
+
     const offenders: string[] = [];
     for (const { path, body } of SOURCES) {
       assert.doesNotMatch(body, /\bshadow\s*(?:\.\s*whisper\b|\[\s*['"]whisper['"]\s*\])/, `${rel(path)} uses the retired whisper`);
       const outsideGlow = rel(path) === 'components.tsx' ? body.replace(glow, '') : body;
       for (const line of outsideGlow.split('\n')) {
-        if (/\b(?:shadowColor|shadowOffset|shadowOpacity|shadowRadius|elevation|boxShadow)\s*:/.test(line)) {
+        if (shadowProperty.test(line)) {
           if (rel(path) === 'onboarding/TutorSelection.tsx' && line.includes('boxShadow: `0px 3px 12px ${paper.ink}06`')) continue;
+          if (welcomeShadows.get(rel(path))?.includes(line.trim())) continue;
           offenders.push(`${rel(path)}  ${line.trim()}`);
         }
       }

@@ -1,7 +1,7 @@
 /**
  * The one line under "Welcome back" — F374.
  *
- * Two halves, and the seam between them is honest. The sentence is a pure
+ * Two halves, and the seam between them is honest. The invitation is a pure
  * module and is checked directly against the four copy rules this repo
  * enforces. Whether the screen actually draws it is a source read, because
  * there is no renderer in this workspace: the read can see the import, the
@@ -34,9 +34,9 @@ describe('sign in says what is waiting behind the door — F374', () => {
       SIGN_IN_PURPOSE.length > 0 && SIGN_IN_PURPOSE.length < 90,
       `the line is ${SIGN_IN_PURPOSE.length} characters; under the headline it has to be read at a glance`,
     );
-    // One sentence, not a paragraph, and it ends like one.
-    assert.match(SIGN_IN_PURPOSE, /\.$/, 'the line is not a finished sentence');
-    assert.equal(SIGN_IN_PURPOSE.split('.').filter((part) => part.trim().length > 0).length, 1, 'the line is more than one sentence');
+    // The founder's Figma subtitle is a short invitation without punctuation.
+    assert.equal(SIGN_IN_PURPOSE, 'Pick up where you left off', 'the sign-in invitation differs from the reviewed Figma subtitle');
+    assert.doesNotMatch(SIGN_IN_PURPOSE, /[.!?]/, 'the short invitation gained sentence punctuation');
     // Nothing here is asked for, apologised for or nagged about. A returning
     // learner is told what is theirs, not how long they were away.
     assert.doesNotMatch(SIGN_IN_PURPOSE, /sorry|welcome back again|while you were|since you|away|forgot/i);

@@ -15,7 +15,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, View, Text, StyleSheet, type TextInput, type ScrollView as NativeScrollView } from 'react-native';
-import { colour, paper, space, type, HIT, HAIRLINE } from '../theme.ts';
+import { colour, paper, space, type, HIT, STROKE } from '../theme.ts';
 import { PillButton, GhostButton, Press, GoogleMark, AppleMark, AlertGlyph, ArrowRight, ROW_WORDS } from '../components.tsx';
 import { AccountField as Field } from './AccountField.tsx';
 import { useEmailAutoAdvance } from './useEmailAutoAdvance.ts';
@@ -23,14 +23,17 @@ import { useFormKeyboard } from './useFormKeyboard.ts';
 import { focusedFieldScroll } from './focusedFieldScroll.ts';
 import { visibleFormHeight } from './signupForm.ts';
 import { useReduceMotion } from '../motion.ts';
-import { readingColumn, ScrollScreen, useFontScale } from '../layout.tsx';
+import { readingColumn, ScrollScreen, useFontScale, useScreenGeometry } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { appleSignInOffered } from './apple.ts';
 import { SIGN_IN_PURPOSE, welcomeBackGreeting } from './copy.ts';
 import { friendly } from './friendly.ts';
+import { welcomeLayout } from './welcomeLayout.ts';
 import { WelcomeOrb } from './WelcomeOrb.tsx';
+import { welcomeDividerInk } from '../palette.ts';
+import { WelcomeSignInGlow } from './WelcomeSignInGlow.tsx';
 import { RevealItem } from '../onboarding/motion/OnboardingScenes.tsx';
 
 import { useOnboardingFramePresentation } from '../onboarding/OnboardingLayout.tsx';
@@ -51,6 +54,8 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
   const fontScale = useFontScale();
+  const geometry = useScreenGeometry();
+  const layout = welcomeLayout(geometry.usableHeight, fontScale, geometry.compact);
   // Refresh Fabric's text measurements after a live Dynamic Type change,
   // using the same uncapped typography revision as AccountField.
   const liveFontMultiplier = fontScale + 1;
@@ -225,7 +230,8 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   return (
     <Frame
       embedded={embedded}
-      center={false}
+      center={layout.center}
+      topGap={layout.compact ? space(2) : space(4)}
       scrollRef={scrollRef}
       scrollEventThrottle={16}
       onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
@@ -236,14 +242,14 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       <View style={readingColumn}>
       <RevealItem active={!embedded}>
       {/* Welcome back is personal only when this flow already has a saved name. */}
-      {!embedded && <View style={st.head}>
-        {!keyboardVisible && <WelcomeOrb />}
-        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{welcomeBackGreeting(planDraft?.firstName)}</Text>
+      {!embedded && <View style={[st.head, layout.compact && st.headCompact]}>
+        {!keyboardVisible && layout.orbSize > 0 && <WelcomeOrb size={layout.orbSize} />}
+        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', letterSpacing: 0 }]}>{welcomeBackGreeting(planDraft?.firstName)}</Text>
       </View>}
-      <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
+      <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.body, { color: paper.inkSoft, marginTop: layout.compact ? space(1) : space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
 
       {/* The provider doors lead the form, stacking when text needs more room. */}
-      <View style={[st.doors, fontScale > 1.3 && st.doorsStacked, embedded && { marginTop: 0 }]}>
+      <View style={[st.doors, layout.compact && st.doorsCompact, fontScale > 1.3 && st.doorsStacked, embedded && { marginTop: 0 }]}>
         {appleOffered && (
           <View style={st.door}>
           <PillButton
@@ -260,6 +266,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         <View style={st.door}>
         <PillButton
           tone="white"
+          outlined
           label={pending === 'google' ? 'Opening…' : 'Google'}
           accessibilityLabel={authButtonLabel('google', pending === 'google')}
           onPress={() => void google()}
@@ -278,17 +285,18 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         </View>
       )}
 
-      <View style={st.or}>
+      <View style={[st.or, layout.compact && st.orCompact]}>
         <View style={st.rule} />
-        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, { color: paper.inkSoft }]}>or</Text>
+        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.orLabel]}>or</Text>
         <View style={st.rule} />
       </View>
 
-      <View style={{ gap: space(4) }}>
+      <View style={{ gap: layout.compact ? space(3) : space(4) }}>
         <View ref={emailGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
           ref={emailRef}
           label="Email"
+          labelWeight="medium"
           value={email}
           onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); emailAdvance.queue(value); }}
           placeholder="e.g. james@example.com"
@@ -314,6 +322,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         <Field
           ref={passwordRef}
           label="Password"
+          labelWeight="medium"
           value={password}
           onChangeText={setPassword}
           placeholder="Your password"
@@ -329,13 +338,14 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         </View>
       </View>
 
-      {/* The reset link sits under the password it is about, at the right edge. */}
+      {/* The reset link sits under the password it is about, centred below the field. */}
       <View style={st.forgot}>
         <GhostButton
           label={authButtonLabel('sendReset', pending === 'sendReset')}
           onPress={() => void forgot()}
           disabled={busy}
           color={colour.blue}
+          small
         />
       </View>
 
@@ -353,7 +363,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       )}
 
       {!keyboardVisible && <View style={st.action}>
-        <PillButton tone="brand" label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} trailingIcon={<ArrowRight color={paper.onInk} />} />
+        <PillButton tone="brand" label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} trailingIcon={<ArrowRight color={paper.onInk} />} decoration={<WelcomeSignInGlow active={!busy} />} />
       </View>}
 
       {/* The primary action returns after keyboard dismissal, inside the body. */}
@@ -370,15 +380,19 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
 
 const st = StyleSheet.create({
   head: { alignItems: 'center', gap: space(2) },
+  headCompact: { gap: space(1) },
   doors: { flexDirection: 'row', alignItems: 'stretch', gap: space(3), marginTop: space(5) },
+  doorsCompact: { marginTop: space(3) },
   doorsStacked: { flexDirection: 'column' },
   door: { flex: 1, minWidth: 0 },
   or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(4) },
-  rule: { flex: 1, height: HAIRLINE, backgroundColor: paper.line },
-  forgot: { alignItems: 'flex-end' },
+  orCompact: { marginVertical: space(2) },
+  rule: { flex: 1, height: STROKE, backgroundColor: welcomeDividerInk },
+  orLabel: { color: welcomeDividerInk, fontFamily: type.heading.fontFamily },
+  forgot: { alignItems: 'center' },
   message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginBottom: space(2) },
   messageMark: { paddingTop: space(1) },
   action: { marginTop: space(2) },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  switchWord: { color: colour.blue, fontFamily: type.bodyStrong.fontFamily, textDecorationLine: 'underline' },
+  switchWord: { color: colour.blue, fontFamily: type.bodyStrong.fontFamily },
 });
