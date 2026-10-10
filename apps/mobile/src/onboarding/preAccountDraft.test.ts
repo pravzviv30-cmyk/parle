@@ -15,6 +15,7 @@ import {
   clearPreAccountDraft,
   loadPreAccountDraft,
   savePreAccountDraft,
+  repaired,
 } from './preAccountDraft.ts';
 import { CREATE_ACCOUNT_AGE } from './firstRun.ts';
 
@@ -25,7 +26,7 @@ const app = read('../../App.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /** Every answer the plan pages add, unanswered. */
-const UNANSWERED = { drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [], page: null, startLevel: null, reason: null, minutes: null, reminderTime: null, firstName: null } as const;
+const UNANSWERED = { drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [], page: null, startLevel: null, reason: null, minutes: null, reminderTime: null, firstName: null, tutorChosen: false, speakingConfidence: null, practiceFocus: null } as const;
 
 /** One in-memory AsyncStorage, so the round trip is the real store's. */
 function installDisk(): Map<string, string> {
@@ -74,6 +75,7 @@ describe('the pre-account hand-off', () => {
       tutorVoice: DEFAULT_TUTOR_VOICE,
       analyticsConsent: false,
       ...UNANSWERED,
+      tutorChosen: undefined,
     });
 
     // And only a literal true is agreement. Everything a disk can hand back in
@@ -106,6 +108,8 @@ describe('the pre-account hand-off', () => {
     const junk: Partial<Record<keyof typeof UNANSWERED, unknown[]>> = {
       page: ['welcome', 'ready', 3, {}, 'PLAN'],
       startLevel: ['beginner', 'A1', 0, true],
+      speakingConfidence: ['confident', 'nervous', 0, true],
+      practiceFocus: ['grammar', 'reading', 2, {}],
       reason: ['holiday', '', ['trip']],
       minutes: [0, 7, '10', 25, null],
       reminderTime: ['dawn', 18, { value: 'evening' }],
@@ -170,13 +174,13 @@ describe('the pre-account hand-off', () => {
     assert.equal((await loadPreAccountDraft())?.firstName?.length, MAX_FIRST_NAME_CHARS);
   });
 
-  test("setup selects plan and optional tutor before an account while eligibility precedes guest practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Choose tutor"/); assert.match(screen, /TUTOR_VOICE_OPTIONS\.map/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draft, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label="Save progress"/); });
+  test("setup requires a deliberate tutor after the personal plan and eligibility still precedes practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Next: Choose Your Tutor"/); assert.match(screen, /<TutorSelection chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/); assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.match(screen, /disabled=\{draft\.tutorChosen !== true\}/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draft, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}/); });
 
   test("page and artwork motion respond to actions and stop when reduced motion changes", () => { const motion = evidence('apps/mobile/src/onboarding/OnboardingMotion.tsx'); assert.match(motion, /useReduceMotion\(\)/); assert.match(motion, /stopAnimation\(\)/); assert.match(motion, /if \(reduced\)/); assert.match(motion, /duration: 270/); assert.doesNotMatch(motion, /Animated\.loop|setInterval/); });
 
-  test("the selected drink model has separate French and English text without stitched punctuation", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Bonjour, je vais prendre un/); assert.match(screen, /Hello, I will have a/); assert.match(screen, /draft\.drink === 'tea'/); assert.doesNotMatch(screen, /\.\. I’d|asSentences\(\[FIRST_LINE/); });
+  test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /A plan built around your goals/); assert.match(screen, /Start Your Personal Plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
 
-  test("the recorded example is optional and audio failure leaves a readable route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /label="Make my plan"/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
+  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /onHear=\{\(voice\) =>/); assert.match(screen, /hear\(voiceSample\(voice\), true\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
 
   test("every catalogue voice is available in a contextual sheet with a provisional selection", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /surface === 'voice'/); assert.match(screen, /TUTOR_VOICE_OPTIONS\.map/); assert.match(screen, /selected=\{edit\.tutorVoice === v\.value\}/); assert.match(screen, /setEdit\(\{ \.\.\.edit, tutorVoice: v\.value \}\)/); assert.match(screen, /patch\(\{ tutorVoice: edit\.tutorVoice \}\)/); });
 
@@ -190,6 +194,33 @@ describe('the pre-account hand-off', () => {
     assert.match(app, /const built = profileFromDraft\(draft\)/, 'the draft is not written through the one constructor that knows the contract');
     assert.match(app, /done\(built\)/, 'the profile is never handed over');
     assert.match(app, /onConsumed\(\)/, 'the pre-account draft is not cleared after profile creation');
+  });
+});
+
+describe('personal plan answers migrate without inventing a choice', () => {
+  test('legacy drafts retain their level and voice while new answers remain unanswered', () => {
+    for (const startLevel of ['zero', 'few', 'getby'] as const) {
+      const draft = repaired({ version: 1, ageConfirmed: true, tutorVoice: 'marie', startLevel, reason: 'trip', minutes: 10, page: 'plan' });
+      assert.equal(draft.startLevel, startLevel);
+      assert.equal(draft.tutorVoice, 'marie');
+      assert.equal(draft.tutorChosen, undefined);
+      assert.equal(draft.speakingConfidence, null);
+      assert.equal(draft.practiceFocus, null);
+      assert.equal(draft.analyticsConsent, false);
+    }
+  });
+  test('new answers and the deliberate tutor selection round-trip through the same versioned store', async () => {
+    installDisk();
+    const draft = { ...freshPreAccountDraft(), startLevel: 'confident', speakingConfidence: 'comfortable', practiceFocus: 'listening', tutorVoice: 'marie', tutorChosen: true, page: 'choose-tutor' } as const;
+    await savePreAccountDraft(draft);
+    assert.deepEqual(await loadPreAccountDraft(), draft);
+    assert.equal(repaired({ ...draft, tutorChosen: 'true' }).tutorChosen, false);
+    assert.equal(repaired({ ...draft, tutorChosen: null }).tutorChosen, false);
+    assert.equal(repaired({ ...draft, tutorChosen: false }).tutorChosen, false);
+    const retired = repaired({ ...draft, tutorVoice: 'luc' });
+    assert.equal(retired.tutorVoice, DEFAULT_TUTOR_VOICE);
+    assert.equal(retired.tutorChosen, false);
+    assert.equal(retired.practiceFocus, 'listening');
   });
 });
 

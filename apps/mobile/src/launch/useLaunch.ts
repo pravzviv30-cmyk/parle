@@ -1,5 +1,15 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { launchHolds } from './launchHold.ts';
+import { launchWelcome } from './launchWelcome.ts';
+
+/** The first-run screen chooses whether launch becomes an interactive welcome. */
+export const setLaunchWelcome = (enabled: boolean): void => launchWelcome.set(enabled);
+
+export function useLaunchWelcome(): boolean {
+  const [welcome, setWelcome] = useState(launchWelcome.current());
+  useLayoutEffect(() => launchWelcome.subscribe(setWelcome), []);
+  return welcome;
+}
 
 /**
  * Hold the launch screen while this wait is on screen.

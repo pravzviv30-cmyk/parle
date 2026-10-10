@@ -10,6 +10,8 @@ export function storyGround(page: PreAccountPage, celebrated: boolean) {
   if (page === 'hear-it') return colour.blue;
   if (page === 'reason') return colour.coral;
   if (page === 'start-level' || page === 'remind') return colour.mint;
+  if (page === 'confidence') return colour.sun;
+  if (page === 'focus' || page === 'choose-tutor') return colour.blue;
   if (page === 'time' || page === 'plan') return colour.sun;
   if (page === 'recap' && celebrated) return colour.coral;
   return paper.ground;

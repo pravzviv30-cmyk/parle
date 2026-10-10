@@ -1,5 +1,5 @@
 /**
- * Three one-tap answers, turned into a plan (spine contract section 3). Pure.
+ * Five direct answers, turned into a plan (spine contract section 3). Pure.
  *
  * The plan orders scenes and suggests minutes. It does not place a learner on
  * a level: "I can get by" skips the first coffee and starts the tutor at a
@@ -17,7 +17,7 @@
 import { starterTasks, type StarterTask, PLANS, SCENE_SPINE, getMission, type MissionId, type MissionPlace } from '@luvani/core';
 
 import { DEFAULT_REMINDER_TIME, reminderTime, type ReminderTimeId } from '../reminders/reminder.ts';
-import type { PlanMinutes, PreAccountOnboardingDraft, Reason, StartLevel } from './preAccountDraft.ts';
+import type { PlanMinutes, PracticeFocus, PreAccountOnboardingDraft, Reason, SpeakingConfidence, StartLevel } from './preAccountDraft.ts';
 import { starterMinutes } from './guestProgress.ts';
 
 export interface AnswerOption<K extends string | number> {
@@ -27,14 +27,25 @@ export interface AnswerOption<K extends string | number> {
 }
 
 /**
- * Where are you starting? One tap; zero is the default. There is no "I'm not
- * sure" any more (come alive, first run): the first row says it covers that,
- * which is true, because a learner who is unsure gets the most help there.
+ * Four self-reported starting points. These choose support, never a certified
+ * placement. Existing saved level keys keep their meaning.
  */
 export const START_LEVELS: readonly (AnswerOption<StartLevel> & { gloss: string })[] = [
-  { key: 'zero', title: 'I haven’t started', gloss: 'Also right if you are not sure.' },
-  { key: 'few', title: 'Say hello and order a drink', gloss: '' },
-  { key: 'getby', title: 'Have a short conversation', gloss: '' },
+  { key: 'zero', title: 'I’m new to French', gloss: 'Start with the essentials.' },
+  { key: 'few', title: 'I know a few words', gloss: 'Hello, thank you, and simple phrases.' },
+  { key: 'getby', title: 'I can get by', gloss: 'Short conversations, with some help.' },
+  { key: 'confident', title: 'I’m comfortable talking', gloss: 'Make everyday conversations flow.' },
+];
+
+export const CONFIDENCE_OPTIONS: readonly AnswerOption<SpeakingConfidence>[] = [
+  { key: 'hesitant', title: 'I need a gentle start' },
+  { key: 'trying', title: 'I’ll give it a try' },
+  { key: 'comfortable', title: 'I’m ready to talk' },
+];
+export const FOCUS_OPTIONS: readonly AnswerOption<PracticeFocus>[] = [
+  { key: 'listening', title: 'Understand what I hear' },
+  { key: 'speaking', title: 'Speak with confidence' },
+  { key: 'words', title: 'Find the right words' },
 ];
 
 export const DEFAULT_START_LEVEL: StartLevel = 'zero';
@@ -65,7 +76,7 @@ export const SEEDED_GOAL: Readonly<Record<Reason, string>> = {
 
 /** The spine, less the first coffee for a learner who can already get by. */
 export function sceneOrder(level: StartLevel): readonly MissionId[] {
-  return level === 'getby' ? SCENE_SPINE.filter((id) => id !== 'mission:premier-cafe') : SCENE_SPINE;
+  return level === 'getby' || level === 'confident' ? SCENE_SPINE.filter((id) => id !== 'mission:premier-cafe') : SCENE_SPINE;
 }
 
 /** The scene the first run opens on after the account is made. */
@@ -89,7 +100,7 @@ export function presetMinutes(level: StartLevel, reason: Reason | null): PlanMin
  * the first real evidence replaces it.
  */
 export function startEstimate(level: StartLevel): { estimate: 'A0' | 'A1'; confidence: 'low' } {
-  return { estimate: level === 'getby' ? 'A1' : 'A0', confidence: 'low' };
+  return { estimate: level === 'getby' || level === 'confident' ? 'A1' : 'A0', confidence: 'low' };
 }
 
 export function levelOf(draft: PreAccountOnboardingDraft): StartLevel {
@@ -120,6 +131,9 @@ export interface PlanView {
   goal: string | null;
   /** Describes the actual route rule, not an inferred tailored curriculum. */
   startingReason: string;
+  /** Preference changes the first practice's help and carries into the tutor. */
+  method: string;
+  tutorGoals: readonly string[];
   reminder: { time: ReminderTimeId; clock: string; note: string };
 }
 
@@ -144,8 +158,65 @@ export const ROUTINE_NOTE = 'A suggestion for practice, not an extra allowance o
 export const COVERAGE_NOTE = 'Beginner scenes. Your starting level is a suggestion, not a certified placement or a full tailored course.';
 
 export function startingReasonFor(level: StartLevel): string {
-  if (level === 'getby') return 'Start with a French prompt. Help is available whenever you need it.';
+  if (level === 'getby' || level === 'confident') return 'Start with a French prompt. Help is available whenever you need it.';
   return level === 'few' ? 'Try your own reply, with translation and help available.' : 'Start with a sentence starter and translation. Help is available.';
+}
+
+/** Confidence chooses scaffolding, even for a learner who knows some French. */
+export function startingSupport(draft: PreAccountOnboardingDraft): string {
+  if (draft.speakingConfidence === 'hesitant') return 'Start with a model and translation. Try your reply when you’re ready.';
+  return startingReasonFor(levelOf(draft));
+}
+
+/** The caller must also gate spoken mode on the actual service capability. */
+export function initialPracticeMode(draft: PreAccountOnboardingDraft): 'typed' | 'spoken' {
+  return draft.practiceFocus === 'speaking' && draft.speakingConfidence !== 'hesitant' ? 'spoken' : 'typed';
+}
+
+export function practiceMethod(draft: PreAccountOnboardingDraft): string {
+  if (draft.practiceFocus === 'listening') return 'Hear the model, then try your reply.';
+  if (draft.practiceFocus === 'words') return 'Build a reply with useful words and translation.';
+  if (draft.practiceFocus === 'speaking') return draft.speakingConfidence === 'hesitant'
+    ? 'Try a reply in writing, then say it when you’re ready.'
+    : 'Try your reply out loud, with help one tap away.';
+  return 'Hear a useful line, then make it your own.';
+}
+
+const FOCUS_GOALS: Readonly<Record<PracticeFocus, string>> = {
+  listening: 'Understand spoken French with a model I can replay before replying.',
+  speaking: 'Practise speaking French out loud with support when I need it.',
+  words: 'Find useful French words and build my own replies with translation help.',
+};
+const SUPPORT_GOALS: Readonly<Record<SpeakingConfidence, string>> = {
+  hesitant: 'Start gently with a model and translation before I try a reply.',
+  trying: 'Give me space to try a reply, with help available when I get stuck.',
+  comfortable: 'Let me try conversations first, with help available when I ask.',
+};
+
+/** Every saved goal represents a real answer and fits the existing three-goal store. */
+export function tutorGoalsFor(draft: PreAccountOnboardingDraft): readonly string[] {
+  return [
+    ...(draft.reason === null ? [] : [SEEDED_GOAL[draft.reason]]),
+    ...(draft.practiceFocus == null ? [] : [FOCUS_GOALS[draft.practiceFocus]]),
+    ...(draft.speakingConfidence == null ? [] : [SUPPORT_GOALS[draft.speakingConfidence]]),
+  ];
+}
+
+export interface PracticeForecast {
+  days: 90;
+  dailyMinutes: 5 | 10 | 15 | 20;
+  totalMinutes: number;
+  hours: number;
+  /** Arithmetic, not a predicted proficiency or a guaranteed conversation date. */
+  line: string;
+}
+
+export function practiceForecast(minutes: PlanMinutes | null | undefined): PracticeForecast | null {
+  if (minutes == null || minutes === 'none') return null;
+  const totalMinutes = minutes * 90;
+  const hours = totalMinutes / 60;
+  return { days: 90, dailyMinutes: minutes, totalMinutes, hours,
+    line: `${minutes} minutes a day adds up to ${hours} hours of French practice over 90 days.` };
 }
 /**
  * The one line the plan says about days off. It used to deny streaks by naming
@@ -207,7 +278,9 @@ export function planFor(draft: PreAccountOnboardingDraft): PlanView {
     starter: starterTasks(draft.reason, draft.drink ?? 'coffee', starterMinutes(minutesOf(draft)))[0]!,
     minutes: minutesOf(draft),
     goal: draft.reason === null ? null : SEEDED_GOAL[draft.reason],
-    startingReason: startingReasonFor(levelOf(draft)),
+    startingReason: startingSupport(draft),
+    method: practiceMethod(draft),
+    tutorGoals: tutorGoalsFor(draft),
     reminder: { time, clock: reminderTime(time).gloss, note: REMINDER_NOT_ON },
   };
 }

@@ -8,24 +8,26 @@
  *   - the minutes become `dailyGoalMin` via `OnboardingAnswers`;
  *   - the starting level becomes `brain.cefr.estimate`, low confidence, which
  *     `openingRungFor` already turns into a first rung (the ladder gains no input);
- *   - the seeded goal is written through `withLearnerGoal`;
+ *   - purpose, confidence and focus goals are written through `withLearnerGoal`;
+ *   - the practice style goes through the existing `withPreferTyping` door;
  *   - the voice through `withChosenVoice`, so a default nobody changed still
  *     reads "never chosen" only if nobody touched it;
  *   - the first name becomes the profile name;
  *   - the reminder goes through `saveReminder`, on only when the learner said
- *     yes to the day-one ask and the system scheduled it (`reminderEnabled` is
- *     set only then), and off otherwise; `reminderSummary` says which on the
- *     account's review screen.
+ *     yes to an optional reminder ask and the system scheduled it
+ *     (`reminderEnabled` is set only then), and off otherwise. New onboarding
+ *     does not interrupt day one with that ask; legacy answers still survive.
+ *     `reminderSummary` says which on the account's review screen.
  *
  * Kept apart from `plan.ts` on purpose: this module reaches the profile store,
  * and the plan page must not load anything that can (`disclosure.test.ts`).
  */
 
-import { carryPreferenceEdits, createStoredProfile, type StoredProfile } from '../profile/store.ts';
+import { carryPreferenceEdits, createStoredProfile, withPreferTyping, type StoredProfile } from '../profile/store.ts';
 import { withLearnerGoal, withMemoryPaused } from '../profile/memory.ts';
 import { reminderTime, type StoredReminder } from '../reminders/reminder.ts';
 import { withChosenVoice } from './voiceStep.ts';
-import { SEEDED_GOAL, levelOf, minutesOf, reminderOf, startEstimate } from './plan.ts';
+import { initialPracticeMode, levelOf, minutesOf, reminderOf, startEstimate, tutorGoalsFor } from './plan.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 
 export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.now()): StoredProfile {
@@ -46,9 +48,18 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
     onboardingGoal: draft.reason, onboardingDrink: draft.drink ?? null,
     brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft)) } },
   };
-  const chosen = withChosenVoice(placed, draft.tutorVoice);
-  const voiced = carryPreferenceEdits(chosen, withMemoryPaused(chosen, draft.rememberLearning !== true, now));
-  return draft.reason === null ? voiced : carryPreferenceEdits(voiced, withLearnerGoal(voiced, SEEDED_GOAL[draft.reason]));
+  // An explicit false is a new-flow answer: the fallback voice was never
+  // selected. An absent flag belongs to a legacy draft and keeps its voice.
+  const chosen = withChosenVoice(placed, draft.tutorChosen === false ? null : draft.tutorVoice);
+  let personalised = carryPreferenceEdits(chosen, withMemoryPaused(chosen, draft.rememberLearning !== true, now));
+  // Older drafts never answered these questions: retain their existing default.
+  if (draft.practiceFocus != null || draft.speakingConfidence != null) {
+    personalised = carryPreferenceEdits(personalised, withPreferTyping(personalised, initialPracticeMode(draft) === 'typed'));
+  }
+  for (const goal of tutorGoalsFor(draft)) {
+    personalised = carryPreferenceEdits(personalised, withLearnerGoal(personalised, goal));
+  }
+  return personalised;
 }
 
 /** The reminder time chosen on the plan, saved off until the OS has said yes. */

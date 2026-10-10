@@ -48,10 +48,14 @@ export type LaunchState = {
   readonly entered: boolean;
   /** MAX_LAUNCH_MS has passed since the launch began. */
   readonly capped: boolean;
+  /** Only a fresh first-run asks the learner to start; return visits stay automatic. */
+  readonly welcome?: boolean;
+  readonly started?: boolean;
 };
 
 /** May the launch screen start to leave? */
-export function launchMayLeave({ appReady, entered, capped }: LaunchState): boolean {
+export function launchMayLeave({ appReady, entered, capped, welcome = false, started = false }: LaunchState): boolean {
+  if (welcome && appReady) return entered && started;
   if (capped) return true;
   return appReady && entered;
 }

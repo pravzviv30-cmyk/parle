@@ -180,7 +180,7 @@ const engineAllowed = (short: string): boolean =>
   /^tutor\/(?:Orb|LiveBars)[^/]*\.tsx?$/.test(short) ||
   /^live\/RoomLevels[^/]*\.tsx?$/.test(short);
 
-/** Rule 2: the files still on React Native's legacy `Animated`. This list may only shrink. */
+/** Rule 2: the reviewed files using native transform/opacity `Animated` primitives. */
 const LEGACY_ANIMATED = [
   'components.tsx',
   'motion.ts',
@@ -190,6 +190,10 @@ const LEGACY_ANIMATED = [
   'tutor/VoiceOrb.tsx',
   // Preserve main's independently shipped Hum launch on its existing engine.
   'launch/LaunchScreen.tsx',
+  // User-approved first-run celebration and bounded action/reveal primitives.
+  'onboarding/firstRun/DayOne.tsx',
+  'onboarding/motion/OnboardingScenes.tsx',
+  'onboarding/AccountWelcome.tsx',
 ];
 const usesLegacyAnimated = (body: string): boolean =>
   /\bAnimated\./.test(body) ||

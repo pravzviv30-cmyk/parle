@@ -1,0 +1,4 @@
+name: streak
+logs:
+  file: build/rive.log
+  problems: build/problems.log

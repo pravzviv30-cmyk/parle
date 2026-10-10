@@ -15,7 +15,7 @@ export interface AuthUser {
 }
 
 /** Inline-error contract: `message` is a plain sentence, never a provider code. */
-export type AuthResult = { ok: true; message?: string; deletionPending?: boolean } | { ok: false; message: string };
+export type AuthResult = { ok: true; message?: string; deletionPending?: boolean; createdUserId?: string } | { ok: false; message: string };
 
 export interface AuthAdapter {
   kind: 'supabase' | 'mock';

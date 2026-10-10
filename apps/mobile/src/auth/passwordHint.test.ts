@@ -54,7 +54,9 @@ describe('the password requirement while it is being met — F156', () => {
     }
 
     // The screen: one line, under the password field, above the confirm field.
-    const screen = read('SignUpScreen.tsx');
+    // Password recovery keeps the terse legacy hint; signup now exposes the
+    // requested colour meter with the same minimum acceptance rule.
+    const screen = read('SetNewPasswordScreen.tsx');
     assert.match(screen, /from '\.\/passwordHint\.ts'/, 'the sign-up screen does not use the hint module');
     assert.match(
       screen,
@@ -71,7 +73,7 @@ describe('the password requirement while it is being met — F156', () => {
       'the hint does not change colour on the met state, so meeting the rule looks the same as not meeting it',
     );
 
-    const passwordField = screen.indexOf('label="Password"');
+    const passwordField = screen.indexOf('label="New password"');
     const confirmField = screen.indexOf('label="Confirm password"');
     const hintLine = screen.indexOf('hint.text');
     assert.ok(passwordField > 0 && confirmField > passwordField, 'the sign-up fields moved; this test is reading the wrong shape');

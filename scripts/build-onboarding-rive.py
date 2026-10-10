@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Compile original script-free RML assets and same-frame SVG fallbacks.
+
+Usage: RIVE_CLI=/path/to/rive python3 scripts/build-onboarding-rive.py
+Requires the official Rive CLI 1.5.1. Source scenes remain editable as RML.
+No upload, account, signing, remote asset or runtime script is involved.
+"""
+from pathlib import Path
+import json, math, os, shutil, subprocess, xml.etree.ElementTree as ET
+
+ROOT = Path(__file__).resolve().parents[1]
+ASSETS = ROOT / 'apps/mobile/assets/rive'
+CLI = os.environ.get('RIVE_CLI') or shutil.which('rive')
+if not CLI:
+    raise SystemExit('Set RIVE_CLI to the installed official Rive CLI.')
+
+
+def n(element, key, default=0):
+    return float(element.attrib.get(key, default))
+
+
+def rgba(value):
+    return '#' + value[2:] if value[:2] == 'FF' else '#' + value[2:] + value[:2]
+
+
+def handle(point, prefix):
+    x, y = n(point, 'x'), n(point, 'y')
+    r, d = n(point, prefix+'Rotation'), n(point, prefix+'Distance')
+    return x+math.cos(r)*d, y+math.sin(r)*d
+
+
+def svg_shape(shape):
+    paint=shape.find('Fill/SolidColor')
+    if paint is None:
+        return ''
+    transform=f'translate({n(shape,"x"):g} {n(shape,"y"):g}) rotate({n(shape,"rotation")*180/math.pi:g}) scale({n(shape,"scaleX",1):g} {n(shape,"scaleY",1):g})'
+    result=[]
+    for geo in shape:
+        w,h=n(geo,'width'),n(geo,'height')
+        ox,oy=n(geo,'originX',.5),n(geo,'originY',.5)
+        if geo.tag == 'Rectangle':
+            result.append(f'<rect x="{-w*ox:g}" y="{-h*oy:g}" width="{w:g}" height="{h:g}" rx="{n(geo,"cornerRadiusTL"):g}"/>')
+        elif geo.tag == 'Ellipse':
+            result.append(f'<ellipse cx="{w*(.5-ox):g}" cy="{h*(.5-oy):g}" rx="{w/2:g}" ry="{h/2:g}"/>')
+        elif geo.tag == 'PointsPath':
+            points=list(geo)
+            if not points:continue
+            commands=[f'M {n(points[0],"x"):g} {n(points[0],"y"):g}']
+            for prev,cur in zip(points,points[1:]+points[:1]):
+                if prev.tag.startswith('Cubic') or cur.tag.startswith('Cubic'):
+                    x1,y1=handle(prev,'out');x2,y2=handle(cur,'in')
+                    commands.append(f'C {x1:g} {y1:g} {x2:g} {y2:g} {n(cur,"x"):g} {n(cur,"y"):g}')
+                else:commands.append(f'L {n(cur,"x"):g} {n(cur,"y"):g}')
+            commands.append('Z')
+            result.append('<path d="'+' '.join(commands)+'"/>')
+    return f'<g transform="{transform}" fill="{rgba(paint.attrib["colorValue"])}" opacity="{n(shape,"opacity",1):g}">'+''.join(result)+'</g>'
+
+
+def svg_node(node):
+    if node.tag == 'Shape':return svg_shape(node)
+    if node.tag != 'Node':return ''
+    transform=f'translate({n(node,"x"):g} {n(node,"y"):g}) rotate({n(node,"rotation")*180/math.pi:g}) scale({n(node,"scaleX",1):g} {n(node,"scaleY",1):g})'
+    return f'<g transform="{transform}" opacity="{n(node,"opacity",1):g}">'+''.join(svg_node(child) for child in reversed(list(node)))+'</g>'
+
+
+
+stills={}
+for name in ['welcome','level','plan','streak','account','confetti']:
+    project=ASSETS/'source'/name
+    subprocess.run([CLI,str(project),'--verify'],check=True)
+    report=json.loads(subprocess.check_output([CLI,'inspect',str(project),'--summary']))
+    if report['problems']:raise SystemExit(f'{name}: inspect reported problems {report["problems"]}')
+    subprocess.run([CLI,str(project),'--once'],check=True)
+    shutil.copyfile(project/'build'/f'{name}.riv',ASSETS/f'{name}.riv')
+    art=ET.parse(project/'scene.rml').getroot().find('Artboard')
+    if name in ['plan','account','confetti']:
+        # Finite celebrations fall back to their final resting frame, never frozen confetti.
+        objects={element.attrib.get('id'):element for element in art.iter()}
+        for keyed in art.findall('LinearAnimation/KeyedObject'):
+            target=objects[keyed.attrib['objectId']]
+            for prop in keyed.findall('KeyedProperty'):
+                keys=prop.findall('KeyFrameDouble')
+                if keys:target.attrib[prop.attrib['property']]=keys[-1].attrib['value']
+    stills[name]='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">'+''.join(svg_node(s) for s in reversed(list(art)))+'</svg>'
+
+out=ROOT/'apps/mobile/src/art/flat/onboardingRiveStills.ts'
+refs = {'#3B2FE0':'colour.blue', '#D63A22':'colour.coral', '#FFC93C':'colour.sun', '#2FD18B':'colour.mint', '#16123A':'paper.ink', '#FFFFFF':'paper.card', '#B9A7FF':'lilac', '#FFF6E9':'paper.ground'}
+lines=['/** Generated from assets/rive/source with scripts/build-onboarding-rive.py. */', "import { colour, paper, lilac } from '../../palette.ts';", 'export const RIVE_STILLS = {']
+for name,svg in stills.items():
+    for hex_value,token in refs.items():svg=svg.replace(hex_value, '${'+token+'}')
+    lines.append('  '+json.dumps(name)+': `'+svg+'`,')
+lines.extend(['} as const;', ''])
+out.write_text('\n'.join(lines))
+print(f'Compiled {len(stills)} original scenes and vector fallbacks.')

@@ -98,10 +98,11 @@ describe('the reminder ask — F754', () => {
     assert.equal((screen.match(/go\('remind'\)/g) ?? []).length, 1, 'day one is reached from somewhere other than the finish');
     // The first run asks nothing itself: no permission, no schedule.
     assert.doesNotMatch(screen, /askReminderPermission|scheduleReminder|requestPermissionsAsync/, 'the first run raises the dialog or schedules outside the one ask');
-    // The ask is drawn on day one and in the guest home's sheet, and nowhere else.
-    assert.equal((screen.match(/<ReminderAsk\b/g) ?? []).length, 2);
+    // The revised streak screen has no reminder interruption. The historical
+    // guest Home still opens the same optional ask on a deliberate tap.
+    assert.equal((screen.match(/<ReminderAsk\b/g) ?? []).length, 1);
     const remind = screen.slice(screen.indexOf("{page === 'remind' && ("), screen.indexOf("{page === 'keep' && ("));
-    assert.match(remind, /\{askShown \? \( <ReminderAsk/, 'day one draws the ask without asking whether it may');
+    assert.doesNotMatch(remind, /<ReminderAsk/, 'a reminder interruption reappeared on the achievement screen');
     assert.match(screen, /const askShown = REMINDERS_AVAILABLE && draft\.reminderEnabled !== true && !reminderAnswered;/);
     const sheet = screen.slice(screen.indexOf("{surface === 'reminder' && ("));
     assert.match(sheet, /^\{surface === 'reminder' && \( <ReminderAsk/, 'the guest home\'s sheet draws something other than the one ask');
@@ -178,7 +179,7 @@ describe('the reminder ask — F754', () => {
     assert.match(ask, /said\(REMINDER_ASK_COPY\.title, \{ tutor \}\)/, 'the ask does not name the tutor it was given');
     const screen = evidence(SCREEN);
     assert.match(screen, /const tutorName = tutorVoice\(draft\.tutorVoice\)\.persona\.name;/, 'the first run names a tutor other than the chosen one');
-    assert.equal((screen.match(/time=\{draft\.reminderTime \?\? DEFAULT_REMINDER_TIME\}/g) ?? []).length, 2, 'the ask offers a time other than the learner\'s or the evening');
+    assert.equal((screen.match(/time=\{draft\.reminderTime \?\? DEFAULT_REMINDER_TIME\}/g) ?? []).length, 1, 'the ask offers a time other than the learner\'s or the evening');
     // Every control has words a screen reader can say: the pill, the link and the time rows.
     assert.match(ask, /<PillButton label=\{said\(REMINDER_ASK_COPY\.remindMe, \{ time: gloss \}\)\}/);
     assert.match(ask, /<GhostButton label=\{REMINDER_ASK_COPY\.notNow\}/);

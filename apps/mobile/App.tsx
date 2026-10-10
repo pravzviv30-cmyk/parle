@@ -93,6 +93,7 @@ import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
+import { OnboardingPreview } from './src/dev/OnboardingPreview.tsx';
 import { useLaunchHold } from './src/launch/useLaunch.ts';
 import { ReduceMotionBridge } from './src/motion/ReduceMotionBridge.tsx';
 import { FlightLayer } from './src/motion/FlightLayer.tsx';
@@ -296,6 +297,8 @@ function SignedInRoot({
    */
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
+  const { newAccountUserId, clearNewAccount } = useAuth();
+  const newlyCreated = newAccountUserId === user.id;
   const [ready, setReady] = useState(false);
   const [startupFailed, setStartupFailed] = useState(false);
   const [startupRead, setStartupRead] = useState(0);
@@ -488,7 +491,7 @@ function SignedInRoot({
         existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft(freshStart) ? (
           <PreAccountProfileBootstrap
             draft={preAccountDraft}
-            requireReview={preAccountDraft.eligibilityConfirmed === true || user.provider === 'google' || user.provider === 'apple'}
+            requireReview={!newlyCreated && (preAccountDraft.eligibilityConfirmed === true || user.provider === 'google' || user.provider === 'apple')}
             accountLabel={user.email ?? 'your current account'}
             onConsumed={onPreAccountDraftConsumed}
             done={(profile) => {
@@ -566,8 +569,10 @@ function SignedInRoot({
     >
       <GuestAccountHandoff
         draft={preAccountDraft}
+        newlyCreated={newlyCreated}
+        onWelcomeDone={clearNewAccount}
         onDone={(kept) => {
-          if (kept) pendingWall.current = true;
+          if (kept && !newlyCreated) pendingWall.current = true;
           onPreAccountDraftConsumed();
         }}
       >
@@ -613,7 +618,7 @@ function SignedInRoot({
  * auth flow and the flag went with it.
  */
 function Gate() {
-  const { status, user, recovering, clearRecovery } = useAuth();
+  const { status, user, recovering, clearRecovery, creatingAccount } = useAuth();
   const [preAccountDraft, setPreAccountDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [returning, setReturning] = useState(false);
@@ -732,7 +737,7 @@ function Gate() {
     );
   }, []);
 
-  if (status === 'loading' || !draftLoaded) return <Loading />;
+  if (status === 'loading' || !draftLoaded || (status === 'signedIn' && creatingAccount)) return <Loading />;
   if (status === 'signedIn' && user !== null) {
     if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
     return (
@@ -802,6 +807,7 @@ export default function App() {
             platforms: the first prop is VoiceOver's, the second TalkBack's. */}
         <View
           style={st.app}
+          {...(Platform.OS === 'web' ? ({ 'aria-hidden': !launched, inert: !launched ? true : undefined } as object) : {})}
           accessibilityElementsHidden={!launched}
           importantForAccessibility={launched ? 'auto' : 'no-hide-descendants'}
         >
@@ -809,7 +815,7 @@ export default function App() {
             // The navigator fills the device. Shared screen gutters and the dock
             // adapt independently, so iPad is not trapped in a phone-sized shell.
             <View style={st.shell}>
-              <Gate />
+              {__DEV__ && process.env.EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW === '1' ? <OnboardingPreview /> : <Gate />}
             </View>
           ) : (
             <Loading />

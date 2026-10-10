@@ -1,0 +1,70 @@
+<Rive version="1" kind="fragment">
+    <Artboard width="320" height="320" styleId="0:5" defaultStateMachineId="0:7" name="streak" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5" />
+        <Shape x="160" y="200" rotation="0" name="Inner flame" id="0:23">
+            <PointsPath isClosed="true" name="Path">
+                <CubicDetachedVertex x="4.0" y="-68.0" inRotation="0" inDistance="0" outRotation="1.4758446204521403" outDistance="21.095023109728984" />
+                <CubicDetachedVertex x="32.0" y="2.0" inRotation="-1.4711276743037347" inDistance="30.14962686336267" outRotation="1.0714496051147666" outDistance="25.059928172283335" />
+                <CubicDetachedVertex x="6.0" y="44.0" inRotation="0.03224688243525392" inDistance="31.016124838541643" outRotation="3.0727361642887487" outDistance="29.068883707497264" />
+                <CubicDetachedVertex x="-31.0" y="6.0" inRotation="2.0626055027835952" inDistance="31.76476034853718" outRotation="-1.695151321341658" outDistance="24.186773244895647" />
+                <CubicDetachedVertex x="4.0" y="-68.0" inRotation="1.7975951748487824" inDistance="26.68332812825267" outRotation="0" outDistance="0" />
+            </PointsPath>
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFC93C" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="160" y="160" rotation="0" name="Streak flame" id="0:22">
+            <PointsPath isClosed="true" name="Path">
+                <CubicDetachedVertex x="-2.0" y="-122.0" inRotation="0" inDistance="0" outRotation="1.5208379310729538" outDistance="40.049968789001575" />
+                <CubicDetachedVertex x="58.0" y="-7.0" inRotation="-1.497399000893285" inDistance="68.18357573492314" outRotation="0.8131687999908693" outDistance="50.93132631298737" />
+                <CubicDetachedVertex x="53.0" y="73.0" inRotation="-0.3217505543966422" inDistance="50.59644256269407" outRotation="2.1269625569153496" outDistance="43.56604182158394" />
+                <CubicDetachedVertex x="-53.0" y="79.0" inRotation="0.6435011087932844" inDistance="60.0" outRotation="-2.651635327336065" outDistance="51.0" />
+                <CubicDetachedVertex x="-56.0" y="-8.0" inRotation="2.3951358332893844" inDistance="54.48853090330111" outRotation="-0.7086262721276703" outDistance="27.65863337187866" />
+                <CubicDetachedVertex x="-26.0" y="-64.0" inRotation="2.2355708216122423" inDistance="47.01063709417263" outRotation="1.313472611823808" outDistance="39.293765408777" />
+                <CubicDetachedVertex x="-2.0" y="-122.0" inRotation="1.5707963267948966" inDistance="48.0" outRotation="0" outDistance="0" />
+            </PointsPath>
+            <Fill name="Fill">
+                <SolidColor colorValue="FFD63A22" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="160" y="263" rotation="0" name="Warm light" id="0:21">
+            <Ellipse width="130" height="18" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFC93C" name="Color" />
+            </Fill>
+        </Shape>
+        <StateMachine name="Motion" id="0:7">
+            <StateMachineLayer name="Layer" id="0:8">
+                <AnyState x="200" y="-120" />
+                <ExitState x="400" y="-120" />
+                <EntryState>
+                    <StateTransition stateToId="0:12" />
+                </EntryState>
+                <AnimationState x="200" animationId="0:6" id="0:12" />
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation loopValue="loop" duration="150" name="Motion" id="0:6">
+            <KeyedObject objectId="0:22">
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble frame="0" value="1" interpolationType="linear" />
+                    <KeyFrameDouble frame="75" value="1.025" interpolationType="linear" />
+                    <KeyFrameDouble frame="150" value="1" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:22">
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble frame="0" value="1" interpolationType="linear" />
+                    <KeyFrameDouble frame="75" value="0.975" interpolationType="linear" />
+                    <KeyFrameDouble frame="150" value="1" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:23">
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble frame="0" value="1" interpolationType="linear" />
+                    <KeyFrameDouble frame="75" value="1.035" interpolationType="linear" />
+                    <KeyFrameDouble frame="150" value="1" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

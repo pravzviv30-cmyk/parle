@@ -1,0 +1,120 @@
+<Rive version="1" kind="fragment">
+    <Artboard width="320" height="320" styleId="0:5" defaultStateMachineId="0:7" name="welcome" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5" />
+        <Shape x="261" y="49" rotation="0.6" name="Confetti" id="0:32">
+            <Rectangle width="10" height="26" cornerRadiusTL="3" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFD63A22" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="0" y="0" rotation="0" name="Connection sparkle" id="0:31">
+            <PointsPath isClosed="true" name="Path">
+                <StraightVertex x="259" y="246" radius="2" />
+                <StraightVertex x="269" y="252" radius="2" />
+                <StraightVertex x="265" y="264" radius="2" />
+                <StraightVertex x="252" y="261" radius="2" />
+            </PointsPath>
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFC93C" name="Color" />
+            </Fill>
+        </Shape>
+        <Shape x="61" y="53" rotation="0" name="Sun sparkle" id="0:30">
+            <Ellipse width="24" height="24" originX="0.5" originY="0.5" name="Path" />
+            <Fill name="Fill">
+                <SolidColor colorValue="FFFFC93C" name="Color" />
+            </Fill>
+        </Shape>
+        <Node x="0" y="0" id="0:603" name="Your reply">
+            <Shape x="149" y="187" rotation="0" name="Reply dot" id="0:29">
+                <Ellipse width="16" height="16" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF3B2FE0" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="117" y="187" rotation="0" name="Reply dot" id="0:28">
+                <Ellipse width="16" height="16" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF3B2FE0" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="85" y="187" rotation="0" name="Reply dot" id="0:27">
+                <Ellipse width="16" height="16" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF3B2FE0" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="0" y="0" rotation="0" name="Your bubble tail" id="0:26">
+                <PointsPath isClosed="true" name="Path">
+                    <StraightVertex x="72.6" y="224.2" radius="2" />
+                    <StraightVertex x="72.6" y="267.52" radius="2" />
+                    <StraightVertex x="113.68" y="232.18" radius="2" />
+                </PointsPath>
+                <Fill name="Fill">
+                    <SolidColor colorValue="FFFFFFFF" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="120" y="190" rotation="0" name="Your bubble" id="0:25">
+                <Rectangle width="158" height="114" cornerRadiusTL="20" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FFFFFFFF" name="Color" />
+                </Fill>
+            </Shape>
+        </Node>
+        <Node x="0" y="0" id="0:602" name="French conversation">
+            <Shape x="204" y="136" rotation="0" name="French line short" id="0:24">
+                <Rectangle width="55" height="8" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF16123A" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="206" y="113" rotation="0" name="French line" id="0:23">
+                <Rectangle width="72" height="8" cornerRadiusTL="4" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF16123A" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="0" y="0" rotation="0" name="French bubble tail" id="0:22">
+                <PointsPath isClosed="true" name="Path">
+                    <StraightVertex x="146.2" y="162.2" radius="2" />
+                    <StraightVertex x="146.2" y="209.32" radius="2" />
+                    <StraightVertex x="189.36" y="170.88" radius="2" />
+                </PointsPath>
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF2FD18B" name="Color" />
+                </Fill>
+            </Shape>
+            <Shape x="196" y="125" rotation="0" name="French bubble" id="0:21">
+                <Rectangle width="166" height="124" cornerRadiusTL="20" originX="0.5" originY="0.5" name="Path" />
+                <Fill name="Fill">
+                    <SolidColor colorValue="FF2FD18B" name="Color" />
+                </Fill>
+            </Shape>
+        </Node>
+        <StateMachine name="Motion" id="0:7">
+            <StateMachineLayer name="Layer" id="0:8">
+                <AnyState x="200" y="-120" />
+                <ExitState x="400" y="-120" />
+                <EntryState>
+                    <StateTransition stateToId="0:12" />
+                </EntryState>
+                <AnimationState x="200" animationId="0:6" id="0:12" />
+            </StateMachineLayer>
+        </StateMachine>
+        <LinearAnimation loopValue="loop" duration="180" name="Motion" id="0:6">
+            <KeyedObject objectId="0:602">
+                <KeyedProperty property="y">
+                    <KeyFrameDouble frame="0" value="0.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="90" value="-4.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="180" value="0.0" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:603">
+                <KeyedProperty property="y">
+                    <KeyFrameDouble frame="0" value="0.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="90" value="-5.0" interpolationType="linear" />
+                    <KeyFrameDouble frame="180" value="0.0" interpolationType="linear" />
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

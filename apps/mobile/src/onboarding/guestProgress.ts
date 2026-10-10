@@ -26,7 +26,7 @@
  *   (`guestModel.ts` `guestPracticeDays`), which the screen passes in.
  */
 
-import { starterTasks, streakFrom, tutorVoice, weekStripFrom, type DayKey, type StarterTask, type WeekCell } from '@luvani/core';
+import { addDays, starterTasks, streakFrom, tutorVoice, weekdayIndex, WEEKDAY_NAMES, type DayKey, type StarterTask, type WeekCell, type WeekdayLetter } from '@luvani/core';
 import { GAME_COPY } from '../game/copy.ts';
 import type { BulkIconName } from '../icons/names.ts';
 import { reminderTime } from '../reminders/reminder.ts';
@@ -86,7 +86,7 @@ export interface GuestStreak {
   readonly before: number;
   /** Whether today is one of the days: the flame is lit, not waiting. */
   readonly todayPractised: boolean;
-  /** This calendar week, Monday first. */
+  /** Today first, then the next six local calendar days. Future dots stay neutral. */
   readonly week: readonly WeekCell[];
   /** Day one's title. */
   readonly title: string;
@@ -108,11 +108,22 @@ export function guestStreak(days: readonly DayKey[], today: DayKey): GuestStreak
     current: state.current,
     before: todayPractised ? state.current - 1 : state.current,
     todayPractised,
-    week: weekStripFrom(input),
+    week: upcomingPracticeDays(today, todayPractised),
     // A later day of a run says what is true of today; day one, or a run
     // whose newest day was yesterday, says the run has started.
     title: state.current > 1 && todayPractised ? GAME_COPY.streak.line(state.current) : GAME_COPY.streak.started,
   };
+}
+
+/** A calendar strip anchored to the learner's current day, safe across DST and month ends. */
+export function upcomingPracticeDays(today: DayKey, todayPractised: boolean): readonly WeekCell[] {
+  const letters: readonly WeekdayLetter[] = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  return Array.from({ length: 7 }, (_, index): WeekCell => {
+    const day = addDays(today, index);
+    const weekday = weekdayIndex(day);
+    return { day, label: letters[weekday]!, name: WEEKDAY_NAMES[weekday]!, cover: null,
+      state: index === 0 ? todayPractised ? 'practised' : 'today-open' : 'ahead' };
+  });
 }
 
 /** One line on the save card. */

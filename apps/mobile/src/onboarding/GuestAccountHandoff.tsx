@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { phraseKeyOf } from '@luvani/core';
@@ -23,6 +23,7 @@ import { fetchBillingStatus } from '../purchases/client.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { keptPhrase, savedPhraseTasks } from './guestProgress.ts';
 import { tutorTimeLine } from './firstRun/copy.ts';
+import { AccountWelcome } from './AccountWelcome.tsx';
 /**
  * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
  *
@@ -39,11 +40,16 @@ export function GuestAccountHandoff({
   draft,
   onDone,
   children,
+  newlyCreated = false,
+  onWelcomeDone,
 }: {
   draft: PreAccountOnboardingDraft | null;
   /** Called once the hand-off is over: true when the practice was kept, false for Start fresh. */
   onDone: (kept: boolean) => void;
   children: React.ReactNode;
+  /** Only a verified signup in this visit can adopt its own anonymous draft automatically. */
+  newlyCreated?: boolean;
+  onWelcomeDone?: () => void;
 }) {
   const { user, adapter } = useAuth();
   const [guest, setGuest] = useState<GuestPractice | null | undefined>(undefined);
@@ -53,10 +59,16 @@ export function GuestAccountHandoff({
   // The server's answer about the account, read once the practice is saved.
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [saved, setSaved] = useState(false);
+  const [welcoming, setWelcoming] = useState(false);
+  const autoStarted = useRef(false);
+  const autoFinished = useRef(false);
   useEffect(() => {
     let active = true;
     void loadGuestPractice().then((value) => {
-      if (active) setGuest(value);
+      if (active) {
+        if (newlyCreated && value === null) setWelcoming(true);
+        setGuest(value);
+      }
     });
     return () => {
       active = false;
@@ -65,10 +77,20 @@ export function GuestAccountHandoff({
   // Reading the guest's practice draws a blank, so the launch screen stays up
   // over it. Above both returns, so the hook runs on every render.
   useLaunchHold(guest === undefined);
-  if (guest === null) return <>{children}</>;
-  if (guest === undefined) return <View />;
+  useEffect(() => {
+    if (!newlyCreated || guest === undefined || busy || autoStarted.current) return;
+    autoStarted.current = true;
+    if (guest === null) setWelcoming(true);
+    else void keep();
+  }, [newlyCreated, guest, busy]);
+  useEffect(() => {
+    if (newlyCreated && saved && !busy && guest !== null && guest !== undefined && !autoFinished.current) {
+      autoFinished.current = true;
+      void finish();
+    }
+  }, [newlyCreated, saved, busy, guest]);
   const keep = async () => {
-    if (!user || busy) return;
+    if (!user || busy || !guest) return;
     setBusy(true);
     setError('');
     const owner = scopeGeneration();
@@ -105,6 +127,7 @@ export function GuestAccountHandoff({
       // The guest's finished days become the account's, once, and day one
       // never lights a second time (F744). Nothing to record is not a failure.
       if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
+      if (owner !== scopeGeneration() || activeUserId() !== uid) return;
       setRemaining(balance);
       setSaved(true);
       // Free or on a plan: the server says, after the claim above has spent the
@@ -121,7 +144,7 @@ export function GuestAccountHandoff({
     }
   };
   const finish = async () => {
-    if (!user || busy) return;
+    if (!user || busy || !guest) return;
     const owner = scopeGeneration();
     setBusy(true);
     setError('');
@@ -131,6 +154,8 @@ export function GuestAccountHandoff({
       if (!saved) await adoptGuestUsage(guest, user.id);
       if (owner !== scopeGeneration()) return;
       await clearGuestPractice();
+      if (owner !== scopeGeneration() || activeUserId() !== user.id) return;
+      if (newlyCreated) setWelcoming(true);
       setGuest(null);
       onDone(saved);
     } catch {
@@ -140,6 +165,9 @@ export function GuestAccountHandoff({
       if (owner === scopeGeneration()) setBusy(false);
     }
   };
+  if (welcoming) return <AccountWelcome onDone={() => { setWelcoming(false); onWelcomeDone?.(); }} />;
+  if (guest === null) return <>{children}</>;
+  if (guest === undefined) return <View />;
   // The time with the tutor, once saved: free on the free allowance (and on a
   // lapsed plan, which the server holds as that), on a plan otherwise, and in
   // plain minutes when only the claim's balance is known.

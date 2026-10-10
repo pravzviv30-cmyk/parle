@@ -2,17 +2,17 @@
  * Google sign-in, native half: open the provider page in an auth session
  * browser, catch the deep-link redirect, and trade the code for a session.
  *
- * The redirect URL differs by runtime — `luvani://auth/callback` in a dev or
- * store build, an `exp://…` URL inside Expo Go — and every variant must be
- * allow-listed in the Supabase dashboard. Codes are pulled with a regex, not
- * `new URL`, so nothing here leans on a global Hermes may not have.
+ * Development and store builds share the registered `luvani://auth/callback`
+ * scheme. That exact return must be allow-listed in Supabase. Parsing and the
+ * Hermes SHA-256 bridge live in testable helpers and never log callback data.
  */
 
 import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
+import * as Crypto from 'expo-crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AuthResult } from './types.ts';
-import { APPLE_START_FAILED, GOOGLE_START_FAILED } from './friendly.ts';
+import { APPLE_START_FAILED, GOOGLE_START_FAILED, friendly } from './friendly.ts';
+import { NATIVE_AUTH_CALLBACK, readOAuthCallback, securePkceUrl } from './oauthCallback.ts';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,35 +26,43 @@ export async function startBrowserSignIn(
   provider: 'google' | 'apple',
 ): Promise<AuthResult> {
   const name = provider === 'apple' ? 'Apple' : 'Google';
-  const redirectTo = Linking.createURL('auth/callback');
-  const { data, error } = await client.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error || !data?.url) {
-    return {
-      ok: false,
-      message: provider === 'apple' ? APPLE_START_FAILED : GOOGLE_START_FAILED,
-    };
+  // Explicit scheme avoids Expo/dev-client host URLs becoming the OAuth return.
+  const redirectTo = NATIVE_AUTH_CALLBACK;
+  try {
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error || !data?.url) {
+      return {
+        ok: false,
+        message: provider === 'apple' ? APPLE_START_FAILED : GOOGLE_START_FAILED,
+      };
+    }
+    const authorizationUrl = await securePkceUrl(data.url, (value) => Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256, value, { encoding: Crypto.CryptoEncoding.BASE64 },
+    ));
+    const result = await WebBrowser.openAuthSessionAsync(authorizationUrl, redirectTo);
+    if (result.type !== 'success') {
+      return { ok: false, message: `${name} sign in was closed before it finished.` };
+    }
+    const callback = readOAuthCallback(result.url, redirectTo);
+    if (callback.code === null) {
+      return {
+        ok: false,
+        message: callback.error === 'access_denied'
+          ? `${name} sign in was cancelled. You can try again or use email.`
+          : `${name} sign in could not finish. Try again, or use email.`,
+      };
+    }
+    const { error: exchangeError } = await client.auth.exchangeCodeForSession(
+      callback.code,
+      data.flowId ? { flowId: data.flowId } : undefined,
+    );
+    return exchangeError
+      ? { ok: false, message: 'The sign-in code did not check out. Try again.' }
+      : { ok: true };
+  } catch (error) {
+    return { ok: false, message: friendly(error as { message?: string }) };
   }
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== 'success') {
-    return {
-      ok: false,
-      message: `${name} sign in was closed before it finished.`,
-    };
-  }
-  const code = /[?&]code=([^&#]+)/.exec(result.url)?.[1];
-  if (!code) {
-    return {
-      ok: false,
-      message: `${name} sent us back without a sign-in code. Try again.`,
-    };
-  }
-  const { error: exchangeError } = await client.auth.exchangeCodeForSession(
-    decodeURIComponent(code),
-  );
-  return exchangeError
-    ? { ok: false, message: 'The sign-in code did not check out. Try again.' }
-    : { ok: true };
 }

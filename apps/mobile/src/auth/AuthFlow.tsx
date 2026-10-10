@@ -1,5 +1,6 @@
 /** First install starts with value. Returning devices open sign-in directly. */
 import { useState } from 'react';
+import { View } from 'react-native';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import {
   freshPreAccountDraft,
@@ -10,7 +11,6 @@ import { clearGuestPractice } from '../onboarding/guestPractice.ts';
 import { cancelReminder } from '../reminders/schedule.ts';
 import { SignUpScreen } from './SignUpScreen.tsx';
 import { SignInScreen } from './SignInScreen.tsx';
-import { Sheet } from '../components.tsx';
 
 type AuthScreen = 'welcome' | 'signup' | 'signin';
 const refusalPage = (): PreAccountOnboardingDraft => ({
@@ -58,6 +58,7 @@ export function AuthFlow({
   if (!introducing) return <SignInScreen onCreateAccount={newAccount} />;
   return (
     <>
+      <View style={{ flex: 1, display: screen === 'welcome' ? 'flex' : 'none' }} accessibilityElementsHidden={screen !== 'welcome'} importantForAccessibility={screen === 'welcome' ? 'auto' : 'no-hide-descendants'}>
       <PreAccountOnboarding
         key={revision}
         initialDraft={refused ? refusalPage() : (newDraft ?? initialDraft)}
@@ -72,22 +73,16 @@ export function AuthFlow({
         refused={refused}
         onRefuse={onRefuse}
       />
-      <Sheet
-        visible={screen !== 'welcome'}
-        title={screen === 'signup' ? 'Create your account' : 'Sign in'}
-        onClose={() => setScreen('welcome')}
-      >
+      </View>
         {screen === 'signup' ? (
           <SignUpScreen
-            embedded
             planDraft={refused ? null : signupDraft}
             onBack={() => setScreen('welcome')}
             onSignIn={signIn}
           />
-        ) : (
-          <SignInScreen embedded onBack={() => setScreen('welcome')} onCreateAccount={newAccount} />
-        )}
-      </Sheet>
+        ) : screen === 'signin' ? (
+          <SignInScreen onBack={() => setScreen('welcome')} onCreateAccount={newAccount} />
+        ) : null}
     </>
   );
 }

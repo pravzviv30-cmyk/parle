@@ -8948,7 +8948,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every flat drawing reaches a screen or is on the not-yet-drawn list, which only shrinks`
 - verified-by: `every drawing in the app is hidden from assistive technology, and nothing imports Image`
 - verified-by: `the chooser's first card draws its scene through the one illustration at the hero-spot size, and sizes nothing itself`
-- verified-by: `the personalised result leads with one task and contextual edits instead of a syllabus`
+- verified-by: `the personal plan leads with the authored first practice then a dedicated deliberate tutor choice`
 
 ### F600 — The tab bar is paper and ink with Today and My French, not white with a blue Home and Progress
 - severity: P1
@@ -8972,10 +8972,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
-- verified-by: `opening and recap keep vibrant brand grounds with a readable sticky action`
+- verified-by: `welcome and recap keep vibrant grounds with a readable sticky action`
 - verified-by: `playback selects a model but only a real submitted reply can receive success feedback`
 - verified-by: `illustrated full-width choices carry radio state and never advance on selection`
-- verified-by: `the personalised result leads with one task and contextual edits instead of a syllabus`
+- verified-by: `the personal plan leads with the authored first practice then a dedicated deliberate tutor choice`
 - verified-by: `eligibility is a separate start-sheet choice and refusal removes service and account actions`
 - verified-by: `the first scene is the blue brief with a white Start, and a refusal turns to paper and leads with typing`
 - verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
