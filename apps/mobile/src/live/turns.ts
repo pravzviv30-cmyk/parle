@@ -41,6 +41,8 @@ export const MAX_TURNS = 40;
  * whatever the tutor last said.
  */
 export function pushTurn(list: readonly TurnLine[], line: Omit<TurnLine, 'id'>, id: string): TurnLine[] {
+  const existing = list.findIndex(turn => turn.id === id);
+  if (existing >= 0) return list as TurnLine[];
   const last = list[list.length - 1];
   if (last && last.who === line.who && last.fr === line.fr) {
     // Same line again, but a republish can carry recasts the first copy lacked.

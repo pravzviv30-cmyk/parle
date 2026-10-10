@@ -26,7 +26,7 @@ export function onboardingSteps({ five = false, signedIn = false, skipStreak = f
   if (repair) return PAGES;
   return [
     ...(five ? FIVE_SETUP : FULL_SETUP), 'choose-tutor', 'practice', 'recap',
-    ...(!skipStreak ? ['remind'] : []), 'keep', ...(!signedIn ? ['account', 'account-welcome'] : []),
+    'keep', ...(!signedIn ? ['account', 'account-welcome'] : []),
   ].filter(step => !(SKIPPABLE_STEPS.has(step) && skipped.includes(step)));
 }
 
@@ -42,7 +42,7 @@ export function onboardingProgress({ page, completed = [], complete = false, ...
   skipped?: readonly string[];
 }): OnboardingProgressValue {
   const steps = onboardingSteps(conditions);
-  const canonical = page === 'signup' || page === 'signin' ? 'account'
+  const canonical = page === 'remind' ? 'keep' : page === 'signup' || page === 'signin' ? 'account'
     : page === 'home' ? 'keep' : page === 'frequency' ? 'time'
       : page === 'save' || page === 'first-line' ? 'hear-it' : page;
   const index = Math.max(0, steps.indexOf(canonical));

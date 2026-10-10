@@ -1,3 +1,4 @@
+import { repairFirstLiveRecord, type FirstLiveRecord } from './firstLiveModel.ts';
 import { dayKeyOf, starterTasks, type DayKey, type StarterFeedback } from '@luvani/core';
 import { repaired, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { starterMinutes } from './guestProgress.ts';
@@ -14,6 +15,7 @@ export interface GuestAttempt {
   kept?: boolean;
 }
 export interface GuestPractice {
+  live?: FirstLiveRecord;
   version: 2;
   token: string | null;
   expiresAt: number;
@@ -74,7 +76,7 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
   if (
     !finite(value.expiresAt) ||
     !finite(value.secondsUsed) ||
-    value.secondsUsed > 360 ||
+    value.secondsUsed > (value.live ? 1260 : 360) ||
     !Array.isArray(value.attempts) ||
     value.attempts.length > 100
   )
@@ -112,9 +114,12 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
       },
     });
   }
-  const finishedAt = finishes(value.finishedAt);
+  const live = value.live === undefined ? undefined : repairFirstLiveRecord(value.live);
+  if (live === null) return null;
+  const finishedAt = live ? (live.outcome === 'completed' && live.completedAt ? [live.completedAt] : []) : finishes(value.finishedAt);
   return {
     version: 2,
+    ...(live ? { live } : {}),
     plan,
     token: value.token as string | null,
     id: value.id as string | null,
@@ -124,7 +129,7 @@ export function repairGuestPractice(value: unknown): GuestPractice | null {
     speechAvailable: value.speechAvailable === true,
     attempts,
     kept: value.kept === true,
-    completed: value.completed === true,
+    completed: live ? live.outcome === 'completed' : value.completed === true,
     ...(finishedAt.length > 0 ? { finishedAt } : {}),
   };
 }

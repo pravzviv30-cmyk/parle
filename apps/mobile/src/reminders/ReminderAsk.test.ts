@@ -88,27 +88,12 @@ describe('the reminder ask — F754', () => {
     for (const page of ['hear-it', 'reason', 'plan'] as const) assert.equal(resumePage(page, false, [], today), page);
     assert.ok(GUEST_PAGES.includes('remind') && GUEST_PAGES.includes('keep'), 'day one or the save card can open without a guest record');
 
-    // The screen reaches day one from one place: the finish, once the finish
-    // and its day are on the disk.
+    // Onboarding no longer asks for reminders or runs a guest Home. Existing
+    // account recap remains the explicit optional reminder door.
     const screen = evidence(SCREEN);
-    const finish = screen.slice(screen.indexOf('const finish = async () => {'), screen.indexOf('const answerReminder ='));
-    assert.ok(finish.length > 0, 'the finish moved; this check reads nothing');
-    assert.match(finish, /const finished = finishGuestPractice\(guest, at\); if \(!\(await persist\(finished\)\)\) return;/, 'day one can come before the finish is saved');
-    assert.ok(finish.indexOf('await persist(finished)') < finish.indexOf("go('remind')"), 'day one comes before the finish is on the disk');
-    assert.equal((screen.match(/go\('remind'\)/g) ?? []).length, 1, 'day one is reached from somewhere other than the finish');
-    // The first run asks nothing itself: no permission, no schedule.
-    assert.doesNotMatch(screen, /askReminderPermission|scheduleReminder|requestPermissionsAsync/, 'the first run raises the dialog or schedules outside the one ask');
-    // The revised streak screen has no reminder interruption. The historical
-    // guest Home still opens the same optional ask on a deliberate tap.
-    assert.equal((screen.match(/<ReminderAsk\b/g) ?? []).length, 1);
-    const remind = screen.slice(screen.indexOf("{page === 'remind' && ("), screen.indexOf("{page === 'keep' && ("));
-    assert.doesNotMatch(remind, /<ReminderAsk/, 'a reminder interruption reappeared on the achievement screen');
-    assert.match(screen, /const askShown = REMINDERS_AVAILABLE && draft\.reminderEnabled !== true && !reminderAnswered;/);
-    const sheet = screen.slice(screen.indexOf("{surface === 'reminder' && ("));
-    assert.match(sheet, /^\{surface === 'reminder' && \( <ReminderAsk/, 'the guest home\'s sheet draws something other than the one ask');
-    assert.match(screen, /<IconAction icon="bell" label=\{FIRST_RUN_COPY\.setReminder\} onPress=\{\(\) => open\('reminder'\)\} \/>/, 'the sheet opens on something other than a tap');
-    // Answered: on only once the OS took it, every day.
-    assert.match(screen, /if \(answer\.enabled\) patch\(\{ reminderEnabled: true, reminderTime: answer\.time, reminderDays: \[\] \}\);/);
+    assert.doesNotMatch(screen, /<ReminderAsk|askReminderPermission|scheduleReminder|requestPermissionsAsync/);
+    assert.match(screen, /<FirstSessionSummary/);
+    assert.match(evidence('apps/mobile/src/RecapScreen.tsx'), /<ReminderAsk/);
 
     // The ask: the dialog only inside the tap, then the plan, never from an effect.
     // (Phase 4: the plan is `turnOnReminder`, which replaced `scheduleReminder`.)
@@ -179,7 +164,7 @@ describe('the reminder ask — F754', () => {
     assert.match(ask, /said\(REMINDER_ASK_COPY\.title, \{ tutor \}\)/, 'the ask does not name the tutor it was given');
     const screen = evidence(SCREEN);
     assert.match(screen, /const tutorName = tutorVoice\(draft\.tutorVoice\)\.persona\.name;/, 'the first run names a tutor other than the chosen one');
-    assert.equal((screen.match(/time=\{draft\.reminderTime \?\? DEFAULT_REMINDER_TIME\}/g) ?? []).length, 1, 'the ask offers a time other than the learner\'s or the evening');
+    assert.doesNotMatch(screen, /<ReminderAsk/, 'the retired guest reminder ask returned');
     // Every control has words a screen reader can say: the pill, the link and the time rows.
     assert.match(ask, /<PillButton label=\{said\(REMINDER_ASK_COPY\.remindMe, \{ time: gloss \}\)\}/);
     assert.match(ask, /<GhostButton label=\{REMINDER_ASK_COPY\.notNow\}/);

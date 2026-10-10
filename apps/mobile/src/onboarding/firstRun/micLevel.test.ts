@@ -26,22 +26,14 @@ describe('the microphone meter', () => {
     assert.equal(hearsVoice(meterLevel(-48)), false, 'the room is read as a voice');
     assert.equal(hearsVoice(meterLevel(-30)), true, 'a voice is read as the room');
 
-    // The recorder reports its level; the meter shows it only while a take is
-    // recording; the permission is still asked only on the tap.
-    const recording = evidence('apps/mobile/src/onboarding/GuestRecording.tsx');
-    assert.match(recording, /const TAKE_OPTIONS = \{ \.\.\.RecordingPresets\.HIGH_QUALITY, isMeteringEnabled: true \};/);
-    assert.match(recording, /useAudioRecorderState\(recorder, METER_EVERY_MS\)/);
-    assert.match(recording, /\{recording \? <MicMeter level=\{meterLevel\(take\.metering\)\} seconds=\{take\.durationMillis \/ 1000\} \/> : null\}/);
-    assert.match(recording, /\}, TAKE_CAP_SECONDS \* 1000\);/, 'the take is cut at something other than its cap');
-    assert.match(recording, /haptic=\{recording \? 'none' : 'light'\}/, 'the microphone button buzzes while it records');
-    assert.match(recording, /haptic=\{recording \? 'none' : undefined\}/, 'Type instead buzzes while the microphone records');
-    assert.match(recording, /label=\{FIRST_RUN_COPY\.typeInstead\}/);
-    assert.match(recording, /silenceRecordingHaptics\(\)/);
-
-    const meter = evidence('apps/mobile/src/onboarding/firstRun/MicMeter.tsx');
-    assert.match(meter, /if \(reduced\) \{ return \( <View style=\{st\.words\}>/, 'reduced motion still draws moving bars');
-    assert.match(meter, /hearsVoice\(level\) \? FIRST_RUN_COPY\.hearingYou : FIRST_RUN_COPY\.waitingForVoice/);
-    assert.match(meter, /seconds \/ TAKE_CAP_SECONDS/, 'the ring does not fill over the real cap');
-    assert.doesNotMatch(meter, /setInterval|setTimeout|playSfx|haptics|tick\(/, 'the meter moves on a clock of its own or makes a sound');
+    // The replacement reads the same actual room tracks as the regular tutor.
+    const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
+    assert.match(recording, /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\}/);
+    assert.match(recording, /<VoiceOrb state=\{state\}/);
+    assert.match(recording, /await live\.pauseMic\(\)/);
+    const meter = evidence('apps/mobile/src/live/RoomLevels.tsx');
+    assert.match(meter, /getFloatTimeDomainData/);
+    assert.match(meter, /useReduceMotion/);
+    assert.doesNotMatch(recording, /useAudioRecorder|<MicMeter|setInterval/);
   });
 });

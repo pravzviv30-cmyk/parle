@@ -124,7 +124,7 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /Vendor-side retention for this\s+generated phrase is unverified/);
     const savedServer = readFileSync(`${HERE}../../../../services/token-server/src/phraseAudio.ts`, 'utf8');
     assert.match(savedServer, /https:\/\/api\.elevenlabs\.io\/v1\/text-to-speech\//);
-    assert.doesNotMatch(WHOLE.replace(savedAudio, ''), /LiveKit|ElevenLabs|Speechace/i, 'another vendor claim appeared without verified routing');
+    assert.doesNotMatch(WHOLE.replace(savedAudio, '').replace(POLICY_COPY.find(p => p.startsWith('Before registration you can try a bounded live session.')) ?? POLICY_COPY.find(p => p.startsWith('Before registration you can try a bounded live session with')) ?? '', ''), /LiveKit|ElevenLabs|Speechace/i, 'another vendor claim appeared without verified routing');
     const speech = POLICY_SECTIONS.find(section => section.heading === 'Your speech')?.body.join(' ') ?? '';
     assert.match(speech, /Deepgram turns that take into French text/);
     assert.match(speech, /check and edit before choosing Check/);
@@ -278,7 +278,7 @@ describe('the privacy notice — F479', () => {
     const convo = readFileSync(fileURLToPath(new URL('../../../../services/tutor-agent/src/convo.ts', import.meta.url)), 'utf8');
     assert.match(convo, /repaired\.memory\.facts\.filter\(fact => safeContextText\(fact\.en\)\)\.slice\(-5\)/, 'the memory brief stopped sending the bounded repaired facts');
     assert.match(convo, /this\.memoryBrief = tutorMemoryBrief\(this\.profile\)/);
-    assert.match(convo, /this\.teachingBrief, this\.memoryBrief/);
+    assert.match(convo, /this\.teachingBrief,[\s\S]*?this\.memoryBrief/);
     assert.match(convo, /text: this\.memoryBrief/);
     assert.match(said, /and on each tutor turn/);
     assert.match(convo, /this\.client\.frame\(/, 'the scene is no longer built by a model client from convo.ts');

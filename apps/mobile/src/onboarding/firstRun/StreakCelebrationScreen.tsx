@@ -31,7 +31,7 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   streak: GuestStreak | null;
   today: DayKey;
   moment: string | null;
-  onBack: () => void;
+  onBack?: () => void;
   onContinue: () => void;
   onReminder?: () => void;
   active?: boolean;
@@ -118,7 +118,7 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   </View>;
 
   return <View style={st.root}>
-    <ScrollScreen onViewportLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)} scrollEnabled={!intro} ground={palette.ground} topGap={16} header={<View style={[readingColumn, st.header]}><IconButton icon="back" tone="disc" label="Back" onPress={() => { settle(); pauseAllSfx(); onBack(); }} /></View>} footer={footer}>
+    <ScrollScreen onViewportLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)} scrollEnabled={!intro} ground={palette.ground} topGap={16} header={onBack ? <View style={[readingColumn, st.header]}><IconButton icon="back" tone="disc" label="Back" onPress={() => { settle(); pauseAllSfx(); onBack(); }} /></View> : undefined} footer={footer}>
       <View style={st.body}>
         <View style={[readingColumn, st.column]}>
           <Reanimated.View style={[st.hero, heroLook]}>

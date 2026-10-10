@@ -5,7 +5,7 @@ import { canonicalJson, tutorDigest, TutorRpcError, type TutorSessionReport } fr
 type Operation = 'claim' | 'checkpoint' | 'complete' | 'receipt';
 type Row = Record<string, unknown>;
 export interface TutorSessionIdentity { userId: string; sessionId: string; roomName: string; mode: 'lesson' | 'lesson-text' | 'convo' | 'convo-text' }
-export type RuntimeReport = Omit<TutorSessionReport, 'seconds'>;
+export type RuntimeReport = Omit<TutorSessionReport, 'seconds'> & { firstPracticeComplete?: boolean; firstPracticeStopped?: boolean };
 export interface RuntimeLifecycle {
   readonly maxSeconds: number;
   readonly signal: AbortSignal;
@@ -17,6 +17,8 @@ export interface RuntimeLifecycle {
   onStop(callback: () => void): void;
 }
 export interface LifecycleOptions {
+  /** A signed guest capability hash selects the separate guest lease endpoint. */
+  guestKey?: string;
   call?: (operation: Operation, payload: Row, signal: AbortSignal) => Promise<Row>;
   request?: typeof fetch;
   tokenServer?: string;
@@ -45,7 +47,7 @@ function httpCall(options: LifecycleOptions): NonNullable<LifecycleOptions['call
   if (url.username || url.password || (process.env.NODE_ENV === 'production' && url.protocol !== 'https:')) throw new SessionLifecycleError();
   const request = options.request ?? fetch;
   return async (operation, payload, signal) => {
-    const response = await request(`${base.replace(/\/+$/, '')}/agent/tutor/${operation}`, {
+    const response = await request(`${base.replace(/\/+$/, '')}/agent/${options.guestKey ? `guest/${options.guestKey}` : 'tutor'}/${operation}`, {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-luvani-agent': secret },
       body: JSON.stringify(payload), signal, redirect: 'error',
     });
@@ -106,6 +108,10 @@ export class SessionLifecycle implements RuntimeLifecycle {
     this.#now = options.now ?? (() => performance.now()); this.#nonce = options.nonce ?? randomUUID();
     if (!UUID.test(this.#nonce) || (options.timeoutMs !== undefined && (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0 || options.timeoutMs > 5_000))) throw new SessionLifecycleError();
     this.signal = this.#abort.signal;
+    if (options.guestKey) {
+      if (!/^[A-Za-z0-9_-]{43}$/.test(options.guestKey)) throw new SessionLifecycleError();
+      this.#ack.firstPracticeComplete = false;
+    }
   }
   paidIdentity():Readonly<{userId:string;sessionId:string;claimNonce:string}> {this.assertActive();return Object.freeze({userId:this.#identity.userId,sessionId:this.#identity.sessionId,claimNonce:this.#nonce});}
   get maxSeconds(): number { return this.#maximum; }
@@ -174,7 +180,7 @@ export class SessionLifecycle implements RuntimeLifecycle {
   async claim(): Promise<void> {
     const { result, sent, received } = await this.invoke('claim', { ...this.#identity, claimNonce: this.#nonce });
     if (result.kind !== 'claimed' || result.version !== 1 || result.sessionId !== this.#identity.sessionId || result.fence !== this.#nonce
-      || !integer(result.maxSeconds, 120, 900) || result.checkpointRevision !== 0 || !Number.isFinite(date(result.startedAt))) throw new SessionLifecycleError();
+      || !integer(result.maxSeconds, 120, this.#options.guestKey ? 1260 : 900) || result.checkpointRevision !== 0 || !Number.isFinite(date(result.startedAt))) throw new SessionLifecycleError();
     this.#maximum = result.maxSeconds;
     // Response-end anchoring undercounts network latency rather than reporting
     // elapsed time the database cannot yet have observed.
@@ -192,7 +198,8 @@ export class SessionLifecycle implements RuntimeLifecycle {
     if (this.#ack.baseline !== null && baseline === null) throw new SessionLifecycleError();
     if (this.#ack.serviceFailure !== null && (report.serviceFailure ?? null) !== this.#ack.serviceFailure) throw new SessionLifecycleError();
     return JSON.parse(canonicalJson({ revision, seconds: Math.max(Number(this.#ack.seconds), this.elapsedSeconds()),
-      learnerTurns: report.learnerTurns, serviceFailure: report.serviceFailure ?? null, baseline }));
+      learnerTurns: report.learnerTurns, serviceFailure: report.serviceFailure ?? null, baseline,
+      ...(this.#options.guestKey ? { firstPracticeComplete: this.#ack.firstPracticeComplete === true || report.firstPracticeComplete === true } : {}) }));
   }
   private wire(payload: Row): Row { return { userId: this.#identity.userId, sessionId: this.#identity.sessionId, fence: this.#nonce,
     ...payload, digest: tutorDigest(payload) }; }
@@ -260,7 +267,8 @@ export class SessionLifecycle implements RuntimeLifecycle {
         if (failure !== null && !isServiceFailure(failure)) return { kind: 'pending' };
         if (this.#ack.serviceFailure !== null && failure !== this.#ack.serviceFailure) return { kind: 'pending' };
         const payload = { ...this.#ack, revision: this.#revision + 1,
-          seconds: Math.max(Number(this.#ack.seconds), stoppedSeconds), serviceFailure: failure };
+          seconds: Math.max(Number(this.#ack.seconds), stoppedSeconds), serviceFailure: failure,
+          ...(this.#options.guestKey && frozen.firstPracticeStopped === true ? {firstPracticeStopped: true} : {}) };
         const immutable = this.wire(payload);
         let result: Row;
         try { result = (await this.invoke('complete', immutable, 3)).result; }

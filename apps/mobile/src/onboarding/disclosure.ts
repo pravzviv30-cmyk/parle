@@ -373,5 +373,5 @@ export const FIRST_RUN_COPY: readonly string[] = firstRunCopy(DEFAULT_TUTOR_PERS
 
 /** The bounded starter has a different pipeline from a live tutor room. */
 export const STARTER_AI = 'Your tutor is AI.';
-export const STARTER_PROCESSING = 'Feedback checks authored phrases. Typing sends text to Luvani; speaking sends a recording to Deepgram for transcription. Luvani discards the recording from this device after processing.';
-export const STARTER_LOCAL = 'Replies are saved on this device.';
+export const STARTER_PROCESSING = 'Speaking uses LiveKit and Deepgram. Your replies and selected plan go to the AI service; ElevenLabs provides your tutor’s voice. Typing uses the same live conversation.';
+export const STARTER_LOCAL = 'Replies stay on this device. A temporary session summary is held for up to 30 days and can be saved to your account.';

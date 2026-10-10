@@ -70,10 +70,8 @@ describe('a kept first-run phrase — F757', () => {
     assert.match(home, /fr: keptPhrase\(task\),/, 'Home keeps something other than the natural line');
     assert.doesNotMatch(home, /fr: reply\.trim\(\)/, 'Home keeps the learner\'s spelling again');
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    const guestHome = screen.slice(screen.indexOf("{page === 'home' && ("));
-    assert.ok(guestHome.length > 0, 'the guest home moved; this check reads nothing');
-    assert.match(guestHome, /\{keptPhrase\(homePhrase\)\}/, 'the guest home no longer shows the natural line');
-    assert.doesNotMatch(guestHome, /\{last\.reply\}|last\.feedback\.accepted \? last\.reply/, 'the guest home shows the learner\'s spelling as the phrase');
+    assert.doesNotMatch(screen, /homePhrase|<StreakCard/);
+    assert.match(screen, /<FirstSessionSummary record=\{guest\.live\}/);
   });
 });
 
@@ -131,13 +129,13 @@ describe('a guest finish day — F751', () => {
     // record it replaces to the start, and the hand-off settles the record it
     // loaded, whose days are these.
     const screen = evidence(P);
-    const finish = screen.slice(screen.indexOf('const finish = async () => {'), screen.indexOf('const answerReminder ='));
-    assert.ok(finish.length > 0, 'the finish moved; this check reads nothing');
-    assert.match(finish, /const finished = finishGuestPractice\(guest, at\);/, 'the first run saves a finish without its day');
-    assert.match(finish, /if \(!\(await persist\(finished\)\)\) return;/);
+    const live = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
+    assert.match(live, /finishedAt: record\.outcome === 'completed' && record\.completedAt \? \[record\.completedAt\] : \[\]/);
+    assert.ok(live.indexOf('await saveGuestPractice(next)') < live.indexOf('onFinished(next)'));
     assert.doesNotMatch(screen, /persist\(\{ \.\.\.guest, completed: true \}\)/, 'the first run saves a finish without its day');
     assert.match(screen, /await startGuestPractice\(draft, guest\)/, 'a new practice from the service drops the finished days');
-    assert.match(screen, /offlineContinuation\(draft, guest\)/);
+    assert.doesNotMatch(screen, /offlineContinuation\(/);
+    assert.match(screen, /<FirstLivePractice/);
     const service = evidence('apps/mobile/src/onboarding/guestPractice.ts');
     assert.match(service, /export async function startGuestPractice\(plan: PreAccountOnboardingDraft, prior: GuestPractice \| null = null\)/);
     assert.match(service, /const valid = repairGuestPractice\(keepFinishes\(next, prior\)\);/);
@@ -220,12 +218,12 @@ describe('the save card — F754', () => {
 
     // The screen draws the rows from the guest record and its finish days, and the list draws only those.
     const screen = evidence(P);
-    assert.match(screen, /const days = guestPracticeDays\(guest\);/);
-    assert.match(screen, /<InvestmentList rows=\{guestInvestment\(\{ practice: guest, days, today, draft \}\)\} \/>/);
-    const list = evidence('apps/mobile/src/onboarding/firstRun/InvestmentList.tsx');
-    assert.match(list, /\{rows\.map\(\(row, index\) =>/);
-    assert.doesNotMatch(list, /FIRST_RUN_COPY\.onThisPhone/); assert.match(list, /<RevealItem key=\{row\.key\} index=\{index\}/);
-    assert.doesNotMatch(list, /accessibilityRole="header"/);
+    assert.match(screen, /<FirstSessionSummary record=\{guest\.live\}/);
+    assert.match(evidence('apps/mobile/src/onboarding/FirstSessionResult.tsx'), /firstLiveSummary\(record\)/);
+    const list = evidence('apps/mobile/src/onboarding/FirstSessionResult.tsx');
+    assert.match(list, /view\.achievements\.map/);
+    assert.match(list, /<RevealItem index=\{index\}/);
+    assert.match(list, /accessibilityLabel=\{text\}/);
   });
 
   test('day one counts only finished days, from the run before, and never shows a lapsed run', () => {

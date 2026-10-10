@@ -406,3 +406,18 @@ describe('entitlement store', () => {
     await assert.rejects(() => store.consume('test-user', -1), RangeError);
   });
 });
+
+test('guest grant signs one admitted room, actual tutor choice and complete brief without changing account allowance', async () => {
+  const sessionId = '11111111-1111-4111-8111-111111111111';
+  for (const tutorVoice of ['emilie','alexandre'] as const) {
+    const brief = {version:1,goals:['food','trip'],level:'zero',confidence:'hesitant',focus:'speaking',minutes:20,tutorVoice};
+    const result = await grantSession({userId:'22222222-2222-4222-8222-222222222222',lessonId:'convo-01',mode:'convo',config,
+      entitlement:{plan:'trial',secondsUsed:0},tutorVoice,firstPractice:brief,
+      guest:{key:'a'.repeat(43),sessionId,roomName:`luvani-${sessionId}`,maxSeconds:1260}});
+    assert.ok(result.ok); if (!result.ok) continue;
+    const claims = JSON.parse(Buffer.from(result.grant.token.split('.')[1]!, 'base64url').toString());
+    const meta = JSON.parse(claims.metadata); assert.deepEqual(meta.firstPractice,brief); assert.equal(meta.tutorVoice,tutorVoice);
+    assert.equal(meta.secondsRemaining,1260); assert.equal(meta.guestLifecycleKey,'a'.repeat(43)); assert.equal(meta.lifecycleVersion,1);
+    assert.equal(result.grant.sessionId,sessionId); assert.equal(claims.video.room,`luvani-${sessionId}`);
+  }
+});

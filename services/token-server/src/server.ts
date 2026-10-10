@@ -1,3 +1,5 @@
+import { prepareGuestLive, guestLiveOperation, guestLiveResult, endGuestLive } from './guestLive.ts';
+import { firstPracticeScenario, parseFirstPracticeBrief } from '@luvani/core';
 import { reserveGuestDecoder } from '../../shared/audioDecode.ts';
 import { guestSpeechAvailable, guestSpeechGaps, guestSpeechLimits, transcribeGuestTake } from './onboardingSpeech.ts';
 import { MemoryGuestSpeechLedger, RedisGuestSpeechLedger, guestSpeechAdmission, releaseUnclaimed, type GuestSpeechReservation } from './guestSpeechAdmission.ts';
@@ -340,6 +342,13 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       return json(res,200,await withRequestSignal(req,res,signal=>paid.rpc(call.name,call.args,signal),10000));
     }
 
+    const guestOperation = url.pathname.match(/^\/agent\/guest\/([A-Za-z0-9_-]{43})\/(claim|checkpoint|complete|receipt)$/);
+    if (req.method === 'POST' && guestOperation) {
+      if (!AGENT_SECRET || !agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) return json(res, 401, { error: 'agent authentication required' });
+      if (!await withinLimits(req, res, [ipCheck(req, RATE_LIMITS.tutorWorkIp)])) return;
+      return json(res, 200, await guestLiveOperation(guestStore, guestOperation[1]!, guestOperation[2]!, await readJson(req, 160 * 1024)));
+    }
+
     const tutorOperation = url.pathname.match(/^\/agent\/tutor\/(claim|checkpoint|complete|receipt)$/)?.[1];
     if (req.method === 'POST' && tutorOperation && TUTOR_OPERATIONS.includes(tutorOperation as TutorOperation)) {
       if (!AGENT_SECRET || !agentDebitAllowed(AGENT_SECRET, req.headers['x-luvani-agent'])) return json(res, 401, { error: 'agent authentication required' });
@@ -359,7 +368,28 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       const installHash = privateSignal(rateLimitSalt, 'installation', installation);
       if (!(await withinLimits(req, res, [ipCheck(req, url.pathname === '/onboarding/start' ? GUEST_START_LIMIT : ['/onboarding/event', '/onboarding/account-event'].includes(url.pathname) ? GUEST_EVENT_LIMIT : GUEST_REPLY_LIMIT)]))) return;
       if (url.pathname === '/onboarding/start') {
-        const body = await readJson(req, 2048);
+        const body = await readJson(req, 4096);
+        if (body.live === true) {
+          const brief = parseFirstPracticeBrief(body.brief);
+          if (!brief || body.eligible !== true) return json(res, 400, { error: 'valid eligibility and plan required' });
+          const enabled = process.env.NODE_ENV === 'production'
+            ? false // Guest paid-admission support is not yet available; production must fail closed.
+            : process.env.LUVANI_LOCAL_DEVELOPMENT === '1' && !!AGENT_SECRET;
+          if (!enabled || !supportsSessionMode('convo')) return json(res, 503, { error: 'Live practice is unavailable. Please try again.' });
+          const priorToken = req.headers['x-luvani-guest'];
+          if (typeof priorToken === 'string' && /^[A-Za-z0-9_-]{43}$/.test(priorToken)) {
+            const prior = await guestStore.get(guestKey(priorToken));
+            if (!prior || prior.installation !== installHash || !prior.live) return json(res, 401, {error:'guest capability invalid'});
+            await prepareGuestLive(guestStore, guestKey(priorToken), brief);
+            return json(res, 200, {token:priorToken,id:prior.id,expiresAt:prior.expiresAt,live:true,speechAvailable:true});
+          }
+          if (!await withinLimits(req, res, [[{ name: 'guest-live-global', limit: 24, windowSec: 86400 }, 'user', 'guest-live-global'], ipCheck(req, { name: 'guest-live-address', limit: 3, windowSec: 86400 })])) return;
+          const started = await createGuest(guestStore, { installation: installHash, eligible: true,
+            goal: brief.goals[0] ?? 'because', drink: 'coffee', minutes: brief.minutes === 20 ? 15 : brief.minutes ?? 'none',
+            analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' });
+          await prepareGuestLive(guestStore, guestKey(started.token), brief);
+          return json(res, 200, { ...started, live: true, speechAvailable: true });
+        }
         if (body.eligible !== true || !STARTER_GOALS.includes(body.goal as StarterGoal) || !['coffee', 'tea'].includes(String(body.drink)) || ![5, 10, 15, 'none'].includes(body.minutes as number)) return json(res, 400, { error: 'valid eligibility and plan required' });
         let started;
         try { started = await createGuest(guestStore, { installation: installHash, eligible: true, goal: body.goal as StarterGoal, drink: body.drink as StarterDrink, minutes: body.minutes as 5 | 10 | 15 | 'none', analyticsAllowed: body.analyticsAllowed === true, variant: body.variant === 'five' ? 'five' : 'full' }); }
@@ -385,6 +415,26 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) return json(res, 401, { error: 'guest capability required' });
       const guest = await guestStore.get(guestKey(token));
       if (!guest || guest.installation !== installHash) return json(res, 401, { error: 'guest capability invalid' });
+      if (url.pathname === '/onboarding/live') {
+        await readJson(req, 1024);
+        if (!guest.live || guest.owner || guest.expiresAt <= Date.now()) return json(res, 409, { error: 'Guest practice has ended.' });
+        const prepared = await prepareGuestLive(guestStore, guestKey(token), guest.live.brief);
+        const result = await grantSession({ userId: guest.id, lessonId: 'convo-01', mode: 'convo', config,
+          entitlement: { plan: 'trial', secondsUsed: 0 }, firstPractice: prepared.brief,
+          seedTopic: firstPracticeScenario(prepared.brief), tutorVoice: prepared.brief.tutorVoice,
+          guest: { key: guestKey(token), sessionId: prepared.sessionId, roomName: prepared.roomName, maxSeconds: prepared.maxSeconds } });
+        if (!result.ok) return json(res, result.status, { error: result.reason });
+        return json(res, 200, { ...result.grant, secondsRemaining: prepared.maxSeconds, livekitUrl });
+      }
+      if (url.pathname === '/onboarding/end') {
+        await readJson(req, 1024);
+        return json(res, 200, await endGuestLive(guestStore, guestKey(token)));
+      }
+      if (url.pathname === '/onboarding/live-result') {
+        await readJson(req, 1024);
+        if (!guest.live || guest.owner) return json(res, 409, { error: 'Guest practice unavailable.' });
+        return json(res, 200, guestLiveResult(guest.live));
+      }
       if (url.pathname === '/onboarding/event') {
         const event = parseGuestMetric(await readJson(req, 512));
         if (!event) return json(res, 400, { error: 'unknown starter metric' });
@@ -399,6 +449,16 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         if (!identity.ok) return json(res, identity.status, { error: identity.message });
         let claimed;
         try { claimed = await claimGuest(guestStore, token, identity.userId); } catch { return json(res, 409, { error: 'guest practice already claimed or expired' }); }
+        // The worker's acknowledged pack, never a client supplied summary, becomes account-owned.
+        if (claimed.live?.baseline) {
+          const db = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (db && key) {
+            await saveConversationPack(db, key, { ...claimed.live.baseline, learnerId: identity.userId });
+            // Account erasure owns the SQL copy. Remove guest learning content after transfer.
+            await guestStore.update(guestKey(token), row => { if (row.owner === identity.userId && row.live) row.live.baseline = null; });
+          }
+          else return json(res, 503, { error: 'Practice saving is unavailable. Try again.' });
+        }
         // The existing one-time installation/account boundary grants the trial, not this route.
         const trial = await claimTrialWithEvidence(store, eventSink, identity.userId, claimed.installation, privateSignal(rateLimitSalt, 'user', identity.userId), false);
         if (!trial) return json(res, 200, { secondsRemaining: 0, trialEligible: false });

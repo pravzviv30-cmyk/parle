@@ -1,3 +1,4 @@
+import { HomeArrival } from '../onboarding/HomeArrival.tsx';
 import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 import { DayCount } from '../progress/DayCount.tsx';
 /**
@@ -159,6 +160,7 @@ export function HomeTab() {
   return (
     // bottom="tab": the tab bar owns the bottom edge.
     <ScrollScreen bottom="tab" ground={colour.sun}>
+      <HomeArrival ready={!unowned && !readFailed && start !== null} />
       <View>
         <View style={st.head}>
           <TabHeader display leading={<Text style={[type.label, { color: paper.ink }]}>{greeting.title}</Text>} title="Your next French moment." trailing={<ProfileButton />} />

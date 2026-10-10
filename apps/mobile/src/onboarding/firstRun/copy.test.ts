@@ -104,25 +104,15 @@ describe('a spoken take the tutor did not hear — F776', () => {
     // The screen: a spoken take that fails (expired and limit aside) says the
     // line above, and the row's Try again is drawn only on the rule's yes.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(
-      screen,
-      /error\.message === 'limit' \? '[^']*' : uri \? FIRST_RUN_COPY\.takeUnheard : 'The tutor can’t connect\. Your reply is still here\.'/,
-      'a failed spoken take still says the reply is here',
-    );
-    assert.match(screen, /const actions = issueActions\(issue, page !== 'practice' \? 'start' : mode\);/, 'the row does not know whether the reply was typed');
-    const from = screen.indexOf('{actions.offline && (');
-    assert.ok(from > 0, 'the failure row is not drawn from the rule');
-    const row = screen.slice(from, screen.indexOf("{storageNote !== '' ?", from));
-    assert.match(row, /label="Practise this offline"/);
-    assert.match(row, /\{actions\.retry \? \( <IconAction icon="refresh" label="Try again"/, 'Try again is drawn whatever the reply was');
-    assert.equal((row.match(/label="Try again"/g) ?? []).length, 1);
-    // Offline checks typed words only, so going offline from a spoken page turns to typing.
-    assert.match(row, /offline: true \} : offlineContinuation\(draft, null\), \); setMode\('typed'\); setIssue\(''\);/);
+    assert.doesNotMatch(screen, /sendGuestAttempt|const submit =|<GuestRecording/);
+    assert.doesNotMatch(screen, /label="Practise this offline"|offlineContinuation\(/);
+    const live = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
+    assert.match(live, /Try connecting again/);
+    assert.match(live, /Unable to speak\? Try typing instead\./);
+    assert.match(live, /await live\.pauseMic\(\)/);
 
-    // The microphone and Type instead are the way on, and both stay on the spoken page.
-    const take = evidence('apps/mobile/src/onboarding/GuestRecording.tsx');
-    assert.match(take, /onPress=\{\(\) => void record\(\)\}/);
-    assert.match(take, /label=\{FIRST_RUN_COPY\.typeInstead\}/);
+    assert.match(live, /await live\.openMic\(\)/);
+    assert.match(live, /await live\.sendSay\(text\)/);
 
     // A reminder set on day one leaves with the plan it was set for, at all
     // three doors the privacy document names, and the document says so.

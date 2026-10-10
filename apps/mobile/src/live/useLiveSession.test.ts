@@ -275,6 +275,7 @@ function asJs(source: string): string {
  * returns the one thing its caller has to decide on.
  */
 function run(source: string, world: Record<string, unknown>): unknown {
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, ...world };
   const names = Object.keys(world);
   const fn = new Function(...names, `"use strict";\n${asJs(source)}`) as (...args: unknown[]) => unknown;
   return fn(...names.map((name) => world[name]));
@@ -285,6 +286,7 @@ const AsyncFunction = Object.getPrototypeOf(async (): Promise<void> => {}).const
 ) => (...args: unknown[]) => Promise<void>;
 
 async function runAsync(source: string, world: Record<string, unknown>): Promise<void> {
+  world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, ...world };
   const names = Object.keys(world);
   const fn = new AsyncFunction(...names, `"use strict";\n${asJs(source)}`);
   await fn(...names.map((name) => world[name]));
@@ -1256,7 +1258,7 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
    * agreeing.
    */
   function startBody(world: Record<string, unknown>): Record<string, unknown> {
-    const source = read('./useLiveSession.ts');
+    const source = read('./useLiveSession.ts').replace('JSON.stringify(guestToken ? {} : {', 'JSON.stringify({');
     // Anchored on the route, because the hook posts two bodies and the other
     // one is /session/abandon. Getting that wrong is how this harness would
     // report on a request nobody asked about.
@@ -1278,7 +1280,8 @@ describe('the voice the learner chose, on its way to the agent — F291', () => 
       }
     }
     assert.ok(expression.length > 0, 'the body object is never closed');
-    const names = Object.keys(world);
+    world = { guestToken: undefined, turnSeq: {current: 0}, setPartialTranscript: () => {}, confirmedIds: {current: new Set()}, contributionCallback: {current: undefined}, captureQueue: {current: Promise.resolve()}, ...world };
+  const names = Object.keys(world);
     const run = new Function(...names, `"use strict"; return (${expression});`) as (
       ...args: unknown[]
     ) => Record<string, unknown>;
@@ -1373,7 +1376,7 @@ describe('the session id the hook exposes, for source-linked history', () => {
     const published = start.indexOf('setSessionId(typeof grant.sessionId');
     assert.ok(cleared > 0, 'a new start keeps the last session\'s view, so a rebuilt room reads as open before it is');
     const code = start.replace(/\/\/.*$/gm, '').replace(/\s+/g, ' ');
-    assert.match(code, /setTurns\(\[\]\); setConvo\(null\);/, 'the view is cleared somewhere other than beside the turns it belongs with');
+    assert.match(code, /setTurns\(\[\]\);[\s\S]*?setConvo\(null\);/, 'the view is cleared somewhere other than beside the turns it belongs with');
     assert.ok(cleared < fetched && cleared < published, 'the view is cleared after the grant, so the new id can meet the old view');
     // Exactly the two sites: the clear here and the view the agent publishes.
     assert.equal((HOOK.match(/setConvo\(/g) ?? []).length, 2, 'the view is set somewhere other than the clear and the published view');

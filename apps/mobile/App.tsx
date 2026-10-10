@@ -568,8 +568,8 @@ function SignedInRoot({
         draft={preAccountDraft}
         newlyCreated={newlyCreated}
         onWelcomeDone={clearNewAccount}
-        onDone={(kept) => {
-          if (kept && !newlyCreated) pendingWall.current = true;
+        onDone={(kept, showFirstRunOffer) => {
+          if (kept && showFirstRunOffer) pendingWall.current = true;
           onPreAccountDraftConsumed();
         }}
       >

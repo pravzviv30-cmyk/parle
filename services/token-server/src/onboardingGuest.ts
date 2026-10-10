@@ -1,5 +1,6 @@
+import type { GuestLiveRecord } from './guestLive.ts';
 import type { GuestMetricValue } from './guestMetrics.ts';
-/** Guest capabilities only open the bounded starter, never ordinary authenticated routes. No learner text/audio is stored here. */
+/** Guest capabilities only open the bounded starter, never ordinary authenticated routes. Live guests retain a bounded acknowledged learning summary for at most 30 days; no raw audio. */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import {
   starterTasks,
@@ -9,6 +10,7 @@ import {
   type StarterFeedback,
 } from '@luvani/core';
 export interface GuestRecord {
+  live?: GuestLiveRecord;
   id: string;
   installation: string;
   expiresAt: number;
@@ -203,7 +205,12 @@ export async function claimGuest(
 ): Promise<GuestRecord> {
   return store.update(guestKey(token), (row) => {
     if (row.createdAt + 30 * 86400000 <= now) throw new Error('expired');
+    if (row.live?.fence && !row.live.endedAt && (row.live.leaseUntil ?? 0) > now) throw new Error('session still active');
     if (row.owner && row.owner !== userId) throw new Error('already claimed');
+    if (row.live?.fence && !row.live.endedAt) {
+      row.live.endedAt = now; row.live.outcome = 'interrupted';
+      row.seconds = row.live.serviceFailure || !row.live.learnerTurns ? 0 : row.live.seconds;
+    }
     row.owner = userId;
     return structuredClone(row);
   });

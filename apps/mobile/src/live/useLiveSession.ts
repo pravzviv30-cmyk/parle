@@ -1,3 +1,4 @@
+import type { FirstContribution } from '../onboarding/firstLiveModel.ts';
 import { unjoinedLease, disconnectLease, type UnjoinedLease } from './unjoinedLease.ts';
 import { attachCorrectionReason } from './correctionReason.ts';
 import { analyticsAllowed } from '../analytics/consent.ts';
@@ -337,6 +338,8 @@ export type LiveStatus =
   | { phase: 'ended' };
 
 export interface LiveSession {
+  pauseMic: () => Promise<boolean>;
+  partialTranscript: string | null;
   /** Entire received thread, memory only; null for overflow, incomplete rooms or safety stops. */
   conversationText: readonly ConversationTextLine[] | null;
   status: LiveStatus;
@@ -544,6 +547,8 @@ export function useLiveSession(
   lessonId: string,
   startRung?: Rung,
   opts?: {
+    guestToken?: string;
+    onConfirmedContribution?: (turn: FirstContribution) => void;
     mode?: 'lesson' | 'convo' | 'convo-text' | 'lesson-text';
     noTypedRecovery?: boolean;
     snapshot?: unknown;
@@ -601,6 +606,8 @@ export function useLiveSession(
   useEffect(() => onUserScopeReset(() => {
     conversationTextRef.current.clear();
     setTurns([]);
+    setPartialTranscript(null);
+    confirmedIds.current.clear();
     terminalFailureRef.current = false;
     setSettlement(null);
     setCanDoEvidence(null);
@@ -621,6 +628,12 @@ export function useLiveSession(
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Destructured so `start` does not churn on every render just because the
   // caller wrote the options object inline.
+  const guestToken = opts?.guestToken;
+  const contributionCallback = useRef(opts?.onConfirmedContribution);
+  contributionCallback.current = opts?.onConfirmedContribution;
+  const confirmedIds = useRef(new Set<string>());
+  const [partialTranscript, setPartialTranscript] = useState<string | null>(null);
+  const captureQueue = useRef<Promise<unknown>>(Promise.resolve());
   const mode = opts?.mode;
   const noTypedRecovery = opts?.noTypedRecovery ?? false;
   const snapshot = opts?.snapshot;
@@ -672,9 +685,9 @@ export function useLiveSession(
     watchdogRef.current = [];
   }, []);
 
-  const addTurn = useCallback((line: Omit<TurnLine, 'id'>) => {
+  const addTurn = useCallback((line: Omit<TurnLine, 'id'>, confirmedId?: string) => {
     turnSeq.current += 1;
-    const id = `t${turnSeq.current}`;
+    const id = confirmedId ?? `t${turnSeq.current}`;
     setTurns((list) => pushTurn(list, line, id));
     return id;
   }, []);
@@ -851,6 +864,8 @@ export function useLiveSession(
     safetyRef.current = null;
     setSafety(null);
     setTurns([]);
+    setPartialTranscript(null);
+    confirmedIds.current.clear();
     // The last room's view goes with its turns: a rebuilt session is a new one,
     // and it is open only once its own agent publishes a view (Stage 4).
     setConvo(null);
@@ -906,15 +921,15 @@ export function useLiveSession(
       if (await abandoned()) return;
       diagRef.current.authMs = Date.now() - authStartedAt;
       const tokenStartedAt = Date.now();
-      const res = await fetch(`${TOKEN_SERVER}/session/start`, {
+      const res = await fetch(`${TOKEN_SERVER}${guestToken ? '/onboarding/live' : '/session/start'}`, {
         method: 'POST',
         // The bearer token, when auth is live, lets the server verify the
         // asserted userId instead of trusting it. Mock mode adds nothing.
-        headers: { 'content-type': 'application/json', ...headers },
+        headers: { 'content-type': 'application/json', ...headers, ...(guestToken ? { 'x-luvani-guest': guestToken } : {}) },
         // The token server signs startRung (and, for free conversation, the mode
         // and learner snapshot) into the join credential, so what the session
         // opens as is not something the client can quietly re-assert.
-        body: JSON.stringify({
+        body: JSON.stringify(guestToken ? {} : {
           userId,
           analyticsAllowed: analyticsAllowed(consent),
           lessonId,
@@ -972,7 +987,7 @@ export function useLiveSession(
       // From here this attempt holds the account's session lease, keyed on this
       // sessionId. If it never reaches a room with a tutor in it, the teardown
       // paths below hand it back; see releaseHeldLease. F165.
-      ownedLease = unjoinedLease(grant.sessionId, id => { void abandonSession(userId, id); });
+      ownedLease = unjoinedLease(grant.sessionId, id => { if (!guestToken) void abandonSession(userId, id); });
       if (owns()) leaseRef.current = ownedLease;
       // The last gate before a room exists at all. Everything past here has to
       // be given back rather than simply skipped.
@@ -1116,9 +1131,14 @@ export function useLiveSession(
             break;
           case 'transcript':
             if (msg.final) {
+              setPartialTranscript(null);
+              const confirmedId = msg.turnId ?? `legacy-${turnSeq.current + 1}`;
+              if (confirmedIds.current.has(confirmedId)) break;
+              confirmedIds.current.add(confirmedId);
+              contributionCallback.current?.({ id: confirmedId, text: msg.text, input: msg.input === 'typed' || msg.input === 'spoken' ? msg.input : 'unknown' });
               setLastTranscript(msg.text);
               addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: null });
-            }
+            } else setPartialTranscript(msg.text);
             break;
           case 'summary':
             setSummary(msg.summary);
@@ -1134,14 +1154,14 @@ export function useLiveSession(
                 fr: msg.view.narration.fr,
                 frWritten: msg.view.narration.frWritten ?? null,
                 en: msg.view.narration.en,
-              });
+              }, msg.view.textTurnId ? `narration:${msg.view.textTurnId}` : undefined);
             }
             addTurn({
               who: 'tutor',
               fr: msg.view.sceneReply.fr,
               frWritten: msg.view.sceneReply.frWritten ?? null,
               en: msg.view.sceneReply.en,
-            });
+            }, msg.view.textTurnId ? `tutor:${msg.view.textTurnId}` : undefined);
             // A recast belongs under the learner line it corrects, so it is
             // attached backwards to the last thing the learner said.
             if (msg.view.coachNow.length > 0) {
@@ -1213,7 +1233,7 @@ export function useLiveSession(
             // one write they never see: it happens here, before any of them has
             // the recap, so a screen guarding its own recap would be guarding a
             // door the words had already gone through.
-            if (!stoppedBySafety(safetyRef.current)) void journalRecap(msg.recap, { profile: msg.profile });
+            if (!guestToken && !stoppedBySafety(safetyRef.current)) void journalRecap(msg.recap, { profile: msg.profile });
             setStatus({ phase: 'ended' });
             break;
           case 'practice':
@@ -1446,6 +1466,7 @@ export function useLiveSession(
     }
   }, [
     userId,
+    guestToken,
     lessonId,
     startRung,
     mode,
@@ -1471,6 +1492,7 @@ export function useLiveSession(
   }, []);
 
   const openMic = useCallback(() => {
+    const work = captureQueue.current.then(() => {
     const room = roomRef.current;
     if (room === null) return Promise.resolve(false);
     if (room.localParticipant.isMicrophoneEnabled) return Promise.resolve(true);
@@ -1509,6 +1531,9 @@ export function useLiveSession(
         noticeTimer.current = setTimeout(() => setNotice(null), 8000);
         return false;
       });
+    });
+    captureQueue.current = work.catch(() => {});
+    return work;
   }, [send, noTypedRecovery, leave, fail]);
 
   /**
@@ -1526,6 +1551,22 @@ export function useLiveSession(
    * failure leaves the room open exactly so this door works: the learner tapped
    * "Continue by typing" and the session they are continuing is this one.
    */
+  const pauseMic = useCallback((): Promise<boolean> => {
+    const work = captureQueue.current.then(async () => {
+      const room = roomRef.current;
+      if (!room) return false;
+      try {
+        await room.localParticipant.setMicrophoneEnabled(false);
+        const mic = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+        if (mic) await room.localParticipant.unpublishTrack(mic, true);
+        if (roomRef.current !== room) return false;
+        setMicOpen(false); diagRef.current.micPublished = false;
+        return true;
+      } catch { setNotice('Your microphone could not pause. Try again.'); return false; }
+    });
+    captureQueue.current = work.catch(() => {});
+    return work;
+  }, []);
   const switchToText = useCallback((): boolean => {
     const room = roomRef.current;
     // No room means a session that failed before it connected. Nothing here can
@@ -1628,6 +1669,8 @@ export function useLiveSession(
     reconnecting,
     waitingForTutor,
     diagnostics,
+    partialTranscript,
+    pauseMic,
     sessionId,
     resumeAudio,
     openMic,

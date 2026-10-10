@@ -9,7 +9,7 @@ const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
 /** Execute the production handoff function with deferred storage and account changes. */
 async function finishHandoff({ saved = true, newlyCreated = true, changeAt = '', storageFails = false, repeated = false, unmountAt = '' } = {}) {
   const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
-  const source = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (guest === null && !welcoming)'));
+  const source = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (readError) return'));
   assert.ok(source.startsWith('const finish'), 'this check must execute the production finish');
   let owner = 1;
   let uid = 'new-user';
@@ -17,7 +17,7 @@ async function finishHandoff({ saved = true, newlyCreated = true, changeAt = '',
   const mounted = { current: true };
   const changeAccount = () => { owner += 1; uid = 'other-user'; };
   const bindings = {
-    user: { id: 'new-user' }, guest: { completed: true }, busy: false, saved, newlyCreated,
+    user: { id: 'new-user' }, guest: { completed: true }, busy: false, saved, newlyCreated, resumeAdoption: false,
     operation: { current: false }, finished: { current: false }, mounted,
     scopeGeneration: () => owner, activeUserId: () => uid,
     setBusy: (value: boolean) => calls.push(value ? 'busy' : 'idle'),
@@ -63,22 +63,13 @@ describe('the personal onboarding journey', () => {
   });
 
   test('the streak achievement renders saved facts on its full screen and continues to saving', () => {
-    const streak = screen.slice(screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen"), screen.indexOf('<OnboardingLayout', screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen")));
-    assert.ok(streak.length > 0);
-    assert.match(streak, /streak=\{streak\}/);
-    assert.match(streak, /today=\{today\}/);
-    assert.match(streak, /moment=\{moment\}/);
-    assert.match(streak, /progress=\{progress\}/);
-    assert.match(streak, /active=\{active && surface === null\}/);
-    const callback = streak.match(/onContinue=\{([^}]+)\}/)?.[1];
-    assert.ok(callback, 'read the actual learning continuation callback');
-    for (const run of [null, { current: 1 }, { current: 7 }]) {
-      const destinations: string[] = [];
-      const next: () => void = new Function('go', 'streak', `return (${callback});`)((page: string) => destinations.push(page), run);
-      assert.deepEqual(destinations, [], 'rendering the callback navigated on its own');
-      next();
-      assert.deepEqual(destinations, [run === null ? 'practice' : 'keep']);
-    }
+    const home = evidence('apps/mobile/src/onboarding/HomeArrival.tsx');
+    assert.doesNotMatch(screen, /<StreakCelebrationScreen/);
+    assert.match(home, /HOME_ARRIVAL_DELAY = 1500/);
+    assert.match(home, /!ready \|\| !allowed \|\| !focused/);
+    assert.match(home, /await saveArrival\(\{ \.\.\.value, streakSeen: true \}\)/);
+    assert.match(home, /<StreakCelebrationScreen streak=\{streak\} today=\{today\}/);
+    assert.match(home, /onContinue=\{\(\) => setArrival\(null\)\}/);
     const celebration = evidence('apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx');
     assert.match(celebration, /streakCelebrationView\(streak, today\)/);
     assert.match(celebration, /'Continue learning'/);
@@ -91,37 +82,25 @@ describe('the personal onboarding journey', () => {
   });
 
   test('the optional reminder opens an existing time-confirmation sheet only after an explicit choice', () => {
-    const streak = screen.slice(screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen"), screen.indexOf('<OnboardingLayout', screen.indexOf("{page === 'remind' ? <StreakCelebrationScreen")));
-    const expression = streak.match(/onReminder=\{([^}]+)\}/)?.[1];
-    assert.ok(expression, 'read the actual reminder callback and availability gate');
-    for (const [available, enabled] of [[false, false], [true, true], [true, false]]) {
-      const opened: string[] = [];
-      const callback: (() => void) | undefined = new Function('REMINDERS_AVAILABLE', 'draft', 'open', `return (${expression});`)(available, { reminderEnabled: enabled }, (name: string) => opened.push(name));
-      assert.deepEqual(opened, [], 'visiting the celebration opened the reminder');
-      if (available && !enabled) {
-        assert.ok(callback, 'a supported reminder has no opt-in action');
-        callback();
-        assert.deepEqual(opened, ['reminder']);
-      } else assert.equal(callback, undefined);
-    }
+    const home = evidence('apps/mobile/src/onboarding/HomeArrival.tsx');
+    assert.doesNotMatch(home, /onReminder=|askReminderPermission|requestPermissionsAsync/);
+    assert.doesNotMatch(screen, /<StreakCelebrationScreen/);
     const celebration = evidence('apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx');
     assert.match(celebration, /Remind me tomorrow/);
     assert.doesNotMatch(celebration, /askReminderPermission\(|requestPermissionsAsync\(|turnOnReminder\(/);
-    const sheet = screen.slice(screen.indexOf("{surface === 'reminder' && ("), screen.indexOf("{surface === 'exit' && ("));
-    assert.match(sheet, /<ReminderAsk/);
-    assert.match(sheet, /time=\{draft\.reminderTime \?\? DEFAULT_REMINDER_TIME\}/);
-    assert.match(sheet, /answerReminder\(answer\)/);
+    assert.doesNotMatch(screen, /<ReminderAsk|surface === 'reminder'/);
+    const recap = evidence('apps/mobile/src/RecapScreen.tsx');
+    assert.match(recap, /<ReminderAsk/);
   });
 
   test('saved achievements reveal truthful content and the primary action opens signup', () => {
-    const saved = screen.slice(screen.indexOf("{page === 'keep' && ("), screen.indexOf("{page === 'home' && ("));
-    assert.ok(saved.length > 0);
-    assert.match(saved, /guestInvestment\(\{ practice: guest, days, today, draft \}\)/);
-    assert.match(saved, /practiceForecast\(minutesOf\(activePlan\)\)/);
-    assert.doesNotMatch(saved, /On this phone only|FIRST_RUN_COPY\.onThisPhone|Sign in|Not now|fluent|fluency/i);
-    const list = evidence('apps/mobile/src/onboarding/firstRun/InvestmentList.tsx');
-    assert.match(list, /rows\.map\(\(row, index\)/);
-    assert.match(list, /<RevealItem key=\{row\.key\} index=\{index\}/);
+    const saved = evidence('apps/mobile/src/onboarding/FirstSessionResult.tsx');
+    assert.match(saved, /firstLiveSummary\(record\)/);
+    assert.match(saved, /view\.achievements\.map/);
+    assert.match(saved, /<RevealItem index=\{index\}/);
+    assert.match(saved, /Save your progress/);
+    assert.match(screen, /<FirstSessionSummary[^;]*onSave=\{\(\) => void saveAccount\(\)\}/);
+    assert.doesNotMatch(saved, /fluent|fluency|pronunciation score/i);
     assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}[^>]*onPress=\{\(\) => void saveAccount\(\)\}/);
     assert.equal(practiceForecast(10)?.hours, 15);
     assert.equal(practiceForecast('none'), null);
@@ -133,12 +112,14 @@ describe('the personal onboarding journey', () => {
     assert.match(app, /const newlyCreated = newAccountUserId === user\.id;/);
     assert.match(app, /newlyCreated=\{newlyCreated\}/);
     assert.match(handoff, /newlyCreated = false/);
-    assert.match(handoff, /if \(!newlyCreated \|\| guest === undefined \|\| busy \|\| autoStarted\.current\) return;/);
-    assert.match(handoff, /if \(newlyCreated && saved && !busy && guest !== null && guest !== undefined && !autoFinished\.current\) \{ autoFinished\.current = true; void finish\(\);/);
+    assert.match(handoff, /value\?\.live\?\.sessionId === arrival\?\.sessionId && arrival && !arrival\.welcomeSeen/);
+    assert.match(handoff, /loadArrival\(\)/); // Account-scoped durable receipt permits crash recovery.
+    assert.match(handoff, /if \(\(!newlyCreated && !resumeAdoption\) \|\| guest === undefined \|\| busy \|\| autoStarted\.current\) return;/);
+    assert.match(handoff, /if \(\(newlyCreated \|\| resumeAdoption\) && saved && !busy && guest !== null && guest !== undefined && !autoFinished\.current\) \{ autoFinished\.current = true; void finish\(\);/);
     assert.ok(handoff.indexOf('settleGuestHandoff(guest)') < handoff.indexOf('setSaved(true);'));
-    const finish = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (guest === null && !welcoming)'));
+    const finish = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (readError) return'));
     assert.match(finish, /if \(!mounted\.current \|\| owner !== scopeGeneration\(\)\) return;/);
-    assert.ok(finish.indexOf('await clearGuestPractice();') < finish.indexOf('onDone(saved);'));
+    assert.ok(finish.indexOf('await clearGuestPractice();') < finish.indexOf('onDone(saved, !newlyCreated && !resumeAdoption);'));
     assert.match(handoff, /'Keep this practice'/);
     const welcome = evidence('apps/mobile/src/onboarding/AccountWelcome.tsx');
     assert.match(welcome, /if \(completed\.current\) return;/);

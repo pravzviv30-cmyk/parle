@@ -255,6 +255,9 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     startStillOwns,
     standDown,
     // The refs the hook keeps its session in.
+    guestToken: undefined,
+    setPartialTranscript: () => {},
+    confirmedIds: {current: new Set()},
     startGenRef,
     roomRef,
     leaseRef,

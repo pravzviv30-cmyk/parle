@@ -1,3 +1,4 @@
+import { parseFirstPracticeBrief, firstPracticePrompt, type FirstPracticeBrief } from '@luvani/core';
 import { CONVO_LINES } from './authoredSpeech.ts';
 import { ReplyAudioScope } from './replyAudioScope.ts';
 /**
@@ -330,6 +331,11 @@ export function strictnessOf(profile: LearnerProfile): Strictness {
  * word this app writes reads as 'normal', which is where every learner who has
  * never asked already is.
  */
+/** Forced advances and turn ceilings are not evidence that the learner met the objective. */
+export function firstPracticeObjectiveComplete(state: ConversationState): boolean {
+  return state.frame.beats.length > 0 && state.frame.beats.every(beat => state.evidencedBeatIds.includes(beat.id));
+}
+
 export function paceOf(profile: LearnerProfile): Pace {
   return profile.preferences?.pace === 'slow' ? 'slow' : 'normal';
 }
@@ -928,6 +934,7 @@ export class LuvaniConversation extends voice.Agent {
   private readonly liveWork = new AbortController();
   private finishing: Promise<void> | undefined;
   private textTurnSequence = 0;
+  private inputSequence = 0;
   /** One completion timestamp shared by the generating claim and ready upsert. */
   private finishedAt: string | null = null;
   /**
@@ -964,6 +971,7 @@ export class LuvaniConversation extends voice.Agent {
     });
     this.durationSec = this.lifecycle.elapsedSeconds();
     await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns,
+      ...(this.firstPractice ? { firstPracticeComplete: firstPracticeObjectiveComplete(this.state) && !this.safetyStopped } : {}),
       ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}),
       ...(this.learnerTurns > 0 ? { baseline: this.conversationPackFor(recap, null, [], 'ready') } : {}) }, () => { this.acknowledged = snapshot; });
     if (!this.ended) this.lifecycle.assertActive();
@@ -1062,6 +1070,7 @@ export class LuvaniConversation extends voice.Agent {
    * choose, so a seed would have nowhere to land.
    */
   private readonly seedTopic: SeedTopic | undefined;
+  private readonly firstPractice: FirstPracticeBrief | undefined;
   private readonly teachingBrief: string;
   private readonly memoryBrief: string;
   private spokenRecastUsed = false;
@@ -1134,6 +1143,7 @@ export class LuvaniConversation extends voice.Agent {
        * is, so the worker cannot hand this class a half-built one.
        */
       seedTopic?: unknown;
+      firstPractice?: unknown;
       revision?: unknown;
       reviewFocus?: unknown;
       previousCorrection?: unknown;
@@ -1164,6 +1174,14 @@ export class LuvaniConversation extends voice.Agent {
     // the framework satisfied and makes the intent grep-able.
     super({ instructions: 'You are unused; replies are generated out of band.' });
     profile = safeModelProfile(repairProfile(profile));
+    this.firstPractice = parseFirstPracticeBrief(opts.firstPractice);
+    if (this.firstPractice) {
+      const brief = this.firstPractice;
+      profile = { ...profile, cefr: { ...profile.cefr,
+        estimate: brief.level === 'confident' ? 'B1' : brief.level === 'getby' ? 'A2' : brief.level === 'few' ? 'A1' : 'A0',
+        confidence: 'low', evidence: [] },
+        preferences: { ...profile.preferences, pace: brief.confidence === 'hesitant' || brief.level === 'zero' ? 'slow' : 'normal' } };
+    }
     // Honour pause at the backend too, even if an older client sent held details.
     this.profile = profile.memory.control?.paused === true
       ? { ...profile, memory: { ...profile.memory, facts: [], opener: null } } : profile;
@@ -1766,7 +1784,7 @@ export class LuvaniConversation extends voice.Agent {
                 recentScenarios: this.profile.preferences.lastScenarios,
                 unmasteredPhrases,
               },
-            }), this.teachingBrief, this.memoryBrief].filter(Boolean).join('\n\n'),
+            }), this.teachingBrief, this.firstPractice ? firstPracticePrompt(this.firstPractice) : null, this.memoryBrief].filter(Boolean).join('\n\n'),
             signal,
           }),
         this.frameTimeoutMs,
@@ -2093,7 +2111,7 @@ export class LuvaniConversation extends voice.Agent {
         // preparation has not entered this conversation and is not saved text.
         if (this.phase === 'choosing') {
           this.learnerTurns += 1;
-          this.publish({ t: 'transcript', text: msg.text, final: true });
+          this.publish({ t: 'transcript', text: msg.text, final: true, input: 'typed', turnId: `u${++this.inputSequence}` });
         }
         return this.startScene(msg.text);
       }
@@ -2150,7 +2168,7 @@ export class LuvaniConversation extends voice.Agent {
       this.releaseMoment();
       this.clearRescue();
       this.invalidateReplyTiming();
-      this.publish({ t: 'transcript', text: msg.text, final: true });
+      this.publish({ t: 'transcript', text: msg.text, final: true, input: 'typed', turnId: `u${++this.inputSequence}` });
       const correctionGeneration = this.correctionReasonGeneration;
       await this.queue.run(() => {
         this.learnerTurns += 1;
@@ -2220,12 +2238,12 @@ export class LuvaniConversation extends voice.Agent {
         this.learnerTurns += 1;
         // Speech on the choosing screen IS the topic. The transcript shows
         // the learner they were heard; the scene does the rest.
-        this.publish({ t: 'transcript', text, final: true });
+        this.publish({ t: 'transcript', text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}` });
         void this.startScene(text).catch((error: unknown) => {
           console.error('[luvani] the spoken topic could not open a scene:', safeError(error));
         });
       } else if (this.phase === 'scene') {
-        this.publish({ t: 'transcript', text, final: true });
+        this.publish({ t: 'transcript', text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}` });
         const correctionGeneration = this.correctionReasonGeneration;
         await this.queue.run(() => {
           this.learnerTurns += 1;
@@ -2237,7 +2255,7 @@ export class LuvaniConversation extends voice.Agent {
         // the opening narration. But it is no longer dropped in silence. A
         // screen that does not change reads as "it did not hear me", and the
         // natural response is to say it again, into the same hole.
-        this.publish({ t: 'transcript', text, final: true });
+        this.publish({ t: 'transcript', text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}` });
       }
     }
     // Every path out of this hook cancels the pipeline's own reply — the
@@ -2321,6 +2339,7 @@ export class LuvaniConversation extends voice.Agent {
       ...prepared,
       system: buildSystemBlocks(this.persona),
       messages: [...prepared.messages, { role: 'system' as const, text: this.teachingBrief },
+        ...(this.firstPractice ? [{ role: 'system' as const, text: firstPracticePrompt(this.firstPractice, this.lifecycle?.elapsedSeconds() ?? 0) }] : []),
         ...(this.memoryBrief ? [{ role: 'system' as const, text: this.memoryBrief }] : [])],
     };
     let turn;
@@ -2544,10 +2563,12 @@ export class LuvaniConversation extends voice.Agent {
           this.lifecycle.assertActive();
           const baseline = this.conversationPackFor(recap, curated, [], 'ready');
           const snapshot = { state: this.state, profile: this.profile };
-          await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns, baseline }, () => { this.acknowledged = snapshot; });
+          await this.lifecycle.checkpoint({ learnerTurns: this.learnerTurns,
+      ...(this.firstPractice ? { firstPracticeComplete: firstPracticeObjectiveComplete(this.state) && !this.safetyStopped } : {}), baseline }, () => { this.acknowledged = snapshot; });
         } catch { /* Preserve the last acknowledged baseline on optional failure. */ }
       }
       const settlement = await this.lifecycle.complete({ learnerTurns: this.learnerTurns,
+        ...(this.firstPractice && this.safetyStopped ? {firstPracticeStopped: true} : {}),
         ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) });
       this.lastRecap = { ...this.lastRecap, profile: this.profile };
       noteSessionReported(this.sessionId); this.cancelCanDoEvidence();

@@ -1,3 +1,4 @@
+import { briefFromDraft } from './firstLiveModel.ts';
 import { loadConsent } from '../analytics/consentStore.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,11 +25,14 @@ export function saveGuestPractice(value: GuestPractice): Promise<void> {
   writes = work.catch(() => {});
   return work;
 }
-export async function loadGuestPractice(): Promise<GuestPractice | null> {
+export async function loadGuestPractice(strict = false): Promise<GuestPractice | null> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    return raw ? repairGuestPractice(JSON.parse(raw)) : null;
-  } catch {
+    const value = raw ? repairGuestPractice(JSON.parse(raw)) : null;
+    if (raw && !value && strict) throw new Error('Your saved practice could not be restored.');
+    return value;
+  } catch (error) {
+    if (strict) throw error;
     return null;
   }
 }
@@ -83,12 +87,14 @@ export async function startGuestPractice(plan: PreAccountOnboardingDraft, prior:
   if (!plan.eligibilityConfirmed) throw new Error('eligibility required');
   const data = await post('start', {
     eligible: true,
+    live: true,
+    brief: briefFromDraft(plan),
     goal: plan.reason ?? 'food',
     drink: plan.drink ?? 'coffee',
     minutes: starterMinutes(plan.minutes),
     analyticsAllowed: plan.analyticsConsent === true,
     variant: process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? 'five' : 'full',
-  });
+  }, prior?.live?.outcome === 'active' ? prior : undefined);
   if (
     typeof data.token !== 'string' ||
     typeof data.expiresAt !== 'number' ||
@@ -97,6 +103,7 @@ export async function startGuestPractice(plan: PreAccountOnboardingDraft, prior:
     throw new Error('unavailable');
   const next: GuestPractice = {
     version: 2,
+    live: { brief: briefFromDraft(plan), sessionId: null, outcome: 'active', contributions: [], seconds: 0, completedAt: null, pack: null },
     token: data.token,
     expiresAt: data.expiresAt,
     id: data.id,
@@ -240,3 +247,10 @@ export async function trackAccountStarter(userId: string, name: GuestMetric, evi
     await fetch(`${TOKEN_SERVER}/onboarding/account-event`, { method: 'POST', signal: AbortSignal.timeout(5000), headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ ...(process.env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT === '1' ? { userId } : {}), analyticsAllowed: true, name, evidence }) });
   } catch { /* Optional aggregate evidence is never a condition of practice. */ }
 }
+
+/** Read the worker's acknowledged result. A failed read is not a completed session. */
+export async function readGuestLiveResult(guest: GuestPractice) {
+  return post('live-result', {}, guest);
+}
+
+export async function endGuestLivePractice(guest: GuestPractice) { return post('end', {}, guest); }

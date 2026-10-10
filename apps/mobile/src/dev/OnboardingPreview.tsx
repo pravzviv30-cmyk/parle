@@ -1,8 +1,11 @@
+import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
+import { FirstSessionSummary, FirstSessionCelebration } from '../onboarding/FirstSessionResult.tsx';
+import type { FirstLiveRecord } from '../onboarding/firstLiveModel.ts';
 /** Real presentation components with synthetic data. No accounts, guest sessions or paid generation. */
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { addDays, tutorVoice, type DayKey, type TutorVoiceKey } from '@luvani/core';
+import { buildConversationPack, addDays, tutorVoice, type DayKey, type TutorVoiceKey } from '@luvani/core';
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
@@ -16,10 +19,9 @@ import { TutorSelection } from '../onboarding/TutorSelection.tsx';
 import { PersonalPlan } from '../onboarding/PersonalPlan.tsx';
 import { OnboardingScene } from '../onboarding/motion/OnboardingScenes.tsx';
 import { StreakCelebrationScreen } from '../onboarding/firstRun/StreakCelebrationScreen.tsx';
-import { InvestmentList } from '../onboarding/firstRun/InvestmentList.tsx';
-import { guestStreak, type InvestmentRow } from '../onboarding/guestProgress.ts';
+import { guestStreak } from '../onboarding/guestProgress.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
-import { CONFIDENCE_OPTIONS, FOCUS_OPTIONS, REASONS, START_LEVELS, practiceForecast } from '../onboarding/plan.ts';
+import { CONFIDENCE_OPTIONS, FOCUS_OPTIONS, REASONS, START_LEVELS } from '../onboarding/plan.ts';
 import { FULL_SETUP } from '../onboarding/flow.ts';
 import { GOAL_TIERS } from '../onboarding/firstRun/planModel.ts';
 import { GoalTile } from '../onboarding/firstRun/GoalTile.tsx';
@@ -38,17 +40,18 @@ const previewAdapterBase: AuthAdapter = {
 const previewDay = '2026-10-10' as DayKey;
 const previewStreak = guestStreak([previewDay], previewDay)!;
 const previewLongStreak = guestStreak(Array.from({ length: 7 }, (_, i) => addDays(previewDay, i - 6)), previewDay)!;
-const previewRows: InvestmentRow[] = [
-  { key: 'streak', icon: 'flame', text: 'Day 1 of your streak' },
-  { key: 'replies', icon: 'chat', text: 'Your first French reply' },
-  { key: 'plan', icon: 'calendar', text: 'Your personal plan: 10 minutes a day' },
-  { key: 'tutor', icon: 'user', text: `Your AI tutor: ${tutorVoice('emilie').persona.name}` },
-];
-const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'streak', 'streak-long', 'streak-empty', 'saved', 'account', 'select'] as const;
+const previewFirstLive: FirstLiveRecord = {
+  brief: {version:1, goals:['food','trip'], level:'zero', confidence:'hesitant', focus:'speaking', minutes:5, tutorVoice:'emilie'},
+  sessionId:'11111111-1111-4111-8111-111111111111', outcome:'completed', seconds:240, completedAt:Date.parse('2026-10-10T10:00:00Z'),
+  contributions:[{id:'u1',text:'Une table pour deux, s’il vous plaît.',input:'typed'},{id:'u2',text:'La carte, merci.',input:'typed'}],
+  pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
+    keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
+};
+const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'hear-it': 'Welcome', reason: 'Purpose', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
-  plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'Save progress', account: 'Account ready', select: 'Screen preview',
+  journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
 };
 function previewOptions() {
   const query = Platform.OS === 'web' && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
@@ -147,13 +150,10 @@ export function OnboardingPreview() {
             onBack={() => go('select')}
             onContinue={() => go(screen === 'streak-empty' ? 'select' : 'saved')}
           />}
-          {screen === 'saved' && <OnboardingLayout page="keep" footer={<PillButton label="Save my progress" onPress={() => go('signup')} />}>
-            <View style={st.story}>
-              <Text accessibilityRole="header" style={[type.title, st.heading]}>Save your progress</Text>
-              <InvestmentList rows={previewRows} />
-              <Text style={[type.body, st.caption]}>{practiceForecast(10)!.line}</Text>
-            </View>
-          </OnboardingLayout>}
+          {screen === 'celebration' && <FirstSessionCelebration record={previewFirstLive} progress={onboardingProgress({page:'recap'})} onDone={() => go('saved')} />}
+          {(screen === 'saved' || screen === 'partial') && <FirstSessionSummary record={screen === 'partial' ? {...previewFirstLive,outcome:'interrupted'} : previewFirstLive}
+            progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
+          {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signup')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
           {titles[screen] !== undefined && <OnboardingLayout page={screen} footer={<PillButton label={screen === 'plan' ? 'Choose your tutor' : 'Continue'} onPress={next} />}>
             <View style={st.story}>

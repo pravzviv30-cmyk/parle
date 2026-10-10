@@ -66,6 +66,7 @@ import {
   emptySpend,
   formatBrainSummary,
   frameDeadlineMs,
+  firstPracticeObjectiveComplete,
   missionOpening,
   openerFor,
   paceOf,
@@ -4114,4 +4115,15 @@ test('late optional reason usage updates the session-linked total after finish',
   assert.ok(late.includes('session=efefefef'));assert.ok(late.includes('activity=correction-reason'));assert.ok(late.includes('in=100'));assert.ok(late.includes('usd='));
   assert.equal(built.published.some(row=>row.t==='correction-reason'),false);
   assert.ok(!late.includes('Je aller'));assert.ok(!late.includes('Je vais'));
+});
+
+
+test('first live completion uses evidenced scene goals, not authored-mission flags or forced advancement', () => {
+  const {state} = freshState();
+  assert.equal(firstPracticeObjectiveComplete(state), false);
+  const allDone = Object.fromEntries(state.frame.beats.map(beat => [beat.id, 'done' as const]));
+  assert.equal(firstPracticeObjectiveComplete({...state, beatStatus: allDone, missionDone: true}), false);
+  assert.equal(firstPracticeObjectiveComplete({...state, beatStatus: allDone, missionDone: false,
+    evidencedBeatIds: state.frame.beats.map(beat => beat.id)}), true);
+  assert.equal(firstPracticeObjectiveComplete({...state, evidencedBeatIds: [state.frame.beats[0]!.id]}), false);
 });

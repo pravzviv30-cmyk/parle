@@ -48,6 +48,12 @@ const sha = (text: string): string => createHash('sha256').update(text, 'utf8').
 // Monthly new offers are paid immediately; historical trial restore is preserved.
 // Purchase/restore settlement, usage debit and historical SQL pins are unchanged.
 // Native StoreKit sandbox qualification remains outstanding before release.
+// 10 October 2026: user explicitly requested the first-live onboarding source merge
+// with production guest admission disabled. Independent revenue review approved
+// guest room/session/budget binding and validated personalisation metadata in
+// tokens.ts; 43 token/guest checks pass. Account entitlement, prices, allowances,
+// debit and every other money pin stay unchanged. This is source-merge review,
+// not approval to enable production guests or invent provider quotes/budgets.
 const FILES: Record<string, string> = {
   // 5 October 2026, F733/F734: founder decisions D16 and D4 (come-alive Phase 0,
   // step F1). A store free trial grants a week of the plan (allowance x 7/30) and
@@ -144,7 +150,7 @@ const FILES: Record<string, string> = {
   // reservation→cryptographically verified SDK JWT proof, malformed RPC/owner
   // tests and 38 billing tests. SQL admission supersedes stale snapshots;
   // store changes remove raw error logging only. Prices/allowances remain pinned.
-  'services/token-server/src/tokens.ts': 'f298cb76bdfc3320da98066b801d15b3a2632af35c6b7ff402598f2c11164e74',
+  'services/token-server/src/tokens.ts': '0b83b715a62ed5948631f13f4cfd785f4723ad4bada5eafdb8ac4bf5d020788f',
   'services/token-server/src/store.ts': '56d3cc9d2798d8aef972d269086c809bb8c13f9436613ef234906e246dcc3674',
   'packages/core/src/metering/index.ts': '685fb30e1b910abf2c3a2104d93402558a32c660a193001249451688d42f7dc4',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',

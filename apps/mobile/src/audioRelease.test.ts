@@ -405,11 +405,14 @@ test('no screen touches a sound player or recorder in a cleanup that runs after 
   }
   assert.deepEqual(manual.sort(), ['src/sound/sfx.native.ts', 'src/sound/sfx.web.ts', 'src/tutor/useTutorPreview.ts'],
     'a manual audio owner was added or removed and needs an explicit disposal audit');
+  assert.ok(!files.some(file => relative(APP_ROOT, file.fileName) === 'src/onboarding/GuestRecording.tsx'), 'the replaced guest recorder returned');
   const previewOwners = manual.filter(name => name === 'src/tutor/useTutorPreview.ts').length;
-  // Fifteen voice players and recorders, including the manual tutor preview. A floor, like the gate's:
+  // Fourteen voice players and recorders after deliberately removing GuestRecording
+  // on 10 October 2026. Live onboarding uses room tracks, not an expo recorder.
+  // Including the manual tutor preview, this inventory guards the remaining owners:
   // a new sound raises the count freely, and one that disappears has either
   // been removed on purpose, which lowers this by hand, or slipped past the walk.
-  assert.ok(made.length + previewOwners >= 15, `only ${made.length + previewOwners} sound objects were found, so the walk lost one or a screen's sound was removed:\n${made.join('\n')}`);
+  assert.ok(made.length + previewOwners >= 14, `only ${made.length + previewOwners} sound objects were found, so the walk lost one or a screen's sound was removed:\n${made.join('\n')}`);
   assert.ok(
     made.some((label) => label.startsWith('player from useAudioPlayer at src/onboarding/PreAccountOnboarding.tsx:')),
     `the walk no longer reads pre-account onboarding's player, where F792 was found:\n${made.join('\n')}`,

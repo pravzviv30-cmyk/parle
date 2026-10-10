@@ -7,7 +7,7 @@ import { stripTypeScriptTypes } from 'node:module';
 function callback(kind: 'setup' | 'repair', bindings: Record<string, unknown>): () => Promise<void> {
   const file = kind === 'setup' ? 'PreAccountOnboarding.tsx' : 'OnboardingFlow.tsx';
   const name = kind === 'setup' ? 'saveAccount' : 'complete';
-  const next = kind === 'setup' ? 'finish' : 'confirmAge';
+  const next = kind === 'setup' ? 'nextQuestion' : 'confirmAge';
   const source = readFileSync(new URL(file, import.meta.url), 'utf8');
   const start = source.indexOf(`  const ${name} = `);
   const end = source.indexOf(`  const ${next} = `, start);

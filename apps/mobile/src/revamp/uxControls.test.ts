@@ -7,7 +7,20 @@ import { DEMO_COACHING, FIRST_LINE } from '../onboarding/firstRun.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test("actual guest practice connects the submitted reply, useful feedback, exact retry and durable keep", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /sendGuestAttempt/); assert.match(screen, /result\.feedback\.accepted/); assert.match(screen, /label="Try it again"|label="Try again"|Retry/); assert.match(screen, /saveGuestPractice\(next\)/); assert.match(screen, /if \(saved\)/); assert.doesNotMatch(screen, /coachingOpen|pronunciationScore|awardXp/); });
+test("actual guest practice connects the submitted reply, useful feedback, exact retry and durable keep", () => {
+  const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
+  const live = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
+  assert.doesNotMatch(screen, /sendGuestAttempt|<GuestRecording/);
+  assert.match(screen, /<FirstLivePractice guest=\{guest\}/);
+  assert.match(screen, /if \(previewOnly\) return;/);
+  assert.match(live, /await live\.sendSay\(text\)/);
+  assert.match(live, /if \(sent\) setDraft\(''\); else setIssue/);
+  assert.match(live, /await readGuestLiveResult\(held\.current\)/);
+  assert.match(live, /completed: record\.outcome === 'completed'/);
+  assert.ok(live.indexOf('await saveGuestPractice(next)') < live.indexOf('onFinished(next)'));
+  assert.match(live, /Try connecting again/);
+  assert.doesNotMatch(live, /pronunciationScore|awardXp/);
+});
 
 test("signup carries the actual starter and keeps guest work during sign-in", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); const signup = evidence('apps/mobile/src/auth/SignUpScreen.tsx'); assert.match(flow, /planDraft=\{refused \? null : signupDraft\}/); assert.match(flow, /onCreateAccount\(accountDraft\)/); assert.match(app, /onCreateAccount=\{keepPreAccountDraft\}/); assert.match(app, /savePreAccountDraft\(draft\)/); assert.match(app, /<PreAccountProfileBootstrap\s+draft=\{preAccountDraft\}/); assert.match(app, /firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason\)/); assert.doesNotMatch(signup, /plan\.starter\.title/, 'the account form repeats the starter subtitle instead of keeping its controls visible'); assert.match(flow, /switchScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='),flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); });
 

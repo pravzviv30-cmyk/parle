@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, Text, View } from 'react-native';
 import { PillButton } from '../components.tsx';
 import { paper, type } from '../theme.ts';
@@ -9,17 +9,18 @@ import { OnboardingLayout } from './OnboardingLayout.tsx';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
 
 /** Shown only after account creation and durable progress handoff, never on a pending email. */
-export function AccountWelcome({ onDone, progress = onboardingProgress({ page: 'account-welcome' }) }: { onDone: () => void; progress?: OnboardingProgressValue }) {
+export function AccountWelcome({ onDone, progress = onboardingProgress({ page: 'account-welcome' }) }: { onDone: () => void | Promise<void>; progress?: OnboardingProgressValue }) {
   const reduced = useReduceMotion();
   const reader = useScreenReader();
   const opacity = useRef(new Animated.Value(1)).current;
+  const [error, setError] = useState('');
   const completed = useRef(false);
   const done = useRef(onDone);
   done.current = onDone;
   const finish = () => {
     if (completed.current) return;
     completed.current = true;
-    done.current();
+    void Promise.resolve().then(() => done.current()).catch(() => { completed.current = false; opacity.setValue(1); setError('Your welcome could not be saved. Tap Go to home to retry.'); });
   };
   useEffect(() => {
     opacity.setValue(1);
@@ -29,7 +30,7 @@ export function AccountWelcome({ onDone, progress = onboardingProgress({ page: '
       timer = setTimeout(() => {
         animation = Animated.timing(opacity, { toValue: 0, duration: reduced ? 0 : 300, useNativeDriver: NATIVE_DRIVER });
         animation.start(({ finished }) => { if (finished) finish(); });
-      }, reduced ? 1800 : 2600);
+      }, reduced ? 1000 : 1700);
     };
     if (reader === false && AppState.currentState === 'active') schedule();
     const subscription = AppState.addEventListener('change', state => {
@@ -44,8 +45,9 @@ export function AccountWelcome({ onDone, progress = onboardingProgress({ page: '
     footer={<PillButton label="Go to home" onPress={finish} />}>
     <Animated.View style={{ justifyContent: 'center', alignItems: 'center', gap: 20, opacity }}>
       <View style={{ alignItems: 'center' }}><OnboardingScene kind="account" size={220} /></View>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>You’re in!</Text>
-      <Text style={[type.body, { color: paper.ink, textAlign: 'center' }]}>Your account is ready. Your French journey is yours to keep.</Text>
+      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>Welcome to Luvani.</Text>
+      <Text style={[type.body, { color: paper.ink, textAlign: 'center' }]}>This is where your French begins.</Text>
+      {!!error && <Text accessibilityRole="alert" style={type.small}>{error}</Text>}
     </Animated.View>
   </OnboardingLayout>;
 }

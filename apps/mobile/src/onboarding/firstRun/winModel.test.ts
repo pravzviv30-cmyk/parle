@@ -80,22 +80,17 @@ describe('the first win — F754', () => {
     // The screen: coral only for a celebrated win, the moment only on a real
     // submit, and the sound and haptic the model chose.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /const coral = page === 'recap' && win\?\.celebrate === true;/, 'the coral ground no longer waits for a celebrated win');
-    assert.match(screen, /const real = result\.feedback\.accepted && result\.feedback\.evidence !== 'model';/);
-    assert.match(screen, /if \(real\) setMoment\(`guest-win:\$\{result\.at\}`\);/, 'the moment plays for something other than a real accepted reply');
-    assert.match(screen, /playSfx\(effects\.sound\);/);
-    assert.match(screen, /if \(effects\.haptic === 'celebrate'\) celebrate\(\); else soft\(\);/);
-    assert.match(screen, /<WinArt celebrate=\{coral\} moment=\{moment\}>/);
-    assert.match(screen, /<WinCard view=\{win\}/);
-    assert.match(screen, /<OnboardingLayout/); assert.doesNotMatch(screen, /icon="back"|label="Back"/, 'the win grew a visible back control');
-    for (const label of ['win.keepLabel', 'FIRST_RUN_COPY.retry', 'FIRST_RUN_COPY.details']) assert.ok(screen.includes(label), `the win's action row lost ${label}`);
-    assert.doesNotMatch(screen, /last\.feedback\.accepted \? last\.reply/, 'a kept or shown phrase is the learner\'s unchecked spelling again');
+    assert.doesNotMatch(screen, /<WinArt|<WinCard|const submit =/);
+    assert.match(screen, /next\.live\?\.outcome === 'completed' \? 'recap' : 'keep'/);
+    const celebration = evidence('apps/mobile/src/onboarding/FirstSessionResult.tsx');
+    assert.match(celebration, /record\.outcome === 'completed'/);
+    assert.match(celebration, /haptic\.current = true; celebrate\(\)/);
+    assert.match(celebration, /<Burst seed=\{`first-session:/);
+    assert.match(celebration, /<TimedExit/);
+    assert.doesNotMatch(screen, /icon="back"|label="Back"/);
 
-    const card = evidence('apps/mobile/src/onboarding/firstRun/WinCard.tsx');
-    assert.match(card, /FIRST_RUN_COPY\.youSaid/);
-    assert.match(card, /\{view\.said\}/);
-    assert.match(card, /\{view\.modelLabel\}/);
-    assert.match(card, /FIRST_RUN_COPY\.exactlyNatural/);
-    assert.match(card, /moment !== null && box !== null \? \( <Burst seed=\{moment\}[^>]*count=\{WIN_BURST\}/, 'the confetti is thrown without a real moment');
+    assert.match(celebration, /firstLiveSummary\(record\)/);
+    assert.match(celebration, /record\.outcome !== 'completed'\) \{ done\(\); return;/);
+    assert.match(celebration, /!reduced && <View/);
   });
 });

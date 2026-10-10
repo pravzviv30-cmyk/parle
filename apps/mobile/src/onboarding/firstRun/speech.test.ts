@@ -43,18 +43,16 @@ describe('speaking in the first run — F756', () => {
     // The screen: the mode comes from the rule, Speak instead only on its yes,
     // and a refused take turns to typing with nothing to retry.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /setMode\(initialPracticeMode\(draft\) === 'spoken' && speakingOffered\(next\) \? 'spoken' : 'typed'\);/, 'a fresh practice opens in a mode the server did not offer');
-    assert.match(screen, /\{mode === 'typed' && speakingOffered\(guest\) \? \( <IconAction icon="microphone" label=\{FIRST_RUN_COPY\.speakInstead\}/, 'Speak instead is offered without the server\'s yes');
-    assert.equal((screen.match(/setMode\('spoken'\)/g) ?? []).length, 1, 'something other than Speak instead turns the microphone on');
-    const refused = screen.slice(screen.indexOf('if (speechRefused(error)) {'), screen.indexOf('setIssue( error instanceof Error && error.message === \'expired\''));
-    assert.ok(refused.length > 0, 'a refused take is not told apart from a broken connection');
-    assert.match(refused, /setMode\('typed'\);/);
-    assert.match(refused, /speechAvailable: false/);
-    assert.match(refused, /setIssue\(FIRST_RUN_COPY\.speechPaused\);/);
+    assert.doesNotMatch(screen, /setMode|sendGuestAttempt|<GuestRecording/);
+    assert.match(screen, /<FirstLivePractice guest=\{guest\}/);
+    const live = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
+    assert.match(live, /mode: 'convo', guestToken: guest\.token!/);
+    assert.match(live, /if \(await live\.pauseMic\(\)\) setTyping\(true\)/);
+    assert.match(live, /if \(await live\.openMic\(\)\) setTyping\(false\)/);
     assert.doesNotMatch(screen, /Start speaking|Speaking is unavailable right now|start\(true, /, 'the start sheet offers speaking before the server has said it is available');
     // The permission is still asked only on the tap that starts a take.
     assert.doesNotMatch(screen, /requestRecordingPermissions/);
-    assert.match(evidence('apps/mobile/src/onboarding/GuestRecording.tsx'), /onPress=\{\(\) => void record\(\)/);
+    assert.match(live, /await live\.openMic\(\)/);
   });
 
   test('only the service saying speech is closed moves a take to typing, and a failed transcription offers Try again', () => {

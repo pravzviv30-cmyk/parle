@@ -1,5 +1,9 @@
+import { FadeOverlay } from '../motion/TimedExit.tsx';
+import { loadArrival, saveArrival } from './arrival.ts';
+import { HomeArrivalAllowed } from './HomeArrival.tsx';
+import { loadConversationPackForLearner } from '../conversationPacks/store.ts';
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { phraseKeyOf } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -45,7 +49,7 @@ export function GuestAccountHandoff({
 }: {
   draft: PreAccountOnboardingDraft | null;
   /** Called once the hand-off is over: true when the practice was kept, false for Start fresh. */
-  onDone: (kept: boolean) => void;
+  onDone: (kept: boolean, showFirstRunOffer?: boolean) => void;
   children: React.ReactNode;
   /** Only a verified signup in this visit can adopt its own anonymous draft automatically. */
   newlyCreated?: boolean;
@@ -53,6 +57,8 @@ export function GuestAccountHandoff({
 }) {
   const { user, adapter } = useAuth();
   const [guest, setGuest] = useState<GuestPractice | null | undefined>(undefined);
+  const [readError, setReadError] = useState(false);
+  const [readAttempt, setReadAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -60,6 +66,8 @@ export function GuestAccountHandoff({
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [saved, setSaved] = useState(false);
   const [welcoming, setWelcoming] = useState(false);
+  const [resumeAdoption, setResumeAdoption] = useState(false);
+  const [welcomeLeaving, setWelcomeLeaving] = useState(false);
   const autoStarted = useRef(false);
   const autoFinished = useRef(false);
   const operation = useRef(false);
@@ -72,32 +80,35 @@ export function GuestAccountHandoff({
   useEffect(() => {
     mounted.current = true;
     let active = true;
-    void loadGuestPractice().then((value) => {
+    setReadError(false);
+    void Promise.all([loadGuestPractice(true), loadArrival()]).then(([value, arrival]) => {
       if (active) {
-        if (newlyCreated && value === null) setWelcoming(true);
+        if (value === null && ((arrival && !arrival.welcomeSeen) || (newlyCreated && !arrival?.welcomeSeen))) setWelcoming(true);
+        if (value?.live?.sessionId === arrival?.sessionId && arrival && !arrival.welcomeSeen) setResumeAdoption(true);
+        if (value === null && newlyCreated && arrival?.welcomeSeen) onWelcomeDone?.();
         setGuest(value);
       }
-    });
+    }).catch(() => { if (active) { setReadError(true); setError('Your saved practice could not be read. Try again. Your progress has not been removed.'); } });
     return () => {
       active = false;
       mounted.current = false;
     };
-  }, []);
+  }, [readAttempt]);
   // Reading the guest's practice draws a blank, so the launch screen stays up
   // over it. Above both returns, so the hook runs on every render.
-  useLaunchHold(guest === undefined);
+  useLaunchHold(guest === undefined && !readError);
   useEffect(() => {
-    if (!newlyCreated || guest === undefined || busy || autoStarted.current) return;
+    if ((!newlyCreated && !resumeAdoption) || guest === undefined || busy || autoStarted.current) return;
     autoStarted.current = true;
-    if (guest === null) setWelcoming(true);
+    if (guest === null) { /* The durable arrival reader decides whether welcome is pending. */ }
     else void keep();
-  }, [newlyCreated, guest, busy]);
+  }, [newlyCreated, resumeAdoption, guest, busy]);
   useEffect(() => {
-    if (newlyCreated && saved && !busy && guest !== null && guest !== undefined && !autoFinished.current) {
+    if ((newlyCreated || resumeAdoption) && saved && !busy && guest !== null && guest !== undefined && !autoFinished.current) {
       autoFinished.current = true;
       void finish();
     }
-  }, [newlyCreated, saved, busy, guest]);
+  }, [newlyCreated, resumeAdoption, saved, busy, guest]);
   const keep = async () => {
     if (!user || operation.current || finished.current || !guest) return;
     operation.current = true;
@@ -108,6 +119,10 @@ export function GuestAccountHandoff({
     try {
       const balance = await adoptGuestUsage(guest, uid);
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
+      if (guest.live?.pack) {
+        const linked = await loadConversationPackForLearner(user, adapter, guest.live.pack.id);
+        if (!linked.ok || !linked.pack || linked.pack.sessionId !== guest.live.sessionId) throw new Error('Your conversation is linked, but has not synced to this device yet. Try again.');
+      }
       // Each accepted or kept reply's task, as its natural line, never the
       // learner's unchecked spelling (F757).
       const phrases = savedPhraseTasks(guest).map((task) => ({
@@ -130,7 +145,7 @@ export function GuestAccountHandoff({
       const key = userKey('onboarding-practice');
       if (
         !(await writeInUserScope(owner, () =>
-          AsyncStorage.setItem(key, JSON.stringify({ ...guest, token: null, completed: true })),
+          AsyncStorage.setItem(key, JSON.stringify({ ...guest, token: null })),
         ))
       )
         throw new Error('Your practice could not be saved.');
@@ -138,6 +153,11 @@ export function GuestAccountHandoff({
       // never lights a second time (F744). Nothing to record is not a failure.
       if ((await settleGuestHandoff(guest)).ack !== 'durable') throw new Error('Your practice could not be saved.');
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== uid) return;
+      if (guest.live?.sessionId) {
+        const arrival = await loadArrival();
+        if (arrival?.sessionId !== guest.live.sessionId) await saveArrival({ sessionId: guest.live.sessionId,
+          finishedAt: guest.live.outcome === 'completed' ? guest.finishedAt ?? [] : [], welcomeSeen: !newlyCreated, streakSeen: false });
+      }
       setRemaining(balance);
       setSaved(true);
       // Free or on a plan: the server says, after the claim above has spent the
@@ -168,9 +188,9 @@ export function GuestAccountHandoff({
       await clearGuestPractice();
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== user.id) return;
       finished.current = true;
-      if (newlyCreated) setWelcoming(true);
+      if (newlyCreated || resumeAdoption) setWelcoming(true);
       setGuest(null);
-      onDone(saved);
+      onDone(saved, !newlyCreated && !resumeAdoption);
     } catch {
       if (mounted.current && owner === scopeGeneration())
         setError('Your minutes could not be checked. Try again. Your practice is still here.');
@@ -179,7 +199,8 @@ export function GuestAccountHandoff({
       if (mounted.current && owner === scopeGeneration()) setBusy(false);
     }
   };
-  if (guest === null && !welcoming) return <>{children}</>;
+  if (readError) return <OnboardingLayout page="account-welcome" footer={<PillButton label="Try again" onPress={() => setReadAttempt(n => n + 1)} />}><Text accessibilityRole="alert" style={type.body}>{error}</Text></OnboardingLayout>;
+  if (guest === null && !welcoming) return <HomeArrivalAllowed.Provider value={true}><View style={{ flex: 1 }}><View style={StyleSheet.absoluteFill}>{children}</View>{error ? <Text accessibilityRole="alert">{error}</Text> : null}</View></HomeArrivalAllowed.Provider>;
   if (guest === undefined) return <View />;
   const progress = onboardingProgress({
     page: 'account-welcome',
@@ -187,9 +208,18 @@ export function GuestAccountHandoff({
     completed: journey.current?.onboardingCompletedSteps,
     skipped: [...(journey.current?.onboardingSkippedSteps ?? []), ...(journey.current?.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])],
   });
-  if (welcoming) return <OnboardingFrame initialProgress={progress}>
-    <AccountWelcome progress={progress} onDone={() => { setWelcoming(false); onWelcomeDone?.(); }} />
-  </OnboardingFrame>;
+  if (welcoming) return <HomeArrivalAllowed.Provider value={false}><View style={{ flex: 1 }}>
+    <View style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">{children}</View>
+    <FadeOverlay leaving={welcomeLeaving} onHidden={() => { setWelcoming(false); onWelcomeDone?.(); }}>
+    <OnboardingFrame initialProgress={progress}>
+      <AccountWelcome progress={progress} onDone={async () => {
+        const arrival = await loadArrival();
+        await saveArrival({ ...(arrival ?? { sessionId: 'account-welcome', finishedAt: [], streakSeen: true }), welcomeSeen: true });
+        setWelcomeLeaving(true);
+      }} />
+    </OnboardingFrame>
+    </FadeOverlay>
+  </View></HomeArrivalAllowed.Provider>;
   if (guest === null) return <>{children}</>;
   // The time with the tutor, once saved: free on the free allowance (and on a
   // lapsed plan, which the server holds as that), on a plan otherwise, and in

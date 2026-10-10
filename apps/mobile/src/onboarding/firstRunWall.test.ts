@@ -85,7 +85,7 @@ describe('the first-run offer', () => {
     // the navigator is ready and after the first-run reset, opening the
     // existing wall at its path-complete door.
     const app = evidence('apps/mobile/App.tsx');
-    assert.match(app, /onDone=\{\(kept\) => \{ if \(kept && !newlyCreated\) pendingWall\.current = true; onPreAccountDraftConsumed\(\); \}\}/, 'something other than a kept existing-account practice sets the offer');
+    assert.match(app, /onDone=\{\(kept, showFirstRunOffer\) => \{ if \(kept && showFirstRunOffer\) pendingWall\.current = true; onPreAccountDraftConsumed\(\); \}\}/, 'something other than a kept existing-account practice sets the offer');
     assert.equal((app.match(/pendingWall\.current = true/g) ?? []).length, 1);
     assert.match(app, /const newlyCreated = newAccountUserId === user\.id;/, 'automatic signup adoption must be bound to the verified new account');
     assert.match(app, /newlyCreated=\{newlyCreated\}/);
@@ -103,7 +103,7 @@ describe('the first-run offer', () => {
     assert.doesNotMatch(app, /pendingWall[^;]*(AsyncStorage|setItem|userKey)/, 'the offer is remembered on the disk and could show again');
     // The hand-off says whether the practice was kept.
     const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
-    assert.match(handoff, /onDone: \(kept: boolean\) => void;/);
-    assert.match(handoff, /setGuest\(null\); onDone\(saved\);/);
+    assert.match(handoff, /onDone: \(kept: boolean, showFirstRunOffer\?: boolean\) => void;/);
+    assert.match(handoff, /setGuest\(null\); onDone\(saved, !newlyCreated && !resumeAdoption\);/);
   });
 });

@@ -1,3 +1,4 @@
+import { parseFirstPracticeBrief } from '@luvani/core';
 /**
  * The tutor agent.
  *
@@ -144,6 +145,8 @@ export default defineAgent({
       missionId?: unknown;
       tutorVoice?: unknown;
       lifecycleVersion?: unknown;
+      guestLifecycleKey?: unknown;
+      firstPractice?: unknown;
     };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
@@ -168,10 +171,14 @@ export default defineAgent({
     const fixture = meta.lifecycleVersion !== 1 && legacyRuntimeFixture(process.env);
     if (meta.lifecycleVersion !== 1 && !fixture) throw new Error('authoritative signed tutor lifecycle is required');
     if (!['lesson', 'lesson-text', 'convo', 'convo-text'].includes(meta.mode ?? '')) throw new Error('invalid signed session mode');
+    const guestKey = typeof meta.guestLifecycleKey === 'string' && /^[A-Za-z0-9_-]{43}$/.test(meta.guestLifecycleKey) ? meta.guestLifecycleKey : undefined;
+    const firstPractice = parseFirstPracticeBrief(meta.firstPractice);
+    if (guestKey && process.env.NODE_ENV === 'production') throw new Error('guest production paid admission unavailable');
+    if (guestKey && (!firstPractice || meta.mode !== 'convo')) throw new Error('invalid first practice binding');
     const lifecycle = fixture ? undefined : await claimSessionLifecycle({
       userId: participant.identity, sessionId: meta.sessionId, roomName: ctx.room.name ?? '',
       mode: meta.mode as TutorSessionIdentity['mode'],
-    });
+    }, guestKey ? { guestKey } : {});
     let proxy: PaidVoiceProxy | undefined;
     const closeProxy = async () => { await proxy?.close(); };
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
@@ -276,6 +283,7 @@ export default defineAgent({
       ? new LuvaniConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
           seedTopic,
+          firstPractice,
           revision: meta.revision,
           reviewFocus,
           previousCorrection,

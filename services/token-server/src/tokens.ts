@@ -1,3 +1,4 @@
+import { parseFirstPracticeBrief } from '@luvani/core';
 /**
  * Room access tokens, and the entitlement gate in front of them.
  *
@@ -201,6 +202,8 @@ function validTutorVoice(value: unknown): string | undefined {
 
 export async function grantSession(
   opts: {
+    guest?: { key: string; sessionId: string; roomName: string; maxSeconds: number };
+    firstPractice?: unknown;
     userId: string;
     lessonId: string;
     entitlement: Entitlement;
@@ -253,8 +256,8 @@ export async function grantSession(
   if (opts.admitted && (opts.admitted.userId !== opts.userId || opts.admitted.mode !== (opts.mode ?? 'lesson'))) {
     throw new Error('reservation identity mismatch');
   }
-  const sessionId = opts.admitted?.sessionId ?? randomUUID();
-  const roomName = opts.admitted?.roomName ?? `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
+  const sessionId = opts.admitted?.sessionId ?? opts.guest?.sessionId ?? randomUUID();
+  const roomName = opts.admitted?.roomName ?? opts.guest?.roomName ?? `${roomNameFor(opts.userId, opts.lessonId, opts.now)}-${sessionId.slice(0, 12)}`;
   const at = new AccessToken(opts.config.apiKey, opts.config.apiSecret, {
     identity: opts.userId,
     // The credential only has to survive the join and any full reconnect the
@@ -274,7 +277,9 @@ export async function grantSession(
     metadata: JSON.stringify({
       sessionId,
       lessonId: opts.lessonId,
-      secondsRemaining: opts.admitted?.reservedSeconds ?? decision.secondsRemaining,
+      secondsRemaining: opts.admitted?.reservedSeconds ?? opts.guest?.maxSeconds ?? decision.secondsRemaining,
+      ...(opts.guest ? { lifecycleVersion: 1, guestLifecycleKey: opts.guest.key } : {}),
+      ...(parseFirstPracticeBrief(opts.firstPractice) ? { firstPractice: parseFirstPracticeBrief(opts.firstPractice) } : {}),
       ...(opts.admitted ? { lifecycleVersion: 1, joinDeadline: opts.admitted.joinDeadline } : {}),
       mode: opts.mode ?? 'lesson',
       ...(startRung !== undefined ? { startRung } : {}),

@@ -116,11 +116,9 @@ describe('the hand-off', () => {
     assert.match(handoff, /<Text accessibilityRole="header"[^>]*> \{saved \? \(shown \? 'Your phrase is saved\.' : 'Your practice is saved\.'\) : 'Keep this practice\?'\}/, 'the hand-off says a phrase is saved when none was');
     assert.match(handoff, /\{shown \? <Text style=\{\[type\.heading, \{ textAlign: 'center' \}\]\}>\{keptPhrase\(shown\)\}<\/Text> : null\}/);
     assert.doesNotMatch(handoff, /attempts\.at\(-1\)\?\.feedback\.model/, 'the hand-off names the last line whether or not it was saved');
-    // The guest home names the same phrase.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /const homePhrase = page === 'home' \? \(savedPhraseTasks\(guest\)\.at\(-1\) \?\? null\) : null;/);
-    const home = screen.slice(screen.indexOf("{page === 'home' && ("));
-    assert.match(home, /\{homePhrase && \( <Card style=\{\{ gap: 10 \}\}> <Text \{\.\.\.frenchText\} style=\{type\.frenchLg\}> \{keptPhrase\(homePhrase\)\} <\/Text>/, 'the guest home names a line that was not saved');
-    assert.doesNotMatch(home, /last\.feedback\.model/);
+    assert.doesNotMatch(screen, /homePhrase|<StreakCard/);
+    assert.match(screen, /<FirstSessionSummary record=\{guest\.live\}/);
+    assert.match(handoff, /loadConversationPackForLearner/);
   });
 });

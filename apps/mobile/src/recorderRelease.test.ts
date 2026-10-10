@@ -36,7 +36,7 @@ import { recorderUri } from './daily/recorderUri.ts';
 import * as ownWordsCopy from './drill/ownWordsCopy.ts';
 
 type Platform = 'ios' | 'android';
-type Screen = 'guest' | 'drill';
+type Screen = 'drill';
 type Leave = keyof typeof ENDINGS;
 type Element = { props: Record<string, unknown> };
 type Component = (props: Record<string, unknown>) => Element;
@@ -255,7 +255,6 @@ async function settle(): Promise<void> {
 }
 
 const SCREENS = {
-  guest: { path: './onboarding/GuestRecording.tsx', exported: 'GuestRecording', start: 'Speak', finish: 'Stop and send' },
   drill: { path: './drill/SpokenAttempt.tsx', exported: 'SpokenAttempt', start: 'Record your French', finish: 'Stop recording' },
 } as const;
 
@@ -325,16 +324,16 @@ async function ending(screen: Screen, platform: Platform, leave: Leave) {
 
 test('a guest or drill take that ends after its screen has gone still deletes its recording and rejects nothing', async () => {
   for (const platform of ['ios', 'android'] as const) {
-    for (const screen of ['guest', 'drill'] as const) {
+    for (const screen of ['drill'] as const) {
       for (const leave of Object.keys(ENDINGS) as Leave[]) {
-        // A drill take is handed on and forgotten, so only a guest take has work left
-        // after the hand-off. Only the drill follows focus; the guest screen does not.
-        if (screen === 'drill' ? leave === 'sent' : leave === 'blurred') continue;
+        // The retired guest recorder is replaced by live room tracks. The remaining
+        // drill recorder still owns its prepare/blur/unmount cleanup.
+        if (leave === 'sent') continue;
         const run = `a ${screen} take that ${ENDINGS[leave]}, on ${platform}`;
         const { file, sent, left, rejected, recorder, mutes } = await ending(screen, platform, leave);
         assert.ok(file, `${run}: the take never reached the disk, so this proves nothing`);
         assert.equal(recorder.released, true, `${run}: the recorder was never released`);
-        assert.deepEqual(sent, leave === 'sent' ? [file] : [], `${run}: the wrong take was handed on`);
+        assert.deepEqual(sent, [], `${run}: the wrong take was handed on`);
         assert.deepEqual(rejected, [], `${run}: a promise rejected and nobody handled it`);
         assert.equal(mutes, 0, `${run}: every haptic in the app stayed silenced after the microphone had gone`);
         // Android names a take's file only during prepare, so a screen that goes before
@@ -349,9 +348,6 @@ test('a guest or drill take that ends after its screen has gone still deletes it
 
 test('a guest or drill take finished on its screen is handed on, and only the guest screen deletes it afterwards', async () => {
   for (const platform of ['ios', 'android'] as const) {
-    const guest = await take('guest', platform, null);
-    assert.deepEqual(guest.sent, [guest.file], `the guest take was not handed on, on ${platform}`);
-    assert.deepEqual(guest.left, [], `the guest screen kept a take it had handed on, on ${platform}`);
     const drill = await take('drill', platform, null);
     assert.deepEqual(drill.sent, [drill.file], `the drill take was not handed on, on ${platform}`);
     assert.deepEqual(drill.left, [drill.file], `the drill screen deleted a take its consumer owns, on ${platform}`);

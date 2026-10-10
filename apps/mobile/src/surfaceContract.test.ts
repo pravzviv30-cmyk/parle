@@ -534,8 +534,10 @@ describe('one front door, not three — F105', () => {
     const importers = EVERYTHING.filter(({ body }) =>
       /import\s*\{[^}]*\bPreAccountOnboarding\b[^}]*\}\s*from/.test(body),
     ).map((f) => rel(f.path));
-    assert.deepEqual(importers.sort(), ['App.tsx', 'auth/AuthFlow.tsx'], 'the welcome is reached from somewhere other than the auth flow');
+    assert.deepEqual(importers.sort(), ['App.tsx', 'auth/AuthFlow.tsx', 'dev/OnboardingPreview.tsx'], 'a welcome importer was added outside auth and the explicit development preview');
 
+    assert.match(named('dev/OnboardingPreview.tsx'), /<PreAccountOnboarding previewOnly/);
+    assert.match(APP_ENTRY.body, /__DEV__ && process\.env\.EXPO_PUBLIC_LUVANI_SCREEN_PREVIEW === '1'/);
     // Gone as a folder, as a component, and as a flag with a reader. The key
     // string survives on purpose, in RETIRED_DEVICE_KEYS, which is the sweep.
     assert.deepEqual(
@@ -697,10 +699,12 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
       );
     }
     const parent = named('onboarding/PreAccountOnboarding.tsx');
-    assert.match(parent, /\{page === 'remind' \? <StreakCelebrationScreen[\s\S]*?\/> : \([\s\S]*?<OnboardingLayout/, 'the streak and shared page frames render together, duplicating their headings');
+    assert.doesNotMatch(parent, /<StreakCelebrationScreen/, 'streak presentation belongs after Home, not onboarding');
+    assert.match(parent, /<FirstLivePractice/);
+    assert.match(named('onboarding/FirstSessionResult.tsx'), /accessibilityRole="header"/);
     assert.doesNotMatch(parent, /<DayOne\b/, 'the old streak hero duplicates the full-screen celebration');
     assert.ok(!existsSync(join(SRC, 'onboarding', 'firstRun', 'DayOne.tsx')), 'the retired streak hero remains in the source tree');
-    assert.match(parent, /import \{ StreakCard \} from '\.\/firstRun\/StreakCard\.tsx'/, 'the guest home no longer imports its live streak card');
+    assert.doesNotMatch(parent, /StreakCard|<GuestRecording|sendGuestAttempt/, 'retired onboarding UI remains reachable');
     assert.match(named('onboarding/firstRun/StreakCelebrationScreen.tsx'), /<Reanimated\.Text\b[^>]*accessibilityRole="header"/, 'the streak entrance lost its heading role');
   });
 

@@ -1,3 +1,6 @@
+> 10 October 2026: the current first-live-practice source replacement is described in [FIRST_LIVE_PRACTICE.md](FIRST_LIVE_PRACTICE.md). The user authorized its main merge with production guest activation still disabled. The following is historical documentation where it differs; the old starter, feedback, guest Home and reminder UI have been deleted.
+
+
 # Onboarding
 
 The 10 October 2026 onboarding correction supersedes the recorded-example notebook flow. It implements the revised report in `artifacts/reports/Luvani-onboarding-improvement-report-revised.docx`, with the latest requested changes: no early sign-in for first installs, Apple alongside Google, account-specific onboarding, and vibrant brand illustrations in place of a mascot.

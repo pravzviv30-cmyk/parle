@@ -187,7 +187,6 @@ describe('one module owns the audio session', () => {
       'DrillScreen.tsx',
       'daily/DailyPracticeScreen.tsx',
       'drill/SpokenAttempt.tsx',
-      'onboarding/GuestRecording.tsx',
       'recap/PrivatePractice.tsx',
       'soundcheck/SoundCheckScreen.tsx',
     ], 'a recorder was added or removed: hold it to the same rule');

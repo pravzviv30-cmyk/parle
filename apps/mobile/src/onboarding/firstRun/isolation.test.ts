@@ -51,9 +51,10 @@ describe('the first-run parts only draw — F754', () => {
     // The parts the plan, the start sheet, the practice, the win, the streak and
     // the save card are built from. A part moved elsewhere would leave this
     // folder and this check.
-    for (const expected of ['PlanCard.tsx', 'PlanReveal.tsx', 'GoalTile.tsx', 'ConsentFacts.tsx', 'ExchangeSteps.tsx', 'MicMeter.tsx', 'WinCard.tsx', 'LiveFace.tsx', 'StreakCard.tsx', 'StreakCelebrationScreen.tsx', 'WeekStrip.tsx', 'InvestmentList.tsx']) {
+    for (const expected of ['PlanCard.tsx', 'PlanReveal.tsx', 'GoalTile.tsx', 'ConsentFacts.tsx', 'LiveFace.tsx', 'StreakCelebrationScreen.tsx', 'WeekStrip.tsx']) {
       assert.ok(parts.includes(expected), `onboarding/firstRun/${expected} is missing, so this check no longer reads it`);
     }
+    for (const retired of ['ExchangeSteps.tsx', 'MicMeter.tsx', 'WinCard.tsx', 'StreakCard.tsx', 'InvestmentList.tsx']) assert.ok(!parts.includes(retired), `${retired} returned after replacement`);
     assert.ok(!parts.includes('DayOne.tsx'), 'the retired streak hero remains alongside its replacement');
     for (const name of parts) {
       const body = code(name);

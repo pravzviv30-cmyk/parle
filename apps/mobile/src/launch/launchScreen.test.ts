@@ -132,7 +132,7 @@ describe('the launch opens wherever the app was already going', () => {
     // first return in its component, or the hook would only run on some renders.
     const waits = [
       { file: '../app/ProfileContext.tsx', component: 'ProfileGate', hold: "useLaunchHold(profile === 'loading');" },
-      { file: '../onboarding/GuestAccountHandoff.tsx', component: 'GuestAccountHandoff', hold: 'useLaunchHold(guest === undefined);' },
+      { file: '../onboarding/GuestAccountHandoff.tsx', component: 'GuestAccountHandoff', hold: 'useLaunchHold(guest === undefined && !readError);' },
       { file: '../onboarding/PreAccountOnboarding.tsx', component: 'PreAccountOnboarding', hold: 'useLaunchHold(!loaded);' },
     ];
     for (const { file, component, hold } of waits) {
