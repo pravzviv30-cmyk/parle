@@ -81,19 +81,17 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     // Focus precedes the keyboard layout. Measure after React has laid out the
     // viewport; include the label and guidance, not only the input itself.
     focusFrame.current = requestAnimationFrame(() => {
-      focusFrame.current = requestAnimationFrame(() => {
-        focusFrame.current = null;
-        const input = focused.current === 'email' ? emailRef.current : focused.current === 'password' ? passwordRef.current : focused.current === 'confirm' ? confirmRef.current : null;
-        const group = focused.current === 'email' ? emailGroup.current : focused.current === 'password' ? passwordGroup.current : focused.current === 'confirm' ? confirmGroup.current : null;
-        const scroll = scrollRef.current;
-        if (!input || !group || !scroll || !input.isFocused()) return;
-        scroll.getNativeScrollRef()?.measureInWindow((_x, viewportTop, _width, viewportHeight) => {
-          group.measureInWindow((_groupX, groupTop, _groupWidth, groupHeight) => {
-            if (!alive.current || ticket !== focusMeasurement.current || !input.isFocused()) return;
-            const height = visibleFormHeight(viewportTop, viewportHeight, keyboardTop.current);
-            const next = focusedFieldScroll(scrollOffset.current, viewportTop, height, groupTop, groupHeight);
-            if (Math.abs(next - scrollOffset.current) > 0.5) scroll.scrollTo({ y: next, animated: keyboardTop.current === null && !reducedRef.current });
-          });
+      focusFrame.current = null;
+      const input = focused.current === 'email' ? emailRef.current : focused.current === 'password' ? passwordRef.current : focused.current === 'confirm' ? confirmRef.current : null;
+      const group = focused.current === 'email' ? emailGroup.current : focused.current === 'password' ? passwordGroup.current : focused.current === 'confirm' ? confirmGroup.current : null;
+      const scroll = scrollRef.current;
+      if (!input || !group || !scroll || !input.isFocused()) return;
+      scroll.getNativeScrollRef()?.measureInWindow((_x, viewportTop, _width, viewportHeight) => {
+        group.measureInWindow((_groupX, groupTop, _groupWidth, groupHeight) => {
+          if (!alive.current || ticket !== focusMeasurement.current || !input.isFocused()) return;
+          const height = visibleFormHeight(viewportTop, viewportHeight, keyboardTop.current);
+          const next = focusedFieldScroll(scrollOffset.current, viewportTop, height, groupTop, groupHeight);
+          if (Math.abs(next - scrollOffset.current) > 0.5) scroll.scrollTo({ y: next, animated: keyboardTop.current === null && !reducedRef.current });
         });
       });
     });

@@ -22,6 +22,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
   const [focused, setFocused] = useState(false);
   const [toggleFocused, setToggleFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [toggleWidth, setToggleWidth] = useState(64);
   const disabled = props.editable === false || props.readOnly === true;
   const setInputRef = useCallback((input: TextInput | null) => {
     inputRef.current = input;
@@ -84,7 +85,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
           selection.current = event.nativeEvent.selection;
           onSelectionChange?.(event);
         }}
-        style={[st.input, style]}
+        style={[st.input, secure && { paddingRight: toggleWidth + 12 }, style]}
       />
       {secure && <Pressable
         accessibilityRole="button"
@@ -99,6 +100,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
         onFocus={() => setToggleFocused(true)}
         onBlur={() => setToggleFocused(false)}
         onPress={toggleVisibility}
+        onLayout={(event) => setToggleWidth(event.nativeEvent.layout.width)}
         style={({ pressed }) => [st.show, (pressed || toggleFocused) && st.showActive]}
       >
         <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.showLabel]}>{revealed ? 'Hide' : 'Show'}</Text>
@@ -116,10 +118,10 @@ const st = StyleSheet.create({
   group: { gap: space(2) },
   label: { color: paper.ink, fontFamily: font.semiBold },
   inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 54, borderRadius: radius.field, backgroundColor: paper.card, borderWidth: 1.5, borderColor: paper.field },
-  input: { ...type.body, flex: 1, minWidth: 0, minHeight: 51, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.field, color: paper.ink, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
+  input: { ...type.body, flex: 1, minWidth: 0, minHeight: 51, paddingVertical: 12, paddingHorizontal: 16, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: radius.field, color: paper.ink, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
   focused: { borderColor: paper.ink },
   disabled: { opacity: 0.65 },
-  show: { minWidth: 64, minHeight: HIT, alignSelf: 'stretch', paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: radius.field - 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
+  show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: radius.field - 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
   showActive: { borderColor: paper.inkSoft, backgroundColor: paper.ground },
   showLabel: { color: paper.ink, fontFamily: font.semiBold },
   error: { flexDirection: 'row', gap: space(2), alignItems: 'flex-start' },

@@ -1,126 +1,134 @@
-# The loop
+# The local loop
 
-A prompt answers once and stops, whether or not the answer was any good — and then
-it is your job to check it and prompt again. A loop removes you from that cycle:
-set a goal, let Claude work, let it **check its own work**, and if it is not there
-yet let it **write the next prompt itself**.
+`npm run loop` runs Claude Code on this computer, checks each attempt itself, and
+leaves the changes for review. A Hetzner server is optional; it only provides an
+always-on machine. The local runner needs Node >=22, the locked dependencies
+installed in this checkout, and an installed, authenticated `claude` CLI. Model
+calls still need internet access and use the CLI's normal account or API billing.
+No account setup, server provision or model call happens in `--dry-run`.
 
-The part that decides whether this is useful or theatre: **the goal has to be
-something Claude can actually check.** "Make it better" is not a goal. "Zero
-failing tests, no workspace below its floor, and every ledger item closed by a
-named passing test" is.
+## Run a planned change
 
-## The bar
+Write the outcome and acceptance in `docs/changes/<name>.md`. Add one executable
+block to that same plan. The task list is explicit JSON inside a Markdown fence:
+
+````markdown
+```luvani-loop
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "T1",
+      "goal": "Describe one bounded change and its observable result.",
+      "dependsOn": [],
+      "files": ["apps/mobile/src/auth/SignInScreen.tsx"],
+      "checks": [["npm", "test", "--workspace=@luvani/mobile"]]
+    }
+  ]
+}
+```
+````
+
+`files` contains exact repository-relative files, or a directory ending in `/`.
+Dependencies must name other task IDs and cannot form a cycle. Include the test
+files and the defect ledger in the write scope when the task needs them. Keep the
+plan outside every task's write scope: the worker cannot mark its own work done.
+Commands are argument arrays, executed without a shell. They are trusted local
+commands you choose, so review them before running a downloaded or generated plan.
+A task cannot be accepted without at least one command and a successful agent exit.
 
 ```bash
-npm run gate          # exits 0 or 1
-npm run gate -- --json
-npm run gate:bless    # raise the test floors after a green run
+npm run loop -- --plan docs/changes/local-loop-example.md --dry-run
+# After reviewing and committing the plan in a clean checkout:
+npm run loop -- --plan docs/changes/local-loop-example.md --branch codex/local-loop-smoke --max 2 --minutes 20
 ```
 
-`scripts/gate.mjs` checks five things, in order:
+The example creates one small documentation file, then verifies its contents.
+Replace it with your own task plan after proving the local setup. `--dry-run`
+prints the next prompt and limits, including on a dirty checkout, without creating
+logs, changing branches, running checks or contacting a model.
 
-1. **Typecheck** across all six workspaces.
-2. **Tests** — zero failures, *and* no workspace below its floor in
-   `scripts/gate.floors.json`. The count matters as much as the failures: a suite
-   that fails to load takes its whole file down silently and still exits 0
-   (see TESTING.md).
-3. **Hygiene** — no `.only`, no `.skip`.
-4. **Agents** — every file in `.claude/agents/` is pinned to a model the gate
-   knows about, and `/forge`, `/bug-sweep` and `/ship` all exist. An agent that
-   loses its `model:` line still dispatches and silently inherits the session
-   model, so nothing else would ever notice (see FORGE.md and TEAM.md).
-5. **The goal** — `docs/KNOWN_ISSUES.md` has no open P0 or P1, and every ticked
-   box names a test that actually ran and actually passed.
+Tasks run sequentially in dependency order, even when the baseline gate is green.
+Each task is accepted only after the runner executes its checks successfully.
+Failed checks and CLI errors go into the next repair prompt; partial edits remain
+available. After all task checks pass, the runner executes the full `npm run gate`
+implementation. Only its successful exit and `ok: true` result complete the run.
+Visual, device, hosted and paid acceptance still need their own evidence; the local
+gate does not prove those outcomes.
 
-Check 5 is the one that makes the rest trustworthy. Without it the loop closes an
-item by editing a checkbox. With it, the only way to tick a box is to make a named
-test pass — and deleting the entry fails the gate too.
-
-## Giving it a goal
-
-`docs/KNOWN_ISSUES.md` is the goal file, and it is parsed, not read:
-
-```markdown
-### B4 — A rescue and a spoken turn can both apply
-- severity: P1
-- status: [ ]
-- where: services/tutor-agent/src/agent.ts:169
-- note: nothing serialises state, and clearing the timer cannot cancel a rescue
-  already in flight.
-- verified-by: `a rescue that loses the race is discarded`
-```
-
-Severity drives ordering (P0 before P1 before P2) and P2 items do not block the
-gate. `verified-by:` is the contract — one line per test, all must pass.
-
-Write the entry **before** the work. An item you cannot phrase as "this test will
-prove it" is an item you do not understand well enough to hand to a loop.
-
-## Running it
+## Limits, logs and resume
 
 ```bash
-npm run loop                                   # up to 10 iterations, 60 minutes
-npm run loop -- --max 3 --minutes 20
-npm run loop -- --dry-run                      # compose the prompt, run nothing
-npm run loop -- --branch loop/my-sweep --model opus
+npm run loop -- --plan docs/changes/my-change.md --max 5 --minutes 45 --patience 2
+npm run loop -- --resume <run-id> --max 3 --minutes 20
 ```
 
-Each iteration: run the gate → if green, stop → otherwise compose a prompt from
-the failures, the ledger, and **the dead ends from earlier iterations** → run
-`claude -p` → re-run the gate. An iteration that improved the number is committed
-on its own; one that did not is reverted and recorded, so the next attempt does
-not repeat it.
+`--max` limits agent attempts in this invocation; `--patience` stops a task after
+consecutive failed attempts. `--minutes` is a deadline for the entire invocation,
+including agents and checks. Ctrl-C stops the child process group on macOS/Linux.
+The runner preserves the last edits and writes a checkpoint when stopping.
 
-It stops on green, on `--max`, on `--minutes`, or after two iterations that moved
-nothing — a loop with no stop condition is a runaway, not an agent.
+Logs live in the ignored `.loop/<run-id>/` directory:
 
-**Guard rails**: it refuses to run on `main` and refuses a dirty tree, works only
-on its own branch, and never pushes. Permissions default to `acceptEdits` with a
-narrow tool allowlist; `--yolo` switches to `bypassPermissions` if you want it
-fully unattended and understand what that means.
+- `journal.md`: task progress and check commands.
+- `iterations.jsonl`: actual exit codes and interruption results.
+- `state.json`: accepted tasks, last failure, Git revision and file fingerprints.
+- `prompt-<attempt>.md` and command logs: full local attempt evidence.
 
-The journal lands in `.loop/<runId>/` (gitignored): `journal.md` to read, and
-`iterations.jsonl` for the numbers.
+Resume requires the same checkout, branch, Git revision, plan and working-file
+contents. The runner rechecks accepted tasks before trusting their dependencies.
+If anything changed externally, review the partial edits, commit the reconciled
+state and start a new run. A scope violation cannot be resumed blindly. Copy a
+concise result into the tracked plan's execution log after review; the runner does
+not rewrite the human plan or stage its logs.
 
-## The agents
+`--model <name>` selects an installed CLI-supported model. Optional
+`--max-budget-usd <amount>` sets the Claude CLI's dollar cap **per agent attempt**,
+not for the whole loop; it and the model selection persist across resume. Other
+limits reset to the flags of each new invocation. No model is silently pinned or
+upgraded by this runner.
 
-Both are ordinary Claude Code subagents in `.claude/agents/`, usable on their own:
+The Mac must stay awake while the terminal is running. For a deliberate long run:
 
-- **bug-hunter** — finds real defects and fixes them, failing test first. Carries
-  the product invariants from PEDAGOGY.md, because a change that breaks one of
-  those is a bug however green the suite is.
-- **fix-verifier** — tries to *refute* a fix. Checks the new test actually fails
-  without the change, that nothing was weakened, that the count did not drop.
-
-`/bug-sweep` runs one pass of gate → hunt → verify → update the ledger. It is
-written to be looped interactively:
-
-```
-/loop 15m /bug-sweep
+```bash
+caffeinate -i npm run loop -- --plan docs/changes/my-change.md --max 5 --minutes 45
 ```
 
-which is the same discipline as `npm run loop`, with you in the room.
+This keeps the machine awake during the command; it cannot make a closed laptop
+run indefinitely. Keep the terminal open. You can resume after an interruption.
 
-## The other half: building something new
+## Review boundaries
 
-`/bug-sweep` only works on what the ledger already knows is wrong. For work that has not
-been designed yet there is `/forge`, which puts the thinking on Fable and the building
-here, then has Fable judge the result and order revisions until the gate is green:
+Live runs require a clean checkout and a dedicated branch. `--branch codex/<name>`
+creates a new branch from the current revision; it never switches to an existing
+branch. A detached checkout needs this flag or an explicit branch first. The
+runner never stages, commits, pushes, resets, cleans or discards edits. Review the
+diff and use the normal repository landing process yourself.
 
+The available tools exclude delegation and destructive Git commands. Permissions
+default to `dontAsk` with explicit edit/read and check-command allowlists;
+`--permission-mode acceptEdits` is also supported. Permission bypass is rejected.
+After each agent and its checks, the runner detects Git-visible edits outside the
+task scope, staged changes, commits or branch changes and stops for review. This
+is detection after execution, not an OS sandbox: ignored files and arbitrary
+trusted check commands are not isolated. Use a dedicated checkout and narrow
+write scopes. Paths cannot escape the repo or traverse known symlinks.
+
+## Repair a failing gate
+
+Without `--plan`, the runner retains bug-repair mode. It runs the gate first and
+stops if green. On red, it selects an open P0/P1 or the failing check and uses the
+ledger's named file paths as scope. Ambiguous scopes need an explicit override:
+
+```bash
+npm run loop -- --files apps/mobile/src/auth/,docs/KNOWN_ISSUES.md --max 3 --minutes 30
 ```
-/forge let a learner replay the last scene without losing their rung
-```
 
-Its two agents — **design-architect** and **work-judge** — are pinned to Fable and have no
-`Edit` or `Write`, the same way fix-verifier is kept from fixing what it reviews. The gate's
-`agents` check exists to notice if one of those pins ever quietly disappears.
+Defects still belong in `docs/KNOWN_ISSUES.md`, with exact `verified-by:` test
+titles. Never weaken assertions or floors to obtain green. The gate enforces
+workspace counts, types, database/release proofs, hygiene, secrets, agent pins and
+ledger evidence. `npm run gate:fast` remains file hygiene rather than full proof.
 
-See [FORGE.md](FORGE.md), especially the part about why the judge's findings have to land in
-the ledger rather than in a reply.
-
-## Verifying UI work
-
-The gate cannot see the app. `apps/mobile`'s suite covers only what imports
-without React Native, so anything visual is verified by running it — `npm run web`, drive the preview, read the console — and
-by saying plainly which parts were proven by test and which by eye.
+This sequential runner does not invoke `/forge`, bug-hunter, fix-verifier or a
+Fable reviewer. Those remain the separate interactive workflow in [FORGE.md](FORGE.md).
+The local plan runner is available without wiring that multi-agent workflow.

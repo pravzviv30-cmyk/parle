@@ -77,19 +77,17 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     const ticket = ++focusMeasurement.current;
     if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
     focusFrame.current = requestAnimationFrame(() => {
-      focusFrame.current = requestAnimationFrame(() => {
-        focusFrame.current = null;
-        const input = focused.current === 'email' ? emailRef.current : passwordRef.current;
-        const group = focused.current === 'email' ? emailGroup.current : passwordGroup.current;
-        const scroll = scrollRef.current;
-        if (!input || !group || !scroll || !input.isFocused()) return;
-        scroll.getNativeScrollRef()?.measureInWindow((_x, viewportTop, _width, viewportHeight) => {
-          group.measureInWindow((_groupX, groupTop, _groupWidth, groupHeight) => {
-            if (!alive.current || ticket !== focusMeasurement.current || !input.isFocused()) return;
-            const height = visibleFormHeight(viewportTop, viewportHeight, keyboardTop.current);
-            const next = focusedFieldScroll(scrollOffset.current, viewportTop, height, groupTop, groupHeight);
-            if (Math.abs(next - scrollOffset.current) > 0.5) scroll.scrollTo({ y: next, animated: keyboardTop.current === null && !reducedRef.current });
-          });
+      focusFrame.current = null;
+      const input = focused.current === 'email' ? emailRef.current : passwordRef.current;
+      const group = focused.current === 'email' ? emailGroup.current : passwordGroup.current;
+      const scroll = scrollRef.current;
+      if (!input || !group || !scroll || !input.isFocused()) return;
+      scroll.getNativeScrollRef()?.measureInWindow((_x, viewportTop, _width, viewportHeight) => {
+        group.measureInWindow((_groupX, groupTop, _groupWidth, groupHeight) => {
+          if (!alive.current || ticket !== focusMeasurement.current || !input.isFocused()) return;
+          const height = visibleFormHeight(viewportTop, viewportHeight, keyboardTop.current);
+          const next = focusedFieldScroll(scrollOffset.current, viewportTop, height, groupTop, groupHeight);
+          if (Math.abs(next - scrollOffset.current) > 0.5) scroll.scrollTo({ y: next, animated: keyboardTop.current === null && !reducedRef.current });
         });
       });
     });
@@ -301,6 +299,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           error={emailError}
           returnKeyType="next"
           submitBehavior="submit"
+          blurOnSubmit={false}
           onFocus={() => { focused.current = 'email'; keepFocusedVisible(); }}
           onBlur={() => { emailAdvance.cancel(); if (focused.current === 'email') focused.current = null; }}
           onSubmitEditing={() => {

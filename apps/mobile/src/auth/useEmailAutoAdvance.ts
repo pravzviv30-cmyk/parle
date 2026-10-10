@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import type { TextInput } from 'react-native';
 
-export const EMAIL_ADVANCE_PAUSE_MS = 900;
+export const EMAIL_ADVANCE_PAUSE_MS = 300;
 
 /** Stricter than submission validation: an unfinished domain must keep its caret. */
 export function emailReadyForAdvance(value: string): boolean {
