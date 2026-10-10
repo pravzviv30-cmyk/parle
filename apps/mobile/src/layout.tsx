@@ -24,6 +24,8 @@ import {
   Platform,
   useWindowDimensions,
   KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
   type ScrollViewProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -194,6 +196,8 @@ export function Screen({
 }
 
 type ScrollScreenProps = ScreenProps & {
+  /** Blank safe-area/gutter taps dismiss editing without adding a control. */
+  dismissKeyboardOnBackground?: boolean;
   /** Inside a Sheet, that sheet owns scrolling, insets and its one heading. */
   embedded?: boolean;
   /** Pin a short body to the vertical centre instead of the top. */
@@ -216,6 +220,7 @@ type ScrollScreenProps = ScreenProps & {
  * scroll content lines up with the header and footer without a second number.
  */
 export function ScrollScreen({
+  dismissKeyboardOnBackground = false,
   children,
   embedded = false,
   center,
@@ -241,7 +246,7 @@ export function ScrollScreen({
   if (embedded) {
     return <View style={{ gap: space(4) }}>{children}{footer}</View>;
   }
-  return (
+  const screen = (
     <Screen
       ground={ground}
       padded={padded}
@@ -282,6 +287,14 @@ export function ScrollScreen({
       </ScrollView>
     </Screen>
   );
+  // This is background behaviour, never a navigation action or a grouped
+  // accessibility button. Child fields and named controls keep their own
+  // responders and accessibility elements; the keyboard's Done also dismisses.
+  return dismissKeyboardOnBackground ? (
+    <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+      <View style={{ flex: 1, minHeight: 0 }}>{screen}</View>
+    </TouchableWithoutFeedback>
+  ) : screen;
 }
 
 /**

@@ -27,6 +27,7 @@ export function AuthFlow({
   onDraftChange,
   onCreateAccount,
   onSignIn,
+  onDiscardDraft,
   refused,
   onRefuse,
 }: {
@@ -35,6 +36,7 @@ export function AuthFlow({
   onDraftChange: (draft: PreAccountOnboardingDraft) => void;
   onCreateAccount: (draft: PreAccountOnboardingDraft) => void;
   onSignIn: () => void;
+  onDiscardDraft: () => void;
   refused: boolean;
   onRefuse: () => void;
 }) {
@@ -42,6 +44,7 @@ export function AuthFlow({
   const pageMotion = useOnboardingTransition();
   const switchScreen = (next: AuthScreen) => pageMotion.transition(() => setScreen(next));
   const [introducing, setIntroducing] = useState(!returning);
+  const [accountFirst, setAccountFirst] = useState(false);
   const [newDraft, setNewDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [revision, setRevision] = useState(0);
   const [signupDraft, setSignupDraft] = useState<PreAccountOnboardingDraft | null>(initialDraft?.page === 'account' ? initialDraft : null);
@@ -54,21 +57,24 @@ export function AuthFlow({
     void clearGuestPractice();
     if (initialDraft?.reminderEnabled === true) void cancelReminder();
     setNewDraft(draft);
-    if (!refused) onDraftChange(draft);
+    // An empty account must reach signed-in onboarding, not bootstrap a
+    // profile from an unanswered anonymous draft.
+    if (!refused) onDiscardDraft();
     setRevision((value) => value + 1);
     setSignupDraft(null);
     setIntroducing(true);
-    switchScreen('welcome');
+    setAccountFirst(!refused);
+    switchScreen(refused ? 'welcome' : 'signup');
   };
   const updateAccountEmail = (email: string) => {
-    if (refused) return;
+    if (refused || accountFirst) return;
     const basis = signupDraft ?? newDraft ?? initialDraft ?? freshPreAccountDraft();
     const changed = { ...basis, accountEmail: email };
     setSignupDraft(changed); onDraftChange(changed);
   };
   const signIn = () => {
     if (pageMotion.locked.current) return;
-    if (!refused) {
+    if (!refused && !accountFirst) {
       const basis = signupDraft ?? newDraft ?? initialDraft ?? freshPreAccountDraft();
       const changed = { ...basis, page: 'account' as const, accountMode: 'signin' as const, accountReturnPage: basis.page === 'account' ? basis.accountReturnPage ?? 'keep' : basis.page ?? 'hear-it' };
       setSignupDraft(changed); onDraftChange(changed);
@@ -77,12 +83,14 @@ export function AuthFlow({
     switchScreen('signin');
   };
   const returnToIntroduction = () => {
+    if (accountFirst) { switchScreen('signin'); return; }
     const basis = signupDraft ?? newDraft ?? initialDraft;
     if (basis && !refused) onDraftChange({ ...basis, page: basis.accountReturnPage ?? 'keep' });
     switchScreen('welcome');
   };
   const createFromIntroduction = () => {
     if (pageMotion.locked.current || refused) return;
+    if (accountFirst) { switchScreen('signup'); return; }
     const basis = signupDraft ?? newDraft ?? initialDraft;
     if (!basis?.eligibilityConfirmed) { newAccount(); return; }
     const changed = { ...basis, page: 'account' as const, accountMode: 'signup' as const };
@@ -93,8 +101,8 @@ export function AuthFlow({
   return (
     <OnboardingFrame initialProgress={onboardingProgress({ page: initialDraft?.page ?? 'hear-it', five: initialDraft?.onboardingVariant === 'five', skipped: initialDraft?.onboardingSkippedSteps, completed: initialDraft?.onboardingCompletedSteps })}>
       <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
-      <View style={{ flex: 1, display: screen === 'welcome' ? 'flex' : 'none' }} accessibilityElementsHidden={screen !== 'welcome'} importantForAccessibility={screen === 'welcome' ? 'auto' : 'no-hide-descendants'}>
-      <PreAccountOnboarding
+      <View pointerEvents={screen === 'welcome' ? 'auto' : 'none'} style={{ flex: 1, display: screen === 'welcome' ? 'flex' : 'none' }} accessibilityElementsHidden={screen !== 'welcome'} importantForAccessibility={screen === 'welcome' ? 'auto' : 'no-hide-descendants'}>
+      {!accountFirst && <PreAccountOnboarding
         key={revision}
         initialDraft={refused ? refusalPage() : (newDraft ?? initialDraft)}
         active={screen === 'welcome'}
@@ -110,10 +118,11 @@ export function AuthFlow({
         onSignIn={signIn}
         refused={refused}
         onRefuse={onRefuse}
-      />
+      />}
       </View>
         {screen === 'signup' ? (
           <SignUpScreen
+            accountFirst={accountFirst}
             planDraft={refused ? null : signupDraft}
             formDraft={signUpFormDraft}
             onFormDraftChange={setSignUpFormDraft}
@@ -122,7 +131,7 @@ export function AuthFlow({
             onEmailChange={updateAccountEmail}
           />
         ) : screen === 'signin' ? (
-          <SignInScreen onboarding planDraft={signupDraft ?? newDraft ?? initialDraft} onEmailChange={updateAccountEmail} onBack={returnToIntroduction} onCreateAccount={createFromIntroduction} />
+          <SignInScreen onboarding={!accountFirst} planDraft={accountFirst ? null : signupDraft ?? newDraft ?? initialDraft} onEmailChange={updateAccountEmail} onBack={returnToIntroduction} onCreateAccount={createFromIntroduction} />
         ) : null}
       </Animated.View>
     </OnboardingFrame>

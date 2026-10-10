@@ -9,6 +9,7 @@ import { buildConversationPack, addDays, tutorVoice, type DayKey, type TutorVoic
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
+import { AuthFlow } from '../auth/AuthFlow.tsx';
 import { SignInScreen } from '../auth/SignInScreen.tsx';
 import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDraft.ts';
 import { Choice, PillButton, Press } from '../components.tsx';
@@ -48,11 +49,11 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
+const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'hear-it': 'Welcome', reason: 'Purpose', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
-  journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
+  'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
 };
 function previewOptions() {
   const query = Platform.OS === 'web' && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
@@ -146,6 +147,7 @@ export function OnboardingPreview() {
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'tutor' && <TutorFixture chosen={chosen} onChoose={setChosen} onDone={() => go('streak')} />}
           {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('signin')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
+          {screen === 'auth-flow' && <AuthFlow initialDraft={null} returning onDraftChange={() => {}} onCreateAccount={() => {}} onDiscardDraft={() => {}} onSignIn={() => {}} refused={false} onRefuse={() => {}} />}
           {screen === 'signin' && <SignInScreen onCreateAccount={() => go('signup')} />}
           {(screen === 'streak' || screen === 'streak-long' || screen === 'streak-empty') && <StreakCelebrationScreen
             streak={screen === 'streak-empty' ? null : screen === 'streak-long' ? previewLongStreak : previewStreak}

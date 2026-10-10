@@ -146,7 +146,7 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
 
   test("a refused flow renders refusal rather than a new eligible draft", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /initialDraft=\{refused \? refusalPage\(\)/); assert.match(screen, /const title = refused \?/); assert.match(screen, /footer = refused/); assert.match(screen, /if \(operation\.current \|\| !draft\.eligibilityConfirmed \|\| refused\) return/); });
 
-  test("Create one can reset an introduction but cannot bypass a launch refusal", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /const draft = refused \? refusalPage\(\) : freshPreAccountDraft\(\)/); assert.match(flow, /if \(!refused\) onDraftChange\(draft\)/); assert.match(flow, /if \(refused\) return/); assert.match(flow, /onCreateAccount=\{newAccount\}/); });
+  test("Create one can reset an introduction but cannot bypass a launch refusal", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /const draft = refused \? refusalPage\(\) : freshPreAccountDraft\(\)/); assert.match(flow, /if \(!refused\) onDiscardDraft\(\)/); assert.match(flow, /if \(refused\) return/); assert.match(flow, /onCreateAccount=\{newAccount\}/); });
 
   test("ordinary draft changes do not remount onboarding; only an explicit new account advances its revision", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /key=\{revision\}/); assert.equal((flow.match(/setRevision\(/g) ?? []).length, 1); const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn =')); assert.match(newAccount, /setRevision/); assert.doesNotMatch(app, /<AuthFlow key=/); assert.match(app, /refused=\{preAccountRefused\}/); });
 
@@ -156,7 +156,7 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
     assert.ok(start > 0 && end > start);
     const saved = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorChosen: true, tutorVoice: 'emilie', reason: 'trip', firstName: 'Camille', accountEmail: 'camille@example.com', accountMode: 'signin', accountReturnPage: 'keep', page: 'account' };
     const writes: unknown[] = []; const screens: string[] = []; let resets = 0;
-    const bindings = { pageMotion: { locked: { current: false } }, refused: false, signupDraft: saved, newDraft: null, initialDraft: null,
+    const bindings = { pageMotion: { locked: { current: false } }, refused: false, accountFirst: false, signupDraft: saved, newDraft: null, initialDraft: null,
       newAccount: () => { resets++; }, setSignupDraft: (value: unknown) => writes.push(value), onDraftChange: () => {}, onCreateAccount: () => {}, switchScreen: (next: string) => screens.push(next) };
     new Function(...Object.keys(bindings), stripTypeScriptTypes(FLOW.slice(start, end)) + '\ncreateFromIntroduction();')(...Object.values(bindings));
     assert.equal(resets, 0);
@@ -166,4 +166,50 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
   });
 
   test("onboarding and privacy document refusal across authentication without storing a child marker", () => { for (const path of ['docs/ONBOARDING.md','docs/PRIVACY_AND_SAFETY.md']) { const doc = evidence(path); assert.match(doc, /sign-in and sign-out/); assert.match(doc, /remainder of the launch|rest of the launch/); assert.match(doc, /no refusal marker/); } });
+});
+
+
+describe('account-first route from Welcome back', () => {
+  function invoke(name: string, next: string, bindings: Record<string, unknown>) {
+    const body = FLOW.slice(FLOW.indexOf(`  const ${name} =`), FLOW.indexOf(`  const ${next} =`));
+    new Function(...Object.keys(bindings), stripTypeScriptTypes(body) + `\n${name}();`)(...Object.values(bindings));
+  }
+  test('opens signup directly, clears the old handoff and does not create a replacement plan', () => {
+    for (const refused of [false, true]) {
+      const screens: string[] = []; let discarded = 0; let accountFirst = false;
+      invoke('newAccount', 'updateAccountEmail', {
+        pageMotion: { locked: { current: false } }, refused, initialDraft: null,
+        refusalPage: () => ({ ...freshPreAccountDraft(), page: 'save' }), freshPreAccountDraft,
+        clearGuestPractice: () => {}, cancelReminder: () => {}, setNewDraft: () => {},
+        onDiscardDraft: () => { discarded++; }, setRevision: () => {}, setSignupDraft: () => {},
+        setIntroducing: () => {}, setAccountFirst: (value: boolean) => { accountFirst = value; },
+        switchScreen: (value: string) => screens.push(value),
+      });
+      assert.deepEqual(screens, [refused ? 'welcome' : 'signup']);
+      assert.equal(discarded, refused ? 0 : 1);
+      assert.equal(accountFirst, !refused);
+    }
+    assert.match(element(APP.slice(APP.indexOf('function Gate(')), 'AuthFlow'), /onDiscardDraft=\{discardPreAccountDraft\}/);
+    assert.match(APP, /existing === null \? \(\s*<PreAccountOnboarding[\s\S]*?signedIn/);
+  });
+  test('back returns to sign-in and switching again keeps the form draft', () => {
+    const screens: string[] = [];
+    invoke('returnToIntroduction', 'createFromIntroduction', { accountFirst: true, switchScreen: (value: string) => screens.push(value) });
+    assert.deepEqual(screens, ['signin']);
+    const start = FLOW.indexOf('  const createFromIntroduction =');
+    const end = FLOW.indexOf('  if (!introducing)', start);
+    new Function('accountFirst', 'pageMotion', 'refused', 'switchScreen', stripTypeScriptTypes(FLOW.slice(start, end)) + '\ncreateFromIntroduction();')(true, { locked: { current: false } }, false, (value: string) => screens.push(value));
+    assert.deepEqual(screens, ['signin', 'signup']);
+    assert.match(FLOW, /formDraft=\{signUpFormDraft\}/);
+    assert.match(FLOW, /if \(refused \|\| accountFirst\) return/);
+  });
+  test('editing hides navigation and hidden introduction cannot receive touches', () => {
+    assert.match(read('SignInScreen.tsx'), /<Frame\s+dismissKeyboardOnBackground/);
+    assert.match(read('..', 'layout.tsx'), /return dismissKeyboardOnBackground \? \(\s*<TouchableWithoutFeedback accessible=\{false\} onPress=\{Keyboard.dismiss\}>/);
+    assert.match(read('..', 'layout.tsx'), /dismissKeyboardOnBackground = false/);
+    assert.match(read('SignInScreen.tsx'), /!keyboardVisible && <Press[\s\S]*?onCreateAccount/);
+    assert.match(FLOW, /pointerEvents=\{screen === 'welcome' \? 'auto' : 'none'\}/);
+    assert.match(FLOW, /!accountFirst && <PreAccountOnboarding/);
+    assert.match(read('SignUpScreen.tsx'), /page: accountFirst \? 'hear-it' : 'account'/);
+  });
 });

@@ -98,6 +98,11 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     });
   };
   const { visible: keyboardVisible, keyboardTop } = useFormKeyboard(keepFocusedVisible);
+  useEffect(() => {
+    if (keyboardVisible) return;
+    const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
+    return () => cancelAnimationFrame(frame);
+  }, [keyboardVisible]);
   useEffect(() => () => {
     focusMeasurement.current += 1;
     if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
@@ -229,6 +234,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const Frame = ScrollScreen;
   return (
     <Frame
+      dismissKeyboardOnBackground
       embedded={embedded}
       center={layout.center}
       topGap={layout.compact ? space(2) : space(4)}
@@ -367,11 +373,11 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       </View>}
 
       {/* The primary action returns after keyboard dismissal, inside the body. */}
-      <Press haptic="light" style={st.switchRow} accessibilityRole="button" disabled={busy} onPress={() => { if (!requestRunning.current && !busy) onCreateAccount(); }}>
+      {!keyboardVisible && <Press haptic="light" frame={{ alignSelf: 'center' }} style={st.switchRow} accessibilityRole="button" disabled={busy} onPress={() => { if (!requestRunning.current && !busy) onCreateAccount(); }}>
         <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, { color: paper.inkSoft }]}>
           New to Luvani? <Text maxFontSizeMultiplier={liveFontMultiplier} style={st.switchWord}>Create an account</Text>
         </Text>
-      </Press>
+      </Press>}
       </RevealItem>
       </View>
     </Frame>

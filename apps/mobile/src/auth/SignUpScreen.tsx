@@ -22,7 +22,7 @@ import { appleSignInOffered } from './apple.ts';
 import { focusedFieldScroll } from './focusedFieldScroll.ts';
 import { useReduceMotion } from '../motion.ts';
 
-export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange, embedded = false, formDraft, onFormDraftChange }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null; onEmailChange?: (email: string) => void; embedded?: boolean; formDraft?: SignUpFormDraft; onFormDraftChange?: (draft: SignUpFormDraft) => void }) {
+export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange, embedded = false, accountFirst = false, formDraft, onFormDraftChange }: { onBack: () => void; onSignIn: () => void; planDraft?: PreAccountOnboardingDraft | null; onEmailChange?: (email: string) => void; embedded?: boolean; accountFirst?: boolean; formDraft?: SignUpFormDraft; onFormDraftChange?: (draft: SignUpFormDraft) => void }) {
   const { adapter } = useAuth();
   const [email, setEmail] = useState(planDraft?.accountEmail ?? formDraft?.email ?? '');
   const [password, setPassword] = useState(formDraft?.password ?? '');
@@ -215,7 +215,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   return (
     <OnboardingLayout
       page="account"
-      progress={onboardingProgress({ page: 'account', five: planDraft?.onboardingVariant === 'five', skipped: planDraft?.onboardingSkippedSteps, completed: planDraft?.onboardingCompletedSteps })}
+      progress={onboardingProgress({ page: accountFirst ? 'hear-it' : 'account', five: planDraft?.onboardingVariant === 'five', skipped: planDraft?.onboardingSkippedSteps, completed: planDraft?.onboardingCompletedSteps })}
       center={false}
       embedded={embedded}
       scrollRef={scrollRef}

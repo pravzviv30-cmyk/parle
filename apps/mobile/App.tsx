@@ -774,6 +774,7 @@ function Gate() {
         returning={returning}
         onDraftChange={keepPreAccountDraft}
         onCreateAccount={keepPreAccountDraft}
+        onDiscardDraft={discardPreAccountDraft}
         onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
         refused={preAccountRefused}
         onRefuse={refusePreAccount}
