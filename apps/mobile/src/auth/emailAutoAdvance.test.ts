@@ -43,8 +43,8 @@ test('email progression waits for a complete domain and a pause after the last k
   for (const value of ['', 'camille', 'camille@', 'camille@example', 'camille@example.', 'camille@example.c', 'c@@example.com', 'c @example.com']) {
     advance.queue(value); t.mock.timers.tick(1000); assert.equal(page.advances, 0, value);
   }
-  advance.queue('camille@example.co'); t.mock.timers.tick(700);
-  advance.queue('camille@example.com'); t.mock.timers.tick(899);
+  advance.queue('camille@example.co'); t.mock.timers.tick(200);
+  advance.queue('camille@example.com'); t.mock.timers.tick(299);
   assert.equal(page.advances, 0);
   t.mock.timers.tick(1); assert.equal(page.advances, 1);
 });
@@ -53,7 +53,7 @@ test('pasted email advances without changing either field value or submitting th
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const page = form();
   page.render().queue(' camille+practice@example.co.uk ');
-  t.mock.timers.tick(900); assert.equal(page.advances, 1);
+  t.mock.timers.tick(300); assert.equal(page.advances, 1);
 });
 
 test('clearing or leaving email cancels progression, including a quick return to edit it', (t) => {
@@ -90,6 +90,8 @@ for (const name of ['SignInScreen.tsx', 'SignUpScreen.tsx']) {
     assert.match(screen, /ref=\{emailRef\}[\s\S]*emailAdvance\.queue\(value\)/);
     assert.match(screen, /onBlur=[\s\S]*emailAdvance\.cancel/);
     assert.match(screen, /ref=\{passwordRef\}/);
+    assert.match(screen, /submitBehavior="submit"/);
+    assert.match(screen, /emailAdvance\.cancel\(\);\s*if \(busy \|\| requestRunning\.current\)/);
     assert.match(screen, /\{!keyboardVisible && <View style=\{st\.action\}>/);
     assert.doesNotMatch(screen, /footer=/);
     assert.match(screen, /automaticallyAdjustKeyboardInsets/);

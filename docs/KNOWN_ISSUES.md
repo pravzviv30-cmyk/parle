@@ -10442,3 +10442,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `October dependency patches reject shell line injection and unbounded indexed source maps`
 - verified-by: `patched Sharp retains the tutor RGB resize and PNG encoding path`
 - verified-by: `every Sharp copy is patched and retains its cross-platform native assets`
+
+### F785 — Email progression lags and auth text sits unevenly inside its field
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/useEmailAutoAdvance.ts, apps/mobile/src/auth/AccountField.tsx, apps/mobile/src/auth/SignInScreen.tsx, apps/mobile/src/auth/SignUpScreen.tsx
+- note: 10 October founder check found the 900 ms auto-advance pause slow. Both forms now use the same 300 ms cancellation-aware handoff; explicit Next keeps the keyboard open. Account text stays left-aligned with even vertical padding, native vertical centring and no Android font padding. Show/Hide overlays the trailing inset without taking width from the input. Browser focus, left alignment and Show/Hide were checked at desktop and 393-point width; physical iOS/Android keyboard timing remains to be checked.
+- verified-by: `email progression waits for a complete domain and a pause after the last keystroke`
+- verified-by: `auth work, moving to another input and unmounting prevent a queued focus change`
