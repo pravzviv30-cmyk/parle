@@ -1,6 +1,6 @@
 # Local change runner
 
-- Status: verified locally; awaiting integration
+- Status: verified and approved for main
 - Updated: 2026-10-10
 - Checkout: /Users/pravz_07/.codex/worktrees/a821/Luvani, starting 37bed2a7
 - Owner: current Codex session
@@ -32,8 +32,9 @@ were not run. The installed Claude Code 2.1.285 help supports the flags used.
 The example is ready to review and run after the plan is committed in a clean
 checkout on a dedicated branch. No scheduler or forge reviewer was invoked.
 
-Landing disposition: HOLD, uncommitted edits in the attached worktree; review and
-integrate through the normal process. No other worktree was changed.
+Landing disposition: LAND, explicitly authorised by the founder on 10 October.
+The integrated source is verified and will be published through the normal merge
+and push hooks. Other feature worktrees remain untouched.
 
 ## Integrated verification
 
@@ -48,3 +49,24 @@ integrate through the normal process. No other worktree was changed.
   remain the SQL evidence.
 
 Final source-state confirmation: `npm run gate` passed again after the password-control sizing adjustment; counts and all eight SQL proofs match the results above. The working-tree secret scan is clean.
+
+## Main integration — 10 October 2026
+
+The founder requested publication to main and removal of superseded code. The
+unpublished changes were replayed onto origin/main at b8f2d2e7. Main's newer
+sign-in presentation and keyboard protections were preserved; the 300 ms
+handoff, vertical field alignment and reduced focus-frame delay apply to that
+implementation. The loop is replaced in place, including removal of automatic
+staging, commits and destructive rollback. No duplicate runner was added.
+
+The integrated full gate passes: core 798, brain 468, tutor 610, token 441,
+playground 26, mobile 2758 (5101 workspace tests), plus 89 shared/script/release
+proofs, all zero failures. All eight database proofs replay 39 migrations. The
+integrated sign-in browser check confirms the handoff, left alignment, even
+vertical padding and Show/Hide focus. The local runner dry-run also passes.
+
+Landing disposition: LAND with explicit founder approval. Publish as a normal
+merge and push with hooks; no force push or hook bypass. The generated graph
+was refreshed from the integrated source (15800 nodes, 42468 edges, 646
+communities). Physical-device keyboard timing and a paid real-CLI run remain
+unperformed, as recorded above.

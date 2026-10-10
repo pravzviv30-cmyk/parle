@@ -1,6 +1,6 @@
 # Agent workflow entry points
 
-- Status: verified; awaiting integration
+- Status: verified and approved for main
 - Updated: 2026-10-10
 - Checkout / starting revision: Codex worktree `a821/Luvani`, `37bed2a7`
 - Owner / integrator: active Codex session
@@ -72,7 +72,7 @@ before landing.
 | 2026-10-10 / environment | Ran the installed full gate, then isolated the failing voice-proxy fixtures | 5,087 workspace tests loaded; all eight database proofs pass; focused failures show `listen EPERM` on `127.0.0.1` in the sandbox. The two decoder-slot tests pass in isolation | Rerun the full gate with localhost access |
 | 2026-10-10 / T3 | Ran `npm run gate` with localhost access against this worktree's locked install | Exit 0: 5,087 workspace tests and 77 release/provider proofs pass; all eight SQL proofs replay all 39 migrations; typecheck, hygiene, secrets, agent pins and ledger checks pass | Leave the verified change for integration; no runtime edits or gate changes were needed |
 
-## Integrated verification and handoff
+## Initial verification and handoff
 
 - Focused checks: 97 local links across all 9 changed Markdown files resolve;
   mapped repository paths are present; whitespace checks, `npm run gate:fast`
@@ -83,8 +83,28 @@ before landing.
   database proofs also pass; each proof replays all 39 migrations.
 - UI / hosted / device / paid checks: not applicable to this change.
 - Documentation and decisions: root entry points and `docs/changes/`.
-- Landing disposition: HOLD for integration. Changes remain in task worktree
-  `a821/Luvani`; `main` is checked out in another worktree. No merge, push or
-  modification of the permanent checkout was performed. The pre-existing
-  `.codex/environments/environment.toml` is untouched.
-- Next task: none for implementation; integration into the shared branch remains.
+- Landing disposition: LAND with explicit founder approval. The combined changes
+  are verified against current main and ready for a normal merge and push. The
+  pre-existing `.codex/environments/environment.toml` is untouched.
+- Next task: publish the verified merge to main.
+
+## Main integration — 10 October 2026
+
+The founder requested publication to main and removal of superseded code. The
+unpublished changes were replayed onto origin/main at b8f2d2e7. Main's newer
+sign-in presentation and keyboard protections were preserved; the 300 ms
+handoff, vertical field alignment and reduced focus-frame delay apply to that
+implementation. The loop is replaced in place, including removal of automatic
+staging, commits and destructive rollback. No duplicate runner was added.
+
+The integrated full gate passes: core 798, brain 468, tutor 610, token 441,
+playground 26, mobile 2758 (5101 workspace tests), plus 89 shared/script/release
+proofs, all zero failures. All eight database proofs replay 39 migrations. The
+integrated sign-in browser check confirms the handoff, left alignment, even
+vertical padding and Show/Hide focus. The local runner dry-run also passes.
+
+Landing disposition: LAND with explicit founder approval. Publish as a normal
+merge and push with hooks; no force push or hook bypass. The generated graph
+was refreshed from the integrated source (15800 nodes, 42468 edges, 646
+communities). Physical-device keyboard timing and a paid real-CLI run remain
+unperformed, as recorded above.
