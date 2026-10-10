@@ -1,11 +1,19 @@
+## Shared entry points
+
+Read [AGENTS.md](AGENTS.md) for the repository map and common working rules.
+[CONTEXT.md](CONTEXT.md) routes to existing domain documents;
+[DECISIONS.md](DECISIONS.md) records new lasting choices. Substantial changes
+can use the tracked task contract in [docs/changes/](docs/changes/README.md).
+The Claude Code commands, model pins and review sequences below remain in force
+when those workflows are used.
+
 ## Where this project lives
 
 The permanent home of this project is `/Users/pravz_07/Documents/StartUps/Luvani`
-(renamed from the old `Parle` path). It is the canonical working tree: every change
-and improvement lands **there**, and every session should treat that folder as the
-project root. Worktrees under `.claude/worktrees/` are temporary scratch copies — work
-done in one is only finished once it is landed back into this folder (see "Landing work
-on main"). The old `Documents/StartUps/Parle` worktrees are stale and safe to prune.
+(renamed from the old `Parle` path). It is the integration destination. Work in
+the checkout attached to the current task; a worktree is a valid editing root.
+Worktree changes are not landed until integrated through the existing landing
+workflow. Do not silently move edits into another session's checkout.
 
 ## Context docs
 
@@ -264,9 +272,11 @@ Three hard stops, and none of them is negotiable by being asked:
 
 ## Worktrees
 
-Run tests from the main checkout, not from a `.claude/worktrees/` worktree. A
-worktree has no `node_modules` of its own, so Node resolution walks up past it
-into the parent directories and can bind to the wrong copy of a dependency.
+Run tests from the checkout containing the change, with its own locked dependency
+install (`npm ci`). As [docs/TESTING.md](docs/TESTING.md) explains, an installed
+worktree is a root in its own right. A worktree without `node_modules` can resolve
+dependencies from parent directories and bind to the wrong copy; do not use an
+unchanged main checkout's green tests as proof of a worktree change.
 
 `packages/brain` is where this bites: it depends on `@anthropic-ai/sdk@^0.117.1`
 and gets its own nested install, while `@livekit/agents-plugin-anthropic` pulls
@@ -282,6 +292,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find module
 ```
 
 Read the test count, not just the failure count — a file that never loads takes
-its whole suite with it silently (brain reports 122 tests from a worktree, 146
-from the main checkout). Either `npm install` inside the worktree, or run tests
-from the repo root.
+its whole suite with it silently (an earlier uninstalled worktree reported 122
+brain tests against 146 in the main checkout). Install dependencies inside the
+worktree and run from that checkout's root; current counts are enforced by
+`scripts/gate.floors.json`.

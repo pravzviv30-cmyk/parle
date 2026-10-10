@@ -6,6 +6,9 @@ re-deriving the architecture from source every time.
 
 | If you need to know | Read |
 |---|---|
+| Where an agent should start, and how to work in this checkout | [../AGENTS.md](../AGENTS.md), [../CONTEXT.md](../CONTEXT.md) |
+| How to scope changes, order tasks and leave a handoff log | [changes/README.md](changes/README.md) |
+| Why a new lasting architecture or workflow choice was made | [../DECISIONS.md](../DECISIONS.md) |
 | What the six workspaces are and which one owns a decision | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | How a live session actually works, end to end | [LIVE_VOICE.md](LIVE_VOICE.md) |
 | How the free tutor behaves, which model to use, and what it costs | [TUTOR_BRAIN.md](TUTOR_BRAIN.md) |
@@ -14,7 +17,7 @@ re-deriving the architecture from source every time.
 | How main pushes can publish iPhone previews without Metro or USB, and remaining setup | [REMOTE_UPDATES.md](REMOTE_UPDATES.md) |
 | Where the learner's data lives and what shape it is in | [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
 | How to run and write tests, and the trap that eats whole suites | [TESTING.md](TESTING.md) |
-| The gate, the bug loop, and how to give it a goal it can check | [LOOP.md](LOOP.md) |
+| The gate, local planned changes, bug repair and resume | [LOOP.md](LOOP.md) |
 | Building something new: Fable designs, Opus builds, Fable judges | [FORGE.md](FORGE.md) |
 | Who owns which part of the codebase, and which agent to call | [TEAM.md](TEAM.md) |
 | What is known to be broken right now | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |

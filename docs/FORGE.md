@@ -97,23 +97,17 @@ round log at the bottom of `.forge/<slug>/contract.md` is what makes that visibl
 passes that never once hit `REVISE` is the signal to tighten its checks, not proof that the
 work got good.
 
-## Not wired yet: the unattended loop
+## The local runner and forge
 
-`npm run loop` cannot run `/forge` today, and the reason is worth knowing — `Task` is absent
-from `ALLOWED_TOOLS` in `scripts/loop.mjs`, so the unattended loop structurally cannot
-dispatch *any* subagent. That includes bug-hunter and fix-verifier, which is why `npm run
-loop` and `/bug-sweep` are not the same machine despite looking like it.
+`npm run loop -- --plan docs/changes/<name>.md` now runs explicit tasks locally
+in dependency order, with runner-owned checks, deadlines and resume checkpoints.
+See [LOOP.md](LOOP.md) for the executable plan format. It works without a server.
 
-To wire it, when we come back to this:
-
-- Add `Task` to `ALLOWED_TOOLS` in `scripts/loop.mjs`.
-- Add `--plan-model` and `--judge-model` alongside the existing `--model`, which is unset by
-  default and only forwarded when passed.
-- Teach `composePrompt` to start from a `.forge/` contract when one exists, instead of always
-  starting from the first open ledger item.
-
-Deferred on purpose. The interactive pass should earn its keep before it runs unattended on
-its own branch.
+The runner exposes read/edit tools and bounded check commands; it does not expose
+Agent or Task delegation or invoke `/forge`. The Fable design/judge sequence and
+its pinned roles remain this separate interactive workflow. A local task plan is
+not a claim that those reviewers ran. Wiring unattended forge would need its own
+contract, model availability checks and independent review evidence.
 
 ## Who actually builds it
 

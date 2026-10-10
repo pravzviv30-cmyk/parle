@@ -10450,3 +10450,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: 10 October founder check found the 900 ms auto-advance pause slow. Both forms now use the same 300 ms cancellation-aware handoff; explicit Next keeps the keyboard open. Account text stays left-aligned with even vertical padding, native vertical centring and no Android font padding. Show/Hide overlays the trailing inset without taking width from the input. Browser focus, left alignment and Show/Hide were checked at desktop and 393-point width; physical iOS/Android keyboard timing remains to be checked.
 - verified-by: `email progression waits for a complete domain and a pause after the last keystroke`
 - verified-by: `auth work, moving to another input and unmounting prevent a queued focus change`
+
+### F786 — The local loop stops at a green baseline and can discard unrelated edits
+- severity: P2
+- status: [x]
+- where: scripts/loop.mjs, scripts/loop.test.mjs
+- note: The local runner accepts dependency-ordered plans even with a green baseline, verifies checks itself and requires a final green gate. It preserves failed patches, records resumable fingerprints, enforces invocation deadlines and detects Git-visible scope or Git-state violations. Automatic staging, commits, checkout rollback and clean were removed. Local CLI fixtures prove the runner without contacting a model; the real authenticated CLI smoke run remains user-controlled.
+- verified-by: `a green baseline still builds plan tasks in dependency order and verifies the final gate`
+- verified-by: `out-of-scope edits stop the loop, stay available for review and cannot be resumed blindly`
+- verified-by: `the final gate can refuse a plan whose focused checks passed`

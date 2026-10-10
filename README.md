@@ -27,6 +27,10 @@ possible. That alignment is the whole thesis.
 
 ## Layout
 
+For development changes, start with [AGENTS.md](AGENTS.md) and
+[CONTEXT.md](CONTEXT.md). Larger changes use the dependency and acceptance
+template in [docs/changes/](docs/changes/README.md).
+
 ```
 packages/core/       Pure TypeScript. No network, no mic, no keys. 338 tests.
   phonemes/          36-phoneme French inventory + 16 drills + scoring
