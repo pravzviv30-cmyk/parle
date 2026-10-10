@@ -45,7 +45,7 @@ function stripComments(source: string): string {
 const SOURCES = walk(SRC).map((path) => ({ path, body: stripComments(readFileSync(path, 'utf8')) }));
 const named = (name: string) => SOURCES.find((f) => f.path.endsWith(name))!.body;
 const usesSharedFrame = (body: string): boolean => /<(Screen|ScrollScreen|OnboardingLayout)\b/.test(body) ||
-  /const Frame = onboarding \? OnboardingLayout : ScrollScreen;/.test(body) && /<Frame\b/.test(body);
+  /const Frame = (?:onboarding \? OnboardingLayout : )?ScrollScreen;/.test(body) && /<Frame\b/.test(body);
 
 /**
  * `first` is written before `second`, with both proven present first.
@@ -773,8 +773,17 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
         /allowFontScaling\s*[=:]\s*\{?\s*false/,
         `${where} switches off font scaling, so a learner with large text set does not get it`,
       );
+      let scalingBody = body;
+      if (where === 'auth/SignInScreen.tsx') {
+        // Fabric's live text revision stays above the actual OS scale, so it
+        // invalidates cached measurements without limiting Dynamic Type.
+        assert.match(body, /const fontScale = useFontScale\(\);/);
+        assert.match(body, /const liveFontMultiplier = fontScale \+ 1;/);
+        assert.match(body, /maxFontSizeMultiplier=\{liveFontMultiplier\}/);
+        scalingBody = body.replace(/maxFontSizeMultiplier=\{liveFontMultiplier\}/g, '');
+      }
       assert.doesNotMatch(
-        body,
+        scalingBody,
         /maxFontSizeMultiplier/,
         `${where} caps how far its text may grow, which is the same refusal wearing a number`,
       );
@@ -833,6 +842,9 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
         assert.match(body, /width\?: `\$\{number\}%`/, 'ChoiceNudge accepts a fixed width instead of a percentage');
         assert.match(body, /width: width \?\? '100%', minWidth: 0/, 'the choice wrapper can shrink-wrap its label again');
         widthBody = body.replace(/\bminWidth: 0\b/, '');
+      } else if (where === 'auth/SignInScreen.tsx') {
+        assert.match(body, /door: \{ flex: 1, minWidth: 0 \}/, 'the sign-in providers cannot shrink within their row');
+        widthBody = body.replace(/door: \{ flex: 1, minWidth: 0 \}/, 'door: { flex: 1 }');
       } else if (where === 'auth/SignUpScreen.tsx') {
         // OAuth controls share the row evenly and can shrink when text grows.
         // Permit only this zero floor, not a fixed minimum for the form.
@@ -2034,54 +2046,32 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     return body.slice(start);
   }
 
-  test('sign-in leads with Apple above Google and keeps one form action in its shared frame', () => {
-    for (const name of ['auth/SignInScreen.tsx']) {
-      const body = named(name);
-      // The introductory form uses the shared keyboard-aware onboarding body.
-      assert.ok(usesSharedFrame(body) && /\bavoidKeyboard\b/.test(body), `${name} is not a keyboard-aware shared frame`);
-      assert.match(body, /\bactionInScroll\b/, `${name} can float the onboarding action over the keyboard`);
-      assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"/, `${name} exposes a visible onboarding back control`);
-
-      // The footer holds one pill and nothing else, and it is the ink one (ink
-      // is PillButton's default tone): the form's own action, where a keyboard
-      // cannot scroll it out of reach. Revamp B (F601) moved the provider doors
-      // out of the footer, so neither mark may be left behind in it, and the
-      // outline Google door is gone from the file altogether.
-      const footer = footerProp(body);
-      const footerPills = tags(footer, 'PillButton');
-      assert.equal(footerPills.length, 1, `${name} pins ${footerPills.length} pills in the footer; it pins exactly one`);
-      assert.doesNotMatch(footerPills[0]!, /\btone=/, `${name}'s footer pill is not the ink one`);
-      assert.doesNotMatch(footer, /AppleMark|GoogleMark/, `${name} left a provider door in the footer`);
-      assert.doesNotMatch(body, /<OutlineButton\b/, `${name} still draws the outline door the board retired`);
-
-      // The body, which follows the footer prop in the JSX, leads with the
-      // doors. Apple's is gated and ink; Google's is the white pill beneath it;
-      // and both come before the first field, the way the board draws them.
-      const content = body.slice(body.indexOf('footer={') + 'footer='.length + footer.length);
-      const doors = tags(content, 'PillButton');
-      const apple = doors.find((tag) => /<AppleMark\b/.test(tag));
-      const google = doors.find((tag) => /<GoogleMark\b/.test(tag));
-      assert.ok(apple, `${name} lost the Apple door from the body`);
-      assert.ok(google, `${name} lost the Google door from the body`);
-      assert.doesNotMatch(apple, /\btone=/, `${name}'s Apple door is not an ink pill`);
-      assert.match(google, /\btone="white"/, `${name}'s Google door is not the white pill`);
-      writtenBefore(content, '{appleOffered && (', apple, `${name} draws the Apple door whether or not the platform offers it`);
-      writtenBefore(content, apple, google, `${name} draws the Apple door below the Google one`);
-      writtenBefore(content, google, '<Field', `${name} puts a field above the provider doors`);
-
-      // The switch row is NOT in the footer: it stays at the body's end, after
-      // the last field, so a field is visible over an SE-class keyboard rather
-      // than pinned under the buttons. It is the only Press on the screen that
-      // is not inside a part, so the footer holding one would be the row in the
-      // wrong place.
-      assert.doesNotMatch(footer, /<Press(?:able)?\b/, `${name} pins its switch row in the footer instead of the body's end`);
-      const switchRow = tags(content, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));
-      assert.ok(switchRow, `${name} lost the switch row from the body`);
-      assert.ok(
-        content.lastIndexOf('<Field') < content.indexOf(switchRow),
-        `${name} moved the switch row above a field, off the body's end`,
-      );
-    }
+  test('sign-in leads with provider actions and keeps its primary action clear of the keyboard', () => {
+    const body = named('auth/SignInScreen.tsx');
+    assert.ok(usesSharedFrame(body), 'sign-in bypasses the shared scroll frame');
+    assert.match(body, /automaticallyAdjustKeyboardInsets/, 'sign-in lost native keyboard insets');
+    assert.doesNotMatch(body, /footer=\{|\bavoidKeyboard\b/, 'sign-in pins an action or applies competing keyboard avoidance');
+    assert.match(body, /!keyboardVisible && <View style=\{st\.action\}/, 'the primary action can cover the keyboard');
+    assert.match(body, /hideProgress: true/, 'sign-in shows new-user progress');
+    assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"|<OutlineButton\b/);
+    const pills = tags(body, 'PillButton');
+    assert.equal(pills.length, 3, 'sign-in needs two provider doors and one form action');
+    const apple = pills.find(tag => /<AppleMark\b/.test(tag));
+    const google = pills.find(tag => /<GoogleMark\b/.test(tag));
+    const primary = pills.find(tag => /tone="brand"/.test(tag));
+    assert.ok(apple, 'sign-in lost the Apple door');
+    assert.ok(google, 'sign-in lost the Google door');
+    assert.ok(primary, 'sign-in lost its emphasized primary action');
+    assert.doesNotMatch(apple, /\btone=/);
+    assert.match(google, /tone="white"/);
+    writtenBefore(body, '{appleOffered && (', apple, 'Apple must be gated by platform availability');
+    writtenBefore(body, apple, google, 'Apple leads the provider row');
+    writtenBefore(body, google, '<Field', 'provider doors lead the email form');
+    writtenBefore(body, '<Field', primary, 'the form action follows the fields');
+    assert.doesNotMatch(primary, /AppleMark|GoogleMark/);
+    const switchRow = tags(body, 'Press').find(tag => /accessibilityRole="button"/.test(tag));
+    assert.ok(switchRow, 'sign-in lost the account switch');
+    assert.ok(body.lastIndexOf('<Field') < body.indexOf(switchRow), 'the account switch moved above the fields');
   });
 
   test('signup keeps its primary action after the fields and hides it while the keyboard is visible', () => {

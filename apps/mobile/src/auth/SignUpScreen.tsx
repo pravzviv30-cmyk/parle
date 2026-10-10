@@ -14,6 +14,7 @@ import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { PasswordMeter } from './PasswordMeter.tsx';
 import { signupProblems, signupReady, passwordsMatch, visibleFormHeight } from './signupForm.ts';
 import { useFormKeyboard } from './useFormKeyboard.ts';
+import { useEmailAutoAdvance } from './useEmailAutoAdvance.ts';
 import type { SignUpFormDraft } from './signUpFormDraft.ts';
 import { Feedback } from '../motion/Feedback.tsx';
 import { friendly } from './friendly.ts';
@@ -57,6 +58,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   const focused = useRef<'email' | 'password' | 'confirm' | null>(null);
   const alive = useRef(true);
   const requestRunning = useRef(false);
+  const emailAdvance = useEmailAutoAdvance(emailRef, passwordRef, busy, requestRunning);
   useEffect(() => {
     alive.current = true;
     if (!embedded) {
@@ -278,7 +280,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           ref={emailRef}
           label="Email"
           value={email}
-          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); clearResult(); }}
+          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); clearResult(); emailAdvance.queue(value); }}
           placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -289,12 +291,13 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           submitBehavior="submit"
           blurOnSubmit={false}
           onSubmitEditing={() => {
-            if (busy) return;
+            emailAdvance.cancel();
+            if (busy || requestRunning.current) return;
             if (looksLikeEmail(email)) { setEmailError(null); passwordRef.current?.focus(); }
             else { setEmailError('Enter a valid email address.'); keepFocusedVisible(); }
           }}
           onFocus={() => { focused.current = 'email'; keepFocusedVisible(); }}
-          onBlur={() => { if (focused.current === 'email') focused.current = null; }}
+          onBlur={() => { emailAdvance.cancel(); if (focused.current === 'email') focused.current = null; }}
         />
         </View>
         <View ref={passwordGroup} collapsable={false} onLayout={keepFocusedVisible} style={st.passwordGroup}>

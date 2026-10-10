@@ -117,7 +117,7 @@ describe('a spoken take the tutor did not hear — F776', () => {
     // A reminder set on day one leaves with the plan it was set for, at all
     // three doors the privacy document names, and the document says so.
     const doc = readFileSync(fileURLToPath(new URL('../../../../../docs/PRIVACY_AND_SAFETY.md', import.meta.url)), 'utf8');
-    assert.match(doc, /reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create one" each cancel it on the phone\./);
+    assert.match(doc, /reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create an account" each cancel it on the phone\./);
     const younger = screen.slice(screen.indexOf('label="I am younger than that"'), screen.indexOf('<SwitchRow'));
     assert.match(younger, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/);
     const app = evidence('apps/mobile/App.tsx');
@@ -127,6 +127,6 @@ describe('a spoken take the tutor did not hear — F776', () => {
     const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn ='));
     assert.match(newAccount, /if \(initialDraft\?\.reminderEnabled === true\) void cancelReminder\(\);/);
     assert.match(flow, /<SignInScreen onCreateAccount=\{newAccount\} \/>/);
-    assert.match(evidence('apps/mobile/src/auth/SignInScreen.tsx'), /Create one/);
+    assert.match(evidence('apps/mobile/src/auth/SignInScreen.tsx'), /Create an account/);
   });
 });

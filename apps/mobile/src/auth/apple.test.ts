@@ -112,7 +112,7 @@ describe('is Apple actually switched on, and does the adapter ask — F375', () 
     const method = adapter.slice(adapter.indexOf('signInWithApple('), adapter.indexOf('sendPasswordReset('));
     assert.ok(method.length > 0, 'signInWithApple moved or was renamed; this test is reading nothing');
 
-    const asks = method.indexOf('appleAvailable(url, anonKey)');
+    const asks = method.indexOf("providers.available('apple')");
     const opens = method.indexOf('startAppleSignIn(client)');
     assert.ok(asks >= 0, 'signInWithApple must check whether the provider is enabled');
     assert.ok(opens > asks, 'the check must happen before the sheet opens, not after');
@@ -121,7 +121,7 @@ describe('is Apple actually switched on, and does the adapter ask — F375', () 
     // must never be the reason somebody cannot sign in.
     assert.match(
       method,
-      /appleAvailable\(url, anonKey\)\)\s*===\s*false/,
+      /providers\.available\('apple'\)\)\s*===\s*false/,
       'the preflight blocks on anything other than a definite no, so an unreachable settings endpoint closes the door',
     );
 

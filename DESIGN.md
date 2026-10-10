@@ -413,7 +413,9 @@ the new look, listed at the end, and they go with their call sites.
   and grows rather than clips at the largest reading size.
 - **PillButton** — the one primary action per screen: the ink pill
   (`accent.primary`) with white lettering, 56pt, fully rounded; `tone="white"`
-  is the white pill with ink lettering on a blue or coral ground.
+  is the white pill with ink lettering on a blue or coral ground. The returning
+  sign-in form uses `tone="brand"` for its purple primary action; compact
+  provider pills retain the touch floor and wrap their labels.
 - **OutlineButton / GhostButton** — the second action. `GhostButton` is
   SNIPPETS' link-text, an underlined ink word at the touch floor (white on blue
   and coral, which the caller passes), never a box, so nothing competes with the
@@ -677,6 +679,18 @@ The age confirmation comes before account creation. A refused microphone
 offers typing, and the first scene shows one line and the live
 minutes cost before either start. Returning learners sign in; the recovery flow
 asks plain questions and lets them hear voices before choosing one.
+
+Welcome back centres an exported vector Hum illustration above the greeting,
+with cream, navy, lilac, coral and gold kept to Luvani's existing palette. A
+saved first name personalises the greeting only when it is already available.
+Apple and Google share a row, stacking for larger text, before the email form.
+Sign in is purple with an arrow, a pressed scale and a labelled loading state.
+One brief entrance respects Reduce Motion. Returning sign-in never shows
+onboarding progress; create account retains the shared purple progress strip.
+Email advances to Password after a valid address stops changing for 900 ms.
+The primary action hides while the software keyboard is open, and native
+insets scroll the focused field into view. Live Dynamic Type changes refresh
+text measurements without capping the system size.
 
 The signed-in app has four tabs, each opening Profile from the labelled
 avatar. Friends is a Profile route and retains shared challenges and moderation.

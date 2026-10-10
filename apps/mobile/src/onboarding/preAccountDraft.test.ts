@@ -153,7 +153,7 @@ describe('the pre-account hand-off', () => {
     const form = evidence('apps/mobile/src/auth/SignInScreen.tsx');
     const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
     assert.match(form, /useState\(planDraft\?\.accountEmail \?\? ''\)/);
-    assert.match(form, /onChangeText=\{\(value\) => \{ setEmail\(value\); onEmailChange\?\.\(value\); \}\}/);
+    assert.match(form, /onChangeText=\{\(value\) => \{ setEmail\(value\); onEmailChange\?\.\(value\); setEmailError\(null\); emailAdvance\.queue\(value\); \}\}/);
     assert.match(flow, /onEmailChange=\{updateAccountEmail\}/);
     assert.match(flow, /initialDraft\.accountMode === 'signin' \? 'signin' : 'signup'/);
     assert.match(flow, /page: basis\.accountReturnPage \?\? 'keep'/);

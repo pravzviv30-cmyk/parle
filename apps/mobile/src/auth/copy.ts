@@ -17,4 +17,10 @@
  */
 
 /** Under "Welcome back": what is behind the door, in one line. */
-export const SIGN_IN_PURPOSE = 'Your phrases, your progress and your tutor\'s memory are where you left them.';
+export const SIGN_IN_PURPOSE = 'Sign in to pick up your French where you left off.';
+
+/** Use a saved name only. An email address is never treated as somebody's name. */
+export function welcomeBackGreeting(firstName: string | null | undefined): string {
+  const name = firstName?.trim();
+  return name ? `Welcome back, ${name}` : 'Welcome back';
+}

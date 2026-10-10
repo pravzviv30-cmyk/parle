@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 
-import { googleAvailable, googleEnabled } from './providerStatus.ts';
+import { createProviderAvailability, googleAvailable, googleEnabled } from './providerStatus.ts';
 
 const settings = (google: unknown) =>
   new Response(JSON.stringify({ external: { google, email: true } }), {
@@ -93,10 +93,84 @@ describe('the adapter asks before it navigates', () => {
     const source = readFileSync(new URL('./supabaseAdapter.ts', import.meta.url), 'utf8');
     const method = source.slice(source.indexOf('signInWithGoogle('), source.indexOf('sendPasswordReset('));
 
-    const asks = method.indexOf('googleAvailable(url, anonKey)');
+    const asks = method.indexOf("providers.available('google')");
     const navigates = method.indexOf('startGoogleSignIn(client)');
     assert.ok(asks >= 0, 'signInWithGoogle must check whether the provider is enabled');
     assert.ok(navigates > asks, 'the check must happen before the redirect, not after');
     assert.match(method, /GOOGLE_NOT_CONFIGURED/);
   });
+});
+
+test('warmed settings open either provider without another network round trip', async () => {
+  let requests = 0;
+  const providers = createProviderAvailability('https://p.supabase.co', 'anon', async () => {
+    requests++;
+    return Response.json({ external: { google: true, apple: false } });
+  });
+  await providers.prefetch();
+  assert.equal(await providers.available('google'), true);
+  assert.equal(await providers.available('apple'), false);
+  assert.equal(requests, 1);
+});
+
+test('warmup and simultaneous taps share the pending settings request', async () => {
+  let requests = 0;
+  let finish!: (response: Response) => void;
+  const providers = createProviderAvailability('https://p.supabase.co', 'anon', () => {
+    requests++;
+    return new Promise<Response>((resolve) => { finish = resolve; });
+  });
+  const warm = providers.prefetch();
+  const google = providers.available('google');
+  const apple = providers.available('apple');
+  assert.equal(requests, 1);
+  finish(Response.json({ external: { google: true, apple: true } }));
+  await warm;
+  assert.deepEqual(await Promise.all([google, apple]), [true, true]);
+});
+
+test('settings expire after thirty seconds and changed provider flags take effect', async () => {
+  let now = 0; let enabled = true; let requests = 0;
+  const providers = createProviderAvailability('https://p.supabase.co', 'anon', async () => {
+    requests++;
+    return settings(enabled);
+  }, () => now);
+  assert.equal(await providers.available('google'), true);
+  now = 29_999; enabled = false;
+  assert.equal(await providers.available('google'), true);
+  assert.equal(requests, 1);
+  now = 30_000;
+  assert.equal(await providers.available('google'), false);
+  assert.equal(requests, 2);
+});
+
+test('a failed refresh returns unknown instead of reusing a stale disabled flag', async () => {
+  let now = 0; let requests = 0;
+  const providers = createProviderAvailability('https://p.supabase.co', 'anon', async () => {
+    requests++;
+    if (requests === 1) return settings(false);
+    if (requests === 2) throw new TypeError('offline');
+    return settings(true);
+  }, () => now);
+  assert.equal(await providers.available('google'), false);
+  now = 30_000;
+  assert.equal(await providers.available('google'), null);
+  assert.equal(await providers.available('google'), true);
+  assert.equal(requests, 3);
+});
+
+test('settings caches are isolated by adapter and never reuse another project flag', async () => {
+  const one = createProviderAvailability('https://one.supabase.co', 'one-key', async (url, init) => {
+    assert.equal(url, 'https://one.supabase.co/auth/v1/settings');
+    assert.equal((init?.headers as Record<string, string>).apikey, 'one-key');
+    return settings(false);
+  });
+  const two = createProviderAvailability('https://two.supabase.co', 'two-key', async (url, init) => {
+    assert.equal(url, 'https://two.supabase.co/auth/v1/settings');
+    assert.equal((init?.headers as Record<string, string>).apikey, 'two-key');
+    return settings(true);
+  });
+  assert.deepEqual(await Promise.all([one.available('google'), two.available('google')]), [false, true]);
+  const source = readFileSync(new URL('./supabaseAdapter.ts', import.meta.url), 'utf8');
+  assert.match(source, /const providers = createProviderAvailability\(url, anonKey\);\s*void providers.prefetch\(\)/);
 });

@@ -9,6 +9,7 @@ import { buildConversationPack, addDays, tutorVoice, type DayKey, type TutorVoic
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
+import { SignInScreen } from '../auth/SignInScreen.tsx';
 import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDraft.ts';
 import { Choice, PillButton, Press } from '../components.tsx';
 import { ScrollScreen, readingColumn } from '../layout.tsx';
@@ -47,11 +48,11 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
+const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'hear-it': 'Welcome', reason: 'Purpose', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
-  journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
+  journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
 };
 function previewOptions() {
   const query = Platform.OS === 'web' && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
@@ -77,6 +78,7 @@ function TutorFixture({ chosen, onChoose, onDone }: { chosen: TutorVoiceKey | nu
 /** A developer-only presentation fixture. Voice previews play the existing bundled lesson identities. */
 export function OnboardingPreview() {
   const [options] = useState(previewOptions);
+  const [controlsVisible, setControlsVisible] = useState(options.controls);
   const [screen, setScreen] = useState<Preview>(options.screen);
   const [chosen, setChosen] = useState<TutorVoiceKey | null>(null);
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => ({
@@ -86,18 +88,18 @@ export function OnboardingPreview() {
   const [requestPending, setRequestPending] = useState(false);
   const signupPromise = useRef<Promise<AuthResult> | null>(null);
   const signupResolver = useRef<((result: AuthResult) => void) | null>(null);
-  // One in-memory adapter and request expose the real form's loading and retry
+  // One in-memory adapter and request expose both forms' loading and retry
   // states without transmitting credentials or creating an account.
-  const [previewAdapter] = useState<AuthAdapter>(() => ({
-    ...previewAdapterBase,
-    signUpWithPassword: () => {
+  const [previewAdapter] = useState<AuthAdapter>(() => {
+    const pendingRequest = () => {
       if (signupPromise.current) return signupPromise.current;
       const request = new Promise<AuthResult>((resolve) => { signupResolver.current = resolve; });
       signupPromise.current = request;
       setRequestPending(true);
       return request;
-    },
-  }));
+    };
+    return { ...previewAdapterBase, signUpWithPassword: pendingRequest, signInWithPassword: pendingRequest, signInWithGoogle: pendingRequest, signInWithApple: pendingRequest };
+  });
   const settleSignup = (result: AuthResult) => {
     const resolve = signupResolver.current;
     signupResolver.current = null;
@@ -115,7 +117,7 @@ export function OnboardingPreview() {
   const transition = useOnboardingTransition();
   const go = (next: Preview) => {
     transition.transition(() => {
-      if (next !== 'signup') settleSignup({ ok: false, message: 'Screen preview request cancelled.' });
+      if (next !== 'signup' && next !== 'signin') settleSignup({ ok: false, message: 'Screen preview request cancelled.' });
       setScreen(next);
     });
   };
@@ -136,13 +138,15 @@ export function OnboardingPreview() {
       {screen === 'select' ? <ScrollScreen>
         <View style={[readingColumn, { gap: space(4) }]}>
           <Text accessibilityRole="header" style={[type.title, st.heading]}>Screen preview</Text>
-          <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service or save an account. Signup stays loading until you choose Fail or Complete in the preview controls. Listen plays the existing bundled voice samples.</Text>
+          <Text style={[type.body, st.ink]}>Synthetic examples. Account buttons cannot contact a service or save an account. Authentication stays loading until you choose Fail or Complete in the preview controls. Listen plays the existing bundled voice samples.</Text>
+          <PillButton tone="white" label={controlsVisible ? 'Hide preview controls' : 'Show preview controls'} onPress={() => setControlsVisible(value => !value)} />
           {PREVIEWS.filter(value => value !== 'select').map(value => <PillButton key={value} label={LABELS[value]} onPress={() => go(value)} />)}
         </View>
       </ScrollScreen> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'tutor' && <TutorFixture chosen={chosen} onChoose={setChosen} onDone={() => go('streak')} />}
-          {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('select')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
+          {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('signin')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
+          {screen === 'signin' && <SignInScreen onCreateAccount={() => go('signup')} />}
           {(screen === 'streak' || screen === 'streak-long' || screen === 'streak-empty') && <StreakCelebrationScreen
             streak={screen === 'streak-empty' ? null : screen === 'streak-long' ? previewLongStreak : previewStreak}
             today={previewDay}
@@ -171,7 +175,7 @@ export function OnboardingPreview() {
           </OnboardingLayout>}
         </Animated.View>
       </OnboardingFrame>}
-      {options.controls && screen !== 'select' && !screen.startsWith('streak') && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+      {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
         <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} style={st.badge}>
           <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
         </Press>

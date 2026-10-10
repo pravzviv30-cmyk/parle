@@ -227,6 +227,7 @@ export function PillButton({
   trailingIcon,
   accessibilityLabel,
   tone = 'ink',
+  compact = false,
   ref,
   state = 'idle',
 }: {
@@ -238,8 +239,10 @@ export function PillButton({
   trailingIcon?: React.ReactNode;
   /** Say something other than the label to assistive tech. Falls back to label. */
   accessibilityLabel?: string;
-  /** ink on paper, sun, mint or white; white on blue or coral. */
-  tone?: 'ink' | 'white' | 'sun';
+  /** Ink or brand fill with white words; white or sun fill with ink words. */
+  tone?: 'ink' | 'white' | 'sun' | 'brand';
+  /** Half-width auth actions retain the touch floor and allow their labels to wrap. */
+  compact?: boolean;
   /** The pressable itself, for a caller that moves a screen reader onto it (the answer sheet's Continue). */
   ref?: Ref<View>;
   /**
@@ -253,11 +256,13 @@ export function PillButton({
    */
   state?: 'idle' | 'busy' | 'done';
 }) {
+  const { fontScale } = useWindowDimensions();
   const waiting = state !== 'idle';
+  const foreground = tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
   return (
-    <Press haptic="light" style={[s.pill, tone === 'white' && s.pillWhite, tone === 'sun' && { backgroundColor: colour.sun }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
-      {waiting ? <PillWait done={state === 'done'} color={tone !== 'ink' ? paper.ink : paper.onInk} /> : icon}
-      <Text style={[type.button, { color: disabled ? paper.inkSoft : tone !== 'ink' ? paper.ink : paper.onInk }]}>{label}</Text>
+    <Press haptic="light" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+      {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
+      <Text style={[type.button, { color: disabled ? paper.inkSoft : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
     </Press>
   );
@@ -358,9 +363,10 @@ export function GhostButton({
   /** Say something other than the label to assistive tech. Falls back to label. */
   accessibilityLabel?: string;
 }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <Press haptic="light" style={s.ghost} disabled={disabled} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label}>
-      <Text style={[type.label, { color: disabled ? paper.inkSoft : color, textDecorationLine: 'underline' }]}>{label}</Text>
+      <Text style={[type.label, { color: disabled ? paper.inkSoft : color, textDecorationLine: 'underline' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
     </Press>
   );
 }

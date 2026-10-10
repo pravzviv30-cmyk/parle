@@ -32,7 +32,7 @@ test('visible form bounds handle native iOS insets, Android resize and hardware 
   assert.equal(visibleFormHeight(120, 650, 900), 650);
 });
 
-test('Next and Done preserve focus until explicit progression; only the primary tap submits', () => {
+test('Next and Done preserve the keyboard; only the primary tap creates an account', () => {
   const source = readFileSync(new URL('./SignUpScreen.tsx', import.meta.url), 'utf8');
   const done = source.slice(source.indexOf('  const finishEditing ='), source.indexOf('  const leave ='));
   assert.match(done, /validateForm\(\)/);

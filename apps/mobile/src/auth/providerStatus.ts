@@ -38,6 +38,48 @@ export function providerEnabled(body: unknown, name: SocialProvider): boolean | 
   return typeof flag === 'boolean' ? flag : null;
 }
 
+async function readSettings(supabaseUrl: string, anonKey: string, request: typeof fetch, timeoutMs: number): Promise<unknown> {
+  try {
+    const response = await request(`${supabaseUrl}/auth/v1/settings`, {
+      headers: { apikey: anonKey },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** One project-scoped read serves both doors. Warm it before the learner taps. */
+export function createProviderAvailability(
+  supabaseUrl: string,
+  anonKey: string,
+  request: typeof fetch = fetch,
+  now: () => number = Date.now,
+) {
+  const ttlMs = 30_000;
+  let cached: { google: boolean | null; apple: boolean | null; expiresAt: number } | null = null;
+  let pending: Promise<{ google: boolean | null; apple: boolean | null }> | null = null;
+  const read = () => {
+    if (cached && now() < cached.expiresAt) return Promise.resolve(cached);
+    if (pending) return pending;
+    pending = readSettings(supabaseUrl, anonKey, request, 3_000).then((body) => {
+      const flags = { google: providerEnabled(body, 'google'), apple: providerEnabled(body, 'apple') };
+      // A failed request must neither disable a door nor stick across retries.
+      cached = flags.google === null && flags.apple === null ? null : { ...flags, expiresAt: now() + ttlMs };
+      return flags;
+    }).finally(() => { pending = null; });
+    return pending;
+  };
+  return {
+    prefetch: async () => { await read(); },
+    available: async (name: SocialProvider): Promise<boolean | null> => {
+      const flags = await read();
+      return flags[name];
+    },
+  };
+}
+
 /**
  * Ask the project what it has enabled. Never throws: every failure — offline,
  * a 500, HTML from a captive portal — is the same "could not tell" answer.
@@ -49,16 +91,7 @@ export async function providerAvailable(
   request: typeof fetch = fetch,
   timeoutMs = 3_000,
 ): Promise<boolean | null> {
-  try {
-    const response = await request(`${supabaseUrl}/auth/v1/settings`, {
-      headers: { apikey: anonKey },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!response.ok) return null;
-    return providerEnabled(await response.json(), name);
-  } catch {
-    return null;
-  }
+  return providerEnabled(await readSettings(supabaseUrl, anonKey, request, timeoutMs), name);
 }
 
 /** The two doors, by name. Thin on purpose: the rule above is the only copy of it. */

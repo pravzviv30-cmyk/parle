@@ -2,32 +2,38 @@
  * Sign back in. Forgot-password lives here as an inline state, not a page:
  * type the email, tap the link, watch this same screen confirm the send.
  *
- * It sits inside `ScrollScreen avoidKeyboard`: the frame pays the notch, lifts
- * the fields above the keyboard. During onboarding it shares the centred frame
- * and progress indicator with account creation.
- * During onboarding the primary action scrolls after the fields. The forgot-password link, the form message and
- * the "Need an account?" row stay in the body, so a field is still visible over
- * an SE-class keyboard rather than pinned under the buttons.
+ * Native keyboard insets and focused-field scrolling keep the active input
+ * visible. The primary action is inline and hides during software keyboard use.
+ * Sign-in hides onboarding progress. The reset link, messages and account
+ * switch stay in the body.
  *
  * Revamp B (F601): the same family as sign-up. The provider doors lead the
- * body, above an "or" rule and the two fields. The Apple pill sits above the
- * Google one where the platform offers native or browser OAuth. Returning
+ * body, above an "or" rule and the two fields. Provider pills share a row and
+ * stack for larger text. Returning
  * devices use the full page; a guest opens it in a sheet after practice.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, View, Text, StyleSheet } from 'react-native';
-import { paper, space, type, HIT, HAIRLINE } from '../theme.ts';
-import { PillButton, GhostButton, Press, Field, GoogleMark, AppleMark, AlertGlyph, ROW_WORDS } from '../components.tsx';
-import { ScrollScreen } from '../layout.tsx';
+import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, View, Text, StyleSheet, type TextInput, type ScrollView as NativeScrollView } from 'react-native';
+import { colour, paper, space, type, HIT, HAIRLINE } from '../theme.ts';
+import { PillButton, GhostButton, Press, GoogleMark, AppleMark, AlertGlyph, ArrowRight, ROW_WORDS } from '../components.tsx';
+import { AccountField as Field } from './AccountField.tsx';
+import { useEmailAutoAdvance } from './useEmailAutoAdvance.ts';
+import { useFormKeyboard } from './useFormKeyboard.ts';
+import { focusedFieldScroll } from './focusedFieldScroll.ts';
+import { visibleFormHeight } from './signupForm.ts';
+import { useReduceMotion } from '../motion.ts';
+import { readingColumn, ScrollScreen, useFontScale } from '../layout.tsx';
 import { useAuth } from './useAuth.tsx';
 import { looksLikeEmail } from './validate.ts';
 import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { appleSignInOffered } from './apple.ts';
-import { SIGN_IN_PURPOSE } from './copy.ts';
+import { SIGN_IN_PURPOSE, welcomeBackGreeting } from './copy.ts';
 import { friendly } from './friendly.ts';
+import { WelcomeOrb } from './WelcomeOrb.tsx';
+import { RevealItem } from '../onboarding/motion/OnboardingScenes.tsx';
 
-import { OnboardingLayout } from '../onboarding/OnboardingLayout.tsx';
+import { useOnboardingFramePresentation } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 
@@ -40,13 +46,60 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const [providerMessage, setProviderMessage] = useState<string | null>(null);
   const [formOk, setFormOk] = useState(false);
   // One flag for the screen, and it names the request that is running. Every
-  // button greys while anything is in flight, because two sign-ins at once is
-  // the bug underneath; only the button that started it changes its words.
+  // other button disables while anything is in flight; the active button
+  // keeps its colour and shows the request label and spinner.
   const [pending, setPending] = useState<AuthAction | null>(null);
   const busy = pending !== null;
+  const fontScale = useFontScale();
+  // Refresh Fabric's text measurements after a live Dynamic Type change,
+  // using the same uncapped typography revision as AccountField.
+  const liveFontMultiplier = fontScale + 1;
+  // Sign-in is a returning-user door, including detours from new-user setup.
+  useOnboardingFramePresentation(onboardingProgress({ page: 'account' }), { hideProgress: true }, !embedded);
   const alive = useRef(true);
   const requestRunning = useRef(false);
   const headingRef = useRef<Text>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const emailAdvance = useEmailAutoAdvance(emailRef, passwordRef, busy, requestRunning);
+  const emailGroup = useRef<View>(null);
+  const passwordGroup = useRef<View>(null);
+  const scrollRef = useRef<NativeScrollView>(null);
+  const scrollOffset = useRef(0);
+  const focused = useRef<'email' | 'password' | null>(null);
+  const focusFrame = useRef<number | null>(null);
+  const focusMeasurement = useRef(0);
+  const reduced = useReduceMotion();
+  const reducedRef = useRef(reduced);
+  reducedRef.current = reduced;
+  const keepFocusedVisible = () => {
+    if (focused.current === null) return;
+    const ticket = ++focusMeasurement.current;
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = requestAnimationFrame(() => {
+      focusFrame.current = requestAnimationFrame(() => {
+        focusFrame.current = null;
+        const input = focused.current === 'email' ? emailRef.current : passwordRef.current;
+        const group = focused.current === 'email' ? emailGroup.current : passwordGroup.current;
+        const scroll = scrollRef.current;
+        if (!input || !group || !scroll || !input.isFocused()) return;
+        scroll.getNativeScrollRef()?.measureInWindow((_x, viewportTop, _width, viewportHeight) => {
+          group.measureInWindow((_groupX, groupTop, _groupWidth, groupHeight) => {
+            if (!alive.current || ticket !== focusMeasurement.current || !input.isFocused()) return;
+            const height = visibleFormHeight(viewportTop, viewportHeight, keyboardTop.current);
+            const next = focusedFieldScroll(scrollOffset.current, viewportTop, height, groupTop, groupHeight);
+            if (Math.abs(next - scrollOffset.current) > 0.5) scroll.scrollTo({ y: next, animated: keyboardTop.current === null && !reducedRef.current });
+          });
+        });
+      });
+    });
+  };
+  const { visible: keyboardVisible, keyboardTop } = useFormKeyboard(keepFocusedVisible);
+  useEffect(() => () => {
+    focusMeasurement.current += 1;
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+  }, []);
+  useEffect(() => { keepFocusedVisible(); }, [emailError, formMessage, providerMessage, fontScale]);
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
@@ -92,6 +145,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     setFormMessage(null);
     setProviderMessage(null);
     if (emailProblem) return;
+    Keyboard.dismiss();
     requestRunning.current = true;
     setPending('signIn');
     try {
@@ -169,74 +223,111 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     }
   };
 
-  const Frame = onboarding ? OnboardingLayout : ScrollScreen;
-  const onboardingProps = onboarding ? { page: 'account', actionInScroll: true, progress: onboardingProgress({ page: 'account', five: planDraft?.onboardingVariant === 'five', skipped: planDraft?.onboardingSkippedSteps, completed: planDraft?.onboardingCompletedSteps }) } : { page: 'signin' };
+  const Frame = ScrollScreen;
   return (
-    <Frame {...onboardingProps}
+    <Frame
       embedded={embedded}
-      avoidKeyboard
-      footer={<PillButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} disabled={busy} />}
+      center={false}
+      scrollRef={scrollRef}
+      scrollEventThrottle={16}
+      onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
+      automaticallyAdjustKeyboardInsets
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      onViewportLayout={keepFocusedVisible}
     >
-      {/* A working title on the paper itself, then what is behind the door. */}
+      <View style={readingColumn}>
+      <RevealItem active={!embedded}>
+      {/* Welcome back is personal only when this flow already has a saved name. */}
       {!embedded && <View style={st.head}>
-        <Text ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Welcome back</Text>
+        {!keyboardVisible && <WelcomeOrb />}
+        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>{welcomeBackGreeting(planDraft?.firstName)}</Text>
       </View>}
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
+      <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
 
-      {/* The provider doors lead the form. Apple is an ink pill, drawn only where
-          the platform offers it; Google is the white pill beneath it. */}
-      <View style={[st.doors, embedded && { marginTop: 0 }]}>
+      {/* The provider doors lead the form, stacking when text needs more room. */}
+      <View style={[st.doors, fontScale > 1.3 && st.doorsStacked, embedded && { marginTop: 0 }]}>
         {appleOffered && (
+          <View style={st.door}>
           <PillButton
-            label={authButtonLabel('apple', pending === 'apple')}
+            label={pending === 'apple' ? 'Opening…' : 'Apple'}
+            accessibilityLabel={authButtonLabel('apple', pending === 'apple')}
             onPress={() => void apple()}
-            disabled={busy}
             icon={<AppleMark color={paper.onInk} />}
+            compact
+            state={pending === 'apple' ? 'busy' : 'idle'}
+            disabled={busy && pending !== 'apple'}
           />
+          </View>
         )}
+        <View style={st.door}>
         <PillButton
           tone="white"
-          label={authButtonLabel('google', pending === 'google')}
+          label={pending === 'google' ? 'Opening…' : 'Google'}
+          accessibilityLabel={authButtonLabel('google', pending === 'google')}
           onPress={() => void google()}
-          disabled={busy}
           icon={<GoogleMark />}
+          compact
+          state={pending === 'google' ? 'busy' : 'idle'}
+          disabled={busy && pending !== 'google'}
         />
+        </View>
       </View>
 
       {providerMessage != null && (
         <View style={[st.message, { marginTop: space(3) }]}>
           <View style={st.messageMark}><AlertGlyph size={16} color={paper.ink} /></View>
-          <Text accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{providerMessage}</Text>
+          <Text maxFontSizeMultiplier={liveFontMultiplier} accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{providerMessage}</Text>
         </View>
       )}
 
       <View style={st.or}>
         <View style={st.rule} />
-        <Text style={[type.small, { color: paper.inkSoft }]}>or</Text>
+        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, { color: paper.inkSoft }]}>or</Text>
         <View style={st.rule} />
       </View>
 
       <View style={{ gap: space(4) }}>
+        <View ref={emailGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
+          ref={emailRef}
           label="Email"
           value={email}
-          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); }}
+          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); emailAdvance.queue(value); }}
           placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
+          textContentType="emailAddress"
+          editable={!busy}
           error={emailError}
           returnKeyType="next"
+          submitBehavior="submit"
+          onFocus={() => { focused.current = 'email'; keepFocusedVisible(); }}
+          onBlur={() => { emailAdvance.cancel(); if (focused.current === 'email') focused.current = null; }}
+          onSubmitEditing={() => {
+            emailAdvance.cancel();
+            if (busy || requestRunning.current) return;
+            if (looksLikeEmail(email)) { setEmailError(null); passwordRef.current?.focus(); }
+            else setEmailError('Enter a valid email address.');
+          }}
         />
+        </View>
+        <View ref={passwordGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
+          ref={passwordRef}
           label="Password"
           value={password}
           onChangeText={setPassword}
           placeholder="Your password"
           secure
           autoComplete="current-password"
+          textContentType="password"
+          editable={!busy}
           returnKeyType="done"
           onSubmitEditing={() => void submit()}
+          onFocus={() => { focused.current = 'password'; keepFocusedVisible(); }}
+          onBlur={() => { if (focused.current === 'password') focused.current = null; }}
         />
+        </View>
       </View>
 
       {/* The reset link sits under the password it is about, at the right edge. */}
@@ -245,6 +336,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           label={authButtonLabel('sendReset', pending === 'sendReset')}
           onPress={() => void forgot()}
           disabled={busy}
+          color={colour.blue}
         />
       </View>
 
@@ -257,29 +349,37 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
               <AlertGlyph size={16} color={paper.ink} />
             </View>
           )}
-          <Text accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
+          <Text maxFontSizeMultiplier={liveFontMultiplier} accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{formMessage}</Text>
         </View>
       )}
 
-      {/* The account switch stays next to the form. In onboarding the primary
-          action follows it inside the same keyboard-safe scroll area. */}
+      {!keyboardVisible && <View style={st.action}>
+        <PillButton tone="brand" label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} trailingIcon={<ArrowRight color={paper.onInk} />} />
+      </View>}
+
+      {/* The primary action returns after keyboard dismissal, inside the body. */}
       <Press haptic="light" style={st.switchRow} accessibilityRole="button" disabled={busy} onPress={() => { if (!requestRunning.current && !busy) onCreateAccount(); }}>
-        <Text style={[type.small, { color: paper.inkSoft }]}>
-          Need an account? <Text style={st.switchWord}>Create one</Text>
+        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, { color: paper.inkSoft }]}>
+          New to Luvani? <Text maxFontSizeMultiplier={liveFontMultiplier} style={st.switchWord}>Create an account</Text>
         </Text>
       </Press>
+      </RevealItem>
+      </View>
     </Frame>
   );
 }
 
 const st = StyleSheet.create({
-  head: { paddingTop: space(2), alignItems: 'center' },
-  doors: { gap: space(3), marginTop: space(6) },
-  or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(5) },
+  head: { alignItems: 'center', gap: space(2) },
+  doors: { flexDirection: 'row', alignItems: 'stretch', gap: space(3), marginTop: space(5) },
+  doorsStacked: { flexDirection: 'column' },
+  door: { flex: 1, minWidth: 0 },
+  or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(4) },
   rule: { flex: 1, height: HAIRLINE, backgroundColor: paper.line },
-  forgot: { alignItems: 'flex-end', marginTop: space(2) },
+  forgot: { alignItems: 'flex-end' },
   message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginBottom: space(2) },
   messageMark: { paddingTop: space(1) },
+  action: { marginTop: space(2) },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  switchWord: { color: paper.ink, fontFamily: type.bodyStrong.fontFamily, textDecorationLine: 'underline' },
+  switchWord: { color: colour.blue, fontFamily: type.bodyStrong.fontFamily, textDecorationLine: 'underline' },
 });

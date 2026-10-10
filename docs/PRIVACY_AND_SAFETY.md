@@ -749,7 +749,7 @@ kept:
 - **It stores no marker.** The refusal lives in memory only. `Gate` in
   `App.tsx`, which stays mounted for the whole launch, holds it above the first
   run and the sign-in door, so leaving through "I have an account" and coming
-  back opens on the refusal page again, and sign-in's "Create one" leads there
+  back opens on the refusal page again, and sign-in's "Create an account" leads there
   too. `PreAccountOnboardingDraft` has no field for it, and nothing writes it to
   the device. Signing in and out again does not end it; only closing the app
   does. On a shared phone, that means an adult who signs out later in the same
@@ -1145,7 +1145,7 @@ The modern first run uses `onboarding/disclosure.ts` for AI and bounded-starter 
 
 The guest capability/usage/ownership ledger contains hashed installation metadata and counters for thirty days, with online attempts expiring after twenty-four hours. It holds no replies or recordings. Guest speech budgets are seconds counters under a hashed capability, a hashed installation, a hashed network address and the UTC day; they expire after two days and hold no audio, text or raw address. Explicitly opted-in aggregate event counts contain closed event/variant/evidence enums and expire at ninety days; no answer, words, account or install ID enters them. Analytics and tutor learning memory start off independently. The local guest record retains bounded replies and feedback until explicit adoption/discard or app-data clearing. Authentication alone does not silently import it. See `docs/ONBOARDING.md` and `docs/STATE_AND_STORAGE.md` for ownership, metering and reinstall limits.
 
-The under-thirteen refusal clears both guest and draft writes, sends nothing and stores no refusal marker. It holds through sign-in and sign-out and new-account navigation for the remainder of the launch. A relaunch starts at the first page with nothing kept, and the question can be asked again. The historical draft can contain an optional first name; the modern journey asks for no name. The used-app marker is written after a completed account reaches the app, independently of any refusal. A daily reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create one" each cancel it on the phone.
+The under-thirteen refusal clears both guest and draft writes, sends nothing and stores no refusal marker. It holds through sign-in and sign-out and new-account navigation for the remainder of the launch. A relaunch starts at the first page with nothing kept, and the question can be asked again. The historical draft can contain an optional first name; the modern journey asks for no name. The used-app marker is written after a completed account reaches the app, independently of any refusal. A daily reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create an account" each cancel it on the phone.
 
 
 ### First live practice candidate, 10 October 2026

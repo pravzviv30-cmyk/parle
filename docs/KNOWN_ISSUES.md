@@ -5401,7 +5401,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/auth/SignUpScreen.tsx
 - note: Signup and introductory signin now use the shared centred onboarding frame, with no visible back control. Provider doors remain above the fields. Signup uses native keyboard insets, keeps its action after the fields and hides it while the software keyboard is visible; Confirm's Done validates and dismisses without submitting. Introductory signin scrolls its action with the fields. The returning signin route retains its existing shared frame. System back is guarded while a request runs. This replaces the historical pinned onboarding action and visible back through the shared header.
-- verified-by: `sign-in leads with Apple above Google and keeps one form action in its shared frame`
+- verified-by: `sign-in leads with provider actions and keeps its primary action clear of the keyboard`
 - verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
 
@@ -8975,7 +8975,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `eligibility is a separate start-sheet choice and refusal removes service and account actions`
 - verified-by: `the first scene uses the shared centred frame and a refusal leads with typing`
 - verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
-- verified-by: `sign-in leads with Apple above Google and keeps one form action in its shared frame`
+- verified-by: `sign-in leads with provider actions and keeps its primary action clear of the keyboard`
 - verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `choosing a new password is a working title on paper, with no card and no middot in its header`
 - verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`

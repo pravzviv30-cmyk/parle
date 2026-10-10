@@ -20,7 +20,7 @@ import type { AuthAdapter, AuthResult, AuthUser } from './types.ts';
 import { startGoogleSignIn } from './oauth.ts';
 import { startAppleSignIn } from './apple.ts';
 import { friendly, deletionFailure, reauthenticationLine, GOOGLE_NOT_CONFIGURED, APPLE_NOT_CONFIGURED } from './friendly.ts';
-import { googleAvailable, appleAvailable } from './providerStatus.ts';
+import { createProviderAvailability } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
 import { installationId } from './installation.ts';
@@ -63,12 +63,17 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       flowType: 'pkce',
     },
   });
+  const providers = createProviderAvailability(url, anonKey);
+  void providers.prefetch();
 
   if (Platform.OS !== 'web') {
     // Refresh only while foregrounded — the Supabase RN guidance. Without
     // this, a session quietly expires mid-week and the learner is bounced.
     AppState.addEventListener('change', (state) => {
-      if (state === 'active') void client.auth.startAutoRefresh();
+      if (state === 'active') {
+        void client.auth.startAutoRefresh();
+        void providers.prefetch();
+      }
       else void client.auth.stopAutoRefresh();
     });
     void client.auth.startAutoRefresh();
@@ -117,7 +122,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       // first and lets the provider refuse afterwards, which strands the learner
       // on a raw JSON body outside the app (F260). `null` means the preflight
       // could not tell, and then the redirect goes ahead as it always did.
-      if ((await googleAvailable(url, anonKey)) === false) {
+      if ((await providers.available('google')) === false) {
         return { ok: false, message: GOOGLE_NOT_CONFIGURED };
       }
       return startGoogleSignIn(client);
@@ -130,7 +135,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       // A learner on a new iPhone would otherwise meet a sheet that succeeds
       // and a session that never arrives. `null` means the preflight could not
       // tell, and then the sheet opens as it always did.
-      if ((await appleAvailable(url, anonKey)) === false) {
+      if ((await providers.available('apple')) === false) {
         return { ok: false, message: APPLE_NOT_CONFIGURED };
       }
       return startAppleSignIn(client);

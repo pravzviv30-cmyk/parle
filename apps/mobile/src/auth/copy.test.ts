@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
-import { SIGN_IN_PURPOSE } from './copy.ts';
+import { SIGN_IN_PURPOSE, welcomeBackGreeting } from './copy.ts';
 import { guiltIn } from '../copy/guilt.ts';
 
 const AUTH_DIR = import.meta.dirname;
@@ -46,7 +46,7 @@ describe('sign in says what is waiting behind the door — F374', () => {
     const screen = read('SignInScreen.tsx');
     assert.match(
       screen,
-      /import \{ SIGN_IN_PURPOSE \} from '\.\/copy\.ts';/,
+      /import \{ SIGN_IN_PURPOSE, welcomeBackGreeting \} from '\.\/copy\.ts';/,
       'SignInScreen does not import the shared line, so the words on screen are not the words tested here',
     );
     assert.match(screen, /\{SIGN_IN_PURPOSE\}/, 'SignInScreen imports the line and never renders it');
@@ -65,4 +65,25 @@ describe('sign in says what is waiting behind the door — F374', () => {
     assert.match(block, /type\.body/, 'the purpose line is not in the body type the sign-up sub line uses');
     assert.match(block, /paper\.inkSoft/, 'the purpose line is not in soft ink, so it competes with the headline');
   });
+});
+
+test('a saved first name personalises the greeting and absent data keeps it neutral', () => {
+  assert.equal(welcomeBackGreeting(' Camille '), 'Welcome back, Camille');
+  assert.equal(welcomeBackGreeting('Mary Jane'), 'Welcome back, Mary Jane');
+  for (const name of [undefined, null, '', '  ']) assert.equal(welcomeBackGreeting(name), 'Welcome back');
+  const screen = read('SignInScreen.tsx');
+  assert.match(screen, /welcomeBackGreeting\(planDraft\?\.firstName\)/);
+  assert.doesNotMatch(screen, /welcomeBackGreeting\(email/);
+});
+
+test('all sign-in entries suppress onboarding chrome while create account keeps it', () => {
+  const screen = read('SignInScreen.tsx');
+  assert.match(screen, /useOnboardingFramePresentation\(onboardingProgress\(\{ page: 'account' \}\), \{ hideProgress: true \}, !embedded\)/);
+  assert.match(screen, /const Frame = ScrollScreen/);
+  assert.doesNotMatch(screen, /<OnboardingLayout/);
+  assert.match(read('SignUpScreen.tsx'), /<OnboardingLayout/);
+  assert.match(screen, /fontScale > 1\.3 && st\.doorsStacked/);
+  assert.match(screen, /<RevealItem active=\{!embedded\}>/);
+  assert.match(screen, /const liveFontMultiplier = fontScale \+ 1;/);
+  assert.match(screen, /<Text ref=\{headingRef\} maxFontSizeMultiplier=\{liveFontMultiplier\}/);
 });
