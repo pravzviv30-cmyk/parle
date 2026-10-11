@@ -22,6 +22,7 @@ test('tapping a disabled Next lifts the choices and says to choose one, never a 
   assert.doesNotMatch(next, /disabled=\{disabled\}/, 'the explanatory touch must still arrive');
   const page = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
   assert.match(page, /disabled=\{answer == null\}/);
+  assert.match(page, /<NextButton\b[^>]*key=\{page\}/, 'each question must reset the one-shot readiness shine');
   assert.match(page, /if \(!reduced\) soft\(\)/);
   assert.match(page, /accessibilityLiveRegion="polite"[^>]*>Choose one to continue\./);
   const nudge = readFileSync(new URL('./firstRun/ChoiceNudge.tsx', import.meta.url), 'utf8');

@@ -69,6 +69,13 @@ GPT-6 Luna is the founder-selected live brain as of
 teaching and phone-audible latency remain unverified. Its Responses/structured
 output support and standard short-context rates are documented on the
 [official model page](https://developers.openai.com/api/docs/models/gpt-6-luna).
+Default GPT-6 Luna live turns and scene frames use `reasoning.effort: none` to
+reduce waiting. Explicit routing and valid `BRAIN_EFFORT` overrides still win;
+background activities retain their routed effort. The 11 October synthetic paired
+check returned schema-valid responses in 4.70 seconds at low and 2.78 seconds at
+none. This small sample does not establish phone-audible latency or comparative
+teaching quality. Full structured validation and output guards still precede TTS.
+
 If tutor evals show a material live-turn quality gap,
 change only `OPENAI_LIVE_MODEL` to Terra and compare again.
 

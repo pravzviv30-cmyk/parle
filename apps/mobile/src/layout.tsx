@@ -290,7 +290,9 @@ export function ScrollScreen({
   // This is background behaviour, never a navigation action or a grouped
   // accessibility button. Child fields and named controls keep their own
   // responders and accessibility elements; the keyboard's Done also dismisses.
-  return dismissKeyboardOnBackground ? (
+  // On web the wrapper receives input clicks too and immediately blurs them.
+  // Let the browser own pointer and keyboard focus instead.
+  return dismissKeyboardOnBackground && Platform.OS !== 'web' ? (
     <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
       <View style={{ flex: 1, minHeight: 0 }}>{screen}</View>
     </TouchableWithoutFeedback>

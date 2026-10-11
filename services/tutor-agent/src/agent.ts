@@ -302,7 +302,23 @@ export default defineAgent({
           enrichBeforeComplete: !!paid,
           ...(paid ? { client: brainClientFromEnv(process.env, paid.transport) } : {}),
           setSttLanguage: (language) => {
-            if (!recognition.experimental) stt?.updateOptions({ language });
+            if (recognition.experimental || !stt) return;
+            stt.updateOptions({ language });
+            // Retuning the model config alone leaves its existing stream in
+            // the old language. The public agent update restarts recognition
+            // from the configured STT at the scene boundary. The SDK handles
+            // an agent that has already stopped; never leave a rejection loose.
+            void tutor.updateOptions({ stt }).catch((error: unknown) => {
+              console.error('[luvani] recognition language could not be updated:', safeError(error));
+              tutor.publishError('Speech recognition could not update. You can continue by typing.');
+            });
+          },
+          // The public session API updates the active stream, deduplicates
+          // keyterms and defers reconnecting while the learner is speaking.
+          // STT.updateOptions only configures future streams in SDK 1.9.
+          // Paid proxy configuration is quote-bound; do not change it here.
+          setSttPhrases: (keyterms) => {
+            if (!recognition.experimental && !proxy) session.updateOptions({ keyterms });
           },
         })
       : new LuvaniTutor(lesson, startRung, { voiceless, persona, ...(paid ? { scoringRequest: paid.transport } : {}) });

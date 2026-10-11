@@ -37,5 +37,6 @@ export * from './streak/index.ts';
 export * from './goal/index.ts';
 export * from './quests/index.ts';
 export * from './badges/index.ts';
+export { recognitionPhrases, repairRecognizedFrench } from './speech/recognitionRepair.ts';
 
 export { parseFirstPracticeBrief, firstPracticeScenario, firstPracticePrompt, firstPracticeNext, type FirstPracticeBrief } from './firstPractice.ts';

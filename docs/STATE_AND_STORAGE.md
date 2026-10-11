@@ -914,7 +914,10 @@ rather than an app-level check.
 
 Production refuses to boot if identity is unverified, the tutor-agent debit
 secret is missing, or entitlement storage is volatile. Client-asserted identity exists
-only with the explicit local-development opt-in.
+only with the explicit local-development opt-in. Real asymmetric Supabase tokens
+retain their signed UUID session claim in local staging too, and must pass the
+live account/session check before durable tutor admission. They do not fall back
+to the mock identity path when verification or the live check fails.
 
 Billing periods roll lazily on read rather than on a cron, so a learner returning
 after their month ends gets their allowance back on arrival.

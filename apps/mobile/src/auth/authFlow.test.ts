@@ -205,7 +205,7 @@ describe('account-first route from Welcome back', () => {
   });
   test('editing hides navigation and hidden introduction cannot receive touches', () => {
     assert.match(read('SignInScreen.tsx'), /<Frame\s+dismissKeyboardOnBackground/);
-    assert.match(read('..', 'layout.tsx'), /return dismissKeyboardOnBackground \? \(\s*<TouchableWithoutFeedback accessible=\{false\} onPress=\{Keyboard.dismiss\}>/);
+    assert.match(read('..', 'layout.tsx'), /return dismissKeyboardOnBackground && Platform\.OS !== 'web' \? \(\s*<TouchableWithoutFeedback accessible=\{false\} onPress=\{Keyboard.dismiss\}>/);
     assert.match(read('..', 'layout.tsx'), /dismissKeyboardOnBackground = false/);
     assert.match(read('SignInScreen.tsx'), /!keyboardVisible && <Press[\s\S]*?onCreateAccount/);
     assert.match(FLOW, /pointerEvents=\{screen === 'welcome' \? 'auto' : 'none'\}/);

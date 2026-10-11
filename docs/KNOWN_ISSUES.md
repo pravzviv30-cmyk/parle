@@ -732,7 +732,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   MAX_OUTPUT table gave curate 4,000 tokens where the routing table says 3,000. Effort and
   size now come from resolveRouting; which of the two OpenAI names answers follows the line
   SplitBrainClient already draws, because the table's model names are Claude's and which
-  provider serves a call is wiring, not routing.
+  provider serves a call is wiring, not routing. The 11 October Luna live default
+  deliberately uses none for turn/frame; explicit routes and BRAIN_EFFORT remain
+  authoritative, and the named invariant now tests explicit routing.
 - verified-by: `the scene a learner waits through is designed by the fast model, not the analyst`
 - verified-by: `every activity thinks as hard as the routing table says, not as hard as this adapter guessed`
 - verified-by: `BRAIN_EFFORT moves the OpenAI arm exactly as it moves the Claude arm`
@@ -10475,3 +10477,55 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `warm and cold delivery of one email link exchange only once with the exact flow slot`
 - verified-by: `email callbacks reject foreign routes, provider errors, duplicate parameters and URL tokens`
 - verified-by: `unsubscribing suppresses a late launch URL and pending exchange error`
+
+### F797 — Live Supabase preflight compares catalog expressions under different search paths
+- severity: P2
+- status: [x]
+- where: scripts/releaseSchemaManifest.mjs, services/token-server/src/verify/supabaseLive.ts
+- note: The full hosted SQL catalog matched all 39 migrations, but the REST preflight falsely rejected policies and two functions returning composite rows. PostgreSQL qualifies those expressions using the caller's search path; backend_catalog_v1 has an empty path. The live harness now requests that same rendering context from the independent migration replay. The full SQL baseline and all drift/ACL comparisons remain intact. The regression failed on the original implementation; all 12 live disposable-account proofs subsequently passed on Luvani Staging.
+- verified-by: `live REST preflight renders policies and composite results in the RPC search path`
+
+### F798 — Web sign-in background handler immediately blurs clicked fields
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/layout.tsx
+- note: The native background keyboard-dismiss wrapper also received browser input clicks, removing focus before typing. ScrollScreen now keeps that wrapper native-only. In Chrome, the original email click/type sequence left the field empty and focus on the page; after the fix, normal typing persists and clicking Password retains focus. Native dismissal and busy-state field disabling remain unchanged.
+- verified-by: `editing hides navigation and hidden introduction cannot receive touches`
+
+### F799 — Real local staging sign-in loses its durable tutor session identity
+- severity: P1
+- status: [x]
+- where: services/token-server/src/auth.ts
+- note: The asymmetric token verifier discarded session_id outside production, routing real staging users through legacy grant recording. With authoritative admission enabled, SQL correctly refused that path. Verified UUID session claims now survive local staging verification and require the same live account/session check before durable admission. Keyless mock identities keep their existing local-only path. The regression failed before the fix, then passed including revoked and unavailable identity checks; the actual Chrome session subsequently obtained a durable 120-second reservation and the worker claimed it.
+- verified-by: `local staging preserves and checks the verified Supabase session for durable tutor admission`
+
+### F800 — Onboarding readiness shine is consumed by the first question
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Reusing one NextButton instance across questions retained its one-shot shine state. Keying it by the question resets readiness feedback for each choice screen while preserving reduced-motion behavior. The existing next-action contract failed before the fix and passed afterwards.
+- verified-by: `tapping a disabled Next lifts the choices and says to choose one, never a shake`
+
+
+### F801 — Scene vocabulary changes do not reach the active speech stream
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts
+- note: Updating the Deepgram model options only changed future streams in the installed SDK. Current-turn vocabulary now uses the public session keyterms API, which updates the active stream and defers reconnecting during speech. Quote-bound paid proxy and experimental recognizer options remain unchanged.
+- verified-by: `current scene keyterms update the active session without changing paid or experimental recognition`
+
+### F802 — Approximate spelling distance can replace a valid learner word
+- severity: P1
+- status: [x]
+- where: packages/core/src/speech/recognitionRepair.ts
+- note: Review found that a generic two-edit match could replace partir with parler or train with pain. Repair now requires conservative sound-fold equivalence or the observed sur-place confusion family, current-turn context and an unambiguous result. Expanded quantity/negation guards preserve regional numbers and elided refusals. Typed input is unchanged and interpreted speech is explicitly labelled.
+- verified-by: `a nearby valid word is not evidence to replace the learners meaning`
+- verified-by: `near-sound repair cannot change teen quantities, regional numbers or elided negation`
+
+
+### F803 — Scene language retuning leaves the active recognizer multilingual
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts, services/tutor-agent/src/recognitionSdk.test.ts
+- note: Updating the recognizer configuration did not rebuild its already-open stream. The public Agent update API now restarts recognition at the phase boundary, with rejection contained and a typing recovery message. An offline test uses the installed SDK and a loopback fake vendor to inspect the actual language/keyterm WebSocket query, without real audio or provider credits.
+- verified-by: `installed SDK reopens the same recognizer in French and applies current session keyterms`

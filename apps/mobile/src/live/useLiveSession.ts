@@ -1137,7 +1137,7 @@ export function useLiveSession(
               confirmedIds.current.add(confirmedId);
               contributionCallback.current?.({ id: confirmedId, text: msg.text, input: msg.input === 'typed' || msg.input === 'spoken' ? msg.input : 'unknown' });
               setLastTranscript(msg.text);
-              addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: null });
+              addTurn({ who: 'learner', fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null });
             } else setPartialTranscript(msg.text);
             break;
           case 'summary':

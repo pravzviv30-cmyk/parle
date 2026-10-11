@@ -552,6 +552,7 @@ function buildConvo(
 ) {
   const client = opts.client ?? new MockLlmClient();
   const sttLanguages: SttLanguage[] = [];
+  const sttPhrases: string[][] = [];
   const convo = new LuvaniConversation(opts.profile ?? createProfile(), {
     voiceless: opts.voiceless ?? false,
     client,
@@ -564,6 +565,7 @@ function buildConvo(
     startRung: opts.startRung,
     persona: opts.persona,
     setSttLanguage: (language) => sttLanguages.push(language),
+    setSttPhrases: (phrases) => sttPhrases.push(phrases),
   });
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
@@ -576,7 +578,7 @@ function buildConvo(
     published.push(message);
   });
   t.after(() => convo.clearRescue());
-  return { convo, client, session, said, published, sttLanguages };
+  return { convo, client, session, said, published, sttLanguages, sttPhrases };
 }
 
 /** A tap or a keystroke, as it arrives on the data channel. */
@@ -4126,4 +4128,23 @@ test('first live completion uses evidenced scene goals, not authored-mission fla
   assert.equal(firstPracticeObjectiveComplete({...state, beatStatus: allDone, missionDone: false,
     evidencedBeatIds: state.frame.beats.map(beat => beat.id)}), true);
   assert.equal(firstPracticeObjectiveComplete({...state, evidencedBeatIds: [state.frame.beats[0]!.id]}), false);
+});
+
+test('contextual speech interpretation reaches the transcript and brain together without rewriting typed input', async t => {
+  const support = sampleSupport({ fullLine: { fr: 'Sur place.', frWritten: null, en: 'For here.' }, options: [
+    { fr: 'Sur place.', en: 'For here.' }, { fr: 'À emporter.', en: 'To go.' },
+  ] });
+  const client = new MockLlmClient({ turns: [sampleTurn({support}), sampleTurn({support}), sampleTurn({support})] });
+  const built = await inScene(t, {client});
+  await built.convo.handleClientMessage(built.session, tapped({t:'say',text:'Un café'}));
+  assert.ok(built.sttPhrases.at(-1)?.includes('Sur place.'));
+  await assert.rejects(() => built.convo.onUserTurnCompleted({} as never, heard('Souplesse.')), voice.StopResponse);
+  const spoken = built.published.filter(m => m.t === 'transcript').at(-1)!;
+  assert.equal(spoken.text, 'Sur place.');
+  assert.equal(spoken.interpreted, true);
+  assert.equal(client.turnRequests.at(-1)?.messages.filter(m => m.role === 'user').at(-1)?.text, 'Sur place.');
+  await built.convo.handleClientMessage(built.session, tapped({t:'say',text:'Souplesse.'}));
+  const typed = built.published.filter(m => m.t === 'transcript').at(-1)!;
+  assert.equal(typed.text, 'Souplesse.');
+  assert.equal(typed.interpreted, undefined);
 });

@@ -30,7 +30,7 @@ function Playback({ kind, width }: BoldSceneProps) {
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const { RiveComponent } = useRive({ src: Asset.fromModule(BOLD_FILES[kind]).uri,
-    stateMachines: 'Scene', autoplay: true, layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
+    stateMachine: 'Scene', autoplay: true, layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
     onLoad: () => setReady(true), onLoadError: () => setFailed(true) });
   return <>
     {(!ready || failed) && <BoldStill kind={kind} width={width} />}

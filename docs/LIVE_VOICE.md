@@ -26,6 +26,18 @@ streaming probes found high-confidence errors in both candidates; this option
 requires consenting beginner, interruption, room and end-to-end timing QA before
 activation. It adds no grade, confidence threshold, saved transcript or recipient.
 
+Current-scene recognition repair uses only the current support line and reply
+options. Conservative sound-fold matches and the observed “sur place” confusion family
+can replace a recognizer spelling error; an
+ambiguous match, changed negation/quantity, unrelated speech, typed answer or
+pre-scene topic remains untouched. The same interpreted text reaches the brain
+and final transcript, whose caption says “Interpreted from your speech”. This is
+an interpretation, never an audio pronunciation score or automatic lesson pass.
+Nova-3 phase changes restart the active recognizer through the public Agent API;
+a failed update reports a typing recovery message. The direct conversation path also receives a bounded current-turn keyterm
+list through the active session’s public update seam. Experimental recognition and quote-bound paid proxy settings are unchanged;
+repair still runs after recognition without another model request.
+
 What happens between a learner tapping "start" and a tutor answering them, and
 where every part of it can go wrong.
 

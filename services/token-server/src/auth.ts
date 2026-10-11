@@ -82,7 +82,11 @@ export function createUserResolver(
           payload.iat > Math.floor(Date.now() / 1000) + 5
         )) return null;
         const at = verifiedAuthenticationAt(payload);
-        return { userId: payload.sub, ...(production ? { sessionId: payload.session_id as string } : {}), ...(at === null ? {} : { authenticatedAt: at }) };
+        // A real staging bearer needs the same durable tutor-session identity.
+        // Only signed UUID session claims participate; keyless local fixtures
+        // keep their existing path and cannot manufacture a session claim.
+        const sessionId = typeof payload.session_id === 'string' && uuid.test(payload.session_id) ? payload.session_id : undefined;
+        return { userId: payload.sub, ...(sessionId ? { sessionId } : {}), ...(at === null ? {} : { authenticatedAt: at }) };
       };
     }
   } else if (config.jwtSecret && !production) {
@@ -115,7 +119,7 @@ export function createUserResolver(
           return SIGN_IN_REQUIRED;
         }
         if (identity === null) return SIGN_IN_REQUIRED;
-        if (production) {
+        if (production || identity.sessionId) {
           if (!options.isIdentityActive || !identity.sessionId) return { ok: false, status: 503, message: 'Sign-in verification is temporarily unavailable.' };
           try {
             if (!await options.isIdentityActive(identity.userId, identity.sessionId)) return SIGN_IN_REQUIRED;

@@ -70,3 +70,21 @@ Routine task progress belongs in its change plan.
   no parallel navigator, policy, authentication service or progress store is added.
 - Sources: [change plan](docs/changes/bold-rhythm.md),
   [asset provenance and rebuild](apps/mobile/assets/bold-rhythm/README.md).
+
+
+## VOICE-001 — Bound recognition repair to current conversational support
+
+- Date: 2026-10-11
+- Status: accepted
+- Decision: interpret only close, unambiguous French sound-spelling matches to
+  current support phrases; publish the same labelled interpretation to the learner
+  and brain. Keep typed input, raw-input safety checks and grading ownership intact.
+  Use no-reasoning GPT-6 Luna by default for live turns and frames, with explicit
+  routing overrides retained.
+- Reason: the user confirmed real speech but reported slow replies and beginner
+  French recognition errors. Contextual repair adds no model round trip; a bounded
+  synthetic comparison supports the latency setting without claiming broad quality.
+- Consequence: this is not pronunciation assessment, certainty about intent or
+  production voice acceptance. Conservative unmatched speech is left unchanged.
+- Sources: [live voice](docs/LIVE_VOICE.md), [brain](docs/TUTOR_BRAIN.md),
+  [verification plan](docs/changes/bold-rhythm.md).

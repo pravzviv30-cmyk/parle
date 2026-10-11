@@ -32,7 +32,7 @@ import {
   type LlmUsage,
 } from './client.ts';
 import { realSleep, retryAfterMs, type FetchLike, type SleepLike } from './http.ts';
-import { isAnalystActivity, resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
+import { isAnalystActivity, openAiEffortFor, resolveRouting, type BrainActivity, type BrainEffort, type BrainRouting } from './routing.ts';
 
 /**
  * What `complete` needs from any request: the bytes its cache key is cut from,
@@ -210,6 +210,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   private readonly sleep: SleepLike;
   private readonly config: Wiring;
   private readonly routing: BrainRouting;
+  private readonly explicitEffort: boolean;
 
   constructor(
     config: OpenAiResponsesConfig = {},
@@ -226,6 +227,7 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       analystModel: config.analystModel?.trim() || process.env.OPENAI_ANALYST_MODEL?.trim() || DEFAULT_OPENAI_ANALYST_MODEL,
     };
     this.routing = config.routing ?? resolveRouting();
+    this.explicitEffort = config.routing !== undefined || ['low', 'medium', 'high'].includes(process.env.BRAIN_EFFORT ?? '');
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {
@@ -294,12 +296,13 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   }
 
   /** One activity's model, effort and size. Two tables, one question each. */
-  private routeFor(activity: BrainActivity): { model: string; effort: BrainEffort | undefined; maxTokens: number } {
+  private routeFor(activity: BrainActivity): { model: string; effort: BrainEffort | 'none' | undefined; maxTokens: number } {
     const route = this.routing[activity];
+    const model = isAnalystActivity(activity, this.routing) ? this.config.analystModel
+      : activity === 'turn' || activity === 'frame' ? this.config.liveModel : this.config.turnModel;
     return {
-      model: isAnalystActivity(activity, this.routing) ? this.config.analystModel
-        : activity === 'turn' || activity === 'frame' ? this.config.liveModel : this.config.turnModel,
-      effort: route.effort,
+      model,
+      effort: openAiEffortFor(activity, model, route.effort, this.explicitEffort),
       maxTokens: route.maxTokens,
     };
   }

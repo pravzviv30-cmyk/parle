@@ -1,8 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { requestIdentity,validateRequest,captureSql,validateCapture,catalogDifferences } from './verifyCurrentHostedSchema.mjs';
-import { canonical,sha256,CATALOG_SQL,MANAGED_DEFAULT_PRIVILEGES_SQL } from './releaseSchemaManifest.mjs';
+import { canonical,sha256,CATALOG_SQL,MANAGED_DEFAULT_PRIVILEGES_SQL,buildSchemaManifest } from './releaseSchemaManifest.mjs';
+import { currentInventoryProblems } from '../services/token-server/src/verify/supabaseLive.ts';
+import { PGlite } from '@electric-sql/pglite';
+import { readFile } from 'node:fs/promises';
 const now=Date.parse('2026-10-04T12:00:00Z');
+test('live REST preflight renders policies and composite results in the RPC search path',async()=>{
+ const db=new PGlite();
+ try {
+  const expected=await buildSchemaManifest(undefined,{catalogContext:'rest'});
+  await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+   create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+   create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+   create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+   grant usage on schema public,auth to anon,authenticated,service_role;`);
+  await db.exec(MANAGED_DEFAULT_PRIVILEGES_SQL);
+  for(const migration of expected.migrations) await db.exec(await readFile(new URL('../supabase/migrations/'+migration.name,import.meta.url),'utf8'));
+  const actual=(await db.query('select public.backend_catalog_v1() as catalog')).rows[0].catalog;
+  assert.deepEqual(currentInventoryProblems(expected.catalog,actual),[]);
+  const changed=structuredClone(actual);changed.routines.find(r=>r.name==='consume_entitlement').definitionMd5='changed';
+  assert.ok(currentInventoryProblems(expected.catalog,changed).some(p=>p.includes('consume_entitlement')));
+  const original=(await buildSchemaManifest()).catalog;
+  assert.ok(currentInventoryProblems(original,actual).some(p=>p.includes('RLS policy source drift')));
+ } finally {await db.close();}
+});
 function fixtures(){
  const catalog={roles:[],schemas:[],tables:[{schema:'public',name:'example_fixture',rls:true,privileges:{anon:{select:false}}}],policies:[],routines:[],sequences:[],defaultPrivileges:[]};
  const migrations=[{name:'202610040001_fixture.sql',version:'202610040001',sha256:sha256('fixture SQL')}];

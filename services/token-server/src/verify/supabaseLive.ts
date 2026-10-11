@@ -465,7 +465,7 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
 
   // Read-only narrow REST inventory. Do not label it a full catalog/security proof.
   const { buildSchemaManifest } = await import(new URL('../../../../scripts/releaseSchemaManifest.mjs', import.meta.url).href);
-  const expectedSchema = await buildSchemaManifest() as { catalog: CatalogShape; migrationCount: number };
+  const expectedSchema = await buildSchemaManifest(undefined, { catalogContext: 'rest' }) as { catalog: CatalogShape; migrationCount: number };
   const observedCatalog = await admin.rpc('backend_catalog_v1');
   const inventoryProblems = observedCatalog.error ? [`backend_catalog_v1 ${codeOf(observedCatalog)}`] : currentInventoryProblems(expectedSchema.catalog, observedCatalog.data);
   const admission = await admin.rpc('tutor_session_schema_v1');

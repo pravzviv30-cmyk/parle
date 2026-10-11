@@ -222,3 +222,21 @@ test('the recent-authentication proof comes only from the verified bearer sessio
   parts[1] = Buffer.from(JSON.stringify(forged)).toString('base64url');
   assert.equal((await resolver.resolve(`Bearer ${parts.join('.')}`, 'real-user')).ok, false);
 });
+
+test('local staging preserves and checks the verified Supabase session for durable tutor admission', async () => {
+  const project = await generateKeyPair('ES256');
+  const userId = '12345678-1234-4234-8234-123456789abc';
+  const sessionId = '12345678-1234-4234-8234-123456789def';
+  const token = await new SignJWT({ role: 'authenticated', session_id: sessionId })
+    .setProtectedHeader({ alg: 'ES256' }).setSubject(userId).setIssuedAt().setExpirationTime('1h').sign(project.privateKey);
+  const config = { supabaseUrl: 'https://project.supabase.co', nodeEnv: 'development', localDevelopment: '1' };
+  const seen: string[][] = [];
+  const resolver = createUserResolver(config, { getKey: async () => project.publicKey,
+    isIdentityActive: async (user, session) => { seen.push([user, session]); return true; } });
+  assert.deepEqual(await resolver.resolve(`Bearer ${token}`, 'forged'), { ok: true, userId, authSessionId: sessionId });
+  assert.deepEqual(seen, [[userId, sessionId]]);
+  const revoked = createUserResolver(config, { getKey: async () => project.publicKey, isIdentityActive: async () => false });
+  assert.deepEqual(await revoked.resolve(`Bearer ${token}`, userId), { ok: false, status: 401, message: 'Sign in to use this.' });
+  const unavailable = createUserResolver(config, { getKey: async () => project.publicKey });
+  assert.equal((await unavailable.resolve(`Bearer ${token}`, userId)).ok, false);
+});

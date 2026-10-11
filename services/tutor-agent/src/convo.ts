@@ -23,6 +23,7 @@ import { voice, type llm, type stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream } from 'node:stream/web';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
+import { recognitionPhrases, repairRecognizedFrench } from '@luvani/core';
 import { CanDoEvidenceLedger, correctionSourceMatches, parseTutorRevision, parseReviewFocus, parsePreviousCorrection, tutorSessionBrief } from '@luvani/core';
 import { selectedBrain } from './preflight.ts';
 import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
@@ -903,6 +904,7 @@ export class LuvaniConversation extends voice.Agent {
    * is nothing listening to retune.
    */
   private setSttLanguage: (language: SttLanguage) => void = () => {};
+  private setSttPhrases: (phrases: string[]) => void = () => {};
   private publish: Publisher = () => {};
   private silenceTimer?: ReturnType<typeof setTimeout>;
   /**
@@ -1137,6 +1139,7 @@ export class LuvaniConversation extends voice.Agent {
       enrichBeforeComplete?: boolean;
       finishEnrichmentMs?: number;
       setSttLanguage?: (language: SttLanguage) => void;
+      setSttPhrases?: (phrases: string[]) => void;
       /**
        * The topic this session was started on, if it was started from a card.
        * `unknown` on purpose: the guard, not the caller, decides what a seed
@@ -1215,6 +1218,7 @@ export class LuvaniConversation extends voice.Agent {
     this.startRung = opts.startRung;
     this.persona = opts.persona;
     if (opts.setSttLanguage) this.setSttLanguage = opts.setSttLanguage;
+    if (opts.setSttPhrases) this.setSttPhrases = opts.setSttPhrases;
   }
 
   /** Where the conversation has got to. Read-only, for the worker and for tests. */
@@ -1748,6 +1752,7 @@ export class LuvaniConversation extends voice.Agent {
    */
   private returnToChoosing(): void {
     this.phase = 'choosing';
+    this.setSttPhrases([]);
     this.setSttLanguage(sttLanguageFor('convo', 'choosing'));
     if (this.seedTopic || this.missionId) {
       // A session that came from a topic card or a mission has no question to go back to:
@@ -2243,11 +2248,12 @@ export class LuvaniConversation extends voice.Agent {
           console.error('[luvani] the spoken topic could not open a scene:', safeError(error));
         });
       } else if (this.phase === 'scene') {
-        this.publish({ t: 'transcript', text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}` });
+        const recognized = repairRecognizedFrench(text, this.recognitionContext());
+        this.publish({ t: 'transcript', text: recognized.text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}`, ...(recognized.interpreted ? { interpreted: true } : {}) });
         const correctionGeneration = this.correctionReasonGeneration;
         await this.queue.run(() => {
           this.learnerTurns += 1;
-          return this.runBrainTurn({ type: 'spoke', text }, timing, correctionGeneration);
+          return this.runBrainTurn({ type: 'spoke', text: recognized.text }, timing, correctionGeneration);
         });
       } else {
         // Speech while the scenario builder runs is still dropped: the scene
@@ -2463,10 +2469,16 @@ export class LuvaniConversation extends voice.Agent {
     timing?.finish('dispatched');
   }
 
+  private recognitionContext(): string[] {
+    const support = this.state.lastSupport;
+    return recognitionPhrases([support.fullLine.fr, ...support.options.map(option => option.fr)]);
+  }
+
   private publishView(view: ConvoView, options: { rearm?: boolean } = {}): ConvoView {
     this.canDoLedger.noteWinningView(view);
     view = { ...view, textTurnId: view.textTurnId ?? `v${++this.textTurnSequence}` };
     this.lastView = view;
+    if (!this.voiceless) this.setSttPhrases(this.recognitionContext());
     this.publish({ t: 'convo', view });
     // Text mode has no speech, so no AgentStateChanged ever fires to start
     // the silence clock. The render is the moment the learner has the floor.

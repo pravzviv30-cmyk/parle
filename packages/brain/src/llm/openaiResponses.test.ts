@@ -105,7 +105,7 @@ describe('OpenAI Responses brain — the wire it speaks', () => {
     const body = bodies[0]!;
     assert.equal(turn.sceneReply.fr, 'Ça marche, un café !');
     assert.equal(body.model, DEFAULT_OPENAI_LIVE_MODEL);
-    assert.equal((body.reasoning as { effort: string }).effort, 'low');
+    assert.equal((body.reasoning as { effort: string }).effort, 'none');
     assert.equal((body.text as { format: { type: string; strict: boolean } }).format.type, 'json_schema');
     assert.equal((body.text as { format: { type: string; strict: boolean } }).format.strict, true);
     assert.equal((body.input as { role: string }[]).at(-1)!.role, 'developer');
@@ -196,13 +196,13 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     }
   });
 
-  test('every activity thinks as hard as the routing table says, not as hard as this adapter guessed', async () => {
+  test('Luna live turns skip reasoning while background activities retain their routed effort', async () => {
     for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
       const body = await bodyFor(activity);
       assert.equal(
         (body.reasoning as { effort: string } | undefined)?.effort,
-        DEFAULT_ROUTING[activity].effort,
-        `${activity} must think as hard on OpenAI as it does on Claude`,
+        activity === 'turn' || activity === 'frame' ? 'none' : DEFAULT_ROUTING[activity].effort,
+        `${activity} must use the intended live or background effort`,
       );
     }
   });
@@ -215,6 +215,22 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
       'high',
       'the one dev knob has to answer the same whichever provider is serving',
     );
+  });
+
+  test('every activity thinks as hard as the routing table says, not as hard as this adapter guessed', async () => {
+    // An explicit route is authoritative, including the previous low-effort
+    // live setting used for comparison with Luna's new default.
+    for (const activity of Object.keys(DEFAULT_ROUTING) as BrainActivity[]) {
+      const body = await bodyFor(activity, { routing: DEFAULT_ROUTING });
+      assert.equal((body.reasoning as { effort: string } | undefined)?.effort, DEFAULT_ROUTING[activity].effort);
+    }
+  });
+
+  test('the no-reasoning default is limited to the measured Luna live model', async () => {
+    for (const activity of ['turn', 'frame'] as const) {
+      const body = await bodyFor(activity, { liveModel: 'another-model' });
+      assert.equal((body.reasoning as { effort: string }).effort, DEFAULT_ROUTING[activity].effort);
+    }
   });
 
   test("a route with no effort of its own leaves the vendor's default alone", async () => {
@@ -351,7 +367,7 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
         { role: 'user', content: 'Hello' },
         { role: 'developer', content: 'private app context' },
       ],
-      reasoning: { effort: DEFAULT_ROUTING.turn.effort },
+      reasoning: { effort: 'none' },
       max_output_tokens: DEFAULT_ROUTING.turn.maxTokens,
       store: false,
       text: {

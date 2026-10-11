@@ -98,6 +98,11 @@ export const DEFAULT_ROUTING: BrainRouting = {
  */
 export const ANALYST_TIER_MODEL = 'claude-opus-5';
 
+/** Luna's strict live contract can answer without a separate reasoning pass. */
+export function openAiEffortFor(activity: BrainActivity, model: string, effort: BrainEffort | undefined, explicitRouting: boolean): BrainEffort | 'none' | undefined {
+  return !explicitRouting && model === 'gpt-6-luna' && (activity === 'turn' || activity === 'frame') ? 'none' : effort;
+}
+
 /**
  * Whether this activity was routed to the careful tier.
  *

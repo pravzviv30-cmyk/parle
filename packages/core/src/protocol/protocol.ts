@@ -223,8 +223,8 @@ export type ServerMessage =
   | { t: 'feedback'; feedback: TurnFeedback }
   /** The tutor is talking (or has stopped). Drives the mic control's state. */
   | { t: 'speaking'; speaking: boolean }
-  /** What the learner actually said, as transcribed. */
-  | { t: 'transcript'; text: string; final: boolean; input?: 'typed' | 'spoken'; turnId?: string }
+  /** Recognized learner speech; interpreted marks a contextual spelling repair. */
+  | { t: 'transcript'; text: string; final: boolean; input?: 'typed' | 'spoken'; turnId?: string; interpreted?: boolean }
   /** The lesson is over. Carries the end card. */
   | { t: 'summary'; summary: SessionSummary }
   /** Free conversation: render this turn. The convo analog of `prompt`. */

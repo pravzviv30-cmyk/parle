@@ -452,6 +452,30 @@ const deliver = (world: Record<string, unknown>, msg: unknown): void => {
   run(SWITCH, { ...world, msg });
 };
 
+test('interpreted speech is labelled on the confirmed transcript without labelling typed or partial input', () => {
+  const { world } = switchWorld();
+  const turns: { who: string; fr: string; en: string | null }[] = [];
+  const contributions: { id: string; text: string; input: string }[] = [];
+  const partials: (string | null)[] = [];
+  world.addTurn = (line: typeof turns[number]) => turns.push(line);
+  world.contributionCallback = { current: (line: typeof contributions[number]) => contributions.push(line) };
+  world.confirmedIds = { current: new Set<string>() };
+  world.setPartialTranscript = (text: string | null) => partials.push(text);
+
+  const spoken = { t: 'transcript', final: true, text: 'Sur place.', input: 'spoken', interpreted: true, turnId: 'spoken-1' };
+  deliver(world, spoken);
+  deliver(world, spoken);
+  deliver(world, { ...spoken, input: 'typed', turnId: 'typed-1' });
+  deliver(world, { ...spoken, interpreted: false, turnId: 'spoken-2' });
+  deliver(world, { ...spoken, final: false, text: 'Souplesse', turnId: 'partial-1' });
+
+  assert.deepEqual(turns.map(line => line.en), ['Interpreted from your speech', null, null]);
+  assert.ok(turns.every(line => line.who === 'learner' && line.fr === 'Sur place.'));
+  assert.deepEqual(contributions.map(line => line.id), ['spoken-1', 'typed-1', 'spoken-2']);
+  assert.ok(contributions.every(line => line.text === 'Sur place.'));
+  assert.equal(partials.at(-1), 'Souplesse', 'partial recognition remains provisional');
+});
+
 describe('the safety decision the hook holds — F136', () => {
   test('a safety stop survives the recap, the summary and the eight second timer', () => {
     const { world, seen, safetyRef } = switchWorld();

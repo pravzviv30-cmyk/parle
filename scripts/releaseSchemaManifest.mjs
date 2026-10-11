@@ -80,7 +80,8 @@ export const MANAGED_DEFAULT_PRIVILEGES_SQL = `
   alter default privileges for role supabase_admin in schema public grant all on functions to postgres,anon,authenticated,service_role;
 `;
 
-export async function buildSchemaManifest(root = ROOT) {
+export async function buildSchemaManifest(root = ROOT, { catalogContext = 'sql' } = {}) {
+  if (!['sql','rest'].includes(catalogContext)) throw new Error('invalid catalog rendering context');
   const migrations = await migrationInventory(root);
   const { PGlite } = await import('@electric-sql/pglite');
   const db = new PGlite();
@@ -94,6 +95,9 @@ export async function buildSchemaManifest(root = ROOT) {
       alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
     await db.exec(MANAGED_DEFAULT_PRIVILEGES_SQL);
     for (const item of migrations) await db.exec(await readFile(resolve(root,'supabase/migrations',item.name),'utf8'));
+    // pg_get_functiondef and pg_policies qualify names using the caller's path.
+    // Match backend_catalog_v1's empty path for REST, preserving the SQL baseline.
+    if (catalogContext === 'rest') await db.exec("set search_path = ''");
     const catalog = (await db.query(CATALOG_SQL)).rows[0].catalog;
     const critical = ['active_tutor_identity_v1','reserve_tutor_session_v1','claim_tutor_session_v1','checkpoint_tutor_session_v1',
       'complete_tutor_session_v1','abandon_tutor_session_v1','receipt_tutor_session_v1','reconcile_tutor_sessions_v1',

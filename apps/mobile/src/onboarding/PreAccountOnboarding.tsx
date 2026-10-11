@@ -454,7 +454,7 @@ export function PreAccountOnboarding({
     </View>
   ) : question ? (
     <View style={readingColumn}>
-      <NextButton bold disabled={answer == null} label={nextSetupLabel(page, five)} onPress={nextQuestion} onDisabledPress={() => { if (!reduced) soft(); setChoiceNudge(v => ({ page, event: v.event + 1 })); }} />
+      <NextButton bold disabled={answer == null} label={nextSetupLabel(page, five)} key={page} onPress={nextQuestion} onDisabledPress={() => { if (!reduced) soft(); setChoiceNudge(v => ({ page, event: v.event + 1 })); }} />
       {choiceNudge.page === page && answer == null && <Text key={choiceNudge.event} accessibilityLiveRegion="polite" style={[type.small, { color: ink, textAlign: 'center' }]}>Choose one to continue.</Text>}
     </View>
   ) : page === 'plan' ? (
