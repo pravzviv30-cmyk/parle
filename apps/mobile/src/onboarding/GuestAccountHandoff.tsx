@@ -7,8 +7,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { phraseKeyOf } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
-import { Card, GhostButton, PillButton } from '../components.tsx';
-import { paper, type } from '../theme.ts';
+import { Card, GhostButton } from '../components.tsx';
+import { paper } from '../theme.ts';
+import { boldType as type } from './boldRhythm.ts';
+import { BoldButton as PillButton } from './BoldButton.tsx';
+import { BoldScene } from './motion/BoldScene.tsx';
 import { addPhrases } from '../review/store.ts';
 import { activeUserId, scopeGeneration, userKey, writeInUserScope } from '../storage/scope.ts';
 import {
@@ -206,7 +209,7 @@ export function GuestAccountHandoff({
     page: 'account-welcome',
     five: journey.current?.onboardingVariant === 'five' || (journey.current?.onboardingVariant == null && process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five'),
     completed: journey.current?.onboardingCompletedSteps,
-    skipped: [...(journey.current?.onboardingSkippedSteps ?? []), ...(journey.current?.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])],
+    skipped: [...(journey.current?.onboardingSkippedSteps ?? []), ...(journey.current?.quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])],
   });
   if (welcoming) return <HomeArrivalAllowed.Provider value={false}><View style={{ flex: 1 }}>
     <View style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">{children}</View>
@@ -249,6 +252,7 @@ export function GuestAccountHandoff({
       <Text accessibilityRole="header" style={[type.title, { textAlign: 'center', marginBottom: 16 }]}>
         {saved ? (shown ? 'Your phrase is saved.' : 'Your practice is saved.') : 'Keep this practice?'}
       </Text>
+      <BoldScene kind={saved ? 'save' : busy ? 'saving' : error ? 'retry' : 'save'} width={220} />
       <Text style={[type.body, { textAlign: 'center' }]}>Signed in as {user?.email ?? 'your account'}.</Text>
       <Card style={{ marginTop: 20, gap: 16 }}>
         {shown ? <Text style={[type.heading, { textAlign: 'center' }]}>{keptPhrase(shown)}</Text> : null}

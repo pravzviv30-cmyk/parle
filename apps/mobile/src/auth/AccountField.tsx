@@ -118,8 +118,8 @@ AccountField.displayName = 'AccountField';
 const st = StyleSheet.create({
   group: { gap: space(2) },
   label: { color: paper.ink, fontFamily: font.semiBold },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 54, borderRadius: radius.field, backgroundColor: paper.card, borderWidth: 1.5, borderColor: paper.field },
-  input: { ...type.body, flex: 1, minWidth: 0, minHeight: 51, paddingVertical: 12, paddingHorizontal: 16, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: radius.field, color: paper.ink, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 56, borderRadius: 12, backgroundColor: paper.card, borderWidth: 1.5, borderColor: paper.field },
+  input: { ...type.body, flex: 1, minWidth: 0, minHeight: 51, paddingVertical: 12, paddingHorizontal: 16, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: 12, color: paper.ink, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
   focused: { borderColor: paper.ink },
   disabled: { opacity: 0.65 },
   show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: radius.field - 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },

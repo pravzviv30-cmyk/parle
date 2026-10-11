@@ -37,7 +37,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 
 import { trackProductEvent } from '../analytics/track.ts';
 import { useLive } from '../app/LiveContext.tsx';
@@ -53,9 +53,13 @@ import { prefersTyping } from '../profile/typing.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { sceneMeta } from './estimate.ts';
 import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
+import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
+import { BoldButton } from '../onboarding/BoldButton.tsx';
+import { c, boldType } from '../onboarding/boldRhythm.ts';
 import { SceneArt } from './SceneArt.tsx';
 
 export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?: boolean }) {
+  const focused = useIsFocused();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
   const { profile } = useProfile();
@@ -132,16 +136,18 @@ export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?
       });
   };
 
-  if (vivid) return <View style={{ gap: space(4) }}>
-    {hero.kind === 'scene' && <SceneArt mission={hero.mission.id} />}
-    <Card style={{ gap: space(1) }}>
-      <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{hero.title}</Text>
-      {Boolean(hero.canDo) && <Text style={[type.small, { color: paper.inkSoft }]}>{canDoSentence(hero.canDo ?? '')}</Text>}
-      <Text style={[type.small, { color: paper.inkSoft }]}>{sceneMeta('Live practice', hero.minutes, tutorName)}</Text>
-    </Card>
-    <PillButton label={label} disabled={checking} onPress={() => open(modes.textMode)} />
-    <IconAction layout="inline" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
-    {heldBack !== null && <View><Text style={type.body}>{TUTOR_OFFLINE.body}</Text><IconAction layout="inline" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} /></View>}
+  if (vivid) return <View style={{ gap: 16, backgroundColor: c.violet, borderRadius: 12, padding: 24 }}>
+    <Text accessibilityRole="header" style={[boldType.title, { color: c.white }]}>{hero.title}</Text>
+    <BoldScene kind="home" width={195} active={focused} />
+    <Text style={[boldType.small, { color: c.white }]}>{sceneMeta('Live practice', hero.minutes, tutorName)}</Text>
+    {Boolean(hero.canDo) && <Text style={[boldType.body, { color: c.white }]}>{canDoSentence(hero.canDo ?? '')}</Text>}
+    {!!hero.lines[0] && <View style={{ backgroundColor: c.white, borderRadius: 12, padding: 16 }}>
+      <Text style={[boldType.small, { color: c.ink }]}>Your first words</Text>
+      <Text style={[type.french, { color: c.ink }]}>{hero.lines[0]}</Text>
+    </View>}
+    <BoldButton label={label} disabled={checking} onPress={() => open(modes.textMode)} />
+    <IconAction layout="inline" ground="blue" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
+    {heldBack !== null && <View><Text style={[boldType.body, { color: c.white }]}>{TUTOR_OFFLINE.body}</Text><IconAction layout="inline" ground="blue" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} /></View>}
   </View>;
   return (
     <SceneBrief

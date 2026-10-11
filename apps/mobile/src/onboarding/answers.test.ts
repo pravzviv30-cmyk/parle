@@ -465,7 +465,7 @@ describe('the return gate is drawn as a working screen — F601', () => {
 });
 
 describe('the onboarding doc counts the screens the code shows', () => {
-  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /7 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan'\]/); assert.equal(PRE_ACCOUNT_PAGES.length, 17); assert.match(doc, /disk registry also accepts historical/); assert.match(doc, /Historical native correction checks, before this redesign/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
+  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /8 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan'\]/); assert.equal(PRE_ACCOUNT_PAGES.length, 18); assert.match(doc, /disk registry also accepts historical/); assert.match(doc, /Historical native correction checks, before this redesign/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
 });
 
 /**

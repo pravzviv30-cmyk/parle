@@ -188,7 +188,7 @@ describe('the portfolio — a situation row and the next-situation words, decide
     const home = stripComments(read('../tabs/HomeTab.tsx'));
     assert.ok(!home.includes('<SituationsCard'), 'the situation rows are back on Home beside tonight\'s card');
     assert.ok(!home.includes('Talk to '), 'the outline to the tutor is back on Home');
-    assert.ok(!home.includes('tutorNameOf'), 'Home names the tutor again, which is the Tutor tab\'s to do');
+    assert.match(home, /<HomeArrival tutorName=\{tutorNameOf\(profile\)\}/, 'the reminder must name the selected tutor through the catalogue');
 
     // Every line the catalogue puts on one of these rows obeys the copy rules.
     for (const item of missionStates([], [], NOW)) {

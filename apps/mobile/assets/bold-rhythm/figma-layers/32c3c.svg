@@ -1,0 +1,18 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Orb / Speaking" clip-path="url(#clip0_0_5)">
+<circle id="Orb ripple 0" opacity="0.3" cx="36" cy="36" r="35.25" stroke="#D63A22" stroke-width="1.5"/>
+<circle id="Orb ripple 1" cx="36" cy="36" r="28.02" stroke="#D63A22" stroke-width="3"/>
+<circle id="Orb core" cx="36" cy="36" r="21.9" fill="#D63A22" stroke="#D63A22" stroke-width="3"/>
+<g id="Orb / voice bars">
+<g id="Vector">
+<path d="M16.2857 32.5714V39.4286ZM26.5714 24.8571V47.1429ZM36 18.8571V53.1429ZM45.4286 27.4286V44.5714ZM55.7143 32.5714V39.4286Z" fill="black"/>
+<path d="M16.2857 32.5714V39.4286M26.5714 24.8571V47.1429M36 18.8571V53.1429M45.4286 27.4286V44.5714M55.7143 32.5714V39.4286" stroke="white" stroke-width="4.28571" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_5">
+<rect width="72" height="72" fill="white"/>
+</clipPath>
+</defs>
+</svg>

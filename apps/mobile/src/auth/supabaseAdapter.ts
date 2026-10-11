@@ -12,6 +12,7 @@
 
 import { authenticationIsRecent, verifiedAuthenticationAt } from '@luvani/core';
 import { AppState, Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
@@ -25,6 +26,7 @@ import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
 import { installationId } from './installation.ts';
 import { ensureAuthRandom } from './cryptoRandom.ts';
+import { NATIVE_EMAIL_CALLBACK, observeEmailCallbacks } from './emailCallback.ts';
 
 function toUser(session: Session | null): AuthUser | null {
   const user = session?.user;
@@ -63,6 +65,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       flowType: 'pkce',
     },
   });
+  const emailLinkFailures = new Set<() => void>();
   const providers = createProviderAvailability(url, anonKey);
   void providers.prefetch();
 
@@ -89,10 +92,16 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
 
     onAuthStateChange(cb) {
       const { data } = client.auth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY') return; // handled by onPasswordRecovery
+        // Recovery establishes an identity too; Gate needs it before showing
+        // the existing password form. onPasswordRecovery supplies that flag.
         cb(toUser(session));
       });
-      return () => data.subscription.unsubscribe();
+      const stopLinks = Platform.OS === 'web' ? undefined : observeEmailCallbacks(
+        Linking,
+        (code, options) => client.auth.exchangeCodeForSession(code, options),
+        () => { for (const failed of emailLinkFailures) failed(); },
+      );
+      return () => { stopLinks?.(); data.subscription.unsubscribe(); };
     },
 
     onPasswordRecovery(cb) {
@@ -102,14 +111,29 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
       return () => data.subscription.unsubscribe();
     },
 
+    onEmailLinkFailure(cb) {
+      emailLinkFailures.add(cb);
+      return () => { emailLinkFailures.delete(cb); };
+    },
+
     async signUpWithPassword(email, password): Promise<AuthResult> {
-      const { data, error } = await client.auth.signUp({ email, password });
+      const { data, error } = await client.auth.signUp({ email, password,
+        options: { emailRedirectTo: Platform.OS === 'web' ? window.location.origin : NATIVE_EMAIL_CALLBACK },
+      });
       if (error) return { ok: false, message: friendly(error) };
       if (!data.session) {
         // The project requires email confirmation; say what happens next.
         return { ok: true, message: 'Almost there. Check your email for a confirmation link, then sign in.' };
       }
       return { ok: true, createdUserId: data.session.user.id };
+    },
+
+    async resendConfirmation(email): Promise<AuthResult> {
+      const { error } = await client.auth.resend({ type: 'signup', email,
+        options: { emailRedirectTo: Platform.OS === 'web' ? window.location.origin : NATIVE_EMAIL_CALLBACK },
+      });
+      return error ? { ok: false, message: friendly(error) }
+        : { ok: true, message: 'Confirmation email sent. Check your inbox, then sign in.' };
     },
 
     async signInWithPassword(email, password): Promise<AuthResult> {
@@ -143,7 +167,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
 
     async sendPasswordReset(email): Promise<AuthResult> {
       const { error } = await client.auth.resetPasswordForEmail(email, {
-        ...(Platform.OS === 'web' ? { redirectTo: window.location.origin } : {}),
+        redirectTo: Platform.OS === 'web' ? window.location.origin : NATIVE_EMAIL_CALLBACK,
       });
       return error
         ? { ok: false, message: friendly(error) }

@@ -166,12 +166,15 @@ describe('the phone settings pair — F476', () => {
     );
 
     // Leaving the app is countable. Native OAuth owns its exact callback and
-    // browser session; only the two settings doors need expo-linking.
+    // browser session. The auth adapter only observes incoming email links.
     assert.deepEqual(
       filesMatching(/from 'expo-linking'/),
-      [LINKS, PAIR].sort(),
+      [LINKS, PAIR, 'auth/supabaseAdapter.ts'].sort(),
       'something else in the app reaches expo-linking; a link out is a moment the app hands somebody to software it does not control',
     );
+    const emailAdapter = readFileSync(join(SRC, 'auth/supabaseAdapter.ts'), 'utf8');
+    assert.match(emailAdapter, /observeEmailCallbacks\(/);
+    assert.doesNotMatch(emailAdapter, /Linking\.(?:openURL|openSettings|sendIntent)\(/);
     assert.deepEqual(
       filesMatching(/from 'expo-web-browser'/),
       [OAUTH, LINKS].sort(),

@@ -70,9 +70,9 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     const source = themeSource();
     const fonts = block(source, 'export const font = {', '} as const;');
     const cuts = [...fonts.matchAll(/^\s{2}(\w+): '([^']+)',$/gm)].map((m) => [m[1]!, m[2]!] as const);
-    assert.equal(cuts.length, 5, `the font block names ${cuts.length} faces, expected only the five canonical cuts`);
+    assert.equal(cuts.length, 6, `the font block names ${cuts.length} faces, expected only the six canonical cuts`);
     for (const [name, face] of cuts) {
-      assert.match(face, /^Outfit-(Regular|Medium|SemiBold|Bold|ExtraBold)$/, `font.${name} is ${face}, which is not an Outfit cut`);
+      assert.match(face, /^Outfit-(Regular|Medium|SemiBold|Bold|ExtraBold|Black)$/, `font.${name} is ${face}, which is not an Outfit cut`);
     }
     const named = new Map(cuts);
     for (const [key, face] of [
@@ -157,7 +157,7 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     assert.doesNotMatch(scale, /textTransform/, 'a style in the scale is set in caps again');
   });
 
-  test('the theme names the five Outfit cuts App.tsx loads, and the bundle carries no other face', () => {
+  test('the theme names the six Outfit cuts App.tsx loads, and the bundle carries no other face', () => {
     // A face the theme names and App.tsx does not load renders in the system
     // font with no error, and a file in the fonts folder nothing loads is weight
     // in the bundle. So the theme, the loader and the folder are read together.
@@ -172,8 +172,8 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     const loaded = pairs.map(([name]) => name).sort();
     assert.deepEqual(
       loaded,
-      ['Outfit-Bold', 'Outfit-ExtraBold', 'Outfit-Medium', 'Outfit-Regular', 'Outfit-SemiBold'],
-      'App.tsx does not load exactly the five Outfit cuts',
+      ['Outfit-Black', 'Outfit-Bold', 'Outfit-ExtraBold', 'Outfit-Medium', 'Outfit-Regular', 'Outfit-SemiBold'],
+      'App.tsx does not load exactly the six Outfit cuts',
     );
 
     // Dotfiles are the file system's, not the bundle's: nothing requires them.
@@ -182,7 +182,7 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
       .sort();
     assert.deepEqual(
       folder,
-      ['OFL-Outfit.txt', 'Outfit-Bold.ttf', 'Outfit-ExtraBold.ttf', 'Outfit-Medium.ttf', 'Outfit-Regular.ttf', 'Outfit-SemiBold.ttf'],
+      ['OFL-Outfit.txt', 'Outfit-Black.ttf', 'Outfit-Bold.ttf', 'Outfit-ExtraBold.ttf', 'Outfit-Medium.ttf', 'Outfit-Regular.ttf', 'Outfit-SemiBold.ttf'],
       'the fonts folder carries a face nothing loads, or has lost one the loader needs, or its licence',
     );
 

@@ -59,6 +59,13 @@ export const colour = {
   mint: '#2FD18B',
 } as const;
 
+/** C · Bold rhythm: the approved onboarding and first-arrival surfaces. */
+export const boldRhythm = {
+  violet: colour.blue, sun: colour.sun, paper: paper.ground, ink: paper.ink,
+  white: paper.card, lavender: '#E9E3FA', peach: '#F7D8C7', sage: '#D4E2D7',
+  coral: colour.coral, muted: '#655F77', line: '#DCD2C4', sand: '#EFE6D9',
+} as const;
+
 /** Founder-authored sign-in divider and its short separating label. */
 export const welcomeDividerInk = '#000000';
 
@@ -241,3 +248,6 @@ export const cloudOrb = {
 
 /** Password feedback colours: strength always also has a readable label. */
 export const passwordMeter = { low: colour.coral, medium: colour.sun, good: '#17623F' } as const;
+
+/** Official provider assets retain their required brand colors. */
+export const providerBrand = { black: '#000000', white: '#FFFFFF', googleInk: '#1F1F1F' } as const;

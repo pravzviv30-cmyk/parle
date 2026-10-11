@@ -2,11 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { firstPracticeScenario, tutorVoice } from '@luvani/core';
-import { PillButton, IconAction } from '../components.tsx';
-import { paper, type } from '../theme.ts';
+import { IconAction, Sheet } from '../components.tsx';
+import { paper } from '../theme.ts';
+import { boldType as type, c } from './boldRhythm.ts';
+import { BoldButton as PillButton } from './BoldButton.tsx';
 import { useLiveSession } from '../live/useLiveSession.ts';
+import { BoldVoiceOrb } from './BoldVoiceOrb.tsx';
 import { RoomLevels } from '../live/RoomLevels.tsx';
-import { VoiceOrb, type OrbState } from '../tutor/VoiceOrb.tsx';
+import { type OrbState } from '../tutor/VoiceOrb.tsx';
 import { SupportBlock } from '../SessionView.tsx';
 import { SafetyStopView, SafetyBanner } from '../tutor/SafetyStopView.tsx';
 import { safetySurface } from '../tutor/safetyView.ts';
@@ -28,6 +31,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const [issue, setIssue] = useState('');
   const [saving, setSaving] = useState(false);
   const [micPending, setMicPending] = useState(false);
@@ -114,13 +118,13 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
     {issue ? <Text accessibilityRole="alert" style={[type.small, { padding: 20 }]}>{issue}</Text> : null}
   </View>;
   return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={active}>
-    <KeyboardAvoidingView style={{ flex: 1, minHeight: 0, backgroundColor: paper.ground }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={{ flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 20, paddingBottom: 20 }}>
+    <KeyboardAvoidingView style={{ flex: 1, minHeight: 0, backgroundColor: c.paper }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 32, paddingBottom: 20 }}>
         <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ alignItems: 'center', gap: 10, paddingVertical: 12 }}>
-          <Text accessibilityRole="header" style={[type.title, { textAlign: 'center' }]}>Your first conversation</Text>
-          <Text style={[type.small, { textAlign: 'center' }]}>{name}, your AI tutor</Text>
-          <VoiceOrb state={state} size={typing || transcript ? 116 : 172} withCaption={false} paused={!active} />
-          <Text accessibilityLiveRegion="polite" style={[type.bodyStrong, { textAlign: 'center' }]}>{caption}</Text>
+          <Text style={[type.label, { textAlign: 'center' }]}>{name}, your AI tutor</Text>
+          <Text style={[type.small, { textAlign: 'center', color: c.muted }]}>{firstPracticeScenario(guest.live!.brief).en}, {guest.live!.brief.minutes === null ? 'at your pace' : `${guest.live!.brief.minutes} min plan`}</Text>
+          <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[type.title, { textAlign: 'center' }]}>{caption}</Text>
+          <BoldVoiceOrb state={state} size={typing || transcript ? 144 : 232} active={active} />
           {!ready && !failed && <Text style={[type.small, { textAlign: 'center' }]}>{firstPracticeScenario(guest.live!.brief).en}.</Text>}
           {ready && !typing && !transcript && <Text style={[type.frenchLg, { textAlign: 'center' }]}>{live.convo?.sceneReply.fr}</Text>}
           {safety.kind === 'redirect' && <SafetyBanner surface={safety} onDismiss={live.dismissSafety} />}
@@ -137,7 +141,7 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
           </> : ending || live.recap ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : typing ? <>
             <TextInput accessibilityLabel="Your message in French" placeholder="Write your reply…" value={draft} maxLength={600}
               onChangeText={text => { setDraft(text); live.sendTyping(); }} multiline
-              style={[type.body, { minHeight: 52, maxHeight: 120, borderWidth: 1, borderColor: paper.inkSoft, borderRadius: 16, padding: 14 }]}
+              style={[type.body, { minHeight: 52, maxHeight: 120, borderWidth: 1, borderColor: paper.inkSoft, borderRadius: 12, padding: 14 }]}
               editable={ready && !sending} />
             <PillButton label={sending ? 'Sending…' : live.thinking ? 'Waiting for your tutor…' : 'Send'} disabled={!ready || !draft.trim() || sending || live.thinking || live.tutorSpeaking} onPress={() => void send()} />
           </> : <PillButton label={live.micOpen ? 'Pause microphone' : 'Speak'} disabled={!ready || micPending || ending}
@@ -146,12 +150,17 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
             <IconAction icon="chat" label={typing ? 'Switch back to speaking' : 'Unable to speak? Try typing instead.'} disabled={micPending} onPress={() => void changeInput()} />
             {!typing && <IconAction icon="chat" label={transcript ? 'Hide transcript' : 'View transcript'} onPress={() => setTranscript(v => !v)} />}
             <IconAction icon="hint" label="Give me a hint" disabled={live.thinking || live.tutorSpeaking} onPress={() => live.sendHelp()} />
-            <IconAction icon="close" label="End session" onPress={() => void end()} />
+            <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />
           </>}
-          {!ready && !ending && !live.recap && <IconAction icon="close" label="End session" onPress={() => void end()} />}
+          {!ready && !ending && !live.recap && <IconAction icon="close" label="End session" onPress={() => setConfirmEnd(true)} />}
           {!!(issue || live.notice) && <Text accessibilityLiveRegion="polite" style={type.small}>{issue || live.notice}</Text>}
         </View>
       </View>
+      <Sheet visible={confirmEnd} title="End this practice?" onClose={() => setConfirmEnd(false)}>
+        <Text style={type.body}>Your confirmed replies will be kept. Only a completed practice counts towards your streak.</Text>
+        <PillButton label="Keep practising" onPress={() => setConfirmEnd(false)} />
+        <IconAction icon="close" label="End practice" onPress={() => { setConfirmEnd(false); void end(); }} />
+      </Sheet>
     </KeyboardAvoidingView>
   </RoomLevels>;
 }

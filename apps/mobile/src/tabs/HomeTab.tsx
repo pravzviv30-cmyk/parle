@@ -1,3 +1,5 @@
+import { tutorNameOf } from '../tutor/tutorName.ts';
+import { c } from '../onboarding/boldRhythm.ts';
 import { HomeArrival } from '../onboarding/HomeArrival.tsx';
 import { NextTaskCard } from '../practice/NextTaskCard.tsx';
 import { DayCount } from '../progress/DayCount.tsx';
@@ -39,12 +41,12 @@ import { DayCount } from '../progress/DayCount.tsx';
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
 
 import { Columns, useLayoutClass, ScrollScreen, TabHeader } from '../layout.tsx';
-import { colour, HAIRLINE, paper, radius, space, type } from '../theme.ts';
+import { HAIRLINE, paper, radius, space, type } from '../theme.ts';
 import { Card, IconAction, Sheet, PillButton, ROW_WORDS, SceneMark, Skeleton } from '../components.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { StarterContinuation } from '../onboarding/StarterContinuation.tsx';
@@ -79,6 +81,8 @@ import { STARTING_LABEL, startingPoint, weekLines, type StartingPoint } from '..
 
 export function HomeTab() {
   const [details, setDetails] = useState(false);
+  const [interacted, setInteracted] = useState(false);
+  useFocusEffect(useCallback(() => { setInteracted(false); }, []));
   useFocusEffect(useCallback(() => () => setDetails(false), []));
   const regular = useLayoutClass() === 'regular';
   // A bottom tab stays mounted after its first visit, so the midnight and
@@ -159,8 +163,10 @@ export function HomeTab() {
 
   return (
     // bottom="tab": the tab bar owns the bottom edge.
-    <ScrollScreen bottom="tab" ground={colour.sun}>
-      <HomeArrival ready={!unowned && !readFailed && start !== null} />
+    <View style={{ flex: 1 }} onTouchStart={() => setInteracted(true)}
+      {...(Platform.OS === 'web' ? { onPointerDownCapture: () => setInteracted(true), onKeyDownCapture: () => setInteracted(true) } : {})}>
+    <ScrollScreen bottom="tab" ground={c.paper}>
+      <HomeArrival tutorName={tutorNameOf(profile)} ready={!interacted && !unowned && !readFailed && start !== null} />
       <View>
         <View style={st.head}>
           <TabHeader display leading={<Text style={[type.label, { color: paper.ink }]}>{greeting.title}</Text>} title="Your next French moment." trailing={<ProfileButton />} />
@@ -224,6 +230,7 @@ export function HomeTab() {
         )}
       </View>
     </ScrollScreen>
+    </View>
   );
 }
 

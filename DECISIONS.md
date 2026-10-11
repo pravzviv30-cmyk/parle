@@ -53,3 +53,20 @@ Routine task progress belongs in its change plan.
   OS sandbox. `/forge` and its pinned reviewers remain a separate workflow.
 - Sources: [loop contract](docs/LOOP.md),
   [implementation and evidence](docs/changes/local-loop.md).
+
+## UI-001 — Bundle C's vectors and keep motion tied to screen activity
+
+- Date: 2026-10-11
+- Status: accepted
+- Decision: compile the original C illustration family to local Rive files with
+  matching SVG stills. Reuse the existing native Rive runtime; pin the official
+  web renderer and bundle its WASM. Ordinary UI transitions stay in Animated.
+- Reason: the user requested continuous illustration movement, press depth and
+  haptics, followed by a soft gradient sphere instead of the Figma ring/bar orb.
+- Consequence: decorative loops run only on active foreground screens with
+  reduced motion off. Confetti and UI events do not repeat independently.
+  Measured input/output owns orb amplitude; actual session state owns its colour.
+  Closed interests join the core first-practice brief and existing draft storage;
+  no parallel navigator, policy, authentication service or progress store is added.
+- Sources: [change plan](docs/changes/bold-rhythm.md),
+  [asset provenance and rebuild](apps/mobile/assets/bold-rhythm/README.md).

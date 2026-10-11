@@ -7,6 +7,10 @@
  */
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Text } from 'react-native';
+import { PillButton, Sheet } from '../components.tsx';
+import { paper, type } from '../theme.ts';
+import { EMAIL_LINK_FAILED } from './emailCallback.ts';
 import type { AuthAdapter, AuthUser } from './types.ts';
 import { trackedEmailSignup } from './signupCompletion.ts';
 import { observeSession } from './sessionBootstrap.ts';
@@ -32,6 +36,7 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [recovering, setRecovering] = useState(false);
+  const [emailLinkFailed, setEmailLinkFailed] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [newAccountUserId, setNewAccountUserId] = useState<string | null>(null);
   const mounted = useRef(true);
@@ -47,6 +52,8 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
     },
   }), [adapter]);
 
+  useEffect(() => adapter.onEmailLinkFailure?.(() => setEmailLinkFailed(true)), [adapter]);
+
   useEffect(() => {
     return observeSession(adapter, (next) => {
       setUser(next);
@@ -58,6 +65,10 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   return (
     <AuthContext.Provider value={{ status, user, adapter: screenAdapter, recovering, clearRecovery: () => setRecovering(false), creatingAccount, newAccountUserId, clearNewAccount: () => setNewAccountUserId(null) }}>
       {children}
+      <Sheet visible={emailLinkFailed} title="Email link" onClose={() => setEmailLinkFailed(false)}
+        footer={<PillButton label="Continue" onPress={() => setEmailLinkFailed(false)} />}>
+        <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{EMAIL_LINK_FAILED}</Text>
+      </Sheet>
     </AuthContext.Provider>
   );
 }

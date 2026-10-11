@@ -61,7 +61,7 @@ describe('the first run speaks plainly', () => {
     assert.deepEqual(GOAL_TIERS.map((t) => t.title), ['Casual', 'Regular', 'Serious', 'Intense']);
     assert.ok(REASONS.some((r) => r.key === 'because' && r.title === 'Just exploring'), 'Just exploring is not the sixth answer');
     assert.equal(START_LEVELS.length, 4, 'the requested four self-reported starting points are incomplete');
-    assert.match(START_LEVELS[0]!.title, /new to French/);
+    assert.match(START_LEVELS[0]!.title, /Brand new/);
     assert.ok(START_LEVELS.every(level => level.title.length > 0 && level.gloss.length > 0), 'a level choice lacks its readable label');
 
     // Honest waits: the slow line comes after a real wait, the take is counted against its real cap.

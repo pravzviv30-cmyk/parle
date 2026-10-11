@@ -84,14 +84,14 @@ test('auth work, moving to another input and unmounting prevent a queued focus c
 });
 
 for (const name of ['SignInScreen.tsx', 'SignUpScreen.tsx']) {
-  test(`${name} wires automatic email progression to the native password input and hides its action during keyboard use`, () => {
+  test(`${name} advances email only on explicit Next to the native password input and hides its action during keyboard use`, () => {
     const screen = readFileSync(new URL(name, import.meta.url), 'utf8');
-    assert.match(screen, /useEmailAutoAdvance\(emailRef, passwordRef, busy, requestRunning\)/);
-    assert.match(screen, /ref=\{emailRef\}[\s\S]*emailAdvance\.queue\(value\)/);
-    assert.match(screen, /onBlur=[\s\S]*emailAdvance\.cancel/);
+    assert.doesNotMatch(screen, /useEmailAutoAdvance|emailAdvance/, 'Typing must never steal focus');
+    assert.match(screen, /ref=\{emailRef\}/);
+    assert.match(screen, /returnKeyType="next"/);
     assert.match(screen, /ref=\{passwordRef\}/);
     assert.match(screen, /submitBehavior="submit"/);
-    assert.match(screen, /emailAdvance\.cancel\(\);\s*if \(busy \|\| requestRunning\.current\)/);
+    assert.match(screen, /passwordRef\.current\?\.focus\(\)/);
     assert.match(screen, /\{!keyboardVisible && <View style=\{st\.action\}>/);
     assert.doesNotMatch(screen, /footer=/);
     assert.match(screen, /automaticallyAdjustKeyboardInsets/);

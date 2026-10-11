@@ -18,7 +18,10 @@ import { AccessibilityInfo, BackHandler, Keyboard, findNodeHandle, Platform, Vie
 import { colour, paper, space, type, HIT, STROKE } from '../theme.ts';
 import { PillButton, GhostButton, Press, GoogleMark, AppleMark, AlertGlyph, ArrowRight, ROW_WORDS } from '../components.tsx';
 import { AccountField as Field } from './AccountField.tsx';
-import { useEmailAutoAdvance } from './useEmailAutoAdvance.ts';
+import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
+import { ProviderButton } from './ProviderButton.tsx';
+import { BoldButton } from '../onboarding/BoldButton.tsx';
+import { boldType } from '../onboarding/boldRhythm.ts';
 import { useFormKeyboard } from './useFormKeyboard.ts';
 import { focusedFieldScroll } from './focusedFieldScroll.ts';
 import { visibleFormHeight } from './signupForm.ts';
@@ -66,7 +69,6 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
   const headingRef = useRef<Text>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
-  const emailAdvance = useEmailAutoAdvance(emailRef, passwordRef, busy, requestRunning);
   const emailGroup = useRef<View>(null);
   const passwordGroup = useRef<View>(null);
   const scrollRef = useRef<NativeScrollView>(null);
@@ -249,8 +251,8 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       <RevealItem active={!embedded}>
       {/* Welcome back is personal only when this flow already has a saved name. */}
       {!embedded && <View style={[st.head, layout.compact && st.headCompact]}>
-        {!keyboardVisible && layout.orbSize > 0 && <WelcomeOrb size={layout.orbSize} />}
-        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', letterSpacing: 0 }]}>{welcomeBackGreeting(planDraft?.firstName)}</Text>
+
+        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[boldType.title, { color: paper.ink, textAlign: 'center', letterSpacing: 0 }]}>{welcomeBackGreeting(planDraft?.firstName)}</Text>
       </View>}
       <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.body, { color: paper.inkSoft, marginTop: layout.compact ? space(1) : space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
 
@@ -258,29 +260,11 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       <View style={[st.doors, layout.compact && st.doorsCompact, fontScale > 1.3 && st.doorsStacked, embedded && { marginTop: 0 }]}>
         {appleOffered && (
           <View style={st.door}>
-          <PillButton
-            label={pending === 'apple' ? 'Opening…' : 'Apple'}
-            accessibilityLabel={authButtonLabel('apple', pending === 'apple')}
-            onPress={() => void apple()}
-            icon={<AppleMark color={paper.onInk} />}
-            compact
-            state={pending === 'apple' ? 'busy' : 'idle'}
-            disabled={busy && pending !== 'apple'}
-          />
+          <ProviderButton provider="apple" onPress={() => void apple()} disabled={busy} busy={pending === 'apple'} />
           </View>
         )}
         <View style={st.door}>
-        <PillButton
-          tone="white"
-          outlined
-          label={pending === 'google' ? 'Opening…' : 'Google'}
-          accessibilityLabel={authButtonLabel('google', pending === 'google')}
-          onPress={() => void google()}
-          icon={<GoogleMark />}
-          compact
-          state={pending === 'google' ? 'busy' : 'idle'}
-          disabled={busy && pending !== 'google'}
-        />
+        <ProviderButton provider="google" onPress={() => void google()} disabled={busy} busy={pending === 'google'} />
         </View>
       </View>
 
@@ -304,7 +288,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           label="Email"
           labelWeight="medium"
           value={email}
-          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); emailAdvance.queue(value); }}
+          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); }}
           placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -315,9 +299,9 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           submitBehavior="submit"
           blurOnSubmit={false}
           onFocus={() => { focused.current = 'email'; keepFocusedVisible(); }}
-          onBlur={() => { emailAdvance.cancel(); if (focused.current === 'email') focused.current = null; }}
+          onBlur={() => {  if (focused.current === 'email') focused.current = null; }}
           onSubmitEditing={() => {
-            emailAdvance.cancel();
+
             if (busy || requestRunning.current) return;
             if (looksLikeEmail(email)) { setEmailError(null); passwordRef.current?.focus(); }
             else setEmailError('Enter a valid email address.');
@@ -357,6 +341,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
 
       {/* In ink, never red. A refusal carries the alert mark the fields use, so
           the difference from a "check your email" line is not colour alone. */}
+      {formOk && <BoldScene kind="reset" width={160} />}
       {formMessage != null && (
         <View style={st.message}>
           {!formOk && (
@@ -369,7 +354,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       )}
 
       {!keyboardVisible && <View style={st.action}>
-        <PillButton tone="brand" label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} trailingIcon={<ArrowRight color={paper.onInk} />} decoration={<WelcomeSignInGlow active={!busy} />} />
+        <BoldButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} trailingIcon={<ArrowRight color={paper.ink} />} />
       </View>}
 
       {/* The primary action returns after keyboard dismissal, inside the body. */}
@@ -387,7 +372,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
 const st = StyleSheet.create({
   head: { alignItems: 'center', gap: space(2) },
   headCompact: { gap: space(1) },
-  doors: { flexDirection: 'row', alignItems: 'stretch', gap: space(3), marginTop: space(5) },
+  doors: { flexDirection: 'column', alignItems: 'stretch', gap: space(3), marginTop: space(5) },
   doorsCompact: { marginTop: space(3) },
   doorsStacked: { flexDirection: 'column' },
   door: { flex: 1, minWidth: 0 },

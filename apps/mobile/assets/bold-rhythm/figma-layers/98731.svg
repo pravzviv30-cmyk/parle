@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="62.48" height="94.215" viewBox="0 0 62.48 94.215" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="memory-jar">
+<path id="Vector" d="M12.815 3.85H51.865V18.15C58.465 22.9167 61.765 30.6167 61.765 41.25V84.7C61.765 90.5667 58.6483 93.5 52.415 93.5H9.515C3.64833 93.5 0.715 90.5667 0.715 84.7V41.25C0.715 31.35 4.74833 23.65 12.815 18.15V3.85Z" fill="#E9E3FA" stroke="#3B2FE0" stroke-width="1.43" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_2" d="M49.665 0H15.015C12.8887 0 11.165 1.7237 11.165 3.85V8.25C11.165 10.3763 12.8887 12.1 15.015 12.1H49.665C51.7913 12.1 53.515 10.3763 53.515 8.25V3.85C53.515 1.7237 51.7913 0 49.665 0Z" fill="#FFC93C"/>
+<path id="Vector_3" d="M9.515 71.5C25.6483 65.2667 40.1317 65.8167 52.965 73.15V84.15H9.515V71.5Z" fill="#F7D8C7"/>
+<g id="Group">
+<path id="Vector_4" d="M24.915 29.975L26.565 34.1L31.1025 34.5125L27.8025 37.8125L28.6275 42.35L24.915 39.875L20.79 42.35L21.615 37.8125L18.7275 34.5125L23.265 34.1L24.915 29.975Z" fill="#FFC93C" stroke="#16123A" stroke-width="0.66" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g id="Group_2">
+<path id="Vector_5" d="M45.265 53.8452L46.695 57.4202L50.6275 57.7777L47.7675 60.6377L48.4825 64.5702L45.265 62.4252L41.69 64.5702L42.405 60.6377L39.9025 57.7777L43.835 57.4202L45.265 53.8452Z" fill="#FFC93C" stroke="#16123A" stroke-width="0.572" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<path id="Vector_6" d="M22.715 55H15.015C13.8 55 12.815 55.985 12.815 57.2V64.9C12.815 66.115 13.8 67.1 15.015 67.1H22.715C23.93 67.1 24.915 66.115 24.915 64.9V57.2C24.915 55.985 23.93 55 22.715 55Z" fill="white"/>
+<path id="Vector_7" d="M15.565 63.25L18.865 57.75L22.715 63.25" stroke="#3B2FE0" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_8" d="M39.765 39.5998C42.1951 39.5998 44.165 37.6299 44.165 35.1998C44.165 32.7698 42.1951 30.7998 39.765 30.7998C37.335 30.7998 35.365 32.7698 35.365 35.1998C35.365 37.6299 37.335 39.5998 39.765 39.5998Z" fill="#D63A22"/>
+</g>
+</svg>

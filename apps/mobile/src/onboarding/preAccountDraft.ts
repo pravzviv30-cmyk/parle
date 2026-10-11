@@ -46,7 +46,7 @@ const KEY = '@luvani/pre-account-onboarding/v1';
  * (`keep`) come after the win (come alive, README Part 5.C rows 9 and 10) and
  * are appended, so every older page keeps its place.
  */
-export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep', 'confidence', 'focus', 'choose-tutor', 'account'] as const;
+export const PRE_ACCOUNT_PAGES = ['hear-it', 'first-line', 'start-level', 'reason', 'interests', 'time', 'frequency', 'plan', 'practice', 'recap', 'home', 'save', 'remind', 'keep', 'confidence', 'focus', 'choose-tutor', 'account'] as const;
 export type PreAccountPage = (typeof PRE_ACCOUNT_PAGES)[number];
 
 export const START_LEVEL_KEYS = ['zero', 'few', 'getby', 'confident'] as const;
@@ -59,6 +59,8 @@ export type PracticeFocus = (typeof PRACTICE_FOCUS_KEYS)[number];
 
 export const REASON_KEYS = ['food', 'trip', 'family', 'moving', 'work', 'because'] as const;
 export type Reason = (typeof REASON_KEYS)[number];
+export const INTEREST_KEYS = ['food', 'travel', 'music', 'everyday'] as const;
+export type Interest = (typeof INTEREST_KEYS)[number];
 
 /**
  * The daily goal (founder decision D5): Casual 5, Regular 10, Serious 15 and
@@ -107,6 +109,7 @@ export interface PreAccountOnboardingDraft {
   page: PreAccountPage | null;
   startLevel: StartLevel | null;
   reason: Reason | null;
+  interests?: Interest[];
   /** Null until changed on the plan; the plan shows the preset until then. */
   minutes: PlanMinutes | null;
   reminderTime: ReminderTimeId | null;
@@ -127,6 +130,7 @@ export function freshPreAccountDraft(): PreAccountOnboardingDraft {
     page: null,
     startLevel: null,
     reason: null,
+    interests: [],
     minutes: null,
     reminderTime: null,
     firstName: null,
@@ -210,6 +214,7 @@ export function repaired(value: object): PreAccountOnboardingDraft {
     page: oneOf(PRE_ACCOUNT_PAGES, (value as { page?: unknown }).page),
     startLevel: oneOf(START_LEVEL_KEYS, (value as { startLevel?: unknown }).startLevel),
     reason: oneOf(REASON_KEYS, (value as { reason?: unknown }).reason),
+    interests: Array.isArray(draft.interests) ? [...new Set(draft.interests.filter(i => INTEREST_KEYS.includes(i)))].slice(0, 4) : [],
     minutes: oneOf(PLAN_MINUTES, (value as { minutes?: unknown }).minutes),
     reminderTime: oneOf(
       REMINDER_TIMES.map((time) => time.value),

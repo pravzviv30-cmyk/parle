@@ -36,7 +36,7 @@ describe('the hand-off', () => {
           { current: draft }, { env: { EXPO_PUBLIC_ONBOARDING_VARIANT: 'full' } }, onboardingProgress,
         );
         const signup = onboardingProgress({ page: 'account', five: onboardingVariant === 'five',
-          skipped: [...draft.onboardingSkippedSteps, ...(quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])] });
+          skipped: [...draft.onboardingSkippedSteps, ...(quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])] });
         assert.ok(progress.fraction > signup.fraction, 'signing in must not restart progress');
         assert.equal(progress.step, progress.total, 'the handoff is the last step of its guest journey');
         assert.equal(progress.total, signup.total);

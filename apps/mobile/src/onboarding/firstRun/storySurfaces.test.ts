@@ -42,8 +42,8 @@ describe('the personal onboarding journey', () => {
     assert.ok(START_LEVELS.every(level => level.title.trim().length > 0));
     const levels = screen.slice(screen.indexOf("{page === 'start-level' && START_LEVELS.map"), screen.indexOf("{(page === 'confidence' || page === 'focus')"));
     assert.ok(levels.length > 0, 'this check must read the actual level choice group');
-    assert.match(levels, /width="100%"/);
-    assert.match(levels, /layout="row"/);
+    assert.match(levels, /<BoldChoice/);
+    assert.match(levels, /detail=\{v\.gloss\}/);
     assert.match(levels, /title=\{v\.title\}/);
     assert.match(levels, /choose\(\{ startLevel: v\.key \}\)/);
     assert.doesNotMatch(levels, /numberOfLines|ellipsizeMode|go\(/);
@@ -68,7 +68,7 @@ describe('the personal onboarding journey', () => {
     assert.match(home, /HOME_ARRIVAL_DELAY = 1500/);
     assert.match(home, /!ready \|\| !allowed \|\| !focused/);
     assert.match(home, /await saveArrival\(\{ \.\.\.value, streakSeen: true \}\)/);
-    assert.match(home, /<StreakCelebrationScreen streak=\{streak\} today=\{today\}/);
+    assert.match(home, /<StreakCelebrationScreen design="bold-rhythm" streak=\{streak\} today=\{today\}/);
     assert.match(home, /onContinue=\{\(\) => setArrival\(null\)\}/);
     const celebration = evidence('apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx');
     assert.match(celebration, /streakCelebrationView\(streak, today\)/);
@@ -83,7 +83,10 @@ describe('the personal onboarding journey', () => {
 
   test('the optional reminder opens an existing time-confirmation sheet only after an explicit choice', () => {
     const home = evidence('apps/mobile/src/onboarding/HomeArrival.tsx');
-    assert.doesNotMatch(home, /onReminder=|askReminderPermission|requestPermissionsAsync/);
+    assert.doesNotMatch(home, /askReminderPermission|requestPermissionsAsync/);
+    assert.match(home, /onReminder=\{REMINDERS_AVAILABLE \? \(\) => setReminding\(true\)/);
+    assert.match(home, /<Sheet visible=\{reminding\}/);
+    assert.match(home, /reminding && <ReminderAsk/);
     assert.doesNotMatch(screen, /<StreakCelebrationScreen/);
     const celebration = evidence('apps/mobile/src/onboarding/firstRun/StreakCelebrationScreen.tsx');
     assert.match(celebration, /Remind me tomorrow/);

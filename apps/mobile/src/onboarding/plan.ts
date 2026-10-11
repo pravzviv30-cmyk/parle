@@ -31,21 +31,21 @@ export interface AnswerOption<K extends string | number> {
  * placement. Existing saved level keys keep their meaning.
  */
 export const START_LEVELS: readonly (AnswerOption<StartLevel> & { gloss: string })[] = [
-  { key: 'zero', title: 'I’m new to French', gloss: 'Start with the essentials.' },
-  { key: 'few', title: 'I know a few words', gloss: 'Hello, thank you, and simple phrases.' },
-  { key: 'getby', title: 'I can get by', gloss: 'Short conversations, with some help.' },
-  { key: 'confident', title: 'I’m comfortable talking', gloss: 'Make everyday conversations flow.' },
+  { key: 'zero', title: 'Brand new', gloss: 'Let’s begin with bonjour' },
+  { key: 'few', title: 'A few words', gloss: 'I know some useful basics' },
+  { key: 'getby', title: 'I can get by', gloss: 'Short conversations feel possible' },
+  { key: 'confident', title: 'Feeling confident', gloss: 'I want more natural French' },
 ];
 
 export const CONFIDENCE_OPTIONS: readonly AnswerOption<SpeakingConfidence>[] = [
-  { key: 'hesitant', title: 'I need a gentle start' },
-  { key: 'trying', title: 'I’ll give it a try' },
-  { key: 'comfortable', title: 'I’m ready to talk' },
+  { key: 'hesitant', title: 'A little daunting', gloss: 'Give me time and gentle help' },
+  { key: 'trying', title: 'Ready to try', gloss: 'I might need a nudge' },
+  { key: 'comfortable', title: 'Pretty comfortable', gloss: 'Let’s keep the conversation going' },
 ];
 export const FOCUS_OPTIONS: readonly AnswerOption<PracticeFocus>[] = [
-  { key: 'listening', title: 'Understand what I hear' },
-  { key: 'speaking', title: 'Speak with confidence' },
-  { key: 'words', title: 'Find the right words' },
+  { key: 'listening', title: 'Listening', gloss: 'Catch more of what you hear' },
+  { key: 'speaking', title: 'Speaking', gloss: 'Find the words and say them' },
+  { key: 'words', title: 'Useful words', gloss: 'Build a little everyday vocabulary' },
 ];
 
 export const DEFAULT_START_LEVEL: StartLevel = 'zero';
@@ -196,7 +196,7 @@ const SUPPORT_GOALS: Readonly<Record<SpeakingConfidence, string>> = {
 /** Every saved goal represents a real answer and fits the existing three-goal store. */
 export function tutorGoalsFor(draft: PreAccountOnboardingDraft): readonly string[] {
   return [
-    ...(draft.reason === null ? [] : [SEEDED_GOAL[draft.reason]]),
+    ...(draft.reason === null ? [] : [SEEDED_GOAL[draft.reason] + (draft.interests?.length ? ` Interests: ${draft.interests.map(i => ({ food: 'food and cafés', travel: 'travel and places', music: 'music and films', everyday: 'everyday life' })[i]).join(', ')}.` : '')]),
     ...(draft.practiceFocus == null ? [] : [FOCUS_GOALS[draft.practiceFocus]]),
     ...(draft.speakingConfidence == null ? [] : [SUPPORT_GOALS[draft.speakingConfidence]]),
   ];

@@ -18,9 +18,14 @@ import { useReduceMotion } from '../motion.ts';
 import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, nextSetupLabel } from './flow.ts';
-import { GhostButton, IconAction, IconActionRow, PillButton, Sheet } from '../components.tsx';
+import { GhostButton, IconAction, IconActionRow, PillButton, Press, Sheet } from '../components.tsx';
 import { Screen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
-import { paper, radius, space, type } from '../theme.ts';
+import { paper, radius, space } from '../theme.ts';
+import { boldType as type, c } from './boldRhythm.ts';
+import { BoldButton } from './BoldButton.tsx';
+import { BoldChoice } from './BoldChoice.tsx';
+import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS } from './boldChoices.ts';
+import { BoldScene } from './motion/BoldScene.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
@@ -128,7 +133,7 @@ export function PreAccountOnboarding({
   );
   const [surface, setSurface] = useState<Surface>(null);
   const [edit, setEdit] = useState(draft);
-  const [planField, setPlanField] = useState<'reason' | 'start-level' | 'time' | null>(null);
+  const [planField, setPlanField] = useState<'reason' | 'interests' | 'start-level' | 'confidence' | 'focus' | 'time' | null>(null);
   const pageMotion = useOnboardingTransition();
   const preview = useTutorPreview({ active: active && page === 'choose-tutor' });
   const [guest, setGuest] = useState<GuestPractice | null>(null);
@@ -399,10 +404,11 @@ export function PreAccountOnboarding({
     }
     return false;
   };
-  const question = ['reason', 'start-level', 'confidence', 'focus', 'time'].includes(page);
+  const question = ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'].includes(page);
   const answer =
     page === 'reason'
       ? draft.reason
+      : page === 'interests' ? (draft.interests?.length ? draft.interests : null)
       : page === 'start-level'
         ? draft.startLevel
         : page === 'confidence'
@@ -413,9 +419,9 @@ export function PreAccountOnboarding({
   const suggested = suggestedMinutes(draft);
   const drinksWrap = useFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
-  const ground = paper.ground;
-  const ink = paper.ink;
-  const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])] });
+  const ground = blue && !refused ? c.violet : c.paper;
+  const ink = blue && !refused ? c.white : c.ink;
+  const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])] });
   const reasonGrid = !drinksWrap;
   const goalGrid = !drinksWrap;
   const tutorName = tutorVoice(draft.tutorVoice).persona.name;
@@ -427,9 +433,9 @@ export function PreAccountOnboarding({
   };
   const title = refused
     ? 'Luvani is for learners thirteen and up.'
-    : (headingFor(page) ??
+    : (BOLD_QUESTIONS[page]?.title ?? (page === 'choose-tutor' ? 'Find your\nFrench voice.' : headingFor(page)) ??
       (page === 'plan'
-        ? 'Your plan is ready.'
+        ? 'Your French,\nyour way.'
         : page === 'keep' ? 'Your saved practice is ready.' : 'Your first conversation'));
   if (!loaded)
     return (
@@ -443,24 +449,20 @@ export function PreAccountOnboarding({
     ) : null
   ) : blue ? (
     <View style={[readingColumn, { gap: space(2) }]}>
-      <GlowAction tone="sun"><PillButton label="Start your personal plan" tone="sun" onPress={() => go('reason')} /></GlowAction>
-      {!signedIn && <IconAction icon="forward" layout="inline" ground="blue" label="I already have an account" onPress={onSignIn} />}
+      <BoldButton label="Start your personal plan" onPress={() => go('reason')} />
+      {!signedIn && <Press accessibilityLabel="I already have an account" onPress={onSignIn} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[type.label, { color: c.white, textAlign: 'center' }]}>I already have an account</Text></Press>}
     </View>
   ) : question ? (
     <View style={readingColumn}>
-      {/* Keyed by page, so each question responds once when its answer is chosen. */}
-      <NextButton disabled={answer == null} label={nextSetupLabel(page, five)} onPress={nextQuestion} key={page} onDisabledPress={() => {
-        if (!reduced) soft();
-        setChoiceNudge((prior) => ({ page, event: prior.event + 1 }));
-      }} />
+      <NextButton bold disabled={answer == null} label={nextSetupLabel(page, five)} onPress={nextQuestion} onDisabledPress={() => { if (!reduced) soft(); setChoiceNudge(v => ({ page, event: v.event + 1 })); }} />
       {choiceNudge.page === page && answer == null && <Text key={choiceNudge.event} accessibilityLiveRegion="polite" style={[type.small, { color: ink, textAlign: 'center' }]}>Choose one to continue.</Text>}
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
-      <GlowAction tone="blue"><PillButton label="Next: Choose your tutor" onPress={() => go('choose-tutor')} icon={<Glint when radius={radius.control} />} /></GlowAction>
+      <BoldButton label="Choose your tutor" onPress={() => go('choose-tutor')} />
     </View>
   ) : page === 'choose-tutor' ? (
-    <View style={[readingColumn, { gap: space(2) }]}><Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{draft.tutorChosen ? `Selected: ${tutorName}.` : 'Choose a tutor to continue.'}</Text><PillButton label="Start your first practice" disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
+    <View style={[readingColumn, { gap: space(2) }]}><Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{draft.tutorChosen ? `Selected: ${tutorName}.` : 'Choose a tutor to continue.'}</Text><BoldButton label="Start your first practice" disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
   ) : page === 'keep' ? (
     <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
   ) : null;
@@ -476,6 +478,9 @@ export function PreAccountOnboarding({
             } else {
               patch({
                 reason: edit.reason,
+                interests: [...(edit.interests ?? [])],
+                speakingConfidence: edit.speakingConfidence,
+                practiceFocus: edit.practiceFocus,
                 startLevel: edit.startLevel,
                 minutes: edit.minutes,
                 quickStart: false,
@@ -511,20 +516,21 @@ export function PreAccountOnboarding({
       <OnboardingLayout
         active={active}
         page={page}
+        ground={ground}
         progress={progress}
         avoidKeyboard
         scrollRef={scroll}
         onScroll={(e) => { offsets.current[page] = e.nativeEvent.contentOffset.y; }}
         footer={footer}
       >
-        <View style={[readingColumn, { paddingBottom: compact ? 8 : 16 }]}>
+        <View style={[readingColumn, { paddingTop: blue ? 38 : 0, paddingBottom: 16 }]}>
           <Animated.View style={[{ gap: compact ? 12 : 16 }, pageMotion.style]}>
 
             {<Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
               accessibilityRole="header"
-              style={[!compact && (blue || question || page === 'plan') ? type.display : type.title, { color: ink, textAlign: 'center' }]}
+              style={[blue ? type.display : type.title, { color: ink, textAlign: 'center' }]}
               nativeID={`onboarding-${page}-heading`}
             >
               {title}
@@ -536,86 +542,28 @@ export function PreAccountOnboarding({
               </View>
             ) : (
               <>
-                {blue && (
-                  <>
-                    <OnboardingScene kind="welcome" size={compact ? 180 : 240} />
-                    <Text style={[type.body, { color: ink, textAlign: 'center' }]}>French for the moments that matter to you.</Text>
-                    <View style={{ gap: 14 }}>
-                      {['A plan built around your goals', 'An AI tutor you can talk to', 'Small daily steps. Real practice.'].map((line, index) => <RevealItem key={line} index={index}><View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}><IconTile name={index === 0 ? 'calendar' : index === 1 ? 'chat' : 'flame'} ground={index === 0 ? 'sun' : index === 1 ? 'mint' : 'coral'} size={36} /><Text style={[type.bodyStrong, { color: ink, flex: 1 }]}>{line}</Text></View></RevealItem>)}
-                    </View>
-                  </>
-                )}
-                {question && (
-                  <>
-                    {page === 'start-level' && <OnboardingScene kind="level" size={compact ? 84 : 116} />}
-                    {page === 'confidence' && <OnboardingScene kind="level" size={compact ? 90 : 140} />}
-                    {page === 'focus' && <OnboardingScene kind="welcome" size={compact ? 90 : 140} />}
-                    {page === 'time' && <OnboardingScene kind="plan" size={compact ? 90 : 140} />}
-                    <View accessibilityRole="radiogroup" style={{ gap: compact ? 8 : 10, flexDirection: regular || (page === 'reason' && reasonGrid) || (page === 'time' && goalGrid) ? 'row' : 'column', flexWrap: 'wrap' }}>
-                      {page === 'reason' &&
-                        goals.map((v, index) => (
-                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '31%' : reasonGrid ? '48%' : undefined}><View collapsable={false}>
-                            <Choice
-                              compact={compact}
-                              layout={regular || reasonGrid ? 'tile' : 'row'}
-                              title={REASON_LABELS[v.key]}
-                              glyph={<ChoiceArt kind={v.key} />}
-                              selected={draft.reason === v.key}
-                              onPress={() => choose({ reason: v.key })}
-                            />
-                          </View></ChoiceNudge>
-                        ))}
-                      {page === 'start-level' &&
-                        START_LEVELS.map((v, index) => (
-                          <ChoiceNudge key={v.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width="100%"><View collapsable={false}>
-                            <Choice
-                              compact={compact}
-                              layout="row"
-                              title={v.title}
-                              detail={undefined}
-                              glyph={<ChoiceArt kind={v.key} />}
-                              selected={draft.startLevel === v.key}
-                              onPress={() => choose({ startLevel: v.key })}
-                            />
-                          </View></ChoiceNudge>
-                        ))}
-                      {(page === 'confidence' || page === 'focus') &&
-                        (page === 'confidence' ? CONFIDENCE_OPTIONS : FOCUS_OPTIONS).map((option, index) => (
-                          <ChoiceNudge key={option.key} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width="100%">
-                            <Choice compact={compact} ground={page === 'focus' ? 'blue' : 'sun'} title={option.title}
-                              glyph={<IconTile name={page === 'confidence' ? 'chat' : index === 0 ? 'speaker' : index === 1 ? 'microphone' : 'bubble-line'} ground={index === 0 ? 'mint' : index === 1 ? 'sun' : 'coral'} size={36} />}
-                              selected={page === 'confidence' ? draft.speakingConfidence === option.key : draft.practiceFocus === option.key}
-                              onPress={() => choose(page === 'confidence' ? { speakingConfidence: option.key as PreAccountOnboardingDraft['speakingConfidence'] } : { practiceFocus: option.key as PreAccountOnboardingDraft['practiceFocus'] })} />
-                          </ChoiceNudge>
-                        ))}
-                      {page === 'time' &&
-                        GOAL_TIERS.map((tier, index) => (
-                          <ChoiceNudge key={tier.minutes} event={choiceNudge.page === page ? choiceNudge.event : 0} index={index} width={regular ? '23%' : goalGrid ? '48%' : undefined}><View collapsable={false}>
-                            <GoalTile
-                              tier={tier}
-                              suggested={tier.minutes === suggested}
-                              selected={draft.minutes === tier.minutes}
-                              compact={compact}
-                              layout={regular || goalGrid ? 'tile' : 'row'}
-                              onPress={() => choose({ minutes: tier.minutes })}
-                            />
-                          </View></ChoiceNudge>
-                        ))}
-                    </View>
-                    {page === 'time' ? (
-                      <View collapsable={false}>
-                        <IconAction
-                          icon="clock"
-                          layout="inline"
-                          label={FIRST_RUN_COPY.chooseEachTime}
-                          selected={draft.minutes === 'none'}
-                          onPress={() => choose({ minutes: 'none' })}
-                        />
-                      </View>
-                    ) : null}
-                  </>
-                )}
-                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} onEdit={() => open('plan')} />}
+                {blue && <>
+                  <BoldScene kind="welcome" width={280} active={active} />
+                  <Text style={[type.heading, { color: ink, textAlign: 'center' }]}>Real conversations. Your own words.</Text>
+                </>}
+                {question && <>
+                  <Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>{BOLD_QUESTIONS[page]?.detail}</Text>
+                  {page === 'confidence' && <BoldScene kind="confidence" width={185} active={active} />}
+                  {page === 'focus' && <BoldScene kind="focus" width={185} active={active} />}
+                  <View accessibilityRole={page === 'interests' ? undefined : 'radiogroup'} style={{ gap: 8 }}>
+                    {page === 'reason' && BOLD_GOALS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.detail} selected={draft.reason === v.key} onPress={() => choose({ reason: v.key })} />)}
+                    {page === 'interests' && INTERESTS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.detail} multiple selected={draft.interests?.includes(v.key) ?? false}
+                      onPress={() => choose({ interests: draft.interests?.includes(v.key) ? draft.interests.filter(i => i !== v.key) : [...(draft.interests ?? []), v.key] })} />)}
+                    {page === 'start-level' && START_LEVELS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose({ startLevel: v.key })} />)}
+                    {page === 'confidence' && CONFIDENCE_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={draft.speakingConfidence === v.key} onPress={() => choose({ speakingConfidence: v.key })} />)}
+                    {page === 'focus' && FOCUS_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={draft.practiceFocus === v.key} onPress={() => choose({ practiceFocus: v.key })} />)}
+                    {page === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BoldChoice key={minutes}
+                      title={minutes === 'none' ? 'Choose each time' : `${minutes} minutes`}
+                      detail={['A small start', 'Room for a conversation', 'A little more depth', 'Make a daily ritual', 'No fixed daily goal'][index]}
+                      selected={draft.minutes === minutes} onPress={() => choose({ minutes })} />)}
+                  </View>
+                </>}
+                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active} onEdit={() => open('plan')} />}
                 {page === 'choose-tutor' && <TutorSelection
                   chosen={draft.tutorChosen ? draft.tutorVoice : null}
                   preview={preview}
@@ -647,7 +595,7 @@ export function PreAccountOnboarding({
         title={
           surface === 'plan'
             ? planField
-              ? headingFor(planField)!
+              ? BOLD_QUESTIONS[planField]?.title ?? headingFor(planField)!
               : 'Change plan'
             : surface === 'voice'
               ? 'Choose tutor'
@@ -667,6 +615,9 @@ export function PreAccountOnboarding({
                   value={REASONS.find((v) => v.key === edit.reason)?.title ?? 'Choose a goal'}
                   onPress={() => setPlanField('reason')}
                 />
+                <PlanEditRow label="Interests" value={edit.interests?.map(key => INTERESTS.find(i => i.key === key)?.title).join(', ') || 'Choose interests'} onPress={() => setPlanField('interests')} />
+                <PlanEditRow label="Speaking confidence" value={CONFIDENCE_OPTIONS.find(v => v.key === edit.speakingConfidence)?.title ?? 'Choose confidence'} onPress={() => setPlanField('confidence')} />
+                <PlanEditRow label="Practice focus" value={FOCUS_OPTIONS.find(v => v.key === edit.practiceFocus)?.title ?? 'Choose focus'} onPress={() => setPlanField('focus')} />
                 <PlanEditRow
                   label="French today"
                   value={
@@ -687,50 +638,13 @@ export function PreAccountOnboarding({
               </>
             ) : (
               <>
-                {planField === 'reason' &&
-                  goals.map((v) => (
-                    <Choice
-                      ground={paper.ground}
-                      key={v.key}
-                      title={v.title}
-                      selected={edit.reason === v.key}
-                      onPress={() => setEdit({ ...edit, reason: v.key })}
-                      glyph={<ChoiceArt kind={v.key} />}
-                    />
-                  ))}
-                {planField === 'start-level' &&
-                  START_LEVELS.map((v) => (
-                    <Choice
-                      ground={paper.ground}
-                      key={v.key}
-                      title={v.title}
-                      selected={edit.startLevel === v.key}
-                      onPress={() => setEdit({ ...edit, startLevel: v.key })}
-                      glyph={<ChoiceArt kind={v.key} />}
-                    />
-                  ))}
-                {planField === 'time' && (
-                  <>
-                    {GOAL_TIERS.map((tier) => (
-                      <Choice
-                        ground={paper.ground}
-                        key={tier.minutes}
-                        title={tier.title}
-                        detail={`${tier.minutes} ${FIRST_RUN_COPY.minutesUnit}`}
-                        selected={edit.minutes === tier.minutes}
-                        onPress={() => setEdit({ ...edit, minutes: tier.minutes })}
-                        glyph={<IconTile ground="sun" dial={tier.quarters} size={40} />}
-                      />
-                    ))}
-                    <Choice
-                      ground={paper.ground}
-                      title={FIRST_RUN_COPY.chooseEachTime}
-                      selected={edit.minutes === 'none'}
-                      onPress={() => setEdit({ ...edit, minutes: 'none' })}
-                      glyph={<ChoiceArt kind="time" />}
-                    />
-                  </>
-                )}
+                {planField === 'reason' && BOLD_GOALS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
+                {planField === 'interests' && INTERESTS.map(v => <BoldChoice key={v.key} title={v.title} multiple selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
+                {planField === 'start-level' && START_LEVELS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
+                {planField === 'confidence' && CONFIDENCE_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
+                {planField === 'focus' && FOCUS_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
+                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map(minutes => <BoldChoice key={minutes} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
+
               </>
             )}
           </>

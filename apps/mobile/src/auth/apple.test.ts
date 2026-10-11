@@ -172,16 +172,16 @@ describe('the Apple door is offered only where it works — F376', () => {
       const gated = body.slice(gate, gate + 400);
       // Revamp B (F601): the door is an ink pill carrying the white mark, as
       // the approved board draws it, where it used to be a quiet outline.
-      assert.match(gated, /<PillButton/, `${where} gates something other than the Apple button on appleOffered`);
-      assert.match(gated, /authButtonLabel\('apple', pending === 'apple'\)/, `${where}'s gated button is not the Apple one`);
-      assert.match(gated, /<AppleMark color=\{paper\.onInk\} \/>/, `${where}'s Apple button carries no mark, or not the shared one in white`);
+      assert.match(gated, /<ProviderButton/, `${where} gates something other than the Apple button on appleOffered`);
+      assert.match(gated, /provider="apple"/, `${where}'s gated button is not the Apple one`);
+      assert.match(gated, /busy=\{pending === 'apple'\}/, `${where}'s Apple button carries no mark, or not the shared one in white`);
       assert.match(gated, /onPress=\{\(\) => void apple\(\)\}/, `${where}'s Apple button does not start the Apple sign-in`);
 
       // Above the Google door. Revamp B (F601): both lead the body, under the
       // title and above the first field, the way the approved board draws them;
       // the footer keeps only the one ink pill, which surfaceContract holds.
-      const applePlace = body.indexOf("authButtonLabel('apple'");
-      const googlePlace = body.indexOf("authButtonLabel('google'");
+      const applePlace = body.indexOf('provider="apple"');
+      const googlePlace = body.indexOf('provider="google"');
       assert.ok(googlePlace >= 0, `${where} lost its Google door`);
       assert.ok(applePlace < googlePlace, `${where} draws the Apple door below the Google one`);
       const title = body.indexOf('accessibilityRole="header"');

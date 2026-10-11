@@ -67,9 +67,9 @@ describe('a disabled control says it is off — F758', () => {
     // through the motion door rather than its own clock.
     const next = evidence('apps/mobile/src/onboarding/NextButton.tsx');
     assert.match(next, /from '\.\/firstRun\/nextFace\.ts'/);
-    assert.match(next, /style=\{\[st\.surface, \{ backgroundColor: NEXT_OFF\.fill \}\]\}/, 'the Continue is not drawn on its off face');
+    assert.match(next, /style=\{\[st\.surface, \{ borderRadius: bold \? 12 : radius\.control, backgroundColor: NEXT_OFF\.fill \}\]\}/, 'the Continue is not drawn on its off face');
     assert.match(next, /\{face\(NEXT_OFF\.words\)\}/);
-    assert.match(next, /<LiveFace live=\{!disabled\} style=\{\[st\.row, \{ backgroundColor: NEXT_ON\.fill \}\]\}>/, 'the live face no longer waits for an answer');
+    assert.match(next, /<LiveFace live=\{!disabled\} style=\{\[st\.row, \{ backgroundColor: bold \? c\.sun : NEXT_ON\.fill \}\]\}>/, 'the live face no longer waits for an answer');
     assert.match(next, /accessibilityState=\{\{ disabled \}\}/);
     assert.match(next, /accessibilityHint=\{disabled \? NEXT_OFF_HINT : undefined\}/);
     assert.match(next, /<Glint when=\{!disabled\}/, 'turning on no longer glints');

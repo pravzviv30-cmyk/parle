@@ -1,8 +1,10 @@
 import { TimedExit } from '../motion/TimedExit.tsx';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Text, View, useWindowDimensions } from 'react-native';
-import { PillButton } from '../components.tsx';
-import { colour, decorative, paper, type } from '../theme.ts';
+import { BoldButton as PillButton } from './BoldButton.tsx';
+import { boldType as type, c } from './boldRhythm.ts';
+import { BoldScene } from './motion/BoldScene.tsx';
+import { decorative, paper } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
 import { celebrate } from '../motion/haptics.ts';
 import { Burst } from '../motion/Burst.tsx';
@@ -24,11 +26,11 @@ export function FirstSessionCelebration({ record, progress, onDone }: { record: 
     if (!haptic.current && record.outcome === 'completed') { haptic.current = true; celebrate(); }
     if (record.outcome !== 'completed') { done(); return; }
   }, [record.outcome]);
-  return <TimedExit style={{ flex: 1, backgroundColor: colour.mint }} automatic={Platform.OS === 'web' || reader === false} delayMs={reduced ? 1000 : 1700} onDone={done}>
+  return <TimedExit style={{ flex: 1, backgroundColor: c.paper }} automatic={Platform.OS === 'web' || reader === false} delayMs={reduced ? 1000 : 1700} onDone={done}>
     <OnboardingLayout page="recap" progress={progress} footer={<PillButton label="See my achievements" onPress={done} />}>
       <View style={{ alignItems: 'center', gap: 24 }}>
-        <OnboardingScene kind="account" size={200} />
-        <Text accessibilityRole="header" style={[type.display, { textAlign: 'center' }]}>Well done!</Text>
+        <BoldScene kind="celebrate" width={240} />
+        <Text accessibilityRole="header" style={[type.title, { textAlign: 'center' }]}>Well done!</Text>
         <Text style={[type.heading, { textAlign: 'center' }]}>You completed your first session.</Text>
       </View>
     </OnboardingLayout>
@@ -63,8 +65,8 @@ export function FirstSessionSummary({ record, progress, onSave, busy = false, is
   const view = firstLiveSummary(record);
   return <OnboardingLayout page="keep" progress={progress} footer={<RevealItem index={2}><PillButton label={busy ? 'Saving…' : 'Save your progress'} disabled={busy} onPress={onSave} /></RevealItem>}>
     <View style={{ gap: 18 }}>
-      <View style={{ alignItems: 'center' }}><OnboardingScene kind={record.outcome === 'completed' ? 'plan' : 'level'} size={120} /></View>
-      <Text accessibilityRole="header" style={[type.display, { textAlign: 'center' }]}>{view.heading}</Text>
+      <View style={{ alignItems: 'center' }}><BoldScene kind={record.outcome === 'completed' ? 'summary' : 'pause'} width={200} /></View>
+      <Text accessibilityRole="header" style={[type.title, { textAlign: 'center' }]}>{view.heading}</Text>
       <Text style={[type.body, { textAlign: 'center' }]}>{view.detail}</Text>
       <View>{view.achievements.map((text, index) => <Achievement key={text} text={text} index={index} />)}</View>
       {view.achievements.length === 0 && <Text style={type.body}>There are no confirmed replies to summarise yet. Your chosen plan and tutor are ready for your next practice.</Text>}

@@ -29,7 +29,7 @@ describe('the microphone meter', () => {
     // The replacement reads the same actual room tracks as the regular tutor.
     const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
     assert.match(recording, /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\}/);
-    assert.match(recording, /<VoiceOrb state=\{state\}/);
+    assert.match(recording, /<BoldVoiceOrb state=\{state\}/);
     assert.match(recording, /await live\.pauseMic\(\)/);
     const meter = evidence('apps/mobile/src/live/RoomLevels.tsx');
     assert.match(meter, /getFloatTimeDomainData/);

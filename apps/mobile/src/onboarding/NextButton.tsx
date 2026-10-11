@@ -14,6 +14,7 @@
  * once and no glint passes, watched live.
  */
 
+import { c } from './boldRhythm.ts';
 import { nextAction } from './nextAction.ts';
 import { useEffect, useRef, createElement, type KeyboardEvent } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
@@ -25,7 +26,7 @@ import { DUR } from '../motion/tokens.ts';
 import { LiveFace } from './firstRun/LiveFace.tsx';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './firstRun/nextFace.ts';
 
-export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string }) {
+export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL, bold = false }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string; bold?: boolean }) {
   const reduced = useReduceMotion();
   const arrow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -55,12 +56,12 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
   );
   const contents = (<>
       <View style={st.row}>{face(NEXT_OFF.words)}</View>
-      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }]}>
+      <LiveFace live={!disabled} style={[st.row, { backgroundColor: bold ? c.sun : NEXT_ON.fill }]}>
         <View {...decorative} style={st.face}>
-          {face(NEXT_ON.words)}
+          {face(bold ? c.ink : NEXT_ON.words)}
         </View>
       </LiveFace>
-      <Glint when={!disabled} wait={DUR.fast} radius={radius.control} />
+      <Glint when={!disabled} wait={DUR.fast} radius={bold ? 12 : radius.control} />
   </>);
   // RN Web Pressable overwrites aria-disabled from its interaction-disabled
   // prop. This explanatory action must remain clickable without advertising
@@ -78,14 +79,20 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
         if (!event.repeat) nextAction(disabled, onPress, onDisabledPress);
       },
     };
-    return createElement('div', {
+    return <Animated.View style={bold && !reduced ? { transform: [
+      { perspective: 600 },
+      { translateY: arrow.interpolate({ inputRange: [0, 4], outputRange: [0, 3] }) },
+      { scale: arrow.interpolate({ inputRange: [0, 4], outputRange: [1, 0.97] }) },
+      { rotateX: arrow.interpolate({ inputRange: [0, 4], outputRange: ['0deg', '2deg'] }) },
+    ] } : undefined}>{createElement('div', {
       ...webEvents, role: 'button', 'aria-label': label, 'aria-disabled': disabled,
       'aria-description': disabled ? NEXT_OFF_HINT : undefined,
-      style: { position: 'relative', minHeight: 56, borderRadius: radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
-    }, contents);
+      style: { position: 'relative', minHeight: 56, borderRadius: bold ? 12 : radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
+    }, contents)}</Animated.View>;
   }
   return (
     <Press
+      depth={bold && !disabled ? 'raised' : 'control'}
       haptic={disabled ? 'none' : 'light'}
       accessibilityLabel={label}
       accessibilityHint={disabled ? NEXT_OFF_HINT : undefined}
@@ -93,7 +100,7 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
       onPress={() => nextAction(disabled, onPress, onDisabledPress)}
       onPressIn={() => { if (!disabled) move(4); }}
       onPressOut={() => move(0)}
-      style={[st.surface, { backgroundColor: NEXT_OFF.fill }]}
+      style={[st.surface, { borderRadius: bold ? 12 : radius.control, backgroundColor: NEXT_OFF.fill }]}
     >
       {contents}
     </Press>

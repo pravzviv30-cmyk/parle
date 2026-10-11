@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState, type Ref, type ReactNode } from 'reac
 import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Reanimated, { interpolate, Extrapolation, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import type { DayKey } from '@luvani/core';
+import { BoldScene } from '../motion/BoldScene.tsx';
+import { BoldButton } from '../BoldButton.tsx';
+import { c, boldType } from '../boldRhythm.ts';
 import { IconButton, PillButton, Press } from '../../components.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import { ScrollScreen, readingColumn, useCompactPhone, useFontScale } from '../../layout.tsx';
@@ -27,7 +30,8 @@ const STREAK_FRAME = { hideProgress: true, ground: palette.ground };
 const receipts = createEntranceReceipts();
 
 
-export function StreakCelebrationScreen({ streak, today, moment, onBack, onContinue, onReminder, active = true, notice, headingRef, progress = STREAK_PROGRESS }: {
+export function StreakCelebrationScreen({ streak, today, moment, onBack, onContinue, onReminder, active = true, notice, headingRef, progress = STREAK_PROGRESS, design }: {
+  design?: 'bold-rhythm';
   streak: GuestStreak | null;
   today: DayKey;
   moment: string | null;
@@ -39,7 +43,7 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   headingRef?: Ref<Text>;
   progress?: OnboardingProgressValue;
 }) {
-  useOnboardingFramePresentation(progress, STREAK_FRAME, active);
+  useOnboardingFramePresentation(progress, design === 'bold-rhythm' ? { hideProgress: true, ground: c.violet } : STREAK_FRAME, active);
   const model = streakCelebrationView(streak, today);
   const eventKey = model?.eventKey;
   const reduced = useAnswered(useReduceMotion(true));
@@ -53,7 +57,7 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   const fontScale = useFontScale();
   const compact = useCompactPhone();
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [flameReady, setFlameReady] = useState<boolean | null>(null);
+  const [flameReady, setFlameReady] = useState<boolean | null>(design === 'bold-rhythm' ? true : null);
   const onFlameReady = useCallback((canAnimate: boolean) => setFlameReady(canAnimate), []);
   const [session] = useState(() => createEntranceSession(receipts, eventKey ?? null, moment));
   const [entrance, setEntrance] = useState<StreakEntrancePhase>(session.phase);
@@ -105,6 +109,28 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   }));
   const headlineLook = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, STREAK_ENTRANCE_TIMELINE.message.inputRange, STREAK_ENTRANCE_TIMELINE.message.outputRange, Extrapolation.CLAMP) }));
   const heroLook = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - interpolate(clock.value, STREAK_ENTRANCE_TIMELINE.position.inputRange, STREAK_ENTRANCE_TIMELINE.position.outputRange, Extrapolation.CLAMP)) * centralOffset }] }));
+  if (design === 'bold-rhythm') return <ScrollScreen ground={c.violet} topGap={24}
+    onViewportLayout={event => setViewportHeight(event.nativeEvent.layout.height)}
+    footer={<View style={[readingColumn, { gap: 8 }]}>
+      <BoldButton label="Keep going" onPress={onContinue} />
+      {onReminder && <Press accessibilityRole="button" onPress={onReminder} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[boldType.label, { color: c.white, textAlign: 'center' }]}>Remind me tomorrow</Text></Press>}
+    </View>}>
+    <View style={[readingColumn, { gap: 16, alignItems: 'center' }]}>
+      <Text ref={headingRef} accessibilityRole="header" style={[boldType.display, { color: c.white, textAlign: 'center' }]}>{model?.headline ?? 'Your next chapter starts here.'}</Text>
+      <Text style={[boldType.body, { color: c.white, textAlign: 'center' }]}>{model?.encouragement ?? 'Finish a practice to start your streak.'}</Text>
+      <BoldScene kind="streak" width={256} active={active && foreground} />
+      {model !== null && <View style={{ width: '100%', backgroundColor: c.paper, borderRadius: 12, padding: 20, gap: 16 }}>
+        <Text style={[boldType.title, { color: c.ink, textAlign: 'center' }]}>{model.countLabel}</Text>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {model.week.map(day => <View key={day.day} accessible accessibilityLabel={day.accessibilityLabel} style={{ flex: 1, alignItems: 'center', gap: 8 }}>
+            <Text style={[boldType.small, { color: c.muted }]}>{day.label}</Text>
+            <Text style={[boldType.label, { color: c.ink }]}>{day.completed ? '✓' : '○'}</Text>
+          </View>)}
+        </View>
+      </View>}
+      {!!notice && <Text accessibilityLiveRegion="polite" style={[boldType.small, { color: c.white }]}>{notice}</Text>}
+    </View>
+  </ScrollScreen>;
   const secondaryHidden = intro ? decorative : {};
   const footer = <View style={readingColumn}>
     <FadeGroup clock={clock} start={1850} end={END} {...secondaryHidden} style={st.footer}>

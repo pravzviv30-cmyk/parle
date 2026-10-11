@@ -1,0 +1,50 @@
+<Rive version="1" kind="fragment">
+  <Artboard name="Scene" width="232" height="232" defaultStateMachineId="0:9001">
+    <Shape name="Haze" x="116" y="116">
+      <Ellipse width="220" height="220" />
+      <Fill>
+        <RadialGradient name="Haze" id="0:21" startX="-48" startY="28" endX="108" endY="28">
+          <GradientStop colorValue="B3FFFFFF" position="0" />
+          <GradientStop colorValue="35FFFFFF" position="0.58" />
+          <GradientStop colorValue="00FFFFFF" position="1" />
+        </RadialGradient>
+      </Fill>
+    </Shape>
+    <Shape name="Colour cloud" x="116" y="116">
+      <Ellipse width="220" height="220" />
+      <Fill>
+        <RadialGradient name="Colour cloud" id="0:22" startX="30" startY="-60" endX="180" endY="-60">
+          <GradientStop colorValue="DBA89387" position="0" />
+          <GradientStop colorValue="66A89387" position="0.48" />
+          <GradientStop colorValue="00A89387" position="1" />
+        </RadialGradient>
+      </Fill>
+    </Shape>
+    <Shape name="Base" x="116" y="116">
+      <Ellipse width="220" height="220" />
+      <Fill>
+        <LinearGradient name="Base" id="0:23" startX="0" startY="-110" endX="0" endY="110">
+          <GradientStop colorValue="FFFAE9DF" position="0" />
+          <GradientStop colorValue="FFFDF3EE" position="1" />
+        </LinearGradient>
+      </Fill>
+    </Shape>
+    <StateMachine name="Scene" id="0:9001">
+      <StateMachineLayer name="Fluid light" id="0:9002">
+        <EntryState x="0" y="0">
+          <StateTransition stateToId="0:9003" />
+        </EntryState>
+        <AnimationState x="200" y="0" id="0:9003" animationId="0:9000" />
+        <AnyState x="200" y="-120" />
+        <ExitState x="400" y="-120" />
+      </StateMachineLayer>
+    </StateMachine>
+    <LinearAnimation name="Enter" id="0:9000" fps="60" duration="480" loopValue="loop">
+      <KeyedObject objectId="0:23">
+        <KeyedProperty property="startX">
+          <KeyFrameDouble frame="0" value="0" interpolationType="linear" />
+        </KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+  </Artboard>
+</Rive>

@@ -1,7 +1,7 @@
 import { FULL_SETUP, FIVE_SETUP } from './flow.ts';
 import { PAGES } from './answers.ts';
 
-const SKIPPABLE_STEPS = new Set(['reason', 'start-level', 'confidence', 'focus', 'time', 'remind']);
+const SKIPPABLE_STEPS = new Set(['reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'remind']);
 
 export interface OnboardingProgressValue {
   /** Completed fraction, 0..1. Only the durable completion handoff is 1. */

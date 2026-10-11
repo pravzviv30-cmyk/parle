@@ -1,3 +1,5 @@
+import { BoldVoiceOrb } from '../onboarding/BoldVoiceOrb.tsx';
+import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import { FirstSessionSummary, FirstSessionCelebration } from '../onboarding/FirstSessionResult.tsx';
 import type { FirstLiveRecord } from '../onboarding/firstLiveModel.ts';
@@ -5,37 +7,29 @@ import type { FirstLiveRecord } from '../onboarding/firstLiveModel.ts';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buildConversationPack, addDays, tutorVoice, type DayKey, type TutorVoiceKey } from '@luvani/core';
+import { buildConversationPack, addDays, type DayKey } from '@luvani/core';
 import { AuthProvider } from '../auth/useAuth.tsx';
 import type { AuthAdapter, AuthResult } from '../auth/types.ts';
 import { SignUpScreen } from '../auth/SignUpScreen.tsx';
 import { AuthFlow } from '../auth/AuthFlow.tsx';
 import { SignInScreen } from '../auth/SignInScreen.tsx';
 import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDraft.ts';
-import { Choice, PillButton, Press } from '../components.tsx';
+import { PillButton, Press } from '../components.tsx';
 import { ScrollScreen, readingColumn } from '../layout.tsx';
 import { AccountWelcome } from '../onboarding/AccountWelcome.tsx';
-import { OnboardingFrame, OnboardingLayout, useOnboardingTransition } from '../onboarding/OnboardingLayout.tsx';
+import { OnboardingFrame, useOnboardingTransition } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
-import { TutorSelection } from '../onboarding/TutorSelection.tsx';
-import { PersonalPlan } from '../onboarding/PersonalPlan.tsx';
-import { OnboardingScene } from '../onboarding/motion/OnboardingScenes.tsx';
 import { StreakCelebrationScreen } from '../onboarding/firstRun/StreakCelebrationScreen.tsx';
 import { guestStreak } from '../onboarding/guestProgress.ts';
 import { freshPreAccountDraft, type PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
-import { CONFIDENCE_OPTIONS, FOCUS_OPTIONS, REASONS, START_LEVELS } from '../onboarding/plan.ts';
-import { FULL_SETUP } from '../onboarding/flow.ts';
-import { GOAL_TIERS } from '../onboarding/firstRun/planModel.ts';
-import { GoalTile } from '../onboarding/firstRun/GoalTile.tsx';
-import { colour, HIT, paper, radius, space, type } from '../theme.ts';
-import { useTutorPreview } from '../tutor/useTutorPreview.ts';
+import { HIT, paper, radius, space, type } from '../theme.ts';
 
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
 const previewAdapterBase: AuthAdapter = {
   kind: 'mock', getSession: async () => null, onAuthStateChange: () => () => {},
   signUpWithPassword: unavailable, signInWithPassword: unavailable,
   signInWithGoogle: unavailable, signInWithApple: unavailable,
-  sendPasswordReset: unavailable, completePasswordReset: unavailable,
+  resendConfirmation: unavailable, sendPasswordReset: unavailable, completePasswordReset: unavailable,
   reauthenticateForDeletion: unavailable, deleteAccount: unavailable,
   signOut: async () => {}, getAccessToken: async () => null,
 };
@@ -49,10 +43,10 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
+const PREVIEWS = ['orb', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
-  'hear-it': 'Welcome', reason: 'Purpose', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
+  orb: 'Fluid orb states', 'hear-it': 'Welcome', reason: 'Purpose', interests: 'Interests', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
   'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
 };
 function previewOptions() {
@@ -63,25 +57,13 @@ function previewOptions() {
   return { screen: PREVIEWS.includes(wanted as Preview) && !wanted?.startsWith('streak') ? wanted as Preview : 'select' as Preview, controls: query?.get('controls') !== '0' };
 }
 
-function TutorFixture({ chosen, onChoose, onDone }: { chosen: TutorVoiceKey | null; onChoose: (voice: TutorVoiceKey) => void; onDone: () => void }) {
-  const preview = useTutorPreview({ active: true });
-  return <OnboardingLayout page="choose-tutor" center={false} footer={<View style={{ gap: 8 }}>
-    <Text accessibilityLiveRegion="polite" style={[type.small, st.caption]}>{chosen ? `Selected: ${tutorVoice(chosen).persona.name}.` : 'Choose a tutor to continue.'}</Text>
-    <PillButton label="Start your first practice" disabled={chosen === null} onPress={() => { preview.stop(); onDone(); }} />
-  </View>}>
-    <View style={{ gap: 20 }}>
-      <Text accessibilityRole="header" style={[type.title, st.heading]}>Choose your tutor</Text>
-      <TutorSelection chosen={chosen} preview={preview} onChoose={onChoose} onHear={preview.toggle} />
-    </View>
-  </OnboardingLayout>;
-}
-
 /** A developer-only presentation fixture. Voice previews play the existing bundled lesson identities. */
 export function OnboardingPreview() {
   const [options] = useState(previewOptions);
   const [controlsVisible, setControlsVisible] = useState(options.controls);
   const [screen, setScreen] = useState<Preview>(options.screen);
-  const [chosen, setChosen] = useState<TutorVoiceKey | null>(null);
+  const [orbState, setOrbState] = useState<OrbState>('ready');
+  const [orbActive, setOrbActive] = useState(true);
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => ({
     ...freshPreAccountDraft(), reason: 'trip', startLevel: 'few', speakingConfidence: 'trying', practiceFocus: 'speaking', minutes: 10,
   }));
@@ -99,7 +81,7 @@ export function OnboardingPreview() {
       setRequestPending(true);
       return request;
     };
-    return { ...previewAdapterBase, signUpWithPassword: pendingRequest, signInWithPassword: pendingRequest, signInWithGoogle: pendingRequest, signInWithApple: pendingRequest };
+    return { ...previewAdapterBase, signUpWithPassword: pendingRequest, signInWithPassword: pendingRequest, signInWithGoogle: pendingRequest, signInWithApple: pendingRequest, resendConfirmation: pendingRequest };
   });
   const settleSignup = (result: AuthResult) => {
     const resolve = signupResolver.current;
@@ -122,14 +104,6 @@ export function OnboardingPreview() {
       setScreen(next);
     });
   };
-  const next = () => {
-    const index = FULL_SETUP.indexOf(screen as typeof FULL_SETUP[number]);
-    go((FULL_SETUP[index + 1] as Preview | undefined) ?? 'tutor');
-  };
-  const question = screen === 'reason' ? REASONS : screen === 'start-level' ? START_LEVELS
-    : screen === 'confidence' ? CONFIDENCE_OPTIONS : screen === 'focus' ? FOCUS_OPTIONS : null;
-  const field = screen === 'reason' ? 'reason' : screen === 'start-level' ? 'startLevel'
-    : screen === 'confidence' ? 'speakingConfidence' : screen === 'focus' ? 'practiceFocus' : null;
   const titles: Partial<Record<Preview, string>> = {
     'hear-it': 'Welcome to Luvani', reason: 'Make French yours', 'start-level': 'How’s your French?', confidence: 'How does speaking feel?',
     focus: 'What would help you most?', time: 'Your daily French moment', plan: 'Your personal plan',
@@ -145,11 +119,12 @@ export function OnboardingPreview() {
         </View>
       </ScrollScreen> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
-          {screen === 'tutor' && <TutorFixture chosen={chosen} onChoose={setChosen} onDone={() => go('streak')} />}
+          {screen === 'orb' && <ScrollScreen><View style={[readingColumn, { gap: 24, alignItems: 'center' }]}><Text accessibilityRole="header" style={[type.title, st.heading]}>Fluid voice orb</Text><Text style={[type.body, st.caption]}>Synthetic state preview. No microphone or live audio.</Text><BoldVoiceOrb state={orbState} size={280} active={orbActive} /><Text accessibilityLiveRegion="polite" style={[type.bodyStrong, st.ink]}>{orbState}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{(['ready', 'connecting', 'listening', 'thinking', 'speaking', 'error'] as const).map(value => <PillButton key={value} label={value} onPress={() => setOrbState(value)} />)}</View><PillButton label={orbActive ? 'Pause motion' : 'Resume motion'} onPress={() => setOrbActive(!orbActive)} /></View></ScrollScreen>}
+          {screen === 'tutor' && <PreAccountOnboarding previewOnly initialDraft={{ ...draft, page: 'choose-tutor' }} onDraftChange={setDraft} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('signin')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
           {screen === 'auth-flow' && <AuthFlow initialDraft={null} returning onDraftChange={() => {}} onCreateAccount={() => {}} onDiscardDraft={() => {}} onSignIn={() => {}} refused={false} onRefuse={() => {}} />}
           {screen === 'signin' && <SignInScreen onCreateAccount={() => go('signup')} />}
-          {(screen === 'streak' || screen === 'streak-long' || screen === 'streak-empty') && <StreakCelebrationScreen
+          {(screen === 'streak' || screen === 'streak-long' || screen === 'streak-empty') && <StreakCelebrationScreen design="bold-rhythm"
             streak={screen === 'streak-empty' ? null : screen === 'streak-long' ? previewLongStreak : previewStreak}
             today={previewDay}
             moment={screen === 'streak' || screen === 'streak-long' ? `streak:${previewDay}` : null}
@@ -159,22 +134,12 @@ export function OnboardingPreview() {
           {screen === 'celebration' && <FirstSessionCelebration record={previewFirstLive} progress={onboardingProgress({page:'recap'})} onDone={() => go('saved')} />}
           {(screen === 'saved' || screen === 'partial') && <FirstSessionSummary record={screen === 'partial' ? {...previewFirstLive,outcome:'interrupted'} : previewFirstLive}
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
-          {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signup')} />}
+          {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
-          {titles[screen] !== undefined && <OnboardingLayout page={screen} footer={<PillButton label={screen === 'plan' ? 'Choose your tutor' : 'Continue'} onPress={next} />}>
-            <View style={st.story}>
-              {screen === 'hear-it' && <View style={{ alignItems: 'center' }}><OnboardingScene kind="welcome" size={190} /></View>}
-              {screen === 'start-level' && <View style={{ alignItems: 'center' }}><OnboardingScene kind="level" size={150} /></View>}
-              <Text accessibilityRole="header" style={[type.title, st.heading]}>{titles[screen]}</Text>
-              {screen === 'hear-it' && <Text style={[type.body, st.caption]}>Find your voice in French. Start with a small conversation, and make it yours.</Text>}
-              {question && field && <View accessibilityRole="radiogroup" style={{ gap: 10 }}>{question.map(option => <Choice key={option.key} title={option.title}
-                detail={'gloss' in option ? option.gloss : undefined} selected={draft[field] === option.key}
-                onPress={() => setDraft(current => ({ ...current, [field]: option.key }))} />)}</View>}
-              {screen === 'time' && <View accessibilityRole="radiogroup" style={{ gap: 10 }}>{GOAL_TIERS.map(tier => <GoalTile key={tier.minutes} tier={tier} suggested={false}
-                selected={draft.minutes === tier.minutes} onPress={() => setDraft(current => ({ ...current, minutes: tier.minutes }))} />)}</View>}
-              {screen === 'plan' && <PersonalPlan draft={draft} compact={false} onEdit={() => go('reason')} />}
-            </View>
-          </OnboardingLayout>}
+          {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
+            initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}
+            onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
+
         </Animated.View>
       </OnboardingFrame>}
       {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>

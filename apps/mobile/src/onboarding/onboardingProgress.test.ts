@@ -27,7 +27,7 @@ describe('onboarding progress from actual conditional routes', () => {
     assert.equal(tutor.total, steps.length);
   });
   test('skipped routes are removed, not credited as completed work', () => {
-    const skipped = ['reason', 'start-level', 'confidence', 'focus', 'time', 'remind'];
+    const skipped = ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'remind'];
     const steps = onboardingSteps({ skipped });
     const plan = onboardingProgress({ page: 'plan', skipped });
     assert.equal(plan.step, 2);
@@ -45,19 +45,19 @@ describe('onboarding progress from actual conditional routes', () => {
     assert.equal(onboardingSteps({ signedIn: true, skipped }).at(-1), 'keep');
   });
   test('reopening restores progress from the saved route and route history', () => {
-    const saved = { page: 'choose-tutor', five: true, completed: ['hear-it', 'reason', 'confidence', 'focus', 'time', 'plan'] };
+    const saved = { page: 'choose-tutor', five: true, completed: ['hear-it', 'reason', 'interests', 'confidence', 'focus', 'time', 'plan'] };
     assert.deepEqual(onboardingProgress(saved), onboardingProgress(JSON.parse(JSON.stringify(saved))));
     const beforeBack = onboardingProgress({ ...saved, page: 'practice', completed: [...saved.completed, 'choose-tutor'] });
     const back = onboardingProgress({ ...saved, page: 'plan', completed: [...saved.completed, 'choose-tutor'] });
     assert.ok(back.fraction >= (beforeBack.fraction - 0.5 / back.total));
-    assert.equal(back.step, 6);
+    assert.equal(back.step, 7);
   });
   test('signup, a repeated guest exchange, and retired pages have stable mappings', () => {
     assert.deepEqual(onboardingProgress({ page: 'signup' }), onboardingProgress({ page: 'account' }));
     assert.deepEqual(onboardingProgress({ page: 'frequency' }), onboardingProgress({ page: 'time' }));
     assert.deepEqual(onboardingProgress({ page: 'home' }), onboardingProgress({ page: 'keep' }));
     assert.deepEqual(onboardingProgress({ page: 'first-line' }), onboardingProgress({ page: 'hear-it' }));
-    assert.equal(onboardingProgress({ page: 'practice' }).step, 9);
+    assert.equal(onboardingProgress({ page: 'practice' }).step, 10);
   });
   test('legacy repair uses the same mapping with its actual four routes', () => {
     const steps = onboardingSteps({ repair: true });

@@ -24,11 +24,15 @@ export interface AuthAdapter {
   /** Subscribe to sign-in/sign-out. Returns unsubscribe. */
   onAuthStateChange(cb: (user: AuthUser | null) => void): () => void;
   /**
-   * Password recovery landed (web: the learner arrived from a reset email).
+   * Password recovery landed from a verified reset-email callback.
    * Optional — the mock adapter has no email to arrive from.
    */
   onPasswordRecovery?(cb: () => void): () => void;
+  /** A native email callback could not be verified; no callback data leaves the adapter. */
+  onEmailLinkFailure?(cb: () => void): () => void;
   signUpWithPassword(email: string, password: string): Promise<AuthResult>;
+  /** Only email-verifying adapters offer this recovery action. */
+  resendConfirmation?(email: string): Promise<AuthResult>;
   signInWithPassword(email: string, password: string): Promise<AuthResult>;
   signInWithGoogle(): Promise<AuthResult>;
   /**

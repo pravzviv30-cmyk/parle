@@ -1,0 +1,99 @@
+<Rive version="1" kind="fragment">
+  <Artboard name="Scene" width="350" height="320" defaultStateMachineId="0:9001">
+    <Node name="svg" id="0:1" opacity="1">
+      <Node name="props" id="0:2" opacity="1" />
+      <Node name="flame" id="0:3" opacity="1">
+        <Shape name="path" opacity="1">
+          <PointsPath isClosed="true">
+            <CubicDetachedVertex x="183.0" y="125.0" inRotation="1.5253730473733196" inDistance="22.02271554554524" outRotation="1.4056476493802699" outDistance="24.331050121192877" />
+            <CubicDetachedVertex x="223.0" y="197.0" inRotation="-1.5707963267948966" inDistance="28.0" outRotation="1.5707963267948966" outDistance="28.0" />
+            <CubicDetachedVertex x="176.0" y="244.0" inRotation="0.0" inDistance="26.0" outRotation="3.141592653589793" outDistance="26.0" />
+            <CubicDetachedVertex x="135.0" y="204.0" inRotation="1.6657480331376529" inDistance="21.095023109728988" outRotation="-1.4659193880646628" outDistance="19.1049731745428" />
+            <CubicDetachedVertex x="153.0" y="153.0" inRotation="1.5707963267948966" inDistance="20.0" outRotation="0.5516549825285468" outDistance="15.264337522473747" />
+            <CubicDetachedVertex x="166.0" y="184.0" inRotation="-1.7126933813990606" inDistance="7.0710678118654755" outRotation="-0.7509290623979403" outDistance="20.518284528683193" />
+          </PointsPath>
+          <Fill fillRule="nonZero">
+            <SolidColor colorValue="FFFFC93C" />
+          </Fill>
+        </Shape>
+        <Shape name="path" opacity="1">
+          <PointsPath isClosed="true">
+            <CubicDetachedVertex x="186.0" y="47.0" inRotation="1.5395564933646284" inDistance="32.01562118716424" outRotation="1.135113453763956" outDistance="63.97655820689325" />
+            <CubicDetachedVertex x="257.0" y="175.0" inRotation="-1.5707963267948966" inDistance="60.0" outRotation="1.5707963267948966" outDistance="56.0" />
+            <CubicDetachedVertex x="177.0" y="260.0" inRotation="0.0" inDistance="45.0" outRotation="3.141592653589793" outDistance="47.0" />
+            <CubicDetachedVertex x="100.0" y="181.0" inRotation="1.5707963267948966" inDistance="47.0" outRotation="-1.5707963267948966" outDistance="42.0" />
+            <CubicDetachedVertex x="131.0" y="90.0" inRotation="1.3909428270024184" inDistance="33.54101966249684" outRotation="0.30587887140485215" outDistance="19.924858845171276" />
+            <CubicDetachedVertex x="163.0" y="123.0" inRotation="-1.7234456551901618" inDistance="13.152946437965905" outRotation="-0.8902751021276822" outDistance="27.018512172212592" />
+          </PointsPath>
+          <Fill fillRule="nonZero">
+            <SolidColor colorValue="FFD63A22" />
+          </Fill>
+        </Shape>
+      </Node>
+      <Node name="environment" id="0:4" opacity="1" x="175.0" y="170.5">
+        <Node x="-175.0" y="-170.5">
+          <Shape name="circle" opacity="1" x="296.0" y="52.0">
+            <Ellipse width="62.0" height="62.0" />
+            <Fill fillRule="nonZero">
+              <SolidColor colorValue="FFD63A22" />
+            </Fill>
+          </Shape>
+          <Shape name="path" opacity="1">
+            <PointsPath isClosed="true">
+              <CubicDetachedVertex x="0.0" y="206.0" inRotation="0.0" inDistance="0.0" outRotation="-0.34061624041831284" outDistance="55.87684871413403" />
+              <CubicDetachedVertex x="163.0" y="226.0" inRotation="-2.62244653934327" inDistance="64.4980619863884" outRotation="0.5191461142465229" outDistance="64.4980619863884" />
+              <CubicDetachedVertex x="350.0" y="211.0" inRotation="2.592650632392262" inDistance="80.49292584513937" outRotation="0.0" outDistance="0.0" />
+              <CubicDetachedVertex x="350.0" y="320.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+              <CubicDetachedVertex x="0.0" y="320.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+            </PointsPath>
+            <Fill fillRule="nonZero">
+              <SolidColor colorValue="FFFFC93C" />
+            </Fill>
+          </Shape>
+        </Node>
+      </Node>
+    </Node>
+    <StateMachine name="Scene" id="0:9001">
+      <StateMachineLayer name="Illustration" id="0:9002">
+        <EntryState x="0" y="0">
+          <StateTransition stateToId="0:9003" />
+        </EntryState>
+        <AnimationState x="200" y="0" id="0:9003" animationId="0:9000" />
+        <AnyState x="200" y="-120" />
+        <ExitState x="400" y="-120" />
+      </StateMachineLayer>
+    </StateMachine>
+    <LinearAnimation name="Enter" id="0:9000" fps="60" duration="288" loopValue="loop">
+      <KeyedObject objectId="0:4">
+        <KeyedProperty property="x">
+          <KeyFrameDouble frame="0" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="96" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="192" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="288" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+        </KeyedProperty>
+        <KeyedProperty property="y">
+          <KeyFrameDouble frame="0" value="170.5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="96" value="167.5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="192" value="172.5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="288" value="170.5" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+        </KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+  </Artboard>
+</Rive>

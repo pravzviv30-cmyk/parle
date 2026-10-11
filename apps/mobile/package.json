@@ -27,6 +27,7 @@
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",
     "@rive-app/react-native": "0.5.4",
+    "@rive-app/react-webgl2": "4.36.0",
     "@supabase/supabase-js": "^2.112.3",
     "expo": "~57.0.27",
     "expo-apple-authentication": "~57.0.2",

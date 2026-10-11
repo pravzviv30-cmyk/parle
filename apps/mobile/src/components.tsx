@@ -233,6 +233,7 @@ export function PillButton({
   decoration,
   ref,
   state = 'idle',
+  design,
 }: {
   label: string;
   onPress: () => void;
@@ -262,12 +263,13 @@ export function PillButton({
    * Reduce Motion.
    */
   state?: 'idle' | 'busy' | 'done';
+  design?: 'bold-rhythm';
 }) {
   const { fontScale } = useWindowDimensions();
   const waiting = state !== 'idle';
-  const foreground = tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
+  const foreground = design === 'bold-rhythm' || tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
   return (
-    <Press haptic="light" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+    <Press haptic="light" depth={design === 'bold-rhythm' ? 'raised' : 'control'} style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, design === 'bold-rhythm' && { borderRadius: 12, minHeight: 56, backgroundColor: colour.sun }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
@@ -1490,7 +1492,7 @@ export type PressProps = Omit<PressableProps, 'style' | 'onPress' | 'children'> 
   /** The Pressable's place in its parent: flex, alignSelf, width. Never a colour. */
   frame?: StyleProp<ViewStyle>;
   /** control: pills, links and rows go to 0.97. tile: option tiles and icon buttons press deeper, to 0.95. */
-  depth?: 'control' | 'tile';
+  depth?: 'control' | 'tile' | 'raised';
   /**
    * For a choice: whether this one is the chosen one. Becoming chosen pops the
    * surface once and fades in a blue ring layer around it. Leave it out for an
@@ -1538,7 +1540,7 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
   const reduced = useReduceMotion();
   const scale = useSharedValue(1);
   const chosen = useRef(selected === true);
-  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const pressStyle = useAnimatedStyle(() => ({ transform: depth === 'raised' && !reduced ? [{ perspective: 600 }, { translateY: (1 - scale.value) * 80 }, { rotateX: `${(1 - scale.value) * 65}deg` }, { scale: scale.value }] : [{ scale: scale.value }] }));
   useEffect(() => () => stopMotion(scale), [scale]);
   useEffect(() => { if (reduced) pressTo(scale, 1, true); }, [reduced, scale]);
   useEffect(() => {
@@ -1552,7 +1554,7 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
       accessibilityRole="button" {...rest}
       disabled={disabled || undefined}
       onPressIn={(event) => {
-        pressTo(scale, depth === 'tile' ? PRESS_SCALE_TILE : PRESS_SCALE, reduced);
+        pressTo(scale, depth === 'tile' || depth === 'raised' ? PRESS_SCALE_TILE : PRESS_SCALE, reduced);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {

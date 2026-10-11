@@ -26,7 +26,7 @@ const app = read('../../App.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*
 const KEY = '@luvani/pre-account-onboarding/v1';
 
 /** Every answer the plan pages add, unanswered. */
-const UNANSWERED = { drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [], page: null, startLevel: null, reason: null, minutes: null, reminderTime: null, firstName: null, tutorChosen: false, speakingConfidence: null, practiceFocus: null } as const;
+const UNANSWERED = { interests: [], drink: null, frequency: null, eligibilityConfirmed: false, quickStart: false, rememberLearning: false, reminderEnabled: false, reminderDays: [], page: null, startLevel: null, reason: null, minutes: null, reminderTime: null, firstName: null, tutorChosen: false, speakingConfidence: null, practiceFocus: null } as const;
 
 /** One in-memory AsyncStorage, so the round trip is the real store's. */
 function installDisk(): Map<string, string> {
@@ -45,6 +45,15 @@ function installDisk(): Map<string, string> {
 }
 
 describe('the pre-account hand-off', () => {
+  test('interests survive restart, reject unknown values and clear with the guest draft', async () => {
+    installDisk();
+    const draft = { ...freshPreAccountDraft(), page: 'interests' as const, interests: ['food', 'music'] as const };
+    await savePreAccountDraft({ ...draft, interests: [...draft.interests] });
+    assert.deepEqual((await loadPreAccountDraft())?.interests, ['food', 'music']);
+    assert.deepEqual(repaired({ ...draft, interests: ['food', 'unknown', 'food', 'travel'] })?.interests, ['food', 'travel']);
+    await clearPreAccountDraft();
+    assert.equal(await loadPreAccountDraft(), null);
+  });
   test('a learner can resume an explicitly unset routine after restarting the local first run', async () => {
     installDisk();
     const chosen = { ...freshPreAccountDraft(), page: 'plan' as const, minutes: 'none' as const };
@@ -153,7 +162,7 @@ describe('the pre-account hand-off', () => {
     const form = evidence('apps/mobile/src/auth/SignInScreen.tsx');
     const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
     assert.match(form, /useState\(planDraft\?\.accountEmail \?\? ''\)/);
-    assert.match(form, /onChangeText=\{\(value\) => \{ setEmail\(value\); onEmailChange\?\.\(value\); setEmailError\(null\); emailAdvance\.queue\(value\); \}\}/);
+    assert.match(form, /onChangeText=\{\(value\) => \{ setEmail\(value\); onEmailChange\?\.\(value\); setEmailError\(null\); \}\}/);
     assert.match(flow, /onEmailChange=\{updateAccountEmail\}/);
     assert.match(flow, /initialDraft\.accountMode === 'signin' \? 'signin' : 'signup'/);
     assert.match(flow, /page: basis\.accountReturnPage \?\? 'keep'/);
@@ -195,11 +204,11 @@ describe('the pre-account hand-off', () => {
     assert.equal((await loadPreAccountDraft())?.firstName?.length, MAX_FIRST_NAME_CHARS);
   });
 
-  test("setup requires a deliberate tutor after the personal plan and eligibility still precedes practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Next: Choose your tutor"/); assert.match(screen, /<TutorSelection\s+chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/); assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.match(screen, /disabled=\{draft\.tutorChosen !== true \|\| busy\}/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draftRef\.current, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}/); });
+  test("setup requires a deliberate tutor after the personal plan and eligibility still precedes practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Choose your tutor"/); assert.match(screen, /<TutorSelection\s+chosen=\{draft\.tutorChosen \? draft\.tutorVoice : null\}/); assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.match(screen, /disabled=\{draft\.tutorChosen !== true \|\| busy\}/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draftRef\.current, page \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}/); });
 
   test("page and artwork motion respond to actions and stop when reduced motion changes", () => { const motion = evidence('apps/mobile/src/onboarding/OnboardingMotion.tsx'); assert.match(motion, /useReduceMotion\(\)/); assert.match(motion, /stopAnimation\(\)/); assert.match(motion, /if \(reduced\)/); assert.match(motion, /duration: 270/); assert.doesNotMatch(motion, /Animated\.loop|setInterval/); });
 
-  test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /A plan built around your goals/); assert.match(screen, /Start your personal plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
+  test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /Real conversations\. Your own words\./); assert.match(screen, /Start your personal plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
 
   test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing && !replace\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.match(screen, /onChoose=\{\(voice\) => choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
 

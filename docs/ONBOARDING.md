@@ -7,7 +7,7 @@ The 10 October 2026 onboarding correction supersedes the recorded-example notebo
 
 ## Current journey
 
-Pre-account onboarding renders **7 setup pages**: `hear-it`, `reason`, `start-level`, `confidence`, `focus`, `time`, `plan`. The runtime order is `FULL_SETUP` in `onboarding/flow.ts`; the existing short experiment omits the level question only. A dedicated `choose-tutor` page follows the plan, then the first practice, its result, day one (`remind`) and the save card (`keep`). Saving opens the full-page account form. The disk registry also accepts historical `first-line`, `save`, `frequency` and guest Home pages; it is not the setup screen count. Historical demo/save pages repair to the opening, and a draft saved on the retired frequency page resumes on the daily goal. New confidence and focus answers are optional in the version-1 draft: older answers and consent survive, and missing answers repair to null. New drafts start with `tutorChosen: false`; a catalogue default never counts as a deliberate new-page choice. A legacy draft's missing flag remains undefined so its saved voice survives account creation. The chooser requires a literal true for new and resumed drafts. A draft saved on a guest page requires a real guest record and finished practice; day one whose run has since lapsed opens the save card (`resumePage` in `onboarding/guestProgress.ts`). Historical guest Home remains readable for a resumed guest record.
+Pre-account onboarding renders **8 setup pages**: `hear-it`, `reason`, `start-level`, `confidence`, `focus`, `time`, `plan`. The runtime order is `FULL_SETUP` in `onboarding/flow.ts`; the existing short experiment omits the level question only. A dedicated `choose-tutor` page follows the plan, then the first practice, its result, day one (`remind`) and the save card (`keep`). Saving opens the full-page account form. The disk registry also accepts historical `first-line`, `save`, `frequency` and guest Home pages; it is not the setup screen count. Historical demo/save pages repair to the opening, and a draft saved on the retired frequency page resumes on the daily goal. New confidence and focus answers are optional in the version-1 draft: older answers and consent survive, and missing answers repair to null. New drafts start with `tutorChosen: false`; a catalogue default never counts as a deliberate new-page choice. A legacy draft's missing flag remains undefined so its saved voice survives account creation. The chooser requires a literal true for new and resumed drafts. A draft saved on a guest page requires a real guest record and finished practice; day one whose run has since lapsed opens the save card (`resumePage` in `onboarding/guestProgress.ts`). Historical guest Home remains readable for a resumed guest record.
 
 ## Shared layout and progress
 
@@ -102,3 +102,30 @@ The root quality gate passed: 4,956 workspace tests, 77 shared release/provider 
 Native iPhone 13 mini QA at 375 × 812 checked startup, Welcome, four level rows, confidence/focus/daily-goal navigation, the centred plan ring, all six tutor choices, sample playback, and selection enabling first practice. The today-first streak fit in one viewport. Signup was checked in an inert iPhone simulator preview for Email → Password → Confirm focus, keyboard dismissal and action visibility, strength-meter motion, larger reading sizes, reduced motion, and synthetic loading, error, retry and confirmation-pending results. Done ended editing without submitting; explicit Create account started the preview request. Native autofill and password-manager behavior, Android, real registration and provider authentication remain unverified. This is not a completed VoiceOver/haptic/physical-device-matrix audit.
 
 The live flow was stopped at its unanswered age confirmation. Automatic approval review did not permit an age assertion on the learner’s behalf. The development preview uses synthetic data and an inert auth adapter, requires both `__DEV__` and an explicit preview flag, and neither stores an age answer nor creates an account. Google’s hosted redirect allow-list and Apple provider/signing configuration still require completion; no successful live OAuth exchange or real account creation is claimed here.
+
+### C Bold rhythm, October 11
+
+The setup now asks interests after purpose. Closed choices (food, travel, music, everyday) persist locally and accompany the actual first-practice brief. The six questions use full-width rows, followed by the plan and deliberate tutor choice. C uses bundled Outfit Black and layered local Rive illustrations. The later user instruction makes decorative artwork continuous while visible; reduced motion keeps static artwork, and backgrounding pauses it. Forms and milestone progress do not reset with the artwork. Email Next advances focus explicitly; typing no longer auto-advances.
+
+This section supersedes the earlier first-run presentation timings and surfaces
+above for the C journey: violet/sun/paper tokens, 12-point corners, 56-point primary
+actions, 220 ms progress and 180/110 ms page motion. Press depth and accepted-action
+haptics use the existing primitives. Each tutor card has its own core colour;
+selection and sample playback remain separate, with no extra Voice preview block.
+The user's soft sphere replaces the Figma ring/bar orb and uses real session state
+and measured audio, with static fallbacks when motion is unavailable or reduced.
+
+The plan editor commits interests, confidence and focus alongside reason, level
+and duration. Resume offers an explicit continuation or fresh start. Home cancels
+its delayed first-streak presentation on user interaction; the streak's optional
+reminder uses the existing device permission/time sheet. Hidden retained onboarding
+and unfocused Home artwork stop playing.
+
+Both account forms retain the existing auth service and official provider assets.
+Signup can resend confirmation. Native email confirmation/reset returns through
+the separate `luvani://auth/email` PKCE callback, while browser OAuth retains
+`luvani://auth/callback`. Failed email links use the shared recovery sheet without
+clearing guest practice. Staging redirects and device acceptance remain necessary.
+The earlier device/build verification record is historical and does not verify
+these C changes; see the [current change plan](changes/bold-rhythm.md) and
+[60-state map](changes/bold-rhythm-frames.md).

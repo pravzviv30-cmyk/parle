@@ -41,7 +41,9 @@ test('the decorative glow runs only while the idle sign-in screen is visible in 
 test('the glow overlay stays decorative and responds to auth, focus, app state and reduced motion', () => {
   const overlay = readFileSync(new URL('./WelcomeSignInGlow.tsx', import.meta.url), 'utf8');
   const screen = readFileSync(new URL('./SignInScreen.tsx', import.meta.url), 'utf8');
-  assert.match(screen, /decoration=\{<WelcomeSignInGlow active=\{!busy\} \/>\}/, 'pending auth leaves the glow active');
+  const button = readFileSync(new URL('../onboarding/BoldButton.tsx', import.meta.url), 'utf8');
+  assert.match(screen, /<BoldButton/);
+  assert.match(button, /Glint when=\{!props\.disabled/);
   assert.match(overlay, /<Reanimated\.View\s+\{\.\.\.decorative\}\s+pointerEvents="none"/, 'the overlay can intercept presses or be read by assistive technology');
   assert.match(overlay, /const reduced = useReduceMotion\(\)/);
   assert.match(overlay, /navigation\.addListener\('focus', \(\) => setFocused\(true\)\)/);

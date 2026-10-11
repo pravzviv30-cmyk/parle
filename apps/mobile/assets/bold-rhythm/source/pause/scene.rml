@@ -1,0 +1,348 @@
+<Rive version="1" kind="fragment">
+  <Artboard name="Scene" width="350" height="320" defaultStateMachineId="0:9001">
+    <Node name="svg" id="0:1" opacity="1">
+      <Node name="story-pause" id="0:2" opacity="1">
+        <Node x="-17.0" y="-5.0">
+          <Node scaleX="1.1" scaleY="1.1">
+            <Node name="g" id="0:3" opacity="1">
+              <Node name="tea" id="0:4" opacity="1" x="175.0" y="216.0">
+                <Node x="-175.0" y="-216.0">
+                  <Shape name="path" opacity="1">
+                    <PointsPath isClosed="false">
+                      <CubicDetachedVertex x="163.0" y="201.0" inRotation="0.0" inDistance="0.0" outRotation="-2.256525837701182" outDistance="9.475113602367937" />
+                      <CubicDetachedVertex x="164.0" y="180.0" inRotation="2.356194490192345" inDistance="9.42809041582062" outRotation="0.0" outDistance="0.0" />
+                    </PointsPath>
+                    <PointsPath isClosed="false">
+                      <CubicDetachedVertex x="179.0" y="200.0" inRotation="0.0" inDistance="0.0" outRotation="-2.3036114285814038" outDistance="8.969082698049133" />
+                      <CubicDetachedVertex x="181.0" y="178.0" inRotation="2.3127435948008146" inDistance="10.852547064066478" outRotation="0.0" outDistance="0.0" />
+                    </PointsPath>
+                    <Stroke thickness="2" cap="round" join="round">
+                      <SolidColor colorValue="FFB8AEBF" />
+                    </Stroke>
+                  </Shape>
+                  <Shape name="path" opacity="1">
+                    <PointsPath isClosed="false">
+                      <CubicDetachedVertex x="191.0" y="220.0" inRotation="0.0" inDistance="0.0" outRotation="-0.2536740961386422" outDistance="18.595100907975137" />
+                      <CubicDetachedVertex x="210.0" y="232.0" inRotation="-1.1722738811284754" inDistance="13.74368541872553" outRotation="1.9655874464946592" outDistance="8.66666666666667" />
+                      <CubicDetachedVertex x="191.0" y="237.0" inRotation="0.4636476090008049" inDistance="10.434983894999023" outRotation="0.0" outDistance="0.0" />
+                    </PointsPath>
+                    <Stroke thickness="4" cap="round" join="round">
+                      <SolidColor colorValue="FFD63A22" />
+                    </Stroke>
+                  </Shape>
+                  <Shape name="path" opacity="1">
+                    <PointsPath isClosed="true">
+                      <CubicDetachedVertex x="150.0" y="212.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                      <CubicDetachedVertex x="191.0" y="212.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                      <CubicDetachedVertex x="191.0" y="239.0" inRotation="0.0" inDistance="0.0" outRotation="2.432966381462123" outDistance="18.439088914585774" />
+                      <CubicDetachedVertex x="150.0" y="239.0" inRotation="0.7328151017865062" inDistance="17.938165396098288" outRotation="0.0" outDistance="0.0" />
+                    </PointsPath>
+                    <Fill fillRule="nonZero">
+                      <SolidColor colorValue="FFFFC93C" />
+                    </Fill>
+                  </Shape>
+                  <Shape name="ellipse" opacity="1" x="175.0" y="246.0">
+                    <Ellipse width="78.0" height="16.0" />
+                    <Fill fillRule="nonZero">
+                      <SolidColor colorValue="FFE8CBB9" />
+                    </Fill>
+                  </Shape>
+                </Node>
+              </Node>
+              <Node x="215.0" y="142.0">
+                <Node scaleX="0.69" scaleY="0.69">
+                  <Node x="65.0" y="70.0">
+                    <Node rotation="-0.13962634015954636">
+                      <Node x="-65.0" y="-70.0">
+                        <Node name="Orange-sit" id="0:5" opacity="1">
+                          <Node name="face" id="0:6" opacity="1">
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="56.0" y="78.0" inRotation="0.0" inDistance="0.0" outRotation="1.0516502125483738" outDistance="16.1245154965971" />
+                                <CubicDetachedVertex x="80.0" y="78.0" inRotation="2.0899424410414196" inDistance="16.1245154965971" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="49.0" y="64.0" inRotation="0.0" inDistance="0.0" outRotation="-0.8960553845713447" outDistance="4.268749491621899" />
+                                <CubicDetachedVertex x="57.0" y="64.0" inRotation="-2.2455372690184485" inDistance="4.268749491621899" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="72.0" y="64.0" inRotation="0.0" inDistance="0.0" outRotation="-0.8960553845713435" outDistance="4.268749491621904" />
+                                <CubicDetachedVertex x="80.0" y="64.0" inRotation="-2.24553726901845" inDistance="4.268749491621904" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                          </Node>
+                          <Node name="body" id="0:7" opacity="1">
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="true">
+                                <CubicDetachedVertex x="60.0" y="17.0" inRotation="2.7928216500058864" inDistance="35.11409973215888" outRotation="-0.28123220191829523" outDistance="46.84015371452148" />
+                                <CubicDetachedVertex x="110.0" y="87.0" inRotation="-1.2351577764672874" inDistance="45.5411901469428" outRotation="1.8622531212727638" outDistance="31.32091952673165" />
+                                <CubicDetachedVertex x="35.0" y="100.0" inRotation="0.9002747688143474" inDistance="37.013511046643494" outRotation="-2.2455372690184494" outDistance="32.01562118716424" />
+                              </PointsPath>
+                              <Fill fillRule="nonZero">
+                                <SolidColor colorValue="FFF9B694" />
+                              </Fill>
+                            </Shape>
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="true">
+                                <CubicDetachedVertex x="13.0" y="12.0" inRotation="1.8076450877418169" inDistance="39.77715704047012" outRotation="0.714090698612158" outDistance="19.849433241279208" />
+                                <CubicDetachedVertex x="54.0" y="13.0" inRotation="2.79856871316909" inDistance="14.866068747318506" outRotation="-0.38588266939807375" outDistance="34.539832078341085" />
+                                <CubicDetachedVertex x="115.0" y="52.0" inRotation="-1.6845883339386047" inDistance="35.22782990761707" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="112.0" y="95.0" inRotation="0.0" inDistance="0.0" outRotation="1.719686274404394" outDistance="26.964997888208902" />
+                                <CubicDetachedVertex x="75.0" y="135.0" inRotation="0.0" inDistance="20.666666666666657" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="41.0" y="135.0" inRotation="0.0" inDistance="0.0" outRotation="3.067653615931852" outDistance="18.049315160907845" />
+                                <CubicDetachedVertex x="10.0" y="112.0" inRotation="1.412141064608495" inDistance="16.87865186822954" outRotation="-1.8269477093605" outDistance="28.944391128123215" />
+                              </PointsPath>
+                              <Fill fillRule="nonZero">
+                                <SolidColor colorValue="FFF59A45" />
+                              </Fill>
+                            </Shape>
+                          </Node>
+                          <Node name="limbs" id="0:8" opacity="1">
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="15.0" y="71.0" inRotation="0.0" inDistance="0.0" outRotation="2.2865399164637767" outDistance="20.319667538837557" />
+                                <CubicDetachedVertex x="15.0" y="101.0" inRotation="-2.804917834203066" inDistance="14.12641340027806" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="107.0" y="75.0" inRotation="0.0" inDistance="0.0" outRotation="0.8110335719191254" outDistance="18.390818965511627" />
+                                <CubicDetachedVertex x="105.0" y="103.0" inRotation="-0.3639789565096438" inDistance="14.98147003616282" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="36.0" y="125.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="26.0" y="145.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="49.0" y="148.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="77.0" y="126.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="110.0" y="129.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="125.0" y="121.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3.4" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                          </Node>
+                        </Node>
+                      </Node>
+                    </Node>
+                  </Node>
+                </Node>
+              </Node>
+              <Node x="12.0" y="55.0">
+                <Node scaleX="0.79" scaleY="0.79">
+                  <Node x="108.0" y="105.0">
+                    <Node rotation="-0.08726646259971647">
+                      <Node x="-108.0" y="-105.0">
+                        <Node name="Cloud-rest" id="0:9" opacity="1">
+                          <Node name="gesture-arms" id="0:10" opacity="1">
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="28.0" y="117.0" inRotation="0.0" inDistance="0.0" outRotation="2.9617391537973146" outDistance="14.907119849998598" />
+                                <CubicDetachedVertex x="16.0" y="146.0" inRotation="-1.9513027039072617" inDistance="17.950549357115005" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="183.0" y="117.0" inRotation="0.0" inDistance="0.0" outRotation="0.14707835538840275" outDistance="18.196458751941574" />
+                                <CubicDetachedVertex x="204.0" y="143.0" inRotation="-1.304544277643971" inDistance="15.20233900132183" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3.4" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                          </Node>
+                          <Node name="face" id="0:11" opacity="1">
+                            <Shape name="ellipse" opacity="1" x="135.0" y="110.0">
+                              <Ellipse width="12.0" height="6.0" />
+                              <Fill fillRule="nonZero">
+                                <SolidColor colorValue="FFEF8770" />
+                              </Fill>
+                            </Shape>
+                            <Shape name="ellipse" opacity="1" x="81.0" y="110.0">
+                              <Ellipse width="12.0" height="6.0" />
+                              <Fill fillRule="nonZero">
+                                <SolidColor colorValue="FFEF8770" />
+                              </Fill>
+                            </Shape>
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="100.0" y="109.0" inRotation="0.0" inDistance="0.0" outRotation="1.0303768265243125" outDistance="11.661903789690601" />
+                                <CubicDetachedVertex x="118.0" y="109.0" inRotation="2.1112158270654806" inDistance="11.661903789690601" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="88.0" y="99.0" inRotation="0.0" inDistance="0.0" outRotation="-0.8960553845713424" outDistance="4.268749491621898" />
+                                <CubicDetachedVertex x="96.0" y="99.0" inRotation="-2.2455372690184507" inDistance="4.268749491621898" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="119.0" y="99.0" inRotation="0.0" inDistance="0.0" outRotation="-0.8960553845713424" outDistance="4.268749491621898" />
+                                <CubicDetachedVertex x="127.0" y="99.0" inRotation="-2.2455372690184507" inDistance="4.268749491621898" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                          </Node>
+                          <Node name="body" id="0:12" opacity="1">
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="true">
+                                <CubicDetachedVertex x="27.0" y="80.0" inRotation="0.0" inDistance="0.0" outRotation="-2.2730532583039036" outDistance="34.058772731852805" />
+                                <CubicDetachedVertex x="64.0" y="42.0" inRotation="-2.483704048407583" inDistance="27.80287754891569" outRotation="-1.1309537439791604" outDistance="37.57658845611187" />
+                                <CubicDetachedVertex x="141.0" y="44.0" inRotation="-2.0344439357957027" inDistance="33.54101966249684" outRotation="-0.507098504392337" outDistance="41.182520563948" />
+                                <CubicDetachedVertex x="198.0" y="87.0" inRotation="-1.1955255039389392" inDistance="35.4682957019364" outRotation="0.7483780475235183" outDistance="38.2099463490856" />
+                                <CubicDetachedVertex x="171.0" y="149.0" inRotation="-0.03569911267932397" inDistance="28.0178514522438" outRotation="2.2873380008913005" outDistance="41.10960958218893" />
+                                <CubicDetachedVertex x="104.0" y="157.0" inRotation="0.7188299996216245" inDistance="21.2602916254693" outRotation="2.450255724820331" outDistance="37.64306044943742" />
+                                <CubicDetachedVertex x="44.0" y="144.0" inRotation="1.4994888620096063" inDistance="14.035668847618199" outRotation="2.9195107516843133" outDistance="31.78049716414141" />
+                                <CubicDetachedVertex x="27.0" y="101.0" inRotation="2.510513266118464" inDistance="32.202484376209235" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Fill fillRule="nonZero">
+                                <SolidColor colorValue="FFFFFFFF" />
+                              </Fill>
+                            </Shape>
+                          </Node>
+                          <Node name="underside" id="0:13" opacity="1">
+                            <Node x="0.0" y="15.0">
+                              <Shape name="path" opacity="1">
+                                <PointsPath isClosed="true">
+                                  <CubicDetachedVertex x="27.0" y="80.0" inRotation="0.0" inDistance="0.0" outRotation="-2.2730532583039036" outDistance="34.058772731852805" />
+                                  <CubicDetachedVertex x="64.0" y="42.0" inRotation="-2.483704048407583" inDistance="27.80287754891569" outRotation="-1.1309537439791604" outDistance="37.57658845611187" />
+                                  <CubicDetachedVertex x="141.0" y="44.0" inRotation="-2.0344439357957027" inDistance="33.54101966249684" outRotation="-0.507098504392337" outDistance="41.182520563948" />
+                                  <CubicDetachedVertex x="198.0" y="87.0" inRotation="-1.1955255039389392" inDistance="35.4682957019364" outRotation="0.7483780475235183" outDistance="38.2099463490856" />
+                                  <CubicDetachedVertex x="171.0" y="149.0" inRotation="-0.03569911267932397" inDistance="28.0178514522438" outRotation="2.2873380008913005" outDistance="41.10960958218893" />
+                                  <CubicDetachedVertex x="104.0" y="157.0" inRotation="0.7188299996216245" inDistance="21.2602916254693" outRotation="2.450255724820331" outDistance="37.64306044943742" />
+                                  <CubicDetachedVertex x="44.0" y="144.0" inRotation="1.4994888620096063" inDistance="14.035668847618199" outRotation="2.9195107516843133" outDistance="31.78049716414141" />
+                                  <CubicDetachedVertex x="27.0" y="101.0" inRotation="2.510513266118464" inDistance="32.202484376209235" outRotation="0.0" outDistance="0.0" />
+                                </PointsPath>
+                                <Fill fillRule="nonZero">
+                                  <SolidColor colorValue="FFC7DAD5" />
+                                </Fill>
+                              </Shape>
+                            </Node>
+                          </Node>
+                          <Node name="legs" id="0:14" opacity="1">
+                            <Shape name="path" opacity="1">
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="75.0" y="166.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="75.0" y="194.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="92.0" y="194.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <PointsPath isClosed="false">
+                                <CubicDetachedVertex x="144.0" y="166.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="142.0" y="192.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                                <CubicDetachedVertex x="160.0" y="193.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                              </PointsPath>
+                              <Stroke thickness="3.4" cap="round" join="round">
+                                <SolidColor colorValue="FF16123A" />
+                              </Stroke>
+                            </Shape>
+                          </Node>
+                        </Node>
+                      </Node>
+                    </Node>
+                  </Node>
+                </Node>
+              </Node>
+              <Node name="reading-bench" id="0:15" opacity="1">
+                <Shape name="path" opacity="1">
+                  <PointsPath isClosed="false">
+                    <CubicDetachedVertex x="79.0" y="227.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                    <CubicDetachedVertex x="79.0" y="282.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                  </PointsPath>
+                  <PointsPath isClosed="false">
+                    <CubicDetachedVertex x="280.0" y="227.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                    <CubicDetachedVertex x="280.0" y="282.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                  </PointsPath>
+                  <Stroke thickness="4" cap="round" join="round">
+                    <SolidColor colorValue="FF16123A" />
+                  </Stroke>
+                </Shape>
+                <Shape name="path" opacity="1">
+                  <PointsPath isClosed="true">
+                    <CubicDetachedVertex x="60.0" y="211.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                    <CubicDetachedVertex x="300.0" y="211.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                    <CubicDetachedVertex x="300.0" y="228.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                    <CubicDetachedVertex x="60.0" y="228.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+                  </PointsPath>
+                  <Fill fillRule="nonZero">
+                    <SolidColor colorValue="FF3B2FE0" />
+                  </Fill>
+                </Shape>
+              </Node>
+            </Node>
+          </Node>
+        </Node>
+      </Node>
+      <Node name="environment" id="0:16" opacity="1">
+        <Shape name="ellipse" opacity="1" x="305.0" y="34.0">
+          <Ellipse width="52.0" height="52.0" />
+          <Fill fillRule="nonZero">
+            <SolidColor colorValue="FFD63A22" />
+          </Fill>
+        </Shape>
+        <Shape name="path" opacity="1">
+          <PointsPath isClosed="true">
+            <CubicDetachedVertex x="0.0" y="245.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+            <CubicDetachedVertex x="350.0" y="218.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+            <CubicDetachedVertex x="350.0" y="320.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+            <CubicDetachedVertex x="0.0" y="320.0" inRotation="0.0" inDistance="0.0" outRotation="0.0" outDistance="0.0" />
+          </PointsPath>
+          <Fill fillRule="nonZero">
+            <SolidColor colorValue="FFFFC93C" />
+          </Fill>
+        </Shape>
+      </Node>
+    </Node>
+    <StateMachine name="Scene" id="0:9001">
+      <StateMachineLayer name="Illustration" id="0:9002">
+        <EntryState x="0" y="0">
+          <StateTransition stateToId="0:9003" />
+        </EntryState>
+        <AnimationState x="200" y="0" id="0:9003" animationId="0:9000" />
+        <AnyState x="200" y="-120" />
+        <ExitState x="400" y="-120" />
+      </StateMachineLayer>
+    </StateMachine>
+    <LinearAnimation name="Enter" id="0:9000" fps="60" duration="288" loopValue="loop">
+      <KeyedObject objectId="0:4">
+        <KeyedProperty property="x">
+          <KeyFrameDouble frame="0" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="84" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="192" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="288" value="175.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+        </KeyedProperty>
+        <KeyedProperty property="y">
+          <KeyFrameDouble frame="0" value="216.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="84" value="213.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="192" value="216.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+          <KeyFrameDouble frame="288" value="216.0" interpolationType="cubic">
+            <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1" />
+          </KeyFrameDouble>
+        </KeyedProperty>
+      </KeyedObject>
+    </LinearAnimation>
+  </Artboard>
+</Rive>

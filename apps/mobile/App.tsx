@@ -795,6 +795,7 @@ export default function App() {
     'Outfit-SemiBold': require('./assets/fonts/Outfit-SemiBold.ttf'),
     'Outfit-Bold': require('./assets/fonts/Outfit-Bold.ttf'),
     'Outfit-ExtraBold': require('./assets/fonts/Outfit-ExtraBold.ttf'),
+    'Outfit-Black': require('./assets/fonts/Outfit-Black.ttf'),
   });
   /**
    * Whether the launch screen has finished. It is drawn over the app from the

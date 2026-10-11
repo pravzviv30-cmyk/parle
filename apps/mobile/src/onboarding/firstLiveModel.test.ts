@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildConversationPack, DEFAULT_TUTOR_VOICE } from '@luvani/core';
-import { firstAchievements, firstLiveSummary, repairFirstLiveRecord, type FirstLiveRecord } from './firstLiveModel.ts';
+import { buildConversationPack, DEFAULT_TUTOR_VOICE, firstPracticeScenario } from '@luvani/core';
+import { briefFromDraft, firstAchievements, firstLiveSummary, repairFirstLiveRecord, type FirstLiveRecord } from './firstLiveModel.ts';
+import { freshPreAccountDraft } from './preAccountDraft.ts';
+test('travel and café interests reach the live scenario without mutating the saved choices', () => {
+  const draft = { ...freshPreAccountDraft(), reason: 'trip' as const, interests: ['food', 'music'] as ('food' | 'music')[],
+    startLevel: 'few' as const, speakingConfidence: 'trying' as const, practiceFocus: 'speaking' as const, minutes: 10 as const, tutorVoice: 'emilie' as const };
+  const brief = briefFromDraft(draft);
+  assert.deepEqual(brief, { version: 1, goals: ['trip'], interests: ['food', 'music'], level: 'few', confidence: 'trying', focus: 'speaking', minutes: 10, tutorVoice: 'emilie' });
+  assert.match(firstPracticeScenario(brief).en, /restaurant during your trip/);
+  brief.interests?.pop();
+  assert.deepEqual(draft.interests, ['food', 'music']);
+});
 const id = '11111111-1111-4111-8111-111111111111';
 const record: FirstLiveRecord = { brief: {version:1,goals:['food'],level:'zero',confidence:'hesitant',focus:'words',minutes:20,tutorVoice:DEFAULT_TUTOR_VOICE},
   sessionId:id,outcome:'completed',contributions:[{id:'u1',text:'Une table pour deux, merci.',input:'typed'}],seconds:60,completedAt:Date.now(),

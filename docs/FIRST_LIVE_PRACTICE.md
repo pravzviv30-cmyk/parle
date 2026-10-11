@@ -5,7 +5,7 @@ Production guest admission is deliberately refused in both the token server and 
 
 ## Journey and presentation
 
-The new route is plan → chosen tutor → live practice → completion celebration (successful sessions only) → achievements with Save your progress → existing signup → durable welcome → prepared Home. Home presents the existing darker-green streak screen 1.5 seconds after its data has loaded and the welcome is dismissed. That presentation reads recorded qualifying finish dates and awards no activity. Its durable account-scoped receipt prevents repeat presentation; existing guest handoff prevents duplicate streak credit.
+The route is plan → chosen tutor → live practice → completion celebration (successful sessions only) → achievements with Save your progress → existing signup → durable welcome → prepared Home. With the October 11 C presentation, Home presents a violet streak screen 1.5 seconds after its data has loaded and the welcome is dismissed; user interaction cancels the delay. That presentation reads recorded qualifying finish dates and awards no activity. Its durable account-scoped receipt prevents repeat presentation; existing guest handoff prevents duplicate streak credit.
 
 New practice uses the existing LiveKit hook, conversation worker, responsive audio orb, transcript, hint support, safety surfaces and microphone controls. Typing releases the microphone track while leaving the same room, voice and spoken tutor replies running. Switching back republishes the microphone. Unsent text and partial recognition do not enter achievements. Final worker messages have input attribution and stable turn IDs; tutor text IDs prevent reconnect replay duplicates. Existing transcript scrolling preserves a reader's position.
 
@@ -13,12 +13,15 @@ The completion screen combines one existing confetti burst with the original acc
 
 ## Personalisation
 
-The current onboarding UI collects **one** reason; it does not collect multiple topics. The closed brief supports multiple goals for compatible future input without fabricating extra selections.
+The current onboarding UI collects **one** reason and up to four closed interests:
+food, travel, music and everyday life. Interests are optional for old drafts and
+quick starts. They persist in the existing draft, accompany the closed practice
+brief and contribute to the saved tutor goal. No selection is fabricated.
 
 | Real answer | Effect |
 |---|---|
 | Reason | Concrete restaurant, train, family visit, neighbourhood, work meeting or shared-activity scenario and next practice |
-| Compatible food + travel | One restaurant visit during a trip; unrelated goals remain supporting context |
+| Compatible food + travel reason/interest | One restaurant visit during a trip; unrelated selections remain supporting context |
 | Self-reported level | Initial A0/A1/A2/B1 teaching estimate with low evidential confidence, never a certified attainment claim |
 | Speaking confidence | Hesitant learners receive slow, short, supported prompts; comfortable learners can receive a small realistic complication |
 | Listening / speaking / words | Listening detail checks, natural turn-taking, or situation-specific vocabulary hints |
@@ -41,6 +44,14 @@ A safety stop clears the guest learning summary, prevents a debit/completion, an
 ## Rive source
 
 The requested official repository was downloaded to `/Users/pravz_07/Downloads/awesome-rive`. It is a curated examples/resources repository and contains no `SKILL.md`; no Rive skill was installed. This change reuses Luvani's original `.riv` illustrations, existing native/web Rive renderer and shared animation primitives. It does not copy an unrelated community animation or claim an unavailable skill ran.
+
+The October 11 C update adds 18 compiled original illustration scenes and six
+state-coloured fluid spheres with matching local static vectors. The sphere
+follows the user's later image reference; `OrbPulse` alone owns measured audio
+amplitude. Artwork loops continuously only when visible and active; UI events
+and earned confetti run once per event. See [asset provenance](../apps/mobile/assets/bold-rhythm/README.md)
+and the [current implementation/verification boundary](changes/bold-rhythm.md).
+The October 10 checks below remain historical, not proof of the C update.
 
 ## Verification boundary
 

@@ -223,7 +223,7 @@ describe('every animation crosses to the native driver', () => {
       for (const m of every(f.body, /\bAnimated\.timing\(/g)) {
         const body = callBody(f.body, m.index + 'Animated.timing'.length);
         if (f.short === 'onboarding/OnboardingLayout.tsx' && /Animated\.timing\(fill,/.test(m[0] + body.slice(1))) {
-          assert.match(body, /duration: reduced \? 0 : 320/);
+          assert.match(body, /duration: reduced \? 0 : 220/);
           assert.match(body, /useNativeDriver: false/);
           assert.match(f.body, /width: fill\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \['0%', '100%'\]/);
           continue;
@@ -668,7 +668,7 @@ describe('one door to the engine', () => {
     // ring layer. F569 still holds: the ring is a view, not a cast shadow.
     const press = region(file('components.tsx').body, 'Press');
     assert.match(press, /depth\?: 'control' \| 'tile'|depth = 'control'/, 'the press has no tile depth');
-    assert.match(press, /pressTo\(scale, depth === 'tile' \? PRESS_SCALE_TILE : PRESS_SCALE, reduced\)/, 'a tile does not press deeper than a control');
+    assert.match(press, /pressTo\(scale, depth === 'tile' \|\| depth === 'raised' \? PRESS_SCALE_TILE : PRESS_SCALE, reduced\)/, 'a tile does not press deeper than a control');
     assert.match(press, /if \(now\) selectPop\(scale, reduced\);/, 'becoming chosen does not pop');
     assert.match(press, /ringTo\(ring, now, reduced\);/, 'the ring does not follow the choice');
     assert.match(press, /\{selected !== undefined \? \(/, 'an action that is not a choice draws a ring');

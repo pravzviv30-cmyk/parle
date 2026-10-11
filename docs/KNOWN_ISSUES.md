@@ -8889,7 +8889,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 1 of revamp B. `theme.ts` names the five Outfit cuts (400 to 800) with the old font names kept as aliases, the STYLE §3 scale by token (hero 112, display 44, title 30, heading 20, frenchLg 28, french 20, body 17, label 16 sentence case, small 14, tab 12) with the French tokens kept by name in Outfit 600 and frenchLg still larger than heading, and radii card 24, feature 28, tile 20, field 16, pill 999. `App.tsx` loads exactly those five files and the Fraunces and DM Sans files leave the bundle; Acknowledgements credits Outfit under the OFL. `theme.test.ts` is rewritten to the new values and gains a check that the theme, the loader and the fonts folder agree.
 - verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
 - verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
-- verified-by: `the theme names the five Outfit cuts App.tsx loads, and the bundle carries no other face`
+- verified-by: `the theme names the six Outfit cuts App.tsx loads, and the bundle carries no other face`
 - verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`
 
 ### F597 — The shared parts are the notebook's: static presses, hairline cards, ink chips, a gradient orb, and no B parts to paste
@@ -10459,3 +10459,19 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a green baseline still builds plan tasks in dependency order and verifies the final gate`
 - verified-by: `out-of-scope edits stop the loop, stay available for review and cannot be resumed blindly`
 - verified-by: `the final gate can refuse a plan whose focused checks passed`
+
+### F787 — Plan editing drops new personalisation fields
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: The C plan editor originally committed only reason, level and duration. Done now also commits interests, confidence and practice focus. Browser verification changed a travel plan from a train scenario to a restaurant scenario by adding Food & cafés.
+- verified-by: `plan editing commits all six answers so new interests reach the live scenario`
+
+### F788 — Native email links do not complete the existing authentication flow
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/emailCallback.ts, apps/mobile/src/auth/supabaseAdapter.ts
+- note: Native signup/resend/reset now return to a dedicated email callback. It accepts exact-destination PKCE codes and passes the SDK flow slot, deduplicates launch/event delivery, removes its listener on unsubscribe and shows generic recovery text on failure. Password recovery also updates the authenticated identity required by Gate. Real provider/device acceptance remains pending staging configuration.
+- verified-by: `warm and cold delivery of one email link exchange only once with the exact flow slot`
+- verified-by: `email callbacks reject foreign routes, provider errors, duplicate parameters and URL tokens`
+- verified-by: `unsubscribing suppresses a late launch URL and pending exchange error`

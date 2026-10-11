@@ -58,7 +58,8 @@ test('sign-in uses shared geometry and compact gaps while keeping scroll availab
   assert.match(screen, /layout\.compact && st\.doorsCompact/);
   assert.match(screen, /layout\.compact && st\.orCompact/);
   assert.match(screen, /gap: layout\.compact \? space\(3\) : space\(4\)/);
-  assert.match(screen, /!keyboardVisible && layout\.orbSize > 0 && <WelcomeOrb size=\{layout\.orbSize\}/);
+  assert.match(screen, /boldType\.title/);
+  assert.doesNotMatch(screen, /<WelcomeOrb/, 'C keeps the form focused on provider and email actions');
   assert.match(screen, /automaticallyAdjustKeyboardInsets/);
   assert.match(screen, /maxFontSizeMultiplier=\{liveFontMultiplier\}/);
 });

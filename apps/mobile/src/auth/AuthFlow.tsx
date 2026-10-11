@@ -1,13 +1,17 @@
+import { SceneActivity } from '../onboarding/motion/SceneActivity.ts';
 /** First install starts with value. Returning devices open sign-in directly. */
-import { useState } from 'react';
-import { Animated, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Animated, Text, View } from 'react-native';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import {
   freshPreAccountDraft,
   type PreAccountOnboardingDraft,
 } from '../onboarding/preAccountDraft.ts';
 import { signedOutEntry } from '../onboarding/flow.ts';
-import { OnboardingFrame, useOnboardingTransition } from '../onboarding/OnboardingLayout.tsx';
+import { OnboardingFrame, OnboardingLayout, useOnboardingTransition } from '../onboarding/OnboardingLayout.tsx';
+import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
+import { BoldButton } from '../onboarding/BoldButton.tsx';
+import { boldType, c } from '../onboarding/boldRhythm.ts';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import { clearGuestPractice } from '../onboarding/guestPractice.ts';
 import { cancelReminder } from '../reminders/schedule.ts';
@@ -15,7 +19,7 @@ import { SignUpScreen } from './SignUpScreen.tsx';
 import { SignInScreen } from './SignInScreen.tsx';
 import { emptySignUpFormDraft, type SignUpFormDraft } from './signUpFormDraft.ts';
 
-type AuthScreen = 'welcome' | 'signup' | 'signin';
+type AuthScreen = 'welcome' | 'signup' | 'signin' | 'resume';
 const refusalPage = (): PreAccountOnboardingDraft => ({
   ...freshPreAccountDraft(),
   page: 'save',
@@ -40,7 +44,8 @@ export function AuthFlow({
   refused: boolean;
   onRefuse: () => void;
 }) {
-  const [screen, setScreen] = useState<AuthScreen>(!returning && !refused && initialDraft?.page === 'account' ? initialDraft.accountMode === 'signin' ? 'signin' : 'signup' : signedOutEntry(returning));
+  const resumable = !returning && !refused && initialDraft?.page != null && !['hear-it', 'account'].includes(initialDraft.page);
+  const [screen, setScreen] = useState<AuthScreen>(resumable ? 'resume' : !returning && !refused && initialDraft?.page === 'account' ? initialDraft.accountMode === 'signin' ? 'signin' : 'signup' : signedOutEntry(returning));
   const pageMotion = useOnboardingTransition();
   const switchScreen = (next: AuthScreen) => pageMotion.transition(() => setScreen(next));
   const [introducing, setIntroducing] = useState(!returning);
@@ -51,6 +56,24 @@ export function AuthFlow({
   // Back and sign-in detours unmount the form. Its entered values belong to
   // this flow's lifetime, separate from the saved pre-account plan.
   const [signUpFormDraft, setSignUpFormDraft] = useState<SignUpFormDraft>(emptySignUpFormDraft);
+  const restarting = useRef(false);
+  const [restartBusy, setRestartBusy] = useState(false);
+  const [restartError, setRestartError] = useState(false);
+  const restartPlan = async () => {
+    if (restarting.current || pageMotion.locked.current) return;
+    restarting.current = true; setRestartBusy(true); setRestartError(false);
+    try {
+      await clearGuestPractice();
+      if (initialDraft?.reminderEnabled === true) await cancelReminder();
+      onDiscardDraft();
+      const draft = freshPreAccountDraft();
+      setNewDraft(draft); setSignupDraft(null); setAccountFirst(false);
+      setRevision(value => value + 1);
+      onDraftChange(draft);
+      switchScreen('welcome');
+    } catch { setRestartError(true); }
+    finally { restarting.current = false; setRestartBusy(false); }
+  };
   const newAccount = () => {
     if (pageMotion.locked.current) return;
     const draft = refused ? refusalPage() : freshPreAccountDraft();
@@ -101,6 +124,19 @@ export function AuthFlow({
   return (
     <OnboardingFrame initialProgress={onboardingProgress({ page: initialDraft?.page ?? 'hear-it', five: initialDraft?.onboardingVariant === 'five', skipped: initialDraft?.onboardingSkippedSteps, completed: initialDraft?.onboardingCompletedSteps })}>
       <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
+      {screen === 'resume' && <OnboardingLayout page="resume" center={false}>
+        <View style={{ gap: 24, alignItems: 'center' }}>
+          <Text accessibilityRole="header" style={[boldType.title, { color: c.ink, textAlign: 'center' }]}>Pick up where you left off.</Text>
+          <Text style={[boldType.body, { color: c.muted, textAlign: 'center' }]}>Your French plan and confirmed practice are still here.</Text>
+          <BoldScene kind="resume" width={240} />
+          {restartError && <Text accessibilityLiveRegion="polite" style={[boldType.body, { color: c.ink }]}>We couldn’t clear the previous practice. Try again.</Text>}
+          <View style={{ width: '100%', gap: 12 }}>
+            <BoldButton label="Continue my plan" disabled={restartBusy} onPress={() => switchScreen('welcome')} />
+            <BoldButton label="Start a new plan" tone="white" disabled={restartBusy} state={restartBusy ? 'busy' : 'idle'} onPress={() => void restartPlan()} />
+          </View>
+        </View>
+      </OnboardingLayout>}
+      <SceneActivity.Provider value={screen === 'welcome'}>
       <View pointerEvents={screen === 'welcome' ? 'auto' : 'none'} style={{ flex: 1, display: screen === 'welcome' ? 'flex' : 'none' }} accessibilityElementsHidden={screen !== 'welcome'} importantForAccessibility={screen === 'welcome' ? 'auto' : 'no-hide-descendants'}>
       {!accountFirst && <PreAccountOnboarding
         key={revision}
@@ -120,6 +156,7 @@ export function AuthFlow({
         onRefuse={onRefuse}
       />}
       </View>
+      </SceneActivity.Provider>
         {screen === 'signup' ? (
           <SignUpScreen
             accountFirst={accountFirst}

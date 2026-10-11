@@ -686,7 +686,7 @@ const FIRST_RUN: readonly { where: string; headings: number; part?: boolean }[] 
     .filter((entry) => /\.tsx?$/.test(entry) && !entry.includes('.test.'))
     .map((entry) => ({
       where: `onboarding/firstRun/${entry}`,
-      headings: entry === 'StreakCelebrationScreen.tsx' ? 1 : 0,
+      headings: entry === 'StreakCelebrationScreen.tsx' ? 2 : 0,
       part: entry !== 'StreakCelebrationScreen.tsx',
     })),
 ];
@@ -1870,7 +1870,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     for (const tab of ['tabs/HomeTab.tsx', 'tabs/TutorTab.tsx', 'tabs/PracticeTab.tsx']) assert.match(named(tab), /<NextTaskCard/);
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 3, 'personal practice, authored review and allowance are exclusive');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
-    assert.equal((hero.match(/<PillButton\b/g) ?? []).length, 2);
+    assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 2);
     assert.match(task, /if \(value.card !== null\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
@@ -2074,16 +2074,16 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     assert.match(body, /!keyboardVisible && <View style=\{st\.action\}/, 'the primary action can cover the keyboard');
     assert.match(body, /hideProgress: true/, 'sign-in shows new-user progress');
     assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"|<OutlineButton\b/);
-    const pills = tags(body, 'PillButton');
+    const pills = [...tags(body, 'BoldButton'), ...tags(body, 'ProviderButton')];
     assert.equal(pills.length, 3, 'sign-in needs two provider doors and one form action');
-    const apple = pills.find(tag => /<AppleMark\b/.test(tag));
-    const google = pills.find(tag => /<GoogleMark\b/.test(tag));
-    const primary = pills.find(tag => /tone="brand"/.test(tag));
+    const apple = pills.find(tag => /provider="apple"/.test(tag));
+    const google = pills.find(tag => /provider="google"/.test(tag));
+    const primary = pills.find(tag => /<BoldButton/.test(tag));
     assert.ok(apple, 'sign-in lost the Apple door');
     assert.ok(google, 'sign-in lost the Google door');
     assert.ok(primary, 'sign-in lost its emphasized primary action');
     assert.doesNotMatch(apple, /\btone=/);
-    assert.match(google, /tone="white"/);
+    assert.match(google, /busy=\{pending === 'google'\}/);
     writtenBefore(body, '{appleOffered && (', apple, 'Apple must be gated by platform availability');
     writtenBefore(body, apple, google, 'Apple leads the provider row');
     writtenBefore(body, google, '<Field', 'provider doors lead the email form');
@@ -2104,22 +2104,22 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     assert.match(frame, /onLayout=\{onViewportLayout\}/);
     assert.doesNotMatch(body, /<OutlineButton\b/, 'signup restored the retired outline provider door');
 
-    const pills = tags(body, 'PillButton');
-    const apple = pills.find((tag) => /<AppleMark\b/.test(tag));
-    const google = pills.find((tag) => /<GoogleMark\b/.test(tag));
+    const pills = [...tags(body, 'BoldButton'), ...tags(body, 'ProviderButton')];
+    const apple = pills.find((tag) => /provider="apple"/.test(tag));
+    const google = pills.find((tag) => /provider="google"/.test(tag));
     const primary = pills.find((tag) => /authButtonLabel\('createAccount'/.test(tag));
     assert.ok(apple, 'signup lost its Apple provider door');
     assert.ok(google, 'signup lost its Google provider door');
     assert.ok(primary, 'signup lost its explicit Create account action');
     assert.equal(pills.length, 3, 'signup adds an unexpected provider or primary action');
     assert.doesNotMatch(apple, /\btone=/, 'signup’s Apple door is not an ink pill');
-    assert.match(google, /\btone="white"/, 'signup’s Google door is not a white pill');
+    assert.match(google, /busy=\{pending === 'google'\}/);
     assert.doesNotMatch(primary, /\btone=/, 'signup’s primary action is not an ink pill');
     writtenBefore(body, '{appleOffered && (', apple, 'signup draws Apple where the platform cannot offer it');
     writtenBefore(body, apple, google, 'signup places Apple below Google');
     writtenBefore(body, google, '<Field', 'signup places a field above its provider doors');
     assert.ok(body.lastIndexOf('<Field') < body.indexOf(primary), 'signup places Create account above a form field');
-    assert.match(body, /\{!keyboardVisible && <View style=\{st\.action\}>\s*<PillButton/, 'signup leaves its primary action or an empty strip visible during keyboard editing');
+    assert.match(body, /\{!keyboardVisible && <View style=\{st\.action\}>\s*<BoldButton/, 'signup leaves its primary action or an empty strip visible during keyboard editing');
     assert.match(primary, /disabled=\{busy \|\| !ready \|\| formOk\}/, 'signup permits incomplete or duplicate submission merely because the keyboard closes');
 
     const switchRow = tags(body, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));

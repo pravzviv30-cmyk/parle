@@ -12,6 +12,7 @@ export interface FirstLiveRecord {
 }
 export function briefFromDraft(draft: PreAccountOnboardingDraft): FirstPracticeBrief {
   return { version: 1, goals: draft.reason ? [draft.reason] : [], level: draft.startLevel,
+    ...(draft.interests ? { interests: [...draft.interests] } : {}),
     confidence: draft.speakingConfidence ?? null, focus: draft.practiceFocus ?? null,
     minutes: typeof draft.minutes === 'number' ? draft.minutes : null, tutorVoice: draft.tutorVoice };
 }

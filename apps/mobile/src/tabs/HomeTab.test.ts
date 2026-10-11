@@ -243,7 +243,7 @@ describe('Today leads with the next scene, as a brief', () => {
     // named to a screen reader.
     assert.match(HERO_FLAT, /const \{ live, recheck \} = useLive\(\)/, 'the Start cannot say what an unreachable tutor means');
     assert.match(HERO_FLAT, /const label = launchLabel\(\{ checking, live, mode: modes\.mode \}\)/, "the Start's words are not Speak's");
-    const pill = flat(tags(HERO, 'PillButton')[1]!);
+    const pill = flat(tags(HERO, 'PillButton')[0]!);
     assert.match(pill, /tone="white"/, 'the Start is not the white pill on the blue');
     assert.match(pill, /label=\{label\}/);
     assert.match(pill, /accessibilityLabel=\{`\$\{label\}: \$\{hero\.title\}`\}/, 'the Start does not name its scene to a screen reader');

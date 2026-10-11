@@ -29,3 +29,15 @@ test('difficulty, scaffolding and listening or vocabulary preferences reach the 
   assert.match(firstPracticePrompt({...brief,focus:'listening'}),/spoken request/);
   assert.match(firstPracticePrompt({...brief,focus:'words'}),/vocabulary/);
 });
+
+test('interests survive validation and food with travel makes one coherent practice', () => {
+  const selected = { ...brief, goals: ['trip'] as FirstPracticeBrief['goals'], interests: ['food', 'travel', 'music'] };
+  const parsed = parseFirstPracticeBrief(selected);
+  assert.deepEqual(parsed?.interests, selected.interests);
+  assert.match(firstPracticeScenario(parsed!).en, /restaurant during your trip/);
+  assert.match(firstPracticePrompt(parsed!), /music/);
+  assert.match(firstPracticePrompt(parsed!), /Unrelated interests/);
+  assert.equal(parseFirstPracticeBrief({ ...brief, interests: ['invented'] }), undefined);
+  assert.equal(parseFirstPracticeBrief({ ...brief, interests: 'food' }), undefined);
+  assert.deepEqual(parseFirstPracticeBrief(brief), brief, 'legacy briefs remain byte-shape compatible');
+});

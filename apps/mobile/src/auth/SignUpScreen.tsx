@@ -14,7 +14,10 @@ import { authButtonLabel, type AuthAction } from './busyLabel.ts';
 import { PasswordMeter } from './PasswordMeter.tsx';
 import { signupProblems, signupReady, passwordsMatch, visibleFormHeight } from './signupForm.ts';
 import { useFormKeyboard } from './useFormKeyboard.ts';
-import { useEmailAutoAdvance } from './useEmailAutoAdvance.ts';
+import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
+import { ProviderButton } from './ProviderButton.tsx';
+import { BoldButton } from '../onboarding/BoldButton.tsx';
+import { boldType } from '../onboarding/boldRhythm.ts';
 import type { SignUpFormDraft } from './signUpFormDraft.ts';
 import { Feedback } from '../motion/Feedback.tsx';
 import { friendly } from './friendly.ts';
@@ -39,7 +42,8 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   // One flag, naming the request that is running: everything greys, and only
   // the button that started it changes its words.
   const [pending, setPending] = useState<AuthAction | null>(null);
-  const busy = pending !== null;
+  const [resending, setResending] = useState(false);
+  const busy = pending !== null || resending;
   const fontScale = useFontScale();
   const reduced = useReduceMotion();
   const reducedRef = useRef(reduced);
@@ -58,7 +62,6 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
   const focused = useRef<'email' | 'password' | 'confirm' | null>(null);
   const alive = useRef(true);
   const requestRunning = useRef(false);
-  const emailAdvance = useEmailAutoAdvance(emailRef, passwordRef, busy, requestRunning);
   useEffect(() => {
     alive.current = true;
     if (!embedded) {
@@ -174,6 +177,21 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
     }
   };
 
+  const resend = async () => {
+    if (busy || requestRunning.current || !formOk || !adapter.resendConfirmation) return;
+    requestRunning.current = true;
+    setResending(true);
+    try {
+      const result = await adapter.resendConfirmation(email.trim());
+      if (alive.current) setFormMessage(result.message ?? 'Check your email for a confirmation link.');
+    } catch (error) {
+      if (alive.current) setFormMessage(friendly(error as { message?: string }));
+    } finally {
+      requestRunning.current = false;
+      if (alive.current) setResending(false);
+    }
+  };
+
   const google = async () => {
     if (busy) return;
     if (requestRunning.current) return;
@@ -230,32 +248,17 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
       {!embedded && <View style={st.head}>
         {/* Refresh typography measurements on a live reading-size change;
             the fields themselves retain their native identity and caret. */}
-        <Text key={fontScale} ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Create your account</Text>
+        <Text key={fontScale} ref={headingRef} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[boldType.title, { color: paper.ink, textAlign: 'center' }]}>A home for your French.</Text>
       </View>}
       {/* Apple leads when available; both choices stay above the email fields. */}
       <View style={st.doors}>
         {appleOffered && (
           <View style={st.provider}>
-          <PillButton
-            key={fontScale}
-            label={pending === 'apple' ? 'Waiting…' : 'Apple'}
-            accessibilityLabel={authButtonLabel('apple', pending === 'apple')}
-            onPress={() => void apple()}
-            disabled={busy}
-            icon={<AppleMark color={paper.onInk} />}
-          />
+          <ProviderButton provider="apple" onPress={() => void apple()} disabled={busy} busy={pending === 'apple'} />
           </View>
         )}
         <View style={st.provider}>
-        <PillButton
-          key={fontScale}
-          tone="white"
-          label={pending === 'google' ? 'Waiting…' : 'Google'}
-          accessibilityLabel={authButtonLabel('google', pending === 'google')}
-          onPress={() => void google()}
-          disabled={busy}
-          icon={<GoogleMark />}
-        />
+        <ProviderButton provider="google" onPress={() => void google()} disabled={busy} busy={pending === 'google'} />
         </View>
       </View>
 
@@ -278,7 +281,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           ref={emailRef}
           label="Email"
           value={email}
-          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); clearResult(); emailAdvance.queue(value); }}
+          onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); clearResult(); }}
           placeholder="e.g. james@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -289,13 +292,13 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           submitBehavior="submit"
           blurOnSubmit={false}
           onSubmitEditing={() => {
-            emailAdvance.cancel();
+
             if (busy || requestRunning.current) return;
             if (looksLikeEmail(email)) { setEmailError(null); passwordRef.current?.focus(); }
             else { setEmailError('Enter a valid email address.'); keepFocusedVisible(); }
           }}
           onFocus={() => { focused.current = 'email'; keepFocusedVisible(); }}
-          onBlur={() => { emailAdvance.cancel(); if (focused.current === 'email') focused.current = null; }}
+          onBlur={() => {  if (focused.current === 'email') focused.current = null; }}
         />
         </View>
         <View ref={passwordGroup} collapsable={false} onLayout={keepFocusedVisible} style={st.passwordGroup}>
@@ -358,6 +361,7 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
 
       {/* In ink, never red. A refusal carries the alert mark the fields use, so
           the difference from a "check your email" line is not colour alone. */}
+      {formOk && <BoldScene kind="email" width={160} />}
       {formMessage != null && (
         <View style={st.message}>
           {!formOk && (
@@ -369,8 +373,10 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
         </View>
       )}
 
+
+
       {!keyboardVisible && <View style={st.action}>
-        <PillButton
+        <BoldButton
           key={fontScale}
           label={authButtonLabel('createAccount', pending === 'createAccount')}
           onPress={() => void submit()}
@@ -378,6 +384,12 @@ export function SignUpScreen({ onBack, onSignIn, planDraft = null, onEmailChange
           state={pending === 'createAccount' ? 'busy' : formOk ? 'done' : 'idle'}
         />
       </View>}
+
+      {formOk && adapter.resendConfirmation && <Press haptic="light" disabled={busy}
+        accessibilityRole="button" accessibilityState={{ disabled: busy, busy: resending }}
+        onPress={() => void resend()} style={st.resendRow}>
+        <Text style={[type.bodyStrong, { color: paper.ink }]}>{resending ? 'Sending confirmation…' : 'Resend confirmation email'}</Text>
+      </Press>}
 
       <Press haptic="light" style={[st.switchRow, busy && { opacity: 0.5 }]} accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }} onPress={() => leave(onSignIn)}>
         <Text key={fontScale} style={[type.small, { color: paper.inkSoft }]}>
@@ -397,12 +409,13 @@ const st = StyleSheet.create({
   confirmFeedback: { flexDirection: 'row', alignItems: 'flex-start', gap: space(1.5), minHeight: type.small.lineHeight * 2 },
   feedbackText: { flex: 1, color: paper.inkSoft },
   action: { marginTop: space(4) },
-  doors: { flexDirection: 'row', gap: space(2), marginTop: space(3) },
+  doors: { flexDirection: 'column', gap: space(2), marginTop: space(3) },
   provider: { flex: 1, minWidth: 0 },
   or: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginVertical: space(3) },
   rule: { flex: 1, height: HAIRLINE, backgroundColor: paper.line },
   message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginTop: space(3) },
   messageMark: { paddingTop: space(1) },
+  resendRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', marginTop: space(2) },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', marginTop: space(2) },
   switchWord: { color: paper.ink, fontFamily: type.bodyStrong.fontFamily, textDecorationLine: 'underline' },
 });

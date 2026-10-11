@@ -796,6 +796,7 @@ describe('the privacy notice — F479', () => {
     const row = DOC.split('\n').find((line) => line.startsWith('| ') && line.includes('`@luvani/pre-account-onboarding/v1`'));
     assert.ok(row, 'the holdings table has no row for the first-run draft');
     assert.match(row, /speaking confidence, practice focus and deliberate tutor selection/, 'the holdings row must disclose every new local personalisation answer');
+    assert.match(row, /interests/, 'the holdings row must disclose interests');
     assert.match(row, /an optional first name/, 'the draft row does not say it can hold a first name');
     assert.match(row, /completed and skipped steps, the onboarding variant, an optional account email/, 'the draft row omits the locally retained route and account email');
     assert.match(row, /sign-in or sign-up form and its return page/, 'the draft row omits the retained account form and return route');
@@ -828,7 +829,7 @@ describe('the privacy notice — F479', () => {
     const fields = [...draft.slice(shapeAt, draft.indexOf('\n}', shapeAt)).matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
     assert.deepEqual(
       fields,
-      ['version', 'onboardingCompletedSteps', 'onboardingSkippedSteps', 'onboardingVariant', 'accountEmail', 'accountMode', 'accountReturnPage', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'reason', 'minutes', 'reminderTime', 'firstName'],
+      ['version', 'onboardingCompletedSteps', 'onboardingSkippedSteps', 'onboardingVariant', 'accountEmail', 'accountMode', 'accountReturnPage', 'drink', 'frequency', 'eligibilityConfirmed', 'quickStart', 'rememberLearning', 'reminderEnabled', 'reminderDays', 'ageConfirmed', 'tutorVoice', 'tutorChosen', 'speakingConfidence', 'practiceFocus', 'analyticsConsent', 'page', 'startLevel', 'reason', 'interests', 'minutes', 'reminderTime', 'firstName'],
       'the first-run draft holds a different set of fields from the ones the holdings row names',
     );
 

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, Text, View } from 'react-native';
-import { PillButton } from '../components.tsx';
-import { paper, type } from '../theme.ts';
+import { BoldButton as PillButton } from './BoldButton.tsx';
+import { paper } from '../theme.ts';
+import { boldType as type } from './boldRhythm.ts';
 import { NATIVE_DRIVER, useReduceMotion } from '../motion.ts';
-import { OnboardingScene } from './motion/OnboardingScenes.tsx';
+import { BoldScene } from './motion/BoldScene.tsx';
 import { useScreenReader } from '../celebrate/useScreenReader.ts';
 import { OnboardingLayout } from './OnboardingLayout.tsx';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
@@ -44,8 +45,8 @@ export function AccountWelcome({ onDone, progress = onboardingProgress({ page: '
   return <OnboardingLayout page="account-welcome" progress={{ ...progress, fraction: 1, complete: true }}
     footer={<PillButton label="Go to home" onPress={finish} />}>
     <Animated.View style={{ justifyContent: 'center', alignItems: 'center', gap: 20, opacity }}>
-      <View style={{ alignItems: 'center' }}><OnboardingScene kind="account" size={220} /></View>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>Welcome to Luvani.</Text>
+      <View style={{ alignItems: 'center' }}><BoldScene kind="fresh" width={240} /></View>
+      <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center' }]}>Welcome to Luvani.</Text>
       <Text style={[type.body, { color: paper.ink, textAlign: 'center' }]}>This is where your French begins.</Text>
       {!!error && <Text accessibilityRole="alert" style={type.small}>{error}</Text>}
     </Animated.View>

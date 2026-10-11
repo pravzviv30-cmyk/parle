@@ -691,11 +691,11 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(press, /haptic = 'light'/, 'a press does not default to a light impact');
     assert.match(press, /const reduced = useReduceMotion\(\)/, 'the press does not ask whether movement is withheld');
     // Come alive (D7): a tile presses deeper, to PRESS_SCALE_TILE; a control still goes to 0.97.
-    assert.match(press, /onPressIn=\{[^}]*\{[\s\S]*?pressTo\(scale, depth === 'tile' \? PRESS_SCALE_TILE : PRESS_SCALE, reduced\)/, 'the press does not go down to 0.97 on the spring');
+    assert.match(press, /onPressIn=\{[^}]*\{[\s\S]*?pressTo\(scale, depth === 'tile' \|\| depth === 'raised' \? PRESS_SCALE_TILE : PRESS_SCALE, reduced\)/, 'the press does not go down to 0.97 on the spring');
     assert.match(press, /onPressOut=\{[^}]*\{[\s\S]*?pressTo\(scale, 1, reduced\)/, 'the press is not released on lift');
     // Come alive: the surface is a Reanimated view and its scale is an animated style.
     assert.match(press, /<Reanimated\.View style=\{\[style, pressStyle\]\}>/, 'the drawn surface is not what shrinks');
-    assert.match(press, /const pressStyle = useAnimatedStyle\(\(\) => \(\{ transform: \[\{ scale: scale\.value \}\] \}\)\);/, 'the drawn surface is not what shrinks');
+    assert.match(press, /const pressStyle = useAnimatedStyle\([\s\S]*?depth === \'raised\'[\s\S]*?scale: scale\.value/, 'the drawn surface is not what shrinks');
     assert.match(press, /accessibilityRole="button" \{\.\.\.rest\}/, 'the press is not a button by default, or a caller cannot give it another role');
     // Come alive: the ring is its own child, mounted only for a choice, and it stops its own value.
     assert.match(press, /useEffect\(\(\) => \(\) => stopMotion\(scale\), \[scale\]\)/, 'a press unmounted mid-spring leaves the spring running');
@@ -1069,11 +1069,11 @@ describe('the icon controls keep their promises', () => {
     assert.match(choice, /const sunny = on === 'blue';/);
     assert.match(choice, /const fill = selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/);
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
-    assert.match(screen, /page === 'confidence' \|\| page === 'focus'/);
-    assert.match(screen, /ground=\{page === 'focus' \? 'blue' : 'sun'\}/);
-    assert.match(screen, /title=\{option\.title\}/);
-    assert.match(screen, /draft\.practiceFocus === option\.key/);
-    const welcome = region(screen, '{blue && (', '{question && (');
+    const boldChoice = readFileSync(join(SRC, 'onboarding', 'BoldChoice.tsx'), 'utf8');
+    assert.match(boldChoice, /selected \? c\.lavender : c\.white/);
+    assert.match(boldChoice, /color: c\.ink/);
+    assert.match(screen, /draft\.practiceFocus === v\.key/);
+    const welcome = region(screen, '{blue && ', '{question && ');
     assert.doesNotMatch(welcome, /<Choice\b/, 'the retired coffee preference must not reappear before the personal plan');
   });
 });

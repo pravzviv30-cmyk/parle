@@ -6,13 +6,14 @@ import type { PreAccountOnboardingDraft, PreAccountPage } from './preAccountDraf
  * resumes on the daily goal (`PreAccountOnboarding.tsx`), and the field stays on
  * the draft because the holdings row names it.
  */
-export const FULL_SETUP: readonly PreAccountPage[] = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan'];
+export const FULL_SETUP: readonly PreAccountPage[] = ['hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan'];
 /** The `EXPO_PUBLIC_ONBOARDING_VARIANT=five` experiment keeps its name: it leaves out the level. */
-export const FIVE_SETUP: readonly PreAccountPage[] = ['hear-it', 'reason', 'confidence', 'focus', 'time', 'plan'];
+export const FIVE_SETUP: readonly PreAccountPage[] = ['hear-it', 'reason', 'interests', 'confidence', 'focus', 'time', 'plan'];
 /** Only answers the current flow asks count; a retired drink answer adds nothing. */
 export function earnedChoices(draft: PreAccountOnboardingDraft, five = false): number {
   return [
     draft.reason,
+    draft.interests?.length ? draft.interests : null,
     ...(five ? [] : [draft.startLevel]),
     draft.speakingConfidence,
     draft.practiceFocus,
@@ -37,12 +38,5 @@ export function nextSetup(page: PreAccountPage, five = false): PreAccountPage {
 /** Name the actual next page, including the shorter setup variant. */
 export function nextSetupLabel(page: PreAccountPage, five = false): string {
   const next = nextSetup(page, five);
-  const labels: Partial<Record<PreAccountPage, string>> = {
-    'start-level': 'Next: Your French today',
-    confidence: 'Next: Find your confidence',
-    focus: 'Next: Your practice style',
-    time: 'Next: Make time for French',
-    plan: 'Next: See your personal plan',
-  };
-  return labels[next] ?? 'Next';
+  return next === 'plan' ? 'See your plan' : 'Continue';
 }

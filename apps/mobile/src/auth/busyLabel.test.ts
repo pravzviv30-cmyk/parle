@@ -76,7 +76,7 @@ describe('a screen that is waiting says so — F152', () => {
     let greyed = 0;
     for (const where of SCREENS) {
       const body = read(where);
-      const buttons = [...tags(body, 'PillButton'), ...tags(body, 'OutlineButton'), ...tags(body, 'GhostButton')];
+      const buttons = [...tags(body, 'PillButton'), ...tags(body, 'BoldButton'), ...tags(body, 'OutlineButton'), ...tags(body, 'GhostButton')];
       const waiting = buttons.filter((tag) => /disabled=\{[^}]*\bbusy\b/.test(tag));
       assert.ok(waiting.length > 0, `${where} has no button that greys out while busy; this test is reading the wrong file`);
       for (const tag of waiting) {
@@ -103,6 +103,14 @@ describe('a screen that is waiting says so — F152', () => {
           );
         }
       }
+      for (const provider of tags(body, 'ProviderButton')) {
+        assert.match(provider, /disabled=\{busy\}/);
+        assert.match(provider, /busy=\{pending === '(apple|google)'\}/);
+        greyed++;
+      }
+      const provider = read('auth/ProviderButtonBase.tsx');
+      assert.match(provider, /busy && <Text accessibilityLiveRegion="polite"/);
+      assert.match(provider, /Connecting to/);
       assert.match(body, /from '\.\/busyLabel\.ts'/, `${where} writes its own busy copy instead of using the shared module`);
     }
     assert.ok(greyed >= 6, `only ${greyed} busy buttons found across the three auth screens; the walk is missing some`);

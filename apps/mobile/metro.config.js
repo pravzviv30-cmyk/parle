@@ -4,7 +4,7 @@ const { platformAwareRequest } = require('./metro.platform.cjs');
 
 const config = getDefaultConfig(__dirname);
 // Local Rive illustrations are data assets, never source code.
-config.resolver.assetExts = [...new Set([...config.resolver.assetExts, 'riv'])];
+config.resolver.assetExts = [...new Set([...config.resolver.assetExts, 'riv', 'wasm'])];
 
 config.resolver.resolveRequest = (context, moduleName, platform) =>
   context.resolveRequest(context, platformAwareRequest(moduleName), platform);

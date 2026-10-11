@@ -4,6 +4,8 @@ import { isTutorVoiceKey, type TutorVoiceKey } from './protocol/voices.ts';
 export interface FirstPracticeBrief {
   version: 1;
   goals: ('food' | 'trip' | 'family' | 'moving' | 'work' | 'because')[];
+  /** Optional for briefs saved before interests were collected. */
+  interests?: ('food' | 'travel' | 'music' | 'everyday')[];
   level: 'zero' | 'few' | 'getby' | 'confident' | null;
   confidence: 'hesitant' | 'trying' | 'comfortable' | null;
   focus: 'listening' | 'speaking' | 'words' | null;
@@ -16,9 +18,11 @@ export function parseFirstPracticeBrief(value: unknown): FirstPracticeBrief | un
   if (!value || typeof value !== 'object' || Array.isArray(value)) return;
   const b = value as Record<string, unknown>;
   if (b.version !== 1 || !Array.isArray(b.goals) || b.goals.length > 6 || !b.goals.every(g => GOALS.includes(g))
+    || (b.interests !== undefined && (!Array.isArray(b.interests) || b.interests.length > 4 || !b.interests.every(i => ['food', 'travel', 'music', 'everyday'].includes(i))))
     || !member(b.level, ['zero', 'few', 'getby', 'confident']) || !member(b.confidence, ['hesitant', 'trying', 'comfortable'])
     || !member(b.focus, ['listening', 'speaking', 'words']) || !member(b.minutes, [5, 10, 15, 20]) || !isTutorVoiceKey(b.tutorVoice)) return;
   return { version: 1, goals: [...new Set(b.goals)], level: b.level as FirstPracticeBrief['level'],
+    ...(Array.isArray(b.interests) ? { interests: [...new Set(b.interests)] as FirstPracticeBrief['interests'] } : {}),
     confidence: b.confidence as FirstPracticeBrief['confidence'], focus: b.focus as FirstPracticeBrief['focus'],
     minutes: b.minutes as FirstPracticeBrief['minutes'], tutorVoice: b.tutorVoice };
 }
@@ -34,7 +38,7 @@ export function firstPracticeScenario(brief: FirstPracticeBrief) {
   const primary = brief.goals.find(g => g !== 'because') ?? 'because';
   const scenario = SCENARIOS[primary];
   // Food and travel combine naturally; other goals stay supporting context.
-  return primary === 'trip' && brief.goals.includes('food')
+  return primary === 'trip' && (brief.goals.includes('food') || brief.interests?.includes('food'))
     ? { ...SCENARIOS.food, en: 'Ask for a table at a restaurant during your trip and explain what you would like' }
     : scenario;
 }
@@ -47,6 +51,7 @@ export function firstPracticePrompt(brief: FirstPracticeBrief, elapsedSeconds = 
     `Situation and objective: ${firstPracticeScenario(brief).en}.`,
     'Start with a concrete actionable speaking task, not a generic greeting or a question about which topic to choose.',
     'Combine compatible goals in this one situation. Unrelated goals shape later practice, not abrupt scene changes.',
+    'Use selected interests as natural details within the situation. Unrelated interests belong in later practice; never force every interest into one exchange or invent preferences.',
     supported ? 'Keep prompts short and slow, one manageable answer at a time. Offer optional English meaning and a brief French hint. Help is not failure.'
       : 'Invite independent replies and realistic follow-up questions. For confident learners add a small complication. Do not assume a certified level.',
     brief.focus === 'listening' ? 'Prioritise understanding a short spoken request and checking one detail.'

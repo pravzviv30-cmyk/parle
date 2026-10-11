@@ -59,45 +59,37 @@ describe('the plan card and the daily goal', () => {
     // The screen: the tag only where the derivation points, nothing selected
     // until tapped, and the plan card launches the flight (never a Chip here).
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /suggested=\{tier\.minutes === suggested\}/);
-    assert.match(screen, /selected=\{draft\.minutes === tier\.minutes\}/);
-    assert.match(screen, /onPress=\{\(\) => choose\(\{ minutes: 'none' \}\)\}/, 'Choose each time is no longer an answer of its own');
+    assert.match(screen, /\[5, 10, 15, 20, 'none'\]/);
+    assert.match(screen, /selected=\{draft\.minutes === minutes\}/);
+    assert.match(screen, /onPress=\{\(\) => choose\(\{ minutes \}\)\}/, 'Choose each time is no longer an answer of its own');
     assert.match(screen, /<PersonalPlan draft=\{draft\}/);
     assert.doesNotMatch(screen, /<PlanCard|<Chip|<Label|<TokenFlight|useTokenFlight/, 'retired plan slots must not clutter the questions');
     const goal = evidence('apps/mobile/src/onboarding/firstRun/GoalTile.tsx');
     assert.match(goal, /accessibilityLabel=\{tierLabel\(tier, suggested\)\}/);
   });
 
-  test('the personal plan ring centres the real daily minutes and introduces the next tutor step', () => {
-    assert.deepEqual(GOAL_TIERS.map((t) => [t.minutes, t.quarters]), [[5, 1], [10, 2], [15, 3], [20, 4]]);
-    assert.equal(ringShare(5), 0.25);
-    assert.equal(ringShare(20), 1);
-    assert.equal(ringShare('none'), 0, 'a flexible goal must not fill the ring');
-    const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /<PersonalPlan draft=\{draft\}/);
-    assert.match(screen, /const planReady = \(\) => \{ playSfx\('select'\); tapSettled\(\); \};/);
+  test('C names real minutes and interests without implying learning completion', () => {
+    assert.deepEqual(GOAL_TIERS.map(t => t.minutes), [5, 10, 15, 20]);
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(plan, /const minutes = minutesOf\(draft\)/);
-    assert.match(plan, /<ProgressRing to=\{ringShare\(minutes\)\}/);
-    assert.match(plan, /justifyContent: 'center', alignItems: 'center'/);
-    assert.match(plan, /min\/day/);
-    assert.match(plan, /<OnboardingScene kind="plan"/);
-    const celebration = evidence('apps/mobile/assets/rive/source/plan/scene.rml');
-    assert.match(celebration, /name="Confetti [0-9]+"/);
-    const renderer = evidence('apps/mobile/src/onboarding/motion/RiveSceneRenderer.native.tsx');
-    assert.match(renderer, /SINGLE_SHOT[^;]*'plan'/);
-    assert.doesNotMatch(plan, /tutorName|Choose tutor|HeroNumber|Building|building|shimmer|playSfx|tick=/);
+    assert.match(plan, /minutes === 'none' \? 'At your own pace' : `\$\{minutes\} minutes a day`/);
+    assert.match(plan, /draft\.interests\.map/);
+    assert.match(plan, /<BoldScene kind="plan"/);
+    assert.match(plan, /label="Adjust my plan" onPress=\{onEdit\}/);
+    assert.doesNotMatch(plan, /<ProgressRing|mastery|fluency|numberOfLines/);
+    const motion = evidence('apps/mobile/assets/bold-rhythm/source/plan/scene.rml');
+    assert.match(motion, /loopValue="loop"/);
+    const renderer = evidence('apps/mobile/src/onboarding/motion/BoldScene.native.tsx');
+    assert.match(renderer, /reduced !== false \|\| !foreground \|\| !active/);
   });
 
-  test('a goal chosen each time draws an empty ring with an honest flexible label', () => {
-    assert.equal(ringShare('none'), 0);
-    const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
-    assert.match(plan, /const goal = minutes === 'none' \? 'Practice at your pace' : `\$\{minutes\} minutes a day`/);
-    assert.match(plan, /<View accessible accessibilityRole="text" accessibilityLabel=\{goal\}/);
-    assert.doesNotMatch(plan, /<ProgressRing[^>]+accessibilityLabel=/, 'the visual time ring must not announce percentage learning progress');
-    assert.match(plan, /minutes === 'none' \? '∞' : minutes/);
-    assert.match(plan, /minutes === 'none' \? 'your pace' : 'min\/day'/);
-    assert.match(plan, /<ProgressRing to=\{ringShare\(minutes\)\}/);
+  test('plan editing commits all six answers so new interests reach the live scenario', () => {
+    const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
+    const save = screen.slice(screen.indexOf('const sheetFooter ='), screen.indexOf(") : surface === 'start' ?"));
+    for (const key of ['reason', 'startLevel', 'minutes', 'speakingConfidence', 'practiceFocus']) {
+      assert.ok(save.includes(`${key}: edit.${key}`), `Done must commit ${key}`);
+    }
+    assert.match(save, /interests: \[\.\.\.\(edit\.interests \?\? \[\]\)\]/);
   });
 
   test('the personal plan always reads its first authored practice rather than the latest attempt', () => {
@@ -105,9 +97,9 @@ describe('the plan card and the daily goal', () => {
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(screen, /page === 'plan' && <PersonalPlan draft=\{draft\}/);
     assert.match(plan, /const plan = planFor\(draft\);/);
-    assert.match(plan, /\{plan\.starter\.title\}/);
+    assert.match(plan, /firstPracticeScenario\(briefFromDraft\(draft\)\)/);
     assert.match(plan, /\{plan\.method\}/);
-    assert.match(plan, /REASON_LABELS\[draft\.reason\]/);
+    assert.match(plan, /BOLD_GOALS\.find\(g => g\.key === draft\.reason\)/);
     assert.match(plan, /startingSupport\(draft\)/);
     assert.doesNotMatch(plan, /taskIndex|attempts|\btask\.(prompt|translation|title)\b/);
   });

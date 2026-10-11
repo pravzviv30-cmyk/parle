@@ -60,6 +60,7 @@ export async function attempt(run: () => Promise<AuthResult>): Promise<AuthResul
  */
 export const GUARDED_METHODS = [
   'signUpWithPassword',
+  'resendConfirmation',
   'signInWithPassword',
   'signInWithGoogle',
   'signInWithApple',
