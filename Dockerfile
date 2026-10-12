@@ -51,7 +51,8 @@ COPY --from=dependencies /app/services/token-server/node_modules ./services/toke
 COPY --from=dependencies /app/services/tutor-agent/node_modules ./services/tutor-agent/node_modules
 COPY --from=dependencies /app/packages/brain/node_modules ./packages/brain/node_modules
 COPY --from=dependencies /app/packages/core/node_modules ./packages/core/node_modules
-COPY --from=audio-decoder /usr/local/bin/ffmpeg /usr/local/bin/luvani-ffmpeg
+# The reviewed static decoder image exposes its dependency-free binary at /ffmpeg.
+COPY --from=audio-decoder /ffmpeg /usr/local/bin/luvani-ffmpeg
 COPY package.json package-lock.json ./
 COPY packages/core ./packages/core
 COPY packages/brain ./packages/brain
@@ -64,6 +65,12 @@ COPY deployment/entrypoint.sh deployment/nativeArtifacts.mjs deployment/validate
 RUN chmod 0755 /usr/local/bin/luvani-ffmpeg && node deployment/verifyAudioDecoder.mjs && node deployment/nativeArtifacts.mjs --verify --output /app/native-artifacts.json
 # Image files remain root-owned; the runtime can only write bounded mounts.
 USER node
+# Repeat execution on the final Linux filesystem as the actual runtime user.
+# Network isolation proves imports, model loading and decoding need no download.
+RUN --network=none node deployment/verifyAudioDecoder.mjs \
+    && node deployment/nativeArtifacts.mjs --verify \
+    && cd services/tutor-agent \
+    && node --input-type=module -e "import { VAD } from '@livekit/agents-plugin-silero'; await VAD.load(); console.log('Offline nonroot Silero model load passed');"
 EXPOSE 8787
 STOPSIGNAL SIGTERM
 ENTRYPOINT ["/bin/sh", "/app/deployment/entrypoint.sh"]

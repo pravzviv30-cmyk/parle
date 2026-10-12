@@ -77,6 +77,23 @@ test('container build refuses missing pin/full revision before install',()=>{
   const result=spawnSync(process.execPath,['deployment/validateBuild.mjs'],{cwd:ROOT,env:{PATH:process.env.PATH,NODE_IMAGE:'node:24',GIT_SHA:'pending'},encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/exact reviewed image digest/);
 });
+test('static decoder image keeps byte verification and final nonroot offline runtime proofs',async()=>{
+  const docker=await readFile(resolve(ROOT,'Dockerfile'),'utf8');
+  assert.match(docker,/COPY --from=audio-decoder \/ffmpeg \/usr\/local\/bin\/luvani-ffmpeg/);
+  const runtime=docker.slice(docker.indexOf('\nUSER node\n'));
+  assert.match(runtime,/RUN --network=none node deployment\/verifyAudioDecoder\.mjs/);
+  assert.match(runtime,/node deployment\/nativeArtifacts\.mjs --verify/);
+  assert.match(runtime,/cd services\/tutor-agent[\s\S]*await VAD\.load\(\)/);
+  const env={PATH:process.env.PATH,NODE_IMAGE:`node:24.16.0-bookworm-slim@sha256:${hash('base')}`,
+    GIT_SHA:hash('source').slice(0,40),AUDIO_DECODER_IMAGE:`mwader/static-ffmpeg@sha256:${hash('image')}`,AUDIO_DECODER_SHA256:hash('decoder')};
+  const valid=spawnSync(process.execPath,['deployment/validateBuild.mjs'],{cwd:ROOT,env,encoding:'utf8'});
+  assert.equal(valid.status,0,valid.stderr);
+  for(const change of [{AUDIO_DECODER_IMAGE:'mwader/static-ffmpeg:latest'},{AUDIO_DECODER_SHA256:'0'.repeat(64)},{AUDIO_DECODER_SHA256:'pending'}]) {
+    const refused=spawnSync(process.execPath,['deployment/validateBuild.mjs'],{cwd:ROOT,env:{...env,...change},encoding:'utf8'});
+    assert.notEqual(refused.status,0);
+    assert.match(refused.stderr,/reviewed immutable decoder image and actual executable SHA256/);
+  }
+});
 test('container secret separation refuses a tutor with database service credentials',()=>{
   const result=spawnSync(process.execPath,['deployment/validateEnvironment.mjs','tutor'],{cwd:ROOT,env:{PATH:process.env.PATH,NODE_ENV:'production',
     LIVEKIT_URL:'wss://fixture.test',LIVEKIT_API_KEY:'fixture',LIVEKIT_API_SECRET:'fixture',LUVANI_AGENT_SECRET:'x'.repeat(32),TOKEN_SERVER_URL:'https://fixture.test',TUTOR_LLM:'openai',SUPABASE_SERVICE_ROLE_KEY:'must-never-print'},encoding:'utf8'});

@@ -10529,3 +10529,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/tutor-agent/src/agent.ts, services/tutor-agent/src/recognitionSdk.test.ts
 - note: Updating the recognizer configuration did not rebuild its already-open stream. The public Agent update API now restarts recognition at the phase boundary, with rejection contained and a typing recovery message. An offline test uses the installed SDK and a loopback fake vendor to inspect the actual language/keyterm WebSocket query, without real audio or provider credits.
 - verified-by: `installed SDK reopens the same recognizer in French and applies current session keyterms`
+
+
+### F804 — Portable backend copies the decoder from a nonexistent image path
+- severity: P2
+- status: [x]
+- where: Dockerfile, .github/workflows/release.yml
+- note: The documented static decoder image exposes /ffmpeg, while the unexecuted portable build assumed /usr/local/bin/ffmpeg. The build now uses the documented path and retains byte-hash and compressed-audio verification. Final nonroot, network-disabled Linux decoder/native/model proofs run during the real build; image publication and hosted promotion remain separate.
+- verified-by: `static decoder image keeps byte verification and final nonroot offline runtime proofs`

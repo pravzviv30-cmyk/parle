@@ -1,6 +1,6 @@
 # Luvani iPhone preview updates
 
-## Current state — 4 October 2026
+## Current state — 12 October 2026
 
 Luvani is linked to Expo account `praveen30`, project
 `19183dc7-05cc-459a-b95f-6d7ad6fd6665`:
@@ -74,9 +74,14 @@ launch; `fallbackToCacheTimeout: 0` lets the current cached app open promptly.
 
 ## Apple signing
 
-The current phone installation uses an Apple Personal Team provisioning profile
-that expires **11 October 2026**. Hosted JavaScript updates do not renew it. Re-sign
-and reinstall locally when it expires, or use an Apple Developer membership and
+A fresh Debug binary from the task checkout was built and installed on 12 October
+2026. Automatic signing renewed its Apple Personal Team provisioning profile
+through **19 October 2026, 15:11 UTC**. Strict signature, profile/device membership
+and permitted entitlements checks passed; the app launched after the user verified
+the developer profile on the phone. This is a Metro development build with native
+fingerprint `37c2ea50d7d91f8aff5748893a11c8a3e6d18937`; OTA and device behavior are
+not yet accepted. Hosted JavaScript updates do not renew it. Re-sign
+and reinstall locally when the current profile expires, or use an Apple Developer membership and
 TestFlight for ongoing wireless distribution. No membership was purchased here.
 
 For this Personal Team local development binary only, generated ignored iOS

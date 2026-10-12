@@ -293,3 +293,61 @@ Ignored credentials, the pre-existing editor swap and local Codex files are excl
 The main pre-push hook will run the full gate again. Hosted CI, production rollout,
 Google/Apple configuration and physical-device acceptance are separate outcomes;
 none is represented as completed by this commit.
+
+
+## Remaining acceptance preparation — 12 October
+
+The user requested the remaining work, connected Railway and explicitly chose
+“Prepare everything without paid hosting yet”. This authorises preparation and
+verification; do not start hosted workloads or buy a plan. Root owns infrastructure
+and evidence, the native reviewer owns only generated ignored iOS files and the
+isolated build, and the backend reviewer owns the Docker/build workflow seam.
+
+| Task / owner | Status | Acceptance |
+|---|---|---|
+| Railway project / root | prepared | Private empty Luvani Staging project, staging environment, no deployed service or consumed hosting credit |
+| Immutable OCI build / backend and root | in progress | Actual pinned public image inputs, decoder hash, Linux nonroot/network-disabled decoder/native/model checks, provenance and SBOM; no registry publication |
+| Native signing / mobile | prepared | This checkout's build succeeds and strict signature verification passes; renewed profile and current native fingerprint recorded |
+| Native install and UI / root and human | pending | Install preserves app data; Rive/haptics, reduced motion, permissions and restoration observed on device |
+| Updated speech / root and human | pending | Bounded current-worker session; accurate displayed meaning/interpretation, audible reply and truthful completion; admission restored off |
+| Hosted API/OTA | held by user choice | Approved paid infrastructure, isolated service dependencies and quote/budget bindings, readiness acceptance, then Expo staging endpoints and native compatible update |
+
+The Railway trial workspace was verified with no projects and $5 trial credit.
+An empty private project and a staging environment are prepared; no service,
+database, image deployment, public domain or secret upload was started.
+The native build includes the installed Rive/Nitro/LiveKit/Haptics/Updates pods.
+Automatic signing renewed the Personal Team profile through 19 October 15:11 UTC.
+The arm64 Debug binary is signed at `/tmp/luvani-native-derived-346f/Build/Products/Debug-iphoneos/Luvani.app`,
+fingerprint `37c2ea50d7d91f8aff5748893a11c8a3e6d18937`. It is a Metro development
+build; Apple/push capabilities are omitted only in generated ignored entitlements.
+
+Hosted readiness requires Redis, fresh tutor/practice/maintenance heartbeats and
+both tutor and paid admission under production-mode configuration even for staging.
+Loopback local env files cannot be published. Exact provider quotes, isolated
+LiveKit/Redis/deletion journal, host secret injection, image/ingress acceptance
+and native voice proof remain prerequisites; no readiness protection is relaxed.
+The static decoder's documented source path is `/ffmpeg`, so the portable build
+is being made executable with that layout while retaining digest/checksum checks.
+
+
+The fresh signed binary installed without erasing app data. Initial launch was
+refused by iOS; a second independent comparison found matching app/profile/device
+and certificate/entitlements. After the user verified developer trust, launch
+succeeded. The user signed in on the iPhone and confirmed that a forced process
+restart restored signed-in Home without another password. This accepts native
+password sign-in and returning-session restoration, not Google/Apple OAuth.
+
+All five Railway startup configs passed the current official JSON schema using
+an isolated pinned CLI validator; no root dependency/lockfile changed. Actual
+public-registry Linux/amd64 manifests and the streamed decoder binary/layer hashes
+are verified in the local evidence. Decoder executable bytes were inspected but
+not executed on macOS. Linux execution remains the required OCI build check.
+
+
+Preparation verification: full gate passed 5,135 workspace tests, 91 shared proofs
+and eight database proofs replaying all 39 migrations. Thirteen changed-document
+local links and whitespace checks pass. Graph refresh completed (15,982 nodes,
+42,859 edges); SQL parser remains unavailable for 78 files, covered by the database
+proofs. The next artifact is an OCI-only GitHub build on the exact review-branch
+commit with the reviewed immutable inputs; it does not publish/deploy an image.
+Native motion/haptic observation is pending the user's device report.

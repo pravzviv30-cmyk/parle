@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       audio_decoder_image:
-        description: 'Reviewed decoder image at sha256, with executable /usr/local/bin/ffmpeg and compatible runtime dependencies'
+        description: 'Reviewed static decoder image at sha256, with dependency-free executable /ffmpeg (mwader/static-ffmpeg layout)'
         required: true
         type: string
       audio_decoder_sha256:

@@ -26,6 +26,33 @@ The dedicated `Release evidence` workflow runs source tests on pull requests/mai
 
 For an operator-reviewed local build after committing all source, supply the verified digest through `NODE_IMAGE`, set `SOURCE_SHA` from `git rev-parse HEAD`, and run `docker buildx build --platform linux/amd64 --build-arg "NODE_IMAGE=$NODE_IMAGE" --build-arg "AUDIO_DECODER_IMAGE=$AUDIO_DECODER_IMAGE" --build-arg "AUDIO_DECODER_SHA256=$AUDIO_DECODER_SHA256" --build-arg "GIT_SHA=$SOURCE_SHA" --provenance=mode=max --attest "type=sbom,generator=$SBOM_IMAGE" --output type=oci,dest=/private/tmp/luvani-backend.oci.tar --metadata-file /private/tmp/luvani-build-metadata.json .`. The BuildKit/SBOM images must also be reviewed immutable references. No placeholder digest passes. Docker is unavailable in the current audit workspace; no container build has been claimed.
 
+## Railway staging preparation — 12 October 2026
+
+A private empty **Luvani Staging** Railway project and `staging` environment are
+prepared. The user requested preparation without paid hosting; no services,
+database, source integration, image, public domain or secrets were deployed.
+`deployment/railway/` contains one startup configuration per existing role. The
+files use the existing validated entrypoint, one replica and bounded failure
+restarts. API platform health uses `/health` for process startup; acceptance still
+requires `/ready` before hosted mobile traffic. No readiness condition is changed.
+The files passed Railway's official draft-2020-12 JSON schema.
+
+These files do not provision resources. Before using them, select the reviewed
+published image digest, bind each file to its service, inject only its role's
+allowed secrets/configuration, and set measured CPU/memory/disk/drain limits.
+Choose the approved region and prove private worker/metrics networking and
+read-only filesystem/capability protection on the platform. Railway's config
+schema is not evidence that the platform meets the Compose/release contract.
+Hosted dependencies, quotes/budgets, security, restore and device acceptance stay
+pending. Subscription and workloads require a new approved spending ceiling.
+
+The portable build now uses the static decoder image's documented `/ffmpeg`
+source layout. Its existing checksum and real compressed-audio verification
+remain. Final Linux proof runs decoder/native imports and Silero model loading
+as the nonroot user with network disabled, before exporting OCI provenance/SBOM.
+Build inputs are immutable public-registry manifests and the actual binary hash;
+this does not certify publisher signatures or reproducible source builds.
+
 ## Candidate, acceptance and promotion
 
 After the reviewed code is committed and the image has a real registry digest, run `node scripts/verifyRelease.mjs --candidate /private/tmp/release-candidate.json --image "$LUVANI_IMAGE" --base-image "$NODE_IMAGE" --decoder-image "$AUDIO_DECODER_IMAGE" --decoder-sha256 "$AUDIO_DECODER_SHA256" --environment staging`. Use `production` only for production-target acceptance. This refuses a dirty/untracked source tree, a different runtime patch, mutable/fake image references, missing entrypoints or incomplete schema. It binds full HEAD SHA, lockfile hash, role source hashes, migration hashes and full catalog hash. It initially marks every external gate pending and leaves project references empty.

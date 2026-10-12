@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "deploy": {
+    "startCommand": "/bin/sh /app/deployment/entrypoint.sh api",
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3,
+    "sleepApplication": false,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300
+  }
+}
