@@ -168,11 +168,14 @@ describe('tutor previews — listening without choosing', () => {
   test('rapid native taps invalidate pending mode work before it can start the wrong voice', async () => {
     const { preview, events, resolveMode, players } = rig(false);
     preview.toggle('alexandre');
+    assert.deepEqual(events, ['create:alexandre', 'load:alexandre'], 'loading begins while the audio mode is still pending');
     preview.toggle('emilie');
+    assert.ok(!events.some(event => event.startsWith('play:')), 'no native audio before the correct mode');
     resolveMode();
     await Promise.resolve();
-    assert.deepEqual(events.slice(0, 3), ['create:emilie', 'load:emilie', 'play:emilie']);
-    assert.equal(players.length, 1);
+    assert.deepEqual(events.filter(event => event.startsWith('play:')), ['play:emilie']);
+    assert.equal(players.length, 2);
+    assert.ok(events.indexOf('release:alexandre') < events.indexOf('create:emilie'));
     preview.stop();
   });
 
@@ -183,11 +186,12 @@ describe('tutor previews — listening without choosing', () => {
     assert.equal(preview.getSnapshot().phase, 'paused');
     resolveMode();
     await Promise.resolve();
-    assert.equal(events.length, 0);
+    assert.ok(!events.some(event => event.startsWith('play:')));
     preview.toggle('alexandre');
     preview.stop();
     await Promise.resolve();
-    assert.equal(events.length, 0);
+    assert.ok(!events.some(event => event.startsWith('play:')));
+    assert.ok(events.includes('release:alexandre'), 'leaving releases the source prepared during mode setup');
     assert.equal(preview.getSnapshot().phase, 'idle');
   });
 
@@ -197,7 +201,8 @@ describe('tutor previews — listening without choosing', () => {
     rejectMode(new Error('audio session unavailable'));
     await Promise.resolve();
     assert.equal(preview.getSnapshot().phase, 'error');
-    assert.equal(events.length, 0);
+    assert.ok(!events.some(event => event.startsWith('play:')));
+    assert.ok(events.includes('release:marie'));
     preview.stop();
   });
 
@@ -209,5 +214,25 @@ describe('tutor previews — listening without choosing', () => {
     players[0]!.emit({});
     assert.equal(preview.getSnapshot().phase, 'idle');
     assert.equal(preview.getSnapshot().progress, 0);
+  });
+
+  test('media ticks update the progress listener without rerendering the onboarding controls', () => {
+    const { preview, players } = rig();
+    let controls = 0, progress = 0;
+    preview.subscribeControls(() => controls++);
+    preview.subscribe(() => progress++);
+    preview.toggle('alexandre');
+    players[0]!.emit({ currentTime: 0.1 });
+    const playingControls = preview.getControlSnapshot();
+    assert.equal(controls, 2, 'loading and confirmed playback are distinct control states');
+    for (let tick = 2; tick <= 30; tick++) players[0]!.emit({ currentTime: tick / 10 });
+    assert.equal(controls, 2);
+    assert.equal(progress, 31);
+    assert.equal(preview.getControlSnapshot(), playingControls, 'useSyncExternalStore must see a stable snapshot between control changes');
+    assert.equal(preview.getSnapshot().currentTime, 3);
+    players[0]!.emit({ isBuffering: true, currentTime: 3 });
+    assert.equal(controls, 3, 'buffering stops the animated bar through a real state change');
+    assert.equal(preview.getControlSnapshot().phase, 'loading');
+    preview.stop();
   });
 });

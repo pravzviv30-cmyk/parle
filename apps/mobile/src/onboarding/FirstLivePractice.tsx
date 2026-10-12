@@ -7,6 +7,8 @@ import { paper } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
 import { BoldButton as PillButton } from './BoldButton.tsx';
 import { useLiveSession } from '../live/useLiveSession.ts';
+import { failureCopy } from '../live/failure.ts';
+import { takeTypedDoor, typedDoorFor } from '../live/typedDoor.ts';
 import { BoldVoiceOrb } from './BoldVoiceOrb.tsx';
 import { RoomLevels } from '../live/RoomLevels.tsx';
 import { type OrbState } from '../tutor/VoiceOrb.tsx';
@@ -83,8 +85,11 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
   useEffect(() => { if (live.recap && !live.tutorSpeaking && live.safety?.action !== 'stop') void collect(); }, [live.recap, live.tutorSpeaking]);
   const ready = live.status.phase === 'live' && !!live.convo && !live.waitingForTutor && !live.reconnecting;
   const failed = live.status.phase === 'error' || live.status.phase === 'out-of-minutes';
+  const canRecoverByTyping = live.status.phase === 'error' && !!live.sessionId && !live.settlement && !ending && !live.recap
+    && typedDoorFor(live.status.failure, { typing });
+  const canRetryConnection = live.status.phase === 'error' && !live.convo && !live.sessionId && !live.settlement && !ending;
   const state: OrbState = failed ? 'error' : live.reconnecting || !ready ? 'connecting' : live.tutorSpeaking ? 'speaking' : live.thinking ? 'thinking' : live.micOpen ? 'listening' : 'ready';
-  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : live.reconnecting ? 'Reconnecting…' : !ready && !failed ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
+  const caption = saving ? 'Saving your session…' : ending ? 'Finishing this conversation…' : live.status.phase === 'error' ? failureCopy(live.status.failure).label : live.status.phase === 'out-of-minutes' ? live.status.label : live.reconnecting ? 'Reconnecting…' : !ready ? `Connecting to ${name}…` : live.tutorSpeaking ? `${name} is speaking` : live.thinking ? 'Thinking…' : live.micOpen ? 'Listening' : typing ? 'Ready for your message' : 'Ready when you are';
   const end = async () => {
     setEnding(true); await live.pauseMic();
     if (ready) live.requestRecap();
@@ -92,6 +97,13 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
       try { await endGuestLivePractice(held.current); await live.leave(); await collect(); }
       catch { setIssue('Your session could not close yet. Try again.'); setEnding(false); }
     }
+  };
+  const recoverByTyping = () => {
+    if (!canRecoverByTyping) return;
+    // Guest recovery must keep this room and meter. A failed switch never
+    // falls back to minting another grant while this session is outstanding.
+    if (takeTypedDoor(live) === 'kept-the-room') { setTyping(true); setIssue(''); }
+    else setIssue('This session cannot continue by typing. End the session or check its result.');
   };
   const changeInput = async () => {
     if (micPending) return;
@@ -135,8 +147,9 @@ export function FirstLivePractice({ guest, progress, onFinished, onSafetyExit, a
         <View style={{ gap: 6, paddingTop: 8 }}>
           {live.audioBlocked && <PillButton label={`Listen to ${name}`} onPress={live.resumeAudio} />}
           {failed ? <>
-            <Text accessibilityLiveRegion="polite" style={type.body}>{live.status.phase === 'error' ? live.status.message : 'Your tutor could not connect.'}</Text>
-            {!live.convo && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
+            <Text accessibilityLiveRegion="polite" style={type.body}>{live.status.phase === 'error' || live.status.phase === 'out-of-minutes' ? live.status.message : ''}</Text>
+            {canRecoverByTyping && <PillButton label="Continue by typing" onPress={recoverByTyping} />}
+            {canRetryConnection && <PillButton label="Try connecting again" onPress={() => void live.start()} />}
             {!!live.sessionId && <IconAction icon="refresh" label="Check session result" onPress={() => void collect()} />}
           </> : ending || live.recap ? <PillButton label={saving ? 'Saving…' : 'Continue to my summary'} disabled={saving} onPress={() => void collect()} /> : typing ? <>
             <TextInput accessibilityLabel="Your message in French" placeholder="Write your reply…" value={draft} maxLength={600}

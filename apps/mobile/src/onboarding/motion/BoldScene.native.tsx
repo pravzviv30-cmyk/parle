@@ -1,5 +1,5 @@
 import { SceneActivity } from './SceneActivity.ts';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { memo, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { DataBindMode, Fit, RiveView, useRiveFile, type RiveViewRef } from '@rive-app/react-native';
 import { decorative } from '../../theme.ts';
@@ -8,9 +8,9 @@ import { BoldStill as SceneStill, type BoldSceneProps as RiveSceneProps } from '
 import { BOLD_FILES as FILES } from './boldSceneFiles.ts';
 
 /** Re-keying the player makes a new scene independent of the previous scene's lifecycle. */
-export function BoldScene(props: RiveSceneProps) {
+export const BoldScene = memo(function BoldScene(props: RiveSceneProps) {
   return <ScenePlayback key={props.kind} {...props} active={props.active ?? true} />;
-}
+});
 
 /** Local continuous artwork stops off-screen and with reduced motion. */
 function ScenePlayback(props: RiveSceneProps) {
@@ -33,8 +33,10 @@ function NativeScene({ kind, width: size }: RiveSceneProps) {
   const { riveFile, error } = useRiveFile(FILES[kind]);
   const [viewRef, setViewRef] = useState<RiveViewRef | null>(null);
   const hybridRef = useCallback((ref: RiveViewRef | null) => setViewRef(ref), []);
+  const riveRef = useMemo(() => ({ f: hybridRef }), [hybridRef]);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const fail = useCallback(() => setFailed(true), []);
   useEffect(() => {
     if (!viewRef) return;
     let live = true;
@@ -59,6 +61,6 @@ function NativeScene({ kind, width: size }: RiveSceneProps) {
   return <>
     {!ready && <SceneStill kind={kind} width={size} />}
     {/* Shape/timeline-only assets have no view model; never probe for one. */}
-    {riveFile && <RiveView hybridRef={{ f: hybridRef }} file={riveFile} fit={Fit.Contain} dataBind={DataBindMode.None} autoPlay={false} frameRate={60} onError={() => setFailed(true)} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]} />}
+    {riveFile && <RiveView hybridRef={riveRef} file={riveFile} fit={Fit.Contain} dataBind={DataBindMode.None} autoPlay={false} frameRate={60} onError={fail} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]} />}
   </>;
 }

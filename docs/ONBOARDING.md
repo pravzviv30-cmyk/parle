@@ -129,3 +129,14 @@ clearing guest practice. Staging redirects and device acceptance remain necessar
 The earlier device/build verification record is historical and does not verify
 these C changes; see the [current change plan](changes/bold-rhythm.md) and
 [60-state map](changes/bold-rhythm-frames.md).
+
+Tutor sample startup warms the six bundled clips while the chooser is visible;
+native source loading runs alongside audio-mode setup and playback still waits
+for readiness. Loading and error labels remain truthful. Media ticks update only
+the progress leaf, which interpolates observed position through a native transform
+and does no animation for unchanged or inactive rows. Leaving/backgrounding stops
+playback and clears the bounded warm cache. Raised choices keep one release spring;
+reduced-motion changes never replay an old choice nudge or animate a rejected
+sheet swipe. First-practice voice errors expose the existing same-session typing
+recovery only while eligible; terminal/settling sessions cannot reopen admission.
+The isolated screen preview explains that it cannot start a real practice.

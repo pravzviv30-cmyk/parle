@@ -12,6 +12,11 @@ export interface TutorPreviewState {
   error: string | null;
 }
 
+export interface TutorPreviewProgressSource {
+  getSnapshot: () => TutorPreviewState;
+  subscribe: (listener: () => void) => () => void;
+}
+
 /** The subset of Expo SDK 57 status used here; native imports stay in the hook. */
 export interface PreviewPlayback {
   playing: boolean;
@@ -59,7 +64,9 @@ const seconds = (value: number): number => Number.isFinite(value) ? Math.max(0, 
  */
 export function createTutorPreview(deps: PreviewDeps) {
   let state = EMPTY;
+  let controlState = EMPTY;
   const listeners = new Set<() => void>();
+  const controlListeners = new Set<() => void>();
   let ticket = 0;
   let wanted = false;
   let cancelWait: (() => void) | null = null;
@@ -73,6 +80,12 @@ export function createTutorPreview(deps: PreviewDeps) {
   const publish = (next: TutorPreviewState) => {
     state = next;
     for (const listener of [...listeners]) listener();
+    // Media ticks go straight to the small progress view. The onboarding owner
+    // only needs control changes, not six card re-renders every 100 milliseconds.
+    if (next.voice !== controlState.voice || next.phase !== controlState.phase || next.error !== controlState.error) {
+      controlState = next;
+      for (const listener of [...controlListeners]) listener();
+    }
   };
   const close = () => {
     const old = owned;
@@ -103,10 +116,10 @@ export function createTutorPreview(deps: PreviewDeps) {
     publish({ ...state, phase: 'paused' });
   };
 
-  const start = (mine: number, voice: TutorVoiceKey, fresh: boolean) => {
+  const prepare = (mine: number, voice: TutorVoiceKey) => {
     if (mine !== ticket || !wanted) return;
     try {
-      if (fresh || !owned) {
+      if (!owned) {
         const record = { player: deps.createPlayer(voice), unsubscribe: null as (() => void) | null, confirmedPlaying: false };
         owned = record;
         record.unsubscribe = record.player.subscribe((status) => {
@@ -156,6 +169,15 @@ export function createTutorPreview(deps: PreviewDeps) {
         });
         record.player.load();
       }
+    } catch {
+      fail(mine);
+    }
+  };
+
+  const start = (mine: number, voice: TutorVoiceKey, _fresh: boolean) => {
+    if (mine !== ticket || !wanted) return;
+    prepare(mine, voice);
+    try {
       // play() queues playback while loading on native. On web this stays
       // synchronous with the tap, avoiding Safari's user-activation restriction.
       if (owned && wanted && mine === ticket) owned.player.play();
@@ -179,6 +201,10 @@ export function createTutorPreview(deps: PreviewDeps) {
     publish({ ...(fresh ? EMPTY : state), voice, phase: 'loading', error: null });
     watch(mine);
     try {
+      // Local asset loading can run beside native audio-mode setup. Only play
+      // waits for the mode; making these two preparations serial was avoidable
+      // silence on the first tap. Web still loads and plays inside its gesture.
+      if (!deps.web) prepare(mine, voice);
       const ready = deps.ready();
       if (deps.web) {
         // Modes have no effect on web; still enter the seam to pause sound effects.
@@ -203,6 +229,11 @@ export function createTutorPreview(deps: PreviewDeps) {
   return {
     toggle, stop,
     getSnapshot: () => state,
+    getControlSnapshot: () => controlState,
+    subscribeControls: (listener: () => void) => {
+      controlListeners.add(listener);
+      return () => { controlListeners.delete(listener); };
+    },
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => { listeners.delete(listener); };

@@ -495,6 +495,7 @@ export function PreAccountOnboarding({
       </View>
     ) : surface === 'start' ? (
       <View style={{ gap: space(2), paddingTop: space(3) }}>
+        {previewOnly && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Practice is unavailable in this screen preview. Your age selection can be tested here; a real session starts in the main app.</Text>}
         <MorphButton
           label="Start practice"
           busyLabel={FIRST_RUN_COPY.connecting}

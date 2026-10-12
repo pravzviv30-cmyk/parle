@@ -440,6 +440,7 @@ describe('nothing reaches an AI service or the network before the save page is p
     assert.ok(start.indexOf('STARTER_PROCESSING') >= 0 && start.indexOf('STARTER_PROCESSING') < start.indexOf('I am 13 or older'));
     assert.match(start, /Optional usage data/);
     assert.match(controls, /<MorphButton label="Start practice"[^>]*disabled=\{!draft\.eligibilityConfirmed \|\| previewOnly\}/);
+    assert.match(controls, /previewOnly && <Text[^>]*>Practice is unavailable in this screen preview\./, 'a preview must explain why eligible learners cannot start a real session');
     assert.doesNotMatch(controls, /Practise offline|offlineGuestPractice/);
     assert.doesNotMatch(controls, /Start speaking|label="Type instead"/, 'the start sheet offers speaking before the practice page knows speech is available');
     assert.match(screen, /footer=\{sheetFooter\}/);

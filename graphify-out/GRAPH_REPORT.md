@@ -1,16 +1,16 @@
 # Graph Report - Luvani  (2026-10-12)
 
 ## Corpus Check
-- 2352 files · ~3,302,612 words
+- 2359 files · ~3,307,638 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 15982 nodes · 42859 edges · 648 communities (517 shown, 131 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 593 edges (avg confidence: 0.7)
+- 16022 nodes · 42949 edges · 659 communities (526 shown, 133 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 594 edges (avg confidence: 0.7)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `be4b818b`
+- Built from commit: `abaa4df8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,10 +19,10 @@
 - curationEval.ts
 - LlmUsage
 - phonemes/index.ts
-- src/theme.ts
+- leave.test.ts
 - LuvaniConversation
 - soundLead.ts
-- firstRun.test.ts
+- preAccountDraft.ts
 - expo
 - dailyLicences.ts
 - dependencies
@@ -30,7 +30,7 @@
 - devPlan.ts
 - loop.mjs
 - html.ts
-- RootNavigator.tsx
+- scopeGeneration
 - realMoments.ts
 - Luvani UX production review
 - illustrations/timing.ts
@@ -40,18 +40,18 @@
 - token-server/package.json
 - brain-playground/package.json
 - geom.py
-- profile/store.ts
+- createStoredProfile
 - maintenanceWorker.ts
 - scripter-completion.js
 - core/package.json
-- paidVoiceProxy.ts
+- ReminderPlanner.tsx
 - compilerOptions
 - MissionProgress
-- decorative
+- icons/index.ts
 - localAdapter.ts
 - compilerOptions
 - scripts
-- core/src/index.ts
+- sittingDelta.test.ts
 - dependencies
 - mobile/package.json
 - momentum.ts
@@ -61,36 +61,36 @@
 - brain-playground/tsconfig.json
 - token-server/tsconfig.json
 - tutor-agent/tsconfig.json
-- guestLive.ts
+- core/src/index.ts
 - scripts
-- ReminderPlanner.tsx
+- reminder.ts
 - journal.ts
 - agent.ts
 - revenuecat.ts
-- SignInScreen.tsx
+- App.tsx
 - practiceRecord.test.ts
 - voiceLifecycle.ts
-- LuvaniTabBar.tsx
-- buildConversationPack
+- glyphs.tsx
+- missionWin.ts
 - ReviewCard
-- ServerMessage
+- core/src/conversationText.ts
 - practice/history.ts
-- server.ts
+- guestLive.ts
 - secretScan.ts
 - story-figma.js
 - graphify-guard.mjs
 - settle.ts
 - SettingsScreen.tsx
 - adapter.native.ts
-- recentConversations.ts
+- guestPractice.ts
 - ConvoScreen.tsx
 - goals/store.ts
 - gate.mjs
-- scopeGeneration
+- textClient.ts
 - Format
 - agentFleet.ts
 - evidenceContract.test.ts
-- SessionSummary
+- progress/history.ts
 - celebrate/queue.ts
 - upstashLive.ts
 - audioRelease.test.ts
@@ -100,34 +100,34 @@
 - databaseContract.test.ts
 - story-trip.js
 - sessionStore.ts
-- LaunchScreen.tsx
+- launchScreen.test.ts
 - names.ts
 - typesafe.ts
 - The pedagogy
 - useLiveSession.test.ts
 - The live path
-- Takeover.tsx
+- profile/store.ts
 - On the device
 - src/voiceSamples.ts
 - bug-hunter.md
 - DayKey
-- useReduceMotion
+- react
 - chooserView.ts
 - fix-verifier.md
 - safety.ts
-- WallScreen.tsx
+- wallCopy.ts
 - components.tsx
 - storeBinding.test.ts
-- FixLineSession
+- fixLineAttempt.ts
 - deploy-engineer.md
 - observability-engineer.md
 - revenue-engineer.md
-- memory.ts
+- TutorMemoryScreen.tsx
 - surfaceContract.test.ts
 - paywall-current.js
-- conversation.ts
+- decorative
 - Architecture
-- badges/catalogue.ts
+- game/store.ts
 - mobile/src/copy.test.ts
 - apple.test.ts
 - activity.ts
@@ -145,26 +145,26 @@
 - Prioritized findings and required changes
 - release-engineer.md
 - work-judge.md
-- isConversationPack
-- audioDecode.ts
+- buildConversationPack
+- paidAdmission.ts
 - pre-commit
 - pre-push
 - installHooks.mjs
 - verifyVoiceAcceptance.mjs
-- accountExport.ts
+- createUserResolver
 - metro.config.js
 - Device verification — auth, session storage, deletion, and the first run
 - diagnostics.ts
-- disclosure.test.ts
+- OnboardingFlow.tsx
 - homeDraw.ts
 - conversationPacks/store.ts
-- reflection.ts
+- progressView.ts
 - ciContract.test.ts
 - Luvani revamp B: illustrations
 - story.test.ts
 - land.md
 - Privacy and safety
-- TutorVoiceKey
+- registry.ts
 - motion.test.ts
 - enterRecord.test.ts
 - Implementation evidence
@@ -187,11 +187,11 @@
 - Supabase runbook
 - nativeEvalAgent.ts
 - choosingView.ts
-- GoalStepScreen.tsx
+- madeFrom.ts
 - quests/index.ts
 - product-orchestrator.md
 - drill/index.ts
-- opening.test.ts
+- wallPlans.ts
 - repository-archaeologist.md
 - data-sync-engineer.md
 - learning-science-engineer.md
@@ -200,15 +200,15 @@
 - tutor-behaviour-engineer.md
 - voice-platform-engineer.md
 - serverSecurityContract.test.ts
-- progressStore.ts
+- reminders/plan.ts
 - safetyWiring.test.ts
 - RoomLevels.tsx
 - marks.ts
-- missions/store.ts
-- lessons/types.ts
+- brain/src/index.ts
+- HomeTab.test.ts
 - docs/README.md
 - sha256
-- syncLive.ts
+- streakEntrance.ts
 - design-system-engineer.md
 - onboarding-ux-engineer.md
 - practice-ux-engineer.md
@@ -218,15 +218,15 @@
 - StreakFlame.shared.tsx
 - taskTicks.ts
 - observabilityAcceptance.mjs
-- DrillScreen.test.ts
+- progressStore.ts
 - sourceText.test.ts
-- topics/store.ts
+- MeteredBrain
 - attemptAudio.native.ts
 - verifyTutorSessions.mjs
 - build-icons.mjs
 - supabaseAdapter.ts
 - daily/catalogue.ts
-- brain/src/index.ts
+- prompt/prompt.test.ts
 - funnel.test.ts
 - phoneSettings.test.ts
 - Tutor intelligence and availability — 20 September 2026
@@ -234,14 +234,14 @@
 - verifyProductEvents.mjs
 - protocol.ts
 - PracticeTab.test.ts
-- DailyPracticeScreen.tsx
+- DrillScreen.tsx
 - bookmarks/store.ts
 - compose-helpers.js
 - phraseKeyOf
 - soften-daily-voice-samples.mjs
 - deliveryRoadmap.test.ts
 - build-daily-tutor-audio.mjs
-- particles.ts
+- syncLive.ts
 - planModel.ts
 - failure.ts
 - ProfileTab.test.ts
@@ -254,58 +254,58 @@
 - socialModel.ts
 - Video UX implementation
 - answerSheet.test.ts
-- audioFocus.ts
+- sfxGate.test.ts
 - layout.test.ts
-- RecapScreen.tsx
-- wallPages.ts
+- soundExample.ts
+- holdLive
 - patchExpoModulesJsi.mjs
 - roadmapTip.test.ts
 - closure.ts
 - containerAcceptance.mjs
-- recorderRelease.test.ts
+- scenarios.ts
 - localDevContract.test.ts
-- App.tsx
+- profile.ts
 - soundcheck/store.ts
 - replyAudioSdk.test.ts
-- progress/story.ts
+- audioFocus.ts
 - app-compose.js
 - verifySessionDetails.mjs
-- orbState.ts
+- threads.ts
 - eraseNotice.test.ts
-- upgrade.ts
+- myfrench/copy.ts
 - gameLocal.ts
 - illustrations.mjs
 - schedule.native.ts
 - Luvani backend production readiness audit
 - components.js
 - CachedTTS
-- friendsView.test.ts
+- activeUserId
 - countTicks.ts
 - verifyConversationText.mjs
-- myfrench/copy.ts
-- synth.mjs
+- GoalStepScreen.tsx
+- jevJudge.ts
 - react-native-web
 - drill/store.ts
-- userKey
+- answers.test.ts
 - convo.ts
 - verifyNativeVoice.mjs
 - package.json
 - nativeArtifacts.mjs
-- productEvents.ts
+- server.ts
 - goals/isolation.test.ts
-- StreakScreen.tsx
+- GameProvider.tsx
 - Backend release and recovery
 - What changed
 - quietLesson.test.ts
 - sittingWrites.test.ts
 - ConversationPackLibrary.test.ts
 - Tutor experience revision — 20 September 2026
-- purchases/billingStatus.ts
-- paidAdmission.ts
+- wallAccount.ts
+- paidExecution.ts
 - verifyPracticeQueue.mjs
 - safeArea.test.ts
 - meter.ts
-- utterance.test.ts
+- opening.test.ts
 - haptics.native.ts
 - friendly.ts
 - Motion, sound and haptics system
@@ -313,15 +313,15 @@
 - Hosting the legal pages
 - LuvaniAudioLifecycleModule
 - fixLineAttempt.test.ts
-- gate.ts
+- speakView.ts
 - secureSessionStorage.ts
 - verifySessionRefunds.mjs
 - @livekit/react-native-expo-plugin
 - orb-figma.js
 - recapLine.test.ts
 - guestSpeechRoute.test.ts
-- profile.ts
-- scenarios.ts
+- conversation.ts
+- daily/index.ts
 - assets/brand/README.md
 - build-daily-licences.mjs
 - art/registry.test.ts
@@ -332,24 +332,24 @@
 - schedule.test.ts
 - tabBar.test.ts
 - verifySessionRefundConcurrency.mjs
-- Paper & Ink design world
+- sfx.native.ts
 - PhraseCard.test.ts
 - SummaryScreen.test.ts
 - theme.test.ts
-- tutorAudio.ts
+- warmCache.ts
 - freshDevice.ts
 - Deliver useful learning sooner
 - Paid provider admission contract and local evidence
-- firstRun/copy.test.ts
+- drawing.ts
 - VoiceOrb.tsx
-- renewals.ts
+- lessons/types.ts
 - verify-social-db.mjs
 - MERCURY.md
 - responsibilities.test.ts
 - The team
 - livekit-client
 - build-bold-rhythm.py
-- momentsStore.ts
+- turns.ts
 - react-native-safe-area-context
 - phrasebook.ts
 - verifyAccountExport.mjs
@@ -357,12 +357,12 @@
 - backoff.ts
 - LuvaniConversation
 - GoalStepScreen.test.ts
-- RiveSceneRenderer.native.tsx
+- wallSuccess.test.ts
 - live/levels.ts
 - safetyView.test.ts
-- authFlow.test.ts
-- sfxAssets.test.ts
-- BoldScene.native.tsx
+- src/tokens.ts
+- strictContinuityReads.test.ts
+- verifyDataBoundaries.mjs
 - The free-form tutor brain
 - punctuation.test.ts
 - come-alive/README.md
@@ -376,15 +376,15 @@
 - alexandre:onboarding:tutor-close
 - alexandre:onboarding:tutor-follow-up
 - alexandre:onboarding:tutor-question
-- pendingPurchase.ts
-- nextFace.test.ts
-- FriendsAdapter
+- scope.ts
+- friendsView.test.ts
+- sessionSettlementRoute.test.ts
 - Independent challenge of production-audit draft
-- session/session.ts
+- ladder.ts
 - micPrimer.ts
 - icons.test.ts
 - Revamp B continuation
-- verifyDataBoundaries.mjs
+- strictness.test.ts
 - profile/merge.ts
 - stage3.test.ts
 - onboarding-audio/manifest.json
@@ -395,12 +395,12 @@
 - checkMobilePreview.d.mts
 - svg.mjs
 - moneyUntouched.test.ts
-- view.test.ts
+- plugins
 - FriendsTab.test.ts
 - settings
 - before
 - AuthAdapter
-- EndCard.tsx
+- game-art-sheet.mjs
 - dependencyAudit
 - Reduce signup friction without hiding decisions
 - Implementation of the two UX reviews
@@ -417,14 +417,14 @@
 - FirstSceneScreen.test.ts
 - Retention surfaces
 - Game layer
-- src/timing.ts
+- userKey
 - startupRecovery.test.ts
 - Icons and layout
-- sceneReplyTiming.ts
-- flights.ts
+- renewals.ts
+- shapes.test.ts
 - liveSurfaceCleanup.test.ts
-- localPractice.ts
-- FrenchLifeCard.test.ts
+- coachMarks.test.ts
+- verifyFriendsLaunch.mjs
 - dependencyAudit.test.ts
 - @luvani/core
 - Make the next step relevant and available
@@ -448,11 +448,11 @@
 - api-host-repro.mjs
 - VOICE_ACCEPTANCE_TOOLKIT.md
 - Make price and persistence understandable
-- httpSecurity.ts
+- recognition.ts
 - Finish accessibility and remove contextual overclaims
-- setItemInUserScope
+- scope.test.ts
 - Luvani brand kit
-- evidenceScreens.test.ts
+- app-foundations-call.js
 - react-native-screens
 - SessionView.test.ts
 - Decision log
@@ -464,13 +464,13 @@
 - Deletion and supersession ledger
 - legacyCleanup.test.ts
 - 2. Moment-by-moment specs
-- progress/store.ts
+- First live practice implementation, 10 October 2026
 - Current-state map
 - expo-secure-store
 - First run
 - 5. Screen by screen
-- winModel.test.ts
-- lessonFooter.test.ts
+- upgrade.ts
+- session/session.ts
 - Original video: second-pass additions
 - Measure useful practice and verify the release
 - Fifth video: qualify the psychology before using it
@@ -492,9 +492,9 @@
 - What to remove and what to preserve
 - voiceFish.ts
 - RoomFactsWatch
-- KNOWN_ISSUES.md
+- local-loop.md
 - onboardingCompletion.test.ts
-- speech.test.ts
+- pendingPurchase.ts
 - recorderLevel.ts
 - sessionLifecycle.ts
 - display.test.ts
@@ -510,12 +510,12 @@
 - 1. Icon system
 - /forge
 - recognitionSdk.test.ts
-- WelcomeSignInGlow.tsx
+- src/theme.ts
 - 5. Paywall (`wall/*`, `purchases/*`, `packages/core/src/metering/meter.ts`)
 - expo-haptics
 - celebrate/wiring.test.ts
 - sites.test.ts
-- voice.ts
+- isTutorVoiceKey
 - expo-sharing
 - sfx/manifest.json
 - useLiveSession.ts
@@ -533,12 +533,12 @@
 - useEmailAutoAdvance.ts
 - cloud-figma.js
 - expo-crypto
-- DailyLibraryScreen.tsx
-- practiceWorker.ts
-- micLevel.ts
-- evidence
+- interactionMotion.test.ts
+- generate.ts
+- ConversationsScreen.test.ts
+- speech.test.ts
 - attempt.ts
-- mockAdapter.ts
+- auth/adapter.ts
 - ICON_SET.md
 - levels/levels.ts
 - recapWait.ts
@@ -547,8 +547,8 @@
 - Luvani · vibrant app and paywalls
 - nav/wiring.test.ts
 - write_ts.py
-- plugins
-- Recorder
+- fifthRungPersistence.test.ts
+- recorderRelease.test.ts
 - final-prototype-wire.js
 - device-clones.js
 - Delivery roadmap
@@ -577,14 +577,14 @@
 - expo-web-browser
 - final-control-polish.js
 - build-review-pdf.py
-- repairRecognizedFrench
+- capabilities.ts
 - final-label-polish.js
 - figma-library-helpers.js
 - react-dom
 - Local Rive illustrations
 - react
 - @react-native-async-storage/async-storage
-- wall/preview.ts
+- src/timing.ts
 - react-native-svg
 - expo-speech
 - expo-updates
@@ -594,13 +594,13 @@
 - @rive-app/react-native
 - @rive-app/react-webgl2
 - @supabase/supabase-js
-- acoustic.ts
+- bandsFromSpectrum
 - svg.test.ts
 - boldAssets.test.ts
 - Onboarding
-- launchHold.ts
+- expo-apple-authentication
 - orb-ui-NOTICE.md
-- SettleHold
+- soundPreference.ts
 - deploy
 - deploy
 - phaseSixProblems
@@ -608,12 +608,12 @@
 - <Change name>
 - deploy
 - deploy
-- turnHandling.ts
-- recipes.mjs
-- readiness.ts
-- FakeRoom
+- lessonFooter.test.ts
+- FrenchLifeCard.test.ts
+- orbRest.test.ts
+- startOwnership.test.ts
 - expo
-- unmount.ts
+- evidenceScreens.test.ts
 - phaseSixRowProblems
 - forms
 - Risk register
@@ -621,40 +621,51 @@
 - Recorder
 - expo-file-system
 - criteriaFor
-- config.ts
+- wallPages.ts
 - The local loop
-- firstChoice.test.ts
-- LevelsGuard
-- Cache
+- orbLayers.test.ts
+- busyLabel.test.ts
+- social.ts
 - Tutor daily audio: pre-publication memory
 - Local loop smoke example
-- replayEar.test.ts
-- passwordStrength.ts
-- react-native-nitro-modules
+- launchHold.ts
+- storeSettlement.ts
+- Paper & Ink design world
+- launchWelcome.ts
+- Cache
+- judgeAttempt.ts
+- BubbleEmpty.tsx
+- CalendarTick.tsx
+- Evening.tsx
+- Home.tsx
+- Market.tsx
+- Speaker.tsx
+- Star.tsx
+- Unlock.tsx
 
 ## God Nodes (most connected - your core abstractions)
-1. `Format` - 822 edges
+1. `Format` - 827 edges
 2. `scopeGeneration()` - 242 edges
 3. `space()` - 239 edges
-4. `decorative` - 204 edges
+4. `decorative` - 205 edges
 5. `paper` - 201 edges
-6. `react` - 195 edges
+6. `react` - 196 edges
 7. `type` - 130 edges
-8. `useReduceMotion()` - 124 edges
+8. `useReduceMotion()` - 126 edges
 9. `STROKE` - 112 edges
 10. `phraseKeyOf()` - 109 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Chrome is plain English, French only where it is content` --rationale_for--> `CAFE_LESSON`  [INFERRED]
+  DESIGN.md → packages/core/src/lessons/cafe.ts
 - `Drill mode and the recognition-to-production ramp` --conceptually_related_to--> `bestDrillFor()`  [INFERRED]
   README.md → packages/core/src/phonemes/drills.ts
+- `A real spoken exchange inside one five-minute session` --rationale_for--> `createSession()`  [INFERRED]
+  PRODUCT.md → packages/core/src/session/session.ts
+- `A missing score is never an invented penalty` --rationale_for--> `grade()`  [INFERRED]
+  README.md → packages/core/src/session/session.ts
 - `460pt centred web column` --rationale_for--> `App()`  [INFERRED]
   DESIGN.md → apps/mobile/App.tsx
-- `SpeakCircle, the one microphone` --conceptually_related_to--> `MicGlyph()`  [INFERRED]
-  DESIGN.md → apps/mobile/src/components.tsx
-- `SpeakCircle, the one microphone` --rationale_for--> `SpeakCircle()`  [EXTRACTED]
-  DESIGN.md → apps/mobile/src/components.tsx
-- `Inline SVG illustration style contract` --rationale_for--> `STROKE`  [INFERRED]
-  DESIGN.md → apps/mobile/src/theme.ts
 
 ## Import Cycles
 - 3-file cycle: `apps/mobile/src/onboarding/motion/OnboardingScenes.tsx -> apps/mobile/src/onboarding/motion/RiveSceneRenderer.tsx -> apps/mobile/src/onboarding/motion/SceneStill.tsx -> apps/mobile/src/onboarding/motion/OnboardingScenes.tsx`
@@ -663,39 +674,39 @@
 ## Hyperedges (group relationships)
 - **Unit economics and metering enforcement** — product_metered_minutes, product_cascaded_voice_pipeline, readme_metering_at_token_issuance, readme_tts_warm_cache, readme_risk_cost_per_session, packages_core_src_metering_meter_plans, packages_core_src_metering_meter_estimatesessioncost [INFERRED 0.85]
 
-## Communities (648 total, 131 thin omitted)
+## Communities (659 total, 133 thin omitted)
 
 ### Community 0 - "src/store.ts"
-Cohesion: 0.06
-Nodes (17): Entitlement, Plan, ServiceFailure, SessionSettlement, TutorSessionReport, grant(), DevelopmentEntitlementStore, entitlementFrom() (+9 more)
+Cohesion: 0.07
+Nodes (11): Entitlement, SessionSettlement, grant(), DevelopmentEntitlementStore, entitlementFrom(), EntitlementStore, FileEntitlementStore, InMemoryEntitlementStore (+3 more)
 
 ### Community 1 - "curationEval.ts"
-Cohesion: 0.04
-Nodes (68): NewPhrase, applyCuration(), buildCurationRequest(), CuratedTopic, CurationInput, CurationSchema, extensionViolations(), INSTRUCTION (+60 more)
+Cohesion: 0.06
+Nodes (44): NewPhrase, applyCuration(), buildCurationRequest(), CuratedTopic, CurationInput, extensionViolations(), INSTRUCTION, keyOf() (+36 more)
 
 ### Community 2 - "LlmUsage"
 Cohesion: 0.03
-Nodes (118): TurnSchema, withMissingGoalObservation(), MemoryExtraction, ScenarioFrame, TutorTurn, Curation, DrillBatch, DrillBatchSchema (+110 more)
+Nodes (119): AssessmentZ, CefrBandZ, CoachItemZ, CoachKindZ, MemoryExtractionSchema, MemoryFactZ, NewPhraseZ, OptionZ (+111 more)
 
 ### Community 3 - "phonemes/index.ts"
-Cohesion: 0.13
-Nodes (35): soundToTune, bestDrillFor(), BY_ID, Drill, DrillKind, DRILLS, drillsFor(), DrillWord (+27 more)
+Cohesion: 0.11
+Nodes (40): Acoustic, acousticFor(), AcousticWord, firstPair(), headingFor(), focusOn(), bestDrillFor(), BY_ID (+32 more)
 
-### Community 4 - "src/theme.ts"
-Cohesion: 0.05
-Nodes (57): CelebrateConfetti(), CelebrateFirstLine(), CelebrateWrapped(), IllustrationEntry, ILLUSTRATIONS, MouthNasalAn(), MouthNasalOn(), MouthR() (+49 more)
+### Community 4 - "leave.test.ts"
+Cohesion: 0.14
+Nodes (8): flat(), leftOpen, Page, read(), ROUTES, sittingPage(), createSettleHold(), SettleHold
 
 ### Community 5 - "LuvaniConversation"
-Cohesion: 0.06
-Nodes (13): SessionRecap, LearnerTurnInput, CODES, safeError(), TYPES, firstPracticeObjectiveComplete(), LuvaniConversation, paceOf() (+5 more)
+Cohesion: 0.07
+Nodes (15): SessionRecap, LearnerTurnInput, missionTasksFor(), blocks(), buildSystemBlocks(), CODES, safeError(), TYPES (+7 more)
 
 ### Community 6 - "soundLead.ts"
-Cohesion: 0.08
-Nodes (35): ACCESS_COPY, AUTHORED_EXAMPLE, DEVICE_VOICE, LESSON_MINUTES, LIVE_MINUTES, NEEDS_CONNECTION_AND_MINUTES, NO_MINUTES, RECORDED_AUDIO (+27 more)
+Cohesion: 0.05
+Nodes (60): ACCESS_COPY, AUTHORED_EXAMPLE, DEVICE_VOICE, LESSON_MINUTES, LIVE_MINUTES, NEEDS_CONNECTION_AND_MINUTES, NO_MINUTES, RECORDED_AUDIO (+52 more)
 
-### Community 7 - "firstRun.test.ts"
-Cohesion: 0.11
-Nodes (17): CREATE_ACCOUNT_AGE, FIRST_RUN_PAGE_COPY, HEAR_IT_EXCHANGE, STUCK_HINT, ageParagraph(), AUDIO, pageSource(), prose() (+9 more)
+### Community 7 - "preAccountDraft.ts"
+Cohesion: 0.05
+Nodes (41): Gate(), APP, FLOW, GATE, raw(), read(), SCREEN, strip() (+33 more)
 
 ### Community 8 - "expo"
 Cohesion: 0.04
@@ -710,8 +721,8 @@ Cohesion: 0.05
 Nodes (30): recordSafetyDecision(), SafetyRecord, ANSWERS_PATH, APP, callCount(), codeOnly(), CONDUCT_PATH, CONVO_PATH (+22 more)
 
 ### Community 12 - "devPlan.ts"
-Cohesion: 0.10
-Nodes (35): AGENT_ENV_FILE, COLOURS, die(), hasClaudeCli(), launch(), main(), probe(), readEnvFile() (+27 more)
+Cohesion: 0.08
+Nodes (44): AGENT_ENV_FILE, COLOURS, die(), hasClaudeCli(), launch(), main(), probe(), readEnvFile() (+36 more)
 
 ### Community 13 - "loop.mjs"
 Cohesion: 0.21
@@ -719,15 +730,15 @@ Nodes (18): ALLOWED, altered(), bugTask(), digest(), git(), inScope(), noSymlink
 
 ### Community 14 - "html.ts"
 Cohesion: 0.08
-Nodes (47): address(), COMPANY, CompanyFacts, companyFrom(), companyLine(), CONTACT_ROW, contactRow, fact() (+39 more)
+Nodes (49): address(), COMPANY, CompanyFacts, companyFrom(), companyLine(), CONTACT_ROW, contactRow, fact() (+41 more)
 
-### Community 15 - "RootNavigator.tsx"
+### Community 15 - "scopeGeneration"
 Cohesion: 0.03
-Nodes (144): Ctx, LiveValue, useLive(), Ctx, useProfile(), SCENE_ILLUSTRATION, sceneIllustration(), HERE (+136 more)
+Nodes (187): Ctx, LiveProvider(), LiveValue, useLive(), Ctx, useProfile(), Illustration(), IllustrationEntry (+179 more)
 
 ### Community 16 - "realMoments.ts"
 Cohesion: 0.11
-Nodes (22): DETAIL_LABEL, DETAIL_PLACEHOLDER, detailCap(), fitDetail(), kindOf(), MAX_ONLY_LINE, MAX_SEED_TOPIC_CHARS, PLAN_CHECKING (+14 more)
+Nodes (20): DETAIL_LABEL, DETAIL_PLACEHOLDER, detailCap(), fitDetail(), MAX_ONLY_LINE, MAX_SEED_TOPIC_CHARS, PLAN_CHECKING, PLAN_INCLUDED (+12 more)
 
 ### Community 17 - "Luvani UX production review"
 Cohesion: 0.04
@@ -743,7 +754,7 @@ Nodes (37): anonKeyOf(), blockedReport(), CatalogShape, CheckOutcome, CheckResul
 
 ### Community 20 - "onboarding/plan.ts"
 Cohesion: 0.07
-Nodes (36): APP, draft(), NOW, AnswerOption, COVERAGE_NOTE, DEFAULT_START_LEVEL, FOCUS_GOALS, GOAL_LABEL (+28 more)
+Nodes (58): PreAccountProfileBootstrap(), SignedInRoot(), BOLD_GOALS, BOLD_QUESTIONS, INTERESTS, profileFromDraft(), reminderFromDraft(), reminderSummary() (+50 more)
 
 ### Community 21 - "brain/package.json"
 Cohesion: 0.07
@@ -761,13 +772,13 @@ Nodes (25): dependencies, dotenv, @luvani/brain, @luvani/core, description, devD
 Cohesion: 0.07
 Nodes (57): arc(), bounds(), catmull_closed(), circle(), diff(), flat_tapered_bar(), inter(), new() (+49 more)
 
-### Community 25 - "profile/store.ts"
-Cohesion: 0.05
-Nodes (67): ProfileGate(), ProfileValue, profileFromDraft(), initialPracticeMode(), levelOf(), startEstimate(), tutorGoalsFor(), withChosenVoice() (+59 more)
+### Community 25 - "createStoredProfile"
+Cohesion: 0.11
+Nodes (16): learner(), profile(), held(), fresh(), createStoredProfile(), learner(), NOW, DEFAULT_PACE (+8 more)
 
 ### Community 26 - "maintenanceWorker.ts"
-Cohesion: 0.07
-Nodes (33): TutorRevision, tutorSessionRpc(), reconcileTutorRooms(), RoomCloser, billingRead, entitlements, erasures, heartbeat() (+25 more)
+Cohesion: 0.05
+Nodes (45): isServiceFailure(), ServiceFailure, main(), origin(), replayRestore(), env, validateReplayInputs(), paidAdmissionRpc() (+37 more)
 
 ### Community 27 - "scripter-completion.js"
 Cohesion: 0.08
@@ -777,25 +788,25 @@ Nodes (42): action(), allowance(), allScreens, box(), bullet(), button(), card()
 Cohesion: 0.10
 Nodes (19): devDependencies, @types/node, typescript, exports, ./ladder, ./lessons, ./metering, ./phonemes (+11 more)
 
-### Community 29 - "paidVoiceProxy.ts"
-Cohesion: 0.07
-Nodes (25): credentials, FakeSocket, verdict, workerRequire, PaidGate, signal(), checkEleven(), createPaidVoiceProxy() (+17 more)
+### Community 29 - "ReminderPlanner.tsx"
+Cohesion: 0.08
+Nodes (56): record(), OPENS, reminderOpenOf(), ReminderRoute, routeForReminder(), emptyLog(), ReminderLog, slotDay() (+48 more)
 
 ### Community 30 - "compilerOptions"
 Cohesion: 0.10
 Nodes (19): DOM, ES2023, compilerOptions, allowImportingTsExtensions, esModuleInterop, exactOptionalPropertyTypes, forceConsistentCasingInFileNames, isolatedModules (+11 more)
 
 ### Community 31 - "MissionProgress"
-Cohesion: 0.05
-Nodes (61): lowerFirst(), Abilities, ABILITIES_LABEL, abilitiesFrom(), AND_MORE, CAN_NOW, CanDo, CanDoKind (+53 more)
+Cohesion: 0.06
+Nodes (53): Abilities, ABILITIES_LABEL, abilitiesFrom(), AND_MORE, CAN_NOW, CanDo, CanDoKind, canDoSentence() (+45 more)
 
-### Community 32 - "decorative"
-Cohesion: 0.03
-Nodes (107): WelcomeOrb, Add, Alert, Back, Bell, BellRing, Book, Bookmark (+99 more)
+### Community 32 - "icons/index.ts"
+Cohesion: 0.05
+Nodes (54): Add, Alert, Back, Card, Cards, ChevronDown, ChevronRight, Clock (+46 more)
 
 ### Community 33 - "localAdapter.ts"
-Cohesion: 0.12
-Nodes (36): caches, defaultStore(), FriendsStore, isStore(), KEY(), listeners, loadStore(), loadStoreFor() (+28 more)
+Cohesion: 0.08
+Nodes (41): build(), friends, caches, createLocalAdapter(), defaultStore(), FriendsStore, isStore(), KEY() (+33 more)
 
 ### Community 34 - "compilerOptions"
 Cohesion: 0.12
@@ -805,25 +816,25 @@ Nodes (16): compilerOptions, allowImportingTsExtensions, noEmit, noUncheckedInde
 Cohesion: 0.07
 Nodes (28): scripts, audit:ci, build:web, dev, dev:durable, gate, gate:bless, gate:fast (+20 more)
 
-### Community 36 - "core/src/index.ts"
-Cohesion: 0.04
-Nodes (61): CardGround, cardView, GROUND, rowFor(), spoken(), streakValue(), cardOf(), views (+53 more)
+### Community 36 - "sittingDelta.test.ts"
+Cohesion: 0.07
+Nodes (37): endCardView, EndGoal, EndTile, EndTileId, fraction(), RUN, timeText(), DRILL_END (+29 more)
 
 ### Community 37 - "dependencies"
 Cohesion: 0.10
-Nodes (21): dependencies, @config-plugins/react-native-webrtc, expo-apple-authentication, expo-audio, expo-dev-client, expo-font, @expo/metro-runtime, expo-notifications (+13 more)
+Nodes (21): dependencies, @config-plugins/react-native-webrtc, expo-audio, expo-dev-client, expo-font, @expo/metro-runtime, expo-notifications, react-native (+13 more)
 
 ### Community 38 - "mobile/package.json"
 Cohesion: 0.17
 Nodes (11): devDependencies, @types/node, @types/react, typescript, @types/node, typescript, main, name (+3 more)
 
 ### Community 39 - "momentum.ts"
-Cohesion: 0.05
-Nodes (68): CLAIMS, FeaturedPhrase, hasLedger(), isWholeLine(), Ledger, ledgerFrom(), noteOn(), PhraseRow (+60 more)
+Cohesion: 0.06
+Nodes (56): DAILY_GOAL_UNSET, GoalMinutes, FrenchLifeCard(), ActivityKind, activeDayKeys(), calendarWeekFrom(), DAY_COUNT_WORDS, DAYS_LABEL (+48 more)
 
 ### Community 40 - "firstRun.ts"
-Cohesion: 0.07
-Nodes (27): ALREADY_HAVE_ACCOUNT, ANSWER_HINT, CHOSEN, CONTINUE, DEMO_COACHING, FIRST_LINE, FIRST_LINE_PROMPT, FIRST_LINE_TITLE (+19 more)
+Cohesion: 0.04
+Nodes (59): shadowingPhrase(), voices, tutorAudioFor(), tutorAudioForFrench(), TutorAudioPack, PreviewEnv, clipFor(), FIRST_CHOICES (+51 more)
 
 ### Community 41 - "brain/tsconfig.json"
 Cohesion: 0.25
@@ -845,33 +856,33 @@ Nodes (7): compilerOptions, types, extends, include, node, src/**/*.ts, ../../ts
 Cohesion: 0.25
 Nodes (7): compilerOptions, types, extends, include, node, src/**/*.ts, ../../tsconfig.base.json
 
-### Community 46 - "guestLive.ts"
-Cohesion: 0.06
-Nodes (50): firstAchievements(), FirstContribution, FirstLiveRecord, firstLiveSummary(), normalized(), record, FirstPracticeBrief, firstPracticeNext() (+42 more)
+### Community 46 - "core/src/index.ts"
+Cohesion: 0.17
+Nodes (22): firstAchievements(), FirstLiveRecord, firstLiveSummary(), normalized(), repairFirstLiveRecord(), record, FirstPracticeBrief, firstPracticeNext() (+14 more)
 
 ### Community 47 - "scripts"
 Cohesion: 0.20
 Nodes (10): scripts, android, export:web, ios, ios:device, start, test, typecheck (+2 more)
 
-### Community 48 - "ReminderPlanner.tsx"
-Cohesion: 0.02
-Nodes (156): acceptReminderOffer(), KEEPSAKE_COPY, keepsakeLines(), MAX_KEEPSAKE_LINES, ReminderAnswer, reminderAnswerLine(), ReminderPhone, NOW (+148 more)
+### Community 48 - "reminder.ts"
+Cohesion: 0.05
+Nodes (72): acceptReminderOffer(), KEEPSAKE_COPY, keepsakeLines(), MAX_KEEPSAKE_LINES, ReminderAnswer, reminderAnswerLine(), reminderOffer, ReminderPhone (+64 more)
 
 ### Community 49 - "journal.ts"
 Cohesion: 0.07
-Nodes (58): DiskFaults, drill(), earlyExitBatch(), journalledSession(), NOW, ordinaryBatch(), phrase(), PRACTICE (+50 more)
+Nodes (59): DiskFaults, drill(), earlyExitBatch(), journalledSession(), NOW, ordinaryBatch(), phrase(), PRACTICE (+51 more)
 
 ### Community 50 - "agent.ts"
-Cohesion: 0.10
-Nodes (35): openAiLiveModel(), Env, sessionAudio(), supportedSessionModes(), supportsSessionMode(), typedOnly(), completions, TokenMeta (+27 more)
+Cohesion: 0.07
+Nodes (43): openAiLiveModel(), Env, sessionAudio(), supportedSessionModes(), supportsSessionMode(), typedOnly(), completions, TokenMeta (+35 more)
 
 ### Community 51 - "revenuecat.ts"
 Cohesion: 0.09
-Nodes (35): BILLING_KEYS, BillingEnvironment, distinctProducts(), fetchSubscriber(), holdsSomethingElse(), instant(), logHeld(), OPTIONAL_PRODUCT_KEYS (+27 more)
+Nodes (36): BILLING_KEYS, BillingEnvironment, distinctProducts(), fetchSubscriber(), holdsSomethingElse(), instant(), logHeld(), OPTIONAL_PRODUCT_KEYS (+28 more)
 
-### Community 52 - "SignInScreen.tsx"
-Cohesion: 0.07
-Nodes (42): GOOGLE, AccountField, appleSignInOffered(), AuthAction, authButtonLabel(), LABELS, ACTIONS, openingTag() (+34 more)
+### Community 52 - "App.tsx"
+Cohesion: 0.03
+Nodes (145): Loading(), st, BOLD_SCENES, BoldSceneKind, GOOGLE, AccountField, st, appleSignInOffered() (+137 more)
 
 ### Community 53 - "practiceRecord.test.ts"
 Cohesion: 0.09
@@ -881,29 +892,29 @@ Nodes (20): Entry, EVIDENCE, EXTERNAL, FILES, flat(), LEDGER, NEVER_TRUE, outsta
 Cohesion: 0.08
 Nodes (63): CostModel, Check, checkAgentSecret(), checkConcurrentStart(), checkDepartureClosesRoom(), checkExactlyOnceDebit(), checkHardStop(), checkInsecureUrlRefused() (+55 more)
 
-### Community 55 - "LuvaniTabBar.tsx"
-Cohesion: 0.13
-Nodes (20): MicGlyph(), HomeIcon(), MyFrenchIcon(), PracticeIcon(), TabIconProps, announceTab(), ICONS, LABELS (+12 more)
+### Community 55 - "glyphs.tsx"
+Cohesion: 0.05
+Nodes (31): canDoSentence(), MicGlyph(), DocumentGlyph(), GlyphProps, QuoteGlyph(), ReplayGlyph(), SpeakerSlowGlyph(), HomeIcon() (+23 more)
 
-### Community 56 - "buildConversationPack"
-Cohesion: 0.06
-Nodes (39): adapter, disk, pack(), page(), storage, word(), pack(), pack() (+31 more)
+### Community 56 - "missionWin.ts"
+Cohesion: 0.09
+Nodes (21): valid(), visibleMissionTasks(), dismissWin(), NO_WIN, SCENE_WON_BEATS, SCENE_WON_BURST, winAfterTurn(), winCard (+13 more)
 
 ### Community 57 - "ReviewCard"
 Cohesion: 0.05
-Nodes (81): carriesContext(), CHECK, CLOSING_LINE, GRADE_LABELS, ONE_LINE_LABEL, oneLineFrom(), OneLineTier, REASONS (+73 more)
+Nodes (90): carriesContext(), CHECK, CLOSING_LINE, GRADE_LABELS, ONE_LINE_LABEL, oneLineFrom(), OneLineTier, REASONS (+82 more)
 
-### Community 58 - "ServerMessage"
+### Community 58 - "core/src/conversationText.ts"
 Cohesion: 0.11
-Nodes (25): conversation, shipped(), user, CONVERSATION_TEXT_BYTES, ConversationTextBuffer, conversationTextCursor(), ConversationTextPage, ConversationTextRecorder (+17 more)
+Nodes (26): conversation, shipped(), user, CONVERSATION_TEXT_BYTES, ConversationText, ConversationTextBuffer, conversationTextCursor(), ConversationTextPage (+18 more)
 
 ### Community 59 - "practice/history.ts"
-Cohesion: 0.09
-Nodes (48): bound(), compareText(), eventBytes(), eventsForPack(), floorOf(), hasCompletedSitting(), hasExactly(), isPackId() (+40 more)
-
-### Community 60 - "server.ts"
 Cohesion: 0.04
-Nodes (76): withoutRevisionSource(), secondsRemaining(), isServiceFailure(), accountExports(), rpc(), agentDebitAllowed(), webhookAuthorised(), billingStatusFor() (+68 more)
+Nodes (96): normaliseBetter(), PRACTICE_BEFORE, practiceBefore(), REVISION_COPY, revisionEvidence, RevisionPractice, CORRECTION, NOW (+88 more)
+
+### Community 60 - "guestLive.ts"
+Cohesion: 0.08
+Nodes (35): StarterDrink, StarterGoal, date(), deadlines(), endGuestLive(), guestLiveOperation(), GuestLiveRecord, guestLiveResult() (+27 more)
 
 ### Community 61 - "secretScan.ts"
 Cohesion: 0.11
@@ -918,40 +929,40 @@ Cohesion: 0.29
 Nodes (4): GRAPH, ROOT, ROUTING, SOURCE_EXTS
 
 ### Community 64 - "settle.ts"
-Cohesion: 0.03
-Nodes (126): publishCelebrations(), catchUpQuietly(), datedFromData(), INTRO_SEEN_KEY, IntroFacts, replayedThisLaunch, safely(), seedExistingLearner() (+118 more)
+Cohesion: 0.06
+Nodes (77): CelebrationEvent, catchUpQuietly(), datedFromData(), INTRO_SEEN_KEY, IntroFacts, replayedThisLaunch, safely(), seedExistingLearner() (+69 more)
 
 ### Community 65 - "SettingsScreen.tsx"
-Cohesion: 0.04
-Nodes (72): deniedKeys, KEY(), loadConsent(), read(), saveConsent(), saveVersions, serialized(), StoredConsent (+64 more)
+Cohesion: 0.08
+Nodes (41): appVersionLine(), ABOUT_GROUP, ACCOUNT_GROUP, ACKNOWLEDGEMENTS_ROW, CONNECTION_HELP_ROW, CONNECTION_HELP_SUB, CONSENT_SAVE_TROUBLE, DATA_USE_ROW (+33 more)
 
 ### Community 66 - "adapter.native.ts"
-Cohesion: 0.11
+Cohesion: 0.09
 Nodes (20): apiKey(), configuredPlans(), configuredYearlyPlans(), freeTrialOf(), INTRO_UNITS, introEligibleIds(), paidPackages(), PRODUCT_IDS (+12 more)
 
-### Community 67 - "recentConversations.ts"
-Cohesion: 0.10
-Nodes (31): normaliseBetter(), PRACTICE_BEFORE, practiceBefore(), REVISION_COPY, revisionEvidence, RevisionPractice, CORRECTION, NOW (+23 more)
+### Community 67 - "guestPractice.ts"
+Cohesion: 0.08
+Nodes (47): installationId(), guestFinishes(), briefFromDraft(), KEEP_ROWS, attempt(), continuingTask(), finishes(), finishGuestPractice() (+39 more)
 
 ### Community 68 - "ConvoScreen.tsx"
-Cohesion: 0.05
-Nodes (59): ConvoScreen(), NO_TASKS, practiceBatch(), st, CONNECTING_STAGES, CONNECTING_TICK_MS, CONNECTING_TITLE, connectingBody() (+51 more)
+Cohesion: 0.04
+Nodes (92): ControlTile(), HelpGlyph(), LadderMark(), RoundButton(), ConvoScreen(), NO_TASKS, practiceBatch(), st (+84 more)
 
 ### Community 69 - "goals/store.ts"
-Cohesion: 0.07
-Nodes (50): goalEvidence(), GoalPractice, GoalTrailRow, isCurrentGoal(), practiceOf(), GOALS, KEY, pack() (+42 more)
+Cohesion: 0.08
+Nodes (41): bound(), compareText(), GOAL_STEPS_VERSION, hasExactly(), isGoalKey(), isGoalStepEvent(), isGoalTask(), isPackId() (+33 more)
 
 ### Community 70 - "gate.mjs"
 Cohesion: 0.06
 Nodes (25): date(), evaluateAudit(), HIGH, AGENT_MODELS, agentFiles, args, asJson, auditOnly (+17 more)
 
-### Community 71 - "scopeGeneration"
-Cohesion: 0.03
-Nodes (112): analyticsAllowed(), ProductEvent, trackProductEvent(), auth, authHeaders(), fitDisplay(), SpeakCircle(), ConversationPracticeScreen() (+104 more)
+### Community 71 - "textClient.ts"
+Cohesion: 0.25
+Nodes (11): deleteText(), failure(), listText(), owns(), requestFor(), saveText(), TextResult, selectTokenServerUrl() (+3 more)
 
 ### Community 72 - "Format"
 Cohesion: 0.00
-Nodes (822): A1 — A spoken answer has to match the script exactly, A2 — An empty transcript is graded as a wrong answer, A3 — A freeze at the top rung still asks the learner to invent French, A4 — A rescue can skip the beat the learner froze on, A5 — Two different opening-rung formulas, A6 — A focus point vanishes when the worst sound has no drill, A7 — A v2 snapshot with no memory crashes the worker, B0 — LuvaniTutor cannot be tested at all (+814 more)
+Nodes (827): A1 — A spoken answer has to match the script exactly, A2 — An empty transcript is graded as a wrong answer, A3 — A freeze at the top rung still asks the learner to invent French, A4 — A rescue can skip the beat the learner froze on, A5 — Two different opening-rung formulas, A6 — A focus point vanishes when the worst sound has no drill, A7 — A v2 snapshot with no memory crashes the worker, B0 — LuvaniTutor cannot be tested at all (+819 more)
 
 ### Community 73 - "agentFleet.ts"
 Cohesion: 0.20
@@ -961,33 +972,33 @@ Nodes (11): AgentFrontmatter, agentProblems(), FRONTMATTER_FIELDS, frontmatterBl
 Cohesion: 0.05
 Nodes (35): accepted, classify(), evidence, EVIDENCE_PATH, evidenceFlat, FLOORS_PATH, GateRun, ledger (+27 more)
 
-### Community 75 - "SessionSummary"
-Cohesion: 0.20
-Nodes (16): focusOn(), BY_IPA, getPhoneme(), buildEntries(), csvField(), ExportEntry, toAnkiTsv(), toCsv() (+8 more)
+### Community 75 - "progress/history.ts"
+Cohesion: 0.23
+Nodes (13): buildEntries(), csvField(), ExportEntry, toAnkiTsv(), toCsv(), buildReport(), buildTrends(), mean() (+5 more)
 
 ### Community 76 - "celebrate/queue.ts"
 Cohesion: 0.04
-Nodes (76): BadgeEarnedData, Base, buffered, CELEBRATION_TTL_MS, CelebrationOrigin, CelebrationType, discardBufferedCelebrations(), isRememberedInSeen() (+68 more)
+Nodes (82): cardOf(), views, BadgeEarnedData, Base, buffered, CELEBRATION_TTL_MS, celebrationKey, CelebrationOrigin (+74 more)
 
 ### Community 77 - "upstashLive.ts"
 Cohesion: 0.05
-Nodes (43): CONSUME_SCRIPT, Counter, createRateLimiter(), createSessionLeaseStore(), FetchLike, MemoryRateLimiter, MemorySessionLeaseStore, RATE_LIMITS (+35 more)
+Nodes (46): addressBucket(), clientIp(), CONSUME_SCRIPT, Counter, createRateLimiter(), createSessionLeaseStore(), FetchLike, MemoryRateLimiter (+38 more)
 
 ### Community 78 - "audioRelease.test.ts"
 Cohesion: 0.16
 Nodes (20): APP_ROOT, bare(), Binding, caught(), cleanupsOf(), declarationOf(), declaredFunction(), eachSyncNode() (+12 more)
 
 ### Community 79 - "review/store.ts"
-Cohesion: 0.13
-Nodes (30): RecapKeepsake, saveRecapKeepsake(), addFromSummary(), addPhrases(), adoptDeck(), applyPracticeGrades(), caches, CardGrade (+22 more)
+Cohesion: 0.08
+Nodes (34): asTheScreenSends(), AsyncFunction, card(), checkBlock, CLIENT, installDisk(), Judge, nextUid() (+26 more)
 
 ### Community 80 - "pronunciation.ts"
 Cohesion: 0.07
-Nodes (42): ALIASES, FRENCH_IPA, isInventoryIpa(), toInventoryIpa(), isVendor(), present(), PronunciationScorer, ScoreDeps (+34 more)
+Nodes (43): ALIASES, FRENCH_IPA, isInventoryIpa(), toInventoryIpa(), isVendor(), present(), PronunciationScorer, ScoreDeps (+35 more)
 
 ### Community 81 - "activeTime.ts"
 Cohesion: 0.14
-Nodes (12): ACTIVE_CUTOFF_MS, ActiveClock, ActiveClockController, createActiveClock(), idleClock(), learnerEngaged(), suspended(), convo() (+4 more)
+Nodes (12): ACTIVE_CUTOFF_MS, ActiveClock, ActiveClockController, cleanActiveMs(), createActiveClock(), idleClock(), learnerEngaged(), suspended() (+4 more)
 
 ### Community 82 - "databaseContract.test.ts"
 Cohesion: 0.06
@@ -998,12 +1009,12 @@ Cohesion: 0.12
 Nodes (38): APP, art(), awaitRoot(), box(), button(), choice(), COMP, createdNodeIds (+30 more)
 
 ### Community 84 - "sessionStore.ts"
-Cohesion: 0.04
-Nodes (99): drillTitle(), TITLES, DrillScreen(), finish(), key(), played(), targets(), SettleToken (+91 more)
+Cohesion: 0.09
+Nodes (51): SettleToken, completeNow(), completePracticeSitting(), completionChain, heldSettles, moved(), oneAtATime(), PracticeCompletionStep (+43 more)
 
-### Community 85 - "LaunchScreen.tsx"
-Cohesion: 0.10
-Nodes (28): HUM_CORE, HUM_RING_PATH, HUM_VIEWBOX, HUM_WORDMARK, LaunchScreen(), st, APP, config (+20 more)
+### Community 85 - "launchScreen.test.ts"
+Cohesion: 0.11
+Nodes (19): HUM_CORE, HUM_RING_PATH, HUM_VIEWBOX, HUM_WORDMARK, APP, config, HOOKS, MARK (+11 more)
 
 ### Community 86 - "names.ts"
 Cohesion: 0.31
@@ -1011,7 +1022,7 @@ Nodes (8): FILES, GENERATED, PLACES, read(), stripComments(), ICON_NAMES, IconNa
 
 ### Community 87 - "typesafe.ts"
 Cohesion: 0.04
-Nodes (67): ZERO_USAGE, FetchLike, realSleep(), RETRY_AFTER_CAP_MS, RETRY_AFTER_FALLBACK_MS, SleepLike, ChoiceAnswerZ, DEFAULT_JEV_MODEL (+59 more)
+Nodes (65): FetchLike, RETRY_AFTER_CAP_MS, RETRY_AFTER_FALLBACK_MS, SleepLike, ChoiceAnswerZ, DEFAULT_JEV_MODEL, JevAnswerZ, JevChoice (+57 more)
 
 ### Community 88 - "The pedagogy"
 Cohesion: 0.20
@@ -1025,53 +1036,53 @@ Nodes (42): ABANDON, asJs(), AsyncFunction, AUDIO_BLOCKS, CLOSE_MIC_FOR_RECAP, d
 Cohesion: 0.18
 Nodes (11): Audio, and what may be claimed about it, Audio levels in the room, and the microphone at the recap, One spoken answer, not a lecture, Recognition confidence (Report 2, item 35), Scene reply dispatch timing, Serialisation, The four modes, The live path (+3 more)
 
-### Community 91 - "Takeover.tsx"
-Cohesion: 0.13
-Nodes (25): shownTitle(), Confetti(), COLUMN_MAX, GROUND, inks(), st, stageHeight(), STAGES (+17 more)
+### Community 91 - "profile/store.ts"
+Cohesion: 0.09
+Nodes (48): ProfileGate(), disk(), adoptProfile(), completeProfile(), confirmedFrom(), KEY(), loadProfile(), mutationId() (+40 more)
 
 ### Community 92 - "On the device"
 Cohesion: 0.10
 Nodes (21): Attempt audio, and the one thing on the phone that is not a key, Banking a conversation, and when the journal is allowed to go, Conversation-practice history, resume, and finishing a sitting at most once, Device-level keys, and the one that retired, Explicit conversation text, Goal steps: a goal, one task, and what came of it, On the device, Onboarding continuity and device preferences (+13 more)
 
 ### Community 93 - "src/voiceSamples.ts"
-Cohesion: 0.14
-Nodes (25): buildTTS(), carryAttestation(), encodeArgs(), Encoder, ENCODERS, joinClip(), levelClip(), main() (+17 more)
+Cohesion: 0.05
+Nodes (46): AUTHORED_SPEECH_LINES, AUTHORED_CACHE_VERSION, CachedTTSOptions, defaultMissTransport(), ResolvedCachedTTSOptions, FakeChunkedStream, FakeSynthesizeStream, FakeTTS (+38 more)
 
 ### Community 94 - "bug-hunter.md"
 Cohesion: 0.33
 Nodes (5): House style, How you work, Product invariants — a change that breaks one of these is a bug, however green, What counts as a finding, What you must never do
 
 ### Community 95 - "DayKey"
-Cohesion: 0.07
-Nodes (83): badgeShelfView, CountId, EARNED_MEDALS, streakSummaryView, ReconcileInput, CalendarMonth, clampMonth(), dateWords() (+75 more)
+Cohesion: 0.06
+Nodes (90): GameValue, QuestClaimRow, QuestDayRow, StoredGame, streakSummaryView, Reconciled, ReconcileInput, Snapshot (+82 more)
 
-### Community 96 - "useReduceMotion"
-Cohesion: 0.05
-Nodes (119): PasswordMeter(), st, SelectRing(), SittingBar(), st, AnimatedIcon(), AnimatedIconKind, AnimatedIconProps (+111 more)
+### Community 96 - "react"
+Cohesion: 0.02
+Nodes (238): PasswordMeter(), st, CardGround, cardView, GROUND, rowFor(), shownTitle(), spoken() (+230 more)
 
 ### Community 97 - "chooserView.ts"
-Cohesion: 0.04
-Nodes (71): isPhraseCard(), orElse(), readOutsideFacts(), CHOOSER_ACCESS, CHOOSER_HEADLINE, CHOOSER_OTHER, CHOOSER_START_HERE, CHOOSER_SUB (+63 more)
+Cohesion: 0.13
+Nodes (23): CHOOSER_ACCESS, CHOOSER_HEADLINE, CHOOSER_OTHER, CHOOSER_START_HERE, CHOOSER_SUB, chooserView, hasPractisedBefore(), hasSpokenBefore() (+15 more)
 
 ### Community 100 - "safety.ts"
 Cohesion: 0.06
 Nodes (34): AGE_STANDS_ALONE, APPROACH_DIRECT, APPROACH_REQUEST, DANGEROUS, DANGEROUS_OBJECT, DEPENDENCY, GUARDIAN_SECRECY, has() (+26 more)
 
-### Community 101 - "WallScreen.tsx"
-Cohesion: 0.03
-Nodes (145): PaidPlan, inlinePaywall(), PendingPurchase, BAND_LINES, bandFor(), endsWithinATrialWeek(), measureFor(), PERIOD_LINES (+137 more)
+### Community 101 - "wallCopy.ts"
+Cohesion: 0.04
+Nodes (64): TrialNode, TrialNodeKey, trialTimeline(), TrialTimelineView, ACCOUNT_LABEL, ADDS_AGAIN, ADDS_FREELY, ADDS_ROWS (+56 more)
 
 ### Community 102 - "components.tsx"
 Cohesion: 0.02
-Nodes (210): Illustration(), st, ArrowRight(), b, BadgeGlyph(), BookmarkGlyph(), Card(), ch (+202 more)
+Nodes (191): DeletionPendingNotice(), EraseNoticeScreen(), holdCelebrations(), ArrowRight(), b, BadgeGlyph(), Card(), ch (+183 more)
 
 ### Community 103 - "storeBinding.test.ts"
-Cohesion: 0.08
-Nodes (14): landingOf(), localProfile, nextUid(), phraseKeysOnDisk(), profileAfterConvo, QUEUED_WRITES, QueuedWrite, recap (+6 more)
+Cohesion: 0.06
+Nodes (38): adoptHistory(), isSession(), KEY(), persistedHistory(), readHistory(), recordSession(), registerAdopter(), saveHistory() (+30 more)
 
-### Community 104 - "FixLineSession"
-Cohesion: 0.12
-Nodes (10): FixLinePhase, FixLinePorts, FixLineSession, FixLineState, harness(), FixLineVerdict, AsyncFunction, client() (+2 more)
+### Community 104 - "fixLineAttempt.ts"
+Cohesion: 0.10
+Nodes (13): ClosureRepair, FixLinePhase, FixLinePorts, FixLineSession, FixLineState, harness(), FixLineVerdict, judgeFixLine() (+5 more)
 
 ### Community 105 - "deploy-engineer.md"
 Cohesion: 0.22
@@ -1085,41 +1096,41 @@ Nodes (8): How you work, Product invariants — a change that breaks one of thes
 Cohesion: 0.20
 Nodes (9): Copy about money is still learner copy, Handoff contract, How you work, Product invariants — a change that breaks one of these is wrong, however green, The rule enforcement lives at, What already exists, What you must never do, Where a purchase lands (+1 more)
 
-### Community 108 - "memory.ts"
-Cohesion: 0.06
-Nodes (60): brainAfterRecap(), factKey(), goalFact(), goalText(), MAX_LEARNER_GOALS, snapshotFor(), storedForgottenFacts(), storedLearnerGoals() (+52 more)
+### Community 108 - "TutorMemoryScreen.tsx"
+Cohesion: 0.09
+Nodes (45): brainAfterRecap(), factKey(), goalFact(), goalText(), MAX_LEARNER_GOALS, snapshotFor(), storedForgottenFacts(), storedLearnerGoals() (+37 more)
 
 ### Community 109 - "surfaceContract.test.ts"
-Cohesion: 0.10
-Nodes (14): ADOPTERS, APP, APP_ENTRY, CHEVRON_ALLOW, EVERYTHING, FIRST_RUN, notebookComposition(), openingTag() (+6 more)
+Cohesion: 0.09
+Nodes (15): ADOPTERS, APP, APP_ENTRY, CHEVRON_ALLOW, EVERYTHING, FIRST_RUN, notebookComposition(), openingTag() (+7 more)
 
 ### Community 110 - "paywall-current.js"
 Cohesion: 0.12
 Nodes (34): APP, art(), box(), button(), COMP, createdNodeIds, DEST, evidence (+26 more)
 
-### Community 111 - "conversation.ts"
-Cohesion: 0.02
-Nodes (150): sampleCoachItem(), sampleSupport(), sampleTurn(), AssessmentZ, CefrBandZ, CoachItemZ, CoachKindZ, MemoryExtractionSchema (+142 more)
+### Community 111 - "decorative"
+Cohesion: 0.05
+Nodes (29): Bell, BellRing, BubbleLine, Chat, CloudOff, Coffee, Cup, SECONDARY_OPACITY (+21 more)
 
 ### Community 112 - "Architecture"
 Cohesion: 0.40
 Nodes (5): Architecture, Mock or live, No build step, Two paths, one ladder, Who owns what
 
-### Community 113 - "badges/catalogue.ts"
-Cohesion: 0.27
-Nodes (12): newBadges(), nothing, THRESHOLDS, Badge, BadgeArt, BadgeDef, BadgeFacts, badgeFor() (+4 more)
+### Community 113 - "game/store.ts"
+Cohesion: 0.07
+Nodes (42): BadgeAward, BonusRow, emptyGame(), gameRowCount(), GameRows, GameSitting, isGameRowsPatch(), landedIn() (+34 more)
 
 ### Community 115 - "apple.test.ts"
 Cohesion: 0.19
 Nodes (11): MOBILE_DIR, SRC_DIR, appleAvailable(), appleEnabled(), createProviderAvailability(), googleAvailable(), googleEnabled(), providerAvailable() (+3 more)
 
 ### Community 116 - "activity.ts"
-Cohesion: 0.03
-Nodes (96): itemsOf(), policy, savedIds(), saveStore(), gameRowCount(), isGameRowsPatch(), landedIn(), readGame() (+88 more)
+Cohesion: 0.06
+Nodes (54): saveStore(), configureGameEnvironment(), settleSitting(), convo(), drill(), heard, NOW, pin() (+46 more)
 
 ### Community 117 - "game/model.ts"
-Cohesion: 0.05
-Nodes (93): fullGame(), monthsBefore(), badgeOf(), bonusDay(), bonusOf(), BonusRow, bound(), boundBadges() (+85 more)
+Cohesion: 0.06
+Nodes (84): fullGame(), monthsBefore(), badgeOf(), bonusDay(), bonusOf(), bound(), boundBadges(), boundBonus() (+76 more)
 
 ### Community 118 - "api-engineer.md"
 Cohesion: 0.25
@@ -1173,21 +1184,21 @@ Nodes (4): The bar, The checks, What you must never do, Your output
 Cohesion: 0.40
 Nodes (4): The bar for sending work back, The checks, You may not grow the job, Your output
 
-### Community 131 - "isConversationPack"
-Cohesion: 0.06
-Nodes (39): createPhraseAudioCache(), isPhraseAudioWav(), MAX_PRIVATE_PHRASE_AUDIO_BYTES, PhraseAudioFile, PhraseAudioFiles, setup(), sha(), source (+31 more)
+### Community 131 - "buildConversationPack"
+Cohesion: 0.04
+Nodes (75): PRACTICE_PREVIEW, KeptPhraseAudioRequest, sourceForKeptFrench(), pack, pack(), pack(), pack(), buildConversationPack() (+67 more)
 
-### Community 132 - "audioDecode.ts"
-Cohesion: 0.10
-Nodes (18): version, decodeAudio(), DecodedAudio, executable(), pcmWav(), reserveGuestDecoder(), slots, verified (+10 more)
+### Community 132 - "paidAdmission.ts"
+Cohesion: 0.08
+Nodes (39): exact(), integer(), review(), now, template, validatePaidBudgetContract(), ClaimPaidRequest, context() (+31 more)
 
 ### Community 138 - "verifyVoiceAcceptance.mjs"
 Cohesion: 0.18
 Nodes (26): ACCENT_CLASSES, artifact(), canonical(), exact(), fail(), git(), integer(), jsonArtifact() (+18 more)
 
-### Community 139 - "accountExport.ts"
-Cohesion: 0.10
-Nodes (18): cases, problems, resolver, authenticationIsRecent(), claims(), now, verifiedAuthenticationAt(), AccountDataExport (+10 more)
+### Community 139 - "createUserResolver"
+Cohesion: 0.32
+Nodes (3): createUserResolver(), resolver(), liveIdentityVerifier()
 
 ### Community 140 - "metro.config.js"
 Cohesion: 0.40
@@ -1199,23 +1210,23 @@ Nodes (29): Android, Before you start, D15 — a keystore key invalidated by a l
 
 ### Community 142 - "diagnostics.ts"
 Cohesion: 0.11
-Nodes (26): ALARM_CODES, ALARM_STATUSES, counter(), createSyncDiagnostics(), elapsed(), record(), formatSyncDiagnostic(), isSyncAlarm() (+18 more)
+Nodes (27): startAccountSync(), ALARM_CODES, ALARM_STATUSES, counter(), createSyncDiagnostics(), elapsed(), record(), formatSyncDiagnostic() (+19 more)
 
-### Community 143 - "disclosure.test.ts"
-Cohesion: 0.06
-Nodes (51): FIRST_RUN_COPY, FIRST_RUN_SURFACES, firstRunCopy(), FirstRunSurface, firstRunSurfaces(), MEET_AI(), MEET_MIC, MEET_MORE (+43 more)
+### Community 143 - "OnboardingFlow.tsx"
+Cohesion: 0.05
+Nodes (81): ProfileValue, answersFrom(), FIRST_RUN_COPY, FIRST_RUN_SURFACES, firstRunCopy(), FirstRunSurface, firstRunSurfaces(), MEET_AI() (+73 more)
 
 ### Community 144 - "homeDraw.ts"
-Cohesion: 0.10
-Nodes (42): listeners, onTakeoverOnScreenChange(), setTakeoverOnScreen(), takeoverOnScreen(), BURST_WINDOW_MS, celebrationsHeld(), onCelebrationHoldChange(), RESUME_AFTER_MS (+34 more)
+Cohesion: 0.09
+Nodes (43): listeners, onTakeoverOnScreenChange(), takeoverOnScreen(), BURST_WINDOW_MS, celebrationsHeld(), onCelebrationHoldChange(), RESUME_AFTER_MS, Counter (+35 more)
 
 ### Community 145 - "conversationPacks/store.ts"
-Cohesion: 0.17
-Nodes (25): authorisedDelete(), cacheAndBank(), ConversationPackLookup, ConversationPackMutation, ConversationPackSync, deleteAllConversationPacksForLearner(), deleteConversationPackForLearner(), getReply() (+17 more)
+Cohesion: 0.06
+Nodes (61): latestReadyPack(), orderedConversationPacks(), pack(), packExercisesFor(), repairKeyOf(), repeat(), REPEATED_PHRASES, reviewPhrasesFor() (+53 more)
 
-### Community 146 - "reflection.ts"
-Cohesion: 0.11
-Nodes (21): STARTING_LABEL, NOW, WEEK_LABEL, WEEK_LINES_MAX, WeekStory, progressStatement(), RecentConversation, focusOf() (+13 more)
+### Community 146 - "progressView.ts"
+Cohesion: 0.08
+Nodes (33): MedalState, badgeShelfView, BadgeView, CountId, countTiles(), EARNED_MEDALS, levelXpCardView, NEXT_BADGES (+25 more)
 
 ### Community 147 - "ciContract.test.ts"
 Cohesion: 0.12
@@ -1226,8 +1237,8 @@ Cohesion: 0.06
 Nodes (30): celebrate-confetti, celebrate-first-line, celebrate-wrapped, Luvani revamp B: illustrations, mouth-nasal-an, mouth-nasal-on, mouth-r, mouth-u (+22 more)
 
 ### Community 149 - "story.test.ts"
-Cohesion: 0.16
-Nodes (23): at(), everySentenceProduced(), goodWeek(), MISSION_IDS, NONE, NOON, pack(), randomActivity() (+15 more)
+Cohesion: 0.09
+Nodes (40): DAYS_IN_THE_STORY, listed(), localDaysInTheStory(), MAX_STORY_SENTENCES, mostlyUnaided(), NOTHING, PLACE_NOUNS, placesEntered() (+32 more)
 
 ### Community 150 - "land.md"
 Cohesion: 0.25
@@ -1237,9 +1248,9 @@ Nodes (7): 1. Who else is in this tree, 2. Where you are standing, 3. The gate, 
 Cohesion: 0.07
 Nodes (28): 4 October production-hardening supersession (repository only), An under-13 answer before an account keeps nothing, An under-13 stop is remembered on this device, Analytics: consent, opt-out and retention, Antifraud identifiers: purpose, retention and disclosure, Confirmed service-failure settlement (3 October 2026, code only), Daily offline practice and Friends (review branch), Default-off authored live correction reasons (+20 more)
 
-### Community 152 - "TutorVoiceKey"
-Cohesion: 0.05
-Nodes (56): PreviewEnv, OnboardingAnswers, OnboardingDraft, EVERY_PERSONA, voiceAfterStep(), KeptPhraseAudioRequest, NOW, VOICES (+48 more)
+### Community 152 - "registry.ts"
+Cohesion: 0.06
+Nodes (37): source, retainCompletions(), adoptMissionCompletions(), COMPLETIONS_PER_MISSION, isCompletion(), KEY(), MissionCompletion, persistedCompletions() (+29 more)
 
 ### Community 153 - "motion.test.ts"
 Cohesion: 0.10
@@ -1263,7 +1274,7 @@ Nodes (19): answer(), asJs(), AsyncFunction, Body, BRANCH, CLAIMED, Copy, EVERY_
 
 ### Community 159 - "sync/policy.ts"
 Cohesion: 0.11
-Nodes (50): stableStringify(), ACTIVITY_KINDS, ActivityEntryish, arrayOf(), Bookmarkish, compareExercises(), compareText(), envelopeOf() (+42 more)
+Nodes (49): stableStringify(), ACTIVITY_KINDS, ActivityEntryish, arrayOf(), Bookmarkish, compareExercises(), compareText(), envelopeOf() (+41 more)
 
 ### Community 160 - "tokenHygiene.test.ts"
 Cohesion: 0.22
@@ -1275,15 +1286,15 @@ Nodes (28): accountedCredits, after, limit, tier, used, before, limit, tier (+20
 
 ### Community 162 - "ConversationPack"
 Cohesion: 0.08
-Nodes (42): StoredConversationPacks, Archive, ARCHIVE_LABEL, ArchiveFilter, archiveFrom(), ArchiveInput, CLOSING, FEED (+34 more)
+Nodes (41): StoredConversationPacks, Archive, ARCHIVE_LABEL, ArchiveFilter, archiveFrom(), ArchiveInput, CLOSING, FEED (+33 more)
 
 ### Community 163 - "boundedFetchJson"
-Cohesion: 0.12
-Nodes (22): main(), origin(), replayRestore(), env, validateReplayInputs(), boundedFetchJson(), paidAdmissionRpc(), adminHeaders() (+14 more)
+Cohesion: 0.09
+Nodes (28): cases, problems, resolver, authenticationIsRecent(), claims(), now, verifiedAuthenticationAt(), boundedFetchJson() (+20 more)
 
 ### Community 164 - "shapes.ts"
-Cohesion: 0.04
-Nodes (92): FLAME_MOTION, Crest(), CrestProps, FEET, Flame(), FlameProps, Layer(), st (+84 more)
+Cohesion: 0.09
+Nodes (31): arcBand(), ArtPart, ArtPoint, ArtToken, cache, capsule(), circle(), CREST (+23 more)
 
 ### Community 165 - "metroPlatformResolution.test.ts"
 Cohesion: 0.33
@@ -1291,27 +1302,27 @@ Nodes (4): APP, { platformAwareRequest }, require, SRC
 
 ### Community 166 - "temporaryExportCache.ts"
 Cohesion: 0.14
-Nodes (18): createExportFile(), createExportFile(), saveTextFile(), closers, nativeExportFiles, nativeExportUri(), recoverNativeExports, trackNativeExport() (+10 more)
+Nodes (19): createExportFile(), createExportFile(), saveTextFile(), closers, nativeExportFiles, nativeExportUri(), recoverNativeExports, trackNativeExport() (+11 more)
 
 ### Community 167 - "dailyGoal.ts"
-Cohesion: 0.19
-Nodes (13): DAILY_GOAL_ROW, DAILY_GOAL_UNSET, dailyGoalOf(), GOAL_WORDS, goalFor(), GoalKey, goalKeyOf(), goalLine() (+5 more)
+Cohesion: 0.20
+Nodes (12): DAILY_GOAL_ROW, dailyGoalOf(), GOAL_WORDS, goalFor(), GoalKey, goalKeyOf(), goalLine(), GoalOption (+4 more)
 
 ### Community 168 - "premium-helpers.js"
 Cohesion: 0.15
 Nodes (30): action(), allowance(), box(), bullet(), button(), card(), createdNodeIds, evidence (+22 more)
 
 ### Community 169 - "engine.ts"
-Cohesion: 0.04
-Nodes (73): startSync(), clearIfRunning(), event(), flushDirty(), headers(), outcome(), pull(), queue() (+65 more)
+Cohesion: 0.05
+Nodes (63): startSync(), event(), flushDirty(), headers(), outcome(), pull(), queue(), readLocal() (+55 more)
 
 ### Community 170 - "observability.mjs"
 Cohesion: 0.14
 Nodes (19): BOUNDS, count(), createMetricsCollector(), decodeMetrics(), exact(), header(), metricsServer(), object() (+11 more)
 
 ### Community 171 - "purchases.test.ts"
-Cohesion: 0.05
-Nodes (50): purchases, BillingRefresh, refreshBilling(), PAID_PLANS, PurchasesAdapter, StoreAction, StoreOffering, StoreProduct (+42 more)
+Cohesion: 0.06
+Nodes (42): PAID_PLANS, CONVO, FLAT, LESSON, OUT_OF_MINUTES_PAGE, PAYWALL, inlinePaywall(), InlinePaywallView (+34 more)
 
 ### Community 172 - "Supabase runbook"
 Cohesion: 0.17
@@ -1319,19 +1330,19 @@ Nodes (11): Apply, Atomic billing rollback, Backup, Confirmed service-failure re
 
 ### Community 173 - "nativeEvalAgent.ts"
 Cohesion: 0.09
-Nodes (30): env, ledger, nonce, page, root, sdk, server, agreement (+22 more)
+Nodes (29): env, ledger, nonce, page, root, sdk, server, agreement (+21 more)
 
 ### Community 174 - "choosingView.ts"
-Cohesion: 0.06
-Nodes (41): attachCorrectionReason(), evidence, lines, OPENING_TAGS, opensSession(), tagsFor(), MAX_TURNS, pushTurn() (+33 more)
+Cohesion: 0.10
+Nodes (26): OPENING_TAGS, opensSession(), tagsFor(), anythingGoes(), ChoosingOrb, ChoosingState, choosingView, LiveMode (+18 more)
 
-### Community 175 - "GoalStepScreen.tsx"
-Cohesion: 0.07
-Nodes (23): AlertGlyph(), DocumentGlyph(), GlyphProps, QuoteGlyph(), SpeakerSlowGlyph(), WaveformGlyph(), GOAL_COPY, GOAL_GONE (+15 more)
+### Community 175 - "madeFrom.ts"
+Cohesion: 0.14
+Nodes (19): soundFocus(), alternativesSource(), MADE_FROM_COPY, MadeFrom, madeFromConversations(), madeFromSource(), phraseOf(), PhraseToOwn (+11 more)
 
 ### Community 176 - "quests/index.ts"
-Cohesion: 0.08
-Nodes (51): QuestDayRow, GoalChoice, GoalChoiceKey, MINUTE_WORDS, NO_GOAL, profileStatsView, StatTileView, CountTile (+43 more)
+Cohesion: 0.09
+Nodes (47): GOAL_CHOICES, GoalChoice, GoalChoiceKey, goalChoiceOf(), MINUTE_WORDS, NO_GOAL, StatTileView, questIconFor() (+39 more)
 
 ### Community 177 - "product-orchestrator.md"
 Cohesion: 0.40
@@ -1339,51 +1350,51 @@ Nodes (4): Boundaries and escalation, Completion, Decision rights, Handoff contr
 
 ### Community 178 - "drill/index.ts"
 Cohesion: 0.04
-Nodes (105): CompletePracticeInput, PracticeEventTarget, check(), checkDrill(), OWN_WORDS_DECISIONS, DRILL_FIXTURES, acceptedFor(), DrillVerdict (+97 more)
+Nodes (125): SheetInput, COMBO_GLOW_FROM, comboAfter(), comboGlows(), OwnWordsDecided, drillTitle(), TITLES, DrillScreen() (+117 more)
 
-### Community 179 - "opening.test.ts"
-Cohesion: 0.16
-Nodes (22): findExercise(), practiceOpening, resumeFrom(), bank, card(), deck, enFr(), LINES (+14 more)
+### Community 179 - "wallPlans.ts"
+Cohesion: 0.07
+Nodes (35): PaidPlan, StoreIntroOffer, StoreOffering, StoreProduct, FREE, monthly, offering, screen (+27 more)
 
 ### Community 180 - "repository-archaeologist.md"
 Cohesion: 0.50
 Nodes (3): Boundaries and escalation, Handoff contract, Output
 
-### Community 188 - "progressStore.ts"
-Cohesion: 0.08
-Nodes (37): continuedAt(), latestReadyPack(), orderedConversationPacks(), pack(), adoptScenarioProgress(), canonical(), clearScenarioProgress(), isRecordRow() (+29 more)
+### Community 188 - "reminders/plan.ts"
+Cohesion: 0.06
+Nodes (52): boundLog(), Calendar, capDays(), closedLog(), closeLog(), dayNumber(), expoWeekday(), fireTime() (+44 more)
 
 ### Community 190 - "RoomLevels.tsx"
-Cohesion: 0.13
-Nodes (24): BAND_COUNT, BAND_MAX_HZ, BAND_MIN_HZ, bandsFromSpectrum(), createRoomFacts(), createRoomMeter(), LEVEL_SAMPLE_MS, MeterClock (+16 more)
+Cohesion: 0.11
+Nodes (22): BAND_COUNT, BAND_MAX_HZ, BAND_MIN_HZ, createRoomFacts(), LEVEL_SAMPLE_MS, MeterClock, NO_ROOM_FACTS, RoomFacts (+14 more)
 
 ### Community 191 - "marks.ts"
-Cohesion: 0.16
-Nodes (17): Bound, isMark(), isStoredMarks(), KEY(), latest(), MarkField, markPackContinued(), MAX_PACK_MARKS (+9 more)
+Cohesion: 0.11
+Nodes (22): Bound, isMark(), isStoredMarks(), KEY(), latest(), MarkField, markPackContinued(), markPackPractised() (+14 more)
 
-### Community 192 - "missions/store.ts"
-Cohesion: 0.18
-Nodes (16): source, retainCompletions(), adoptMissionCompletions(), COMPLETIONS_PER_MISSION, isCompletion(), KEY(), MissionCompletion, persistedCompletions() (+8 more)
+### Community 192 - "brain/src/index.ts"
+Cohesion: 0.06
+Nodes (76): applyNonSpokenInput(), supportViewForAssistance(), CAFE_FRAME, addLlmUsage(), ZERO_USAGE, defaultModel(), DEFAULT_OPENAI_TURN_MODEL, costUsd() (+68 more)
 
-### Community 193 - "lessons/types.ts"
-Cohesion: 0.22
-Nodes (17): BY_ID, getLesson(), LESSONS, AcceptanceMatch, AcceptanceRoute, candidatesFor(), CefrLevel, contentHits() (+9 more)
+### Community 193 - "HomeTab.test.ts"
+Cohesion: 0.06
+Nodes (30): between(), DAILY, HERO, HERO_FLAT, HOME_SURFACE, literals(), read(), RENDER (+22 more)
 
 ### Community 194 - "docs/README.md"
-Cohesion: 0.17
-Nodes (7): Establish what is current, Load the context for the change, Luvani context index, Planning changes, Resuming work, Working through a plan, docs
+Cohesion: 0.11
+Nodes (12): C · Bold rhythm assets, Rebuild, Establish what is current, Load the context for the change, Luvani context index, C · Bold rhythm frame map, Deliberate adaptations, Planning changes (+4 more)
 
 ### Community 195 - "sha256"
 Cohesion: 0.28
 Nodes (18): buildSchemaManifest(), canonical(), CATALOG_SQL, MANAGED_DEFAULT_PRIVILEGES_SQL, migrationInventory(), ROOT, sha256(), captureSql() (+10 more)
 
-### Community 196 - "syncLive.ts"
-Cohesion: 0.07
-Nodes (30): SyncEngine, dirtySettled(), anonKeyOf(), blockedReport(), CheckOutcome, CheckResult, Device, deviceStorage() (+22 more)
+### Community 196 - "streakEntrance.ts"
+Cohesion: 0.22
+Nodes (9): createEntranceReceipts(), createEntranceSession(), EntranceDecision, EntrancePreferences, EntranceReceipts, STREAK_ENTRANCE_MS, STREAK_ENTRANCE_TIMELINE, streakEntranceDuration() (+1 more)
 
 ### Community 203 - "live/levels.test.ts"
-Cohesion: 0.09
-Nodes (19): atRest(), frameOf(), HEARING_ABOVE, HEARING_OFF_AFTER_MS, HEARING_ON_AFTER_MS, LevelSink, RELEASE_MS, REST_WITHIN_MS (+11 more)
+Cohesion: 0.10
+Nodes (20): atRest(), createRoomMeter(), frameOf(), HEARING_ABOVE, HEARING_OFF_AFTER_MS, HEARING_ON_AFTER_MS, LevelSink, RELEASE_MS (+12 more)
 
 ### Community 204 - "StreakFlame.shared.tsx"
 Cohesion: 0.15
@@ -1397,17 +1408,17 @@ Nodes (13): MissionTaskList(), achievedIds(), FINAL_TICK_HOLD_MS, isFinalTick(),
 Cohesion: 0.21
 Nodes (17): artifact(), bytes(), canon(), exact(), fail(), json(), MONITOR_ALERTS, monitoringCaptureIdentity() (+9 more)
 
-### Community 207 - "DrillScreen.test.ts"
-Cohesion: 0.13
-Nodes (12): asTheScreenSends(), AsyncFunction, card(), checkBlock, CLIENT, installDisk(), Judge, nextUid() (+4 more)
+### Community 207 - "progressStore.ts"
+Cohesion: 0.08
+Nodes (29): lowerFirst(), adoptScenarioProgress(), canonical(), clearScenarioProgress(), isRecordRow(), KEY(), MAX_SCENARIO_RECORDS, newerOf() (+21 more)
 
 ### Community 208 - "sourceText.test.ts"
 Cohesion: 0.50
 Nodes (3): ROOT, SKIP, testFiles()
 
-### Community 209 - "topics/store.ts"
-Cohesion: 0.27
-Nodes (13): adoptTopics(), Bound, isStoredTopics(), isTopic(), KEY(), mergeSessionTopics(), persistedTopics(), readTopics() (+5 more)
+### Community 209 - "MeteredBrain"
+Cohesion: 0.11
+Nodes (6): DeadBrain, HeldAnalystBrain, HeldFrameBrain, MeteredBrain, SlowBrain, SlowFrameBrain
 
 ### Community 211 - "verifyTutorSessions.mjs"
 Cohesion: 0.26
@@ -1415,51 +1426,51 @@ Nodes (18): age(), authId(), baseline(), call(), checkpoint(), claim(), complete
 
 ### Community 213 - "build-icons.mjs"
 Cohesion: 0.16
-Nodes (23): build(), checkNames(), collisions(), CUSTOM, die(), DOC, docFile(), HERE (+15 more)
+Nodes (22): build(), checkNames(), collisions(), CUSTOM, die(), DOC, docFile(), HERE (+14 more)
 
 ### Community 214 - "supabaseAdapter.ts"
 Cohesion: 0.15
 Nodes (12): startAppleSignIn(), AuthRandomValues, ensureAuthRandom(), EMAIL_LINK_FAILED, Links, NATIVE_EMAIL_CALLBACK, observeEmailCallbacks(), readEmailCallback() (+4 more)
 
 ### Community 215 - "daily/catalogue.ts"
-Cohesion: 0.11
-Nodes (24): byId, DAILY_ITEMS, homePhrases, homeWords, todayItems(), voicedPhrases, voicedWords, AUDIO_NO (+16 more)
+Cohesion: 0.10
+Nodes (27): byId, homePhrases, homeWords, voicedPhrases, voicedWords, DailyLibraryScreen(), FIRST, libraryPlace (+19 more)
 
-### Community 216 - "brain/src/index.ts"
-Cohesion: 0.04
-Nodes (73): FR_PACK, renderAuthenticityPack(), AuthenticityPack, ContrastPair, Filler, RegisterDef, SlangEntry, MemoryFact (+65 more)
+### Community 216 - "prompt/prompt.test.ts"
+Cohesion: 0.06
+Nodes (43): FR_PACK, renderAuthenticityPack(), AuthenticityPack, ContrastPair, Filler, RegisterDef, SlangEntry, MemoryFact (+35 more)
 
 ### Community 218 - "phoneSettings.test.ts"
-Cohesion: 0.08
-Nodes (27): MICROPHONE_ROW, MICROPHONE_SUB, NOTIFICATIONS_ROW, NOTIFICATIONS_SUB, PHONE_COPY, PhonePermissionKey, PhoneRow, phoneRows() (+19 more)
+Cohesion: 0.07
+Nodes (33): linking, LinkOutcome, openMail(), MICROPHONE_ROW, MICROPHONE_SUB, NOTIFICATIONS_ROW, NOTIFICATIONS_SUB, PHONE_COPY (+25 more)
 
 ### Community 219 - "Tutor intelligence and availability — 20 September 2026"
 Cohesion: 0.09
 Nodes (21): 1. Establish a measured live baseline, 2. Separate conversation delivery from teaching decisions, 3. Give each entry point a teaching brief, 4. Make each conversation visibly become practice, 5. Close the cross-app learning loop, Agreed direction (not deployed settings), Availability and cost, Baseline audit before the implementation above (+13 more)
 
 ### Community 220 - "getMission"
-Cohesion: 0.06
-Nodes (61): clamp(), Estimate, estimateMinutes(), MAX_MINUTES, MIN_MINUTES, minutesLine(), minutesWord(), missionEstimate() (+53 more)
+Cohesion: 0.05
+Nodes (71): SCENE_ILLUSTRATION, HERE, NAMES, clamp(), Estimate, estimateMinutes(), MAX_MINUTES, MIN_MINUTES (+63 more)
 
 ### Community 222 - "protocol.ts"
-Cohesion: 0.05
-Nodes (48): CanDoEvidence, CanDoEvidenceLedger, CanDoSource, currentCanDoQuote(), CurrentMissionFinish, MAX_CAN_DO_QUOTE_CHARS, MAX_CAN_DO_SOURCES, readableQuote() (+40 more)
+Cohesion: 0.06
+Nodes (46): valid(), asTheAgentReadsIt(), asTheAppReadsIt(), CLIENT_TAGS, ClientMessage, ConvoCoachItem, ConvoSpeakerLine, decodeAs() (+38 more)
 
-### Community 224 - "DailyPracticeScreen.tsx"
-Cohesion: 0.11
-Nodes (40): dailyItem, DailyCard(), DailyPracticeScreen(), METERED_TAKE, finishLocalTake(), claimDailyPlayback(), ownsDailyPlayback(), releaseDailyPlayback() (+32 more)
+### Community 224 - "DrillScreen.tsx"
+Cohesion: 0.05
+Nodes (80): fitDisplay(), SpeakCircle(), DAILY_ITEMS, dailyItem, DailyCard(), DailyPracticeScreen(), METERED_TAKE, finishLocalTake() (+72 more)
 
 ### Community 225 - "bookmarks/store.ts"
-Cohesion: 0.16
-Nodes (20): adoptBookmarks(), Bound, canonical(), isItem(), KEY(), MAX_BOOKMARKS, newerOf(), ordered() (+12 more)
+Cohesion: 0.13
+Nodes (22): adoptBookmarks(), Bound, canonical(), isItem(), KEY(), MAX_BOOKMARKS, newerOf(), ordered() (+14 more)
 
 ### Community 226 - "compose-helpers.js"
 Cohesion: 0.15
 Nodes (28): action(), allowance(), box(), bullet(), button(), card(), createdNodeIds, evidence (+20 more)
 
 ### Community 227 - "phraseKeyOf"
-Cohesion: 0.04
-Nodes (82): repairKeyOf(), checkRecognition(), choicesFor(), ListeningChoice, matchingOrder(), matchPair(), NEW_ATTEMPT, pairsFor() (+74 more)
+Cohesion: 0.05
+Nodes (60): BANK, deltas, Disk, dueDeck(), finish(), key(), PHRASES, played() (+52 more)
 
 ### Community 228 - "soften-daily-voice-samples.mjs"
 Cohesion: 0.33
@@ -1473,17 +1484,17 @@ Nodes (19): BRANCH_REFS, CHOOSING_VIEW_PATH, choosingView, EVIDENCE_PATH_F243, G
 Cohesion: 0.06
 Nodes (47): assets, checkpoint(), checkpointPath, config, dir, encode(), entries, estimatedCredits (+39 more)
 
-### Community 231 - "particles.ts"
-Cohesion: 0.20
-Nodes (16): Piece(), BURST, burstLimit(), CONFETTI_COLOURS, CONFETTI_SHAPES, ConfettiColour, ConfettiShape, mulberry32() (+8 more)
+### Community 231 - "syncLive.ts"
+Cohesion: 0.07
+Nodes (30): SyncEngine, dirtySettled(), anonKeyOf(), blockedReport(), CheckOutcome, CheckResult, Device, deviceStorage() (+22 more)
 
 ### Community 232 - "planModel.ts"
-Cohesion: 0.13
-Nodes (23): GoalDial(), GoalQuarters, useTokenFlight(), FlyFrom, isBox(), measuredAt(), PlanCard(), st (+15 more)
+Cohesion: 0.04
+Nodes (62): app, bootstrap, effect, componentsSource(), SRC, stripComments(), CountTile, QuestRowView (+54 more)
 
 ### Community 233 - "failure.ts"
 Cohesion: 0.08
-Nodes (29): AUDIO_ONLY, classifyFailure(), classifyPipelineError(), COPY, failureCopy, KIND_FAILURE, KIND_NOTICE, micApiUnavailable() (+21 more)
+Nodes (28): AUDIO_ONLY, classifyFailure(), classifyPipelineError(), COPY, KIND_FAILURE, KIND_NOTICE, LiveFailure, micApiUnavailable() (+20 more)
 
 ### Community 234 - "ProfileTab.test.ts"
 Cohesion: 0.18
@@ -1491,7 +1502,7 @@ Nodes (9): FRENCH_LIFE_COPY, LEARNING_LABEL, PROFILE_PURPOSE, RHYTHM_LABEL, TUTO
 
 ### Community 235 - "sync/policy.test.ts"
 Cohesion: 0.06
-Nodes (16): ACTIVITY_KEEP_DAYS, MAX_BOOKMARKS, MAX_COMPLETIONS_PER_MISSION, MAX_HISTORY_SESSIONS, MAX_SCENARIO_RECORDS, MAX_SOUND_CHECKS, adoptedNamespaces(), BASE (+8 more)
+Nodes (17): ACTIVITY_KEEP_DAYS, MAX_BOOKMARKS, MAX_COMPLETIONS_PER_MISSION, MAX_HISTORY_SESSIONS, MAX_SCENARIO_RECORDS, MAX_SOUND_CHECKS, SYNC_POLICIES, adoptedNamespaces() (+9 more)
 
 ### Community 236 - "voice-repro.mjs"
 Cohesion: 0.12
@@ -1510,32 +1521,32 @@ Cohesion: 0.11
 Nodes (14): b, button(), collect(), copy, created, end, frames, mb (+6 more)
 
 ### Community 241 - "socialModel.ts"
-Cohesion: 0.20
-Nodes (13): DEFAULT_SOCIAL_SETTINGS, POINTS_EXPLANATION, rankedFriends(), REACTIONS, SocialChallenge, SocialNotice, SocialPerson, socialPreview() (+5 more)
+Cohesion: 0.18
+Nodes (14): friendUsernameFromUrl(), DEFAULT_SOCIAL_SETTINGS, POINTS_EXPLANATION, rankedFriends(), REACTIONS, SocialChallenge, SocialNotice, SocialPerson (+6 more)
 
 ### Community 243 - "Video UX implementation"
 Cohesion: 0.09
 Nodes (18): Billing code fixes and launch evidence, Engineering checks, Export, deletion and Phase 8 evidence, Policy and operational checks, Release gate, French reviewer session, iPhone session, Measurement and upgrade experiments: R34 and R44 (+10 more)
 
 ### Community 244 - "answerSheet.test.ts"
-Cohesion: 0.09
-Nodes (30): AnswerSheet(), AnswerSheetModel, continueName(), decide(), GOOD_LINES, ownWordsLook, rotate(), RUN_LINES (+22 more)
+Cohesion: 0.11
+Nodes (24): AnswerSheet(), AnswerSheetModel, continueName(), decide(), GOOD_LINES, ownWordsLook, rotate(), RUN_LINES (+16 more)
 
-### Community 245 - "audioFocus.ts"
-Cohesion: 0.04
-Nodes (78): ensureAudioSession(), NOTE: requires a dev build (`npx expo run:ios` / EAS). Expo Go cannot load the, releaseAudioSession(), releaseLiveHold(), convo, header, lesson, liveLesson (+70 more)
+### Community 245 - "sfxGate.test.ts"
+Cohesion: 0.11
+Nodes (26): convo, header, lesson, liveLesson, liveRoom(), micLive(), voiceBusy(), createSfxCore() (+18 more)
 
 ### Community 246 - "layout.test.ts"
 Cohesion: 0.40
 Nodes (3): layoutSource(), SRC, stripComments()
 
-### Community 247 - "RecapScreen.tsx"
-Cohesion: 0.05
-Nodes (54): IllustrationName, Highlight(), closureFromRecap(), nextTimeLine(), reminderOffer, Feedback(), ledger, FEEDBACK_MS (+46 more)
+### Community 247 - "soundExample.ts"
+Cohesion: 0.62
+Nodes (5): SummaryScreen(), exampleFirstHeading(), heldSoundsLine(), soundExampleWord(), soundInWord()
 
-### Community 248 - "wallPages.ts"
-Cohesion: 0.23
-Nodes (8): canBuy(), endsOnPlans(), HERE, VALUE_PAGES, wallAction, WallEntry, WallPage, wallPages()
+### Community 248 - "holdLive"
+Cohesion: 0.33
+Nodes (7): ensureAudioSession(), NOTE: requires a dev build (`npx expo run:ios` / EAS). Expo Go cannot load the, releaseAudioSession(), releaseLiveHold(), holdLive(), markUnknown, AudioSession
 
 ### Community 249 - "patchExpoModulesJsi.mjs"
 Cohesion: 0.29
@@ -1547,31 +1558,31 @@ Nodes (5): paragraphs(), roadmap, ROADMAP_PATH, ROOT, tipClaims()
 
 ### Community 251 - "closure.ts"
 Cohesion: 0.07
-Nodes (33): Closure, ClosureContext, ClosureFocus, closureFromPack(), closureOf(), ClosureParts, ClosurePhrase, ClosureRepair (+25 more)
+Nodes (31): Closure, ClosureContext, ClosureFocus, closureFromPack(), closureOf(), ClosureParts, ClosurePhrase, focusFor() (+23 more)
 
 ### Community 252 - "containerAcceptance.mjs"
 Cohesion: 0.24
 Nodes (11): captureContainerRuntime(), execute, fail(), main(), sha256(), digest(), fail(), subject() (+3 more)
 
-### Community 253 - "recorderRelease.test.ts"
-Cohesion: 0.19
-Nodes (12): compiled, Component, Element, ending(), ENDINGS, Leave, Platform, press() (+4 more)
+### Community 253 - "scenarios.ts"
+Cohesion: 0.09
+Nodes (26): BookmarkItem, bookmarkAccessibilityLabel(), bookmarkControl, bookmarkLabel(), BookmarkWrite, hasSaved(), SAVED_SITUATION_ACTION, SAVED_SITUATIONS_LABEL (+18 more)
 
-### Community 255 - "App.tsx"
-Cohesion: 0.02
-Nodes (210): App(), Gate(), Loading(), PreAccountProfileBootstrap(), SignedInRoot(), st, startAccountSync(), mayAdoptPreAccountDraft() (+202 more)
+### Community 255 - "profile.ts"
+Cohesion: 0.11
+Nodes (31): learner(), NOW, normalizeErrorTag(), current(), line, applyExtractionToProfile(), applyTurnToProfile(), bandIndex() (+23 more)
 
 ### Community 256 - "soundcheck/store.ts"
 Cohesion: 0.06
-Nodes (53): isMeasuredCheck(), latestCheck(), latestMeasuredCheck(), SOUND_FINGERPRINT_LABEL, SOUND_FINGERPRINT_OPEN, SOUND_LINES, soundFingerprint, soundLine() (+45 more)
+Nodes (49): isMeasuredCheck(), latestCheck(), latestMeasuredCheck(), SOUND_FINGERPRINT_LABEL, SOUND_FINGERPRINT_OPEN, SOUND_LINES, soundFingerprint, soundLine() (+41 more)
 
 ### Community 257 - "replyAudioSdk.test.ts"
 Cohesion: 0.10
 Nodes (7): AudioRecord, Dispatch, ReplyAudioScope, ScopedAgent, Sink, SyntheticSentence, SyntheticTTS
 
-### Community 258 - "progress/story.ts"
-Cohesion: 0.17
-Nodes (17): DAYS_IN_THE_STORY, listed(), localDaysInTheStory(), MAX_STORY_SENTENCES, mostlyUnaided(), NOTHING, PLACE_NOUNS, placesEntered() (+9 more)
+### Community 258 - "audioFocus.ts"
+Cohesion: 0.09
+Nodes (28): useAudioFree(), anyHold(), bridgeVoice(), counts, endBridge(), FocusKind, FocusListener, hold() (+20 more)
 
 ### Community 259 - "app-compose.js"
 Cohesion: 0.19
@@ -1581,21 +1592,21 @@ Nodes (25): art(), box(), button(), createdNodeIds, evidence, hit(), icon(), ins
 Cohesion: 0.17
 Nodes (7): db, grant(), old(), pack(), root, sid(), usage()
 
-### Community 261 - "orbState.ts"
-Cohesion: 0.07
-Nodes (38): EVENING, GREETING_SUBLINES, greetingLine(), greetingSubline(), greetingWord(), homeGreeting(), HourWindow, localHour() (+30 more)
+### Community 261 - "threads.ts"
+Cohesion: 0.11
+Nodes (30): continuedAt(), EVENING, GREETING_SUBLINES, greetingLine(), greetingSubline(), greetingWord(), homeGreeting(), HourWindow (+22 more)
 
 ### Community 262 - "eraseNotice.test.ts"
 Cohesion: 0.19
 Nodes (6): deleteAccountAndErase(), DeleteAccountSteps, ERASE_NOTICE_BODY, ERASE_NOTICE_DISMISS, ERASE_NOTICE_TITLE, APP
 
-### Community 263 - "upgrade.ts"
-Cohesion: 0.25
-Nodes (11): ageConfirmedFromDob(), ageOn(), AgeStopCandidate, MIN_AGE, TODAY, storedGoal(), storedStop(), storedVoice() (+3 more)
+### Community 263 - "myfrench/copy.ts"
+Cohesion: 0.09
+Nodes (36): BROWSE_LABEL, BROWSE_LINE, BROWSE_OPEN, COLLECTION_LABEL, CONVERSATIONS_ROW, CONVERSATIONS_SUB, DAILY_LABEL, DAILY_LINE (+28 more)
 
 ### Community 264 - "gameLocal.ts"
 Cohesion: 0.05
-Nodes (44): createHostQueue(), attachCelebrationListener(), CelebrationQueue, bound(), boundNudges(), boundPending(), chain, change() (+36 more)
+Nodes (53): active(), CelebrationHost(), createHostQueue(), st, attachCelebrationListener(), setTakeoverOnScreen(), CelebrationQueue, bound() (+45 more)
 
 ### Community 265 - "illustrations.mjs"
 Cohesion: 0.16
@@ -1614,36 +1625,36 @@ Cohesion: 0.10
 Nodes (22): allowance, allowanceProps, box(), buttonMap, chevron, col, createdNodeIds, footer (+14 more)
 
 ### Community 269 - "CachedTTS"
-Cohesion: 0.07
-Nodes (17): AUTHORED_SPEECH_LINES, AUTHORED_CACHE_VERSION, CachedChunkedStream, CachedTTS, CachedTTSOptions, defaultMissTransport(), normaliseLine(), ResolvedCachedTTSOptions (+9 more)
+Cohesion: 0.18
+Nodes (3): CachedChunkedStream, CachedTTS, normaliseLine()
 
-### Community 270 - "friendsView.test.ts"
-Cohesion: 0.17
-Nodes (12): FRIENDS_COPY, FRIENDS_FRENCH_IDEA, FRIENDS_PRIVACY_LINK, FRIENDS_START, FRIENDS_START_BODY, FRIENDS_START_TITLE, friendsEntry, person() (+4 more)
+### Community 270 - "activeUserId"
+Cohesion: 0.11
+Nodes (18): createPhraseAudioCache(), isPhraseAudioWav(), MAX_PRIVATE_PHRASE_AUDIO_BYTES, PhraseAudioFile, PhraseAudioFiles, cache, cancellations, keptPhraseAudio() (+10 more)
 
 ### Community 271 - "countTicks.ts"
 Cohesion: 0.24
 Nodes (10): createCountTicks(), gate(), HAPTIC_TICKS, SILENT, SOUND_TICKS, easeOut(), run(), Tick (+2 more)
 
-### Community 273 - "myfrench/copy.ts"
-Cohesion: 0.09
-Nodes (36): GOAL_FIT_COPY, GoalFit, GoalTask, goalTaskOf(), hits(), missionOfTask(), NEGATIONS, NextGoalTask (+28 more)
+### Community 273 - "GoalStepScreen.tsx"
+Cohesion: 0.10
+Nodes (36): GOAL_COPY, GOAL_GONE, GOAL_GONE_OPEN, GOAL_LABEL, GOAL_LOADING, GOAL_NEXT_LABEL, GOAL_PRACTICE_LINE, GOAL_RETRY (+28 more)
 
-### Community 274 - "synth.mjs"
-Cohesion: 0.24
-Nodes (14): synthesised, biquad(), encodeWav(), envelopeAt(), expandPartials(), FADE_IN_MS, FADE_OUT_MS, fnv1a() (+6 more)
+### Community 274 - "jevJudge.ts"
+Cohesion: 0.10
+Nodes (25): carriesFrench(), ENGLISH_ACCENTED_WORDS, JEV_JUDGE_QUESTIONS, JEV_PASS, JEV_TIMEOUT_MS, JevAsker, jevCleanPass(), jevJudgeState() (+17 more)
 
 ### Community 276 - "drill/store.ts"
-Cohesion: 0.06
-Nodes (48): packExercisesFor(), repeat(), REPEATED_PHRASES, reviewPhrasesFor(), pack(), translate(), isSamplePack(), loadSampleConversation() (+40 more)
+Cohesion: 0.10
+Nodes (35): adoptDrillBank(), Bound, caches, defaultStore(), DrillStore, getMicSuppressedUntil(), hasGeneratedExercises(), isExercise() (+27 more)
 
-### Community 277 - "userKey"
+### Community 277 - "answers.test.ts"
 Cohesion: 0.05
-Nodes (70): CONSENT_COPY, CONSENT_HINT, CONSENT_ROW, CONSENT_SUB, AsyncFunction, declaredProperties(), DOC, DOC_HEADINGS (+62 more)
+Nodes (53): analyticsAllowed(), CONSENT_COPY, CONSENT_HINT, CONSENT_ROW, CONSENT_SUB, AsyncFunction, declaredProperties(), DOC (+45 more)
 
 ### Community 278 - "convo.ts"
 Cohesion: 0.03
-Nodes (77): supportViewFor(), APERO_FRAME, missionFrame(), openingIndex(), CONVO_LINES, lines, splitter, CanDoEvidenceReader (+69 more)
+Nodes (85): started(), brainClientFromEnv(), vendorBrainFromEnv(), age, cases, client, env, [envFile, reportFile] (+77 more)
 
 ### Community 279 - "verifyNativeVoice.mjs"
 Cohesion: 0.50
@@ -1657,17 +1668,17 @@ Nodes (6): description, engines, node, name, private, version
 Cohesion: 0.22
 Nodes (7): args, artifacts, manifest, output, paths, require, root
 
-### Community 282 - "productEvents.ts"
-Cohesion: 0.22
-Nodes (13): allowedEnum(), exactKeys(), insertProductEvent(), missionId(), nonNegativeCount(), paidPlan(), parseProductEvent(), ProductEvent (+5 more)
+### Community 282 - "server.ts"
+Cohesion: 0.05
+Nodes (69): withoutRevisionSource(), withVerifiedRevisionSource(), exactHttpsOrigin(), productionConfigurationProblems(), secureUrl(), ServerEnvironment, CONVERSATION_PAGE_SIZE, conversationPackById() (+61 more)
 
 ### Community 283 - "goals/isolation.test.ts"
 Cohesion: 0.24
 Nodes (10): APP_SRC, CORE_SRC, forbiddenIn(), HERE, importsGoals(), LEDGER_SYMBOLS, LEDGERS, resolved() (+2 more)
 
-### Community 284 - "StreakScreen.tsx"
-Cohesion: 0.05
-Nodes (56): Skeleton(), BadgeShelf(), MEDAL, st, CountsGrid(), st, useGame(), useGoal() (+48 more)
+### Community 284 - "GameProvider.tsx"
+Cohesion: 0.04
+Nodes (77): Skeleton(), FLAME_MOTION, Crest(), CrestProps, FEET, Flame(), FlameProps, Layer() (+69 more)
 
 ### Community 285 - "Backend release and recovery"
 Cohesion: 0.11
@@ -1685,33 +1696,33 @@ Nodes (4): flat(), read(), stripComments(), WRITERS
 Cohesion: 0.50
 Nodes (3): Changes and rationale, Tutor experience revision — 20 September 2026, Verification
 
-### Community 291 - "purchases/billingStatus.ts"
-Cohesion: 0.07
-Nodes (30): purchaseMoment(), purchaseTransactionId(), dueLine(), HomeAction, homeActionFor(), HomeBilling, PLANS_LEAD, FirstRunWallDeps (+22 more)
+### Community 291 - "wallAccount.ts"
+Cohesion: 0.08
+Nodes (33): FirstRunWallDeps, firstRunWallDue(), flushFirstRunWall(), FREE, PAID, BillingStatus, billingStatusIn(), PLAN_IDS (+25 more)
 
-### Community 292 - "paidAdmission.ts"
+### Community 292 - "paidExecution.ts"
 Cohesion: 0.06
-Nodes (56): exact(), integer(), review(), now, template, validatePaidBudgetContract(), ClaimPaidRequest, context() (+48 more)
+Nodes (40): credentials, FakeSocket, verdict, workerRequire, pcmWav(), PaidKind, PaidProvider, PaidQuantities (+32 more)
 
 ### Community 294 - "safeArea.test.ts"
 Cohesion: 0.17
 Nodes (8): errorView, FULL_BLEED, layout, lesson, navigator, outOfMinutesView, sessionView, stopView
 
 ### Community 295 - "meter.ts"
-Cohesion: 0.09
-Nodes (43): ALLOWANCE_WINDOW_DAYS, allowanceWindowCount(), allowanceWindowEnd(), BillingPeriod, canStartSession(), DEFAULT_COST_MODEL, estimateSessionCost(), LAPSE_GRACE_SEC (+35 more)
+Cohesion: 0.08
+Nodes (49): dueLine(), HomeAction, homeActionFor(), HomeBilling, PLANS_LEAD, ALLOWANCE_WINDOW_DAYS, allowanceWindowCount(), allowanceWindowEnd() (+41 more)
 
-### Community 296 - "utterance.test.ts"
-Cohesion: 0.20
-Nodes (7): audioScoringEnabled(), CapturedUtterance, observeEvents(), observeFrames(), feed(), frame(), UtteranceTap
+### Community 296 - "opening.test.ts"
+Cohesion: 0.13
+Nodes (25): findExercise(), practiceOpening, resumeFrom(), bank, card(), deck, enFr(), LINES (+17 more)
 
 ### Community 297 - "haptics.native.ts"
 Cohesion: 0.09
-Nodes (22): original, Beat, BeatClock, Beats, CELEBRATE_BEATS, createBeats(), createThrottle(), realClock (+14 more)
+Nodes (19): original, Beat, BeatClock, Beats, CELEBRATE_BEATS, createThrottle(), realClock, TICK_GAP_MS (+11 more)
 
 ### Community 298 - "friendly.ts"
 Cohesion: 0.10
-Nodes (31): digest(), startAppleSignIn(), AppleNonce, makeNonce(), rawNonce(), sha256Hex, toHex(), APPLE_CLOSED (+23 more)
+Nodes (30): digest(), startAppleSignIn(), AppleNonce, makeNonce(), rawNonce(), sha256Hex, toHex(), APPLE_CLOSED (+22 more)
 
 ### Community 299 - "Motion, sound and haptics system"
 Cohesion: 0.06
@@ -1733,9 +1744,9 @@ Nodes (7): LuvaniAudioLifecycleModule, AVFoundation, Double, ExpoModulesCore, Mo
 Cohesion: 0.67
 Nodes (3): harness(), repair, shipped()
 
-### Community 304 - "gate.ts"
-Cohesion: 0.19
-Nodes (13): ENTRY_MODE_KEYS, ENTRY_MODES_LABEL, EntryModeKey, entryStart, isEntryMode(), minutesRemainingLine(), scenarioCountLine(), sourceFiles() (+5 more)
+### Community 304 - "speakView.ts"
+Cohesion: 0.09
+Nodes (27): ENTRY_MODE_KEYS, ENTRY_MODES_LABEL, EntryModeKey, entryStart, isEntryMode(), minutesRemainingLine(), scenarioCountLine(), sourceFiles() (+19 more)
 
 ### Community 305 - "secureSessionStorage.ts"
 Cohesion: 0.20
@@ -1750,20 +1761,20 @@ Cohesion: 0.12
 Nodes (16): cartesianProduct(), createComponentWithVariants(), createdNodeIds, existing, LEDGER, LOBES, mutatedNodeIds, names (+8 more)
 
 ### Community 309 - "recapLine.test.ts"
-Cohesion: 0.29
-Nodes (5): HELD_ON_THEIR_OWN, HELD_WITH_HELP, MOSTLY_UNAIDED, recapLine(), RecapStats
+Cohesion: 0.31
+Nodes (4): HELD_ON_THEIR_OWN, HELD_WITH_HELP, MOSTLY_UNAIDED, RecapStats
 
 ### Community 310 - "guestSpeechRoute.test.ts"
-Cohesion: 0.05
-Nodes (57): attempt(), attempt(), checkStarter(), concise(), STARTER_GOALS, starterTasks(), task(), variants (+49 more)
+Cohesion: 0.04
+Nodes (66): version, decodeAudio(), DecodedAudio, executable(), reserveGuestDecoder(), slots, verified, AUDIO_DECODER_FIXTURES (+58 more)
 
-### Community 311 - "profile.ts"
-Cohesion: 0.05
-Nodes (80): LearnerSnapshot, supportViewForAssistance(), CAFE_FRAME, FixLineJudgeInput, defaultModel(), current(), line, applyExtractionToProfile() (+72 more)
+### Community 311 - "conversation.ts"
+Cohesion: 0.02
+Nodes (145): sampleCoachItem(), sampleSupport(), sampleTurn(), Assessment, CoachItem, CoachKind, SpeakerLine, SupportView (+137 more)
 
-### Community 313 - "scenarios.ts"
-Cohesion: 0.05
-Nodes (52): heroStart, ProgressRow, progressRows(), gentlestWord(), MONDAY, TUESDAY, UNREAD_LEVEL, CONNECTOR_IDS (+44 more)
+### Community 313 - "daily/index.ts"
+Cohesion: 0.08
+Nodes (37): ProgressRow, progressRows(), gentlestWord(), MONDAY, TUESDAY, UNREAD_LEVEL, CONNECTOR_IDS, connectorWords() (+29 more)
 
 ### Community 316 - "art/registry.test.ts"
 Cohesion: 0.17
@@ -1775,11 +1786,11 @@ Nodes (18): 100-app/service public-disclosure benchmark, Backend audit evidence,
 
 ### Community 318 - "tutor.ts"
 Cohesion: 0.04
-Nodes (41): ClientMessage, TutorPersona, currentPrompt(), TEXT_SILENCE_MS, CommandBudget, replayPlayout(), TurnQueue, observeRecognitionConfidence() (+33 more)
+Nodes (33): STUCK_SILENCE_MS, TutorPersona, currentPrompt(), TEXT_SILENCE_MS, CommandBudget, replayPlayout(), TurnQueue, observeRecognitionConfidence() (+25 more)
 
 ### Community 319 - "notebook.ts"
 Cohesion: 0.08
-Nodes (20): LevelStop, PathLevel, LevelPathView, NOTEBOOK, NOTEBOOK_COPY, PHRASE_BANK_ROWS, PhraseAudio, PhraseBankRow (+12 more)
+Nodes (21): LevelStop, PathLevel, isFirstVisit(), LevelPathView, NOTEBOOK, NOTEBOOK_COPY, PHRASE_BANK_ROWS, PhraseAudio (+13 more)
 
 ### Community 320 - "mobilePreviewContract.test.ts"
 Cohesion: 0.33
@@ -1793,17 +1804,17 @@ Nodes (17): badgeRequestsIn(), channelLiteral(), exportedNames(), HERE, importsI
 Cohesion: 0.33
 Nodes (3): connections, listener, pg
 
-### Community 324 - "Paper & Ink design world"
-Cohesion: 0.15
-Nodes (13): Read the exact versioned Expo docs before writing code, Paper colour token set, Paper & Ink design world, Absolute-beginner audience (CEFR A0-A2), Everything spoken must also be readable, Absent evidence must not be fabricated, Luvani (working name), Expo + TypeScript npm-workspaces monorepo (+5 more)
+### Community 324 - "sfx.native.ts"
+Cohesion: 0.11
+Nodes (12): currentAudioMode, enterSfx, setSfxPause, core, core, dropOurRefusal(), listenForRefusals(), RejectionEvent (+4 more)
 
-### Community 328 - "tutorAudio.ts"
-Cohesion: 0.23
-Nodes (8): shadowingPhrase(), voices, tutorAudioFor(), tutorAudioForFrench(), TutorAudioPack, clipFor(), ExchangeLine, TUTOR_LINE_AUDIO
+### Community 328 - "warmCache.ts"
+Cohesion: 0.21
+Nodes (14): assertDevelopmentPaidTool(), main(), scriptedLines(), splitter, warmVoice(), catalogueKeys(), Env, CATALOGUE (+6 more)
 
 ### Community 329 - "freshDevice.ts"
-Cohesion: 0.17
-Nodes (11): adoptBeforeReady(), adoptedAnything(), FAILED, FRESH_DEVICE_BUDGET_MS, FreshStart, FreshStartKind, FreshStartOptions, settled() (+3 more)
+Cohesion: 0.16
+Nodes (12): adoptBeforeReady(), adoptedAnything(), FAILED, FRESH_DEVICE_BUDGET_MS, FreshStart, FreshStartKind, FreshStartOptions, mayAdoptPreAccountDraft() (+4 more)
 
 ### Community 330 - "Deliver useful learning sooner"
 Cohesion: 0.29
@@ -1813,17 +1824,17 @@ Nodes (7): Acceptance and references, Acceptance and references, Deliver useful 
 Cohesion: 0.29
 Nodes (6): Accounting and limits, API and response contracts, Lock order and local evidence, Paid provider admission contract and local evidence, Shared helper integration, Tutor allowance, privacy and storage
 
-### Community 332 - "firstRun/copy.test.ts"
-Cohesion: 0.27
-Nodes (13): counted(), exchangeLabel(), FIRST_RUN_LINES, issueActions(), SLOW_CHECK_MS, TAKE_CAP_SECONDS, takeLength(), lines() (+5 more)
+### Community 332 - "drawing.ts"
+Cohesion: 0.07
+Nodes (15): Book, Bookmark, Bubbles, Cafe, Calendar, Check, IconDraw, IconPaint (+7 more)
 
 ### Community 333 - "VoiceOrb.tsx"
-Cohesion: 0.05
-Nodes (39): OrbRoom, LiveBars(), st, ORB_BOX, HEARING_YOU, LIVE_BARS, NO_LAYERS, ORB_ARC (+31 more)
+Cohesion: 0.10
+Nodes (22): LiveBars(), st, HEARING_YOU, LIVE_BARS, NO_LAYERS, ORB_ARC, ORB_LEVEL_RING_SHARE, ORB_PULSE (+14 more)
 
-### Community 334 - "renewals.ts"
+### Community 334 - "lessons/types.ts"
 Cohesion: 0.18
-Nodes (8): DueRenewal, RENEWAL_SWEEP, renewalSweep, sweep(), RenewalSweepDependencies, RenewalSweepOptions, supabaseRenewalsDue(), RenewalOutcome
+Nodes (20): CAFE_LESSON, BY_ID, getLesson(), LESSONS, AcceptanceMatch, AcceptanceRoute, candidatesFor(), CefrLevel (+12 more)
 
 ### Community 338 - "responsibilities.test.ts"
 Cohesion: 0.20
@@ -1837,13 +1848,13 @@ Nodes (7): Calling them, Infrastructure evidence must stay current, Territory is
 Cohesion: 0.45
 Nodes (10): bbox(), color(), convert(), el(), expanded_frames(), geom(), identifier(), num() (+2 more)
 
-### Community 342 - "momentsStore.ts"
-Cohesion: 0.23
-Nodes (12): isMoment(), KEY(), loadMoments(), MAX_MOMENTS, readStored(), RealMoment, saveMoment(), serialized() (+4 more)
+### Community 342 - "turns.ts"
+Cohesion: 0.17
+Nodes (14): attachCorrectionReason(), evidence, lines, MAX_TURNS, pushTurn(), TurnLine, replyAnnouncement(), transcriptTail() (+6 more)
 
 ### Community 344 - "phrasebook.ts"
-Cohesion: 0.11
-Nodes (23): phraseBankFrom(), buildPhrasebook(), hasPhrases(), hasSaved(), Hold, LESSONS_GROUP, OTHER_PHRASES_TITLE, Phrase (+15 more)
+Cohesion: 0.13
+Nodes (20): hasPhrases(), hasSaved(), Hold, LESSONS_GROUP, OTHER_PHRASES_TITLE, Phrase, Phrasebook, PhraseGroup (+12 more)
 
 ### Community 346 - "Make choices and progress tell the truth"
 Cohesion: 0.29
@@ -1853,29 +1864,29 @@ Nodes (7): Acceptance and references, Acceptance and references, F05 P2 Make the
 Cohesion: 0.17
 Nodes (7): Backoff, BACKOFF_BASE_MS, BACKOFF_CAP_MS, backoffCeiling(), backoffDelay(), BackoffOptions, createBackoff()
 
-### Community 350 - "RiveSceneRenderer.native.tsx"
-Cohesion: 0.21
-Nodes (8): RIVE_STILLS, SceneKind, FILES, ScenePlayback(), SINGLE_SHOT, RiveSceneRenderer(), RiveSceneProps, SceneStill()
+### Community 350 - "wallSuccess.test.ts"
+Cohesion: 0.16
+Nodes (16): endsWithinATrialWeek(), handlers, source, heldUntil(), SUCCESS_MONTH, SUCCESS_TRIAL, conversationsAWeek(), storeTrialMinutes() (+8 more)
 
 ### Community 351 - "live/levels.ts"
-Cohesion: 0.13
-Nodes (25): ATTACK, Bands, clamp01(), envelope(), fallingSince(), HEARING_SILENCE_OFF_MS, hearMic(), hearTutor() (+17 more)
+Cohesion: 0.14
+Nodes (24): ATTACK, Bands, clamp01(), envelope(), fallingSince(), HEARING_SILENCE_OFF_MS, hearMic(), hearTutor() (+16 more)
 
 ### Community 352 - "safetyView.test.ts"
-Cohesion: 0.09
-Nodes (23): STILL_THINKING, STILL_THINKING_AFTER_MS, thinkingAfter(), thinkingLine(), switchWorld(), useThinkingLine(), CLOSE_HINT, CLOSE_LABEL (+15 more)
+Cohesion: 0.10
+Nodes (20): STILL_THINKING, STILL_THINKING_AFTER_MS, thinkingAfter(), thinkingLine(), useThinkingLine(), CLOSE_HINT, CLOSE_LABEL, DISMISS_HINT (+12 more)
 
-### Community 353 - "authFlow.test.ts"
+### Community 353 - "src/tokens.ts"
 Cohesion: 0.16
-Nodes (7): APP, FLOW, GATE, raw(), read(), SCREEN, strip()
+Nodes (17): TutorRevision, developmentEntitlementsEnabled(), GrantResult, grantSession(), ROOM_LIFECYCLE, roomNameFor(), SeedTopic, SessionGrant (+9 more)
 
-### Community 354 - "sfxAssets.test.ts"
-Cohesion: 0.22
-Nodes (12): approvals, at(), manifest, recipeFor(), SoundEntry, unionIds(), approvedFlags(), key() (+4 more)
+### Community 354 - "strictContinuityReads.test.ts"
+Cohesion: 0.16
+Nodes (15): disk, step, SYNC_EXCLUSIONS, isMoment(), KEY(), loadMoments(), MAX_MOMENTS, readStored() (+7 more)
 
-### Community 355 - "BoldScene.native.tsx"
-Cohesion: 0.24
-Nodes (6): BOLD_SCENES, BoldSceneKind, ScenePlayback(), BOLD_FILES, BoldSceneProps, BoldStill()
+### Community 355 - "verifyDataBoundaries.mjs"
+Cohesion: 0.15
+Nodes (13): sealEnvelope(), [a,b,c,d,e], admin(), db, envelope(), eventProperties, now, owned (+5 more)
 
 ### Community 356 - "The free-form tutor brain"
 Cohesion: 0.33
@@ -1894,12 +1905,12 @@ Cohesion: 0.09
 Nodes (23): 0. Verified current state, and where the code disagrees with the evidence, 1.1 Motion vocabulary, 1.2 Real numbers: the XP receipt, 1.3 When sound and haptics are allowed, 1.4 Celebration tiers, 1.5 What remains banned mid-session, and why, 1. Contracts this section relies on and adds, 3.1 What the installed SDKs expose (checked in `/Users/pravz_07/.codex/worktrees/adac/Luvani/node_modules`) (+15 more)
 
 ### Community 360 - "generate.mjs"
-Cohesion: 0.09
-Nodes (18): APPROVALS, approved, ASSETS, AUDITION, auditionPage(), ENCODE_ARGS, escape(), ids (+10 more)
+Cohesion: 0.06
+Nodes (49): approvals, at(), manifest, recipeFor(), SoundEntry, synthesised, unionIds(), APPROVALS (+41 more)
 
 ### Community 362 - "drillJudge.ts"
 Cohesion: 0.04
-Nodes (55): ResolvedUser, SIGN_IN_REQUIRED, UserResolver, VerifierConfig, CEFR_BANDS, CefrBand, cefrOf(), DrillJudgeDeps (+47 more)
+Nodes (56): ResolvedUser, SIGN_IN_REQUIRED, UserResolver, VerifierConfig, CEFR_BANDS, CefrBand, cefrOf(), DrillJudgeDeps (+48 more)
 
 ### Community 363 - "verifyRenderBuild.mjs"
 Cohesion: 0.50
@@ -1925,29 +1936,29 @@ Nodes (13): bytes, cost, file, id, raw, rawSha256, reserve, seconds (+5 more)
 Cohesion: 0.15
 Nodes (13): bytes, cost, file, id, raw, rawSha256, reserve, seconds (+5 more)
 
-### Community 370 - "pendingPurchase.ts"
-Cohesion: 0.21
-Nodes (13): beginPendingPurchase(), chain, clearPendingPurchase(), confirmsPendingPurchase(), Envelope, loadPendingPurchase(), read(), readable() (+5 more)
+### Community 370 - "scope.ts"
+Cohesion: 0.06
+Nodes (49): ProductEvent, trackProductEvent(), auth, HeroNumber(), RootNavigator(), purchases, BillingChange, billingChanged() (+41 more)
 
-### Community 371 - "nextFace.test.ts"
-Cohesion: 0.43
-Nodes (6): NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON, contrast(), luminance()
-
-### Community 372 - "FriendsAdapter"
+### Community 371 - "friendsView.test.ts"
 Cohesion: 0.17
-Nodes (4): build(), friends, createLocalAdapter(), FriendsAdapter
+Nodes (12): FRIENDS_COPY, FRIENDS_FRENCH_IDEA, FRIENDS_PRIVACY_LINK, FRIENDS_START, FRIENDS_START_BODY, FRIENDS_START_TITLE, friendsEntry, person() (+4 more)
+
+### Community 372 - "sessionSettlementRoute.test.ts"
+Cohesion: 0.19
+Nodes (10): agentDebitAllowed(), body, end, names, request(), run, source, start (+2 more)
 
 ### Community 373 - "Independent challenge of production-audit draft"
 Cohesion: 0.33
 Nodes (5): Findings that withstand challenge, Firm wording corrections before publication, Independent challenge of production-audit draft, Reproduction independently confirmed, Stale credentials/readiness/targets
 
-### Community 374 - "session/session.ts"
-Cohesion: 0.05
-Nodes (79): LineBullet(), ANGLOPHONE_WEAKNESS, CARRIER, carrierWord(), estimateDurationSec(), jitter(), LearnerProfile, mockObservations() (+71 more)
+### Community 374 - "ladder.ts"
+Cohesion: 0.08
+Nodes (38): Read the exact versioned Expo docs before writing code, LineBullet(), Chrome is plain English, French only where it is content, Motion still has no design, No number and no scolding mid-session, Signal colours kept out of the rung set, Support colours cool as help is withdrawn, contextInput() (+30 more)
 
 ### Community 376 - "micPrimer.ts"
-Cohesion: 0.14
-Nodes (21): afterPermission(), OPEN_SETTINGS, PRIMER_ACTION, PRIMER_COPY, PRIMER_LABEL, PRIMER_LINES(), PRIMER_META(), PRIMER_REFUSED (+13 more)
+Cohesion: 0.16
+Nodes (18): OPEN_SETTINGS, PRIMER_ACTION, PRIMER_COPY, PRIMER_LABEL, PRIMER_LINES(), PRIMER_REFUSED, PRIMER_REFUSED_HOW, PRIMER_REFUSED_TITLE (+10 more)
 
 ### Community 377 - "icons.test.ts"
 Cohesion: 0.15
@@ -1957,13 +1968,13 @@ Nodes (11): CONFIG, CUSTOM, HERE, ROOT, SRC, ICON_SET, ICONS, OFL_OUTFIT (+3 mor
 Cohesion: 0.05
 Nodes (42): 2 October: independent review and backend continuation, Approved personal-memory boundary — 2 October, Approved saved-phrase audio spending ceilings (3 October 2026), Explicit saved conversation text — 2 October, Final local verification and design audit, Final voice and recognition stage — 3 October 2026, Fix your line, with the writing-brain fallback — 2 October, Founder-requested GPT-6 Luna live brain — 3 October (+34 more)
 
-### Community 379 - "verifyDataBoundaries.mjs"
-Cohesion: 0.15
-Nodes (13): sealEnvelope(), [a,b,c,d,e], admin(), db, envelope(), eventProperties, now, owned (+5 more)
+### Community 379 - "strictness.test.ts"
+Cohesion: 0.20
+Nodes (12): COPY, DEFAULT_STRICTNESS, Strictness, STRICTNESS_OPTIONS, STRICTNESS_ORDER, STRICTNESS_ROW, STRICTNESS_SUB, STRICTNESS_TITLE (+4 more)
 
 ### Community 380 - "profile/merge.ts"
-Cohesion: 0.07
-Nodes (63): mutationId(), orderedPreferences(), PreferenceEdit, mergeProfile(), ANSWER_FIELD_SET, compareEvidence(), compareStrings(), coreSlice() (+55 more)
+Cohesion: 0.09
+Nodes (44): ANSWER_FIELD_SET, compareEvidence(), compareStrings(), coreSlice(), DEVICE_FIELD_SET, finish(), finiteOr(), identityOf() (+36 more)
 
 ### Community 381 - "stage3.test.ts"
 Cohesion: 0.83
@@ -1986,16 +1997,16 @@ Cohesion: 0.29
 Nodes (6): FILES, read(), SINGLE, SRC, stripComments(), WHOLE_DIRS
 
 ### Community 388 - "svg.mjs"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (26): ARITY, BOX, camel(), checkDefs(), cleanNode(), cleanNumberList(), cleanTransform(), collectTags() (+18 more)
 
 ### Community 389 - "moneyUntouched.test.ts"
 Cohesion: 0.29
 Nodes (3): FILES, FUNCTIONS, REPO
 
-### Community 390 - "view.test.ts"
-Cohesion: 0.23
-Nodes (12): BookmarkItem, bookmarkAccessibilityLabel(), bookmarkControl, bookmarkDecisions(), bookmarkLabel(), BookmarkWrite, hasSaved(), isBookmarkedIn() (+4 more)
+### Community 390 - "plugins"
+Cohesion: 0.17
+Nodes (13): plugins, hasUsedApp(), INSTALL_HISTORY_KEY, hasUsedApp(), rememberAppUse(), rememberAppUse(), hasCompletedLocalAccount(), @config-plugins/react-native-webrtc (+5 more)
 
 ### Community 393 - "settings"
 Cohesion: 0.40
@@ -2006,12 +2017,12 @@ Cohesion: 0.50
 Nodes (4): before, limit, nextReset, used
 
 ### Community 395 - "AuthAdapter"
-Cohesion: 0.07
-Nodes (22): observeSession(), fixture(), user, AuthAdapter, AuthUser, AuthContextValue, AccountExportResult, downloadAccountData() (+14 more)
+Cohesion: 0.06
+Nodes (23): observeSession(), fixture(), user, AuthAdapter, AuthUser, AuthContextValue, AccountExportResult, downloadAccountData() (+15 more)
 
-### Community 396 - "EndCard.tsx"
-Cohesion: 0.07
-Nodes (63): active(), CelebrationHost(), st, countTick(), fire(), fireBeat(), fireStill(), focusNow() (+55 more)
+### Community 396 - "game-art-sheet.mjs"
+Cohesion: 0.22
+Nodes (15): colourOf(), FLAME_FEET, GROUND_TOKEN, escape(), file, GROUND_NAMES, motionPreview(), NOTES (+7 more)
 
 ### Community 397 - "dependencyAudit"
 Cohesion: 0.33
@@ -2038,8 +2049,8 @@ Cohesion: 0.29
 Nodes (4): Action, actions, Result, source
 
 ### Community 406 - "C · Bold rhythm implementation"
-Cohesion: 0.08
-Nodes (22): C · Bold rhythm assets, Rebuild, Authorised parallel review and landing criteria, C · Bold rhythm implementation, Evidence, Exact remaining configuration and acceptance, C · Bold rhythm frame map, Deliberate adaptations (+14 more)
+Cohesion: 0.20
+Nodes (10): Authorised parallel review and landing criteria, C · Bold rhythm implementation, Evidence, Exact remaining configuration and acceptance, Live speech refinement — 11 October, Native interaction follow-up, Outcome and scope, Remaining acceptance preparation — 12 October (+2 more)
 
 ### Community 409 - "safety.test.ts"
 Cohesion: 0.14
@@ -2053,9 +2064,9 @@ Nodes (22): 0. Things the code says that change the plan (checked against source
 Cohesion: 0.08
 Nodes (22): 10. Owner agent, 11. Acceptance checks, 12. Risks, 13. Open questions for the founder, 1. What exists today (verified), 3.1 New synced namespace `game`: `userKey('game')`, inner version 1, 3.2 Device-local namespace `gameLocal` (add to `SYNC_EXCLUSIONS` with a reason), 3.3 The write pipeline: `@/game/settle.ts` (+14 more)
 
-### Community 413 - "src/timing.ts"
-Cohesion: 0.23
-Nodes (10): createTurnTiming(), formatTiming(), formatVendorMetrics(), mark(), SEGMENTS, TimingStage, TurnTiming, VENDOR_FIELDS (+2 more)
+### Community 413 - "userKey"
+Cohesion: 0.09
+Nodes (35): Page, chain, clear(), clearRepairDraft(), clearSetupDraft(), loadRepairDraft(), loadSetupDraft(), read() (+27 more)
 
 ### Community 416 - "startupRecovery.test.ts"
 Cohesion: 0.29
@@ -2065,21 +2076,21 @@ Nodes (5): app, body, lesson, nav, start
 Cohesion: 0.10
 Nodes (18): 0. Facts this section relies on, 2. GhostButton sweep (222 tags, 63 files), 3.1 Vertical rhythm on the 4 pt scale, 3.2 Per screen: what fills the space, 3.3 Consistency fixes, 3.4 Disabled Next and disabled pills, 3.5 Footer hairline, 3.6 iPad (portrait 744 to 1032 pt) and the wide web (+10 more)
 
-### Community 418 - "sceneReplyTiming.ts"
-Cohesion: 0.21
-Nodes (8): started(), createSceneReplyTiming(), format(), snapshot(), noRecord, percentile(), SceneReplyOutcome, SceneReplyStage
-
-### Community 419 - "flights.ts"
-Cohesion: 0.27
-Nodes (8): Box, createFlights(), Flight, Flights, measured(), A, B, FLIGHT
-
-### Community 421 - "localPractice.ts"
-Cohesion: 0.31
-Nodes (6): DEMO_REPLY_ID, lines, TUTOR_LINES, TUTOR_LINES_VOICE, TutorLine, localPracticeFor()
-
-### Community 422 - "FrenchLifeCard.test.ts"
+### Community 418 - "renewals.ts"
 Cohesion: 0.18
-Nodes (7): CARD, COMPONENTS, FLAT, SRC, STORY_FLAT, STORY_HOME, STORY_LINES
+Nodes (8): DueRenewal, RENEWAL_SWEEP, renewalSweep, sweep(), RenewalSweepDependencies, RenewalSweepOptions, supabaseRenewalsDue(), RenewalOutcome
+
+### Community 419 - "shapes.test.ts"
+Cohesion: 0.15
+Nodes (13): ART, ART_GROUNDS, ART_NAMES, ArtName, statesOf(), code(), COMPONENTS, everyDrawn() (+5 more)
+
+### Community 421 - "coachMarks.test.ts"
+Cohesion: 0.19
+Nodes (13): COACH_MARK_TEXT, CoachMarkId, coachMarksAfter(), coachMarksAt(), CoachMarkState, CoachSignals, dismissCoachMark(), SEQUENCE (+5 more)
+
+### Community 422 - "verifyFriendsLaunch.mjs"
+Cohesion: 0.27
+Nodes (6): db, groups, owner(), role(), root, social()
 
 ### Community 425 - "Make the next step relevant and available"
 Cohesion: 0.29
@@ -2110,8 +2121,8 @@ Cohesion: 0.29
 Nodes (7): Acceptance and references, Acceptance and references, F17 P2 Find and reuse personal French, F18 P2 Reminder after a useful moment, Turn saved work into a reason to return, User impact and decision, User impact and decision
 
 ### Community 436 - "path.ts"
-Cohesion: 0.09
-Nodes (28): offersTalkAgain(), seedTopicFor(), TALK_AGAIN, talkAgainLabel(), StoredTopics, AUTHORED_PATH, AuthoredNode, authoredPhraseKeys() (+20 more)
+Cohesion: 0.08
+Nodes (32): MOMENT_ANSWER_MS, momentAnswer(), statusLine(), offersTalkAgain(), seedTopicFor(), TALK_AGAIN, talkAgainLabel(), StoredTopics (+24 more)
 
 ### Community 438 - "Working in Luvani"
 Cohesion: 0.40
@@ -2125,25 +2136,25 @@ Nodes (4): Investigation on 10 October 2026, Luvani social sign-in, Supabase pro
 Cohesion: 0.29
 Nodes (7): Acceptance and references, Acceptance and references, F19 P1 Fair plan comparison with real prices, F20 P1 Save and recovery promises need live proof, Make price and persistence understandable, User impact and decision, User impact and decision
 
-### Community 452 - "httpSecurity.ts"
-Cohesion: 0.31
-Nodes (9): APP_PORT, applyHttpSecurity(), createOriginPolicy(), DEVELOPMENT_ORIGINS, DEVELOPMENT_PORTS, originAllowed(), OriginPolicy, parseAllowedOrigins() (+1 more)
+### Community 452 - "recognition.ts"
+Cohesion: 0.30
+Nodes (12): ConversationPracticeScreen(), checkRecognition(), choicesFor(), ListeningChoice, matchingOrder(), matchPair(), NEW_ATTEMPT, pairsFor() (+4 more)
 
 ### Community 453 - "Finish accessibility and remove contextual overclaims"
 Cohesion: 0.29
 Nodes (7): Acceptance and references, Acceptance and references, F21 P1 Device accessibility and interruptions, F22 P2 Copy that matches the current account, Finish accessibility and remove contextual overclaims, User impact and decision, User impact and decision
 
-### Community 454 - "setItemInUserScope"
-Cohesion: 0.33
-Nodes (13): setItemInUserScope(), adoptCoachMarks(), adoptTutorIntro(), COACH_MARKS_KEY(), idsOf(), loadSeenCoachMarks(), markCoachMarkSeen(), markTutorIntroSeen() (+5 more)
+### Community 454 - "scope.test.ts"
+Cohesion: 0.29
+Nodes (5): ATTEMPT_AUDIO_NOT_SWEPT, RETIRED_DEVICE_KEYS, APP, sourceFiles(), suffixesInSource()
 
 ### Community 455 - "Luvani brand kit"
 Cohesion: 0.25
 Nodes (7): Before launch, Colour, Luvani brand kit, Please don't, Rebuilding the kit, Space and size, Which file to use
 
-### Community 456 - "evidenceScreens.test.ts"
+### Community 456 - "app-foundations-call.js"
 Cohesion: 0.22
-Nodes (8): FILES, read(), SINGLE, SRC, stripComments(), WHOLE_DIRS, FRIENDS_NO_POINTS, FRIENDS_PURPOSE
+Nodes (7): addedStyles, appPage, ART, createdNodeIds, illustrations, LEDGER, mutatedNodeIds
 
 ### Community 458 - "SessionView.test.ts"
 Cohesion: 0.25
@@ -2169,9 +2180,9 @@ Nodes (5): Deletion and supersession ledger, Main and preview audit 3 October 20
 Cohesion: 0.13
 Nodes (15): 2.10 Phrase saved anywhere, 2.11 Purchase confirmed: `wall/WallScreen.tsx:323-334`, 2.12 Friends challenge complete: `tabs/FriendsTab.tsx:66-67`, 2.13 Reminder set, 2.14 Sound and haptic per moment (master list), 2.1 Drill answer verdict: `drill/AnswerSheet.tsx` (new) and `drill/answerSheet.ts` (new, pure), 2.2 In-sitting progress: LivingBar and combo glow, 2.3 Drill and practice end card: `celebrate/PracticeComplete.tsx` (new template) (+7 more)
 
-### Community 469 - "progress/store.ts"
-Cohesion: 0.33
-Nodes (11): adoptHistory(), isSession(), KEY(), persistedHistory(), readHistory(), recordSession(), registerAdopter(), saveHistory() (+3 more)
+### Community 469 - "First live practice implementation, 10 October 2026"
+Cohesion: 0.22
+Nodes (9): Completion and persistence, First live practice implementation, 10 October 2026, Journey and presentation, Personalisation, Recorded local checks, Release review and rollback, Replacement cleanup, Rive source (+1 more)
 
 ### Community 470 - "Current-state map"
 Cohesion: 0.40
@@ -2185,13 +2196,13 @@ Nodes (15): 10. Files touched, 11. Tests and docs to change, 12. Owner agent, 13
 Cohesion: 0.13
 Nodes (15): 5.10 Guest home (`home`), 5.11 Hand-off (`S/onboarding/GuestAccountHandoff.tsx`, plus the bootstrap review at `R/apps/mobile/App.tsx:217-231`), 5.12 First-run offer (paywall, `S/wall/WallScreen.tsx` with `entry:'first-run'`), 5.13 First Home visit (`S/tabs/HomeTab.tsx:157-161`), 5.14 Unchanged paths, 5.1 Promise (`hear-it`, blue), 5.2 Goal (`reason`) and Level (`start-level`), 5.3 Daily goal (`time`, merged) (+7 more)
 
-### Community 474 - "winModel.test.ts"
-Cohesion: 0.31
-Nodes (8): FIRST_RUN_COPY, ECHO_LINE, [drink], [hello], WIN_BURST, WinAttempt, winEffects(), winView
+### Community 474 - "upgrade.ts"
+Cohesion: 0.25
+Nodes (11): ageConfirmedFromDob(), ageOn(), AgeStopCandidate, MIN_AGE, TODAY, storedGoal(), storedStop(), storedVoice() (+3 more)
 
-### Community 475 - "lessonFooter.test.ts"
-Cohesion: 0.33
-Nodes (7): FOLD_SCALE, footerFolds(), MORE_HINT, MORE_LABEL, showsActionRow(), soundNoteIn(), view
+### Community 475 - "session/session.ts"
+Cohesion: 0.08
+Nodes (47): ANGLOPHONE_WEAKNESS, CARRIER, carrierWord(), estimateDurationSec(), jitter(), LearnerProfile, mockObservations(), Phase (+39 more)
 
 ### Community 476 - "Original video: second-pass additions"
 Cohesion: 0.33
@@ -2273,13 +2284,13 @@ Nodes (3): Dependencies and effort, Implementation order, What to remove and wha
 Cohesion: 0.07
 Nodes (18): probeFishSynthesis(), Env, FinalMarkingStream, FinalMarkingTTS, FISH_SAMPLE_RATE, FISH_SETTINGS, fishModel(), fishSynthesisProbeRequest() (+10 more)
 
-### Community 497 - "KNOWN_ISSUES.md"
-Cohesion: 0.18
-Nodes (8): Auth field polish, Execution log, Main integration — 10 October 2026, Execution log, Integrated verification, Local change runner, Main integration — 10 October 2026, Known issues — the goal file
+### Community 497 - "local-loop.md"
+Cohesion: 0.22
+Nodes (7): Auth field polish, Execution log, Main integration — 10 October 2026, Execution log, Integrated verification, Local change runner, Main integration — 10 October 2026
 
-### Community 499 - "speech.test.ts"
-Cohesion: 0.36
-Nodes (8): speakingOffered(), SPEECH_CLOSED, SPEECH_UNAVAILABLE, SpeechFacts, speechRefused(), starterFailure(), startMode(), LIVE
+### Community 499 - "pendingPurchase.ts"
+Cohesion: 0.26
+Nodes (11): beginPendingPurchase(), chain, clearPendingPurchase(), confirmsPendingPurchase(), Envelope, loadPendingPurchase(), read(), readable() (+3 more)
 
 ### Community 500 - "recorderLevel.ts"
 Cohesion: 0.36
@@ -2287,15 +2298,15 @@ Nodes (8): LEVEL_CEILING_DB, LEVEL_FLOOR_DB, LEVEL_POLL_MS, levelFromMetering(),
 
 ### Community 501 - "sessionLifecycle.ts"
 Cohesion: 0.09
-Nodes (25): readSessionSettlement(), SettlementResult, canonicalJson(), TUTOR_RPC_NAMES, tutorDigest(), TutorRpcError, TutorRpcName, claimSessionLifecycle() (+17 more)
+Nodes (21): readSessionSettlement(), SettlementResult, canonicalJson(), TutorRpcError, claimSessionLifecycle(), date(), httpCall(), integer() (+13 more)
 
 ### Community 502 - "display.test.ts"
 Cohesion: 0.22
 Nodes (7): APP, BACKFILL, calls(), PRICED, SRC, STANDING, withoutComments()
 
 ### Community 503 - "guilt.ts"
-Cohesion: 0.05
-Nodes (32): FLAT, LIBRARY, SCREEN, CONVERSATIONS_PURPOSE, CONVERSATIONS_TITLE, LIBRARY_LABEL, LIBRARY_LINE, libraryDoorLabel() (+24 more)
+Cohesion: 0.04
+Nodes (41): SIGN_IN_PURPOSE, welcomeBackGreeting(), BANNED_IN_COPY, BANNED_IN_STREAK_COPY, guiltIn(), normalise(), RETIRED_FROM_BAN, streakGuiltIn() (+33 more)
 
 ### Community 504 - "1. Home (`tabs/HomeTab.tsx`, `home/*`)"
 Cohesion: 0.29
@@ -2333,9 +2344,9 @@ Nodes (9): /forge, Looping it, The contract, The gate watches the wiring too, Th
 Cohesion: 0.18
 Nodes (4): SilentInput, TestServer, TestSocket, { WebSocketServer }
 
-### Community 515 - "WelcomeSignInGlow.tsx"
-Cohesion: 0.52
-Nodes (4): welcomeGlow, welcomeGlowEnabled(), WelcomeSignInGlow(), welcomeGlowColour
+### Community 515 - "src/theme.ts"
+Cohesion: 0.03
+Nodes (87): CelebrateConfetti(), CelebrateFirstLine(), CelebrateWrapped(), IllustrationName, MouthNasalAn(), MouthNasalOn(), MouthR(), MouthU() (+79 more)
 
 ### Community 516 - "5. Paywall (`wall/*`, `purchases/*`, `packages/core/src/metering/meter.ts`)"
 Cohesion: 0.25
@@ -2349,17 +2360,17 @@ Nodes (4): app(), code(), HERE, SRC
 Cohesion: 0.38
 Nodes (4): flat(), read(), SRC, stripComments()
 
-### Community 520 - "voice.ts"
-Cohesion: 0.10
-Nodes (27): accounted, destination, estimatedCredits, expectedMultipliers, headers, json(), manifestPath, models (+19 more)
+### Community 520 - "isTutorVoiceKey"
+Cohesion: 0.09
+Nodes (29): isTutorVoiceKey(), accounted, destination, estimatedCredits, expectedMultipliers, headers, json(), manifestPath (+21 more)
 
 ### Community 522 - "sfx/manifest.json"
 Cohesion: 0.33
 Nodes (5): encoder, generatedBy, recipeVersion, sampleRate, sounds
 
 ### Community 523 - "useLiveSession.ts"
-Cohesion: 0.06
-Nodes (54): LiveFailure, tokenFailureCode(), ensureAudioSession(), ensureLiveKitGlobals(), releaseAudioSession(), releaseLiveHold(), RecapAudio, recapMayTakeTheAudio() (+46 more)
+Cohesion: 0.07
+Nodes (45): deniedKeys, KEY(), loadConsent(), read(), saveConsent(), saveVersions, serialized(), StoredConsent (+37 more)
 
 ### Community 526 - "storeIntro.test.ts"
 Cohesion: 0.33
@@ -2377,28 +2388,28 @@ Nodes (3): EMAIL_ADVANCE_PAUSE_MS, emailReadyForAdvance(), useEmailAutoAdvance()
 Cohesion: 0.20
 Nodes (9): createdNodeIds, createdVariableIds, FIELDS, mutatedNodeIds, paint(), palette, removedNodeIds, rgb() (+1 more)
 
-### Community 539 - "DailyLibraryScreen.tsx"
-Cohesion: 0.53
-Nodes (6): DailyLibraryScreen(), FIRST, libraryPlace, pageItems(), rememberLibraryPlace(), LibraryFilter
+### Community 539 - "interactionMotion.test.ts"
+Cohesion: 0.17
+Nodes (12): components, effectEnd, effectStart, landNudge, makeResponder, nudge, nudgeEffect, responderSource (+4 more)
 
-### Community 540 - "practiceWorker.ts"
-Cohesion: 0.07
-Nodes (28): brainChoice, brainClientFromEnv(), vendorBrainFromEnv(), age, cases, client, env, [envFile, reportFile] (+20 more)
+### Community 540 - "generate.ts"
+Cohesion: 0.05
+Nodes (39): AppropriateReplyZ, BASE, BestSentenceZ, buildDrillGenerationRequest(), DrillGenerationInput, FillBlankZ, GeneratedExerciseZ, INSTRUCTION (+31 more)
 
-### Community 541 - "micLevel.ts"
+### Community 541 - "ConversationsScreen.test.ts"
+Cohesion: 0.24
+Nodes (8): FLAT, LIBRARY, SCREEN, CONVERSATIONS_PURPOSE, CONVERSATIONS_TITLE, LIBRARY_LABEL, LIBRARY_LINE, libraryDoorLabel()
+
+### Community 542 - "speech.test.ts"
 Cohesion: 0.36
-Nodes (7): BAR_REST, BAR_SHAPE, barScales(), HEARING_LEVEL, hearsVoice(), METER_FLOOR_DB, meterLevel()
-
-### Community 542 - "evidence"
-Cohesion: 0.12
-Nodes (11): app, bootstrap, effect, componentsSource(), SRC, stripComments(), COMPONENTS, runsUnder (+3 more)
+Nodes (8): speakingOffered(), SPEECH_CLOSED, SPEECH_UNAVAILABLE, SpeechFacts, speechRefused(), starterFailure(), startMode(), LIVE
 
 ### Community 543 - "attempt.ts"
-Cohesion: 0.33
-Nodes (5): attempt(), guardAdapter(), GUARDED_METHODS, toFailure(), ProviderFailure
+Cohesion: 0.29
+Nodes (6): attempt(), guardAdapter(), GUARDED_METHODS, toFailure(), GENERIC_FAILURE, ProviderFailure
 
-### Community 544 - "mockAdapter.ts"
-Cohesion: 0.15
+### Community 544 - "auth/adapter.ts"
+Cohesion: 0.17
 Nodes (13): build(), AuthMode, AuthModeEnvironment, selectAuthMode(), createMockAdapter(), notify(), setSession(), emptyStore() (+5 more)
 
 ### Community 547 - "levels/levels.ts"
@@ -2417,9 +2428,13 @@ Nodes (6): createdNodeIds, evidence, fonts, mutatedNodeIds, removedNodeIds, root
 Cohesion: 0.22
 Nodes (8): Billing and real-data boundary, Coverage, Design structure, Implemented in the checkout, Luvani · vibrant app and paywalls, Review the file, Screen index, Verification
 
-### Community 557 - "plugins"
-Cohesion: 0.17
-Nodes (13): plugins, hasUsedApp(), INSTALL_HISTORY_KEY, hasUsedApp(), rememberAppUse(), rememberAppUse(), hasCompletedLocalAccount(), @config-plugins/react-native-webrtc (+5 more)
+### Community 557 - "fifthRungPersistence.test.ts"
+Cohesion: 0.24
+Nodes (5): disk, storage, exerciseIdentity(), MAX_DRILL_EXERCISES, mergeExerciseBank()
+
+### Community 558 - "recorderRelease.test.ts"
+Cohesion: 0.13
+Nodes (14): compiled, Component, Element, ending(), ENDINGS, Leave, mount(), Platform (+6 more)
 
 ### Community 559 - "final-prototype-wire.js"
 Cohesion: 0.25
@@ -2509,29 +2524,29 @@ Nodes (5): handle(), n(), rgba(), svg_node(), svg_shape()
 Cohesion: 0.50
 Nodes (4): changed, created, paint(), polish()
 
-### Community 587 - "repairRecognizedFrench"
-Cohesion: 0.50
-Nodes (7): distance(), observedConfusions, protectedMeaning(), recognitionPhrases(), repairRecognizedFrench(), sound(), words()
+### Community 587 - "capabilities.ts"
+Cohesion: 0.21
+Nodes (9): Capabilities, CAPABILITY_COPY, EARNED, INCLUSIONS, NO_PROTECTION, PAID_PROTECTION, planInclusions(), StreakProtection (+1 more)
 
-### Community 594 - "wall/preview.ts"
-Cohesion: 0.43
-Nodes (6): PREVIEW_WEEK, previewCatalogue(), PreviewEnvironment, previewOffering(), ON, wallPreviewEnabled()
+### Community 594 - "src/timing.ts"
+Cohesion: 0.23
+Nodes (10): createTurnTiming(), formatTiming(), formatVendorMetrics(), mark(), SEGMENTS, TimingStage, TurnTiming, VENDOR_FIELDS (+2 more)
 
-### Community 604 - "acoustic.ts"
-Cohesion: 0.48
-Nodes (5): Acoustic, acousticFor(), AcousticWord, firstPair(), headingFor()
+### Community 604 - "bandsFromSpectrum"
+Cohesion: 0.40
+Nodes (5): bandsFromSpectrum(), rmsOf(), MicMeter(), sample(), TutorMeter()
 
 ### Community 605 - "svg.test.ts"
-Cohesion: 0.31
-Nodes (8): file(), ICONSAX_LIKE, run(), clean(), cleanPath(), formatNumber(), IconError, parseSvg()
+Cohesion: 0.27
+Nodes (9): file(), ICONSAX_LIKE, run(), clean(), cleanPath(), formatNumber(), IconError, parseSvg() (+1 more)
 
 ### Community 607 - "Onboarding"
 Cohesion: 0.20
 Nodes (10): Accounts and returning users, C Bold rhythm, October 11, Current journey, Current redesign verification, Guest practice and recovery, Historical native correction checks, before this redesign, Motion, haptics and sheets, Onboarding (+2 more)
 
-### Community 608 - "launchHold.ts"
-Cohesion: 0.38
-Nodes (4): createLaunchHolds(), LaunchHolds, SETTLE_GAP_MS, Timer
+### Community 617 - "soundPreference.ts"
+Cohesion: 0.24
+Nodes (8): App(), loadHapticPreference(), loadSoundPreference(), setSoundPreference(), soundEnabled(), disk, writes, 460pt centred web column
 
 ### Community 618 - "deploy"
 Cohesion: 0.25
@@ -2561,17 +2576,25 @@ Nodes (7): deploy, numReplicas, restartPolicyMaxRetries, restartPolicyType, slee
 Cohesion: 0.25
 Nodes (7): deploy, numReplicas, restartPolicyMaxRetries, restartPolicyType, sleepApplication, startCommand, $schema
 
-### Community 625 - "turnHandling.ts"
-Cohesion: 0.29
-Nodes (6): ENDPOINTING_MIN_DELAY_MS, INTERRUPTION_MIN_DURATION_MS, INTERRUPTION_MIN_WORDS, SessionMode, TurnHandling, turnHandlingFor()
+### Community 625 - "lessonFooter.test.ts"
+Cohesion: 0.33
+Nodes (7): FOLD_SCALE, footerFolds(), MORE_HINT, MORE_LABEL, showsActionRow(), soundNoteIn(), view
 
-### Community 626 - "recipes.mjs"
-Cohesion: 0.29
-Nodes (5): CHIME, PENTATONIC, PURE, RECIPE_VERSION, SOFT
+### Community 626 - "FrenchLifeCard.test.ts"
+Cohesion: 0.18
+Nodes (7): CARD, COMPONENTS, FLAT, SRC, STORY_FLAT, STORY_HOME, STORY_LINES
 
-### Community 627 - "readiness.ts"
-Cohesion: 0.43
-Nodes (5): BackendReadiness, cachedReadiness(), refresh(), healthy, unavailable()
+### Community 627 - "orbRest.test.ts"
+Cohesion: 0.18
+Nodes (7): BREATHING, GLYPH, GLYPH_FLAT, ORB, ORB_FLAT, SHIMMERING, STOPPED
+
+### Community 628 - "startOwnership.test.ts"
+Cohesion: 0.10
+Nodes (20): asJs(), AsyncFunction, FakeRoom, fragment(), fragmentAt(), Handler, hook, insideOf() (+12 more)
+
+### Community 630 - "evidenceScreens.test.ts"
+Cohesion: 0.22
+Nodes (8): FILES, read(), SINGLE, SRC, stripComments(), WHOLE_DIRS, FRIENDS_NO_POINTS, FRIENDS_PURPOSE
 
 ### Community 631 - "phaseSixRowProblems"
 Cohesion: 0.40
@@ -2589,41 +2612,65 @@ Nodes (6): Abandoned rooms: a risk this register overstated, Failed-room billing
 Cohesion: 0.50
 Nodes (4): gitPredicate(), gitText(), MAIN_REFS, readGitFacts()
 
-### Community 638 - "config.ts"
-Cohesion: 0.53
-Nodes (4): exactHttpsOrigin(), productionConfigurationProblems(), secureUrl(), ServerEnvironment
+### Community 638 - "wallPages.ts"
+Cohesion: 0.27
+Nodes (6): canBuy(), endsOnPlans(), HERE, VALUE_PAGES, WallEntry, WallPage
 
 ### Community 639 - "The local loop"
 Cohesion: 0.40
 Nodes (5): Limits, logs and resume, Repair a failing gate, Review boundaries, Run a planned change, The local loop
 
-### Community 640 - "firstChoice.test.ts"
-Cohesion: 0.60
-Nodes (3): FIRST_CHOICES, FirstChoice, firstChoiceFeedback()
+### Community 640 - "orbLayers.test.ts"
+Cohesion: 0.25
+Nodes (5): OrbLayerState, HEARD, MOVING, STATES, UNMEASURED
+
+### Community 641 - "busyLabel.test.ts"
+Cohesion: 0.33
+Nodes (5): ACTIONS, openingTag(), SCREENS, SRC_DIR, tags()
+
+### Community 642 - "social.ts"
+Cohesion: 0.52
+Nodes (5): listeners, onSocialChange(), readSocial(), socialRequest(), utcWeek()
 
 ### Community 643 - "Tutor daily audio: pre-publication memory"
 Cohesion: 0.50
 Nodes (4): Batch 1, approved now, Next reset: another 200 NEW words and 200 NEW phrases, Release hold, Tutor daily audio: pre-publication memory
 
+### Community 645 - "launchHold.ts"
+Cohesion: 0.38
+Nodes (4): createLaunchHolds(), LaunchHolds, SETTLE_GAP_MS, Timer
+
+### Community 646 - "storeSettlement.ts"
+Cohesion: 0.40
+Nodes (4): BillingRefresh, StoreAction, RestoreOutcome, ownedStoreSettlement()
+
+### Community 647 - "Paper & Ink design world"
+Cohesion: 0.40
+Nodes (5): Paper colour token set, Paper & Ink design world, Everything spoken must also be readable, Absent evidence must not be fabricated, Drill mode and the recognition-to-production ramp
+
+### Community 650 - "judgeAttempt.ts"
+Cohesion: 0.83
+Nodes (3): judgeOwnWords(), levelHint(), readVerdict()
+
 ## Knowledge Gaps
-- **5066 isolated node(s):** `st`, `name`, `slug`, `version`, `orientation` (+5061 more)
+- **5086 isolated node(s):** `st`, `name`, `slug`, `version`, `orientation` (+5081 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **131 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **133 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `paper` connect `components.tsx` to `src/theme.ts`, `EndCard.tsx`, `html.ts`, `RootNavigator.tsx`, `illustrations/timing.ts`, `userKey`, `DailyLibraryScreen.tsx`, `StreakScreen.tsx`, `decorative`, `shapes.ts`, `momentum.ts`, `GoalStepScreen.tsx`, `SignInScreen.tsx`, `LuvaniTabBar.tsx`, `art/registry.test.ts`, `notebook.ts`, `settle.ts`, `SettingsScreen.tsx`, `ConvoScreen.tsx`, `scopeGeneration`, `VoiceOrb.tsx`, `LaunchScreen.tsx`, `Takeover.tsx`, `RiveSceneRenderer.native.tsx`, `useReduceMotion`, `DailyPracticeScreen.tsx`, `phraseKeyOf`, `WallScreen.tsx`, `particles.ts`, `planModel.ts`, `nextFace.test.ts`, `RecapScreen.tsx`, `App.tsx`?**
+- **Why does `paper` connect `src/theme.ts` to `preAccountDraft.ts`, `game-art-sheet.mjs`, `html.ts`, `scopeGeneration`, `OnboardingFlow.tsx`, `GoalStepScreen.tsx`, `illustrations/timing.ts`, `answers.test.ts`, `GameProvider.tsx`, `shapes.test.ts`, `shapes.ts`, `reminder.ts`, `App.tsx`, `glyphs.tsx`, `art/registry.test.ts`, `SettingsScreen.tsx`, `ConvoScreen.tsx`, `VoiceOrb.tsx`, `react`, `DrillScreen.tsx`, `components.tsx`, `TutorMemoryScreen.tsx`, `decorative`, `scope.ts`?**
   _High betweenness centrality (0.021) - this node is a cross-community bridge._
-- **Why does `scopeGeneration()` connect `scopeGeneration` to `soundcheck/store.ts`, `gameLocal.ts`, `AuthAdapter`, `EndCard.tsx`, `RootNavigator.tsx`, `homeDraw.ts`, `conversationPacks/store.ts`, `drill/store.ts`, `userKey`, `profile/store.ts`, `DailyLibraryScreen.tsx`, `localAdapter.ts`, `temporaryExportCache.ts`, `purchases.test.ts`, `GoalStepScreen.tsx`, `ReminderPlanner.tsx`, `journal.ts`, `practice/history.ts`, `progressStore.ts`, `marks.ts`, `settle.ts`, `SettingsScreen.tsx`, `missions/store.ts`, `adapter.native.ts`, `goals/store.ts`, `setItemInUserScope`, `review/store.ts`, `topics/store.ts`, `sessionStore.ts`, `progress/store.ts`, `momentsStore.ts`, `DailyPracticeScreen.tsx`, `bookmarks/store.ts`, `useReduceMotion`, `WallScreen.tsx`, `components.tsx`, `pendingPurchase.ts`, `activity.ts`, `RecapScreen.tsx`, `profile/merge.ts`, `App.tsx`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
-- **Why does `react` connect `components.tsx` to `WelcomeSignInGlow.tsx`, `src/theme.ts`, `useLiveSession.ts`, `EndCard.tsx`, `RootNavigator.tsx`, `homeDraw.ts`, `userKey`, `useEmailAutoAdvance.ts`, `DailyLibraryScreen.tsx`, `StreakScreen.tsx`, `decorative`, `compilerOptions`, `flights.ts`, `shapes.ts`, `core/src/index.ts`, `momentum.ts`, `GoalStepScreen.tsx`, `ReminderPlanner.tsx`, `SignInScreen.tsx`, `LuvaniTabBar.tsx`, `RoomLevels.tsx`, `settle.ts`, `SettingsScreen.tsx`, `ConvoScreen.tsx`, `scopeGeneration`, `StreakFlame.shared.tsx`, `VoiceOrb.tsx`, `taskTicks.ts`, `activeTime.ts`, `LaunchScreen.tsx`, `Takeover.tsx`, `RiveSceneRenderer.native.tsx`, `useReduceMotion`, `DailyPracticeScreen.tsx`, `safetyView.test.ts`, `BoldScene.native.tsx`, `WallScreen.tsx`, `planModel.ts`, `session/session.ts`, `RecapScreen.tsx`, `App.tsx`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `social.ts`, `src/theme.ts`, `gameLocal.ts`, `useLiveSession.ts`, `activeUserId`, `scopeGeneration`, `homeDraw.ts`, `GoalStepScreen.tsx`, `OnboardingFlow.tsx`, `answers.test.ts`, `useEmailAutoAdvance.ts`, `GameProvider.tsx`, `ReminderPlanner.tsx`, `userKey`, `compilerOptions`, `sittingDelta.test.ts`, `reminder.ts`, `App.tsx`, `glyphs.tsx`, `RoomLevels.tsx`, `SettingsScreen.tsx`, `ConvoScreen.tsx`, `drawing.ts`, `StreakFlame.shared.tsx`, `VoiceOrb.tsx`, `taskTicks.ts`, `session/session.ts`, `DrillScreen.tsx`, `safetyView.test.ts`, `components.tsx`, `TutorMemoryScreen.tsx`, `decorative`, `scope.ts`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **Why does `scopeGeneration()` connect `scopeGeneration` to `soundcheck/store.ts`, `gameLocal.ts`, `judgeAttempt.ts`, `useLiveSession.ts`, `AuthAdapter`, `activeUserId`, `OnboardingFlow.tsx`, `homeDraw.ts`, `conversationPacks/store.ts`, `GoalStepScreen.tsx`, `onboarding/plan.ts`, `drill/store.ts`, `registry.ts`, `GameProvider.tsx`, `userKey`, `ReminderPlanner.tsx`, `localAdapter.ts`, `temporaryExportCache.ts`, `reminder.ts`, `journal.ts`, `drill/index.ts`, `App.tsx`, `practice/history.ts`, `marks.ts`, `settle.ts`, `SettingsScreen.tsx`, `adapter.native.ts`, `guestPractice.ts`, `recognition.ts`, `goals/store.ts`, `textClient.ts`, `progressStore.ts`, `review/store.ts`, `sessionStore.ts`, `daily/catalogue.ts`, `profile/store.ts`, `react`, `bookmarks/store.ts`, `DrillScreen.tsx`, `strictContinuityReads.test.ts`, `components.tsx`, `storeBinding.test.ts`, `fixLineAttempt.ts`, `game/store.ts`, `scope.ts`, `pendingPurchase.ts`, `activity.ts`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `scopeGeneration()` (e.g. with `createHostQueue()` and `host()`) actually correct?**
   _`scopeGeneration()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `st`, `name`, `slug` to the rest of the system?**
-  _5066 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _5086 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `src/store.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.061088485746019994 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06693803708729082 - nodes in this community are weakly interconnected._
 - **Should `curationEval.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.037209302325581395 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06328320802005012 - nodes in this community are weakly interconnected._

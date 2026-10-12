@@ -662,6 +662,27 @@ describe('one door to the engine', () => {
     assert.ok(loops.includes('tutor/VoiceOrb.tsx'), 'the orb no longer loops, so this check reads nothing');
   });
 
+  test('raised choices keep their release spring when selection commits', () => {
+    const press = region(file('components.tsx').body, 'Press');
+    const body = /useEffect\(\(\) => \{\s*(const now = selected === true;[\s\S]*?)\}, \[selected, reduced, scale, depth\]\)/.exec(press)?.[1];
+    assert.ok(body, 'exercise the selection effect that the shared press actually runs');
+    const choose = new Function('selected', 'depth', 'chosen', 'scale', 'reduced', 'selectPop', body);
+    for (const depth of ['raised', 'control', 'tile']) {
+      let pops = 0;
+      const chosen = { current: false };
+      const release = { value: 'release spring' };
+      const pop = () => { pops++; release.value = 'selection pop'; };
+      choose(true, depth, chosen, release, false, pop);
+      choose(true, depth, chosen, release, false, pop);
+      assert.equal(chosen.current, true);
+      assert.equal(pops, depth === 'raised' ? 0 : 1);
+      assert.equal(release.value, depth === 'raised' ? 'release spring' : 'selection pop');
+      choose(false, depth, chosen, release, false, pop);
+      assert.equal(chosen.current, false);
+      assert.equal(pops, depth === 'raised' ? 0 : 1);
+    }
+  });
+
   test('the selected press is a pop and a blue ring layer, never a shadow', () => {
     // D7: buttons stay flat with richer motion. A tile presses deeper, and a
     // choice that becomes the chosen one pops once and wears a translucent blue
@@ -669,7 +690,7 @@ describe('one door to the engine', () => {
     const press = region(file('components.tsx').body, 'Press');
     assert.match(press, /depth\?: 'control' \| 'tile'|depth = 'control'/, 'the press has no tile depth');
     assert.match(press, /pressTo\(scale, depth === 'tile' \|\| depth === 'raised' \? PRESS_SCALE_TILE : PRESS_SCALE, reduced\)/, 'a tile does not press deeper than a control');
-    assert.match(press, /if \(now\) selectPop\(scale, reduced\);/, 'becoming chosen does not pop');
+    assert.match(press, /if \(now && depth !== 'raised'\) selectPop\(scale, reduced\);/, 'ordinary choices pop, while raised choices keep their release spring uninterrupted');
     assert.match(press, /ringTo\(ring, now, reduced\);/, 'the ring does not follow the choice');
     assert.match(press, /\{selected !== undefined \? \(/, 'an action that is not a choice draws a ring');
     assert.match(press, /\{\.\.\.decorative\}\s*style=\{\[\{ pointerEvents: 'none',/, 'the ring is announced or catches touches');

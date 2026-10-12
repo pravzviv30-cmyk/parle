@@ -4,10 +4,12 @@ import { CheckGlyph, Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { useFontScale } from '../layout.tsx';
-import { colour, decorative, paper, space } from '../theme.ts';
+import { colour, decorative, paper } from '../theme.ts';
 import { c, boldType as type } from './boldRhythm.ts';
 import { VOICE_BODY } from './disclosure.ts';
+import { MediaProgress } from '../motion/MediaProgress.tsx';
 import { Glint } from '../motion/Glint.tsx';
+import type { TutorPreviewProgressSource } from '../tutor/tutorPreview.ts';
 
 const TUTOR_COLOURS = {
   alexandre: { fill: c.violet, ink: c.white, ring: c.sun },
@@ -24,6 +26,7 @@ type Preview = {
   progress: number;
   error: string | null;
   toggle: (voice: TutorVoiceKey) => void;
+  progressSource?: TutorPreviewProgressSource;
 };
 
 /** Sibling touch targets keep listening independent from the selected voice. */
@@ -71,9 +74,8 @@ export function TutorSelection({ chosen, preview, playing = null, onChoose, onHe
           {phase === 'error' && !!preview?.error && <Text accessibilityLiveRegion="polite" style={[st.error, { color: colours.ink }]}>
             {preview.error} Tap Retry to listen again. You can still choose this tutor.
           </Text>}
-          <View {...decorative} style={st.playbackTrack}>
-            <View style={{ height: 2, width: `${Math.max(0, Math.min(1, preview?.voice === voice.value ? preview.progress : 0)) * 100}%`, backgroundColor: colours.ink }} />
-          </View>
+          <MediaProgress voice={voice.value} colour={colours.ink} source={preview?.progressSource}
+            fallback={preview?.voice === voice.value ? preview.progress : 0} />
           {selected && <Glint when wait={0} radius={12} />}
         </View>;
       })}
@@ -95,7 +97,6 @@ const st = StyleSheet.create({
   controls: { marginTop: 8 },
   listen: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 8, borderRadius: 12, backgroundColor: c.paper },
   listenLabel: { ...type.label, color: c.ink, flexShrink: 1 },
-  playbackTrack: { height: 2, marginTop: space(0.5), backgroundColor: 'transparent' },
   error: { ...type.small, color: paper.ink, textAlign: 'center' },
   hint: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
 });

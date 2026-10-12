@@ -10537,3 +10537,46 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: Dockerfile, .github/workflows/release.yml
 - note: The documented static decoder image exposes /ffmpeg, while the unexecuted portable build assumed /usr/local/bin/ffmpeg. The build now uses the documented path and retains byte-hash and compressed-audio verification. Final nonroot, network-disabled Linux decoder/native/model proofs run during the real build; image publication and hosted promotion remain separate.
 - verified-by: `static decoder image keeps byte verification and final nonroot offline runtime proofs`
+
+### F805 — Reviewed portable decoder inputs exceed the immutable executable bound
+- severity: P2
+- status: [ ]
+- where: deployment/verifyAudioDecoder.mjs, services/shared/audioDecode.ts
+- note: Actual OCI build 38271932614 passed the source contract but refused the independently hashed static-ffmpeg 9.0.2-1 binary (144,081,824 bytes); the maintained 8.1.2 candidate also exceeds the existing 128 MiB bound (140,059,552 bytes). The rejection is correct. A compatible reviewed immutable decoder artifact must pass the unchanged size/hash/compressed-audio and final nonroot offline Linux checks before portable image acceptance. No artifact was published or hosted workload deployed.
+- verified-by: `immutable decoder rejects an executable above 128 MiB before execution`
+
+### F806 — Raised choices interrupt their own release spring
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/components.tsx, apps/mobile/src/onboarding/motion/BoldScene.native.tsx
+- note: Committing a raised selection started a second pop on the release spring's scale. Raised choices now retain one release spring and existing ring/glint feedback. Native artwork is memoized with stable native callbacks so unchanged props do not rebind it. Physical frame timing and haptic feel are not certified by these source checks.
+- verified-by: `raised choices keep their release spring when selection commits`
+
+### F807 — Tutor samples load serially and media ticks repaint the chooser
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/useTutorPreview.ts, apps/mobile/src/tutor/tutorPreview.ts, apps/mobile/src/motion/MediaProgress.tsx
+- note: Six bundled clips now warm while the chooser is visible; native source preparation runs alongside audio-mode setup, with playback still waiting for readiness. Control subscriptions do not publish media-only ticks to the screen. The progress leaf animates observed position with a native transform and suppresses unchanged/inactive targets. Failed warmup remains optional, player switching is exclusive and late cache loads clean up on exit. Audible first-tap latency still requires a physical-device measurement.
+- verified-by: `media ticks update the progress listener without rerendering the onboarding controls`
+- verified-by: `native bundled samples download before preloading and all warm cache leases have exit cleanup`
+- verified-by: `ten playing ticks animate only the active tutor row and never restart an unchanged target`
+- verified-by: `leaving during preload clears the late result without leaving a hidden player cache`
+- verified-by: `a quick return during preload retains the new warm cache`
+
+### F808 — First practice failure looks ready and hides same-room typing recovery
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/FirstLivePractice.tsx
+- note: Failed/exhausted status now owns the caption before stale speaking, thinking or microphone flags. Eligible voice failures offer the shared typing door in the existing metered session. A terminal refusal cannot start another grant; outstanding sessions and settlement block connection retry.
+- verified-by: `failed first practice never announces readiness or stale live activity`
+- verified-by: `voice failure typing keeps the existing room and never requests another grant`
+- verified-by: `a terminal or disconnected room refusing the switch stays failed without a replacement grant`
+
+### F809 — Reduced-motion changes replay choice nudges and animate rejected sheet swipes
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/firstRun/ChoiceNudge.tsx, apps/mobile/src/components.tsx
+- note: Each nudge request is consumed once, including reduced-motion taps, and settles on leave. The persistent sheet responder reads the current preference; rejected/short swipes land immediately when motion is reduced, and pending return animation cancels on preference change, a new gesture or unmount. Existing dismissal thresholds and refusal guards remain.
+- verified-by: `a choice nudge consumes each tap once, including taps with reduced motion`
+- verified-by: `sheet short/rejected swipe follows the latest reduced-motion setting`
+- verified-by: `sheet return motion cancels when the preference changes, a new gesture starts or it unmounts`

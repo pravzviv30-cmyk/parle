@@ -1547,8 +1547,10 @@ export function Press({ onPress, haptic = 'light', style, frame, depth = 'contro
     const now = selected === true;
     if (now === chosen.current) return;
     chosen.current = now;
-    if (now) selectPop(scale, reduced);
-  }, [selected, reduced, scale]);
+    // Raised choices already settle on release. A second pop interrupts that
+    // spring and briefly reverses the surface's press depth.
+    if (now && depth !== 'raised') selectPop(scale, reduced);
+  }, [selected, reduced, scale, depth]);
   return (
     <Pressable
       accessibilityRole="button" {...rest}
@@ -1775,6 +1777,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
   const flashed = useRef(false);
   const measureCue = () => setCue(sheetRunsUnder(measures.current.content, measures.current.viewport, measures.current.offset));
   const reduced = useReduceMotion();
+  const reducedNow = useRef(reduced); reducedNow.current = reduced;
   const snapshot = useRef({ title, children, footer });
   if (visible) snapshot.current = { title, children, footer };
   const wasOpen = useRef(false);
@@ -1816,14 +1819,21 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
       if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
     }
   }, [present, returnFocus]);
+  useEffect(() => {
+    if (reduced) { drag.stopAnimation(); drag.setValue(0); }
+    return () => drag.stopAnimation();
+  }, [reduced, drag]);
   const gesture = useRef(PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderGrant: () => drag.stopAnimation(),
     onPanResponderMove: (_, g) => drag.setValue(Math.max(0, g.dy)),
     onPanResponderRelease: (_, g) => {
       if ((g.dy > 70 || g.vy > 0.8) && close.current() !== false) return;
+      drag.stopAnimation();
+      if (reducedNow.current) { drag.setValue(0); return; }
       Animated.timing(drag, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
     },
-    onPanResponderTerminate: () => drag.setValue(0),
+    onPanResponderTerminate: () => { drag.stopAnimation(); drag.setValue(0); },
   })).current;
   const focusHeading = () => {
     if (Platform.OS === 'web') { (heading.current as unknown as { focus?: () => void })?.focus?.(); return; }

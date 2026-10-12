@@ -351,3 +351,54 @@ local links and whitespace checks pass. Graph refresh completed (15,982 nodes,
 proofs. The next artifact is an OCI-only GitHub build on the exact review-branch
 commit with the reviewed immutable inputs; it does not publish/deploy an image.
 Native motion/haptic observation is pending the user's device report.
+
+### Native interaction follow-up
+
+The user reported choppy setup and tutor-preview controls, slow sample startup
+and a jumping duration bar. The isolated presentation preview also left Start
+practice disabled after eligibility confirmation. That preview deliberately
+cannot start a network session; it now explains the limitation without removing
+the eligibility or preview guards. Real start acceptance belongs in the main app.
+
+| Task / owner | Allowed files | Observable acceptance |
+|---|---|---|
+| Press/artwork and practice recovery / frontend agent | Shared Press, native BoldScene, onboarding start/practice surfaces and focused tests | One raised release spring; stable native artwork callbacks; truthful failure caption and same-room typed recovery; terminal/settlement guards preserved |
+| Sample startup and progress / audio agent | Tutor preview hook/controller/preloader, TutorSelection, media-progress primitive and focused tests | Six bundled clips warmed while visible; one active player; tap/switch/pause/replay/background cleanup; observed media position animates without parent media-tick renders |
+| Independent UX review / reviewer agent | Read-only source and patch review | Selection never plays; Listen never selects; loading/error/reduced-motion/large-text states checked; no eligibility/admission guard relaxation |
+| Device/browser acceptance and landing / root and human | Existing evidence/domain docs, verification and explicit Git paths | Running changed journey, human iPhone responsiveness report, focused checks and full gate before main landing |
+
+The independent review also found misleading ready captions during a failed
+first practice and no typing recovery despite the live hook keeping a recoverable
+room open. Both are repaired through the existing failure/typed-door seams,
+without requesting another grant or bypassing settlement. A second read-only pass
+found inactive progress rows scheduling zero-value animations, stale nudges
+replaying after a reduced-motion change and rejected sheet swipes ignoring the
+current preference. Those are fixed with production-path regression coverage.
+
+Browser acceptance at 390 × 844 verifies deliberate selection enables the next
+action, Listen does not change selection, real sample playback reaches Pause,
+Pause/Resume retain the position and the start sheet explains its isolated-preview
+guard. Evidence: `tutor-preview-paused-390.png` under this task's existing local
+evidence directory. The complete Welcome → purpose → interests → level →
+confidence → practice style → daily goal → personal plan → tutor journey also
+passed in that viewport, with the selected answers reflected in the plan.
+The fresh iPhone reload attempt failed because its CoreDevice
+connection was invalidated after the user left; no new native responsiveness,
+audible latency or haptic acceptance is claimed. Prior sign-in/restoration proof
+remains historical to this final UX patch.
+
+Final integrated verification: full gate green with 5,153 workspace tests, 92
+shared release/provider proofs and eight database proofs replaying 39 migrations.
+Mobile typecheck and focused implementation/independent review checks passed.
+Fifteen local documentation links and whitespace checks passed. The final graph
+refresh completed (16,022 nodes, 42,949 edges); the SQL parser limitation remains.
+No test floor or runtime protection was weakened. This patch is eligible for the
+user-authorised main landing; hosted promotion and the disconnected-device checks
+remain separate open acceptance items.
+
+The first OCI-only build, run 38271932614 on `abaa4df8`, passed its source contract
+but failed the immutable decoder guard: the reviewed 9.0.2-1 binary is 144,081,824
+bytes, exceeding the existing 128 MiB bound. A read-only 8.1.2 candidate is also
+too large (140,059,552 bytes). No runtime/build bound was raised, no image was
+published and no Railway workload was started. A compatible reviewed decoder
+artifact and successful Linux execution remain open acceptance items.
