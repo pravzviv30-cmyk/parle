@@ -76,6 +76,7 @@ import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
 import { profileFromDraft, reminderFromDraft, reminderSummary } from './src/onboarding/createFromDraft.ts';
+import { shouldStartFirstPractice } from './src/onboarding/firstPracticeEntry.ts';
 import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
 import { saveReminder } from './src/reminders/store.ts';
 import { cancelReminder } from './src/reminders/schedule.ts';
@@ -170,7 +171,7 @@ function PreAccountProfileBootstrap({
   accountLabel,
 }: {
   draft: PreAccountOnboardingDraft;
-  done: (profile: StoredProfile) => void;
+  done: (profile: StoredProfile, startPractice: boolean) => void;
   onConsumed: () => void;
   requireReview: boolean;
   accountLabel: string;
@@ -180,6 +181,10 @@ function PreAccountProfileBootstrap({
   const [confirmed, setConfirmed] = useState(!requireReview);
   const [bootstrapError, setBootstrapError] = useState('');
   const [bootstrapRetry, setBootstrapRetry] = useState(0);
+  const restarting = useRef(false);
+  const mounted = useRef(true);
+  const [restartBusy, setRestartBusy] = useState(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   // ProfileGate is intentionally the only owner of a user-scoped profile. The
   // pre-account flow can therefore carry its two answers across auth without
   // ever writing them to a shared account namespace. The effect is the bridge:
@@ -207,7 +212,11 @@ function PreAccountProfileBootstrap({
     // There is an account by the time this renders, so there is a key to write
     // the answer under.
     void (async () => {
+      let startPractice = false;
       try {
+        const guest = await loadGuestPractice(true);
+        if (owner !== scopeGeneration()) return;
+        startPractice = shouldStartFirstPractice(draft, guest);
         if ((await saveConsent({ allowed: draft.analyticsConsent })) !== 'durable') throw new Error('storage failed');
         if (owner !== scopeGeneration()) return;
         // The plan's reminder as the first run left it: on only when the
@@ -220,22 +229,33 @@ function PreAccountProfileBootstrap({
         return;
       }
       if (owner !== scopeGeneration()) return;
-      done(built);
-      if (!draft.eligibilityConfirmed) onConsumed();
+      done(built, startPractice);
+      if (!draft.eligibilityConfirmed || startPractice) onConsumed();
     })();
   }, [confirmed, draft, done, onConsumed, bootstrapRetry]);
-  if (bootstrapError) return <OnboardingLayout page="account-welcome" footer={<PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} />}><Text style={[type.body, { textAlign: 'center' }]}>{bootstrapError}</Text></OnboardingLayout>;
+  if (bootstrapError && confirmed) return <OnboardingLayout page="account-welcome" footer={<PillButton label="Try again" onPress={() => { setBootstrapError(''); setBootstrapRetry(v => v+1); }} />}><Text style={[type.body, { textAlign: 'center' }]}>{bootstrapError}</Text></OnboardingLayout>;
   if (!confirmed) {
     const plan = planFor(draft);
     // A reminder the first run set belongs to the plan being put aside, so it
     // leaves the phone first; otherwise it would keep nudging under a Settings
     // row that says Off.
     const startAgain = async () => {
-      if (draft.reminderEnabled === true) await cancelReminder();
-      onConsumed();
+      if (!mounted.current || restarting.current) return;
+      restarting.current = true; setRestartBusy(true); setBootstrapError('');
+      const owner = scopeGeneration();
+      try {
+        if (draft.reminderEnabled === true && (await cancelReminder()) === 'failed') throw new Error('reminder cancellation failed');
+        if (!mounted.current || owner !== scopeGeneration()) return;
+        onConsumed();
+      } catch {
+        if (mounted.current && owner === scopeGeneration()) setBootstrapError('Your reminder could not be cancelled. Your plan is still here. Try starting a new plan again.');
+      } finally {
+        restarting.current = false;
+        if (mounted.current && owner === scopeGeneration()) setRestartBusy(false);
+      }
     };
     return <OnboardingLayout page="account-welcome" progress={onboardingProgress({ page: 'account-welcome', five: draft.onboardingVariant === 'five' })}
-      footer={<PillButton label="Use this plan for my account" onPress={() => setConfirmed(true)} />}>
+      footer={<PillButton label="Use this plan for my account" disabled={restartBusy} onPress={() => { if (!restarting.current) setConfirmed(true); }} />}>
       <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', marginBottom: space(4) }]}>Use this starting plan?</Text>
       <Text style={[type.body, { color: paper.ink, textAlign: 'center' }]}>You are signed in as {accountLabel}. This account has no saved profile. The plan on this phone may have been made by someone else.</Text>
       <Card style={{ marginTop: space(4), gap: space(2) }}>
@@ -246,7 +266,8 @@ function PreAccountProfileBootstrap({
         <Text style={type.body}>{plan.minutes === 'none' ? 'No fixed daily target.' : `${plan.minutes} minutes as a suggested daily routine.`}</Text>
         <Text style={type.small}>Optional usage data: {draft.analyticsConsent ? 'on' : 'off'}. {reminderSummary(draft)} You can change these choices in Settings.</Text>
       </Card>
-      <IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress={() => void startAgain()} />
+      {!!bootstrapError && <Text accessibilityRole="alert" style={[type.body, { color: paper.ink }]}>{bootstrapError}</Text>}
+      <IconAction layout="inline" icon="edit" label="Start a new plan instead" busy={restartBusy} disabled={restartBusy} onPress={() => void startAgain()} />
     </OnboardingLayout>;
   }
   return <Loading />;
@@ -324,7 +345,9 @@ function SignedInRoot({
     return () => { live = false; listener.remove(); };
   }, [openPendingInvite]);
 
-  useEffect(() => {
+  // Establish the account before descendant passive focus effects read stores.
+  // Effect replay can retain the visible screens while this owner restarts.
+  useLayoutEffect(() => {
     let cancelled = false;
     let engine: SyncEngine | null = null;
     setReady(false);
@@ -333,6 +356,7 @@ function SignedInRoot({
     const owner = scopeGeneration();
     void migrateLegacyStores(user.id)
       .then(async () => {
+        if (cancelled || owner !== scopeGeneration()) return;
         // Sessions finished before the activity log existed have no evidence
         // stored to price them properly, so each is credited at the base rate
         // and no more. Without this, everyone already using the app is told on
@@ -347,16 +371,17 @@ function SignedInRoot({
             await backfillFrom(history, lessonXp({ wordsProduced: [], unassistedRate: 0 }));
           }
         } catch {
-          console.warn('[luvani] startup history recovery unavailable');
+          if (!cancelled && owner === scopeGeneration()) console.warn('[luvani] startup history recovery unavailable');
         }
         if (cancelled || owner !== scopeGeneration()) return;
         // A failed recovery retains the outbox for a future launch. It does not
         // manufacture phrases or counts and is independent of opening the app.
         try {
           const recovered = await recoverJournal();
+          if (cancelled || owner !== scopeGeneration()) return;
           if (recovered > 0) console.info(`[luvani] recovered ${recovered} phrases from a session that did not finish banking`);
         } catch {
-          console.warn('[luvani] startup phrase recovery unavailable');
+          if (!cancelled && owner === scopeGeneration()) console.warn('[luvani] startup phrase recovery unavailable');
         }
 
         // Sync starts here and nowhere else: after the journal has been banked,
@@ -478,21 +503,21 @@ function SignedInRoot({
     <ProfileGate
       onSignOut={() => void auth.signOut()}
       onboarding={(existing, done) => (
-        existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft(freshStart) ? (
+        existing === null && preAccountDraft !== null && preAccountDraft.accountReturnPage !== 'hear-it' && mayAdoptPreAccountDraft(freshStart) ? (
           <PreAccountProfileBootstrap
             draft={preAccountDraft}
             requireReview={!newlyCreated && (preAccountDraft.eligibilityConfirmed === true || user.provider === 'google' || user.provider === 'apple')}
             accountLabel={user.email ?? 'your current account'}
             onConsumed={onPreAccountDraftConsumed}
-            done={(profile) => {
+            done={(profile, startPractice) => {
               firstScene.current = firstSceneFor(preAccountDraft.startLevel, preAccountDraft.reason);
-              setJustOnboarded(!preAccountDraft.eligibilityConfirmed);
+              setJustOnboarded(startPractice);
               done(profile);
             }}
           />
         ) : existing === null ? (
           <PreAccountOnboarding
-            initialDraft={null}
+            initialDraft={preAccountDraft?.accountReturnPage === 'hear-it' ? { ...preAccountDraft, page: 'hear-it' } : null}
             signedIn
             refused={refused}
             onDraftChange={() => { /* Drafts for signed-in learners remain inside their account flow. */ }}
@@ -502,10 +527,15 @@ function SignedInRoot({
               if (!draft.eligibilityConfirmed) return false;
               const owner = scopeGeneration();
               const built = profileFromDraft(draft);
+              const guest = await loadGuestPractice(true);
+              if (owner !== scopeGeneration()) return false;
+              const startPractice = shouldStartFirstPractice(draft, guest);
               if ((await saveConsent({ allowed: draft.analyticsConsent })) !== 'durable' || owner !== scopeGeneration()) return false;
               if ((await saveReminder(reminderFromDraft(draft))) !== 'durable' || owner !== scopeGeneration()) return false;
               if (!(await saveProfile(built)) || owner !== scopeGeneration()) return false;
               firstScene.current = firstSceneFor(draft.startLevel, draft.reason);
+              setJustOnboarded(startPractice);
+              onPreAccountDraftConsumed();
               done(built);
               return true;
             }}

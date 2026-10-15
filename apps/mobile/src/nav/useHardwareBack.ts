@@ -7,17 +7,17 @@
  * hardware back either popped the whole screen or did nothing. This hook lets a
  * screen intercept that press for exactly as long as the sub-view is showing.
  *
- * `useFocusEffect` is what scopes it. The listener is registered when the screen
- * gains focus and torn down when it loses focus, so a view that is not on top of
- * the stack never eats the press meant for whatever is. And `active` gates it
- * one level finer: the same screen registers nothing while its sub-view is
- * closed, so ordinary back still works, and only steps in when there is
- * something in place to close.
+ * A routed screen registers while focused. Auth and onboarding also open
+ * policy pages outside the navigator, where mounting is their visibility
+ * boundary. Reading the optional context lets both kinds of page share this
+ * hook without requiring a navigator merely to display legal information.
+ * `active` gates the listener one level finer: a closed sub-view never consumes
+ * the ordinary back action.
  */
 
-import { useCallback } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { BackHandler, Platform } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { NavigationContext } from '@react-navigation/native';
 
 /**
  * Route the hardware back button to `onBack` while `active`.
@@ -27,15 +27,32 @@ import { useFocusEffect } from '@react-navigation/native';
  * `active` is false nothing is registered at all, so the default back stands.
  */
 export function useHardwareBack(active: boolean, onBack: () => void): void {
-  useFocusEffect(
-    useCallback(() => {
-      if (!active) return;
-      if (Platform.OS !== 'android') return;
-      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        onBack();
+  const navigation = useContext(NavigationContext);
+  const latestBack = useRef(onBack);
+  latestBack.current = onBack;
+
+  useEffect(() => {
+    if (!active || Platform.OS !== 'android') return;
+    let subscription: ReturnType<typeof BackHandler.addEventListener> | undefined;
+    const remove = () => {
+      subscription?.remove();
+      subscription = undefined;
+    };
+    const listen = () => {
+      if (subscription !== undefined) return;
+      subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        latestBack.current();
         return true;
       });
-      return () => sub.remove();
-    }, [active, onBack]),
-  );
+    };
+
+    if (navigation === undefined || navigation.isFocused()) listen();
+    const unsubscribeFocus = navigation?.addListener('focus', listen);
+    const unsubscribeBlur = navigation?.addListener('blur', remove);
+    return () => {
+      remove();
+      unsubscribeFocus?.();
+      unsubscribeBlur?.();
+    };
+  }, [active, navigation]);
 }

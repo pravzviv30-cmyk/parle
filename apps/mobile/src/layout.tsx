@@ -246,6 +246,9 @@ export function ScrollScreen({
   if (embedded) {
     return <View style={{ gap: space(4) }}>{children}{footer}</View>;
   }
+  // RN web treats programmatic focus scrolling as a drag; only gestures dismiss.
+  const resolvedKeyboardDismissMode = Platform.OS === 'web' ? 'none' : keyboardDismissMode;
+  const webDragDismisses = Platform.OS === 'web' && keyboardDismissMode === 'on-drag';
   const screen = (
     <Screen
       ground={ground}
@@ -280,7 +283,9 @@ export function ScrollScreen({
         }}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
-        keyboardDismissMode={keyboardDismissMode}
+        keyboardDismissMode={resolvedKeyboardDismissMode}
+        {...(webDragDismisses ? { onWheel: Keyboard.dismiss } : {})}
+        onTouchMove={webDragDismisses ? Keyboard.dismiss : undefined}
         showsVerticalScrollIndicator={false}
       >
         {children}

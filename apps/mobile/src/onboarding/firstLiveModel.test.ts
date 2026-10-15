@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { buildConversationPack, DEFAULT_TUTOR_VOICE, firstPracticeScenario } from '@luvani/core';
 import { briefFromDraft, firstAchievements, firstLiveSummary, repairFirstLiveRecord, type FirstLiveRecord } from './firstLiveModel.ts';
 import { freshPreAccountDraft } from './preAccountDraft.ts';
+import { readFileSync } from 'node:fs';
 test('travel and café interests reach the live scenario without mutating the saved choices', () => {
   const draft = { ...freshPreAccountDraft(), reason: 'trip' as const, interests: ['food', 'music'] as ('food' | 'music')[],
     startLevel: 'few' as const, speakingConfidence: 'trying' as const, practiceFocus: 'speaking' as const, minutes: 10 as const, tutorVoice: 'emilie' as const };
@@ -31,6 +32,15 @@ test('spoken recognition is not quoted as certain; partial and interrupted sessi
 });
 test('a session without confirmed contributions has no invented vocabulary achievements', () => {
   assert.deepEqual(firstAchievements({...record,outcome:'partial',contributions:[]}),[]);
+});
+test('an English spoken help request cannot support a claim that French was spoken', () => {
+  const mixed: FirstLiveRecord = { ...record, contributions: [...record.contributions, { id: 'help', text: 'Can you explain that in English?', input: 'spoken' }] };
+  assert.match(firstAchievements(mixed).join(' '), /by typing/);
+  assert.match(firstAchievements(mixed).join(' '), /using your voice/);
+  assert.doesNotMatch(firstAchievements(mixed).join(' '), /spoke French|pronunciation|mastered/);
+  const celebration = readFileSync(new URL('./FirstSessionResult.tsx', import.meta.url), 'utf8');
+  assert.match(celebration, />You practised French\./);
+  assert.doesNotMatch(celebration, /You spoke French\./, 'capture mode alone cannot establish French speech');
 });
 test('record repair requires completion proof and rejects duplicate final turns or cross-session packs', () => {
   assert.ok(repairFirstLiveRecord(record));

@@ -1,5 +1,153 @@
 # Design
 
+## 14 October 2026 · C2 Bold rhythm
+
+The current C2 presentation follows the approved
+[Figma flow](https://www.figma.com/design/sjAwoGinWQKvhGrWbgMO18?node-id=58-364).
+It supersedes the C and Revamp B composition, illustration and onboarding
+timings recorded below. Shared product rules, earned evidence, account ownership
+and server admission remain in their existing owners. Verification and remaining
+release holds belong to the [change plan](docs/changes/bold-rhythm.md).
+
+`boldRhythm` in [palette.ts](apps/mobile/src/palette.ts) supplies violet, sun,
+warm paper, navy ink and white, with lavender, peach, sage and butter surfaces.
+Violet pages use white words and gold primary actions; paper pages use navy words
+and violet primary actions. Muted words belong on light surfaces. C2 cards turn
+24 points, the composer turns 22, and primary buttons are at least 52 points high
+with 20-point corners. Shared `Press` owns responsive press feedback; quiet
+secondary actions and mode controls retain a 44-point touch target.
+
+`boldType` in [theme.ts](apps/mobile/src/theme.ts) uses bundled Outfit:
+display 44/48 ExtraBold, title 30/34 Bold, heading 22/27 SemiBold, body 17/23
+Regular, small 13/18 Regular and label 16/21 Medium. The returning-user title
+is 32/36, Well done is 46/52 and the achievements heading is 36/39.
+Type scales with the OS; compact layouts reduce decoration and scroll content
+rather than truncate words. The C2 frame has 24-point gutters and a reading
+column at most 560 points wide.
+
+Purpose, interests, French level, confidence, practice focus and daily time
+share the tutor page's richer sage, peach, lavender and butter answer cards.
+Their plan-edit choices use the same palette order. Answer titles use 18/24
+Outfit SemiBold; selected cards turn violet with fully opaque white words and
+a fixed gold check. Question cards are at least 72 points high with 24-point
+corners. Selection changes paint without changing the card's footprint, and
+the rounded outer target retains visible keyboard focus. The shared raised
+press spring and one selection glint own feedback. Next keeps its deliberate
+action, disabled face and readiness fade, adding a gold arrow on the live
+violet face; the label can wrap at larger text sizes. Separate privacy opt-ins
+retain their quiet neutral presentation.
+
+Each question now leads with a topic-colour illustration band above the title,
+with soft static rings and a curved paper edge inspired by the founder's
+attached onboarding examples. The shared frame lets only this decoration bleed
+beyond its gutters; the question, answer cards and bottom action retain their
+aligned reading column. The band is 168 points high, reducing to 118 in the
+shared compact/large-text mode. The founder's later request supersedes the
+first recomposition of existing exports with six genuinely redrafted local SVG
+drawings in [c2QuestionDrawings.ts](apps/mobile/src/onboarding/c2QuestionDrawings.ts).
+The cloud family guides their friendly organic style, without requiring a cloud
+on every page: a folded-map explorer, an inviting book, a growing plant,
+a welcoming speech character, two conversation partners, and a relaxed gold
+clock holding a violet mug. Each uses a dominant expressive character, cohesive
+props, rounded navy strokes and flat layered depth; supporting marks are sparse.
+The local drawings use the C2 palette and a fixed 280 × 180 source canvas. The
+shared renderer passes its existing closed 4.8-second phase to stable semantic
+vector groups: the map offers its compass, the book opens its hands, the plant
+sways its leaves and tips its can, confidence opens its arms with a 1.2% sound
+badge pulse, the partners lean toward each other, and the clock raises its mug
+with gently drifting steam. Joint rotations are 1–3 degrees; held props share
+their arm's pivot and motion across rear/front paint planes. Faces stay rigid
+with their bodies, and the clasp and feet remain grounded. Memoized, namespaced
+XML never changes per frame. The whole-scene float remains 1.8 rendered points
+normally and about 1.1 in compact layouts. Conservative painted-geometry
+envelopes cover every gesture angle, scale and lift plus the float. Gestures
+return to the authored pose at both loop ends with continuous velocity; live
+Reduce Motion shows that still pose. Selection never resets the clock; sheets,
+screen activity and foreground retain the shared pause/resume guards. The curve,
+title, cards and action remain still while artwork loops.
+
+Meet your tutor uses the C2 sage, peach, lavender and butter card grounds,
+larger navy names and a violet selected card with white words and a gold check.
+Listen is integrated into each card as a violet pill, turning gold on the
+selected tutor. Its shared press spring, real playback progress and active
+speaker/loading icon supply feedback; loading, pausing and resuming do not
+change the control's width. At large text the identity and Listen control stack.
+Listening stays separate from the tutor selection and the next-page action.
+All six tutor portraits gently lift 1.1–1.4 points and sway by 0.8 degrees in
+the same closed 4.8-second C2 cycle. Only the exported portrait layer moves;
+its card, name, selection check and controls stay fixed. The module-level scene
+definitions keep their clocks through selection and playback changes, with the
+same activity, foreground and live Reduce Motion handling as other C2 art.
+
+The original illustration family contains 127 local SVG layers exported from Figma,
+with asset provenance, dimensions and hashes in
+[manifest.json](apps/mobile/assets/c2/manifest.json). The shared
+[C2Scene.tsx](apps/mobile/src/onboarding/motion/C2Scene.tsx) composes those
+layers and the locally redrafted question vectors using Reanimated through the
+existing `motion/drive.ts`. The new drawings are repo-authored SVGs, not additional
+Figma exports; the original 127 assets and hashes remain unchanged. Closed 4.8-second
+loops ease between Rest and Float in 2.4 seconds each, ending at the same pose
+and velocity. Screen activity, `SceneActivity`, AppState and live Reduce Motion
+control the clock. Inactive/background scenes pause at their current pose;
+reduced or unknown motion preference shows still art. Ordinary form changes
+do not remount the clock or reset answers, progress or transcript history.
+Plan artwork also pauses while its edit sheet is open, retaining the mounted
+scene and phase for resumption. Unanswered-question guidance occupies the
+existing Next button face so the footer and scrolling viewport do not jump.
+
+Page changes use the shared interruptible 300 ms fade/translation, with one
+synchronous advancement lock. Progress fills four route-derived stages and
+does not restart when artwork loops; Sign in, account welcome and Home have no
+onboarding strip. Welcome to Luvani is a static page with an explicit Continue.
+Only its logo ring moves: it starts after 800 ms and rotates continuously over
+8.8 seconds. The page never dismisses itself.
+
+All live tutor surfaces use the shared C2 room: a soft blue/lavender orb above
+left tutor and right learner chat bubbles, a transcript visibility control,
+a bottom composer in typing mode, and a compact Speaking/Typing control beside
+End session. Focus or a visible keyboard hides the mode/end controls. Tapping
+the composer reveals the latest sent learner bubble, falling back to the
+latest tutor bubble only before the learner has sent a message. That selected
+bubble remains above the composer through repeated keyboard layout changes;
+oversized text starts at its beginning. A manual scroll takes control, and
+repeated keyboard signals cannot pull the reader back down. New lines follow
+while the reader is near the end; reading older lines preserves that position
+and offers Jump to latest. Practice support starts collapsed and opens only
+through the learner's explicit toggle; replies and mode changes never expand
+it. Keyboard editing hides it temporarily while retaining that choice.
+A text-only grant cannot turn on speech; a voiced session can pause and resume
+within its existing room. A tutor's departure from an otherwise connected room closes
+capture and shows the existing connection failure; it preserves an earned
+recap, and a temporary reconnect does not trigger this failure. See
+[live voice](docs/LIVE_VOICE.md#c2-room-presentation).
+
+Earned first-session completion uses a violet Well done page, a celebrating
+cloud and one entry confetti burst. Its achievements page uses the proud cloud
+with a gentle float/heart pulse; day one and Home share the flame family.
+Counts, phrases and completion claims come from actual saved records. A partial
+or interrupted session stays calm, and opening a streak page awards nothing.
+Linked Terms and Privacy notices precede deliberate Start practice, Create
+account/provider actions and repair Continue. The 13+ declaration replaces an
+age-question control; it is not age verification. Known underage refusal,
+processing disclosures and separate optional opt-ins remain enforced.
+Before we start keeps the AI notice and retention summary on the main page;
+provider processing details live in Privacy details and the full policy. The
+practice agreement text and its Terms/Privacy buttons are centred. Create
+account centres the same notice and policy links directly above its bottom
+primary action; the whole footer hides while the software keyboard is open.
+
+When anonymous live admission is disabled, that disclosure keeps the same C2
+layout and offers a deliberate Create account to start action, an existing
+account link and retry. The answered plan and selected tutor survive account
+and Back detours; the current plan takes precedence over a cached signup plan,
+with entered email retained separately. Unsupported speaking has its own
+truthful unavailable state, without an account-upgrade promise. Accepted Terms
+do not create a completed session. After account setup, a pending practice uses
+the existing first-scene primer; actual guest completion retains its earned
+handoff. The shared Home/Speak start rejects duplicate and stale visit taps.
+These controls retain their existing server and account ownership; see the
+[onboarding contract](docs/ONBOARDING.md#account-handoff-when-guest-live-is-unavailable).
+
 ## 9 October 2026 · vibrant UI revision
 
 The founder requested a fuller colour treatment, joyful editable illustrations,
@@ -42,7 +190,7 @@ There are no gradients, shadows, uppercase metadata, italic French, nested
 white cards, decorative badges, streaks, XP or visible Friends ranks. A white
 reading surface inside a colour task card keeps French legible.
 
-### Current composition rules
+### Earlier Revamp B composition rules
 
 - Four tabs: Home, Speak, Practice and Progress. Profile opens from the labelled
   avatar; Settings is its first row and optional Friends follows it. Route
@@ -636,7 +784,8 @@ SpeakBubbles, OnboardWave, the unused onboarding drawings and LearnStack are
 deleted. All twenty daily-pack drawings, their selector and their unused card
 are deleted. The illustration animation hook and moving layers are gone.
 `motion.test.ts` and `surfaceContract.test.ts` enforce static illustrations;
-Illustrations stay static; the bounded motion hosts are listed in the Motion section.
+Legacy illustrations stay static; C2's scoped layer host and the other bounded
+motion hosts are listed in the Motion section.
 
 ### Game art
 
@@ -670,33 +819,27 @@ pieces of the ground's own colour fall away into it; the rest still read.
 
 ## Structure
 
-First run shows a captioned, recorded French exchange silently until the learner
-taps Hear. The next page offers an authored coffee choice with useful feedback
-and optional help, without recording or assessing their voice. Starting level
-and an editable routine lead to a catalogue-backed A0/A1 starting plan. Name
-and conversation goals are optional Profile choices after setup.
-The age confirmation comes before account creation. A refused microphone
-offers typing, and the first scene shows one line and the live
-minutes cost before either start. Returning learners sign in; the recovery flow
-asks plain questions and lets them hear voices before choosing one.
+First run builds the learner's plan through purpose, interests, self-reported
+level, confidence, focus and daily goal, then a deliberate tutor choice.
+“Meet your tutor” says “Listen, then choose your tutor.”; tutor cards keep names
+without an AI Tutor suffix, and hearing a sample never selects it. The linked
+Terms/Privacy declaration and processing disclosures precede real guest
+practice. A refused microphone offers typing. Name and conversation goals
+remain optional Profile choices after setup. Returning learners sign in; the
+repair flow retains its existing account-scoped questions and known refusal
+gate, with a Terms notice in place of an age question.
 
-Welcome back centres an exported vector Hum illustration above the greeting,
-with cream, navy, lilac, coral and gold kept to Luvani's existing palette. A
-saved first name personalises the greeting only when it is already available.
-The subtitle reads “Pick up where you left off”. Apple and Google share a row,
-stacking for larger text, before an ink divider and the email form. Google has
-an ink outline on white; field labels use Medium, and password recovery is
-centred. Sign in is purple with an arrow, a pressed scale, a labelled loading
-state and the Figma glow: a restrained 3.2-second loop, still when reduced
-motion is requested, loading is in progress or the screen is inactive.
-One brief entrance respects Reduce Motion. Returning sign-in never shows
-onboarding progress; create account retains the shared purple progress strip.
-Email advances to Password after a valid address stops changing for 300 ms.
+Returning Sign in uses “Good to have you back” above a centred form and embedded
+official Apple/Google buttons. It omits onboarding progress, password-strength
+requirements and guest-practice copy. Create account retains progress and
+“Your practice stays with you”, together with its actual password guidance.
+Provider configuration and real authentication outcomes remain authoritative;
+the presentation does not imitate a successful sign-in. Email Next explicitly
+advances to Password; typing alone never changes focus.
 The primary action hides while the software keyboard is open, and native
 insets scroll the focused field into view. Live Dynamic Type changes refresh
 text measurements without capping the system size. Shorter viewports tighten
-spacing and use a smaller Hum; the shortest screens and larger text omit the
-decoration so the normal form fits. Tall windows centre the reading column.
+spacing; tall windows centre the reading column.
 Keyboard and accessibility overflow remains scrollable to keep fields reachable.
 
 The signed-in app has four tabs, each opening Profile from the labelled
@@ -768,11 +911,12 @@ browser.
 
 ## Inside a conversation
 
-The scene screen is the orb, the thread, the current turn's support, three
-white tiles (**Help me out**, **Simpler**, **Type instead**) and quiet links
-for **Give me a moment** and **In English**. They wrap rather than shrink, and each one
-keeps the 44pt floor, because this is the row a learner reaches for one-handed
-while something has gone wrong for them.
+The C2 scene screen uses the shared orb, transcript, composer and compact mode
+controls described above. Current-turn support and Help me out, Simpler,
+Give me a moment and In English retain their existing protocol actions behind
+the practice-support control. They wrap rather than shrink and retain the
+44-point floor. A failed connection and a safety stop keep their dedicated
+recovery surfaces.
 
 Three rules the row now keeps that it did not:
 
@@ -784,7 +928,7 @@ Three rules the row now keeps that it did not:
   plays that line again, and the bubble now shows its ear so the affordance is
   found rather than guessed: ink while quiet, the accent on a `groundDeep`
   disc while the tutor is sounding, exactly as an option card's ear. Every
-  tutor bubble carries a caps label with the tutor's name above it, so a thread
+  tutor bubble carries the tutor's name, so a thread
   read back later still says who spoke.
 - **A learner who prefers typing** opens the conversation with the reply box
   already showing and the microphone closed until the circle is tapped; the
@@ -1109,10 +1253,12 @@ land, and every number it shows comes from the moment's own data. The queue
 
 ### Loops
 
-Four things loop: the live orb, a busy `MorphButton`, a held icon state such as
-a speaker that is playing, and the Home flame, which flickers three times when
-Home comes into view and then rests. Each loop listens for what pauses it
-(focus, the app state, or its own `playing` or `paused` prop) and stops there.
+The live orb, a busy `MorphButton` and a held icon state such as a playing
+speaker have their scoped loops. C2 adds the shared illustration loops and
+welcome logo ring defined above, including continuous gentle Home flame
+movement. Each loop listens for focus, app state, reduced motion and its own
+active/playing/paused state; none owns navigation, storage or repeated reward
+events.
 
 ### What never moves
 
@@ -1166,7 +1312,8 @@ play while a microphone is open, the tutor is speaking or a live room is open.
    `onboarding/firstRun/`, `icons/AnimatedIcon.tsx`, `nav/TabGlyph.tsx`,
    `drill/AnswerSheet.tsx`, the orb layers in `tutor/`, `live/RoomLevels`,
    `speech/useRecorderLevel.ts`, `auth/PasswordMeter.tsx`, the guarded
-   `auth/WelcomeSignInGlow.tsx`, and in `components.tsx` only by `Press`.
+   `auth/WelcomeSignInGlow.tsx`, the scoped C2 host
+   `onboarding/motion/C2Scene.tsx`, and in `components.tsx` only by `Press`.
 2. The legacy `Animated` file list only shrinks.
 3. Every file that moves reads reduced motion from `motion.ts`, and nothing asks
    Reanimated for the system setting: no `useReducedMotion`, no
@@ -1265,9 +1412,9 @@ card. Colour belongs to meaning: blue next task, sun local café practice, coral
 recap with a white French reading surface, mint independently earned can-do.
 The first recap view leads with actual French, never a count or illustration.
 
-## Onboarding interaction update — October 2026
+## Earlier onboarding interaction update — October 2026
 
-The opening, goal choices and result use existing vibrant vector brand illustrations with no mascot. Omit decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions lead with one readable heading, illustrated full-width options and a deliberate Continue; the shared primary control uses radius.control. Keep meaningful native secondary sheets over the parent page.
+This pre-C2 composition used existing vibrant vector brand illustrations with no mascot. It omitted decorative eyebrow labels, pills, repeated account pitches and a tall syllabus. Questions led with one readable heading, illustrated full-width options and a deliberate Continue; the shared primary control used radius.control. C2's current composition is defined at the top of this document.
 
 Come alive (README Part 5.C, first run). The promise, where, level and daily goal build a visible "Your French plan" card on the sun: one slot per answer, empty until the learner answers, each answer flying into its slot from where it was chosen (TokenFlight, launched by the card). Answers are icon tiles (Iconsax Bulk on a coloured ground), nothing is preselected, and "Suggested" marks only the daily goal the learner's own answers point at. A disabled Continue or pill is the sand skeleton with soft ink words (a white pill on blue or coral takes blue's pale secondary); turning on fades the ink in and glints once. The plan reveal draws the real daily minutes as a ring with a count-up (Choose each time sets no target, so its ring is the empty track with "No fixed goal") and three real tiles, with one select sound and one settled tap, because setup is not learning. The start sheet keeps the legal order and plays nothing. The first win sets the learner's line beside the natural line; only an accepted reply the learner gave turns the page coral with a held bloom, the drawing rising and one burst of confetti, the correct sound and the celebrate haptic, and anything else stays calm on paper with the nearly sound and one soft haptic. Nothing sounds or buzzes while the microphone is open. Under Reduce Motion every part lands on its final frame and the microphone meter becomes words.
 

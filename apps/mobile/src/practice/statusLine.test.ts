@@ -114,7 +114,9 @@ describe('asking for time is answered, and answered where it can be read', () =>
     const screen = readFileSync(fileURLToPath(new URL('../ConvoScreen.tsx', import.meta.url)), 'utf8');
 
     assert.match(screen, /momentTaps > 0 \?[\s\S]{0,400}momentAnswer\(tutorName\)/, 'the answer has to be rendered when the control is used');
-    assert.match(screen, /accessibilityLiveRegion="polite"/, 'and announced quietly, since a learner who cannot see it still asked');
+    const room = readFileSync(fileURLToPath(new URL('../live/C2LiveRoom.tsx', import.meta.url)), 'utf8');
+    assert.match(screen, /notice=\{momentTaps > 0 \? momentAnswer\(tutorName\)/, 'the actual moment answer must be passed into the live room');
+    assert.match(room, /accessibilityLiveRegion="polite"[\s\S]{0,100}\{notice\}/, 'and announced quietly, since a learner who cannot see it still asked');
 
     const asked = screen.slice(screen.indexOf('const askForAMoment'), screen.indexOf('const askForAMoment') + 260);
     assert.match(asked, /live\.sendMoment\(\)/, 'the tap tells the agent');

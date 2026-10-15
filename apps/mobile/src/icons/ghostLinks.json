@@ -1,11 +1,7 @@
 [
   {
     "file": "auth/SetNewPasswordScreen.tsx",
-    "label": "{leaving ? 'Signing out\u2026' : 'Cancel and sign out'}"
-  },
-  {
-    "file": "auth/SignInScreen.tsx",
-    "label": "{authButtonLabel('sendReset', pending === 'sendReset')}"
+    "label": "{leaving ? 'Signing out…' : 'Cancel and sign out'}"
   },
   {
     "file": "conversationPacks/ConversationPackLibrary.tsx",
@@ -109,10 +105,6 @@
   },
   {
     "file": "onboarding/OnboardingFlow.tsx",
-    "label": "{AGE_DENY}"
-  },
-  {
-    "file": "onboarding/OnboardingFlow.tsx",
     "label": "{VOICE_SKIP}"
   },
   {
@@ -121,7 +113,7 @@
   },
   {
     "file": "onboarding/PreAccountOnboarding.tsx",
-    "label": "{FIRST_RUN_COPY.notNow}"
+    "label": "\"I already have an account\""
   },
   {
     "file": "onboarding/PreAccountOnboarding.tsx",
@@ -129,15 +121,7 @@
   },
   {
     "file": "onboarding/PreAccountOnboarding.tsx",
-    "label": "\"I am younger than that\""
-  },
-  {
-    "file": "onboarding/PreAccountOnboarding.tsx",
     "label": "\"Read privacy policy\""
-  },
-  {
-    "file": "onboarding/PreAccountOnboarding.tsx",
-    "label": "\"Leave practice\""
   },
   {
     "file": "onboarding/StarterContinuation.tsx",
@@ -181,7 +165,7 @@
   },
   {
     "file": "settings/SettingsScreen.tsx",
-    "label": "{deleting ? 'Verifying\u2026' : 'Verify and delete permanently'}"
+    "label": "{deleting ? 'Verifying…' : 'Verify and delete permanently'}"
   },
   {
     "file": "settings/SettingsScreen.tsx",
@@ -224,10 +208,6 @@
     "label": "\"End now\""
   },
   {
-    "file": "wall/WallPlansPage.tsx",
-    "label": "{WALL_LEAVE}"
-  },
-  {
     "file": "wall/WallScreen.tsx",
     "label": "\"Restore purchases\""
   },
@@ -238,5 +218,17 @@
   {
     "file": "App.tsx",
     "label": "\"Sign out\""
+  },
+  {
+    "file": "auth/SignInScreen.tsx",
+    "label": "\"Return to sign in\""
+  },
+  {
+    "file": "auth/SignInScreen.tsx",
+    "label": "{pending === 'sendReset' ? 'Sending…' : 'Resend reset email'}"
+  },
+  {
+    "file": "auth/SignInScreen.tsx",
+    "label": "\"Forgot your password?\""
   }
 ]

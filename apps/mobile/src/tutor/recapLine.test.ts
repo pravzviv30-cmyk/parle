@@ -35,10 +35,9 @@ describe('the end of a conversation, said in words — F584', () => {
     assert.equal(recapLine(stats(1)), HELD_ON_THEIR_OWN, 'a conversation held alone is not said so');
     assert.equal(recapLine(stats(MOSTLY_UNAIDED)), HELD_ON_THEIR_OWN, 'the threshold itself falls the wrong way');
     assert.equal(recapLine(stats(0.2)), HELD_WITH_HELP, 'a conversation with help is not said so');
-    // A session with nothing measured reads as the helped line rather than as
-    // praise nobody earned. Inventing the compliment is the same defect as
-    // inventing the score.
-    assert.equal(recapLine(stats(0)), HELD_WITH_HELP, 'an unmeasured conversation is congratulated anyway');
+    // Zero unaided turns still describes six measured learner turns with help;
+    // it is different from a session with no learner turn at all.
+    assert.equal(recapLine(stats(0)), HELD_WITH_HELP, 'measured turns with help must retain their existing copy');
 
     // Neither line carries a digit, a percent sign or a count, at any input.
     for (let rate = 0; rate <= 1.0001; rate += 0.05) {
@@ -58,5 +57,23 @@ describe('the end of a conversation, said in words — F584', () => {
     assert.doesNotMatch(screen, /unassistedRate/, 'the recap screen reads the rate itself, which is how the percentage came back');
     assert.doesNotMatch(screen, /stats\.turns/, 'the recap screen counts the turns at the learner again');
     assert.ok(!screen.includes('%'), 'a percent sign is back on the one screen that must never carry one');
+  });
+
+  test('a recap with no learner turns acknowledges time without claiming a conversation', () => {
+    for (const unassistedRate of [0, MOSTLY_UNAIDED, 1, Number.NaN]) {
+      const line = recapLine({ turns: 0, rescues: 0, unassistedRate });
+      assert.equal(line, 'You made time for your French.', 'a rate cannot invent learner participation');
+      assert.doesNotMatch(line, /\d|%|held the conversation/, 'the empty-session line must not score or invent a conversation');
+    }
+  });
+
+  test('invalid learner turn counts cannot earn conversation claims while positive counts retain their copy', () => {
+    for (const turns of [-1, -Infinity, Infinity, Number.NaN, 0.5]) {
+      assert.equal(recapLine({ turns, rescues: 0, unassistedRate: 1 }), 'You made time for your French.');
+    }
+    for (const turns of [1, 6, 40]) {
+      assert.equal(recapLine({ turns, rescues: 2, unassistedRate: MOSTLY_UNAIDED }), HELD_ON_THEIR_OWN);
+      assert.equal(recapLine({ turns, rescues: 2, unassistedRate: 0 }), HELD_WITH_HELP);
+    }
   });
 });

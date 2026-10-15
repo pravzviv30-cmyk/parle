@@ -1,11 +1,12 @@
 /** Shared onboarding frame. Progress stays mounted when its owner switches pages. */
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
-import { Animated, AppState, Easing, KeyboardAvoidingView, Platform, ScrollView, View, useWindowDimensions, type ScrollViewProps } from 'react-native';
+import { Animated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, View, useWindowDimensions, type ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useReduceMotion } from '../motion.ts';
 import { colour, decorative, paper, space } from '../theme.ts';
 import { c } from './boldRhythm.ts';
+import { sheetRunsUnder } from '../components.tsx';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
 
 export type OnboardingFramePresentation = { hideProgress?: boolean; ground?: string };
@@ -18,33 +19,35 @@ export function useOnboardingFramePresentation(value: OnboardingProgressValue, p
   // Apply the dedicated surface chrome before its first visible frame.
   useLayoutEffect(() => {
     if (active) report?.(value, presentation);
-  }, [report, active, value.fraction, value.step, value.total, value.complete, presentation.hideProgress, presentation.ground]);
+  }, [report, active, value.fraction, value.stageFraction, value.step, value.total, value.complete, presentation.hideProgress, presentation.ground]);
 }
 
 export function OnboardingProgress({ value, violet = false }: { value: OnboardingProgressValue; violet?: boolean }) {
   const reduced = useReduceMotion();
-  const fill = useRef(new Animated.Value(value.fraction)).current;
+  const displayed = value.stageFraction ?? value.fraction;
+  const fill = useRef(new Animated.Value(displayed)).current;
   useEffect(() => {
     fill.stopAnimation();
     const motion = Animated.timing(fill, {
-      toValue: value.fraction, duration: reduced ? 0 : 220,
+      toValue: displayed, duration: reduced ? 0 : 300,
       easing: Easing.inOut(Easing.cubic), useNativeDriver: false,
     });
     motion.start();
     return () => motion.stop();
-  }, [fill, reduced, value.fraction]);
+  }, [fill, reduced, displayed]);
   return <View accessibilityRole="progressbar" accessibilityLabel="Onboarding"
-    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value.fraction * 100)} aria-valuetext={value.complete ? 'Onboarding complete' : `Onboarding, step ${value.step} of ${value.total}`}
-    accessibilityValue={{ min: 0, max: 100, now: Math.round(value.fraction * 100), text: value.complete ? 'Onboarding complete' : `Onboarding, step ${value.step} of ${value.total}` }}
-    style={{ height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: violet ? c.muted : c.line }}>
-    <Animated.View style={{ height: 4, borderRadius: 2, backgroundColor: violet ? c.sun : c.violet, width: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }} />
+    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(displayed * 100)} aria-valuetext={value.complete ? 'Onboarding complete' : `Onboarding, step ${value.step} of ${value.total}`}
+    accessibilityValue={{ min: 0, max: 100, now: Math.round(displayed * 100), text: value.complete ? 'Onboarding complete' : `Onboarding, step ${value.step} of ${value.total}` }}
+    style={{ height: 4, flexDirection: 'row', gap: 6 }}>
+    {[0, 1, 2, 3].map(stage => <View key={stage} style={{ flex: 1, height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: violet ? c.lavender : c.line, opacity: 1 }}>
+      <Animated.View style={{ height: 4, borderRadius: 2, backgroundColor: violet ? c.sun : c.violet, width: fill.interpolate({ inputRange: [stage / 4, (stage + 1) / 4], outputRange: ['0%', '100%'], extrapolate: 'clamp' }) }} />
+    </View>)}
   </View>;
 }
 
 function ProgressHeader({ value, violet = false }: { value: OnboardingProgressValue; violet?: boolean }) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  return <View style={{ paddingTop: insets.top + space(2), paddingBottom: space(4), paddingLeft: Math.max(24, insets.left), paddingRight: Math.max(24, insets.right) }}>
+  return <View style={{ paddingTop: insets.top + 8, paddingBottom: 20, paddingLeft: Math.max(24, insets.left), paddingRight: Math.max(24, insets.right) }}>
     <View style={{ width: '100%', maxWidth: 560, alignSelf: 'center' }}><OnboardingProgress value={value} violet={violet} /></View>
   </View>;
 }
@@ -74,12 +77,17 @@ type Props = {
   ground?: string;
   progress?: OnboardingProgressValue;
   children: ReactNode;
+  /** Decorative question banner bleeds beyond the reading column's gutters. */
+  hero?: ReactNode;
   footer?: ReactNode;
   avoidKeyboard?: boolean;
   /** Account actions scroll with the form; they never pin above the keyboard. */
   actionInScroll?: boolean;
   embedded?: boolean;
   active?: boolean;
+  hideProgress?: boolean;
+  dismissKeyboardOnBackground?: boolean;
+  showScrollCue?: boolean;
   center?: boolean;
   scrollRef?: Ref<ScrollView>;
   onScroll?: ScrollViewProps['onScroll'];
@@ -90,37 +98,64 @@ type Props = {
   onViewportLayout?: ScrollViewProps['onLayout'];
 };
 
-export function OnboardingLayout({ page, progress, children, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, center = false, ground = c.paper, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout }: Props) {
+export function OnboardingLayout({ page, progress, children, hero, footer, avoidKeyboard = false, actionInScroll = false, embedded = false, active = true, hideProgress = false, dismissKeyboardOnBackground = false, showScrollCue = false, center = false, ground = c.paper, scrollRef, onScroll, scrollEventThrottle = 100, automaticallyAdjustKeyboardInsets, keyboardDismissMode, onViewportLayout }: Props) {
   const report = useContext(FrameContext);
   const value = progress ?? onboardingProgress({ page });
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const gutter = width < 375 ? 24 : 32;
+  const gutter = 24;
   const horizontal = { paddingLeft: Math.max(gutter, insets.left), paddingRight: Math.max(gutter, insets.right) };
-  useEffect(() => {
-    if (!embedded && active) report?.(value, { ground });
-  }, [report, ground, embedded, active, value.fraction, value.step, value.total, value.complete]);
-  if (embedded) return <View style={{ gap: space(4) }}>{children}{footer}</View>;
+  const ownedScroll = useRef<ScrollView | null>(null);
+  const measurements = useRef({ content: 0, viewport: 0, offset: 0 });
+  const flashed = useRef(false);
+  const [cue, setCue] = useState(false);
+  const captureScroll = useCallback((node: ScrollView | null) => {
+    ownedScroll.current = node;
+    if (typeof scrollRef === 'function') scrollRef(node);
+    else if (scrollRef) scrollRef.current = node;
+  }, [scrollRef]);
+  const updateCue = () => {
+    const more = showScrollCue && sheetRunsUnder(measurements.current.content, measurements.current.viewport, measurements.current.offset);
+    setCue(more);
+    if (more && !flashed.current) { flashed.current = true; requestAnimationFrame(() => ownedScroll.current?.flashScrollIndicators()); }
+  };
+  useLayoutEffect(() => { flashed.current = false; setCue(false); measurements.current = { content: 0, viewport: measurements.current.viewport, offset: 0 }; }, [page]);
+  useLayoutEffect(() => {
+    if (!embedded && active) report?.(value, { ground, hideProgress });
+  }, [report, ground, hideProgress, embedded, active, value.fraction, value.stageFraction, value.step, value.total, value.complete]);
+  if (embedded) return <View style={{ gap: space(4) }}>{hero}{children}{footer}</View>;
   const column = { width: '100%', maxWidth: 560, alignSelf: 'center' } as const;
+  // RN web treats every scroll as a drag. Form focus anchors must keep editing.
+  const resolvedKeyboardDismissMode = Platform.OS === 'web' ? 'none' : keyboardDismissMode ?? (Platform.OS === 'ios' ? 'interactive' : 'on-drag');
+  const webDragDismisses = Platform.OS === 'web' && (keyboardDismissMode ?? 'on-drag') === 'on-drag';
   const content = <>
-    <ScrollView ref={scrollRef} style={{ flex: 1, minHeight: 0 }}
-      contentContainerStyle={{ flexGrow: 1, ...horizontal, paddingTop: 12, paddingBottom: space(4), ...(center ? { justifyContent: 'center' as const } : null) }}
-      onScroll={onScroll} scrollEventThrottle={scrollEventThrottle} onLayout={onViewportLayout}
+    <ScrollView ref={captureScroll} style={{ flex: 1, minHeight: 0 }}
+      contentContainerStyle={{ flexGrow: 1, ...horizontal, paddingTop: hero != null ? 0 : 20, paddingBottom: space(4), ...(center ? { justifyContent: 'center' as const } : null) }}
+      onScroll={event => { measurements.current.offset = event.nativeEvent.contentOffset.y; updateCue(); onScroll?.(event); }} scrollEventThrottle={scrollEventThrottle}
+      onLayout={event => { measurements.current.viewport = event.nativeEvent.layout.height; updateCue(); onViewportLayout?.(event); }}
+      onContentSizeChange={(_width, contentHeight) => { measurements.current.content = contentHeight; updateCue(); }}
       automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
-      keyboardShouldPersistTaps="handled" keyboardDismissMode={keyboardDismissMode ?? (Platform.OS === 'ios' ? 'interactive' : 'on-drag')} showsVerticalScrollIndicator={false}>
-      <View style={column}>{children}</View>
+      {...(webDragDismisses ? { onWheel: Keyboard.dismiss } : {})}
+      onTouchMove={webDragDismisses ? Keyboard.dismiss : undefined}
+      keyboardShouldPersistTaps="handled" keyboardDismissMode={resolvedKeyboardDismissMode} showsVerticalScrollIndicator={showScrollCue}>
+      <View style={column}>
+        {hero != null && <View style={{ marginLeft: -horizontal.paddingLeft, marginRight: -horizontal.paddingRight }}>{hero}</View>}
+        {children}
+      </View>
       {actionInScroll && footer != null && <View style={[column, { marginTop: space(5), paddingBottom: insets.bottom + space(4) }]}>{footer}</View>}
     </ScrollView>
-    {!actionInScroll && footer != null && <View style={{ ...horizontal, paddingTop: space(3), paddingBottom: insets.bottom + space(4), backgroundColor: ground }}>
+    {!actionInScroll && footer != null && <View style={{ ...horizontal, paddingTop: space(3), paddingBottom: insets.bottom + space(4), backgroundColor: ground, borderTopWidth: 1, borderTopColor: cue ? c.line : 'transparent' }}>
       <ScrollView style={[column, { flexGrow: 0, maxHeight: height * 0.4 }]} nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
         {footer}
       </ScrollView>
     </View>}
   </>;
-  return <View style={{ flex: 1, minHeight: 0, backgroundColor: ground }}>
-    {!report && <><StatusBar style={ground === c.violet ? "light" : "dark"} /><ProgressHeader value={value} violet={ground === c.violet} /></>}
+  const frame = <View style={{ flex: 1, minHeight: 0, backgroundColor: ground }}>
+    {report && hideProgress && <View style={{ height: insets.top + 32 }} />}
+    {!report && <><StatusBar style={ground === c.violet ? "light" : "dark"} />{hideProgress ? <View style={{ height: insets.top + 32 }} /> : <ProgressHeader value={value} violet={ground === c.violet} />}</>}
     {avoidKeyboard ? <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, minHeight: 0 }}>{content}</KeyboardAvoidingView> : content}
   </View>;
+  return dismissKeyboardOnBackground && Platform.OS !== 'web' ? <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>{frame}</TouchableWithoutFeedback> : frame;
 }
 
 /** One interruptible two-phase transition, with a synchronous advancement lock. */
@@ -155,16 +190,16 @@ export function useOnboardingTransition() {
     locked.current = true;
     if (reduced || AppState.currentState !== 'active') { commit(); locked.current = false; return true; }
     pending.current = commit;
-    animation.current = Animated.timing(opacity, { toValue: 0.45, duration: 110, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' });
+    animation.current = Animated.timing(opacity, { toValue: 0, duration: 100, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' });
     animation.current.start(({ finished }) => {
       if (!finished) return;
       const next = pending.current;
       pending.current = null;
       next?.();
-      shift.setValue(backward ? -8 : 8);
+      shift.setValue(backward ? -12 : 12);
       animation.current = Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(shift, { toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(opacity, { toValue: 1, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(shift, { toValue: 0, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       ]);
       animation.current.start(() => { locked.current = false; });
     });

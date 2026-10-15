@@ -145,6 +145,7 @@ async function runAsync(source: string, world: Record<string, unknown>): Promise
 
 const START = insideOf(hook, 'const start = useCallback(async () => {');
 const LEAVE = insideOf(hook, 'const leave = useCallback(async () => {');
+const TEARDOWN = insideOf(hook, 'const teardownRoom = useCallback(async () => {');
 const UNMOUNT = insideOf(hook, 'return () => {');
 
 /* ------------------------------------------------------------------------- *
@@ -381,6 +382,7 @@ function liveHook(token: { status?: number; body?: unknown; fetch?: () => Promis
     tokenFailureCode,
     trace: () => {},
     leave: async (): Promise<void> => {},
+    teardownRoom: () => runAsync(TEARDOWN, shared),
     // Added to `start` by the F165 lease-release work: the abandon path now hands
     // the account's session lease back when a grant never reached a tutor, so the
     // lifted fragment reaches for the release call and the world must supply it.

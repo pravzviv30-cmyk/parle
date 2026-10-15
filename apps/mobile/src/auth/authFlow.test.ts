@@ -78,6 +78,169 @@ const SIGN_IN_AND_OUT = /Signing in and out again does not end it; only closing 
 /** The narrower answer the founder did not give, in either of the words it was written in. */
 const SIGN_IN_ENDS = /Signing in ends[^.]*refusal|refusal[^.]*until someone signs in/i;
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+}
+
+/** Execute the production restart action while its two real owners are pending. */
+function accountRestartHarness(action: 'newAccount' | 'restartPlan' = 'newAccount') {
+  const source = FLOW.slice(FLOW.indexOf(`  const ${action} =`), FLOW.indexOf(action === 'newAccount' ? '  const acceptAccountTerms =' : '  const newAccount ='));
+  let practice = deferred<void>();
+  let reminder = deferred<'done' | 'failed' | 'unavailable'>();
+  const calls: string[] = [];
+  const mounted = { current: true }, restarting = { current: false }, pageMotion = { locked: { current: false } };
+  const bindings = { mounted, restarting, pageMotion, refused: false, initialDraft: { reminderEnabled: true },
+    freshPreAccountDraft, refusalPage: () => ({ ...freshPreAccountDraft(), page: 'save' }),
+    clearGuestPractice: () => { calls.push('clear-practice'); return practice.promise; },
+    cancelReminder: () => { calls.push('cancel-reminder'); return reminder.promise; },
+    setRestartBusy: (value: boolean) => calls.push(`busy:${value}`),
+    setRestartError: (value: boolean) => calls.push(`error:${value}`),
+    setAccountRestart: (value: boolean) => calls.push(`account-restart:${value}`),
+    setNewDraft: () => calls.push('replace-draft'), onDiscardDraft: () => calls.push('discard-draft'),
+    onDraftChange: () => calls.push('publish-draft'),
+    setRevision: () => calls.push('revision'), setSignupDraft: () => calls.push('clear-signup'),
+    setIntroducing: () => calls.push('introducing'), setAccountFirst: () => calls.push('account-first'),
+    switchScreen: (page: string, onSwitched?: () => void) => { calls.push(`screen:${page}`); onSwitched?.(); },
+  };
+  const run = new Function(...Object.keys(bindings), stripTypeScriptTypes(source) + `\nreturn ${action};`)(...Object.values(bindings)) as () => Promise<void>;
+  return { run, calls, mounted, pageMotion, get practice() { return practice; }, get reminder() { return reminder; },
+    retryCleanup: () => { practice = deferred<void>(); reminder = deferred<'done' | 'failed' | 'unavailable'>(); } };
+}
+
+test('account creation waits for previous practice and reminder cleanup before discarding the plan', async () => {
+  const flow = accountRestartHarness();
+  const pending = flow.run();
+  assert.ok(!flow.calls.includes('discard-draft'), 'the saved plan must survive while practice cleanup is pending');
+  assert.ok(!flow.calls.includes('screen:signup'));
+  assert.ok(!flow.calls.includes('cancel-reminder'), 'cleanup owners run in their existing order');
+  flow.practice.resolve();
+  await Promise.resolve();
+  assert.ok(flow.calls.includes('cancel-reminder'));
+  assert.ok(!flow.calls.includes('discard-draft'), 'the plan must remain until its reminder has gone');
+  flow.reminder.resolve('done');
+  await pending;
+  assert.ok(flow.calls.indexOf('discard-draft') > flow.calls.indexOf('cancel-reminder'));
+  assert.ok(flow.calls.includes('screen:signup'));
+});
+
+test('account cleanup failure retains the plan and exposes retry for rejection or native failed cancellation', async () => {
+  for (const failure of ['practice', 'reminder-rejected', 'reminder-failed'] as const) {
+    const flow = accountRestartHarness();
+    const pending = flow.run();
+    if (failure === 'practice') flow.practice.reject(new Error('device storage failed'));
+    else {
+      flow.practice.resolve();
+      await Promise.resolve();
+      if (failure === 'reminder-rejected') flow.reminder.reject(new Error('notification cancellation failed'));
+      else flow.reminder.resolve('failed');
+    }
+    await pending;
+    assert.ok(flow.calls.includes('error:true'), `${failure} must expose recovery`);
+    assert.ok(!flow.calls.includes('discard-draft'));
+    assert.ok(!flow.calls.includes('replace-draft'));
+    assert.ok(!flow.calls.includes('screen:signup'));
+  }
+});
+
+test('account cleanup blocks repeat taps and can retry without duplicating the discard', async () => {
+  const flow = accountRestartHarness();
+  const first = flow.run();
+  await flow.run();
+  assert.equal(flow.calls.filter(call => call === 'clear-practice').length, 1);
+  flow.practice.resolve();
+  await Promise.resolve();
+  await flow.run();
+  assert.equal(flow.calls.filter(call => call === 'clear-practice').length, 1);
+  flow.reminder.resolve('failed');
+  await first;
+  flow.retryCleanup();
+  const retry = flow.run();
+  flow.practice.resolve();
+  await Promise.resolve();
+  flow.reminder.resolve('done');
+  await retry;
+  assert.equal(flow.calls.filter(call => call === 'discard-draft').length, 1);
+  assert.equal(flow.calls.filter(call => call === 'screen:signup').length, 1);
+  assert.equal(flow.calls.at(-2), 'account-restart:false', 'successful navigation closes recovery at its transition commit');
+  assert.match(FLOW, /accountRestart\) return <Animated.View/);
+  assert.match(FLOW, /footer=\{restartError && !restartBusy/);
+  assert.match(FLOW, /label="Try again" onPress=\{\(\) => void newAccount\(\)\}/);
+  assert.match(FLOW, /label="Back to sign in"[^\n]*pageMotion\.transition\(\(\) => \{ if \(mounted\.current\)/, 'recovery returns through the same interruptible page transition');
+});
+
+test('account cleanup cannot mutate or navigate an unmounted flow and respects the page transition lock', async () => {
+  for (const leaveDuring of ['practice', 'reminder'] as const) {
+    const flow = accountRestartHarness();
+    const pending = flow.run();
+    if (leaveDuring === 'reminder') { flow.practice.resolve(); await Promise.resolve(); }
+    flow.mounted.current = false;
+    const before = [...flow.calls];
+    if (leaveDuring === 'practice') flow.practice.resolve();
+    else flow.reminder.resolve('done');
+    await pending;
+    assert.deepEqual(flow.calls, before, 'unmount must invalidate queued cleanup continuations');
+    assert.ok(!flow.calls.includes('discard-draft'));
+  }
+  const flow = accountRestartHarness();
+  flow.pageMotion.locked.current = true;
+  await flow.run();
+  assert.deepEqual(flow.calls, []);
+  assert.match(FLOW, /useEffect\(\(\) => \{ mounted\.current = true; return \(\) => \{ mounted\.current = false; \}; \}, \[\]\)/);
+});
+
+test('account cleanup accepts the unavailable web reminder outcome without claiming a scheduled reminder', async () => {
+  const flow = accountRestartHarness();
+  const pending = flow.run();
+  flow.practice.resolve();
+  await Promise.resolve();
+  flow.reminder.resolve('unavailable');
+  await pending;
+  assert.ok(flow.calls.includes('discard-draft'));
+  assert.ok(flow.calls.includes('screen:signup'));
+  assert.ok(!flow.calls.includes('error:true'));
+});
+
+test('resume restart keeps its plan when reminder cancellation reports failure', async () => {
+  const flow = accountRestartHarness('restartPlan');
+  const pending = flow.run();
+  flow.practice.resolve();
+  await Promise.resolve();
+  flow.reminder.resolve('failed');
+  await pending;
+  assert.ok(flow.calls.includes('error:true'));
+  assert.ok(!flow.calls.includes('discard-draft'));
+  assert.ok(!flow.calls.includes('publish-draft'));
+  assert.ok(!flow.calls.includes('screen:welcome'));
+});
+
+test('resume restart waits for cleanup, handles rejection and cannot finish after unmount', async () => {
+  for (const result of ['done', 'practice-rejected', 'reminder-rejected', 'unmount'] as const) {
+    const flow = accountRestartHarness('restartPlan');
+    const pending = flow.run();
+    await flow.run();
+    assert.equal(flow.calls.filter(call => call === 'clear-practice').length, 1);
+    assert.ok(!flow.calls.includes('discard-draft'));
+    if (result === 'practice-rejected') flow.practice.reject(new Error('storage failed'));
+    else {
+      flow.practice.resolve();
+      await Promise.resolve();
+      assert.ok(!flow.calls.includes('discard-draft'));
+      if (result === 'reminder-rejected') flow.reminder.reject(new Error('cancellation failed'));
+      else {
+        if (result === 'unmount') flow.mounted.current = false;
+        flow.reminder.resolve('done');
+      }
+    }
+    await pending;
+    assert.equal(flow.calls.includes('discard-draft'), result === 'done');
+    assert.equal(flow.calls.includes('screen:welcome'), result === 'done');
+    if (result.endsWith('rejected')) assert.ok(flow.calls.includes('error:true'));
+  }
+});
+
 test('signup values survive auth-route detours without entering the saved onboarding draft', () => {
   const formDraft = read('signUpFormDraft.ts');
   assert.match(FLOW, /useState<SignUpFormDraft>\(emptySignUpFormDraft\)/);
@@ -118,6 +281,56 @@ test('reopening account creation keeps an intentionally cleared email and the co
   assert.deepEqual(screens, ['signup']);
 });
 
+test('signing in from the edited onboarding plan keeps current answers and the separately entered account email', () => {
+  const start = FLOW.indexOf('  const signIn = ');
+  const end = FLOW.indexOf('  const returnToIntroduction = ', start);
+  const cached = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorVoice: 'julien', tutorChosen: true, minutes: 5, accountEmail: 'camille@example.invalid', page: 'account', accountReturnPage: 'choose-tutor' };
+  const current = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorVoice: 'emilie', tutorChosen: true, minutes: 20, page: 'choose-tutor', accountEmail: 'old@example.invalid' };
+  for (const accountEmail of ['camille@example.invalid', '']) {
+    const writes: unknown[] = [], saved: unknown[] = [], screens: string[] = [];
+    const bindings = { pageMotion: { locked: { current: false } }, refused: false, accountFirst: false,
+      signupDraft: { ...cached, accountEmail }, newDraft: null, initialDraft: cached,
+      setSignupDraft: (value: unknown) => writes.push(value), onDraftChange: (value: unknown) => saved.push(value),
+      onSignIn: () => {}, switchScreen: (value: string) => screens.push(value) };
+    const signIn = new Function(...Object.keys(bindings), stripTypeScriptTypes(FLOW.slice(start, end)) + '\nreturn signIn;')(...Object.values(bindings));
+    signIn(current);
+    const expected = { ...current, accountEmail, page: 'account', accountMode: 'signin', accountReturnPage: 'choose-tutor' };
+    assert.deepEqual(writes, [expected], 'a cached signup plan must not overwrite the edited tutor or daily goal');
+    assert.deepEqual(saved, [expected]); assert.deepEqual(screens, ['signin']);
+  }
+});
+
+test('the ordinary signup sign-in detour retains its form plan when no current onboarding draft is supplied', () => {
+  const start = FLOW.indexOf('  const signIn = '), end = FLOW.indexOf('  const returnToIntroduction = ', start);
+  const cached = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorVoice: 'emilie', tutorChosen: true, minutes: 20, accountEmail: 'camille@example.invalid', page: 'account', accountReturnPage: 'choose-tutor' };
+  const writes: unknown[] = [];
+  const bindings = { pageMotion: { locked: { current: false } }, refused: false, accountFirst: false,
+    signupDraft: cached, newDraft: null, initialDraft: null, setSignupDraft: (value: unknown) => writes.push(value),
+    onDraftChange: () => {}, onSignIn: () => {}, switchScreen: () => {} };
+  const signIn = new Function(...Object.keys(bindings), stripTypeScriptTypes(FLOW.slice(start, end)) + '\nreturn signIn;')(...Object.values(bindings));
+  signIn();
+  assert.deepEqual(writes, [{ ...cached, accountMode: 'signin' }]);
+});
+
+test('sign-in controls pass a current plan or no argument and never forward a press event as a plan', () => {
+  const presses = [...SCREEN.matchAll(/onPress=\{(\(\) => onSignIn\(draftRef\.current\))\}/g)];
+  assert.equal(presses.length, 3, 'every onboarding sign-in/sign-out action must explicitly choose the current draft');
+  const draft = { ...freshPreAccountDraft(), minutes: 20, tutorVoice: 'emilie' };
+  for (const press of presses) {
+    const calls: unknown[] = [];
+    const tap = new Function('onSignIn', 'draftRef', `return (${press[1]});`)((value: unknown) => calls.push(value), { current: draft });
+    tap({ nativeEvent: { timestamp: 1 } });
+    assert.deepEqual(calls, [draft], 'the native/browser PressEvent is not an onboarding draft');
+  }
+  const signup = element(FLOW, 'SignUpScreen');
+  const wrapper = signup.match(/onSignIn=\{(\(\) => signIn\(\))\}/)?.[1];
+  assert.ok(wrapper, 'the ordinary form detour must call signIn without a press event');
+  const calls: unknown[][] = [];
+  const tap = new Function('signIn', `return (${wrapper});`)((...args: unknown[]) => calls.push(args));
+  tap({ nativeEvent: { timestamp: 1 } });
+  assert.deepEqual(calls, [[]]);
+});
+
 describe('the under-13 refusal before an account holds for the launch (F637, F639, F641)', () => {
   test('the flow passes the refusal up to Gate, which holds it and clears the saved draft', () => {
     // Required, not optional: a Gate that forgot to wire either would not
@@ -144,7 +357,7 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
 
   test("under-thirteen refusal is owned by the launch and passed to signed-out and signed-in onboarding", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(app, /setPreAccountRefused\(true\)/); assert.match(app, /discardPreAccountDraft\(\)/); assert.match(screen, /clearGuestPractice\(\)/); assert.match(screen, /generation\.current\+\+/); assert.match(flow, /refused=\{refused\}/); assert.doesNotMatch(flow, /setRefused|refusal.*setItem|refusal.*fetch/i); });
 
-  test("a refused flow renders refusal rather than a new eligible draft", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /initialDraft=\{refused \? refusalPage\(\)/); assert.match(screen, /const title = refused \?/); assert.match(screen, /footer = refused/); assert.match(screen, /if \(operation\.current \|\| !draft\.eligibilityConfirmed \|\| refused\) return/); });
+  test("a refused flow renders refusal rather than a new eligible draft", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /initialDraft=\{refused \? refusalPage\(\)/); assert.match(screen, /const title = refused \?/); assert.match(screen, /footer = refused/); assert.match(screen, /if \(operation\.current \|\| refused\) return/); });
 
   test("Create one can reset an introduction but cannot bypass a launch refusal", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /const draft = refused \? refusalPage\(\) : freshPreAccountDraft\(\)/); assert.match(flow, /if \(!refused\) onDiscardDraft\(\)/); assert.match(flow, /if \(refused\) return/); assert.match(flow, /onCreateAccount=\{newAccount\}/); });
 
@@ -152,7 +365,7 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
 
   test('switching from onboarding sign-in to sign-up preserves the completed plan and email', () => {
     const start = FLOW.indexOf('  const createFromIntroduction = ');
-    const end = FLOW.indexOf('  if (!introducing)', start);
+    const end = FLOW.indexOf('  if (accountRestart)', start);
     assert.ok(start > 0 && end > start);
     const saved = { ...freshPreAccountDraft(), eligibilityConfirmed: true, tutorChosen: true, tutorVoice: 'emilie', reason: 'trip', firstName: 'Camille', accountEmail: 'camille@example.com', accountMode: 'signin', accountReturnPage: 'keep', page: 'account' };
     const writes: unknown[] = []; const screens: string[] = []; let resets = 0;
@@ -165,20 +378,55 @@ describe('the under-13 refusal before an account holds for the launch (F637, F63
     assert.match(FLOW, /onCreateAccount=\{createFromIntroduction\}/);
   });
 
-  test("onboarding and privacy document refusal across authentication without storing a child marker", () => { for (const path of ['docs/ONBOARDING.md','docs/PRIVACY_AND_SAFETY.md']) { const doc = evidence(path); assert.match(doc, /sign-in and sign-out/); assert.match(doc, /remainder of the launch|rest of the launch/); assert.match(doc, /no refusal marker/); } });
+  test("onboarding and privacy document refusal across authentication without storing a child marker", () => { for (const path of ['docs/ONBOARDING.md','docs/PRIVACY_AND_SAFETY.md']) { const doc = evidence(path); assert.match(doc, /sign-in(?: and|,) sign-out/); assert.match(doc, /remainder of the launch|rest of the launch|that launch's refusal/); assert.match(doc, /no (?:typed answers or )?refusal marker/); } });
 });
 
 
 describe('account-first route from Welcome back', () => {
+  test('a resumed account-first signup restores its route and starts progress before unanswered setup', () => {
+    const expression = /const \[accountFirst, setAccountFirst\] = useState\(([^\n]+)\);/.exec(FLOW)?.[1];
+    assert.ok(expression, 'the account route must initialize from its durable return marker');
+    const restored = new Function('initialDraft', 'refused', `return (${expression});`) as (draft: unknown, refused: boolean) => boolean;
+    const fresh = freshPreAccountDraft();
+    const accountFirst = { ...fresh, page: 'account', accountReturnPage: 'hear-it', eligibilityConfirmed: true };
+    assert.equal(restored(accountFirst, false), true);
+    assert.equal(restored(accountFirst, true), false, 'a known refusal cannot become an account-first signup');
+    assert.equal(restored({ ...accountFirst, accountReturnPage: 'keep' }, false), false, 'completed practice must retain its real account stage');
+    assert.equal(restored(null, false), false);
+    assert.match(FLOW, /initialProgress=\{onboardingProgress\(\{ page: accountFirst \? 'hear-it' : initialDraft\?\.page/);
+    assert.match(read('SignUpScreen.tsx'), /page: accountFirst \? 'hear-it' : 'account'/);
+  });
+  test('a deliberate signup declaration keeps unanswered accounts in the real full setup', () => {
+    const start = FLOW.indexOf('  const acceptAccountTerms =');
+    const end = FLOW.indexOf('  const updateAccountEmail =', start);
+    const source = stripTypeScriptTypes(FLOW.slice(start, end));
+    for (const refused of [false, true]) {
+      const writes: unknown[] = [];
+      const fresh = freshPreAccountDraft();
+      const bindings = { refused, signupDraft: null, newDraft: fresh, initialDraft: null, freshPreAccountDraft, accountFirst: true,
+        setSignupDraft: () => {}, setNewDraft: () => {}, onDraftChange: (value: unknown) => writes.push(value) };
+      const accept = new Function(...Object.keys(bindings), source + '\nreturn acceptAccountTerms;')(...Object.values(bindings)) as (email: string) => boolean;
+      assert.equal(accept('camille@example.com'), !refused);
+      assert.equal(writes.length, refused ? 0 : 1);
+      if (!refused) assert.deepEqual(writes[0], { ...fresh, eligibilityConfirmed: true, accountEmail: 'camille@example.com', page: 'account', accountMode: 'signup', accountReturnPage: 'hear-it' });
+    }
+    assert.match(APP, /preAccountDraft\.accountReturnPage !== 'hear-it' && mayAdoptPreAccountDraft/);
+    assert.match(APP, /initialDraft=\{preAccountDraft\?\.accountReturnPage === 'hear-it' \? \{ \.\.\.preAccountDraft, page: 'hear-it' \} : null\}/);
+    assert.match(FLOW, /onTermsAccepted=\{acceptAccountTerms\}/);
+    const signup = read('SignUpScreen.tsx');
+    assert.equal((signup.match(/onTermsAccepted\?\.\(email\.trim\(\)\)/g) ?? []).length, 3, 'email, Google and Apple must each record the declaration on their actual tap');
+    assert.doesNotMatch(signup, /useEffect\([^;]*onTermsAccepted/);
+  });
   function invoke(name: string, next: string, bindings: Record<string, unknown>) {
     const body = FLOW.slice(FLOW.indexOf(`  const ${name} =`), FLOW.indexOf(`  const ${next} =`));
-    new Function(...Object.keys(bindings), stripTypeScriptTypes(body) + `\n${name}();`)(...Object.values(bindings));
+    return new Function(...Object.keys(bindings), stripTypeScriptTypes(body) + `\nreturn ${name}();`)(...Object.values(bindings));
   }
-  test('opens signup directly, clears the old handoff and does not create a replacement plan', () => {
+  test('opens signup directly, clears the old handoff and does not create a replacement plan', async () => {
     for (const refused of [false, true]) {
       const screens: string[] = []; let discarded = 0; let accountFirst = false;
-      invoke('newAccount', 'updateAccountEmail', {
+      await invoke('newAccount', 'acceptAccountTerms', {
         pageMotion: { locked: { current: false } }, refused, initialDraft: null,
+        restarting: { current: false }, mounted: { current: true }, setRestartBusy: () => {}, setRestartError: () => {}, setAccountRestart: () => {},
         refusalPage: () => ({ ...freshPreAccountDraft(), page: 'save' }), freshPreAccountDraft,
         clearGuestPractice: () => {}, cancelReminder: () => {}, setNewDraft: () => {},
         onDiscardDraft: () => { discarded++; }, setRevision: () => {}, setSignupDraft: () => {},
@@ -197,7 +445,7 @@ describe('account-first route from Welcome back', () => {
     invoke('returnToIntroduction', 'createFromIntroduction', { accountFirst: true, switchScreen: (value: string) => screens.push(value) });
     assert.deepEqual(screens, ['signin']);
     const start = FLOW.indexOf('  const createFromIntroduction =');
-    const end = FLOW.indexOf('  if (!introducing)', start);
+    const end = FLOW.indexOf('  if (accountRestart)', start);
     new Function('accountFirst', 'pageMotion', 'refused', 'switchScreen', stripTypeScriptTypes(FLOW.slice(start, end)) + '\ncreateFromIntroduction();')(true, { locked: { current: false } }, false, (value: string) => screens.push(value));
     assert.deepEqual(screens, ['signin', 'signup']);
     assert.match(FLOW, /formDraft=\{signUpFormDraft\}/);

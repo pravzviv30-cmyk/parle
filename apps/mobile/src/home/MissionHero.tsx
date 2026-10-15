@@ -35,7 +35,7 @@
  * the ground's secondary for the quieter lines, and never soft ink on a colour.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 
@@ -57,6 +57,7 @@ import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
 import { BoldButton } from '../onboarding/BoldButton.tsx';
 import { c, boldType } from '../onboarding/boldRhythm.ts';
 import { SceneArt } from './SceneArt.tsx';
+import { scopeGeneration } from '../storage/scope.ts';
 
 export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?: boolean }) {
   const focused = useIsFocused();
@@ -67,6 +68,19 @@ export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?
   // Profile's standing "Prefer typing" decides which way the Start opens.
   const modes = startModes(prefersTyping(profile));
   const [checking, setChecking] = useState(false);
+  const owner = scopeGeneration();
+  const launchPending = useRef<object | null>(null);
+  const launchContext = useRef({ mounted: true, focused, owner, hero, revision: 0 });
+  // A return to this card is a new visit. A previous visit's slow health
+  // response cannot start a room, even if focus has already returned.
+  if (launchContext.current.focused !== focused || launchContext.current.owner !== owner || launchContext.current.hero !== hero) {
+    launchContext.current = { ...launchContext.current, focused, owner, hero, revision: launchContext.current.revision + 1 };
+  }
+  useEffect(() => {
+    launchContext.current.mounted = true;
+    return () => { launchContext.current.mounted = false; launchContext.current.revision++; launchPending.current = null; };
+  }, []);
+  useEffect(() => { launchPending.current = null; setChecking(false); }, [focused, owner, hero]);
   /** The start that did not happen, so the retry is the same start. */
   const [heldBack, setHeldBack] = useState<{ textMode: boolean } | null>(null);
   const [bookmarks, setBookmarks] = useState<readonly BookmarkItem[]>([]);
@@ -112,12 +126,20 @@ export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?
   const open = (textMode: boolean) => {
     // A second tap while the connection check runs cannot open a second room.
     if (checking) return;
+    if (launchPending.current || !launchContext.current.mounted || !launchContext.current.focused) return;
+    const ticket = {};
+    const { owner, revision } = launchContext.current;
+    const owns = () => launchPending.current === ticket && launchContext.current.mounted && launchContext.current.focused
+      && launchContext.current.revision === revision && launchContext.current.owner === owner && scopeGeneration() === owner;
+    launchPending.current = ticket;
     setChecking(true);
     void recheck()
       .then((answered) => {
+        if (!owns()) return;
         setChecking(false);
         const decision = tutorGate(answered, textMode);
         if (!decision.go) {
+          launchPending.current = null;
           setHeldBack(decision.heldBack);
           return;
         }
@@ -131,23 +153,25 @@ export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?
       .catch(() => {
         // At the end of the chain, so a throw from the navigation is caught
         // too. The start is kept, so the retry is the same start.
+        if (!owns()) return;
+        launchPending.current = null;
         setChecking(false);
         setHeldBack({ textMode });
       });
   };
 
-  if (vivid) return <View style={{ gap: 16, backgroundColor: c.violet, borderRadius: 12, padding: 24 }}>
-    <Text accessibilityRole="header" style={[boldType.title, { color: c.white }]}>{hero.title}</Text>
-    <BoldScene kind="home" width={195} active={focused} />
-    <Text style={[boldType.small, { color: c.white }]}>{sceneMeta('Live practice', hero.minutes, tutorName)}</Text>
-    {Boolean(hero.canDo) && <Text style={[boldType.body, { color: c.white }]}>{canDoSentence(hero.canDo ?? '')}</Text>}
-    {!!hero.lines[0] && <View style={{ backgroundColor: c.white, borderRadius: 12, padding: 16 }}>
-      <Text style={[boldType.small, { color: c.ink }]}>Your first words</Text>
-      <Text style={[type.french, { color: c.ink }]}>{hero.lines[0]}</Text>
+  if (vivid) return <View style={{ gap: 12, backgroundColor: c.sage, borderRadius: 24, padding: 20 }}>
+    <Text accessibilityRole="header" style={[boldType.title, { color: c.ink }]}>{hero.title}</Text>
+    <BoldScene kind="home" width={210} active={focused} />
+    <Text style={[boldType.label, { color: c.ink }]}>{sceneMeta('Live practice', hero.minutes, tutorName)}</Text>
+    {Boolean(hero.canDo) && <Text style={[boldType.body, { color: c.ink }]}>{canDoSentence(hero.canDo ?? '')}</Text>}
+    {!!hero.lines[0] && <View style={{ backgroundColor: c.lavender, borderRadius: 20, padding: 18, gap: 8 }}>
+      <Text style={[boldType.heading, { color: c.ink }]}>Your first words</Text>
+      <Text style={[boldType.body, { color: c.ink }]}>{hero.lines[0]}</Text>
     </View>}
     <BoldButton label={label} disabled={checking} onPress={() => open(modes.textMode)} />
-    <IconAction layout="inline" ground="blue" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
-    {heldBack !== null && <View><Text style={[boldType.body, { color: c.white }]}>{TUTOR_OFFLINE.body}</Text><IconAction layout="inline" ground="blue" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} /></View>}
+    <IconAction layout="inline" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
+    {heldBack !== null && <View><Text style={[boldType.body, { color: c.ink }]}>{TUTOR_OFFLINE.body}</Text><IconAction layout="inline" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} /></View>}
   </View>;
   return (
     <SceneBrief

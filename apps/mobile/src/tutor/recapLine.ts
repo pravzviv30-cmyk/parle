@@ -10,6 +10,8 @@
  * What is left is the true sentence underneath the arithmetic: whether the
  * learner carried the conversation themselves or leaned on the tutor a little.
  * Both lines are warm, both are honest, and neither can be read as a mark.
+ * A session with no measured learner turn acknowledges time instead of
+ * claiming that a conversation was held.
  *
  * It lives here rather than in `RecapScreen.tsx` because it is a decision, and
  * apps/mobile has no renderer: a rule inside a `.tsx` is a rule nothing can ask
@@ -35,6 +37,9 @@ export const HELD_ON_THEIR_OWN = 'You held the conversation on your own for most
 /** They carried it and the tutor stepped in now and then. Not a fault. */
 export const HELD_WITH_HELP = 'You held the conversation with a little help.';
 
+/** Time was set aside, without evidence of a learner reply. */
+export const MADE_TIME_FOR_FRENCH = 'You made time for your French.';
+
 /**
  * Where "most of it" begins.
  *
@@ -46,11 +51,11 @@ export const MOSTLY_UNAIDED = 0.6;
 /**
  * The one line under the recap headline.
  *
- * Total over every recap the wire can send, including the ones with nothing in
- * them: a session that produced no measured turns reads as "with a little
- * help", because claiming somebody did it alone on no evidence is the invented
- * praise the same rule bans an invented score for.
+ * A conversation claim requires a positive, whole measured learner turn count.
+ * Empty or invalid counts acknowledge the time rather than inventing evidence
+ * of participation. Positive counts retain the same unaided/help distinction.
  */
 export function recapLine(stats: RecapStats): string {
+  if (!Number.isInteger(stats.turns) || stats.turns <= 0) return MADE_TIME_FOR_FRENCH;
   return stats.unassistedRate >= MOSTLY_UNAIDED ? HELD_ON_THEIR_OWN : HELD_WITH_HELP;
 }

@@ -97,7 +97,7 @@ export function PageArrival({
     arrival.setValue(0);
     const motion = Animated.timing(arrival, {
       toValue: 1,
-      duration: 270,
+      duration: 300,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     });

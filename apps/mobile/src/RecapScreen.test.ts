@@ -126,11 +126,15 @@ describe('the conversation closes with something useful', () => {
   });
 
   test('the scene mic button owns one accessible name', () => {
+    const room = readFileSync(new URL('./live/C2LiveRoom.tsx', import.meta.url), 'utf8');
+    const orb = readFileSync(new URL('./onboarding/BoldVoiceOrb.tsx', import.meta.url), 'utf8');
     assert.match(
-      convo,
-      /accessibilityLabel=\{OPEN_MIC_LABEL\}[\s\S]*?<VoiceOrb state=\{orbState\} size=\{SCENE_ORB\} announce=\{false\} \/>/,
-      'the VoiceOrb announces itself inside a Pressable that already owns the Tap to talk name',
+      room,
+      /accessibilityLabel=\{micOpen \? 'Pause microphone' : 'Open microphone'\}/,
+      'the shared microphone button must own one name for its real state',
     );
+    assert.match(orb, /<View \{\.\.\.decorative\}/, 'the blue orb must not duplicate the microphone control name');
+    assert.match(convo, /onMic=\{\(\) => void \(live\.micOpen \? live\.pauseMic\(\) : live\.openMic\(\)\)\}/);
   });
 });
 

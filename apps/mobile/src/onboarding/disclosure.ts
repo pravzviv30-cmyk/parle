@@ -371,7 +371,6 @@ export function firstRunCopy(persona: TutorPersona): readonly string[] {
 /** The same, for the voice a learner gets when they never choose one. */
 export const FIRST_RUN_COPY: readonly string[] = firstRunCopy(DEFAULT_TUTOR_PERSONA);
 
-/** The bounded starter has a different pipeline from a live tutor room. */
+/** The before-practice summary keeps the AI notice and retention readable. */
 export const STARTER_AI = 'Your tutor is AI.';
-export const STARTER_PROCESSING = 'Speaking uses LiveKit and Deepgram. Your replies and selected plan go to the AI service; ElevenLabs provides your tutor’s voice. Typing uses the same live conversation.';
 export const STARTER_LOCAL = 'Replies stay on this device. A temporary session summary is held for up to 30 days and can be saved to your account.';

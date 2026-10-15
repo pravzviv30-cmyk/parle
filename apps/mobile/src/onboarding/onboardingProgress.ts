@@ -9,6 +9,23 @@ export interface OnboardingProgressValue {
   step: number;
   total: number;
   complete: boolean;
+  /** C2's four milestones, derived from the routes this journey actually asks. */
+  stageFraction?: number;
+}
+
+export function onboardingStageFraction(page: string, steps: readonly string[]): number {
+  const setup = steps.filter(step => [...FULL_SETUP].includes(step as typeof FULL_SETUP[number]) && step !== 'hear-it');
+  if (page === 'hear-it') return 0;
+  const setupIndex = setup.indexOf(page);
+  if (setupIndex >= 0) return (setupIndex + 1) / Math.max(1, setup.length) / 4;
+  if (page === 'choose-tutor') return (1 + 1 / 3) / 4;
+  if (page === 'before-practice') return (1 + 2 / 3) / 4;
+  if (page === 'practice') return 2 / 4;
+  if (page === 'recap') return (2 + 1 / 3) / 4;
+  if (page === 'keep') return 3 / 4;
+  if (page === 'account') return (3 + 1 / 3) / 4;
+  if (page === 'account-welcome') return 1;
+  return 0;
 }
 
 /**
@@ -55,5 +72,6 @@ export function onboardingProgress({ page, completed = [], complete = false, ...
     step: index + 1,
     total: steps.length,
     complete,
+    ...(!conditions.repair && !conditions.eligibilityOnly ? { stageFraction: complete ? 1 : onboardingStageFraction(canonical, steps) } : {}),
   };
 }

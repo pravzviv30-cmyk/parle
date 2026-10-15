@@ -375,7 +375,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
           const enabled = process.env.NODE_ENV === 'production'
             ? false // Guest paid-admission support is not yet available; production must fail closed.
             : process.env.LUVANI_LOCAL_DEVELOPMENT === '1' && !!AGENT_SECRET;
-          if (!enabled || !supportsSessionMode('convo')) return json(res, 503, { error: 'Live practice is unavailable. Please try again.' });
+          if (!supportsSessionMode('convo')) return json(res, 503, { error: 'voice-unavailable', message: 'Speaking is unavailable. Signed-in sessions can use typing.', supportedModes: supportedSessionModes() });
+          if (!enabled) return json(res, 503, { error: 'guest-live-unavailable', message: 'Create an account to start live practice.' });
           const priorToken = req.headers['x-luvani-guest'];
           if (typeof priorToken === 'string' && /^[A-Za-z0-9_-]{43}$/.test(priorToken)) {
             const prior = await guestStore.get(guestKey(priorToken));

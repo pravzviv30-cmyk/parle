@@ -17,7 +17,7 @@ import { authoredCorrectionReason, type CorrectionReasonId } from '@luvani/core'
  * themselves, which is most of the reason recasts fail to land.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, AccessibilityInfo, Platform } from 'react-native';
 import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
 import { EarGlyph, Highlight, Label } from '../components.tsx';
@@ -25,6 +25,9 @@ import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';
 import { BubbleIn } from '../motion/BubbleIn.tsx';
 import { replayEar } from './replayEar.ts';
+import { boldRhythm as c } from '../palette.ts';
+import { boldType } from '../theme.ts';
+import { createTranscriptScrollController, latestSentMessageId } from '../live/c2TranscriptPolicy.ts';
 
 function Recast({ better, betterEn, reason, latest }: { quote: string; better: string; betterEn: string; reason?: CorrectionReasonId; latest: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -85,7 +88,7 @@ function Line({
   });
   const body = (
     <>
-      <Text {...frenchText} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[type.french, { color: learner ? paper.onInk : paper.ink }]}>{turn.fr}</Text>
+      <Text {...frenchText} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[boldType.body, { color: learner ? c.white : c.ink }]}>{turn.fr}</Text>
       {turn.frWritten && turn.frWritten !== turn.fr ? (
         <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
       ) : null}
@@ -100,11 +103,6 @@ function Line({
             sides and no names reads as two anonymous voices, and the learner
             picked this person. Violet, because a name is identity. The
             learner's own side needs none: it is their words on their side. */}
-        {learner ? null : (
-          <View style={st.speaker}>
-            <Label>{tutorName}</Label>
-          </View>
-        )}
         {/* Replay lives on the bubble rather than on a button in the control
             row, which is how "say that again" is served without a fifth chip
             competing for the space the learner reaches with one thumb. Only
@@ -124,7 +122,7 @@ function Line({
                 gives a flex: 1 child a zero basis and the words vanish, leaving
                 a bubble the width of its ear. A browser sizes the same row from
                 its content, which is how F372 shipped looking whole (F385). */}
-            <View style={{ flexShrink: 1 }}>{body}</View>
+            <View style={{ flexShrink: 1 }}><Text style={[boldType.small, { color: c.muted, marginBottom: 4 }]}>{tutorName}</Text>{body}</View>
             {ear === 'hidden' ? null : (
               <View style={ear === 'sounding' ? st.earSounding : st.ear}>
                 <EarGlyph size={18} color={ear === 'sounding' ? accent.primary : paper.ink} />
@@ -135,9 +133,9 @@ function Line({
           // The learner's own side is the deeper paper rather than a tint, since
           // the notebook redesign retired the tints: these are their words, set
           // on the page itself, and the tutor's are the white card opposite.
-          <View style={st.learnerBubble}>{body}</View>
+          <View style={st.learnerBubble}><Text style={[boldType.small, { color: c.white, marginBottom: 4 }]}>You</Text>{body}</View>
         ) : (
-          <View style={st.tutorBubble}>{body}</View>
+          <View style={st.tutorBubble}><Text style={[boldType.small, { color: c.muted, marginBottom: 4 }]}>{tutorName}</Text>{body}</View>
         )}
         {turn.recasts?.map((r, index) => (
           <Recast key={`${r.textTurnId ?? 'legacy'}:${r.correctionIndex ?? index}:${r.quote}:${r.better}:${r.reason ?? 'none'}`} {...r} latest={latestCorrection && index === turn.recasts!.length - 1} />
@@ -153,6 +151,10 @@ export function Transcript({
   tutorName,
   tutorSpeaking,
   announceReply = false,
+  focusRevision = 0,
+  focusActive = false,
+  partialTranscript,
+  onDismissKeyboard,
 }: {
   turns: readonly TurnLine[];
   /**
@@ -174,9 +176,15 @@ export function Transcript({
   /** The tutor is sounding right now, which lights the ear on its last line. */
   tutorSpeaking: boolean;
   announceReply?: boolean;
+  /** Changes on a deliberate composer focus to reveal the latest sent message. */
+  focusRevision?: number;
+  /** The composer/keyboard owns the reveal anchor until it is dismissed. */
+  focusActive?: boolean;
+  /** Recognition in progress, never a confirmed turn or a sent draft. */
+  partialTranscript?: string | null;
+  onDismissKeyboard?: () => void;
 }) {
   const ref = useRef<ScrollView>(null);
-  const nearBottom = useRef(true);
   const [newLines, setNewLines] = useState(false);
   // A line said while the thread is on screen arrives (come alive, core loop
   // 3.5): the learner's rises a little from the orb's side and grows into
@@ -192,6 +200,24 @@ export function Transcript({
   const latest = transcriptTail(turns);
   const lastCorrectionId = latest.correctionId;
   const lastTutorId = latest.tutor?.id;
+  const focusMessageId = latestSentMessageId(turns);
+  const reducedRef = useRef(reduced);
+  const dismissRef = useRef(onDismissKeyboard);
+  reducedRef.current = reduced;
+  dismissRef.current = onDismissKeyboard;
+  const [scroll] = useState(() => createTranscriptScrollController({
+    scrollTo: options => ref.current?.scrollTo(options),
+    scrollToEnd: options => ref.current?.scrollToEnd(options),
+    showNewLines: setNewLines,
+    reduced: () => !!reducedRef.current,
+    dismissKeyboard: () => dismissRef.current?.(),
+  }));
+  const tailId = turns[turns.length - 1]?.id;
+  useLayoutEffect(() => { scroll.receivedTurn(tailId); }, [scroll, tailId]);
+  useLayoutEffect(() => {
+    if (!focusActive) { scroll.cancelFocus(); return; }
+    scroll.focus(focusMessageId, focusRevision);
+  }, [scroll, focusRevision, focusActive]);
   const announcedTutor = useRef<string | null>(null);
   useEffect(() => {
     if (latest.tutor === null || announcedTutor.current === latest.tutor.id) return;
@@ -208,22 +234,24 @@ export function Transcript({
         showsVerticalScrollIndicator={false}
         // A plain ScrollView rather than a FlatList: the list is capped at forty
         // and windowing would fight the stick-to-bottom below.
-        onScroll={({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
-          nearBottom.current = contentSize.height - layoutMeasurement.height - contentOffset.y < 64;
-          if (nearBottom.current) setNewLines(false);
-        }}
-        scrollEventThrottle={100}
-        onContentSizeChange={() => {
-          if (nearBottom.current) ref.current?.scrollToEnd({ animated: !reduced });
-          else setNewLines(true);
-        }}
+        onScroll={scroll.onScroll}
+        onScrollBeginDrag={scroll.onScrollBeginDrag}
+        scrollEventThrottle={32}
+        onLayout={scroll.onLayout}
+        onContentSizeChange={scroll.onContentSizeChange}
         // A learner may be typing into the box below this one while it scrolls.
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        // RN web dismisses on every scroll with on-drag, including the
+        // programmatic focus anchor. Only actual web gesture intent dismisses.
+        keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
+        {...(Platform.OS === 'web' ? { onWheel: scroll.onWebScrollIntent } : {})}
+        onTouchMove={Platform.OS === 'web' ? scroll.onWebScrollIntent : undefined}
         accessibilityLabel="Your conversation so far"
+        onTouchEnd={() => { scroll.cancelFocus(); onDismissKeyboard?.(); }}
       >
         {turns.map((t) => (
-          <BubbleIn key={t.id} who={t.who === 'learner' ? 'learner' : 'tutor'} play={!present.has(t.id)}>
+          <View key={t.id} onLayout={({ nativeEvent: { layout } }) => scroll.onBubbleLayout(t.id, { y: layout.y, height: layout.height })}>
+          <BubbleIn who={t.who === 'learner' ? 'learner' : 'tutor'} play={!present.has(t.id)}>
             <Line
               turn={t}
               latestCorrection={t.id === lastCorrectionId}
@@ -234,24 +262,29 @@ export function Transcript({
               announceReply={announceReply}
             />
           </BubbleIn>
+          </View>
         ))}
+        {partialTranscript ? <View style={st.rowRight}><View style={[st.learnerBubble, { opacity: 0.7 }]}>
+          <Text style={[boldType.small, { color: c.white, marginBottom: 4 }]}>You, still listening</Text>
+          <Text style={[boldType.body, { color: c.white }]}>{partialTranscript}…</Text>
+        </View></View> : null}
       </ScrollView>
-      {newLines && <Pressable accessibilityRole="button" accessibilityLabel="Go to the latest message" onPress={() => { nearBottom.current = true; setNewLines(false); ref.current?.scrollToEnd({ animated: !reduced }); }} style={st.latest}>
-        <Text style={[type.small, { color: paper.ink }]}>Latest message ↓</Text>
+      {newLines && <Pressable accessibilityRole="button" accessibilityLabel="Go to the latest message" onPress={scroll.jumpLatest} style={st.latest}>
+        <Text style={[boldType.small, { color: c.violet }]}>Latest message ↓</Text>
       </Pressable>}
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: paper.groundDeep, borderRadius: radius.control },
+  latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: c.lavender, borderRadius: 22 },
   // The wrapper carries the same flex the scroll does, so it moves nothing:
   // minHeight 0 is what stops a flex child from refusing to shrink and pushing
   // the controls off the bottom of the screen.
   frame: { flex: 1, minHeight: 0 },
   scroll: { flex: 1, minHeight: 0 },
   // Short conversations sit against the controls instead of stranded at the top.
-  content: { flexGrow: 1, justifyContent: 'flex-end', gap: space(3), paddingVertical: space(3) },
+  content: { flexGrow: 1, gap: 10, paddingTop: 8, paddingBottom: 16 },
   rowLeft: { alignItems: 'flex-start' },
   rowRight: { alignItems: 'flex-end' },
   // The name sits on the bubble's leading edge, indented by the bubble's own
@@ -269,18 +302,20 @@ const st = StyleSheet.create({
   // the notebook retired the whisper, and the rule alone keeps the card from
   // dissolving into the ground. Same bargain `components.tsx` states for Card.
   tutorBubble: {
-    backgroundColor: paper.card,
-    borderRadius: radius.card,
-    paddingHorizontal: space(4),
-    paddingVertical: space(3.5),
+    backgroundColor: c.lavender,
+    borderRadius: 20,
+    borderBottomLeftRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   // Tighter corners than the card: the learner's side is the page itself,
   // a shade deeper, rather than an object sitting on it.
   learnerBubble: {
-    backgroundColor: paper.ink,
-    borderRadius: radius.row,
-    paddingHorizontal: space(3.5),
-    paddingVertical: space(3),
+    backgroundColor: c.violet,
+    borderRadius: 20,
+    borderBottomRightRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   narration: { paddingHorizontal: space(4), paddingVertical: space(1) },
   recast: {

@@ -12,15 +12,16 @@ test('revamp B Speak preserves real gates, one primary action and the authored s
   has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);
 });
 test('revamp B room controls keep typing, help and leave alongside the real waiting and error states',()=>{
-  has('ConvoScreen.tsx',/label="Help me out"/,/label="Simpler"/,/label="Type instead"/,/label="Give me a moment"/,/label="In English"/,/maxHeight: 100/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
-  has('live/RoomWait.tsx',/state="thinking"/,/size=\{120\}/,/accessibilityLiveRegion="polite"/,/\{stage\}/,/label=\{leaveLabel\}/);
+  has('ConvoScreen.tsx',/label="Help me out"/,/label="Simpler"/,/onModeChange=/,/label="Give me a moment"/,/label="In English"/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
+  has('live/C2LiveRoom.tsx',/\['Speaking', 'Typing'\]/,/maxHeight: 104/,/keyboardShouldPersistTaps="handled"/,/onPress=\{onEnd\}/);
+  has('live/RoomWait.tsx',/state = 'thinking'/,/size=\{112\}/,/accessibilityLiveRegion="polite"/,/\{stage\}/,/label=\{leaveLabel\}/);
   lacks('live/RoomWait.tsx',/ProgressDots|CheckGlyph|percent|ProgressBar/);
-  has('live/LiveErrorView.tsx',/state-microphone/,/state-offline/,/<PillButton/,/<IconAction/);
+  has('live/LiveErrorView.tsx',/<BoldVoiceOrb state="error"/,/<Transcript/,/<PillButton/,/<IconAction/);
   has('live/LiveRoomHeader.tsx',/kind="close"/,/accessibilityHint/,/frenchText/);
   lacks('live/LiveRoomHeader.tsx',/borderBottomWidth/);
 });
 test('revamp B conversation bubbles distinguish speaker and highlight only the newest correction',()=>{
-  has('tutor/Transcript.tsx',/paper.card/,/paper.ink/,/paper.onInk/,/latestCorrection/,/<Highlight/,/frenchText/,/keyboardShouldPersistTaps="handled"/);
+  has('tutor/Transcript.tsx',/backgroundColor: c.lavender/,/backgroundColor: c.violet/,/c.white/,/latestCorrection/,/<Highlight/,/frenchText/,/keyboardShouldPersistTaps="handled"/);
   has('SessionView.tsx',/<ControlTile/,/<ScrollScreen/,/avoidKeyboard/,/frenchText/,/multiline/,/maxHeight: 100/);
   has('tutor/RealMomentScreen.tsx',/<OptionRow/,/MAX_ONLY_LINE/,/type.title/);
   has('tutor/SafetyStopView.tsx',/type.title/,/<PillButton/);

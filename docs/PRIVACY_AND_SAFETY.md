@@ -28,7 +28,7 @@ Every durable store, with the retention that governs it. A row whose retention s
 | What | Where it lives | Why | Retention | Removed by |
 |---|---|---|---|---|
 | Email, name, sign-in provider | Supabase `auth.users` | There is no account without them | Life of the account | Account deletion |
-| The first-run draft before an account: age confirmation, Tutor voice, usage-data answer, the plan's answers including interests, speaking confidence, practice focus and deliberate tutor selection, the page reached, completed and skipped steps, the onboarding variant, an optional account email, the sign-in or sign-up form and its return page, and an optional first name. Passwords are never saved | Device, `@luvani/pre-account-onboarding/v1` | Carry the first-run answers through account creation, and resume where the learner left off | Until explicit adoption or discard, or the learner says they are under thirteen | Explicit adoption or discard, "I am younger than that" in the Start sheet, clearing app data |
+| The first-run draft before an account: the legacy age compatibility flag and declared eligibility, tutor voice, usage-data answer, the plan's answers including interests, speaking confidence, practice focus and deliberate tutor selection, the page reached, completed and skipped steps, the onboarding variant, an optional account email, the sign-in or sign-up form and its return page, and an optional first name. Passwords are never saved | Device, `@luvani/pre-account-onboarding/v1` | Carry the first-run answers through account creation, and resume where the learner left off; declared eligibility is not verified age | Until explicit adoption or discard, or a known refusal | Explicit adoption or discard, a known refusal, clearing app data |
 | Unfinished signed-in setup or profile repair: the current page, completed steps, onboarding variant and unconfirmed setup answers | Device, account-scoped `onboarding-setup-draft` and `onboarding-repair-draft`; excluded from cloud sync | Resume interrupted setup on this device without replacing confirmed profile data | Until completion, discard or account-data deletion | Completion, discard, account-data deletion, clearing app data |
 | Age confirmation, and a date of birth for learners who joined when Luvani asked | Device, `luvani.u.<uid>.profile` | The 13+ gate, which is a gate and not a field | Life of the account on that device | Account deletion |
 | The moment a session stopped because the learner said they are under thirteen | Device, `luvani.u.<uid>.profile`, field `ageStopAt` | Keep the tutor doors shut until the age gate is answered again | Life of the account on that device, cleared the moment they pass the gate | Passing the age gate, reinstall, account deletion |
@@ -685,10 +685,11 @@ The copy never quotes the learner back at themselves, never diagnoses, and never
 scolds. `safetyPolicy.test.ts` holds this table against the running code, so the
 words in this file and the words a learner hears cannot drift apart.
 
-Age is a gate rather than a field. Onboarding asks in plain words, and a
-learner who cannot say they are thirteen is refused without a retry dressed up as a
-second chance. A learner who says mid-session that they are under 13 hits the same
-`stop`.
+Age remains an eligibility gate rather than a collected birth-date field. C2
+uses the linked 13+ Terms declaration accepted by deliberate Start/Create or
+repair Continue, without a separate age question. A known refusal cannot be
+bypassed by that action. A learner who says mid-session that they are under 13
+still hits the same `stop`; this UI change is not age verification.
 
 ### An under-13 stop is remembered on this device
 
@@ -733,10 +734,11 @@ is listed again in [Not true yet](#not-true-yet).
 
 ### An under-13 answer before an account keeps nothing
 
-The first run asks the age question in its Start sheet, before any processing or account
-exists. "I am younger than that" shows a calm page of its own and takes away
-"I am 13 or older, create account". From that tap, nothing about the learner is
-kept:
+The former first-run age-question controls are retired in C2. Its linked Terms
+declaration precedes the deliberate action that starts processing or account
+creation. Existing known underage/refusal paths still show the calm refusal
+surface and prevent continuation. When that refusal occurs, nothing about the
+learner is kept:
 
 - **It clears the draft.** The first-run draft on the device goes, and with it
   the voice, the plan's answers, the page reached and any first name typed.
@@ -756,8 +758,8 @@ kept:
   launch meets the refusal page until the app is reopened.
 
 **The ceiling, plainly.** Because nothing is stored, a relaunch starts at the
-first page with nothing kept, and the question can be asked again. That is the
-same close-the-app escape the age gate keeps for a mis-tap. Holding the refusal
+first page with nothing kept and presents C2's linked declaration again. That is
+the same close-the-app escape retained for a mis-tap. Holding the refusal
 past a relaunch would mean storing a note about a child on the device, with a
 retention period of its own. The founder chose not to (2026-09-30, F637 and
 F639), and changing that is a founder and legal decision, not an engineering
@@ -1033,7 +1035,7 @@ promise already kept.
 | Device deletion and token hygiene are unproven on a real build | The device half of deletion is unproven | Ledger F71 |
 | No professional review has been obtained | The safety position is unreviewed | Ledger F70 |
 | An under-13 stop is remembered on the device that saw it, not on the account | A reinstall clears it, and a second phone never learns about it | This file, section above; founder accepted |
-| An under-13 answer before an account lasts the launch and no longer | A relaunch asks the age question again, because holding it would mean storing a note about a child, which the founder chose not to do | This file, section above; founder decision, 2026-09-30 |
+| A known under-13 refusal before an account lasts the launch and no longer | Relaunch retains no refusal note; C2 shows its linked declaration rather than restoring the retired age question. This is not verified age assurance | This file, section above; founder cleanup decision, 2026-09-30; C2 presentation, 2026-10-14 |
 | Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
 | Buffered scripted speech latency has not been measured on a device | Both agents check output; scripted replies wait for a complete inspected utterance within 8 KiB and 10 seconds | Backend A19/A30 release acceptance |
 | No reviewed privacy policy or terms exist | The app says professional review remains required before release; it must not present an unreviewed document as a legal promise | Release roadmap, Phase 8 |
@@ -1145,7 +1147,24 @@ The modern first run uses `onboarding/disclosure.ts` for AI and bounded-starter 
 
 The guest capability/usage/ownership ledger contains hashed installation metadata and counters for thirty days, with online attempts expiring after twenty-four hours. It holds no replies or recordings. Guest speech budgets are seconds counters under a hashed capability, a hashed installation, a hashed network address and the UTC day; they expire after two days and hold no audio, text or raw address. Explicitly opted-in aggregate event counts contain closed event/variant/evidence enums and expire at ninety days; no answer, words, account or install ID enters them. Analytics and tutor learning memory start off independently. The local guest record retains bounded replies and feedback until explicit adoption/discard or app-data clearing. Authentication alone does not silently import it. See `docs/ONBOARDING.md` and `docs/STATE_AND_STORAGE.md` for ownership, metering and reinstall limits.
 
-The under-thirteen refusal clears both guest and draft writes, sends nothing and stores no refusal marker. It holds through sign-in and sign-out and new-account navigation for the remainder of the launch. A relaunch starts at the first page with nothing kept, and the question can be asked again. The historical draft can contain an optional first name; the modern journey asks for no name. The used-app marker is written after a completed account reaches the app, independently of any refusal. A daily reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create an account" each cancel it on the phone.
+The C2 journey replaces the explicit age-question control with a linked Terms
+and Privacy notice before first processing. Terms declare that Luvani is for
+learners aged 13 and over. Only deliberate Start practice, Create account,
+account provider actions or repair Continue accept that notice; reading a link,
+arriving on a page or typing a field does not. This is a minimum-age declaration,
+not age verification or professional legal review. Existing eligible-only server
+admission and live underage safety stops remain in their current owners.
+
+A known under-thirteen/refusal state still clears guest and draft writes, sends
+nothing and stores no refusal marker. It holds through sign-in, sign-out and
+new-account navigation for the remainder of the launch. Relaunch starts with
+nothing kept; the old question is not reintroduced. The historical draft can
+contain an optional first name; the modern journey asks for no name. The used-app
+marker is written only after a completed account reaches the app, independently
+of refusal. A daily reminder remains attached to its plan: known refusal,
+“Start a new plan instead” and sign-in's “Create an account” retain the existing
+device cancellation. Reviewed Terms/privacy and production release qualification
+remain outstanding; this UI change establishes neither.
 
 
 ### First live practice candidate, 10 October 2026

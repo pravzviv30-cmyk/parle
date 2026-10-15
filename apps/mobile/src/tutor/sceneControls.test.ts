@@ -122,20 +122,23 @@ describe('the screen actually wires it — F274', () => {
    */
   const screen = () => readFileSync(new URL('../ConvoScreen.tsx', import.meta.url), 'utf8');
 
-  test('the scene orb is the only other place that opens a microphone', () => {
+  test('both conversation rooms wire the same reversible microphone control', () => {
     const source = screen();
-    const calls = [...source.matchAll(/onPress=\{live\.openMic\}/g)];
+    const calls = [...source.matchAll(/onMic=\{\(\) => void \(live\.micOpen \? live\.pauseMic\(\) : live\.openMic\(\)\)\}/g)];
     assert.equal(
       calls.length,
       2,
-      'the choosing circle and the scene circle. One means the scene lost its microphone again',
+      'both the opening and the active scene must offer their current room microphone',
     );
   });
 
-  test('the scene asks the view-model before drawing a button', () => {
+  test('the shared live room gates the microphone and mode by real room readiness', () => {
     const source = screen();
     assert.match(source, /micOpen: live\.micOpen/, 'sceneControls cannot decide without being told');
-    assert.match(source, /controls\.showOpenMic \? \(/, 'the button must be gated on the decision, not on a guess');
+    const room = readFileSync(new URL('../live/C2LiveRoom.tsx', import.meta.url), 'utf8');
+    assert.match(room, /typing \? <View style=\{st\.composer\}>/, 'typing must draw a composer instead of the microphone control');
+    assert.match(room, /: ready && <Press/, 'a room that is not ready must not offer a microphone');
+    assert.match(room, /canResumeSpeaking\(startedWithSpeech, ready, modePending\)/, 'the speaking segment must respect the server speech capability');
   });
 
   test('a closed microphone is never drawn as listening', () => {

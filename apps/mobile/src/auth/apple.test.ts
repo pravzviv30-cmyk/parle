@@ -143,7 +143,7 @@ describe('is Apple actually switched on, and does the adapter ask — F375', () 
 });
 
 describe('the Apple door is offered only where it works — F376', () => {
-  test('the apple door is drawn above the google one, only when the platform offers it — F376', () => {
+  test('the Google and Apple doors match C2 and Apple is offered only on supported platforms — F376', () => {
     // The label is the shared one, so the words are tested in busyLabel.test.ts
     // and cannot drift between the two screens.
     assert.equal(authButtonLabel('apple', false), 'Continue with Apple');
@@ -183,12 +183,12 @@ describe('the Apple door is offered only where it works — F376', () => {
       const applePlace = body.indexOf('provider="apple"');
       const googlePlace = body.indexOf('provider="google"');
       assert.ok(googlePlace >= 0, `${where} lost its Google door`);
-      assert.ok(applePlace < googlePlace, `${where} draws the Apple door below the Google one`);
+      assert.ok(googlePlace < applePlace, `${where} does not draw the C2 Google door before Apple`);
       const title = body.indexOf('accessibilityRole="header"');
       const firstField = body.indexOf('<Field');
       assert.ok(title >= 0 && firstField >= 0, `${where} lost its title or its fields; this test is reading the wrong shape`);
       assert.ok(title < applePlace, `${where} draws the Apple door above the title, or inside the footer`);
-      assert.ok(googlePlace < firstField, `${where} draws the provider doors below the fields`);
+      assert.ok(firstField < googlePlace, `${where} does not embed provider doors after the fields`);
 
       // And the handler is a real one: its own pending flag, raised for the
       // whole request, so the button relabels instead of greying in silence.

@@ -1070,8 +1070,9 @@ describe('the icon controls keep their promises', () => {
     assert.match(choice, /const fill = selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/);
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
     const boldChoice = readFileSync(join(SRC, 'onboarding', 'BoldChoice.tsx'), 'utf8');
-    assert.match(boldChoice, /selected \? c\.lavender : c\.white/);
-    assert.match(boldChoice, /color: c\.ink/);
+    assert.match(boldChoice, /const fill = tone \? \(selected \? c\.violet : c\[tone\]\) : selected \? c\.lavender : c\.paper/);
+    assert.match(boldChoice, /const ink = colourful && selected \? c\.white : c\.ink/);
+    assert.match(boldChoice, /color: colourful \? ink : c\.muted/);
     assert.match(screen, /draft\.practiceFocus === v\.key/);
     const welcome = region(screen, '{blue && ', '{question && ');
     assert.doesNotMatch(welcome, /<Choice\b/, 'the retired coffee preference must not reappear before the personal plan');

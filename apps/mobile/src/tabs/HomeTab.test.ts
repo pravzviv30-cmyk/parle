@@ -754,7 +754,10 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     }
     // The hero's three parts press through Press, and the brief's bookmark
     // through Pressable, so both halves of the walk read something real.
-    assert.equal(tags(files.find((file) => file.path === 'game/TodayHero.tsx')!.body, 'Press').length, 3, "the hero's three parts are not three presses");
+    const hero = files.find(file => file.path === 'game/TodayHero.tsx')!.body;
+    assert.equal(tags(hero, 'Press').length, 4, 'the compact C2 streak and the detailed hero’s three parts need labelled targets');
+    assert.match(hero, /if \(compact\) return <Press/);
+    assert.match(hero, /<C2Flame size=\{58\} active=\{focused && hero\.flame\.lit\}/);
     assert.ok(walked >= 4, `the walk read ${walked} tappable rows on Home, so it is checking almost nothing`);
   });
 });

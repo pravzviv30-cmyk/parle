@@ -1,5 +1,7 @@
 import { BoldVoiceOrb } from '../onboarding/BoldVoiceOrb.tsx';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
+import { C2LiveRoom } from '../live/C2LiveRoom.tsx';
+import type { TurnLine } from '../live/turns.ts';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import { FirstSessionSummary, FirstSessionCelebration } from '../onboarding/FirstSessionResult.tsx';
 import type { FirstLiveRecord } from '../onboarding/firstLiveModel.ts';
@@ -17,7 +19,7 @@ import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDr
 import { PillButton, Press } from '../components.tsx';
 import { ScrollScreen, readingColumn } from '../layout.tsx';
 import { AccountWelcome } from '../onboarding/AccountWelcome.tsx';
-import { OnboardingFrame, useOnboardingTransition } from '../onboarding/OnboardingLayout.tsx';
+import { OnboardingFrame, useOnboardingTransition, useOnboardingFramePresentation } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import { StreakCelebrationScreen } from '../onboarding/firstRun/StreakCelebrationScreen.tsx';
 import { guestStreak } from '../onboarding/guestProgress.ts';
@@ -43,9 +45,10 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['orb', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
+  'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
   orb: 'Fluid orb states', 'hear-it': 'Welcome', reason: 'Purpose', interests: 'Interests', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
   'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
 };
@@ -136,6 +139,7 @@ export function OnboardingPreview() {
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
+          {(screen === 'live-speaking' || screen === 'live-typing') && <LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} controls={controlsVisible} onEnd={() => go('celebration')} />}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
             initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}
             onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
@@ -157,6 +161,33 @@ export function OnboardingPreview() {
       </View>}
     </View>
   </AuthProvider>;
+}
+
+/** Uses the production room and transcript. These messages never reach a tutor service. */
+function LiveRoomPreview({ startTyping, controls, onEnd }: { startTyping: boolean; controls: boolean; onEnd: () => void }) {
+  useOnboardingFramePresentation(onboardingProgress({ page: 'practice' }), { hideProgress: true });
+  const [typing, setTyping] = useState(startTyping);
+  const [micOpen, setMicOpen] = useState(!startTyping);
+  const [transcript, setTranscript] = useState(true);
+  const [draft, setDraft] = useState('');
+  const [turns, setTurns] = useState<TurnLine[]>([
+    { id: 't1', who: 'tutor', fr: 'Bonjour ! Vous avez réservé une table ?', frWritten: null, en: 'Hello! Have you booked a table?' },
+    { id: 'u1', who: 'learner', fr: 'Une table pour deux, s’il vous plaît.', frWritten: null, en: null },
+    { id: 't2', who: 'tutor', fr: 'Bien sûr. Une table pour deux. Vous préférez à l’intérieur ou sur la terrasse ?', frWritten: null, en: 'Of course. A table for two. Would you prefer inside or on the terrace?' },
+  ]);
+  const sequence = useRef(3);
+  const addTutor = () => setTurns(held => [...held, { id: `t${sequence.current++}`, who: 'tutor', fr: 'Très bien ! Vous voulez la carte ? Prenez votre temps, puis dites-moi ce que vous souhaitez commander.', frWritten: null, en: 'Very good! Would you like the menu? Take your time, then tell me what you would like to order.' }]);
+  return <C2LiveRoom tutorName="Émilie" description="At the restaurant, synthetic preview" state={typing ? 'ready' : micOpen ? 'listening' : 'ready'}
+    caption={typing ? 'Ready for your message' : micOpen ? 'Your turn. Take your time.' : 'Microphone paused'}
+    turns={turns} tutorSpeaking={false} typing={typing} micOpen={micOpen} transcriptVisible={transcript} onTranscriptVisibility={setTranscript}
+    draft={draft} onDraft={setDraft} onEnd={onEnd} onMic={() => setMicOpen(value => !value)}
+    onModeChange={value => { setTyping(value); setMicOpen(!value); }} onSend={async () => {
+      const text = draft.trim();
+      if (!text) return false;
+      setDraft('');
+      setTurns(held => [...held, { id: `u${sequence.current++}`, who: 'learner', fr: text, frWritten: null, en: null }]);
+      return true;
+    }} top={controls ? <Press accessibilityRole="button" accessibilityLabel="Add a synthetic tutor reply" onPress={addTutor} style={st.badge}><Text style={[type.small, st.ink]}>Add a tutor reply</Text></Press> : undefined} />;
 }
 
 const st = StyleSheet.create({

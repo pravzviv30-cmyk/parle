@@ -73,7 +73,7 @@ describe('the reset screen, and which line owns which mistake — F157', () => {
 
     // The two checks set the state that belongs to them, and clear the other,
     // or a fixed password would leave its old complaint sitting under the field.
-    const submit = screen.slice(screen.indexOf('const submit = async'), screen.indexOf('return ('));
+    const submit = screen.slice(screen.indexOf('const submit = async'), screen.indexOf('return (', screen.indexOf('const submit = async')));
     assert.match(submit, /passwordTooShort\(password\)[\s\S]*setPasswordError\(/, 'the length check writes to some other line');
     assert.match(submit, /confirm !== password[\s\S]*setConfirmError\(/, 'the match check writes to some other line');
     // Both are written on every submit and both are written before either can
@@ -131,7 +131,8 @@ describe('the reset screen wears revamp B — F601', () => {
     // On paper: the frame's own ground, never a colour page for a form.
     assert.ok(screen.includes('<ScrollScreen'), 'the reset screen is not built on the frame; this test is reading the wrong shape');
     const frame = openingTag(screen, screen.indexOf('<ScrollScreen'));
-    assert.match(frame, /\bavoidKeyboard\b/, 'the reset screen stopped lifting its fields over the keyboard');
+    assert.match(frame, /automaticallyAdjustKeyboardInsets/, 'the native scroll viewport must follow the software keyboard');
+    assert.doesNotMatch(frame, /\bavoidKeyboard\b/, 'a second keyboard avoidance must not double the native scroll inset');
     assert.doesNotMatch(frame, /\bground=/, 'the reset screen paints a ground of its own; a form sits on paper');
 
     // The header row is spacing and nothing else: no title to carry a middot,
@@ -153,7 +154,7 @@ describe('the reset screen wears revamp B — F601', () => {
     // A working title, rolled as a heading, at the working size.
     assert.match(
       screen,
-      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink \}\]\}>Choose a new password<\/Text>/,
+      /<Text accessibilityRole="header" style=\{\[type\.title, boldType\.title, \{ color: paper\.ink, textAlign: 'center' \}\]\}>Choose a new\{'\\n'\}password\.<\/Text>/,
       'the title is not a working title in ink, rolled as a heading',
     );
     assert.doesNotMatch(screen, /type\.display/, 'the reset screen still sets a display headline; a form takes the working title');
@@ -178,7 +179,7 @@ describe('the reset screen wears revamp B — F601', () => {
     // still the quiet link in the body.
     assert.match(
       screen,
-      /footer=\{<PillButton label=\{authButtonLabel\('saveNewPassword', busy\)\} onPress=\{\(\) => void submit\(\)\} disabled=\{busy\} \/>\}/,
+      /footer=\{!keyboardVisible \? <View[^>]*>[\s\S]*?<PillButton label=\{authButtonLabel\('saveNewPassword', busy\)\} onPress=\{\(\) => void submit\(\)\} disabled=\{busy \|\| leaving\} \/>/,
       'the save pill left the footer or changed its words',
     );
     assert.equal(tags(screen, 'PillButton').length, 1, 'the reset screen draws more than one ink pill');

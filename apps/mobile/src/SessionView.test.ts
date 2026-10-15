@@ -31,6 +31,7 @@ function stripComments(source: string): string {
 const view = stripComments(read('./SessionView.tsx'));
 const screen = stripComments(read('./LiveSessionScreen.tsx'));
 const convo = stripComments(read('./ConvoScreen.tsx'));
+const liveRoom = stripComments(read('./live/C2LiveRoom.tsx'));
 
 /**
  * Somebody typing a French sentence at a steady pace: one character every
@@ -61,7 +62,7 @@ describe('the lesson says the learner is still here — F142', () => {
     // typing frame here would be a second throttle to keep in step.
     assert.match(
       screen,
-      /onTyping=\{typing \? live\.sendTyping : undefined\}/,
+      /onDraft=\{text => \{ setDraft\(text\); live\.sendTyping\(\); \}\}/,
       'the typed lesson does not send presence, so the agent still counts it as silence',
     );
     // `typing` rather than the prop, because a lesson can go quiet mid-session
@@ -71,11 +72,20 @@ describe('the lesson says the learner is still here — F142', () => {
     // this test's own defect arriving through the other door.
     assert.match(
       screen,
-      /const typing = textMode \|\| live\.voiceless;/,
+      /const typing = textMode \|\| live\.voiceless \|\| typingOpen;/,
       'the lesson decides it is typed from the prop alone, so the quiet door leaves it counting silence',
     );
     assert.ok(!screen.includes("{ t: 'typing' }"), 'the lesson publishes a typing frame itself instead of through the hook');
     assert.match(convo, /live\.sendTyping\(\);/, 'this test is reading for the seam the conversation uses and cannot find it');
+    assert.match(liveRoom, /onChangeText=\{onDraft\}/, 'the actual live composer must call the supplied presence callback');
+    const body = screen.match(/onDraft=\{text => \{([^}]+)\}\}/)?.[1];
+    assert.ok(body, 'the production lesson keystroke callback is missing');
+    const drafts: string[] = [];
+    let calls = 0;
+    const onDraft = new Function('text', 'setDraft', 'live', body!);
+    for (const text of ['B', 'Bo', 'Bon', 'Bonjour']) onDraft(text, (value: string) => drafts.push(value), { sendTyping: () => { calls++; } });
+    assert.deepEqual(drafts, ['B', 'Bo', 'Bon', 'Bonjour']);
+    assert.equal(calls, 4, 'presence is sent for every keystroke, including before submission');
 
     // At the throttle: a learner typing steadily is heard often enough that the
     // agent never sees a gap, and rarely enough that a fast typist is not

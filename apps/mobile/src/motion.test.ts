@@ -167,6 +167,8 @@ const importsEngine = (body: string): boolean => runtimeImports(body).some(({ sp
 /** Rule 1: where an engine may be imported. Directories end in a slash. */
 const ENGINE_DIRS = ['motion/', 'celebrate/', 'game/art/', 'onboarding/firstRun/'];
 const ENGINE_FILES = [
+  // C2 illustrations share one foreground-aware clock and the OS motion preference.
+  'onboarding/motion/C2Scene.tsx',
   'icons/AnimatedIcon.tsx',
   'nav/TabGlyph.tsx',
   'drill/AnswerSheet.tsx',
@@ -196,7 +198,6 @@ const LEGACY_ANIMATED = [
   'launch/LaunchScreen.tsx',
   // Bounded onboarding action/reveal and account primitives.
   'onboarding/motion/OnboardingScenes.tsx',
-  'onboarding/AccountWelcome.tsx',
   // One shared transition/progress owner; its consumers only render its style.
   'onboarding/OnboardingLayout.tsx',
   'onboarding/OnboardingFlow.tsx',
@@ -209,7 +210,7 @@ const usesLegacyAnimated = (body: string): boolean =>
   runtimeImports(body).some(({ spec, clause }) => spec === 'react-native' && /\bAnimated\b/.test(clause));
 
 /** Rule 4: where a loop may run. */
-const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx'];
+const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx'];
 const loopAllowed = (short: string): boolean =>
   LOOP_FILES.includes(short) || /^tutor\/(?:Orb|LiveBars)[^/]*\.tsx?$/.test(short);
 
@@ -223,9 +224,9 @@ describe('every animation crosses to the native driver', () => {
       for (const m of every(f.body, /\bAnimated\.timing\(/g)) {
         const body = callBody(f.body, m.index + 'Animated.timing'.length);
         if (f.short === 'onboarding/OnboardingLayout.tsx' && /Animated\.timing\(fill,/.test(m[0] + body.slice(1))) {
-          assert.match(body, /duration: reduced \? 0 : 220/);
+          assert.match(body, /duration: reduced \? 0 : 300/);
           assert.match(body, /useNativeDriver: false/);
-          assert.match(f.body, /width: fill\.interpolate\(\{ inputRange: \[0, 1\], outputRange: \['0%', '100%'\]/);
+          assert.match(f.body, /width: fill\.interpolate\(\{ inputRange: \[stage \/ 4, \(stage \+ 1\) \/ 4\], outputRange: \['0%', '100%'\]/);
           continue;
         }
         if (!/useNativeDriver:\s*(?:true|NATIVE_DRIVER|Platform\.OS !== 'web')/.test(body)) {

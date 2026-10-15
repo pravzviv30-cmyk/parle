@@ -122,8 +122,10 @@ describe('onboarding — three questions, and nothing that has to be answered', 
     assert.ok(!/\b(sorry|wrong|cannot|denied|error)\b/i.test(AGE_REFUSAL), 'the refusal apologises or scolds');
 
     // The screen asks the question as one tap, and offers the honest no.
-    assert.ok(FLOW.includes('AGE_CONFIRM'), 'the age page lost its confirmation');
-    assert.ok(FLOW.includes('AGE_DENY'), 'a learner who is not old enough has no way to say so');
+    assert.match(FLOW, /TermsAcceptance context="repair"/);
+    assert.match(FLOW, /label="Continue" onPress=\{confirmAge\}/);
+    assert.doesNotMatch(FLOW, /\{AGE_QUESTION\}|\{AGE_CONFIRM\}|\{AGE_DENY\}/);
+    assert.ok(AGE_GATE.includes('AGE_CONFIRM') && AGE_GATE.includes('AGE_DENY'), 'the known-under-age return restriction keeps explicit eligible and refusal choices');
     assert.ok(FLOW.includes('ageGate('), 'the age page decides for itself again');
     assert.equal(AGE_CONFIRM, 'I am 13 or older');
     assert.ok(AGE_DENY.length > 0);
@@ -293,13 +295,9 @@ describe('a refused learner has a way out, and hears the refusal — F356', () =
     // Tapping "I am younger than that" sets oldEnough false, and the deny ghost
     // is gated on it, so the honest refusal is never shown with the way to say
     // it again still sitting under it. Held on both gate surfaces.
-    for (const [where, src] of [['the first run', FLOW], ['the return gate', AGE_GATE]] as const) {
-      assert.match(
-        src,
-        /oldEnough !== false &&[\s\S]{0,160}GhostButton label=\{AGE_DENY\}/,
-        `${where} leaves the deny ghost tappable after the learner has already said they are younger`,
-      );
-    }
+    assert.match(AGE_GATE, /oldEnough !== false &&[\s\S]{0,160}GhostButton label=\{AGE_DENY\}/);
+    assert.match(FLOW, /page === 'age' && oldEnough !== false && <View/);
+    assert.match(FLOW, /if \(oldEnough === false \|\| !loaded \|\| submission\.current \|\| pageMotion\.locked\.current\) return false;/);
   });
 });
 
@@ -315,7 +313,7 @@ describe('the Meet page reads as a paragraph, not a plaque — F359', () => {
     );
     assert.match(
       FLOW,
-      /question:\s*\{[^}]*\.\.\.type\.display/,
+      /question:\s*\{[^}]*\.\.\.type\.title/,
       'the recovery question must use the shared working title',
     );
   });
@@ -410,7 +408,7 @@ describe('the age gate is a gate on screen, not only in the rule', () => {
     // already true and already tested, and the screen showed the refusal with
     // the confirm pill still rendered and enabled underneath it. The rule said
     // no and the glass said yes, and only the rule was under test.
-    const guarded = FLOW.match(/\{page === 'age' &&[^}]*PillButton[^}]*\}/);
+    const guarded = FLOW.match(/\{page === 'age' && oldEnough !== false && <View[\s\S]*?<PillButton label="Continue" onPress=\{confirmAge\}/);
     assert.ok(guarded, 'the age page still offers a way through');
     assert.match(
       guarded[0],
@@ -465,7 +463,7 @@ describe('the return gate is drawn as a working screen — F601', () => {
 });
 
 describe('the onboarding doc counts the screens the code shows', () => {
-  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /8 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan'\]/); assert.equal(PRE_ACCOUNT_PAGES.length, 18); assert.match(doc, /disk registry also accepts historical/); assert.match(doc, /Historical native correction checks, before this redesign/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
+  test("the documented setup count matches the runtime order rather than historical disk pages", () => { const order = evidence('apps/mobile/src/onboarding/flow.ts'); const doc = evidence('docs/ONBOARDING.md'); assert.match(doc, /8 setup pages/); assert.match(order, /FULL_SETUP: readonly PreAccountPage\[\] = \[ ?'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan'\]/); assert.equal(PRE_ACCOUNT_PAGES.length, 18); assert.match(doc, /Historical draft routes repair through the existing resume model/); assert.match(doc, /Historical native correction checks, before this redesign/); assert.match(doc, /F114/); assert.match(doc, /cannot be produced on the machine/); });
 });
 
 /**
@@ -479,7 +477,7 @@ describe('the onboarding doc counts the screens the code shows', () => {
  * depends on fails silently, for the learners who said yes and for nobody else.
  */
 describe('the first run asks about usage data once, and off is the answer until they say otherwise — F472', () => {
-  test("usage consent is asked once before processing and learning memory is a separate off-by-default choice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.equal(freshPreAccountDraft().analyticsConsent, false); assert.equal(freshPreAccountDraft().rememberLearning, false); assert.equal((screen.match(/title="Optional usage data"/g) ?? []).length, 1); assert.match(screen, /surface === 'start'/); assert.match(screen, /STARTER_LOCAL/); assert.match(screen, /Your words and audio are excluded/); assert.match(screen, /title="Remember my learning"/); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); });
+  test("usage consent is asked once before processing and learning memory is a separate off-by-default choice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.equal(freshPreAccountDraft().analyticsConsent, false); assert.equal(freshPreAccountDraft().rememberLearning, false); assert.equal((screen.match(/title="Share usage analytics"/g) ?? []).length, 1); assert.match(screen, /const consentVisible/); assert.match(screen, /STARTER_LOCAL/); assert.match(screen, /Your words and audio are excluded/); assert.match(screen, /title="Remember my learning"/); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); });
 
   test('the draft carries the answer and a missing one reads as no', async () => {
     // The consent is given before there is an account to key it to, so it rides
@@ -542,7 +540,7 @@ describe('the first run asks about usage data once, and off is the answer until 
     // the app, so nothing a learner does in the next seconds is counted against
     // an answer that has not landed.
     const preWrite = APP.indexOf('await saveConsent({ allowed: draft.analyticsConsent })');
-    const release = APP.indexOf('done(built)');
+    const release = APP.indexOf('done(built, startPractice)');
     assert.ok(preWrite > 0, 'the pre-account bootstrap never writes the usage-data answer');
     assert.ok(release > preWrite, 'the app is released before the answer reaches the disk');
 
@@ -595,7 +593,7 @@ describe('the first run asks about usage data once, and off is the answer until 
  test("the recovery route's tutor cards keep independent selection and preview state", () => {
   assert.match(FLOW, /<TutorSelection chosen=\{voice\} preview=\{preview\} onChoose=\{setVoice\}/);
   assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
-  assert.match(FLOW, /question: \{ \.\.\.type.display/);
+  assert.match(FLOW, /question: \{ \.\.\.type.title/);
   assert.match(FLOW, /<OnboardingLayout/);
   assert.doesNotMatch(FLOW, /back=|icon="back"/);
 });

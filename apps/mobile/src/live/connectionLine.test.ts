@@ -88,12 +88,9 @@ describe('the quiet slot — what a live screen says about its own connection', 
       for (const use of source.match(/(?:notice:\s*)?live\.notice/g) ?? []) {
         assert.equal(use, 'notice: live.notice', `${name} reads the raw notice outside the quiet slot: ${use}`);
       }
-      if (name === 'the lesson') {
-        assert.match(source, /headerLine=\{connectionLine\(\{ reconnecting: live\.reconnecting, notice: live\.notice \}\)\.text \?\? undefined\}/, 'the lesson drops its connection status before the surface');
-        assert.match(stripComments(read('../SessionView.tsx')), /headerLine \? \([\s\S]{0,240}accessibilityLiveRegion="polite"/, 'the lesson status is not announced by the shared surface');
-      } else {
-        assert.match(source, /accessibilityLiveRegion="polite"/, `${name} explains a silence in a line nothing reads out`);
-      }
+      assert.match(source, /caption=\{(?:caption|headerLine|line\.text)/, `${name} drops its connection status before the shared live surface`);
+      assert.match(stripComments(read('./C2LiveRoom.tsx')), /accessibilityLiveRegion="polite"[\s\S]{0,100}\{caption\}/,
+        'the shared room must announce reconnect and long-wait captions');
     }
 
     // And the timer stays where it belongs: on the notice, in the hook, and

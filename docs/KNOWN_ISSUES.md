@@ -4340,7 +4340,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `a scene with a closed microphone offers the circle that opens it`
 - verified-by: `a scene in text mode never offers a microphone`
 - verified-by: `the scene stops offering the circle once the microphone is open`
-- verified-by: `the scene orb is the only other place that opens a microphone`
+- verified-by: `both conversation rooms wire the same reversible microphone control`
 
 ### F275 — A voice vendor seam in buildTTS, defaulting to ElevenLabs byte-for-byte
 - severity: P1
@@ -5403,7 +5403,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/auth/SignUpScreen.tsx
 - note: Signup and introductory signin now use the shared centred onboarding frame, with no visible back control. Provider doors remain above the fields. Signup uses native keyboard insets, keeps its action after the fields and hides it while the software keyboard is visible; Confirm's Done validates and dismisses without submitting. Introductory signin scrolls its action with the fields. The returning signin route retains its existing shared frame. System back is guarded while a request runs. This replaces the historical pinned onboarding action and visible back through the shared header.
-- verified-by: `sign-in leads with provider actions and keeps its primary action clear of the keyboard`
+- verified-by: `C2 sign-in embeds providers after its fields and keeps its footer clear of the keyboard`
 - verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `a pushed screen has exactly one way back, and it is the shared header — F309`
 
@@ -5671,7 +5671,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   account. app.json asks for ios.usesAppleSignIn and the expo-apple-authentication plugin; ONBOARDING.md
   names the third door. On-device proof needs the paid Apple Developer capability and the Supabase Apple
   provider, and is recorded as Pass 4 runbook rows rather than claimed.
-- verified-by: `the apple door is drawn above the google one, only when the platform offers it — F376`
+- verified-by: `the Google and Apple doors match C2 and Apple is offered only on supported platforms — F376`
 - verified-by: `the delete sheet tells an apple account what will happen — F376`
 - verified-by: `app.json asks for the Apple capability and its plugin — F376`
 - verified-by: `every first-run screen leads with a heading role`
@@ -6716,7 +6716,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `none of the three re-grows the safe-area maths of its own`
 - verified-by: `the bottom inset is paid too, not just the notch`
 - verified-by: `every status branch of the lesson returns the frame, not a bare centred View`
-- verified-by: `the live scene draws nothing above the frame SessionView owns`
+- verified-by: `all live room content is inside the C2 frame that pays its inset once`
 
 ### F445 — Nothing in version control said which devices Luvani supports
 - severity: P2
@@ -7479,7 +7479,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   standard EULA applies only to apps that supply no licence of their own, and many supply one. It is a
   small sentence, but it is an unearned claim in the one place the founder asked for none, and the fix
   is to drop the clause: the first sentence stands on its own without it.
-- verified-by: `the terms screen says whose licence this is and nothing about other apps`
+- verified-by: `the terms declare Luvani eligibility and name the licence without claiming other apps agree`
 
 ### F484 — The notice lists what the language model is sent, and leaves out what the tutor remembers about you
 - severity: P1
@@ -8974,10 +8974,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `playback selects a model but only a real submitted reply can receive success feedback`
 - verified-by: `illustrated full-width choices carry radio state and never advance on selection`
 - verified-by: `the personal plan leads with the authored first practice then a dedicated deliberate tutor choice`
-- verified-by: `eligibility is a separate start-sheet choice and refusal removes service and account actions`
+- verified-by: `the deliberate Start tap declares eligibility after Terms and refusal removes all processing actions`
 - verified-by: `the first scene uses the shared centred frame and a refusal leads with typing`
 - verified-by: `the age check is a working title, a quiet line, the link above one ink pill, and a refusal still has a way out`
-- verified-by: `sign-in leads with provider actions and keeps its primary action clear of the keyboard`
+- verified-by: `C2 sign-in embeds providers after its fields and keeps its footer clear of the keyboard`
 - verified-by: `signup keeps its primary action after the fields and hides it while the keyboard is visible`
 - verified-by: `choosing a new password is a working title on paper, with no card and no middot in its header`
 - verified-by: `the erase notice is a working title, what to do in one strong line, and one ink pill`
@@ -10580,3 +10580,270 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a choice nudge consumes each tap once, including taps with reduced motion`
 - verified-by: `sheet short/rejected swipe follows the latest reduced-motion setting`
 - verified-by: `sheet return motion cancels when the preference changes, a new gesture starts or it unmounts`
+
+### F810 — C2 keyboard resizing loses the last tutor message
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/tutor/Transcript.tsx, apps/mobile/src/live/c2TranscriptPolicy.ts
+- note: The first keyboard layout consumed the tutor anchor, so later resize events scrolled to a learner turn below it. The production callback controller retains the anchor through every layout and releases it on dismissal, sending, a new turn or reader takeover. Physical keyboard acceptance remains separate.
+- verified-by: `production callbacks retain the tutor anchor through every native keyboard layout`
+- verified-by: `dragging cancels the focus anchor before keyboard dismissal can resize the thread`
+
+### F811 — A republished lesson prompt duplicates transcript history
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts
+- note: A fresh display ID on every received prompt duplicated an unchanged ready/reconnect republish after a learner reply. The history ID now retains the authored turn, step, rescue state and speech identity; actual new steps and changed rescue speech still append.
+- verified-by: `republished authored prompts after a learner reply do not duplicate live history; new rescue speech does`
+
+### F812 — Completion copy mistakes capture mode for French speech evidence
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/FirstSessionResult.tsx
+- note: An English spoken help request plus typed French could produce “You spoke French.” The result now says “You practised French.” Typed phrase evidence remains labelled as typing, with no pronunciation or mastery claim.
+- verified-by: `an English spoken help request cannot support a claim that French was spoken`
+
+### F813 — Android Back dismisses consent during guest admission
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: The full-page consent surface could close before admission settled. The synchronous operation guard precedes dismissal, and consent clears atomically at the successful practice transition. The production Start/Back harness verifies that no hidden admission proceeds behind a dismissed consent page.
+- verified-by: `Start followed by Android Back cannot dismiss consent or duplicate admission before busy rerenders`
+
+### F814 — Account focus changes field geometry
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/AccountField.tsx
+- note: A focus border grew from one to two points and shifted the form. The border footprint is constant; an absolute decorative ring supplies focus emphasis. Web inputs suppress the native square outline while retaining that ring.
+- verified-by: `auth focus rings retain fixed geometry and password recovery hides its actions while the keyboard is shown`
+
+### F815 — A selected tutor retains the unselected paint
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/TutorSelection.tsx
+- note: Selection now applies the approved lavender fill and violet border across the complete card without changing its footprint. Listening and choosing remain independent actions.
+- verified-by: `selected tutor paint does not change the row footprint or couple listening to selection`
+
+### F816 — Dedicated C2 pages bypass the transition host
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Consent, live practice and results were outside the style driven by the transition clock. A persistent host now covers every full-page branch, and consent uses the same seam. Ordinary animation frames do not recreate the live session or its transcript.
+- verified-by: `all full-page onboarding branches share the same persistent transition host and consent enters through that seam`
+
+### F817 — Password recovery lifts its action above the keyboard
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SetNewPasswordScreen.tsx
+- note: Save and Cancel now hide while the software keyboard is visible. The existing focused-field measurement and native insets keep confirmation reachable without a competing keyboard-avoidance wrapper.
+- verified-by: `auth focus rings retain fixed geometry and password recovery hides its actions while the keyboard is shown`
+
+### F818 — The compact mode switch does not expose its selected web state
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/C2LiveRoom.tsx
+- note: React Native Web did not translate the native selected state to aria-selected. The switch now supplies both explicitly; the active mode remains enabled and ignores redundant selection. Browser inspection confirms Typing is announced as selected. The input retains its rounded focus ring without the user agent's square outline.
+- verified-by: `the compact mode switch exposes its selected state and retains the rounded web input focus ring`
+
+### F819 — Hidden transcript history remains in web accessibility navigation
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/C2LiveRoom.tsx, apps/mobile/src/live/LiveErrorView.tsx
+- note: Native hiding flags did not remove the retained, zero-height thread from the browser accessibility tree. Both surfaces now supply aria-hidden and the toggle supplies aria-expanded. The thread remains mounted so showing it restores its messages and scroll. Browser inspection verifies collapsed navigation contains no hidden messages.
+- verified-by: `hidden transcript history stays mounted but is removed from web and native accessibility navigation`
+
+### F820 — Resuming account-first signup displays completed onboarding stages
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/AuthFlow.tsx
+- note: The account-first flag always initialized false, so a restored signup with an unanswered plan displayed the account stage. The existing durable hear-it return marker now restores that route before the progress frame mounts. A completed guest plan still displays its real account stage, and a known refusal cannot initialize an account-first route.
+- verified-by: `a resumed account-first signup restores its route and starts progress before unanswered setup`
+
+### F821 — The welcome wordmark omits Luvani from its accessible heading
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/AccountWelcome.tsx
+- note: The exported wordmark is decorative, leaving the heading announced as only Welcome to. The heading now exposes Welcome to Luvani while preserving the exact visible logo lockup and logo-only animation.
+- verified-by: `automatic progress adoption is confined to the verified new account and finishes durable writes before celebration`
+
+### F822 — Compact live-transcript positioning blurs the web composer
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/Transcript.tsx
+- note: The installed web ScrollView dismisses the keyboard on every on-drag scroll, including the programmatic last-tutor anchor. Web uses none and dismisses only on actual wheel/touch intent; native retains on-drag. The regression executes the installed vendor callback, reproduces the old blur and proves focus retention. Running 320-pixel mouse and touch checks retain the complete last tutor reply above the composer.
+- verified-by: `compact composer focus survives the installed web ScrollView programmatic anchor scroll`
+
+### F823 — Programmatic account-field scrolling drops web focus
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/OnboardingLayout.tsx, apps/mobile/src/layout.tsx
+- note: The same installed web on-drag behavior also affected compact signup, sign-in and recovery corrections. Both shared frames enforce none on web before caller overrides, with real gesture dismissal kept separate. Native supplied/default modes remain unchanged. The proof runs the installed handler with the actual measured compact-field correction.
+- verified-by: `compact account and recovery focus survives the installed web ScrollView callback`
+
+### F824 — A wheel at the transcript's unchanged end stop disables following
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/c2TranscriptPolicy.ts
+- note: Web wheel intent dismissed the keyboard and unpinned before any actual movement. It now releases the focus anchor while preserving the current pin until the subsequent scroll position decides. Geometry changes cannot pull an upward reader down before that position arrives. A new tail follows an unchanged end stop and only notifies an actual older-history reader.
+- verified-by: `a web wheel against the latest-message end stop retains auto-follow until the thread actually moves`
+
+### F825 — Signed-out policy pages crash without a navigation context
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/nav/useHardwareBack.ts
+- note: Terms and Privacy call the shared hardware-back hook from onboarding/account views outside the navigator. Its unconditional useFocusEffect threw before the Android guard, including on web and iOS. The hook now reads optional navigation context: active Android routed views listen only while focused, direct policy views listen while mounted, and other platforms register nothing. All subscriptions clean up and the current callback is retained without changing registration priority. Browser Terms now opens and returns to the practice page.
+- verified-by: `Terms and Privacy can mount outside navigation on web and iOS without registering Android back`
+
+### F826 — Plan artwork keeps moving beneath its editor sheet
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: The plan passed screen activity to its artwork without accounting for an open sheet. Its existing scene now pauses while a surface covers it and remains mounted, so closing the editor does not replace the scene or restart its clock.
+- verified-by: `plan artwork pauses under edit sheets without replacing its mounted scene`
+
+### F827 — The learning-memory check can disagree with the committed choice
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: An incoming-transition tap changed a separate visible check before the guarded draft update could accept it. The check now reads the committed draft, and one handler rejects transition, operation and busy taps before changing that choice. Repeated accepted taps use the latest committed value.
+- verified-by: `remembered learning reflects committed draft and ignores incoming-transition taps`
+
+### F828 — Starting a new plan discards its owner before cleanup succeeds
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/AuthFlow.tsx, apps/mobile/App.tsx
+- note: Account creation navigated before guest cleanup and reminder cancellation settled; the resume and account-review restart doors also ignored a native cancellation result of failed. All three paths now await their cleanup owners, check failures and retain the plan for retry. Synchronous locks reject duplicate or competing actions, and mounted/account-scope guards prevent stale continuations from discarding or navigating another flow. Recovery uses the existing actions and page transition.
+- verified-by: `account creation waits for previous practice and reminder cleanup before discarding the plan`
+- verified-by: `account cleanup failure retains the plan and exposes retry for rejection or native failed cancellation`
+- verified-by: `account cleanup blocks repeat taps and can retry without duplicating the discard`
+- verified-by: `account cleanup cannot mutate or navigate an unmounted flow and respects the page transition lock`
+- verified-by: `resume restart keeps its plan when reminder cancellation reports failure`
+- verified-by: `resume restart waits for cleanup, handles rejection and cannot finish after unmount`
+- verified-by: `account review retains its plan when native reminder cancellation fails or rejects`
+- verified-by: `account review waits for cleanup, blocks repeated taps and retries through the same explicit action`
+- verified-by: `account review cleanup cannot discard a plan after unmount or an account change`
+
+### F829 — Unanswered-question guidance moves the Next action
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/NextButton.tsx
+- note: Tapping an unanswered Next inserted a footer row and moved the action. The button now reserves the disabled label and instruction footprint before either appears, swaps the visible words in place and announces the instruction. Measurement text stays outside accessibility navigation.
+- verified-by: `unanswered question guidance stays inside the reserved Next button footprint`
+
+### F830 — Motion-preference changes rewind earned text and replay Save
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/FirstSessionResult.tsx, apps/mobile/src/onboarding/motion/OnboardingScenes.tsx
+- note: Resolving an unknown preference or turning Reduce Motion off could retract complete achievement words and replay settled rows or Save. Word progress is now monotonic, unknown preference schedules nothing, and each mounted row consumes its entrance once. Reduced motion lands complete content; teardown cancels timers and invalidates callbacks already queued.
+- verified-by: `achievement words wait for the motion answer and then reveal in order`
+- verified-by: `turning Reduce Motion off never retracts already earned words`
+- verified-by: `leaving an achievement cancels scheduled and already queued word callbacks`
+- verified-by: `a revealed achievement row and its Save button do not replay on motion preference changes`
+- verified-by: `a row shown with Reduce Motion stays visible when ordinary motion returns`
+
+### F831 — Privacy describes the retired normal-onboarding age question
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts
+- note: The notice still described an age-question answer where C2 accepts the linked Terms declaration through deliberate processing/account/setup actions. It now names that declaration without claiming age verification and distinguishes a pre-account refusal, which lasts only the current launch and stores no refusal marker, from a signed-in conversation stop, which remains in this phone's ageStopAt until the return eligibility check is passed. The signed-in gate and existing data boundaries remain unchanged.
+- verified-by: `the privacy notice's age section does not promise the question is asked only once`
+- verified-by: `the privacy document says an under-13 answer before an account keeps nothing, and the code keeps nothing`
+- verified-by: `the gate fails when the committed html no longer matches the module`
+
+### F832 — A pending Home scene tap can launch twice or outlive its owner
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/home/MissionHero.tsx
+- note: The shared Home/Speak scene action relied on a React busy state before its asynchronous health check. A synchronous ticket now prevents repeated taps, and visit, focus, scene and account ownership invalidate stale results. A successful navigation retains its lock until a new visit; a failed check preserves the requested speaking/typing mode for retry. This is launch-handler proof, not real room or device acceptance.
+- verified-by: `repeated Home scene taps share one connection check and open one room`
+- verified-by: `a scene connection check cannot navigate after its card has unmounted`
+- verified-by: `a scene connection check cannot carry the previous account into a room`
+- verified-by: `leaving and returning to Home does not revive a pending scene tap`
+- verified-by: `an old visit cannot unlock or overwrite a new visit’s connection check`
+- verified-by: `an offline scene preserves the requested typing mode and allows a deliberate retry`
+
+### F833 — Disabled guest live admission leaves the first run without an account route
+- severity: P1
+- status: [x]
+- where: services/token-server/src/server.ts, apps/mobile/src/onboarding/guestPractice.ts, apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/firstPracticeEntry.ts, apps/mobile/App.tsx
+- note: Production intentionally refuses anonymous live admission, but the first run offered only connection retry. The explicit guest-live-unavailable response now offers a deliberate account action with the answered plan and chosen tutor intact. Signed-in unfinished setup uses the existing profile owner rather than retrying guest admission. Strict completion reads distinguish a pending first practice from accepted Terms, retain completed guest adoption, and consume the adopted no-guest plan once before the existing FirstScene primer. Existing populated accounts keep their profile. The production guest guard remains closed; authenticated admission, hosted deployment and native operation require their own evidence.
+- verified-by: `production fails closed even with local or guest flags until paid guest admission is supported`
+- verified-by: `disabled guest admission reaches the account handoff as an explicit service capability`
+- verified-by: `only an explicit guest capability refusal offers the preserved account route`
+- verified-by: `a signed-in learner finishes the existing profile setup instead of starting another guest capability`
+- verified-by: `the deliberate account action carries every answer and selected tutor once without fabricating practice`
+- verified-by: `the no-guest account bootstrap consumes its answered plan once after durable writes and keeps first practice pending`
+- verified-by: `unread guest completion or an account switch cannot fabricate pending practice or consume the plan`
+- verified-by: `completed legacy practice stays in the existing guest handoff and never opens another first scene`
+
+### F834 — A speech outage is mistaken for an account requirement
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts, apps/mobile/src/onboarding/guestPractice.ts, apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: Combining disabled guest admission with unsupported speaking falsely implied that account creation would add voice to a typed-only service. Unsupported speaking now returns voice-unavailable before the anonymous-admission check, includes the actual supported modes, and leaves the disclosure with truthful unavailable-speaking copy and retry. Only disabled guest admission offers the account action. No speech or paid-admission capability is enabled by this distinction.
+- verified-by: `a typed-only service never claims that creating an account will restore speaking`
+- verified-by: `an unavailable speech pipeline reaches disclosure without promising an account upgrade`
+- verified-by: `a speech outage keeps the saved plan and retry without claiming account creation adds voice`
+- verified-by: `ordinary outages and other guest endpoints never masquerade as an account requirement`
+
+### F835 — An onboarding sign-in detour restores a cached plan over recent edits
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/AuthFlow.tsx, apps/mobile/src/onboarding/PreAccountOnboarding.tsx
+- note: After signup and Back, a learner could edit the goal or tutor and then sign in with the older signup draft. Onboarding sign-in now explicitly supplies the current draft; only the separately entered account email, including an intentional empty value, comes from the form state. The normal signup detour still uses its form plan. Press wrappers pass the draft or no argument so a native/browser press event cannot become a plan.
+- verified-by: `signing in from the edited onboarding plan keeps current answers and the separately entered account email`
+- verified-by: `the ordinary signup sign-in detour retains its form plan when no current onboarding draft is supplied`
+- verified-by: `sign-in controls pass a current plan or no argument and never forward a press event as a plan`
+
+### F836 — Replayed startup can clear the account before focused screens read it
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx
+- note: The startup owner was established in a passive effect, allowing retained focused screens to read cleared account storage during effect replay. It now restores the account in the layout phase before descendant passive focus effects. A cancelled migration checks ownership before any recovery read, and late optional recovery results or warnings cannot continue another account's startup. Current-account optional failures remain visible without fabricating history or blocking startup. These lifecycle regressions do not establish real-device acceptance.
+- verified-by: `a cancelled migration never starts account recovery or reads the next account`
+- verified-by: `startup restores its account scope before descendant passive focus reads during effect replay`
+- verified-by: `late optional recovery failures from a departed account are silent and cannot open another startup`
+- verified-by: `current-account optional recovery failures remain visible and do not block startup`
+
+### F837 — Late keyboard focus signals pull an older-history reader back down
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/C2LiveRoom.tsx, apps/mobile/src/live/c2TranscriptPolicy.ts, apps/mobile/src/tutor/Transcript.tsx
+- note: Keyboard appearance created another reveal revision and could override a manual scroll after the composer was focused. Only a deliberate composer focus now starts a new revision; repeated keyboard signals cannot rearm a cancelled anchor. Per the updated user request, focus selects the latest sent learner message, falling back to the latest tutor only before a learner message exists. The selected bubble stays visible through repeated or late layouts; oversized text starts at its top. Draft/partial text is not a sent message, and incoming-message follow/notification behavior and keyboard control hiding remain unchanged.
+- verified-by: `composer focus reveals the latest sent learner message through every keyboard layout`
+- verified-by: `focus chooses the latest sent learner message and falls back to a tutor only before the learner has sent one`
+- verified-by: `a late measured sent bubble and oversized learner text retain their keyboard focus target`
+- verified-by: `repeated keyboard focus signals cannot pull an older-history reader back down`
+- verified-by: `keyboard show events retain one deliberate composer focus revision`
+
+### F838 — A departed tutor leaves an empty room looking ready for speech or typing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts
+- note: The learner's WebRTC connection could remain open after the tutor left, leaving an active composer and microphone without a tutor to answer. An owned connected room with no remaining remote participant now closes capture, shows the existing dropped-session failure and releases transport. The departure decision waits until the SDK event stack settles because LiveKit clears its roster before announcing a full reconnect; that temporary rebuild must retain the room. Transport teardown preserves an already authoritative recap and its recorded saveable text, while unfinished text is discarded. Explicit leave still clears the recorder, and an old asynchronous disconnect cannot release audio belonging to a newer start. These callback, recorder and installed-SDK proofs do not establish hosted or device acceptance.
+- verified-by: `a departed tutor cannot leave a live composer and microphone in an empty room`
+- verified-by: `tutor departure preserves an existing recap or failure while releasing the empty room`
+- verified-by: `a stale departure or another remaining remote participant cannot tear down the active tutor`
+- verified-by: `remote tutor teardown preserves an already delivered recap text before React paints it`
+- verified-by: `remote departure discards unfinished text rather than manufacturing a completed transcript`
+- verified-by: `a held old-room teardown never releases audio owned by a newer start`
+- verified-by: `the installed LiveKit restart ordering cannot mistake roster rebuilding for a departed tutor`
+
+### F839 — Practice support repeatedly opens over the live conversation
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/C2LiveRoom.tsx, apps/mobile/src/ConvoScreen.tsx, apps/mobile/src/LiveSessionScreen.tsx, apps/mobile/src/onboarding/FirstLivePractice.tsx
+- note: Support began expanded when the opening reply contained hints, and every new reply key opened it again after dismissal. It now starts collapsed, and the learner's explicit toggle is its only open/closed state owner. New replies and mode changes retain that choice. Keyboard editing temporarily hides the panel with the controls without resetting the choice, and the same room's support, tools and accessible expanded state remain available. The obsolete reply key is removed from all three shared-room callers. These handler/effect proofs do not establish device or service latency.
+- verified-by: `practice support starts collapsed even when the first tutor reply contains support`
+- verified-by: `new tutor replies and support changes never reopen a manually closed support panel`
+- verified-by: `mode and keyboard changes hide support without changing the learner’s explicit choice`
+- verified-by: `practice support retains its explicit toggle, accessible state and current session tools`
+
+### F840 — A recap with no learner reply claims that a conversation was held
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/recapLine.ts
+- note: The recap sentence inspected only the unaided rate, so a real room with zero learner turns said that the learner held the conversation with help. Zero or invalid turn counts now say “You made time for your French.” Positive whole turn counts retain the existing unaided/help threshold and wording. Neither branch shows a score or count. This presentation correction does not change XP, streak, completion or settlement decisions.
+- verified-by: `a recap with no learner turns acknowledges time without claiming a conversation`
+- verified-by: `invalid learner turn counts cannot earn conversation claims while positive counts retain their copy`
+- verified-by: `the recap says how it went in words, never a percentage`

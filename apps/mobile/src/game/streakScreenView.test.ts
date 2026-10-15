@@ -164,7 +164,8 @@ describe('the Streak screen — F770', () => {
     // each time would claim a rise that did not happen), only while a run is
     // going, and drawn again on a new day so it never runs down.
     assert.match(screenFile, /\{hero\.running \? <CountUp key=\{view\.today\} from=\{hero\.count\} to=\{hero\.count\}/, 'the run counts up from nought on every visit');
-    assert.match(screenFile, /<View style=\{st\.hero\} accessible accessibilityLabel=\{hero\.label\}>/);
+    assert.match(screenFile, /<View style=\{\[st\.hero,[\s\S]*?accessible accessibilityLabel=\{hero\.label\}>/);
+    assert.match(screenFile, /<C2Flame size=\{HERO_FLAME\} active=\{focused && hero\.lit\}/);
     assert.match(read('../nav/types.ts'), /Streak: undefined;/);
     assert.match(read('../nav/theme.ts'), /Streak: 'streak',/);
     assert.match(read('../nav/RootNavigator.tsx'), /<Stack\.Screen name="Streak" component=\{StreakScreen\} \/>/);

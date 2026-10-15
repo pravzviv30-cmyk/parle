@@ -88,6 +88,7 @@ describe('a long wait is said honestly', () => {
     const screen = strip(read('../ConvoScreen.tsx'));
     assert.match(screen, /const stillThinking = useThinkingLine\(live\.thinking\);/, 'the line is not timed from the session\'s own thinking flag');
     assert.match(screen, /const headerLine = line\.text \?\? stillThinking;/, 'the long-wait line can cover a dropped connection or a notice');
-    assert.match(screen, /status=\{\s*headerLine \? \(/, 'the scene header does not show the long-wait line');
+    assert.match(screen, /caption=\{headerLine \?\?/, 'the scene caption does not show the long-wait line');
+    assert.match(strip(read('./C2LiveRoom.tsx')), /accessibilityLiveRegion="polite"[\s\S]{0,100}\{caption\}/, 'the shared caption is not announced');
   });
 });

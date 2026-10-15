@@ -41,6 +41,7 @@ const TYPING_SCREENS = [
   'onboarding/OnboardingFlow.tsx',
   // The thread sits directly above the reply box on both live surfaces.
   'tutor/Transcript.tsx',
+  'live/C2LiveRoom.tsx',
 ];
 
 /**
@@ -69,13 +70,13 @@ describe('taps and the keyboard — whether a press has to be made twice', () =>
 
   test('the choosing screen keeps taps while the keyboard is up', () => {
     const source = readFileSync(join(SRC, 'ConvoScreen.tsx'), 'utf8');
-    const scrolls = source.match(SCROLL_VIEW_TAG) ?? [];
-    assert.equal(scrolls.length, 2, 'both the choosing content and live support can scroll');
-    assert.equal((source.match(/keyboardShouldPersistTaps="handled"/g) ?? []).length, 2, 'both scroll surfaces retain keyboard taps');
-    assert.ok(
-      source.includes('keyboardShouldPersistTaps="handled"'),
-      'a learner who typed their topic and reached for Send must not have that press eaten by the keyboard closing',
-    );
+    assert.equal((source.match(/<C2LiveRoom\b/g) ?? []).length, 2, 'both opening and scene must use the shared keyboard-safe room');
+    const room = readFileSync(join(SRC, 'live/C2LiveRoom.tsx'), 'utf8');
+    const scrolls = room.match(SCROLL_VIEW_TAG) ?? [];
+    assert.equal(scrolls.length, 2, 'context and practice support retain their independent scroll areas');
+    assert.equal((room.match(/keyboardShouldPersistTaps="handled"/g) ?? []).length, scrolls.length, 'all shared live scroll surfaces retain keyboard taps');
+    assert.match(room, /accessibilityLabel=\{sending \? 'Sending your message' : 'Send message'\}[\s\S]*?onPress=\{\(\) => void submit\(\)\}/,
+      'the Send control must act on the first press while the keyboard is open');
   });
 
   test('every screen the app takes typing on answers the same way', () => {

@@ -45,6 +45,7 @@ function stripComments(source: string): string {
 const SOURCES = walk(SRC).map((path) => ({ path, body: stripComments(readFileSync(path, 'utf8')) }));
 const named = (name: string) => SOURCES.find((f) => f.path.endsWith(name))!.body;
 const usesSharedFrame = (body: string): boolean => /<(Screen|ScrollScreen|OnboardingLayout)\b/.test(body) ||
+  /<C2LiveRoom\b/.test(body) ||
   /const Frame = (?:onboarding \? OnboardingLayout : )?ScrollScreen;/.test(body) && /<Frame\b/.test(body);
 
 /**
@@ -673,9 +674,9 @@ describe('a form says out loud what it shows — F109', () => {
  */
 const FIRST_RUN: readonly { where: string; headings: number; part?: boolean }[] = [
   // A shared page title and the policy section template. The streak has its own full screen.
-  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 2 },
+  { where: 'onboarding/PreAccountOnboarding.tsx', headings: 3 },
   { where: 'auth/SignUpScreen.tsx', headings: 1 },
-  { where: 'auth/SignInScreen.tsx', headings: 1 },
+  { where: 'auth/SignInScreen.tsx', headings: 2 },
   { where: 'onboarding/OnboardingFlow.tsx', headings: PAGES.length },
   { where: 'tutor/TutorIntro.tsx', headings: 1 },
   // Come alive, first run (README Part 7): the parts PreAccountOnboarding draws
@@ -1115,6 +1116,7 @@ const SAFE_AREA_ALLOW = [
   'launch/LaunchScreen.tsx', // Startup overlay is outside Screen; its Get Started footer owns the bottom inset.
   'onboarding/OnboardingLayout.tsx', // The shared onboarding frame owns the inset and scrolling once for all routes.
   'dev/OnboardingPreview.tsx', // Developer-only overlay controls sit outside the shared frame and clear the notch themselves.
+  'live/C2LiveRoom.tsx', // The shared C2 live frame owns keyboard and safe-area insets for every live session.
   'ConvoScreen.tsx',
   'RecapScreen.tsx',
   'drill/FocusDrillPlayer.tsx',
@@ -1353,10 +1355,13 @@ describe('the hardware back button is answered in place — F312', () => {
 
   test('the hardware back hook only listens while its view is up — F312', () => {
     const hook = named('nav/useHardwareBack.ts');
-    assert.match(hook, /useFocusEffect\(/, 'the hook listens even when its screen is not on top of the stack');
+    assert.match(hook, /useContext\(NavigationContext\)/, 'policy pages must also work outside a navigator');
+    assert.match(hook, /navigation === undefined \|\| navigation\.isFocused\(\)/, 'a routed view must respect its focused state');
+    assert.match(hook, /addListener\('focus', listen\)/, 'a routed view must register when it gains focus');
+    assert.match(hook, /addListener\('blur', remove\)/, 'a hidden routed view must remove its back handler');
     assert.match(hook, /BackHandler\.addEventListener\(/, 'the hook never registers a back handler');
     assert.match(hook, /return true;/, 'the handler does not consume the press, so the screen still pops behind it');
-    assert.match(hook, /if \(!active\) return;/, 'the hook eats the back press even while its sub-view is closed');
+    assert.match(hook, /if \(!active \|\| Platform\.OS !== 'android'\) return;/, 'the hook must only answer active Android views');
   });
 });
 
@@ -1464,7 +1469,7 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
     );
     for (const [file, phrase, spelling] of [
       ['SessionView.tsx', 'End lesson', `accessibilityLabel="End lesson"`],
-      ['ConvoScreen.tsx', 'End conversation', `accessibilityLabel="End conversation"`],
+      ['live/C2LiveRoom.tsx', 'End session', `accessibilityLabel="End session"`],
       ['ReviewScreen.tsx', 'Leave the review', `accessibilityLabel: 'Leave the review'`],
       ['DrillScreen.tsx', 'Leave the drills', `accessibilityLabel: 'Leave the drills'`],
     ] as const) {
@@ -2066,13 +2071,14 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     return body.slice(start);
   }
 
-  test('sign-in leads with provider actions and keeps its primary action clear of the keyboard', () => {
-    const body = named('auth/SignInScreen.tsx');
-    assert.ok(usesSharedFrame(body), 'sign-in bypasses the shared scroll frame');
+  test('C2 sign-in embeds providers after its fields and keeps its footer clear of the keyboard', () => {
+    const source = named('auth/SignInScreen.tsx');
+    const body = source.slice(source.indexOf('  return (', source.indexOf("if (mode !== 'signin')")));
+    assert.ok(usesSharedFrame(source), 'sign-in bypasses the shared scroll frame');
     assert.match(body, /automaticallyAdjustKeyboardInsets/, 'sign-in lost native keyboard insets');
-    assert.doesNotMatch(body, /footer=\{|\bavoidKeyboard\b/, 'sign-in pins an action or applies competing keyboard avoidance');
-    assert.match(body, /!keyboardVisible && <View style=\{st\.action\}/, 'the primary action can cover the keyboard');
-    assert.match(body, /hideProgress: true/, 'sign-in shows new-user progress');
+    assert.doesNotMatch(body, /\bavoidKeyboard\b/, 'sign-in applies competing keyboard avoidance');
+    assert.match(body, /footer=\{<>\s*\{!keyboardVisible && <View/, 'the primary footer can cover the keyboard');
+    assert.match(body, /hideProgress\b/, 'sign-in shows new-user progress');
     assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"|<OutlineButton\b/);
     const pills = [...tags(body, 'BoldButton'), ...tags(body, 'ProviderButton')];
     assert.equal(pills.length, 3, 'sign-in needs two provider doors and one form action');
@@ -2085,23 +2091,24 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     assert.doesNotMatch(apple, /\btone=/);
     assert.match(google, /busy=\{pending === 'google'\}/);
     writtenBefore(body, '{appleOffered && (', apple, 'Apple must be gated by platform availability');
-    writtenBefore(body, apple, google, 'Apple leads the provider row');
-    writtenBefore(body, google, '<Field', 'provider doors lead the email form');
-    writtenBefore(body, '<Field', primary, 'the form action follows the fields');
+    writtenBefore(body, google, apple, 'Google precedes the availability-gated Apple door');
+    writtenBefore(body, '<Field', google, 'provider doors are embedded beneath the form');
+    assert.match(named('onboarding/OnboardingLayout.tsx'), /!actionInScroll && footer != null/, 'the frame must own the footer after scroll content');
     assert.doesNotMatch(primary, /AppleMark|GoogleMark/);
     const switchRow = tags(body, 'Press').find(tag => /accessibilityRole="button"/.test(tag));
     assert.ok(switchRow, 'sign-in lost the account switch');
-    assert.ok(body.lastIndexOf('<Field') < body.indexOf(switchRow), 'the account switch moved above the fields');
+    assert.match(body, /!keyboardVisible && <Press[\s\S]*?onCreateAccount/, 'the footer account switch must also hide during keyboard editing');
   });
 
   test('signup keeps its primary action after the fields and hides it while the keyboard is visible', () => {
     const body = named('auth/SignUpScreen.tsx');
     assert.match(body, /<OnboardingLayout\b[\s\S]*?automaticallyAdjustKeyboardInsets/, 'signup does not use the shared frame’s native keyboard insets');
-    assert.doesNotMatch(body, /footer=\{|\bavoidKeyboard\b/, 'signup pins a footer or applies competing keyboard avoidance');
+    assert.doesNotMatch(body, /\bavoidKeyboard\b/, 'signup applies competing keyboard avoidance');
+    assert.match(body, /footer=\{!keyboardVisible \?/, 'signup footer must disappear while the keyboard is visible');
     assert.doesNotMatch(body, /<ScreenHeader\b|accessibilityLabel="Back"|\bkind="back"/, 'signup exposes a visible onboarding back control');
     const frame = named('onboarding/OnboardingLayout.tsx');
     assert.match(frame, /automaticallyAdjustKeyboardInsets=\{automaticallyAdjustKeyboardInsets\}/);
-    assert.match(frame, /onLayout=\{onViewportLayout\}/);
+    assert.match(frame, /onLayout=\{event => \{[^}]*onViewportLayout\?\.\(event\)/, 'viewport changes must reach focused-field scrolling even while updating the scroll cue');
     assert.doesNotMatch(body, /<OutlineButton\b/, 'signup restored the retired outline provider door');
 
     const pills = [...tags(body, 'BoldButton'), ...tags(body, 'ProviderButton')];
@@ -2116,10 +2123,14 @@ describe('auth actions remain keyboard-aware and onboarding actions scroll with 
     assert.match(google, /busy=\{pending === 'google'\}/);
     assert.doesNotMatch(primary, /\btone=/, 'signup’s primary action is not an ink pill');
     writtenBefore(body, '{appleOffered && (', apple, 'signup draws Apple where the platform cannot offer it');
-    writtenBefore(body, apple, google, 'signup places Apple below Google');
-    writtenBefore(body, google, '<Field', 'signup places a field above its provider doors');
-    assert.ok(body.lastIndexOf('<Field') < body.indexOf(primary), 'signup places Create account above a form field');
-    assert.match(body, /\{!keyboardVisible && <View style=\{st\.action\}>\s*<BoldButton/, 'signup leaves its primary action or an empty strip visible during keyboard editing');
+    writtenBefore(body, google, apple, 'signup embeds the availability-gated Apple door after Google');
+    writtenBefore(body, '<Field', google, 'signup embeds provider doors beneath its fields');
+    const agreements = tags(body, 'TermsAcceptance');
+    assert.equal(agreements.length, 1, 'signup must show one account agreement');
+    assert.match(agreements[0]!, /context="account"/, 'signup must use the account agreement');
+    const footer = body.slice(body.indexOf('footer={!keyboardVisible'), body.indexOf('embedded={embedded}'));
+    writtenBefore(footer, agreements[0]!, primary, 'signup must keep linked Terms above Create account in the keyboard-hidden footer');
+    assert.equal(footer.slice(footer.indexOf(agreements[0]!) + agreements[0]!.length, footer.indexOf(primary)).trim(), '', 'signup agreement must sit immediately above Create account');
     assert.match(primary, /disabled=\{busy \|\| !ready \|\| formOk\}/, 'signup permits incomplete or duplicate submission merely because the keyboard closes');
 
     const switchRow = tags(body, 'Press').find((tag) => /accessibilityRole="button"/.test(tag));

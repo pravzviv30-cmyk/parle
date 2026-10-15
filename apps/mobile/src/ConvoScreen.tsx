@@ -36,8 +36,7 @@ import type { MissionCompletion } from '@luvani/core';
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, AppState, KeyboardAvoidingView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, AppState } from 'react-native';
 import { useIsFocused, usePreventRemove } from '@react-navigation/native';
 import {
   conversationXp,
@@ -89,13 +88,12 @@ import { useProfile } from './app/ProfileContext.tsx';
 import { isUnderAgeStop } from './profile/age.ts';
 import { prefersTyping } from './profile/typing.ts';
 import { withAgeStop } from './profile/store.ts';
-import { VoiceOrb, type OrbState } from './tutor/VoiceOrb.tsx';
-import { Transcript } from './tutor/Transcript.tsx';
+import type { OrbState } from './tutor/VoiceOrb.tsx';
+import { C2LiveRoom } from './live/C2LiveRoom.tsx';
 import { QUIET_DOOR, choosingView } from './tutor/choosingView.ts';
 import { safetySurface, stoppedBySafety } from './tutor/safetyView.ts';
 import { waitingView } from './tutor/waitingView.ts';
 import { SafetyBanner, SafetyStopView } from './tutor/SafetyStopView.tsx';
-import { enterSubmits, keyPressFrom } from './tutor/enterSubmit.ts';
 import { tutorNameOf } from './tutor/tutorName.ts';
 import { tutorVoiceOf } from './tutor/tutorVoice.ts';
 import { OPEN_MIC_LABEL, sceneControls, simplerLabel, typedTurn } from './tutor/sceneControls.ts';
@@ -154,19 +152,6 @@ function practiceBatch(
 
 /** How long the finish door waits for the recap before taking the ordinary exit. */
 const RECAP_WAIT_MS = 15_000;
-
-/**
- * How big the circle is drawn, in each of the two rooms it appears in.
- *
- * The choosing moment has one thing on it and the circle IS the thing, so it is
- * drawn at the size the mockup gives the tutor's own screen. The scene has a
- * thread, a card and a control row under it, so the circle steps down to leave
- * the conversation the room. Named here rather than written at four call sites,
- * because two orbs on one screen drawn at two accidental sizes is how a surface
- * stops looking authored.
- */
-const CHOOSING_ORB = 170;
-const SCENE_ORB = 120;
 
 /**
  * The browser wants a gesture before it will play the tutor.
@@ -258,7 +243,6 @@ export function ConvoScreen({
    */
   goalStep?: { goalKey: string; task: string };
 }) {
-  const insets = useSafeAreaInsets();
   const { profile, update } = useProfile();
   // Who this learner chose. Every line on this screen that names the tutor
   // reads it from here, so a learner who picked Celine is never told that Luc
@@ -271,6 +255,8 @@ export function ConvoScreen({
   // `live.voiceless`, which belongs to the room and is read below.
   const [openedTyped, setOpenedTyped] = useState(startInTextMode);
   const [draft, setDraft] = useState('');
+  const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const [modePending, setModePending] = useState(false);
   // The leave gate. `confirming` shows the sheet; `leaving` is raised on commit,
   // which drops the guard so the exit can run from an effect rather than inline.
   const [confirming, setConfirming] = useState(false);
@@ -450,36 +436,28 @@ export function ConvoScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live.safety]);
 
-  const sendDraft = () => {
-    if (live.tutorSpeaking) return;
+  const sendDraft = async () => {
+    if (live.tutorSpeaking || live.thinking || live.reconnecting) return false;
     const turn = typedTurn(draft);
-    if (turn === null) return;
+    if (turn === null) return false;
     markLearnerAction();
-    setDraft('');
-    void live.sendSay(turn.text).then((sent) => {
-      if (!sent) setDraft((current) => (current.trim().length > 0 ? current : turn.text));
-    });
+    const sent = await live.sendSay(turn.text);
+    if (sent) setDraft(current => current === draft ? '' : current);
+    return sent;
+  };
+  const changeInput = async (nextTyping: boolean) => {
+    if (modePending) return;
+    setModePending(true);
+    try {
+      if (nextTyping) { if (await live.pauseMic()) setTypingOpen(true); }
+      else if (!openedTyped && await live.openMic()) setTypingOpen(false);
+    } finally { setModePending(false); }
   };
 
   // Typing is presence. The hook throttles, so this can be handed every letter.
   const changeDraft = (text: string) => {
     setDraft(text);
     live.sendTyping();
-  };
-
-  /**
-   * The return key, on the one platform where the props are not enough.
-   *
-   * react-native-web 0.21 has never heard of `submitBehavior`, and it runs its
-   * own Enter branch from inside the very handler it calls this one from. So
-   * this goes first and calls preventDefault, which makes that branch stand
-   * down: exactly one send, and the caret stays where the learner left it.
-   * See tutor/enterSubmit.ts for what the platform actually does.
-   */
-  const keyDraft = (event: { preventDefault: () => void }) => {
-    if (!enterSubmits(Platform.OS, keyPressFrom(event), draft)) return;
-    event.preventDefault();
-    sendDraft();
   };
 
   // The recap renders here, not on a separate screen: the room must outlive
@@ -910,7 +888,7 @@ export function ConvoScreen({
     // waiting on a token stands down rather than opening a room for a screen
     // that has gone. See live/connectingView.ts and live/startOwnership.ts.
     const connecting = connectingView(connectingMs);
-    return <RoomWait title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
+    return <RoomWait state="connecting" title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'out-of-minutes') {
@@ -930,6 +908,10 @@ export function ConvoScreen({
     return (
       <LiveErrorView
         failure={live.status.failure}
+        turns={live.turns}
+        tutorName={tutorName}
+        transcriptVisible={transcriptVisible}
+        onTranscriptVisibility={setTranscriptVisible}
         message={walkMode ? "Walk mode cannot continue. Return to Tutor to try another scene or start a typed conversation." : live.status.message}
         diagnostics={live.diagnostics}
         settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
@@ -962,154 +944,24 @@ export function ConvoScreen({
       typingOpen,
     });
     const line = connectionLine({ reconnecting: live.reconnecting, notice: live.notice });
-    return (
-      // The room's real audio levels, for the orb (live/RoomLevels): the
-      // learner's microphone and the tutor's voice, measured off the tracks
-      // the session hands over and never through this screen's state.
-      <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
-      <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
-        {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
-
-        <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
-          {/* The outlined end control stays in the safe-area header and opens
-              the same confirmation as the system back gesture. */}
-          <LiveRoomHeader
-            french={missionId ? getMission(missionId)?.title : undefined}
-            onEnd={() => setConfirming(true)}
-            accessibilityLabel="End conversation"
-            status={
-              line.text ? (
-                <Text
-                  accessibilityLiveRegion="polite"
-                  style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
-                >
-                  {line.text}
-                </Text>
-              ) : undefined
-            }
-          />
-
-          <ScrollView
-            style={choosing.showTranscript ? st.chooseHeadShrink : st.chooseHeadGrow}
-            contentContainerStyle={choosing.showTranscript ? st.chooseTop : st.chooseScroll}
-            showsVerticalScrollIndicator={false}
-            // Every other input screen in this app sets this. Without it the
-            // keyboard closing eats the first tap, which is why Send worked in
-            // the scene and did nothing here.
-            keyboardShouldPersistTaps="handled"
-          >
-            {choosing.showQuestion ? (
-              <>
-                {/* The French first and large, because that is the sentence the
-                    tutor just said out loud, and the English under it small,
-                    because that is the translation of it. It used to be the
-                    other way round, which set the gloss as the headline. */}
-                <Text style={[fitDisplay(live.opening.prompt.fr), { color: paper.ink, textAlign: 'center' }]}>
-                  {live.opening.prompt.fr}
-                </Text>
-                <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(1.5) }]}>
-                  {live.opening.prompt.en}
-                </Text>
-              </>
-            ) : null}
-
-            {/* The circle is the primary action here until it is tapped: the
-                tutor asks out loud, and this is where the learner agrees to be
-                heard. One label on one control, so the orb's own is silenced. */}
-            <View style={choosing.showQuestion ? st.chooseOrb : st.chooseOrbTight}>
-              {choosing.orbIsButton ? (
-                <Pressable
-                  onPress={live.openMic}
-                  accessibilityRole="button"
-                  accessibilityLabel={choosing.orbLabel}
-                  style={({ pressed }) => [st.orbTap, pressed && { opacity: 0.7 }]}
-                >
-                  <VoiceOrb state={choosing.orb} announce={false} size={CHOOSING_ORB} />
-                </Pressable>
-              ) : (
-                <View style={st.orbTap} accessibilityRole="image" accessibilityLabel={choosing.orbLabel}>
-                  <VoiceOrb state={choosing.orb} announce={false} size={CHOOSING_ORB} />
-                </View>
-              )}
-            </View>
-
-            {choosing.helper ? (
-              <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(4) }]}>
-                {choosing.helper}
-              </Text>
-            ) : null}
-          </ScrollView>
-
-          {/* Everything said so far, arriving with the app's one settle. This
-              is what makes a sent topic land on screen at once instead of
-              three to ten seconds later. */}
-          {choosing.showTranscript ? (
-            <Transcript
-              turns={live.turns}
-              tutorName={tutorName}
-              tutorSpeaking={live.tutorSpeaking && !typing}
-          announceReply={typing}
-            />
-          ) : null}
-
-          {/* The tutor steered away and said why. It stays until the learner
-              puts it away, unlike the transient status in the header. */}
-          {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
-
-          {choosing.showInput ? (
-            <View style={st.typeRow}>
-              <TextInput
-                value={draft}
-                onChangeText={changeDraft}
-                onSubmitEditing={sendDraft}
-                onKeyPress={keyDraft}
-                placeholder="e.g. Planning a weekend in Paris"
-                placeholderTextColor={paper.inkFaint}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="send"
-                submitBehavior="submit"
-                accessibilityLabel="Type what you want to talk about"
-                onFocus={() => setFocusedInput('topic')}
-                onBlur={() => setFocusedInput(null)}
-                style={[st.typeInput, focusedInput === 'topic' && st.typeInputFocused]}
-              />
-              <Press
-                onPress={sendDraft}
-                accessibilityRole="button"
-                accessibilityLabel="Send your topic"
-                disabled={!draft.trim() || live.tutorSpeaking}
-                accessibilityState={{ disabled: !draft.trim() || live.tutorSpeaking }}
-                style={st.typeSend}
-              >
-                <ChevronRight size={22} color={paper.onInk} />
-              </Press>
-            </View>
-          ) : choosing.showQuietDoor ? (
-            // The quiet twin, offered where a learner finds out they need it:
-            // on a train, mid-question, not two screens back. It goes quiet in
-            // the room that is already open, so the tutor does not start again
-            // and the account's own lease is never asked a second question.
-            <View style={st.quietDoor}>
-              <IconAction layout="inline" icon="keyboard" label={QUIET_DOOR} onPress={goQuiet} />
-            </View>
-          ) : null}
-        </View>
-        <ConfirmSheet
-          visible={confirming}
-          title={leaveCopy.title}
-          body={leaveCopy.body}
-          confirmLabel={leaveCopy.leave}
-          cancelLabel={leaveCopy.stay}
-          onConfirm={() => {
-            setConfirming(false);
-            setLeaving(true);
-          }}
-          onCancel={() => setConfirming(false)}
+    return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+      <View style={{ flex: 1, minHeight: 0 }}>
+        <C2LiveRoom tutorName={tutorName} description="Your French conversation" state={choosing.orb}
+          caption={line.text ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Ready when you are')}
+          turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
+          typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !live.waitingForTutor}
+          modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible}
+          draft={draft} onDraft={changeDraft} onSend={sendDraft} canSend={!live.tutorSpeaking && !live.thinking}
+          onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
+          onEnd={() => setConfirming(true)} notice={choosing.helper}
+          top={<>{live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
+            {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}</>}
         />
-      </KeyboardAvoidingView>
-      </RoomLevels>
-    );
+      <ConfirmSheet visible={confirming} title={leaveCopy.title} body={leaveCopy.body}
+        confirmLabel={leaveCopy.leave} cancelLabel={leaveCopy.stay}
+        onConfirm={() => { setConfirming(false); setLeaving(true); }} onCancel={() => setConfirming(false)} />
+      </View>
+    </RoomLevels>;
   }
 
   if (!view) {
@@ -1169,202 +1021,42 @@ export function ConvoScreen({
           ? 'ready'
           : 'listening';
 
-  return (
-    <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <OrbCue value={ticks.cue}>
-    <KeyboardAvoidingView style={st.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} enabled={Platform.OS !== 'web'}>
-      {/* One calm white notice, gone the moment it is tapped. */}
-      {live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
-
-      <View style={[st.root, { paddingTop: insets.top + space(2), paddingBottom: insets.bottom + space(2) }]}>
-        <View style={st.header}>
-          {/* No progress rail in a conversation: the room stays with the
-              person speaking. The compact end control still opens the shared
-              confirmation and leaving still delivers the recap already earned. */}
-          <LiveRoomHeader
-            french={missionId ? getMission(missionId)?.title : undefined}
-            title={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? `Talk with ${tutorName}`}
-            onEnd={() => setConfirming(true)}
-            accessibilityLabel="End conversation"
-            status={
-              headerLine ? (
-                <Text
-                  accessibilityLiveRegion="polite"
-                  style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}
-                >
-                  {headerLine}
-                </Text>
-              ) : undefined
-            }
-          />
-          {/* What is different about walking back into a scene you have
-              already finished. Said once, in ink rather than in a rung colour,
-              and gone as soon as the learner answers. */}
-          {replayLine ? (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginTop: space(2) }]}
-            >
-              {replayLine}
-            </Text>
-          ) : null}
-        </View>
-
-        <MissionTaskList items={missionItems} />
-
-        {/* The tutor, as an object. Toward the top, and the only thing on the
-            screen that moves. */}
-
-        {/* Same banner in the scene as in the choosing moment: a redirect does
-            not end anything, so the conversation carries on underneath it. */}
-        {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
-
-        {/* The conversation so far. Takes what is left and no more — the
-            current turn's support and controls below it are what the learner
-            is acting on. Tapping the tutor's last bubble plays it again: the
-            same `hear`, asking for the scene line rather than the support one. */}
-        <Transcript
-          turns={live.turns}
-          onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}
-          tutorName={tutorName}
-          tutorSpeaking={live.tutorSpeaking && !typing}
-          announceReply={typing}
-        />
-
-        {card ? (
-          <MissionWin
-            card={card}
-            art={wonMission ? sceneIllustration(wonMission.id) : null}
-            momentKey={`${live.sessionId ?? 'room'}:${missionId ?? 'scene'}`}
-            onKeep={() => setWin(dismissWin)}
-            onFinish={() => {
-              setWin(dismissWin);
-              setFinishing(true);
-              live.requestRecap();
-            }}
-          />
-        ) : (
-          <>
-            {view.supportView.kind !== 'none' ? (
-              <ScrollView style={st.support} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-                <SupportBlock
-                  support={view.supportView}
-                  // Replays come from the agent in the premium voice, and only while
-                  // the learner holds the floor — a replay must not talk over the
-                  // tutor. Text mode has no voice to replay. And there has to BE a
-                  // line: `hear` speaks the support line, so on a hint turn or an
-                  // options turn this button used to be pressable and silent.
-                  onHearLine={controls.showHearIt ? () => live.sendHear() : undefined}
-                />
-              </ScrollView>
-            ) : null}
-
-          <View style={st.controls}>
-            {/* The recast now renders in the thread, attached to the line it
-                corrects, so only the spoken coaching line belongs here. */}
-            {view.coachLine ? (
-              <Text style={[type.bodyStrong, { color: paper.ink, textAlign: 'center', marginBottom: space(2) }]}>
-                {view.coachLine}
-              </Text>
-            ) : null}
-
-            {/* The answer to "Give me a moment": on screen, in the calm slot,
-                and never spoken. A spoken acknowledgement of a pause is a
-                remark on the pause. */}
-            {momentTaps > 0 ? (
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[type.small, { color: paper.inkSoft, textAlign: 'center', marginBottom: space(2) }]}
-              >
-                {momentAnswer(tutorName)}
-              </Text>
-            ) : null}
-
-            {/* One contextual note at a time, dismissed by tapping it, and
-                nothing underneath it stops working while it is up. */}
-            {marks.showing ? (
-              <Press
-                onPress={closeMark}
-                accessibilityRole="button"
-                accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`}
-                style={st.mark}
-              >
-                <Text style={[type.small, { color: paper.onInk }]}>
-                  {COACH_MARK_TEXT[marks.showing]}
-                </Text>
-              </Press>
-            ) : null}
-
-            {controls.showInput ? (
-              <View style={st.typeRow}>
-                <TextInput
-                  multiline
-                  scrollEnabled
-                  value={draft}
-                  onChangeText={changeDraft}
-                  onSubmitEditing={sendDraft}
-                  onKeyPress={keyDraft}
-                  placeholder="Type your reply"
-                  placeholderTextColor={paper.inkFaint}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="send"
-                  submitBehavior="submit"
-                  accessibilityLabel="Type your reply"
-                  onFocus={() => setFocusedInput('reply')}
-                  onBlur={() => setFocusedInput(null)}
-                  style={[st.typeInput, { maxHeight: 100 }, focusedInput === 'reply' && st.typeInputFocused]}
-                />
-                <Press
-                  onPress={sendDraft}
-                  disabled={draft.trim().length === 0 || !listening}
-                  accessibilityState={{ disabled: draft.trim().length === 0 || !listening }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Send your reply"
-                  style={st.typeSend}
-                >
-                  <ChevronRight size={22} color={paper.onInk} />
-                </Press>
-              </View>
-            ) : null}
-
-            {!controls.showInput && <View style={st.orbBlock}>
-              {controls.showOpenMic ? (
-                <Pressable onPress={live.openMic} accessibilityRole="button" accessibilityLabel={OPEN_MIC_LABEL} style={st.orbTap}>
-                  <VoiceOrb state={orbState} size={SCENE_ORB} announce={false} />
-                </Pressable>
-              ) : <VoiceOrb state={orbState} size={SCENE_ORB} />}
-            </View>}
-
-            <View style={{ flexDirection: 'row', alignSelf: 'stretch', gap: space(2), marginTop: space(3) }}>
-              <ControlTile label="Help me out" glyph={<HelpGlyph size={24} color={paper.ink} />} disabled={!listening} onPress={() => { closeMark(); live.sendHelp(); }} accessibilityLabel="Ask for help with this line" />
-              {!typing && <ControlTile label="Simpler" glyph={<SpeakerSlowGlyph size={24} color={paper.ink} />} disabled={!listening} accessibilityLabel={simplerLabel(tutorName)} onPress={() => { closeMark(); live.sendSlower(); }} />}
-              {controls.showTypeInstead && <ControlTile label="Type instead" glyph={<KeyboardGlyph size={24} color={paper.ink} />} onPress={() => { closeMark(); goQuiet(); }} accessibilityLabel="Type your reply instead of saying it" />}
-            </View>
-            <View style={st.helpRow}>
-              <IconAction layout="inline" icon="moment" label="Give me a moment" onPress={askForAMoment} />
-              {!typing && <IconAction layout="inline" icon="translate" label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
-            </View>
-          </View>
-          </>
-        )}
-      </View>
-      <ConfirmSheet
-        visible={confirming}
-        title={leaveCopy.title}
-        body={leaveCopy.body}
-        confirmLabel={leaveCopy.leave}
-        cancelLabel={leaveCopy.stay}
-        onConfirm={() => {
-          setConfirming(false);
-          setLeaving(true);
-        }}
-        onCancel={() => setConfirming(false)}
+    <View style={{ flex: 1, minHeight: 0 }}>
+      <C2LiveRoom tutorName={tutorName} description={missionId ? getMission(missionId)?.titleEn ?? 'Guided conversation' : seedTopic?.en ?? 'Your French conversation'}
+        state={live.reconnecting ? 'connecting' : orbState}
+        caption={headerLine ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing || typingOpen ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused')}
+        turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
+        typing={typing || typingOpen} startedWithSpeech={!openedTyped} ready={!live.reconnecting && !finishing}
+        modePending={modePending} active={roomFocused} transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible}
+        draft={draft} onDraft={changeDraft} onSend={sendDraft} canSend={listening && !live.thinking}
+        onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
+        onEnd={() => setConfirming(true)} onReplayTutor={listening && !typing ? () => live.sendHear('scene') : undefined}
+        top={<>{live.audioBlocked ? <ListenPlaque onPress={live.resumeAudio} tutorName={tutorName} /> : null}
+          <MissionTaskList items={missionItems} />
+          {replayLine ? <Text accessibilityLiveRegion="polite" style={type.small}>{replayLine}</Text> : null}
+          {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}</>}
+        support={view.supportView.kind !== 'none' ? <SupportBlock support={view.supportView} onHearLine={controls.showHearIt ? () => live.sendHear() : undefined} /> : undefined}
+        notice={momentTaps > 0 ? momentAnswer(tutorName) : view.coachLine}
+        tools={<>
+          {marks.showing ? <Press onPress={closeMark} haptic="none" accessibilityLabel={`${COACH_MARK_TEXT[marks.showing]} Tap to close.`} style={st.mark}><Text style={[type.small, { color: paper.onInk }]}>{COACH_MARK_TEXT[marks.showing]}</Text></Press> : null}
+          <IconAction layout="inline" icon="hint" label="Help me out" disabled={!listening} onPress={() => { closeMark(); live.sendHelp(); }} />
+          {!typing && <IconAction layout="inline" icon="chat" label="Simpler" accessibilityLabel={simplerLabel(tutorName)} disabled={!listening} onPress={() => { closeMark(); live.sendSlower(); }} />}
+          <IconAction layout="inline" icon="moment" label="Give me a moment" onPress={askForAMoment} />
+          {!typing && <IconAction layout="inline" icon="translate" label="In English" disabled={!listening} onPress={() => { closeMark(); live.sendEnglish(); }} />}
+        </>}
+        footer={card ? <><ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled"><MissionWin card={card} art={wonMission ? sceneIllustration(wonMission.id) : null}
+          momentKey={`${live.sessionId ?? 'room'}:${missionId ?? 'scene'}`} onKeep={() => setWin(dismissWin)}
+          onFinish={() => { setWin(dismissWin); setFinishing(true); live.requestRecap(); }} /></ScrollView>
+          <IconAction icon="close" label="End session" onPress={() => setConfirming(true)} /></> : undefined}
       />
-    </KeyboardAvoidingView>
+      <ConfirmSheet visible={confirming} title={leaveCopy.title} body={leaveCopy.body}
+        confirmLabel={leaveCopy.leave} cancelLabel={leaveCopy.stay}
+        onConfirm={() => { setConfirming(false); setLeaving(true); }} onCancel={() => setConfirming(false)} />
+    </View>
     </OrbCue>
-    </RoomLevels>
-  );
+  </RoomLevels>;
 }
 
 const st = StyleSheet.create({

@@ -72,15 +72,17 @@ describe('the plan card and the daily goal', () => {
     assert.deepEqual(GOAL_TIERS.map(t => t.minutes), [5, 10, 15, 20]);
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(plan, /const minutes = minutesOf\(draft\)/);
-    assert.match(plan, /minutes === 'none' \? 'At your own pace' : `\$\{minutes\} minutes a day`/);
+    assert.match(plan, /minutes === 'none' \? 'Choose each time' : `\$\{minutes\} minutes`/);
     assert.match(plan, /draft\.interests\.map/);
     assert.match(plan, /<BoldScene kind="plan"/);
-    assert.match(plan, /label="Adjust my plan" onPress=\{onEdit\}/);
+    assert.match(evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'), /accessibilityLabel="Adjust my plan" onPress=\{\(\) => open\('plan'\)\}/);
     assert.doesNotMatch(plan, /<ProgressRing|mastery|fluency|numberOfLines/);
     const motion = evidence('apps/mobile/assets/bold-rhythm/source/plan/scene.rml');
     assert.match(motion, /loopValue="loop"/);
     const renderer = evidence('apps/mobile/src/onboarding/motion/BoldScene.native.tsx');
-    assert.match(renderer, /reduced !== false \|\| !foreground \|\| !active/);
+    assert.match(renderer, /C2Scene/);
+    const c2 = evidence('apps/mobile/src/onboarding/motion/C2Scene.tsx');
+    assert.match(c2, /c2MotionRuns\(\{ active, visible, foreground, reduced \}\)/);
   });
 
   test('plan editing commits all six answers so new interests reach the live scenario', () => {

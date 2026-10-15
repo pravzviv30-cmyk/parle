@@ -127,10 +127,10 @@ describe('the reminder ask — F754', () => {
     // set on day one goes with them: in the start sheet, and in the launch's
     // own refusal, whichever hears it first. Both only when one was set.
     const screen = evidence(SCREEN);
-    const younger = screen.slice(screen.indexOf('label="I am younger than that"'), screen.indexOf('/>', screen.indexOf('label="I am younger than that"')));
-    assert.ok(younger.length > 0, 'the younger link moved; this check reads nothing');
-    assert.match(younger, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/, 'an under-13 answer leaves the first run\'s reminder on the phone');
-    assert.ok(younger.indexOf('cancelReminder()') < younger.indexOf('onRefuse?.()'));
+    const refusal = screen.slice(screen.indexOf('if (!refused) return;'), screen.indexOf('const showPage ='));
+    assert.ok(refusal.length > 0, 'the known-refusal cleanup must remain mounted');
+    assert.match(refusal, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/);
+    assert.ok(refusal.indexOf('cancelReminder()') < refusal.indexOf('setDraft(fresh)'));
     assert.equal((screen.match(/cancelReminder\(/g) ?? []).length, 1, 'the first run takes a reminder away somewhere other than the refusal');
     const app = evidence('apps/mobile/App.tsx');
     const refuse = app.slice(app.indexOf('const refusePreAccount = useCallback('), app.indexOf('const deleteAccount'));
@@ -138,8 +138,12 @@ describe('the reminder ask — F754', () => {
     // Create one on a returning sign-in screen starts a fresh draft, so the old
     // draft's reminder goes too.
     const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
-    const newAccount = flow.slice(flow.indexOf('const newAccount = () => {'), flow.indexOf('const signIn ='));
-    assert.match(newAccount, /void clearGuestPractice\(\); if \(initialDraft\?\.reminderEnabled === true\) void cancelReminder\(\);/, 'a fresh introduction leaves the old draft\'s reminder on the phone');
+    const newAccount = flow.slice(flow.indexOf('const newAccount = async () => {'), flow.indexOf('const acceptAccountTerms ='));
+    assert.match(newAccount, /await clearGuestPractice\(\);/);
+    assert.match(newAccount, /initialDraft\?\.reminderEnabled === true && \(await cancelReminder\(\)\) === 'failed'/, 'a fresh introduction must check native cancellation failure');
+    assert.ok(newAccount.indexOf('await clearGuestPractice()') < newAccount.indexOf('await cancelReminder()'));
+    assert.ok(newAccount.indexOf('await cancelReminder()') < newAccount.indexOf('onDiscardDraft()'), 'the owning plan must remain until reminder cleanup settles');
+    assert.match(newAccount, /catch[\s\S]*setRestartError\(true\)/, 'failed cleanup must retain a retry');
   });
 
   test('the reminder ask speaks plainly and names the chosen tutor', () => {

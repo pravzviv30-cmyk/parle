@@ -108,7 +108,10 @@ describe('a spoken take the tutor did not hear — F776', () => {
     assert.doesNotMatch(screen, /label="Practise this offline"|offlineContinuation\(/);
     const live = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
     assert.match(live, /Try connecting again/);
-    assert.match(live, /Unable to speak\? Try typing instead\./);
+    assert.match(live, /onModeChange=\{next => void changeInput\(next\)\}/);
+    const room = evidence('apps/mobile/src/live/C2LiveRoom.tsx');
+    assert.match(room, /\['Speaking', 'Typing'\]/);
+    assert.match(room, /onModeChange\(label === 'Typing'\)/, 'the compact typing control must reach the existing room recovery');
     assert.match(live, /await live\.pauseMic\(\)/);
 
     assert.match(live, /await live\.openMic\(\)/);
@@ -117,15 +120,22 @@ describe('a spoken take the tutor did not hear — F776', () => {
     // A reminder set on day one leaves with the plan it was set for, at all
     // three doors the privacy document names, and the document says so.
     const doc = readFileSync(fileURLToPath(new URL('../../../../../docs/PRIVACY_AND_SAFETY.md', import.meta.url)), 'utf8');
-    assert.match(doc, /reminder set on day one goes with the plan it was set for: the under-thirteen answer, "Start a new plan instead" and sign-in's "Create an account" each cancel it on the phone\./);
-    const younger = screen.slice(screen.indexOf('label="I am younger than that"'), screen.indexOf('<SwitchRow'));
-    assert.match(younger, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/);
+    assert.match(doc, /A daily reminder remains attached to its plan: known refusal,\s*“Start a new plan instead” and sign-in's “Create an account” retain the existing\s*device cancellation\./);
+    assert.doesNotMatch(screen, /label="I am younger than that"/);
+    const refusal = screen.slice(screen.indexOf('if (!refused) return;'), screen.indexOf('const showPage ='));
+    assert.match(refusal, /if \(draftRef\.current\.reminderEnabled === true\) void cancelReminder\(\);/, 'a server safety refusal still clears the reminder belonging to the old plan');
     const app = evidence('apps/mobile/App.tsx');
-    assert.match(app, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\);/);
-    assert.match(app, /<IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    const startAgain = app.slice(app.indexOf('const startAgain ='), app.indexOf('return <OnboardingLayout', app.indexOf('const startAgain =')));
+    assert.match(startAgain, /draft\.reminderEnabled === true && \(await cancelReminder\(\)\) === 'failed'/);
+    assert.ok(startAgain.indexOf('await cancelReminder()') < startAgain.indexOf('onConsumed();'), 'the reviewed plan must remain while its reminder is pending');
+    assert.match(startAgain, /setBootstrapError\('Your reminder could not be cancelled/);
+    assert.match(app, /<IconAction layout="inline" icon="edit" label="Start a new plan instead" busy=\{restartBusy\} disabled=\{restartBusy\} onPress=\{\(\) => void startAgain\(\)\} \/>/);
     const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx');
     const newAccount = flow.slice(flow.indexOf('const newAccount ='), flow.indexOf('const signIn ='));
-    assert.match(newAccount, /if \(initialDraft\?\.reminderEnabled === true\) void cancelReminder\(\);/);
+    assert.match(newAccount, /initialDraft\?\.reminderEnabled === true && \(await cancelReminder\(\)\) === 'failed'/);
+    assert.ok(newAccount.indexOf('await clearGuestPractice()') < newAccount.indexOf('await cancelReminder()'));
+    assert.ok(newAccount.indexOf('await cancelReminder()') < newAccount.indexOf('onDiscardDraft();'), 'the old plan must survive both pending cleanup owners');
+    assert.match(newAccount, /catch \{ if \(mounted\.current\) setRestartError\(true\); \}/);
     assert.match(flow, /<SignInScreen onCreateAccount=\{newAccount\} \/>/);
     assert.match(evidence('apps/mobile/src/auth/SignInScreen.tsx'), /Create an account/);
   });

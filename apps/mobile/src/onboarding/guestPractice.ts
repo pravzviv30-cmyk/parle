@@ -68,6 +68,13 @@ async function post(
   // connect (F756). A failed transcription is a 503 from the same path after
   // the attempt was reserved: that one is a broken connection, with Try again.
   if (!response.ok) {
+    if (response.status === 503 && path === 'start') {
+      const body: unknown = await response.json().catch(() => null);
+      if (typeof body === 'object' && body !== null) {
+        const code = (body as { error?: unknown }).error;
+        if (code === 'guest-live-unavailable' || code === 'voice-unavailable') throw new Error(code);
+      }
+    }
     const said =
       response.status === 503 && path === 'audio'
         ? await response.json().then(

@@ -57,7 +57,7 @@ Routine task progress belongs in its change plan.
 ## UI-001 — Bundle C's vectors and keep motion tied to screen activity
 
 - Date: 2026-10-11
-- Status: accepted
+- Status: superseded for C2 rendering by [UI-002](#ui-002--render-c2s-exact-figma-layers-through-the-shared-motion-engine); retained for the older C assets
 - Decision: compile the original C illustration family to local Rive files with
   matching SVG stills. Reuse the existing native Rive runtime; pin the official
   web renderer and bundle its WASM. Ordinary UI transitions stay in Animated.
@@ -71,6 +71,72 @@ Routine task progress belongs in its change plan.
 - Sources: [change plan](docs/changes/bold-rhythm.md),
   [asset provenance and rebuild](apps/mobile/assets/bold-rhythm/README.md).
 
+## UI-002 — Render C2's exact Figma layers through the shared motion engine
+
+- Date: 2026-10-14
+- Status: accepted
+- Decision: bundle C2's 127 exported SVG layers and assemble the authored
+  compositions in one scoped `onboarding/motion/C2Scene.tsx` host. Use the
+  existing Reanimated/`motion/drive.ts` path for closed 4.8-second Rest/Float
+  cycles and the welcome logo's delayed 8.8-second ring rotation. Do not use
+  older C Rive compositions as substitutes for the approved C2 artwork.
+- Reason: C2 changed illustration geometry, mascot emotions, tutor portraits,
+  the blue sphere and local motion variants. Exact layers preserve those shapes
+  while a stable shared clock avoids whole-page loop transitions and resets.
+- Consequence: no Expo SDK upgrade or additional motion runtime. Screen
+  activity, AppState and live reduced motion guard each clock; reduced/unknown
+  preference renders still art. Confetti and earned events remain one-shot.
+  Existing navigation, draft/account storage, core learning policy and server
+  admission remain authoritative. This decision does not establish native
+  acceptance, legal review or production activation.
+- Sources: [C2 design](DESIGN.md#14-october-2026--c2-bold-rhythm),
+  [asset manifest](apps/mobile/assets/c2/manifest.json),
+  [change plan](docs/changes/bold-rhythm.md).
+
+The founder's 14 October question-illustration redraft extends this renderer
+with an optional child-vector slot inside the same floated group. Custom local
+question SVGs use stable geometry, memoized namespaced XML and the C2 palette;
+they are explicitly distinguished from the original hashed Figma exports.
+This reuses the existing clock, activity and Reduce Motion policy without a
+new animation runtime, loader or presentation state owner. The cloud family
+guides the new organic character style; a cloud is not required on every page.
+
+The subsequent natural-gesture follow-up passes that same phase through an
+optional `renderVectors` callback to reusable memoized semantic-part hosts inside
+`C2Scene.tsx`. Absolute full-canvas parts rotate around source-coordinate joints;
+held props and rear arms share a joint definition. This keeps the existing
+lifecycle and motion import boundary while allowing purposeful gestures without
+per-part clocks or rebuilding SVG XML. Baseline-corrected offsets preserve the
+authored still pose; the shipped gestures use zero offsets. Continuous interval
+geometry proofs cover rotation/scale/lift envelopes and the enclosing float.
+
+The 15 October full-flow audit retains the same ownership: edit sheets suspend
+their mounted parent scene, and disabled Next guidance uses the existing
+button's reserved geometry. Earned-result reveal steps are monotonic across
+motion-preference changes. Restart cleanup is awaited by its current auth or
+bootstrap owner and preserves the draft until reminder cancellation succeeds;
+no second cleanup queue, motion state store or navigation owner was introduced.
+
+
+## UI-003 — Keep guest refusal and authenticated first practice in their existing owners
+
+- Date: 2026-10-15
+- Status: accepted
+- Decision: preserve the closed production guest-live boundary and distinguish
+  disabled anonymous admission from unsupported speaking. Offer the existing
+  account flow deliberately for the former, retain the current answered draft,
+  and complete authenticated setup through ProfileGate before the existing
+  FirstScene entry. Actual guest completion, rather than accepted Terms,
+  determines whether the first practice remains pending.
+- Reason: connection retry alone cannot resolve an unsupported guest capability,
+  and account creation cannot add a speech pipeline to a typed-only service.
+- Consequence: no anonymous paid-admission implementation, new navigator,
+  profile store or session policy. Existing profiles remain authoritative;
+  completed guest adoption is retained. Runtime service activation and native
+  acceptance remain separate from this source routing decision.
+- Sources: [onboarding handoff](docs/ONBOARDING.md#account-handoff-when-guest-live-is-unavailable),
+  [live entry](docs/LIVE_VOICE.md#c2-room-presentation),
+  [change plan](docs/changes/bold-rhythm.md).
 
 ## VOICE-001 — Bound recognition repair to current conversational support
 

@@ -1,8 +1,27 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { onboardingProgress, onboardingSteps } from './onboardingProgress.ts';
+import { onboardingProgress, onboardingSteps, onboardingStageFraction } from './onboardingProgress.ts';
 
 describe('onboarding progress from actual conditional routes', () => {
+  test('C2 milestones advance with each actual setup page and keep stage boundaries truthful', () => {
+    const full = onboardingSteps();
+    assert.equal(onboardingStageFraction('hear-it', full), 0);
+    assert.equal(onboardingStageFraction('reason', full), 1 / 7 / 4);
+    assert.equal(onboardingStageFraction('interests', full), 2 / 7 / 4);
+    assert.equal(onboardingStageFraction('plan', full), 1 / 4);
+    assert.equal(onboardingStageFraction('choose-tutor', full), (1 + 1 / 3) / 4);
+    assert.equal(onboardingStageFraction('before-practice', full), (1 + 2 / 3) / 4);
+    assert.equal(onboardingStageFraction('practice', full), 1 / 2);
+    assert.equal(onboardingStageFraction('recap', full), (2 + 1 / 3) / 4);
+    assert.equal(onboardingStageFraction('keep', full), 3 / 4);
+    assert.equal(onboardingStageFraction('account', full), (3 + 1 / 3) / 4);
+    const shortened = onboardingSteps({ five: true });
+    assert.equal(onboardingStageFraction('confidence', shortened), 3 / 6 / 4);
+    assert.equal(onboardingStageFraction('plan', shortened), 1 / 4);
+    const quick = onboardingSteps({ skipped: ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] });
+    assert.equal(onboardingStageFraction('plan', quick), 1 / 4);
+    assert.equal(onboardingProgress({ page: 'plan' }).fraction, 7.5 / full.length, 'milestone presentation must not alter durable route progress');
+  });
   test('every route increases without reaching completion early', () => {
     const steps = onboardingSteps();
     let last = 0;

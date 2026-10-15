@@ -92,8 +92,9 @@ for (const name of ['SignInScreen.tsx', 'SignUpScreen.tsx']) {
     assert.match(screen, /ref=\{passwordRef\}/);
     assert.match(screen, /submitBehavior="submit"/);
     assert.match(screen, /passwordRef\.current\?\.focus\(\)/);
-    assert.match(screen, /\{!keyboardVisible && <View style=\{st\.action\}>/);
-    assert.doesNotMatch(screen, /footer=/);
+    assert.match(screen, /footer=/);
+    assert.match(screen, /!keyboardVisible/);
+    assert.doesNotMatch(screen, /actionInScroll/, 'C2 primary actions must remain in the safe-area footer');
     assert.match(screen, /automaticallyAdjustKeyboardInsets/);
   });
 }

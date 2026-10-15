@@ -494,7 +494,7 @@ describe('walking back into a scene you have already finished', () => {
     assert.ok(!screen.includes(LESS_HELP), 'the line is spelled out in the screen, where the rule cannot hold it');
     assert.match(
       screen,
-      /replayLine \? \([\s\S]{0,300}\{replayLine\}/,
+      /replayLine \? <Text accessibilityLiveRegion="polite"[\s\S]{0,120}\{replayLine\}/,
       'the note is worked out and never reaches glass',
     );
   });

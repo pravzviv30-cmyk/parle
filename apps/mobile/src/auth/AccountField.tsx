@@ -1,7 +1,8 @@
 import { forwardRef, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps } from 'react-native';
 import { AlertGlyph } from '../components.tsx';
-import { HIT, font, paper, radius, space, type } from '../theme.ts';
+import { HIT, decorative, font, paper, radius, space, type } from '../theme.ts';
+import { boldType, c } from '../onboarding/boldRhythm.ts';
 
 /** Auth fields expose native focus without changing the behaviour of unrelated forms. */
 export const AccountField = forwardRef<TextInput, TextInputProps & {
@@ -65,7 +66,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
     setRevealed((current) => !current);
   };
   return <View style={st.group}>
-    <Text id={`${id}-label`} maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.label, labelWeight === 'medium' && { fontFamily: font.medium }]}>{label}</Text>
+    <Text id={`${id}-label`} maxFontSizeMultiplier={liveFontMultiplier} style={[boldType.label, st.label]}>{label}</Text>
     <View style={[st.inputWrap, focused && st.focused, disabled && st.disabled]}>
       <TextInput
         {...props}
@@ -76,7 +77,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
         {...(Platform.OS === 'web' && error ? { 'aria-describedby': `${id}-error`, 'aria-invalid': true } : {})}
         autoCapitalize="none"
         autoCorrect={false}
-        placeholderTextColor={paper.inkFaint}
+        placeholderTextColor={c.muted}
         underlineColorAndroid="transparent"
         smartInsertDelete={secure ? false : props.smartInsertDelete}
         secureTextEntry={secure && !revealed}
@@ -106,6 +107,7 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
       >
         <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.showLabel, labelWeight === 'medium' && { fontFamily: font.medium }]}>{revealed ? 'Hide' : 'Show'}</Text>
       </Pressable>}
+      {focused && <View {...decorative} pointerEvents="none" style={[StyleSheet.absoluteFill, st.focusRing]} />}
     </View>
     {error != null && error !== '' && <View style={st.error}>
       <AlertGlyph size={16} color={paper.ink} />
@@ -116,11 +118,12 @@ export const AccountField = forwardRef<TextInput, TextInputProps & {
 AccountField.displayName = 'AccountField';
 
 const st = StyleSheet.create({
-  group: { gap: space(2) },
-  label: { color: paper.ink, fontFamily: font.semiBold },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 56, borderRadius: 12, backgroundColor: paper.card, borderWidth: 1.5, borderColor: paper.field },
-  input: { ...type.body, flex: 1, minWidth: 0, minHeight: 51, paddingVertical: 12, paddingHorizontal: 16, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: 12, color: paper.ink, ...(Platform.OS === 'web' ? { outlineWidth: 0 } : {}) },
-  focused: { borderColor: paper.ink },
+  group: { gap: 6 },
+  label: { color: c.ink, fontFamily: font.medium },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderRadius: 12, backgroundColor: c.white, borderWidth: 1, borderColor: c.line },
+  input: { ...boldType.body, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: 12, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
+  focused: { borderColor: c.violet },
+  focusRing: { borderRadius: 12, borderColor: c.violet, borderWidth: 2 },
   disabled: { opacity: 0.65 },
   show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: radius.field - 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
   showActive: { borderColor: paper.inkSoft, backgroundColor: paper.ground },

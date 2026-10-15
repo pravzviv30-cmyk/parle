@@ -58,11 +58,13 @@ export function RevealItem({ children, index = 0, active = true }: {
 }) {
   const reduced = useReduceMotion(true);
   const value = useRef(new Animated.Value(active ? 0 : 1)).current;
+  const entered = useRef(!active);
   useEffect(() => {
-    if (reduced === null && active) return;
+    if (reduced === null && active && !entered.current) return;
     value.stopAnimation();
     value.setValue(1);
-    if (reduced || !active) return;
+    if (reduced || !active || entered.current) { entered.current = true; return; }
+    entered.current = true;
     value.setValue(0);
     const entrance = Animated.timing(value, {
       toValue: 1,

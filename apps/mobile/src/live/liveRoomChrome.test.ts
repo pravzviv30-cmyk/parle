@@ -28,6 +28,7 @@ const convo = read('../ConvoScreen.tsx');
 const lesson = read('../SessionView.tsx');
 const liveLesson = read('../LiveSessionScreen.tsx');
 const header = read('./LiveRoomHeader.tsx');
+const room = read('./C2LiveRoom.tsx');
 
 describe('quiet live-room chrome', () => {
   test('neither live surface draws the old progress rail', () => {
@@ -37,14 +38,14 @@ describe('quiet live-room chrome', () => {
 
   test('both rooms use the compact end control and retain confirmation', () => {
     assert.equal(
-      (convo.match(/<LiveRoomHeader\b/g) ?? []).length,
+      (convo.match(/<C2LiveRoom\b/g) ?? []).length,
       2,
       'the choosing room and the active scene do not share the same end control',
     );
-    assert.match(convo, /accessibilityLabel="End conversation"/, 'the icon has no spoken conversation label');
-    assert.match(lesson, /<LiveRoomHeader[\s\S]{0,160}accessibilityLabel="End lesson"/, 'the lesson has no named end control');
+    assert.match(room, /accessibilityLabel="End session"/, 'the shared end action has no spoken label');
+    assert.match(liveLesson, /<C2LiveRoom\b/, 'the lesson has no shared end control');
     assert.match(convo, /onEnd=\{\(\) => setConfirming\(true\)\}/, 'the conversation icon bypasses confirmation');
-    assert.match(liveLesson, /onLeave=\{\(\) => setConfirming\(true\)\}/, 'the lesson icon bypasses confirmation');
+    assert.match(liveLesson, /onEnd=\{\(\) => setConfirming\(true\)\}/, 'the lesson icon bypasses confirmation');
     assert.match(convo, /<ConfirmSheet\b/, 'the conversation lost its confirmation sheet');
     assert.match(liveLesson, /<ConfirmSheet\b/, 'the lesson lost its confirmation sheet');
   });
@@ -63,8 +64,8 @@ describe('quiet live-room chrome', () => {
 
   test('conversation controls and status announcements survive the chrome change', () => {
     for (const seam of [
-      '<Transcript',
-      'Type instead',
+      '<C2LiveRoom',
+      'onModeChange',
       'live.sendHelp()',
       'live.sendSlower()',
       'live.sendHear',
@@ -72,8 +73,9 @@ describe('quiet live-room chrome', () => {
     ]) {
       assert.ok(convo.includes(seam), `${seam} disappeared while the header changed`);
     }
-    assert.match(convo, /status=\{[\s\S]{0,220}accessibilityLiveRegion="polite"/, 'conversation status is no longer announced');
-    assert.match(lesson, /status=\{[\s\S]{0,220}accessibilityLiveRegion="polite"/, 'lesson status is no longer announced');
+    assert.match(room, /accessibilityLiveRegion="polite"[\s\S]{0,100}\{caption\}/, 'shared live status is no longer announced');
+    assert.match(room, /<Transcript\b/, 'the shared live thread disappeared');
+    assert.match(room, /onModeChange\(label === 'Typing'\)/, 'the mode toggle does not reach the room owner');
   });
 });
 

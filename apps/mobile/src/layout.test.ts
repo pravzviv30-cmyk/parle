@@ -351,7 +351,7 @@ describe('the tab title is the working title — F602', () => {
     // And the greeting is one of them: Home hands its greeting to the header
     // as the title, so it is set at the same 30 as every other tab name.
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
-    assert.match(home, /<TabHeader display leading=\{<Text[\s\S]*?\{greeting\.title\}/, 'Home does not hand its greeting to the tab header as the title');
+    assert.match(home, /<TabHeader title=\{greeting\.title\} purpose=\{greeting\.subline\}/, 'Home does not hand its real contextual greeting to the working header');
   });
 });
 

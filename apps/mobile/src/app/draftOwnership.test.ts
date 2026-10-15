@@ -11,6 +11,7 @@ async function run(confirmed: boolean, { switchAt, failAt }: { switchAt?: string
   const calls: string[] = []; let generation = 1;
   const preference = async (store: string) => { calls.push(store); if (switchAt === store) generation++; return failAt === store ? 'volatile' : 'durable'; };
   const bindings = { confirmed, delivered: { current: false }, draft: { analyticsConsent: true },
+    loadGuestPractice: async () => null, shouldStartFirstPractice: () => true,
     scopeGeneration: () => generation, profileFromDraft: () => { calls.push('build'); return {}; },
     reminderFromDraft: () => ({}), saveConsent: () => preference('consent'),
     saveReminder: () => preference('reminder'), saveProfile: async () => { calls.push('durable'); if (switchAt === 'durable') generation++; return failAt !== 'durable'; }, setBootstrapError: () => calls.push('error'), done: () => calls.push('profile'), onConsumed: () => calls.push('consume'),
@@ -60,13 +61,14 @@ test('signed-in setup requires durable consent, reminder and profile before comp
     const calls: string[] = [];
     const invoke = completion('new', {
       scopeGeneration: () => 1, profileFromDraft: () => ({}), reminderFromDraft: () => ({}),
+      loadGuestPractice: async () => null, shouldStartFirstPractice: () => true, setJustOnboarded: () => {},
       saveConsent: async () => { calls.push('consent'); return failure === 'consent' ? 'volatile' : 'durable'; },
       saveReminder: async () => { calls.push('reminder'); return failure === 'reminder' ? 'volatile' : 'durable'; },
       saveProfile: async () => { calls.push('profile'); return failure !== 'profile'; },
-      firstScene: { current: null }, firstSceneFor: () => 'first', done: () => calls.push('done'),
+      firstScene: { current: null }, firstSceneFor: () => 'first', onPreAccountDraftConsumed: () => calls.push('consume'), done: () => calls.push('done'),
     });
     assert.equal(await invoke({ eligibilityConfirmed: true }), failure === undefined);
-    const expected = failure === 'consent' ? ['consent'] : failure === 'reminder' ? ['consent', 'reminder'] : failure === 'profile' ? ['consent', 'reminder', 'profile'] : ['consent', 'reminder', 'profile', 'done'];
+    const expected = failure === 'consent' ? ['consent'] : failure === 'reminder' ? ['consent', 'reminder'] : failure === 'profile' ? ['consent', 'reminder', 'profile'] : ['consent', 'reminder', 'profile', 'consume', 'done'];
     assert.deepEqual(calls, expected);
   }
 });

@@ -765,9 +765,9 @@ describe('the privacy notice — F479', () => {
   });
 
   test('the privacy document says an under-13 answer before an account keeps nothing, and the code keeps nothing', () => {
-    // F637 and F639, founder 2026-09-30: firmer, and clear on refusal. "I am
-    // younger than that" clears the first-run draft, first name and all, sends
-    // nothing and stores no marker, so a relaunch may ask again. The document
+    // F637/F639 cleanup remains enforced for a known refusal. C2's normal
+    // entry uses a linked declaration rather than the retired age question.
+    // The refusal clears the draft and stores no marker. The document
     // is held to that and to the code, because a refusal that quietly began
     // leaving something behind would be data about a child nobody chose to keep.
     const flat = (text: string) => text.replace(/\s+/g, ' ');
@@ -782,7 +782,7 @@ describe('the privacy notice — F479', () => {
     assert.match(said, /It stores no marker\./, 'the document no longer says the refusal leaves no marker on the device');
     assert.match(
       said,
-      /a relaunch starts at the first page with nothing kept, and the question can be asked again/,
+      /a relaunch starts at the first page with nothing kept and presents C2's linked declaration again/,
       'the document no longer says what a relaunch after a refusal shows',
     );
     assert.doesNotMatch(
@@ -801,11 +801,11 @@ describe('the privacy notice — F479', () => {
     assert.match(row, /completed and skipped steps, the onboarding variant, an optional account email/, 'the draft row omits the locally retained route and account email');
     assert.match(row, /sign-in or sign-up form and its return page/, 'the draft row omits the retained account form and return route');
     assert.match(row, /Passwords are never saved/, 'the draft row omits the password storage boundary');
-    assert.match(row, /"I am younger than that" in the Start sheet/, 'the draft row does not name the refusal among what removes it');
+    assert.match(row, /known refusal/i, 'the draft row does not name the known refusal among what removes it');
     assert.match(
       DOC.slice(DOC.indexOf('## Not true yet')),
-      /An under-13 answer before an account lasts the launch and no longer/,
-      'Not true yet stopped saying a relaunch asks the age question again',
+      /known under-13 refusal before an account lasts the launch and no longer/i,
+      'Not true yet stopped stating the actual launch-only refusal boundary',
     );
 
     // What makes it true. The refusal reaches the discard, which takes the
@@ -843,31 +843,41 @@ describe('the privacy notice — F479', () => {
       );
     }
 
-    // The notice promises no more. The only age fact it says is kept is the
-    // stop said during a conversation.
+    // A launch-only pre-account refusal and a device-local signed-in stop
+    // have different owners. The only refusal fact described as kept is the
+    // stop said during a signed-in conversation.
     const age = POLICY_SECTIONS.find((section) => section.heading === 'Age');
     assert.ok(age, 'the notice lost its age section');
+    const beforeAccount = age.body.find(paragraph => /known refusal before an account/.test(paragraph));
+    assert.ok(beforeAccount, 'the notice must distinguish a refusal before an account from a signed-in safety stop');
+    assert.match(beforeAccount, /rest of that app launch and stores no refusal marker/);
+    assert.match(beforeAccount, /Signing in, signing out or creating a new account does not bypass it/);
     for (const sentence of age.body.join(' ').split(/(?<=\.)\s+/)) {
       if (!/remember|kept|keeps|stored|saved/i.test(sentence)) continue;
       assert.match(sentence, /during a conversation/, `the notice says an age answer is kept that is not the stop in a conversation: ${sentence}`);
     }
+    const signedInStop = age.body.find(paragraph => /during a conversation/.test(paragraph));
+    assert.ok(signedInStop);
+    assert.match(signedInStop, /signed-in learner/);
+    assert.match(signedInStop, /this phone keeps the stop until they pass the return eligibility check/);
   });
 
-  test('the terms screen says whose licence this is and nothing about other apps', () => {
+  test('the terms declare Luvani eligibility and name the licence without claiming other apps agree', () => {
     // F483. Apple's standard licence applies to apps that supply no licence of
     // their own, and plenty supply one, so "the same one that covers everything
     // else you get from the App Store" was a claim about other people's
     // agreements that nobody here can make. The sentence stands without it.
-    assert.equal(TERMS_BODY[0], "Luvani is licensed to you under Apple's standard licence agreement for apps.");
+    assert.equal(TERMS_BODY[0], 'Luvani is for learners aged 13 and over.');
+    assert.match(TERMS_BODY[1]!, /By starting practice or creating an account, you confirm that you meet this minimum age/);
+    assert.equal(TERMS_BODY[2], "Luvani is licensed to you under Apple's standard licence agreement for apps.");
     const body = TERMS_BODY.join(' ');
     assert.doesNotMatch(body, /everything else/i, 'the terms speak for apps that are not ours');
     assert.doesNotMatch(body, /(all|other|every other) apps?\b/i, 'the terms describe what covers somebody else');
     assert.doesNotMatch(body, /the same one/i, 'the terms compare our licence to a licence we have not read');
 
-    // What it does say: whose licence it is, that we wrote none, and where to
-    // read it. Three sentences, and no fourth claim.
-    assert.equal(TERMS_BODY.length, 3, 'the terms screen grew or lost a sentence');
-    assert.match(body, /We have written no separate terms/);
+    // Acceptance is a declaration rather than an age-verification claim.
+    assert.equal(TERMS_BODY.length, 4, 'eligibility, declaration and the licence source must stay explicit');
+    assert.doesNotMatch(body, /age (?:is |has been )?verified|verified your age/i);
     assert.match(body, /Apple publishes the full text on its own site/);
   });
 
@@ -919,8 +929,14 @@ describe('the privacy notice — F479', () => {
 });
 
 test("the privacy notice's age section does not promise the question is asked only once", () => {
- const source = readFileSync(new URL('./policy.ts', import.meta.url), 'utf8');
- assert.doesNotMatch(source, /asks once/);
- assert.match(source, /The app asks in plain words and takes the answer\./);
- assert.match(source, /learners of thirteen and over/);
+  const age = POLICY_SECTIONS.find(section => section.heading === 'Age')?.body.join(' ') ?? '';
+  const kept = POLICY_SECTIONS.find(section => section.heading === 'What Luvani keeps')?.body.join(' ') ?? '';
+  assert.match(kept, /minimum-age eligibility declaration/);
+  assert.match(age, /learners aged thirteen and over/);
+  assert.match(age, /Starting practice, submitting account creation, choosing a sign-in provider on the create-account page or continuing profile setup accepts the linked Terms declaration/);
+  assert.match(age, /Reading a legal link does not accept it/);
+  assert.match(age, /This declaration is not age verification/);
+  assert.match(DOC, /Only deliberate Start practice, Create account,\s*account provider actions or repair Continue accept that notice/);
+  assert.doesNotMatch(WHOLE, /asks once|Your answer to the age question|The app asks in plain words|until the age question is answered again/);
+  assert.doesNotMatch(age, /verifies (?:your )?age|age is verified|legal compliance|legally compliant/i);
 });

@@ -1,6 +1,6 @@
 import { SceneActivity } from '../onboarding/motion/SceneActivity.ts';
 /** First install starts with value. Returning devices open sign-in directly. */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { PreAccountOnboarding } from '../onboarding/PreAccountOnboarding.tsx';
 import {
@@ -47,9 +47,9 @@ export function AuthFlow({
   const resumable = !returning && !refused && initialDraft?.page != null && !['hear-it', 'account'].includes(initialDraft.page);
   const [screen, setScreen] = useState<AuthScreen>(resumable ? 'resume' : !returning && !refused && initialDraft?.page === 'account' ? initialDraft.accountMode === 'signin' ? 'signin' : 'signup' : signedOutEntry(returning));
   const pageMotion = useOnboardingTransition();
-  const switchScreen = (next: AuthScreen) => pageMotion.transition(() => setScreen(next));
+  const switchScreen = (next: AuthScreen, onSwitched?: () => void) => pageMotion.transition(() => { setScreen(next); onSwitched?.(); });
   const [introducing, setIntroducing] = useState(!returning);
-  const [accountFirst, setAccountFirst] = useState(false);
+  const [accountFirst, setAccountFirst] = useState(!refused && initialDraft?.page === 'account' && initialDraft.accountReturnPage === 'hear-it');
   const [newDraft, setNewDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [revision, setRevision] = useState(0);
   const [signupDraft, setSignupDraft] = useState<PreAccountOnboardingDraft | null>(initialDraft?.page === 'account' ? initialDraft : null);
@@ -57,37 +57,64 @@ export function AuthFlow({
   // this flow's lifetime, separate from the saved pre-account plan.
   const [signUpFormDraft, setSignUpFormDraft] = useState<SignUpFormDraft>(emptySignUpFormDraft);
   const restarting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [restartBusy, setRestartBusy] = useState(false);
   const [restartError, setRestartError] = useState(false);
+  const [accountRestart, setAccountRestart] = useState(false);
   const restartPlan = async () => {
-    if (restarting.current || pageMotion.locked.current) return;
+    if (!mounted.current || restarting.current || pageMotion.locked.current) return;
     restarting.current = true; setRestartBusy(true); setRestartError(false);
     try {
       await clearGuestPractice();
-      if (initialDraft?.reminderEnabled === true) await cancelReminder();
+      if (!mounted.current) return;
+      if (initialDraft?.reminderEnabled === true && (await cancelReminder()) === 'failed') throw new Error('reminder cancellation failed');
+      if (!mounted.current) return;
       onDiscardDraft();
       const draft = freshPreAccountDraft();
       setNewDraft(draft); setSignupDraft(null); setAccountFirst(false);
       setRevision(value => value + 1);
       onDraftChange(draft);
       switchScreen('welcome');
-    } catch { setRestartError(true); }
-    finally { restarting.current = false; setRestartBusy(false); }
+    } catch { if (mounted.current) setRestartError(true); }
+    finally { restarting.current = false; if (mounted.current) setRestartBusy(false); }
   };
-  const newAccount = () => {
-    if (pageMotion.locked.current) return;
-    const draft = refused ? refusalPage() : freshPreAccountDraft();
-    void clearGuestPractice();
-    if (initialDraft?.reminderEnabled === true) void cancelReminder();
-    setNewDraft(draft);
-    // An empty account must reach signed-in onboarding, not bootstrap a
-    // profile from an unanswered anonymous draft.
-    if (!refused) onDiscardDraft();
-    setRevision((value) => value + 1);
-    setSignupDraft(null);
-    setIntroducing(true);
-    setAccountFirst(!refused);
-    switchScreen(refused ? 'welcome' : 'signup');
+  const newAccount = async () => {
+    if (!mounted.current || restarting.current || pageMotion.locked.current) return;
+    restarting.current = true;
+    setRestartBusy(true); setRestartError(false); setAccountRestart(true);
+    try {
+      await clearGuestPractice();
+      if (!mounted.current) return;
+      if (initialDraft?.reminderEnabled === true && (await cancelReminder()) === 'failed') throw new Error('reminder cancellation failed');
+      if (!mounted.current) return;
+      const draft = refused ? refusalPage() : freshPreAccountDraft();
+      // Keep the old plan until both of its cleanup owners have settled.
+      if (!refused) onDiscardDraft();
+      setNewDraft(draft);
+      // An empty account must reach signed-in onboarding, not bootstrap a
+      // profile from an unanswered anonymous draft.
+      setRevision((value) => value + 1);
+      setSignupDraft(null);
+      setIntroducing(true);
+      setAccountFirst(!refused);
+      switchScreen(refused ? 'welcome' : 'signup', () => { if (mounted.current) setAccountRestart(false); });
+    } catch {
+      if (mounted.current) setRestartError(true);
+    } finally {
+      restarting.current = false;
+      if (mounted.current) setRestartBusy(false);
+    }
+  };
+  const acceptAccountTerms = (email: string) => {
+    if (refused) return false;
+    const basis = signupDraft ?? newDraft ?? initialDraft ?? freshPreAccountDraft();
+    const changed = { ...basis, eligibilityConfirmed: true, accountEmail: email, page: 'account' as const,
+      accountMode: 'signup' as const, accountReturnPage: accountFirst ? 'hear-it' as const : basis.accountReturnPage ?? 'keep' as const };
+    setSignupDraft(changed);
+    if (accountFirst) setNewDraft(changed);
+    onDraftChange(changed);
+    return true;
   };
   const updateAccountEmail = (email: string) => {
     if (refused || accountFirst) return;
@@ -95,11 +122,11 @@ export function AuthFlow({
     const changed = { ...basis, accountEmail: email };
     setSignupDraft(changed); onDraftChange(changed);
   };
-  const signIn = () => {
+  const signIn = (currentDraft?: PreAccountOnboardingDraft) => {
     if (pageMotion.locked.current) return;
     if (!refused && !accountFirst) {
-      const basis = signupDraft ?? newDraft ?? initialDraft ?? freshPreAccountDraft();
-      const changed = { ...basis, page: 'account' as const, accountMode: 'signin' as const, accountReturnPage: basis.page === 'account' ? basis.accountReturnPage ?? 'keep' : basis.page ?? 'hear-it' };
+      const basis = currentDraft ?? signupDraft ?? newDraft ?? initialDraft ?? freshPreAccountDraft();
+      const changed = { ...basis, ...(typeof signupDraft?.accountEmail === 'string' ? { accountEmail: signupDraft.accountEmail } : {}), page: 'account' as const, accountMode: 'signin' as const, accountReturnPage: basis.page === 'account' ? basis.accountReturnPage ?? 'keep' : basis.page ?? 'hear-it' };
       setSignupDraft(changed); onDraftChange(changed);
     }
     onSignIn();
@@ -120,9 +147,21 @@ export function AuthFlow({
     setSignupDraft(changed); onDraftChange(changed); onCreateAccount(changed);
     switchScreen('signup');
   };
+  if (accountRestart) return <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
+    <OnboardingLayout page="signin" hideProgress center footer={restartError && !restartBusy ? <View style={{ gap: 12 }}>
+      <BoldButton label="Try again" onPress={() => void newAccount()} />
+      <BoldButton label="Back to sign in" tone="white" onPress={() => { if (!restarting.current) pageMotion.transition(() => { if (mounted.current) { setRestartError(false); setAccountRestart(false); } }); }} />
+    </View> : undefined}>
+      <View style={{ alignItems: 'center', gap: 20 }}>
+        <BoldScene kind={restartError ? 'retry' : 'saving'} width={220} />
+        <Text accessibilityRole="header" style={[boldType.title, { color: c.ink, textAlign: 'center' }]}>A fresh start.</Text>
+        <Text accessibilityLiveRegion="polite" style={[boldType.body, { color: c.muted, textAlign: 'center' }]}>{restartError ? 'We couldn’t prepare your new plan. Your previous plan has not been discarded. Try again or return to sign in.' : 'Preparing your new plan…'}</Text>
+      </View>
+    </OnboardingLayout>
+  </Animated.View>;
   if (!introducing) return <SignInScreen onCreateAccount={newAccount} />;
   return (
-    <OnboardingFrame initialProgress={onboardingProgress({ page: initialDraft?.page ?? 'hear-it', five: initialDraft?.onboardingVariant === 'five', skipped: initialDraft?.onboardingSkippedSteps, completed: initialDraft?.onboardingCompletedSteps })}>
+    <OnboardingFrame initialProgress={onboardingProgress({ page: accountFirst ? 'hear-it' : initialDraft?.page ?? 'hear-it', five: initialDraft?.onboardingVariant === 'five', skipped: initialDraft?.onboardingSkippedSteps, completed: initialDraft?.onboardingCompletedSteps })}>
       <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
       {screen === 'resume' && <OnboardingLayout page="resume" center={false}>
         <View style={{ gap: 24, alignItems: 'center' }}>
@@ -164,8 +203,9 @@ export function AuthFlow({
             formDraft={signUpFormDraft}
             onFormDraftChange={setSignUpFormDraft}
             onBack={returnToIntroduction}
-            onSignIn={signIn}
+            onSignIn={() => signIn()}
             onEmailChange={updateAccountEmail}
+            onTermsAccepted={acceptAccountTerms}
           />
         ) : screen === 'signin' ? (
           <SignInScreen onboarding={!accountFirst} planDraft={accountFirst ? null : signupDraft ?? newDraft ?? initialDraft} onEmailChange={updateAccountEmail} onBack={returnToIntroduction} onCreateAccount={createFromIntroduction} />

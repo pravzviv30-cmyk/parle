@@ -24,7 +24,9 @@ test('tapping a disabled Next lifts the choices and says to choose one, never a 
   assert.match(page, /disabled=\{answer == null\}/);
   assert.match(page, /<NextButton\b[^>]*key=\{page\}/, 'each question must reset the one-shot readiness shine');
   assert.match(page, /if \(!reduced\) soft\(\)/);
-  assert.match(page, /accessibilityLiveRegion="polite"[^>]*>Choose one to continue\./);
+  assert.match(page, /disabledHint="Choose one to continue\." showDisabledHint=\{choiceNudge\.page === page && answer == null\}/);
+  assert.match(next, /accessibilityLiveRegion="polite"[^>]*>\{face\(NEXT_OFF\.words, showDisabledHint \? disabledHint : label\)\}/);
+  assert.doesNotMatch(page, /choiceNudge\.page === page && answer == null && <Text/, 'guidance must not create a new footer row');
   const nudge = readFileSync(new URL('./firstRun/ChoiceNudge.tsx', import.meta.url), 'utf8');
   assert.match(nudge, /useReduceMotion\(\)/);
   assert.match(nudge, /!reduced/);

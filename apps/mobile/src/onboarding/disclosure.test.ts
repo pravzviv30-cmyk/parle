@@ -290,7 +290,22 @@ describe('the first run says what a learner is talking to', () => {
     assert.ok(!/\b(wrong|bad|failed|must)\b/i.test(MEET_TYPING), 'the typing line scolds');
   });
 
-  test("bounded starter disclosure names AI, transcription, typed checks and local retention before Start", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const disclosure = evidence('apps/mobile/src/onboarding/disclosure.ts'); assert.match(screen, /STARTER_AI.*STARTER_PROCESSING/); assert.match(screen, /STARTER_LOCAL/); assert.match(disclosure, /LiveKit and Deepgram/); assert.match(disclosure, /Typing uses the same live conversation/); assert.match(disclosure, /selected plan go to the AI service/); assert.match(disclosure, /up to 30 days/); assert.doesNotMatch(disclosure.slice(disclosure.indexOf('export const STARTER_AI')), /No person hears|nothing is shared|certified/i); });
+  test("bounded starter disclosure names AI, transcription, typed checks and local retention before Start", () => {
+    const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
+    const disclosure = evidence('apps/mobile/src/onboarding/disclosure.ts');
+    const body = screen.slice(screen.indexOf('const consentBody'), screen.indexOf('return (', screen.indexOf('const consentBody')));
+    assert.match(body, /STARTER_AI[\s\S]*STARTER_LOCAL[\s\S]*label="Privacy details"/);
+    assert.doesNotMatch(body, /STARTER_PROCESSING|LiveKit|Deepgram|ElevenLabs/);
+    const privacy = screen.slice(screen.indexOf("{surface === 'privacy' &&"), screen.indexOf("{surface === 'policy' &&"));
+    assert.match(privacy, /LiveKit, Deepgram for transcription, and ElevenLabs/);
+    assert.match(privacy, /Your replies and selected plan go to the configured AI provider/);
+    assert.match(privacy, /Speaking and typing use the same live conversation/);
+    assert.match(privacy, /Confirmed replies stay on this device/);
+    assert.match(privacy, /up to 30 days/);
+    assert.match(privacy, /label="Read privacy policy"/);
+    assert.match(disclosure, /up to 30 days/);
+    assert.doesNotMatch(disclosure.slice(disclosure.indexOf('export const STARTER_AI')), /No person hears|nothing is shared|certified/i);
+  });
 
   test("modern starter and legacy repair use the shared disclosure module", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /from '\.\/disclosure\.ts'/); for (const path of ['apps/mobile/src/onboarding/OnboardingFlow.tsx','apps/mobile/src/tutor/TutorIntro.tsx']) { const source = evidence(path); assert.match(source, /disclosure\.ts/); assert.doesNotMatch(source, /No person hears you/); } });
 });
@@ -432,22 +447,29 @@ describe('the first-run disclosure follows the chosen persona — F294', () => {
  * so the walk covers pages one to five and the save page as well.
  */
 describe('nothing reaches an AI service or the network before the save page is passed', () => {
-  test("setup remains local and the processing disclosure precedes eligibility and start controls", () => {
+  test("setup remains local and the processing disclosure precedes deliberate Terms acceptance and Start", () => {
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    const start = screen.slice(screen.indexOf("{surface === 'start' &&"));
-    const controls = screen.slice(screen.indexOf('const sheetFooter'), screen.indexOf('return (', screen.indexOf('const sheetFooter')));
-    const sheet = evidence('apps/mobile/src/components.tsx').slice(evidence('apps/mobile/src/components.tsx').indexOf('export function Sheet'));
-    assert.ok(start.indexOf('STARTER_PROCESSING') >= 0 && start.indexOf('STARTER_PROCESSING') < start.indexOf('I am 13 or older'));
-    assert.match(start, /Optional usage data/);
-    assert.match(controls, /<MorphButton label="Start practice"[^>]*disabled=\{!draft\.eligibilityConfirmed \|\| previewOnly\}/);
-    assert.match(controls, /previewOnly && <Text[^>]*>Practice is unavailable in this screen preview\./, 'a preview must explain why eligible learners cannot start a real session');
-    assert.doesNotMatch(controls, /Practise offline|offlineGuestPractice/);
-    assert.doesNotMatch(controls, /Start speaking|label="Type instead"/, 'the start sheet offers speaking before the practice page knows speech is available');
-    assert.match(screen, /footer=\{sheetFooter\}/);
-    assert.ok(sheet.indexOf('{snapshot.current.children}') < sheet.indexOf('{snapshot.current.footer}'), 'the sheet renders disclosure and eligibility before its pinned actions');
-    assert.match(screen, /!draft\.eligibilityConfirmed \|\| refused/);
-    assert.match(screen, /label="Start your first practice"[^>]*disabled=\{draft\.tutorChosen !== true \|\| busy\} onPress=\{\(\) => open\('start'\)/);
+    const body = screen.slice(screen.indexOf('const consentBody'), screen.indexOf('return (', screen.indexOf('const consentBody')));
+    assert.match(body, /STARTER_AI[\s\S]*STARTER_LOCAL[\s\S]*label="Privacy details"/);
+    assert.match(body, /onPress=\{\(\) => setSurface\('privacy'\)\}/);
+    assert.doesNotMatch(body, /STARTER_PROCESSING|LiveKit|Deepgram|ElevenLabs/);
+    assert.match(body, /Optional, off by default/);
+    assert.match(body, /Share usage analytics[\s\S]*selected=\{draft\.analyticsConsent\}/);
+    assert.match(body, /Remember my learning[\s\S]*selected=\{draft\.rememberLearning === true\}[\s\S]*onPress=\{toggleRemember\}/);
+    assert.doesNotMatch(screen, /\bsetRemember\b/, 'the visible opt-in must use the committed draft');
+    assert.doesNotMatch(screen, /title="I am 13 or older"|label="I am younger than that"/);
+    const start = screen.slice(screen.indexOf('const start = async'), screen.indexOf('const saveAccount'));
+    assert.match(start, /operation\.current \|\| refused/);
+    assert.match(start, /if \(previewOnly\) return/);
+    assert.match(start, /patch\(\{ eligibilityConfirmed: true \}\)/);
+    assert.ok(start.indexOf('patch({ eligibilityConfirmed: true })') < start.indexOf('await startGuestPractice(acceptedDraft, guest)'));
+    assert.match(screen, /TermsAcceptance context="practice"/);
+    assert.match(screen, /label=\{needsAccount \? 'Create account to start' : 'Start live practice'\}[^>]*disabled=\{busy \|\| previewOnly\} onPress=\{\(\) => void \(needsAccount \? continueWithAccount\(\) : start\(\)\)\}/);
+    assert.match(screen, /error\.message === 'guest-live-unavailable'/, 'only a specific unavailable guest capability opens the account route');
+    assert.match(screen, /Practice is unavailable in this screen preview/);
+    assert.match(screen, /disabled=\{draft\.tutorChosen !== true \|\| busy\} onPress=\{\(\) => open\('start'\)/);
+    assert.doesNotMatch(body, /startGuestPractice|requestRecordingPermissionsAsync|new Room\(/);
   });
 
-  test("guest service requests require deliberate eligible Start and remain bounded outside authenticated rooms", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); const server = evidence('services/token-server/src/server.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); assert.match(screen, /await startGuestPractice\(draft, guest\)/); assert.match(server, /body\.eligible !== true/); assert.match(server, /guest\.installation !== installHash/); assert.match(server, /guest\.expiresAt <= Date\.now\(\) \|\| guest\.owner/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync|joinRoom|new Room\(/); const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx'); assert.match(recording, /mode: 'convo', guestToken: guest\.token!/); assert.match(recording, /await live\.openMic\(\)/); });
+  test("guest service requests require deliberate eligible Start and remain bounded outside authenticated rooms", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); const server = evidence('services/token-server/src/server.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); assert.match(screen, /await startGuestPractice\(acceptedDraft, guest\)/); assert.match(server, /body\.eligible !== true/); assert.match(server, /guest\.installation !== installHash/); assert.match(server, /guest\.expiresAt <= Date\.now\(\) \|\| guest\.owner/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync|joinRoom|new Room\(/); const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx'); assert.match(recording, /mode: 'convo', guestToken: guest\.token!/); assert.match(recording, /await live\.openMic\(\)/); });
 });

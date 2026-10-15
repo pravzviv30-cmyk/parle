@@ -20,5 +20,7 @@ test('the conversation announces only its newest typed tutor reply',()=>{
  assert.match(transcript,/announcedTutor\.current === latest\.tutor\.id/);
  assert.match(transcript,/Platform\.OS === 'ios'/);
  assert.match(transcript,/accessibilityLiveRegion=\{announceReply && isLastTutorLine \? 'polite' : 'none'\}/);
- assert.equal((convo.match(/announceReply=\{typing\}/g)??[]).length,2);
+ const room=readFileSync(new URL('../live/C2LiveRoom.tsx',import.meta.url),'utf8');
+ assert.match(room,/announceReply=\{typing\}/);
+ assert.equal((convo.match(/<C2LiveRoom\b/g)??[]).length,2);
 });

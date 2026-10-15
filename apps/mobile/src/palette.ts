@@ -61,6 +61,7 @@ export const colour = {
 
 /** C · Bold rhythm: the approved onboarding and first-arrival surfaces. */
 export const boldRhythm = {
+  butter: '#FFE8AB',
   violet: colour.blue, sun: colour.sun, paper: paper.ground, ink: paper.ink,
   white: paper.card, lavender: '#E9E3FA', peach: '#F7D8C7', sage: '#D4E2D7',
   coral: colour.coral, muted: '#655F77', line: '#DCD2C4', sand: '#EFE6D9',

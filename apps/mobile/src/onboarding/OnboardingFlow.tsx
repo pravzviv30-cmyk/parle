@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, BackHandler, View, Text, StyleSheet, Platform, findNodeHandle } from 'react-native';
-import { colour, paper, space, type } from '../theme.ts';
-import { Card, PillButton, GhostButton, Field,  } from '../components.tsx';
+import { paper, space } from '../theme.ts';
+import { boldType as type, c } from './boldRhythm.ts';
+import { Card, GhostButton, Sheet } from '../components.tsx';
+import { BoldButton as PillButton } from './BoldButton.tsx';
+import { AccountField as Field } from '../auth/AccountField.tsx';
+import { TermsAcceptance } from '../legal/TermsAcceptance.tsx';
+import { TermsScreen } from '../legal/TermsScreen.tsx';
+import { PolicyScreen } from '../legal/PolicyScreen.tsx';
 import { CONSENT_HINT, CONSENT_ROW, CONSENT_SUB } from '../analytics/consent.ts';
 import type { StoredProfile } from '../profile/store.ts';
 import { SwitchRow } from '../settings/SwitchRow.tsx';
 import { tutorPersonaOf } from '../tutor/tutorName.ts';
 import { type TutorVoiceKey } from '../tutor/tutorVoice.ts';
 import {
-  AGE_CONFIRM,
-  AGE_DENY,
-  AGE_QUESTION,
-  AGE_SUB,
   NAME_LABEL,
   NAME_QUESTION,
   NAME_SKIP_HINT,
@@ -22,7 +24,7 @@ import {
   type OnboardingAnswers,
   type Page,
 } from './answers.ts';
-import { OnboardingArtwork } from './OnboardingMotion.tsx';
+import { BoldScene } from './motion/BoldScene.tsx';
 import { OnboardingLayout, useOnboardingTransition } from './OnboardingLayout.tsx';
 import { onboardingProgress } from './onboardingProgress.ts';
 import { loadRepairDraft, saveRepairDraft, clearRepairDraft } from './onboardingDraftStore.ts';
@@ -39,11 +41,8 @@ import {
   MEET_PRIVACY,
   MEET_TITLE,
   MEET_TYPING,
-  VOICE_AI,
-  VOICE_BODY,
   VOICE_SKIP,
   VOICE_SKIP_HINT,
-  VOICE_TITLE,
 } from './disclosure.ts';
 
 export function OnboardingFlow({
@@ -56,6 +55,7 @@ export function OnboardingFlow({
   onSignOut: () => void;
 }) {
   const [page, setPage] = useState<Page>('age');
+  const [legal, setLegal] = useState<'terms' | 'privacy' | null>(null);
   const [name, setName] = useState(existing?.name ?? '');
   // What the learner said about their age on this pass. Null until they answer
   // either way, so the refusal only appears once it has been earned.
@@ -133,12 +133,14 @@ export function OnboardingFlow({
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (submission.current || busy || pageMotion.locked.current) return true;
+      if (legal !== null) { setLegal(null); return true; }
       const previous = pageBefore(page);
       if (previous && oldEnough !== false) move(previous, true);
       return true;
     });
     return () => back.remove();
-  }, [page, oldEnough]);
+  }, [page, oldEnough, legal, busy]);
   useEffect(() => {
     if (!loaded) return;
     const node = heading.current;
@@ -176,8 +178,11 @@ export function OnboardingFlow({
   };
 
   const confirmAge = () => {
-    setOldEnough(true);
-    move('name');
+    // Continue accepts the visible Terms notice. A known refusal has no way past.
+    if (oldEnough === false || !loaded || submission.current || pageMotion.locked.current) return false;
+    const accepted = move('name');
+    if (accepted) setOldEnough(true);
+    return accepted;
   };
 
   const ink = paper.ink;
@@ -198,17 +203,10 @@ export function OnboardingFlow({
       {page === 'age' && (
         <>
           <Text ref={heading} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[st.question, { color: ink }]}>
-            {AGE_QUESTION}
+            Before we continue.
           </Text>
-          <Text style={[st.sub, { color: ink }]}>{AGE_SUB}</Text>
+          {oldEnough !== false && <Text style={[st.sub, { color: c.muted }]}>Review how Luvani works, then carry on with your French.</Text>}
           {refusal !== null && <AgeRefusal text={refusal} onSignOut={onSignOut} />}
-          {/* Gone once they have said they are younger, so the honest refusal
-              is not shown with the way to say it again still under it. */}
-          {oldEnough !== false && (
-            <View style={st.secondary}>
-              <GhostButton label={AGE_DENY} onPress={() => setOldEnough(false)} />
-            </View>
-          )}
         </>
       )}
 
@@ -283,17 +281,17 @@ export function OnboardingFlow({
       {page === 'voice' && (
         <>
           <Text ref={heading} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[st.question, { color: ink }]}>
-            {VOICE_TITLE}
+            Meet your tutor
           </Text>
-          <Text style={[st.hint, { color: ink }]}>{VOICE_AI}</Text>
           <TutorSelection chosen={voice} preview={preview} onChoose={setVoice} />
-          <Text style={[st.hint, { color: ink }]}>{VOICE_SKIP_HINT(persona)}</Text>
+          <Text style={[st.hint, { color: c.muted }]}>{VOICE_SKIP_HINT(persona)}</Text>
         </>
       )}
     </>
   );
 
   return (
+    <>
     <OnboardingLayout page={page} progress={progress} avoidKeyboard actionInScroll={page === 'name'}
       footer={
         // The one action per page. Gone on the gate once they have said they
@@ -302,7 +300,10 @@ export function OnboardingFlow({
         // app and coming back offers the question again, which is the escape
         // hatch for a mis-tap and is deliberately not a button.
         <>
-          {page === 'age' && oldEnough !== false && <PillButton label={AGE_CONFIRM} onPress={confirmAge} disabled={!loaded} />}
+          {page === 'age' && oldEnough !== false && <View style={{ gap: 8 }}>
+            <TermsAcceptance context="repair" onTerms={() => setLegal('terms')} onPrivacy={() => setLegal('privacy')} />
+            <PillButton label="Continue" onPress={confirmAge} disabled={!loaded || busy} />
+          </View>}
           {page === 'name' && <PillButton label="Continue" onPress={() => move('meet')} disabled={!loaded} />}
           {page === 'meet' && <PillButton label="Continue" onPress={() => move('voice')} disabled={!loaded} />}
           {page === 'voice' && (
@@ -323,11 +324,15 @@ export function OnboardingFlow({
       }
     >
       <Animated.View style={[st.page, pageMotion.style]}>
-        <OnboardingArtwork name={page === 'name' ? 'celebrate-first-line' : page === 'meet' ? 'state-headphones' : 'state-notebook'} response="welcome" event={index} />
+        {page !== 'voice' && <BoldScene kind={page === 'name' ? 'fresh' : page === 'meet' ? 'confidence' : 'resume'} width={220} active={legal === null} />}
         {loaded ? body : <Text style={st.sub}>Loading your choices…</Text>}
         {!!issue && <Text accessibilityRole="alert" style={st.hint}>{issue}</Text>}
       </Animated.View>
     </OnboardingLayout>
+    <Sheet reading visible={legal !== null} title={legal === 'terms' ? 'Terms of Use' : 'Privacy Policy'} onClose={() => setLegal(null)} returnFocus={heading}>
+      {legal === 'terms' ? <TermsScreen onBack={() => setLegal(null)} /> : legal === 'privacy' ? <PolicyScreen onBack={() => setLegal(null)} /> : null}
+    </Sheet>
+    </>
   );
 }
 
@@ -335,8 +340,8 @@ const st = StyleSheet.create({
   // Notebook Phase 4 (2026-09-27): each page sits on the paper itself. The
   // feature panel, its ink outline and the three retired rasters (the cake,
   // the wave, the welcome bubbles) are gone; the words and the order are not.
-  page: { paddingTop: space(3), marginBottom: space(4), gap: space(3) },
-  question: { ...type.display, color: paper.ink, textAlign: 'center' },
+  page: { marginBottom: space(4), gap: 18 },
+  question: { ...type.title, color: paper.ink, textAlign: 'center' },
   sub: { ...type.body, color: paper.inkSoft, marginTop: space(2), textAlign: 'center' },
   hint: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
   lines: { gap: space(3), marginTop: space(4) },

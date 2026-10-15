@@ -165,17 +165,16 @@ export function HomeTab() {
     // bottom="tab": the tab bar owns the bottom edge.
     <View style={{ flex: 1 }} onTouchStart={() => setInteracted(true)}
       {...(Platform.OS === 'web' ? { onPointerDownCapture: () => setInteracted(true), onKeyDownCapture: () => setInteracted(true) } : {})}>
-    <ScrollScreen bottom="tab" ground={c.paper}>
+    <ScrollScreen bottom="tab" ground={c.paper} topGap={8}>
       <HomeArrival tutorName={tutorNameOf(profile)} ready={!interacted && !unowned && !readFailed && start !== null} />
       <View>
         <View style={st.head}>
-          <TabHeader display leading={<Text style={[type.label, { color: paper.ink }]}>{greeting.title}</Text>} title="Your next French moment." trailing={<ProfileButton />} />
+          <TabHeader title={greeting.title} purpose={greeting.subline} trailing={<ProfileButton />} />
         </View>
 
         {/* The habit first: it reads the game layer itself, and draws nothing
             it could not read rather than a nought. */}
-
-
+        <TodayHero compact />
         {/* HomeLoading: the storage read has not answered, so still sand blocks
             shaped like the page, and nothing else. The brief is outside every
             other gate once it has: a first run meets it too. */}

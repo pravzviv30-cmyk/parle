@@ -161,8 +161,10 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     const asLabel = labelsInSource().filter((l) => l.text === 'Tap to listen');
     assert.deepEqual(asLabel.map((l) => l.file), [], 'the way to hear the tutor is a control, and controls are sentence case');
 
-    const shown = sourceFiles(SRC).filter((f) => readFileSync(f, 'utf8').includes('Tap to listen'));
-    assert.ok(shown.length >= 2, 'both live surfaces have to offer the gesture, or one of them fails in silence');
+    for (const name of ['ConvoScreen.tsx', 'LiveSessionScreen.tsx']) {
+      const source = readFileSync(join(SRC, name), 'utf8');
+      assert.match(source, /live\.audioBlocked \?[^\n]+live\.resumeAudio/, `${name} must offer an actual browser playback gesture`);
+    }
   });
 
   test('a header row that lost its title does not let the way out slide left', () => {
@@ -198,9 +200,12 @@ describe('the caps micro-label — what it is allowed to be used for', () => {
     const convo = readFileSync(join(SRC, 'ConvoScreen.tsx'), 'utf8');
     assert.match(
       convo,
-      /<LiveRoomHeader\s+/,
-      'ConvoScreen no longer routes its compact end control through the shared live-room header',
+      /<C2LiveRoom\s+/,
+      'ConvoScreen no longer routes its compact end control through the shared live room',
     );
+    const room = readFileSync(join(SRC, 'live/C2LiveRoom.tsx'), 'utf8');
+    assert.match(room, /controlRow: \{ flexDirection: 'row', gap: 12, alignItems: 'center' \}/);
+    assert.match(room, /onPress=\{onEnd\} accessibilityLabel="End session"/, 'the end action must remain in the shared row after the mode toggle');
   });
 
   test('the transcript label still says whose hearing it was', () => {

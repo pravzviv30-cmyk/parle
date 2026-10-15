@@ -28,7 +28,9 @@
 
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { C2Flame } from '../onboarding/C2Visuals.tsx';
+import { c } from '../onboarding/boldRhythm.ts';
 
 import { Card, IconAction, IconButton, Skeleton } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
@@ -52,6 +54,7 @@ const MEDAL = space(12);
 const COLUMN = `${100 / 7}%` as const;
 
 export function StreakScreen() {
+  const focused = useIsFocused();
   const back = useBackToHome();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { view, failed, refresh } = useGame();
@@ -78,8 +81,8 @@ export function StreakScreen() {
 
   return (
     <ScrollScreen bottom="inset" header={header}>
-      <View style={st.hero} accessible accessibilityLabel={hero.label}>
-        <Flame size={HERO_FLAME} state={hero.lit ? 'lit' : 'unlit'} flicker={hero.lit} />
+      <View style={[st.hero, { backgroundColor: c.lavender, borderRadius: 24, padding: 20 }]} accessible accessibilityLabel={hero.label}>
+        <View style={{ opacity: hero.lit ? 1 : 0.65 }}><C2Flame size={HERO_FLAME} active={focused && hero.lit} /></View>
         <View style={st.heroCount}>
           {/* Drawn where it stands on every visit: Home is where a rise counts
               up. A rise that lands while this screen is open counts on, and a

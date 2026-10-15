@@ -63,6 +63,16 @@ export const EASE = {
   linear: [0, 0, 1, 1],
 } as const satisfies Record<string, Bezier>;
 
+/** C2's local illustration and brand loops, read from the approved Figma variants. */
+export const C2_MOTION = {
+  pageMs: 300,
+  halfLoopMs: 2400,
+  ringDelayMs: 800,
+  ringRotationMs: 8800,
+  inOut: [0.42, 0, 0.58, 1] as Bezier,
+  linear: [0, 0, 1, 1] as Bezier,
+} as const;
+
 /** A spring in the physical numbers Reanimated takes. */
 export type SpringToken = { readonly stiffness: number; readonly damping: number; readonly mass: number };
 

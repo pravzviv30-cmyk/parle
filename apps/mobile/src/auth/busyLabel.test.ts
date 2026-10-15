@@ -52,13 +52,13 @@ describe('a screen that is waiting says so — F152', () => {
     assert.equal(authButtonLabel('signIn', true), 'Signing in…');
     assert.equal(authButtonLabel('createAccount', false), 'Create account');
     assert.equal(authButtonLabel('createAccount', true), 'Creating account…');
-    assert.equal(authButtonLabel('saveNewPassword', false), 'Save and continue');
+    assert.equal(authButtonLabel('saveNewPassword', false), 'Save new password');
     assert.equal(authButtonLabel('saveNewPassword', true), 'Saving…');
     assert.equal(authButtonLabel('google', false), 'Continue with Google');
     assert.equal(authButtonLabel('google', true), 'Waiting for Google…');
     assert.equal(authButtonLabel('apple', false), 'Continue with Apple');
     assert.equal(authButtonLabel('apple', true), 'Waiting for Apple…');
-    assert.equal(authButtonLabel('sendReset', false), 'Forgot password?');
+    assert.equal(authButtonLabel('sendReset', false), 'Send reset link');
     assert.equal(authButtonLabel('sendReset', true), 'Sending…');
 
     for (const action of ACTIONS) {
@@ -77,10 +77,14 @@ describe('a screen that is waiting says so — F152', () => {
     for (const where of SCREENS) {
       const body = read(where);
       const buttons = [...tags(body, 'PillButton'), ...tags(body, 'BoldButton'), ...tags(body, 'OutlineButton'), ...tags(body, 'GhostButton')];
-      const waiting = buttons.filter((tag) => /disabled=\{[^}]*\bbusy\b/.test(tag));
+      const waiting = buttons.filter((tag) => /disabled=\{[^}]*\bbusy\b/.test(tag) && !/Cancel and sign out/.test(tag));
       assert.ok(waiting.length > 0, `${where} has no button that greys out while busy; this test is reading the wrong file`);
       for (const tag of waiting) {
         greyed += 1;
+        if (/Return to sign in|Forgot your password\?|Resend reset email/.test(tag)) {
+          assert.match(tag, /disabled=\{busy\}/);
+          continue;
+        }
         const call = /authButtonLabel\('(\w+)',\s*([^)]*)\)/.exec(tag);
         assert.ok(
           call,
@@ -119,14 +123,14 @@ describe('a screen that is waiting says so — F152', () => {
   test('forgot password cannot be tapped while the screen is busy', () => {
     const signIn = read('auth/SignInScreen.tsx');
     const ghosts = tags(signIn, 'GhostButton');
-    assert.equal(ghosts.length, 1, 'the sign-in screen has exactly one ghost button, and this test is about that one');
-    const forgot = ghosts[0]!;
+    const forgot = ghosts.find(tag => /Forgot your password\?/.test(tag));
+    assert.ok(forgot, 'the sign-in screen must have a password-reset door');
     assert.match(
       forgot,
-      /label=\{authButtonLabel\('sendReset'/,
+      /label="Forgot your password\?"/,
       'the ghost button on the sign-in screen is no longer the reset link',
     );
-    assert.equal(authButtonLabel('sendReset', false), 'Forgot password?', 'the link stopped saying what it always said');
+    assert.equal(authButtonLabel('sendReset', false), 'Send reset link', 'the link stopped saying what it always said');
     assert.match(
       forgot,
       /disabled=\{busy\}/,

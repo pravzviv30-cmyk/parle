@@ -133,7 +133,7 @@ describe('a guest finish day — F751', () => {
     assert.match(live, /finishedAt: record\.outcome === 'completed' && record\.completedAt \? \[record\.completedAt\] : \[\]/);
     assert.ok(live.indexOf('await saveGuestPractice(next)') < live.indexOf('onFinished(next)'));
     assert.doesNotMatch(screen, /persist\(\{ \.\.\.guest, completed: true \}\)/, 'the first run saves a finish without its day');
-    assert.match(screen, /await startGuestPractice\(draft, guest\)/, 'a new practice from the service drops the finished days');
+    assert.match(screen, /await startGuestPractice\(acceptedDraft, guest\)/, 'a new practice from the service drops the finished days');
     assert.doesNotMatch(screen, /offlineContinuation\(/);
     assert.match(screen, /<FirstLivePractice/);
     const service = evidence('apps/mobile/src/onboarding/guestPractice.ts');

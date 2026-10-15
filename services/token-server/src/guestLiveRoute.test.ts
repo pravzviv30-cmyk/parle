@@ -13,7 +13,7 @@ assert.ok(start > 0 && end > start);
 const js = stripTypeScriptTypes(`async function branch() {${source.slice(start,end)}}`);
 const AsyncFunction = Object.getPrototypeOf(async()=>{}).constructor;
 const brief = {version:1,goals:['trip','food'],level:'zero',confidence:'hesitant',focus:'speaking',minutes:20,tutorVoice:'emilie'};
-function harness(production = false) {
+function harness(production = false, spokenAvailable = true) {
   const guestStore = new MemoryGuestStore(), saved = new Map<string,unknown>(), consumed = new Set<string>(); let failSave = false;
   const store = { get: async()=>({plan:'trial' as const,secondsUsed:0}),recordSessionGrant:async()=>true,consume:async(_user:string,_seconds:number,id:string)=>{consumed.add(id);} };
   async function call(path:string,{installation='device',token,body={},user='account-a'}: {installation?:string;token?:string;body?:Record<string,unknown>;user?:string|null} = {}) {
@@ -23,7 +23,7 @@ function harness(production = false) {
       installationSignal:()=>installation,privateSignal:(_salt:unknown,_kind:unknown,value:unknown)=>value,rateLimitSalt:'fixture',withinLimits:async()=>true,ipCheck:()=>[],
       GUEST_START_LIMIT:{},GUEST_EVENT_LIMIT:{},GUEST_REPLY_LIMIT:{},readJson:async()=>body,
       process:{env:{NODE_ENV:production?'production':'test',LUVANI_LOCAL_DEVELOPMENT:'1',LUVANI_GUEST_LIVE:'1',SUPABASE_URL:'https://fixture.invalid',SUPABASE_SERVICE_ROLE_KEY:'fixture'}},
-      AGENT_SECRET:'fixture',supportsSessionMode:()=>true,parseFirstPracticeBrief,firstPracticeScenario,guestStore,createGuest,guestKey,prepareGuestLive,guestLiveResult,endGuestLive,claimGuest,
+      AGENT_SECRET:'fixture',supportsSessionMode:()=>spokenAvailable,supportedSessionModes:()=>spokenAvailable?['lesson','convo','lesson-text','convo-text']:['lesson-text','convo-text'],parseFirstPracticeBrief,firstPracticeScenario,guestStore,createGuest,guestKey,prepareGuestLive,guestLiveResult,endGuestLive,claimGuest,
       grantSession,config:{apiKey:'devkey',apiSecret:'fixture-secret-long-enough-for-hmac-signing'},livekitUrl:'wss://fixture.invalid',
       users:{resolve:async(header:string|null)=>header?{ok:true,userId:header}:{ok:false,status:401,message:'sign in required'}},
       saveConversationPack:async(_url:string,_key:string,pack:{sessionId:string})=>{if(failSave)throw new Error('database unavailable');saved.set(pack.sessionId,pack);},
@@ -37,6 +37,18 @@ function harness(production = false) {
 test('production fails closed even with local or guest flags until paid guest admission is supported', async()=>{
   const h=harness(true),r=await h.call('/onboarding/start',{body:{live:true,eligible:true,brief}});
   assert.equal(r.status,503);assert.equal(h.guestStore.rows.size,0);
+  assert.equal(r.body.error,'guest-live-unavailable','the account route must distinguish disabled guest admission from a transient connection failure');
+});
+test('a typed-only service never claims that creating an account will restore speaking', async()=>{
+  for (const production of [false,true]) {
+    const h=harness(production,false),r=await h.call('/onboarding/start',{body:{live:true,eligible:true,brief}});
+    assert.equal(r.status,503);assert.equal(r.body.error,'voice-unavailable');
+    assert.match(String(r.body.message),/speaking.*unavailable/i);
+    assert.match(String(r.body.message),/signed-in.*typing/i);
+    assert.doesNotMatch(String(r.body.message),/create an account to start live practice/i);
+    assert.deepEqual(r.body.supportedModes,['lesson-text','convo-text']);
+    assert.equal(h.guestStore.rows.size,0,'unsupported speech must reserve no guest capability');
+  }
 });
 test('local guest start binds the actual brief and one room, rejects another installation and ignores forged completion',async()=>{
   const h=harness(),r=await h.call('/onboarding/start',{body:{live:true,eligible:true,brief}});assert.equal(r.status,200);

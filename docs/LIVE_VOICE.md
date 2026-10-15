@@ -95,6 +95,84 @@ a script.
 **When nothing speaks, nothing hands the floor back.** Both voiceless paths start
 the silence clock when the turn *renders* instead of when speech stops.
 
+## C2 room presentation
+
+The shared Home/Speak scene start uses one synchronous launch ticket while its
+health check runs. Leaving and returning, changing the scene or account, and
+unmounting invalidate that visit's result. A failed check retains the requested
+speaking/typing mode for retry; a late result cannot open a room in a different
+visit. HTTP health still proves only that the token API answered, not that a
+worker joined or audio was heard.
+
+If the tutor leaves while the learner's connection remains open, the shared
+session owner closes the microphone and presents the existing dropped-session
+failure; an empty room cannot recover through its composer. That decision is
+deferred until LiveKit's current event stack settles so a reconnect's temporary
+roster rebuild keeps its existing room. Transport cleanup retains an already
+delivered authoritative recap and its saveable text, clears unfinished text,
+and cannot release a newer room's audio. Explicit leave still discards the
+in-memory recorder.
+
+The recap's conversation sentence requires a positive whole measured learner
+turn count. A room with zero turns, or an invalid count, says “You made time for
+your French.” Positive counts keep the existing unaided/help wording, without
+showing a score or count. This copy does not decide XP, streaks or settlement.
+
+Guest live admission is distinct from authenticated admission. Production
+`/onboarding/start` with `live: true` remains closed. When speaking is supported
+but anonymous admission is disabled, `guest-live-unavailable` lets the existing
+account flow preserve the plan and later reach the normal `FirstScene` entry.
+An already authenticated unfinished setup uses its profile-completion owner.
+Unsupported `convo` is checked first and returns `voice-unavailable` with actual
+supported modes, without claiming an account can restore voice. The guest page
+keeps truthful unavailable-speaking copy and retry; the existing authenticated
+room recovery can offer its supported typed path. See
+[onboarding handoff](ONBOARDING.md#account-handoff-when-guest-live-is-unavailable).
+
+`live/C2LiveRoom.tsx` is the shared presentation used by first practice,
+conversation and scripted lesson sessions. The existing session owners supply
+every action and real state. A soft blue/lavender sphere sits above the thread;
+tutor bubbles align left and learner bubbles right. Speaking and typing share
+the same turns and transcript-visibility toggle. Hiding the thread keeps it
+mounted, so history and scroll position survive. The toggle is session-local;
+it introduces no transcript storage or transmission.
+
+Typing places the composer at the bottom of the safe-area-aware room. Focusing
+it or opening the keyboard hides Speaking/Typing and End session; closing the
+keyboard, dismissing focus or sending restores them. Send and Enter use the
+existing submission owner with a synchronous lock. In
+`live/c2TranscriptPolicy.ts`, tapping the composer anchors the latest sent
+learner message; before any learner message exists, it uses the latest tutor
+message instead. Draft and partial recognition text do not count as sent turns.
+Every relevant viewport/bubble layout retains that selected message fully above
+the composer when it fits; an over-height bubble aligns its beginning for
+reading. Only an actual composer focus starts a new reveal revision. Repeated
+keyboard-show signals cannot reclaim the thread after the learner scrolls up;
+a new deliberate focus can request the latest sent message again.
+
+Incoming lines follow automatically while the reader is within 64 points of
+the transcript end. A user scroll up cancels the focus anchor and automatic
+follow; new lines expose “Latest message ↓” without pulling the reader down.
+That action returns to the end and restores following. The same policy applies
+in both reply modes and respects reduced motion.
+
+Practice support starts collapsed and opens only through its explicit control.
+New replies, updated hints and reply-mode changes never expand it automatically.
+Keyboard editing temporarily hides the panel with the bottom controls while
+retaining the learner's open/closed choice; dismissing the keyboard restores
+that choice. Its accessible expanded state and the current room's support and
+tools remain available through the same toggle.
+
+The compact Speaking/Typing control changes presentation within the current
+room and retains its history. A session started with a voiced `lesson` or
+`convo` grant can pause and resume its existing microphone. A `lesson-text` or
+`convo-text` grant has no speech pipeline: Speaking remains unavailable and
+the room explains that it started in typing mode. Opening a mic cannot upgrade
+that grant. Server admission, service recovery, safety-stop behavior, replay
+eligibility, settlement and audio-focus rules remain unchanged. C2's orb uses
+measured room audio where available and the activity/reduced-motion-aware
+decorative fallback otherwise; it adds no pronunciation claim.
+
 ## The wire
 
 `packages/core/src/protocol/protocol.ts`. JSON over the LiveKit data channel,

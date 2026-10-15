@@ -49,7 +49,12 @@ describe('speaking in the first run — F756', () => {
     assert.match(live, /mode: 'convo', guestToken: guest\.token!/);
     assert.match(live, /if \(await live\.pauseMic\(\)\) setTyping\(true\)/);
     assert.match(live, /if \(await live\.openMic\(\)\) setTyping\(false\)/);
-    assert.doesNotMatch(screen, /Start speaking|Speaking is unavailable right now|start\(true, /, 'the start sheet offers speaking before the server has said it is available');
+    assert.doesNotMatch(screen, /Start speaking|start\(true, /, 'the start sheet offers speaking before the server has said it is available');
+    assert.match(screen, /error instanceof Error && error\.message === 'voice-unavailable'\) \{ setIssue\('Speaking is unavailable right now\. Try again later\.'\); return;/, 'an explicit speech refusal must explain unavailable speaking without promising an account upgrade');
+    const server = evidence('services/token-server/src/server.ts');
+    const speechGate = server.indexOf("if (!supportsSessionMode('convo')) return json(res, 503, { error: 'voice-unavailable'");
+    const accountGate = server.indexOf("if (!enabled) return json(res, 503, { error: 'guest-live-unavailable'");
+    assert.ok(speechGate > 0 && accountGate > speechGate, 'unsupported speech must be distinguished before the anonymous account handoff');
     // The permission is still asked only on the tap that starts a take.
     assert.doesNotMatch(screen, /requestRecordingPermissions/);
     assert.match(live, /await live\.openMic\(\)/);

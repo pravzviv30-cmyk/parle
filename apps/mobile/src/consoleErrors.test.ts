@@ -99,18 +99,47 @@ test('no JSX child is drawn on a condition that can be an empty string or zero',
 
 test('the Android back button is listened for only on Android', () => {
   // React Native Web logs an error for every BackHandler listener, and iOS has
-  // no back button, so each listener stands behind an Android check.
+  // no back button, so each listener stands behind an Android check. A focused
+  // route may register through an arrow declared after an effect's early guard.
   const program = appProgram();
   const listeners: string[] = [];
+  const excludesOtherPlatforms = (condition: ts.Expression): boolean => {
+    if (ts.isParenthesizedExpression(condition)) return excludesOtherPlatforms(condition.expression);
+    if (!ts.isBinaryExpression(condition)) return false;
+    if (condition.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
+      return excludesOtherPlatforms(condition.left) || excludesOtherPlatforms(condition.right);
+    }
+    return condition.operatorToken.kind === ts.SyntaxKind.ExclamationEqualsEqualsToken
+      && condition.left.getText() === 'Platform.OS'
+      && ts.isStringLiteral(condition.right) && condition.right.text === 'android';
+  };
+  const returns = (statement: ts.Statement): boolean => ts.isReturnStatement(statement)
+    || (ts.isBlock(statement) && statement.statements.length === 1 && ts.isReturnStatement(statement.statements[0]!));
+  const guarded = (node: ts.Node): boolean => {
+    let child = node;
+    for (let parent = child.parent; parent; child = parent, parent = parent.parent) {
+      if (ts.isBlock(parent)) {
+        for (const statement of parent.statements) {
+          if (statement.getStart() >= child.getStart()) break;
+          if (ts.isIfStatement(statement) && statement.elseStatement === undefined
+              && excludesOtherPlatforms(statement.expression) && returns(statement.thenStatement)) return true;
+        }
+      }
+      // A hoisted declaration could run before an outer guard. Only its own
+      // body, or a non-hoisted callback defined after a guard, establishes one.
+      if (ts.isFunctionDeclaration(parent) || ts.isMethodDeclaration(parent)) break;
+    }
+    return false;
+  };
   for (const file of appFiles(program, /\.tsx?$/)) {
-    const source = file.getFullText();
-    for (let at = source.indexOf('BackHandler.addEventListener('); at >= 0; at = source.indexOf('BackHandler.addEventListener(', at + 1)) {
-      const before = source.slice(Math.max(0, at - 240), at);
-      const { line } = file.getLineAndCharacterOfPosition(at);
-      if (!/if \(Platform\.OS !== 'android'\) return\b[^;]*;\s*(?:const \w+ = )?$/.test(before)) {
+    const visit = (node: ts.Node): void => {
+      if (ts.isCallExpression(node) && node.expression.getText(file) === 'BackHandler.addEventListener' && !guarded(node)) {
+        const { line } = file.getLineAndCharacterOfPosition(node.getStart(file));
         listeners.push(`${relative(APP_ROOT, file.fileName)}:${line + 1}`);
       }
-    }
+      ts.forEachChild(node, visit);
+    };
+    visit(file);
   }
   assert.deepEqual(listeners, [], `these back button listeners are not behind an Android check:\n${listeners.join('\n')}`);
 });

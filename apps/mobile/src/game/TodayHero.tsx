@@ -48,6 +48,8 @@ import { Flame } from './art/Flame.tsx';
 import { GAME_COPY } from './copy.ts';
 import { useGame, useGoal, useLevel, useStreak, useXp } from './GameProvider.tsx';
 import { todayHeroView, type TodayHeroView } from './todayHeroView.ts';
+import { C2Flame } from '../onboarding/C2Visuals.tsx';
+import { c, boldType } from '../onboarding/boldRhythm.ts';
 
 /** The flame and the ring sit in the touch floor's square. */
 const MARK = HIT;
@@ -55,7 +57,7 @@ const RING_STROKE = space(1);
 
 type HeroModel = { hero: TodayHeroView; nudge: string | null };
 
-export function TodayHero() {
+export function TodayHero({ compact = false }: { compact?: boolean }) {
   const focused = useIsFocused();
   const { view, failed, refresh } = useGame();
   const run = useStreak();
@@ -87,11 +89,11 @@ export function TodayHero() {
     return failed ? null : <Skeleton blocks={[{ height: HIT + space(8), radius: radius.card }]} />;
   }
   if (drawn === null) return <Skeleton blocks={[{ height: HIT + space(8), radius: radius.card }]} />;
-  return <DrawnHero drawn={drawn} focused={focused} />;
+  return <DrawnHero drawn={drawn} focused={focused} compact={compact} />;
 }
 
 /** The hero as last drawn where the learner could see it. */
-function DrawnHero({ drawn, focused }: { drawn: HomeDrawn<HeroModel>; focused: boolean }) {
+function DrawnHero({ drawn, focused, compact }: { drawn: HomeDrawn<HeroModel>; focused: boolean; compact: boolean }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { hero, nudge } = drawn.model;
   const { day, counters } = drawn.draw;
@@ -99,6 +101,18 @@ function DrawnHero({ drawn, focused }: { drawn: HomeDrawn<HeroModel>; focused: b
   const run = counters.streak;
   const ring = counters.ring;
   const chip = counters.level;
+
+  if (compact) return <Press haptic="light" accessibilityRole="button" accessibilityLabel={hero.flame.label}
+    onPress={() => nav.navigate('Streak')} frame={st.compactFrame}
+    style={{ minHeight: 112, backgroundColor: c.violet, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+    <View style={{ opacity: hero.flame.lit ? 1 : 0.65 }}><C2Flame size={58} active={focused && hero.flame.lit} /></View>
+    <View style={{ flex: 1, gap: 4 }}>
+      {count !== null && run !== undefined ? <CountUp key={`run-${run.mount}`} from={run.from} to={run.to}
+        format={value => `${value}-day streak`} textStyle={[boldType.streakCount, { color: c.sun }]} />
+        : <Text style={[boldType.heading, { color: c.sun }]}>Start your streak</Text>}
+      <Text style={[boldType.small, { color: c.white }]}>{hero.flame.lit ? 'You showed up for your French today.' : nudge ?? 'A little French. A fresh beginning.'}</Text>
+    </View>
+  </Press>;
 
   return (
     <View style={st.block}>
@@ -177,6 +191,7 @@ function DrawnHero({ drawn, focused }: { drawn: HomeDrawn<HeroModel>; focused: b
 }
 
 const st = StyleSheet.create({
+  compactFrame: { width: '100%', marginBottom: 18, minHeight: HIT },
   block: { marginTop: space(2), marginBottom: space(4), gap: space(3) },
   card: { paddingVertical: space(3) },
   // Side by side while they fit; at a large reading size each takes a line.

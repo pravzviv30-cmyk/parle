@@ -330,7 +330,7 @@ describe('leaving a metered room is confirmed, not instant — F310', () => {
     // once the guard is down (F311). Held here because it is a wiring claim two
     // screens must make identically.
     const live = strip(read('../LiveSessionScreen.tsx'));
-    assert.match(live, /onLeave=\{\(\) => setConfirming\(true\)\}/, 'the lesson end control leaves instead of opening the confirm');
+    assert.match(live, /onEnd=\{\(\) => setConfirming\(true\)\}/, 'the lesson end control leaves instead of opening the confirm');
     assert.match(live, /<ConfirmSheet\b/, 'the lesson renders no confirm sheet');
     assert.match(live, /leaveConfirmCopy\('lesson'\)/, 'the lesson confirm is not drawn from the lesson copy');
 

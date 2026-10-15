@@ -18,7 +18,8 @@ import { loadConsent } from '../analytics/consentStore.ts';
 
 import { TOKEN_SERVER } from './serverUrl.ts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, Track, type LocalAudioTrack, type RemoteAudioTrack } from 'livekit-client';
+import { scriptedPromptIdentity } from './c2TranscriptPolicy.ts';
+import { ConnectionState, Room, RoomEvent, Track, type LocalAudioTrack, type RemoteAudioTrack } from 'livekit-client';
 import {
   decodeServerMessage,
   ConversationTextRecorder,
@@ -716,24 +717,32 @@ export function useLiveSession(
    * has. Ending the room is what stops the meter, so a session that failed must
    * take this path and not simply render an error over a live room.
    */
-  const leave = useCallback(async () => {
+  const teardownRoom = useCallback(async () => {
     // First, because everything below only tears down what has been built so
     // far. A start still waiting on a token has built nothing yet and would
     // sail straight past all of it, open a room a minute later, and leave the
     // tutor teaching an empty call at full price. This is the line that tells
     // it the session is no longer its to open.
-    startGenRef.current = nextStart(startGenRef.current);
-    conversationTextRef.current.clear();
+    const closingGeneration = nextStart(startGenRef.current);
+    startGenRef.current = closingGeneration;
     clearWatchdog();
     const room = roomRef.current;
     const lease = leaseRef.current;
     send({ t: 'leave' });
     await disconnectLease(room, lease);
+    // A newer start owns the shared audio refs and native session now.
+    if (closingGeneration !== startGenRef.current) return;
     if (roomRef.current === room) roomRef.current = null;
     if (leaseRef.current === lease) leaseRef.current = null;
     removeAudioEls();
     await releaseAudioSession();
   }, [send, removeAudioEls, clearWatchdog]);
+
+  const leave = useCallback(async () => {
+    const closing = teardownRoom();
+    conversationTextRef.current.clear();
+    await closing;
+  }, [teardownRoom]);
 
   /** Send the wrap-up tag and keep the room open for the answer. */
   const requestRecap = useCallback(() => {
@@ -1075,6 +1084,30 @@ export function useLiveSession(
         diagRef.current.agentJoined = true;
         trace('participant-joined', { identity: participant.identity });
       });
+      room.on(RoomEvent.ParticipantDisconnected, () => {
+        // LiveKit also rebuilds its roster during a full reconnect, before
+        // announcing Reconnecting. Inspect the settled state after that stack.
+        queueMicrotask(() => {
+          if (!owns() || room.state !== ConnectionState.Connected || room.remoteParticipants.size > 0) return;
+          // The worker's lease can end while the learner's WebRTC connection
+          // stays open. An empty room cannot accept either speech or typing.
+          clearWatchdog();
+          setReconnecting(false);
+          setMicOpen(false);
+          setThinking(false);
+          setTutorSpeaking(false);
+          setStatus((status) => {
+            if (status.phase === 'ended' || status.phase === 'error') return status;
+            const copy = failureCopy('dropped');
+            return { phase: 'error', failure: 'dropped', message: copy.message, canType: copy.canType };
+          });
+          // Preserve only an authoritative completed recap for its save-text
+          // choice. An incomplete stream still goes with this failed room.
+          if (conversationTextRef.current.snapshot() === null) conversationTextRef.current.clear();
+          // Stop capture and fence this attempt without erasing a delivered recap.
+          void teardownRoom().catch(() => {});
+        });
+      });
       // The MONTER tap usually carries user activation through connect, but a slow
       // token fetch can outlive it and the browser then blocks playback. Surface
       // that as a tap-to-listen affordance rather than playing silence.
@@ -1121,6 +1154,10 @@ export function useLiveSession(
         switch (msg.t) {
           case 'prompt':
             setPrompt(msg.prompt);
+            // The scripted tutor's received line belongs in the same live
+            // transcript as confirmed learner replies. Republished prompts
+            // use the existing turn dedupe; this is display history only.
+            addTurn({ who: 'tutor', fr: msg.prompt.turn.tutor, frWritten: null, en: msg.prompt.turn.tutorEn }, scriptedPromptIdentity(msg.prompt));
             setFeedback(null);
             break;
           case 'feedback':
@@ -1482,6 +1519,7 @@ export function useLiveSession(
     requestRecap,
     closeMicForRecap,
     leave,
+    teardownRoom,
     fail,
     addTurn,
   ]);

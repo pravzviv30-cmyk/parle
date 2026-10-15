@@ -41,29 +41,11 @@ describe('sign in says what is waiting behind the door — F374', () => {
     // learner is told what is theirs, not how long they were away.
     assert.doesNotMatch(SIGN_IN_PURPOSE, /sorry|welcome back again|while you were|since you|away|forgot/i);
 
-    // And the screen draws it. The import is the half that proves the words are
-    // the shared ones rather than a second copy typed into the JSX.
+    // C2 keeps the returning-user screen simple and reserves this legacy
+    // invitation for other callers of the shared copy module.
     const screen = read('SignInScreen.tsx');
-    assert.match(
-      screen,
-      /import \{ SIGN_IN_PURPOSE, welcomeBackGreeting \} from '\.\/copy\.ts';/,
-      'SignInScreen does not import the shared line, so the words on screen are not the words tested here',
-    );
-    assert.match(screen, /\{SIGN_IN_PURPOSE\}/, 'SignInScreen imports the line and never renders it');
-    assert.ok(
-      !screen.includes(SIGN_IN_PURPOSE),
-      'SignInScreen also carries the sentence inline, so there are now two copies and only one of them is tested',
-    );
-
-    // Under the headline, not above it, and in the soft-ink body style the
-    // sign-up screen uses for exactly the same job.
-    const headline = screen.indexOf('Welcome back');
-    const line = screen.indexOf('{SIGN_IN_PURPOSE}');
-    assert.ok(headline >= 0, 'the sign-in headline moved; this test is reading the wrong screen');
-    assert.ok(line > headline, 'the purpose line is drawn before the headline it belongs under');
-    const block = screen.slice(headline, line);
-    assert.match(block, /type\.body/, 'the purpose line is not in the body type the sign-up sub line uses');
-    assert.match(block, /paper\.inkSoft/, 'the purpose line is not in soft ink, so it competes with the headline');
+    assert.match(screen, /Good to have\{['"]\\n['"]\}you back\./);
+    assert.doesNotMatch(screen, /\{SIGN_IN_PURPOSE\}|Your practice stays with you|Passwords need/);
   });
 });
 
@@ -72,15 +54,15 @@ test('a saved first name personalises the greeting and absent data keeps it neut
   assert.equal(welcomeBackGreeting('Mary Jane'), 'Welcome back, Mary Jane');
   for (const name of [undefined, null, '', '  ']) assert.equal(welcomeBackGreeting(name), 'Welcome back');
   const screen = read('SignInScreen.tsx');
-  assert.match(screen, /welcomeBackGreeting\(planDraft\?\.firstName\)/);
+  assert.match(screen, /Good to have/);
   assert.doesNotMatch(screen, /welcomeBackGreeting\(email/);
 });
 
 test('all sign-in entries suppress onboarding chrome while create account keeps it', () => {
   const screen = read('SignInScreen.tsx');
   assert.match(screen, /useOnboardingFramePresentation\(onboardingProgress\(\{ page: 'account' \}\), \{ hideProgress: true \}, !embedded\)/);
-  assert.match(screen, /const Frame = ScrollScreen/);
-  assert.doesNotMatch(screen, /<OnboardingLayout/);
+  assert.match(screen, /const Frame = OnboardingLayout/);
+  assert.match(screen, /page="signin"\s+hideProgress/);
   assert.match(read('SignUpScreen.tsx'), /<OnboardingLayout/);
   assert.match(screen, /fontScale > 1\.3 && st\.doorsStacked/);
   assert.match(screen, /<RevealItem active=\{!embedded\}>/);

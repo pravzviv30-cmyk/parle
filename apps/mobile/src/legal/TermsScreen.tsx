@@ -1,11 +1,10 @@
 /**
- * The terms, which are Apple's, named rather than reproduced.
+ * Luvani's eligibility declaration, followed by Apple's standard app licence.
  *
  * Apple requires terms of use for an app selling an auto renewing subscription
  * (Guideline 3.1.2(c)) and offers its own standard licence for apps that have
- * not written their own. Luvani has not written its own, so this screen says
- * whose the terms are, says we have added nothing on top, and offers one way to
- * the full text at the address Apple publishes it at.
+ * not written their own. This screen adds Luvani's minimum-age declaration
+ * and offers the full licence at the address Apple publishes it at.
  *
  * Nothing of Apple's document is copied in. It is theirs, it is long, and a copy
  * inside the app is a copy that goes stale the first time they revise it, which
@@ -36,21 +35,22 @@ import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { openLink } from '../settings/links.ts';
 import { LINK_TROUBLE } from '../settings/sections.ts';
 import { APPLE_EULA_URL, TERMS_BODY, TERMS_LINK_LABEL, TERMS_TITLE } from './terms.ts';
+import { c, boldType } from '../onboarding/boldRhythm.ts';
 
 export function TermsScreen({ onBack }: { onBack: () => void }) {
   const [trouble, setTrouble] = useState<string | null>(null);
   useHardwareBack(true, onBack);
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>
+    <ScrollScreen ground={c.paper} header={<ScreenHeader back={{ onPress: onBack }} />}>
+      <Text accessibilityRole="header" style={[boldType.title, { color: c.ink }]}>
         {TERMS_TITLE}
       </Text>
       <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
-        <Card>
+        <Card style={{ backgroundColor: c.lavender, borderRadius: 24 }}>
           {TERMS_BODY.map((paragraph, index) => (
             <Text
               key={`terms:${index}`}
-              style={[type.body, { color: paper.inkSoft, marginTop: index === 0 ? 0 : space(3) }]}
+              style={[boldType.body, { color: c.ink, marginTop: index === 0 ? 0 : space(3) }]}
             >
               {paragraph}
             </Text>

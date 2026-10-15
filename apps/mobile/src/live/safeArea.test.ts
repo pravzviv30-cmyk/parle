@@ -40,7 +40,7 @@ const lesson = stripComments(read('../LiveSessionScreen.tsx'));
 const stopView = stripComments(read('../tutor/SafetyStopView.tsx'));
 const errorView = stripComments(read('./LiveErrorView.tsx'));
 const outOfMinutesView = stripComments(read('./OutOfMinutesView.tsx'));
-const sessionView = stripComments(read('../SessionView.tsx'));
+const liveRoom = stripComments(read('./C2LiveRoom.tsx'));
 const navigator = stripComments(read('../nav/RootNavigator.tsx'));
 const layout = stripComments(read('../layout.tsx'));
 
@@ -201,35 +201,21 @@ describe('the live surfaces sit inside the one frame, F444', () => {
     assert.ok(!/<ScrollScreen\b/.test(lesson), 'the lesson reached for the scrolling frame; the live scene wants the still one');
   });
 
-  test('the live scene draws nothing above the frame SessionView owns', () => {
-    // This is the half of the bug the frame cannot fix by being imported.
-    // SessionView is a ScrollScreen and pays the inset once, so wrapping it in
-    // a second Screen would pay the notch twice and push the lesson down by a
-    // whole inset. The audio-blocked card and the safety banner used to be its
-    // siblings instead, which put them above the frame's padding and straight
-    // under the Dynamic Island. They go inside the frame, through the slot.
-    const opens = '<View style={st.root}>';
-    const from = lesson.indexOf(opens);
-    const to = lesson.indexOf('<SessionView');
-    assert.notEqual(from, -1, 'the live scene no longer has the root this test reads');
-    assert.notEqual(to, -1, 'the live scene no longer renders SessionView');
-    assert.ok(from < to, 'SessionView is drawn outside the live scene root');
-    assert.ok(
-      !lesson.slice(from + opens.length, to).includes('<'),
-      'something is drawn between the live scene root and SessionView, which puts it above the frame and under the notch',
-    );
-    // The slot itself, on both sides of the seam.
-    assert.match(
-      lesson,
-      /<SessionView[\s\S]{0,120}above=\{/,
-      'the lesson no longer hands its overlay row to the frame, so whatever it draws there is outside the safe area',
-    );
-    assert.match(sessionView, /above\?: ReactNode;/, 'the session surface has no slot above its header for the live driver to fill');
-    assert.match(
-      sessionView,
-      /header=\{\s*<>\s*\{props\.above\}/,
-      'the slot is drawn somewhere other than inside the frame, which is the only place that is any use',
-    );
+  test('all live room content is inside the C2 frame that pays its inset once', () => {
+    assert.match(lesson, /<C2LiveRoom\b/, 'the lesson no longer renders the shared live frame');
+    assert.match(lesson, /top=\{<>/, 'the lesson banners and lesson context must be inside the live frame');
+    assert.doesNotMatch(lesson, /<SessionView\b/, 'two session frames would pay the inset twice');
+    assert.match(liveRoom, /paddingTop: embedded \? 12 : insets\.top \+ 20/,
+      'authenticated sessions must clear the notch; the embedded guest already has its progress safe area');
+    assert.match(liveRoom, /paddingBottom: keyboardOpen \? 10 : Math\.max\(insets\.bottom, 10\) \+ 10/,
+      'the live composer and bottom controls must clear the home indicator');
+    assert.match(liveRoom, /\{top \? <ScrollView style=\{st\.top\}/,
+      'audio and safety notices are outside the inset-paid frame');
+    const guest = stripComments(read('../onboarding/FirstLivePractice.tsx'));
+    assert.match(guest, /<C2LiveRoom[\s\S]*?active=\{active\} embedded/,
+      'the guest live frame must not pay the onboarding safe-area top twice');
+    assert.match(guest, /useOnboardingFramePresentation\(progress/,
+      'the embedded guest must retain the parent onboarding frame');
   });
 
   test('an iPad cannot resize the app below the width it has a design for', () => {

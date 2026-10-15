@@ -267,9 +267,9 @@ export function PillButton({
 }) {
   const { fontScale } = useWindowDimensions();
   const waiting = state !== 'idle';
-  const foreground = design === 'bold-rhythm' || tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
+  const foreground = tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
   return (
-    <Press haptic="light" depth={design === 'bold-rhythm' ? 'raised' : 'control'} style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, design === 'bold-rhythm' && { borderRadius: 12, minHeight: 56, backgroundColor: colour.sun }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+    <Press haptic="light" depth={design === 'bold-rhythm' ? 'raised' : 'control'} style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, design === 'bold-rhythm' && { borderRadius: 20, minHeight: 52, backgroundColor: tone === 'sun' ? colour.sun : tone === 'white' ? paper.card : colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}

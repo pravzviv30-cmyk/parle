@@ -21,7 +21,7 @@ import { AccountField as Field } from './AccountField.tsx';
 import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
 import { ProviderButton } from './ProviderButton.tsx';
 import { BoldButton } from '../onboarding/BoldButton.tsx';
-import { boldType } from '../onboarding/boldRhythm.ts';
+import { boldType, c } from '../onboarding/boldRhythm.ts';
 import { useFormKeyboard } from './useFormKeyboard.ts';
 import { focusedFieldScroll } from './focusedFieldScroll.ts';
 import { visibleFormHeight } from './signupForm.ts';
@@ -39,12 +39,13 @@ import { welcomeDividerInk } from '../palette.ts';
 import { WelcomeSignInGlow } from './WelcomeSignInGlow.tsx';
 import { RevealItem } from '../onboarding/motion/OnboardingScenes.tsx';
 
-import { useOnboardingFramePresentation } from '../onboarding/OnboardingLayout.tsx';
+import { OnboardingLayout, useOnboardingFramePresentation } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import type { PreAccountOnboardingDraft } from '../onboarding/preAccountDraft.ts';
 
 export function SignInScreen({ onBack, onCreateAccount, onboarding = false, planDraft = null, onEmailChange, embedded = false }: { onBack?: () => void; onCreateAccount: () => void; onboarding?: boolean; planDraft?: PreAccountOnboardingDraft | null; onEmailChange?: (email: string) => void; embedded?: boolean }) {
   const { adapter } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'reset' | 'reset-sent'>('signin');
   const [email, setEmail] = useState(planDraft?.accountEmail ?? '');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -100,11 +101,6 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     });
   };
   const { visible: keyboardVisible, keyboardTop } = useFormKeyboard(keepFocusedVisible);
-  useEffect(() => {
-    if (keyboardVisible) return;
-    const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
-    return () => cancelAnimationFrame(frame);
-  }, [keyboardVisible]);
   useEffect(() => () => {
     focusMeasurement.current += 1;
     if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
@@ -155,6 +151,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     setFormMessage(null);
     setProviderMessage(null);
     if (emailProblem) return;
+    if (!password) { setFormMessage('Enter your password to sign in.'); passwordRef.current?.focus(); return; }
     Keyboard.dismiss();
     requestRunning.current = true;
     setPending('signIn');
@@ -218,12 +215,14 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       setFormMessage(emailProblem);
       return;
     }
+    Keyboard.dismiss();
     requestRunning.current = true;
     setPending('sendReset');
     try {
       const result = await adapter.sendPasswordReset(email.trim());
       if (!alive.current) return;
       setFormOk(result.ok);
+      if (result.ok) setMode('reset-sent');
       setFormMessage(result.ok ? result.message ?? 'Check your email for a reset link.' : result.message);
     } catch (error) {
       if (alive.current) { setFormOk(false); setFormMessage(friendly(error as { message?: string })); }
@@ -233,13 +232,39 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
     }
   };
 
-  const Frame = ScrollScreen;
+  const Frame = OnboardingLayout;
+  const returnToSignIn = () => { if (busy || requestRunning.current) return; setMode('signin'); setFormMessage(null); setFormOk(false); };
+  if (mode !== 'signin') return <OnboardingLayout page="signin" hideProgress embedded={embedded}
+    scrollRef={scrollRef} automaticallyAdjustKeyboardInsets keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+    footer={!keyboardVisible ? <View style={{ gap: 4 }}>
+      {mode === 'reset' && <BoldButton label={authButtonLabel('sendReset', pending === 'sendReset')} state={pending === 'sendReset' ? 'busy' : 'idle'} disabled={busy} onPress={() => void forgot()} />}
+      <GhostButton label="Return to sign in" disabled={busy} onPress={returnToSignIn} color={c.violet} />
+    </View> : undefined}>
+    <View style={{ gap: 18 }}>
+      <Text ref={headingRef} accessibilityRole="header" style={[boldType.title, { color: c.ink, textAlign: 'center' }]}>{mode === 'reset-sent' ? 'Check your email.' : 'Forgot your password?'}</Text>
+      {mode === 'reset-sent' ? <><BoldScene kind="reset" width={220} /><Text style={[boldType.body, { color: c.muted, textAlign: 'center' }]}>We sent a password reset link to {email.trim()}. Open it to choose a new password.</Text><GhostButton label={pending === 'sendReset' ? 'Sending…' : 'Resend reset email'} disabled={busy} onPress={() => void forgot()} color={c.violet} /></>
+      : <><Text style={[boldType.body, { color: c.muted, textAlign: 'center' }]}>We’ll send you a link to choose a new one.</Text><Field ref={emailRef} label="Email" value={email} onChangeText={value => { setEmail(value); onEmailChange?.(value); setEmailError(null); }} placeholder="Enter your email" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" editable={!busy} error={emailError} returnKeyType="done" onSubmitEditing={() => void forgot()} /></>}
+      {formMessage != null && !formOk && <Text accessibilityRole="alert" style={[boldType.body, { color: c.ink }]}>{formMessage}</Text>}
+    </View>
+  </OnboardingLayout>;
   return (
     <Frame
       dismissKeyboardOnBackground
+      page="signin"
+      hideProgress
       embedded={embedded}
-      center={layout.center}
-      topGap={layout.compact ? space(2) : space(4)}
+      center={false}
+      footer={<>      {!keyboardVisible && <View style={{ gap: 4 }}>
+        <BoldButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} />
+      </View>}
+
+      {/* The primary action returns after keyboard dismissal, inside the body. */}
+      {!keyboardVisible && <Press haptic="light" frame={{ alignSelf: 'center' }} style={st.switchRow} accessibilityRole="button" disabled={busy} onPress={() => { if (!requestRunning.current && !busy) onCreateAccount(); }}>
+        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, { color: paper.inkSoft }]}>
+          <Text maxFontSizeMultiplier={liveFontMultiplier} style={st.switchWord}>Create an account</Text>
+        </Text>
+      </Press>}
+</>}
       scrollRef={scrollRef}
       scrollEventThrottle={16}
       onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}
@@ -252,36 +277,9 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       {/* Welcome back is personal only when this flow already has a saved name. */}
       {!embedded && <View style={[st.head, layout.compact && st.headCompact]}>
 
-        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[boldType.title, { color: paper.ink, textAlign: 'center', letterSpacing: 0 }]}>{welcomeBackGreeting(planDraft?.firstName)}</Text>
+        <Text ref={headingRef} maxFontSizeMultiplier={liveFontMultiplier} {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})} accessibilityRole="header" style={[boldType.returningTitle, { color: c.ink, textAlign: 'center', letterSpacing: 0 }]}>Good to have{'\n'}you back.</Text>
       </View>}
-      <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.body, { color: paper.inkSoft, marginTop: layout.compact ? space(1) : space(2), textAlign: 'center' }]}>{SIGN_IN_PURPOSE}</Text>
-
-      {/* The provider doors lead the form, stacking when text needs more room. */}
-      <View style={[st.doors, layout.compact && st.doorsCompact, fontScale > 1.3 && st.doorsStacked, embedded && { marginTop: 0 }]}>
-        {appleOffered && (
-          <View style={st.door}>
-          <ProviderButton provider="apple" onPress={() => void apple()} disabled={busy} busy={pending === 'apple'} />
-          </View>
-        )}
-        <View style={st.door}>
-        <ProviderButton provider="google" onPress={() => void google()} disabled={busy} busy={pending === 'google'} />
-        </View>
-      </View>
-
-      {providerMessage != null && (
-        <View style={[st.message, { marginTop: space(3) }]}>
-          <View style={st.messageMark}><AlertGlyph size={16} color={paper.ink} /></View>
-          <Text maxFontSizeMultiplier={liveFontMultiplier} accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{providerMessage}</Text>
-        </View>
-      )}
-
-      <View style={[st.or, layout.compact && st.orCompact]}>
-        <View style={st.rule} />
-        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, st.orLabel]}>or</Text>
-        <View style={st.rule} />
-      </View>
-
-      <View style={{ gap: layout.compact ? space(3) : space(4) }}>
+      <View style={{ gap: 12, marginTop: embedded ? 0 : fontScale > 1.3 ? 32 : 64 }}>
         <View ref={emailGroup} collapsable={false} onLayout={keepFocusedVisible}>
         <Field
           ref={emailRef}
@@ -289,7 +287,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           labelWeight="medium"
           value={email}
           onChangeText={(value) => { setEmail(value); onEmailChange?.(value); setEmailError(null); }}
-          placeholder="e.g. james@example.com"
+          placeholder="Enter your email"
           keyboardType="email-address"
           autoComplete="email"
           textContentType="emailAddress"
@@ -315,7 +313,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           labelWeight="medium"
           value={password}
           onChangeText={setPassword}
-          placeholder="Your password"
+          placeholder="Enter password"
           secure
           autoComplete="current-password"
           textContentType="password"
@@ -331,13 +329,32 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       {/* The reset link sits under the password it is about, centred below the field. */}
       <View style={st.forgot}>
         <GhostButton
-          label={authButtonLabel('sendReset', pending === 'sendReset')}
-          onPress={() => void forgot()}
+          label="Forgot your password?"
+          onPress={() => { if (!busy) { setMode('reset'); setFormMessage(null); } }}
           disabled={busy}
           color={colour.blue}
           small
         />
       </View>
+
+      {/* The provider doors lead the form, stacking when text needs more room. */}
+      <View style={[st.doors, layout.compact && st.doorsCompact, fontScale > 1.3 && st.doorsStacked, embedded && { marginTop: 0 }]}>
+        <View style={st.door}>
+        <ProviderButton provider="google" onPress={() => void google()} disabled={busy} busy={pending === 'google'} />
+        </View>
+        {appleOffered && (
+          <View style={st.door}>
+          <ProviderButton provider="apple" onPress={() => void apple()} disabled={busy} busy={pending === 'apple'} />
+          </View>
+        )}
+      </View>
+
+      {providerMessage != null && (
+        <View style={[st.message, { marginTop: space(3) }]}>
+          <View style={st.messageMark}><AlertGlyph size={16} color={paper.ink} /></View>
+          <Text maxFontSizeMultiplier={liveFontMultiplier} accessibilityLiveRegion="polite" style={[type.body, ROW_WORDS, { color: paper.ink }]}>{providerMessage}</Text>
+        </View>
+      )}
 
       {/* In ink, never red. A refusal carries the alert mark the fields use, so
           the difference from a "check your email" line is not colour alone. */}
@@ -353,16 +370,6 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
         </View>
       )}
 
-      {!keyboardVisible && <View style={st.action}>
-        <BoldButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} trailingIcon={<ArrowRight color={paper.ink} />} />
-      </View>}
-
-      {/* The primary action returns after keyboard dismissal, inside the body. */}
-      {!keyboardVisible && <Press haptic="light" frame={{ alignSelf: 'center' }} style={st.switchRow} accessibilityRole="button" disabled={busy} onPress={() => { if (!requestRunning.current && !busy) onCreateAccount(); }}>
-        <Text maxFontSizeMultiplier={liveFontMultiplier} style={[type.small, { color: paper.inkSoft }]}>
-          New to Luvani? <Text maxFontSizeMultiplier={liveFontMultiplier} style={st.switchWord}>Create an account</Text>
-        </Text>
-      </Press>}
       </RevealItem>
       </View>
     </Frame>
@@ -372,7 +379,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
 const st = StyleSheet.create({
   head: { alignItems: 'center', gap: space(2) },
   headCompact: { gap: space(1) },
-  doors: { flexDirection: 'column', alignItems: 'stretch', gap: space(3), marginTop: space(5) },
+  doors: { flexDirection: 'column', alignItems: 'stretch', gap: 12, marginTop: 12 },
   doorsCompact: { marginTop: space(3) },
   doorsStacked: { flexDirection: 'column' },
   door: { flex: 1, minWidth: 0 },
@@ -380,10 +387,10 @@ const st = StyleSheet.create({
   orCompact: { marginVertical: space(2) },
   rule: { flex: 1, height: STROKE, backgroundColor: welcomeDividerInk },
   orLabel: { color: welcomeDividerInk, fontFamily: type.heading.fontFamily },
-  forgot: { alignItems: 'center' },
+  forgot: { alignItems: 'center', marginTop: 12 },
   message: { flexDirection: 'row', alignItems: 'flex-start', gap: space(2), marginBottom: space(2) },
   messageMark: { paddingTop: space(1) },
-  action: { marginTop: space(2) },
+  action: { marginTop: 80 },
   switchRow: { minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
-  switchWord: { color: colour.blue, fontFamily: type.bodyStrong.fontFamily },
+  switchWord: { ...boldType.label, color: c.violet },
 });

@@ -80,7 +80,8 @@ describe('first run introduces the voices and lets the learner choose one — F2
     assert.match(FLOW, /<TutorSelection chosen=\{voice\} preview=\{preview\} onChoose=\{setVoice\}/);
     assert.match(CARDS, /TUTOR_VOICE_OPTIONS\.map\(/);
     assert.match(CARDS, /\{voice\.label\}/);
-    assert.match(CARDS, /\{voice\.gloss\}/);
+    assert.doesNotMatch(CARDS, /\{voice\.gloss\}/);
+    assert.match(CARDS, /C2TutorPortrait voice=\{voice\.value\}/);
     assert.match(CARDS, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
     assert.match(CARDS, /preview\.toggle\(voice\.value\)/);
     assert.match(FLOW, /useTutorPreview\(\{ active: loaded && page === 'voice' \}\)/);
@@ -194,26 +195,12 @@ describe('first run introduces the voices and lets the learner choose one — F2
       'the words on the voice page never say what the voices are voices of',
     );
 
-    // The disclosure is on the page, not merely in the module.
-    for (const name of ['VOICE_TITLE', 'VOICE_AI', 'VOICE_SKIP']) {
-      assert.ok(FLOW.includes(`{${name}}`), `no first-run screen puts ${name} on glass`);
-    }
-    // The hint is the one line here that names a person, so it is rendered for
-    // the persona this learner already has rather than for the default. A skip
-    // writes nothing, so somebody who arrived with Céline leaves with Céline,
-    // and a hint naming the default would be promising the opposite. F300.
-    assert.ok(
-      FLOW.includes('{VOICE_SKIP_HINT(persona)}'),
-      'the skip hint names the default rather than the voice this learner already has',
-    );
-    assert.ok(FLOW.indexOf('{VOICE_AI}') > -1, 'the AI line is imported and never rendered');
-
-    // And it says AI before the names, not underneath them.
-    assert.ok(
-      FLOW.indexOf('{VOICE_AI}') < FLOW.indexOf('<TutorSelection'),
-      'the voices are introduced before the learner is told what they are',
-    );
-
+    // C2 selection uses names only; the preceding Meet page owns the AI disclosure.
+    assert.match(FLOW, /Meet your tutor/);
+    assert.ok(FLOW.includes('{VOICE_SKIP}'), 'the explicit skip still writes no choice');
+    assert.doesNotMatch(FLOW, /\{VOICE_AI\}/);
+    assert.match(FLOW, /\{VOICE_SKIP_HINT\(persona\)\}/);
+    assert.ok(FLOW.indexOf('{MEET_AI(persona)}') > -1 && FLOW.indexOf('{MEET_AI(persona)}') < FLOW.indexOf('<TutorSelection'), 'the prior disclosure page must identify AI before tutor selection');
     // The copy itself is one flat list so a sentence added to the page is
     // covered the moment it is added, rather than when somebody remembers.
     assert.deepEqual(

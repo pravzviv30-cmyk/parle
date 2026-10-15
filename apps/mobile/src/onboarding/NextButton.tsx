@@ -14,7 +14,7 @@
  * once and no glint passes, watched live.
  */
 
-import { c } from './boldRhythm.ts';
+import { boldType, c } from './boldRhythm.ts';
 import { nextAction } from './nextAction.ts';
 import { useEffect, useRef, createElement, type KeyboardEvent } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
@@ -26,7 +26,7 @@ import { DUR } from '../motion/tokens.ts';
 import { LiveFace } from './firstRun/LiveFace.tsx';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './firstRun/nextFace.ts';
 
-export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL, bold = false }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string; bold?: boolean }) {
+export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL, bold = false, disabledHint, showDisabledHint = false }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string; bold?: boolean; disabledHint?: string; showDisabledHint?: boolean }) {
   const reduced = useReduceMotion();
   const arrow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -46,22 +46,30 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
       useNativeDriver: Platform.OS !== 'web',
     }).start();
   };
-  const face = (ink: string) => (
+  const face = (ink: string, words = label) => (
     <>
-      <Text style={[type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{label}</Text>
+      <Text style={[bold ? boldType.label : type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{words}</Text>
       <Animated.View style={{ transform: [{ translateX: arrow }] }}>
-        <ArrowRight color={ink} />
+        <ArrowRight color={bold && ink === c.white ? c.sun : ink} />
       </Animated.View>
     </>
   );
   const contents = (<>
-      <View style={st.row}>{face(NEXT_OFF.words)}</View>
-      <LiveFace live={!disabled} style={[st.row, { backgroundColor: bold ? c.sun : NEXT_ON.fill }]}>
+      <View style={[st.row, bold && { minHeight: 52, paddingVertical: 14 }]}>
+        {disabledHint ? <>
+          {/* The question instruction reserves its largest face before any tap. */}
+          <View {...decorative} aria-hidden={true} style={[st.face, { opacity: 0 }]}>{face(NEXT_OFF.words, disabledHint)}</View>
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { paddingHorizontal: space(6), justifyContent: 'center' }]}>
+            <View style={st.face} accessibilityLiveRegion="polite">{face(NEXT_OFF.words, showDisabledHint ? disabledHint : label)}</View>
+          </View>
+        </> : face(NEXT_OFF.words)}
+      </View>
+      <LiveFace live={!disabled} style={[st.row, bold && { minHeight: 52, paddingVertical: 14 }, { backgroundColor: bold ? c.violet : NEXT_ON.fill }]}>
         <View {...decorative} style={st.face}>
-          {face(bold ? c.ink : NEXT_ON.words)}
+          {face(bold ? c.white : NEXT_ON.words)}
         </View>
       </LiveFace>
-      <Glint when={!disabled} wait={DUR.fast} radius={bold ? 12 : radius.control} />
+      <Glint when={!disabled} wait={DUR.fast} radius={bold ? 20 : radius.control} />
   </>);
   // RN Web Pressable overwrites aria-disabled from its interaction-disabled
   // prop. This explanatory action must remain clickable without advertising
@@ -87,7 +95,7 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
     ] } : undefined}>{createElement('div', {
       ...webEvents, role: 'button', 'aria-label': label, 'aria-disabled': disabled,
       'aria-description': disabled ? NEXT_OFF_HINT : undefined,
-      style: { position: 'relative', minHeight: 56, borderRadius: bold ? 12 : radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
+      style: { position: 'relative', minHeight: bold ? 52 : 56, borderRadius: bold ? 20 : radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
     }, contents)}</Animated.View>;
   }
   return (
@@ -100,7 +108,7 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
       onPress={() => nextAction(disabled, onPress, onDisabledPress)}
       onPressIn={() => { if (!disabled) move(4); }}
       onPressOut={() => move(0)}
-      style={[st.surface, { borderRadius: bold ? 12 : radius.control, backgroundColor: NEXT_OFF.fill }]}
+      style={[st.surface, { minHeight: bold ? 52 : 56, borderRadius: bold ? 20 : radius.control, backgroundColor: NEXT_OFF.fill }]}
     >
       {contents}
     </Press>
@@ -118,5 +126,5 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     gap: space(3),
   },
-  face: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(3) },
+  face: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(3), flexShrink: 1, minWidth: 0 },
 });

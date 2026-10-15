@@ -41,7 +41,8 @@ test('Next and Done preserve the keyboard; only the primary tap creates an accou
   assert.match(source, /onSubmitEditing=\{finishEditing\}/);
   assert.equal((source.match(/submitBehavior="submit"/g) ?? []).length, 3);
   assert.equal((source.match(/blurOnSubmit=\{false\}/g) ?? []).length, 3);
-  assert.doesNotMatch(source, /setTimeout|emailReadyToAdvance|useCompactPhone|footer=|PasswordMeter value=\{confirm\}/);
+  assert.doesNotMatch(source, /setTimeout|emailReadyToAdvance|useCompactPhone|PasswordMeter value=\{confirm\}/);
+  assert.match(source, /footer=\{!keyboardVisible/, 'the primary footer must disappear while the keyboard is shown');
   assert.match(source, /disabled=\{busy \|\| !ready \|\| formOk\}/);
 });
 

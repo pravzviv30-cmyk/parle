@@ -37,6 +37,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RoomEvent, Track } from 'livekit-client';
 import { ConversationTextRecorder, DEFAULT_TUTOR_VOICE, decodeClientMessage, encodeMessage, isTutorVoiceKey, type RecapPayload, type ServerMessage } from '@luvani/core';
 import { attachCorrectionReason } from './correctionReason.ts';
+import { scriptedPromptIdentity } from './c2TranscriptPolicy.ts';
+import { pushTurn, type TurnLine } from './turns.ts';
 import { createProfile } from '@luvani/brain/profile';
 
 import { setActiveUser } from '../storage/scope.ts';
@@ -327,7 +329,7 @@ const RECAP_MSG = { t: 'recap', recap: recap(), profile: profileWith({ 'Ça marc
  * Every one of them used to be able to arrive over the top of a crisis screen.
  */
 const OTHER_FRAMES: Record<string, unknown>[] = [
-  { t: 'prompt', prompt: { fr: 'Bonjour', en: 'Hello' } },
+  { t: 'prompt', prompt: { position: 1, directive: { rung: 2, rescued: false }, turn: { id: 'cafe-1', tutor: 'Bonjour', tutorEn: 'Hello' } } },
   { t: 'feedback', feedback: { verdict: 'good' } },
   { t: 'speaking', speaking: true },
   { t: 'transcript', final: true, text: 'je voudrais un café' },
@@ -391,6 +393,7 @@ function switchWorld(
     setTutorSpeaking: noop,
     setLastTranscript: noop,
     addTurn: noop,
+    scriptedPromptIdentity,
     setConvo: noop,
     setTurns: noop,
     setOpening: noop,
@@ -1786,4 +1789,33 @@ describe('the microphone capture at the recap — F777', () => {
     await web.releaseAudioSession();
     assert.equal(liveRoom(), false);
   });
+});
+
+// C2 shares the received thread across both scripted and conversation rooms.
+test('a received lesson prompt adds its actual tutor line to display history', () => {
+  const { world } = switchWorld();
+  const received: unknown[] = [];
+  world.addTurn = (turn: unknown) => received.push(turn);
+  deliver(world, { t: 'prompt', prompt: { position: 1, directive: { rung: 2, rescued: false }, turn: { id: 'cafe-1', tutor: 'Un café ?', tutorEn: 'A coffee?' } } });
+  assert.deepEqual(received, [{ who: 'tutor', fr: 'Un café ?', frWritten: null, en: 'A coffee?' }]);
+});
+
+test('republished authored prompts after a learner reply do not duplicate live history; new rescue speech does', () => {
+  const { world } = switchWorld();
+  let turns: TurnLine[] = [];
+  world.addTurn = (line: Omit<TurnLine, 'id'>, id?: string) => {
+    turns = pushTurn(turns, line, id ?? `test-${turns.length + 1}`);
+  };
+  const prompt = { position: 1, directive: { rung: 2, rescued: false },
+    turn: { id: 'cafe-1', tutor: 'Un café ?', tutorEn: 'A coffee?' } };
+  deliver(world, { t: 'prompt', prompt });
+  deliver(world, { t: 'transcript', final: true, text: 'Oui.', turnId: 'learner-1' });
+  deliver(world, { t: 'prompt', prompt: structuredClone(prompt) });
+  assert.deepEqual(turns.map(turn => turn.fr), ['Un café ?', 'Oui.']);
+  deliver(world, { t: 'prompt', prompt: { ...prompt, position: 2, turn: { ...prompt.turn, id: 'cafe-2', tutor: 'Et avec ça ?' } } });
+  assert.equal(turns.at(-1)?.fr, 'Et avec ça ?');
+  deliver(world, { t: 'prompt', prompt: { ...prompt, directive: { rung: 1, rescued: true },
+    turn: { ...prompt.turn, tutor: 'Essayons ensemble. Un café ?' } } });
+  assert.equal(turns.at(-1)?.fr, 'Essayons ensemble. Un café ?');
+  assert.equal(turns.length, 4);
 });

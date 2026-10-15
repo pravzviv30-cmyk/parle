@@ -126,15 +126,16 @@ describe('the personal onboarding journey', () => {
     assert.match(handoff, /'Keep this practice'/);
     const welcome = evidence('apps/mobile/src/onboarding/AccountWelcome.tsx');
     assert.match(welcome, /if \(completed\.current\) return;/);
-    assert.match(welcome, /animation\.start\(\(\{ finished \}\) => \{ if \(finished\) finish\(\); \}\)/);
-    assert.match(welcome, /clearTimeout\(timer\)/);
-    assert.match(welcome, /animation\?\.stop\(\)/);
-    assert.match(welcome, /label="Go to home" onPress=\{finish\}/);
-    assert.match(welcome, /<OnboardingLayout page="account-welcome" progress=\{\{ \.\.\.progress, fraction: 1, complete: true \}\}/);
+    assert.match(welcome, /try \{ await onDone\(\); \}/, 'manual Continue must wait for the durable welcome receipt');
+    assert.match(welcome, /completed\.current = true/);
+    assert.match(welcome, /catch \{ completed\.current = false/);
+    assert.match(welcome, /label="Continue"[^>]*onPress=\{\(\) => void finish\(\)\}/);
+    assert.match(welcome, /<OnboardingLayout page="account-welcome"[^\n]*hideProgress[^\n]*fraction: 1, complete: true/);
+    assert.match(welcome, /<C2BrandLockup width=\{270\} animated/);
+    assert.match(welcome, /accessibilityRole="header" accessibilityLabel="Welcome to Luvani"/, 'the decorative wordmark must retain the complete accessible welcome');
+    assert.doesNotMatch(welcome, /setTimeout|animation\.start|Go to home/);
     assert.match(handoff, /const journey = useRef\(draft\)/);
     assert.match(handoff, /<AccountWelcome progress=\{progress\}/);
-    assert.match(welcome, /reader === false && AppState\.currentState === 'active'/);
-    assert.match(welcome, /opacity\.setValue\(1\)/);
   });
 
   test('account changes during usage transfer or clearing cannot consume the next account draft', async () => {

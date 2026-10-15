@@ -23,7 +23,10 @@ import type { Lesson, Rung, SessionSummary } from '@luvani/core';
 import { paper, space, type, HIT } from './theme.ts';
 import { Card, GhostButton } from './components.tsx';
 import { ConfirmSheet, Screen } from './layout.tsx';
-import { SessionView } from './SessionView.tsx';
+import { SupportBlock } from './SessionView.tsx';
+import { C2LiveRoom } from './live/C2LiveRoom.tsx';
+import { IconAction } from './components.tsx';
+import { rungLabel } from './tutor/rungLabel.ts';
 import { useLiveSession } from './live/useLiveSession.ts';
 import { CONNECTING_TICK_MS, connectingTick, connectingView } from './live/connectingView.ts';
 import { RoomWait } from './live/RoomWait.tsx';
@@ -88,6 +91,10 @@ export function LiveSessionScreen({
   // learner commits, which drops the guard and lets the exit run from an effect
   // rather than inline, where the guard would prevent its own pop.
   const [confirming, setConfirming] = useState(false);
+  const [typingOpen, setTypingOpen] = useState(false);
+  const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const [draft, setDraft] = useState('');
+  const [modePending, setModePending] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const leaveCopy = leaveConfirmCopy('lesson');
 
@@ -102,7 +109,7 @@ export function LiveSessionScreen({
    * around them. `voiceless` is the room's own answer and is the only thing
    * that knows about the second case.
    */
-  const typing = textMode || live.voiceless;
+  const typing = textMode || live.voiceless || typingOpen;
   /**
    * Whether this lesson is the screen in front of the learner. The Speak
    * circle's level ring is measured (live/RoomLevels) only while it is, and
@@ -117,6 +124,20 @@ export function LiveSessionScreen({
    */
   const goQuiet = () => {
     if (takeTypedDoor(live) === 'needs-a-new-session') onRetryAsText();
+  };
+  const changeInput = async (nextTyping: boolean) => {
+    if (modePending) return;
+    setModePending(true);
+    try {
+      if (nextTyping) { if (await live.pauseMic()) setTypingOpen(true); }
+      else if (!textMode && await live.openMic()) setTypingOpen(false);
+    } finally { setModePending(false); }
+  };
+  const sendDraft = async () => {
+    if (!draft.trim() || live.tutorSpeaking || live.thinking || live.reconnecting) return false;
+    const sent = await live.sendSay(draft.trim());
+    if (sent) setDraft(current => current === draft ? '' : current);
+    return sent;
   };
   // How long the connect has been running, for the copy that grows with it.
   // The interval exists only while the connecting branch is the whole screen
@@ -209,7 +230,7 @@ export function LiveSessionScreen({
     // down and gives back the room it was about to open. See
     // live/startOwnership.ts.
     const connecting = connectingView(connectingMs);
-    return <RoomWait title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
+    return <RoomWait state="connecting" title={CONNECTING_TITLE} body={connectingBody(tutorName)} stage={connecting.headline} leaveLabel={connecting.leaveLabel} onLeave={leaveNow} />;
   }
 
   if (live.status.phase === 'out-of-minutes') {
@@ -230,6 +251,10 @@ export function LiveSessionScreen({
     return (
       <LiveErrorView
         failure={live.status.failure}
+        turns={live.turns}
+        tutorName={tutorName}
+        transcriptVisible={transcriptVisible}
+        onTranscriptVisibility={setTranscriptVisible}
         message={live.status.message}
         diagnostics={live.diagnostics}
         settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
@@ -257,95 +282,30 @@ export function LiveSessionScreen({
       banner={waiting.banner ? <SafetyBanner surface={waiting.banner} onDismiss={live.dismissSafety} /> : undefined} />;
   }
 
-  // Everything the scene draws above the Leave row, handed to the frame rather
-  // than stacked on top of it.
-  //
-  // SessionView is the frame here: it is a ScrollScreen, so it already pays the
-  // notch and the home indicator once. These two used to be its siblings, which
-  // put them above that padding and under the Dynamic Island on every iPhone
-  // since the X, and a second Screen around the pair would have paid the top
-  // inset twice and pushed the whole lesson down by it. So they go in through
-  // the surface's own slot, inside the one frame, above the one Leave.
-  const aboveTheScene = (
-    <>
-      {live.audioBlocked && (
-        // The browser wants a gesture before it will play the tutor. One calm
-        // white card, gone the moment it is tapped.
-        <Pressable
-          onPress={live.resumeAudio}
-          accessibilityRole="button"
-          accessibilityLabel="Tap to listen"
-          style={({ pressed }) => [st.listen, pressed && { opacity: 0.85 }]}
-        >
-          <Card style={{ alignItems: 'center' }}>
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>Tap to listen</Text>
-          </Card>
-        </Pressable>
-      )}
-      {/* The tutor steered away and said why. It stays until the learner puts
-          it away, unlike the header notice, which is a hiccup on a timer. */}
-      {safety.kind === 'redirect' ? (
-        <View style={st.banner}>
-          <SafetyBanner surface={safety} onDismiss={live.dismissSafety} />
-        </View>
-      ) : null}
-    </>
-  );
-
-  return (
-    // The lesson's real microphone level, for the ring around the Speak circle
-    // (live/RoomLevels): measured off the published track, never through this
-    // screen's state. Nothing in a lesson draws the tutor's voice, so it is not
-    // measured at all.
-    <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={null} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
+  const prompt = live.prompt;
+  const caption = connectionLine({ reconnecting: live.reconnecting, notice: live.notice }).text
+    ?? (live.thinking ? 'Thinking…' : live.tutorSpeaking ? `${tutorName} is speaking` : typing ? 'Typing, microphone paused' : live.micOpen ? 'Listening' : 'Microphone paused');
+  return <RoomLevels micTrack={live.audioTracks.mic} tutorTrack={live.audioTracks.tutor} micOpen={live.micOpen} tutorSpeaking={live.tutorSpeaking} focused={roomFocused}>
     <View style={st.root}>
-      <SessionView
-        above={aboveTheScene}
-        lessonTitle={lesson.title}
-        cefr={lesson.cefr}
-        prompt={live.prompt}
-        listening={!live.tutorSpeaking}
-        flash={live.feedback?.message ?? null}
-        transcript={live.lastTranscript}
-        // Metered minutes must always have a door, and it is the shared header's
-        // Leave now — which opens the confirm rather than disconnecting on the tap.
-        onLeave={() => setConfirming(true)}
-        // Transient trouble from the agent (a voice hiccup), which clears itself,
-        // or a connection being rebuilt, which does not and must not be given a
-        // timer. One line at a time: live/connectionLine.ts.
-        headerLine={connectionLine({ reconnecting: live.reconnecting, notice: live.notice }).text ?? undefined}
-        onHelp={live.sendHelp}
-        // Replays come from the agent in the premium voice, and only while the
-        // learner holds the floor — a replay must not talk over the tutor.
-        onHearLine={!live.tutorSpeaking && !typing ? live.sendHear : undefined}
-        // Saying it aloud is still the product, and the cards are still
-        // read-along support while the learner has a voice to use. But a
-        // carriage full of strangers is not a reason to finish a lesson having
-        // said nothing: a tap is an answer, graded like any other, and counted
-        // as an utterance nobody heard rather than one that went well.
-        onOptionPress={live.sendChoice}
-        onType={typing ? live.sendSay : undefined}
-        onSwitchToType={!typing ? goQuiet : undefined}
-        // Typing is presence, and the typed lesson is the one surface that
-        // never sent it: the agent counted the silence and rescued a learner
-        // who was mid-sentence. Throttled inside the hook.
-        onTyping={typing ? live.sendTyping : undefined}
+      <C2LiveRoom tutorName={tutorName} description={lesson.title} state={live.reconnecting ? 'connecting' : live.thinking ? 'thinking' : live.tutorSpeaking ? 'speaking' : live.micOpen ? 'listening' : 'ready'}
+        caption={caption} turns={live.turns} tutorSpeaking={live.tutorSpeaking} partialTranscript={live.partialTranscript}
+        typing={typing} startedWithSpeech={!textMode} ready={!live.reconnecting} modePending={modePending} active={roomFocused}
+        transcriptVisible={transcriptVisible} onTranscriptVisibility={setTranscriptVisible} draft={draft}
+        onDraft={text => { setDraft(text); live.sendTyping(); }} onSend={sendDraft} canSend={!live.tutorSpeaking && !live.thinking}
+        onModeChange={next => void changeInput(next)} onMic={() => void (live.micOpen ? live.pauseMic() : live.openMic())} micOpen={live.micOpen}
+        onEnd={() => setConfirming(true)} notice={live.feedback?.message}
+        top={<>{live.audioBlocked ? <IconAction icon="speaker" label={`Listen to ${tutorName}`} onPress={live.resumeAudio} /> : null}
+          {safety.kind === 'redirect' ? <SafetyBanner surface={safety} onDismiss={live.dismissSafety} /> : null}
+          <Text style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{rungLabel(prompt.directive.rung, tutorName)}, {prompt.position} of {prompt.total}</Text></>}
+        support={prompt.support.kind !== 'none' ? <SupportBlock support={prompt.support} onOptionPress={live.sendChoice}
+          onHearLine={!live.tutorSpeaking && !typing ? () => live.sendHear() : undefined} /> : undefined}
+        tools={<><IconAction icon="hint" label="Help me out" disabled={live.tutorSpeaking || live.thinking} onPress={live.sendHelp} />
+          {prompt.turn.note ? <Text style={type.small}>{prompt.turn.note}</Text> : null}</>}
       />
-      <ConfirmSheet
-        visible={confirming}
-        title={leaveCopy.title}
-        body={leaveCopy.body}
-        confirmLabel={leaveCopy.leave}
-        cancelLabel={leaveCopy.stay}
-        onConfirm={() => {
-          setConfirming(false);
-          setLeaving(true);
-        }}
-        onCancel={() => setConfirming(false)}
-      />
+      <ConfirmSheet visible={confirming} title={leaveCopy.title} body={leaveCopy.body} confirmLabel={leaveCopy.leave} cancelLabel={leaveCopy.stay}
+        onConfirm={() => { setConfirming(false); setLeaving(true); }} onCancel={() => setConfirming(false)} />
     </View>
-    </RoomLevels>
-  );
+  </RoomLevels>;
 }
 
 const st = StyleSheet.create({

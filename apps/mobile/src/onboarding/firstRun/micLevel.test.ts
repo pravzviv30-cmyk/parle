@@ -29,7 +29,12 @@ describe('the microphone meter', () => {
     // The replacement reads the same actual room tracks as the regular tutor.
     const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx');
     assert.match(recording, /<RoomLevels micTrack=\{live\.audioTracks\.mic\} tutorTrack=\{live\.audioTracks\.tutor\}/);
-    assert.match(recording, /<BoldVoiceOrb state=\{state\}/);
+    assert.match(recording, /<C2LiveRoom[\s\S]{0,600}state=\{state\}/);
+    assert.match(evidence('apps/mobile/src/live/C2LiveRoom.tsx'), /<BoldVoiceOrb state=\{state\}/);
+    const orb = evidence('apps/mobile/src/onboarding/BoldVoiceOrb.tsx');
+    assert.match(orb, /useOrbAudio\(\)/);
+    assert.match(orb, /<OrbPulse level=\{input \? audio\.input : output \? audio\.output : null\}/,
+      'the new blue sphere must retain actual room levels rather than a fabricated meter');
     assert.match(recording, /await live\.pauseMic\(\)/);
     const meter = evidence('apps/mobile/src/live/RoomLevels.tsx');
     assert.match(meter, /getFloatTimeDomainData/);

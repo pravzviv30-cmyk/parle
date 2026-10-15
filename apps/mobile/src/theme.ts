@@ -178,14 +178,26 @@ export const decorative: {
 export const frenchText: { lang?: string; accessibilityLanguage?: string } =
   Platform.OS === 'web' ? { lang: 'fr' } : { accessibilityLanguage: 'fr-FR' };
 
-/** C onboarding typography, using bundled Outfit cuts. */
+/** C2 typography, using bundled Outfit cuts and the approved Figma line heights. */
 export const boldType = {
   ...type,
-  display: { fontFamily: font.black, fontSize: 52, lineHeight: 56, letterSpacing: -0.7 },
-  title: { fontFamily: font.bold, fontSize: 36, lineHeight: 45, letterSpacing: -0.7 },
-  heading: { fontFamily: font.semiBold, fontSize: 22, lineHeight: 28 },
-  body: { fontFamily: font.regular, fontSize: 17, lineHeight: 21 },
-  small: { fontFamily: font.medium, fontSize: 13, lineHeight: 16 },
+  display: { fontFamily: font.extraBold, fontSize: 44, lineHeight: 48, letterSpacing: -0.7 },
+  title: { fontFamily: font.bold, fontSize: 30, lineHeight: 34, letterSpacing: -0.4 },
+  heading: { fontFamily: font.semiBold, fontSize: 22, lineHeight: 27 },
+  body: { fontFamily: font.regular, fontSize: 17, lineHeight: 23 },
+  small: { fontFamily: font.regular, fontSize: 13, lineHeight: 18 },
+  label: { fontFamily: font.medium, fontSize: 16, lineHeight: 21 },
+  choiceTitle: { fontFamily: font.semiBold, fontSize: 18, lineHeight: 24 },
+  tutorName: { fontFamily: font.semiBold, fontSize: 20, lineHeight: 26 },
+  tutorNameCompact: { fontFamily: font.semiBold, fontSize: 18, lineHeight: 24 },
+  tutorListen: { fontFamily: font.medium, fontSize: 14, lineHeight: 20 },
+  returningTitle: { fontFamily: font.bold, fontSize: 32, lineHeight: 36, letterSpacing: -0.4 },
+  celebration: { fontFamily: font.bold, fontSize: 46, lineHeight: 52, letterSpacing: -0.4 },
+  celebrationSupport: { fontFamily: font.regular, fontSize: 19, lineHeight: 25 },
+  achievement: { fontFamily: font.bold, fontSize: 36, lineHeight: 39, letterSpacing: -0.4 },
+  streakTitle: { fontFamily: font.extraBold, fontSize: 42, lineHeight: 44, letterSpacing: -0.7 },
+  streakCount: { fontFamily: font.semiBold, fontSize: 24, lineHeight: 28 },
+  streakBadge: { fontFamily: font.bold, fontSize: 52, lineHeight: 56 },
 } as const;
 
 /** Provider-approved lettering uses the platform sans face. */

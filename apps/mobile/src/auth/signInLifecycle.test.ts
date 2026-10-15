@@ -19,6 +19,7 @@ function form() {
     looksLikeEmail: () => true, friendly: () => 'Try again.',
     setEmailError: (value: unknown) => states.push(value), setFormMessage: (value: unknown) => states.push(value),
     setProviderMessage: (value: unknown) => states.push(value), Keyboard: { dismiss: () => {} },
+    setMode: (value: unknown) => states.push(value), passwordRef: { current: { focus: () => {} } },
     setFormOk: (value: unknown) => states.push(value), setPending: (value: unknown) => states.push(value),
     adapter: { signInWithPassword: () => adapterCall('submit'), signInWithGoogle: () => adapterCall('google'),
       signInWithApple: () => adapterCall('apple'), sendPasswordReset: () => adapterCall('forgot') } };

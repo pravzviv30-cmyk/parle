@@ -20,13 +20,16 @@
  * reads the window for itself.
  */
 
-import { Illustration } from '../art/flat/Illustration.tsx';
+import { BoldVoiceOrb } from '../onboarding/BoldVoiceOrb.tsx';
+import { Transcript } from '../tutor/Transcript.tsx';
+import type { TurnLine } from './turns.ts';
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { openPhoneSettings } from '../settings/phoneSettings.ts';
-import { paper, space, type, HIT } from '../theme.ts';
+import { paper, space, boldType as type, HIT } from '../theme.ts';
 import { Screen } from '../layout.tsx';
-import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
+import { IconAction, Card, Label, PillButton, OutlineButton, Press } from '../components.tsx';
+import { c } from '../onboarding/boldRhythm.ts';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
 
@@ -56,6 +59,10 @@ export function LiveErrorView({
   typedRestartLabel = 'Start a typed conversation',
   onBack,
   onType,
+  turns = [],
+  tutorName = 'Your tutor',
+  transcriptVisible = true,
+  onTranscriptVisibility,
 }: {
   failure: LiveFailure;
   message: string;
@@ -82,6 +89,10 @@ export function LiveErrorView({
    * the offer is real.
    */
   onType: (() => void) | null;
+  turns?: readonly TurnLine[];
+  tutorName?: string;
+  transcriptVisible?: boolean;
+  onTranscriptVisibility?: (visible: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [settingsHelp, setSettingsHelp] = useState(false);
@@ -91,14 +102,23 @@ export function LiveErrorView({
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={st.center} keyboardShouldPersistTaps="handled">
-        <Illustration name={failure.startsWith('mic-') ? 'state-microphone' : 'state-offline'} fit="small" />
-        <Label color={paper.inkSoft}>{copy.label}</Label>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>Let’s get you back to French</Text>
+        <Text accessibilityRole="header" style={[type.heading, { color: paper.ink, textAlign: 'center', marginBottom: 8 }]}>{tutorName === 'Your tutor' ? tutorName : `${tutorName}, your tutor`}</Text>
+        <BoldVoiceOrb state="error" size={112} />
+        <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: 8 }]}>{copy.label}</Text>
         {/* The sentence is the point of this screen, so it reads at body size in
             full ink rather than in the soft grey a caption gets. Words clear
             4.5 against the ground, and a line somebody is meant to act on is
             not a caption (F330). */}
         <Text style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
+        {turns.length > 0 && <>
+          {onTranscriptVisibility && <Press accessibilityRole="button" accessibilityLabel={transcriptVisible ? 'Hide transcript' : 'Show transcript'}
+            accessibilityState={{ expanded: transcriptVisible }} aria-expanded={transcriptVisible} onPress={() => onTranscriptVisibility(!transcriptVisible)}
+            style={{ minHeight: HIT, justifyContent: 'center', alignItems: 'center' }}><Text style={[type.label, { color: c.violet }]}>{transcriptVisible ? 'Hide transcript' : 'Show transcript'}</Text></Press>}
+          <View style={{ height: transcriptVisible ? 230 : 0, overflow: 'hidden', opacity: transcriptVisible ? 1 : 0, alignSelf: 'stretch', marginTop: 16 }}
+            accessibilityElementsHidden={!transcriptVisible} aria-hidden={!transcriptVisible} importantForAccessibility={transcriptVisible ? 'auto' : 'no-hide-descendants'}>
+          <Transcript turns={turns} tutorName={tutorName} tutorSpeaking={false} />
+          </View>
+        </>}
         {settlementMessage ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{settlementMessage}</Text> : null}
 
         {canType ? (
@@ -164,7 +184,7 @@ export function LiveErrorView({
 }
 
 const st = StyleSheet.create({
-  center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', maxWidth: 760, alignSelf: 'center', paddingHorizontal: space(8), paddingVertical: space(6) },
+  center: { flexGrow: 1, width: '100%', alignItems: 'center', maxWidth: 560, alignSelf: 'center', paddingHorizontal: 24, paddingVertical: 20 },
   action: { marginTop: space(6), alignSelf: 'stretch' },
   secondary: { marginTop: space(2), alignSelf: 'stretch' },
   diagnostics: { marginTop: space(7), alignSelf: 'stretch' },

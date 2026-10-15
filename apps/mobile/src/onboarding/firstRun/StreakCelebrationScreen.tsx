@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState, type Ref, type ReactNode } from 'reac
 import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Reanimated, { interpolate, Extrapolation, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import type { DayKey } from '@luvani/core';
-import { BoldScene } from '../motion/BoldScene.tsx';
+import { C2Flame, C2StreakArt } from '../C2Visuals.tsx';
 import { BoldButton } from '../BoldButton.tsx';
 import { c, boldType } from '../boldRhythm.ts';
 import { IconButton, PillButton, Press } from '../../components.tsx';
@@ -28,6 +28,7 @@ const STREAK_FRAME = { hideProgress: true, ground: palette.ground };
 // A moment exists only after a durable, fresh qualifying finish. Keeping the
 // receipt across mounts also protects React's effect replay and back navigation.
 const receipts = createEntranceReceipts();
+const C2_DAY_DIAMETER = space(9);
 
 
 export function StreakCelebrationScreen({ streak, today, moment, onBack, onContinue, onReminder, active = true, notice, headingRef, progress = STREAK_PROGRESS, design }: {
@@ -56,6 +57,7 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   const [foreground, setForeground] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const fontScale = useFontScale();
   const compact = useCompactPhone();
+  const [artWidth, setArtWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [flameReady, setFlameReady] = useState<boolean | null>(design === 'bold-rhythm' ? true : null);
   const onFlameReady = useCallback((canAnimate: boolean) => setFlameReady(canAnimate), []);
@@ -112,22 +114,25 @@ export function StreakCelebrationScreen({ streak, today, moment, onBack, onConti
   if (design === 'bold-rhythm') return <ScrollScreen ground={c.violet} topGap={24}
     onViewportLayout={event => setViewportHeight(event.nativeEvent.layout.height)}
     footer={<View style={[readingColumn, { gap: 8 }]}>
-      <BoldButton label="Keep going" onPress={onContinue} />
+      <BoldButton tone="sun" label="Keep going" onPress={onContinue} />
       {onReminder && <Press accessibilityRole="button" onPress={onReminder} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[boldType.label, { color: c.white, textAlign: 'center' }]}>Remind me tomorrow</Text></Press>}
     </View>}>
-    <View style={[readingColumn, { gap: 16, alignItems: 'center' }]}>
-      <Text ref={headingRef} accessibilityRole="header" style={[boldType.display, { color: c.white, textAlign: 'center' }]}>{model?.headline ?? 'Your next chapter starts here.'}</Text>
-      <Text style={[boldType.body, { color: c.white, textAlign: 'center' }]}>{model?.encouragement ?? 'Finish a practice to start your streak.'}</Text>
-      <BoldScene kind="streak" width={256} active={active && foreground} />
-      {model !== null && <View style={{ width: '100%', backgroundColor: c.paper, borderRadius: 12, padding: 20, gap: 16 }}>
-        <Text style={[boldType.title, { color: c.ink, textAlign: 'center' }]}>{model.countLabel}</Text>
+    <View style={[readingColumn, { gap: 12, alignItems: 'center' }]}>
+      <Text ref={headingRef} accessibilityRole="header" style={[boldType.streakTitle, { color: c.white, textAlign: 'center' }]}>{model?.headline.replace('Your streak ', 'Your streak\n') ?? 'Your next chapter\nstarts here.'}</Text>
+      <View style={{ width: '100%', aspectRatio: 342 / 216 }} onLayout={event => setArtWidth(event.nativeEvent.layout.width)}>
+        {artWidth > 0 && (model !== null ? <C2StreakArt width={artWidth} dayCount={model.current} active={active && foreground} /> : <C2Flame size={artWidth * 0.4} active={false} />)}
+      </View>
+      {model !== null && <View style={{ width: '100%', backgroundColor: c.paper, borderRadius: 24, padding: 18, gap: 12 }}>
+        <Text style={[boldType.heading, { color: c.ink, textAlign: 'center' }]}>{model.countLabel}{model.current === 1 ? '. A brilliant beginning.' : '.'}</Text>
         <View style={{ flexDirection: 'row', gap: 4 }}>
           {model.week.map(day => <View key={day.day} accessible accessibilityLabel={day.accessibilityLabel} style={{ flex: 1, alignItems: 'center', gap: 8 }}>
             <Text style={[boldType.small, { color: c.muted }]}>{day.label}</Text>
-            <Text style={[boldType.label, { color: c.ink }]}>{day.completed ? '✓' : '○'}</Text>
+            <View style={{ width: C2_DAY_DIAMETER, height: C2_DAY_DIAMETER, borderRadius: C2_DAY_DIAMETER / 2, backgroundColor: day.completed ? c.sun : c.sand, alignItems: 'center', justifyContent: 'center' }}><Text style={[boldType.label, { color: c.ink }]}>{day.completed ? '✓' : ''}</Text></View>
           </View>)}
         </View>
+        <Text style={[boldType.small, { color: c.muted, textAlign: 'center' }]}>{model.summary}</Text>
       </View>}
+      <Text style={[boldType.body, { color: c.white, textAlign: 'center' }]}>{model?.encouragement ?? 'Finish a practice to start your streak.'}</Text>
       {!!notice && <Text accessibilityLiveRegion="polite" style={[boldType.small, { color: c.white }]}>{notice}</Text>}
     </View>
   </ScrollScreen>;

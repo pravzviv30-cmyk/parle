@@ -3,7 +3,12 @@ import { FirstLivePractice } from './FirstLivePractice.tsx';
 import { FirstSessionCelebration, FirstSessionSummary } from './FirstSessionResult.tsx';
 import { guestPracticeDays } from './guestModel.ts';
 import { dayKeyOf, tutorSampleLine } from '@luvani/core';
-import { STARTER_AI, STARTER_PROCESSING, STARTER_LOCAL } from './disclosure.ts';
+import { STARTER_AI, STARTER_LOCAL } from './disclosure.ts';
+import { TermsAcceptance } from '../legal/TermsAcceptance.tsx';
+import { TermsScreen } from '../legal/TermsScreen.tsx';
+import { C2GoalArt } from './C2Visuals.tsx';
+import { C2QuestionHero } from './C2QuestionHero.tsx';
+import type { C2QuestionPage } from './c2QuestionScenes.ts';
 /** Personal answers lead into one live session; recorded results drive the summary and account handoff. */
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, AppState, BackHandler, type ScrollView as ScrollViewHandle, Text, View, Platform, findNodeHandle } from 'react-native';
@@ -24,7 +29,7 @@ import { paper, radius, space } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
 import { BoldButton } from './BoldButton.tsx';
 import { BoldChoice } from './BoldChoice.tsx';
-import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS } from './boldChoices.ts';
+import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS, boldChoiceTone } from './boldChoices.ts';
 import { BoldScene } from './motion/BoldScene.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
@@ -75,6 +80,7 @@ type Surface =
   | 'start'
   | 'privacy'
   | 'policy'
+  | 'terms'
   | null;
 const goals = [...REASONS].sort(
   (a, b) =>
@@ -107,7 +113,7 @@ export function PreAccountOnboarding({
   initialDraft: PreAccountOnboardingDraft | null;
   onDraftChange: (draft: PreAccountOnboardingDraft) => void;
   onCreateAccount: (draft: PreAccountOnboardingDraft) => void | Promise<boolean>;
-  onSignIn: () => void;
+  onSignIn: (draft: PreAccountOnboardingDraft) => void;
   refused?: boolean;
   onRefuse?: () => void;
   signedIn?: boolean;
@@ -143,13 +149,15 @@ export function PreAccountOnboarding({
   useLaunchHold(!loaded);
   const [busy, setBusy] = useState(false);
   const [issue, setIssue] = useState('');
+  const [needsAccount, setNeedsAccount] = useState(false);
   const [storageNote, setStorageNote] = useState('');
-  const [remember, setRemember] = useState(draft.rememberLearning === true);
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const current = useRef(true);
   const operation = useRef(false);
   const generation = useRef(0);
+  const refusedRef = useRef(refused);
+  refusedRef.current = refused;
   const heading = useRef<Text>(null);
   const scroll = useRef<ScrollViewHandle>(null);
   const offsets = useRef<Record<string, number>>({});
@@ -181,10 +189,23 @@ export function PreAccountOnboarding({
     player.pause();
     preview.stop();
   };
+  useEffect(() => {
+    if (!refused) return;
+    generation.current++;
+    stopSound();
+    if (draftRef.current.reminderEnabled === true) void cancelReminder();
+    void clearGuestPractice();
+    if (signedIn) void clearSetupDraft();
+    setGuest(null);
+    const fresh = freshPreAccountDraft();
+    draftRef.current = fresh;
+    setDraft(fresh);
+  }, [refused]);
   const showPage = (next: PreAccountPage, backward = false) => {
     const completedSteps = backward ? (draftRef.current.onboardingCompletedSteps ?? [])
       : [...new Set([...(draftRef.current.onboardingCompletedSteps ?? []), page])];
     return pageMotion.transition(() => {
+      setSurface(null);
       setPage(next);
       const persisted = { ...draftRef.current, page: next, onboardingCompletedSteps: completedSteps };
       draftRef.current = persisted;
@@ -215,7 +236,6 @@ export function PreAccountOnboarding({
         const restored = { ...savedDraft, onboardingVariant: savedDraft.onboardingVariant ?? draftRef.current.onboardingVariant };
         setDraft(restored);
         draftRef.current = restored;
-        setRemember(restored.rememberLearning === true);
       }
       // A guest page needs its record, and day one and the save card a
       // finished practice on this phone (F754); otherwise an earlier page opens.
@@ -243,19 +263,27 @@ export function PreAccountOnboarding({
       animated: false,
     });
     const node = heading.current;
-    if (Platform.OS === 'web') (node as unknown as { focus?: () => void })?.focus?.();
+    if (Platform.OS === 'web') (node as unknown as { focus?: (options: { preventScroll: boolean }) => void })?.focus?.({ preventScroll: true });
     else {
       const handle = findNodeHandle(node);
       if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
     }
   }, [page, active]);
   const back = () => {
+    // Admission acquires this ref synchronously, before busy can rerender.
+    // Hardware Back must not dismiss consent while that request is settling.
+    if (operation.current || busy || pageMotion.locked.current) return;
     if (surface) {
-      setSurface(null);
+      if (surface === 'start') {
+        stopSound();
+        pageMotion.transition(() => setSurface(null), true);
+        return;
+      }
+      setSurface(['privacy', 'policy', 'terms'].includes(surface) ? 'start' : null);
       stopSound();
       return;
     }
-    if (busy || GUEST_PAGES.includes(page)) return;
+    if (GUEST_PAGES.includes(page)) return;
     if (page === 'choose-tutor') { go('plan', true); return; }
     const index = questionOrder.indexOf(page);
     if (index > 0) go(questionOrder[index - 1]!, true);
@@ -268,14 +296,19 @@ export function PreAccountOnboarding({
     });
     return () => sub.remove();
   }, [page, surface, busy]);
-  const choose = (change: Partial<PreAccountOnboardingDraft>) => { patch(change); };
+  const choose = (change: Partial<PreAccountOnboardingDraft>) => { if (!operation.current && !pageMotion.locked.current) patch(change); };
+  const toggleRemember = () => {
+    if (busy || operation.current || pageMotion.locked.current) return;
+    choose({ rememberLearning: draftRef.current.rememberLearning !== true });
+  };
   const open = (next: Surface) => {
     if (pageMotion.locked.current || operation.current) return;
     stopSound();
     setEdit(draft);
     setPlanField(null);
-    setSurface(next);
-    setIssue('');
+    const reveal = () => { setSurface(next); setIssue(''); };
+    if (next === 'start') pageMotion.transition(reveal);
+    else reveal();
   };
   const hear = (asset: number | undefined, replace = false) => {
     if (playing && !replace) {
@@ -334,35 +367,68 @@ export function PreAccountOnboarding({
     playSfx('select');
     tapSettled();
   };
+  const continueWithAccount = async (basis = draftRef.current) => {
+    if (operation.current || pageMotion.locked.current || refused || previewOnly || !basis.eligibilityConfirmed) return;
+    operation.current = true; setBusy(true); stopSound();
+    const ticket = generation.current;
+    const owner = scopeGeneration();
+    try {
+      const saved = await onCreateAccount({ ...basis, page: 'choose-tutor' });
+      if (owner !== scopeGeneration()) return;
+      // Successful profile setup may unmount this screen before returning.
+      // Clear only its captured account's setup draft after that durable save.
+      if (saved !== false && signedIn) await clearSetupDraft();
+      if (!current.current || ticket !== generation.current || owner !== scopeGeneration()) return;
+      if (saved === false) setIssue('Your plan could not be saved. Your choices are still here. Try again.');
+    } catch {
+      if (current.current && ticket === generation.current && owner === scopeGeneration()) setIssue('Your plan could not be saved. Your choices are still here. Try again.');
+    } finally {
+      operation.current = false;
+      if (current.current && ticket === generation.current && owner === scopeGeneration()) setBusy(false);
+    }
+  };
   const start = async () => {
-    if (operation.current || !draft.eligibilityConfirmed || refused) return;
+    if (operation.current || refused) return;
     if (previewOnly) return;
     if (pageMotion.locked.current) return;
+    // The visible Terms notice is accepted only by this deliberate Start tap.
+    // Persist the declaration before invoking the existing eligible-only service.
+    const acceptedDraft = patch({ eligibilityConfirmed: true });
+    if (signedIn) { await continueWithAccount(acceptedDraft); return; }
     operation.current = true;
     setBusy(true);
+    setNeedsAccount(false);
     const ticket = generation.current;
     try {
       const same =
         guest &&
         guest.live?.outcome === 'active' &&
-        JSON.stringify(guest.live.brief) === JSON.stringify(briefFromDraft(draft));
+        JSON.stringify(guest.live.brief) === JSON.stringify(briefFromDraft(acceptedDraft));
       // A new practice keeps the days already finished on this phone (F751).
       const next = same && guest.live && guest.token && guest.expiresAt > Date.now()
-          ? { ...guest, plan: draft }
-          : await startGuestPractice(draft, guest);
-      if (!current.current || ticket !== generation.current) return;
+          ? { ...guest, plan: acceptedDraft }
+          : await startGuestPractice(acceptedDraft, guest);
+      if (!current.current || ticket !== generation.current || refusedRef.current) return;
       if (!(await persist(next))) {
         setIssue('Your practice could not be saved. Try again before starting.');
         return;
       }
       if (!current.current || ticket !== generation.current) return;
       metric('practice_started', 'none', next);
-      setSurface(null);
       showPage('practice');
       setIssue('');
 
     } catch (error) {
       if (current.current && ticket === generation.current) {
+        if (error instanceof Error && error.message === 'guest-live-unavailable') {
+          setNeedsAccount(true);
+          setIssue('Create an account to start live practice. Your plan and chosen tutor are ready.');
+          return;
+        }
+        if (error instanceof Error && error.message === 'voice-unavailable') {
+          setIssue('Speaking is unavailable right now. Try again later.');
+          return;
+        }
         setIssue(
           error instanceof Error && error.message === 'limit'
             ? 'Your guest practice is already in use or finished. Please try connecting again.'
@@ -419,8 +485,8 @@ export function PreAccountOnboarding({
   const suggested = suggestedMinutes(draft);
   const drinksWrap = useFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
-  const ground = blue && !refused ? c.violet : c.paper;
-  const ink = blue && !refused ? c.white : c.ink;
+  const ground = refused ? c.paper : page === 'plan' ? c.violet : blue ? c.peach : c.paper;
+  const ink = page === 'plan' && !refused ? c.white : c.ink;
   const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])] });
   const reasonGrid = !drinksWrap;
   const goalGrid = !drinksWrap;
@@ -428,12 +494,12 @@ export function PreAccountOnboarding({
   const closeSheet = () => {
     if (busy) return false;
     stopSound();
-    setSurface(null);
+    setSurface(['privacy', 'policy', 'terms'].includes(surface ?? '') ? 'start' : null);
     return true;
   };
   const title = refused
     ? 'Luvani is for learners thirteen and up.'
-    : (BOLD_QUESTIONS[page]?.title ?? (page === 'choose-tutor' ? 'Find your\nFrench voice.' : headingFor(page)) ??
+    : (BOLD_QUESTIONS[page]?.title ?? (page === 'choose-tutor' ? 'Meet your tutor' : blue ? 'A little French.\nA bigger world.' : headingFor(page)) ??
       (page === 'plan'
         ? 'Your French,\nyour way.'
         : page === 'keep' ? 'Your saved practice is ready.' : 'Your first conversation'));
@@ -445,24 +511,25 @@ export function PreAccountOnboarding({
     );
   const footer = refused ? (
     signedIn ? (
-      <GhostButton label="Sign out" onPress={onSignIn} />
+      <GhostButton label="Sign out" onPress={() => onSignIn(draftRef.current)} />
     ) : null
   ) : blue ? (
     <View style={[readingColumn, { gap: space(2) }]}>
       <BoldButton label="Start your personal plan" onPress={() => go('reason')} />
-      {!signedIn && <Press accessibilityLabel="I already have an account" onPress={onSignIn} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[type.label, { color: c.white, textAlign: 'center' }]}>I already have an account</Text></Press>}
+      {!signedIn && <Press accessibilityLabel="I already have an account" onPress={() => onSignIn(draftRef.current)} style={{ minHeight: 48, justifyContent: 'center' }}><Text style={[type.label, { color: c.violet, textAlign: 'center' }]}>I already have an account</Text></Press>}
     </View>
   ) : question ? (
     <View style={readingColumn}>
-      <NextButton bold disabled={answer == null} label={nextSetupLabel(page, five)} key={page} onPress={nextQuestion} onDisabledPress={() => { if (!reduced) soft(); setChoiceNudge(v => ({ page, event: v.event + 1 })); }} />
-      {choiceNudge.page === page && answer == null && <Text key={choiceNudge.event} accessibilityLiveRegion="polite" style={[type.small, { color: ink, textAlign: 'center' }]}>Choose one to continue.</Text>}
+      <NextButton bold disabled={answer == null} label={nextSetupLabel(page, five)} key={page} onPress={nextQuestion}
+        disabledHint="Choose one to continue." showDisabledHint={choiceNudge.page === page && answer == null}
+        onDisabledPress={() => { if (!reduced) soft(); setChoiceNudge(v => ({ page, event: v.event + 1 })); }} />
     </View>
   ) : page === 'plan' ? (
     <View style={readingColumn}>
-      <BoldButton label="Choose your tutor" onPress={() => go('choose-tutor')} />
+      <BoldButton tone="sun" label="Choose your tutor" onPress={() => go('choose-tutor')} /><Press accessibilityLabel="Adjust my plan" onPress={() => open('plan')} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={[type.label, { color: c.white, textAlign: 'center' }]}>Adjust my plan</Text></Press>
     </View>
   ) : page === 'choose-tutor' ? (
-    <View style={[readingColumn, { gap: space(2) }]}><Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{draft.tutorChosen ? `Selected: ${tutorName}.` : 'Choose a tutor to continue.'}</Text><BoldButton label="Start your first practice" disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
+    <View style={readingColumn}><BoldButton label={draft.tutorChosen ? `Practise with ${tutorName}` : 'Choose a tutor'} disabled={draft.tutorChosen !== true || busy} onPress={() => open('start')} /></View>
   ) : page === 'keep' ? (
     <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
   ) : null;
@@ -493,23 +560,38 @@ export function PreAccountOnboarding({
         />
         <GhostButton label="Cancel" onPress={closeSheet} />
       </View>
-    ) : surface === 'start' ? (
-      <View style={{ gap: space(2), paddingTop: space(3) }}>
-        {previewOnly && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>Practice is unavailable in this screen preview. Your age selection can be tested here; a real session starts in the main app.</Text>}
-        <MorphButton
-          label="Start practice"
-          busyLabel={FIRST_RUN_COPY.connecting}
-          doneLabel={FIRST_RUN_COPY.connected}
-          state={busy ? 'busy' : 'idle'}
-          disabled={!draft.eligibilityConfirmed || previewOnly}
-          onPress={() => void start()}
-        />
-
-      </View>
     ) : undefined;
+  const consentVisible = !refused && ['start', 'privacy', 'policy', 'terms'].includes(surface ?? '');
+  const consentBody = (
+          <>
+            <View style={{ backgroundColor: c.lavender, borderRadius: 20, padding: 18, gap: 8 }}><Text style={[type.heading, { color: c.ink }]}>{STARTER_AI.replace(/\.$/, '')}</Text><Text style={[type.body, { color: c.ink }]}>It can help you practise, and it can make mistakes.</Text></View>
+            <Text style={[type.small, { color: c.muted }]}>{STARTER_LOCAL}</Text>
+            <IconAction icon="privacy" layout="inline" label="Privacy details" onPress={() => setSurface('privacy')} />
+            <Text style={[type.label, { color: c.muted }]}>Optional, off by default</Text>
+            <BoldChoice multiple title="Share usage analytics" detail="Help improve Luvani. Your words and audio are excluded." selected={draft.analyticsConsent}
+              onPress={() => choose({ analyticsConsent: !draft.analyticsConsent })} />
+            <BoldChoice multiple title="Remember my learning" detail="Use learning memory for future practice" selected={draft.rememberLearning === true}
+              onPress={toggleRemember} />
+            {issue !== '' ? (
+              <>
+                <Text accessibilityLiveRegion="polite" style={type.body}>
+                  {issue}
+                </Text>
+                <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />
+                {needsAccount && !signedIn && <GhostButton label="I already have an account" disabled={busy} onPress={() => onSignIn(draftRef.current)} />}
+              </>
+            ) : null}
+          </>
+  );
   return (
     <>
-      {page === 'practice' && guest?.live ? <FirstLivePractice guest={guest} progress={progress} active={active && surface === null}
+      <Animated.View style={[{ flex: 1, minHeight: 0 }, pageMotion.style]}>
+      {consentVisible ? <OnboardingLayout page="before-practice" showScrollCue active={active} progress={{ ...progress, stageFraction: (1 + 2 / 3) / 4 }} footer={<View style={{ gap: 8 }}>
+        <TermsAcceptance context="practice" onTerms={() => { if (!busy) setSurface('terms'); }} onPrivacy={() => { if (!busy) setSurface('policy'); }} />
+        <BoldButton label={needsAccount ? 'Create account to start' : 'Start live practice'} state={busy ? 'busy' : 'idle'} disabled={busy || previewOnly} onPress={() => void (needsAccount ? continueWithAccount() : start())} />
+        {previewOnly && <Text style={[type.small, { color: c.muted }]}>Practice is unavailable in this screen preview.</Text>}
+      </View>}><View style={{ gap: 18 }}><Text ref={heading} accessibilityRole="header" style={[type.title, { color: c.ink, textAlign: 'center' }]}>Before we start.</Text><Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>A few things to know about your practice.</Text>{consentBody}</View></OnboardingLayout>
+      : !refused && page === 'practice' && guest?.live ? <FirstLivePractice guest={guest} progress={progress} active={active && surface === null}
         onSafetyExit={() => showPage('plan')} onFinished={next => { setGuest(next); showPage(next.live?.outcome === 'completed' ? 'recap' : 'keep'); }} />
       : page === 'recap' && guest?.live ? <FirstSessionCelebration record={guest.live} progress={progress} onDone={() => showPage('keep')} />
       : page === 'keep' && guest?.live ? <FirstSessionSummary record={guest.live} progress={progress} busy={busy} issue={issue || storageNote} onSave={() => void saveAccount()} />
@@ -522,16 +604,17 @@ export function PreAccountOnboarding({
         avoidKeyboard
         scrollRef={scroll}
         onScroll={(e) => { offsets.current[page] = e.nativeEvent.contentOffset.y; }}
+        hero={question && !refused ? <C2QuestionHero page={page as C2QuestionPage} active={active && surface === null} /> : undefined}
         footer={footer}
       >
-        <View style={[readingColumn, { paddingTop: blue ? 38 : 0, paddingBottom: 16 }]}>
-          <Animated.View style={[{ gap: compact ? 12 : 16 }, pageMotion.style]}>
+        <View style={[readingColumn, { paddingBottom: question && !refused ? 0 : 16, ...(question && !refused ? { paddingTop: 8 } : null) }]}>
+          <View style={{ gap: compact ? 12 : 16 }}>
 
             {<Text
               ref={heading}
               {...(Platform.OS === 'web' ? ({ tabIndex: -1 } as object) : {})}
               accessibilityRole="header"
-              style={[blue ? type.display : type.title, { color: ink, textAlign: 'center' }]}
+              style={[blue || page === 'plan' ? type.display : type.title, { color: ink, textAlign: 'center' }]}
               nativeID={`onboarding-${page}-heading`}
             >
               {title}
@@ -544,27 +627,29 @@ export function PreAccountOnboarding({
             ) : (
               <>
                 {blue && <>
-                  <BoldScene kind="welcome" width={280} active={active} />
-                  <Text style={[type.heading, { color: ink, textAlign: 'center' }]}>Real conversations. Your own words.</Text>
+                  <Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>Real conversations, from your very first try.</Text>
+                  <BoldScene kind="welcome" width={315} active={active} />
+                  <View style={{ backgroundColor: c.paper, borderRadius: 20, padding: 18, gap: 8 }}>
+                    <Text style={[type.heading, { color: c.ink }]}>Un café, s’il vous plaît.</Text>
+                    <Text style={[type.body, { color: c.ink }]}>A few words can take you somewhere.</Text>
+                  </View>
                 </>}
                 {question && <>
                   <Text style={[type.body, { color: c.muted, textAlign: 'center' }]}>{BOLD_QUESTIONS[page]?.detail}</Text>
-                  {page === 'confidence' && <BoldScene kind="confidence" width={185} active={active} />}
-                  {page === 'focus' && <BoldScene kind="focus" width={185} active={active} />}
                   <View accessibilityRole={page === 'interests' ? undefined : 'radiogroup'} style={{ gap: 8 }}>
-                    {page === 'reason' && BOLD_GOALS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.detail} selected={draft.reason === v.key} onPress={() => choose({ reason: v.key })} />)}
-                    {page === 'interests' && INTERESTS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.detail} multiple selected={draft.interests?.includes(v.key) ?? false}
+                    {page === 'reason' && BOLD_GOALS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.detail} art={<C2GoalArt goal={v.key} size={48} />} selected={draft.reason === v.key} onPress={() => choose({ reason: v.key })} />)}
+                    {page === 'interests' && INTERESTS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.detail} multiple selected={draft.interests?.includes(v.key) ?? false}
                       onPress={() => choose({ interests: draft.interests?.includes(v.key) ? draft.interests.filter(i => i !== v.key) : [...(draft.interests ?? []), v.key] })} />)}
-                    {page === 'start-level' && START_LEVELS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose({ startLevel: v.key })} />)}
-                    {page === 'confidence' && CONFIDENCE_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={draft.speakingConfidence === v.key} onPress={() => choose({ speakingConfidence: v.key })} />)}
-                    {page === 'focus' && FOCUS_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={draft.practiceFocus === v.key} onPress={() => choose({ practiceFocus: v.key })} />)}
-                    {page === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BoldChoice key={minutes}
+                    {page === 'start-level' && START_LEVELS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={draft.startLevel === v.key} onPress={() => choose({ startLevel: v.key })} />)}
+                    {page === 'confidence' && CONFIDENCE_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={draft.speakingConfidence === v.key} onPress={() => choose({ speakingConfidence: v.key })} />)}
+                    {page === 'focus' && FOCUS_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={draft.practiceFocus === v.key} onPress={() => choose({ practiceFocus: v.key })} />)}
+                    {page === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BoldChoice key={minutes} tone={boldChoiceTone(index)}
                       title={minutes === 'none' ? 'Choose each time' : `${minutes} minutes`}
                       detail={['A small start', 'Room for a conversation', 'A little more depth', 'Make a daily ritual', 'No fixed daily goal'][index]}
                       selected={draft.minutes === minutes} onPress={() => choose({ minutes })} />)}
                   </View>
                 </>}
-                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active} onEdit={() => open('plan')} />}
+                {page === 'plan' && <PersonalPlan draft={draft} compact={compact} active={active && surface === null} onEdit={() => open('plan')} />}
                 {page === 'choose-tutor' && <TutorSelection
                   chosen={draft.tutorChosen ? draft.tutorVoice : null}
                   preview={preview}
@@ -585,14 +670,15 @@ export function PreAccountOnboarding({
                 {storageNote}
               </Text>
             ) : null}
-          </Animated.View>
+          </View>
         </View>
       </OnboardingLayout>
       )}
+      </Animated.View>
       <Sheet
         reading
         returnFocus={heading}
-        visible={surface !== null}
+        visible={surface !== null && surface !== 'start'}
         title={
           surface === 'plan'
             ? planField
@@ -602,7 +688,7 @@ export function PreAccountOnboarding({
               ? 'Choose tutor'
               : surface === 'start'
                 ? 'Start your practice'
-                : surface === 'policy' ? POLICY_TITLE : 'Your practice and privacy'
+                : surface === 'terms' ? 'Terms of Use' : surface === 'policy' ? POLICY_TITLE : 'Your practice and privacy'
         }
         onClose={closeSheet}
         footer={sheetFooter}
@@ -639,12 +725,12 @@ export function PreAccountOnboarding({
               </>
             ) : (
               <>
-                {planField === 'reason' && BOLD_GOALS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
-                {planField === 'interests' && INTERESTS.map(v => <BoldChoice key={v.key} title={v.title} multiple selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
-                {planField === 'start-level' && START_LEVELS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
-                {planField === 'confidence' && CONFIDENCE_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
-                {planField === 'focus' && FOCUS_OPTIONS.map(v => <BoldChoice key={v.key} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
-                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map(minutes => <BoldChoice key={minutes} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
+                {planField === 'reason' && BOLD_GOALS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
+                {planField === 'interests' && INTERESTS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} multiple selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
+                {planField === 'start-level' && START_LEVELS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
+                {planField === 'confidence' && CONFIDENCE_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
+                {planField === 'focus' && FOCUS_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
+                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BoldChoice key={minutes} tone={boldChoiceTone(index)} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
 
               </>
             )}
@@ -683,60 +769,7 @@ export function PreAccountOnboarding({
             ))}
           </>
         )}
-        {surface === 'start' && (
-          <>
-            <ConsentFacts ai={STARTER_AI} processing={STARTER_PROCESSING} local={STARTER_LOCAL} />
-            <IconAction icon="privacy" layout="inline" label="Privacy details" onPress={() => setSurface('privacy')} />
-            <Choice
-              ground={paper.ground}
-              title="I am 13 or older"
-              selected={draft.eligibilityConfirmed === true}
-              onPress={() => choose({ eligibilityConfirmed: true })}
-            />
-            <GhostButton
-              label="I am younger than that"
-              onPress={() => {
-                stopSound();
-                // A reminder set on day one goes with the plan it belongs to.
-                if (draftRef.current.reminderEnabled === true) void cancelReminder();
-                void clearGuestPractice();
-                if (signedIn) void clearSetupDraft();
-                onRefuse?.();
-                generation.current++;
-                setSurface(null);
-                setGuest(null);
-                const fresh = freshPreAccountDraft();
-                draftRef.current = fresh;
-                setDraft(fresh);
-              }}
-            />
-            <SwitchRow
-              title="Optional usage data"
-              sub="Help improve the app. Your words and audio are excluded."
-              value={draft.analyticsConsent}
-              accessibilityLabel="Optional usage data"
-              onChange={(value) => patch({ analyticsConsent: value })}
-            />
-            <SwitchRow
-              title="Remember my learning"
-              sub="Let the tutor keep learning notes after you create an account."
-              accessibilityLabel="Remember my learning"
-              value={remember}
-              onChange={(value) => {
-                setRemember(value);
-                patch({ rememberLearning: value });
-              }}
-            />
-            {issue !== '' ? (
-              <>
-                <Text accessibilityLiveRegion="polite" style={type.body}>
-                  {issue}
-                </Text>
-                <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => void start()} />
-              </>
-            ) : null}
-          </>
-        )}
+        {surface === 'terms' && <TermsScreen onBack={() => setSurface('start')} />}
         {surface === 'privacy' && (
           <>
             <Text style={type.body}>

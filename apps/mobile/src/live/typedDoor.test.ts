@@ -190,7 +190,9 @@ describe('the quiet door, taken where the learner is standing — F201', () => {
       1,
       'something else on the conversation flips the session mode, which is what restarts the session',
     );
-    assert.match(convo, /IconAction layout="inline" icon="keyboard" label=\{QUIET_DOOR\} onPress=\{goQuiet\}/, 'the choosing screen has its own door again');
+    assert.equal((convo.match(/onModeChange=\{next => void changeInput\(next\)\}/g) ?? []).length, 2, 'both room modes must use the same in-room input switch');
+    assert.match(convo, /if \(nextTyping\) \{ if \(await live\.pauseMic\(\)\) setTypingOpen\(true\); \}/, 'typing must pause the existing microphone');
+    assert.match(convo, /else if \(!openedTyped && await live\.openMic\(\)\) setTypingOpen\(false\);/, 'returning to speaking must reopen the same room microphone');
     assert.match(
       convo,
       /onType=\{!walkMode && typedDoorFor\(live\.status\.failure, \{ typing \}\) \? goQuiet : null\}/,

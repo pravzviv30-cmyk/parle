@@ -12,6 +12,10 @@ function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(path.join(dir, entry.name)) : entry.name.endsWith('.tsx') ? [path.join(dir, entry.name)] : []);
 }
 test('underlined text links remain only where words must stay: legal, billing, account, decline and leave', () => {
+  const accountFallback = allowed.filter(row => row.file === 'onboarding/PreAccountOnboarding.tsx' && row.label === '"I already have an account"');
+  assert.equal(accountFallback.length, 1, 'only the deliberate account detour is added to the exact link manifest');
+  const onboarding = readFileSync(path.join(root, 'onboarding/PreAccountOnboarding.tsx'), 'utf8');
+  assert.match(onboarding, /needsAccount && !signedIn && <GhostButton label="I already have an account" disabled=\{busy\} onPress=\{\(\) => onSignIn\(draftRef\.current\)\} \/>/, 'the account link is limited to a refused guest admission and passes the current answered plan');
   const permitted = new Map<string, number>();
   for (const row of allowed) permitted.set(key(row.file, row.label), (permitted.get(key(row.file, row.label)) ?? 0) + 1);
   let ghosts = 0;

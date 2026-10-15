@@ -13,7 +13,7 @@ for (const screen of ['SignInScreen.tsx', 'SignUpScreen.tsx']) {
       let calls = 0;
       const requestRunning = { current: false };
       const bindings = {
-        busy: false, alive: { current: true }, requestRunning,
+        busy: false, alive: { current: true }, requestRunning, email: 'camille@example.com', onTermsAccepted: () => true,
         setProviderMessage: (value: string | null) => { providerMessage = value; },
         setFormMessage: (value: string | null) => { formMessage = value; },
         setPending: (value: string | null) => { pending = value; },
@@ -39,7 +39,7 @@ for (const screen of ['SignInScreen.tsx', 'SignUpScreen.tsx']) {
       assert.equal(providerMessage, null);
       assert.equal(calls, 2);
       const messagePosition = source.indexOf('{providerMessage != null &&');
-      assert.ok(messagePosition > source.indexOf('onPress={() => void google()}') && messagePosition < source.indexOf('<Field'));
+      assert.ok(messagePosition > source.indexOf('onPress={() => void google()}') && messagePosition > source.lastIndexOf('<Field'));
     });
   }
 }

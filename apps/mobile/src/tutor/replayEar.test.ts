@@ -127,30 +127,16 @@ describe('the ear on the tutor line — F372', () => {
   test('every tutor bubble is named, and both threads name the chosen tutor — F372', () => {
     const transcript = stripComments(read('./Transcript.tsx'));
 
-    // The name sits above the bubble, on the tutor's side only: the learner's
-    // own words on their own side need no label.
-    assert.match(
-      transcript,
-      /\{learner \? null : \(\s*<View style=\{st\.speaker\}>\s*<Label>\{tutorName\}<\/Label>/,
-      'the tutor bubbles are unnamed, or the learner side was given a name it does not need',
-    );
-
-    // Both call sites, and both with the chosen tutor rather than a constant.
-    // F293 made the tutor per learner; a default fed in here would put Luc's
-    // name over Celine's sentences.
+    assert.match(transcript, /\{tutorName\}<\/Text>/, 'tutor bubbles must keep the chosen name');
+    assert.match(transcript, />You<\/Text>/, 'the learner side must be explicit in the C2 thread');
     const convo = stripComments(read('../ConvoScreen.tsx'));
     assert.match(convo, /const tutorName = tutorNameOf\(profile\);/);
     assert.equal((convo.match(/tutorNameOf\(profile\)/g) ?? []).length, 1);
-    const threads = convo.match(/<Transcript[\s\S]{0,320}?\/>/g) ?? [];
-    assert.equal(threads.length, 2, 'the conversation no longer draws two threads; this test is stale');
-    for (const thread of threads) {
-      assert.match(thread, /tutorName=\{tutorName\}/, `a thread names nobody: ${thread}`);
-      assert.match(
-        thread,
-        /tutorSpeaking=\{live\.tutorSpeaking && !typing\}/,
-        `a thread lights its ear from something other than the tutor's own voice: ${thread}`,
-      );
-    }
+    const rooms = convo.match(/<C2LiveRoom[^>]*tutorName=\{tutorName\}/g) ?? [];
+    assert.equal(rooms.length, 2, 'both rooms must pass the learner’s chosen tutor into the shared thread');
+    const room = stripComments(read('../live/C2LiveRoom.tsx'));
+    assert.match(room, /<Transcript[\s\S]{0,120}tutorName=\{tutorName\}/);
+    assert.match(room, /tutorSpeaking=\{tutorSpeaking\}/, 'the thread must light its ear from real tutor speech');
     assert.ok(
       !/tutorName="/.test(convo),
       'a thread is handed a written-out name rather than the one the learner chose',
@@ -167,7 +153,7 @@ describe('the words beside the ear keep their width on a phone — F385', () => 
     const earRowStart = source.indexOf('st.withEar');
     const row = source.slice(earRowStart, source.indexOf('</Pressable>', earRowStart));
     assert.ok(row.length > 0, 'the ear row is missing from Transcript.tsx');
-    assert.match(row, /<View style=\{\{ flexShrink: 1 \}\}>\{body\}<\/View>/, 'the body beside the ear must be a flexShrink: 1 view');
+    assert.match(row, /<View style=\{\{ flexShrink: 1 \}\}>[\s\S]*?\{body\}<\/View>/, 'the body beside the ear must be a flexShrink: 1 view');
     assert.doesNotMatch(row, /style=\{\{ flex: 1 \}\}/, 'a flex: 1 body collapses to zero width on a phone');
   });
 });

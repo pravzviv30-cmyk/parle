@@ -71,7 +71,8 @@ describe('pressing Finish and waiting for the recap — F155', () => {
     assert.ok(branch.length > 0, 'the finish wait is no longer a branch of its own; this test is stale');
     assert.match(branch, /<RoomWait/, 'the wait no longer uses the shared accessible waiting page');
     const roomWait = readFileSync(new URL('../live/RoomWait.tsx', import.meta.url), 'utf8');
-    assert.match(roomWait, /<VoiceOrb state="thinking"/, 'the wait has no truthful thinking state');
+    assert.match(roomWait, /state = 'thinking'/, 'the wait has no truthful thinking state');
+    assert.match(roomWait, /<BoldVoiceOrb state=\{state\}/, 'the wait must draw the actual lifecycle state');
     assert.match(roomWait, /accessibilityLiveRegion="polite"/, 'the screen changed under a screen reader in silence');
 
     // And the two things the ledger says stay exactly as they were.

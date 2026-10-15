@@ -69,25 +69,30 @@ describe('the start sheet — F755', () => {
     assert.match(sheet, /reading && b\.sheetReading/, 'the first run\'s sheet is not held to the reading column on an iPad');
     assert.match(components, /sheetReading: \{ alignSelf: 'center', width: '100%', maxWidth: READING \}/);
 
-    // The start sheet: in that sheet, with no rule of its own, in the legal
-    // order, with nothing ticked or switched on for the learner.
+    // C2 keeps AI and retention readable on the main page, with service
+    // processing facts reachable through Privacy details before Start.
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /<Sheet reading returnFocus=\{heading\}/);
-    assert.match(screen, /footer=\{sheetFooter\}/);
-    const footer = screen.slice(screen.indexOf("surface === 'start' ? ("), screen.indexOf(') : undefined;'));
-    assert.ok(footer.length > 0, 'the start sheet has no footer');
-    assert.doesNotMatch(footer, /borderTop/, 'the start sheet draws a rule of its own over the footer');
-    const start = screen.slice(screen.indexOf("{surface === 'start' && ("), screen.indexOf("{surface === 'privacy' && ("));
-    const order = ['<ConsentFacts ai={STARTER_AI} processing={STARTER_PROCESSING} local={STARTER_LOCAL} />', 'label="Privacy details"', 'title="I am 13 or older"', 'label="I am younger than that"', 'title="Optional usage data"', 'title="Remember my learning"'];
+    assert.match(screen, /<OnboardingLayout page="before-practice" showScrollCue/);
+    const body = screen.slice(screen.indexOf('const consentBody'), screen.indexOf('return (', screen.indexOf('const consentBody')));
+    const order = ['STARTER_AI', 'STARTER_LOCAL', 'label="Privacy details"', 'title="Share usage analytics"', 'title="Remember my learning"'];
     let previous = -1;
     for (const part of order) {
-      const at = start.indexOf(part);
-      assert.ok(at > previous, `the start sheet no longer reads ${part} in its place`);
-      previous = at;
+      const at = body.indexOf(part); assert.ok(at > previous, `the disclosure no longer reads ${part} in order`); previous = at;
     }
-    assert.match(start, /selected=\{draft\.eligibilityConfirmed === true\}/, 'the age answer is ticked for the learner');
-    assert.match(start, /value=\{draft\.analyticsConsent\}/);
-    assert.match(start, /value=\{remember\}/);
-    assert.doesNotMatch(start + footer, /playSfx|celebrate\(|arrived\(/, 'the consent sheet plays a sound');
+    assert.match(body, /selected=\{draft\.analyticsConsent\}/);
+    assert.match(body, /selected=\{draft\.rememberLearning === true\}[\s\S]*onPress=\{toggleRemember\}/);
+    assert.doesNotMatch(body, /STARTER_PROCESSING|LiveKit|Deepgram|ElevenLabs/);
+    const privacy = screen.slice(screen.indexOf("{surface === 'privacy' &&"), screen.indexOf("{surface === 'policy' &&"));
+    assert.match(privacy, /LiveKit, Deepgram for transcription, and ElevenLabs/);
+    assert.match(privacy, /label="Read privacy policy"/);
+    assert.doesNotMatch(body, /numberOfLines|ellipsizeMode|playSfx|celebrate\(|arrived\(/);
+    const layout = evidence('apps/mobile/src/onboarding/OnboardingLayout.tsx');
+    assert.match(layout, /sheetRunsUnder\(measurements\.current\.content, measurements\.current\.viewport, measurements\.current\.offset\)/);
+    assert.match(layout, /showsVerticalScrollIndicator=\{showScrollCue\}/);
+    assert.match(layout, /if \(more && !flashed\.current\) \{ flashed\.current = true/);
+    assert.match(layout, /flashScrollIndicators\(\)/);
+    assert.match(layout, /borderTopWidth: 1, borderTopColor: cue \? c\.line : 'transparent'/);
+    assert.match(screen, /TermsAcceptance context="practice"/);
+    assert.match(screen, /label=\{needsAccount \? 'Create account to start' : 'Start live practice'\}[^>]*disabled=\{busy \|\| previewOnly\} onPress=\{\(\) => void \(needsAccount \? continueWithAccount\(\) : start\(\)\)\}/, 'the scrollable disclosure must retain its deliberate, preview-gated start or account continuation');
   });
 });

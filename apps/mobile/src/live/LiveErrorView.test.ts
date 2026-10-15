@@ -62,7 +62,7 @@ describe('the live failure screen puts recovery first', () => {
   });
 
   test('the words a learner reads here are calm and plain', () => {
-    for (const line of ['Support details', 'Hide support details', 'Let’s get you back to French', 'Continue by typing', 'Check microphone settings']) {
+    for (const line of ['Support details', 'Hide support details', 'Your tutor', 'Continue by typing', 'Check microphone settings']) {
       assert.ok(VIEW.includes(line), `the failure screen no longer says "${line}"`);
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /—/);

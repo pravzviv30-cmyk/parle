@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stripTypeScriptTypes } from 'node:module';
 
 import { DEFAULT_REMINDER_TIME } from '../reminders/reminder.ts';
 import { freshPreAccountDraft, repaired, type PreAccountOnboardingDraft } from './preAccountDraft.ts';
@@ -29,6 +30,69 @@ const draft = (extra: Partial<PreAccountOnboardingDraft>): PreAccountOnboardingD
 /** Comments may say anything; only code is under test. */
 const strip = (source: string) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const APP = strip(readFileSync(fileURLToPath(new URL('../../App.tsx', import.meta.url)), 'utf8'));
+
+function reviewedPlanRestart() {
+  let resolve!: (value: 'done' | 'failed' | 'unavailable') => void;
+  let reject!: (reason: Error) => void;
+  let cancellation: Promise<'done' | 'failed' | 'unavailable'>;
+  const resetCancellation = () => { cancellation = new Promise((done, fail) => { resolve = done; reject = fail; }); };
+  resetCancellation();
+  const calls: string[] = [];
+  const mounted = { current: true }, restarting = { current: false };
+  let generation = 1;
+  const source = APP.match(/const startAgain = async \(\) => \{[\s\S]*?\n    \};/)?.[0];
+  assert.ok(source, 'the account review must retain its explicit start-again action');
+  const bindings = { mounted, restarting, scopeGeneration: () => generation, draft: { reminderEnabled: true },
+    cancelReminder: () => { calls.push('cancel-reminder'); return cancellation; }, onConsumed: () => calls.push('consume-plan'),
+    setRestartBusy: (value: boolean) => calls.push(`busy:${value}`), setBootstrapError: (value: string) => calls.push(`error:${value}`) };
+  const run = new Function(...Object.keys(bindings), stripTypeScriptTypes(source) + '\nreturn startAgain;')(...Object.values(bindings)) as () => Promise<void>;
+  return { run, resolve: (value: 'done' | 'failed' | 'unavailable') => resolve(value), reject: (error: Error) => reject(error), calls, mounted,
+    resetCancellation, switchAccount: () => { generation++; } };
+}
+
+test('account review retains its plan when native reminder cancellation fails or rejects', async () => {
+  for (const failure of ['failed', 'rejected'] as const) {
+    const action = reviewedPlanRestart();
+    const pending = action.run();
+    assert.ok(!action.calls.includes('consume-plan'));
+    if (failure === 'failed') action.resolve('failed');
+    else action.reject(new Error('notifications unavailable'));
+    await pending;
+    assert.ok(!action.calls.includes('consume-plan'), 'a reminder still on the phone must retain its owning plan');
+    assert.ok(action.calls.some(call => call.startsWith('error:') && call.length > 6), 'failed cleanup must expose recovery');
+  }
+});
+
+test('account review waits for cleanup, blocks repeated taps and retries through the same explicit action', async () => {
+  const action = reviewedPlanRestart();
+  const first = action.run();
+  await action.run();
+  assert.equal(action.calls.filter(call => call === 'cancel-reminder').length, 1);
+  assert.ok(!action.calls.includes('consume-plan'));
+  action.resolve('failed');
+  await first;
+  action.resetCancellation();
+  const retry = action.run();
+  assert.ok(!action.calls.includes('consume-plan'));
+  action.resolve('done');
+  await retry;
+  assert.equal(action.calls.filter(call => call === 'consume-plan').length, 1);
+  assert.equal(action.calls.filter(call => call === 'cancel-reminder').length, 2);
+});
+
+test('account review cleanup cannot discard a plan after unmount or an account change', async () => {
+  for (const stale of ['unmount', 'account-switch']) {
+    const action = reviewedPlanRestart();
+    const pending = action.run();
+    if (stale === 'unmount') action.mounted.current = false;
+    else action.switchAccount();
+    const before = [...action.calls];
+    action.resolve('done');
+    await pending;
+    assert.deepEqual(action.calls, before);
+    assert.ok(!action.calls.includes('consume-plan'));
+  }
+});
 
 describe('the plan is written at account creation', () => {
   test('an untouched default is not recorded as a choice, while a legacy voice remains compatible', () => {
@@ -159,20 +223,24 @@ describe('the plan is written at account creation', () => {
     assert.ok(boot.includes('Use this starting plan?'), 'the review screen moved; this check reads nothing');
     assert.match(boot, /Optional usage data: \{draft\.analyticsConsent \? 'on' : 'off'\}\. \{reminderSummary\(draft\)\} You can change these choices in Settings\./, 'the review card says something other than the reminder the draft holds');
     assert.doesNotMatch(boot, /The reminder is off\./, 'the review card says off whatever the draft holds');
-    assert.match(boot, /const startAgain = async \(\) => \{ if \(draft\.reminderEnabled === true\) await cancelReminder\(\); onConsumed\(\); \};/, 'starting again leaves the first run\'s reminder on the phone, or lets the draft go first');
-    assert.match(boot, /<IconAction layout="inline" icon="edit" label="Start a new plan instead" onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    assert.match(boot, /draft\.reminderEnabled === true && \(await cancelReminder\(\)\) === 'failed'/, 'starting again must check the native cancellation result before discarding its plan');
+    assert.ok(boot.indexOf('await cancelReminder()') < boot.indexOf('onConsumed();', boot.indexOf('const startAgain =')));
+    assert.match(boot, /<IconAction layout="inline" icon="edit" label="Start a new plan instead" busy=\{restartBusy\} disabled=\{restartBusy\} onPress=\{\(\) => void startAgain\(\)\} \/>/);
+    assert.match(boot, /bootstrapError && <Text accessibilityRole="alert"/);
+    assert.match(boot, /label="Use this plan for my account" disabled=\{restartBusy\} onPress=\{\(\) => \{ if \(!restarting\.current\) setConfirmed\(true\); \}\}/, 'adopting the old plan cannot race its cleanup');
     assert.match(APP, /import \{ cancelReminder \} from '\.\/src\/reminders\/schedule\.ts';/);
   });
 
   test('App.tsx writes consent and the reminder before it releases the app, and opens the first scene', () => {
     // 2026-09-27: keep the ordering pin and require proof the account may adopt a draft.
     const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function CompleteProfileDraftCleanup'));
-    assert.match(APP, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
+    assert.match(APP, /existing === null && preAccountDraft !== null && preAccountDraft\.accountReturnPage !== 'hear-it' && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
     assert.match(boot, /const built = profileFromDraft\(draft\)/, 'the bootstrap builds the profile some other way');
     const consent = boot.indexOf('await saveConsent({ allowed: draft.analyticsConsent })');
     const reminder = boot.indexOf('await saveReminder(reminderFromDraft(draft))');
-    const release = boot.indexOf('done(built)');
+    const release = boot.indexOf('done(built, startPractice)');
     assert.ok(consent > 0 && reminder > consent && release > reminder, 'the app is released before consent and the reminder are written');
+    assert.match(boot, /startPractice = shouldStartFirstPractice\(draft, guest\)/, 'the pending practice must use actual guest completion rather than Terms acceptance');
     assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason\)/, 'the first scene ignores the starting level');
     assert.match(
       APP,

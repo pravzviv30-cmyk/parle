@@ -132,7 +132,7 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
       heading: 'What Luvani keeps',
       body: [
         'Your email, your name and which sign-in you used. There is no account without them.',
-        'Your answer to the age question. It is a gate rather than a detail we file, and Luvani is for learners of thirteen and over.',
+        'Your minimum-age eligibility declaration. Luvani is for learners aged thirteen and over. This declaration is not age verification.',
         'What you have learned. Your history, your review deck, the phrases you keep, your missions and your sound checks. It sits on your phone, and on our server for an account that syncs.',
         'Your curated conversations. After a session the app keeps a short summary with the phrases and corrections worth practising. The conversation itself, turn by turn, is never part of that practice pack.',
         'Conversation text, only if you choose Save conversation text after the recap. This separately saves the conversation and tutor coaching to your account. Speech recognition can differ from what you said. No recording is saved. Read or permanently delete each text in Progress, Your conversations, Saved conversation text. Deleting text leaves a marker without its words to stop a delayed save restoring it; that marker is removed when you delete your account. Deleting curated practice and deleting conversation text are separate choices.',
@@ -223,8 +223,9 @@ export function policySections(facts: CompanyFacts = COMPANY): readonly PolicySe
     {
       heading: 'Age',
       body: [
-        'Luvani is for learners of thirteen and over. The app asks in plain words and takes the answer.',
-        'If somebody says during a conversation that they are under thirteen, the session ends and this phone remembers that until the age question is answered again.',
+        'Luvani is for learners aged thirteen and over. Starting practice, submitting account creation, choosing a sign-in provider on the create-account page or continuing profile setup accepts the linked Terms declaration. Reading a legal link does not accept it. This declaration is not age verification.',
+        'A known refusal before an account blocks continuation for the rest of that app launch and stores no refusal marker. Signing in, signing out or creating a new account does not bypass it.',
+        'If a signed-in learner says during a conversation that they are under thirteen, the session ends and this phone keeps the stop until they pass the return eligibility check.',
       ],
     },
     {
