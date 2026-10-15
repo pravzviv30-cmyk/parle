@@ -254,7 +254,8 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
       hideProgress
       embedded={embedded}
       center={false}
-      footer={<>      {!keyboardVisible && <View style={{ gap: 4 }}>
+      footer={<>
+      {!keyboardVisible && <View style={{ gap: 4 }}>
         <BoldButton label={authButtonLabel('signIn', pending === 'signIn')} onPress={() => void submit()} state={pending === 'signIn' ? 'busy' : 'idle'} disabled={busy && pending !== 'signIn'} />
       </View>}
 
@@ -264,7 +265,7 @@ export function SignInScreen({ onBack, onCreateAccount, onboarding = false, plan
           <Text maxFontSizeMultiplier={liveFontMultiplier} style={st.switchWord}>Create an account</Text>
         </Text>
       </Press>}
-</>}
+      </>}
       scrollRef={scrollRef}
       scrollEventThrottle={16}
       onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }}

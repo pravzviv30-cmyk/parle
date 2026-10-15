@@ -219,6 +219,51 @@ setup. A server without speaking capability reports that limitation separately.
 | Independent source acceptance | Both review findings (stale plan on sign-in detour and misleading typed-only account promise) were reproduced, fixed and independently cleared. Final independent run: 44 mobile tests across four suites and four server route tests, no failures/skips. `/tmp/c2-oct15-final-independent-handoff-mobile.log`, `/tmp/c2-oct15-final-independent-handoff-server.log`. |
 | Integrated gate and web export | Full gate exit 0: 5,247 workspace tests, 92 shared proofs and eight SQL proofs replaying all 39 migrations. `/tmp/c2-real-services-accepted-gate.log`. Three obsolete source contracts first failed, then were migrated without lowering the link ceiling, skipping suites or weakening ownership/legal/scroll guards; focused 48 tests pass. Production web export with local dotenv loading disabled passed, `/tmp/c2-real-final-web-build.log`. |
 
+### Native sign-in visual follow-up
+
+After the first C2 landing (`fae6a3d3`), the human signed out and signed back into
+the existing staging account directly on the iPhone and confirmed Home returned
+without an error. They reported that entered email/password text sat too low.
+F841 removes the inherited paragraph line height only on iOS, retaining native
+font metrics, symmetric padding, growing minimum height, live font scaling and
+password reveal/selection. Android/web retain their existing line height. The
+actual-platform regression failed first, then 28 focused checks, mobile
+typecheck and an independent 28-check review passed.
+
+Root temporarily ran the existing guarded native component preview with its
+inert auth adapter, preserving the real signed-in session. Entered `.invalid`
+email and synthetic secure text now sit centrally in the actual iPhone fields;
+no auth action was submitted. The preview also exposed literal JSX whitespace
+in the sign-in footer as a native text warning; its narrow repair and proof are
+tracked separately in F842. The local preview flag is restored after visual QA.
+Actual footer AST/Babel execution reproduced the six-space raw child; the
+whitespace-only repair passes 31 focused checks, mobile typecheck and independent
+31-check review. Native Sign in → Create account → Sign in remount succeeds
+without another raw-text warning (the earlier recorded warning count stays one,
+with zero other native errors). Entered-text evidence is
+`iphone-signin-centred-entered-text.png` in the existing local evidence folder.
+The follow-up frozen full gate passes 5,271 workspace tests (2,914 mobile), all
+workspace typechecks, 92 shared proofs and eight database checks replaying all
+39 migrations: `/tmp/c2-signin-final-gate.log`. Frozen production web export
+passes (`/tmp/c2-signin-final-web.log`). The final source graph refresh passes
+with 16,742 nodes / 43,943 edges / 777 communities; the existing parser and
+semantic-label limitations remain (`/tmp/c2-signin-final-graph.log`). Only the
+field/footer repair, focused proofs, existing ledger/plan and refreshed graph
+belong to this follow-up main commit; local environment files remain ignored.
+
+GitHub verified the first landing on its exact SHA: [gate
+38817112326](https://github.com/pravzviv30-cmyk/parle/actions/runs/38817112326)
+passed 5,269 workspace tests, 92 shared proofs, eight SQL checks, dependency audit
+and tracked/history secret scans; [release evidence
+38817112296](https://github.com/pravzviv30-cmyk/parle/actions/runs/38817112296)
+also passed. The derived [mobile preview
+38819046443](https://github.com/pravzviv30-cmyk/parle/actions/runs/38819046443)
+failed its existing hosted-service preflight: the app API must be a configured
+HTTPS URL. Credential, exact checkout, latest-main and lockfile checks passed;
+the workflow stopped before `eas update`, so it published no remote preview.
+These CI results cover the first landing, independently of the subsequent native
+field/footer correction and its follow-up gate.
+
 Public live availability remains a separate hold under the owner's budget choice:
 Railway staging has no services, there is no configured hosted HTTPS app API, and
 the local readiness probe refuses ready while the required independent deletion

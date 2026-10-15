@@ -10847,3 +10847,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a recap with no learner turns acknowledges time without claiming a conversation`
 - verified-by: `invalid learner turn counts cannot earn conversation claims while positive counts retain their copy`
 - verified-by: `the recap says how it went in words, never a percentage`
+
+### F841 — Entered account text sits below the centre of its iOS field
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/AccountField.tsx
+- note: The shared auth input inherited the body paragraph's 23-point line height, displacing entered email and secure password text in iOS UITextField. iOS now uses the font's native line metrics; Android and web keep their existing line height. Font family/size, symmetric padding, growing minimum heights, live font scaling, secure reveal and selection restoration remain unchanged. The actual platform-style regression verifies that boundary; physical visual alignment requires separate device evidence.
+- verified-by: `iOS account fields use native line metrics without changing other platforms or their growing geometry`
+
+### F842 — Sign in renders footer indentation as a raw native text child
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/SignInScreen.tsx
+- note: Six spaces on the same line as the footer fragment opening survived Babel as a string child outside Text, causing the native “Text strings must be rendered within a <Text>” warning. Moving the indentation to its own line removes that child. The regression extracts the real footer through its AST, evaluates installed Babel's compiled children in both keyboard states, and retains both footer action wrappers when visible. No auth action, field style or keyboard rule changes.
+- verified-by: `the Babel-compiled sign-in footer contains no raw text outside Text in either keyboard state`

@@ -121,7 +121,9 @@ const st = StyleSheet.create({
   group: { gap: 6 },
   label: { color: c.ink, fontFamily: font.medium },
   inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderRadius: 12, backgroundColor: c.white, borderWidth: 1, borderColor: c.line },
-  input: { ...boldType.body, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: 12, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
+  // UITextField positions entered/secure text using its font's native metrics;
+  // a paragraph line height shifts its baseline below the field's centre.
+  input: { ...boldType.body, lineHeight: Platform.OS === 'ios' ? undefined : boldType.body.lineHeight, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: 12, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
   focused: { borderColor: c.violet },
   focusRing: { borderRadius: 12, borderColor: c.violet, borderWidth: 2 },
   disabled: { opacity: 0.65 },

@@ -18,6 +18,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
@@ -142,4 +144,47 @@ test('the Android back button is listened for only on Android', () => {
     visit(file);
   }
   assert.deepEqual(listeners, [], `these back button listeners are not behind an Android check:\n${listeners.join('\n')}`);
+});
+
+test('the Babel-compiled sign-in footer contains no raw text outside Text in either keyboard state', () => {
+  const source = ts.createSourceFile('SignInScreen.tsx', readFileSync(new URL('./auth/SignInScreen.tsx', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let footer: ts.Expression | undefined;
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxOpeningElement(node) && node.tagName.getText(source) === 'Frame') {
+      const attribute = node.attributes.properties.find(item => ts.isJsxAttribute(item) && item.name.getText(source) === 'footer');
+      if (attribute && ts.isJsxAttribute(attribute) && attribute.initializer && ts.isJsxExpression(attribute.initializer)) footer = attribute.initializer.expression;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert.ok(footer, 'read the actual sign-in Frame footer, not a copied fixture');
+  const require = createRequire(import.meta.url);
+  const { transformSync } = require('@babel/core') as { transformSync: (input: string, options: object) => { code?: string } | null };
+  type Element = { type: string; children: unknown[] };
+  const compile = (jsx: string, keyboardVisible: boolean): Element => {
+    const result = transformSync(`const footer = ${jsx};`, { configFile: false, babelrc: false,
+      plugins: [[require.resolve('@babel/plugin-transform-react-jsx'), { runtime: 'classic' }]] });
+    assert.ok(result?.code, 'the installed Babel JSX transform must produce the actual children');
+    const bindings = {
+      React: { Fragment: 'Fragment', createElement: (type: string, _props: unknown, ...children: unknown[]) => ({ type, children }) },
+      View: 'View', BoldButton: 'BoldButton', Press: 'Press', Text: 'Text', keyboardVisible,
+      pending: null, busy: false, authButtonLabel: () => 'Sign in', liveFontMultiplier: 2,
+      st: { switchRow: {}, switchWord: {} }, type: { small: {} }, paper: { inkSoft: '#666' }, c: { violet: '#4328e7' },
+    };
+    return new Function(...Object.keys(bindings), result.code + '\nreturn footer;')(...Object.values(bindings)) as Element;
+  };
+  // Same-line JSX whitespace survives Babel; newline indentation does not.
+  assert.equal(compile('<>      <View /></>', false).children[0], '      ');
+  const unwrappedText = (node: unknown, insideText = false): string[] => {
+    if (typeof node === 'string') return insideText ? [] : [node];
+    if (!node || typeof node !== 'object') return [];
+    const element = node as Element;
+    return element.children.flatMap(child => unwrappedText(child, insideText || element.type === 'Text'));
+  };
+  for (const keyboardVisible of [false, true]) {
+    const rendered = compile(footer.getText(source), keyboardVisible);
+    assert.deepEqual(unwrappedText(rendered), [], 'a raw whitespace child inside the native footer View triggers the Text warning');
+    assert.deepEqual(rendered.children.filter(Boolean).map(child => (child as Element).type), keyboardVisible ? [] : ['View', 'Press'],
+      'removing whitespace must retain both footer actions and their existing keyboard visibility');
+  }
 });

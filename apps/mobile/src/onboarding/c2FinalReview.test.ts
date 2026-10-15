@@ -71,6 +71,39 @@ test('auth focus rings retain fixed geometry and password recovery hides its act
   assert.match(reset, /await adapter\.signOut\(\)/);
 });
 
+test('iOS account fields use native line metrics without changing other platforms or their growing geometry', () => {
+  const field = readFileSync(new URL('../auth/AccountField.tsx', import.meta.url), 'utf8');
+  const theme = readFileSync(new URL('../theme.ts', import.meta.url), 'utf8');
+  const body = theme.match(/export const boldType = \{[\s\S]*?\n\} as const;/)?.[0];
+  assert.ok(body, 'evaluate the actual C2 typography rather than a copied line height');
+  const font = { regular: 'Outfit-Regular', medium: 'Outfit-Medium', semiBold: 'Outfit-SemiBold' };
+  const boldType = new Function('font', 'type', stripTypeScriptTypes(body.replace('export ', '')) + '\nreturn boldType;')(font, {});
+  const begin = field.indexOf('const st = StyleSheet.create(');
+  assert.ok(begin > 0, 'evaluate the actual account field style for each platform');
+  const stylesFor = (os: string) => new Function('StyleSheet', 'Platform', 'boldType', 'font', 'c', 'paper', 'radius', 'space', 'HIT',
+    stripTypeScriptTypes(field.slice(begin)) + '\nreturn st;')(
+      { create: (value: unknown) => value }, { OS: os }, boldType, font, {}, {}, { field: 12 }, (value: number) => value * 4, 44,
+    );
+  const ios = stylesFor('ios'), android = stylesFor('android'), web = stylesFor('web');
+  assert.equal(ios.input.lineHeight, undefined, 'UIKit must place both entered and secure text using the font’s own metrics');
+  assert.equal(ios.input.fontFamily, boldType.body.fontFamily);
+  assert.equal(ios.input.fontSize, boldType.body.fontSize);
+  assert.equal(android.input.lineHeight, boldType.body.lineHeight);
+  assert.equal(web.input.lineHeight, boldType.body.lineHeight);
+  assert.deepEqual(ios.input, { ...android.input, lineHeight: undefined }, 'the iOS correction must not move padding or invent an offset');
+  for (const { input, inputWrap } of [ios, android, web]) {
+    assert.equal(input.height, undefined); assert.equal(input.maxHeight, undefined);
+    assert.equal(inputWrap.height, undefined); assert.equal(inputWrap.maxHeight, undefined);
+    assert.equal(input.minHeight, 46); assert.equal(inputWrap.minHeight, 48);
+    assert.equal(input.paddingVertical, 11); assert.equal(input.paddingHorizontal, 14);
+    assert.equal(input.transform, undefined); assert.equal(input.top, undefined);
+  }
+  assert.match(field, /maxFontSizeMultiplier=\{props\.maxFontSizeMultiplier \?\? liveFontMultiplier\}/);
+  assert.doesNotMatch(field, /allowFontScaling=\{false\}|\bkey=/, 'the font-scale refresh must not disable scaling or remount the input');
+  assert.match(field, /secureTextEntry=\{secure && !revealed\}/);
+  assert.match(field, /input\.setSelection\(start, end\)/);
+});
+
 test('plan artwork pauses under edit sheets without replacing its mounted scene', () => {
   const source = readFileSync(new URL('./PreAccountOnboarding.tsx', import.meta.url), 'utf8');
   const plan = source.split('\n').find(line => line.includes('<PersonalPlan '));
