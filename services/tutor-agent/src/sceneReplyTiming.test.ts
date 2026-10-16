@@ -1,6 +1,57 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSceneReplyTiming } from './sceneReplyTiming.ts';
+import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
+
+test('confirmed input stage timing separates queue, brain, checkpoint and transport dispatch with exact clocks', () => {
+  let now = 100; const lines: string[] = [];
+  const timing = createInputReplyTiming(() => now, line => lines.push(line));
+  const record = timing.begin('typed');
+  now = 110; record.mark('queueStarted'); now = 115; record.mark('brainSent');
+  now = 155; record.mark('brainParsed'); now = 157; record.mark('checkpointStarted');
+  now = 177; record.mark('checkpointAcknowledged'); now = 180; record.mark('viewDispatched');
+  record.finish('dispatched');
+  const report = timing.snapshot('typed');
+  assert.equal(report.n, 1); assert.equal(report.stages.queue.n, 1);
+  for (const [stage, expected] of Object.entries({ queue: 10, prepare: 5, brain: 40, integrate: 2, checkpoint: 20, dispatch: 3, inputToView: 80 })) {
+    assert.deepEqual(report.stages[stage as keyof typeof report.stages], { n: 1, p50Ms: expected, p95Ms: expected });
+  }
+  assert.equal(report.stages.inputToSay.n, 0, 'a typed reply has no fabricated speech dispatch');
+  assert.equal(timing.snapshot('spoken').n, 0, 'input cohorts never mix');
+  assert.match(lines[0]!, /boundary=confirmed-input-to-view-dispatch input=typed outcome=dispatched queue=10ms/);
+  assert.doesNotMatch(lines[0]!, /eou|audible|session|user|text=/i);
+});
+
+test('input stage timing excludes missing checkpoints, reordered clocks, failures and cancellation', () => {
+  let now = 100; const timing = createInputReplyTiming(() => now);
+  const missing = timing.begin('spoken'); missing.mark('queueStarted'); missing.mark('brainSent'); missing.mark('brainParsed'); missing.mark('viewDispatched'); missing.finish('dispatched');
+  const backwards = timing.begin('spoken'); backwards.mark('queueStarted'); backwards.mark('brainSent');
+  now = 99; backwards.mark('brainParsed'); now = 101; backwards.mark('checkpointStarted'); backwards.mark('checkpointAcknowledged'); backwards.mark('viewDispatched'); backwards.finish('dispatched');
+  timing.begin('spoken').finish('failed'); timing.begin('spoken').finish('cancelled');
+  for (const invalid of [Number.NaN, Infinity, -1]) {
+    now = invalid; const record = timing.begin('spoken');
+    now = 200; for (const stage of ['queueStarted', 'brainSent', 'brainParsed', 'checkpointStarted', 'checkpointAcknowledged', 'viewDispatched'] as const) record.mark(stage);
+    record.finish('dispatched');
+  }
+  assert.equal(timing.snapshot('spoken').n, 0); assert.equal(timing.snapshot('spoken').missing, 5);
+  assert.equal(timing.snapshot('spoken').failed, 1); assert.equal(timing.snapshot('spoken').cancelled, 1);
+  assert.equal(timing.snapshot('spoken').stages.brain.p50Ms, null);
+});
+
+test('input timing bounds each cohort, validates speech dispatch and contains telemetry callback failure', () => {
+  let now = 0; const timing = createInputReplyTiming(() => now, () => { throw new Error('sink failure'); });
+  for (let i = 1; i <= 140; i++) {
+    now = i * 1000; const record = timing.begin('spoken'); record.mark('queueStarted'); record.mark('brainSent'); record.mark('brainParsed'); record.mark('checkpointStarted'); record.mark('checkpointAcknowledged');
+    now += i; record.mark('viewDispatched'); now += 1; record.mark('sayCalled'); record.finish('dispatched', true); record.finish('failed');
+  }
+  assert.equal(timing.snapshot('spoken').n, 128); assert.equal(timing.snapshot('spoken').stages.inputToView.p50Ms, 76);
+  assert.equal(timing.snapshot('spoken').stages.inputToSay.p95Ms, 135);
+  const noSpeech = timing.begin('spoken');
+  for (const stage of ['queueStarted', 'brainSent', 'brainParsed', 'checkpointStarted', 'checkpointAcknowledged', 'viewDispatched'] as const) noSpeech.mark(stage);
+  noSpeech.finish('dispatched', true); assert.equal(timing.snapshot('spoken').missing, 1);
+  const pending = timing.begin('typed'); const summaries = timing.close(); pending.mark('brainSent'); pending.finish('dispatched');
+  assert.deepEqual(timing.close(), summaries); assert.equal(timing.snapshot('typed').cancelled, 1);
+  timing.begin('typed').finish('dispatched'); assert.equal(timing.snapshot('typed').started, 1);
+});
 
 test('queued scene timing keeps its own speech end and omits failed or missing samples', () => {
   let now = 100;

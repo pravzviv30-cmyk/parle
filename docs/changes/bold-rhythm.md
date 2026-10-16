@@ -754,3 +754,133 @@ bytes, exceeding the existing 128 MiB bound. A read-only 8.1.2 candidate is also
 too large (140,059,552 bytes). No runtime/build bound was raised, no image was
 published and no Railway workload was started. A compatible reviewed decoder
 artifact and successful Linux execution remain open acceptance items.
+
+## Live reply latency follow-up — 16 October
+
+The owner requested faster natural replies in both voice and typing, preserving
+no paid hosting, followed by a normal main push. Root owns runtime measurements,
+shared contracts, this record and landing. The worker agent owns optional bounded
+stage telemetry in `sceneReplyTiming.ts`, `convo.ts` and `agent.ts`; the mobile
+agent owns stale typed-send state fencing in `useLiveSession.ts`; the independent
+brain reviewer audits request/output and voice transport without provider changes.
+
+Acceptance: measure confirmed-input dispatch, model, durable checkpoint and
+reply publication separately; repair proven unnecessary waiting with regression
+proofs; retain full-output safety validation before delivery, checkpoint ACK,
+admission budgets, selected bilingual voice and turn-taking policy. Check normal,
+reconnecting, failed, ended and returning session state. Existing eight-room
+approval has five unused 120-second rooms; use only that remaining bound and
+restore staging admission off. Phone-audible latency is a distinct human check.
+No new hosted workload, subscription or unbounded provider run is authorised.
+
+### Measurements, repair and bounded runtime result
+
+- Initial read-only agents found one model call, immediate dispatch after the
+  required checkpoint ACK, no per-turn audio-session setup and no C2 animation
+  wait. A 1,000-iteration offline client fixture measured p95 0.215 ms total CPU;
+  it does not measure vendors or devices. No CPU memoization, speculative paid
+  call, provider/model switch, endpointing reduction or checkpoint bypass was
+  justified.
+- Three synthetic typed café turns before the request change reached the local
+  LiveKit client in 5,367 / 5,661 / 4,954 ms. The same three learner inputs in a
+  second room with low verbosity reached it in 3,656 / 4,804 / 3,394 ms. Observed
+  median is 5,367 versus 3,656 ms, about 32% lower. These are sequential authored
+  mission runs with independently generated replies and session-bound scene
+  selection, not randomized identical-response pairs or a production p95.
+- Their model calls measured 5,277 / 5,525 / 4,523 ms versus 3,542 / 4,700 / 3,317
+  ms. Output tokens were 329 / 428 / 361 versus 306 / 404 / 271, with zero
+  reasoning tokens. Both first requests had zero cached tokens; later cache
+  counts were comparable. Every output already equalled its compact JSON size,
+  ruling out whitespace minification as a useful fix. Checkpoints in the initial
+  run took 64 / 123 / 425 ms. New stage records in the low run measured queue
+  0 ms, preparation 0–2 ms, integration 1–3 ms, checkpoint 69–102 ms and dispatch
+  0–1 ms. Transport handoff and a received view are distinct boundaries.
+- F844 now requests `text.verbosity: low` only for the exact `gpt-6-luna` live
+  turn activity. The complete canonical schema, every required field, teaching
+  instructions, output cap, effort, privacy/cache options, guards and durable
+  ACK remain. Custom models, frame generation and background calls are unchanged.
+  All three outputs passed the actual schema and live integration with bilingual
+  support options and learning material; this is not a broad teaching-quality
+  evaluation. The API supports this detail preference; no subscription changed.
+- The first synthetic spoken-room harness sent audio during uninterruptible
+  opening speech. Its fragments were refused by the existing protection, and a
+  later cancelled turn was excluded; opening/rescue audio is not a successful
+  response timing. The corrected harness waits for completed opening audio and
+  quiet, then sends local synthetic French PCM through actual STT. Its spoken
+  input was confirmed, the guarded view arrived 5,358 ms after input audio ended,
+  and the first non-silent received tutor frame arrived at 5,909 ms. Worker
+  confirmed-input-to-view was 4,770 ms (model 4,547; checkpoint 212). A typed reply
+  inside that spoken room reached the client at 4,565 ms and audio at 5,252 ms
+  (worker model 4,477; checkpoint 78). These are test-client frames, not phone
+  sound. They show remaining noticeable waiting; the improvement is not called
+  instant or a complete natural-conversation latency solution.
+- The owner subsequently reported “Better, both modes work” when asked to check
+  voice and typing directly on the iPhone. This is qualitative human feedback;
+  no phone-audible timestamps or correlation to the synthetic cohort are claimed.
+- The optional `LUVANI_REPLY_STAGE_TIMING=1` diagnostics now keep independent
+  typed/spoken last-128 cohorts in the existing timing owner. Missing lifecycle
+  ACKs, invalid clocks, failed/cancelled work and active-record overflow cannot
+  become fast samples. Logs contain fixed stage labels and numeric durations.
+  Existing framework-EOU metrics are unchanged.
+- F843 fences stale failed sends and their notice timers by room, start
+  generation and send revision, preserving newer pending input and authoritative
+  replies. Transport success does not imply server acknowledgement.
+
+Runtime evidence is local and contains synthetic fixture data only:
+`/tmp/c2-oct16-agent.log`, `/tmp/c2-oct16-baseline-text-2.log`,
+`/tmp/c2-oct16-low-agent.log`, `/tmp/c2-oct16-low-text.log` and
+`/tmp/c2-oct16-low-voice-ready.log`. The initial fixture start without its normal
+installation header failed before admission and was cleaned up; the retry used
+normal trial provisioning and password auth, without forged JWTs or entitlement
+resets. Disposable accounts were removed after room settlement.
+
+Four additional 120-second grants consumed 480 issued seconds. Together with
+three prior approved grants, this remains seven of the original eight rooms and
+840 of the 960-second ceiling. No eighth grant was issued by this window.
+Admission was restored from the private backup, every original field was read
+back equal, and no active/reserved room remained. Only aggregate evidence is in
+`/tmp/c2-oct16-admission-restoration.json`. Temporary worker, API, practice worker
+and isolated LiveKit processes stopped before the full gate; the existing Metro
+previews were preserved. No hosting was purchased and production admission was
+not opened.
+
+### Review and verification
+
+Worker timing: 199 focused tests and worker typecheck pass; independent reviewer
+reran all 199, including active-map overflow/close stress. Client repair: 68
+focused tests and mobile typecheck pass, independent 53-test review green. Brain
+request change: 175 focused tests and brain typecheck pass, independent 25-test
+wire review green. Red-first evidence is retained for the old send ownership,
+notice timer and inherited response detail. All reviewers report no remaining
+findings. Final gate, graph and landing results follow below.
+
+The paid-authority seam also passes an independent actual-request/fake-transport
+check and all seven existing paid-execution tests. The new response-detail
+property remains inside the paid configuration hash; removing it produces a
+different hash while both output ceilings stay 3,000. Future production LLM
+quote/component bindings require regeneration and review under the existing
+[paid-admission contract](../../deployment/PAID_ADMISSION.md) before enabling
+admission. No hash exclusion or billing guard was introduced, and the local
+staging rooms do not certify production quoted execution.
+
+The first full gate passed all 5,287 workspace tests, 92 shared proofs,
+typechecks and eight SQL checks replaying 39 migrations, then refused F98's
+obsolete named-test reference. The exact-body assertion now explicitly includes
+the accepted response-detail option; its issue reference was migrated to the
+passing replacement name without relaxing the assertion. The gate rerun is
+recorded below. Production web export with local dotenv loading disabled passed.
+Source graph refresh passed at 16,768 nodes / 43,990 edges / 755 communities;
+197 hub names changed without semantic LLM labels. The existing 78 missing SQL
+parser and 257 empty noncode-file limitations remain. Logs:
+`/tmp/c2-oct16-latency-web.log`, `/tmp/c2-oct16-latency-graph.log` and
+`/tmp/c2-oct16-latency-gate.log`. All 87 checked local document targets and the
+tracked-file secret scan pass; the pre-existing untracked `.codex/` stays out of
+the explicit landing paths.
+
+Final integrated gate is green, exit 0, with the same 5,287 workspace tests,
+92 shared proofs, all workspace typechecks and eight SQL checks replaying all
+39 migrations: `/tmp/c2-oct16-latency-accepted-gate.log`. The reviewed source is
+frozen. Landing is the owner-authorised normal fast-forward push to main, with
+both hooks retained and only the explicit source/tests/docs/graph paths staged.
+The final commit identity and remote verification are reported in the task;
+ignored credentials, local test captures, build outputs and `.codex/` are excluded.

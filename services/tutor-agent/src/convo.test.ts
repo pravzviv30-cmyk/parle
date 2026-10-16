@@ -83,7 +83,7 @@ import {
   type SttLanguage,
 } from './convo.ts';
 import { LuvaniTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
-import { createSceneReplyTiming } from './sceneReplyTiming.ts';
+import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
 
 /** A fresh flow-mode café conversation, exactly as LuvaniConversation builds one. */
 function freshState() {
@@ -2023,6 +2023,76 @@ describe('which brain the env selects', () => {
 });
 
 describe('latency marks', () => {
+  test('confirmed typed and spoken inputs measure the held brain and durable ACK before immediate dispatch', async t => {
+    for (const voiceless of [false, true]) {
+      let now = 100, releaseCheckpoint!: () => void, checkpointStarted!: () => void;
+      const checkpoint = new Promise<void>(resolve => { releaseCheckpoint = resolve; });
+      const checkpointAsked = new Promise<void>(resolve => { checkpointStarted = resolve; });
+      const client = new SlowBrain();
+      const built = buildConvo(t, { client, voiceless, missionId: 'mission:cafe' });
+      built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 8,
+        assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { checkpointStarted(); await checkpoint; acknowledge?.(); },
+        complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
+      });
+      const inputTiming = createInputReplyTiming(() => now);
+      built.convo.attachInputReplyTiming(input => inputTiming.begin(input));
+      built.convo.open(built.session);
+      const before = views(built.published).length;
+      const input = voiceless ? built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Un café, merci.' }))
+        : assert.rejects(() => built.convo.onUserTurnCompleted({} as never, heard('Un café, merci.')), voice.StopResponse);
+      await client.asked; now = 200; client.release(); await checkpointAsked;
+      assert.equal(views(built.published).length, before, 'no unacknowledged view may be dispatched');
+      now = 300; releaseCheckpoint(); await input;
+      const report = inputTiming.snapshot(voiceless ? 'typed' : 'spoken');
+      assert.equal(client.turnRequests.length, 1); assert.equal(report.n, 1); assert.equal(report.active, 0);
+      assert.equal(report.stages.brain!.p50Ms, 100); assert.equal(report.stages.checkpoint!.p50Ms, 100);
+      assert.equal(report.stages.inputToView!.p50Ms, 200); assert.equal(report.stages.dispatch!.p50Ms, 0);
+      assert.equal(report.stages.inputToSay!.n, voiceless ? 0 : 1);
+      assert.equal(inputTiming.snapshot(voiceless ? 'spoken' : 'typed').started, 0);
+    }
+  });
+
+  test('legacy no-checkpoint fixtures never fabricate an acknowledged input timing sample', async t => {
+    const built = buildConvo(t, { voiceless: true, missionId: 'mission:cafe' });
+    const timing = createInputReplyTiming(() => 100); built.convo.attachInputReplyTiming(input => timing.begin(input));
+    built.convo.open(built.session);
+    await built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    assert.equal(timing.snapshot('typed').dispatched, 1); assert.equal(timing.snapshot('typed').missing, 1);
+    assert.equal(timing.snapshot('typed').n, 0, 'there was no authoritative checkpoint ACK to measure');
+  });
+
+  test('a queued typed timing record retains its own arrival while the earlier brain request finishes', async t => {
+    let now = 100; const lines: string[] = [], client = new SlowBrain();
+    const built = buildConvo(t, { client, voiceless: true, missionId: 'mission:cafe' });
+    built.convo.attachLifecycle({ maxSeconds: 120, signal: new AbortController().signal, elapsedSeconds: () => 8,
+      assertActive() {}, onStop() {}, checkpoint: async (_report, acknowledge) => { acknowledge?.(); },
+      complete: async () => ({ kind: 'charged', refundedSeconds: 0, secondsRemaining: 800, plan: 'trial' }),
+    });
+    const timing = createInputReplyTiming(() => now, line => lines.push(line));
+    built.convo.attachInputReplyTiming(input => timing.begin(input)); built.convo.open(built.session);
+    const first = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Bonjour.' })); await client.asked;
+    now = 150; const second = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    now = 300; client.release(); await Promise.all([first, second]);
+    assert.equal(client.turnRequests.length, 2); assert.equal(timing.snapshot('typed').n, 2);
+    assert.equal(timing.snapshot('typed').stages.queue.p95Ms, 150);
+    assert.match(lines[1]!, /queue=150ms prepare=0ms brain=0ms/);
+    assert.ok(client.turnRequests[1]!.messages.length > client.turnRequests[0]!.messages.length, 'timing cannot reorder integration');
+  });
+
+  test('cancelled queued input stage records close once without another brain call or a fast sample', async t => {
+    const client = new SlowBrain(); const built = buildConvo(t, { client, voiceless: true, missionId: 'mission:cafe' });
+    const timing = createInputReplyTiming(() => 100); built.convo.attachInputReplyTiming(input => timing.begin(input));
+    built.convo.open(built.session);
+    const first = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Bonjour.' })); await client.asked;
+    const second = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Un café, merci.' }));
+    // Use the same cancellation owner the worker invokes before closing; no
+    // provider response is needed for either accepted record to release.
+    built.convo.cancelLiveReplies(); await Promise.all([first, second]);
+    const report = timing.snapshot('typed');
+    assert.equal(report.started, 2); assert.equal(report.cancelled, 2); assert.equal(report.active, 0); assert.equal(report.n, 0);
+    assert.equal(client.signals.length, 1, 'queued cancelled work cannot start another model request'); client.release();
+  });
+
   test('a spoken turn marks brainSent, brainParsed, then sayCalled, in that order', async (t) => {
     const built = await inScene(t);
     const stages: string[] = [];

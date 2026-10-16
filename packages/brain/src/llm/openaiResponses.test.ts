@@ -156,6 +156,48 @@ describe('OpenAI Responses brain — the wire it speaks', () => {
 });
 
 describe('OpenAI Responses brain — which model answers, and how hard it thinks', () => {
+  test('measured Luna live turns request low verbosity without dropping teaching material', async () => {
+    const answer = sampleTurn({
+      coach: [{ kind: 'grammar-slip', quote: 'au la boulangerie', better: 'à la boulangerie',
+        betterWritten: null, betterEn: 'at the bakery', why: 'Use à la before a feminine noun.', weight: 'minor' }],
+      coachLine: 'Use à la before a feminine noun.',
+      newPhrases: [{ fr: 'à la boulangerie', frWritten: null, en: 'at the bakery',
+        enLiteral: null, register: 'courant', note: 'A useful way to name the place.' }],
+      profileSignals: { errorPatterns: [{ tag: 'gender-agreement', example: 'au la boulangerie' }], usedWell: [] },
+    });
+    const { client, bodies } = clientOver([responseFor(answer)]);
+    const { turn } = await client.turn(REQUEST);
+    const body = bodies[0]!;
+    const text = body.text as { verbosity?: string; format: { strict: boolean; schema: unknown } };
+
+    assert.equal(text.verbosity, 'low', 'reduce generated detail only on the live route measured in the room');
+    assert.deepEqual(turn, answer, 'support, translations, findings and practice remain the full canonical turn');
+    assert.equal(text.format.strict, true);
+    assert.deepEqual(text.format.schema, (zodOutputFormat(TurnSchema) as { schema?: unknown }).schema);
+    assert.equal(body.instructions, [REQUEST.system.persona, REQUEST.system.pack, REQUEST.system.contract].join('\n\n'));
+    assert.equal(body.store, false);
+    assert.equal(body.max_output_tokens, DEFAULT_ROUTING.turn.maxTokens, 'brevity is not a truncation cap');
+    assert.deepEqual(body.reasoning, { effort: 'none' });
+  });
+
+  test('low verbosity is limited to the measured model and live turn activity', async () => {
+    for (const activity of ['frame', 'extract', 'drills', 'curate', 'judge'] as const) {
+      const body = await bodyFor(activity);
+      assert.ok(!('verbosity' in (body.text as object)), `${activity} retains its existing response detail`);
+    }
+    for (const liveModel of ['another-model', 'gpt-6-astra', 'gpt-5.6-luna', 'gpt-6-luna-2099-01-01']) {
+      const body = await bodyFor('turn', { liveModel });
+      assert.ok(!('verbosity' in (body.text as object)), `${liveModel} has not been accepted for this request option`);
+      assert.equal(body.model, liveModel, 'an explicit model choice is never replaced to gain the optimization');
+    }
+  });
+
+  test('a concise live response still fails validation when required support is missing', async () => {
+    const { support: _support, ...incomplete } = sampleTurn();
+    const { client } = clientOver([responseFor(incomplete)]);
+    await assert.rejects(() => client.turn(REQUEST), { name: 'BrainParseError' });
+  });
+
   test('the scene a learner waits through is designed by the fast model, not the analyst', async () => {
     const body = await bodyFor('frame');
 
@@ -350,11 +392,9 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
     );
   });
 
-  test('the realtime turn request changes by exactly one field: prompt_cache_key', async () => {
-    // The founder's constraint on this work was no latency regression, and the
-    // wire is where that is either true or not. Anything else new in this body
-    // — a stream flag, a previous_response_id, a store — is a change to what
-    // the model does, not to how its cache is addressed.
+  test('the live request retains its complete contract alongside measured latency options', async () => {
+    // Cache addressing and the measured response-detail preference must not
+    // alter the model, instructions, schema, lifetime or delivery contract.
     const body = await bodyFor('turn');
     const { prompt_cache_key: key, ...rest } = body;
 
@@ -371,6 +411,7 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
       max_output_tokens: DEFAULT_ROUTING.turn.maxTokens,
       store: false,
       text: {
+        verbosity: 'low',
         format: {
           type: 'json_schema',
           name: 'luvani_tutor_turn',

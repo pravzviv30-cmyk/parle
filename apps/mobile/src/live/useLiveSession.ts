@@ -627,6 +627,9 @@ export function useLiveSession(
   const [diagnostics, setDiagnostics] = useState<LiveDiagnostics | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A transport result belongs to the typed input that started it, even when
+  // another input is sent in the same room before that result returns.
+  const typedSendRevision = useRef(0);
   // Destructured so `start` does not churn on every render just because the
   // caller wrote the options object inline.
   const guestToken = opts?.guestToken;
@@ -1725,6 +1728,11 @@ export function useLiveSession(
     sendEnglish: useCallback(() => send({ t: 'english' }), [send]),
     sendSay: useCallback(
       async (text: string) => {
+        const room = roomRef.current;
+        const generation = startGenRef.current;
+        const revision = ++typedSendRevision.current;
+        const ownsRoom = () => roomRef.current === room && startGenRef.current === generation;
+        const ownsInput = () => ownsRoom() && typedSendRevision.current === revision;
         // Show a typed turn immediately. The current conversation agent echoes
         // it as a confirmed final transcript before running the brain; only
         // that received echo enters optional saved text, never an unsent draft.
@@ -1732,15 +1740,20 @@ export function useLiveSession(
         setThinking(true);
         const sent = await publish({ t: 'say', text });
         if (sent) return true;
+        if (!ownsRoom()) return false;
 
         // Roll back only the turn this send added, and hand the words back to
         // ConvoScreen through the return value. A network miss must not make a
         // learner retype a sentence in a language they are still learning.
         setTurns((list) => list.filter((turn) => turn.id !== optimisticId));
+        if (!ownsInput()) return false;
         setThinking(false);
         setNotice('That did not send. Your words are back in the box.');
         if (noticeTimer.current) clearTimeout(noticeTimer.current);
-        noticeTimer.current = setTimeout(() => setNotice(null), 8000);
+        const timer = setTimeout(() => {
+          if (ownsInput() && noticeTimer.current === timer) setNotice(null);
+        }, 8000);
+        noticeTimer.current = timer;
         return false;
       },
       [publish, addTurn],

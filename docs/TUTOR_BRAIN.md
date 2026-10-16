@@ -76,6 +76,24 @@ check returned schema-valid responses in 4.70 seconds at low and 2.78 seconds at
 none. This small sample does not establish phone-audible latency or comparative
 teaching quality. Full structured validation and output guards still precede TTS.
 
+Ordinary turns on the exact `gpt-6-luna` route also set `text.verbosity: low`.
+This prefers concise generated detail while retaining the complete strict turn
+schema, support, translations, corrections, teaching instructions and output
+ceiling. Other models, scene generation and background activities keep their
+existing options. In a bounded 16 October comparison, three replies reached the
+local LiveKit test client in 4.95–5.66 seconds before this change and 3.39–4.80
+seconds with it. Output tokens fell from 329/428/361 to 306/404/271. These were
+sequential synthetic scene runs, not a randomized quality study or phone-audible
+latency guarantee. See [the change record](changes/bold-rhythm.md#live-reply-latency-follow-up--16-october)
+for stage boundaries, voice checks and remaining limits. The official
+[response-detail guidance](https://developers.openai.com/api/docs/guides/latest-model)
+describes this preference; it does not replace required task content.
+The paid-execution configuration hash includes this option. Regenerate and review
+the affected production LLM quote/component bindings before opening admission,
+as required by the [existing paid-admission contract](../deployment/PAID_ADMISSION.md).
+An old configuration must fail closed; local staging latency checks do not
+certify production quoted execution.
+
 If tutor evals show a material live-turn quality gap,
 change only `OPENAI_LIVE_MODEL` to Terra and compare again.
 

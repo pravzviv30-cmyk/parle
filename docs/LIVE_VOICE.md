@@ -574,3 +574,28 @@ recast and text/speech agreement all run before the guarded line is spoken. No
 partial JSON field is released as speech. An SSE transport experiment that still
 waits for final validation would not establish earlier sound; it is not enabled
 or claimed as the report's streaming improvement.
+
+Set `LUVANI_REPLY_STAGE_TIMING=1` on the worker to investigate ordinary confirmed
+typed and spoken scene inputs separately. The optional `[luvani:reply-stages]`
+record reports queue, request preparation, model, integration, acknowledged
+checkpoint and view dispatch durations. Spoken delivery also reports view-to-say
+and input-to-say. Here “confirmed input” begins at the worker's accepted typed
+message or completed speech hook, after recognition; it is not physical speech
+end or a client send tap. “View dispatch” invokes the existing publication path,
+not a phone receipt acknowledgement. The existing framework-EOU cohort is
+unchanged, including its missing-boundary exclusions.
+
+Each input owns its record before queueing. Typed and spoken summaries keep
+separate last-128 windows and report missing, failed and cancelled work. The
+active-record map is bounded to 128; overflow cannot become a fast sample.
+Absent lifecycle ACKs, missing or non-monotonic marks and early exits never
+produce successful duration samples. Opening, rescue, recovery and generated
+topic setup do not enter this scene cohort. Logs contain fixed labels and
+numeric durations, with no learner words or account identifiers. Both phone
+receipt and phone-audible latency remain explicitly unmeasured by this recorder.
+
+The shared OpenAI live-turn detail preference is documented in
+[TUTOR_BRAIN.md](TUTOR_BRAIN.md). It applies to both input modes. Normal Typing
+inside a spoken room still lets the tutor speak; the quiet door and `convo-text`
+disable tutor audio. No endpointing, interruption, admission, voice selection
+or checkpoint ordering changed for this optimization.

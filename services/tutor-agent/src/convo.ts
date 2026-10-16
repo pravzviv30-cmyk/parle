@@ -30,7 +30,7 @@ import { CommandBudget, replayPlayout, TurnQueue } from './queue.ts';
 import { safeError } from './safeError.ts';
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { inCharacterRecast } from './spokenRecast.ts';
-import type { SceneReplyTimingRecord } from './sceneReplyTiming.ts';
+import type { InputReplyTimingRecord, ReplyInput, SceneReplyTimingRecord } from './sceneReplyTiming.ts';
 // One replay ledger for the worker, not one per agent class. Both session
 // shapes are served by the same process and both report to the same endpoint,
 // so a spent credential has to be spent for both of them.
@@ -1401,6 +1401,11 @@ export class LuvaniConversation extends voice.Agent {
     this.invalidateReplyTiming = invalidate;
   }
 
+  private beginInputReplyTiming: ((input: ReplyInput) => InputReplyTimingRecord) | undefined;
+  attachInputReplyTiming(begin: (input: ReplyInput) => InputReplyTimingRecord): void {
+    this.beginInputReplyTiming = begin;
+  }
+
   /** Drives the microphone control: live while the learner has the floor. */
   sendSpeaking(speaking: boolean): void {
     this.publish({ t: 'speaking', speaking });
@@ -2170,15 +2175,19 @@ export class LuvaniConversation extends voice.Agent {
       // including the queue. Going straight to the engine left the moment
       // unmarked, so a rescue that had already fired still counted as current
       // and folded a second turn into the scene on top of their answer.
+      const inputTiming = this.beginInputReplyTiming?.('typed');
       this.releaseMoment();
       this.clearRescue();
       this.invalidateReplyTiming();
       this.publish({ t: 'transcript', text: msg.text, final: true, input: 'typed', turnId: `u${++this.inputSequence}` });
       const correctionGeneration = this.correctionReasonGeneration;
-      await this.queue.run(() => {
-        this.learnerTurns += 1;
-        return this.runBrainTurn({ type: 'spoke', text: msg.text }, undefined, correctionGeneration);
-      });
+      try {
+        await this.queue.run(() => {
+          inputTiming?.mark('queueStarted');
+          this.learnerTurns += 1;
+          return this.runBrainTurn({ type: 'spoke', text: msg.text }, undefined, correctionGeneration, inputTiming);
+        });
+      } finally { inputTiming?.finish(this.ended || this.liveWork.signal.aborted ? 'cancelled' : 'failed'); }
       return;
     }
     if (msg.t === 'help' || msg.t === 'skip') {
@@ -2248,13 +2257,17 @@ export class LuvaniConversation extends voice.Agent {
           console.error('[luvani] the spoken topic could not open a scene:', safeError(error));
         });
       } else if (this.phase === 'scene') {
+        const inputTiming = this.beginInputReplyTiming?.('spoken');
         const recognized = repairRecognizedFrench(text, this.recognitionContext());
         this.publish({ t: 'transcript', text: recognized.text, final: true, input: 'spoken', turnId: `u${++this.inputSequence}`, ...(recognized.interpreted ? { interpreted: true } : {}) });
         const correctionGeneration = this.correctionReasonGeneration;
-        await this.queue.run(() => {
-          this.learnerTurns += 1;
-          return this.runBrainTurn({ type: 'spoke', text: recognized.text }, timing, correctionGeneration);
-        });
+        try {
+          await this.queue.run(() => {
+            inputTiming?.mark('queueStarted');
+            this.learnerTurns += 1;
+            return this.runBrainTurn({ type: 'spoke', text: recognized.text }, timing, correctionGeneration, inputTiming);
+          });
+        } finally { inputTiming?.finish(this.ended || this.liveWork.signal.aborted ? 'cancelled' : 'failed'); }
       } else {
         // Speech while the scenario builder runs is still dropped: the scene
         // they asked for is seconds away and answering into it would talk over
@@ -2317,9 +2330,9 @@ export class LuvaniConversation extends voice.Agent {
    * publish → speak. A failed model turn says the recovery line and records
    * nothing — the learner must never be stranded mid-scene.
    */
-  private async runBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration): Promise<void> {
+  private async runBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration, inputTiming?: InputReplyTimingRecord): Promise<void> {
     try {
-      await this.performBrainTurn(input, timing, correctionGeneration);
+      await this.performBrainTurn(input, timing, correctionGeneration, inputTiming);
     } finally {
       // A dispatched record is already closed. Every early return or thrown
       // integration/speech failure must still close its own record exactly once.
@@ -2327,7 +2340,7 @@ export class LuvaniConversation extends voice.Agent {
     }
   }
 
-  private async performBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration): Promise<void> {
+  private async performBrainTurn(input: LearnerTurnInput, timing?: SceneReplyTimingRecord, correctionGeneration = this.correctionReasonGeneration, inputTiming?: InputReplyTimingRecord): Promise<void> {
     if (this.ended) return;
     this.lifecycle?.assertActive();
     if (input.type === 'spoke' && this.handleSafety(input.text)) return;
@@ -2352,6 +2365,7 @@ export class LuvaniConversation extends voice.Agent {
     try {
       this.markTiming('brainSent');
       timing?.mark('brainSent');
+      inputTiming?.mark('brainSent');
       // Raced, exactly as the scene builder is. A call that goes out and never
       // comes back used to sit here forever, and the queue reports itself busy
       // for as long as it does — so the rescue stood down, no clock ran, and the
@@ -2369,6 +2383,7 @@ export class LuvaniConversation extends voice.Agent {
       this.recordBrainUsage('turn', result.usage);
       this.markTiming('brainParsed');
       timing?.mark('brainParsed');
+      inputTiming?.mark('brainParsed');
     } catch (error) {
       // Metered before anything else decides what to do with it: a billed call
       // that could not be parsed is still a billed call, and the recovery below
@@ -2417,10 +2432,15 @@ export class LuvaniConversation extends voice.Agent {
       { role: 'assistant', text: historyForPublishedTurn(turn, guarded) }] };
     const publishedView = toConvoView(guarded);
     if (input.type === 'spoke') this.canDoLedger.recordAcceptedSource(input.text, sourceBeat, previousGoalEvidence, publishedView, guarded === recast.view);
+    if (this.lifecycle) inputTiming?.mark('checkpointStarted');
     await this.checkpoint();
+    if (this.lifecycle) inputTiming?.mark('checkpointAcknowledged');
     if (this.ended) return;
     const finalView = this.publishView(publishedView);
+    inputTiming?.mark('viewDispatched');
     this.speak(guarded, timing);
+    if (!this.voiceless) inputTiming?.mark('sayCalled');
+    inputTiming?.finish('dispatched', !this.voiceless);
     if (input.type === 'spoke' && correctionGeneration === this.correctionReasonGeneration
       && turn.assessment.language === 'french' && !view.reachedForEnglish && guarded === recast.view) {
       this.requestCorrectionReason(finalView, input.text);

@@ -329,6 +329,12 @@ export class OpenAiResponsesBrainClient implements LlmClient {
       // do, which is the whole reason it is safe on the realtime path.
       prompt_cache_key: cacheKeyFor(activity, request.cacheSeed),
       text: {
+        // Bounded room comparisons reduced live output and reply time at low
+        // verbosity. Keep the complete schema and teaching instructions: this
+        // sets a detail preference, never a token cap or a partial turn. Only
+        // this exact measured model/activity opts in; custom routes and all
+        // other activities retain their existing provider options.
+        ...(activity === 'turn' && route.model === DEFAULT_OPENAI_LIVE_MODEL ? { verbosity: 'low' } : {}),
         format: {
           type: 'json_schema',
           name: FORMAT_NAME[activity],

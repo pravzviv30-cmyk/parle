@@ -68,7 +68,7 @@ import { LuvaniConversation, parseStoredProfile, sttLanguageFor, validSeedTopic 
 import { recognitionPlan } from './recognitionPlan.ts';
 import { LuvaniTutor } from './tutor.ts';
 import { formatVendorMetrics, type VendorMetrics } from './timing.ts';
-import { createSceneReplyTiming } from './sceneReplyTiming.ts';
+import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { turnHandlingFor } from './turnHandling.ts';
 import { reportUsage } from './usage.ts';
 import { safeError } from './safeError.ts';
@@ -124,6 +124,8 @@ export default defineAgent({
     // Confirmed spoken scene inputs own their records. Untagged TTS frames and
     // speaking-state transitions are not evidence of this reply's first audio.
     const sceneTiming = createSceneReplyTiming(() => performance.now());
+    const inputTiming = process.env.LUVANI_REPLY_STAGE_TIMING === '1'
+      ? createInputReplyTiming(() => performance.now(), line => console.log(line)) : undefined;
 
     // Connect before anything is built: the token server signs the lesson, the
     // opening rung and the session mode into the join credential, and the tutor
@@ -344,6 +346,7 @@ export default defineAgent({
     // Capture before queueing so a later input cannot replace an earlier EOU.
     if (tutor instanceof LuvaniConversation) {
       tutor.attachReplyTiming((eligible) => sceneTiming.begin(eligible), () => sceneTiming.invalidate());
+      if (inputTiming) tutor.attachInputReplyTiming(input => inputTiming.begin(input));
     }
 
     // The first verified participant owns this tutor for its whole lifetime.
@@ -503,6 +506,7 @@ export default defineAgent({
       clearTimeout(hardStop);
       if (tutor instanceof LuvaniConversation) {
         console.log(sceneTiming.close());
+        for (const line of inputTiming?.close() ?? []) console.log(line);
         if (process.env.LUVANI_REPLY_FIRST_FRAME_TIMING === '1') console.log(sceneTiming.audioFormat());
       }
       // Cost visibility per session: hits are free lines, misses were billed.

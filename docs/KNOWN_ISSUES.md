@@ -2117,10 +2117,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `previous_response_id` stays absent: server-side state in one vendor, duplicating history we
   already keep, for no cache benefit the key does not already give. The second test defends the
   founder's no-latency-regression constraint at the wire: a full-body comparison that fails if
-  any field beyond the cache key ever joins the realtime turn.
+  any unaccepted field joins the realtime turn. The accepted F844 live response-detail
+  preference is now explicit in that complete-body assertion; cache identity and all
+  other request fields remain checked.
 - verified-by: `every responses call pins its cache with a stable per-activity prompt_cache_key`
 - verified-by: `the cache key changes when the frozen prompt changes`
-- verified-by: `the realtime turn request changes by exactly one field: prompt_cache_key`
+- verified-by: `the live request retains its complete contract alongside measured latency options`
 
 ### F99 — A missed deadline stops the spend, not just the wait
 - severity: P1
@@ -10861,3 +10863,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/SignInScreen.tsx
 - note: Six spaces on the same line as the footer fragment opening survived Babel as a string child outside Text, causing the native “Text strings must be rendered within a <Text>” warning. Moving the indentation to its own line removes that child. The regression extracts the real footer through its AST, evaluates installed Babel's compiled children in both keyboard states, and retains both footer action wrappers when visible. No auth action, field style or keyboard rule changes.
 - verified-by: `the Babel-compiled sign-in footer contains no raw text outside Text in either keyboard state`
+
+### F843 — A late typed-send failure overwrites a newer live input's status
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/useLiveSession.ts
+- note: A publish failure from an old room/start or earlier send could clear the current thinking state and show an obsolete failure notice. Post-await failure updates now check room, start generation and typed-send revision. Same-room rollback removes only that send's optimistic bubble. Its notice timer also retains ownership, including the timer identity, so it cannot erase a later server notice. Successful transport handoff does not imply a tutor receipt or restart thinking after an authoritative answer.
+- verified-by: `a failed send from an old room or start cannot change the current input or notice`
+- verified-by: `an earlier failed send in the same room cannot clear a newer pending input or notice`
+- verified-by: `a failure notice timer cannot clear a later room or same-room input notice`
+- verified-by: `a publish handoff never restarts thinking after an authoritative answer already completed it`
+
+### F844 — Live Luna turns inherit extra response detail while the learner waits
+- severity: P2
+- status: [x]
+- where: packages/brain/src/llm/openaiResponses.ts
+- note: The exact GPT-6 Luna live-turn route inherited the provider's medium response detail. Bounded synthetic rooms measured generation as the dominant wait; low verbosity reduced output tokens and observed reply times in three corresponding turns. The accepted request now selects low detail only for this measured model/activity. All required teaching fields, strict validation, safety, reasoning choice, output ceiling, cache identity and durable-before-delivery ordering remain intact. This closes the request-setting defect, not a guarantee of natural phone-audible response speed; the small sequential sample and remaining waits are recorded in the C2 change plan.
+- verified-by: `measured Luna live turns request low verbosity without dropping teaching material`
+- verified-by: `low verbosity is limited to the measured model and live turn activity`
+- verified-by: `a concise live response still fails validation when required support is missing`
