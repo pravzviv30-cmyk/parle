@@ -97,7 +97,7 @@ const FILES: Record<string, string> = {
   // too; every other money pin and purchase/restore/allowance rule is unchanged.
   // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
-  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
+  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
   'apps/mobile/src/purchases/adapter.ts': '6868f03bd7c7e2a6521dbd439ba56e35d7854bda6c2c08f8bf9cbf9bfb2ba605',
   // 7 October 2026, F772 (come-alive Phase 4, ca/p4-wall): the plans page says a
   // yearly price with the store's own monthly figure ("about ... a month"), so
@@ -116,9 +116,9 @@ const FILES: Record<string, string> = {
   // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
-  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
+  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
   'apps/mobile/src/purchases/adapter.native.ts': 'c65a65c860e71b90454684a35f7e1115950f14b9581a996627fb73a9c608dc91',
-  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
+  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
   'apps/mobile/src/purchases/pendingPurchase.ts': 'ab1249bc6f38e96c3a808c4193a035639a669fb767c3256f83d0108a7d83b89d',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
@@ -131,7 +131,7 @@ const FILES: Record<string, string> = {
   // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
-  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
+  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
   'apps/mobile/src/purchases/contract.ts': 'c0f706ff234505dc3bb0bd71875435e020153571f47d15413fc9ae3682152efc',
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
   'apps/mobile/src/purchases/restore.ts': 'f625d4062beab096ea5b4802d19c3069e146d3d2223f242d70330325a7148dfe',
@@ -216,11 +216,11 @@ const FUNCTIONS: ReadonlyArray<{ file: string; from: string; to: string; hash: s
   // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: 'b0b7d80154b7438209dc99dda1583b7a9b3269b5f663915b5f1ba5bab6b9a094' },
   { file: 'apps/mobile/src/purchases/Paywall.tsx', from: '  const finish = async (', to: '\n  };\n', hash: '84b76d1009e37cb18928dba63a23fbe243160a42d96fcc48581f6bebd76e508d' },
-    // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
+    // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
 { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const settle = async (', to: '\n  };\n', hash: 'a487d6486c9eacc5cda384cce61adc599787feec6eff0e238be7d0a3a0962abd' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const buy = async () => {', to: '\n  };\n', hash: '722a6d7ab28faaa9751d1e3ae938b92983f44f2f125228cd1c654cb7d98a3c40' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const restore = async () => {', to: '\n  };\n', hash: 'eb161316f3375fefd7f77bd06e7c9196839976c64e51c9a1f1a0e42cf96f3b14' },
-  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
+  // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder approved in chat 2026-10-19.
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const startAgain = async () => {', to: '\n  };\n', hash: '99719e14ee6805a55b3f655979574e57bb9adf7b49bf64565946227eaad5c277' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const checkAcceptedPurchase = async () => {', to: '\n  };\n', hash: 'a1c162349a5a3655958a1b6bf0d64614aa46812ca6265a81f672072829030c19' },
   // 2026-09-27, Fable paywall review: the token server's billing routes, cut out of server.ts rather than
