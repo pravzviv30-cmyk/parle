@@ -8,6 +8,21 @@ describe('production starts closed', () => {
     for(const extra of [{SPEECHACE_API_KEY:'synthetic'},{LUVANI_SCORING_VENDOR:'toneperfect'},{LUVANI_SCORING_VENDOR:'speechace'}])assert.ok(productionConfigurationProblems({NODE_ENV:'production',...extra}).includes('explicit supported Speechace scoring'));
     assert.ok(!productionConfigurationProblems({NODE_ENV:'production',SPEECHACE_API_KEY:'synthetic',LUVANI_SCORING_VENDOR:'speechace'}).includes('explicit supported Speechace scoring'));
   });
+  test('a short RevenueCat webhook secret fails production boot', () => {
+    assert.ok(productionConfigurationProblems({ NODE_ENV: 'production', LUVANI_REVENUECAT_WEBHOOK_SECRET: 'Bearer ' + 'x'.repeat(24) }).includes('strong LUVANI_REVENUECAT_WEBHOOK_SECRET'));
+    assert.ok(!productionConfigurationProblems({ NODE_ENV: 'production', LUVANI_REVENUECAT_WEBHOOK_SECRET: 'Bearer ' + 'x'.repeat(25) }).includes('strong LUVANI_REVENUECAT_WEBHOOK_SECRET'));
+    assert.ok(!productionConfigurationProblems({ NODE_ENV: 'production' }).includes('strong LUVANI_REVENUECAT_WEBHOOK_SECRET'));
+    assert.deepEqual(productionConfigurationProblems({ NODE_ENV: 'development', LUVANI_LOCAL_DEVELOPMENT: '1', LUVANI_REVENUECAT_WEBHOOK_SECRET: 'short' }), []);
+  });
+  test('production refuses a non-OpenAI tutor brain', () => {
+    for (const brain of ['anthropic', 'groq', 'claude-cli']) {
+      assert.ok(productionConfigurationProblems({ NODE_ENV: 'production', LUVANI_BRAIN: brain }).includes('hosted OpenAI brain'));
+      assert.ok(productionConfigurationProblems({ NODE_ENV: 'production', TUTOR_LLM: brain }).includes('hosted OpenAI TUTOR_LLM brain'));
+    }
+    const ok = productionConfigurationProblems({ NODE_ENV: 'production', LUVANI_BRAIN: 'openai', TUTOR_LLM: ' OpenAI ' });
+    assert.ok(!ok.includes('hosted OpenAI brain') && !ok.includes('hosted OpenAI TUTOR_LLM brain'));
+    assert.deepEqual(productionConfigurationProblems({ NODE_ENV: 'development', LUVANI_LOCAL_DEVELOPMENT: '1', TUTOR_LLM: 'groq', LUVANI_BRAIN: 'anthropic' }), []);
+  });
   test('development keeps the keyless path', () => {
     assert.deepEqual(
       productionConfigurationProblems({ NODE_ENV: 'development', LUVANI_LOCAL_DEVELOPMENT: '1' }),
@@ -120,7 +135,7 @@ describe('production starts closed', () => {
       productionConfigurationProblems({
         ...base,
         REVENUECAT_SECRET_API_KEY: 'api',
-        LUVANI_REVENUECAT_WEBHOOK_SECRET: 'hook',
+        LUVANI_REVENUECAT_WEBHOOK_SECRET: 'synthetic-webhook-secret-at-least-32-chars',
         REVENUECAT_ENTITLEMENT_ID: 'luvani',
         REVENUECAT_STARTER_PRODUCT_ID: 'starter',
         REVENUECAT_REGULAR_PRODUCT_ID: 'regular',

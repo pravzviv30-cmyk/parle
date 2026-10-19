@@ -57,8 +57,11 @@ export function productionConfigurationProblems(env: ServerEnvironment): string[
   if (!env.LUVANI_AGENT_SECRET || env.LUVANI_AGENT_SECRET.length < 32) problems.push('LUVANI_AGENT_SECRET');
   if (env.LUVANI_METRICS_SECRET && env.LUVANI_METRICS_SECRET.length < 32) problems.push('strong LUVANI_METRICS_SECRET');
   if (env.LUVANI_LOCAL_DEVELOPMENT === '1') problems.push('local development disabled');
-  if (env.LUVANI_BRAIN && !['anthropic','openai'].includes(env.LUVANI_BRAIN)) problems.push('hosted API brain');
-  if (env.TUTOR_LLM && !['anthropic','openai'].includes(env.TUTOR_LLM.trim().toLowerCase())) problems.push('hosted TUTOR_LLM brain');
+  // Webhook Authorization is compared whole, so a prefix like "Bearer " counts toward the 32.
+  if (env.LUVANI_REVENUECAT_WEBHOOK_SECRET && env.LUVANI_REVENUECAT_WEBHOOK_SECRET.length < 32) problems.push('strong LUVANI_REVENUECAT_WEBHOOK_SECRET');
+  // Production's language model is OpenAI only (founder decision, 2026-10-19).
+  if (env.LUVANI_BRAIN && env.LUVANI_BRAIN.trim().toLowerCase() !== 'openai') problems.push('hosted OpenAI brain');
+  if (env.TUTOR_LLM && env.TUTOR_LLM.trim().toLowerCase() !== 'openai') problems.push('hosted OpenAI TUTOR_LLM brain');
   if (env.TONEPERFECT_API_KEY || env.FISH_API_KEY || env.LUVANI_TTS_VENDOR && env.LUVANI_TTS_VENDOR !== 'elevenlabs') problems.push('unsupported production paid adapter');
   if (env.LUVANI_SCORING_VENDOR && env.LUVANI_SCORING_VENDOR !== 'speechace' || env.SPEECHACE_API_KEY && env.LUVANI_SCORING_VENDOR !== 'speechace' || env.LUVANI_SCORING_VENDOR === 'speechace' && !env.SPEECHACE_API_KEY?.trim()) problems.push('explicit supported Speechace scoring');
   const origins = (env.LUVANI_ALLOWED_ORIGINS ?? '').split(',').map((origin) => origin.trim()).filter(Boolean);

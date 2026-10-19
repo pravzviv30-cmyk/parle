@@ -10963,3 +10963,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: 2026-10-19, user decision while replaying the paywall onto main's C2 redesign. `DARK_MODE_ENABLED = false` makes `mainMode` resolve to light for every stored choice and device scheme, and Settings hides the Appearance row and display sheet. The stored preference code (`MainAppearance`, `appearanceSession`) is kept but unexposed. The paywall, Profile, Settings, Learning preferences and Subscription screens already have dark palettes (`mainApp.dark` in palette.ts), unused until the rest of the C2 screens get dark styles and the flag is lifted.
 - verified-by: `the app resolves to light for every stored choice and device scheme while dark mode is off`
 - verified-by: `the app is light only: Settings shows no Appearance row or display sheet while dark mode is off`
+
+### F853 — A short RevenueCat webhook secret, or a non-OpenAI brain, could boot production
+- severity: P3
+- status: [x]
+- where: services/token-server/src/config.ts:60
+- note: Found 2026-10-19 by the presubmission review (P3 #6). `productionConfigurationProblems` accepted any non-empty `LUVANI_REVENUECAT_WEBHOOK_SECRET`, so a guessable Authorization value could forge webhook deliveries (which only trigger a RevenueCat re-read, never grant time directly). Production also accepted Anthropic as the brain, while the founder decision is OpenAI only.
+- fixed: 2026-10-19. Production refuses a set webhook secret under 32 characters, counting the whole value including any prefix (token server and `deployment/validateEnvironment.mjs` for the api role). OpenAI-only boot rule: `LUVANI_BRAIN` and `TUTOR_LLM`, where set, must be `openai` in the token server; `deployment/validateEnvironment.mjs` requires `TUTOR_LLM=openai` for api, tutor and practice; the tutor's production preflight requires `TUTOR_LLM=openai`. Local development is unchanged.
+- verified-by: `a short RevenueCat webhook secret fails production boot`
+- verified-by: `production refuses a non-OpenAI tutor brain`

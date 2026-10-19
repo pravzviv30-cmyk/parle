@@ -29,6 +29,13 @@ test('Groq is recognized but fail-closed pending reviewed degraded privacy launc
  env.GROQ_API_KEY='offline-groq-fixture';r=run('practice',env);assert.notEqual(r.status,0);assert.match(r.stderr,/degraded privacy contract/);
  assert.doesNotMatch(r.stderr,/missing selected provider GROQ_API_KEY/);
 });
+test('production refuses a non-OpenAI tutor brain',()=>{
+ for(const role of ['api','tutor','practice'])for(const brain of ['anthropic','groq']){const env=fixture(role);env.TUTOR_LLM=brain;env.ANTHROPIC_API_KEY='offline-anthropic-fixture';env.GROQ_API_KEY='offline-groq-fixture';const r=run(role,env);assert.notEqual(r.status,0);assert.match(r.stderr,/OpenAI TUTOR_LLM required/);}
+});
+test('a short RevenueCat webhook secret fails production boot',()=>{
+ const env=fixture('api');env.LUVANI_REVENUECAT_WEBHOOK_SECRET='Bearer '+'x'.repeat(24);assert.match(run('api',env).stderr,/weak LUVANI_REVENUECAT_WEBHOOK_SECRET/);
+ env.LUVANI_REVENUECAT_WEBHOOK_SECRET='Bearer '+'x'.repeat(25);assert.doesNotMatch(run('api',env).stderr,/weak LUVANI_REVENUECAT_WEBHOOK_SECRET/);
+});
 test('maintenance requires stable source project origin independently of journal endpoint',()=>{
  const env=fixture('maintenance');delete env.OPENAI_API_KEY;delete env.TUTOR_LLM;
  assert.equal(run('maintenance',env).status,0);
