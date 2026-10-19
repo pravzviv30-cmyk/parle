@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { GhostButton } from '../components.tsx';
-import { MainIllustration } from '../illustrations/MainIllustration.tsx';
+import { Illustration } from '../art/flat/Illustration.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useCompactPhone } from '../layout.tsx';
@@ -13,12 +13,12 @@ import {
 
 /** Value before prices. Earned learning stays free; a plan adds live conversations. */
 export function WallYoursPage({ canBuy, onLeave }: { canBuy: boolean; onLeave: () => void }) {
-  const compact = useCompactPhone(); const { colors, mode } = useMainAppearance();
+  const compact = useCompactPhone(); const { colors } = useMainAppearance();
   return (
     <View style={st.content}>
       <Text accessibilityRole="header" style={[st.title, { color: colors.text }]}>{YOURS_TITLE}</Text>
       <View {...decorative} style={st.art}>
-        <MainIllustration motif="cloud" theme={mode} width={compact ? 180 : 260} />
+        <Illustration name="place-cafe-counter" style={{ width: 260, height: compact ? 76 : 110 }} />
       </View>
       <View style={[st.card, { backgroundColor: colors.teal }]}>
         <Text accessibilityRole="header" style={[st.heading, { color: colors.text }]}>{YOURS_FREE_TITLE}</Text>

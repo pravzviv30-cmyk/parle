@@ -12,8 +12,8 @@
  * before this screen has redrawn. Nothing here reads the disk itself.
  */
 
-import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { MainIllustration } from '../illustrations/MainIllustration.tsx';
+import { useNavigation } from '@react-navigation/native';
+import { Illustration } from '../art/flat/Illustration.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { SettingsAppearance, SettingsCard as Card, SettingsField as Field, SettingsFormAction as OutlineButton } from '../settings/SettingsAppearance.tsx';
 import { useState, useRef, useEffect } from 'react';
@@ -61,7 +61,6 @@ import {
 
 export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
   const { colors, mode } = useMainAppearance();
-  const focused = useIsFocused();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile, update, updateMemory } = useProfile();
   const alive = useRef(true);
@@ -117,7 +116,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
       <Card tone="journal" style={st.card}>
         {facts.length === 0 ? (
           <View style={{ gap: space(3) }}>
-            <MainIllustration motif="journal" theme={mode} width={160} active={focused} />
+            <Illustration name="state-notebook" fit="small" />
             <Text style={[type.body, { color: colors.text }]}>{memoryEmptyLine(profile)}</Text>
             <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="chat" label="Choose a scene" onPress={() => nav.navigate('Missions')} />
           </View>

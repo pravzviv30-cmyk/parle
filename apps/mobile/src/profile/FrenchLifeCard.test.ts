@@ -51,9 +51,9 @@ function stripComments(source: string): string {
 
 const CARD = stripComments(read('./FrenchLifeCard.tsx'));
 const FLAT = CARD.replace(/\s+/g, ' ');
-const STORY_HOME = stripComments(read('../progress/WeekWrappedScreen.tsx'));
+const STORY_HOME = stripComments(read('../tabs/HomeTab.tsx'));
 /** The one module Home hands the story to, which never imports it. */
-const STORY_LINES = '';
+const STORY_LINES = stripComments(read('../home/todayView.ts'));
 const STORY_SCREEN = `${STORY_HOME}\n${STORY_LINES}`;
 const STORY_FLAT = STORY_SCREEN.replace(/\s+/g, ' ');
 const COMPONENTS = stripComments(read('../components.tsx'));
@@ -74,36 +74,80 @@ function sourceFiles(dir: string): string[] {
 
 describe("the week on Profile — F561, F577, and F233's importer count", () => {
   test('the Profile card is the one importer of the story, and the rhythm rail names no number', () => {
-    // M2/M3 puts the full story behind the learner-opened weekly route.
-    // Its evidence/privacy rule remains one owner, whole inputs and no push.
-    assert.match(STORY_HOME, /import \{[^}]*storyFrom[^}]*\} from '\.\/story\.ts'/);
+    // ─────────────────────────────── the story, on the screen that holds it now
+    //
+    // One surface builds it, from the module that owns every word of it, and
+    // hands it on to the one function that turns it into lines. That function
+    // states the story's shape itself rather than importing the module, so the
+    // importer count below stays one.
+    assert.match(STORY_HOME, /import \{[^}]*storyFrom[^}]*\} from '\.\.\/progress\/story\.ts'/);
+    assert.match(STORY_FLAT, /setWeek\(weekLines\(\{ story, reflection: /, 'the story is not handed to weekLines');
+    assert.doesNotMatch(STORY_LINES, /from '[^']*story\.ts'/, 'todayView.ts imports the story module, so the week has a second importer');
+
+    // All four inputs, whole, with a passed clock. Narrowing is the module's
+    // job, and doing it here is how the no-delta guarantee gets bypassed one
+    // commit later.
     for (const load of ['loadHistory()', 'loadActivity({ strict: true })', 'loadConversationPacks()', 'loadMissionCompletions()']) {
-      assert.ok(STORY_FLAT.includes(load), `the story never reads ${load}`);
+      assert.ok(STORY_FLAT.includes(load), `the screen never reads ${load}, so the story is built from less than the week`);
     }
-    assert.match(STORY_FLAT, /storyFrom\(\{sessions,activity,packs,completions,now\}\)/);
-    for (const input of ['sessions', 'activity', 'packs', 'completions']) {
-      assert.doesNotMatch(STORY_FLAT, new RegExp(`${input}\\s*\\.\\s*(filter|slice|sort|reverse)\\b`));
+    assert.match(
+      STORY_FLAT,
+      /storyFrom\(\{ sessions: history, activity, packs, completions, now \}\)/,
+      'the story is not built from the four loaded inputs and a passed clock; `now` is required, not defaulted',
+    );
+    for (const input of ['history', 'activity', 'packs', 'completions']) {
+      assert.doesNotMatch(
+        STORY_FLAT,
+        new RegExp(`${input}\\s*\\.\\s*(filter|slice|sort|reverse)\\b`),
+        `the screen narrows ${input} before storyFrom sees it; narrowing is that module's job and its guarantee`,
+      );
     }
-    // The first sentence and the remaining sentences are shown in module order.
-    assert.match(STORY_HOME, /model.story.sentences\[0\]/);
-    assert.match(STORY_HOME, /model.story.sentences.slice\(1\).map/);
-    assert.doesNotMatch(STORY_HOME, /story.sentences\.(sort|reverse|filter|join)\(/);
-    for (const owned of ['unassistedRate', 'wordsProduced', 'MAX_STORY_SENTENCES', 'DAYS_IN_THE_STORY']) assert.ok(!STORY_HOME.includes(owned), owned);
-    assert.match(STORY_FLAT, /const populated=current && model!==null && hasStory\(model.story\)/);
-    assert.match(STORY_HOME, /if \(!live \|\| owner !== scopeGeneration\(\)\) return/);
-    assert.match(STORY_HOME, /readOwner===scopeGeneration\(\)/);
-    assert.match(read('../tabs/MyFrenchTab.tsx'), /navigate\('WeekWrapped'\)/);
-    for (const [name, source] of [['Profile', FLAT], ['weekly route', STORY_FLAT]] as const) {
-      assert.doesNotMatch(source, /from '[^']*\/reminders\//, name);
-      assert.doesNotMatch(source, /expo-notifications|scheduleNotification|sendEmail/, name);
+
+    // Drawn as the module wrote them. `weekLines` reads the sentences in order,
+    // drops nothing but a blank or a repeat, and stops at its two; nothing on
+    // Today or in that module sorts or reverses them, and Today itself never
+    // touches the sentences at all. A surface with a second opinion about the
+    // order of a week is a second week.
+    assert.match(STORY_LINES, /\.\.\.input\.story\.sentences\]/, 'weekLines no longer reads the sentences the module built');
+    assert.ok(!STORY_HOME.includes('story.sentences'), 'Today reaches into the sentences itself instead of handing the story on');
+    for (const meddling of ['.sort(', '.reverse(', '.join(', '.filter(', '.slice(']) {
+      assert.ok(!STORY_SCREEN.includes(`story.sentences${meddling}`), `the screen writes story.sentences${meddling}`);
     }
+    for (const owned of ['unassistedRate', 'wordsProduced', 'MAX_STORY_SENTENCES', 'DAYS_IN_THE_STORY']) {
+      assert.ok(!STORY_SCREEN.includes(owned), `the screen names ${owned} itself; what a week contained is story.ts's judgement`);
+    }
+
+    // Nothing at all on a quiet week. The block is drawn only when there is a
+    // line to draw, and there is no other branch: a surface that can render
+    // empty is a quota, and a quota nobody met is guilt. F55's spirit, and the
+    // reason the old invitation line left with the sentences rather than
+    // following them.
+    assert.match(STORY_FLAT, /: week\.length > 0 && \(/, 'the week block is drawn on a quiet week');
+    assert.doesNotMatch(STORY_FLAT, /week\.length > 0 \? /, 'a quiet week draws something else in the week block, so the block is a slot that can read as empty');
+
+    // Neither surface can carry the week anywhere. The path ban is the half
+    // `reminders/reminder.test.ts` cannot see from its own side.
+    for (const [name, source] of [['the Profile card', FLAT], ['Today', STORY_FLAT]] as const) {
+      assert.doesNotMatch(source, /from '[^']*\/reminders\//, `${name} reaches into the reminders layer`);
+      assert.doesNotMatch(source, /expo-notifications/, `${name} reaches for the notification API`);
+    }
+
+    // And "only". Home, never a background reader. (The inline details
+    // component that was the second importer left with the notebook final
+    // sweep, 2026-09-27; nothing had rendered it since Phase 3.)
     const storyModule = join('progress', 'story.ts');
     const readers = sourceFiles(SRC)
-      .filter(path => !path.endsWith(storyModule))
-      .filter(path => { const source = stripComments(readFileSync(path, 'utf8')); return /from '[^']*progress\/story\.ts'/.test(source) || (path.includes(join('progress', '')) && /from '\.\/story\.ts'/.test(source)); })
-      .map(path => path.slice(SRC.length));
-    assert.deepEqual(readers, ['progress/WeekWrappedScreen.tsx'], 'the full week belongs only to its learner-opened route, never a background sender');
-    assert.ok(!CARD.includes('storyFrom') && !CARD.includes('hasStory'));
+      .filter((path) => !path.endsWith(storyModule))
+      .filter((path) => { const source = stripComments(readFileSync(path, 'utf8')); return /from '[^']*progress\/story\.ts'/.test(source) || (path.includes(join('progress', '')) && /from '\.\/story\.ts'/.test(source)); })
+      .map((path) => path.slice(SRC.length));
+    assert.deepEqual(
+      readers,
+      ['progress/WeekWrappedScreen.tsx', 'tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx'],
+      'the story is read only on learner-opened surfaces, never in notifications',
+    );
+    // Profile is not that file any more, and half a move is worse than either
+    // end of it: two surfaces drawing one week are two weeks to keep in step.
+    assert.ok(!CARD.includes('storyFrom') && !CARD.includes('hasStory'), 'the Profile card still builds the week story as well');
 
     // ───────────────────────────────────── the rhythm, on the card that is left
     //

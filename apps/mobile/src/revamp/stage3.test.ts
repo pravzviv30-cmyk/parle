@@ -83,7 +83,7 @@ test('revamp B plans preserve catalogue and store prices, accessible selection a
   const wallCode=read('wall/WallScreen.tsx');
   assert.equal((wallCode.match(/void restore\(\)/g)??[]).length,1,'the wall offers more than one restore');
   assert.equal((read('wall/WallParts.tsx').match(/link\(PAYWALL_RESTORE,/g)??[]).length,1);
-  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/colors.text/,/<MainIllustration motif="cloud"/);
+  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/colors.text/,/<Illustration name="place-cafe-counter"/);
   lacks('wall/WallYoursPage.tsx',/borderBottomWidth/);
   has('purchases/paywallView.ts',/price/);
 });

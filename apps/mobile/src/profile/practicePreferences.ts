@@ -37,10 +37,10 @@ export type StatedLevel = 'zero' | 'few' | 'getby' | 'confident';
  * `START_LEVELS` titles verbatim, so the learner sees the words they chose.
  */
 export const STATED_LEVEL_OPTIONS: readonly { key: StatedLevel; title: string }[] = [
-  { key: 'zero', title: 'I’m new to French' },
-  { key: 'few', title: 'I know words and short phrases' },
-  { key: 'getby', title: 'I can manage everyday conversations' },
-  { key: 'confident', title: 'I can have longer conversations' },
+  { key: 'zero', title: 'Brand new' },
+  { key: 'few', title: 'A few words' },
+  { key: 'getby', title: 'I can get by' },
+  { key: 'confident', title: 'Feeling confident' },
 ];
 
 export const STATED_LEVEL_FOOTER = 'Changes the conversations we suggest next. Your earned level stays as it is.';

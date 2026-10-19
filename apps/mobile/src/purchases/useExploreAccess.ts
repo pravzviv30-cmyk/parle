@@ -53,7 +53,7 @@ export function useExploreAccess() {
         return next;
       },
       open: action,
-      plans: () => nav.navigate('Wall', { entry: 'settings', returnToCollection: true }),
+      plans: () => nav.navigate('Wall', { entry: 'settings' }),
       unavailable: () => setError('Your plan could not be checked. Try again when you’re connected. Free samples and your saved French are still available.'),
     }).finally(() => { if (current()) setChecking(false); });
   };

@@ -688,8 +688,8 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fifteen synced, sixteen excluded after
-the device-local first-live arrival receipt joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
+stores; `sync/policy.ts` is the count of record (fifteen synced, seventeen excluded after
+the device-local first-live arrival receipt and the appearance choice joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -746,7 +746,10 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Sixteen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
+Seventeen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
+`appearance` is the light, dark or follow-device choice for this phone and its
+account; syncing an explicit override would change another device's appearance.
+While dark mode is off it is stored but never drawn.
 `first-live-arrival` records whether this phone has displayed the first-session welcome
 and streak. It is account-scoped and cleared by account-data reset. It carries no
 learning credit; syncing it could suppress a pending presentation on another phone.

@@ -29,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking, AppState } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -68,7 +68,7 @@ import { loadHapticPreference } from './src/motion/hapticPreference.ts';
 import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
-import { flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
+import { firstRunHomeVisible, flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
 import { fetchBillingStatus } from './src/purchases/client.ts';
 import { purchases } from './src/purchases/adapter.ts';
 import { paywallSurface } from './src/purchases/paywallView.ts';
@@ -444,9 +444,38 @@ function SignedInRoot({
    * on its own.
    */
   const pendingWall = useRef(false);
+  const wallFrame = useRef<number | null>(null);
+  const wallRequest = useRef(0);
+  useEffect(() => {
+    const invalidate = () => {
+      wallRequest.current++;
+      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
+      wallFrame.current = null;
+    };
+    const foreground = AppState.addEventListener('change', state => { if (state !== 'active') invalidate(); });
+    return () => { invalidate(); foreground.remove(); };
+  }, [user.id]);
   const openPendingWall = useCallback(() => {
+    // Invalidate on the departure event, including a quick away-and-back that
+    // resolves before the original billing read. A current Home is not proof
+    // that the original Home remained visible throughout that request.
+    if (!navigationRef.isReady() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) {
+      wallRequest.current++;
+      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
+      wallFrame.current = null;
+      return;
+    }
+    if (!pendingWall.current
+      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
     const owner = scopeGeneration();
-    void flushFirstRunWall({
+    const request = ++wallRequest.current;
+    if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
+    // Two committed frames let Home appear before this separate decision reads.
+    wallFrame.current = requestAnimationFrame(() => {
+      wallFrame.current = requestAnimationFrame(() => {
+      wallFrame.current = null;
+      if (request !== wallRequest.current || owner !== scopeGeneration() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) return;
+      void flushFirstRunWall({
       take: () => {
         const due = pendingWall.current;
         pendingWall.current = false;
@@ -454,8 +483,10 @@ function SignedInRoot({
       },
       status: () => fetchBillingStatus(user.id),
       storeHasPlans: async () => paywallSurface(await purchases.offering(user.id)) !== null,
-      stillHere: () => owner === scopeGeneration() && navigationRef.isReady(),
+      stillHere: () => request === wallRequest.current && owner === scopeGeneration() && navigationRef.isReady() && firstRunHomeVisible(navigationRef.getCurrentRoute()) && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
       open: () => navigationRef.navigate('Wall', { entry: 'path-complete' }),
+    });
+      });
     });
   }, [navigationRef, user.id]);
 
@@ -614,6 +645,7 @@ function SignedInRoot({
         <NavigationContainer
           ref={navigationRef}
           onReady={() => { openFirstRun(); openPendingInvite(); }}
+          onStateChange={() => openPendingWall()}
           theme={navTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.

@@ -164,6 +164,9 @@ export const PROFILE_ANSWER_FIELDS = [
   'practiceDaysPerWeek',
   'onboardingGoal',
   'onboardingDrink',
+  // Explicit onboarding support choices, independent of earned CEFR. A busy
+  // legacy device that never asked cannot erase another device's real answer.
+  'practicePreferences',
   'username',
   // Which catalogue voice the learner asked their tutor to speak with, as the
   // app-level key `@luvani/core` owns. It is here rather than riding with the

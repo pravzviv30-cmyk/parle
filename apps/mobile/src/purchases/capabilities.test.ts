@@ -63,7 +63,7 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     // protection (founder decision D4: freezes and repair come with a plan).
     assert.deepEqual(
       askers,
-      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/exploreAccess.ts', 'purchases/useContinueArc.ts', 'tutor/RealMomentScreen.tsx'],
+      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/exploreAccess.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
       `something else gates on the plan: ${askers.join(', ')}`,
     );
     assert.ok(askers.includes('tutor/RealMomentScreen.tsx'), 'the real moment no longer asks the plan');
@@ -106,7 +106,7 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     const screen = readFileSync(join(SRC, 'tutor', 'RealMomentScreen.tsx'), 'utf8');
     assert.match(screen, /status === null \? null : capabilitiesFor\(status\.plan, status\.lapsed\)\.customRehearsal/, 'an unread plan cannot be treated as an upgrade opportunity');
     assert.match(screen, /\{allowed === false && \([\s\S]*?\{MAX_ONLY_LINE\}[\s\S]*?<OutlineButton label=\{SEE_PLANS\} onPress=\{onSeePlans\}/, 'a gated learner is not told plainly, or has no way to the plans');
-    assert.match(screen, /\{allowed === true && \([\s\S]*?<MainButton label=\{checking \? 'Connecting…' : REHEARSE_ACTION\}/, 'an allowed learner has no way to rehearse');
+    assert.match(screen, /\{allowed === true && \([\s\S]*?<PillButton label=\{checking \? 'Connecting…' : REHEARSE_ACTION\}/, 'an allowed learner has no way to rehearse');
     assert.match(screen, /allowed === null && <Text accessibilityLiveRegion="polite"/, 'plan loading or failure is explained');
   });
 

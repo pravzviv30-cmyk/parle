@@ -181,12 +181,12 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
     assert.match(
       header,
-      /type\.title,\s*\{ color: paper\.ink, flex: 1 \}/,
+      /type\.title,\s*\{ color: ink, flex: 1 \}/, // ink defaults to paper.ink (asserted above)
       'the title is not the working title in ink, taking the row',
     );
     assert.match(
       header,
-      /type\.body,\s*\{ color: paper\.inkSoft, marginTop: space\(2\) \}/,
+      /type\.body,\s*\{ color: mutedInk, marginTop: space\(2\) \}/, // mutedInk defaults to paper.inkSoft
       'the purpose is not a soft-ink body line beneath the title',
     );
     // Nothing capped: no line cap, no growth cap, no scaling switch.
@@ -327,10 +327,11 @@ describe('the tab title is the working title — F602', () => {
     const left = outsideTheCentredBranch(header);
     assert.match(
       left,
-      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, flex: 1 \}\]\}>/,
+      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: ink, flex: 1 \}\]\}>/,
       'the left title is not the working title in ink, rolled as a heading',
     );
     assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');
+    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/, 'the title ink must still default to paper ink');
 
     // The working title is 30 at ExtraBold, and nothing else in the theme
     // decides it: a screen cannot nudge it.

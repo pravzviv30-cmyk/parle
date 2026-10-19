@@ -1773,7 +1773,7 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  * the way the old centred leave card said its question (F603). `ConfirmSheet`
  * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean }) {
+export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false, surface, ink }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean; /** Panel colour from the selected appearance; paper when absent. */ surface?: string; /** Title ink from the selected appearance; paper ink when absent. */ ink?: string }) {
   const insets = useSafeAreaInsets();
   // F755: while the content runs under the footer, a hairline sits over the
   // footer and the scroll indicator flashes once per opening (`sheetRunsUnder`).
@@ -1856,11 +1856,11 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <Animated.View accessibilityViewIsModal {...(Platform.OS === 'web' ? { role: 'dialog', 'aria-modal': true } as object : {})} onAccessibilityEscape={onClose}
-            style={[b.sheetPanel, reading && b.sheetReading, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
+            style={[b.sheetPanel, reading && b.sheetReading, surface !== undefined ? { backgroundColor: surface } : undefined, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
+              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: ink ?? paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
               <IconButton icon="close" label="Close" onPress={onClose} />
             </View>
             <ScrollView

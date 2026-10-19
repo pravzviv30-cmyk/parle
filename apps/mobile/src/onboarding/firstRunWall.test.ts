@@ -174,13 +174,16 @@ describe('the first-run offer', () => {
     // practice is the other existing entry. Neither creates a durable upsell.
     const app = evidence('apps/mobile/App.tsx');
     assert.match(app, /onDone=\{\(kept, showFirstRunOffer\) => \{ if \(kept && showFirstRunOffer\) pendingWall\.current = true; onPreAccountDraftConsumed\(\); \}\}/, 'the retained-guest entry no longer requires kept practice and an explicit eligible handoff');
-    assert.equal((app.match(/pendingWall\.current = true/g) ?? []).length, 2, 'only completed onboarding and a retained eligible guest handoff may request the first-run offer');
+    // On the C2 base a completed onboarding still opens on its first scene
+    // (C2 owns the first-run route), so only a retained eligible guest handoff
+    // requests the offer.
+    assert.equal((app.match(/pendingWall\.current = true/g) ?? []).length, 1, 'only a retained eligible guest handoff may request the first-run offer');
     assert.match(app, /const newlyCreated = newAccountUserId === user\.id;/, 'automatic signup adoption must be bound to the verified new account');
     assert.match(app, /newlyCreated=\{newlyCreated\}/);
     assert.match(app, /onReady=\{\(\) => \{ openFirstRun\(\); openPendingInvite\(\); \}\}/, 'the navigator no longer settles before the first-run navigation');
     const firstRun = app.slice(app.indexOf('const openFirstRun = useCallback('), app.indexOf('}, [justOnboarded, navigationRef, openPendingWall]);'));
     assert.ok(firstRun.length > 0, 'openFirstRun moved; this check reads nothing');
-    assert.match(firstRun, /if \(justOnboarded\) \{ pendingWall\.current = true; navigationRef\.resetRoot\(\{ index: 0, routes: \[\{ name: 'Tabs', state: \{ index: 0, routes: \[\{ name: 'Home' \}\] \} \}\],? \}\); setJustOnboarded\(false\); \}/, 'completed onboarding must request its optional offer once and land on Home');
+    assert.match(firstRun, /if \(justOnboarded\) \{ navigationRef\.resetRoot\(\{ index: 1, routes: \[\{ name: 'Tabs' \}, \{ name: 'FirstScene', params: \{ missionId: firstScene\.current \} \}\],? \}\); setJustOnboarded\(false\); \}/, 'completed onboarding opens on its first scene, with Home behind it, and requests no offer');
     assert.ok(firstRun.indexOf('navigationRef.resetRoot(') < firstRun.indexOf('openPendingWall();'), 'the offer opens before the first-run reset, which would wipe it');
     assert.match(firstRun, /if \(!navigationRef\.isReady\(\)\) return;/);
     assert.equal((app.match(/openPendingWall\(\);/g) ?? []).length, 1, 'the ready flow invokes the pending offer more than once');

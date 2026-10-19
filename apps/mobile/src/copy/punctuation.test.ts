@@ -41,7 +41,6 @@ const APP_ENTRY = join(REPO, 'apps', 'mobile', 'App.tsx');
  */
 // Direction B (approved 9 October 2026) uses compact plan separators.
 const ALLOWLIST = [
-  'apps/mobile/src/wall/WallPlansPage.tsx',
   'apps/mobile/src/SessionScreen.tsx',
   'apps/mobile/src/SummaryScreen.tsx',
   'apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx',

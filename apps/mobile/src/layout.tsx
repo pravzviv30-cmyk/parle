@@ -459,7 +459,7 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
           {title}
         </Text>
         {purpose != null ? (
-          <Text style={[type.body, { color: inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+          <Text style={[type.body, { color: mutedInk, marginTop: space(2), textAlign: 'center' }]}>
             {purpose}
           </Text>
         ) : null}
@@ -476,7 +476,7 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (
-        <Text style={[type.body, { color: inkSoft, marginTop: space(2) }]}>{purpose}</Text>
+        <Text style={[type.body, { color: mutedInk, marginTop: space(2) }]}>{purpose}</Text>
       ) : null}
       {children != null ? children : null}
     </View>
