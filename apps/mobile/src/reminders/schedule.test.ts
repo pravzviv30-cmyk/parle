@@ -260,7 +260,11 @@ describe('the reminder pair that talks to the OS', () => {
     // Cancelled by name, and only this app's own: never everything.
     assert.doesNotMatch(NATIVE, /cancelAllScheduledNotificationsAsync/, 'a re-plan sweeps away notifications that are not its own');
     assert.match(NATIVE, /const pending = await Notifications\.getAllScheduledNotificationsAsync\(\);/);
-    assert.match(NATIVE, /if \(request\.identifier\.startsWith\(SLOT_PREFIX\)\) await Notifications\.cancelScheduledNotificationAsync\(request\.identifier\);/);
+    assert.match(NATIVE, /if \(request\.identifier\.startsWith\(prefix\)\) await Notifications\.cancelScheduledNotificationAsync\(request\.identifier\);/);
+    // The daily plan cancels only practice slots; the trial reminder only its own (weekdaySchedule.test.ts runs both).
+    assert.match(NATIVE, /async function cancelOwn\(prefix: string = SLOT_PREFIX\)/);
+    assert.match(NATIVE, /export async function scheduleTrialReminderSlot[\s\S]*?await cancelOwn\(TRIAL_SLOT_PREFIX\);/);
+    assert.match(NATIVE, /export async function cancelTrialReminderSlot[\s\S]*?await cancelOwn\(TRIAL_SLOT_PREFIX\);/);
     // No foreground banner: there is no notification handler at all.
     assert.doesNotMatch(NATIVE, /setNotificationHandler/, 'a reminder arriving while the app is open is presented over the practice');
   });

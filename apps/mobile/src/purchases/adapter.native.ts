@@ -2,6 +2,7 @@ import { scopeGeneration } from '../storage/scope.ts';
 import { serverBillingReady } from './client.ts';
 import { auth } from '../auth/adapter.ts';
 import { storeQueue } from './storeQueue.ts';
+import { storeTrialFactsFrom } from './storeTrialFacts.ts';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
@@ -15,6 +16,7 @@ const STARTER_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_STARTER_PRODUCT_ID;
 const REGULAR_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_PRODUCT_ID;
 const STARTER_YEARLY_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_STARTER_YEARLY_PRODUCT_ID;
 const REGULAR_YEARLY_PRODUCT = process.env.EXPO_PUBLIC_REVENUECAT_REGULAR_YEARLY_PRODUCT_ID;
+const ENTITLEMENT_ID = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID;
 
 /**
  * The store id for each paid tier, as this build was configured.
@@ -52,6 +54,13 @@ function configuredYearlyPlans(): readonly PaidPlan[] {
 }
 
 let configuredFor: string | null = null;
+/** Who hears that the store reported new customer info (the trial reminder's sync). */
+const storeListeners = new Set<() => void>();
+function storeChanged(): void {
+  for (const listener of storeListeners) {
+    try { listener(); } catch { /* A listener cannot break the store. */ }
+  }
+}
 const serial = storeQueue();
 
 function apiKey(): string | null {
@@ -72,6 +81,7 @@ async function ready(userId: string): Promise<boolean> {
   if (configuredFor === null) {
     Purchases.configure({ apiKey: key, appUserID: userId });
     configuredFor = userId;
+    try { Purchases.addCustomerInfoUpdateListener(storeChanged); } catch { /* No listener: launch and foreground still sync. */ }
   } else if (configuredFor !== userId) {
     await Purchases.logIn(userId);
     configuredFor = userId;
@@ -234,6 +244,27 @@ export const purchases: PurchasesAdapter = {
       return actionFrom(error);
     }
     });
+  },
+
+  // Read only for the trial-ending reminder. The answer never reaches a grant:
+  // minutes and plan come from the server's projection (storeTrialFacts.ts).
+  async trialFacts(userId) {
+    const owner = scopeGeneration();
+    return serial(async () => {
+    try {
+      if (!ENTITLEMENT_ID || !(await ready(userId))) return null;
+      const info = await Purchases.getCustomerInfo();
+      if (configuredFor !== userId || owner !== scopeGeneration()) return null;
+      return storeTrialFactsFrom(info, ENTITLEMENT_ID);
+    } catch {
+      return null;
+    }
+    });
+  },
+
+  onStoreChange(listener) {
+    storeListeners.add(listener);
+    return () => { storeListeners.delete(listener); };
   },
 
   // The sheet belongs to the store, so there is nothing to read back. On a

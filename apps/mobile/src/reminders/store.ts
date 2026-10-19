@@ -22,6 +22,17 @@
  * version 2 envelope without both halves is not one this build wrote, and reads
  * as unreadable.
  *
+ * ## The trial-ending reminder rides along
+ *
+ * An optional `trial` field holds the trial reminder's record
+ * (`trialReminder.ts`): `enabled: false` only when the learner turned it off,
+ * `endsAt`, the confirmed trial's end instant, and `confirmedAt`, when this device
+ * confirmed it (a server still answering the free minutes within 15 minutes of
+ * that is lag, not a downgrade). Every write here keeps it.
+ * A learner who never chose a daily reminder gets `reminder: null` beside it,
+ * which every reader of the daily choice treats as a missing key; that null is
+ * only accepted next to a `trial` field.
+ *
  * ## Off is remembered, with its time
  *
  * Turning the switch off writes `enabled: false` with the time rather than
@@ -67,6 +78,7 @@ import type { PersistAck } from '../storage/ack.ts';
 import { userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { boundLog, emptyLog, type PlannedSlot, type ReminderLog } from './plan.ts';
 import { reminderTime, type ReminderMode, type ReminderTimeId, type StoredReminder } from './reminder.ts';
+import { DEFAULT_TRIAL_RECORD, type TrialReminderRecord } from './trialReminder.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = (): string => userKey('reminder');
@@ -81,8 +93,40 @@ const VERSION = 2;
 
 interface StoredEnvelope {
   version: typeof VERSION;
-  reminder: StoredReminder;
+  /** Null only in an envelope written for the trial reminder alone: no daily choice was made. */
+  reminder: StoredReminder | null;
   log: ReminderLog;
+  /** The trial-ending reminder, written only when it differs from the default. */
+  trial?: StoredTrial;
+}
+
+/** The trial reminder on disk: defaults left out. */
+interface StoredTrial {
+  enabled?: false;
+  endsAt?: number;
+  confirmedAt?: number;
+}
+
+interface Envelope {
+  reminder: StoredReminder | null;
+  log: ReminderLog;
+  trial: TrialReminderRecord;
+}
+
+function trialOf(value: unknown): TrialReminderRecord {
+  if (!isRecord(value)) return { ...DEFAULT_TRIAL_RECORD };
+  const endsAt = typeof value.endsAt === 'number' && Number.isSafeInteger(value.endsAt) && value.endsAt > 0 ? value.endsAt : null;
+  const confirmedAt = endsAt !== null && typeof value.confirmedAt === 'number' && Number.isSafeInteger(value.confirmedAt) && value.confirmedAt > 0 ? value.confirmedAt : undefined;
+  return { enabled: value.enabled !== false, endsAt, ...(confirmedAt !== undefined ? { confirmedAt } : {}) };
+}
+
+function trialWritten(trial: TrialReminderRecord): StoredTrial | null {
+  const out: StoredTrial = {
+    ...(trial.enabled === false ? { enabled: false as const } : {}),
+    ...(trial.endsAt !== null && Number.isSafeInteger(trial.endsAt) && trial.endsAt > 0 ? { endsAt: trial.endsAt } : {}),
+    ...(trial.endsAt !== null && trial.confirmedAt !== undefined && Number.isSafeInteger(trial.confirmedAt) && trial.confirmedAt > 0 ? { confirmedAt: trial.confirmedAt } : {}),
+  };
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 let writeChain: Promise<unknown> = Promise.resolve();
@@ -179,7 +223,7 @@ function logOf(value: unknown): ReminderLog | null {
 }
 
 /** The envelope on disk: null for a missing key; throws for anything this build cannot read. */
-async function readEnvelope(key: string): Promise<{ reminder: StoredReminder; log: ReminderLog } | null> {
+async function readEnvelope(key: string): Promise<Envelope | null> {
   const raw = await AsyncStorage.getItem(key);
   if (raw === null) return null;
   if (raw === '') throw new Error('Reminder choice could not be read');
@@ -188,13 +232,15 @@ async function readEnvelope(key: string): Promise<{ reminder: StoredReminder; lo
   if (parsed.version === 1) {
     const reminder = choiceOf(parsed.reminder, 1);
     if (reminder === null) throw new Error('Reminder choice could not be read');
-    return { reminder, log: emptyLog() };
+    return { reminder, log: emptyLog(), trial: { ...DEFAULT_TRIAL_RECORD } };
   }
   if (parsed.version === VERSION) {
-    const reminder = choiceOf(parsed.reminder, 2);
+    // A null choice is the trial reminder's envelope alone, and only that.
+    const trialOnly = parsed.reminder === null && isRecord(parsed.trial);
+    const reminder = trialOnly ? null : choiceOf(parsed.reminder, 2);
     const log = logOf(parsed.log);
-    if (reminder === null || log === null) throw new Error('Reminder choice could not be read');
-    return { reminder, log };
+    if ((reminder === null && !trialOnly) || log === null) throw new Error('Reminder choice could not be read');
+    return { reminder, log, trial: trialOf(parsed.trial) };
   }
   throw new Error('Reminder choice could not be read');
 }
@@ -228,8 +274,23 @@ export function loadReminderLog(): Promise<ReminderLog> {
 }
 
 /** Write one envelope, and say in one word whether it reached the disk. */
-async function writeEnvelope(owner: number, key: string, reminder: StoredReminder, log: ReminderLog): Promise<PersistAck> {
-  const envelope: StoredEnvelope = { version: VERSION, reminder: written(reminder), log: boundLog(log) };
+async function writeEnvelope(owner: number, key: string, reminder: StoredReminder | null, log: ReminderLog, trial: TrialReminderRecord = DEFAULT_TRIAL_RECORD): Promise<PersistAck> {
+  const kept = trialWritten(trial);
+  // A trial-only envelope with nothing to keep is no envelope at all.
+  if (reminder === null && kept === null) {
+    try {
+      await setItemInUserScope(owner, key, JSON.stringify({ version: VERSION, reminder: null, log: boundLog(log), trial: {} }));
+      return 'durable';
+    } catch {
+      return 'failed';
+    }
+  }
+  const envelope: StoredEnvelope = {
+    version: VERSION,
+    reminder: reminder === null ? null : written(reminder),
+    log: boundLog(log),
+    ...(kept !== null ? { trial: kept } : {}),
+  };
   try {
     await setItemInUserScope(owner, key, JSON.stringify(envelope));
     return 'durable';
@@ -250,13 +311,16 @@ async function writeEnvelope(owner: number, key: string, reminder: StoredReminde
 export function saveReminder(reminder: StoredReminder): Promise<PersistAck> {
   return serialized(async (key, owner) => {
     let log = emptyLog();
+    let trial: TrialReminderRecord = DEFAULT_TRIAL_RECORD;
     try {
-      log = (await readEnvelope(key))?.log ?? emptyLog();
+      const held = await readEnvelope(key);
+      log = held?.log ?? emptyLog();
+      trial = held?.trial ?? DEFAULT_TRIAL_RECORD;
     } catch {
       // An unreadable envelope is replaced whole: the choice being written is
       // the newest fact there is, and the log only ever delays a pause.
     }
-    return writeEnvelope(owner, key, reminder, log);
+    return writeEnvelope(owner, key, reminder, log, trial);
   });
 }
 
@@ -266,14 +330,48 @@ export function saveReminder(reminder: StoredReminder): Promise<PersistAck> {
  */
 export function saveReminderLog(log: ReminderLog): Promise<PersistAck> {
   return serialized(async (key, owner) => {
-    let held: { reminder: StoredReminder; log: ReminderLog } | null;
+    let held: Envelope | null;
     try {
       held = await readEnvelope(key);
     } catch {
       return 'failed';
     }
-    if (held === null) return 'failed';
-    return writeEnvelope(owner, key, held.reminder, log);
+    if (held === null || held.reminder === null) return 'failed';
+    return writeEnvelope(owner, key, held.reminder, log, held.trial);
+  });
+}
+
+// ─────────────────────────────────────────────── the trial-ending reminder
+
+/**
+ * The trial reminder's record under this learner's key: on, with no trial,
+ * when there is none or it cannot be read. Kept in the same envelope as the
+ * daily choice so it is the account's, cleared with it, and never synced.
+ */
+export function loadTrialReminder(): Promise<TrialReminderRecord> {
+  const key = KEY();
+  return readEnvelope(key).then(
+    (envelope) => envelope?.trial ?? { ...DEFAULT_TRIAL_RECORD },
+    () => ({ ...DEFAULT_TRIAL_RECORD }),
+  );
+}
+
+/**
+ * Write the trial reminder's record beside the daily choice, keeping that
+ * choice and its log. With no daily choice on disk, the envelope holds a null
+ * choice, which reads back as "no choice" exactly as a missing key does.
+ */
+export function saveTrialReminder(trial: TrialReminderRecord): Promise<PersistAck> {
+  return serialized(async (key, owner) => {
+    let held: Envelope | null = null;
+    try {
+      held = await readEnvelope(key);
+    } catch {
+      // Unreadable: overwriting it would turn an unknown daily choice into
+      // "no choice", so the trial record is not written over it.
+      return 'failed';
+    }
+    return writeEnvelope(owner, key, held?.reminder ?? null, held?.log ?? emptyLog(), trial);
   });
 }
 

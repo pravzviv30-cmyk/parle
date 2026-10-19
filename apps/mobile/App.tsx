@@ -80,6 +80,7 @@ import { firstSceneFor, planFor } from './src/onboarding/plan.ts';
 import { saveReminder } from './src/reminders/store.ts';
 import { cancelReminder } from './src/reminders/schedule.ts';
 import { GuestReminderPlanner, ReminderPlanner, stopReminders, useReminderTaps } from './src/reminders/ReminderPlanner.tsx';
+import { useTrialReminderSync } from './src/purchases/useTrialReminderSync.ts';
 import {
   clearPreAccountDraft,
   loadPreAccountDraft,
@@ -703,6 +704,9 @@ function Gate() {
     lastSignedIn.current = signedInAs;
     if (was !== null && was !== signedInAs) void stopReminders();
   }, [status, signedInAs]);
+  // The trial-ending reminder: synced on launch, foreground and every billing
+  // change, and cancelled on sign-out or account switch.
+  useTrialReminderSync(signedInAs, status === 'loading');
 
   useEffect(() => {
     let cancelled = false;
