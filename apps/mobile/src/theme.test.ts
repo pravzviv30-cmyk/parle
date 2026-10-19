@@ -58,8 +58,15 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     assert.match(radius, /\bcontrol: 16,/, 'the control alias no longer points at the field corner');
   });
 
-  test('the theme exports no shadow token or retired whisper alias', () => {
-    assert.doesNotMatch(themeSource(), /export\s+const\s+shadow\b|\bwhisper\s*:/);
+  test('the theme exports exactly one shadow token, the soft lift, and no whisper', () => {
+    // DECISIONS.md, 2026-10-19 reverses the no-shadow rule for one soft lift
+    // under illustrated Explore cards: y 12, blur 24, spread -16, ink at 0.45.
+    const source = themeSource();
+    assert.doesNotMatch(source, /\bwhisper\s*:/);
+    const shadow = block(source, 'export const shadow = {', '} as const;');
+    const entries = [...shadow.matchAll(/^\s{2}(\w+): \{/gm)].map((m) => m[1]);
+    assert.deepEqual(entries, ['lift'], 'the theme carries a shadow other than the one soft lift');
+    assert.match(shadow, /offsetX: 0, offsetY: 12, blur: 24, spread: -16, color: liftInk,/);
   });
 
   test('Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold', () => {
@@ -105,12 +112,15 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
       ['mainHeading', 'semiBold', 22, 27],
       ['mainBody', 'regular', 17, 23],
       ['display', 'extraBold', 44, 44, -1.3],
-      ['title', 'extraBold', 30, 33, -0.6],
+      // DECISIONS.md, 2026-10-19: the screen title grows to 34/800, section
+      // heads move to ExtraBold, and the eyebrow label joins the scale.
+      ['title', 'extraBold', 34, 38, -0.6],
+      ['eyebrow', 'bold', 13, 18],
       // Revamp B stage 2: the stat tile's number, SNIPPETS' 36/800. STYLE has
       // no 36, so it is a token rather than a raw size in the component.
       ['stat', 'extraBold', 36, 36, -0.7],
-      ['heading', 'bold', 20, 25, -0.2],
-      ['cardTitle', 'bold', 20, 25, -0.2],
+      ['heading', 'extraBold', 20, 25, -0.2],
+      ['cardTitle', 'extraBold', 20, 25, -0.2],
       ['frenchHero', 'semiBold', 34, 42, -0.3],
       ['frenchLg', 'semiBold', 28, 34, -0.3],
       ['french', 'semiBold', 20, 26],
@@ -134,10 +144,12 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     );
 
     // The French line is always the largest text in its block.
-    assert.ok(size('frenchLg', 'semiBold').fontSize > size('heading', 'bold').fontSize, 'the French line to say is not larger than a heading');
+    assert.ok(size('frenchLg', 'semiBold').fontSize > size('heading', 'extraBold').fontSize, 'the French line to say is not larger than a heading');
     const hero = size('frenchHero', 'semiBold').fontSize;
-    assert.ok(hero > size('title', 'extraBold').fontSize, 'the French hero is not larger than the screen title');
-    assert.ok(hero > size('heading', 'bold').fontSize, 'the French hero is not larger than a heading');
+    // DECISIONS.md, 2026-10-19: the screen title is 34, the French hero's own
+    // size, so the hero may match the title but never fall below it.
+    assert.ok(hero >= size('title', 'extraBold').fontSize, 'the French hero is smaller than the screen title');
+    assert.ok(hero > size('heading', 'extraBold').fontSize, 'the French hero is not larger than a heading');
 
     // The fit steps for a long line: 34, 30, 26. Each still out-sizes every head
     // a card carries. In B `title` is the screen title and a card never carries
@@ -148,7 +160,7 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     assert.deepEqual(steps, [30, 26], 'the French hero no longer steps 34, 30, 26 by length in Outfit SemiBold');
     for (const step of steps) {
       for (const head of ['heading', 'cardTitle'] as const) {
-        assert.ok(step > size(head, 'bold').fontSize, `a fitted French hero at ${step} is not larger than ${head}`);
+        assert.ok(step > size(head, 'extraBold').fontSize, `a fitted French hero at ${step} is not larger than ${head}`);
       }
     }
 

@@ -322,6 +322,8 @@ describe('a colour ground is a whole page — F601', () => {
  * The centred branch (Profile) is F606's to decide and is not read here.
  */
 describe('the tab title is the working title — F602', () => {
+  // The name keeps "at 30" because KNOWN_ISSUES F602 cites this test by name;
+  // the title is 34 since DECISIONS.md UI-005 and the assertion below pins 34.
   test('every tab title is the working title at 30, and the greeting is one of them', () => {
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
     const left = outsideTheCentredBranch(header);
@@ -333,13 +335,13 @@ describe('the tab title is the working title — F602', () => {
     assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');
     assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/, 'the title ink must still default to paper ink');
 
-    // The working title is 30 at ExtraBold, and nothing else in the theme
-    // decides it: a screen cannot nudge it.
+    // The working title is 34 at ExtraBold (DECISIONS.md, 2026-10-19; was 30),
+    // and nothing else in the theme decides it: a screen cannot nudge it.
     const theme = stripComments(readFileSync(join(SRC, 'theme.ts'), 'utf8'));
     assert.match(
       theme,
-      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 30,/,
-      'the working title is not 30 at ExtraBold',
+      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 34,/,
+      'the working title is not 34 at ExtraBold',
     );
 
     // Every tab that names a subject takes the left branch: it opens on the

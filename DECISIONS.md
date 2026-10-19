@@ -154,3 +154,60 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   production voice acceptance. Conservative unmatched speech is left unchanged.
 - Sources: [live voice](docs/LIVE_VOICE.md), [brain](docs/TUTOR_BRAIN.md),
   [verification plan](docs/changes/bold-rhythm.md).
+
+## UI-004 — One design system: Bright Luvani (direction B)
+
+- Date: 2026-10-19
+- Status: accepted
+- Decision: Luvani has one design system, direction B ("Bright Luvani"). It
+  replaces the C2 "bold rhythm" look, the Luvani theme on the paywall and account
+  screens, and the earlier revamp B composition. DESIGN.md is rewritten as that
+  one system. Old token names (`boldRhythm`, `mainApp.light`, `boldType`,
+  `paper.lineOnCard`) stay as aliases until their screens move (A2 parts, A3 nav).
+- Reason: three systems running at once let the same role drift into several
+  values, and the founder approved direction B as the single target.
+- Consequence: screens are not restyled by this entry. Outfit stays the only
+  face, the contrast floors stay, and dark mode stays off (`DARK_MODE_ENABLED`
+  false, `mainApp.dark` kept). Learner-facing stages are Starter, Basics,
+  Everyday, Chatting and Confident; CEFR stays internal.
+- Sources: [DESIGN.md](DESIGN.md#one-system-bright-luvani), founder approval
+  2026-10-19.
+
+## UI-005 — Consolidate the tokens and allow one soft lift
+
+- Date: 2026-10-19
+- Status: accepted
+- Decision: fold duplicate values into one each. Muted text #655F77 becomes
+  `paper.inkSoft` #5C5A74. Hairlines #EADFCB and #DCD2C4 become one `paper.line`
+  #F0E6D6. The C2 sand #EFE6D9 becomes `paper.inset` #F5EEE2. Add
+  `paper.inkOnPastel` #4A4766, `colour.mintWash` #D4F5E5, `colour.mintWords`
+  #1F7A52, `colour.bluePressed` #2A20B0 and the `pastel` table (butter, lavender,
+  peach, sage). Add one shadow token, `shadow.lift` (y 12, blur 24, spread -16,
+  ink at 0.45 via `liftInk`), for illustrated Explore cards only, reversing the
+  no-shadow rule for that card. Type: `title` 34/38 ExtraBold, `heading` and
+  `cardTitle` ExtraBold, new `eyebrow` 13/18 Bold. Radii unchanged.
+- Reason: one value per role, and the B screens need a pastel secondary ink, a
+  green that can letter words, a pressed blue and a lift for the Explore art.
+- Consequence: every new text pair clears 4.5 (inkOnPastel 6.5 to 7.3 on the
+  pastels, mintWords 5.3 on white and 4.5 on mintWash, inkSoft 5.8 on inset).
+  The softer hairline sits a Delta-E of 5.8 off the ground, so the hairline's
+  separation floor on the ground drops from 8 to 5; it is decorative and never a
+  control's only edge. The French hero (34) may now equal the screen title
+  rather than exceed it. `palette.test.ts`, `theme.test.ts` and `layout.test.ts`
+  pin the new values.
+- Sources: [DESIGN.md colour](DESIGN.md#colour), `apps/mobile/src/palette.ts`,
+  `apps/mobile/src/theme.ts`.
+
+## UI-006 — Five tabs: Today, Explore, Speak, Practice, Journey
+
+- Date: 2026-10-19
+- Status: accepted (lands in A3)
+- Decision: the signed-in app moves from four tabs to five, labelled Today,
+  Explore, Speak, Practice and Journey. Route names stay `Home`, `Explore`,
+  `Tutor`, `Practice` and `MyFrench` so links and tests keep working.
+- Reason: direction B gives exploring scenes its own home and names progress as
+  a journey rather than a score.
+- Consequence: the tab bar, its tests and the DESIGN.md tab table change in A3,
+  not before. Profile still opens from the avatar and Friends stays a Profile
+  route.
+- Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules).

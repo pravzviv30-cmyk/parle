@@ -1,16 +1,16 @@
 /**
- * Luvani, bright (revamp B).
- * Warm paper, white cards with no hairline and no shadow, one deep ink, four
- * saturated colours, and Outfit for every word on the screen, French and
+ * Bright Luvani (direction B), the one design system (DECISIONS.md, 2026-10-19).
+ * Warm paper, white cards with no hairline, one soft lift reserved for
+ * illustrated Explore cards, one deep ink, four saturated colours, four pastels, and Outfit for every word on the screen, French and
  * English alike. The chartreuse is a highlighter pen, never a surface. Voice
  * signals, touch floors, reading-size scaling and reduced motion keep their
  * behaviour. Raw colours live in palette.ts.
  */
 
 import { Platform } from 'react-native';
-import { paper } from './palette.ts';
+import { paper, liftInk } from './palette.ts';
 
-export { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, passwordMeter, streakCelebration } from './palette.ts';
+export { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, passwordMeter, streakCelebration } from './palette.ts';
 
 /**
  * What each rung asks of the learner, in words.
@@ -56,7 +56,9 @@ export const type = {
   /** A headline on colour: stories and onboarding, and the tab header for now. */
   display: { fontFamily: font.extraBold, fontSize: 44, lineHeight: 44, letterSpacing: -1.3 },
   /** The title of a working screen. */
-  title: { fontFamily: font.extraBold, fontSize: 30, lineHeight: 33, letterSpacing: -0.6 },
+  title: { fontFamily: font.extraBold, fontSize: 34, lineHeight: 38, letterSpacing: -0.6 },
+  /** A short label above a card title: "Next scene · 2 of 3". Sentence case. */
+  eyebrow: { fontFamily: font.bold, fontSize: 13, lineHeight: 18 },
   /**
    * The number on a stat tile (SNIPPETS stat-tile, 36/800). STYLE section 3 has
    * no 36; the approved tile does, and a raw size in a component is the thing
@@ -64,9 +66,9 @@ export const type = {
    */
   stat: { fontFamily: font.extraBold, fontSize: 36, lineHeight: 36, letterSpacing: -0.7 },
   /** Card titles and section heads. */
-  heading: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
+  heading: { fontFamily: font.extraBold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
   /** The title of a card. The same style as heading. */
-  cardTitle: { fontFamily: font.bold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
+  cardTitle: { fontFamily: font.extraBold, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
   /**
    * The French line that leads a screen. Always larger than any heading on the
    * screen it leads; `fitHero()` steps it 34, 30, 26 by length (`heroFit`).
@@ -128,6 +130,15 @@ export const radius = {
   chip: 16, // alias of field
   input: 16, // alias of field
   control: 16, // alias of field
+} as const;
+
+/**
+ * The one shadow (DECISIONS.md, 2026-10-19): a soft lift under an illustrated
+ * Explore card, and nowhere else. Neutral field names so a caller maps it onto
+ * the platform's own style keys; `css` is the same lift for the web.
+ */
+export const shadow = {
+  lift: { offsetX: 0, offsetY: 12, blur: 24, spread: -16, color: liftInk, css: `0px 12px 24px -16px ${liftInk}` },
 } as const;
 
 /** The white disc that holds a glyph inside a tinted row. */

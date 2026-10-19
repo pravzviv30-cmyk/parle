@@ -2,9 +2,15 @@
  * The complete colour vocabulary. This leaf module imports nothing so the
  * palette can be tested without loading React Native.
  *
- * Luvani, bright (revamp B). A warm paper ground, white cards, one deep ink,
- * and four saturated colours that each lead a screen or report the tutor's
- * state. The chartreuse is still a highlighter pen and never a surface.
+ * Bright Luvani (direction B), the one design system (DECISIONS.md,
+ * 2026-10-19). A warm paper ground, white cards, one deep ink, four saturated
+ * colours that each lead a screen or report the tutor's state, and four soft
+ * pastels for illustrated Explore cards. The chartreuse is still a highlighter
+ * pen and never a surface.
+ *
+ * The C2 "bold rhythm" and Luvani-theme names (`boldRhythm`, `mainApp.light`)
+ * survive only as aliases of these values until A2 and A3 move their screens
+ * across; they no longer carry a hex of their own except where noted.
  *
  * Raw values live here: the paper and its inks,
  * the four colours, the scoped streak palette, the highlighter, and the STYLE values that only
@@ -30,10 +36,20 @@ export const paper = {
   inkSoft: '#5C5A74',
   /** Alias of inkSoft. B has no third ink, so counts and placeholders stay words. */
   inkFaint: '#5C5A74',
-  /** The one hairline. Decorative dividers only. */
-  line: '#EADFCB',
+  /**
+   * The one hairline. Decorative dividers only. Folds the old #EADFCB and the
+   * C2 border #DCD2C4 into one value (DECISIONS.md, 2026-10-19).
+   */
+  line: '#F0E6D6',
   /** Alias of line. B has one hairline, on the ground and inside a card alike. */
-  lineOnCard: '#EADFCB',
+  lineOnCard: '#F0E6D6',
+  /**
+   * A recessed well inside a white card: a track, a quiet field, a stat
+   * plate. Replaces the C2 sand #EFE6D9. Never on the ground itself.
+   */
+  inset: '#F5EEE2',
+  /** Secondary words on a pastel (lavender, butter, peach, sage): 6.5+ on each. */
+  inkOnPastel: '#4A4766',
   /**
    * The 1.5pt border of an input and the ring of an unchosen option. 3.6 on
    * white: a mark at the 3 floor, never words.
@@ -57,19 +73,52 @@ export const colour = {
   sun: '#FFC93C',
   /** Your turn, a can-do earned, a done tick. Ink on it, never white. */
   mint: '#2FD18B',
+  /** The blue under a finger: a pressed blue control. White on it (10.9). */
+  bluePressed: '#2A20B0',
+  /** A pale mint wash behind a done or earned state. Ink or mintWords on it. */
+  mintWash: '#D4F5E5',
+  /** Green words: 5.3 on white, 4.5 on mintWash. The only green that letters text. */
+  mintWords: '#1F7A52',
 } as const;
 
-/** C · Bold rhythm: the approved onboarding and first-arrival surfaces. */
-export const boldRhythm = {
+/**
+ * The four soft pastels. Grounds for illustrated Explore cards and gentle
+ * section cards, never for a primary action. Ink on them, or inkOnPastel for a
+ * secondary line.
+ */
+export const pastel = {
   butter: '#FFE8AB',
-  violet: colour.blue, sun: colour.sun, paper: paper.ground, ink: paper.ink,
-  white: paper.card, lavender: '#E9E3FA', peach: '#F7D8C7', sage: '#D4E2D7',
-  coral: colour.coral, muted: '#655F77', line: '#DCD2C4', sand: '#EFE6D9',
+  lavender: '#E9E3FA',
+  peach: '#F7D8C7',
+  sage: '#D4E2D7',
 } as const;
 
-/** Approved C2 main-app semantic surfaces. */
+/**
+ * The one soft lift (DECISIONS.md, 2026-10-19), reversing the old no-shadow
+ * rule for illustrated Explore cards only. Ink at 0.45 alpha; the geometry
+ * lives with the token in theme.ts.
+ */
+export const liftInk = 'rgba(22, 18, 58, 0.45)';
+
+/**
+ * Alias table for the retired C2 "bold rhythm" names. Every entry points at
+ * the one direction-B value: muted is inkSoft, line is the one hairline, sand
+ * is the inset well.
+ */
+export const boldRhythm = {
+  butter: pastel.butter,
+  violet: colour.blue, sun: colour.sun, paper: paper.ground, ink: paper.ink,
+  white: paper.card, lavender: pastel.lavender, peach: pastel.peach, sage: pastel.sage,
+  coral: colour.coral, muted: paper.inkSoft, line: paper.line, sand: paper.inset,
+} as const;
+
+/**
+ * The retired Luvani-theme semantic names. `light` is now an alias table onto
+ * direction B; `dark` keeps its own values for when dark mode returns
+ * (DARK_MODE_ENABLED is false).
+ */
 export const mainApp = {
-  light: { background: paper.ground, surface: paper.card, inset: '#E9E3FA', text: paper.ink, muted: '#655F77', border: '#DCD2C4', hero: colour.blue, plum: '#E9E3FA', teal: '#D4E2D7', rose: '#F7D8C7', ochre: '#FFE8AB', link: colour.blue, selected: '#FFFFFF', danger: '#C2341F' },
+  light: { background: paper.ground, surface: paper.card, inset: pastel.lavender, text: paper.ink, muted: paper.inkSoft, border: paper.line, hero: colour.blue, plum: pastel.lavender, teal: pastel.sage, rose: pastel.peach, ochre: pastel.butter, link: colour.blue, selected: paper.card, danger: '#C2341F' },
   dark: { background: '#151127', surface: '#25203D', inset: '#302A48', text: paper.ground, muted: '#C6BED8', border: '#514967', hero: '#363064', plum: '#322B50', teal: '#233F41', rose: '#49333F', ochre: '#493C2E', link: '#A79AFF', selected: '#4A4170', danger: '#FF9A85' },
 } as const;
 

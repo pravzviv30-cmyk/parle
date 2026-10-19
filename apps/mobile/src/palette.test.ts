@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -170,7 +170,11 @@ describe('one ground, pinned — F321', () => {
     assert.equal(paper.ink, '#16123A');
     assert.equal(paper.inkSoft, '#5C5A74');
     assert.equal(paper.inkFaint, paper.inkSoft, 'inkFaint is a third ink; B has two');
-    assert.equal(paper.line, '#EADFCB');
+    // Direction B consolidation (DECISIONS.md, 2026-10-19): #EADFCB and the C2
+    // border #DCD2C4 fold into one hairline, and the C2 sand becomes the inset.
+    assert.equal(paper.line, '#F0E6D6');
+    assert.equal(paper.inset, '#F5EEE2');
+    assert.equal(paper.inkOnPastel, '#4A4766');
     assert.equal(paper.lineOnCard, paper.line, 'lineOnCard is a second hairline; B has one');
     assert.equal(paper.onInk, '#FFFFFF');
     // Revamp B stage 2: the input border and the unchosen ring. A mark, so it
@@ -185,7 +189,11 @@ describe('one ground, pinned — F321', () => {
     // instead: the card lifts off the ground, each hairline separates from what
     // it rules, and groundDeep sits between the two.
     assert.ok(deltaE(GROUND, paper.groundDeep) >= 5, `groundDeep is only ${deltaE(GROUND, paper.groundDeep).toFixed(1)} off the ground`);
-    assert.ok(deltaE(GROUND, paper.line) >= 8, `the ground hairline is only ${deltaE(GROUND, paper.line).toFixed(1)} off the ground`);
+    // DECISIONS.md, 2026-10-19: the founder chose a softer hairline (#F0E6D6,
+    // 5.8 off the ground). A hairline is decorative and never the only edge of
+    // a control, so its floor on the ground drops from 8 to 5; on the card it
+    // still clears 6.
+    assert.ok(deltaE(GROUND, paper.line) >= 5, `the ground hairline is only ${deltaE(GROUND, paper.line).toFixed(1)} off the ground`);
     assert.ok(deltaE(CARD, GROUND) >= 4, `the card is only ${deltaE(CARD, GROUND).toFixed(1)} off the ground`);
     assert.ok(deltaE(CARD, paper.lineOnCard) >= 6, `the card hairline is only ${deltaE(CARD, paper.lineOnCard).toFixed(1)} off the card`);
   });
@@ -228,6 +236,42 @@ describe('one ground, pinned — F321', () => {
     // clearing the ground alone and leave the words on a card under the floor.
     assert.ok(contrast(paper.inkSoft, GROUND) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, GROUND).toFixed(2)} on the ground`);
     assert.ok(contrast(paper.inkSoft, CARD) >= TEXT, `inkSoft is ${contrast(paper.inkSoft, CARD).toFixed(2)} on a card`);
+  });
+});
+
+describe('direction B: one token set, old names alias it — DECISIONS.md 2026-10-19', () => {
+  test('the new tokens are pinned', () => {
+    assert.equal(colour.bluePressed, '#2A20B0');
+    assert.equal(colour.mintWash, '#D4F5E5');
+    assert.equal(colour.mintWords, '#1F7A52');
+    assert.deepEqual({ ...pastel }, { butter: '#FFE8AB', lavender: '#E9E3FA', peach: '#F7D8C7', sage: '#D4E2D7' });
+    assert.equal(liftInk, 'rgba(22, 18, 58, 0.45)');
+  });
+
+  test('the C2 and Luvani-theme names are aliases of the one value', () => {
+    assert.equal(boldRhythm.muted, paper.inkSoft);
+    assert.equal(boldRhythm.line, paper.line);
+    assert.equal(boldRhythm.sand, paper.inset);
+    assert.equal(mainApp.light.muted, paper.inkSoft);
+    assert.equal(mainApp.light.border, paper.line);
+    for (const name of ['butter', 'lavender', 'peach', 'sage'] as const) assert.equal(boldRhythm[name], pastel[name]);
+  });
+
+  test('the new text pairs clear the text floor', () => {
+    const pairs: [string, string, string][] = [
+      ['inkOnPastel on lavender', paper.inkOnPastel, pastel.lavender],
+      ['inkOnPastel on butter', paper.inkOnPastel, pastel.butter],
+      ['inkOnPastel on peach', paper.inkOnPastel, pastel.peach],
+      ['inkOnPastel on sage', paper.inkOnPastel, pastel.sage],
+      ['mintWords on a card', colour.mintWords, CARD],
+      ['mintWords on the mint wash', colour.mintWords, colour.mintWash],
+      ['ink on the mint wash', INK, colour.mintWash],
+      ['inkSoft on the inset', paper.inkSoft, paper.inset],
+      ['white on pressed blue', paper.onInk, colour.bluePressed],
+    ];
+    for (const [name, fg, bg] of pairs) {
+      assert.ok(contrast(fg, bg) >= TEXT, `${name} is ${contrast(fg, bg).toFixed(2)}, under the ${TEXT} floor`);
+    }
   });
 });
 
@@ -591,6 +635,8 @@ describe('the recorded palette matches the code — F327, F328', () => {
   tokens.highlight = highlight;
   // Revamp B: the four colours and the orb's glyph pairing, recorded like the rest.
   for (const [k, v] of Object.entries(colour)) tokens[`colour.${k}`] = v;
+  // Direction B (DECISIONS.md UI-005): the four pastels are recorded like the rest.
+  for (const [k, v] of Object.entries(pastel)) tokens[`pastel.${k}`] = v;
   for (const [k, v] of Object.entries(signal)) tokens[`signal.${k}`] = v;
   for (const [k, v] of Object.entries(orb)) tokens[`orb.${k}`] = v;
   for (const [k, v] of Object.entries(onOrb)) tokens[`onOrb.${k}`] = v;
