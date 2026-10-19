@@ -80,10 +80,10 @@ test('a stuck checkout never clears while the store shows the purchase as active
   assert.equal(resolvePendingCheckout(record, 'active', server('trial', null), 'start-again'), 'wait');
   assert.equal(resolvePendingCheckout(record, 'active', server('starter', '2026-12-01T00:00:00Z'), 'start-again'), 'wait');
   assert.equal(resolvePendingCheckout(record, 'active', server('regular', '2026-12-01T00:00:00Z', true), 'start-again'), 'wait');
-  // Store proof plus the server's grant of the same plan clears, even same-tier with no prior period end.
+  // Same-tier access with no prior period end cannot prove the new purchase settled, so it waits.
   const sameTier = { ...record, before: { plan: 'regular', periodEnd: null } } as const;
   assert.equal(confirmsPendingPurchase(sameTier, server('regular', '2026-12-01T00:00:00Z')), false);
-  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z'), 'start-again'), 'clear');
+  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z'), 'start-again'), 'wait');
 });
 
 test('an unknown store answer never clears the checkout', () => {
@@ -145,9 +145,21 @@ test('the quiet check on open never clears on an empty store answer', () => {
   assert.equal(resolvePendingCheckout(record, 'none', null, 'open'), 'wait');
   assert.equal(resolvePendingCheckout(record, 'none', server('trial', null), 'open'), 'wait');
   assert.equal(resolvePendingCheckout(record, 'none', null, 'start-again'), 'clear');
-  // On open, only the server's confirmation or store proof plus the server's grant clears.
+  // On open, only the server's confirmation clears.
   assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', '2026-12-01T00:00:00Z'), 'open'), 'clear');
   const sameTier = { ...record, before: { plan: 'regular', periodEnd: null } } as const;
-  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z'), 'open'), 'clear');
+  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z'), 'open'), 'wait');
   assert.equal(resolvePendingCheckout(sameTier, 'active', server('trial', null), 'open'), 'wait');
+});
+
+test('an existing same tier subscription never clears a checkout for a new period', () => {
+  // A Regular monthly subscriber buys Regular yearly: the old subscription keeps the store and the server saying Regular.
+  const upgrade = { plan: 'regular', productId: 'regular-yearly', before: { plan: 'regular', periodEnd: '2026-11-01T00:00:00Z' }, startedAt: '2026-10-19T00:00:00Z' } as const;
+  const unchanged = server('regular', '2026-11-01T00:00:00Z');
+  for (const trigger of ['open', 'start-again'] as const) {
+    assert.equal(resolvePendingCheckout(upgrade, 'active', unchanged, trigger), 'wait');
+    assert.equal(resolvePendingCheckout({ ...upgrade, before: { plan: 'regular', periodEnd: null } }, 'active', unchanged, trigger), 'wait');
+    // A newly advanced paid period from the server is still the way out.
+    assert.equal(resolvePendingCheckout(upgrade, 'active', server('regular', '2027-10-19T00:00:00Z'), trigger), 'clear');
+  }
 });

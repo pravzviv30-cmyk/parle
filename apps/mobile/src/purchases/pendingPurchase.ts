@@ -87,12 +87,13 @@ export type StoreHolding = 'active' | 'none' | 'unknown';
 /**
  * Whether a checkout fence may come down. The fence exists to stop a second store transaction while an accepted one
  * waits for the server, so it clears only when the server confirms, or the store shows there is no purchase to
- * duplicate after the learner taps Start again (never on open). An active store purchase the server has not granted waits; an unknown store answer never clears.
+ * duplicate after the learner taps Start again (never on open). An active store answer always waits (a server grant clears only through `confirmsPendingPurchase`); an unknown store answer never clears.
  */
 export function resolvePendingCheckout(purchase: PendingPurchase, store: StoreHolding, server: BillingStatus | null, trigger: 'open' | 'start-again'): 'clear' | 'wait' | 'unknown' {
   if (confirmsPendingPurchase(purchase, server)) return 'clear';
   // On open the store was not synced and a pending Ask to Buy also reads as none, so an empty answer only waits.
   if (store === 'none') return trigger === 'start-again' ? 'clear' : 'wait';
-  if (store === 'active') return server !== null && !server.lapsed && server.plan === purchase.plan ? 'clear' : 'wait';
+  // An existing same-tier subscription also reads as active, so active store access alone never clears.
+  if (store === 'active') return 'wait';
   return 'unknown';
 }

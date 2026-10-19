@@ -119,7 +119,7 @@ const FILES: Record<string, string> = {
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
   'apps/mobile/src/purchases/adapter.native.ts': 'c65a65c860e71b90454684a35f7e1115950f14b9581a996627fb73a9c608dc91',
   // 2026-10-19, review P1 #1 / P2 #2: let a checkout fence clear only when the store holds no purchase or the server confirms; keep the approval state durable; founder to approve before landing.
-  'apps/mobile/src/purchases/pendingPurchase.ts': '3043d523a6a3cb5ee01e6358a701c3a065bdbabbef4e125594357c402939d97f',
+  'apps/mobile/src/purchases/pendingPurchase.ts': 'ab1249bc6f38e96c3a808c4193a035639a669fb767c3256f83d0108a7d83b89d',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
   // no contract text, imports or purchase behavior changed. Sol independently
