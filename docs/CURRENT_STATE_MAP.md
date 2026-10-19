@@ -33,8 +33,15 @@
 ## Current presentation and preview
 
 `index.ts` registers `App.tsx`; `nav/RootNavigator.tsx` is the only app navigator.
-The four tab routes are Home, Tutor, Practice and MyFrench, displayed as Home,
-Speak, Practice and Progress. Profile is a pushed screen reached from the profile
+The five tab routes are Home, Explore, Tutor, Practice and MyFrench, displayed as
+Today, Explore, Speak, Practice and Journey (direction B, A3, 20 October 2026).
+Explore (`tabs/ExploreTab.tsx`) is the catalogue front door ported from Codex
+commit ce1fa976: topic tiles, conversation ideas from learning preferences,
+skill and practical collections, search over scenarios, missions and phrases,
+and rows to the word library and to Journey. Each collection or scenario opens
+the `ExploreCollection` stack screen (`main/ExploreCollectionScreen.tsx`,
+address `explore/:id`). Its avatar opens Profile; the Codex Display sheet was
+not ported. Profile is a pushed screen reached from the profile
 button; Friends is an optional stack route inside Profile. Revamp B and the
 video UX implementation use this same navigator.
 

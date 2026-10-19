@@ -15,9 +15,12 @@
  */
 
 import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
+import type { ExploreTopic } from '../main/exploreCatalogue.ts';
 
 export type TabParamList = {
   Home: undefined;
+  /** Explore: the catalogue's front door, optionally opened on one topic. */
+  Explore: { topic?: ExploreTopic } | undefined;
   Tutor: undefined;
   Practice: undefined;
   MyFrench: undefined;
@@ -30,6 +33,8 @@ export type RootStackParamList = {
   SocialSettings: undefined;
   DailyPractice: { id: string; mode?: 'shadowing' };
   DailyLibrary: undefined;
+  /** One Explore collection or scenario, by id. */
+  ExploreCollection: { id: string };
   Postcards: undefined;
   WeekWrapped: undefined;
   /**

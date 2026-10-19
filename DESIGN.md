@@ -11,7 +11,7 @@ Luvani has one design system, direction B, "Bright Luvani" (DECISIONS.md,
 rhythm" onboarding look, the Luvani theme on the paywall and account screens,
 and the earlier revamp B composition. The tokens are already one set. Screens
 move onto the shared parts in two later steps: A2 rebuilds the buttons and
-cards in `components.tsx`, and A3 changes the tab bar. Until then the old
+cards in `components.tsx`, and A3 changed the tab bar to five tabs. The old
 token names (`boldRhythm`, `mainApp.light`, `boldType`, `paper.lineOnCard`)
 stay exported as aliases, so nothing breaks and nothing drifts.
 
@@ -45,9 +45,8 @@ period stay near a purchase action, and large text is never capped to fit.
 
 ### Composition rules
 
-- Five tabs, landing in A3: Today, Explore, Speak, Practice and Journey (route
-  names `Home`, `Explore`, `Tutor`, `Practice`, `MyFrench`). Until A3 the app
-  ships four: Home, Speak, Practice and Progress. Profile opens from the
+- Five tabs: Today, Explore, Speak, Practice and Journey (route names `Home`,
+  `Explore`, `Tutor`, `Practice`, `MyFrench`). Profile opens from the
   labelled avatar; Settings is its first row and optional Friends follows it.
   Route identifiers and the Friends URL stay stable.
 - Today offers one useful next action, a lifetime day count, starting scenes or
@@ -566,7 +565,7 @@ the new look, listed at the end, and they go with their call sites.
   in the ground's words colour and the rest in `segmentPending`, read once as
   "Step 2 of 6".
 - **Label**: the meta line a card may carry: small, soft ink, sentence case.
-- **Tab bar**: white with a top hairline, four labelled icons and no dock,
+- **Tab bar**: white with a top hairline, five labelled icons and no dock,
   shadow or chartreuse wash. Selected is the Bulk icon and the word in brand
   blue, Outfit Bold; unselected is the Linear icon and the word in soft ink,
   Outfit SemiBold. The bar itself moves nothing: when a tab becomes the
@@ -574,10 +573,11 @@ the new look, listed at the end, and they go with their call sites.
   home on the pop spring, the Bulk drawing fading in over the Linear), never on
   launch or on a tap of the open tab, and under Reduce Motion it simply swaps.
   The Practice dot pops in once when practice becomes due while the bar is
-  open. Cells keep a 60pt floor and labels wrap at large text. The words are
-  Home, Speak, Practice and Progress today. A3 changes the bar to five tabs:
-  Today, Explore, Speak, Practice and Journey (routes `Home`, `Explore`,
-  `Tutor`, `Practice`, `MyFrench`). Friends is an optional Profile route.
+  open. Cells keep a 60pt floor and labels wrap at large text: from a 1.3
+  reading size each cell takes a fixed fifth (64pt on a 320pt phone). The words
+  are Today, Explore, Speak, Practice and Journey (routes `Home`, `Explore`,
+  `Tutor`, `Practice`, `MyFrench`); Explore's icon is the map, the set having
+  no compass. Friends is an optional Profile route.
 - **Highlight**: the highlighter (SNIPPETS highlight): a still band in
   `highlight` behind one French line, at most once per screen and only on white
   or paper. The band is decorative; the line on it is what is read, marked as
@@ -839,16 +839,18 @@ text measurements without capping the system size. Shorter viewports tighten
 spacing; tall windows centre the reading column.
 Keyboard and accessibility overflow remains scrollable to keep fields reachable.
 
-The signed-in app has four tabs today, each opening Profile from the labelled
-avatar; A3 moves it to five (Today, Explore, Speak, Practice, Journey), and the
-table below is updated then. Friends is a Profile route and retains shared challenges and moderation.
+The signed-in app has five tabs (Today, Explore, Speak, Practice, Journey),
+each opening Profile from the labelled avatar. Explore's content is the
+catalogue ported from the Codex branch; the other four still show their
+revamp B content until Phase B rebuilds them. Friends is a Profile route and retains shared challenges and moderation.
 
 | Tab | What it is |
 |---|---|
-| Home | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
+| Today | The greeting, then the hero (`game/TodayHero`): the flame and the run, which open the Streak screen, today's goal ring in measured minutes and the level chip, each from the game layer and absent rather than nought when unread; one factual nudge line only while a run is waiting on today. Then one shared next task: unfinished personal practice, usable practice, then a scene on the blue brief with its place drawing; a truthful plans gate when the free allowance is used; genuine local practice offline; a lifetime day count; starting scenes or two week sentences; today's three quests (`game/QuestsCard`, the one quiet line once all three are done, no chest); today's French with Practise it, Save and More phrases; friends. A number that rose since Home last drew it counts up once and never counts down. |
+| Explore | Topic tiles with their drawings, conversation ideas shaped by learning preferences, skill and practical collections, and search over scenarios, missions and phrases. A collection or scenario opens `ExploreCollection`; the last rows open the word library and Journey. |
 | Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
-| Progress | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
+| Journey | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
 | Profile (avatar) | A large `title` with the settings gear (44) at its trailing edge, then the learner's sun disc, name, "Learning French since" when the onboarding date is known, and an Edit link to the name sheet. Then three grouped lists: Learning (Learning preferences with a one-line summary, the tutor as the orb opening the voice sheet, and Tutor memory), Your French (Progress, saying level, a confident level estimate and practice days, which opens Streak; My French; Friends), and Plan (one row opening Subscription). An unread or unknown plan names no plan and is never called Free. The voice and name choices open sheets over the page. |
 
 Two routes hold the standing choices and the plan (P2, 19 October 2026). Both

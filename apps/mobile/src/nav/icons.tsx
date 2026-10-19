@@ -38,7 +38,12 @@ export function PracticeIcon({ size = 24, color = paper.ink, focused = false }: 
   return <Icon name="practice" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }
 
-/** The Progress tab, which is still the MyFrench route. */
+/** Explore: the map, the closest drawing in the set to a compass. */
+export function ExploreIcon({ size = 24, color = paper.ink, focused = false }: TabIconProps) {
+  return <Icon name="map" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
+}
+
+/** The Journey tab, which is still the MyFrench route. */
 export function MyFrenchIcon({ size = 24, color = paper.ink, focused = false }: TabIconProps) {
   return <Icon name="progress" variant={focused ? 'bulk' : 'linear'} size={size} color={color} />;
 }

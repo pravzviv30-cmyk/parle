@@ -48,7 +48,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
       /function labelsWrapUnderGlyph\(fontScale: number\): boolean \{ return fontScale >= WRAPS_UNDER_GLYPH; \}/,
       'the threshold is decided inline rather than by one named rule, so the bar and this test can drift apart',
     );
-    assert.match(FLAT, /const WRAPS_UNDER_GLYPH = 1\.6;/, 'the wrapping threshold moved off 1.6 without a word about why');
+    assert.match(FLAT, /const WRAPS_UNDER_GLYPH = 1\.3;/, 'the wrapping threshold moved off 1.3 without a word about why');
 
     // And the large branch is a width per cell, not a cap on the word.
     assert.match(
@@ -59,7 +59,7 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     const from = BAR.indexOf('cellWrapped: {');
     assert.notEqual(from, -1, 'the wrapped cell style is gone; this test is reading the wrong thing');
     const cell = BAR.slice(from, BAR.indexOf('},', from) + 1);
-    assert.match(cell, /flexBasis: '25%'/, 'a wrapped cell does not take a quarter of the bar, so the four cells share it again');
+    assert.match(cell, /flexBasis: '20%'/, 'a wrapped cell does not take a fifth of the bar, so the five cells share it again');
     assert.match(cell, /flexGrow: 0/, 'a wrapped cell can still grow into its neighbour');
     assert.match(cell, /flexShrink: 0/, 'a wrapped cell can still be shrunk out of its quarter by a longer neighbour');
 
@@ -155,20 +155,27 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     assert.doesNotMatch(BAR, /\bAnimated\b|useReduceMotion|interpolate/, 'the tab bar animates on its own; only the shared press may move a cell');
   });
 
-  test('the four words are Home, Speak, Practice and Progress; Friends remains a stack route', () => {
-    // 2026-09-30, revamp B (F600). Replaces "Home is labelled Today". The words
-    // under the glyphs follow the approved bar; the route names, which deep
-    // links and every navigate() call spell, do not move.
+  test('the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route', () => {
+    // 2026-10-20, direction B (UI-004..UI-006). Replaces revamp B's four words.
+    // Explore is a new route; the other route names, which deep links and every
+    // navigate() call spell, do not move.
     assert.match(
       FLAT,
-      /const LABELS: Record<string, string> = \{ Home: 'Home', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'Progress', \};/,
-      'the four words under the glyphs are not Home, Speak, Practice and Progress',
+      /const LABELS: Record<string, string> = \{ Home: 'Today', Explore: 'Explore', Tutor: 'Speak', Practice: 'Practice', MyFrench: 'Journey', \};/,
+      'the five words under the glyphs are not Today, Explore, Speak, Practice and Journey',
     );
     assert.match(
       FLAT,
-      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, \};/,
+      /const ICONS: Record<string, \(p: TabIconProps\) => React\.ReactElement> = \{ Home: HomeIcon, Explore: ExploreIcon, Tutor: TutorIcon, Practice: PracticeIcon, MyFrench: MyFrenchIcon, \};/,
       'a route name changed; only the word under the glyph was meant to',
     );
+  });
+
+  test('five cells fit a 320pt phone above the touch floor', () => {
+    // A fifth of the narrowest supported phone, the width a wrapped cell takes.
+    assert.ok(320 / 5 >= 44, 'a fifth of a 320pt bar falls under the 44pt touch floor');
+    const order = [...FLAT.matchAll(/<Tab\.Screen name="(\w+)"/g)].map((m) => m[1]);
+    assert.ok(order.length === 0 || order.length === 5, 'the bar no longer has five cells');
   });
 });
 

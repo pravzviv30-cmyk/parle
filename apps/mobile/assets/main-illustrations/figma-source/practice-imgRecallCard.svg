@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="143" height="132" viewBox="0 0 143 132" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="recall-card">
+<path id="Vector" d="M127 4.06313e-07H16C7.16344 4.06313e-07 0 7.16344 0 16V116C0 124.837 7.16344 132 16 132H127C135.837 132 143 124.837 143 116V16C143 7.16344 135.837 4.06313e-07 127 4.06313e-07Z" fill="#FFF6E9"/>
+<path id="Vector_2" d="M131 4.06313e-07H12C5.37258 4.06313e-07 0 5.37258 0 12V18C0 24.6274 5.37258 30 12 30H131C137.627 30 143 24.6274 143 18V12C143 5.37258 137.627 4.06313e-07 131 4.06313e-07Z" fill="#3B2FE0"/>
+<path id="Vector_3" d="M23 54H119M23 67H93" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke="#3B2FE0"/>
+<path id="Vector_4" d="M67 111C74.732 111 81 104.732 81 97C81 89.268 74.732 83 67 83C59.268 83 53 89.268 53 97C53 104.732 59.268 111 67 111Z" fill="#FFC93C"/>
+<path id="Vector_5" d="M61 97L66 102L75 91" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#16123A"/>
+</g>
+</svg>

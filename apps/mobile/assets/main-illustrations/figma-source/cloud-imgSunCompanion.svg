@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="83.0354" height="68" viewBox="0 0 83.0354 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="sun-companion">
+<path id="Vector" d="M34 68C52.7777 68 68 52.7777 68 34C68 15.2223 52.7777 0 34 0C15.2223 0 0 15.2223 0 34C0 52.7777 15.2223 68 34 68Z" fill="#FFC93C"/>
+<g id="expression">
+<path id="Vector_2" d="M21 33C22.5464 33 23.8 31.2091 23.8 29C23.8 26.7909 22.5464 25 21 25C19.4536 25 18.2 26.7909 18.2 29C18.2 31.2091 19.4536 33 21 33Z" fill="#16123A"/>
+<path id="Vector_3" d="M47 33C48.5464 33 49.8 31.2091 49.8 29C49.8 26.7909 48.5464 25 47 25C45.4536 25 44.2 26.7909 44.2 29C44.2 31.2091 45.4536 33 47 33Z" fill="#16123A"/>
+<path id="Vector_4" d="M26 41C31.3333 49.6667 37.3333 49.3333 44 40" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke="#16123A"/>
+<path id="Vector_5" d="M9 41C12.3137 41 15 39.6569 15 38C15 36.3431 12.3137 35 9 35C5.68629 35 3 36.3431 3 38C3 39.6569 5.68629 41 9 41Z" fill="#FFBDA5"/>
+<path id="Vector_6" d="M59 41C62.3137 41 65 39.6569 65 38C65 36.3431 62.3137 35 59 35C55.6863 35 53 36.3431 53 38C53 39.6569 55.6863 41 59 41Z" fill="#FFBDA5"/>
+</g>
+<g id="sun-wave">
+<path id="Vector_7" d="M64 46C78.6667 40.6667 84 32 80 20" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke="#16123A"/>
+</g>
+</g>
+</svg>

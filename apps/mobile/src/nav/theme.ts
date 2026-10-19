@@ -55,11 +55,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
         path: '',
         screens: {
           Home: 'home',
+          Explore: 'explore',
           Tutor: 'tutor',
           Practice: 'practice',
           MyFrench: 'my-french',
         },
       },
+      ExploreCollection: 'explore/:id',
       Lesson: 'lesson',
       Convo: 'conversation',
       Drill: 'drill',

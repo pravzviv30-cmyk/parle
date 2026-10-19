@@ -69,6 +69,8 @@ import { TutorTab } from '../tabs/TutorTab.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
+import { ExploreTab } from '../tabs/ExploreTab.tsx';
+import { ExploreCollectionScreen } from '../main/ExploreCollectionScreen.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
 import { FriendsTab } from '../tabs/FriendsTab.tsx';
 import { InviteFriendsScreen } from '../friends/InviteFriendsScreen.tsx';
@@ -695,6 +697,7 @@ function Tabs() {
       tabBar={(props) => <LuvaniTabBar {...props} />}
     >
       <Tab.Screen name="Home" component={HomeTab} />
+      <Tab.Screen name="Explore" component={ExploreTab} />
       <Tab.Screen name="Tutor" component={TutorTab} />
       <Tab.Screen name="Practice" component={PracticeTab} />
       <Tab.Screen name="MyFrench" component={MyFrenchTab} />
@@ -727,6 +730,7 @@ export function RootNavigator({
       <Stack.Screen name="SocialSettings" component={SocialSettingsScreen} />
       <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
+      <Stack.Screen name="ExploreCollection" component={ExploreCollectionScreen} />
       <Stack.Screen name="Postcards" component={PostcardsScreen} />
       <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
       <Stack.Screen name="Streak" component={StreakScreen} />
