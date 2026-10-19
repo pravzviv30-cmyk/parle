@@ -48,6 +48,8 @@ export type RestoreOutcome =
   | { kind: 'done'; plan: Plan }
   | { kind: 'nothing-granted' }
   | { kind: 'cancelled' }
+  /** The store deferred it (Ask to Buy). Nothing was paid or granted. */
+  | { kind: 'awaiting-approval' }
   | { kind: 'store-trouble' }
   | { kind: 'refresh-trouble' };
 

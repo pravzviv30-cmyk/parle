@@ -84,13 +84,13 @@ export function parseProductEvent(value: unknown, source: 'client' | 'server' = 
     if (!exactKeys(properties, ['plan', 'outcome'])) return null;
     if (
       !paidPlan(properties.plan) ||
-      !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'store-trouble', 'refresh-trouble'])
+      !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'awaiting-approval', 'store-trouble', 'refresh-trouble'])
     ) return null;
   } else if (candidate.name === 'restore_started' || candidate.name === 'restore_settled') {
     const settled = candidate.name === 'restore_settled';
     if (!exactKeys(properties, settled ? ['entry', 'outcome'] : ['entry'])) return null;
     if (!allowedEnum(properties.entry, ['settings', 'wall', 'inline'])) return null;
-    if (settled && !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'store-trouble', 'refresh-trouble'])) return null;
+    if (settled && !allowedEnum(properties.outcome, ['done', 'nothing-granted', 'cancelled', 'awaiting-approval', 'store-trouble', 'refresh-trouble'])) return null;
   } else if (candidate.name === 'wall_left') {
     if (!exactKeys(properties, ['entry', 'outcome', 'destination'])) return null;
     if (!allowedEnum(properties.entry, ['path-complete', 'refused', 'settings', 'recap']) || !allowedEnum(properties.outcome, ['granted', 'unchanged']) || !allowedEnum(properties.destination, ['back', 'speak'])) return null;

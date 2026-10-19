@@ -17,7 +17,7 @@ import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { fetchBillingStatus, refreshBilling } from '../purchases/client.ts';
-import { paywallSurface, restoreTrouble } from '../purchases/paywallView.ts';
+import { PURCHASE_AWAITING_APPROVAL, paywallSurface, restoreTrouble } from '../purchases/paywallView.ts';
 import { restorePurchases, settleStoreAction } from '../purchases/restore.ts';
 import { LOCAL_CALENDAR } from '../reminders/plan.ts';
 import { trialReminderSlot } from '../reminders/trialReminder.ts';
@@ -34,7 +34,7 @@ import {
 import { wallAccount } from './wallAccount.ts';
 import { chosenOffer, preselectedOffer, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
 import { trialTimeline } from './trialTimeline.ts';
-import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
+import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, pendingCheckoutNotice, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 import { publishCelebrations } from '../celebrate/events.ts';
@@ -510,8 +510,8 @@ export function WallScreen({
   if (pendingPurchase !== null) return (
     <ScrollScreen ground={colors.background} topGap={0} bottom="inset" header={<WallTopRow onPress={() => leave()} />}
       footer={<View style={st.footer}>
-        <WallNotice notice={{ title: PAYWALL_PENDING_TITLE, body: 'A store purchase was started on this phone. Its matching paid plan has not been confirmed. Please do not buy again. Free local practice is available while confirmation catches up.', danger: false }} />
-        {message !== null && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.muted }]}>{message}</Text>}
+        <WallNotice notice={pendingCheckoutNotice(message) ?? { title: PAYWALL_PENDING_TITLE, body: 'A store purchase was started on this phone. Its matching paid plan has not been confirmed. Please do not buy again. Free local practice is available while confirmation catches up.', danger: false }} />
+        {message !== null && message !== PURCHASE_AWAITING_APPROVAL && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.muted }]}>{message}</Text>}
         <WallCta label={PAYWALL_CHECK_AGAIN} dim={busy ? 0.6 : 1} disabled={busy} state={busy ? 'busy' : 'idle'} onPress={() => void checkAcceptedPurchase()} />
         <WallLinks onTerms={onOpenTerms} onPrivacy={onOpenPolicy} />
       </View>}>

@@ -114,7 +114,8 @@ const FILES: Record<string, string> = {
   // setup and sandbox qualification remain separate release prerequisites.
   // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
-  'apps/mobile/src/purchases/adapter.native.ts': 'f89f1ee102b6e40e826b77d87052faf3b76eea1112196e1abbbb8886dbb4fd27',
+  // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
+  'apps/mobile/src/purchases/adapter.native.ts': 'ec2b5e5293c044ae26a6b6017b42feb63e1a8a6bac55a8a979bf13cdde503323',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
@@ -126,8 +127,10 @@ const FILES: Record<string, string> = {
   // `git diff` against the accepted b98dcaa1... shows only that doc comment.
   // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
   // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
-  'apps/mobile/src/purchases/contract.ts': '4d6e3aeb55abf4075bd208563221fb7d194750b62ce6bf1e59d3920704359cbd',
-  'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
+  // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
+  'apps/mobile/src/purchases/contract.ts': 'f5b477d2e332e67d45c2c63e3517767979b599275ca9b78f9b501fb9019d27fd',
+  // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
+  'apps/mobile/src/purchases/restore.ts': 'f625d4062beab096ea5b4802d19c3069e146d3d2223f242d70330325a7148dfe',
   // 7 October 2026: authorized completion adds account-scoped invalidation after
   // validated billing refresh (F783); listeners re-read server authority. No grant
   // or pricing rule changes here. billingChanges.test.ts covers the boundary.
@@ -179,7 +182,8 @@ const FILES: Record<string, string> = {
   'supabase/migrations/202608300002_paid_period_lapse.sql': '0a9defce38d24c790112b3af5518b442da6e8ff6527e88dcfc7a151fbe985026',
   'supabase/migrations/202608300003_paid_lapse_marker.sql': 'f62c7f5af3db814128873c98903f5161e1dd215a80071d0f66f9727b7e4c3b41',
   'supabase/migrations/202609100001_max_allowance_three_hundred.sql': '0e0982a4a43efa7100674848e8698eb5a7d15f44e39e4cbeac1e866c7069aadc',
-  'apps/mobile/src/purchases/storeSettlement.ts': '6b1fd0203883dfa7631f78fdd8b07e0714fb3e1c31ce22193a1c771b0e5f23dd',
+  // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
+  'apps/mobile/src/purchases/storeSettlement.ts': '8dd08774be07a8d9b8bd6053d1aca93b144dc0de33cbadda0b8f4d1fd8199674',
   'apps/mobile/src/purchases/storeQueue.ts': 'e082c5feb556e5eda675884e56255ebf2ef4365ddfa783d26ad0005c271d9c74',
   'apps/mobile/src/purchases/billingReadiness.ts': '00d56ec03d31717376149bf4d9e50738452d55e8cd7d2951114e70f858ec5cd6',
   'services/token-server/src/billing/state.ts': 'e564bd2e58a25fea9dc942c7e4a52563802bbcc309fc3caa4cbeaea2ec3abc17',
@@ -205,7 +209,8 @@ const FILES: Record<string, string> = {
 const FUNCTIONS: ReadonlyArray<{ file: string; from: string; to: string; hash: string }> = [
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function purchasable(', to: '\n}\n', hash: '356663b565acadb4db7149d52bb3b19a34db93da9cb7045dc65dcdb4381cc9d3' },
   { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function paywallSurface(', to: '\n}\n', hash: 'd84931dc6e9138415641ca4acde9fd0fc746b4032c318ffe52fbe22d0b8935a9' },
-  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: 'a42a8dbf9d09d8b44260a42e20ff35956cd51e104fdc815ee3f27a4cd0e943db' },
+  // 2026-10-19, F845: add the non-granting awaiting-approval (Ask to Buy) store outcome; founder approved the re-pin.
+  { file: 'apps/mobile/src/purchases/paywallView.ts', from: 'export function restoreTrouble(', to: '\n}\n', hash: 'b0b7d80154b7438209dc99dda1583b7a9b3269b5f663915b5f1ba5bab6b9a094' },
   { file: 'apps/mobile/src/purchases/Paywall.tsx', from: '  const finish = async (', to: '\n  };\n', hash: '84b76d1009e37cb18928dba63a23fbe243160a42d96fcc48581f6bebd76e508d' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const settle = async (', to: '\n  };\n', hash: '6a43acfd12cebaee7a0919d2040ba6bc9cbb6875bd7659b4b9322c8331a6deb2' },
   { file: 'apps/mobile/src/wall/WallScreen.tsx', from: '  const buy = async () => {', to: '\n  };\n', hash: '722a6d7ab28faaa9751d1e3ae938b92983f44f2f125228cd1c654cb7d98a3c40' },

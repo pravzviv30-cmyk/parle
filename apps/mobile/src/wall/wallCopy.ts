@@ -431,6 +431,8 @@ export const PAYWALL_RESTORE_NONE_TITLE = 'No subscription found';
  */
 export const PAYWALL_RESTORE_NONE_BODY = 'Nothing to restore for this Apple ID yet. If you just subscribed, try again in a moment.';
 export const PAYWALL_PENDING_TITLE = 'Waiting for confirmation';
+/** Ask to Buy (F845): the store deferred the purchase until it is approved. */
+export const PAYWALL_APPROVAL_TITLE = 'Waiting for approval';
 export const PAYWALL_CHECK_AGAIN = 'Check my purchase again';
 
 /** The success page, once the server has confirmed what was bought. */
@@ -536,6 +538,7 @@ export const WALL_CONFIRMING = 'Checking your plan…';
  * missing from it.
  */
 export const WALL_COPY: readonly string[] = [
+  PAYWALL_APPROVAL_TITLE,
   MAP_TITLE,
   MAP_SUB,
   MAP_CLOSED_TITLE,

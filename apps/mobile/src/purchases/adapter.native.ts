@@ -6,6 +6,7 @@ import { storeTrialFactsFrom } from './storeTrialFacts.ts';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
+import { storeActionFromError } from './storeError.ts';
 
 import { PAID_PLANS, type PaidPlan, type PurchasesAdapter, type StoreAction, type StoreIntroOffer, type StoreOffering, type StoreProduct } from './contract.ts';
 
@@ -183,9 +184,7 @@ async function introEligibleIds(packages: readonly { found: PurchasesPackage }[]
 }
 
 function actionFrom(error: unknown): StoreAction {
-  const cancelled =
-    typeof error === 'object' && error !== null && 'userCancelled' in error && error.userCancelled === true;
-  return { ok: false, cancelled };
+  return storeActionFromError(error);
 }
 
 export const purchases: PurchasesAdapter = {
