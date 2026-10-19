@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration } from './palette.ts';
+import { paper, colour, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -677,4 +677,20 @@ describe('the recorded palette matches the code — F327, F328', () => {
     const app = readFileSync(join(SRC, '..', 'App.tsx'), 'utf8');
     assert.match(app, /app: \{ flex: 1, backgroundColor: paper\.ground \}/, 'the app beneath the launch is not on the ground');
   });
+});
+
+describe('main appearance premium roles', () => {
+  for (const mode of ['light', 'dark'] as const) {
+    const c = mainApp[mode];
+    test(`${mode}: link and danger read on background and surface; text reads on selected`, () => {
+      for (const role of ['link', 'danger'] as const) {
+        for (const ground of ['background', 'surface'] as const) {
+          const r = contrast(c[role], c[ground]);
+          assert.ok(r >= 4.5, `${mode} ${role} is ${r.toFixed(2)} on ${ground}`);
+        }
+      }
+      const r = contrast(c.text, c.selected);
+      assert.ok(r >= 4.5, `${mode} text is ${r.toFixed(2)} on selected`);
+    });
+  }
 });

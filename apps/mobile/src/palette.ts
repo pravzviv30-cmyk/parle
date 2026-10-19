@@ -67,6 +67,18 @@ export const boldRhythm = {
   coral: colour.coral, muted: '#655F77', line: '#DCD2C4', sand: '#EFE6D9',
 } as const;
 
+/** Approved C2 main-app semantic surfaces. */
+export const mainApp = {
+  light: { background: paper.ground, surface: paper.card, inset: '#E9E3FA', text: paper.ink, muted: '#655F77', border: '#DCD2C4', hero: colour.blue, plum: '#E9E3FA', teal: '#D4E2D7', rose: '#F7D8C7', ochre: '#FFE8AB', link: colour.blue, selected: '#FFFFFF', danger: '#C2341F' },
+  dark: { background: '#151127', surface: '#25203D', inset: '#302A48', text: paper.ground, muted: '#C6BED8', border: '#514967', hero: '#363064', plum: '#322B50', teal: '#233F41', rose: '#49333F', ochre: '#493C2E', link: '#A79AFF', selected: '#4A4170', danger: '#FF9A85' },
+} as const;
+
+/** Exact approved editable illustration colours. */
+export const mainArtColours = {
+  light: { ink: paper.ink, cream: paper.ground, violet: colour.blue, lilac: '#DED6FF', gold: colour.sun, peach: '#FFBDA5', sage: '#CADFCB', softGold: '#FFE8A5' },
+  dark: { ink: '#211C3A', cream: '#EEE8FF', violet: '#A79AFF', lilac: '#625980', gold: '#EDC976', peach: '#DBA5A5', sage: '#80B6AE', softGold: '#C4A66A' },
+} as const;
+
 /** Founder-authored sign-in divider and its short separating label. */
 export const welcomeDividerInk = '#000000';
 
