@@ -203,7 +203,9 @@ secure database, room-control and privacy-erasure configuration in place.
 
 Add a RevenueCat webhook pointing to the actual HTTPS token server origin plus
 `/billing/webhook`. Configure its Authorization field to exactly match
-`LUVANI_REVENUECAT_WEBHOOK_SECRET`, including any chosen prefix. Enable delivery
+`LUVANI_REVENUECAT_WEBHOOK_SECRET`, including any chosen prefix. Generate it as a
+random secret of at least 32 characters. The whole value counts, prefix included,
+and production refuses to boot when it is shorter. Enable delivery
 for the appropriate sandbox and production environments. The endpoint
 authenticates and deduplicates events, then reads current subscriber state from
 RevenueCat; the webhook body itself does not grant time. The app's authenticated

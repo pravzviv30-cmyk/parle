@@ -124,7 +124,8 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /Vendor-side retention for this\s+generated phrase is unverified/);
     const savedServer = readFileSync(`${HERE}../../../../services/token-server/src/phraseAudio.ts`, 'utf8');
     assert.match(savedServer, /https:\/\/api\.elevenlabs\.io\/v1\/text-to-speech\//);
-    assert.doesNotMatch(WHOLE.replace(savedAudio, '').replace(POLICY_COPY.find(p => p.startsWith('Before registration you can try a bounded live session.')) ?? POLICY_COPY.find(p => p.startsWith('Before registration you can try a bounded live session with')) ?? '', ''), /LiveKit|ElevenLabs|Speechace/i, 'another vendor claim appeared without verified routing');
+    // Which companies may be named at all is held by the allow-list in
+    // 'the notice names every company that receives learner data, by role'.
     const speech = POLICY_SECTIONS.find(section => section.heading === 'Your speech')?.body.join(' ') ?? '';
     assert.match(speech, /Deepgram turns that take into French text/);
     assert.match(speech, /check and edit before choosing Check/);
@@ -231,16 +232,81 @@ describe('the privacy notice — F479', () => {
     assert.match(factory, /GROQ_API_KEY|OPENAI_API_KEY/, 'the model client stopped being an outside service, which would change this section');
 
     // And the document says it, so the sentence is sourced rather than argued.
-    assert.match(DOC, /A fifth vendor receives the words themselves, as text/);
+    assert.match(DOC, /The language model vendor, OpenAI in production, receives the words themselves, as text/);
     assert.match(
       DOC,
       /Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's/,
       'the document stopped saying the model vendor keeps as little verified as the other four',
     );
 
-    // Still no vendor named. Which model it is, is a contract nobody in this
-    // repo has read, and the rule that keeps Deepgram out keeps it out too.
-    assert.doesNotMatch(WHOLE, /Anthropic|OpenAI|Groq|GPT|Claude|Gemini/i, 'the notice names the model vendor');
+    // Named since the founder's 2026-10-19 decision, because production boot
+    // now refuses any other brain. The vendors it refuses stay unnamed.
+    assert.match(said, /Another is the language model, from OpenAI/, 'the notice stopped naming the model vendor production enforces');
+    assert.doesNotMatch(WHOLE, /Anthropic|Groq|GPT|Claude|Gemini/i, 'the notice names a model vendor production refuses');
+  });
+
+  test('the notice names every company that receives learner data, by role', () => {
+    // P3 #7, F854. Founder decision 2026-10-19: OpenAI is production's model
+    // and Railway hosts the server. Production boot refuses any other brain
+    // (token-server config.ts, tutor-agent preflight.ts), so every recipient can
+    // now be named inside the role sentence it already had. This is the
+    // allow-list that replaced the two "no vendor named" guards: each of the ten
+    // must be named, beside its job, and no other company may be.
+    const ROLES: readonly [string, RegExp][] = [
+      ['LiveKit', /LiveKit carries the audio/],
+      ['Deepgram', /Deepgram turns speech into text/],
+      ['ElevenLabs', /ElevenLabs gives the tutor its voice/],
+      ['Speechace', /Speechace scores a pronunciation attempt/],
+      ['OpenAI', /Another is the language model, from OpenAI/],
+      ['TypeSafe', /a company called TypeSafe reads your answer first/],
+      ['RevenueCat', /Apple or Google takes the payment in its store, and RevenueCat handles the purchase/],
+      ['Supabase', /Supabase runs the database that keeps your account and your learning, and the sign-in/],
+      ['Upstash', /Upstash holds the counters that hold cost and abuse in check, under a scrambled marker/],
+      ['Railway', /Our server runs on computers we rent from Railway/],
+    ];
+    const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
+    assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
+    const said = seen.body.join(' ');
+    for (const [name, role] of ROLES) {
+      assert.match(said, role, `${name} is not named beside what it does`);
+    }
+
+    // No company outside the ten. Store operators appear only as where the
+    // payment is taken. Every capitalised word that is not opening a sentence
+    // has to be ordinary vocabulary, our own name, or one of the above, so a new
+    // company fails here by name rather than reading as reassuring copy.
+    const COMPANIES = new Set(ROLES.map(([name]) => name));
+    const STORES = new Set(['Apple', 'Google', 'App', 'Store']);
+    const OURS = new Set(['Luvani', ...String(SUPPLIED.registeredName).split(' '), 'UK']);
+    const VOCABULARY = new Set(['AI', 'Check', 'Fix', 'French', 'Friends', 'Hear', 'Profile', 'Progress', 'Record', 'Save', 'Saved', 'Settings', 'Terms', 'Why', 'Your']);
+    const stray = new Set<string>();
+    for (const line of [...POLICY_COPY, ...policyCopy(SUPPLIED)]) {
+      for (const hit of line.matchAll(/(?<![.!?:]\s)(?<!^)(?<=\s|\()[A-Z][A-Za-z.]*[A-Za-z]/g)) {
+        const word = hit[0];
+        if (!COMPANIES.has(word) && !STORES.has(word) && !OURS.has(word) && !VOCABULARY.has(word)) stray.add(word);
+      }
+    }
+    assert.deepEqual([...stray], [], `the notice names something outside the allow-list: ${[...stray].join(', ')}`);
+
+    // And at any position, the companies production does not use or the notice
+    // must not name: refused model vendors, the other voice supplier, the
+    // scorer behind Speechace and store SDKs.
+    assert.doesNotMatch(WHOLE, /\b(Anthropic|Groq|Gemini|GPT|Claude|Fish Audio|TonePerfect|StoreKit|Sentry|Firebase|Vercel|Heroku|AWS|Amazon|Cloudflare|Mistral)\b/i, 'the notice names a company outside the ten');
+
+    // The names are true because the code routes there. Each check fails when
+    // the routing changes rather than when somebody edits the copy.
+    const root = fileURLToPath(new URL('../../../../', import.meta.url));
+    const config = readFileSync(join(root, 'services/token-server/src/config.ts'), 'utf8');
+    assert.match(config, /env\.TUTOR_LLM\.trim\(\)\.toLowerCase\(\) !== 'openai'/, 'production boot stopped refusing a non-OpenAI brain, so naming OpenAI is a guess again');
+    const preflight = readFileSync(join(root, 'services/tutor-agent/src/preflight.ts'), 'utf8');
+    assert.match(preflight, /\.toLowerCase\(\) !== 'openai'/, 'the agent stopped refusing a non-OpenAI brain in production');
+    assert.match(readFileSync(join(root, 'services/token-server/src/rateLimit.ts'), 'utf8'), /privateSignal/, 'the Upstash keys stopped being scrambled markers');
+    assert.match(readFileSync(join(root, 'services/token-server/src/phraseAudio.ts'), 'utf8'), /api\.elevenlabs\.io/);
+
+    // Naming adds no retention claim. The unverified sentence stays.
+    assert.match(said, /is not something we have checked/);
+    assert.match(said, /Provider retention and any processing under their own terms must be verified before release/);
+    assert.match(DOC, /Railway hosts the token server/, 'the document does not source the host the notice names');
   });
 
   test('the notice says the language model is also sent what the tutor remembers about the learner', () => {
@@ -454,13 +520,13 @@ describe('the privacy notice — F479', () => {
     const said = seen.body.join(' ');
 
     // Named for what it does, in the learner's words rather than as a category.
-    assert.match(said, /It takes the payment and tells the app what was bought/, 'the notice hides the company that is told what a learner bought');
-    assert.match(said, /What it is told is which account bought what\./, 'the notice names the payment company and hides what it is handed');
+    assert.match(said, /Apple or Google takes the payment in its store, and RevenueCat handles the purchase and tells the app what was bought/, 'the notice hides the company that is told what a learner bought');
+    assert.match(said, /What RevenueCat is told is which account bought what\./, 'the notice names the payment company and hides what it is handed');
 
     // And bounded the other way, because overclaiming is its own untruth: an
     // account and a purchase cross, and not one word of French.
-    assert.match(said, /it hears none of your French/);
-    assert.match(said, /No audio, no words you said and nothing you are learning goes to it\./);
+    assert.match(said, /none of them hears any of your French/);
+    assert.match(said, /No audio, no words you said and nothing you are learning goes to any of them\./);
 
     // The two calls the paragraph is about, so this fails when the purchase path
     // changes shape rather than only when somebody edits the copy.
@@ -491,9 +557,10 @@ describe('the privacy notice — F479', () => {
       'the vendor table stopped listing the purchase processor',
     );
 
-    // Still no vendor named in learner-facing text. The rule that keeps the
-    // transcriber out keeps the processor out too.
-    assert.doesNotMatch(WHOLE, /RevenueCat|StoreKit|Google Play Billing/i, 'the notice names the purchase vendor');
+    // Named by company since 2026-10-19, and only by company: the store SDK
+    // names are implementation, not recipients a learner can look up.
+    assert.match(said, /RevenueCat handles the purchase/, 'the notice stopped naming the purchase vendor');
+    assert.doesNotMatch(WHOLE, /StoreKit|Google Play Billing/i, 'the notice names a store SDK rather than a company');
   });
 
   test('the notice bounds sharing by purpose rather than by a count of vendors', () => {
@@ -526,7 +593,7 @@ describe('the privacy notice — F479', () => {
     // "The ones above" has to point at something, so the two recipients the
     // count hid are named there. Our own server is companies we pay to hold
     // things, and neither of those was in the notice either.
-    assert.match(said, /The server this notice calls ours runs on computers we rent\./, 'the notice lets a rented database read as a machine of ours');
+    assert.match(said, /Our server runs on computers we rent from Railway\./, 'the notice lets a rented database read as a machine of ours');
     assert.match(said, /under a scrambled marker rather than your name/, 'the notice stopped saying what the counter store is keyed by');
     assert.match(DOC, /Our server is somebody else's computer/, 'the document stopped naming the companies behind "our server"');
     assert.match(DOC, /Recipients are bounded by purpose, not by a count/, 'the document stopped holding the rule this entry exists for');
@@ -597,7 +664,7 @@ describe('the privacy notice — F479', () => {
     assert.match(said, /Another is the language model/, 'the language model is the fifth of something again');
     assert.match(said, /What you say reaches these services during a session/, 'what a learner says reaches a number again');
     assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./, 'the sending after a session stops at a number again');
-    assert.match(said, /Paying for Luvani brings in another company/, 'the payment company is counted rather than named');
+    assert.match(said, /Paying for Luvani brings in other companies, and none of them hears any of your French\./, 'the payment company is counted rather than named');
 
     // What a count is NOT. The opening enumeration gives each service the job it
     // does, and a new vendor edits that sentence exactly as it edits the rest of
@@ -605,13 +672,13 @@ describe('the privacy notice — F479', () => {
     // notice vaguer, which is the opposite of what this entry is for.
     assert.match(
       said,
-      /One carries the audio, one turns speech into text, one gives the tutor its voice, and one scores a pronunciation attempt\./,
+      /LiveKit carries the audio, Deepgram turns speech into text, ElevenLabs gives the tutor its voice, and Speechace scores a pronunciation attempt\./,
       'the notice stopped saying what each service is for, which is the disclosure the count was hiding behind',
     );
 
     // The paragraph nobody was looking at. Two rented holders were tied together
     // by a word that means two, which is the same construction one size down.
-    const rented = seen.body.find((paragraph) => paragraph.startsWith('The server this notice calls ours'));
+    const rented = seen.body.find((paragraph) => paragraph.startsWith('Our server runs on computers we rent'));
     assert.ok(rented, "the notice stopped saying that our server is somebody else's computer");
     assert.doesNotMatch(rented, /\b(both|neither|either)\b/i, 'the rented database and the counter store are tied together by a word that counts them');
     assert.match(rented, /They hold what is described above so that we can, and nothing else is sent to them\./);
@@ -707,7 +774,8 @@ describe('the privacy notice — F479', () => {
     assert.ok(jobs.indexOf('requestRevenueCatErasure(') < jobs.indexOf('deleteSupabaseUser('));
     assert.match(DOC, /Account deletion requests purchase-processor erasure/);
     assert.match(DOC, /asynchronous queue/);
-    assert.doesNotMatch(WHOLE, /RevenueCat|StoreKit|Google Play Billing/i);
+    assert.match(WHOLE, /RevenueCat/);
+    assert.doesNotMatch(WHOLE, /StoreKit|Google Play Billing/i);
   });
 
   test('the not true yet table carries no gap the ledger has already closed', () => {

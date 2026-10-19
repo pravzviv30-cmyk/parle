@@ -174,14 +174,18 @@ conversation carries whatever that line said. The learner-facing notice does not
 repeat the figure, for the same reason it names no vendor's retention: a vendor's
 account of what it keeps is not a fact we have checked.
 
-**A fifth vendor receives the words themselves, as text.** The language model
+**The language model vendor, OpenAI in production, receives the words themselves, as text.** The language model
 `brainClient` returns in `services/tutor-agent/src/convo.ts` (Anthropic, OpenAI or
 Groq, chosen by `TUTOR_LLM`) is sent every learner turn by `runBrainTurn`, because
-that is the call that writes the reply the tutor speaks. It is the recipient that
-*reads* what was said rather than only carrying or transcribing it, and it is
-therefore the one a recipients list must not leave out: the learner-facing text in
-`legal/policy.ts` names it among the services a live conversation needs, in the same
-by-function words as the other four.
+that is the call that writes the reply the tutor speaks. Production uses OpenAI only
+(founder decision, 2026-10-19): `productionConfigurationProblems` in
+`services/token-server/src/config.ts` and `preflight` in
+`services/tutor-agent/src/preflight.ts` refuse any other brain when
+`NODE_ENV=production`; Anthropic and Groq remain development options. It is the
+recipient that *reads* what was said rather than only carrying or transcribing it,
+and it is therefore the one a recipients list must not leave out: the learner-facing
+text in `legal/policy.ts` names OpenAI beside that role, as it names LiveKit,
+Deepgram, ElevenLabs and Speechace beside theirs.
 
 What the turn call is sent is set by `prepareTurn` in
 `packages/brain/src/engine/conversation.ts` and `buildTurnContext` in
@@ -352,8 +356,9 @@ has not been checked against its terms by anyone here, and the language model ve
 as unverified for this call as for the turn call. Both are in [Not true yet](#not-true-yet)
 and on the vendor-terms item in `docs/RELEASE_GATE.md`.
 
-The notice says this in two paragraphs of "Who else sees it", and TypeSafe is the one
-recipient it names, because `CLAUDE.md` requires it before production. The route also
+The notice says this in two paragraphs of "Who else sees it", and TypeSafe was the first
+recipient it named, because `CLAUDE.md` requires it before production; since 2026-10-19
+every recipient is named beside its role. The route also
 falsified the sentence that closed the post-session calls, "Nothing more about that
 session reaches any of them after that", since the phrase and situation being judged come
 from a finished session. It now ends "unless you practise a phrase from it", which is also
@@ -412,7 +417,10 @@ checks every live `luvani:*` key against that shape); Supabase holds the email, 
 the learning itself. "Our server" in learner-facing copy therefore covers two companies we
 pay to hold things, and neither was named in the notice either. The notice says so now, in
 the same by-function words as the rest, rather than letting a rented database read as a
-machine of ours.
+machine of ours. Railway hosts the token server (founder decision, 2026-10-19; a hosting
+choice recorded here, not something the code can show), so it runs the process every
+request above passes through. Since 2026-10-19 the notice names Railway, Supabase and
+Upstash beside those roles; it makes no claim about what any of them keeps.
 
 **Account deletion requests purchase-processor erasure.** After verified recent bearer
 authentication and the existing account check, `POST /account/delete` calls RevenueCat's
@@ -1028,7 +1036,7 @@ promise already kept.
 | `product_events` and `session_usage` have no scheduled delete | The 13-month and 24-month retentions are policy, not mechanism | This file, table above |
 | `trial_installations` has no scheduled delete | The 24-month antifraud retention is not enforced by anything | This file, section above |
 | The published notice commits to retention periods nothing enforces | Thirteen months for events and two years for usage and trial markers are a promise made in a learner-facing document with no scheduled delete behind it | This file, rows above; `legal/policy.ts` |
-| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's, and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked, and so is TypeSafe's, which reads own-words drill answers whenever `TYPESAFE_API_KEY` is set | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
+| Vendor-side retention for LiveKit, Deepgram, ElevenLabs and Speechace is unverified, and so is the language model vendor's (OpenAI in production), and so is the purchase processor's, and so is TonePerfect's, whose own statement (audio deleted once scored, the assessment kept at most 24 hours) nobody here has checked, and so is TypeSafe's, which reads own-words drill answers whenever `TYPESAFE_API_KEY` is set, and so are Railway's, Supabase's and Upstash's | The privacy text cannot yet describe what any of them keep, and a vendor's statement is not a substitute for checking it | Not filed |
 | Purchase-processor erasure has not been observed against a real account | The queued request is implemented and tested with fixtures; its live completion and vendor-side retention remain unverified | Ledger F499 external verification |
 | Attempt recordings are deleted in code, but that has never been watched happen on a device | The discard and the reset sweep are proven by test only; a phone has never been checked | Ledger F115 (closed), device proof owed by F114 |
 | The deletion cascade has never run against a live database | "Deletion removes everything" is unproven | Ledger F63 |

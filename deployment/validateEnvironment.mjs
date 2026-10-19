@@ -15,13 +15,14 @@ if(env.NODE_ENV!=='production' || env.LUVANI_LOCAL_DEVELOPMENT==='1' || env.LUVA
 if(['api','practice'].includes(role) && env.LUVANI_DURABLE_PRACTICE!=='1')problems.push('durable practice required');
 if(['api','practice','tutor'].includes(role)) {
   const choice=(env.TUTOR_LLM??'').trim().toLowerCase();
-  if(!['anthropic','openai','groq'].includes(choice))problems.push('explicit hosted TUTOR_LLM required');
+  if(choice!=='openai')problems.push('explicit OpenAI TUTOR_LLM required');
   if(choice==='groq')problems.push('TUTOR_LLM=groq production rollout requires a separately reviewed degraded privacy contract');
   const key={anthropic:'ANTHROPIC_API_KEY',openai:'OPENAI_API_KEY',groq:'GROQ_API_KEY'}[choice];
   if(key && !env[key]?.trim())problems.push(`missing selected provider ${key}`);
 }
 if(role==='api' && (env.PORT??'8787')!=='8787')problems.push('API PORT must be8787');
 if(role==='api' && env.LUVANI_AGENT_SECRET===env.LUVANI_METRICS_SECRET)problems.push('metrics and agent credentials must differ');
+if(assigned.has('LUVANI_REVENUECAT_WEBHOOK_SECRET') && env.LUVANI_REVENUECAT_WEBHOOK_SECRET && env.LUVANI_REVENUECAT_WEBHOOK_SECRET.length<32)problems.push('weak LUVANI_REVENUECAT_WEBHOOK_SECRET');
 for(const name of ['LUVANI_AGENT_SECRET','LUVANI_METRICS_SECRET','LUVANI_RATE_LIMIT_SALT'])if(assigned.has(name) && (env[name]?.length??0)<32)problems.push(`weak ${name}`);
 if(role==='maintenance') {
   const key=env.LUVANI_DELETION_JOURNAL_KEY??'';

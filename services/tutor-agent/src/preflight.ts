@@ -680,11 +680,11 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
     const brain = selectedBrain(env);
     let safeServer = false;
     try { const url = new URL(env.TOKEN_SERVER_URL ?? ''); safeServer = url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash; } catch { /* invalid */ }
-    if (!safeServer || (env.LUVANI_AGENT_SECRET ?? '').length < 32 || brain === 'claude-cli' || brain === 'claude-cli-all' || brain === 'groq'
+    if (!safeServer || (env.LUVANI_AGENT_SECRET ?? '').length < 32 || (env.TUTOR_LLM ?? '').trim().toLowerCase() !== 'openai' || brain !== 'openai'
       || selectedVoiceVendor(env) !== 'elevenlabs' || env.LUVANI_CONVO_ASR_EXPERIMENT === '1'
       || env.LUVANI_TTS_MISS_TRANSPORT === 'ws' || env.TYPESAFE_API_KEY?.trim()
       || env.LUVANI_AUDIO_SCORING === '1' && (env.LUVANI_SCORING_VENDOR !== 'speechace' || !env.SPEECHACE_API_KEY?.trim())) {
-      console.error('[luvani:agent] Production requires an HTTPS token API, a strong agent secret and a hosted API brain.');
+      console.error('[luvani:agent] Production requires an HTTPS token API, a strong agent secret and TUTOR_LLM=openai.');
       exit(1); return;
     }
   }
