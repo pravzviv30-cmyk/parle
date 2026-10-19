@@ -80,8 +80,10 @@ describe('the wall is as long as it has something to show', () => {
   test('a missing store or failed load draws a recoverable state, never a blank page', () => {
     const screen = read('./WallScreen.tsx');
     assert.doesNotMatch(screen, /if \([^\n]*page === undefined[^\n]*\) return null/);
-    assert.match(screen, /Plans aren’t available here yet\./);
-    assert.match(screen, /header=\{<ScreenHeader back=\{\{ onPress: \(\) => leave\(\) \}\}/);
+    // 19 October 2026, "P2 · Luvani": the same shell, its own words, a way out and a retry.
+    assert.match(screen, /\{PAYWALL_UNAVAILABLE_TITLE\}/);
+    assert.match(screen, /<WallSecondary label=\{PAYWALL_TRY_AGAIN\}/);
+    assert.match(screen, /header=\{<WallTopRow onPress=\{\(\) => leave\(\)\} \/>\}/);
     assert.match(screen, /setRetry\(\(value\) => value \+ 1\)/);
     // 2026-09-27, notebook Phase 6-E: the map and French pages left, and with
     // them the wall's only disk read, so there is no progress load left to fail.

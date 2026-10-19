@@ -95,7 +95,9 @@ const FILES: Record<string, string> = {
   // change is the import target. Root and independent Sol reconstructed both
   // previous pinned hashes exactly and accepted this split. New contract pinned
   // too; every other money pin and purchase/restore/allowance rule is unchanged.
-  'apps/mobile/src/purchases/adapter.ts': '91840b3c02ac00e3eb0d3b3e9cb83b4c6f7b193bf5860778b82cbccb19f9450c',
+  // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
+  // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
+  'apps/mobile/src/purchases/adapter.ts': '0aaecbd9d70506cd0b387d800bac015f8aada1e8a17668be9eb47be050967cd6',
   // 7 October 2026, F772 (come-alive Phase 4, ca/p4-wall): the plans page says a
   // yearly price with the store's own monthly figure ("about ... a month"), so
   // the contract gains an optional display-only `localizedPricePerMonth` and the
@@ -110,7 +112,9 @@ const FILES: Record<string, string> = {
   // unchanged identity/readiness/revalidation and no paid-intro misdescription.
   // Six new offer proofs plus existing purchase/readiness suites pass. Vendor
   // setup and sandbox qualification remain separate release prerequisites.
-  'apps/mobile/src/purchases/adapter.native.ts': 'efa7a1916791daacb8d2eff00517b80e770fd67b368af1febfedb00fe7dccf82',
+  // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
+  // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
+  'apps/mobile/src/purchases/adapter.native.ts': 'f89f1ee102b6e40e826b77d87052faf3b76eea1112196e1abbbb8886dbb4fd27',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
@@ -120,7 +124,9 @@ const FILES: Record<string, string> = {
   // review asked the `localizedPricePerMonth` doc to say RevenueCat divides the
   // yearly price by twelve on the device rather than "the store works it out".
   // `git diff` against the accepted b98dcaa1... shows only that doc comment.
-  'apps/mobile/src/purchases/contract.ts': '30fe86835902c96ea85b0110a94239156a5bc30dbb78def0b0ec7fded83b9be2',
+  // 19 October 2026: store trial facts for the trial-ending reminder, read only, reviewed 2026-10-19
+  // (orchestrator review of the revenue-engineer diff; purchase, restore, manage and grant paths unchanged).
+  'apps/mobile/src/purchases/contract.ts': '4d6e3aeb55abf4075bd208563221fb7d194750b62ce6bf1e59d3920704359cbd',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
   // 7 October 2026: authorized completion adds account-scoped invalidation after
   // validated billing refresh (F783); listeners re-read server authority. No grant

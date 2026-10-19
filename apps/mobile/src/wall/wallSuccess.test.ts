@@ -49,7 +49,8 @@ test('a store trial is described as a week of minutes, never a month', () => {
   assert.match(SUCCESS_MONTH, /each month/);
   assert.equal(successLine({ name: 'Starter', minutes: 42, perWeek: null, trial: true }), SUCCESS_TRIAL);
   assert.equal(successLine({ name: 'Starter', minutes: 180, perWeek: 4 }), SUCCESS_MONTH);
-  assert.match(screen, /\{successLine\(success\)\}/, 'the success page says a month whatever was bought');
+  assert.match(screen, /const summary = successSummary\(\{\s*success, offer: chosen,/, 'the success page says a month whatever was bought');
+  assert.match(screen, /\{summary.body\}/);
   assert.doesNotMatch(screen, /Your speaking time each month\.|SUCCESS_MONTH|SUCCESS_TRIAL/, 'the line under the minutes is written into the page rather than chosen');
   // The trial counts only for a purchase the store accepted from this wall, so
   // a cancelled trial purchase followed by a restore is never said as a trial.
@@ -120,7 +121,7 @@ test("the purchase moment and the pill's check come only from a confirmed entitl
 
   // The pill keeps its tag in the footer and takes that state.
   const footer = screen.slice(screen.lastIndexOf('footer={'));
-  assert.match(footer, /<PillButton\s+label=\{label\}[\s\S]*?state=\{morph\}/);
+  assert.match(footer, /<WallCta\s+label=\{label\}[\s\S]*?state=\{morph\}/);
   assert.match(screen, /const morph = purchasePill\(\{ closing, busy, granted, purchaseAccepted, grantReadPending, success \}\);/);
 
   // The moment is published by the one effect, above every early return, and

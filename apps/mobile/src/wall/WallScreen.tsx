@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { colour, paper, space, type } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 
 import { useAuth } from '../auth/useAuth.tsx';
 import { beginPendingPurchase, clearPendingPurchase, confirmsPendingPurchase, loadPendingPurchase, type PendingPurchase } from '../purchases/pendingPurchase.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { trackProductEvent } from '../analytics/track.ts';
-import { IconAction, Card, GhostButton, HeroNumber, PillButton, ProgressDots } from '../components.tsx';
+import { IconAction, PillButton } from '../components.tsx';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { purchasePill, successLine, wallSuccess } from './wallSuccess.ts';
-import { WALL_CONFIRMING, buyLabel, perWeekLine } from './wallCopy.ts';
+import { purchasePill, wallSuccess } from './wallSuccess.ts';
+import { WALL_CONFIRMING } from './wallCopy.ts';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { purchases, type PaidPlan, type StoreOffering } from '../purchases/adapter.ts';
@@ -19,13 +19,22 @@ import type { BillingStatus } from '../purchases/billingStatus.ts';
 import { fetchBillingStatus, refreshBilling } from '../purchases/client.ts';
 import { paywallSurface, restoreTrouble } from '../purchases/paywallView.ts';
 import { restorePurchases, settleStoreAction } from '../purchases/restore.ts';
+import { LOCAL_CALENDAR } from '../reminders/plan.ts';
+import { trialReminderSlot } from '../reminders/trialReminder.ts';
+import { scheduleTrialReminder } from '../reminders/trialReminderSync.ts';
+import { useTrialReminder } from '../reminders/useTrialReminder.ts';
 import { latestCatalogue, noteCatalogue } from './catalogue.ts';
 import { WallPlansAtButton, WallPlansPage } from './WallPlansPage.tsx';
 import { WallYoursPage } from './WallYoursPage.tsx';
-import { billedPrice, PLANS_CHOOSE, WALL_BUSY, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_NEXT } from './wallCopy.ts';
+import { WallCta, WallLinks, WallNotice, WallSecondary, WallTextLink, WallTopRow, wallType } from './WallParts.tsx';
+import {
+  PAYWALL_CHECK_AGAIN, PAYWALL_LOADING, PAYWALL_PENDING_TITLE, PAYWALL_TRY_AGAIN, PAYWALL_UNAVAILABLE_BODY, PAYWALL_UNAVAILABLE_TITLE,
+  SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
+} from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
 import { chosenOffer, preselectedOffer, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
-import { TRIAL_REMINDER_SCHEDULED, trialTimeline } from './trialTimeline.ts';
+import { trialTimeline } from './trialTimeline.ts';
+import { effectiveSelection, paywallCta, paywallNotice, paywallOffer, shouldScheduleTrialReminder, successSummary, trialEndsAt } from './trialPaywall.ts';
 import { previewCatalogue, previewOffering } from './preview.ts';
 import { wallAction, wallPages, type WallEntry } from './wallPages.ts';
 import { publishCelebrations } from '../celebrate/events.ts';
@@ -97,6 +106,15 @@ export function WallScreen({
   // followed by a restore is never said as a trial.
   const boughtTrial = useRef(false);
   const goal = useGoal()?.target ?? null;
+  // The trial-ending reminder's real state: the timeline promises it only when
+  // it will be kept, and the success page names it only once it is scheduled.
+  const trialReminder = useTrialReminder();
+  // When the purchase this wall started began, for a trial end the server did not state.
+  const boughtAt = useRef<number | null>(null);
+  // What the learner last asked the store for, so a notice can say which ended.
+  const lastAction = useRef<'buy' | 'restore' | null>(null);
+  const remindedFor = useRef<number | null>(null);
+  const [reminder, setReminder] = useState<{ scheduled: boolean; endsAt: number | null }>({ scheduled: false, endsAt: null });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
@@ -127,6 +145,10 @@ export function WallScreen({
     setPurchaseAccepted(false);
     storeActionInFlight.current = false;
     storeGranted.current = false;
+    boughtAt.current = null;
+    lastAction.current = null;
+    remindedFor.current = null;
+    setReminder({ scheduled: false, endsAt: null });
   }, [user?.id]);
 
   useEffect(() => {
@@ -203,7 +225,6 @@ export function WallScreen({
   const pages = wallPages({ entry, storeHasPlans });
   const page = pages[index];
   const planRows = wallPlanRows(offering, latestCatalogue());
-  const chosen = chosenOffer(planRows, selected);
   const success = granted ? wallSuccess(confirmedGrant, latestCatalogue(), purchaseAccepted && boughtTrial.current) : null;
 
   // The page's own suggestion (D16, README Part 5.G): the yearly product of the
@@ -212,6 +233,11 @@ export function WallScreen({
   // learner's choice, so it records nothing: `plan_selected` is fired by a tap
   // alone, in `onSelect` below.
   const suggestion = status === null ? null : preselectedOffer(planRows, goal, status)?.productId ?? null;
+  // What the page shows and the button buys: the learner's choice, else the
+  // suggestion, else the default (Starter yearly), so an available offering
+  // always shows a priced offer (`effectiveSelection`).
+  const showing = effectiveSelection(planRows, selected, suggestion);
+  const chosen = chosenOffer(planRows, showing);
   useEffect(() => {
     if (touched.current || selected !== null || suggestion === null) return;
     setSelected(suggestion);
@@ -265,6 +291,22 @@ export function WallScreen({
     publishCelebrations([moment]);
   }, [ownsWall, pendingRead, granted, purchaseAccepted, confirmedGrant, holding]);
 
+  // The trial bought here is confirmed: schedule its reminder for the
+  // server's period end (else purchase time plus the offer's trial days).
+  // Never asks for notification permission; `scheduleTrialReminder` keeps
+  // its own promise rule and answers whether a reminder is now scheduled.
+  useEffect(() => {
+    if (!ownsWall || !shouldScheduleTrialReminder(success, confirmedGrant)) return;
+    const endsAt = trialEndsAt(confirmedGrant?.periodEnd ?? null, boughtAt.current, chosen?.trialDays ?? null);
+    if (endsAt === null || remindedFor.current === endsAt) return;
+    remindedFor.current = endsAt;
+    const owner = scopeGeneration();
+    setReminder({ scheduled: false, endsAt });
+    void scheduleTrialReminder({ trialEndsAt: endsAt, now: Date.now() })
+      .then((scheduled) => { if (owner === scopeGeneration()) setReminder({ scheduled, endsAt }); })
+      .catch(() => {});
+  }, [ownsWall, success, confirmedGrant, chosen?.trialDays]);
+
   const leave = (destination: 'back' | 'speak' = 'back', returnToApp: () => void = onLeave) => {
     if (left.current) return;
     left.current = true;
@@ -278,7 +320,7 @@ export function WallScreen({
   const trial = trialTimeline({
     offer: chosen,
     minutes: chosen === null ? null : storeTrialMinutes(latestCatalogue(), chosen.plan),
-    remind: TRIAL_REMINDER_SCHEDULED,
+    remind: trialReminder.promised,
   });
 
   /**
@@ -370,10 +412,12 @@ export function WallScreen({
 
   const forward = () => {
     if (action === 'buy') {
+      lastAction.current = 'buy';
       // The pill answers the purchase it starts. Only a purchase that can
       // actually begin turns it; `buy` itself still decides whether it does.
       if (chosen !== null && !busy && !granted && pendingPurchase === null && !storeGranted.current) {
         boughtTrial.current = chosen.hasFreeTrial;
+        boughtAt.current = Date.now();
         setClosing(true);
       }
       void buy();
@@ -386,19 +430,16 @@ export function WallScreen({
     setIndex((at) => at + 1);
   };
 
-  const label = morph === 'done'
-    ? WALL_READY
-    : granted && morph === 'busy'
-      ? WALL_CONFIRMING
-      : busy
-        ? WALL_BUSY
-        : action === 'buy'
-          ? chosen === null ? PLANS_CHOOSE : trial !== null ? trial.cta : buyLabel(chosen.name, chosen.price, chosen.period)
-          : action === 'to-plans'
-            ? YOURS_NEXT
-            : action === 'done'
-              ? WALL_DONE
-              : WALL_NEXT;
+  // What the page says for the chosen product (trial or standard), the notice
+  // above the button, and the button itself: all decided in trialPaywall.ts.
+  const offerView = chosen === null ? null : paywallOffer(chosen, trial);
+  const notice = paywallNotice(message, lastAction.current);
+  const morphLabel = morph === 'done' ? WALL_READY : granted && morph === 'busy' ? WALL_CONFIRMING : null;
+  const cta = action === 'buy'
+    ? paywallCta({ offer: offerView, busy, morphLabel, notice })
+    : { label: action === 'to-plans' ? YOURS_NEXT : action === 'done' ? WALL_DONE : WALL_NEXT, dim: 1 };
+  const label = cta.label;
+  const onRestore = () => { lastAction.current = 'restore'; void restore(); };
 
   if (!ownsWall) return (
     <ScrollScreen header={<ScreenHeader title="Speaking plans" />}>
@@ -415,16 +456,33 @@ export function WallScreen({
   );
   // The success page shows once the pill has held its check, or at once when
   // the purchase was confirmed some other way. The purchase moment above is
-  // published under exactly this condition, and nowhere else.
+  // published under exactly this condition, and nowhere else. No close mark:
+  // the one way on is the button.
   if (success !== null && !holding) {
+    const reminderAt = reminder.scheduled && reminder.endsAt !== null ? trialReminderSlot(reminder.endsAt, Date.now(), LOCAL_CALENDAR)?.at ?? null : null;
+    const summary = successSummary({
+      success, offer: chosen, catalogue: latestCatalogue(), plan: confirmedGrant?.plan ?? null,
+      endsAt: reminder.endsAt ?? (confirmedGrant?.periodEnd ? Date.parse(confirmedGrant.periodEnd) : null),
+      reminderScheduled: reminder.scheduled, reminderAt,
+    });
     return (
-      <ScrollScreen ground={colour.mint} bottom="inset" header={<ScreenHeader back={{ onPress: () => leave() }} title="Your plan is ready" />}
-        footer={<PillButton label={startSpeakingLabel} onPress={() => leave('speak')} />}>
-        <Text style={[type.title, { color: paper.ink }]}>{success.name}</Text>
-        <HeroNumber value={String(success.minutes)} unit="minutes" ground="mint" />
-        <Text style={[type.body, { color: paper.ink }]}>{successLine(success)}</Text>
-        {success.perWeek !== null && <Text style={[type.body, { color: paper.ink }]}>{perWeekLine(success.perWeek)}</Text>}
-        <Text style={[type.small, { color: paper.ink, marginTop: space(4) }]}>Your phrases and progress stay yours.</Text>
+      <ScrollScreen ground={colors.background} topGap={0} bottom="inset" header={<WallTopRow />}
+        footer={<View style={st.footer}>
+          <WallCta label={startSpeakingLabel} onPress={() => leave('speak')} />
+          <Text style={[wallType.detail, { color: colors.muted }]}>{SUCCESS_FOOTNOTE}</Text>
+        </View>}>
+        <View style={st.body}>
+          <Text accessibilityRole="header" style={[wallType.headline, { color: colors.text }]}>{SUCCESS_TITLE}</Text>
+          <Text style={[wallType.body, st.centred, { color: colors.muted }]}>{summary.body}</Text>
+          <View style={[st.summary, { backgroundColor: colors.surface }]}>
+            {summary.rows.map((row, at) => (
+              <View key={row.key} style={[st.summaryRow, at > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+                <Text style={[wallType.line, { color: colors.muted }]}>{row.key}</Text>
+                <Text style={[wallType.line, { color: colors.text }]}>{row.value}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
       </ScrollScreen>
     );
   }
@@ -438,52 +496,55 @@ export function WallScreen({
   // read fails. Do not return to Buy or guess the selected card's totals.
   if (granted) {
     return (
-      <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: () => leave() }} title="Your purchase is confirmed" />}
-        footer={<PillButton label="Back to practice" onPress={() => leave('back', onOpenPractice)} />}>
-        <Text accessibilityLiveRegion="polite" style={[type.title, { color: paper.ink }]}>
+      <ScrollScreen bottom="inset" ground={colors.background} header={<ScreenHeader ink={colors.text} back={{ onPress: () => leave() }} title="Your purchase is confirmed" />}
+        footer={<PillButton label="Back to practice" tone="brand" onPress={() => leave('back', onOpenPractice)} />}>
+        <Text accessibilityLiveRegion="polite" style={[type.title, { color: colors.text }]}>
           {grantReadPending ? 'Checking your speaking allowance.' : 'We couldn’t read your speaking allowance.'}
         </Text>
-        <Text style={[type.body, { color: paper.ink, marginTop: space(3) }]}>Your purchase or restore was confirmed. Please do not buy again. Free local practice is available while we check your plan.</Text>
+        <Text style={[type.body, { color: colors.text, marginTop: space(3) }]}>Your purchase or restore was confirmed. Please do not buy again. Free local practice is available while we check your plan.</Text>
         <IconAction layout="inline" icon="refresh" busy={grantReadPending} label="Check my allowance again" disabled={grantReadPending} onPress={() => setRetry((value) => value + 1)} />
       </ScrollScreen>
     );
   }
 
   if (pendingPurchase !== null) return (
-    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: () => leave() }} title="Checking your purchase" />}
-      footer={<PillButton label="Back to practice" onPress={() => leave('back', onOpenPractice)} />}>
-      <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>A store purchase was started on this phone. Its matching paid plan has not been confirmed. Please do not buy again. Free local practice is available while confirmation catches up.</Text>
-      {purchaseAccepted && <Text style={[type.small, { color: paper.inkSoft }]}>The store accepted the purchase; its speaking allowance is still being checked.</Text>}
-      {message !== null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, marginTop: space(3) }]}>{message}</Text>}
-      <IconAction layout="inline" icon="refresh" busy={busy} label={busy ? 'Checking your purchase' : 'Check my purchase again'} disabled={busy} onPress={() => void checkAcceptedPurchase()} />
+    <ScrollScreen ground={colors.background} topGap={0} bottom="inset" header={<WallTopRow onPress={() => leave()} />}
+      footer={<View style={st.footer}>
+        <WallNotice notice={{ title: PAYWALL_PENDING_TITLE, body: 'A store purchase was started on this phone. Its matching paid plan has not been confirmed. Please do not buy again. Free local practice is available while confirmation catches up.', danger: false }} />
+        {message !== null && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.muted }]}>{message}</Text>}
+        <WallCta label={PAYWALL_CHECK_AGAIN} dim={busy ? 0.6 : 1} disabled={busy} state={busy ? 'busy' : 'idle'} onPress={() => void checkAcceptedPurchase()} />
+        <WallLinks onTerms={onOpenTerms} onPrivacy={onOpenPolicy} />
+      </View>}>
+      <View style={st.body}>
+        {purchaseAccepted && <Text style={[wallType.line, st.centred, { color: colors.muted }]}>The store accepted the purchase; its speaking allowance is still being checked.</Text>}
+      </View>
     </ScrollScreen>
   );
 
   // A missing native store must never become a blank page. The wall reads no
   // progress any more, so the store is the one thing it waits for.
-  const unavailable = offeringLoaded && page === undefined;
+  // A plans page with nothing it can price is the unavailable state, never an empty page.
+  const unavailable = offeringLoaded && (page === undefined || (page === 'plans' && chosen === null));
   const loading = !offeringLoaded;
   if (unavailable || loading) {
     return (
-      <ScrollScreen
-        bottom="inset"
-        header={<ScreenHeader back={{ onPress: () => leave() }} title="Your plan" />}
-        footer={<PillButton label={unavailable ? 'Back to practice' : 'Back'} onPress={unavailable ? () => leave('back', onOpenPractice) : () => leave()} />}
+      <ScrollScreen ground={colors.background} topGap={0} bottom="inset" center={unavailable} header={<WallTopRow onPress={unavailable ? () => leave('back', onOpenPractice) : () => leave()} />}
+        footer={<View style={st.footer}>
+          {loading && <WallCta label={PAYWALL_LOADING} dim={0.45} disabled onPress={() => {}} />}
+          {notice !== null && <WallNotice notice={notice} />}
+          <WallLinks onRestore={unavailable ? onRestore : undefined} restoreDisabled={busy} onTerms={onOpenTerms} onPrivacy={onOpenPolicy} />
+        </View>}
       >
-        <Card>
-          {unavailable && <Illustration name="state-offline" fit="small" />}
-          <Text accessibilityLiveRegion="polite" style={{ ...type.display, color: paper.ink }}>
-            {unavailable ? 'Plans aren’t available here yet.' : 'Getting things ready.'}
-          </Text>
-          <Text style={{ ...type.body, color: paper.ink, marginTop: space(4) }}>
-            {unavailable ? 'We couldn’t load a store offering on this device. This does not tell us whether you have a paid plan. Free local practice is still available.' : 'A moment while we load your next steps.'}
-          </Text>
-        </Card>
-        {unavailable && <>
-          <IconAction layout="inline" icon="refresh" busy={busy} label="Try again" disabled={busy} onPress={() => setRetry((value) => value + 1)} />
-          <GhostButton label="Restore purchases" disabled={busy} onPress={() => void restore()} />
-        </>}
-        {message !== null && <Text accessibilityLiveRegion="polite" style={type.small}>{message}</Text>}
+        {loading
+          ? <WallPlansPage rows={[]} catalogue={null} account={null} selected={null} trial={null} offer={null} loading onSelect={() => {}} />
+          : <View style={[st.body, st.unavailable]}>
+            <Illustration name="state-offline" fit="small" />
+            <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[wallType.stateTitle, { color: colors.text }]}>{PAYWALL_UNAVAILABLE_TITLE}</Text>
+            <Text style={[wallType.body, st.centred, { color: colors.muted }]}>{PAYWALL_UNAVAILABLE_BODY}</Text>
+            <WallSecondary label={PAYWALL_TRY_AGAIN} disabled={busy} onPress={() => setRetry((value) => value + 1)} />
+            {/* The one clear way back to free practice; `leave` records wall_left once. */}
+            <WallTextLink label={YOURS_DECLINE} onPress={() => leave('back', onOpenPractice)} />
+          </View>}
       </ScrollScreen>
     );
   }
@@ -501,22 +562,22 @@ export function WallScreen({
         ground={colors.background}
         topGap={0}
         bottom="inset"
-        header={<ScreenHeader ink={colors.text} muted={colors.muted} leave={{ label: WALL_LEAVE, onPress: () => leave() }} title={pages.length > 1 ? <ProgressDots ground={mode === 'dark' ? 'blue' : 'paper'} total={pages.length} index={index} /> : 'Luvani'} />}
+        header={<WallTopRow onPress={() => leave()} />}
         footer={
-          <View>
-            <PillButton
+          <View style={st.footer}>
+            {page === 'plans' && notice !== null && <WallNotice notice={notice} />}
+            <WallCta
               label={label}
-              tone="brand"
-              // While it answers its own purchase the pill keeps its fill and
-              // waits in place (`state`); any other wait (a restore) is the
-              // quiet off pill it always was. Nothing to buy until a way to pay
-              // is chosen: a purchase needs a product id, and a pill that opens
-              // the store with none is a pill that fails.
+              dim={cta.dim}
+              // While it answers its own purchase the button keeps its fill and
+              // waits in place (`state`). Nothing to buy until a way to pay is
+              // chosen: a purchase needs a product id.
               state={morph}
               disabled={(busy && morph === 'idle') || (action === 'buy' && chosen === null)}
               onPress={forward}
             />
-            {page === 'plans' && <WallPlansAtButton trialTerms={trial?.terms ?? null} priceTerms={chosen ? billedPrice(chosen.price, chosen.period) : null} />}
+            {page === 'plans' && <WallPlansAtButton disclosure={offerView?.disclosure ?? null} busy={busy} onRestore={onRestore} onOpenTerms={onOpenTerms} onOpenPolicy={onOpenPolicy} />}
+            {page !== 'plans' && notice !== null && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.text }]}>{notice.body}</Text>}
           </View>
         }
       >
@@ -524,27 +585,30 @@ export function WallScreen({
         {page === 'plans' && planRows !== null && (
           <WallPlansPage
             rows={planRows}
+            catalogue={latestCatalogue()}
             account={wallAccount(status, latestCatalogue(), Date.now())}
-            selected={selected}
+            selected={showing}
             trial={trial}
+            offer={offerView}
+            busy={busy || holding}
             onSelect={(offer) => {
               // The learner's own choice, and the only place one is recorded.
               touched.current = true;
               setSelected(offer.productId);
               void trackProductEvent({ name: 'plan_selected', properties: { plan: offer.plan } });
             }}
-            onRestore={() => void restore()}
-            onOpenPolicy={onOpenPolicy}
-            onOpenTerms={onOpenTerms}
-            onLeave={() => leave()}
           />
-        )}
-        {message !== null && (
-          <Text accessibilityLiveRegion="polite" style={{ ...type.small, color: colors.text, marginTop: space(4), textAlign: 'center' }}>
-            {message}
-          </Text>
         )}
       </ScrollScreen>
     );
   }
 }
+
+const st = StyleSheet.create({
+  footer: { paddingTop: space(3), gap: 10 },
+  body: { paddingHorizontal: space(2), paddingTop: space(5), gap: space(3) },
+  centred: { textAlign: 'center' },
+  unavailable: { alignItems: 'stretch', gap: space(4) },
+  summary: { borderRadius: 20, paddingHorizontal: space(4), marginTop: space(3) },
+  summaryRow: { minHeight: 48, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: space(3) },
+});

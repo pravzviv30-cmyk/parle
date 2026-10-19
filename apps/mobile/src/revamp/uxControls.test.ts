@@ -52,18 +52,27 @@ test('unavailable plans return to free practice once and retain an accepted cons
   assert.deepEqual(exits, ['practice']);
   assert.deepEqual(events, [{ name: 'wall_left', properties: { entry: 'profile', outcome: 'unchanged', destination: 'back' } }]);
   assert.deepEqual(eventOwners, [{ userId: 'owned-test', generation: 7 }], 'the consented event must retain the original account rather than acquire the next account');
-  assert.match(wall, /does not tell us whether you have a paid plan/);
-  assert.match(wall, /IconAction layout="inline" icon="refresh" busy=\{busy\} label="Try again"[^\n]+setRetry/);
+  // 19 October 2026, "P2 · Luvani": the unavailable state keeps Try again and
+  // one clear way back to free practice, both through the guarded `leave`.
+  const unavailable = wall.slice(wall.indexOf('  if (unavailable || loading) {'), wall.indexOf('  return plansScreen();'));
+  assert.match(unavailable, /\{PAYWALL_UNAVAILABLE_TITLE\}/);
+  assert.match(unavailable, /<WallSecondary label=\{PAYWALL_TRY_AGAIN\}[^\n]+setRetry/);
+  assert.match(unavailable, /<WallTextLink label=\{YOURS_DECLINE\} onPress=\{\(\) => leave\('back', onOpenPractice\)\} \/>/);
+  assert.match(unavailable, /onPress=\{unavailable \? \(\) => leave\('back', onOpenPractice\) : \(\) => leave\(\)\}/);
   const plans = read('../wall/WallPlansPage.tsx');
-  assert.match(plans, /minutesAMonth\(row.minutes\)/);
+  const view = read('../wall/trialPaywall.ts');
+  // The plan line says the catalogue's actual minutes once, never an estimate.
+  assert.match(plans, /planLine\(visibleRow, current, catalogue\)/);
+  assert.match(view, /const minutes = offerMinutes\(row, offer\);/);
   assert.doesNotMatch(plans, /perWeekLine\(row.perWeek\)/, 'a second estimate repeats the actual minutes allowance');
-  // The compact selector chooses a real product; the hero states its billed
-  // price and period. The annual monthly equivalent remains a separate,
-  // explicitly approximate line and never replaces the yearly charge.
+  // The compact selector chooses a real product; the billed price and period
+  // lead. The annual monthly equivalent is a separate, smaller line and never
+  // replaces the yearly charge.
   const periods = read('../wall/WallPeriodSwitch.tsx');
   assert.match(plans, /<WallPeriodSwitch offers=\{visibleRow\.offers\} name=\{visibleRow\.name\} selected=\{selected\} onSelect=\{onSelect\}/);
-  assert.match(plans, /billedPrice\(current\.price, current\.period\)/);
-  assert.match(plans, /current\?\.period === 'year' && current\.perMonth !== null && <Text[^>]*>About \{current\.perMonth\} a month\. Billed yearly\./);
+  assert.match(view, /const billed = billedPrice\(offer\.price, offer\.period\);/);
+  assert.match(view, /billedYearlyAbout\(offer\.perMonth\)/);
+  assert.match(plans, /\{offer.billed\}[\s\S]*\{offer.detail\}/);
   assert.match(periods, /accessibilityLabel=\{\[name, period, billedPrice\(offer\.price, offer\.period\)\]\.join\(', '\)\}/, 'the period choice must announce the actual billed price');
   assert.match(periods, /onPress=\{\(\) => onSelect\(offer\)\}/);
 
