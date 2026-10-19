@@ -64,8 +64,8 @@ export const onboardingC2 = { reading: paper.ground, welcome: '#F7D8C7', reflect
 
 /** Approved C2 main-app semantic surfaces. */
 export const mainApp = {
-  light: { background: paper.ground, surface: paper.card, inset: '#E9E3FA', text: paper.ink, muted: '#655F77', border: '#DCD2C4', hero: colour.blue, plum: '#E9E3FA', teal: '#D4E2D7', rose: '#F7D8C7', ochre: '#FFE8AB' },
-  dark: { background: '#151127', surface: '#25203D', inset: '#302A48', text: paper.ground, muted: '#C6BED8', border: '#514967', hero: '#363064', plum: '#322B50', teal: '#233F41', rose: '#49333F', ochre: '#493C2E' },
+  light: { background: paper.ground, surface: paper.card, inset: '#E9E3FA', text: paper.ink, muted: '#655F77', border: '#DCD2C4', hero: colour.blue, plum: '#E9E3FA', teal: '#D4E2D7', rose: '#F7D8C7', ochre: '#FFE8AB', link: colour.blue, selected: '#FFFFFF', danger: '#C2341F' },
+  dark: { background: '#151127', surface: '#25203D', inset: '#302A48', text: paper.ground, muted: '#C6BED8', border: '#514967', hero: '#363064', plum: '#322B50', teal: '#233F41', rose: '#49333F', ochre: '#493C2E', link: '#A79AFF', selected: '#4A4170', danger: '#FF9A85' },
 } as const;
 
 /** Exact approved editable illustration colours. */
