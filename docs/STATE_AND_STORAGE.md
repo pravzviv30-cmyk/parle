@@ -70,6 +70,15 @@ withdrawal made on a lighter one, and a consent that can resurrect itself is a
 privacy defect. `null` from `loadConsent` means nobody has been asked, which is
 deliberately a different fact from a stored `false`).
 
+The existing `profile` also retains closed `practicePreferences` answers for
+content pitch, speaking support and focus. These never award an earned level.
+New unnamed profiles carry optional `namePromptPending: true`; the durable name
+preference writer clears it with the name's causal clock. Missing on legacy
+accounts means no new name prompt. It survives verification/relaunch and sync
+without becoming authentication or guest-adoption authority. Account-local
+`appearance` stores system/light/dark selection; it is exported and reset with
+the account and excluded from cross-device sync.
+
 Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
 The current version-1 draft carries age confirmation, the starting level and
 reason, suggested routine (including no fixed target), reminder preset kept off,
@@ -648,7 +657,7 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fifteen synced, sixteen excluded after
+stores; `sync/policy.ts` is the count of record (fifteen synced, seventeen excluded after
 the device-local first-live arrival receipt joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
@@ -706,7 +715,7 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Sixteen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
+Seventeen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
 `first-live-arrival` records whether this phone has displayed the first-session welcome
 and streak. It is account-scoped and cleared by account-data reset. It carries no
 learning credit; syncing it could suppress a pending presentation on another phone.
@@ -719,6 +728,8 @@ completion or account-data reset and are included in the account export.
 `gameLocal` holds
 the facts about this phone that the game layer needs: the OS schedule of streak
 reminders, the time zone of the last practice and the plan this phone last observed.
+`appearance` stores the account’s light, dark or follow-device display choice on this device. It is included in account export and reset, and is excluded from sync so one device does not override another device’s display choice.
+
 Syncing them would nudge one learner twice and let one device's billing read decide
 another's. `home-seen` is what this phone's Home last drew (`home/homeSeen.ts`): synced,
 a tablet would skip a rise the learner never saw on it, and every real number it

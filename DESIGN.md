@@ -1,5 +1,74 @@
 # Design
 
+## 18 October 2026 · C2 onboarding and M2/M3 learning app
+
+This is the current composition, superseding the earlier tab count, Home
+brief, fixed light surfaces and illustration limits below. The approved source
+is [C2, M2 and M3 in Figma](https://www.figma.com/design/sjAwoGinWQKvhGrWbgMO18?node-id=291-364).
+M4 is rejected. The implementation and verification record is
+[the C2 change plan](docs/changes/c2-main-app-implementation.md).
+
+- Five visible destinations: Home, Explore, Speak, My French and Progress.
+  Profile and display choice open from the labelled avatar. Existing deep links
+  remain compatible; focused learning stays above the tabs in RootNavigator.
+- Home greets the learner with Bonjour and their saved name. A conversation
+  starts directly, with current review and the latest conversation below it.
+  An unread history is distinct from an empty history.
+- Explore searches actual scenarios, guided situations and words/phrases, with
+  ten topic destinations, real collection details, finite pages and live
+  conversation suggestions. When plans change, Tell it your way and Find your
+  words are curated conversation starters, not completed graded courses. Hear
+  & practise resolves the chosen tutor's real recordings. Stated
+  ability changes the suggested conversation demand and phrase ordering;
+  confidence changes support, not an earned level. Guided beginner material is
+  labelled honestly rather than marketed as advanced curriculum.
+- Thirty permanent conversation samples span ten themes and three authored
+  pitches. Both paid tiers and their confirmed store trial open the complete
+  curated scenario library. Browse and preview remain open, while starts state
+  that conversations consume available tutor time. Existing local practice and
+  personal learning remain free. Unread billing produces inline retry guidance;
+  a paid annual allowance-window reset never implies subscription expiry.
+- Speak keeps free conversation prominent, with writing, a real upcoming
+  situation and topic suggestions. Every start uses the existing probe and
+  server admission. Leaving invalidates pending probes.
+- My French separates Conversations, Practise and Saved. A conversation opens
+  its curated learning notes, recognition warm-up and recall practice. Original
+  saved conversation text has separate consent and exact source identity.
+  Saved situations remain in the existing collection.
+- Progress shows recorded practice and earned can-do evidence, with the existing
+  game view supplying every level, count and streak. Goals, measured sound
+  checks, weekly story and postcards remain reachable.
+- Main surfaces use warm paper in light mode and a deep violet base in dark
+  mode, with plum, teal, rose and ochre surfaces matched to each base. Display
+  follows the device unless the learner chooses Light or Dark. Navigation
+  transitions use the same theme. Large text wraps; controls keep their touch
+  floor and pages scroll instead of shrinking text.
+- Cloud and orange companions remain the visual identity. Ten main-page motifs
+  and eight C2 scenes use articulated vector layers. Remotion is the authoring
+  and review surface; the existing native motion engine drives the app. A brief
+  entrance, gesture and blink settle within 1.9 seconds. Blur, background,
+  account change and live Reduce Motion stop decorative motion immediately.
+  There is no perpetual idle animation or video playback required in the app.
+- Subscription timelines use real store trial eligibility, duration and local
+  prices. The amount and renewal period stay beside the purchase action.
+  A reminder is promised only when the app actually schedules it. Restore,
+  terms, privacy and an unambiguous exit stay visible.
+- Completed onboarding lands on Home. A single optional store-ready offer may
+  open after Home is visible and the server confirms no paid plan. Departure,
+  background and account changes invalidate delayed responses. The seven-day
+  trial page uses a centred Yearly/Monthly segmented control, a genuine annual
+  comparison, a three-step connected timeline and the existing cloud art. The
+  server's trial minutes sit within Today; they never imply unlimited access.
+- Profile, Settings, tutor memory and their sheets share M2/M3 surfaces and
+  text colours. Display settings and the avatar reuse one appearance editor and
+  account-scoped preference. Account/security actions keep their existing
+  confirmations, validation and operation owners.
+- Native keyboard avoidance measures the actual frame origin. The single-field
+  name step keeps Continue in the existing footer; scrolling practice forms
+  reveal the whole focused input/help/action group using the existing field
+  geometry rules. Changing My French sections returns to that section's header
+  without remounting its learning store.
+
 ## 9 October 2026 · vibrant UI revision
 
 The founder requested a fuller colour treatment, joyful editable illustrations,

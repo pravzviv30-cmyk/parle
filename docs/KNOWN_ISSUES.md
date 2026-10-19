@@ -8968,7 +8968,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
-- verified-by: `welcome and recap share cream progress chrome with a readable bottom action`
+- verification update (2026-10-18): the approved C2 peach/lilac/green composition supersedes the earlier cream-only visual assertion; the named proof still checks live progress, the shared frame and a readable bottom action.
+- verified-by: `C2 welcomes on peach and keeps live progress and its bottom action readable`
 - verified-by: `playback selects a model but only a real submitted reply can receive success feedback`
 - verified-by: `illustrated full-width choices carry radio state and never advance on selection`
 - verified-by: `the personal plan leads with the authored first practice then a dedicated deliberate tutor choice`
@@ -10459,3 +10460,112 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a green baseline still builds plan tasks in dependency order and verifies the final gate`
 - verified-by: `out-of-scope edits stop the loop, stay available for review and cannot be resumed blindly`
 - verified-by: `the final gate can refuse a plan whose focused checks passed`
+
+### F787 — Explore promises a named collection but opens an unrelated keyword filter
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/HomeTab.tsx, apps/mobile/src/tabs/ExploreTab.tsx
+- note: The C2 main-app review found Stories & opinions and Plans & stories both resolving to the generic friends filter. Home now advertises browsing Explore, and Explore presents its real level-dependent conversation ideas directly. Real collections remain a separately scoped content proposal. The focused route contract failed before this correction and passed afterward; native navigation confirmation belongs to the current simulator acceptance pass.
+- verified-by: `Explore advertises real conversation ideas instead of opening an unrelated collection`
+
+### F797 — Native paywall crashes while reading its paid-plan ordering constant
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/paywallView.ts
+- note: Reproduced on the current iPhone 13 mini native build. Metro substitutes adapter.native.ts, which does not re-export PAID_PLANS, so the shared paywall flatMap throws and dismissing LogBox leaves a blank screen. The pure view model now imports its constant and types directly from their platform-neutral contract owner. Native store implementation, purchase/restore functions, grants and all existing money hashes stay unchanged. The strengthened startup contract failed before this repair; 123 focused tests passed after. Final native reload of this exact import repair confirms value/plans and both fixture plan choices render in dark mode without the crash or blank screen.
+- verified-by: `native purchases gets its paid plans from a platform-neutral contract`
+
+### F798 — iOS onboarding cannot return to earlier ability, confidence or focus answers
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/OnboardingLayout.tsx
+- note: Native inspection found only Android hardware Back could reach the existing local back callback. Eligible question, plan and tutor pages now expose a visible 44-point Back action using that same callback, preserving answers and transition locks. Welcome and active practice remain outside this reversible setup sequence. Focused tests pass. Native Back/forward and tutor return preserve selections; screenshots are in the current native-onboarding QA artifact.
+- verified-by: `native onboarding exposes draft-aware Back on reversible setup pages and retains the correct full or short order`
+
+### F799 — Native keyboard covers Continue on the account-name screen
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/onboarding/OnboardingLayout.tsx, apps/mobile/src/onboarding/AccountName.tsx
+- note: Reproduced with the software keyboard on iPhone 13 mini. KeyboardAvoidingView was nested beneath the shared progress header but treated its local origin as the screen origin. The layout now measures its window position and supplies that offset; no guessed header constant is used. UIKit reveals the input but not its following action, so this single-field page keeps Continue in the existing keyboard-avoiding footer. Multi-field account forms retain their own scroll behaviour. Native recheck confirms the full field and Continue above the keyboard; evidence is native-onboarding/name-keyboard-fixed.png in the current QA artifact.
+- verified-by: `native onboarding measures its real screen origin for keyboard avoidance beneath the shared progress header`
+
+### F800 — The welcome illustration crops the cloud and orange character at straight edges
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/onboarding/motion/C2Scene.tsx
+- note: Native screenshot and exported geometry confirm artwork extends beyond the nominal welcome scene frame on both sides. The outer scene wrapper now permits those authored edges instead of clipping them. Vector shapes, positions and scale remain unchanged. Focused geometry regression passes. Native recheck confirms complete cloud edges and orange limbs in welcome-uncropped-fixed.png.
+- verified-by: `authored onboarding illustration edges are allowed beyond their nominal export frame instead of cropped`
+
+### F801 — Native Explore topic tiles occupy only half of each otherwise empty row
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/ExploreTab.tsx
+- note: Reproduced on iPhone 13 mini. Press owns an outer native frame, so the topic basis belonged on frame rather than the inner animated content. The frame now owns the two-column width; large reading sizes retain a full-width stack. Focused regression failed before and passed after; native final reload confirms the 2×2 grid with complete cloud-family cards on iPhone 13 mini.
+- verified-by: `Explore gives the native Press frame its topic grid width and lets large text stack`
+
+### F802 — Conversation warm-up helper and recall handoff use dark ink on a dark card
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx
+- note: Native dark-mode walkthrough found missing explicit foreground colours on the listening guidance and Try it without the choices heading. Both now use the selected card ink. Recognition and recall evidence remain separate. Focused regression failed before and passed after; native final reload confirms readable listening guidance and recall handoff on the selected dark cards.
+- verified-by: `conversation warm-up helper and recall handoff remain readable on a dark card`
+
+### F803 — Tutor connection recovery switches to cream inside the selected dark appearance
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/live/LiveErrorView.tsx, apps/mobile/src/nav/RootNavigator.tsx
+- note: Reproduced by the native typed-conversation offline path; final tracing found its pre-room branch in RootNavigator, distinct from the in-room LiveErrorView. The existing recovery screen now follows MainAppearance for canvas, copy and actions and uses the matching cloud-family recovery/listen art. Diagnostic cards retain readable light surfaces. Admission, typed retry, reconciliation and support disclosure are unchanged. 176 focused live tests and 51 focused pre-room/navigation tests pass. Final native Reload through Explore, the guided café and Type instead confirms the selected dark canvas, readable unavailable copy, offline practice and visible Back/Check again; evidence is native-onboarding/pre-room-offline-dark-fixed.png.
+- verified-by: `native tutor recovery keeps the selected appearance and readable recovery controls`
+- verified-by: `both pre-room offline routes retain the selected canvas and readable recovery controls`
+
+### F804 — Changing My French sections retains the previous section's scroll offset
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tabs/MyFrenchLibraryTab.tsx, apps/mobile/src/main/MainUI.tsx
+- note: Native walkthrough found the next section heading clipped after changing Conversations, Practise and Saved. The existing scroll reference now resets to the header when view changes; the learning store and query are not remounted. Focused regression passes; native Saved/source/Back/Practise navigation confirms the full next-section title at the top of the viewport.
+- verified-by: `changing a My French view returns to its header without remounting the learning store`
+
+### F805 — Main practice and rehearsal fields can hide actionable content behind the keyboard
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/layout.tsx, apps/mobile/src/DrillScreen.tsx, apps/mobile/src/tutor/RealMomentScreen.tsx, apps/mobile/src/components.tsx
+- note: Native compact-phone walkthrough found the typed recall Check action below the keyboard and the custom rehearsal field below the visible viewport. The shared frame measures its actual window origin; focused groups use the existing field-scroll geometry owner. Compact editing reduces decorative prompt height and only the empty feedback reservation, preserving the question, help and real feedback. Final native reload confirms the question, help, populated answer and Check simultaneously above the keyboard. The custom rehearsal label, complete multiline field and counter are visible while typing; Done dismisses the keyboard, preserves Parcel and never starts a room. Evidence is native-main/25 through 27 in the current QA artifact.
+- verified-by: `nested native screens measure their actual window origin before avoiding the keyboard`
+- verified-by: `the multiline rehearsal Done key dismisses editing without starting a conversation`
+- verified-by: `compact editing keeps the question and help while reclaiming only an empty feedback reservation`
+- verified-by: `a custom moment field below long options reveals its label, input and counter together`
+
+### F806 — Secondary learning screens revert to the light base inside the selected dark appearance
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/phrases/PhrasebookScreen.tsx, apps/mobile/src/daily/DailyLibraryScreen.tsx, apps/mobile/src/soundcheck/SoundJourneyScreen.tsx, apps/mobile/src/goals/GoalStepScreen.tsx, apps/mobile/src/game/StreakScreen.tsx, apps/mobile/src/progress/WeekWrappedScreen.tsx, apps/mobile/src/progress/PostcardsScreen.tsx
+- note: Native walkthrough and source audit found cream base canvases on pushed utility routes. Their base chrome/canvas copy now follow MainAppearance. Light content cards keep dark ink; populated blue weekly stories and mint postcards remain intentional editorial grounds. Focused domain suites and mobile TypeScript pass. Native final checks confirm Phrasebook, Daily collection, Sound Journey empty, recorded Streak, Week Wrapped empty and Postcards empty in the selected dark base. Root then added an ordinary example goal through the isolated learner’s own tutor-memory form and opened its Progress goal route. Native 31-populated-goal-dark-fixed.png confirms the dark canvas, readable goal/actions and intentional blue activity card; no goal completion or mastery was invented.
+- verified-by: `phrasebook canvas follows the selected appearance while phrase cards keep readable ink`
+- verified-by: `daily collection uses the chosen canvas without making its light controls unreadable`
+- verified-by: `sound journey canvas and optional notation follow the selected appearance`
+- verified-by: `goal trail follows the selected canvas while the suggested lesson keeps its blue editorial surface`
+- verified-by: `streak canvas and hero respect the selected theme while calendar cards keep readable ink`
+- verified-by: `week and postcards use the selected base for empty states and retain their populated editorial grounds`
+
+### F807 — A light celebration over dark mode inherits unreadable white status icons
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/layout.tsx
+- note: Completing source-linked practice on the native dark main app opened the real first-day takeover on cream with white clock, Wi-Fi and battery icons. The shared frame had delegated paper's status style to the underlying app default; every light paper frame now needs an explicit dark style, while dark and blue surfaces retain light glyphs. Focused regression failed before repair and passes after. A temporary visual-only driver rendered the actual Takeover modal over the selected dark app without publishing an event or writing XP, history or seen state. Native capture 29-paper-takeover-status-fixed.png confirms dark clock/Wi-Fi/battery on paper; closing the modal restores light glyphs on the underlying dark page. The driver was removed and the original MainAppPreview source restored byte-for-byte (SHA-256 876f78ba63b41e24a9494801cfadd5e6b21807bdb8f532789421a40a308b05be), then the standard app reloaded.
+- verified-by: `a light celebration over a dark page explicitly requests dark status glyphs`
+
+### F808 — Collection access mistakes an annual allowance-window reset for subscription expiry
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/exploreAccess.ts
+- note: Independent review of the new collection gate found that BillingStatus.periodEnd denotes the current allowance window on an annual plan, not the paid year. Access now reuses the existing capabilities owner and trusts the server's non-lapsed paid standing. Exhausted live minutes and a delayed annual refill never revoke catalogue access. The server still decides actual lapse, session admission and metering.
+- verified-by: `plan access uses server standing, independently of live minutes and annual refill clocks`
+
+### F809 — Delayed collection and first-run billing replies can act after navigation or background changes
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/purchases/useExploreAccess.ts, apps/mobile/App.tsx
+- note: Independent deferred-response review reproduced an old Home request opening a wall after Home → Explore → Home. Leaving Home now invalidates its request before the pending guard; backgrounding cancels frames and invalidates replies. Collection actions likewise retire on blur, background, unmount and account reset. An actual extracted App callback regression waits for two Home frames, then proves a roundtrip cannot revive the old request. Unread status produces inline retry guidance rather than an imperative alert or a guessed plan.
+- verified-by: `the first-run Home request cannot revive after a quick Explore and Home roundtrip`
+- verified-by: `a delayed billing answer cannot open the first-run offer after the account, request, Home or foreground changes`
+- verified-by: `a delayed access answer cannot open content after an account change or blur`

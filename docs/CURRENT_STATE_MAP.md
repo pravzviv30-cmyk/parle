@@ -33,10 +33,26 @@
 ## Current presentation and preview
 
 `index.ts` registers `App.tsx`; `nav/RootNavigator.tsx` is the only app navigator.
-The four tab routes are Home, Tutor, Practice and MyFrench, displayed as Home,
-Speak, Practice and Progress. Profile is a pushed screen reached from the profile
-button; Friends is an optional stack route inside Profile. Revamp B and the
-video UX implementation use this same navigator.
+The five visible destinations are Home, Explore, Speak, My French and Progress.
+Their route identities are Home, Explore, Tutor, Library and MyFrench. Legacy
+Practice remains a compatible hidden route to the Practise view of My French.
+Profile and display choice open from the labelled avatar; Friends remains an
+optional stack route inside Profile. C2 onboarding and M2/M3 main screens reuse
+this navigator. MainAppearance owns device/account-local display preference,
+while NavigationContainer and focused learning screens consume the same palette.
+
+`main/useMainLearning.ts` reads existing owners rather than keeping a second
+learning store. My French reads conversation packs, the review deck, exercise
+bank and resumable practice through their existing stores. Curated conversation
+notes and separately consented original text remain distinct. Search covers real
+authored catalogue entries. Self-described practice preferences affect content
+pitch and support without awarding earned ability.
+
+The explicit development screen selector has an isolated `main` QA fixture. It
+requires development, screen-preview and local flags, no Supabase configuration,
+and a loopback service endpoint. It writes only to `c2-preview`, labels sample
+data, and reuses the production navigator and stores. It is unavailable in a
+release build. The normal app never opens this fixture.
 
 Daily playback uses `daily/tutorAudioManifest.ts`: 400 items with six tutor voices,
 2,400 recordings. The full 2,000-item text library remains available. Missing tutor

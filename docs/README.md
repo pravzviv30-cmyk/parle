@@ -15,6 +15,7 @@ re-deriving the architecture from source every time.
 | The ladder, the rescue, and what counts as a right answer | [PEDAGOGY.md](PEDAGOGY.md) |
 | Every screen a new learner crosses before the first French word | [ONBOARDING.md](ONBOARDING.md) |
 | How main pushes can publish iPhone previews without Metro or USB, and remaining setup | [REMOTE_UPDATES.md](REMOTE_UPDATES.md) |
+| The exact Apple subscriptions, RevenueCat products, build/server configuration and sandbox checks | [REVENUECAT_SETUP.md](REVENUECAT_SETUP.md) |
 | Where the learner's data lives and what shape it is in | [STATE_AND_STORAGE.md](STATE_AND_STORAGE.md) |
 | How to run and write tests, and the trap that eats whole suites | [TESTING.md](TESTING.md) |
 | The gate, local planned changes, bug repair and resume | [LOOP.md](LOOP.md) |
@@ -27,6 +28,7 @@ re-deriving the architecture from source every time.
 | What is implemented, local-only, missing, or externally blocked | [IMPLEMENTATION_EVIDENCE.md](IMPLEMENTATION_EVIDENCE.md) |
 | Report 2 implementation disposition and remaining acceptance holds | [REVAMP_B_CONTINUATION.md](REVAMP_B_CONTINUATION.md) |
 | The recommendations from the 100-app design review | [REVAMP_B_DESIGN_REVIEW.md](REVAMP_B_DESIGN_REVIEW.md) |
+| The supplied Headspace recordings, authentication comparison and proposals for every Luvani page | [HEADSPACE_UX_REVIEW.md](HEADSPACE_UX_REVIEW.md) |
 | The current runtime path and replacement dependency graph | [CURRENT_STATE_MAP.md](CURRENT_STATE_MAP.md) |
 | The controlled product/security/release phases | [DELIVERY_ROADMAP.md](DELIVERY_ROADMAP.md) |
 | The agreed tutor-audio batches, credit-reset reminder and pre-publication checklist | [DAILY_AUDIO_ROLLOUT.md](DAILY_AUDIO_ROLLOUT.md) |
