@@ -74,6 +74,7 @@ The existing `profile` also retains closed `practicePreferences` answers for
 content pitch, speaking support and focus. These never award an earned level.
 The level is editable after onboarding via `withStatedLevel`, clock-tracked as the
 `statedLevel` preference field so the newer edit wins across devices.
+`mergeStoredProfiles` merges `practicePreferences` per sub-answer (level, confidence and focus each by the answer rule), so one device's partial object never erases another's real answer.
 New unnamed profiles carry optional `namePromptPending: true`; the durable name
 preference writer clears it with the name's causal clock. Missing on legacy
 accounts means no new name prompt. It survives verification/relaunch and sync

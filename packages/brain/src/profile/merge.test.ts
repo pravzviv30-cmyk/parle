@@ -70,8 +70,23 @@ function chain(stored: unknown, now: number): Record<string, unknown> | null {
     learnerGoals: version === 8 ? strings(r.learnerGoals, 3) : [],
     onboardedAt: typeof r.onboardedAt === 'number' ? r.onboardedAt : now,
     username: typeof r.username === 'string' ? r.username : null,
+    // Each sub-answer survives on its own closed set, exactly as upgrade.ts's
+    // storedPracticePreferences does, and the field is absent when none did.
+    ...practice(r.practicePreferences),
     brain: r.brain,
   };
+}
+
+const LEVELS = ['zero', 'few', 'getby', 'confident'] as const;
+const CONFIDENCES = ['hesitant', 'trying', 'comfortable'] as const;
+const FOCUSES = ['listening', 'speaking', 'words'] as const;
+
+function practice(value: unknown): { practicePreferences?: Record<string, unknown> } {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+  const v = value as Record<string, unknown>;
+  const pick = (set: readonly string[], x: unknown) => (typeof x === 'string' && set.includes(x) ? x : null);
+  const clean = { level: pick(LEVELS, v.level), confidence: pick(CONFIDENCES, v.confidence), focus: pick(FOCUSES, v.focus) };
+  return clean.level === null && clean.confidence === null && clean.focus === null ? {} : { practicePreferences: clean };
 }
 
 let chainCalls = 0;
@@ -153,7 +168,12 @@ function randomStored(next: () => number): Record<string, unknown> {
   const sessions = Math.floor(next() * 6);
   const forgottenFacts = ['has a dog', 'job interview friday', 'likes jazz', 'moving to lyon'].filter(() => next() < 0.4);
   const learnerGoals = ['Order at a bakery', 'Call the plumber', 'Talk to the neighbours'].filter(() => next() < 0.4);
+  // Sometimes a partial answer, as an older install's Settings level edit
+  // writes, so the laws below cover the per-sub-answer merge too.
+  const sub = <T,>(set: readonly T[]): T | null => (next() < 0.4 ? null : set[Math.floor(next() * set.length)] ?? null);
+  const preferences = next() < 0.3 ? {} : { practicePreferences: { level: sub(LEVELS), confidence: sub(CONFIDENCES), focus: sub(FOCUSES) } };
   return stored({
+    ...preferences,
     forgottenFacts,
     learnerGoals,
     motivation: MOTIVES[Math.floor(next() * MOTIVES.length)] ?? null,
@@ -320,6 +340,52 @@ describe('merging two copies of one learner', () => {
     // and is not invented here.
     const blank = merge(stored(), stored());
     for (const field of PROFILE_ANSWER_FIELDS) assert.equal(blank?.[field], ['practiceDaysPerWeek', 'onboardingGoal', 'onboardingDrink', 'practicePreferences'].includes(field) ? undefined : null, field);
+  });
+
+  test("two devices keep each other's practice preference answers when only one answered each", () => {
+    // Phone B onboarded and answered all three; phone A, an older install, later
+    // wrote a Settings level edit with confidence and focus never asked.
+    const phoneB = stored({ practicePreferences: { level: 'zero', confidence: 'hesitant', focus: 'speaking' } });
+    const phoneA = stored({
+      practicePreferences: { level: 'getby', confidence: null, focus: null },
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    for (const m of [merge(phoneA, phoneB), merge(phoneB, phoneA)]) {
+      assert.deepEqual(m?.practicePreferences, { level: 'getby', confidence: 'hesitant', focus: 'speaking' });
+    }
+  });
+
+  test("a heavier device's real sub-answer beats a lighter device's real sub-answer, field by field", () => {
+    const heavy = stored({
+      practicePreferences: { level: 'few', confidence: null, focus: 'words' },
+      brain: brain({ stats: { sessions: 20, totalTurns: 90, rescues: 0, lastRung: null } }),
+    });
+    const light = stored({ practicePreferences: { level: 'confident', confidence: 'comfortable', focus: 'listening' } });
+    for (const m of [merge(heavy, light), merge(light, heavy)]) {
+      assert.deepEqual(m?.practicePreferences, { level: 'few', confidence: 'comfortable', focus: 'words' });
+    }
+  });
+
+  test('practice preferences with every sub-answer unanswered merge to never asked', () => {
+    const empty = { level: null, confidence: null, focus: null };
+    const raw = (x: Record<string, unknown> | null) => mergeStoredProfiles(
+      { stored: stored({ practicePreferences: x }), savedAt: 1 },
+      { stored: stored({ practicePreferences: empty, brain: brain({ stats: { sessions: 3, totalTurns: 9, rescues: 0, lastRung: null } }) }), savedAt: 2 },
+      { now: NOW, upgrade: (p) => (typeof p === 'object' && p !== null ? { ...p } : null) },
+    );
+    assert.equal(raw(empty)?.practicePreferences, null);
+    assert.equal(raw(null)?.practicePreferences, null);
+    assert.equal(merge(stored({ practicePreferences: empty }), stored({ practicePreferences: empty }))?.practicePreferences, undefined);
+  });
+
+  test('unknown keys inside practice preferences do not survive a merge', () => {
+    // A pass-through chain, so the merge itself has to drop them.
+    const through: ProfileMergeDeps = { now: NOW, upgrade: (p) => (typeof p === 'object' && p !== null ? { ...p } : null) };
+    const a = stored({ practicePreferences: { level: 'few', confidence: null, focus: null, note: 'free text' } });
+    const b = stored({ practicePreferences: { level: null, confidence: 'trying', focus: null, extra: 7 } });
+    for (const m of [mergeStoredProfiles({ stored: a, savedAt: 1 }, { stored: b, savedAt: 2 }, through), mergeStoredProfiles({ stored: b, savedAt: 2 }, { stored: a, savedAt: 1 }, through)]) {
+      assert.deepEqual(m?.practicePreferences, { level: 'few', confidence: 'trying', focus: null });
+    }
   });
 
   test('a chosen voice beats a null one from either side, and the merge still absorbs its inputs', () => {

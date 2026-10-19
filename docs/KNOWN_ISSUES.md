@@ -10937,6 +10937,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a successful restore refreshes the plan on the subscription screen`
 - verified-by: `restore copy has no em dashes`
 
+### F852 — A heavier device's partial practice preferences wiped another device's confidence and focus
+- severity: P2
+- status: [x]
+- where: packages/brain/src/profile/merge.ts:530
+- note: Found 2026-10-19 by the app review (P2 #5). `mergeStoredProfiles` picked `practicePreferences` as one whole answer, so an older install's Settings level edit (`confidence: null, focus: null`) on the evidence-heavier phone erased the other phone's real confidence and focus answers on every device.
+- fixed: 2026-10-19. `pickPracticePreferences` applies the answer rule (null loses, evidence decides, value breaks a tie; shared with `pickAnswer` as `pickValue`) to `level`, `confidence` and `focus` separately, keeps only those three keys, and returns null when none is answered. The `statedLevel` clock still moves only `level`. No stored-shape change.
+- verified-by: `two devices keep each other's practice preference answers when only one answered each`
+- verified-by: `a heavier device's real sub-answer beats a lighter device's real sub-answer, field by field`
+- verified-by: `a stated level edit on one device keeps the other device's confidence and focus`
+- verified-by: `practice preferences with every sub-answer unanswered merge to never asked`
+- verified-by: `unknown keys inside practice preferences do not survive a merge`
+
 ### F846 — Most pushed screens still draw a white back disc in dark mode
 - severity: P3
 - status: [ ]
