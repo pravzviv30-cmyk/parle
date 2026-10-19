@@ -24,8 +24,8 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { Card } from '../components.tsx';
-import { paper, space, type } from '../theme.ts';
+import { SettingsCard as Card, useSettingsColors } from '../settings/SettingsAppearance.tsx';
+import { space, type } from '../theme.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
@@ -48,6 +48,7 @@ export const SPEAKING_TIME_ROW = 'Speaking time';
 export const PLAN_CARD_COPY: readonly string[] = [CHANGE_PLAN_ROW, CHANGE_PLAN_SUB, SPEAKING_TIME_ROW];
 
 export function PlanCard() {
+  const colors = useSettingsColors();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { user } = useAuth();
   // Null until the read answers. A card drawn from an unanswered read would
@@ -81,7 +82,7 @@ export function PlanCard() {
     <Card style={st.card}>
       {view !== null && !view.known && (
         <View style={st.honest}>
-          <Text style={[type.body, { color: paper.inkSoft }]}>{view.line}</Text>
+          <Text style={[type.body, { color: colors.muted }]}>{view.line}</Text>
         </View>
       )}
       {/* The plan itself, and the way to another one. The name of the plan is

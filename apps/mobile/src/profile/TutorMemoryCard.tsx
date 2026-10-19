@@ -26,7 +26,8 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import { Card, ChevronRight } from '../components.tsx';
+import { ChevronRight } from '../components.tsx';
+import { SettingsCard as Card, useSettingsColors } from '../settings/SettingsAppearance.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { accent, decorative, paper, radius, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
@@ -56,6 +57,7 @@ function TutorRow({
   onPress: () => void;
   first?: boolean;
 }) {
+  const colors = useSettingsColors();
   return (
     <Pressable
       onPress={() => {
@@ -64,19 +66,20 @@ function TutorRow({
       }}
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${gloss}`}
-      style={({ pressed }) => [st.row, !first && st.divided, pressed && st.pressed]}
+      style={({ pressed }) => [st.row, !first && st.divided, { borderTopColor: colors.border }, pressed && st.pressed, pressed && { backgroundColor: colors.background }]}
     >
       {mark}
       <View style={st.words}>
-        <Text style={[type.heading, { color: paper.ink }]}>{title}</Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{gloss}</Text>
+        <Text style={[type.heading, { color: colors.text }]}>{title}</Text>
+        <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{gloss}</Text>
       </View>
-      <ChevronRight color={paper.inkFaint} />
+      <ChevronRight color={colors.muted} />
     </Pressable>
   );
 }
 
 export function TutorMemoryCard({ onVoice }: { onVoice: () => void }) {
+  const colors = useSettingsColors();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { profile } = useProfile();
   const name = tutorNameOf(profile);
@@ -86,7 +89,7 @@ export function TutorMemoryCard({ onVoice }: { onVoice: () => void }) {
       <TutorRow
         mark={
           <View style={st.glyph} {...decorative}>
-            <ChatGlyph color={accent.primary} />
+            <ChatGlyph color={colors.text} />
           </View>
         }
         title={memoryLabel(name)}

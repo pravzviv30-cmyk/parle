@@ -99,7 +99,7 @@ describe('Delete account stands apart from routine rows — Stage 3', () => {
     assert.ok(!account.includes('DELETE_ROW'), 'Delete account still sits beside the routine account rows');
 
     // Last on the screen: after every group, including About.
-    assert.ok(list.indexOf('<Label>{ABOUT_GROUP}</Label>') < list.indexOf('label={DELETE_ROW}'), 'the delete card is drawn among the routine groups');
+    assert.ok(list.indexOf('<Label color={colors.muted}>{ABOUT_GROUP}</Label>') < list.indexOf('label={DELETE_ROW}'), 'the delete card is drawn among the routine groups');
     assert.equal(cards[cards.length - 1], own, 'something is drawn after the delete card');
 
     // Same door into the same confirmation.

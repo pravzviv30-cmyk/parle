@@ -85,12 +85,17 @@ import { activeUserId, onUserScopeReset, userKey, scopeGeneration, writeInUserSc
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
 import { upgradeStored } from './upgrade.ts';
+import { storedPracticePreferences, type PracticePreferences } from './practicePreferences.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('profile');
 
 export interface StoredProfile {
   version: 9;
+  /** Explicit starting/support choices; independent of the brain's earned CEFR. */
+  practicePreferences?: PracticePreferences;
+  /** A new profile still owes its name question; absent on legacy profiles. */
+  namePromptPending?: boolean;
   /** Exact-value-bound setting edits. No age, DOB, entitlement or identity authority. */
   preferenceClocks?: PreferenceClocks;
   practiceDaysPerWeek?: 3 | 5 | 7 | 'none' | null;
@@ -306,6 +311,16 @@ export function saveProfile(p: StoredProfile): Promise<boolean> {
       const newerHeld = before && (!proposed || before.changedAt > proposed.changedAt || (before.changedAt === proposed.changedAt && before.paused && !proposed.paused));
       const memory = newerHeld && held ? held.brain.memory : p.brain.memory;
       const next = { ...ordered, forgottenFacts, brain: withoutForgottenMemory({ ...ordered.brain, memory }, forgottenFacts) };
+      // A stale recap/profile object predating the onboarding choice is not a
+      // withdrawal. Keep the existing bounded answer until a real one replaces it.
+      const preferences = storedPracticePreferences(p.practicePreferences) ?? storedPracticePreferences(held?.practicePreferences);
+      if (preferences) next.practicePreferences = preferences;
+      else delete next.practicePreferences;
+      // A recap captured before signup finished cannot erase its pending name
+      // question. A causally retained nonblank name always finishes that ask.
+      const namePrompt = typeof p.namePromptPending === 'boolean' ? p.namePromptPending : held?.namePromptPending;
+      if (typeof namePrompt === 'boolean') next.namePromptPending = typeof next.name === 'string' && next.name.trim().length > 0 ? false : namePrompt;
+      else delete next.namePromptPending;
       if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify(next))))) return false;
       markDirty('profile');
       return true;
@@ -321,7 +336,7 @@ export function saveMemoryChange(edit: (profile: StoredProfile) => StoredProfile
       if (generation !== scopeGeneration()) return null;
       const held = await profileAt(key);
       if (!held || generation !== scopeGeneration()) return null;
-      const edited = edit(held);
+      const edited = await orderedPreferences(edit(held), held, generation);
       const next = { ...edited, brain: withoutForgottenMemory(edited.brain, edited.forgottenFacts) };
       if (!(await writeInUserScope(generation, () => AsyncStorage.setItem(key, JSON.stringify(next))))) return null;
       markDirty('profile');
@@ -555,7 +570,7 @@ export function withPreferTyping(existing: StoredProfile, preferTyping: boolean)
  * learner a way to un-name themselves, so this door does not carry one.
  */
 export function withName(existing: StoredProfile, name: string): StoredProfile {
-  return withPreferenceEdit(existing, { ...existing, name }, 'name');
+  return withPreferenceEdit(existing, { ...existing, name, namePromptPending: false }, 'name');
 }
 
 /** Claim a leaderboard username. A plain spread, named so the field has one write path. */

@@ -61,7 +61,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
 import { HAIRLINE, paper, space, type } from '../theme.ts';
-import { Card, Choice, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
+import { Choice, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet } from '../components.tsx';
 import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
@@ -94,6 +94,8 @@ import {
 } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 import { useBackToHome } from '../nav/useBackToHome.ts';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { SettingsAppearance, SettingsCard as Card, SettingsField as Field } from '../settings/SettingsAppearance.tsx';
 
 /**
  * The sheets that are left.
@@ -118,6 +120,7 @@ type Sheet = 'none' | 'name' | 'tutorVoice';
 
 export function ProfileTab() {
   const goBack = useBackToHome();
+  const { colors } = useMainAppearance();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Profile'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
   const { profile, update } = useProfile();
@@ -250,8 +253,8 @@ export function ProfileTab() {
    */
 
   return (
-    <>
-    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} title="Profile" />}>
+    <SettingsAppearance>
+    <ScrollScreen ground={colors.background} bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} title="Profile" ink={colors.text} muted={colors.muted} />}>
       {/* The one row that leads to everything general: the account, the plan,
           the subscription, the documents, the phone's own permissions and the
           daily reminder. First on the screen, in a bare Card with no Label
@@ -263,36 +266,39 @@ export function ProfileTab() {
         {/* The art sits behind the centred column and bleeds off the corner, so
             the header and the picture share one relative box. It is decorative
             and it is not drawn at all at a large reading size. */}
-        <View style={st.head}>
+        <Card style={st.head}>
           <TabHeader
             align="center"
+            ink={colors.text}
+            mutedInk={colors.muted}
             leading={<Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />}
             title={profile.name ?? 'You'}
           />
-        </View>
+        </Card>
 
         {/* Who the learner is talking to, and what that person holds about
             them. The voice sheet opens from row one; row two pushes the
             editing screen (F562). */}
-        <Label>{TUTOR_LABEL}</Label>
+        <Label color={colors.muted}>{TUTOR_LABEL}</Label>
         <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
 
         {/* The streak and the level, each opening its own screen, and a
             subscriber's freezes. Its own file with its own reads. */}
-        <ProfileStats />
-
-        <DayCount />
+        <View style={st.evidence}>
+          <ProfileStats />
+          <DayCount />
+        </View>
 
         <View style={st.group}>
-          <Label>{LEARNING_LABEL}</Label>
+          <Label color={colors.muted}>{LEARNING_LABEL}</Label>
           <Card style={{ marginTop: space(2.5) }}>
             <SettingsRow first label="Friends" value="Optional shared practice" onPress={() => nav.navigate('Friends')} />
             <SettingsRow label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
             {/* The daily goal as five choices (D5): none, then the four tiers,
                 gentlest first, each saying its size in words. What the chosen
                 one means is written beneath. */}
-            <View style={st.goal} accessibilityRole="radiogroup" accessibilityLabel={DAILY_GOAL_ROW}>
-              <Text accessibilityRole="header" style={[type.label, { color: paper.ink }]}>{DAILY_GOAL_ROW}</Text>
+            <View style={[st.goal, { borderTopColor: colors.border }]} accessibilityRole="radiogroup" accessibilityLabel={DAILY_GOAL_ROW}>
+              <Text accessibilityRole="header" style={[type.label, { color: colors.text }]}>{DAILY_GOAL_ROW}</Text>
               {GOAL_CHOICES.map((choice) => (
                 <Choice
                   key={choice.key}
@@ -304,7 +310,7 @@ export function ProfileTab() {
                   onPress={() => update(withDailyGoal(profile, choice.minutes))}
                 />
               ))}
-              <Text style={[type.small, { color: paper.inkSoft }]}>{goalLine(profile)}</Text>
+              <Text style={[type.small, { color: colors.muted }]}>{goalLine(profile)}</Text>
             </View>
             <ChoiceRow<Strictness>
               title={STRICTNESS_ROW}
@@ -330,8 +336,8 @@ export function ProfileTab() {
         </View>
       </View>
     </ScrollScreen>
-    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} footer={<PillButton label="Done" onPress={closeVoiceSheet} />}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>{TUTOR_VOICE_SUB}</Text>
+    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" onPress={closeVoiceSheet} tone="brand" />}>
+      <Text style={[type.body, { color: colors.muted }]}>{TUTOR_VOICE_SUB}</Text>
       {TUTOR_VOICE_OPTIONS.map((option) => (
         <OptionRow key={option.value} title={option.label} detail={option.gloss}
           selected={tutorVoiceOf(profile) === option.value} playing={samplePlaying === option.value}
@@ -340,22 +346,25 @@ export function ProfileTab() {
       <SwitchRow first title={PACE_ROW} sub={PACE_SUB} value={paceOf(profile) === 'slow'}
         onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))} accessibilityLabel={PACE_ROW} />
     </BottomSheet>
-    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>What your tutor calls you at the start of a session.</Text>
+    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet} surface={colors.surface} ink={colors.text}>
+      <Text style={[type.body, { color: colors.muted }]}>What your tutor calls you at the start of a session.</Text>
       <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="e.g. James" />
-      <PillButton label="Save" disabled={draftName.trim().length === 0} onPress={() => {
+      <PillButton label="Save" tone="brand" disabled={draftName.trim().length === 0} onPress={() => {
         const next = draftName.trim();
         if (next.length > 0) update(withName(profile, next));
         setSheet('none');
       }} />
     </BottomSheet>
-    </>
+    </SettingsAppearance>
   );
 }
 
 const st = StyleSheet.create({
   // One relative box so the corner art can be absolute inside it.
-  head: { position: 'relative' },
+  head: { position: 'relative', marginBottom: space(5) },
+  // Existing evidence components retain their accessible paper rendering. The
+  // contrast surface also covers the subscriber freeze line and read failures.
+  evidence: { backgroundColor: paper.card, borderRadius: 24, paddingHorizontal: space(4), marginTop: space(3) },
   // Each labelled block keeps its own air above it; the label itself sits
   // tight to the card it names.
   group: { marginTop: space(5) },

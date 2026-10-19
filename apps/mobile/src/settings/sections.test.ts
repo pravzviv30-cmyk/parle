@@ -155,11 +155,11 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     assert.match(PROFILE, /label=\{SETTINGS_ROW\}/, 'Profile draws no Settings row, so everything that moved is unreachable');
     assert.match(PROFILE, /value=\{SETTINGS_ROW_SUB\}/, 'the Settings row does not say what is behind it');
     assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
-    assert.equal((PROFILE.match(/<Label>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
-    assert.match(PROFILE, /<Label>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=/, 'the tutor block lost its heading or its card');
-    assert.doesNotMatch(PROFILE, /<FrenchLifeCard|<Label>\{RHYTHM_LABEL\}/, 'Profile must leave weekly days to the later evidence stage');
+    assert.equal((PROFILE.match(/<Label color=\{colors\.muted\}>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
+    assert.match(PROFILE, /<Label color=\{colors\.muted\}>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=/, 'the tutor block lost its heading or its card');
+    assert.doesNotMatch(PROFILE, /<FrenchLifeCard|<Label color=\{colors\.muted\}>\{RHYTHM_LABEL\}/, 'Profile must leave weekly days to the later evidence stage');
     assert.ok(
-      PROFILE.lastIndexOf('<Label>') < PROFILE.lastIndexOf('<Card'),
+      PROFILE.lastIndexOf('<Label color={colors.muted}>') < PROFILE.lastIndexOf('<Card'),
       'the Settings row has a caps label over it, which says the same word twice',
     );
 
@@ -180,9 +180,9 @@ describe('Profile keeps who you are and how you learn — F473', () => {
     // field the first run also sets. `profile/store.ts` says why that matters —
     // a field two places can set is a field that can disagree with itself.
     assert.deepEqual(
-      withName({ name: 'Old', tutorVoice: null } as never, 'New'),
-      { name: 'New', tutorVoice: null },
-      'the door edits something other than the name, or drops what it was handed',
+      withName({ name: 'Old', tutorVoice: null, namePromptPending: true } as never, 'New'),
+      { name: 'New', tutorVoice: null, namePromptPending: false },
+      'the door must acknowledge the requested name while retaining unrelated settings',
     );
 
     assert.match(
@@ -282,12 +282,12 @@ describe('the Settings screen is one push away — F473', () => {
     // And the screen draws them from the module rather than writing them in
     // JSX, where nothing in this suite could ever read them back.
     const rows = settingsRows(SETTINGS);
-    // Exact, not a floor. Fourteen: four on Account, one per subscription
+    // Exact, not a floor. Display adds the seventeenth row. Previously: four on Account, one per subscription
     // action, three under Data and privacy, the reminder's own time row and one
     // per refused permission under Phone, Contact and the intro under Help, and
     // three documents under About. A row added or lost is a change to what this
     // screen is, and it should be read here rather than slipping under a `>=`.
-    assert.equal(rows.length, 16, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
+    assert.equal(rows.length, 17, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
     for (const row of rows) {
       assert.doesNotMatch(row, /label="/, `a Settings row spells its label in JSX: ${row.split('\n')[0]}`);
       assert.match(row, /label=\{/, `a Settings row has no label at all: ${row.split('\n')[0]}`);
@@ -492,7 +492,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // voice-circle intro, which was a row on Profile, and the reminder's four
       // presets, which were a sheet on Profile (F576). Both take the screen for
       // the same reason the other four do.
-      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export'],
+      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export', 'display'],
       'the sheet union names something other than the six views that take the whole screen',
     );
     assert.ok(!SETTINGS.includes('unavailable'), 'the export refusal is a sheet again, which is where F489 started');
@@ -501,12 +501,13 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // there is no such thing as an open sheet the learner cannot see. That is
     // the fix by construction: a card drawn at the foot of a scroll could be
     // open and invisible, and an early return cannot.
-    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export')) {
+    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export' && m !== 'display')) {
       assert.ok(
         SETTINGS.includes(`if (sheet === '${member}')`),
         `the ${member} sheet is not an early return, so it can be open while the learner is looking at something else`,
       );
     }
+    assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'display'\} title="Display" onClose=\{\(\) => setSheet\('none'\)\}/);
     assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'export'\} title="Download your data" onClose=\{closeCurrentSheet\}/);
     assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\} title=\{REMINDER_TIME_TITLE\}/);
     assert.match(SETTINGS, /onClose=\{\(\) => setSheet\('none'\)\}/);
@@ -524,7 +525,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // The reminder presets joined the delete confirmation with revamp A. It
       // is an ordinary `ScrollScreen` drawn by this file with no hook of its
       // own, so this screen's hook is the only thing that can close it.
-      ['reminderTime', 'delete', 'export'],
+      ['reminderTime', 'delete', 'export', 'display'],
       'the hardware back is answered for a sheet this screen does not draw in place, so a press is eaten',
     );
     // The four that stand it down are exactly the four that bring their own
@@ -619,7 +620,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // exactly one of the two is ever drawn.
     assert.match(
       sheetBody,
-      /\{!hasPassword && deleteError !== null && <TroubleLine message=\{deleteError\} strong \/>\}/,
+      /\{!hasPassword && deleteError !== null && <Card><TroubleLine message=\{deleteError\} strong \/><\/Card>\}/,
       'a Google, Apple or demo account meets a refusal nothing announces',
     );
     writtenBefore(sheetBody, '{hasPassword && (', '{!hasPassword &&', 'the two halves of the reason are no longer exclusive');
@@ -636,7 +637,9 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     );
     assert.match(LINE, /Platform\.OS !== 'ios'/, 'the announcement is made twice on the platforms that already have one');
     // Words, held to the text floor rather than a mark's. F330.
-    assert.match(LINE, /signal\.correspondance/, 'the refusal is set in something other than the word colour for a change');
+    assert.match(LINE, /color: colors\.trouble/, 'the refusal must use the scoped readable error ink');
+    const appearance = stripComments(read('./SettingsAppearance.tsx'));
+    assert.match(appearance, /trouble: mode === 'dark' \? colors\.text : signal\.correspondance/, 'paper keeps its existing error ink, while dark surfaces use their readable foreground');
     assert.ok(!LINE.includes('inkFaint'), 'a sentence a learner has to act on is set in the faint ink');
     for (const cap of ['numberOfLines', 'maxWidth', 'allowFontScaling', 'maxFontSizeMultiplier']) {
       assert.ok(!LINE.includes(cap), `the refusal caps its own text with ${cap}, so it clips at a large reading size`);

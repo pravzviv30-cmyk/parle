@@ -20,6 +20,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { TabBar } from '../components.tsx';
+import { useSettingsColors } from './SettingsAppearance.tsx';
 
 export function ChoiceRow<K extends string>({
   title,
@@ -42,9 +43,10 @@ export function ChoiceRow<K extends string>({
   /** Rows after the first carry a divider above them, as SettingsRow does. */
   first?: boolean;
 }) {
+  const colors = useSettingsColors();
   return (
-    <View style={[st.row, !first && st.divided]}>
-      <Text style={[type.bodyStrong, { color: paper.ink }]}>{title}</Text>
+    <View style={[st.row, !first && st.divided, { borderTopColor: colors.border }]}>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
       <View style={{ marginTop: space(2) }}>
         <TabBar
           tabs={options}
@@ -53,7 +55,7 @@ export function ChoiceRow<K extends string>({
           accessibilityLabel={accessibilityLabel}
         />
       </View>
-      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{gloss}</Text>
+      <Text style={[type.small, { color: colors.muted, marginTop: space(2) }]}>{gloss}</Text>
     </View>
   );
 }
