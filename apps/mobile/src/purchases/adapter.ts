@@ -15,4 +15,10 @@ export const purchases: PurchasesAdapter = {
   async manage() {
     return { ok: false, cancelled: false };
   },
+  async trialFacts() {
+    return null;
+  },
+  onStoreChange() {
+    return () => {};
+  },
 };

@@ -60,22 +60,33 @@
  * of it.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { AppState, View, Text } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { paper, space, type } from '../theme.ts';
-import { IconAction, Card, Field, Label, OptionRow, OutlineButton, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
+import { space, type } from '../theme.ts';
+import { IconAction, OptionRow, PillButton, GhostButton, Sheet as BottomSheet } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { SettingsAppearance, SettingsCard as Card, SettingsField as Field } from './SettingsAppearance.tsx';
+import { DisplayPreferences } from './DisplayPreferences.tsx';
+import { DARK_MODE_ENABLED } from '../main/appearanceModel.ts';
+import { displayPreferenceLabel } from './displayModel.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
 import { loadHapticPreference, setHapticPreference } from '../motion/hapticPreference.ts';
 import { loadSoundPreference, setSoundPreference } from '../sound/soundPreference.ts';
 import { SwitchRow } from './SwitchRow.tsx';
 import { TroubleLine } from './TroubleLine.tsx';
-import { PlanCard } from '../profile/PlanCard.tsx';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { withName } from '../profile/store.ts';
+import { useTrialReminder } from '../reminders/useTrialReminder.ts';
+import { SettingsGroup } from './SettingsGroup.tsx';
+import { TrialReminderRow } from './TrialReminderRow.tsx';
+import { usePlanStatus } from './usePlanStatus.ts';
+import { REMINDERS_FOOTER, planRow, showTrialReminder } from './profileView.ts';
 import { TutorIntro } from '../tutor/TutorIntro.tsx';
-import { DATA_USE_ROW, DATA_USE_SUB, CONNECTION_HELP_ROW, CONNECTION_HELP_SUB, LOCAL_PRACTICE_ROW, LOCAL_PRACTICE_SUB } from './sections.ts';
+import { DISPLAY_ROW, DISPLAY_SUB, DATA_USE_ROW, DATA_USE_SUB, CONNECTION_HELP_ROW, CONNECTION_HELP_SUB, LOCAL_PRACTICE_ROW, LOCAL_PRACTICE_SUB } from './sections.ts';
 import { Acknowledgements } from '../legal/Acknowledgements.tsx';
 import { PolicyScreen } from '../legal/PolicyScreen.tsx';
 import { TermsScreen } from '../legal/TermsScreen.tsx';
@@ -112,11 +123,11 @@ import {
 } from '../reminders/schedule.ts';
 import { replanReminders, smartReminderTime } from '../reminders/ReminderPlanner.tsx';
 import { openMail } from './links.ts';
-import { phoneRows, type PhonePermission } from './phone.ts';
+import { phoneRows, type PhonePermission, type PhonePermissionKey } from './phone.ts';
 import { PHONE_SETTINGS_AVAILABLE, microphonePermission, openPhoneSettings } from './phoneSettings.ts';
 import {
-  ABOUT_GROUP,
   ACCOUNT_GROUP,
+  APPEARANCE_GROUP,
   ACKNOWLEDGEMENTS_ROW,
   CONSENT_SAVE_TROUBLE,
   DELETE_ROW,
@@ -129,15 +140,20 @@ import {
   EMAIL_UNKNOWN,
   HELP_GROUP,
   LINK_TROUBLE,
-  PHONE_GROUP,
-  PLAN_GROUP,
+  NAME_ROW,
+  NAME_UNSET_VALUE,
+  PLAN_ROW,
   PRIVACY_GROUP,
+  PRIVACY_INTRO,
   PRIVACY_POLICY_ROW,
+  REMINDERS_GROUP,
   SAVED_ROW,
   SAVED_SUB,
   SETTINGS_TITLE,
   SIGN_OUT_ROW,
   SUBSCRIPTION_GROUP,
+  TUTOR_MEMORY_SETTINGS_ROW,
+  VERSION_ROW,
 } from './sections.ts';
 import type { AuthResult } from '../auth/types.ts';
 
@@ -155,7 +171,7 @@ import type { AuthResult } from '../auth/types.ts';
  * closing a card nobody had seen. A refusal is not a sheet: it is a line in the
  * group whose control caused it, which is what every other one here already is.
  */
-type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete' | 'export';
+type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete' | 'export' | 'display' | 'name';
 
 /**
  * Said when the disk refuses the reminder's two-field write, and only then.
@@ -204,6 +220,7 @@ export function SettingsScreen({
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
 
+  const { colors, mode, preference } = useMainAppearance();
   const [hapticFeedback, setHapticFeedback] = useState(true);
   const [hapticSaving, setHapticSaving] = useState(false);
   const [hapticTrouble, setHapticTrouble] = useState('');
@@ -216,7 +233,11 @@ export function SettingsScreen({
     navigate: (screen: string, params?: object) => void;
   }>();
   const { user, adapter } = useAuth();
+  const { profile, update } = useProfile();
+  const planStatus = usePlanStatus();
+  const trial = useTrialReminder();
   const [sheet, setSheet] = useState<Sheet>('none');
+  const [draftName, setDraftName] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePassword, setDeletePassword] = useState('');
@@ -251,6 +272,9 @@ export function SettingsScreen({
   // absent unless a permission was refused, so a mail app that would not open
   // would fail in silence, which is the tap that does nothing F239 refused.
   const [phoneTrouble, setPhoneTrouble] = useState<string | null>(null);
+  // Which of the two permission rows the refusal belongs to: since P2 they sit
+  // in different groups, so the line is drawn beside the one that was tapped.
+  const [phoneTroubleFor, setPhoneTroubleFor] = useState<PhonePermissionKey | null>(null);
   const [contactTrouble, setContactTrouble] = useState<string | null>(null);
   // The fourth of those, and the one F489 was filed about. A data export is a
   // legal right exercised through one row, so a refusal belongs beside that row
@@ -598,8 +622,9 @@ export function SettingsScreen({
   };
 
   /** Hand the learner to their own phone, and say so when the phone will not go. */
-  const walkToPhoneSettings = () => {
+  const walkToPhoneSettings = (key: PhonePermissionKey) => {
     setPhoneTrouble(null);
+    setPhoneTroubleFor(key);
     void openPhoneSettings().then((outcome) => {
       if (outcome !== 'done') setPhoneTrouble(LINK_TROUBLE);
     });
@@ -633,6 +658,12 @@ export function SettingsScreen({
     setExportPassword(''); setExportTrouble(null); setSheet('export');
   };
 
+  /** The name sheet, opened on the stored name rather than on an old draft. */
+  const openNameSheet = () => {
+    setDraftName(profile.name ?? '');
+    setSheet('name');
+  };
+
   /** Open a mail app at the one address, and leave the address readable if it will not. */
   const writeTo = (address: string) => {
     setContactTrouble(null);
@@ -662,9 +693,9 @@ export function SettingsScreen({
     // No chevron: this is the one sheet where leaving is the safe answer and it
     // is spelled out as "Keep my account" rather than a quiet back arrow.
     return (
-      <ScrollScreen>
-        <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>Delete your account?</Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>
+      <SettingsAppearance><ScrollScreen ground={colors.background} avoidKeyboard>
+        <Text accessibilityRole="header" style={[type.display, { color: colors.text }]}>Delete your account?</Text>
+        <Text style={[type.body, { color: colors.muted, marginTop: space(3) }]}>
           This permanently removes your sign-in, conversations turned into practice, progress, and remaining minutes. It cannot be undone. Cancel an App Store or Google Play subscription in the store; deleting your Luvani account does not cancel it.
         </Text>
         {/* The reason a wrong password was refused belongs to the field that
@@ -675,7 +706,7 @@ export function SettingsScreen({
             pixels is invisible to somebody who cannot see the pixels change,
             and this is the one branch whose failure the learner can fix. */}
         {hasPassword && (
-          <View style={{ marginTop: space(5) }}>
+          <Card style={{ marginTop: space(5) }}>
             <Field
               label="Confirm with your password"
               value={deletePassword}
@@ -685,10 +716,10 @@ export function SettingsScreen({
               autoComplete="current-password"
               error={deleteError}
             />
-          </View>
+          </Card>
         )}
         {user?.provider === 'google' && (
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>
+          <Text style={[type.body, { color: colors.muted, marginTop: space(4) }]}>
             Google will ask you to sign in again before anything is deleted.
           </Text>
         )}
@@ -697,7 +728,7 @@ export function SettingsScreen({
             showing a field nobody can fill. Owed to auth/apple.test.ts, which
             names the sentence rather than waiting for one to appear. */}
         {user?.provider === 'apple' && (
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>
+          <Text style={[type.body, { color: colors.muted, marginTop: space(4) }]}>
             Apple will ask you to sign in again before anything is deleted.
           </Text>
         )}
@@ -705,9 +736,9 @@ export function SettingsScreen({
             the line carries it, and carries the announcement with it. Exactly
             one of these two ever draws: the field above holds it whenever there
             is a password to hold it. */}
-        {!hasPassword && deleteError !== null && <TroubleLine message={deleteError} strong />}
+        {!hasPassword && deleteError !== null && <Card><TroubleLine message={deleteError} strong /></Card>}
         <View style={{ marginTop: space(7), gap: space(3) }}>
-          <GhostButton
+          <GhostButton color={colors.text}
             label={deleting ? 'Verifying…' : 'Verify and delete permanently'}
             disabled={deleting || (hasPassword && deletePassword.length === 0)}
             onPress={() => {
@@ -724,6 +755,7 @@ export function SettingsScreen({
           />
           <PillButton
             label="Keep my account"
+            tone={mode === 'dark' ? 'white' : 'ink'}
             disabled={deleting}
             onPress={() => {
               forgetDeleteDraft();
@@ -731,252 +763,224 @@ export function SettingsScreen({
             }}
           />
         </View>
-      </ScrollScreen>
+      </ScrollScreen></SettingsAppearance>
     );
   }
 
+  // Each refused permission as a row, from the module's one answer, placed in
+  // the group it belongs to: the microphone beside sound, notifications beside
+  // the reminders that need them.
+  const phoneDrawn: Partial<Record<PhonePermissionKey, ReactNode>> = Object.fromEntries(
+    phone.map((permissionRow) => [permissionRow.key, (
+      <View key={permissionRow.key}>
+        {/* The refusal, beside the row that was tapped, in whichever group
+            that row is drawn. */}
+        {phoneTrouble !== null && phoneTroubleFor === permissionRow.key && <TroubleLine message={phoneTrouble} />}
+        <SettingsRow
+          label={permissionRow.label}
+          sub={permissionRow.sub}
+          onPress={() => walkToPhoneSettings(permissionRow.key)}
+        />
+      </View>
+    )]),
+  );
+  const restoreRows = subscription === null ? [] : subscription.filter((action) => action.action === 'restore');
+  const plan = planRow(planStatus.view);
+  const planKnown = planStatus.view !== null && planStatus.view.known;
+  const trialShown = showTrialReminder({ available: trial.available, onRecord: trial.onRecord });
+
   return (
-    <>
+    <SettingsAppearance>
     <ScrollScreen
+      ground={colors.background}
       header={
-        <ScreenHeader back={{ onPress: () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')) }} />
+        <ScreenHeader back={{ onPress: () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')), label: 'Back to Profile' }} ink={colors.text} muted={colors.muted} backAppearance={{ disc: colors.surface, mark: colors.text }} />
       }
     >
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, marginBottom: space(5) }]}>
+      <Text accessibilityRole="header" style={[type.title, { color: colors.text, marginBottom: space(5) }]}>
         {SETTINGS_TITLE}
       </Text>
 
-      <Label>{ACCOUNT_GROUP}</Label>
-      <Card style={{ marginTop: space(2.5) }}>
-        <SettingsRow first label={EMAIL_ROW} value={user?.email ?? EMAIL_UNKNOWN} />
-        {user?.provider === 'mock' && <SettingsRow label={DEMO_ROW} value={DEMO_VALUE} />}
-        <SettingsRow label={SIGN_OUT_ROW} onPress={onSignOut} />
-      </Card>
+      <SettingsGroup first title={ACCOUNT_GROUP}>
+        <SettingsRow first label={NAME_ROW} value={profile.name ?? NAME_UNSET_VALUE} onPress={openNameSheet} />
+        <SettingsRow label={EMAIL_ROW} value={user?.email ?? EMAIL_UNKNOWN} />
+        {user?.provider === 'mock' && <SettingsRow label={DEMO_ROW} sub={DEMO_VALUE} />}
+        <SettingsRow label={SIGN_OUT_ROW} action onPress={onSignOut} />
+      </SettingsGroup>
 
-      {/* The plan, which moved here from Profile with revamp A (F576). It sits
-          above Subscription because the plan is what a learner has and the
-          group below it is what the store can do about it. The card reads the
-          server itself and draws its own honest line when it cannot. */}
-      <View style={{ marginTop: space(6) }}>
-        <Label>{PLAN_GROUP}</Label>
-        <PlanCard />
-      </View>
-
-      {/* Present only when the store answered with a real product, which is what
-          keeps it honest in Expo Go, on the web and on a build with no keys. In
-          all three, both rows would open onto nothing. */}
-      {subscription !== null && (
-        <View style={{ marginTop: space(6) }}>
-          <Label>{SUBSCRIPTION_GROUP}</Label>
-          <Card style={{ marginTop: space(2.5) }}>
-            {storeLine !== null && (
-              <Text
-                accessibilityLiveRegion="polite"
-                style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}
-              >
-                {storeLine}
-              </Text>
-            )}
-            {subscription.map((row, index) => (
-              <SettingsRow
-                key={row.action}
-                first={index === 0}
-                label={row.label}
-                value={row.sub}
-                onPress={() => askStore(row.action)}
-              />
-            ))}
-          </Card>
-        </View>
-      )}
-
-      <View style={{ marginTop: space(6) }}>
-        <Label>{PRIVACY_GROUP}</Label>
-        <Card style={{ marginTop: space(2.5) }}>
-          {/* The honest paragraph, and every fact in it comes from one module.
-              This screen never spells an address or a company name itself. */}
-          <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>Control what is saved, export your data or delete your account. Live tasks send spoken or typed words to speech and language services.</Text>
-          <SettingsRow first label={DATA_USE_ROW} value={DATA_USE_SUB} onPress={() => setSheet('policy')} />
-          <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>{privacyNote()}</Text>
-          {consentTrouble !== null && <TroubleLine message={consentTrouble} />}
-          {/* The export refusal, in the card that holds the row that asked for
-              it. It used to be a sheet drawn under the version line, which is
-              the tap that answered nothing F239 refused. */}
-          {exportTrouble !== null && <TroubleLine message={exportTrouble} />}
-          {/* Off until the first read lands, so a fresh install never shows a
-              consent switch sitting on for a frame. */}
-          <SwitchRow
-            first
-            title={CONSENT_ROW}
-            sub={CONSENT_SUB}
-            value={consent === true}
-            onChange={setConsentAllowed}
-            accessibilityLabel={CONSENT_ROW}
-          />
+      {/* The plan is one row now and opens the Subscription screen, which holds
+          the store's own rows. Restore stays here as well, beside the plan,
+          and only when the store answered with a real product: in Expo Go, on
+          the web and on a build with no keys it would open onto nothing. */}
+      <SettingsGroup title={SUBSCRIPTION_GROUP}>
+        <SettingsRow
+          first
+          label={PLAN_ROW}
+          value={planKnown ? plan.label : undefined}
+          sub={planKnown ? undefined : plan.sub}
+          onPress={() => nav.navigate('Subscription')}
+        />
+        {storeLine !== null && (
+          <Text accessibilityLiveRegion="polite" style={[type.small, { color: colors.muted, paddingHorizontal: space(4), paddingTop: space(3) }]}>
+            {storeLine}
+          </Text>
+        )}
+        {restoreRows.map((storeRow) => (
           <SettingsRow
-            label={DOWNLOAD_ROW}
-            value={exporting ? DOWNLOAD_BUSY : DOWNLOAD_SUB}
-            onPress={askForMyData}
+            key={storeRow.action}
+            label={storeRow.label}
+            sub={storeRow.sub}
+            onPress={() => askStore(storeRow.action)}
           />
-          <SettingsRow label={SAVED_ROW} value={SAVED_SUB} onPress={() => nav.navigate('Conversations')} />
-        </Card>
-      </View>
+        ))}
+      </SettingsGroup>
 
-      {/* Everything this app asks of the phone: the daily reminder, and one row
-          per permission the OS has refused. `phoneRows` decides the second
-          half; an allowed permission draws no row because a row reading Allowed
-          does nothing when it is tapped.
-
-          The reminder moved here from Profile with revamp A (F576). It is the
-          one control on this screen that draws a state the operating system
-          owns, and every judgement about it lives in `reminders/reminder.ts`:
-          this screen asks `reminderRow` what to draw, asks it again against a
-          freshly read permission before it writes anything down, and shows the
-          sentence it is handed. The whole block is absent on a build with no
-          scheduler rather than sitting there disabled, because the refusal line
-          names phone settings and would be a lie on a laptop. */}
-      {(reminders || reminderUnknown || phone.length > 0) && (
-        <View style={{ marginTop: space(6) }}>
-          <Label>{PHONE_GROUP}</Label>
-          <Card style={{ marginTop: space(2.5) }}>
-            {/* The explaining sentence, written ABOVE the switch that raises the
-                system dialog: a permission dialog that arrives unannounced is a
-                dialog most people decline, and iOS never offers it twice. */}
-            {reminders && row !== null && row.note.length > 0 && (
-              <Text style={[type.small, { color: paper.inkSoft, marginBottom: space(3) }]}>{row.note}</Text>
-            )}
-            {reminderOwned && sheet !== 'reminderTime' && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
-            {reminderUnknown && <View style={{ gap: space(2) }}>
-              <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft }]}>{reminderPending ? 'Checking reminder status…' : 'Reminder status could not be read. Try again before changing it.'}</Text>
-              {reminderUnread && <IconAction layout="inline" icon="refresh" label="Retry reminder status" onPress={() => setReminderAttempt(value => value + 1)} />}
-            </View>}
-            {reminders && row !== null && (
-              <SwitchRow
-                first
-                title={REMINDER_ROW}
-                sub={row.value}
-                value={row.on}
-                onChange={toggleReminder}
-                accessibilityLabel={REMINDER_ROW}
-              />
-            )}
-            {reminders && row !== null && row.on && (
-              <SettingsRow label={REMINDER_TIME_TITLE} value={chosen.label} onPress={() => setSheet('reminderTime')} />
-            )}
-            {phoneTrouble !== null && <TroubleLine message={phoneTrouble} />}
-            {phone.map((permissionRow, index) => (
-              <SettingsRow
-                key={permissionRow.key}
-                first={!reminders && index === 0}
-                label={permissionRow.label}
-                value={permissionRow.sub}
-                onPress={walkToPhoneSettings}
-              />
-            ))}
-          </Card>
-        </View>
-      )}
-
-      <View style={{ marginTop: space(6) }}>
-        <Label>Interaction</Label>
-        <Card style={{ marginTop: space(2.5) }}>
-          <SwitchRow title="Haptic feedback" sub="A gentle tap when an action lands. Motion follows your phone’s accessibility setting." accessibilityLabel="Haptic feedback" value={hapticFeedback} disabled={hapticSaving} onChange={value => {
-            if (hapticSaving) return;
-            setHapticSaving(true);
-            const previous = hapticFeedback;
-            setHapticFeedback(value);
-            void setHapticPreference(value).then(saved => { setHapticSaving(false); setHapticTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setHapticFeedback(previous); });
-          }} />
-          {hapticTrouble !== '' ? <TroubleLine message={hapticTrouble} /> : null}
-          <SwitchRow title="Sound effects" sub="Short sounds when you finish something. They follow your phone’s silent switch and stay quiet while you speak or listen." accessibilityLabel="Sound effects" value={soundEffects} disabled={soundSaving} onChange={value => {
-            if (soundSaving) return;
-            setSoundSaving(true);
-            const previous = soundEffects;
-            setSoundEffects(value);
-            void setSoundPreference(value).then(saved => { setSoundSaving(false); setSoundTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setSoundEffects(previous); });
-          }} />
-          {soundTrouble !== '' ? <TroubleLine message={soundTrouble} /> : null}
-        </Card>
-      </View>
-
-      {/* Help, which always has the intro in it and has a Contact row only once
-          an address is supplied. A Contact us row with nothing behind it is a
-          row that lies, so `contactRow` answers null and nothing is drawn
-          rather than a dead row somebody would tap. */}
-      <View style={{ marginTop: space(6) }}>
-        <Label>{HELP_GROUP}</Label>
-        <Card style={{ marginTop: space(2.5) }}>
-          {contactTrouble !== null && <TroubleLine message={contactTrouble} />}
-          {/* The address is the row's own value, so a phone with no mail app
-              set up still leaves something a learner can read and write down
-              rather than a tap that answered nothing. */}
-          {contact !== null && (
-            <SettingsRow first label={contact.label} value={contact.address} onPress={() => writeTo(contact.address)} />
+      {/* The daily reminder, the trial reminder and a refused notification
+          permission. Every judgement about the daily reminder lives in
+          `reminders/reminder.ts`: this screen asks `reminderRow` what to draw,
+          asks it again against a freshly read permission before it writes
+          anything down, and shows the sentence it is handed. The group is
+          absent on a build with no scheduler rather than sitting there
+          disabled, because the refusal line names phone settings and would be
+          a lie on a laptop. */}
+      {(reminders || reminderUnknown || trialShown || phoneDrawn.notifications !== undefined) && (
+        <SettingsGroup title={REMINDERS_GROUP} footer={REMINDERS_FOOTER}>
+          {/* The explaining sentence, written ABOVE the switch that raises the
+              system dialog: a permission dialog that arrives unannounced is a
+              dialog most people decline, and iOS never offers it twice. */}
+          {reminders && row !== null && row.note.length > 0 && (
+            <Text style={[type.small, { color: colors.muted, paddingHorizontal: space(4), paddingTop: space(3) }]}>{row.note}</Text>
           )}
-          {/* What the three colours of the circle mean. It was a row on Profile
-              and it is here now (F576): it explains a control rather than
-              setting one, which is what the Help group is for. */}
-          <SettingsRow first={contact === null} label={CONNECTION_HELP_ROW} value={CONNECTION_HELP_SUB} onPress={() => setSheet('intro')} />
-          <SettingsRow label={LOCAL_PRACTICE_ROW} value={LOCAL_PRACTICE_SUB} onPress={() => nav.navigate('Tabs', { screen: 'Practice' })} />
-        </Card>
-      </View>
+          {reminderOwned && sheet !== 'reminderTime' && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+          {reminderUnknown && <View style={{ gap: space(2), paddingHorizontal: space(4), paddingVertical: space(3) }}>
+            <Text accessibilityLiveRegion="polite" style={[type.small, { color: colors.muted }]}>{reminderPending ? 'Checking reminder status…' : 'Reminder status could not be read. Try again before changing it.'}</Text>
+            {reminderUnread && <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="refresh" label="Retry reminder status" onPress={() => setReminderAttempt(value => value + 1)} />}
+          </View>}
+          {reminders && row !== null && (
+            <SwitchRow
+              first
+              title={REMINDER_ROW}
+              sub={row.value}
+              value={row.on}
+              onChange={toggleReminder}
+              accessibilityLabel={REMINDER_ROW}
+            />
+          )}
+          {reminders && row !== null && row.on && (
+            <SettingsRow label={REMINDER_TIME_TITLE} value={chosen.label} onPress={() => setSheet('reminderTime')} />
+          )}
+          {trialShown && <TrialReminderRow trial={trial} first={!reminders} />}
+          {phoneDrawn.notifications}
+        </SettingsGroup>
+      )}
 
-      <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
-        <Label>{ABOUT_GROUP}</Label>
-        <Card style={{ marginTop: space(2.5) }}>
-          <SettingsRow first label={PRIVACY_POLICY_ROW} onPress={() => setSheet('policy')} />
-          <SettingsRow label={TERMS_TITLE} onPress={() => setSheet('terms')} />
-          <SettingsRow label={ACKNOWLEDGEMENTS_ROW} onPress={() => setSheet('acknowledgements')} />
-        </Card>
-        {/* Who Luvani is, or nothing while the name is unset. Soft ink, never
-            faint: these are words somebody is asked to read back to us (F330). */}
-        {company === null ? null : (
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(4), textAlign: 'center' }]}>
-            {company}
-          </Text>
+      <SettingsGroup title={APPEARANCE_GROUP}>
+        {/* Light only for now (KNOWN_ISSUES F847): the display choice returns with dark mode. */}
+        {DARK_MODE_ENABLED && <SettingsRow first label={DISPLAY_ROW} value={displayPreferenceLabel(preference)} onPress={() => setSheet('display')} />}
+        <SwitchRow first={!DARK_MODE_ENABLED} title="Haptic feedback" sub="A gentle tap when an action lands. Motion follows your phone’s accessibility setting." accessibilityLabel="Haptic feedback" value={hapticFeedback} disabled={hapticSaving} onChange={value => {
+          if (hapticSaving) return;
+          setHapticSaving(true);
+          const previous = hapticFeedback;
+          setHapticFeedback(value);
+          void setHapticPreference(value).then(saved => { setHapticSaving(false); setHapticTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setHapticFeedback(previous); });
+        }} />
+        {hapticTrouble !== '' ? <TroubleLine message={hapticTrouble} /> : null}
+        <SwitchRow title="Sound effects" sub="Short sounds when you finish something. They follow your phone’s silent switch and stay quiet while you speak or listen." accessibilityLabel="Sound effects" value={soundEffects} disabled={soundSaving} onChange={value => {
+          if (soundSaving) return;
+          setSoundSaving(true);
+          const previous = soundEffects;
+          setSoundEffects(value);
+          void setSoundPreference(value).then(saved => { setSoundSaving(false); setSoundTrouble(saved ? '' : 'That preference could not be saved. Try again.'); if (!saved) setSoundEffects(previous); });
+        }} />
+        {soundTrouble !== '' ? <TroubleLine message={soundTrouble} /> : null}
+        {phoneDrawn.microphone}
+      </SettingsGroup>
+
+      {/* The honest paragraph and the note under it, and every fact in them
+          comes from a module. This screen never spells an address or a
+          company name itself. */}
+      <SettingsGroup
+        title={PRIVACY_GROUP}
+        footer={<Text style={[type.small, { color: colors.muted }]}>{PRIVACY_INTRO} {privacyNote()}</Text>}
+      >
+        {consentTrouble !== null && <TroubleLine message={consentTrouble} />}
+        {/* The export refusal, in the group that holds the row that asked
+            for it, never a sheet a screen and a half away (F489). */}
+        {exportTrouble !== null && <TroubleLine message={exportTrouble} />}
+        <SettingsRow first label={TUTOR_MEMORY_SETTINGS_ROW} onPress={() => nav.navigate('TutorMemory')} />
+        <SettingsRow label={SAVED_ROW} sub={SAVED_SUB} onPress={() => nav.navigate('Conversations')} />
+        <SettingsRow
+          label={DOWNLOAD_ROW}
+          sub={exporting ? DOWNLOAD_BUSY : DOWNLOAD_SUB}
+          onPress={askForMyData}
+        />
+        <SettingsRow label={DATA_USE_ROW} sub={DATA_USE_SUB} onPress={() => setSheet('policy')} />
+        {/* Off until the first read lands, so a fresh install never shows a
+            consent switch sitting on for a frame. */}
+        <SwitchRow
+          title={CONSENT_ROW}
+          sub={CONSENT_SUB}
+          value={consent === true}
+          onChange={setConsentAllowed}
+          accessibilityLabel={CONSENT_ROW}
+        />
+      </SettingsGroup>
+
+      {/* Help, documents and the build. Contact has a row only once an address
+          is supplied: a Contact us row with nothing behind it is a row that
+          lies, so `contactRow` answers null and nothing is drawn. */}
+      <SettingsGroup
+        title={HELP_GROUP}
+        footer={company === null ? undefined : company}
+      >
+        {contactTrouble !== null && <TroubleLine message={contactTrouble} />}
+        <SettingsRow first label={CONNECTION_HELP_ROW} sub={CONNECTION_HELP_SUB} onPress={() => setSheet('intro')} />
+        <SettingsRow label={LOCAL_PRACTICE_ROW} sub={LOCAL_PRACTICE_SUB} onPress={() => nav.navigate('Tabs', { screen: 'Practice' })} />
+        {/* The address is the row's own second line, so a phone with no mail
+            app set up still leaves something a learner can read. */}
+        {contact !== null && (
+          <SettingsRow label={contact.label} value={contact.address} onPress={() => writeTo(contact.address)} />
         )}
-        {/* Which build this is, so a learner writing in about something that went
-            wrong can say which one it went wrong on. Absent rather than half
-            written when the config carries no version. */}
+        <SettingsRow label={TERMS_TITLE} onPress={() => setSheet('terms')} />
+        <SettingsRow label={PRIVACY_POLICY_ROW} onPress={() => setSheet('policy')} />
+        <SettingsRow label={ACKNOWLEDGEMENTS_ROW} onPress={() => setSheet('acknowledgements')} />
+        {/* Which build this is, so a learner writing in about something that
+            went wrong can say which one. Absent rather than half written when
+            the config carries no version. */}
         {versionLine === null ? null : (
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
-            {versionLine}
-          </Text>
+          <SettingsRow label={VERSION_ROW} value={versionLine} />
         )}
-      </View>
+      </SettingsGroup>
 
-      {/* Delete account, apart from every routine row (Stage 3). It used to sit
-          in the Account card between Sign out and nothing, one slip away from
-          the row above it. Now it is a card of its own at the foot of the
-          screen, with room above it, and it opens the same confirmation. */}
-      <View style={{ marginTop: space(2), paddingBottom: space(8) }}>
-        <Card>
-          {/* Opening is an exit too: the sheet is entered blank, never holding a
-              password or a reason from a visit that ended some other way. */}
-          <SettingsRow
-            first
-            label={DELETE_ROW}
-            destructive
-            onPress={() => {
-              forgetDeleteDraft();
-              setSheet('delete');
-            }}
-          />
-        </Card>
-      </View>
+      {/* Delete account, apart from every routine row (Stage 3): a group of
+          its own at the foot of the screen, with room above it, opening the
+          same confirmation. */}
+      <SettingsGroup style={{ paddingBottom: space(8) }}>
+        {/* Opening is an exit too: the sheet is entered blank, never holding a
+            password or a reason from a visit that ended some other way. */}
+        <SettingsRow
+          first
+          label={DELETE_ROW}
+          destructive
+          onPress={() => {
+            forgetDeleteDraft();
+            setSheet('delete');
+          }}
+        />
+      </SettingsGroup>
     </ScrollScreen>
-    <BottomSheet visible={sheet === 'export'} title="Download your data" onClose={closeCurrentSheet}
+    <BottomSheet visible={sheet === 'export'} title="Download your data" onClose={closeCurrentSheet} surface={colors.surface} ink={colors.text}
       footer={<View style={{ gap: space(3) }}>
         <PillButton label={exporting ? 'Preparing…' : 'Verify and download'} disabled={exporting || (hasPassword && exportPassword.length === 0)} onPress={() => prepareMyData(hasPassword ? exportPassword : undefined)} />
-        <GhostButton label="Cancel" onPress={closeCurrentSheet} />
+        <GhostButton label="Cancel" onPress={closeCurrentSheet} color={colors.text} />
       </View>}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>Confirm it is you before downloading your account and learning data.</Text>
+      <Text style={[type.body, { color: colors.muted }]}>Confirm it is you before downloading your account and learning data.</Text>
       {hasPassword ? <Field label="Confirm with your password" value={exportPassword} onChangeText={setExportPassword} placeholder="Your password" secure autoComplete="current-password" error={exportTrouble} />
-        : <Text style={[type.body, { color: paper.inkSoft }]}>{user?.provider === 'apple' ? 'Apple' : 'Google'} will ask you to sign in again.</Text>}
+        : <Text style={[type.body, { color: colors.muted }]}>{user?.provider === 'apple' ? 'Apple' : 'Google'} will ask you to sign in again.</Text>}
       {!hasPassword && exportTrouble !== null && <TroubleLine message={exportTrouble} />}
     </BottomSheet>
-    <BottomSheet visible={sheet === 'reminderTime' && reminderOwned} title={REMINDER_TIME_TITLE} onClose={() => setSheet('none')} footer={<PillButton label="Done" onPress={() => setSheet('none')} />}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>{REMINDER_TIME_SUB}</Text>
+    <BottomSheet visible={sheet === 'reminderTime' && reminderOwned} title={REMINDER_TIME_TITLE} onClose={() => setSheet('none')} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" onPress={() => setSheet('none')} />}>
+      <Text style={[type.body, { color: colors.muted }]}>{REMINDER_TIME_SUB}</Text>
       <OptionRow title={REMINDER_SMART_LABEL} detail={smartGloss(smartTime)}
         selected={chosen.value === 'smart'} onPress={() => chooseReminderTime('smart')} />
       {REMINDER_TIMES.map((option) => (
@@ -985,6 +989,19 @@ export function SettingsScreen({
       ))}
       {reminderOwned && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
     </BottomSheet>
-    </>
+    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={() => setSheet('none')} surface={colors.surface} ink={colors.text}>
+      <Text style={[type.body, { color: colors.muted }]}>What your tutor calls you at the start of a session.</Text>
+      <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="e.g. James" />
+      <PillButton label="Save" tone="brand" disabled={draftName.trim().length === 0} onPress={() => {
+        const next = draftName.trim();
+        if (next.length > 0) update(withName(profile, next));
+        setSheet('none');
+      }} />
+    </BottomSheet>
+    {DARK_MODE_ENABLED && <BottomSheet visible={sheet === 'display'} title="Display" onClose={() => setSheet('none')} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" tone="brand" onPress={() => setSheet('none')} />}>
+      <Text style={[type.body, { color: colors.muted }]}>{DISPLAY_SUB}</Text>
+      <DisplayPreferences />
+    </BottomSheet>}
+    </SettingsAppearance>
   );
 }

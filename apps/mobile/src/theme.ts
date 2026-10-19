@@ -47,6 +47,10 @@ export const font = {
  * is the order `theme.test.ts` reads them in.
  */
 export const type = {
+  /** Main-appearance roles used by the paywall and account screens. */
+  mainDisplay: { fontFamily: font.extraBold, fontSize: 44, lineHeight: 48 },
+  mainHeading: { fontFamily: font.semiBold, fontSize: 22, lineHeight: 27 },
+  mainBody: { fontFamily: font.regular, fontSize: 17, lineHeight: 23 },
   /** The one giant number on a story or colour card. At most one per screen. */
   hero: { fontFamily: font.extraBold, fontSize: 112, lineHeight: 95, letterSpacing: -4.5 },
   /** A headline on colour: stories and onboarding, and the tab header for now. */

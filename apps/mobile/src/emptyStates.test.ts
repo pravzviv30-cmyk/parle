@@ -9,7 +9,7 @@ test('every empty list shows its drawing and one first action', () => {
     assert.ok(art >= 0, path);
     const end = path.includes('TutorMemory') ? source.indexOf(') : (', art) : source.indexOf('</Card>', art);
     const empty = source.slice(art, end);
-    assert.match(empty, /<(?:PillButton|IconAction layout="inline" icon="chat") label="Choose a scene" onPress=\{\(\) => nav.navigate\('Missions'\)\}/, path);
+    assert.match(empty, /<(?:PillButton|IconAction (?:ground=\{[^}]*\} )?layout="inline" icon="chat") label="Choose a scene" onPress=\{\(\) => nav.navigate\('Missions'\)\}/, path);
     assert.equal((empty.match(/<(?:PillButton|IconAction) /g) ?? []).length, 1, path);
   }
 });

@@ -1,3 +1,5 @@
+import type { StoreTrialFacts } from '../reminders/trialReminder.ts';
+
 /**
  * A tier somebody can actually buy.
  *
@@ -38,6 +40,10 @@ export interface StoreProduct {
   productId: string;
   title: string;
   localizedPrice: string;
+  /** SDK price for this billing period, used only for a same-currency comparison. */
+  price?: number;
+  /** SDK ISO currency code. Never inferred from the localized price string. */
+  currencyCode?: string;
   /**
    * How often the store bills it, read from the store's own subscription
    * period and never assumed from an id. A product whose period is not exactly
@@ -105,4 +111,13 @@ export interface PurchasesAdapter {
    * or reports subscription state.
    */
   manage(userId: string): Promise<StoreAction>;
+  /**
+   * The store's facts about the configured entitlement (in a free trial,
+   * renewing, when it expires), for the trial-ending reminder only. Null when
+   * the store could not say. Never a grant: minutes, plan and entitlement are
+   * the server's (`storeTrialFacts.ts`).
+   */
+  trialFacts(userId: string): Promise<StoreTrialFacts | null>;
+  /** Called when the store reports new customer info. Returns the unsubscribe. */
+  onStoreChange(listener: () => void): () => void;
 }

@@ -339,7 +339,8 @@ column at font scale ≥1.6.
 - **Trial timeline** (only with a real eligible intro offer): Today "{plan} starts free. Nothing is
   charged today." · "During the trial: up to {cap} minutes with your AI tutor" ({cap} from the server) ·
   Day 5 "We will remind you two days before your trial ends." (only if permission granted and the
-  reminder is scheduled after the server confirms; otherwise "Cancel in your App Store settings before
+  reminder is scheduled after the server confirms: `reminders/trialReminder.ts`
+  `trialReminderPromised`, scheduled by `scheduleTrialReminder`; otherwise "Cancel in your App Store settings before
   day 7 and you pay nothing.") · Day 7 "{plan} continues at {price}." CTA "Start 7-day free trial".
 - **Purchase**: `PillButton` keeps its tag with a morph `state`; check + PurchaseConfirmed only after a
   confirmed entitlement (one `useEffect` hoisted above the early returns); restore stays quiet.

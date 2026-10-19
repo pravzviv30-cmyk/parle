@@ -100,6 +100,10 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     };
     const rows: [string, string, number, number, number?][] = [
       ['hero', 'extraBold', 112, 95, -4.5],
+      // The main appearance roles the paywall and account screens use.
+      ['mainDisplay', 'extraBold', 44, 48],
+      ['mainHeading', 'semiBold', 22, 27],
+      ['mainBody', 'regular', 17, 23],
       ['display', 'extraBold', 44, 44, -1.3],
       ['title', 'extraBold', 30, 33, -0.6],
       // Revamp B stage 2: the stat tile's number, SNIPPETS' 36/800. STYLE has

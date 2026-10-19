@@ -1,54 +1,27 @@
-import { DayCount } from '../progress/DayCount.tsx';
 /**
- * Profile — who you are, who your tutor is, and how you learn.
+ * Profile: who you are, and the doors to how you learn (P2 · Luvani, 2026-10-19).
  *
- * It used to be one long scroll mixing three unrelated things: the learner's
- * own settings, the account, and what the law and the store require the app to
- * say. The last two went behind one `Settings` row with F473, in a bare Card
- * with no caps label over it, because a caps SETTINGS above a row reading
- * Settings is redundancy this system already retired. That row is first on the
- * screen now, above the learner's own header, so the account is one tap away
- * without scrolling past the learning settings.
+ * A large title with the settings gear at its trailing edge, the learner's own
+ * avatar and name, then three grouped lists: Learning (preferences, the tutor
+ * and the tutor's memory), Your French (progress, My French, Friends) and Plan.
+ * The gear is the one way to Settings: the account, the subscription, the
+ * reminders, the documents and the phone's own permissions.
  *
- * Revamp A (F576) took the split one step further. The plan card, the daily
- * reminder and the link to the voice-circle intro are all general-issue
- * settings rather than things about this learner's French, and all three are in
- * Settings now. What is left is four things and nothing else: who the learner
- * is, who the tutor is, the week they have had, and the standing choices about
- * how a conversation goes.
+ * ## The controls that were inline moved, none was lost
  *
- * Come alive Phase 4 (F769) adds the streak and the level as two tiles under
- * the tutor (`game/ProfileStats`, with a subscriber's freezes), keeps the
- * lifetime day count, and draws the daily goal as five choices: No goal,
- * Casual, Regular, Serious and Intense (D5). The days-a-week question is
- * gone.
+ * The daily goal, the correction style, Prefer typing and Simpler French are on
+ * Learning preferences now (`settings/LearningPreferencesScreen.tsx`), one row
+ * away, with the conversation starting point beside them. The name is still
+ * edited here, from the Edit link beside it, and also from Settings' Account
+ * group. The voice sheet stays here because Home and the Tutor tab open it
+ * with `Profile` and `sheet: 'tutorVoice'`.
  *
- * ## The header is a person, not a subject
+ * ## It decides nothing
  *
- * Four tabs name a subject and read left. This one opens on the learner's own
- * mark with their name under it, which is why `TabHeader` has a centred branch
- * and why this is the only screen that asks for it. The `Monogram` is the
- * learner's initial and the one drawn in the whole app (F337); the tutor beside
- * it on the card below is the orb, never a face and never a second monogram.
- *
- * ## It reads nothing and decides nothing
- *
- * The focus effect went with the reminder and the level line. The two cards
- * that need the disk read it themselves, from their own files, so this screen
- * holds no state but the open sheet and the name being typed. Every word it
- * shows comes from a module: `profile/frenchLife.ts` for the headings,
- * `profile/tutorMemory.ts` for the tutor card, `profile/dailyGoal.ts`,
- * `tutor/strictness.ts`, `profile/typing.ts` and `tutor/pace.ts` for the
- * choices, and `settings/sections.ts` for the Settings row at the top.
- *
- * ## One stored value, one way of saying it (Stage 3)
- *
- * Correction style is edited here and on the tutor memory screen, on purpose:
- * how the tutor treats you belongs beside what it knows about you. Both rows
- * are the same `ChoiceRow` over `withStrictness`, word for word, and
- * `settings/responsibilities.test.ts` holds them to it. The speaking target
- * has one editor, here; Home's Practice time tile opens this screen rather
- * than growing a second one.
+ * Every line is a module's: `settings/profileView.ts` for the titles, the
+ * summaries and the plan row, `profile/tutorMemory.ts` for the tutor rows, and
+ * `tutor/tutorVoice.ts` for the voice sheet. The plan is read by
+ * `settings/usePlanStatus.ts`, and an unknown plan is never called Free.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -60,30 +33,41 @@ import { startVoiceLine } from '../sound/voiceLine.ts';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../nav/types.ts';
-import { HAIRLINE, paper, space, type } from '../theme.ts';
-import { Card, Choice, Label, Monogram, OptionRow, PillButton, Sheet as BottomSheet, Field } from '../components.tsx';
-import { ScrollScreen, ScreenHeader, TabHeader } from '../layout.tsx';
+import { colour, paper, space, type, HIT } from '../theme.ts';
+import { OptionRow, PillButton, Press, Sheet as BottomSheet } from '../components.tsx';
+import { Icon } from '../icons/Icon.tsx';
+import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from '../settings/SettingsRow.tsx';
-import { ChoiceRow } from '../settings/ChoiceRow.tsx';
-import { SwitchRow } from '../settings/SwitchRow.tsx';
+import { SettingsGroup } from '../settings/SettingsGroup.tsx';
 import { SETTINGS_ROW, SETTINGS_ROW_SUB } from '../settings/sections.ts';
-import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
-import { LEARNING_LABEL, TUTOR_LABEL } from '../profile/frenchLife.ts';
-import { useProfile } from '../app/ProfileContext.tsx';
-import { withDailyGoal, withName, withPreferTyping, withTutorVoice } from '../profile/store.ts';
-import { DAILY_GOAL_ROW, dailyGoalOf, goalLine } from '../profile/dailyGoal.ts';
-import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
-import { ProfileStats } from '../game/ProfileStats.tsx';
-import { PREFER_TYPING_ROW, PREFER_TYPING_SUB, prefersTyping } from '../profile/typing.ts';
-import { PACE_ROW, PACE_SUB, paceOf, withPace } from '../tutor/pace.ts';
+import { usePlanStatus } from '../settings/usePlanStatus.ts';
 import {
-  STRICTNESS_OPTIONS,
-  STRICTNESS_ROW,
-  strictnessOf,
-  withStrictness,
-  type Strictness,
-} from '../tutor/strictness.ts';
+  EDIT_NAME_LINK,
+  FRIENDS_ROW,
+  FRIENDS_SUB,
+  LEARNING_GROUP,
+  LEARNING_PREFERENCES_ROW,
+  MY_FRENCH_ROW,
+  NAME_UNSET,
+  PLAN_GROUP_TITLE,
+  PROFILE_TITLE,
+  PROGRESS_ROW,
+  YOUR_FRENCH_GROUP,
+  initialOf,
+  learningPreferencesSummary,
+  learningSince,
+  planRow,
+  progressSummary,
+} from '../settings/profileView.ts';
+import { TutorMemoryCard } from '../profile/TutorMemoryCard.tsx';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { withName, withTutorVoice } from '../profile/store.ts';
+import { dailyGoalOf } from '../profile/dailyGoal.ts';
+import { useLevel } from '../game/GameProvider.tsx';
+import { usePracticeDays } from '../settings/usePracticeDays.ts';
+import { paceOf } from '../tutor/pace.ts';
+import { strictnessOf } from '../tutor/strictness.ts';
 import {
   TUTOR_VOICE_OPTIONS,
   TUTOR_VOICE_SUB,
@@ -94,14 +78,17 @@ import {
 } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 import { useBackToHome } from '../nav/useBackToHome.ts';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { SettingsAppearance, SettingsField as Field } from '../settings/SettingsAppearance.tsx';
 
 /**
  * The sheets that are left.
  *
  * Two went with F368. The daily goal and the correction dial each had three
  * answers and a whole screen apiece, which is two taps and two screen changes
- * to move a dial whose entire content is three words. Both are `ChoiceRow`s on
- * the card now. What kept a sheet is what needs the room: a name needs a
+ * to move a dial whose entire content is three words. Both became in-place
+ * choices, and since P2 (2026-10-19) they are on Learning preferences, one row
+ * away, with Prefer typing and Simpler French. What kept a sheet is what needs the room: a name needs a
  * keyboard, and eight voices need eight cards and an ear each.
  *
  * Three more went with F473, to `settings/SettingsScreen.tsx`: the delete
@@ -118,6 +105,7 @@ type Sheet = 'none' | 'name' | 'tutorVoice';
 
 export function ProfileTab() {
   const goBack = useBackToHome();
+  const { colors } = useMainAppearance();
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Profile'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
   const { profile, update } = useProfile();
@@ -249,116 +237,97 @@ export function ProfileTab() {
    * the learner's own settings.
    */
 
+  // The tab lives inside the Tabs navigator, so it is named as a child of it.
+  const openMyFrench = () => (nav as unknown as { navigate: (screen: string, params?: object) => void }).navigate('Tabs', { screen: 'MyFrench' });
+  const since = learningSince(profile.onboardedAt);
+  const level = useLevel();
+  const days = usePracticeDays();
+  const plan = usePlanStatus();
+  const planLine = planRow(plan.view);
+  const preferences = learningPreferencesSummary({ dailyGoalMin: dailyGoalOf(profile), strictness: strictnessOf(profile), slow: paceOf(profile) === 'slow' });
+  const progress = progressSummary({
+    level: level?.level ?? null,
+    cefr: profile.brain?.cefr?.estimate ?? null,
+    confidence: profile.brain?.cefr?.confidence ?? null,
+    days,
+  });
+
   return (
-    <>
-    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} title="Profile" />}>
-      {/* The one row that leads to everything general: the account, the plan,
-          the subscription, the documents, the phone's own permissions and the
-          daily reminder. First on the screen, in a bare Card with no Label
-          above it, because a caps SETTINGS over a row reading Settings says
-          nothing twice. Everything behind it is `settings/SettingsScreen.tsx`,
-          a stack sibling above the tabs. */}
-      <Card style={{ marginBottom: space(3) }}><SettingsRow first label={SETTINGS_ROW} value={SETTINGS_ROW_SUB} onPress={() => nav.navigate('Settings')} /></Card>
-      <View>
-        {/* The art sits behind the centred column and bleeds off the corner, so
-            the header and the picture share one relative box. It is decorative
-            and it is not drawn at all at a large reading size. */}
-        <View style={st.head}>
-          <TabHeader
-            align="center"
-            leading={<Monogram initial={firstName.charAt(0).toUpperCase()} size={72} />}
-            title={profile.name ?? 'You'}
-          />
-        </View>
-
-        {/* Who the learner is talking to, and what that person holds about
-            them. The voice sheet opens from row one; row two pushes the
-            editing screen (F562). */}
-        <Label>{TUTOR_LABEL}</Label>
-        <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
-
-        {/* The streak and the level, each opening its own screen, and a
-            subscriber's freezes. Its own file with its own reads. */}
-        <ProfileStats />
-
-        <DayCount />
-
-        <View style={st.group}>
-          <Label>{LEARNING_LABEL}</Label>
-          <Card style={{ marginTop: space(2.5) }}>
-            <SettingsRow first label="Friends" value="Optional shared practice" onPress={() => nav.navigate('Friends')} />
-            <SettingsRow label="Name" value={profile.name ?? 'Not set'} onPress={() => setSheet('name')} />
-            {/* The daily goal as five choices (D5): none, then the four tiers,
-                gentlest first, each saying its size in words. What the chosen
-                one means is written beneath. */}
-            <View style={st.goal} accessibilityRole="radiogroup" accessibilityLabel={DAILY_GOAL_ROW}>
-              <Text accessibilityRole="header" style={[type.label, { color: paper.ink }]}>{DAILY_GOAL_ROW}</Text>
-              {GOAL_CHOICES.map((choice) => (
-                <Choice
-                  key={choice.key}
-                  compact
-                  ground="card"
-                  title={choice.title}
-                  detail={choice.detail}
-                  selected={goalChoiceOf(dailyGoalOf(profile)) === choice.key}
-                  onPress={() => update(withDailyGoal(profile, choice.minutes))}
-                />
-              ))}
-              <Text style={[type.small, { color: paper.inkSoft }]}>{goalLine(profile)}</Text>
-            </View>
-            <ChoiceRow<Strictness>
-              title={STRICTNESS_ROW}
-              options={STRICTNESS_OPTIONS.map((option) => ({ key: option.value, label: option.label }))}
-              active={strictnessOf(profile)}
-              onChange={(value) => update(withStrictness(profile, value))}
-              gloss={STRICTNESS_OPTIONS.find((option) => option.value === strictnessOf(profile))?.gloss ?? ''}
-              accessibilityLabel={STRICTNESS_ROW}
-            />
-            {/* The one standing choice about the next conversation that is the
-                learner's own rather than the tutor's. It keeps every spoken
-                path open: the circle is still there, and the tutor still
-                speaks. The pace switch is on the voice sheet now, beside the
-                eight cards that choose who is speaking. */}
-            <SwitchRow
-              title={PREFER_TYPING_ROW}
-              sub={PREFER_TYPING_SUB}
-              value={prefersTyping(profile)}
-              onChange={(next) => update(withPreferTyping(profile, next))}
-              accessibilityLabel={PREFER_TYPING_ROW}
-            />
-          </Card>
-        </View>
+    <SettingsAppearance>
+    <ScrollScreen ground={colors.background} bottom="inset" header={<ScreenHeader back={{ onPress: goBack }} ink={colors.text} muted={colors.muted} />}>
+      <View style={st.titleRow}>
+        <Text accessibilityRole="header" style={[type.title, st.title, { color: colors.text }]}>{PROFILE_TITLE}</Text>
+        {/* The one way to Settings: the account, the plan, the reminders and
+            about Luvani, a stack sibling above the tabs. */}
+        <Press haptic="selection" onPress={() => nav.navigate('Settings')} accessibilityRole="button" accessibilityLabel={SETTINGS_ROW} accessibilityHint={SETTINGS_ROW_SUB} style={st.gear}>
+          <Icon name="settings" size={24} color={colors.text} />
+        </Press>
       </View>
+
+      {/* The learner, by their own initial and name. Edit opens the name
+          sheet, the same door Settings' Name row uses. */}
+      <View style={st.identity}>
+        <View style={st.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Text style={st.initial}>{initialOf(profile.name)}</Text>
+        </View>
+        <View style={st.who}>
+          <Text style={[type.title, { color: colors.text }]}>{profile.name ?? NAME_UNSET}</Text>
+          {since !== null ? <Text style={[type.small, { color: colors.muted }]}>{since}</Text> : null}
+        </View>
+        <Press haptic="selection" onPress={() => { setDraftName(profile.name ?? ''); setSheet('name'); }} accessibilityRole="button" accessibilityLabel="Edit your name" style={st.edit}>
+          <Text style={[type.label, { color: colors.link }]}>{EDIT_NAME_LINK}</Text>
+        </Press>
+      </View>
+
+      <SettingsGroup title={LEARNING_GROUP}>
+        <SettingsRow first label={LEARNING_PREFERENCES_ROW} sub={preferences} onPress={() => nav.navigate('LearningPreferences')} />
+        {/* The tutor and what the tutor holds. The voice sheet opens from the
+            first row; the second pushes the editing screen (F562). */}
+        <TutorMemoryCard onVoice={() => setSheet('tutorVoice')} />
+      </SettingsGroup>
+
+      <SettingsGroup title={YOUR_FRENCH_GROUP}>
+        <SettingsRow first label={PROGRESS_ROW} sub={progress ?? undefined} onPress={() => nav.navigate('Streak')} />
+        <SettingsRow label={MY_FRENCH_ROW} onPress={() => openMyFrench()} />
+        <SettingsRow label={FRIENDS_ROW} sub={FRIENDS_SUB} onPress={() => nav.navigate('Friends')} />
+      </SettingsGroup>
+
+      {/* The plan, as one row. An unanswered or unknown plan names no plan and
+          is never called Free (`planRow`). */}
+      <SettingsGroup title={PLAN_GROUP_TITLE}>
+        <SettingsRow first label={planLine.label} sub={planLine.sub} onPress={() => nav.navigate('Subscription')} />
+      </SettingsGroup>
     </ScrollScreen>
-    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} footer={<PillButton label="Done" onPress={closeVoiceSheet} />}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>{TUTOR_VOICE_SUB}</Text>
+    <BottomSheet visible={sheet === 'tutorVoice'} title={TUTOR_VOICE_TITLE} onClose={closeVoiceSheet} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" onPress={closeVoiceSheet} tone="brand" />}>
+      <Text style={[type.body, { color: colors.muted }]}>{TUTOR_VOICE_SUB}</Text>
       {TUTOR_VOICE_OPTIONS.map((option) => (
         <OptionRow key={option.value} title={option.label} detail={option.gloss}
           selected={tutorVoiceOf(profile) === option.value} playing={samplePlaying === option.value}
           onPress={() => update(withTutorVoice(profile, option.value))} onHear={() => hearVoice(option.value)} />
       ))}
-      <SwitchRow first title={PACE_ROW} sub={PACE_SUB} value={paceOf(profile) === 'slow'}
-        onChange={(next) => update(withPace(profile, next ? 'slow' : 'normal'))} accessibilityLabel={PACE_ROW} />
     </BottomSheet>
-    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet}>
-      <Text style={[type.body, { color: paper.inkSoft }]}>What your tutor calls you at the start of a session.</Text>
+    <BottomSheet visible={sheet === 'name'} title="Your name" onClose={closeCurrentSheet} surface={colors.surface} ink={colors.text}>
+      <Text style={[type.body, { color: colors.muted }]}>What your tutor calls you at the start of a session.</Text>
       <Field label="Your name" value={draftName} onChangeText={setDraftName} placeholder="e.g. James" />
-      <PillButton label="Save" disabled={draftName.trim().length === 0} onPress={() => {
+      <PillButton label="Save" tone="brand" disabled={draftName.trim().length === 0} onPress={() => {
         const next = draftName.trim();
         if (next.length > 0) update(withName(profile, next));
         setSheet('none');
       }} />
     </BottomSheet>
-    </>
+    </SettingsAppearance>
   );
 }
 
+const AVATAR = space(16);
+
 const st = StyleSheet.create({
-  // One relative box so the corner art can be absolute inside it.
-  head: { position: 'relative' },
-  // Each labelled block keeps its own air above it; the label itself sits
-  // tight to the card it names.
-  group: { marginTop: space(5) },
-  // The five goal choices, under the row's name, inside the learning card.
-  goal: { paddingVertical: space(3), gap: space(2), borderTopWidth: HAIRLINE, borderTopColor: paper.line },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  title: { flex: 1, minWidth: 0 },
+  gear: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: space(4), marginTop: space(5) },
+  avatar: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, backgroundColor: colour.sun, alignItems: 'center', justifyContent: 'center' },
+  initial: { ...type.title, color: paper.ink },
+  who: { flex: 1, minWidth: 0, gap: space(1) },
+  edit: { minWidth: HIT, minHeight: HIT, alignItems: 'center', justifyContent: 'center' },
 });

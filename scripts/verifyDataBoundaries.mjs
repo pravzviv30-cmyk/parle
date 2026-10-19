@@ -151,6 +151,11 @@ try {
   nearLimit.data.pad='x'.repeat(MAX_ENVELOPE_BYTES-Buffer.byteLength(JSON.stringify(nearLimit)));
   assert.equal(Buffer.byteLength(JSON.stringify(nearLimit)),MAX_ENVELOPE_BYTES);
   await db.query("update learner_state set payload=$2::jsonb where user_id=$1 and namespace='journal'",[a,JSON.stringify(nearLimit)]);
+  // A valid write may legitimately start a new calendar-minute bucket after
+  // the earlier 48-write burst. Rejected writes must preserve the complete
+  // accepted snapshot, whichever bucket that valid write established.
+  const acceptedQuota=await quota(a);
+  await role('authenticated',a);
   nearLimit.data.pad+='x';
   await assert.rejects(db.query("update learner_state set payload=$2::jsonb where user_id=$1 and namespace='journal'",[a,JSON.stringify(nearLimit)]),/byte limit/);
   await assert.rejects(state(a,'unknown',{}),/check constraint/);
@@ -169,7 +174,8 @@ try {
   await assert.rejects(db.query('select run_data_retention_v1(1)'),/permission denied/);
   await assert.rejects(db.query("insert into entitlements(user_id,plan) values($1,'regular')",[a]),/row-level security/);
   await assert.rejects(db.query('select refund_failed_session($1,$2,$3)',[a,id(99),'tts_error']),/permission denied/);
-  await admin(); assert.equal((await quota(a)).learner_minute,49,'failed writes/stale CAS consumed quota');
+  await admin(); assert.deepEqual(await quota(a),acceptedQuota,'rejected writes changed the accepted quota snapshot');
+  pass('rejected learner writes leave the full accepted quota snapshot unchanged without a calendar-minute assumption');
   pass('exact 512 KiB compact UTF-8 accepted; +1 byte/container/node/depth/identity violations rejected; RLS/privileged helpers remain closed');
 
   await role('authenticated',d);

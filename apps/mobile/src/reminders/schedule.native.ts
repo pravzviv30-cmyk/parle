@@ -23,6 +23,9 @@
  * so a second plan for a day replaces the first. Nothing here reads a clock:
  * every instant arrives in the plan.
  *
+ * The trial-ending reminder (`trial-end:`) is a second kind handed over by
+ * the same loop; `notificationIds.ts` keeps each kind's cancels to its own.
+ *
  * Cancelling is by identifier and only for this app's own `practice:` slots,
  * found through `getAllScheduledNotificationsAsync`. Nothing here ever cancels
  * everything: a notification some other part of the app schedules one day (a
@@ -55,6 +58,7 @@ import * as Notifications from 'expo-notifications';
 
 import type { ReminderSlot } from './plan.ts';
 import type { ReminderPermission } from './reminder.ts';
+import type { TrialReminderSlot } from './trialReminder.ts';
 
 /**
  * The channel this app's reminders land on.
@@ -69,8 +73,16 @@ const REMINDER_CHANNEL_ID = 'daily-reminder';
 /** What a learner reads in Settings, above the switch that turns this off. */
 const REMINDER_CHANNEL_NAME = 'Daily reminder';
 
-/** The identifier prefix of this app's reminders, the only notifications it cancels. */
+
+/** The identifier prefix of the daily plan's slots. `practice:{day}`. */
 const SLOT_PREFIX = 'practice:';
+
+/**
+ * The identifier prefix of the trial-ending reminder. Never a practice slot,
+ * so the daily plan's cancels never reach it (`notificationIds.ts` holds the
+ * same two strings, and `trialReminder.test.ts` holds them equal).
+ */
+const TRIAL_SLOT_PREFIX = 'trial-end:';
 
 /** This build has a real scheduler. See schedule.ts for why it is annotated. */
 export const REMINDERS_AVAILABLE: boolean = true;
@@ -145,11 +157,29 @@ async function ensureReminderChannel(): Promise<void> {
   }
 }
 
-/** Cancel this app's own reminders, one identifier at a time. */
-async function cancelOwn(): Promise<void> {
+/**
+ * Cancel this app's own notifications of one kind, one identifier at a time.
+ *
+ * `SLOT_PREFIX` is the daily plan and `TRIAL_SLOT_PREFIX` the trial-ending
+ * reminder: each cancel touches only its own prefix, so a daily re-plan
+ * leaves the trial reminder where it is, and the other way round.
+ */
+async function cancelOwn(prefix: string = SLOT_PREFIX): Promise<void> {
   const pending = await Notifications.getAllScheduledNotificationsAsync();
   for (const request of pending) {
-    if (request.identifier.startsWith(SLOT_PREFIX)) await Notifications.cancelScheduledNotificationAsync(request.identifier);
+    if (request.identifier.startsWith(prefix)) await Notifications.cancelScheduledNotificationAsync(request.identifier);
+  }
+}
+
+/** Hand dated one-offs to the OS on the named channel. The one place anything is scheduled. */
+async function hand(slots: readonly (ReminderSlot | TrialReminderSlot)[]): Promise<void> {
+  await ensureReminderChannel();
+  for (const slot of slots) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: slot.id,
+      content: { title: slot.title, body: slot.body, data: { open: slot.open } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: REMINDER_CHANNEL_ID },
+    });
   }
 }
 
@@ -164,14 +194,7 @@ export async function schedulePlan(slots: readonly ReminderSlot[]): Promise<Sche
   try {
     await cancelOwn();
     if (slots.length === 0) return 'done';
-    await ensureReminderChannel();
-    for (const slot of slots) {
-      await Notifications.scheduleNotificationAsync({
-        identifier: slot.id,
-        content: { title: slot.title, body: slot.body, data: { open: slot.open } },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: REMINDER_CHANNEL_ID },
-      });
-    }
+    await hand(slots);
     return 'done';
   } catch {
     await cancelOwn().catch(() => {});
@@ -189,6 +212,44 @@ export async function cancelReminder(): Promise<ScheduleOutcome> {
   }
 }
 
+/**
+ * Put the one trial-ending reminder in front of the OS, replacing any earlier one.
+ *
+ * Its own kind (`trial-end:`), so the daily plan's cancels never reach it. The
+ * caller has already checked permission, the trial and the learner's setting
+ * (`trialReminderSync.ts`); this only hands over the slot it was given.
+ */
+export async function scheduleTrialReminderSlot(slot: TrialReminderSlot): Promise<ScheduleOutcome> {
+  try {
+    await cancelOwn(TRIAL_SLOT_PREFIX);
+    await hand([slot]);
+    return 'done';
+  } catch {
+    await cancelOwn(TRIAL_SLOT_PREFIX).catch(() => {});
+    return 'failed';
+  }
+}
+
+/** Take the trial-ending reminder away, and nothing else. */
+export async function cancelTrialReminderSlot(): Promise<ScheduleOutcome> {
+  try {
+    await cancelOwn(TRIAL_SLOT_PREFIX);
+    return 'done';
+  } catch {
+    return 'failed';
+  }
+}
+
+/** The identifier of the trial-ending reminder the OS holds, or null. A refused read answers null. */
+export async function pendingTrialReminder(): Promise<string | null> {
+  try {
+    const pending = await Notifications.getAllScheduledNotificationsAsync();
+    return pending.find((request) => request.identifier.startsWith(TRIAL_SLOT_PREFIX))?.identifier ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Taps already handed on, so a tap heard twice (live and as the launch tap) leads once. */
 const handled = new Set<string>();
 
@@ -202,7 +263,7 @@ export function onReminderTapped(handler: ReminderTapHandler): () => void {
   const take = (response: Notifications.NotificationResponse | null): void => {
     if (response === null) return;
     const request = response.notification.request;
-    if (!request.identifier.startsWith(SLOT_PREFIX)) return;
+    if (!request.identifier.startsWith(SLOT_PREFIX) && !request.identifier.startsWith(TRIAL_SLOT_PREFIX)) return;
     const key = `${request.identifier}@${String(response.notification.date)}`;
     if (handled.has(key)) return;
     handled.add(key);

@@ -14,10 +14,12 @@
 
 import { useNavigation } from '@react-navigation/native';
 import { Illustration } from '../art/flat/Illustration.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { SettingsAppearance, SettingsCard as Card, SettingsField as Field, SettingsFormAction as OutlineButton } from '../settings/SettingsAppearance.tsx';
 import { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Field, IconAction, GhostButton, Label, OutlineButton } from '../components.tsx';
+import { IconAction, GhostButton, Label } from '../components.tsx';
 import { ConfirmSheet, ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { paper, space, type, HIT } from '../theme.ts';
@@ -58,6 +60,7 @@ import {
 } from './tutorMemory.ts';
 
 export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
+  const { colors, mode } = useMainAppearance();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const { profile, update, updateMemory } = useProfile();
   const alive = useRef(true);
@@ -92,45 +95,45 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
+    <SettingsAppearance>
     <View style={{ flex: 1 }}>
-    <ScrollScreen avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{memoryLabel(name)}</Text>
+    <ScrollScreen ground={colors.background} avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} ink={colors.text} muted={colors.muted} />}>
+      <Text accessibilityRole="header" style={[type.mainDisplay, { color: colors.text }]}>{memoryLabel(name)}</Text>
       {/* How much is held, in words and never a count, from the same module the
           Profile card used to show it on. It sits under the title because that
           is the question somebody arriving here is asking. */}
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{memorySummary(profile, name)}</Text>
+      <Text style={[type.body, { color: colors.muted, marginTop: space(2) }]}>{memorySummary(profile, name)}</Text>
       <Card style={st.card}>
         <SwitchRow first title={MEMORY_PAUSE_TITLE} accessibilityLabel={MEMORY_PAUSE_TITLE} value={memoryPaused(profile.brain)} disabled={saving} onChange={(paused) => { void commitMemory((current) => withMemoryPaused(current, paused)); }} sub={MEMORY_PAUSE_SUB} />
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Edit or forget a remembered detail below. Changes apply to your next conversation.</Text>
-        <IconAction layout="inline" icon="info" label={detailsOpen ? 'Hide memory details' : 'What memory uses'} onPress={() => setDetailsOpen(!detailsOpen)} />
+        <Text style={[type.small, { color: colors.muted, marginTop: space(2) }]}>Edit or forget a remembered detail below. Changes apply to your next conversation.</Text>
+        <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="info" label={detailsOpen ? 'Hide memory details' : 'What memory uses'} onPress={() => setDetailsOpen(!detailsOpen)} />
         {detailsOpen && <View>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{WHAT_LEAVES}</Text>
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{MEMORY_SCOPE}</Text>
+          <Text style={[type.small, { color: colors.muted, marginTop: space(2) }]}>{WHAT_LEAVES}</Text>
+          <Text style={[type.small, { color: colors.muted, marginTop: space(2) }]}>{MEMORY_SCOPE}</Text>
         </View>}
       </Card>
-      {saving || memoryError ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text> : null}
+      {saving || memoryError ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: colors.text, marginTop: space(3) }]}>{memoryError ?? 'Saving your memory change.'}</Text> : null}
       <Card tone="journal" style={st.card}>
         {facts.length === 0 ? (
           <View style={{ gap: space(3) }}>
             <Illustration name="state-notebook" fit="small" />
-            <Text style={[type.body, { color: paper.ink }]}>{memoryEmptyLine(profile)}</Text>
-            <IconAction layout="inline" icon="chat" label="Choose a scene" onPress={() => nav.navigate('Missions')} />
+            <Text style={[type.body, { color: colors.text }]}>{memoryEmptyLine(profile)}</Text>
+            <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="chat" label="Choose a scene" onPress={() => nav.navigate('Missions')} />
           </View>
         ) : (
           facts.map((fact, index) => (
-            <View key={`${fact.notedAt}:${fact.en}`} style={[st.fact, index > 0 && st.divided]}>
+            <View key={`${fact.notedAt}:${fact.en}`} style={[st.fact, index > 0 && st.divided, { borderTopColor: colors.border }]}>
               <View style={st.factWords}>
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{fact.en}</Text>
-                <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{KIND_GLOSS[fact.kind]}</Text>
+                <Text style={[type.bodyStrong, { color: colors.text }]}>{fact.en}</Text>
+                <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{KIND_GLOSS[fact.kind]}</Text>
               </View>
-              <IconAction layout="inline" icon="edit"
+              <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="edit"
                 label="Edit"
                 accessibilityLabel={`Edit: ${fact.en}`}
                 onPress={() => setEditing({ kind: 'fact', original: fact.en, text: fact.en })}
               />
-              <GhostButton
+              <GhostButton color={colors.text}
                 label={FORGET_ONE}
-                color={paper.ink}
                 accessibilityLabel={`${FORGET_ONE}: ${fact.en}`}
                 onPress={() => { void commitMemory((current) => withFactForgotten(current, fact.en)); }}
               />
@@ -140,27 +143,26 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
       </Card>
       {facts.length > 0 && (
         <View style={st.all}>
-          <GhostButton label={FORGET_ALL} onPress={() => setClearing(true)} />
+          <GhostButton color={colors.text} label={FORGET_ALL} onPress={() => setClearing(true)} />
         </View>
       )}
 
       <View style={st.section}>
-        <Label>{GOALS_LABEL}</Label>
+        <Label color={colors.muted}>{GOALS_LABEL}</Label>
         <Card style={st.card}>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{GOALS_SUB}</Text>
+          <Text style={[type.small, { color: colors.muted }]}>{GOALS_SUB}</Text>
           {profile.learnerGoals.map((goal) => (
-            <View key={goal} style={[st.fact, st.divided]}>
+            <View key={goal} style={[st.fact, st.divided, { borderTopColor: colors.border }]}>
               <View style={st.factWords}>
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{goal}</Text>
+                <Text style={[type.bodyStrong, { color: colors.text }]}>{goal}</Text>
               </View>
-              <IconAction layout="inline" icon="edit"
+              <IconAction ground={mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="edit"
                 label="Edit"
                 accessibilityLabel={`Edit goal: ${goal}`}
                 onPress={() => setEditing({ kind: 'goal', original: goal, text: goal })}
               />
-              <GhostButton
+              <GhostButton color={colors.text}
                 label={REMOVE_GOAL}
-                color={paper.ink}
                 accessibilityLabel={`${REMOVE_GOAL}: ${goal}`}
                 onPress={() => { void commitMemory((current) => withoutLearnerGoal(current, goal)); }}
               />
@@ -187,7 +189,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
       {/* How the tutor treats you, beside what it knows about you. The same dial
           as the one on Profile's learning card, through the same door. */}
       <Card style={st.section}>
-        <Text style={[type.small, { color: paper.inkSoft }]}>The same correction style is shown in Profile. Changes apply to your next conversation.</Text>
+        <Text style={[type.small, { color: colors.muted }]}>The same correction style is shown in Profile. Changes apply to your next conversation.</Text>
         <ChoiceRow<Strictness>
           first
           title={STRICTNESS_ROW}
@@ -201,18 +203,19 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
 
       {/* One plain sentence on what leaves the phone, at the foot, where a
           footnote belongs. It names the slice the agent actually sends. */}
-      <Text style={[type.small, { color: paper.inkSoft, marginTop: space(6) }]}>Changes apply to your next conversation. Clearing details keeps your goals, correction preferences and saved conversations.</Text>
+      <Text style={[type.small, { color: colors.muted, marginTop: space(6) }]}>Changes apply to your next conversation. Clearing details keeps your goals, correction preferences and saved conversations.</Text>
       {editing !== null && <Card style={st.section}>
         <Field label={editing.kind === 'fact' ? 'Edit remembered detail' : 'Edit your goal'} placeholder={editing.kind === 'fact' ? 'e.g. I am learning French for travel' : GOAL_PLACEHOLDER} value={editing.text} maxLength={MAX_GOAL_CHARS} onChangeText={(text) => setEditing({ ...editing, text })} autoFocus />
         <OutlineButton label="Save changes" disabled={editing.text.trim().length === 0} onPress={() => {
           const choice = editing;
           void commitMemory((current) => choice.kind === 'fact' ? withFactEdited(current, choice.original, choice.text) : withGoalEdited(current, choice.original, choice.text)).then((ok) => { if (ok && alive.current) setEditing(null); });
         }} />
-        <GhostButton label="Cancel edit" onPress={() => setEditing(null)} />
+        <GhostButton color={colors.text} label="Cancel edit" onPress={() => setEditing(null)} />
       </Card>}
     </ScrollScreen>
     <ConfirmSheet visible={clearing} title="Clear remembered details?" body="Your tutor will stop using the details listed here and its remembered greeting. Your goals, learning progress and saved conversations will stay." confirmLabel={FORGET_ALL} cancelLabel="Keep details" onConfirm={() => { void commitMemory(withMemoryCleared).then(() => { if (alive.current) setClearing(false); }); }} onCancel={() => setClearing(false)} />
     </View>
+    </SettingsAppearance>
   );
 }
 

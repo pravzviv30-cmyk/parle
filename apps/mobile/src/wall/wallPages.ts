@@ -46,11 +46,11 @@ export type WallEntry = 'path-complete' | 'refused' | 'settings' | 'recap';
 const VALUE_PAGES: readonly WallPage[] = ['yours'];
 
 export function wallPages(input: { entry: WallEntry; storeHasPlans: boolean }): readonly WallPage[] {
-  if (input.entry === 'settings') {
+  if (input.entry === 'settings' || input.entry === 'path-complete') {
     // Straight to the price. The Settings group is already drawn only when the
     // store answered with a product, so this list is empty only in a state that
     // cannot be reached from there.
-    return input.storeHasPlans ? ['plans'] : [];
+    return input.storeHasPlans ? ['plans'] : input.entry === 'path-complete' ? VALUE_PAGES : [];
   }
   return input.storeHasPlans ? [...VALUE_PAGES, 'plans'] : VALUE_PAGES;
 }

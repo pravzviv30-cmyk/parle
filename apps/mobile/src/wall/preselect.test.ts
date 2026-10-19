@@ -70,7 +70,7 @@ describe('the plans page chooses once, for a learner with a goal', () => {
 
     // What is chosen is a product, named for its plan.
     assert.deepEqual(chosenOffer(rows, 'luvani_regular_year'), {
-      plan: 'regular', productId: 'luvani_regular_year', period: 'year', price: '£179.99', perMonth: '£15.00', trialDays: null, hasFreeTrial: false, name: PLANS.regular.label,
+      plan: 'regular', productId: 'luvani_regular_year', period: 'year', price: '£179.99', perMonth: '£15.00', annualSavingsPercent: null, trialDays: null, hasFreeTrial: false, name: PLANS.regular.label,
     });
     assert.equal(chosenOffer(rows, 'luvani_gone'), null);
     assert.equal(chosenOffer(rows, null), null);

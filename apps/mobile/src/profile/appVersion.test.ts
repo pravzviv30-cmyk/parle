@@ -88,7 +88,8 @@ describe('which build this is — F369', () => {
     assert.ok(at !== -1, 'the version line is not in the screen at all');
     const line = settings.slice(settings.lastIndexOf('<Text', at), at);
     assert.match(line, /type\.small/, 'the version line is not set at the secondary size the footer uses');
-    assert.match(line, /paper\.inkSoft/, 'the version line is set in a colour that only ever cleared as a mark');
+    assert.match(line, /colors\.muted/, 'the version line must use the selected theme’s readable secondary ink');
+    assert.match(settings, /useMainAppearance\(\)/, 'the footer does not resolve the selected light or dark palette');
     assert.ok(!line.includes('inkFaint'), 'the version line is set in the faint ink F330 took off learner-facing text');
 
     // It sits under the honest paragraph rather than above it: the paragraph is

@@ -7,7 +7,7 @@ import { adopterFor } from '../sync/registry.ts';
 import { withStrictness } from '../tutor/strictness.ts';
 import { withPace } from '../tutor/pace.ts';
 import { upgradeStored } from './upgrade.ts';
-import { carryPreferenceEdits, createStoredProfile, completeProfile, loadProfile, saveProfile, withDailyGoal, withTutorVoice, withPreferTyping, withName, withUsername, type StoredProfile } from './store.ts';
+import { carryPreferenceEdits, createStoredProfile, completeProfile, loadProfile, saveProfile, withDailyGoal, withTutorVoice, withPreferTyping, withName, withUsername, withStatedLevel, type StoredProfile } from './store.ts';
 
 function disk(owner: string): Map<string, string> {
   setActiveUser(owner);
@@ -21,18 +21,18 @@ function disk(owner: string): Map<string, string> {
 const fresh = () => createStoredProfile({ name: 'Before', ageConfirmed: true, motivation: null, dailyGoalMin: 10 }, 100);
 const id = '00000000-0000-4000-8000-000000000100';
 
-test('the real seven settings doors persist causal metadata through upgrade, cold load, save and remote adoption', async () => {
+test('the real eight settings doors persist causal metadata through upgrade, cold load, save and remote adoption', async () => {
   disk('preference-seven');
   const original = fresh();
   assert.equal(await saveProfile(original), true);
-  const updated = withPace(withStrictness(withUsername(withName(withPreferTyping(withTutorVoice(withDailyGoal(original, null), 'marie'), true), 'After'), 'after.1234'), 'flow'), 'slow');
+  const updated = withStatedLevel(withPace(withStrictness(withUsername(withName(withPreferTyping(withTutorVoice(withDailyGoal(original, null), 'marie'), true), 'After'), 'after.1234'), 'flow'), 'slow'), 'getby');
   assert.equal(await saveProfile(updated), true);
   const saved = await loadProfile();
   assert.ok(saved);
   const clocks = preferenceClocks(saved);
-  assert.equal(Object.keys(clocks).length, 7);
+  assert.equal(Object.keys(clocks).length, 8);
   for (const field of PREFERENCE_FIELDS) assert.equal(clocks[field]?.value, preferenceValue(saved, field));
-  assert.equal(maxPreferenceCounter(saved), 7);
+  assert.equal(maxPreferenceCounter(saved), 8);
   assert.equal(saved.dob, original.dob);
   assert.equal(saved.ageConfirmed, original.ageConfirmed);
   assert.equal(saved.ageStopAt, original.ageStopAt);

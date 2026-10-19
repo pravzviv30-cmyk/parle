@@ -107,15 +107,16 @@ describe('an existing profile — what a second pass through onboarding may chan
 });
 
 describe('the name — one field, one write path — F477', () => {
-  test('setting the name changes the name and nothing else', () => {
+  test('setting the name also finishes its pending question without changing the learner', () => {
     // The door exists so the Name sheet stops spreading the whole profile
     // inline while every neighbouring row goes through a helper. A field two
     // places can set is a field that can disagree with itself, which is the
     // same reason tutorVoice.test.ts refuses the spread on the voice sheet.
-    const before = existing({ name: 'Camille' });
+    const before = { ...existing({ name: 'Camille' }), namePromptPending: true };
     const after = withName(before, 'Cam');
     assert.equal(after.name, 'Cam');
-    assert.deepEqual({ ...after, name: 'Camille' }, before, 'the name row edits the name, not the learner');
+    assert.equal(after.namePromptPending, false);
+    assert.deepEqual({ ...after, name: 'Camille', namePromptPending: true }, before, 'the name row edits the name and completes its question, not the learner');
   });
 
   test('a learner who never gave a name can still be given one', () => {

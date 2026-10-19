@@ -117,7 +117,7 @@ describe('what the tutor remembers, drawn', () => {
     // because that is the question somebody arriving here is asking.
     assert.match(
       SCREEN,
-      /<Text accessibilityRole="header" style=\{\[type\.display, \{ color: paper\.ink \}\]\}>\{memoryLabel\(name\)\}<\/Text>/,
+      /<Text accessibilityRole="header" style=\{\[type\.mainDisplay, \{ color: colors\.text \}\]\}>\{memoryLabel\(name\)\}<\/Text>/,
       'the screen spells its own title, or does not announce it as a heading',
     );
     assert.match(FLAT, /\{memorySummary\(profile, name\)\}/, 'the screen never says how much the tutor holds');
@@ -142,8 +142,8 @@ describe('what the tutor remembers, drawn', () => {
     assert.ok(!SCREEN.includes('forgottenFacts') && !SCREEN.includes('memory.facts'), 'the screen reaches past memory.ts into the stored shape');
     assert.match(SCREEN, /const facts = visibleFacts\(profile\);/, 'the screen lists facts the learner forgot');
     assert.match(FLAT, /accessibilityLabel=\{`\$\{FORGET_ONE\}: \$\{fact\.en\}`\}/, 'a forget button does not say which fact it forgets');
-    assert.match(FLAT, /\{facts\.length === 0 \? \( <View[^>]*> <Illustration name="state-notebook" fit="small" \/> <Text[^>]*>\{memoryEmptyLine\(profile\)\}<\/Text> <IconAction layout="inline" icon="chat" label="Choose a scene" onPress=\{\(\) => nav.navigate\(\x27Missions\x27\)\} \/> <\/View> \)/, 'an empty memory draws an empty list rather than a sentence');
-    assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <GhostButton label=\{FORGET_ALL\}/, 'clear is offered with nothing to clear');
+    assert.match(FLAT, /\{facts\.length === 0 \? \( <View[^>]*> <Illustration name="state-notebook" fit="small" \/> <Text[^>]*>\{memoryEmptyLine\(profile\)\}<\/Text> <IconAction ground=\{mode === 'dark' \? 'blue' : 'paper'\} layout="inline" icon="chat" label="Choose a scene" onPress=\{\(\) => nav.navigate\(\x27Missions\x27\)\} \/> <\/View> \)/, 'an empty memory draws an empty list rather than a sentence');
+    assert.match(FLAT, /\{facts\.length > 0 && \( <View style=\{st\.all\}> <GhostButton color=\{colors\.text\} label=\{FORGET_ALL\}/, 'clear is offered with nothing to clear');
     assert.match(FLAT, /<ConfirmSheet visible=\{clearing\}/, 'clearing details requires an explicit confirmation');
     assert.match(SCREEN, /maxLength=\{MAX_GOAL_CHARS\}/, 'a goal can outgrow the wire');
     assert.match(SCREEN, /const room = profile\.learnerGoals\.length < MAX_LEARNER_GOALS;/, 'a fourth goal can be typed');
@@ -163,8 +163,10 @@ describe('what the tutor remembers, drawn', () => {
     const profile = stripComments(read('../tabs/ProfileTab.tsx'));
     assert.match(
       profile,
-      /<Label>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/,
-      'the tutor card is not the one thing drawn under the tutor heading, or it cannot open the voice sheet',
+      // P2 (2026-10-19): the tutor rows sit in Profile's Learning group, under
+      // the Learning preferences row, rather than under a heading of their own.
+      /<SettingsGroup title=\{LEARNING_GROUP\}>[\s\S]*?<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>\s*<\/SettingsGroup>/,
+      'the tutor rows are not in the Learning group, or they cannot open the voice sheet',
     );
     assert.equal(
       (profile.match(/<TutorMemoryCard\b/g) ?? []).length,

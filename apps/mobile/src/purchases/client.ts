@@ -72,6 +72,7 @@ export async function fetchBillingStatus(userId: string): Promise<BillingStatus 
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ userId }),
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return null;
     return billingStatusIn(await response.json());

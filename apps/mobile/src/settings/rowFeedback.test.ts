@@ -22,7 +22,9 @@ describe('profile and settings controls answer a tap', () => {
     const settings = stripComments(read('./SettingsRow.tsx'));
     const tutor = stripComments(read('../profile/TutorMemoryCard.tsx'));
     assert.match(settings, /<Press\s+haptic="selection"\s+onPress=\{onPress\}/);
-    assert.match(settings, /minHeight: 60/);
+    // P2 (2026-10-19): the floor is the grouped list's, written once in the
+    // group primitive for every row kind, and above the 44 touch floor.
+    assert.match(stripComments(read('./SettingsGroup.tsx')), /ROW_GROUPED = \{[^}]*minHeight: 52 \}/);
     assert.doesNotMatch(settings, /pressed[^\n]*opacity/);
     assert.match(tutor, /tapSettled\(\);\s*onPress\(\);/);
     assert.match(tutor, /pressed[^\n]*backgroundColor: paper.groundDeep/);
@@ -36,7 +38,8 @@ describe('profile and settings controls answer a tap', () => {
     assert.doesNotMatch(choice, /tapSettled\(/, 'shared TabBar owns the single selection tick');
     assert.match(toggle, /tapSettled\(\);\s*onChange\(next\);/);
     assert.match(toggle, /accessibilityHint=\{sub\}/);
-    assert.match(toggle, /trackColor=\{\{ true: accent.brand, false: paper.field \}\}/);
+    assert.match(toggle, /trackColor=\{\{ true: accent.brand, false: offTrack \}\}/);
+    assert.match(toggle, /const offTrack = useInGroup\(\) \? colors\.border : paper\.field;/);
   });
 
   test('every full-screen profile and settings sheet exposes its title as a heading', () => {

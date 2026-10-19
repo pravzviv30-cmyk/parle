@@ -1640,7 +1640,13 @@ describe('faint ink is a mark, not a word — F330, F338', () => {
 
 describe('the five tabs open the same way — F336', () => {
   test('every tab opens with the one tab header and draws no headline of its own', () => {
-    for (const name of TABS) {
+    // P2 (2026-10-19): Profile is a pushed account screen with the approved
+    // large title over its own identity row, not a TabHeader. It still names
+    // itself once, as a heading.
+    const profile = named('tabs/ProfileTab.tsx');
+    assert.equal((profile.match(/accessibilityRole="header"[^>]*>\{PROFILE_TITLE\}/g) ?? []).length, 1, 'Profile lost its one accessible page title');
+    assert.doesNotMatch(profile, /<TabHeader\b/, 'Profile draws a second header shape');
+    for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
       const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : 1;
       assert.equal(
@@ -1692,7 +1698,7 @@ describe('the five tabs open the same way — F336', () => {
       /purpose="/,
       'Home spells its purpose line itself, so it says the same thing at seven in the morning and at midnight',
     );
-    for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx')) {
+    for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx' && t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
       // 9 October 2026: the founder requested shorter, action-first tabs.
       assert.match(body, /<TabHeader/, `${name} lost its accessible page title`);
@@ -1706,7 +1712,9 @@ describe('the learner initial is one drawn thing — F337', () => {
     // Home's monogram went with its purpose line: the founder's mockup opens on
     // the greeting alone. Profile is still reachable from the bottom bar, and it
     // is still the one place the disc is drawn, which is what F337 was for.
-    assert.match(named('tabs/ProfileTab.tsx'), /<Monogram\b/, 'Profile no longer draws the shared Monogram');
+    // P2 (2026-10-19): Profile's disc is the approved sun avatar, drawn once
+    // from `initialOf`; the ink Monogram stays the header button's.
+    assert.equal((named('tabs/ProfileTab.tsx').match(/\{initialOf\(profile\.name\)\}/g) ?? []).length, 1, 'Profile no longer draws the learner initial, or draws it twice');
     assert.doesNotMatch(
       named('tabs/HomeTab.tsx'),
       /<Monogram\b/,
@@ -1865,7 +1873,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       'game/BadgeShelf.tsx',
       'progress/PostcardShelf.tsx',
     ],
-    'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx', 'game/ProfileStats.tsx'],
+    // P2 (2026-10-19): Profile's stats moved behind Your French, so it draws
+    // no list surface of its own.
+    'tabs/ProfileTab.tsx': ['tabs/ProfileTab.tsx'],
   };
 
   test('a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406', () => {

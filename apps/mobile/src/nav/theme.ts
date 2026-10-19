@@ -74,6 +74,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       SavedConversationText: 'saved-conversation-text',
       ConversationPractice: 'conversation-practice/:packId',
       Settings: 'settings',
+      LearningPreferences: 'learning-preferences',
+      Subscription: 'subscription',
       Profile: 'profile',
       Friends: 'friends',
       AddFriends: 'invite/:username?',

@@ -179,7 +179,9 @@ describe('the strictness dial — the one preference the tutor already reads', (
     //    was really carrying. Everything the old assertions guarded is still
     //    guarded: the row exists, it marks what is set, it says what that
     //    means, and it writes through the one named door.
-    const tab = stripComments(read('../tabs/ProfileTab.tsx'));
+    // P2 (2026-10-19): the standing choices moved from Profile to Learning
+    // preferences, one row away, unchanged in what they read and write.
+    const tab = stripComments(read('../settings/LearningPreferencesScreen.tsx'));
     // `indexOf` answers -1 for something that was deleted, and a slice from -1
     // is the last character rather than nothing, so the position is checked
     // before it is used. surfaceContract.test.ts writes that trap down as the
