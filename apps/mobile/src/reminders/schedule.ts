@@ -35,6 +35,7 @@
 
 import type { ReminderSlot } from './plan.ts';
 import type { ReminderPermission } from './reminder.ts';
+import type { TrialReminderSlot } from './trialReminder.ts';
 
 /**
  * Whether this build can put a reminder in front of anyone.
@@ -88,6 +89,22 @@ export function schedulePlan(slots: readonly ReminderSlot[]): Promise<ScheduleOu
 /** Nothing was ever scheduled, so there is nothing to cancel and no pretending. */
 export function cancelReminder(): Promise<ScheduleOutcome> {
   return Promise.resolve('unavailable');
+}
+
+/** The trial-ending reminder has no OS here either, so nothing is scheduled and it says so. */
+export function scheduleTrialReminderSlot(slot: TrialReminderSlot): Promise<ScheduleOutcome> {
+  void slot;
+  return Promise.resolve('unavailable');
+}
+
+/** Nothing was scheduled, so nothing is cancelled. */
+export function cancelTrialReminderSlot(): Promise<ScheduleOutcome> {
+  return Promise.resolve('unavailable');
+}
+
+/** No trial reminder is ever pending on the web. */
+export function pendingTrialReminder(): Promise<string | null> {
+  return Promise.resolve(null);
 }
 
 /** No reminder can be tapped here. The answer is a stop that stops nothing. */

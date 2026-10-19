@@ -1,3 +1,5 @@
+import type { StoreTrialFacts } from '../reminders/trialReminder.ts';
+
 /**
  * A tier somebody can actually buy.
  *
@@ -109,4 +111,13 @@ export interface PurchasesAdapter {
    * or reports subscription state.
    */
   manage(userId: string): Promise<StoreAction>;
+  /**
+   * The store's facts about the configured entitlement (in a free trial,
+   * renewing, when it expires), for the trial-ending reminder only. Null when
+   * the store could not say. Never a grant: minutes, plan and entitlement are
+   * the server's (`storeTrialFacts.ts`).
+   */
+  trialFacts(userId: string): Promise<StoreTrialFacts | null>;
+  /** Called when the store reports new customer info. Returns the unsubscribe. */
+  onStoreChange(listener: () => void): () => void;
 }

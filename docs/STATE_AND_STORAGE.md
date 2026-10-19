@@ -70,6 +70,17 @@ withdrawal made on a lighter one, and a consent that can resurrect itself is a
 privacy defect. `null` from `loadConsent` means nobody has been asked, which is
 deliberately a different fact from a stored `false`).
 
+The existing `profile` also retains closed `practicePreferences` answers for
+content pitch, speaking support and focus. These never award an earned level.
+The level is editable after onboarding via `withStatedLevel`, clock-tracked as the
+`statedLevel` preference field so the newer edit wins across devices.
+New unnamed profiles carry optional `namePromptPending: true`; the durable name
+preference writer clears it with the name's causal clock. Missing on legacy
+accounts means no new name prompt. It survives verification/relaunch and sync
+without becoming authentication or guest-adoption authority. Account-local
+`appearance` stores system/light/dark selection; it is exported and reset with
+the account and excluded from cross-device sync.
+
 Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
 The current version-1 draft carries age confirmation, the starting level and
 reason, suggested routine (including no fixed target), reminder preset kept off,
@@ -599,6 +610,33 @@ either half reads as unreadable. The OS holds the schedule itself as dated one-o
 notifications named `practice:{day}`; the planner cancels only those, by name, and signing
 out cancels them all. `gameLocal`'s `nudges` and `nudgesPausedAt` fields predate the planner
 and are not written by it.
+
+The same envelope carries an optional `trial` field for the trial-ending reminder
+(`reminders/trialReminder.ts`, 2026-10-19), device-local and per account like the rest of
+`reminder`, never synced. It stores at most three things, each written only when it differs
+from the default: `enabled: false` when the learner turned "Trial ending reminder" off
+(default on); `endsAt`, the end instant of a store free trial this device saw confirmed; and
+`confirmedAt`, the instant `scheduleTrialReminder` recorded that confirmation (kept only
+beside `endsAt`). No product, price, store id or receipt. A learner with no daily choice gets
+`reminder: null` beside it, which reads exactly as a missing key; that null is accepted only
+next to `trial`, and an unreadable envelope is never overwritten by a trial write.
+
+`confirmedAt` exists for one rule: for 15 minutes after it (`TRIAL_CONFIRM_GRACE_MS`), a
+server answer of the free-minutes plan is read as the server not having caught up with the
+purchase, and the reminder stays. After the window the same answer is a downgrade: the
+reminder is cancelled and `endsAt` and `confirmedAt` are cleared. The grace covers only
+that reading; a lapse, a store fact showing conversion, or auto-renew off cancels at once.
+A record without `confirmedAt` gets no grace. Settings reads `trialReminderState()` /
+`useTrialReminder()` `onRecord` (an `endsAt` still ahead) and `trialEndsAt` to decide whether
+to show the switch, rather than inferring a trial from billing.
+
+The OS holds that reminder as one dated one-off named `trial-end:{instant}`, at 6 pm local on
+the day two days before the trial ends. The daily planner's cancels match only `practice:`
+and the trial reminder's only `trial-end:`, so neither removes the other
+(`weekdaySchedule.test.ts` runs both against the native code). It is scheduled only with
+permission already granted, and cancelled when the trial converts, lapses, stops renewing, is
+restored into a non-trial plan, ends, when the setting goes off, and when the signed-in
+account has no trial on record (`trialReminderSync.ts`).
 
 A guest who said yes on day one has no account to key a log under, so their choice rides in
 the first run's draft and their log is one device key, `@luvani/guest-reminder/v1`: whether

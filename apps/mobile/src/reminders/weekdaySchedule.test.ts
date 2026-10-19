@@ -13,7 +13,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 
+import { PRACTICE_PREFIX, TRIAL_PREFIX } from './notificationIds.ts';
 import { emptyLog, planReminders, type Calendar, type ReminderSlot } from './plan.ts';
+import { trialReminderSlot, type TrialReminderSlot } from './trialReminder.ts';
 
 const source = readFileSync(new URL('./schedule.native.ts', import.meta.url), 'utf8');
 
@@ -23,13 +25,29 @@ function cut(start: string, end: string): string {
   assert.notEqual(from, -1, `${start} is not in the native module`);
   const to = source.indexOf(end, from + start.length);
   assert.notEqual(to, -1, `${end} does not follow ${start}`);
-  return source.slice(from, to).replace(/^export /, '');
+  return source.slice(from, to).replace(/^export /gm, '');
 }
 
+// cancelOwn, hand and schedulePlan, then cancelReminder and the trial reminder's three.
 const body = [
-  cut('async function cancelOwn(', '/**'),
-  cut('export async function schedulePlan(', '/** Take every pending reminder'),
+  cut('async function cancelOwn(', '/** Take every pending reminder'),
+  cut('export async function cancelReminder(', '/** Taps already handed on'),
 ].join('\n');
+
+interface Run {
+  schedulePlan(slots: readonly ReminderSlot[]): Promise<string>;
+  cancelReminder(): Promise<string>;
+  scheduleTrialReminderSlot(slot: TrialReminderSlot): Promise<string>;
+  cancelTrialReminderSlot(): Promise<string>;
+  pendingTrialReminder(): Promise<string | null>;
+}
+
+/** A string constant as the native module declares it, so the harness runs its real prefixes. */
+function constant(name: string): string {
+  const found = source.match(new RegExp(`const ${name} = '([^']+)';`))?.[1];
+  assert.ok(found, `${name} is not declared in the native module`);
+  return found;
+}
 
 interface Request {
   identifier: string;
@@ -63,9 +81,10 @@ function scheduler(opts: { failAt?: number; held?: string[] } = {}) {
     'ensureReminderChannel',
     'REMINDER_CHANNEL_ID',
     'SLOT_PREFIX',
-    `${stripTypeScriptTypes(body)}\nreturn schedulePlan;`,
-  )(notifications, async () => {}, 'daily-reminder', 'practice:') as (slots: readonly ReminderSlot[]) => Promise<string>;
-  return { run, pending, cancelled };
+    'TRIAL_SLOT_PREFIX',
+    `${stripTypeScriptTypes(body)}\nreturn { schedulePlan, cancelReminder, scheduleTrialReminderSlot, cancelTrialReminderSlot, pendingTrialReminder };`,
+  )(notifications, async () => {}, 'daily-reminder', constant('SLOT_PREFIX'), constant('TRIAL_SLOT_PREFIX')) as Run;
+  return { run: run.schedulePlan, native: run, pending, cancelled };
 }
 
 const UTC: Calendar = {
@@ -125,4 +144,35 @@ test('a partial OS failure cancels every partial schedule and reports failure', 
     ['billing:trial-ends'],
     'a refusal part way left half a plan the app does not know about',
   );
+});
+
+test('the trial reminder and the daily plan never cancel each other, run in the native code', async () => {
+  // The native prefixes are the pure rule's prefixes.
+  assert.equal(constant('SLOT_PREFIX'), PRACTICE_PREFIX);
+  assert.equal(constant('TRIAL_SLOT_PREFIX'), TRIAL_PREFIX);
+
+  const trial = trialReminderSlot(Date.UTC(2026, 9, 14, 10), Date.UTC(2026, 9, 7, 9), UTC)!;
+  const s = scheduler({ held: ['billing:other'] });
+  assert.equal(await s.native.schedulePlan(plan()), 'done');
+  assert.equal(await s.native.scheduleTrialReminderSlot(trial), 'done');
+  assert.equal(await s.native.pendingTrialReminder(), trial.id);
+
+  // A daily re-plan, and turning the daily reminder off, leave the trial reminder.
+  assert.equal(await s.native.schedulePlan(plan([2])), 'done');
+  assert.ok(s.pending.some((request) => request.identifier === trial.id), 'a daily re-plan wiped the trial reminder');
+  assert.equal(await s.native.cancelReminder(), 'done');
+  assert.deepEqual(s.pending.map((request) => request.identifier), ['billing:other', trial.id]);
+  const handed = s.pending[1]!;
+  assert.deepEqual(handed.content, { title: trial.title, body: trial.body, data: { open: 'settings' } });
+  assert.deepEqual(handed.trigger, { type: 'date', date: trial.at, channelId: 'daily-reminder' });
+
+  // Rescheduling replaces rather than adds; cancelling the trial leaves the daily plan.
+  assert.equal(await s.native.scheduleTrialReminderSlot(trial), 'done');
+  assert.equal(s.pending.filter((request) => request.identifier.startsWith(TRIAL_PREFIX)).length, 1);
+  assert.equal(await s.native.schedulePlan(plan()), 'done');
+  const daily = s.pending.filter((request) => request.identifier.startsWith(PRACTICE_PREFIX)).length;
+  assert.equal(await s.native.cancelTrialReminderSlot(), 'done');
+  assert.equal(await s.native.pendingTrialReminder(), null);
+  assert.equal(s.pending.filter((request) => request.identifier.startsWith(PRACTICE_PREFIX)).length, daily, 'the trial cancel took daily slots with it');
+  assert.ok(s.pending.some((request) => request.identifier === 'billing:other'));
 });

@@ -179,7 +179,8 @@ describe('the reminder planner — F771', () => {
     assert.match(native, /type: Notifications\.SchedulableTriggerInputTypes\.DATE, date: slot\.at/, 'the slot is not a dated one-off at the time the plan chose');
     assert.doesNotMatch(native, /SchedulableTriggerInputTypes\.(?:DAILY|WEEKLY|CALENDAR|MONTHLY|YEARLY|TIME_INTERVAL)|\brepeats\b/, 'a repeating trigger cannot skip a practised day');
     assert.doesNotMatch(native, /cancelAllScheduledNotificationsAsync/, 'a re-plan sweeps away notifications that are not its own');
-    assert.match(native, /request\.identifier\.startsWith\(SLOT_PREFIX\)\) await Notifications\.cancelScheduledNotificationAsync\(request\.identifier\)/);
+    assert.match(native, /request\.identifier\.startsWith\(prefix\)\) await Notifications\.cancelScheduledNotificationAsync\(request\.identifier\)/);
+    assert.match(native, /async function cancelOwn\(prefix: string = SLOT_PREFIX\)/);
     assert.match(native, /const SLOT_PREFIX = 'practice:';/);
     // No clock in the planner or the native module: every instant is handed in.
     for (const source of [code('./plan.ts'), native]) {
