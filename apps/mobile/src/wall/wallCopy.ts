@@ -308,6 +308,11 @@ export function trialDay(day: number): string {
   return `Day ${day}`;
 }
 
+/** The cancel step's title when no reminder is promised: the last day to cancel by. */
+export function trialBeforeDay(day: number): string {
+  return `Before day ${day}`;
+}
+
 /** The first line of the timeline: what happens today. */
 export function trialToday(plan: string): string {
   return `${plan} starts free. Nothing is charged today.`;
@@ -383,6 +388,122 @@ export const ACCOUNT_UNDER_A_MINUTE = 'Less than a minute left.';
 export const ACCOUNT_NONE_LEFT = 'No speaking time left for now.';
 /** A period whose end has already passed renews on the server's next read. */
 export const ACCOUNT_FRESH_NOW = 'They start fresh about now.';
+
+// ── the trial paywall, "P2 · Luvani" (2026-10-19, user-approved) ──────────────
+//
+// One shell for every state: the wordmark and a close mark, a headline, the
+// billed amount, the period switch, then a timeline (trial) or three benefits
+// (standard), and a pinned footer with one button, the disclosure and the
+// links. Every number is handed in; the sentences around them live here.
+
+/** The headline for a learner the store has not offered a free trial, or did not say. */
+export const PAYWALL_STANDARD_TITLE = 'Keep speaking with Luvani';
+/** The three benefits a standard (no trial) paywall lists. No trial wording, ever. */
+export const PAYWALL_BENEFITS: readonly string[] = [
+  'Speak with your tutor about real situations, at your pace.',
+  'Revisit past conversations and practise the French you used.',
+  'Explore situations matched to what you want to say next.',
+];
+export const PAYWALL_SUBSCRIBE = 'Subscribe';
+export const PAYWALL_RESTORE = 'Restore purchases';
+/** A monthly product's detail line, with and without a trial before it. */
+export const PAYWALL_BILLED_MONTHLY_AFTER_TRIAL = 'Billed monthly after your trial';
+export const PAYWALL_BILLED_MONTHLY = 'Billed monthly';
+export const PAYWALL_BILLED_YEARLY = 'Billed yearly';
+export const PAYWALL_BILLED_WEEKLY = 'Billed weekly';
+/** Said after the billed amount in the footer disclosure, both kinds. */
+export const PAYWALL_RENEWS = 'Renews automatically until you cancel in Apple Subscriptions.';
+export const COMPARE_INTRO = 'Both plans include every conversation, your notes and practice. They differ in live tutor time.';
+
+/** The states the shell draws, in the shell's own words. */
+export const PAYWALL_LOADING = 'Checking your offer…';
+export const PAYWALL_UNAVAILABLE_TITLE = 'We couldn’t load plans';
+export const PAYWALL_UNAVAILABLE_BODY = 'Check your connection and try again. Your saved learning and free practice are still here.';
+export const PAYWALL_TRY_AGAIN = 'Try again';
+export const PAYWALL_PURCHASING = 'Confirming with Apple…';
+export const PAYWALL_FAILED_TITLE = 'The purchase didn’t go through';
+export const PAYWALL_FAILED_BODY = 'You haven’t been charged.';
+export const PAYWALL_RESTORE_NONE_TITLE = 'No subscription found';
+/**
+ * Said after a restore the server confirmed nothing for. The restore path
+ * reports "nothing granted" and "the server has not caught up" in one message
+ * (`restoreTrouble`), so this says what is true of both.
+ */
+export const PAYWALL_RESTORE_NONE_BODY = 'Nothing to restore for this Apple ID yet. If you just subscribed, try again in a moment.';
+export const PAYWALL_PENDING_TITLE = 'Waiting for confirmation';
+export const PAYWALL_CHECK_AGAIN = 'Check my purchase again';
+
+/** The success page, once the server has confirmed what was bought. */
+export const SUCCESS_TITLE = 'You’re all set';
+export const SUCCESS_START = 'Start speaking';
+export const SUCCESS_FOOTNOTE = 'Manage or cancel anytime in Settings › Subscription.';
+export const SUCCESS_ROW_PLAN = 'Plan';
+export const SUCCESS_ROW_TRIAL_ENDS = 'Trial ends';
+export const SUCCESS_ROW_REMINDER = 'Reminder';
+export const SUCCESS_ROW_THEN = 'Then';
+export const SUCCESS_ROW_TIME = 'Speaking time';
+
+/** "Free for N days, then ", the lead before the bold billed amount. */
+export function offerLead(days: number): string {
+  return `Free for ${count(days, 'day')}, then `;
+}
+
+/** A yearly product's detail line: the store's monthly figure. The saving, when real, is added by the view. */
+export function billedYearlyAbout(perMonth: string): string {
+  return `${perMonth} a month, billed yearly`;
+}
+
+/** The footer disclosure for a trial, from the store's price and period. */
+export function trialDisclosure(days: number, price: string, period: 'week' | 'month' | 'year'): string {
+  const unit = period === 'year' ? 'year' : period === 'month' ? 'month' : 'week';
+  return `Free for ${count(days, 'day')}, then ${price}/${unit}. ${PAYWALL_RENEWS}`;
+}
+
+/** The footer disclosure without a trial. */
+export function standardDisclosure(price: string, period: 'week' | 'month' | 'year'): string {
+  const how = period === 'year' ? 'yearly' : period === 'month' ? 'monthly' : 'weekly';
+  return `${price} billed ${how}. ${PAYWALL_RENEWS}`;
+}
+
+/** The plan line above the footer: the tier and its live minutes per window. */
+export function planAllowanceLine(name: string, minutes: number, days: number): string {
+  return `${name}, ${minutes} min every ${count(days, 'day')}`;
+}
+
+/** A compare card's allowance. */
+export function compareAllowance(minutes: number, days: number): string {
+  return `${count(minutes, 'minute')} of live conversation every ${count(days, 'day')}`;
+}
+
+/** A compare card's trial line, only for an offer the store says this account may take. */
+export function compareTrialLine(minutes: number, days: number): string {
+  return `Free trial: ${count(minutes, 'minute')} over ${count(days, 'day')}`;
+}
+
+/** Under the compare cards. */
+export function compareNote(days: number): string {
+  return `Minutes refresh every ${count(days, 'day')}, on yearly plans too. Unused minutes are not kept for later.`;
+}
+
+/** The compare sheet's button. */
+export function compareContinue(name: string, trial: boolean): string {
+  return trial ? `Continue with ${name}` : `Subscribe to ${name}`;
+}
+
+/** The success body after a trial this wall bought. */
+export function successTrialBody(name: string, minutes: number, days: number): string {
+  return `Your ${name} trial has started. You have ${count(minutes, 'minute')} with your tutor over the next ${count(days, 'day')}.`;
+}
+
+/** The success body after a paid plan, said for the catalogue's window. */
+export function successPaidBody(name: string, minutes: number, days: number): string {
+  return `Your ${name} plan is ready. You have ${count(minutes, 'minute')} with your tutor every ${count(days, 'day')}.`;
+}
+
+/** The success body when the client cannot tell a trial's week from a month's last (a restore). */
+export function successHeldBody(name: string, minutes: number, until: string): string {
+  return `Your ${name} plan is ready. You have ${count(minutes, 'minute')} with your tutor until ${until}.`;
+}
 
 // ── every ending, in the words each surface needs ──────────────────────────────
 
@@ -468,4 +589,33 @@ export const WALL_COPY: readonly string[] = [
   WALL_READY,
   WALL_BUSY,
   WALL_CONFIRMING,
+  PAYWALL_STANDARD_TITLE,
+  ...PAYWALL_BENEFITS,
+  PAYWALL_SUBSCRIBE,
+  PAYWALL_RESTORE,
+  PAYWALL_BILLED_MONTHLY_AFTER_TRIAL,
+  PAYWALL_BILLED_MONTHLY,
+  PAYWALL_BILLED_YEARLY,
+  PAYWALL_BILLED_WEEKLY,
+  PAYWALL_RENEWS,
+  COMPARE_INTRO,
+  PAYWALL_LOADING,
+  PAYWALL_UNAVAILABLE_TITLE,
+  PAYWALL_UNAVAILABLE_BODY,
+  PAYWALL_TRY_AGAIN,
+  PAYWALL_PURCHASING,
+  PAYWALL_FAILED_TITLE,
+  PAYWALL_FAILED_BODY,
+  PAYWALL_RESTORE_NONE_TITLE,
+  PAYWALL_RESTORE_NONE_BODY,
+  PAYWALL_PENDING_TITLE,
+  PAYWALL_CHECK_AGAIN,
+  SUCCESS_TITLE,
+  SUCCESS_START,
+  SUCCESS_FOOTNOTE,
+  SUCCESS_ROW_PLAN,
+  SUCCESS_ROW_TRIAL_ENDS,
+  SUCCESS_ROW_REMINDER,
+  SUCCESS_ROW_THEN,
+  SUCCESS_ROW_TIME,
 ];

@@ -15,9 +15,10 @@
  * trial is never described as a month (F742).
  *
  * The reminder line is a promise, so it is said only when it will be kept:
- * notifications allowed and a reminder really scheduled once the server has
- * confirmed the trial. Otherwise the timeline says how to pay nothing, which is
- * always true.
+ * notifications allowed, the learner's trial reminder setting on, and a build
+ * that schedules the reminder once the server has confirmed the trial
+ * (`trialReminderPromised` in reminders/trialReminder.ts). Otherwise the
+ * timeline says how to pay nothing, which is always true.
  *
  * Pure, so `trialTimeline.test.ts` can ask it questions; the page only draws it.
  */
@@ -27,6 +28,7 @@ import {
   TRIAL_REMIND,
   TRIAL_TITLE,
   startTrialLabel,
+  trialBeforeDay,
   trialCancelBy,
   trialDay,
   trialMinutes,
@@ -35,17 +37,6 @@ import {
   trialToday,
 } from './wallCopy.ts';
 import type { WallChosen } from './wallPlans.ts';
-
-/**
- * Whether anything in the app schedules the trial's Day 5 reminder.
- *
- * Nothing does yet: notifications belong to the reminders planner, which has
- * no trial reminder to schedule. Until it has, the timeline never promises one
- * and says how to cancel instead. Turning this true is only honest together
- * with the code that schedules the reminder after the server confirms the
- * trial, and only for a learner who has allowed notifications.
- */
-export const TRIAL_REMINDER_SCHEDULED = false;
 
 export type TrialNodeKey = 'today' | 'during' | 'remind' | 'cancel' | 'then';
 
@@ -84,7 +75,7 @@ export function trialTimeline(input: {
   // prints a number it was not given (wallCopy's digit rule).
   nodes.push(input.remind
     ? { key: 'remind', title: trialDay(days - 2), line: TRIAL_REMIND }
-    : { key: 'cancel', title: trialDay(days - 2), line: trialCancelBy(days) });
+    : { key: 'cancel', title: trialBeforeDay(days), line: trialCancelBy(days) });
   nodes.push({ key: 'then', title: trialDay(days), line: trialThen(offer.name, offer.price, offer.period) });
   return {
     days,

@@ -54,9 +54,12 @@ test('revamp B Progress opens evidence-based materials, a weekly story and earne
   has('myfrench/copy.ts',/MY_FRENCH_TITLE = 'Progress'/);
 });
 test('revamp B Profile choices stay over Profile and keep a lifetime count without a weekly rail',()=>{
-  has('tabs/ProfileTab.tsx',/<Monogram/,/<DayCount \/>/,/<BottomSheet visible=\{sheet === 'tutorVoice'\}/,/title="Your name"/,/label="Done"/,/<OptionRow/,/onHear=/);
+  // P2 (2026-10-19): the learner's sun disc and the lifetime count of practice
+  // days, now said on the Progress row rather than as a line of its own.
+  has('tabs/ProfileTab.tsx',/\{initialOf\(profile\.name\)\}/,/usePracticeDays\(\)/,/<BottomSheet visible=\{sheet === 'tutorVoice'\}/,/title="Your name"/,/label="Done"/,/<OptionRow/,/onHear=/);
   lacks('tabs/ProfileTab.tsx',/<WeekRhythm|<DayCount weekly|onHear=[^\n]*setSheet\('none'\)/);
-  has('settings/SettingsRow.tsx',/<Press/,/haptic="selection"/,/minHeight: 60/);
+  has('settings/SettingsRow.tsx',/<Press/,/haptic="selection"/,/useRowFrame\(\)/);
+  has('settings/SettingsGroup.tsx',/minHeight: 52/);
   lacks('settings/SettingsRow.tsx',/opacity/);
   has('settings/SwitchRow.tsx',/accent.brand/,/paper.field/);
 });
@@ -68,11 +71,19 @@ test('revamp B reminder and deletion controls retain explicit choices and explai
 test('revamp B plans preserve catalogue and store prices, accessible selection and a single restore',()=>{
   // Come-alive D16: each store product is now a shared radio choice. Keep
   // the actual price and selected product wired to its accessible name/state.
-  has('wall/WallPlansPage.tsx', /<Choice/, /role="radio"/, /selected=\{offer.productId === selected\}/, /title=\{`\$\{period\} · \$\{offer.price\}`\}/, /billedPrice\(offer.price, offer.period\)/, /accessibilityLabel=\{\[row.name, period, price\].join\(', '\)\}/);
+  // 19 October 2026, "P2 · Luvani": compare cards are a radiogroup of radios
+  // whose checked state VoiceOver reads; prices are the store's via trialPaywall.
+  has('wall/WallPlansPage.tsx', /<View style=\{st.cards\} accessibilityRole="radiogroup">/, /accessibilityRole="radio" accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/, /<WallPeriodSwitch offers=\{visibleRow.offers\} name=\{visibleRow.name\} selected=\{selected\} onSelect=\{onSelect\}/);
+  has('wall/trialPaywall.ts', /price: billedPrice\(offer.price, offer.period\)/, /const billed = billedPrice\(offer\.price, offer\.period\);/, /offerMinutes\(row, offer\)/);
+  has('wall/WallPeriodSwitch.tsx', /accessibilityRole="radio"/, /const checked = offer.productId === selected;/, /accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/, /accessibilityLabel=\{\[name, period, billedPrice\(offer.price, offer.period\)\].join\(', '\)\}/, /minHeight: HIT/);
   has('components.tsx', /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);
   lacks('wall/WallPlansPage.tsx', /recommended/);
-  has('wall/WallScreen.tsx',/wallSuccess/,/ground=\{colour.mint\}/,/state-offline/,/Start speaking/,/restore/);
-  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/paper.ink/,/<Illustration/);
+  has('wall/WallScreen.tsx',/wallSuccess/,/state-offline/,/Start speaking/,/restore/);
+  // Exactly one restore entry: one handler on the wall, one link in the shell.
+  const wallCode=read('wall/WallScreen.tsx');
+  assert.equal((wallCode.match(/void restore\(\)/g)??[]).length,1,'the wall offers more than one restore');
+  assert.equal((read('wall/WallParts.tsx').match(/link\(PAYWALL_RESTORE,/g)??[]).length,1);
+  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/colors.text/,/<MainIllustration motif="cloud"/);
   lacks('wall/WallYoursPage.tsx',/borderBottomWidth/);
   has('purchases/paywallView.ts',/price/);
 });

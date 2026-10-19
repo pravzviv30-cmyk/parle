@@ -18,7 +18,7 @@ import { PLANS, type Plan, type PlanSpec } from '@luvani/core';
 
 import type { PaidPlan, StoreOffering, StoreProduct } from '../purchases/adapter.ts';
 import { PLAN_LABELS } from '../purchases/planStatus.ts';
-import { PLANS_RENEWAL, WALL_COPY, WALL_LEAVE, PLANS_TRUST, TRIAL_TITLE, SUCCESS_TRIAL, YOURS_DECLINE, trialAllowance } from './wallCopy.ts';
+import { PAYWALL_RENEWS, PLANS_RENEWAL, WALL_COPY, WALL_LEAVE, PLANS_TRUST, standardDisclosure, trialDisclosure, TRIAL_TITLE, SUCCESS_TRIAL, YOURS_DECLINE, trialAllowance } from './wallCopy.ts';
 import { CONVERSATION_MINUTES, conversationsAWeek, wallPlanRows, wallTrial, offerForTier } from './wallPlans.ts';
 
 const read = (relative: string): string =>
@@ -146,7 +146,10 @@ describe('the wall says out loud that it is soft', () => {
     // It was always possible -- the chevron goes back and the wall never blocks --
     // but a chevron in the corner reads as navigation rather than as an answer.
     const page = read('./WallScreen.tsx');
-    assert.match(page, /leave=\{\{ label: WALL_LEAVE, onPress: \(\) => leave\(\) \}\}/, 'the plans header offers no visible way to decline');
+    // 19 October 2026, "P2 · Luvani": the decline is the close mark in the top row, a 44pt target.
+    assert.match(page, /header=\{<WallTopRow onPress=\{\(\) => leave\(\)\} \/>\}/, 'the plans header offers no visible way to decline');
+    assert.match(code('./WallParts.tsx'), /accessibilityLabel="Close" style=\{st\.close\}/);
+    assert.match(code('./WallParts.tsx'), /close: \{ width: HIT, height: HIT/);
     // 7 October 2026, come alive README Part 5.G: the decline reads "Not now".
     assert.equal(WALL_LEAVE, 'Not now');
   });
@@ -156,15 +159,25 @@ describe('the wall says out loud that it is soft', () => {
     // is the claim the founder ruled out.
     assert.equal(PLANS_TRUST, 'No Commitment, Cancel Anytime');
     assert.doesNotMatch(PLANS_TRUST, /\d|join|people|learners|users|rated/i, 'the trust line counts somebody');
-    assert.match(read('./WallPlansPage.tsx'), /\{PLANS_TRUST\}/, 'the trust line is written and rendered nowhere');
+    // 19 October 2026: the approved trial paywall drops the line from the wall;
+    // the inline paywall in the out-of-minutes card still says it.
+    assert.match(read('../purchases/paywallView.ts'), /trust: PLANS_TRUST/, 'the trust line is written and rendered nowhere');
+    assert.doesNotMatch(code('./WallPlansPage.tsx') + code('./WallScreen.tsx'), /PLANS_TRUST/, 'the approved paywall removed the trust line');
   });
 
   test('the subscription terms are on the surface that sells it', () => {
     const page = read('./WallPlansPage.tsx');
     // Apple Guideline 3.1.2 wants the length, the renewal and both documents on
     // the purchase screen itself, and a learner is owed them either way.
-    for (const name of ['PLANS_RENEWAL', 'PLANS_PRIVACY', 'PLANS_TERMS', 'PLANS_RESTORE']) {
-      assert.match(page, new RegExp(`\\{${name}\\}`), `the purchase surface is missing ${name}`);
+    // 19 October 2026: the renewal rides in the disclosure under the button,
+    // and the documents and the restore are the links row (WallParts.WallLinks).
+    assert.match(page, /\{disclosure\}/, 'the purchase surface is missing the disclosure');
+    assert.match(page, /<WallLinks onRestore=\{onRestore\}/);
+    const parts = code('./WallParts.tsx');
+    for (const name of ['PAYWALL_RESTORE', 'PLANS_TERMS', 'PLANS_PRIVACY']) assert.match(parts, new RegExp(`link\\(${name},`), `the links row is missing ${name}`);
+    for (const said of [trialDisclosure(7, '£99.99', 'year'), standardDisclosure('£99.99', 'year'), standardDisclosure('£9.99', 'month')]) {
+      assert.ok(said.endsWith(PAYWALL_RENEWS), `the disclosure does not say it renews: ${said}`);
+      assert.match(said, /£\d/, 'the disclosure does not carry the billed amount');
     }
   });
 });
@@ -223,7 +236,7 @@ describe('the wall is a page of the notebook', () => {
     const periods = code('./WallPeriodSwitch.tsx');
     assert.match(page, /<WallPeriodSwitch offers=\{visibleRow\.offers\} name=\{visibleRow\.name\} selected=\{selected\} onSelect=\{onSelect\}/);
     assert.match(page, /onSelect\(offer\); setComparing\(false\)/);
-    assert.match(page, /<Choice key=\{row.plan\} role="radio"/);
+    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio"/);
     assert.match(periods, /onPress=\{\(\) => onSelect\(offer\)\}/);
     assert.doesNotMatch(page + periods, /recommended|best value|most popular|markDot|<Highlight|shadow/);
   });
@@ -242,10 +255,12 @@ describe('the wall is a page of the notebook', () => {
   test('each plan says its actual minutes once, and the price is the store\'s', () => {
     const page = code('./WallPlansPage.tsx');
     assert.doesNotMatch(page, /perWeekLine\(row\.perWeek\)/, 'the plan repeats its minutes as an estimated conversation count');
-    assert.match(page, /offerMinutes\(visibleRow, current\)/, 'a plan does not say its verified minutes');
+    assert.match(page, /planLine\(visibleRow, current, catalogue\)/, 'a plan does not say its verified minutes');
+    const view = code('./trialPaywall.ts');
+    assert.match(view, /const minutes = offerMinutes\(row, offer\);/, 'the plan line is not the verified minutes');
     // 7 October 2026 (D16): each way to pay says the store's own price for its period.
-    assert.match(page, /billedPrice\(current\.price, current\.period\)/, 'the selected billed amount is not the store\'s own string and period');
-    assert.match(page, /About \{current\.perMonth\} a month\. Billed yearly\./, 'the annual equivalent is not the store\'s own monthly string');
+    assert.match(view, /const billed = billedPrice\(offer\.price, offer\.period\);/, 'the selected billed amount is not the store\'s own string and period');
+    assert.match(view, /billedYearlyAbout\(offer\.perMonth\)/, 'the annual equivalent is not the store\'s own monthly string');
   });
 
   test('the renewal and the no-adverts line sit at the button', () => {
@@ -256,13 +271,12 @@ describe('the wall is a page of the notebook', () => {
     assert.notEqual(at, -1, 'there is no small print for the button');
     const button = page.slice(at);
     const body = page.slice(0, at);
-    assert.match(button, /\{PLANS_RENEWAL\}/);
-    assert.match(button, /\{PLANS_TRUST\}/);
-    assert.doesNotMatch(body, /\{PLANS_RENEWAL\}|\{PLANS_TRUST\}/, 'the renewal or the trust line is up the page, away from the button');
+    assert.match(button, /\{disclosure\}/);
+    assert.doesNotMatch(body, /\{disclosure\}|disclosure\b/, 'the renewal is up the page, away from the button');
 
     const screen = code('./WallScreen.tsx');
     const footer = screen.slice(screen.lastIndexOf('footer={'));
-    const pill = footer.indexOf('<PillButton');
+    const pill = footer.indexOf('<WallCta');
     const print = footer.indexOf('<WallPlansAtButton');
     assert.ok(pill !== -1 && print !== -1, 'the footer does not hold both the pill and its small print');
     assert.ok(pill < print, 'the small print is above the button rather than beside it');
@@ -283,7 +297,7 @@ describe('a chosen plan says so to a screen reader', () => {
     assert.match(periods, /minHeight: HIT/);
     assert.match(periods, /share: \{ flex: 1, minWidth: 0, minHeight: HIT \}/);
     assert.doesNotMatch(periods, /numberOfLines|adjustsFontSizeToFit|aria-selected|aria-pressed/);
-    assert.match(page, /<Choice key=\{row.plan\} role="radio"/);
+    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio" accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/);
   });
 
   // 7 October 2026, P4-C review: the successor of the test above, whose pinned
@@ -301,7 +315,7 @@ describe('a chosen plan says so to a screen reader', () => {
     assert.match(periods, /minHeight: HIT/);
     assert.match(periods, /share: \{ flex: 1, minWidth: 0, minHeight: HIT \}/);
     assert.doesNotMatch(periods, /numberOfLines|adjustsFontSizeToFit|aria-selected|aria-pressed/);
-    assert.match(page, /<Choice key=\{row.plan\} role="radio"/);
+    assert.match(page, /<Press key=\{card.plan\} haptic="selection" accessibilityRole="radio" accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/);
   });
 });
 
@@ -311,12 +325,12 @@ describe('a chosen plan says so to a screen reader', () => {
 describe('the plans page around its plans', () => {
   test('the documents and the restore are one row of icon actions, and the renewal covers a month and a year', () => {
     const page = code('./WallPlansPage.tsx');
-    for (const [icon, label, handler] of [['privacy', 'PRIVACY', 'onOpenPolicy'], ['document', 'TERMS', 'onOpenTerms'], ['refresh', 'RESTORE', 'onRestore']]) {
-      assert.ok(page.includes(`<IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="${icon}" label={PLANS_${label}} onPress={${handler}} />`));
-    }
-    assert.doesNotMatch(page, /<GhostButton label=\{PLANS_(PRIVACY|TERMS|RESTORE)\}/, 'a document is still a bare link beside the icon row');
+    // 19 October 2026, "P2 · Luvani": one row of 44pt text links under the button.
+    assert.match(page, /<WallLinks onRestore=\{onRestore\} restoreDisabled=\{busy\} onTerms=\{onOpenTerms\} onPrivacy=\{onOpenPolicy\} \/>/);
+    assert.match(code('./WallParts.tsx'), /link: \{ minHeight: HIT, minWidth: HIT/);
     assert.match(PLANS_RENEWAL, /Renews automatically/);
-    assert.match(page, /trialTerms !== null/);
+    assert.match(trialDisclosure(7, '£9.99', 'month'), /£9\.99\/month\. Renews automatically/);
+    assert.match(trialDisclosure(7, '£99.99', 'year'), /£99\.99\/year\. Renews automatically/);
   });
 
   test('page one says Keep practising free only when there is a plan to decline', () => {
