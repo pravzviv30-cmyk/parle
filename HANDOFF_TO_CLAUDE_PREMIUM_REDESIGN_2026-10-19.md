@@ -1,5 +1,8 @@
 # Luvani handoff — premium paywalls and account surfaces
 
+> **Status, 19 October 2026: completed and superseded.** This note describes where Codex stopped; the work it describes is now done. Claude designed the P2 Luvani screens in Figma, built them and committed them on this branch (`7809abd5`…`6b77f08b`). The full gate is green.
+> The current state, what remains and the next steps are in `/Users/pravz_07/Documents/StartUps/handoffs/LATEST.md`, outside the repo. The sections below are kept as the original brief.
+
 ## Handoff checkout
 
 - **Path:** `/Users/pravz_07/.codex/worktrees/3957/Luvani-handoff-2026-10-19`

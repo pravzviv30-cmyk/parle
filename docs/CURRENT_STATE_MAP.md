@@ -48,6 +48,20 @@ notes and separately consented original text remain distinct. Search covers real
 authored catalogue entries. Self-described practice preferences affect content
 pitch and support without awarding earned ability.
 
+### Paywall and account surfaces (19 October 2026)
+
+The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, boards `489:1710`/`489:3664`). `wall/WallScreen.tsx` renders it, `wall/trialPaywall.ts` decides what it shows, and `effectiveSelection` defaults to Starter yearly.
+- **Variants:** the trial paywall shows the Today / Before day 7 or Day 5 / Day 7 timeline. Unknown eligibility shows the standard paywall. Loading, offline, purchasing, failed, restore and success states are covered.
+- **Trial-ending reminder:** a real reminder (`reminders/trialReminderSync.ts`), scheduled only after a confirmed trial with notification permission and the setting on.
+- **Store facts:** `purchases/storeTrialFacts.ts` is read only to cancel the reminder; it never grants minutes or a plan.
+- **Account screens:**
+  - Profile: identity, Learning, Your French and Plan groups.
+  - Learning preferences: includes the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync.
+  - Settings: six groups.
+  - Subscription: never says "Free" when the plan is unknown.
+- **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested.
+- **Branch status:** this work is on `codex/luvani-session-handoff-2026-10-19` and is not yet on `main`.
+
 The explicit development screen selector has an isolated `main` QA fixture. It
 requires development, screen-preview and local flags, no Supabase configuration,
 and a loopback service endpoint. It writes only to `c2-preview`, labels sample
