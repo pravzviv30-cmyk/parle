@@ -90,6 +90,7 @@ import {
 } from './src/onboarding/preAccountDraft.ts';
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
+import { MainAppearanceProvider } from './src/main/MainAppearance.tsx';
 import { GameProvider } from './src/game/GameProvider.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
@@ -608,6 +609,8 @@ function SignedInRoot({
           changes. */}
       <ReminderPlanner />
       <LiveProvider>
+        {/* Account-scoped appearance for the paywall, Profile and Settings screens. */}
+        <MainAppearanceProvider>
         <NavigationContainer
           ref={navigationRef}
           onReady={() => { openFirstRun(); openPendingInvite(); }}
@@ -621,6 +624,7 @@ function SignedInRoot({
             onDeleteAccount={onDeleteAccount}
           />
         </NavigationContainer>
+        </MainAppearanceProvider>
       </LiveProvider>
       </GameProvider>
       </GuestAccountHandoff>
