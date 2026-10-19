@@ -192,7 +192,7 @@ describe('a refused permission is the only one worth a row — F476', () => {
 
     // The rows are the module's answer, and the tap goes through the pair.
     assert.match(SETTINGS, /phoneRows\(\{ microphone, notifications, available: PHONE_SETTINGS_AVAILABLE \}\)/, 'the screen decides which phone rows to draw itself');
-    assert.match(SETTINGS, /onPress=\{walkToPhoneSettings\}/, 'the phone row does not open the phone settings');
+    assert.match(SETTINGS, /onPress=\{\(\) => walkToPhoneSettings\(permissionRow\.key\)\}/, 'the phone row does not open the phone settings');
     assert.match(SETTINGS, /void openPhoneSettings\(\)\.then\(/, 'the screen reaches the operating system some other way than the pair');
   });
 
@@ -276,14 +276,18 @@ describe('a refused permission is the only one worth a row — F476', () => {
       /const phone = phoneRows\(\{ microphone, notifications, available: PHONE_SETTINGS_AVAILABLE \}\);/,
       'the screen decides which phone rows to draw itself, so the re-read reaches nothing',
     );
-    // The group also holds an unread reminder's Retry. It cannot render the
-    // reminder as Off until the owned read succeeds, even with no permission
-    // row beside it.
+    // The Reminders group also holds an unread reminder's Retry. It cannot
+    // render the reminder as Off until the owned read succeeds, even with no
+    // permission row beside it. Since P2 (2026-10-19) the refused-notifications
+    // row lives here and the microphone row beside sound, each placed from the
+    // one `phone.map` below.
     assert.match(
       SETTINGS,
-      /\{\(reminders \|\| reminderUnknown \|\| phone\.length > 0\) && \(/,
-      'the Phone group hides an unread reminder instead of offering Retry',
+      /\{\(reminders \|\| reminderUnknown \|\| trialShown \|\| phoneDrawn\.notifications !== undefined\) && \(/,
+      'the Reminders group hides an unread reminder instead of offering Retry',
     );
+    assert.match(SETTINGS, /\{phoneDrawn\.notifications\}/, 'a refused notification permission draws no row in Reminders');
+    assert.match(SETTINGS, /\{phoneDrawn\.microphone\}/, 'a refused microphone draws no row beside sound');
     // And the permission rows themselves come from the module's answer and
     // nowhere else, so a granted permission has no other way onto the screen.
     assert.equal(

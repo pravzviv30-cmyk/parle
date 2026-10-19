@@ -1641,6 +1641,7 @@ export function RoundButton({
   accessibilityLabel,
   accessibilityHint,
   tone,
+  appearance,
   label,
 }: {
   kind: 'back' | 'next' | 'close';
@@ -1652,14 +1653,19 @@ export function RoundButton({
   accessibilityHint?: string;
   /** white: a white disc, ink mark (back and close, any ground). sun: the round next on blue or coral. ink: the round next on a sun ground. Defaults white, or sun for next. */
   tone?: 'white' | 'sun' | 'ink';
+  /**
+   * Opt-in: the disc and mark from the selected appearance instead of the tone
+   * (P2, 2026-10-19). Absent, the button draws exactly as before.
+   */
+  appearance?: { disc: string; mark: string };
   /** The word beside a round next, in type.bodyStrong, in the ground's text colour. */
   label?: string;
 }) {
   const next = kind === 'next';
   const disc = next ? HIT + space(5) : HIT;
   const ground = tone ?? (next ? 'sun' : 'white');
-  const fill = ground === 'white' ? paper.card : ground === 'sun' ? colour.sun : paper.ink;
-  const markColour = ground === 'ink' ? paper.onInk : paper.ink;
+  const fill = appearance?.disc ?? (ground === 'white' ? paper.card : ground === 'sun' ? colour.sun : paper.ink);
+  const markColour = appearance?.mark ?? (ground === 'ink' ? paper.onInk : paper.ink);
   const words = ground === 'sun' ? textOn.blue : paper.ink;
   const name = accessibilityLabel ?? label ?? (kind === 'back' ? 'Back' : next ? 'Next' : 'Close');
   return (

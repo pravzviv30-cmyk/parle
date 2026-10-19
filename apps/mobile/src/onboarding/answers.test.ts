@@ -66,7 +66,8 @@ const PRE_ACCOUNT_DRAFT = stripComments(read('./preAccountDraft.ts'));
 const RULES = stripComments(read('./answers.ts'));
 const AGE_GATE = stripComments(read('./AgeGateScreen.tsx'));
 const REFUSAL = stripComments(read('./AgeRefusal.tsx'));
-const PROFILE_TAB = stripComments(read('../tabs/ProfileTab.tsx'));
+// P2 (2026-10-19): the speaking target is set on Learning preferences, one row from Profile.
+const PROFILE_TAB = stripComments(read('../settings/LearningPreferencesScreen.tsx'));
 /** The one file that decides what is written, and in what order. */
 const APP = stripComments(read('../../App.tsx'));
 const DOC = read('../../../../docs/ONBOARDING.md');

@@ -163,6 +163,17 @@ export type RootStackParamList = {
    */
   Settings: undefined;
   /**
+   * The standing choices about how a conversation goes, pushed from Profile's
+   * Learning group (P2, 2026-10-19). No params: it reads and writes the live
+   * profile through the store's own doors.
+   */
+  LearningPreferences: undefined;
+  /**
+   * The plan and the store's own rows, pushed from the plan row on Profile
+   * and on Settings (P2, 2026-10-19). No params: it reads the plan on focus.
+   */
+  Subscription: undefined;
+  /**
    * The subscription wall, as a stack sibling above the tabs.
    *
    * Above the tabs for the same reason Settings is: the bar goes with the push,

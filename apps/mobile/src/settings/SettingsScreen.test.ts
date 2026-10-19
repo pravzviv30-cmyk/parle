@@ -79,7 +79,7 @@ function stripComments(source: string): string {
 const TAB = stripComments(read('./SettingsScreen.tsx'));
 
 /**
- * Just the Phone card, from its heading to the end of the Card.
+ * Just the Reminders group, from its heading to the end of the group.
  *
  * Every claim in this file is about that one group. The screen has switches in
  * two other places — the consent row above it, and the pace row is Profile's —
@@ -88,8 +88,8 @@ const TAB = stripComments(read('./SettingsScreen.tsx'));
  * both the tests that need it.
  */
 const REMINDER_CARD = (() => {
-  const start = TAB.indexOf('<Label color={colors.muted}>{PHONE_GROUP}</Label>');
-  const end = TAB.indexOf('</Card>', start);
+  const start = TAB.indexOf('<SettingsGroup title={REMINDERS_GROUP} footer={REMINDERS_FOOTER}>');
+  const end = TAB.indexOf('</SettingsGroup>', start);
   assert.ok(start !== -1 && end > start, 'the reminder group is not a card on this screen');
   return TAB.slice(start, end);
 })();

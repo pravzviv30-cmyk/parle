@@ -83,6 +83,8 @@ import { WeekWrappedScreen } from '../progress/WeekWrappedScreen.tsx';
 import { StreakScreen } from '../game/StreakScreen.tsx';
 import { DailyLibraryScreen } from '../daily/DailyLibraryScreen.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
+import { LearningPreferencesScreen } from '../settings/LearningPreferencesScreen.tsx';
+import { SubscriptionScreen } from '../settings/SubscriptionScreen.tsx';
 import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
@@ -756,6 +758,8 @@ function MainNavigator({
       <Stack.Screen name="Settings">
         {() => <SettingsScreen onSignOut={onSignOut} onDeleteAccount={onDeleteAccount} />}
       </Stack.Screen>
+      <Stack.Screen name="LearningPreferences" component={LearningPreferencesScreen} />
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} />
       {/* No native header on any pushed screen: the back is the in-screen
           ScreenHeader now (a chevron on a reversible push, the Leave word on a
           metered room), so a native title bar would be a second, duplicate way

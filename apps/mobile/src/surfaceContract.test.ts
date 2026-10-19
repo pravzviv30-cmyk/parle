@@ -1643,7 +1643,9 @@ describe('the learner initial is one drawn thing — F337', () => {
     // Home's monogram went with its purpose line: the founder's mockup opens on
     // the greeting alone. Profile is still reachable from the bottom bar, and it
     // is still the one place the disc is drawn, which is what F337 was for.
-    assert.match(named('tabs/ProfileTab.tsx'), /<Monogram\b/, 'Profile no longer draws the shared Monogram');
+    // P2 (2026-10-19): Profile's disc is the approved sun avatar, drawn once
+    // from `initialOf`; the ink Monogram stays the header button's.
+    assert.equal((named('tabs/ProfileTab.tsx').match(/\{initialOf\(profile\.name\)\}/g) ?? []).length, 1, 'Profile no longer draws the learner initial, or draws it twice');
     assert.doesNotMatch(
       named('tabs/HomeTab.tsx'),
       /<Monogram\b/,

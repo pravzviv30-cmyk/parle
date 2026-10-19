@@ -327,7 +327,7 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ink?: string; muted?: string; ground?: 'blue' | 'coral' | 'paper' } & (
+type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ink?: string; muted?: string; ground?: 'blue' | 'coral' | 'paper'; /** Opt-in (P2): the back disc and chevron from the selected appearance. Absent, the white disc as before. */ backAppearance?: { disc: string; mark: string } } & (
   | { back?: { onPress: () => void; label?: string; disabled?: boolean }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
@@ -349,7 +349,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   return (
     <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
-        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} />
+        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} appearance={props.backAppearance} />
       ) : (
         <View style={{ width: HIT }} />
       )}

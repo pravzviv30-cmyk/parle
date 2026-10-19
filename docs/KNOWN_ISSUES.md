@@ -5555,7 +5555,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   at the tests that keep any rank name off the stats and out of the module.
 - verified-by: `no rank name appears in the stats at any amount of XP — F367`
 - verified-by: `the module no longer offers a level name to borrow — F367`
-- verified-by: `profile opens centred on the learner and draws its tutor as the orb, never a face`
+- note: P2 (2026-10-19): the approved design replaces the centred header with a large title, the gear and a left-aligned identity row; the orb-never-a-face and no-rank-under-the-name checks are kept under the new test name.
+- verified-by: `profile opens on the learner and draws its tutor as the orb, never a face`
 
 ### F368 — The daily goal and the correction dial are chosen in place
 - severity: P1
@@ -7322,7 +7323,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   hardware-back pin at surfaceContract.test.ts:1049 splits into one expression per screen; F319's
   rule is what is kept. The reminder card, the level line and the monogram do not move, and no
   minutes row is drawn on either screen because F377 is still the standing answer about that.
-- verified-by: `Profile keeps who you are and how you learn, and one row leads to the rest`
+- note: P2 (2026-10-19): the one Settings row became the gear beside Profile's title, and the standing choices moved one row away to Learning preferences; the new test holds both, and everything general still lives on Settings.
+- verified-by: `Profile keeps who you are and the doors to how you learn, and the gear leads to the rest`
 - verified-by: `the Settings screen is a stack sibling with its own back and answers the hardware back in place`
 - verified-by: `every Settings row label comes from the module, and none of them counts`
 - verified-by: `the delete sheet tells an apple account what will happen — F376`
@@ -8683,7 +8685,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/tabs/ProfileTab.tsx:1
 - note: revamp A. The tutor is drawn as the orb, never a face; the plan card, the reminder rows and
   the intro link move to Settings; the pace switch moves to the voice sheet.
-- verified-by: `profile opens centred on the learner and draws its tutor as the orb, never a face`
+- note: P2 (2026-10-19): the approved design replaces the centred header with a large title, the gear and a left-aligned identity row; the orb-never-a-face and no-rank-under-the-name checks are kept under the new test name.
+- verified-by: `profile opens on the learner and draws its tutor as the orb, never a face`
 - verified-by: `the plan, the reminder and the intro link live in settings`
 
 ### F577 — The week is a Monday-to-Sunday calendar with labelled violet dots
@@ -10569,3 +10572,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the first-run Home request cannot revive after a quick Explore and Home roundtrip`
 - verified-by: `a delayed billing answer cannot open the first-run offer after the account, request, Home or foreground changes`
 - verified-by: `a delayed access answer cannot open content after an account change or blur`
+
+### F810 — The paywall cannot show Ask to Buy approval, because the adapter never reports a deferred purchase
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/purchases/contract.ts:1
+- note: Found 2026-10-19 while building the approved "P2 · Luvani" trial paywall. Its spec has a "Waiting for approval" notice for Ask to Buy, but a StoreKit deferred transaction reaches the wall as no distinct outcome: `StoreAction` and `RestoreOutcome` only carry ok/cancelled/store-trouble/refresh-trouble/nothing-granted. So the wall draws its existing pending-checkout state ("Waiting for confirmation"), which keeps the money guarantees but cannot say "approval". Separately, `restoreTrouble` folds a restore's nothing-granted and refresh-trouble into one message, so the "No subscription found" notice words its body to stay true of both. A deferred outcome in the contract (revenue-engineer) would let `wall/trialPaywall.ts` `paywallNotice` say the spec's words.
+- verified-by: `a deferred store purchase is reported to the wall as waiting for approval`
+
+### F811 — Most pushed screens still draw a white back disc in dark mode
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/layout.tsx:1
+- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide.
+- verified-by: `every pushed screen's back button follows the appearance in dark mode`

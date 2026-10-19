@@ -125,8 +125,8 @@ const KEPT_IN_A_MODULE: readonly { words: string; from: string; name: string }[]
   // French structure names the group "French you can use". Same constant, same
   // module, still drawn as a caps label by SituationsCard.
   { words: 'French you can use', from: 'myfrench/situations.ts', name: 'YOU_CAN_NOW' },
-  { words: 'Your tutor', from: 'profile/frenchLife.ts', name: 'TUTOR_LABEL' },
-  { words: 'Your learning', from: 'profile/frenchLife.ts', name: 'LEARNING_LABEL' },
+  // 'Your tutor' and 'Your learning' left with P2 (2026-10-19): Profile is
+  // grouped lists under quiet headings from `settings/profileView.ts` now.
 ];
 
 /**

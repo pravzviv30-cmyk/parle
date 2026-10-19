@@ -64,34 +64,37 @@ export const SETTINGS_ROW_SUB = 'Account, your plan, reminders and about Luvani'
 
 export const ACCOUNT_GROUP = 'Account';
 /**
- * Over the plan card, which moved here from Profile with revamp A (F576).
+ * The six groups of the P2 Settings index (2026-10-19), in the order drawn.
  *
- * "Plan" rather than "Your plan": it is a group heading on a screen of group
- * headings, and Account and Subscription either side of it name a subject
- * rather than address the learner. The card under it draws no label of its own.
+ * The plan card's own group went with P2: the plan is one row in Subscription
+ * now and opens the Subscription screen. Phone became Reminders (the daily
+ * reminder, the trial reminder and a refused notification permission) and the
+ * microphone row joined Appearance & sound. Help and About are one group.
+ * Delete account is drawn after all six, alone, with no heading.
  */
-export const PLAN_GROUP = 'Plan';
 export const SUBSCRIPTION_GROUP = 'Subscription';
-export const PRIVACY_GROUP = 'Data and privacy';
-export const PHONE_GROUP = 'Phone';
-export const DISPLAY_ROW = 'Display';
+export const REMINDERS_GROUP = 'Reminders';
+export const APPEARANCE_GROUP = 'Appearance & sound';
+export const PRIVACY_GROUP = 'Privacy & data';
+export const HELP_GROUP = 'Help & about';
+export const DISPLAY_ROW = 'Appearance';
 export const DISPLAY_SUB = 'Follow your device, or choose Light or Dark';
-export const HELP_GROUP = 'Help';
-export const ABOUT_GROUP = 'About';
 
-/** The seven, in the order the screen draws them. A test reads this list. */
+/** The six, in the order the screen draws them. A test reads this list. */
 export const SETTINGS_GROUPS: readonly string[] = [
   ACCOUNT_GROUP,
-  PLAN_GROUP,
   SUBSCRIPTION_GROUP,
+  REMINDERS_GROUP,
+  APPEARANCE_GROUP,
   PRIVACY_GROUP,
-  PHONE_GROUP,
   HELP_GROUP,
-  ABOUT_GROUP,
 ];
 
 // ───────────────────────────────────────────────────────────────────── account
 
+export const NAME_ROW = 'Name';
+/** Shown for a learner who has not given a name. */
+export const NAME_UNSET_VALUE = 'Not set';
 export const EMAIL_ROW = 'Email';
 
 /**
@@ -126,6 +129,10 @@ export const CONNECTION_HELP_ROW = 'Connection and practice help';
 export const CONNECTION_HELP_SUB = 'Pause, typing and audio controls';
 export const LOCAL_PRACTICE_ROW = 'Free local practice';
 export const LOCAL_PRACTICE_SUB = 'Hear, say and compare without a live room';
+export const PLAN_ROW = 'Plan';
+export const VERSION_ROW = 'Version';
+export const TUTOR_MEMORY_SETTINGS_ROW = 'Tutor memory';
+export const PRIVACY_INTRO = 'Control what is saved, export your data or delete your account. Live tasks send spoken or typed words to speech and language services.';
 
 // ─────────────────────────────────────────────────────────────────────── about
 
@@ -190,8 +197,14 @@ export const SETTINGS_COPY: readonly string[] = [
   SETTINGS_ROW,
   SETTINGS_ROW_SUB,
   ...SETTINGS_GROUPS,
+  NAME_ROW,
+  NAME_UNSET_VALUE,
   EMAIL_ROW,
   EMAIL_UNKNOWN,
+  PLAN_ROW,
+  VERSION_ROW,
+  TUTOR_MEMORY_SETTINGS_ROW,
+  PRIVACY_INTRO,
   DEMO_ROW,
   DEMO_VALUE,
   SIGN_OUT_ROW,

@@ -29,16 +29,15 @@ import { fileURLToPath } from 'node:url';
 import { guiltIn } from '../copy/guilt.ts';
 import { withName } from '../profile/store.ts';
 import {
-  ABOUT_GROUP,
   ACCOUNT_GROUP,
+  APPEARANCE_GROUP,
   ACKNOWLEDGEMENTS_ROW,
   DELETE_ROW,
   DOWNLOAD_ROW,
   EMAIL_ROW,
   HELP_GROUP,
-  PHONE_GROUP,
-  PLAN_GROUP,
   PRIVACY_GROUP,
+  REMINDERS_GROUP,
   PRIVACY_POLICY_ROW,
   SAVED_ROW,
   SETTINGS_COPY,
@@ -58,6 +57,7 @@ function stripComments(source: string): string {
 }
 
 const PROFILE = stripComments(read('../tabs/ProfileTab.tsx'));
+const LEARNING = stripComments(read('./LearningPreferencesScreen.tsx'));
 const SETTINGS = stripComments(read('./SettingsScreen.tsx'));
 const NAVIGATOR = stripComments(read('../nav/RootNavigator.tsx'));
 const ROUTES = stripComments(read('../nav/types.ts'));
@@ -84,36 +84,29 @@ function settingsRows(source: string): string[] {
   return source.match(/<SettingsRow[\s\S]*?\/>/g) ?? [];
 }
 
-describe('Profile keeps who you are and how you learn — F473', () => {
-  test('Profile keeps who you are and how you learn, and one row leads to the rest', () => {
-    // What stays. The learner's own mark, the standing choices about how a
-    // conversation goes, and the sheet the tutor's voice is chosen on: none of
-    // them moved, and a check that only looked at what left would pass on a tab
-    // that had lost half of this too.
-    for (const kept of [
-      'Monogram',
-      'DAILY_GOAL_ROW',
-      'STRICTNESS_ROW',
-      'PREFER_TYPING_ROW',
-      'PACE_ROW',
-      'TUTOR_VOICE_OPTIONS',
-      'withTutorVoice',
-    ]) {
-      assert.ok(PROFILE.includes(kept), `Profile no longer draws ${kept}, so the cut took a learning setting with it`);
+describe('Profile keeps who you are and how you learn — F473, P2', () => {
+  test('Profile keeps who you are and the doors to how you learn, and the gear leads to the rest', () => {
+    // What stays on Profile: the learner's own mark and the voice sheet. The
+    // standing choices are one row away on Learning preferences (P2,
+    // 2026-10-19), and a check that only looked at what left would pass on a
+    // move that lost half of them.
+    for (const kept of ['initialOf(profile.name)', 'TUTOR_VOICE_OPTIONS', 'withTutorVoice']) {
+      assert.ok(PROFILE.includes(kept), `Profile no longer draws ${kept}`);
     }
+    for (const kept of ['DAILY_GOAL_ROW', 'STRICTNESS_ROW', 'PREFER_TYPING_ROW', 'PACE_ROW', 'STATED_LEVEL_OPTIONS']) {
+      assert.ok(LEARNING.includes(kept), `Learning preferences does not draw ${kept}, so the move took a learning setting with it`);
+    }
+    assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('LearningPreferences'\)\}/, 'nothing on Profile leads to Learning preferences');
 
-    // The header is the learner now (F576): centred on their own mark, with
-    // their name as the title, rather than a subject line about an account that
-    // is a screen away. `PROFILE_PURPOSE` rather than a literal, because a line
-    // written in JSX is a line no sweep in this workspace can read back.
-    assert.match(PROFILE, /<TabHeader\s+align="center"/, 'Profile opens with a left-aligned header like the four tabs that name a subject');
-    assert.match(PROFILE, /title=\{profile\.name \?\? 'You'\}/, 'the header says something other than the learner');
+    // The header is the learner: a large title, then their own initial and
+    // name, with no explanatory subtitle and no level ranking them.
+    assert.match(PROFILE, /\{profile\.name \?\? NAME_UNSET\}/, 'the header says something other than the learner');
     assert.doesNotMatch(PROFILE, /purpose=/, 'Profile repeats an explanation under the learner name');
     assert.ok(!PROFILE.includes('Your name and your tutor.'), 'the tab still says it is about the account, which is now a screen away');
     assert.ok(!PROFILE.includes('levelName'), 'the level line is back under the name, ranking somebody who came to change a setting');
 
     // What left, by the words it used to say. Each of these is drawn on
-    // Settings now, and a copy left behind is a second one to keep in step.
+    // Settings, and a copy left behind is a second one to keep in step.
     for (const gone of [
       "'Sign out'",
       '"Sign out"',
@@ -127,10 +120,6 @@ describe('Profile keeps who you are and how you learn — F473', () => {
       'downloadAccountData',
       'appVersionLine',
       'useAuth',
-      // Three more went with revamp A (F576). On the reminder a copy left
-      // behind is worse than a duplicate: two screens would each believe they
-      // owned the switch, and the learner would be told two different things
-      // about what the operating system had allowed.
       'PlanCard',
       'REMINDER_ROW',
       'REMINDERS_AVAILABLE',
@@ -139,39 +128,19 @@ describe('Profile keeps who you are and how you learn — F473', () => {
       assert.ok(!PROFILE.includes(gone), `Profile still carries ${gone}, so it moved to Settings and stayed here too`);
     }
 
-    // The tab takes nothing now, which is what lets the navigator register it
-    // as a plain component rather than a children function.
     assert.match(PROFILE, /export function ProfileTab\(\) \{/, 'ProfileTab still takes props, so Tabs still has to thread them');
     assert.match(
       PROFILE,
       /type Sheet = 'none' \| 'name' \| 'tutorVoice';/,
-      'the sheet union still names a sheet that moved to Settings, or lost one that did not',
+      'the sheet union names a sheet that moved to Settings, or lost one that did not',
     );
 
-    // One row, last, and under no caps label. Three labels remain on this tab:
-    // Your tutor, Your speaking rhythm and Your learning, each above a card
-    // that needs naming. A fourth over a row that reads Settings would say the
-    // same word twice.
-    assert.match(PROFILE, /label=\{SETTINGS_ROW\}/, 'Profile draws no Settings row, so everything that moved is unreachable');
-    assert.match(PROFILE, /value=\{SETTINGS_ROW_SUB\}/, 'the Settings row does not say what is behind it');
-    assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the Settings row leads nowhere');
-    assert.equal((PROFILE.match(/<Label color=\{colors\.muted\}>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
-    assert.match(PROFILE, /<Label color=\{colors\.muted\}>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=/, 'the tutor block lost its heading or its card');
-    assert.doesNotMatch(PROFILE, /<FrenchLifeCard|<Label color=\{colors\.muted\}>\{RHYTHM_LABEL\}/, 'Profile must leave weekly days to the later evidence stage');
-    assert.ok(
-      PROFILE.lastIndexOf('<Label color={colors.muted}>') < PROFILE.lastIndexOf('<Card'),
-      'the Settings row has a caps label over it, which says the same word twice',
-    );
-
-    // Last on the screen, after the learning card. It is the way out of this
-    // tab, and a way out drawn halfway up a list is a list somebody stops
-    // reading at the interesting row.
-    writtenBefore(PROFILE, 'label={SETTINGS_ROW}', 'title={PREFER_TYPING_ROW}', 'Settings should be immediately accessible above the profile details');
-    assert.equal(
-      (PROFILE.match(/nav\.navigate\(/g) ?? []).length,
-      2,
-      'Profile leads somewhere other than Settings, so it is a list with two ways out again',
-    );
+    // The gear, named by the screen it opens and saying what is behind it.
+    assert.match(PROFILE, /accessibilityLabel=\{SETTINGS_ROW\} accessibilityHint=\{SETTINGS_ROW_SUB\}/, 'the gear does not say what is behind it');
+    assert.match(PROFILE, /onPress=\{\(\) => nav\.navigate\('Settings'\)\}/, 'the gear leads nowhere');
+    assert.equal((PROFILE.match(/<SettingsGroup title=/g) ?? []).length, 3, 'Profile is not the three groups of the design');
+    assert.doesNotMatch(PROFILE, /<FrenchLifeCard|RHYTHM_LABEL/, 'Profile must leave weekly days to the later evidence stage');
+    writtenBefore(PROFILE, 'accessibilityLabel={SETTINGS_ROW}', '<SettingsGroup title={LEARNING_GROUP}>', 'Settings should be immediately reachable above the profile details');
   });
 
   test('the name is written through one named door', () => {
@@ -259,8 +228,11 @@ describe('the Settings screen is one push away — F473', () => {
       [...SETTINGS_GROUPS],
       // Seven since revamp A: the plan card moved off Profile into a group of
       // its own, above the store rows that are about it (F576).
-      [ACCOUNT_GROUP, PLAN_GROUP, SUBSCRIPTION_GROUP, PRIVACY_GROUP, PHONE_GROUP, HELP_GROUP, ABOUT_GROUP],
-      'the seven groups are no longer in the order the screen draws them',
+      // Six since P2 (2026-10-19): the plan is a row in Subscription, Phone
+      // became Reminders, Appearance & sound is its own group, and Help and
+      // About are one.
+      [ACCOUNT_GROUP, SUBSCRIPTION_GROUP, REMINDERS_GROUP, APPEARANCE_GROUP, PRIVACY_GROUP, HELP_GROUP],
+      'the six groups are no longer in the order the screen draws them',
     );
     assert.equal(SETTINGS_ROW, SETTINGS_TITLE, 'the row and the screen it opens are called two different things');
     // The row's second line is a promise about where a tap lands, so it names
@@ -287,7 +259,14 @@ describe('the Settings screen is one push away — F473', () => {
     // per refused permission under Phone, Contact and the intro under Help, and
     // three documents under About. A row added or lost is a change to what this
     // screen is, and it should be read here rather than slipping under a `>=`.
-    assert.equal(rows.length, 17, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
+    // P2 (2026-10-19): twenty-one. Account has Name, Email, the demo row and
+    // Sign out; Subscription the plan and one per restore action; Reminders
+    // the reminder's time and one per refused permission (the microphone's
+    // lands beside sound); Appearance the display row; Privacy & data Tutor
+    // memory, Saved conversations, Download and How your data is used; Help &
+    // about the intro, local practice, Contact, three documents and Version;
+    // and Delete account alone.
+    assert.equal(rows.length, 21, `Settings draws ${rows.length} rows, which is not the shape the six groups have`);
     for (const row of rows) {
       assert.doesNotMatch(row, /label="/, `a Settings row spells its label in JSX: ${row.split('\n')[0]}`);
       assert.match(row, /label=\{/, `a Settings row has no label at all: ${row.split('\n')[0]}`);
@@ -413,8 +392,8 @@ describe('nothing on Settings fails in silence — F473', () => {
 describe('a refusal is drawn where it happened and said out loud — F489, F490, F491', () => {
   /** The list itself, which is everything after the last early return. */
   const LIST = SETTINGS.slice(SETTINGS.lastIndexOf('  return ('));
-  /** Every `<Card>…</Card>` on that list, whole. None of them nests. */
-  const CARDS = LIST.match(/<Card\b[\s\S]*?<\/Card>/g) ?? [];
+  /** Every `<SettingsGroup>…</SettingsGroup>` on that list, whole. None of them nests. */
+  const CARDS = LIST.match(/<SettingsGroup\b[\s\S]*?<\/SettingsGroup>/g) ?? [];
 
   /**
    * Each line the screen can say, and the control in the same group that says it.
@@ -424,10 +403,9 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
    * group's own sentence is drawn rather than about the mood of it.
    */
   const LINES: readonly (readonly [string, string])[] = [
-    ['storeLine', 'subscription.map('],
+    ['storeLine', 'restoreRows.map('],
     ['consentTrouble', 'CONSENT_ROW'],
     ['exportTrouble', 'DOWNLOAD_ROW'],
-    ['phoneTrouble', 'phone.map('],
     ['contactTrouble', 'contact.address'],
     // The reminder moved into the Phone group with revamp A (F576), and it
     // brought a refusal with it. The group is drawn on two conditions now, so
@@ -440,7 +418,14 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // Seven since Stage 3: one per group that holds a card, plus Delete account
     // in a card of its own at the foot, apart from the routine account rows.
     // Still exact: a card added or lost is a change to what this screen is.
-    assert.equal(CARDS.length, 8, `Settings draws ${CARDS.length} cards; it should draw one per group and one for Delete account`);
+    assert.equal(CARDS.length, 7, `Settings draws ${CARDS.length} groups; it should draw one per group and one for Delete account`);
+
+    // The phone refusal is drawn inside the row the module answered for,
+    // beside whichever permission was tapped: since P2 the microphone and the
+    // notifications rows sit in different groups.
+    const phoneRow = SETTINGS.slice(SETTINGS.indexOf('phone.map('), SETTINGS.indexOf('const restoreRows'));
+    writtenBefore(phoneRow, 'phoneTrouble', '<SettingsRow', 'the phone refusal is not drawn above the row that was tapped');
+    assert.match(phoneRow, /phoneTroubleFor === permissionRow\.key/, 'the phone refusal is drawn beside both rows, whichever was tapped');
 
     for (const [line, control] of LINES) {
       const holding: string[] = CARDS.filter((card) => card.includes(line) && card.includes(control));
@@ -492,8 +477,8 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // voice-circle intro, which was a row on Profile, and the reminder's four
       // presets, which were a sheet on Profile (F576). Both take the screen for
       // the same reason the other four do.
-      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export', 'display'],
-      'the sheet union names something other than the six views that take the whole screen',
+      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export', 'display', 'name'],
+      'the sheet union names something other than the views this screen draws',
     );
     assert.ok(!SETTINGS.includes('unavailable'), 'the export refusal is a sheet again, which is where F489 started');
 
@@ -501,7 +486,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // there is no such thing as an open sheet the learner cannot see. That is
     // the fix by construction: a card drawn at the foot of a scroll could be
     // open and invisible, and an early return cannot.
-    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export' && m !== 'display')) {
+    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export' && m !== 'display' && m !== 'name')) {
       assert.ok(
         SETTINGS.includes(`if (sheet === '${member}')`),
         `the ${member} sheet is not an early return, so it can be open while the learner is looking at something else`,
@@ -525,7 +510,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // The reminder presets joined the delete confirmation with revamp A. It
       // is an ordinary `ScrollScreen` drawn by this file with no hook of its
       // own, so this screen's hook is the only thing that can close it.
-      ['reminderTime', 'delete', 'export', 'display'],
+      ['reminderTime', 'delete', 'export', 'display', 'name'],
       'the hardware back is answered for a sheet this screen does not draw in place, so a press is eaten',
     );
     // The four that stand it down are exactly the four that bring their own
