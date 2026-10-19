@@ -5,17 +5,28 @@ import { readOwnedCache } from '../storage/ownedRead.ts';
 import type { BillingStatus } from './billingStatus.ts';
 import type { PaidPlan } from './contract.ts';
 
-export interface PendingPurchase { plan: PaidPlan; productId: string; before: Pick<BillingStatus, 'plan' | 'periodEnd'> }
-interface Envelope { version: 1; purchase: PendingPurchase }
+/**
+ * `startedAt` is when the fence went up (ISO), null for a version 1 record written before it was kept.
+ * `deferred` marks a checkout the store is holding for approval (Ask to Buy), so the page says so after a reopen.
+ */
+export interface PendingPurchase {
+  plan: PaidPlan; productId: string; before: Pick<BillingStatus, 'plan' | 'periodEnd'>;
+  startedAt?: string | null; deferred?: true;
+}
+interface Envelope { version: 1 | 2; purchase: PendingPurchase }
+const isoTime = (value: unknown): boolean => typeof value === 'string' && Number.isFinite(Date.parse(value));
 function readable(value: unknown): value is Envelope {
   if (typeof value !== 'object' || value === null) return false;
   const row = value as Partial<Envelope>, purchase = row.purchase;
-  return row.version === 1 && purchase !== undefined &&
+  if (row.version !== 1 && row.version !== 2) return false;
+  return purchase !== undefined && purchase !== null &&
     (purchase.plan === 'starter' || purchase.plan === 'regular') &&
     typeof purchase.productId === 'string' && purchase.productId.length > 0 && purchase.productId.length <= 200 &&
     typeof purchase.before === 'object' && purchase.before !== null &&
     ['trial', 'starter', 'regular'].includes(purchase.before.plan) &&
-    (purchase.before.periodEnd === null || (typeof purchase.before.periodEnd === 'string' && Number.isFinite(Date.parse(purchase.before.periodEnd))));
+    (purchase.before.periodEnd === null || isoTime(purchase.before.periodEnd)) &&
+    (row.version === 1 ? purchase.startedAt === undefined : purchase.startedAt === null || isoTime(purchase.startedAt)) &&
+    (purchase.deferred === undefined || purchase.deferred === true);
 }
 let chain: Promise<unknown> = Promise.resolve();
 function serial<T>(work: (key: string, owner: number) => Promise<T>): Promise<T> {
@@ -24,15 +35,20 @@ function serial<T>(work: (key: string, owner: number) => Promise<T>): Promise<T>
   chain = next.catch(() => {}); return next;
 }
 async function read(key: string): Promise<PendingPurchase | null> {
-  return readOwnedCache(await AsyncStorage.getItem(key), readable)?.purchase ?? null;
+  const row = readOwnedCache(await AsyncStorage.getItem(key), readable);
+  if (row === null) return null;
+  return row.version === 1 ? { ...row.purchase, startedAt: null } : row.purchase;
 }
+const envelope = (purchase: PendingPurchase): Envelope => ({ version: 2, purchase });
 export function loadPendingPurchase(): Promise<PendingPurchase | null> { return read(userKey('pendingPurchase')); }
 /** An existing or unread record cannot be replaced by another checkout. */
 export function beginPendingPurchase(purchase: PendingPurchase): Promise<boolean> {
   return serial(async (key, owner) => {
-    if (!readable({ version: 1, purchase })) return false;
+    const { plan, productId, before } = purchase;
+    const fresh = envelope({ plan, productId, before, startedAt: new Date().toISOString() });
+    if (!readable(fresh)) return false;
     if (await read(key) !== null) return false;
-    await setItemInUserScope(owner, key, JSON.stringify({ version: 1, purchase }));
+    await setItemInUserScope(owner, key, JSON.stringify(fresh));
     return true;
   });
 }
@@ -45,7 +61,17 @@ export function clearPendingPurchase(expected: PendingPurchase): Promise<boolean
     return writeInUserScope(owner, () => AsyncStorage.removeItem(key));
   });
 }
-
+/** Mark the exact checkout as held by the store for approval. The fence itself does not move. */
+export function markPendingDeferred(expected: PendingPurchase): Promise<boolean> {
+  return serial(async (key, owner) => {
+    const current = await read(key);
+    if (current === null || current.productId !== expected.productId || current.plan !== expected.plan) return false;
+    const marked = envelope({ ...current, startedAt: current.startedAt ?? null, deferred: true });
+    if (!readable(marked)) return false;
+    await setItemInUserScope(owner, key, JSON.stringify(marked));
+    return true;
+  });
+}
 
 /** Existing same-tier access alone does not prove an interrupted checkout settled. */
 export function confirmsPendingPurchase(purchase: PendingPurchase, status: BillingStatus | null): boolean {
@@ -53,4 +79,19 @@ export function confirmsPendingPurchase(purchase: PendingPurchase, status: Billi
   if (purchase.before.plan !== purchase.plan) return true;
   if (purchase.before.periodEnd === null) return false;
   return Date.parse(status.periodEnd) > Date.parse(purchase.before.periodEnd);
+}
+
+/** What the store itself holds for this account, after `PurchasesAdapter.storeHolds`. Never a grant. */
+export type StoreHolding = 'active' | 'none' | 'unknown';
+
+/**
+ * Whether a checkout fence may come down. The fence exists to stop a second store transaction while an accepted one
+ * waits for the server, so it clears only when the server confirms, or the store shows there is no purchase to
+ * duplicate. An active store purchase the server has not granted waits; an unknown store answer never clears.
+ */
+export function resolvePendingCheckout(purchase: PendingPurchase, store: StoreHolding, server: BillingStatus | null): 'clear' | 'wait' | 'unknown' {
+  if (confirmsPendingPurchase(purchase, server)) return 'clear';
+  if (store === 'none') return 'clear';
+  if (store === 'active') return server !== null && !server.lapsed && server.plan === purchase.plan ? 'clear' : 'wait';
+  return 'unknown';
 }

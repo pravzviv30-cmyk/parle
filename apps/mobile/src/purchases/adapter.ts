@@ -18,6 +18,9 @@ export const purchases: PurchasesAdapter = {
   async trialFacts() {
     return null;
   },
+  async storeHolds() {
+    return 'unknown' as const;
+  },
   onStoreChange() {
     return () => {};
   },

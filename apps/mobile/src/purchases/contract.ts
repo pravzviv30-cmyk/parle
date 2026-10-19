@@ -124,6 +124,15 @@ export interface PurchasesAdapter {
    * the server's (`storeTrialFacts.ts`).
    */
   trialFacts(userId: string): Promise<StoreTrialFacts | null>;
+  /**
+   * Whether the store itself holds a Luvani purchase for this account, so a stuck
+   * checkout fence can come down when there is nothing to buy twice
+   * (`resolvePendingCheckout`). Read only and never a grant: minutes, plan and
+   * entitlement are the server's. `sync` asks the store to sync first, which may
+   * prompt for an Apple ID, so it is set only when the learner taps. Any doubt,
+   * error or account mismatch answers `unknown`, which never clears a fence.
+   */
+  storeHolds(userId: string, sync: boolean): Promise<'active' | 'none' | 'unknown'>;
   /** Called when the store reports new customer info. Returns the unsubscribe. */
   onStoreChange(listener: () => void): () => void;
 }
