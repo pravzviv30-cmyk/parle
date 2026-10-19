@@ -60,15 +60,15 @@ export function previewOffering(env: PreviewEnvironment = process.env): StoreOff
   return {
     available: true,
     products: [
-      { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Starter', localizedPrice: '£14.99', period: 'month', intro: null, introEligible: false },
-      { plan: 'regular', productId: 'luvani_regular_monthly_preview', title: 'Max', localizedPrice: '£24.99', period: 'month', intro: null, introEligible: false },
+      { plan: 'starter', productId: 'luvani_starter_monthly_preview', title: 'Starter', localizedPrice: '£14.99', price: 14.99, currencyCode: 'GBP', period: 'month', intro: PREVIEW_WEEK, introEligible: true },
+      { plan: 'regular', productId: 'luvani_regular_monthly_preview', title: 'Max', localizedPrice: '£24.99', price: 24.99, currencyCode: 'GBP', period: 'month', intro: PREVIEW_WEEK, introEligible: true },
     ],
     // The yearly products and a week's free trial (D16), so the page's yearly
     // rows and the trial timeline can be looked at too. Made up the same way:
     // the ids say preview, and no store has ever heard of them.
     yearly: [
-      { plan: 'starter', productId: 'luvani_starter_yearly_preview', title: 'Starter', localizedPrice: '£119.99', period: 'year', localizedPricePerMonth: '£10.00', intro: PREVIEW_WEEK, introEligible: true },
-      { plan: 'regular', productId: 'luvani_regular_yearly_preview', title: 'Max', localizedPrice: '£179.99', period: 'year', localizedPricePerMonth: '£15.00', intro: PREVIEW_WEEK, introEligible: true },
+      { plan: 'starter', productId: 'luvani_starter_yearly_preview', title: 'Starter', localizedPrice: '£119.99', price: 119.99, currencyCode: 'GBP', period: 'year', localizedPricePerMonth: '£10.00', intro: PREVIEW_WEEK, introEligible: true },
+      { plan: 'regular', productId: 'luvani_regular_yearly_preview', title: 'Max', localizedPrice: '£179.99', price: 179.99, currencyCode: 'GBP', period: 'year', localizedPricePerMonth: '£15.00', intro: PREVIEW_WEEK, introEligible: true },
     ],
   };
 }

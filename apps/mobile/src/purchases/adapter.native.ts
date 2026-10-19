@@ -97,15 +97,15 @@ async function paidPackages(userId: string): Promise<readonly { plan: PaidPlan; 
   for (const plan of configuredPlans()) {
     const id = PRODUCT_IDS[plan];
     const found = offering.availablePackages.find((candidate) => candidate.product.identifier === id);
-    // Approved plan copy is monthly. Unknown or incompatible periods are not
-    // offered or bought, even when a configured identifier matches.
-    if (found?.product.subscriptionPeriod === 'P1M' && found.product.introPrice == null) out.push({ plan, found });
+    // Both periods may carry a real free trial. Paid or incomplete introductory
+    // offers are withheld because this paywall does not describe their terms.
+    if (found?.product.subscriptionPeriod === 'P1M' && (found.product.introPrice == null || freeTrialOf(found) !== null)) out.push({ plan, found });
   }
   // A yearly id sells a one-year period and nothing else, by the same rule.
   for (const plan of configuredYearlyPlans()) {
     const id = YEARLY_PRODUCT_IDS[plan];
     const found = offering.availablePackages.find((candidate) => candidate.product.identifier === id);
-    if (found?.product.subscriptionPeriod === 'P1Y') out.push({ plan, found });
+    if (found?.product.subscriptionPeriod === 'P1Y' && (found.product.introPrice == null || freeTrialOf(found) !== null)) out.push({ plan, found });
   }
   if (WEEKLY_STARTER_PRODUCT) {
     const found = offering.availablePackages.find(candidate => candidate.product.identifier === WEEKLY_STARTER_PRODUCT);
@@ -128,6 +128,8 @@ function productOf(plan: PaidPlan, found: PurchasesPackage, eligible: ReadonlySe
     productId: found.product.identifier,
     title: found.product.title.trim() || found.product.identifier,
     localizedPrice: price,
+    ...(typeof found.product.price === 'number' && Number.isFinite(found.product.price) && found.product.price >= 0 ? { price: found.product.price } : {}),
+    ...(typeof found.product.currencyCode === 'string' && /^[A-Z]{3}$/.test(found.product.currencyCode) ? { currencyCode: found.product.currencyCode } : {}),
     period,
     localizedPricePerMonth: found.product.subscriptionPeriod === 'P1Y' ? found.product.pricePerMonthString?.trim() || null : null,
     intro,

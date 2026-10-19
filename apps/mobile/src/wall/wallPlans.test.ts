@@ -95,7 +95,18 @@ describe('every number comes off the wire', () => {
 
   test('the module carries no price and does no formatting of its own', () => {
     const module = code('./wallPlans.ts');
-    assert.doesNotMatch(module, /[$€£]/, 'a currency symbol reached the decision module');
+    // A regex end anchor is syntax, not a dollar price. Inspect string literals
+    // while preserving the ban on compiled currency amounts or symbols.
+    const currencyLiterals = (source: string) => (source.match(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g) ?? [])
+      .filter(literal => /[€£]|\$(?!\{)/.test(literal));
+    assert.deepEqual(currencyLiterals(module), [], 'a currency literal reached the decision module');
+    assert.deepEqual(currencyLiterals('const currency = /^[A-Z]{3}$/;'), [], 'regex syntax was read as a price');
+    for (const symbol of ['$', '€', '£']) {
+      for (const quote of ["'", '"', '`']) {
+        assert.equal(currencyLiterals(`const price = ${quote}${symbol}19.99${quote};`).length, 1, 'a compiled price escaped the source check');
+        assert.equal(currencyLiterals(`const symbol = ${quote}${symbol}${quote};`).length, 1, 'a compiled currency symbol escaped the source check');
+      }
+    }
     assert.doesNotMatch(module, /toFixed|toLocaleString|Intl\./, 'the module is formatting a number the store already formatted');
   });
 });
@@ -206,17 +217,15 @@ describe('plans read as conversations a week', () => {
 
 describe('the wall is a page of the notebook', () => {
   test('the plans are separate chosen and unchosen cards with no highlighter or recommendation', () => {
-    // 7 October 2026 (come alive, D16): each plan's ways to pay are the one
-    // shared choice, which fills blue with a check when chosen and is white
-    // with a hairline when not (components.tsx `Choice`), so the page keeps no
-    // press or chosen style of its own.
+    // The approved revision uses a compact period switch and retains the quiet
+    // tier comparison. Both still choose actual store offers without buying.
     const page = code('./WallPlansPage.tsx');
-    assert.equal((page.match(/rows\.filter\(row => row\.plan === visiblePlan\)\.map\(/g) ?? []).length, 1);
-    assert.match(page, /onSelect\(offer\); setComparing\(false\)/, 'the other plan remains reachable');
-    assert.equal((page.match(/row\.offers\.map\(/g) ?? []).length, 1);
-    assert.match(page, /<Choice\s+key=\{offer\.productId\}\s+role="radio"/);
-    assert.doesNotMatch(page, /<Press\b|<Pressable\b/, 'the plans page draws a press of its own beside the shared choice');
-    assert.doesNotMatch(page, /recommended|best value|most popular|markDot|<Highlight|shadow/);
+    const periods = code('./WallPeriodSwitch.tsx');
+    assert.match(page, /<WallPeriodSwitch offers=\{visibleRow\.offers\} name=\{visibleRow\.name\} selected=\{selected\} onSelect=\{onSelect\}/);
+    assert.match(page, /onSelect\(offer\); setComparing\(false\)/);
+    assert.match(page, /<Choice key=\{row.plan\} role="radio"/);
+    assert.match(periods, /onPress=\{\(\) => onSelect\(offer\)\}/);
+    assert.doesNotMatch(page + periods, /recommended|best value|most popular|markDot|<Highlight|shadow/);
   });
 
   test('the value page distinguishes what stays free from what a plan adds', () => {
@@ -227,16 +236,16 @@ describe('the wall is a page of the notebook', () => {
     assert.match(page, /YOURS_ROWS.map/);
     assert.match(page, /ADDS_ROWS.map/);
     assert.doesNotMatch(page, /st.ruled|borderBottomWidth/);
-    assert.match(screen, /ground=\{page === 'yours' \? colour.sun : paper.ground\}/);
+    assert.match(screen, /ground=\{colors\.background\}/);
   });
 
   test('each plan says its actual minutes once, and the price is the store\'s', () => {
     const page = code('./WallPlansPage.tsx');
     assert.doesNotMatch(page, /perWeekLine\(row\.perWeek\)/, 'the plan repeats its minutes as an estimated conversation count');
-    assert.match(page, /row\.minutes/, 'a plan does not say its minutes');
+    assert.match(page, /offerMinutes\(visibleRow, current\)/, 'a plan does not say its verified minutes');
     // 7 October 2026 (D16): each way to pay says the store's own price for its period.
-    assert.match(page, /yearlyPrice\(offer\.price, offer\.perMonth\)/, 'a yearly price is not the store\'s own string');
-    assert.match(page, /monthlyPrice\(offer\.price\)/, 'a monthly price is not the store\'s own string');
+    assert.match(page, /billedPrice\(current\.price, current\.period\)/, 'the selected billed amount is not the store\'s own string and period');
+    assert.match(page, /About \{current\.perMonth\} a month\. Billed yearly\./, 'the annual equivalent is not the store\'s own monthly string');
   });
 
   test('the renewal and the no-adverts line sit at the button', () => {
@@ -263,25 +272,18 @@ describe('the wall is a page of the notebook', () => {
 
 describe('a chosen plan says so to a screen reader', () => {
   test('the cards use the selected state this app already uses, not a radio', () => {
-    // 7 October 2026, come alive README Part 5.G (D16): the ways to pay are the
-    // one shared `Choice`, as a radio, which every option in the app now draws
-    // through. This said "not a radio" because of F522: the page's own radio
-    // said nothing on the web. `Choice` says its checked state on a device
-    // (`accessibilityState`) and on the web (`aria-checked`), so the chosen
-    // plan is still said both ways. The page itself writes no radio role or
-    // checked state of its own.
     const page = code('./WallPlansPage.tsx');
-    assert.match(page, /<Choice\s+key=\{offer\.productId\}\s+role="radio"/);
-    assert.match(page, /selected=\{offer\.productId === selected\}/);
-    const shared = readFileSync(fileURLToPath(new URL('../components.tsx', import.meta.url)), 'utf8');
-    const choice = shared.slice(shared.indexOf('export function Choice('), shared.indexOf('const ic = StyleSheet.create('));
-    assert.match(choice, /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, 'the shared choice does not say it is chosen on a device');
-    assert.match(choice, /aria-checked=\{radio \? selected : undefined\}/, 'the shared choice does not say it is chosen on the web');
-    assert.match(page, /accessibilityLabel=\{\[row\.name, period, price\]\.join\(', '\)\}/);
-    // The spoken price includes its billing period, because the price line always does.
-    assert.match(page, /const period = offer\.period === 'week' \? PLAN_WEEKLY : offer\.period === 'year' \? PLAN_YEARLY : PLAN_MONTHLY;/);
-    assert.match(page, /const price = offer\.period === 'week' \? billedPrice\(offer\.price, offer\.period\) : offer\.period === 'year' \? yearlyPrice\(offer\.price, offer\.perMonth\) : monthlyPrice\(offer\.price\);/);
-    assert.doesNotMatch(page, /accessibilityRole="radio"|checked:|markDot/);
+    const periods = code('./WallPeriodSwitch.tsx');
+    assert.match(page, /<WallPeriodSwitch offers=\{visibleRow\.offers\} name=\{visibleRow\.name\} selected=\{selected\} onSelect=\{onSelect\}/);
+    assert.match(periods, /<View accessibilityRole="radiogroup" accessibilityLabel="Billing period"/);
+    assert.match(periods, /<Press key=\{offer.productId\} haptic="selection" accessibilityRole="radio"/);
+    assert.match(periods, /const checked = offer.productId === selected;/);
+    assert.match(periods, /accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/);
+    assert.match(periods, /accessibilityLabel=\{\[name, period, billedPrice\(offer.price, offer.period\)\]\.join\(', '\)\}/);
+    assert.match(periods, /minHeight: HIT/);
+    assert.match(periods, /share: \{ flex: 1, minWidth: 0, minHeight: HIT \}/);
+    assert.doesNotMatch(periods, /numberOfLines|adjustsFontSizeToFit|aria-selected|aria-pressed/);
+    assert.match(page, /<Choice key=\{row.plan\} role="radio"/);
   });
 
   // 7 October 2026, P4-C review: the successor of the test above, whose pinned
@@ -289,22 +291,17 @@ describe('a chosen plan says so to a screen reader', () => {
   // integrator moves F607's verified-by here; the old title retires then.
   test('a chosen way to pay says it is checked on a device and on the web', () => {
     const page = code('./WallPlansPage.tsx');
-    // One radio group of the shared choice, each way to pay a radio of its own.
-    assert.match(page, /<View accessibilityRole="radiogroup"/);
-    assert.match(page, /<Choice\s+key=\{offer\.productId\}\s+role="radio"/);
-    assert.match(page, /selected=\{offer\.productId === selected\}/);
-    // The shared choice says checked on a device and on the web, and the page
-    // writes no role or state of its own beside it.
-    const shared = readFileSync(fileURLToPath(new URL('../components.tsx', import.meta.url)), 'utf8');
-    const choice = shared.slice(shared.indexOf('export function Choice('), shared.indexOf('const ic = StyleSheet.create('));
-    assert.match(choice, /accessibilityRole=\{role\}/);
-    assert.match(choice, /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, 'the shared choice does not say it is chosen on a device');
-    assert.match(choice, /aria-checked=\{radio \? selected : undefined\}/, 'the shared choice does not say it is chosen on the web');
-    assert.doesNotMatch(page, /accessibilityRole="radio"|accessibilityState=|aria-checked|aria-selected/);
-    // What a screen reader hears names the plan, how often, and the price with its period.
-    assert.match(page, /accessibilityLabel=\{\[row\.name, period, price\]\.join\(', '\)\}/);
-    assert.match(page, /const period = offer\.period === 'week' \? PLAN_WEEKLY : offer\.period === 'year' \? PLAN_YEARLY : PLAN_MONTHLY;/);
-    assert.match(page, /const price = offer\.period === 'week' \? billedPrice\(offer\.price, offer\.period\) : offer\.period === 'year' \? yearlyPrice\(offer\.price, offer\.perMonth\) : monthlyPrice\(offer\.price\);/);
+    const periods = code('./WallPeriodSwitch.tsx');
+    assert.match(page, /<WallPeriodSwitch offers=\{visibleRow\.offers\} name=\{visibleRow\.name\} selected=\{selected\} onSelect=\{onSelect\}/);
+    assert.match(periods, /<View accessibilityRole="radiogroup" accessibilityLabel="Billing period"/);
+    assert.match(periods, /<Press key=\{offer.productId\} haptic="selection" accessibilityRole="radio"/);
+    assert.match(periods, /const checked = offer.productId === selected;/);
+    assert.match(periods, /accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/);
+    assert.match(periods, /accessibilityLabel=\{\[name, period, billedPrice\(offer.price, offer.period\)\]\.join\(', '\)\}/);
+    assert.match(periods, /minHeight: HIT/);
+    assert.match(periods, /share: \{ flex: 1, minWidth: 0, minHeight: HIT \}/);
+    assert.doesNotMatch(periods, /numberOfLines|adjustsFontSizeToFit|aria-selected|aria-pressed/);
+    assert.match(page, /<Choice key=\{row.plan\} role="radio"/);
   });
 });
 
@@ -314,9 +311,9 @@ describe('a chosen plan says so to a screen reader', () => {
 describe('the plans page around its plans', () => {
   test('the documents and the restore are one row of icon actions, and the renewal covers a month and a year', () => {
     const page = code('./WallPlansPage.tsx');
-    assert.match(page, /<IconAction layout="inline" icon="privacy" label=\{PLANS_PRIVACY\} onPress=\{onOpenPolicy\} \/>/);
-    assert.match(page, /<IconAction layout="inline" icon="document" label=\{PLANS_TERMS\} onPress=\{onOpenTerms\} \/>/);
-    assert.match(page, /<IconAction layout="inline" icon="refresh" label=\{PLANS_RESTORE\} onPress=\{onRestore\} \/>/);
+    for (const [icon, label, handler] of [['privacy', 'PRIVACY', 'onOpenPolicy'], ['document', 'TERMS', 'onOpenTerms'], ['refresh', 'RESTORE', 'onRestore']]) {
+      assert.ok(page.includes(`<IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="${icon}" label={PLANS_${label}} onPress={${handler}} />`));
+    }
     assert.doesNotMatch(page, /<GhostButton label=\{PLANS_(PRIVACY|TERMS|RESTORE)\}/, 'a document is still a bare link beside the icon row');
     assert.match(PLANS_RENEWAL, /Renews automatically/);
     assert.match(page, /trialTerms !== null/);
@@ -334,7 +331,8 @@ describe('the plans page around its plans', () => {
     assert.equal(trialAllowance(30, 3), 'You start with 30 free minutes, about 3 conversations.');
     // Only the store trial's own lines say "free trial".
     const said = WALL_COPY.filter((line) => /free trial/i.test(line));
-    assert.deepEqual(said, [TRIAL_TITLE, SUCCESS_TRIAL]);
+    assert.equal(TRIAL_TITLE, 'How your trial works');
+    assert.deepEqual(said, [SUCCESS_TRIAL]);
   });
 });
 

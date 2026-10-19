@@ -114,7 +114,7 @@ export const YOURS_ROWS: readonly string[] = [
 export const ADDS_TITLE = 'With a plan';
 export const YOURS_FREE_TITLE = 'Always yours, free';
 export const ADDS_SITUATIONS = 'Every scene, again and again';
-export const ADDS_FREELY = 'Free conversation with your AI tutor';
+export const ADDS_FREELY = 'Open conversation with your tutor';
 export const ADDS_AGAIN = 'Return to any scene';
 export const ADDS_TIME = 'Fresh live minutes each month';
 
@@ -315,7 +315,7 @@ export function trialToday(plan: string): string {
 
 /** What the trial holds, in the server's minutes. Never a month. */
 export function trialMinutes(minutes: number): string {
-  return `During the trial: up to ${count(minutes, 'minute')} with your AI tutor.`;
+  return `During the trial: up to ${count(minutes, 'minute')} with your tutor.`;
 }
 
 /**
@@ -348,7 +348,11 @@ export function trialTerms(days: number, price: string, period: 'week' | 'month'
 }
 
 /** Above the timeline. */
-export const TRIAL_TITLE = 'How your free trial works';
+export const TRIAL_TITLE = 'How your trial works';
+/** Short overview above the period switch; complete renewal terms stay at the action. */
+export function trialIntroLine(days: number, price: string, period: 'week' | 'month' | 'year'): string {
+  return `${count(days, 'day')} free, then ${billedPrice(price, period)}.`;
+}
 /** The first node's title. */
 export const TRIAL_NOW = 'Today';
 

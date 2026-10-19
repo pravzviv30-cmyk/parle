@@ -104,7 +104,13 @@ const FILES: Record<string, string> = {
   // rule moved, and every FUNCTIONS pin is unchanged. 7 October 2026: the
   // independent P4-C review (Opus 5.5, read-only) accepted this adapter hash and
   // the contract's b98dcaa1... as display-only, which is the revenue sign-off.
-  'apps/mobile/src/purchases/adapter.native.ts': '7ef8e5140e1fe2304b4389269411a43902adcb7051ca34712113cbc2a792e9ad',
+  // 18 October 2026: user authorised seven-day monthly/yearly trials and genuine
+  // annual savings. profile_settings_scope independently accepted these exact
+  // adapter/contract bytes: valid free intros on both periods, SDK numeric facts,
+  // unchanged identity/readiness/revalidation and no paid-intro misdescription.
+  // Six new offer proofs plus existing purchase/readiness suites pass. Vendor
+  // setup and sandbox qualification remain separate release prerequisites.
+  'apps/mobile/src/purchases/adapter.native.ts': 'efa7a1916791daacb8d2eff00517b80e770fd67b368af1febfedb00fe7dccf82',
   'apps/mobile/src/purchases/pendingPurchase.ts': '5505b704a504b97acdc2e2c0daafc753f2c99fe3cb285d42c01ee7562721b278',
   // 3 October 2026: final whitespace cleanup removed one extra EOF blank line.
   // Appending exactly one newline reconstructs the previous 653fc97ff413... pin;
@@ -114,12 +120,16 @@ const FILES: Record<string, string> = {
   // review asked the `localizedPricePerMonth` doc to say RevenueCat divides the
   // yearly price by twelve on the device rather than "the store works it out".
   // `git diff` against the accepted b98dcaa1... shows only that doc comment.
-  'apps/mobile/src/purchases/contract.ts': 'd8e6d02551b5a393cc65e769a1da62edf2fcafef4c46643a2bcb3ef899406380',
+  'apps/mobile/src/purchases/contract.ts': '30fe86835902c96ea85b0110a94239156a5bc30dbb78def0b0ec7fded83b9be2',
   'apps/mobile/src/purchases/restore.ts': '1cdf072728da4a6cd342ebe2eb7c1f98781890a45870ab722f3dd2ce726b19e0',
   // 7 October 2026: authorized completion adds account-scoped invalidation after
   // validated billing refresh (F783); listeners re-read server authority. No grant
   // or pricing rule changes here. billingChanges.test.ts covers the boundary.
-  'apps/mobile/src/purchases/client.ts': 'a5471c6e16c43da707e3be433151aa38134633a12090165759a57e4a8326e837',
+  // 18 October 2026: paywall_scope independently accepted this exact bounded
+  // status-read hash and reconstructed the previous hash by removing only the
+  // five-second abort signal. Executed timeout proof returns unread, never a
+  // guessed plan; authenticated POST and payload are unchanged.
+  'apps/mobile/src/purchases/client.ts': '8ba9d565b58d0cac90cbb7e5a533f94aa88a703e0b5e98b0e9a2d6c440369c8a',
   // 2026-09-27: comment-only change (the F541 wall carve-out); `git diff` shows no code line moved.
   'apps/mobile/src/purchases/billingStatus.ts': '188b49983524e85464e01c6d18e9066d5cd2ebd4d4f0e1d721295e3ed28844f1',
   // 7 October 2026, F734 (come-alive Phase 4, ca/p4-wall): INCLUSIONS gains the

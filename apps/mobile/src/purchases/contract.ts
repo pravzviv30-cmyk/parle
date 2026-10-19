@@ -38,6 +38,10 @@ export interface StoreProduct {
   productId: string;
   title: string;
   localizedPrice: string;
+  /** SDK price for this billing period, used only for a same-currency comparison. */
+  price?: number;
+  /** SDK ISO currency code. Never inferred from the localized price string. */
+  currencyCode?: string;
   /**
    * How often the store bills it, read from the store's own subscription
    * period and never assumed from an id. A product whose period is not exactly

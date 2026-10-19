@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { colour, paper, space, type } from '../theme.ts';
 
 import { useAuth } from '../auth/useAuth.tsx';
@@ -65,6 +66,7 @@ export function WallScreen({
   onOpenPractice,
   onOpenPolicy,
   onOpenTerms,
+  startSpeakingLabel = 'Start speaking',
 }: {
   entry: WallEntry;
   onLeave: () => void;
@@ -73,8 +75,9 @@ export function WallScreen({
   onOpenBank: () => void;
   onOpenPolicy: () => void;
   onOpenTerms: () => void;
+  startSpeakingLabel?: string;
 }) {
-  const { user } = useAuth();
+  const { user } = useAuth(); const { colors, mode } = useMainAppearance();
   const wallOwner = useRef({ generation: scopeGeneration(), userId: user?.id ?? null }).current;
   const ownsWall = wallOwner.generation === scopeGeneration() && wallOwner.userId === (user?.id ?? null);
   // The chosen way to pay, by store product id: a plan is bought yearly or
@@ -416,7 +419,7 @@ export function WallScreen({
   if (success !== null && !holding) {
     return (
       <ScrollScreen ground={colour.mint} bottom="inset" header={<ScreenHeader back={{ onPress: () => leave() }} title="Your plan is ready" />}
-        footer={<PillButton label="Start speaking" onPress={() => leave('speak')} />}>
+        footer={<PillButton label={startSpeakingLabel} onPress={() => leave('speak')} />}>
         <Text style={[type.title, { color: paper.ink }]}>{success.name}</Text>
         <HeroNumber value={String(success.minutes)} unit="minutes" ground="mint" />
         <Text style={[type.body, { color: paper.ink }]}>{successLine(success)}</Text>
@@ -495,13 +498,15 @@ export function WallScreen({
   function plansScreen() {
     return (
       <ScrollScreen
-        ground={page === 'yours' ? colour.sun : paper.ground}
+        ground={colors.background}
+        topGap={0}
         bottom="inset"
-        header={<ScreenHeader leave={{ label: WALL_LEAVE, onPress: () => leave() }} title={<ProgressDots total={pages.length} index={index} />} />}
+        header={<ScreenHeader ink={colors.text} muted={colors.muted} leave={{ label: WALL_LEAVE, onPress: () => leave() }} title={pages.length > 1 ? <ProgressDots ground={mode === 'dark' ? 'blue' : 'paper'} total={pages.length} index={index} /> : 'Luvani'} />}
         footer={
           <View>
             <PillButton
               label={label}
+              tone="brand"
               // While it answers its own purchase the pill keeps its fill and
               // waits in place (`state`); any other wait (a restore) is the
               // quiet off pill it always was. Nothing to buy until a way to pay
@@ -535,7 +540,7 @@ export function WallScreen({
           />
         )}
         {message !== null && (
-          <Text accessibilityLiveRegion="polite" style={{ ...type.small, color: paper.ink, marginTop: space(4), textAlign: 'center' }}>
+          <Text accessibilityLiveRegion="polite" style={{ ...type.small, color: colors.text, marginTop: space(4), textAlign: 'center' }}>
             {message}
           </Text>
         )}

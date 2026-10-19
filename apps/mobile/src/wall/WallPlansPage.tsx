@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 
+import { MainIllustration } from '../illustrations/MainIllustration.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { mainArtColours } from '../palette.ts';
 import { Choice, IconAction, Label, Sheet } from '../components.tsx';
 import { Icon, type IconName } from '../icons/Icon.tsx';
 import { readingColumn } from '../layout.tsx';
@@ -18,15 +22,11 @@ import {
   PLANS_TERMS,
   PLANS_TITLE,
   PLANS_TRUST,
-  PLAN_MONTHLY,
-  PLAN_WEEKLY,
-  PLAN_YEARLY,
   billedPrice,
   minutesAMonth,
-  monthlyPrice,
-  payDetail,
-  yearlyPrice,
+  trialIntroLine,
 } from './wallCopy.ts';
+import { WallPeriodSwitch } from './WallPeriodSwitch.tsx';
 import type { WallAccount } from './wallAccount.ts';
 import { chosenOffer, offerForTier, offerMinutes, type WallPlanOffer, type WallPlanRow } from './wallPlans.ts';
 import type { TrialNodeKey, TrialTimelineView } from './trialTimeline.ts';
@@ -69,75 +69,50 @@ export function WallPlansPage({
   onOpenTerms: () => void;
   onLeave: () => void;
 }) {
+  const { colors, mode } = useMainAppearance(); const st = usePlanStyles();
+  const focused = useIsFocused(); const { width, fontScale } = useWindowDimensions();
+  const tablet = width >= 768;
+  const artWidth = tablet ? 300 : width < 390 || fontScale >= 1.5 ? 220 : 240;
   const [comparing, setComparing] = useState(false);
-  const [trialDetails, setTrialDetails] = useState(false);
   const current = chosenOffer(rows, selected);
   const visiblePlan = rows.find(row => row.offers.some(offer => offer.productId === selected))?.plan ?? rows[0]?.plan;
+  const visibleRow = rows.find(row => row.plan === visiblePlan);
   return (
     <View style={readingColumn}>
-      <Text accessibilityRole="header" style={st.title}>{PLANS_TITLE}</Text>
-
-
-      <View accessibilityRole="radiogroup" style={st.plans}>
-        {rows.filter(row => row.plan === visiblePlan).map((row) => (
-          <View key={row.plan} style={st.plan}>
-            <View style={st.planHeading}>
-              <Text accessibilityRole="header" style={st.name}>{row.name}</Text>
-              {rows.length > 1 && <IconAction layout="inline" icon="chat" label={PLANS_COMPARE} onPress={() => setComparing(true)} />}
-            </View>
-            {/* The minutes are absent rather than guessed when
-                the server has not sent a catalogue. A count invented on the
-                phone is the one number here that could disagree with the meter. */}
-            {offerMinutes(row, current) !== null && <View style={st.allowance}><Text style={st.stat}>{offerMinutes(row, current)}</Text><Text style={st.minutes}>{current?.period === 'week' ? 'AI tutor minutes every 7 days' : 'AI tutor minutes per month'}</Text></View>}
-            <View style={st.offers}>
-              {row.offers.map((offer) => {
-                const period = offer.period === 'week' ? PLAN_WEEKLY : offer.period === 'year' ? PLAN_YEARLY : PLAN_MONTHLY;
-                const price = offer.period === 'week' ? billedPrice(offer.price, offer.period) : offer.period === 'year' ? yearlyPrice(offer.price, offer.perMonth) : monthlyPrice(offer.price);
-                // The billed amount is the choice's title, so it is the most
-                // prominent price on the row; how often, and the store's
-                // monthly figure for a yearly product, sit under it, smaller
-                // (Apple Guideline 3.1.2).
-                const billed = billedPrice(offer.price, offer.period);
-                return (
-                  <Choice
-                    key={offer.productId}
-                    role="radio"
-                    compact
-                    outlined
-                    title={`${period} · ${offer.price}`}
-                    detail={`${offer.period === 'week' ? 'Every 7 days' : offer.period === 'year' ? 'Billed yearly' : 'Billed monthly'} · ${offerMinutes(row, offer) ?? 'Live'} minutes${offer.period === 'year' ? ' / month' : ''}`}
-                    selected={offer.productId === selected}
-                    onPress={() => onSelect(offer)}
-                    // The plan's name rides with the period and the price, so a
-                    // screen reader that lands on a choice hears whose it is.
-                    accessibilityLabel={[row.name, period, price].join(', ')}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        ))}
+      <View style={st.hero}>
+        <View style={st.art}><MainIllustration motif="plans" theme={mode} width={artWidth} active={focused}/></View>
+        <Text accessibilityRole="header" style={[st.title, !tablet && st.phoneTitle]}>{trial?.title ?? PLANS_TITLE}</Text>
+        {trial !== null && current !== null && <Text style={st.terms}>{trialIntroLine(trial.days, current.price, current.period)}</Text>}
+        {trial === null && current !== null && <Text style={st.terms}>{billedPrice(current.price, current.period)}</Text>}
       </View>
-
-      <Text style={st.saved}>Saved French stays yours. Minutes don’t roll over.</Text>
-      {visiblePlan === 'regular' && <Text style={st.perkLine}>{INCLUSIONS.maxCompact}</Text>}
-      {trial !== null && <View style={st.trialSummary}>
-        {trial.nodes.filter(node => node.key === 'during').map(node => <Text key={node.key} style={st.nodeLine}>{node.line}</Text>)}
-        <IconAction layout="inline" icon="calendar" label={trial.title} onPress={() => setTrialDetails(true)} />
+      {visibleRow !== undefined && <View style={st.plans}>
+        <WallPeriodSwitch offers={visibleRow.offers} name={visibleRow.name} selected={selected} onSelect={onSelect}/>
+        {current?.period === 'year' && current.perMonth !== null && <Text style={st.equivalent}>About {current.perMonth} a month. Billed yearly.</Text>}
+        {current?.annualSavingsPercent != null && <Text style={st.saving}>Save {current.annualSavingsPercent}% compared with monthly</Text>}
+        <View style={st.planHeading}><Text style={st.name}>{visibleRow.name}</Text>
+          {rows.length > 1 && <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="chat" label={PLANS_COMPARE} onPress={() => setComparing(true)} />}
+        </View>
       </View>}
-
+      {trial !== null && <View style={st.trialSummary}>
+        <TrialTimeline view={trial} />
+      </View>}
+      {visibleRow !== undefined && <View style={st.included}>
+        {offerMinutes(visibleRow, current) !== null && <Text style={st.allowance}>{offerMinutes(visibleRow, current)} {current?.period === 'week' ? 'tutor minutes every 7 days' : 'tutor minutes per month'}. Full conversation collections included.</Text>}
+        {visiblePlan === 'regular' && <Text style={st.perkLine}>{INCLUSIONS.maxCompact}</Text>}
+        <Text style={st.saved}>Saved French stays yours. Minutes don’t roll over.</Text>
+      </View>}
       {/* The documents and the restore Apple asks for, one wrapping row. */}
       <View style={st.links}>
-        <IconAction layout="inline" icon="privacy" label={PLANS_PRIVACY} onPress={onOpenPolicy} />
-        <IconAction layout="inline" icon="document" label={PLANS_TERMS} onPress={onOpenTerms} />
-        <IconAction layout="inline" icon="refresh" label={PLANS_RESTORE} onPress={onRestore} />
+        <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="privacy" label={PLANS_PRIVACY} onPress={onOpenPolicy} />
+        <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="document" label={PLANS_TERMS} onPress={onOpenTerms} />
+        <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="refresh" label={PLANS_RESTORE} onPress={onRestore} />
       </View>
-      <Sheet visible={comparing} title={PLANS_COMPARE} onClose={() => setComparing(false)}>
+      <Sheet surface={colors.surface} ink={colors.text} visible={comparing} title={PLANS_COMPARE} onClose={() => setComparing(false)}>
       {/* What the learner already holds, only when the server said so. A still
           line read once, never a count that ticks. */}
       {account !== null && (
         <View style={st.account}>
-          <Label>{ACCOUNT_LABEL}</Label>
+          <Label color={colors.muted}>{ACCOUNT_LABEL}</Label>
           <Text style={st.accountTitle}>{account.title}</Text>
           {account.lines.map((line) => (
             <Text key={line} style={st.accountLine}>{line}</Text>
@@ -161,9 +136,7 @@ export function WallPlansPage({
           })}
         </View>
       </Sheet>
-      <Sheet visible={trialDetails && trial !== null} title={trial?.title ?? ''} onClose={() => setTrialDetails(false)}>
-        {trial !== null && <TrialTimeline view={trial} />}
-      </Sheet>
+
     </View>
   );
 }
@@ -182,17 +155,25 @@ const NODE_ICONS: Record<TrialNodeKey, IconName> = {
  * lines are `trialTimeline.ts`'s. The rows arrive one after another once, and
  * land at rest under Reduce Motion.
  */
+function trialTimelineRows(view: TrialTimelineView) {
+  const during = view.nodes.find(node => node.key === 'during');
+  return view.nodes.filter(node => node.key !== 'during').map(node =>
+    node.key === 'today' && during ? { ...node, line: `${node.line} ${during.line}` } : node);
+}
+
 function TrialTimeline({ view }: { view: TrialTimelineView }) {
+  const { colors } = useMainAppearance(); const st = usePlanStyles();
+  const rows = trialTimelineRows(view);
   return (
     <View style={st.trial}>
       <StaggerIn step={STAGGER.base}>
-        {view.nodes.map((node, index) => (
+        {rows.map((node, index) => (
           <View key={node.key} style={st.node}>
             <View style={st.rail} {...decorative}>
               <View style={st.disc}>
-                <Icon name={NODE_ICONS[node.key]} size={20} color={paper.ink} />
+                <Icon name={NODE_ICONS[node.key]} size={22} color={paper.ink} />
               </View>
-              {index < view.nodes.length - 1 && <View style={st.connector} />}
+              {index < rows.length - 1 && <View style={st.connector} />}
             </View>
             <View style={st.nodeWords}>
               {node.title !== null && <Text style={st.nodeTitle}>{node.title}</Text>}
@@ -217,6 +198,7 @@ function TrialTimeline({ view }: { view: TrialTimelineView }) {
  * are (Apple Guideline 3.1.2, held by `trialTimeline.test.ts`).
  */
 export function WallPlansAtButton({ trialTerms = null, priceTerms = null }: { trialTerms?: string | null; priceTerms?: string | null }) {
+  const st = usePlanStyles();
   return (
     <View style={st.atButton}>
       {trialTerms !== null && <Text style={st.terms}>{trialTerms} {PLANS_RENEWAL}</Text>}
@@ -226,35 +208,43 @@ export function WallPlansAtButton({ trialTerms = null, priceTerms = null }: { tr
   );
 }
 
-const DISC = space(7);
+const DISC = space(11);
 
 const st = StyleSheet.create({
-  title: { ...type.title, color: paper.ink },
-  allowance: { padding: space(4), borderRadius: radius.feature, backgroundColor: colour.sun, gap: space(1), marginTop: space(2) },
+  hero: { alignItems: 'center', gap: space(3) },
+  art: { alignSelf: 'stretch', alignItems: 'center', backgroundColor: colour.sun, borderRadius: radius.feature, paddingVertical: space(1), marginBottom: space(2) },
+  title: { ...type.mainDisplay, color: paper.ink, textAlign: 'center' },
+  phoneTitle: { ...type.title, color: paper.ink, textAlign: 'center' },
+  allowance: { ...type.body, color: paper.ink, marginTop: space(2) },
+  equivalent: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
   stat: { ...type.stat, color: paper.ink },
   saved: { ...type.small, color: paper.ink, marginTop: space(2) },
   shared: { ...type.body, color: paper.ink, marginTop: space(2) },
   comparison: { gap: space(3), marginTop: space(4) },
-  planHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space(2) },
-  trialSummary: { gap: space(1), marginTop: space(3) },
+  planHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space(2), marginTop: space(3) },
+  trialSummary: { marginTop: space(8) },
+  included: { gap: space(2), marginTop: space(5) },
   account: { marginTop: space(5) },
   accountTitle: { ...type.heading, color: paper.ink, marginTop: space(1) },
   accountLine: { ...type.body, color: paper.ink, marginTop: space(1) },
-  plans: { marginTop: space(3), gap: space(3) },
+  plans: { marginTop: space(5), gap: space(2) },
   plan: { gap: space(1) },
   name: { ...type.label, color: paper.ink },
   minutes: { ...type.label, color: paper.ink },
-  offers: { marginTop: space(2), gap: space(2) },
+  offers: { marginTop: space(2), gap: space(2), flexDirection: 'row' },
+  offersStack: { flexDirection: 'column' },
+  offerChoice: { flex: 1, minWidth: 0, gap: space(2) },
+  saving: { ...type.label, color: paper.ink, textAlign: 'center' },
   perk: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(3) },
   perkLine: { ...type.body, color: paper.ink, flex: 1, minWidth: 0 },
-  trial: { marginTop: space(3) },
+  trial: { marginTop: space(1) },
   // Every word of the trial is drawn no larger than its terms at the button,
   // which carry the billed amount (Apple Guideline 3.1.2).
-  node: { flexDirection: 'row', gap: space(3) },
+  node: { flexDirection: 'row', gap: space(5) },
   rail: { alignItems: 'center' },
-  disc: { width: space(7), height: space(7), borderRadius: DISC / 2, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
-  connector: { flex: 1, minHeight: space(3), borderLeftWidth: 2, borderLeftColor: paper.field },
-  nodeWords: { flex: 1, minWidth: 0, paddingBottom: space(2), gap: space(0.5) },
+  disc: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: colour.sun, alignItems: 'center', justifyContent: 'center' },
+  connector: { flex: 1, minHeight: space(7), borderLeftWidth: 3, borderLeftColor: paper.field },
+  nodeWords: { flex: 1, minWidth: 0, paddingTop: space(2), paddingBottom: space(6), gap: space(1) },
   nodeTitle: { ...type.bodyStrong, color: paper.ink },
   nodeLine: { ...type.small, color: paper.ink },
   decline: { marginTop: space(2), alignItems: 'center' },
@@ -263,3 +253,14 @@ const st = StyleSheet.create({
   small: { ...type.small, color: paper.inkSoft, textAlign: 'center' },
   terms: { ...type.bodyStrong, color: paper.ink, textAlign: 'center' },
 });
+
+/** The same hierarchy in M2/M3, without altering store or entitlement facts. */
+function usePlanStyles() {
+  const { colors, mode } = useMainAppearance();
+  return useMemo(() => Object.fromEntries(Object.entries(st).map(([key, style]) => [key, {
+    ...style,
+    ...('color' in style ? { color: style.color === paper.inkSoft ? colors.muted : colors.text } : {}),
+    ...('backgroundColor' in style ? { backgroundColor: style.backgroundColor === colour.sun ? key === 'disc' ? mainArtColours[mode].gold : colors.ochre : colors.surface } : {}),
+    ...('borderLeftColor' in style ? { borderLeftColor: colors.border } : {}),
+  }])) as typeof st, [colors, mode]);
+}
