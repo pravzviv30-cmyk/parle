@@ -116,6 +116,19 @@ test('a newer stated level beats an older remote level in both directions, keepi
   assert.deepEqual(merge(busy, fresh), merge(fresh, busy));
 });
 
+test("a stated level edit on one device keeps the other device's confidence and focus", () => {
+  // The older install's Settings edit: a newer level, confidence and focus never asked, on the busier phone.
+  const older = structuredClone(profile(100));
+  older.practicePreferences = { level: 'zero', confidence: null, focus: null };
+  const edited = edit(older, 'statedLevel', 'getby', 2);
+  const onboarded = edit(profile(), 'statedLevel', 'few', 1);
+  onboarded.practicePreferences = { level: 'few', confidence: 'trying', focus: 'listening' };
+  for (const result of [merge(edited, onboarded), merge(onboarded, edited)]) {
+    assert.deepEqual(result.practicePreferences, { level: 'getby', confidence: 'trying', focus: 'listening' });
+  }
+  assert.deepEqual(merge(edited, onboarded), merge(onboarded, edited));
+});
+
 test('a stated level still beats a remote copy that never answered, clocked or not', () => {
   const unanswered = profile(100);
   delete (unanswered as Record<string, unknown>).practicePreferences;

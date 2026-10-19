@@ -78,7 +78,9 @@
  * User settings now have a separate causal rule when an exact-value-bound
  * `preferenceClocks` entry is present: daily goal, voice, typing, name,
  * username, strictness, pace and the stated level (`practicePreferences.level`)
- * join by counter, mutation ID, then value.
+ * join by counter, mutation ID, then value. The stated level's clock moves only
+ * `level`, on top of `practicePreferences` already merged per sub-answer, so
+ * confidence and focus keep the answer rule.
  * Null/default choices can therefore undo previous choices. Clocks never
  * govern age, DOB, device stops, account ownership or learning evidence. In
  * clock-aware merges these settings are omitted from the evidence tie key so
@@ -164,8 +166,10 @@ export const PROFILE_ANSWER_FIELDS = [
   'practiceDaysPerWeek',
   'onboardingGoal',
   'onboardingDrink',
-  // Explicit onboarding support choices, independent of earned CEFR. A busy
-  // legacy device that never asked cannot erase another device's real answer.
+  // Explicit onboarding support choices, independent of earned CEFR. Merged
+  // per sub-answer (`pickPracticePreferences`), so a busy legacy device that
+  // never asked one of level, confidence or focus cannot erase another
+  // device's real answer to it.
   'practicePreferences',
   'username',
   // Which catalogue voice the learner asked their tutor to speak with, as the
@@ -494,20 +498,41 @@ function finish(side: Side, deps: ProfileMergeDeps): MergedStoredProfile {
 }
 
 /**
- * One answered question, from whichever side actually answered it.
- *
- * `cmp` is the evidence comparison of the two sides, already computed. When
- * both answered and the evidence is dead even, the value itself decides, so
- * that two devices with identical histories still agree.
+ * The answer rule over two raw values: a null loses from either side, `cmp`
+ * (the evidence comparison, already computed) decides a real-versus-real
+ * conflict, and a dead-even tie goes to the value itself, so that two devices
+ * with identical histories still agree.
  */
+function pickValue(av: unknown, bv: unknown, cmp: number): unknown {
+  const a = av ?? null;
+  const b = bv ?? null;
+  if (a === null) return b;
+  if (b === null) return a;
+  if (cmp > 0) return a;
+  if (cmp < 0) return b;
+  return compareStrings(canonical(a), canonical(b)) >= 0 ? a : b;
+}
+
+/** One answered question, from whichever side actually answered it. */
 function pickAnswer(field: string, a: Side, b: Side, cmp: number): unknown {
-  const av = a.outer[field] ?? null;
-  const bv = b.outer[field] ?? null;
-  if (av === null) return bv;
-  if (bv === null) return av;
-  if (cmp > 0) return av;
-  if (cmp < 0) return bv;
-  return compareStrings(canonical(av), canonical(bv)) >= 0 ? av : bv;
+  return pickValue(a.outer[field], b.outer[field], cmp);
+}
+
+const PRACTICE_PREFERENCE_KEYS = ['level', 'confidence', 'focus'] as const;
+
+/**
+ * `practicePreferences` is three independent answers, so each one follows the
+ * answer rule on its own: a partial object from a heavier device (an older
+ * install's Settings level edit writes confidence and focus as null) cannot
+ * erase another device's real confidence or focus. Only the three known keys
+ * survive, and all three unanswered is "never asked", which is null.
+ */
+function pickPracticePreferences(a: Side, b: Side, cmp: number): unknown {
+  const av = isRecord(a.outer.practicePreferences) ? a.outer.practicePreferences : {};
+  const bv = isRecord(b.outer.practicePreferences) ? b.outer.practicePreferences : {};
+  const merged: Record<string, unknown> = {};
+  for (const key of PRACTICE_PREFERENCE_KEYS) merged[key] = pickValue(av[key], bv[key], cmp);
+  return PRACTICE_PREFERENCE_KEYS.every((key) => merged[key] === null) ? null : merged;
 }
 
 /**
@@ -575,7 +600,7 @@ export function mergeStoredProfiles(
   }
   for (const field of PROFILE_ANSWER_FIELDS) {
     if (!(field in sa.outer) && !(field in sb.outer)) continue;
-    outer[field] = pickAnswer(field, sa, sb, cmp);
+    outer[field] = field === 'practicePreferences' ? pickPracticePreferences(sa, sb, cmp) : pickAnswer(field, sa, sb, cmp);
   }
   for (const field of PROFILE_UNION_FIELDS) {
     outer[field] = unionStrings(sa.outer[field], sb.outer[field]);
