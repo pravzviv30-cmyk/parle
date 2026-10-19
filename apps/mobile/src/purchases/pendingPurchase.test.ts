@@ -67,8 +67,8 @@ test('a declined or expired Ask to Buy request can be cleared once the store hol
   const record = (await loadPendingPurchase())!;
   assert.equal(record.deferred, true);
   // The server still shows the trial and could not be read at all: the store's "none" alone clears.
-  assert.equal(resolvePendingCheckout(record, 'none', server('trial', null)), 'clear');
-  assert.equal(resolvePendingCheckout(record, 'none', null), 'clear');
+  assert.equal(resolvePendingCheckout(record, 'none', server('trial', null), 'start-again'), 'clear');
+  assert.equal(resolvePendingCheckout(record, 'none', null, 'start-again'), 'clear');
   assert.equal(await clearPendingPurchase(record), true);
   assert.equal(await loadPendingPurchase(), null);
   assert.equal(await beginPendingPurchase(checkout), true, 'a cleared fence still blocks buying');
@@ -76,24 +76,24 @@ test('a declined or expired Ask to Buy request can be cleared once the store hol
 
 test('a stuck checkout never clears while the store shows the purchase as active and the server has not granted it', () => {
   const record = { ...checkout, startedAt: '2026-10-19T00:00:00Z' };
-  assert.equal(resolvePendingCheckout(record, 'active', null), 'wait');
-  assert.equal(resolvePendingCheckout(record, 'active', server('trial', null)), 'wait');
-  assert.equal(resolvePendingCheckout(record, 'active', server('starter', '2026-12-01T00:00:00Z')), 'wait');
-  assert.equal(resolvePendingCheckout(record, 'active', server('regular', '2026-12-01T00:00:00Z', true)), 'wait');
+  assert.equal(resolvePendingCheckout(record, 'active', null, 'start-again'), 'wait');
+  assert.equal(resolvePendingCheckout(record, 'active', server('trial', null), 'start-again'), 'wait');
+  assert.equal(resolvePendingCheckout(record, 'active', server('starter', '2026-12-01T00:00:00Z'), 'start-again'), 'wait');
+  assert.equal(resolvePendingCheckout(record, 'active', server('regular', '2026-12-01T00:00:00Z', true), 'start-again'), 'wait');
   // Store proof plus the server's grant of the same plan clears, even same-tier with no prior period end.
   const sameTier = { ...record, before: { plan: 'regular', periodEnd: null } } as const;
   assert.equal(confirmsPendingPurchase(sameTier, server('regular', '2026-12-01T00:00:00Z')), false);
-  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z')), 'clear');
+  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z'), 'start-again'), 'clear');
 });
 
 test('an unknown store answer never clears the checkout', () => {
   const record = { ...checkout, startedAt: null, deferred: true } as const;
-  assert.equal(resolvePendingCheckout(record, 'unknown', null), 'unknown');
-  assert.equal(resolvePendingCheckout(record, 'unknown', server('trial', null)), 'unknown');
-  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', null)), 'unknown');
-  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', '2026-12-01T00:00:00Z', true)), 'unknown');
+  assert.equal(resolvePendingCheckout(record, 'unknown', null, 'start-again'), 'unknown');
+  assert.equal(resolvePendingCheckout(record, 'unknown', server('trial', null), 'start-again'), 'unknown');
+  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', null), 'start-again'), 'unknown');
+  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', '2026-12-01T00:00:00Z', true), 'start-again'), 'unknown');
   // Only the server's own confirmation clears without the store, as before.
-  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', '2026-12-01T00:00:00Z')), 'clear');
+  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', '2026-12-01T00:00:00Z'), 'start-again'), 'clear');
 });
 
 test('a version 1 pending record still loads and still fences', async () => {
@@ -117,10 +117,37 @@ test('the waiting for approval notice survives a reopen and a check again', asyn
   const reopened = (await loadPendingPurchase())!;
   const notice = pendingCheckoutNotice(reopened.deferred === true);
   assert.equal(notice?.title, 'Waiting for approval');
-  assert.equal(notice?.body, 'Someone who manages purchases on this account needs to approve it. If it was declined, you can start again.');
+  assert.equal(notice?.body, 'Someone who manages purchases on this account needs to approve it. If they declined, tap Start again.');
   assert.doesNotMatch(`${notice?.title} ${notice?.body}`, /\u2014/);
   assert.equal(pendingCheckoutNotice.length, 1, 'the notice still reads a screen message');
   assert.equal(pendingCheckoutNotice(false), null);
   const screen = readFileSync(new URL('../wall/WallScreen.tsx', import.meta.url), 'utf8');
   assert.match(screen, /pendingCheckoutNotice\(pendingPurchase\.deferred === true\)/);
+});
+
+test('reopening the wall never clears a still pending Ask to Buy', async () => {
+  assert.equal(await beginPendingPurchase(checkout), true);
+  assert.equal(await markPendingDeferred(checkout), true);
+  const record = (await loadPendingPurchase())!;
+  for (const store of ['none', 'unknown'] as const) {
+    for (const answer of [null, server('trial', null), server('starter', '2026-12-01T00:00:00Z')]) {
+      assert.notEqual(resolvePendingCheckout(record, store, answer, 'open'), 'clear');
+    }
+  }
+  assert.equal(pendingCheckoutNotice((await loadPendingPurchase())?.deferred === true)?.title, 'Waiting for approval');
+  const screen = readFileSync(new URL('../wall/WallScreen.tsx', import.meta.url), 'utf8');
+  assert.match(screen, /resolvePendingCheckout\(pending, store, server, 'open'\)/);
+  assert.doesNotMatch(screen, /resolvePendingCheckout\(pending, store, server, 'start-again'\)/);
+});
+
+test('the quiet check on open never clears on an empty store answer', () => {
+  const record = { ...checkout, startedAt: '2026-10-19T00:00:00Z' };
+  assert.equal(resolvePendingCheckout(record, 'none', null, 'open'), 'wait');
+  assert.equal(resolvePendingCheckout(record, 'none', server('trial', null), 'open'), 'wait');
+  assert.equal(resolvePendingCheckout(record, 'none', null, 'start-again'), 'clear');
+  // On open, only the server's confirmation or store proof plus the server's grant clears.
+  assert.equal(resolvePendingCheckout(record, 'unknown', server('regular', '2026-12-01T00:00:00Z'), 'open'), 'clear');
+  const sameTier = { ...record, before: { plan: 'regular', periodEnd: null } } as const;
+  assert.equal(resolvePendingCheckout(sameTier, 'active', server('regular', '2026-12-01T00:00:00Z'), 'open'), 'clear');
+  assert.equal(resolvePendingCheckout(sameTier, 'active', server('trial', null), 'open'), 'wait');
 });

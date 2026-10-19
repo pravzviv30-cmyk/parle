@@ -166,7 +166,7 @@ export function WallScreen({
       const id = user.id;
       void Promise.all([purchases.storeHolds(id, false), fetchBillingStatus(id)]).then(async ([store, server]) => {
         if (cancelled || owner !== scopeGeneration() || storeActionInFlight.current) return;
-        if (resolvePendingCheckout(pending, store, server) !== 'clear') return;
+        if (resolvePendingCheckout(pending, store, server, 'open') !== 'clear') return;
         const cleared = await clearPendingPurchase(pending).catch(() => false);
         if (cancelled || owner !== scopeGeneration() || !cleared) return;
         setPendingPurchase(null); storeGranted.current = false;
@@ -444,7 +444,7 @@ export function WallScreen({
     if (owner !== scopeGeneration()) return;
     const standing = await fetchBillingStatus(user.id);
     if (owner !== scopeGeneration()) return;
-    const answer = resolvePendingCheckout(record, store, standing);
+    const answer = resolvePendingCheckout(record, store, standing, 'start-again');
     if (answer === 'clear') {
       const cleared = await clearPendingPurchase(record).catch(() => false);
       if (owner !== scopeGeneration()) return;

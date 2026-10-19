@@ -435,7 +435,7 @@ export const PAYWALL_PENDING_TITLE = 'Waiting for confirmation';
 export const PAYWALL_APPROVAL_TITLE = 'Waiting for approval';
 export const PAYWALL_CHECK_AGAIN = 'Check my purchase again';
 /** The approval card's body, read from the saved checkout so it survives a reopen. */
-export const PAYWALL_APPROVAL_BODY = 'Someone who manages purchases on this account needs to approve it. If it was declined, you can start again.';
+export const PAYWALL_APPROVAL_BODY = 'Someone who manages purchases on this account needs to approve it. If they declined, tap Start again.';
 /** The pending page's quiet second action: ask the store whether anything is really there. */
 export const PAYWALL_START_AGAIN = 'Start again';
 /** Start again found the store holding the purchase while the server catches up. */
