@@ -891,13 +891,15 @@ grouped lists.
 | Route | What it is |
 |---|---|
 | Learning preferences | Opened from Profile. An intro line saying these never change the level earned, then Routine (the daily goal as its five choices, the one editor it has), How your tutor helps (correction style, the same row word for word as the memory screen's, then Tutor speaks more simply and Prefer typing), and Conversation starting point: one row whose subtitle is the chosen sentence, opening the four options, saved through `withStatedLevel` with the footer saying the earned level stays. |
-| Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, its period in words, and a tutor-time card saying the speaking-time band in words. No minute count, no date and no filled track (F377, F541), and no price row, because nothing on the phone says which product the account holds. Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
+| Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, its period in words, and a tutor-time card saying the speaking-time band in words. No minute count, no date and no filled track (F377, F541), and no price row, because nothing on the phone says which product the account holds. Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. Restore says what the store found: a granted restore says it is on this account and re-reads the plan, and nothing found says so. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
 
 Settings (P2) is six groups in this order: Account, Subscription, Reminders,
 Appearance & sound, Privacy & data, Help & about, then Delete account alone in a
 group with no heading at the foot, standing apart from every routine row. The
 trial-ending reminder switch appears in Reminders only on a build that can
-schedule it and while a store trial is on record. Summaries that join several
+schedule it and while a store trial is on record. While notifications are
+denied for Luvani the switch reads off, its line says the reminder can't be sent,
+and an Open Settings row sits under it. Summaries that join several
 facts join them with commas: middots are out of learner copy.
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
