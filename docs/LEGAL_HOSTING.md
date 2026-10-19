@@ -85,6 +85,12 @@ Two facts live as literals in `apps/mobile/src/legal/company.ts`, both `null` to
 Set them, run `npm run legal:html` again, and commit both the module and the two
 regenerated pages.
 
+**Re-upload owed (2026-10-19, F854):** the privacy notice now names every company that
+receives learner data beside its role (LiveKit, Deepgram, ElevenLabs, Speechace, OpenAI,
+TypeSafe, RevenueCat, Supabase, Upstash, Railway). `privacy.html` was regenerated and
+committed, but the hosted copy still carries the unnamed wording until the `dist` folder is
+re-uploaded through Part C and re-checked through Part D.
+
 ---
 
 ## Part C: Cloudflare Pages, by direct upload

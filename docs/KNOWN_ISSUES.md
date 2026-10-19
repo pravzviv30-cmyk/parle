@@ -10972,3 +10972,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-10-19. Production refuses a set webhook secret under 32 characters, counting the whole value including any prefix (token server and `deployment/validateEnvironment.mjs` for the api role). OpenAI-only boot rule: `LUVANI_BRAIN` and `TUTOR_LLM`, where set, must be `openai` in the token server; `deployment/validateEnvironment.mjs` requires `TUTOR_LLM=openai` for api, tutor and practice; the tutor's production preflight requires `TUTOR_LLM=openai`. Local development is unchanged.
 - verified-by: `a short RevenueCat webhook secret fails production boot`
 - verified-by: `production refuses a non-OpenAI tutor brain`
+
+### F854 — The privacy notice described every recipient by role but named almost none of them
+- severity: P3
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:180
+- note: Found 2026-10-19 by the presubmission review (P3 #7). Only TypeSafe was named; the carrier, transcriber, voice, scorer, language model, purchase processor, database, counter store and host were described by role alone, because the model vendor was a runtime choice. Founder decision 2026-10-19: OpenAI is production's model (boot enforces it, F853) and Railway hosts the server.
+- fixed: 2026-10-19. "Who else sees it" names LiveKit, Deepgram, ElevenLabs, Speechace, OpenAI, TypeSafe, RevenueCat (beside Apple or Google taking the payment), Supabase, Upstash and Railway inside their existing role sentences, and the guest paragraph names OpenAI. No retention claim was added; the unverified-retention sentences stay. The two "no vendor named" guards in `policy.test.ts` were replaced by an allow-list. `privacy.html` regenerated; the hosted copy must be re-uploaded (docs/LEGAL_HOSTING.md). The ElevenLabs sentence holds because production refuses `LUVANI_TTS_VENDOR=fish` (token-server `config.ts`, `deployment/validateEnvironment.mjs`).
+- verified-by: `the notice names every company that receives learner data, by role`
