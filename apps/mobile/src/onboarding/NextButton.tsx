@@ -24,8 +24,9 @@ import { Glint } from '../motion/Glint.tsx';
 import { DUR } from '../motion/tokens.ts';
 import { LiveFace } from './firstRun/LiveFace.tsx';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './firstRun/nextFace.ts';
+import { C2 } from './c2Presentation.ts';
 
-export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string }) {
+export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LABEL, c2 = false, visualLabel }: { onPress: () => boolean; disabled: boolean; onDisabledPress?: () => void; label?: string; c2?: boolean; visualLabel?: string }) {
   const reduced = useReduceMotion();
   const arrow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -47,15 +48,15 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
   };
   const face = (ink: string) => (
     <>
-      <Text style={[type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{label}</Text>
-      <Animated.View style={{ transform: [{ translateX: arrow }] }}>
+      <Text style={[type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{visualLabel ?? label}</Text>
+      {!c2 && <Animated.View style={{ transform: [{ translateX: arrow }] }}>
         <ArrowRight color={ink} />
-      </Animated.View>
+      </Animated.View>}
     </>
   );
   const contents = (<>
       <View style={st.row}>{face(NEXT_OFF.words)}</View>
-      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }]}>
+      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }, c2 && { backgroundColor: C2.violet }]}>
         <View {...decorative} style={st.face}>
           {face(NEXT_ON.words)}
         </View>

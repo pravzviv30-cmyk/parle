@@ -7,6 +7,8 @@ import { OnboardingScene } from './motion/OnboardingScenes.tsx';
 import { useScreenReader } from '../celebrate/useScreenReader.ts';
 import { OnboardingLayout } from './OnboardingLayout.tsx';
 import { onboardingProgress, type OnboardingProgressValue } from './onboardingProgress.ts';
+import { C2 } from './c2Presentation.ts';
+import { C2Action } from './C2Action.tsx';
 
 /** Shown only after account creation and durable progress handoff, never on a pending email. */
 export function AccountWelcome({ onDone, progress = onboardingProgress({ page: 'account-welcome' }) }: { onDone: () => void | Promise<void>; progress?: OnboardingProgressValue }) {
@@ -30,7 +32,7 @@ export function AccountWelcome({ onDone, progress = onboardingProgress({ page: '
       timer = setTimeout(() => {
         animation = Animated.timing(opacity, { toValue: 0, duration: reduced ? 0 : 300, useNativeDriver: NATIVE_DRIVER });
         animation.start(({ finished }) => { if (finished) finish(); });
-      }, reduced ? 1000 : 1700);
+      }, reduced ? 1000 : 2200);
     };
     if (reader === false && AppState.currentState === 'active') schedule();
     const subscription = AppState.addEventListener('change', state => {
@@ -42,12 +44,12 @@ export function AccountWelcome({ onDone, progress = onboardingProgress({ page: '
     return () => { if (timer) clearTimeout(timer); animation?.stop(); subscription.remove(); };
   }, [reduced, reader, opacity]);
   return <OnboardingLayout page="account-welcome" progress={{ ...progress, fraction: 1, complete: true }}
-    footer={<PillButton label="Go to home" onPress={finish} />}>
+    ground={C2.violet} footer={<C2Action label="Go to home" gold onPress={finish} />}>
     <Animated.View style={{ justifyContent: 'center', alignItems: 'center', gap: 20, opacity }}>
-      <View style={{ alignItems: 'center' }}><OnboardingScene kind="account" size={220} /></View>
-      <Text accessibilityRole="header" style={[type.display, { color: paper.ink, textAlign: 'center' }]}>Welcome to Luvani.</Text>
-      <Text style={[type.body, { color: paper.ink, textAlign: 'center' }]}>This is where your French begins.</Text>
-      {!!error && <Text accessibilityRole="alert" style={type.small}>{error}</Text>}
+      <Text accessibilityRole="header" style={[type.title, { color: C2.white, textAlign: 'center' }]}>Welcome to Luvani.</Text>
+      <View style={{ alignItems: 'center' }}><OnboardingScene kind="account" size={270} /></View>
+      <Text style={[type.body, { color: C2.white, textAlign: 'center' }]}>This is where your French begins.</Text>
+      {!!error && <Text accessibilityRole="alert" style={[type.small, { color: C2.white }]}>{error}</Text>}
     </Animated.View>
   </OnboardingLayout>;
 }

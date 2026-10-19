@@ -30,6 +30,7 @@ import { TutorSelection } from './TutorSelection.tsx';
 import { useTutorPreview } from '../tutor/useTutorPreview.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { AgeRefusal } from './AgeRefusal.tsx';
+import { c2Ground } from './c2Presentation.ts';
 import {
   nameGreeting,
   MEET_AI,
@@ -295,6 +296,7 @@ export function OnboardingFlow({
 
   return (
     <OnboardingLayout page={page} progress={progress} avoidKeyboard actionInScroll={page === 'name'}
+      ground={c2Ground(page)}
       footer={
         // The one action per page. Gone on the gate once they have said they
         // are younger: a refusal with the way through still sitting under it is

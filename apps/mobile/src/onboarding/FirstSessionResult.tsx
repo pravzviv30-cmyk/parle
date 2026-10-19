@@ -11,6 +11,9 @@ import { OnboardingScene, RevealItem } from './motion/OnboardingScenes.tsx';
 import { firstLiveSummary, type FirstLiveRecord } from './firstLiveModel.ts';
 import type { OnboardingProgressValue } from './onboardingProgress.ts';
 import { useScreenReader } from '../celebrate/useScreenReader.ts';
+import { C2 } from './c2Presentation.ts';
+import { C2Scene } from './motion/C2Scene.tsx';
+import { C2Action } from './C2Action.tsx';
 
 export function FirstSessionCelebration({ record, progress, onDone }: { record: FirstLiveRecord; progress: OnboardingProgressValue; onDone: () => void }) {
   const reduced = useReduceMotion();
@@ -24,12 +27,12 @@ export function FirstSessionCelebration({ record, progress, onDone }: { record: 
     if (!haptic.current && record.outcome === 'completed') { haptic.current = true; celebrate(); }
     if (record.outcome !== 'completed') { done(); return; }
   }, [record.outcome]);
-  return <TimedExit style={{ flex: 1, backgroundColor: colour.mint }} automatic={Platform.OS === 'web' || reader === false} delayMs={reduced ? 1000 : 1700} onDone={done}>
-    <OnboardingLayout page="recap" progress={progress} footer={<PillButton label="See my achievements" onPress={done} />}>
+  return <TimedExit style={{ flex: 1, backgroundColor: C2.violet }} automatic={Platform.OS === 'web' || reader === false} delayMs={reduced ? 1000 : 2600} onDone={done}>
+    <OnboardingLayout page="recap" progress={progress} ground={C2.violet} footer={<C2Action label="See my achievements" gold onPress={done} />}>
       <View style={{ alignItems: 'center', gap: 24 }}>
-        <OnboardingScene kind="account" size={200} />
-        <Text accessibilityRole="header" style={[type.display, { textAlign: 'center' }]}>Well done!</Text>
-        <Text style={[type.heading, { textAlign: 'center' }]}>You completed your first session.</Text>
+        <C2Scene kind="celebration" width={Math.min(342, width - 48)} />
+        <Text accessibilityRole="header" style={[type.display, { color: C2.white, textAlign: 'center' }]}>Well done!</Text>
+        <Text style={[type.heading, { color: C2.white, textAlign: 'center' }]}>You completed your first session.</Text>
       </View>
     </OnboardingLayout>
     {!reduced && <View {...decorative} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
@@ -61,15 +64,15 @@ export function FirstSessionSummary({ record, progress, onSave, busy = false, is
   record: FirstLiveRecord; progress: OnboardingProgressValue; onSave: () => void; busy?: boolean; issue?: string;
 }) {
   const view = firstLiveSummary(record);
-  return <OnboardingLayout page="keep" progress={progress} footer={<RevealItem index={2}><PillButton label={busy ? 'Saving…' : 'Save your progress'} disabled={busy} onPress={onSave} /></RevealItem>}>
+  return <OnboardingLayout page="keep" progress={progress} ground={C2.violet} footer={<RevealItem index={2}><C2Action label={busy ? 'Saving…' : 'Save your progress'} gold disabled={busy} onPress={onSave} /></RevealItem>}>
     <View style={{ gap: 18 }}>
-      <View style={{ alignItems: 'center' }}><OnboardingScene kind={record.outcome === 'completed' ? 'plan' : 'level'} size={120} /></View>
-      <Text accessibilityRole="header" style={[type.display, { textAlign: 'center' }]}>{view.heading}</Text>
-      <Text style={[type.body, { textAlign: 'center' }]}>{view.detail}</Text>
-      <View>{view.achievements.map((text, index) => <Achievement key={text} text={text} index={index} />)}</View>
-      {view.achievements.length === 0 && <Text style={type.body}>There are no confirmed replies to summarise yet. Your chosen plan and tutor are ready for your next practice.</Text>}
-      <RevealItem index={3}><Text style={[type.body, { textAlign: 'center', marginTop: 12 }]}>{view.next}</Text></RevealItem>
-      {!!issue && <Text accessibilityLiveRegion="polite" style={type.body}>{issue}</Text>}
+      <Text accessibilityRole="header" style={[type.display, { color: C2.white, textAlign: 'center' }]}>{view.heading}</Text>
+      <View style={{ alignItems: 'center' }}><C2Scene kind={record.outcome === 'completed' ? 'proud' : 'confidence'} width={192} /></View>
+      <Text style={[type.body, { color: C2.white, textAlign: 'center' }]}>{view.detail}</Text>
+      {view.achievements.length > 0 && <View style={{ backgroundColor: C2.reading, borderRadius: 24, padding: 18 }}>{view.achievements.map((text, index) => <Achievement key={text} text={text} index={index} />)}</View>}
+      {view.achievements.length === 0 && <Text style={[type.body, { color: C2.white }]}>There are no confirmed replies to summarise yet. Your chosen plan and tutor are ready for your next practice.</Text>}
+      <RevealItem index={3}><Text style={[type.body, { color: C2.white, textAlign: 'center', marginTop: 12 }]}>{view.next}</Text></RevealItem>
+      {!!issue && <Text accessibilityLiveRegion="polite" style={[type.body, { color: C2.white }]}>{issue}</Text>}
     </View>
   </OnboardingLayout>;
 }

@@ -1,13 +1,12 @@
 import { Text, View } from 'react-native';
-import { Card, IconAction } from '../components.tsx';
-import { ProgressRing } from '../motion/ProgressRing.tsx';
-import { colour, decorative, paper, type } from '../theme.ts';
-import { REASON_LABELS } from './story.ts';
-import { minutesOf, planFor, startingSupport } from './plan.ts';
-import { ringShare } from './firstRun/planModel.ts';
+import { Card } from '../components.tsx';
+import { type } from '../theme.ts';
+import { minutesOf, planFor, START_LEVELS } from './plan.ts';
+import { firstPracticeScenario } from '@luvani/core';
+import { briefFromDraft } from './firstLiveModel.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 import { OnboardingScene } from './motion/OnboardingScenes.tsx';
-import { useFontScale } from '../layout.tsx';
+import { C2, C2_OPTION_COPY } from './c2Presentation.ts';
 
 /** Every plan statement is derived from answers or the authored first scene. */
 export function PersonalPlan({ draft, onEdit, compact }: {
@@ -15,32 +14,23 @@ export function PersonalPlan({ draft, onEdit, compact }: {
 }) {
   const minutes = minutesOf(draft);
   const plan = planFor(draft);
-  const largeText = useFontScale() >= 1.3;
+  const conversation = firstPracticeScenario(briefFromDraft(draft));
+  const statedLevel = START_LEVELS.find(option => option.key === draft.startLevel);
   const goal = minutes === 'none' ? 'Practice at your pace' : `${minutes} minutes a day`;
+  const practiceGoal = `${draft.practiceFocus ? `${C2_OPTION_COPY[draft.practiceFocus].title}. ` : ''}${goal}`;
   return <View style={{ gap: compact ? 12 : 16 }}>
-    <View style={{ alignItems: 'center', height: compact ? 105 : 135 }}>
-      <OnboardingScene kind="plan" size={compact ? 105 : 135} />
+    <Text style={[type.body, { color: C2.white, textAlign: 'center' }]}>{conversation.en}.</Text>
+    <View style={{ alignItems: 'center' }}>
+      <OnboardingScene kind="plan" size={compact ? 160 : 186} />
     </View>
-    <Card style={{ flexDirection: largeText ? 'column' : 'row', alignItems: 'center', gap: 16 }}>
-      <View accessible accessibilityRole="text" accessibilityLabel={goal}>
-      <ProgressRing to={ringShare(minutes)} size={96} stroke={6} color={colour.blue} track={paper.skeleton}>
-        {!largeText && <View {...decorative} style={{ width: 78, height: 78, justifyContent: 'center', alignItems: 'center', gap: 2 }}>
-          <Text style={[type.stat, { color: paper.ink, textAlign: 'center' }]}>{minutes === 'none' ? '∞' : minutes}</Text>
-          <Text style={[type.small, { color: paper.ink, textAlign: 'center' }]}>{minutes === 'none' ? 'your pace' : 'min/day'}</Text>
-        </View>}
-      </ProgressRing>
-      </View>
-      <View style={{ flex: largeText ? undefined : 1, minWidth: 0, gap: 4 }}>
-        {largeText && <Text style={[type.heading, { color: paper.ink }]}>{goal}</Text>}
-        <Text style={[type.heading, { color: paper.ink }]}>{draft.reason ? REASON_LABELS[draft.reason] : 'Everyday French'}</Text>
-        <Text style={[type.small, { color: paper.ink }]}>{startingSupport(draft)}</Text>
+    <Card style={{ backgroundColor: C2.reading, borderRadius: 20, gap: 8 }}>
+      <Text style={[type.heading, { color: C2.ink }]}>{conversation.fr}</Text>
+      {statedLevel && <Text style={[type.label, { color: C2.ink }]}>{statedLevel.title}</Text>}
+      {draft.speakingConfidence && <Text style={[type.body, { color: C2.ink }]}>{C2_OPTION_COPY[draft.speakingConfidence].title}</Text>}
+      <View accessible accessibilityRole="text" accessibilityLabel={practiceGoal}>
+        <Text style={[type.body, { color: C2.ink }]}>{practiceGoal}</Text>
       </View>
     </Card>
-    <Card style={{ gap: 6 }}>
-      <Text style={[type.small, { color: paper.inkSoft }]}>Your first practice</Text>
-      <Text style={[type.heading, { color: paper.ink }]}>{plan.starter.title}</Text>
-      <Text style={[type.body, { color: paper.ink }]}>{plan.method}</Text>
-    </Card>
-    <IconAction icon="edit" layout="inline" ground="sun" label="Change plan" onPress={onEdit} />
+    <Text style={[type.body, { color: C2.white, textAlign: 'center' }]}>{plan.method}</Text>
   </View>;
 }

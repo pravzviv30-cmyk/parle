@@ -3,7 +3,7 @@
  * section 3). Pure: `App.tsx`'s `PreAccountProfileBootstrap` calls these and
  * does the writing, in order, once there is an account to write under.
  *
- * Every answer goes through a door that already exists, and no field is new:
+ * Every answer goes through its designated profile owner:
  *   - the reason becomes `motivation`, the tag the old why page wrote;
  *   - the minutes become `dailyGoalMin` via `OnboardingAnswers`;
  *   - the starting level becomes `brain.cefr.estimate`, low confidence, which
@@ -13,6 +13,9 @@
  *   - the voice through `withChosenVoice`, so a default nobody changed still
  *     reads "never chosen" only if nobody touched it;
  *   - the first name becomes the profile name;
+ *   - the exact closed self-report is retained as `practicePreferences`, so
+ *     two abilities do not collapse merely because their conservative initial
+ *     CEFR suggestion is the same. This is context, never earned evidence;
  *   - the reminder goes through `saveReminder`, on only when the learner said
  *     yes to an optional reminder ask and the system scheduled it
  *     (`reminderEnabled` is set only then), and off otherwise. New onboarding
@@ -29,6 +32,7 @@ import { reminderTime, type StoredReminder } from '../reminders/reminder.ts';
 import { withChosenVoice } from './voiceStep.ts';
 import { initialPracticeMode, levelOf, minutesOf, reminderOf, startEstimate, tutorGoalsFor } from './plan.ts';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
+import { storedPracticePreferences } from '../profile/practicePreferences.ts';
 
 export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.now()): StoredProfile {
   const minutes = minutesOf(draft);
@@ -45,7 +49,9 @@ export function profileFromDraft(draft: PreAccountOnboardingDraft, now = Date.no
   // replaced it, so a new profile carries no days-a-week answer at all.
   const placed: StoredProfile = {
     ...built,
+    ...(built.name === null || built.name.trim().length === 0 ? { namePromptPending: true } : {}),
     onboardingGoal: draft.reason, onboardingDrink: draft.drink ?? null,
+    practicePreferences: storedPracticePreferences({ level: draft.startLevel, confidence: draft.speakingConfidence, focus: draft.practiceFocus }),
     brain: { ...built.brain, cefr: { ...built.brain.cefr, ...startEstimate(levelOf(draft)) } },
   };
   // An explicit false is a new-flow answer: the fallback voice was never

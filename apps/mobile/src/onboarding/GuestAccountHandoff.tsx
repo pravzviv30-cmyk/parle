@@ -28,6 +28,10 @@ import { tutorTimeLine } from './firstRun/copy.ts';
 import { AccountWelcome } from './AccountWelcome.tsx';
 import { OnboardingFrame, OnboardingLayout } from './OnboardingLayout.tsx';
 import { onboardingProgress } from './onboardingProgress.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { withName } from '../profile/store.ts';
+import { needsAccountName } from './accountName.ts';
+import { AccountName } from './AccountName.tsx';
 /**
  * The account keeps its own profile. Explicit adoption adds practice, never silently overwrites it.
  *
@@ -56,6 +60,9 @@ export function GuestAccountHandoff({
   onWelcomeDone?: () => void;
 }) {
   const { user, adapter } = useAuth();
+  const { profile, updateMemory } = useProfile();
+  const nameMissing = needsAccountName(newlyCreated, profile.name, profile.namePromptPending);
+  const nameStep = useRef(nameMissing);
   const [guest, setGuest] = useState<GuestPractice | null | undefined>(undefined);
   const [readError, setReadError] = useState(false);
   const [readAttempt, setReadAttempt] = useState(0);
@@ -83,9 +90,9 @@ export function GuestAccountHandoff({
     setReadError(false);
     void Promise.all([loadGuestPractice(true), loadArrival()]).then(([value, arrival]) => {
       if (active) {
-        if (value === null && ((arrival && !arrival.welcomeSeen) || (newlyCreated && !arrival?.welcomeSeen))) setWelcoming(true);
+        if (value === null && (nameMissing || (arrival && !arrival.welcomeSeen) || (newlyCreated && !arrival?.welcomeSeen))) setWelcoming(true);
         if (value?.live?.sessionId === arrival?.sessionId && arrival && !arrival.welcomeSeen) setResumeAdoption(true);
-        if (value === null && newlyCreated && arrival?.welcomeSeen) onWelcomeDone?.();
+        if (value === null && newlyCreated && arrival?.welcomeSeen && !nameMissing) onWelcomeDone?.();
         setGuest(value);
       }
     }).catch(() => { if (active) { setReadError(true); setError('Your saved practice could not be read. Try again. Your progress has not been removed.'); } });
@@ -188,7 +195,7 @@ export function GuestAccountHandoff({
       await clearGuestPractice();
       if (!mounted.current || owner !== scopeGeneration() || activeUserId() !== user.id) return;
       finished.current = true;
-      if (newlyCreated || resumeAdoption) setWelcoming(true);
+      if (newlyCreated || resumeAdoption || nameMissing) setWelcoming(true);
       setGuest(null);
       onDone(saved, !newlyCreated && !resumeAdoption);
     } catch {
@@ -200,14 +207,24 @@ export function GuestAccountHandoff({
     }
   };
   if (readError) return <OnboardingLayout page="account-welcome" footer={<PillButton label="Try again" onPress={() => setReadAttempt(n => n + 1)} />}><Text accessibilityRole="alert" style={type.body}>{error}</Text></OnboardingLayout>;
-  if (guest === null && !welcoming) return <HomeArrivalAllowed.Provider value={true}><View style={{ flex: 1 }}><View style={StyleSheet.absoluteFill}>{children}</View>{error ? <Text accessibilityRole="alert">{error}</Text> : null}</View></HomeArrivalAllowed.Provider>;
   if (guest === undefined) return <View />;
   const progress = onboardingProgress({
     page: 'account-welcome',
+    includeAccountName: nameStep.current,
     five: journey.current?.onboardingVariant === 'five' || (journey.current?.onboardingVariant == null && process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five'),
     completed: journey.current?.onboardingCompletedSteps,
     skipped: [...(journey.current?.onboardingSkippedSteps ?? []), ...(journey.current?.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])],
   });
+  const nameProgress = onboardingProgress({
+    page: 'account-name', includeAccountName: true,
+    five: journey.current?.onboardingVariant === 'five' || (journey.current?.onboardingVariant == null && process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five'),
+    completed: journey.current?.onboardingCompletedSteps,
+    skipped: [...(journey.current?.onboardingSkippedSteps ?? []), ...(journey.current?.quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])],
+  });
+  if (guest === null && nameMissing) return <OnboardingFrame initialProgress={nameProgress}>
+    <AccountName key={user?.id} progress={nameProgress} onSave={name => updateMemory(current => withName(current, name))} />
+  </OnboardingFrame>;
+  if (guest === null && !welcoming) return <HomeArrivalAllowed.Provider value={true}><View style={{ flex: 1 }}><View style={StyleSheet.absoluteFill}>{children}</View>{error ? <Text accessibilityRole="alert">{error}</Text> : null}</View></HomeArrivalAllowed.Provider>;
   if (welcoming) return <HomeArrivalAllowed.Provider value={false}><View style={{ flex: 1 }}>
     <View style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none">{children}</View>
     <FadeOverlay leaving={welcomeLeaving} onHidden={() => { setWelcoming(false); onWelcomeDone?.(); }}>

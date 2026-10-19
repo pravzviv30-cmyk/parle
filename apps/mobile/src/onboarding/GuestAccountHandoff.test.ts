@@ -27,13 +27,13 @@ function attempt(task: StarterTask, reply: string, extra: Partial<GuestAttempt> 
 describe('the hand-off', () => {
   test('the hand-off retains the guest route through auth until its durable welcome completes', () => {
     const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
-    const source = handoff.slice(handoff.indexOf('const progress = onboardingProgress('), handoff.indexOf('if (welcoming)'));
+    const source = handoff.slice(handoff.indexOf('const progress = onboardingProgress('), handoff.indexOf('const nameProgress ='));
     assert.ok(source.startsWith('const progress'), 'this check must execute the production route assignment');
     for (const onboardingVariant of ['full', 'five'] as const) {
       for (const quickStart of [false, true]) {
         const draft = { ...freshPreAccountDraft(), onboardingVariant, quickStart, onboardingSkippedSteps: ['remind'] };
-        const progress = new Function('journey', 'process', 'onboardingProgress', `${source}; return progress;`)(
-          { current: draft }, { env: { EXPO_PUBLIC_ONBOARDING_VARIANT: 'full' } }, onboardingProgress,
+        const progress = new Function('journey', 'process', 'onboardingProgress', 'nameStep', `${source}; return progress;`)(
+          { current: draft }, { env: { EXPO_PUBLIC_ONBOARDING_VARIANT: 'full' } }, onboardingProgress, { current: false },
         );
         const signup = onboardingProgress({ page: 'account', five: onboardingVariant === 'five',
           skipped: [...draft.onboardingSkippedSteps, ...(quickStart ? ['reason', 'start-level', 'confidence', 'focus', 'time'] : [])] });

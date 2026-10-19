@@ -55,6 +55,7 @@ describe('the plan is written at account creation', () => {
     ] as const) {
       const answer = draft({ reason: 'trip', startLevel: 'confident', tutorVoice: 'marie', tutorChosen: true, practiceFocus: focus, speakingConfidence: confidence });
       const profile = profileFromDraft(answer, NOW);
+      assert.deepEqual(profile.practicePreferences, { level: 'confident', confidence, focus });
       assert.equal(profile.preferTyping, preferTyping);
       assert.deepEqual(profile.learnerGoals, tutorGoalsFor(answer));
       assert.equal(profile.brain.cefr.estimate, 'A1');
@@ -62,11 +63,24 @@ describe('the plan is written at account creation', () => {
       assert.deepEqual(profile.brain.cefr.evidence, []);
       assert.equal(await saveProfile(profile), true);
       const loaded = await loadProfile();
+      assert.deepEqual(loaded?.practicePreferences, { level: 'confident', confidence, focus }, 'the exact self-report must survive account storage without becoming a certified level');
       assert.equal(loaded?.preferTyping, preferTyping);
       assert.deepEqual(loaded?.learnerGoals, tutorGoalsFor(answer));
       assert.equal(loaded?.preferenceClocks?.tutorVoice?.value, 'marie');
     }
     assert.deepEqual(profileFromDraft(freshPreAccountDraft(), NOW).learnerGoals, []);
+    assert.equal(profileFromDraft(freshPreAccountDraft(), NOW).practicePreferences, undefined, 'legacy drafts with no self-report must remain unanswered');
+  });
+  test('every starting point survives profile creation independently of its conservative placement suggestion', () => {
+    for (const level of ['zero', 'few', 'getby', 'confident'] as const) {
+      const profile = profileFromDraft(draft({ startLevel: level }), NOW);
+      assert.deepEqual(profile.practicePreferences, { level, confidence: null, focus: null });
+      assert.equal(profile.brain.cefr.confidence, 'low');
+      assert.deepEqual(profile.brain.cefr.evidence, [], 'a self-report is not earned assessment evidence');
+    }
+    const everyday = profileFromDraft(draft({ startLevel: 'getby' }), NOW);
+    const longer = profileFromDraft(draft({ startLevel: 'confident' }), NOW);
+    assert.notDeepEqual(everyday.practicePreferences, longer.practicePreferences, 'different conversational abilities must not collapse when the initial CEFR suggestion happens to match');
   });
   test('a chosen voice retains its causal edit through seeded-goal composition and the real store round trip', async () => {
     setActiveUser('onboarding-preference-voice');
@@ -164,7 +178,7 @@ describe('the plan is written at account creation', () => {
     assert.match(APP, /import \{ cancelReminder \} from '\.\/src\/reminders\/schedule\.ts';/);
   });
 
-  test('App.tsx writes consent and the reminder before it releases the app, and opens the first scene', () => {
+  test('App.tsx writes consent and the reminder before it releases the app, retains the scene plan and opens Home before its optional offer', () => {
     // 2026-09-27: keep the ordering pin and require proof the account may adopt a draft.
     const boot = APP.slice(APP.indexOf('function PreAccountProfileBootstrap'), APP.indexOf('function CompleteProfileDraftCleanup'));
     assert.match(APP, /existing === null && preAccountDraft !== null && mayAdoptPreAccountDraft\(freshStart\) \? \(\s*<PreAccountProfileBootstrap/);
@@ -176,9 +190,17 @@ describe('the plan is written at account creation', () => {
     assert.match(APP, /firstScene\.current = firstSceneFor\(preAccountDraft\.startLevel, preAccountDraft\.reason\)/, 'the first scene ignores the starting level');
     assert.match(
       APP,
-      /navigationRef\.resetRoot\(\{\s*index: 1,\s*routes: \[\{ name: 'Tabs' \}, \{ name: 'FirstScene', params: \{ missionId: firstScene\.current \} \}\]/,
-      'a new learner is not sent to the first scene with Today behind it',
+      /navigationRef\.resetRoot\(\{\s*index: 0,\s*routes: \[\{ name: 'Tabs', state: \{ index: 0, routes: \[\{ name: 'Home' \}\] \} \}\],?\s*\}\)/,
+      'a new learner must land on the actual Home tab after setup',
     );
+    const start = APP.indexOf('const openFirstRun = useCallback(');
+    const end = APP.indexOf('}, [justOnboarded, navigationRef, openPendingWall]);', start);
+    assert.ok(start !== -1 && end > start, 'the first-run callback boundary moved; this test reads nothing');
+    const firstRun = APP.slice(start, end);
+    assert.match(firstRun, /if \(justOnboarded\) \{\s*pendingWall\.current = true;/, 'completed onboarding must request its optional first-run offer');
+    assert.ok(firstRun.indexOf('navigationRef.resetRoot(') < firstRun.indexOf('openPendingWall();'), 'the optional offer is considered before Home is established');
+    assert.match(firstRun, /setJustOnboarded\(false\)/, 'the completed-onboarding entry is not consumed');
+    assert.doesNotMatch(firstRun, /name: 'FirstScene'|navigate\('FirstScene'/, 'finishing setup must not automatically start a lesson');
     assert.equal(firstSceneFor(null), 'mission:premier-cafe');
   });
 });

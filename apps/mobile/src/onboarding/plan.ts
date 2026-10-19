@@ -31,10 +31,10 @@ export interface AnswerOption<K extends string | number> {
  * placement. Existing saved level keys keep their meaning.
  */
 export const START_LEVELS: readonly (AnswerOption<StartLevel> & { gloss: string })[] = [
-  { key: 'zero', title: 'I’m new to French', gloss: 'Start with the essentials.' },
-  { key: 'few', title: 'I know a few words', gloss: 'Hello, thank you, and simple phrases.' },
-  { key: 'getby', title: 'I can get by', gloss: 'Short conversations, with some help.' },
-  { key: 'confident', title: 'I’m comfortable talking', gloss: 'Make everyday conversations flow.' },
+  { key: 'zero', title: 'I’m new to French', gloss: 'I’d like help with my first replies.' },
+  { key: 'few', title: 'I know words and short phrases', gloss: 'I can say a little, but a conversation is still hard.' },
+  { key: 'getby', title: 'I can manage everyday conversations', gloss: 'I can exchange ideas, with a few gaps and pauses.' },
+  { key: 'confident', title: 'I can have longer conversations', gloss: 'I can explain experiences and opinions. I want to keep improving.' },
 ];
 
 export const CONFIDENCE_OPTIONS: readonly AnswerOption<SpeakingConfidence>[] = [

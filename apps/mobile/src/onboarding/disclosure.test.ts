@@ -445,7 +445,7 @@ describe('nothing reaches an AI service or the network before the save page is p
     assert.match(screen, /footer=\{sheetFooter\}/);
     assert.ok(sheet.indexOf('{snapshot.current.children}') < sheet.indexOf('{snapshot.current.footer}'), 'the sheet renders disclosure and eligibility before its pinned actions');
     assert.match(screen, /!draft\.eligibilityConfirmed \|\| refused/);
-    assert.match(screen, /label="Start your first practice"[^>]*disabled=\{draft\.tutorChosen !== true \|\| busy\} onPress=\{\(\) => open\('start'\)/);
+    assert.match(screen, /label=\{draft\.tutorChosen \? `Practise with \$\{tutorName\}` : 'Start your first practice'\} disabled=\{draft\.tutorChosen !== true \|\| busy\} onPress=\{\(\) => open\('start'\)/);
   });
 
   test("guest service requests require deliberate eligible Start and remain bounded outside authenticated rooms", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const service = evidence('apps/mobile/src/onboarding/guestPractice.ts'); const server = evidence('services/token-server/src/server.ts'); assert.match(service, /if \(!plan\.eligibilityConfirmed\) throw/); assert.match(screen, /await startGuestPractice\(draft, guest\)/); assert.match(server, /body\.eligible !== true/); assert.match(server, /guest\.installation !== installHash/); assert.match(server, /guest\.expiresAt <= Date\.now\(\) \|\| guest\.owner/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync|joinRoom|new Room\(/); const recording = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx'); assert.match(recording, /mode: 'convo', guestToken: guest\.token!/); assert.match(recording, /await live\.openMic\(\)/); });

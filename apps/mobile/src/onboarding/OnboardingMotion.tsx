@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, View } from 'react-native';
-import { colour, decorative, paper } from '../theme.ts';
+import { colour, paper } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
-import { Illustration } from '../art/flat/Illustration.tsx';
+import { C2Scene } from './motion/C2Scene.tsx';
 import type { IllustrationName } from '../art/flat/index.ts';
 
 export type ArtworkResponse =
@@ -26,55 +26,11 @@ export function OnboardingArtwork({
   response: ArtworkResponse;
   event: number;
 }) {
-  const reduced = useReduceMotion();
-  const value = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    value.stopAnimation();
-    value.setValue(1);
-    if (reduced || ['neutral', 'connection', 'attentive'].includes(response)) return;
-    const animation = Animated.sequence([
-      Animated.timing(value, {
-        toValue: 0,
-        duration: 140,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(value, {
-        toValue: 1,
-        duration: response === 'success' ? 300 : 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    ]);
-    animation.start();
-    return () => animation.stop();
-  }, [response, event, reduced, value]);
-  return (
-    <Animated.View
-      {...decorative}
-      style={{
-        alignSelf: 'center',
-        pointerEvents: 'none',
-        transform: [
-          {
-            scale: value.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1.035, 1],
-            }),
-          },
-          {
-            translateY: value.interpolate({
-              inputRange: [0, 1],
-              outputRange: [-5, 0],
-            }),
-          },
-        ],
-      }}
-    >
-      <Illustration name={name} fit="small" />
-    </Animated.View>
-  );
+  const kind = name === 'state-headphones' ? 'confidence' : name === 'state-notebook' ? 'plan' : 'welcome';
+  return <C2Scene kind={kind} width={180} eventKey={`${response}:${event}`}
+    active={!['neutral', 'connection', 'attentive'].includes(response)} />;
 }
+
 export function PageArrival({
   page,
   direction,

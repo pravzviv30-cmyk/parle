@@ -64,4 +64,16 @@ describe('onboarding progress from actual conditional routes', () => {
     assert.deepEqual(steps, ['age', 'name', 'meet', 'voice']);
     assert.deepEqual(onboardingProgress({ page: 'voice', repair: true }), { fraction: 0.875, step: 4, total: 4, complete: false });
   });
+  test('the verified signup name question is required only on its conditional account route', () => {
+    const steps = onboardingSteps({ includeAccountName: true, skipped: ['account-name'] });
+    assert.deepEqual(steps.slice(-3), ['account', 'account-name', 'account-welcome']);
+    assert.ok(!onboardingSteps().includes('account-name'), 'an already named or returning account must keep its existing route');
+    assert.ok(!onboardingSteps({ includeAccountName: true, signedIn: true }).includes('account-name'));
+    const signup = onboardingProgress({ page: 'account', includeAccountName: true });
+    const name = onboardingProgress({ page: 'account-name', includeAccountName: true });
+    const welcome = onboardingProgress({ page: 'account-welcome', includeAccountName: true });
+    assert.ok(signup.fraction < name.fraction && name.fraction < welcome.fraction && welcome.fraction < 1);
+    assert.equal(name.total, welcome.total, 'durable name completion must not shrink its original route');
+    assert.equal(onboardingProgress({ page: 'account-welcome', includeAccountName: true, complete: true }).fraction, 1);
+  });
 });

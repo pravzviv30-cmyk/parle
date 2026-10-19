@@ -5,6 +5,40 @@
 
 The 10 October 2026 onboarding correction supersedes the recorded-example notebook flow. It implements the revised report in `artifacts/reports/Luvani-onboarding-improvement-report-revised.docx`, with the latest requested changes: no early sign-in for first installs, Apple alongside Google, account-specific onboarding, and vibrant brand illustrations in place of a mascot.
 
+## 18 October 2026 · C2 implementation
+
+C2 now supplies the onboarding presentation: exact cloud/orange vector layers,
+peach welcome, lilac support/name pages, calm green time selection and a violet
+personal plan. Shared Choice retains its existing default semantics and adds an
+explicit onboarding appearance. Its full rows remain readable and a choice never
+advances the page by itself. The shared native illustration engine runs the
+Remotion-authored bounded entrance, gesture and blink. Live Reduce Motion, blur,
+background and account reset settle the art immediately.
+
+All four ability answers persist as `practicePreferences` on the existing profile,
+alongside confidence and focus. This is self-report for content pitch and help;
+it does not award CEFR or rewrite earned evidence. PersonalPlan uses the same
+`firstPracticeScenario` as the actual first conversation. Main Home/Explore/Speak
+consume the saved preferences, and user-selected conversation topics fit the
+existing signed-topic size boundary.
+
+After verified signup and guest-practice adoption, a newly created account with
+no saved name sees “What should we call you?” before AccountWelcome. A valid name
+uses the existing `withName` preference writer and durable profile queue. The
+screen keeps the input and permits retry on failure. It prevents double taps and
+stale-account callbacks; ProfileContext acknowledges only the causally winning
+name and its clock. New unnamed profiles carry the optional `namePromptPending`
+field in the existing profile, so cold email verification and first OAuth profile
+loads retain the question. The durable name writer clears that field. Legacy
+unnamed accounts and already named accounts skip the step. No extra completion
+store is introduced, and the marker grants no identity or guest-adoption authority.
+
+The progress model includes `account-name` only for the eligible unnamed new
+account. The base sequence below remains fourteen steps; that conditional name
+step makes fifteen where it is actually shown. The existing guest adoption,
+eligibility, consent and verified-auth boundaries remain authoritative. See the
+[implementation verification](changes/c2-main-app-implementation.md).
+
 ## Current journey
 
 Pre-account onboarding renders **7 setup pages**: `hear-it`, `reason`, `start-level`, `confidence`, `focus`, `time`, `plan`. The runtime order is `FULL_SETUP` in `onboarding/flow.ts`; the existing short experiment omits the level question only. A dedicated `choose-tutor` page follows the plan, then the first practice, its result, day one (`remind`) and the save card (`keep`). Saving opens the full-page account form. The disk registry also accepts historical `first-line`, `save`, `frequency` and guest Home pages; it is not the setup screen count. Historical demo/save pages repair to the opening, and a draft saved on the retired frequency page resumes on the daily goal. New confidence and focus answers are optional in the version-1 draft: older answers and consent survive, and missing answers repair to null. New drafts start with `tutorChosen: false`; a catalogue default never counts as a deliberate new-page choice. A legacy draft's missing flag remains undefined so its saved voice survives account creation. The chooser requires a literal true for new and resumed drafts. A draft saved on a guest page requires a real guest record and finished practice; day one whose run has since lapsed opens the save card (`resumePage` in `onboarding/guestProgress.ts`). Historical guest Home remains readable for a resumed guest record.
@@ -36,13 +70,13 @@ The unsigned draft preserves its route, answers, deliberate tutor selection, exp
 | Save progress | Earned achievements appear progressively, with one row for each truthful saved result: live streak, accepted replies, kept phrases, the actual practice and daily goal, chosen AI tutor, and any scheduled reminder. No On this phone only label, Sign in link or Not now action. A fixed goal shows its exact practice time over 90 days (5/10/15/20 minutes per day means 7.5/15/22.5/30 hours); no target shows no calculated prediction. These are arithmetic commitments, not promised fluency dates. Save my progress opens the full-page account form. |
 | Guest Home | Keep going with your French: the run and this week, the natural line of the newest reply that was accepted or kept (none when nothing was), Continue practice, and actions for Retry, Save progress, Sign in (signed out only) and Set a reminder (only where a reminder can be given and none is set), which opens the same reminder ask in a sheet. |
 | Hand-off | A verified new email signup adopts its own guest progress automatically and celebrates only after the writes and guest clearing are durable, then opens Home. Existing accounts retain explicit ownership review. Keep this practice saves the task's natural line, says "Saved to your phrasebook." once the phrasebook write is durable, records the guest's finished days as the account's practice days without lighting day one a second time, and says the time with the tutor the server holds ("You have 29 free minutes with your AI tutor.", or minutes on a plan). The card names the newest phrase the save writes; with none it says "Your practice is saved." and names no phrase. Start fresh declines the import and still reconciles usage. |
-| First-run offer | Existing-account handoffs only, after a kept practice and once: when the navigator is ready, the existing plans wall opens at its `path-complete` door, but only after the server says this account holds no paid plan and the store has plans to sell. An unread status, a paid plan, no store (the web) or a failed read shows nothing, and nothing is remembered to show it later. The wall itself is unchanged here. |
+| First-run offer | New completed onboarding lands on Home. After two Home frames, the existing wall opens once at `path-complete` only when the server confirms no paid plan and real store offers exist. Eligible retained guest handoffs keep the same seam. An unread status, paid plan, no store or failed read opens nothing. Leaving Home, backgrounding or changing account invalidates pending responses, including a quick Home → Explore → Home roundtrip. There is no persisted replay flag. The trial page opens directly and is dismissible; store eligibility controls trial copy. |
 
 Core answers stay selected until their named Next action is pressed; a disabled Next action is the sand skeleton with soft ink words, never a dark button. System back preserves answers and scroll position. There are no decorative eyebrows, chips, syllabus blocks, repeated sales pitches or required name question. One focused heading and a consistent bottom action lead each page; account actions remain inside the form scroll. Welcome, level, plan, streak and account success use original local Rive vectors; authored practice keeps its existing scene artwork, with purple selection/playback accents and warm colour in the artwork. The new parts live in `onboarding/firstRun/` and take values by props; none of them sends, stores or records anything.
 
 Button and text placement follows the shared frame: aligned side gutters, a single working heading, one consistently placed primary action, and quieter optional actions below it. Choice cards have a minimum 66-point tap area; Continue is 56 points and secondary controls remain at least 44 points. Compact phones use the shared layout mode and existing readable type tokens; the six goal answers were checked in the web preview at 320 × 700 on 6 October 2026, wrapping rather than truncating. On an iPad the pages and their sheets sit in a 560-point reading column. Text remains scalable and scrollable, never truncated to fit; side-by-side tiles stack at the largest reading sizes. Plan edits use full rows with a label, current answer and arrow, then one focused choice group. Done/Cancel and start controls stay fixed outside the sheet's scroll area. All six tutors remain available in the single-column list, with scrolling at every text size. Hearing a sample does not select it. Signup uses the shared onboarding frame with one stable scrolling page with native keyboard insets. Create account sits below the fields, hides while the software keyboard is visible, and returns when editing ends. Focus scrolling measures the visible form body and the entire active field group, including its guidance. Email advances only with Next; Password advances to Confirm with Next. Confirm's Done validates and dismisses the keyboard without submitting. Eight characters is the local password minimum; Supabase remains authoritative for acceptance. The strength meter offers animated advice under Password only, and Confirm shows match feedback. Entered values survive system-back and sign-in detours in the auth flow's memory; passwords do not enter the saved onboarding draft.
 
-`EXPO_PUBLIC_ONBOARDING_VARIANT=five` retains the existing experiment flag, now covering welcome, purpose, confidence, focus, daily goal and plan. It omits level only; the retired drink question does not count as earned progress. Level remains editable in the plan review. This is an experiment, not an established conversion improvement. The plan offer comes after value and after account handling: once, after a kept practice, on the existing wall with its real store products, terms and free exit, and otherwise as voluntary See plans. The comparison of pre-practice versus post-feedback commercial timing needs cohort evidence; this revision does not fabricate prices or require a purchase.
+`EXPO_PUBLIC_ONBOARDING_VARIANT=five` retains the existing experiment flag, now covering welcome, purpose, confidence, focus, daily goal and plan. It omits level only; the retired drink question does not count as earned progress. Level remains editable in the plan review. This is an experiment, not an established conversion improvement. The plan offer comes after value and account handling, after Home becomes visible, with real store products, terms and a free exit; otherwise plans remain voluntary. The comparison of pre-practice versus post-feedback commercial timing needs cohort evidence; this revision does not fabricate prices or require a purchase.
 
 ## Accounts and returning users
 

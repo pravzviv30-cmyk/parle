@@ -19,14 +19,14 @@ export interface OnboardingProgressValue {
  * done. Repeated practice/feedback exchanges share the same two onboarding
  * steps. Re-entering an earlier page never removes durable completed steps.
  */
-export function onboardingSteps({ five = false, signedIn = false, skipStreak = false, skipped = [], repair = false, eligibilityOnly = false }: {
-  five?: boolean; signedIn?: boolean; skipStreak?: boolean; skipped?: readonly string[]; repair?: boolean; eligibilityOnly?: boolean;
+export function onboardingSteps({ five = false, signedIn = false, skipStreak = false, skipped = [], repair = false, eligibilityOnly = false, includeAccountName = false }: {
+  five?: boolean; signedIn?: boolean; skipStreak?: boolean; skipped?: readonly string[]; repair?: boolean; eligibilityOnly?: boolean; includeAccountName?: boolean;
 } = {}): readonly string[] {
   if (eligibilityOnly) return ['age'];
   if (repair) return PAGES;
   return [
     ...(five ? FIVE_SETUP : FULL_SETUP), 'choose-tutor', 'practice', 'recap',
-    'keep', ...(!signedIn ? ['account', 'account-welcome'] : []),
+    'keep', ...(!signedIn ? ['account', ...(includeAccountName ? ['account-name'] : []), 'account-welcome'] : []),
   ].filter(step => !(SKIPPABLE_STEPS.has(step) && skipped.includes(step)));
 }
 
@@ -40,6 +40,7 @@ export function onboardingProgress({ page, completed = [], complete = false, ...
   repair?: boolean;
   eligibilityOnly?: boolean;
   skipped?: readonly string[];
+  includeAccountName?: boolean;
 }): OnboardingProgressValue {
   const steps = onboardingSteps(conditions);
   const canonical = page === 'remind' ? 'keep' : page === 'signup' || page === 'signin' ? 'account'

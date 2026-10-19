@@ -1,0 +1,278 @@
+[
+  {
+    "screen": "61:409",
+    "key": "imgMiniatureJustForMe",
+    "url": "https://www.figma.com/api/mcp/asset/a01cf38f-1f4f-4a64-8879-10faa9215b39/35a1e.svg",
+    "filename": "61-409-imgMiniatureJustForMe.svg"
+  },
+  {
+    "screen": "61:409",
+    "key": "imgMiniatureWork",
+    "url": "https://www.figma.com/api/mcp/asset/a01cf38f-1f4f-4a64-8879-10faa9215b39/1b5ec.svg",
+    "filename": "61-409-imgMiniatureWork.svg"
+  },
+  {
+    "screen": "61:409",
+    "key": "imgMiniatureMovingToFrance",
+    "url": "https://www.figma.com/api/mcp/asset/a01cf38f-1f4f-4a64-8879-10faa9215b39/c30c0.svg",
+    "filename": "61-409-imgMiniatureMovingToFrance.svg"
+  },
+  {
+    "screen": "61:409",
+    "key": "imgMiniatureFamilyFriends",
+    "url": "https://www.figma.com/api/mcp/asset/a01cf38f-1f4f-4a64-8879-10faa9215b39/4cd42.svg",
+    "filename": "61-409-imgMiniatureFamilyFriends.svg"
+  },
+  {
+    "screen": "61:409",
+    "key": "imgMiniatureFoodCafes",
+    "url": "https://www.figma.com/api/mcp/asset/a01cf38f-1f4f-4a64-8879-10faa9215b39/6cd4b.svg",
+    "filename": "61-409-imgMiniatureFoodCafes.svg"
+  },
+  {
+    "screen": "61:409",
+    "key": "imgMiniatureTravel",
+    "url": "https://www.figma.com/api/mcp/asset/a01cf38f-1f4f-4a64-8879-10faa9215b39/50c74.svg",
+    "filename": "61-409-imgMiniatureTravel.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgLegs",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/93ea2.svg",
+    "filename": "61-458-imgLegs.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgUnderside",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/22d6c.svg",
+    "filename": "61-458-imgUnderside.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgBody",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/f2bcc.svg",
+    "filename": "61-458-imgBody.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgFace",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/e5b5e.svg",
+    "filename": "61-458-imgFace.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgGestureArms",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/afd8f.svg",
+    "filename": "61-458-imgGestureArms.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgLimbs",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/b2a20.svg",
+    "filename": "61-458-imgLimbs.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgBody1",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/d0439.svg",
+    "filename": "61-458-imgBody1.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgFace1",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/ba87c.svg",
+    "filename": "61-458-imgFace1.svg"
+  },
+  {
+    "screen": "61:458",
+    "key": "imgConversation",
+    "url": "https://www.figma.com/api/mcp/asset/56f99525-148a-4984-9134-23d72369e238/27dd4.svg",
+    "filename": "61-458-imgConversation.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgReadingBench",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/86c4c.svg",
+    "filename": "62-744-imgReadingBench.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgLegs",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/c920b.svg",
+    "filename": "62-744-imgLegs.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgUnderside",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/59f71.svg",
+    "filename": "62-744-imgUnderside.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgBody",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/096c7.svg",
+    "filename": "62-744-imgBody.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgFace",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/7b9d1.svg",
+    "filename": "62-744-imgFace.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgGestureArms",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/13abc.svg",
+    "filename": "62-744-imgGestureArms.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgLimbs",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/e7f37.svg",
+    "filename": "62-744-imgLimbs.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgBody1",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/606bd.svg",
+    "filename": "62-744-imgBody1.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgFace1",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/85e45.svg",
+    "filename": "62-744-imgFace1.svg"
+  },
+  {
+    "screen": "62:744",
+    "key": "imgTea",
+    "url": "https://www.figma.com/api/mcp/asset/538afb2a-e918-4a9d-96d2-b029b1431ccb/04272.svg",
+    "filename": "62-744-imgTea.svg"
+  },
+  {
+    "screen": "61:524",
+    "key": "imgCalendar",
+    "url": "https://www.figma.com/api/mcp/asset/69b1eb14-b2cb-4e9b-8e0e-dddd4eb57bd9/7e3d4.svg",
+    "filename": "61-524-imgCalendar.svg"
+  },
+  {
+    "screen": "61:524",
+    "key": "imgClock",
+    "url": "https://www.figma.com/api/mcp/asset/69b1eb14-b2cb-4e9b-8e0e-dddd4eb57bd9/8c6d6.svg",
+    "filename": "61-524-imgClock.svg"
+  },
+  {
+    "screen": "61:524",
+    "key": "imgCup",
+    "url": "https://www.figma.com/api/mcp/asset/69b1eb14-b2cb-4e9b-8e0e-dddd4eb57bd9/eeaf3.svg",
+    "filename": "61-524-imgCup.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgLegs",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/15e70.svg",
+    "filename": "61-588-imgLegs.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgUnderside",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/551c9.svg",
+    "filename": "61-588-imgUnderside.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgBody",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/ea1eb.svg",
+    "filename": "61-588-imgBody.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgFace",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/2dbe2.svg",
+    "filename": "61-588-imgFace.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgGestureArms",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/4d238.svg",
+    "filename": "61-588-imgGestureArms.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgLimbs",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/5b4a7.svg",
+    "filename": "61-588-imgLimbs.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgBody1",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/38822.svg",
+    "filename": "61-588-imgBody1.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgFace1",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/04bd0.svg",
+    "filename": "61-588-imgFace1.svg"
+  },
+  {
+    "screen": "61:588",
+    "key": "imgJourneyMap",
+    "url": "https://www.figma.com/api/mcp/asset/14cc5a67-addc-4147-bb0b-988bc3ba8f49/babe7.svg",
+    "filename": "61-588-imgJourneyMap.svg"
+  },
+  {
+    "screen": "61:648",
+    "key": "imgPortraitHairFaceAndClothing",
+    "url": "https://www.figma.com/api/mcp/asset/dd013328-d24a-419d-ba5e-a2cc62557347/6f2dc.svg",
+    "filename": "61-648-imgPortraitHairFaceAndClothing.svg"
+  },
+  {
+    "screen": "61:648",
+    "key": "imgPortraitHairFaceAndClothing1",
+    "url": "https://www.figma.com/api/mcp/asset/dd013328-d24a-419d-ba5e-a2cc62557347/352c6.svg",
+    "filename": "61-648-imgPortraitHairFaceAndClothing1.svg"
+  },
+  {
+    "screen": "61:648",
+    "key": "imgPortraitHairFaceAndClothing2",
+    "url": "https://www.figma.com/api/mcp/asset/dd013328-d24a-419d-ba5e-a2cc62557347/cd372.svg",
+    "filename": "61-648-imgPortraitHairFaceAndClothing2.svg"
+  },
+  {
+    "screen": "61:648",
+    "key": "imgPortraitHairFaceAndClothing3",
+    "url": "https://www.figma.com/api/mcp/asset/dd013328-d24a-419d-ba5e-a2cc62557347/34b2f.svg",
+    "filename": "61-648-imgPortraitHairFaceAndClothing3.svg"
+  },
+  {
+    "screen": "61:648",
+    "key": "imgPortraitHairFaceAndClothing4",
+    "url": "https://www.figma.com/api/mcp/asset/dd013328-d24a-419d-ba5e-a2cc62557347/5276a.svg",
+    "filename": "61-648-imgPortraitHairFaceAndClothing4.svg"
+  },
+  {
+    "screen": "61:648",
+    "key": "imgPortraitHairFaceAndClothing5",
+    "url": "https://www.figma.com/api/mcp/asset/dd013328-d24a-419d-ba5e-a2cc62557347/4f08b.svg",
+    "filename": "61-648-imgPortraitHairFaceAndClothing5.svg"
+  },
+  {
+    "screen": "61:364",
+    "key": "imgCloudCompanion",
+    "url": "https://www.figma.com/api/mcp/asset/0b0bc56e-5022-44bc-ae19-18dbc3397c86/b9ae4.svg",
+    "filename": "welcome-cloud.svg"
+  },
+  {
+    "screen": "61:364",
+    "key": "imgOrangeCompanion",
+    "url": "https://www.figma.com/api/mcp/asset/0b0bc56e-5022-44bc-ae19-18dbc3397c86/e1743.svg",
+    "filename": "welcome-orange.svg"
+  },
+  {
+    "screen": "61:364",
+    "key": "imgProps",
+    "url": "https://www.figma.com/api/mcp/asset/0b0bc56e-5022-44bc-ae19-18dbc3397c86/150b4.svg",
+    "filename": "welcome-props.svg"
+  }
+]

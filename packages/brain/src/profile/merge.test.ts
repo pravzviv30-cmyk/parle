@@ -59,6 +59,7 @@ function chain(stored: unknown, now: number): Record<string, unknown> | null {
   return {
     version: 8,
     name: typeof r.name === 'string' ? r.name : null,
+    ...(typeof r.namePromptPending === 'boolean' ? { namePromptPending: r.namePromptPending && !(typeof r.name === 'string' && r.name.trim().length > 0) } : {}),
     dob: typeof r.dob === 'string' ? r.dob : null,
     ageConfirmed: r.ageConfirmed === true ? true : null,
     motivation: typeof r.motivation === 'string' ? r.motivation : null,
@@ -319,7 +320,7 @@ describe('merging two copies of one learner', () => {
     // Never asked on either side stays never asked. `false` is not written here
     // and is not invented here.
     const blank = merge(stored(), stored());
-    for (const field of PROFILE_ANSWER_FIELDS) assert.equal(blank?.[field], ['practiceDaysPerWeek', 'onboardingGoal', 'onboardingDrink'].includes(field) ? undefined : null, field);
+    for (const field of PROFILE_ANSWER_FIELDS) assert.equal(blank?.[field], ['practiceDaysPerWeek', 'onboardingGoal', 'onboardingDrink', 'practicePreferences', 'namePromptPending'].includes(field) ? undefined : null, field);
   });
 
   test('a chosen voice beats a null one from either side, and the merge still absorbs its inputs', () => {

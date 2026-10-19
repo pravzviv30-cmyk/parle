@@ -59,7 +59,7 @@ describe('the plan card and the daily goal', () => {
     // The screen: the tag only where the derivation points, nothing selected
     // until tapped, and the plan card launches the flight (never a Chip here).
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
-    assert.match(screen, /suggested=\{tier\.minutes === suggested\}/);
+    assert.match(screen, /detail=\{tier\.minutes === suggested \? 'Suggested for your goal' : undefined\}/);
     assert.match(screen, /selected=\{draft\.minutes === tier\.minutes\}/);
     assert.match(screen, /onPress=\{\(\) => choose\(\{ minutes: 'none' \}\)\}/, 'Choose each time is no longer an answer of its own');
     assert.match(screen, /<PersonalPlan draft=\{draft\}/);
@@ -68,7 +68,7 @@ describe('the plan card and the daily goal', () => {
     assert.match(goal, /accessibilityLabel=\{tierLabel\(tier, suggested\)\}/);
   });
 
-  test('the personal plan ring centres the real daily minutes and introduces the next tutor step', () => {
+  test('the C2 personal plan names the real daily goal and the live practice it will open', () => {
     assert.deepEqual(GOAL_TIERS.map((t) => [t.minutes, t.quarters]), [[5, 1], [10, 2], [15, 3], [20, 4]]);
     assert.equal(ringShare(5), 0.25);
     assert.equal(ringShare(20), 1);
@@ -78,9 +78,9 @@ describe('the plan card and the daily goal', () => {
     assert.match(screen, /const planReady = \(\) => \{ playSfx\('select'\); tapSettled\(\); \};/);
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(plan, /const minutes = minutesOf\(draft\)/);
-    assert.match(plan, /<ProgressRing to=\{ringShare\(minutes\)\}/);
-    assert.match(plan, /justifyContent: 'center', alignItems: 'center'/);
-    assert.match(plan, /min\/day/);
+    assert.doesNotMatch(plan, /<ProgressRing/, 'setup minutes must not be presented as a learning score');
+    assert.match(plan, /accessibilityLabel=\{practiceGoal\}/);
+    assert.match(plan, /minutes\} minutes a day/);
     assert.match(plan, /<OnboardingScene kind="plan"/);
     const celebration = evidence('apps/mobile/assets/rive/source/plan/scene.rml');
     assert.match(celebration, /name="Confetti [0-9]+"/);
@@ -89,26 +89,26 @@ describe('the plan card and the daily goal', () => {
     assert.doesNotMatch(plan, /tutorName|Choose tutor|HeroNumber|Building|building|shimmer|playSfx|tick=/);
   });
 
-  test('a goal chosen each time draws an empty ring with an honest flexible label', () => {
+  test('a goal chosen each time has an honest flexible label and no progress percentage', () => {
     assert.equal(ringShare('none'), 0);
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(plan, /const goal = minutes === 'none' \? 'Practice at your pace' : `\$\{minutes\} minutes a day`/);
-    assert.match(plan, /<View accessible accessibilityRole="text" accessibilityLabel=\{goal\}/);
+    assert.match(plan, /<View accessible accessibilityRole="text" accessibilityLabel=\{practiceGoal\}/);
     assert.doesNotMatch(plan, /<ProgressRing[^>]+accessibilityLabel=/, 'the visual time ring must not announce percentage learning progress');
-    assert.match(plan, /minutes === 'none' \? '∞' : minutes/);
-    assert.match(plan, /minutes === 'none' \? 'your pace' : 'min\/day'/);
-    assert.match(plan, /<ProgressRing to=\{ringShare\(minutes\)\}/);
+    assert.match(plan, /\{practiceGoal\}/);
+    assert.doesNotMatch(plan, /∞|min\/day/);
+    assert.doesNotMatch(plan, /<ProgressRing/, 'setup minutes must not be presented as a learning score');
   });
 
-  test('the personal plan always reads its first authored practice rather than the latest attempt', () => {
+  test('the personal plan reads the same core live scenario as the real practice, with the selected support', () => {
     const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
     const plan = evidence('apps/mobile/src/onboarding/PersonalPlan.tsx');
     assert.match(screen, /page === 'plan' && <PersonalPlan draft=\{draft\}/);
-    assert.match(plan, /const plan = planFor\(draft\);/);
-    assert.match(plan, /\{plan\.starter\.title\}/);
+    assert.match(plan, /firstPracticeScenario\(briefFromDraft\(draft\)\)/); assert.match(plan, /\{conversation\.en\}/);
+    assert.match(plan, /\{conversation\.fr\}/);
     assert.match(plan, /\{plan\.method\}/);
-    assert.match(plan, /REASON_LABELS\[draft\.reason\]/);
-    assert.match(plan, /startingSupport\(draft\)/);
+    assert.match(plan, /START_LEVELS\.find\(option => option\.key === draft\.startLevel\)/);
+    assert.match(plan, /C2_OPTION_COPY\[draft\.speakingConfidence\]/);
     assert.doesNotMatch(plan, /taskIndex|attempts|\btask\.(prompt|translation|title)\b/);
   });
 });

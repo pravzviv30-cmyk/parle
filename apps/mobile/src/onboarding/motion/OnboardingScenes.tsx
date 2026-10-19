@@ -1,19 +1,21 @@
-/** Bounded UI flourishes around original, locally authored Rive illustrations. */
+/** Approved C2 vectors, with the shared native motion engine and bounded UI flourishes. */
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, AppState, Easing, StyleSheet, View } from 'react-native';
 import { colour, decorative, paper, radius } from '../../theme.ts';
 import { NATIVE_DRIVER, useReduceMotion } from '../../motion.ts';
-import { RiveSceneRenderer } from './RiveSceneRenderer.tsx';
+import { C2Scene } from './C2Scene.tsx';
 
 export type OnboardingSceneKind = 'welcome' | 'level' | 'plan' | 'account';
 export type SceneKind = OnboardingSceneKind;
 
-export function OnboardingScene({ kind, size = 176, active = true }: {
+export function OnboardingScene({ kind, size = 176, active = true, eventKey }: {
   kind: OnboardingSceneKind;
   size?: number;
   active?: boolean;
+  eventKey?: string | number;
 }) {
-  return <RiveSceneRenderer kind={kind} size={size} active={active} />;
+  return <C2Scene kind={kind === 'level' ? 'confidence' : kind}
+    width={size} active={active} eventKey={eventKey} />;
 }
 
 /** An invitation, not an endless beacon: two slow glow cycles, then rest. */

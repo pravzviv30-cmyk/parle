@@ -7,7 +7,7 @@ import { START_LEVELS, initialPracticeMode, practiceForecast } from '../plan.ts'
 const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx');
 
 /** Execute the production handoff function with deferred storage and account changes. */
-async function finishHandoff({ saved = true, newlyCreated = true, changeAt = '', storageFails = false, repeated = false, unmountAt = '' } = {}) {
+async function finishHandoff({ saved = true, newlyCreated = true, nameMissing = false, changeAt = '', storageFails = false, repeated = false, unmountAt = '' } = {}) {
   const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
   const source = handoff.slice(handoff.indexOf('const finish = async () => {'), handoff.indexOf('if (readError) return'));
   assert.ok(source.startsWith('const finish'), 'this check must execute the production finish');
@@ -17,7 +17,7 @@ async function finishHandoff({ saved = true, newlyCreated = true, changeAt = '',
   const mounted = { current: true };
   const changeAccount = () => { owner += 1; uid = 'other-user'; };
   const bindings = {
-    user: { id: 'new-user' }, guest: { completed: true }, busy: false, saved, newlyCreated, resumeAdoption: false,
+    user: { id: 'new-user' }, guest: { completed: true }, busy: false, saved, newlyCreated, nameMissing, resumeAdoption: false,
     operation: { current: false }, finished: { current: false }, mounted,
     scopeGeneration: () => owner, activeUserId: () => uid,
     setBusy: (value: boolean) => calls.push(value ? 'busy' : 'idle'),
@@ -43,7 +43,7 @@ describe('the personal onboarding journey', () => {
     const levels = screen.slice(screen.indexOf("{page === 'start-level' && START_LEVELS.map"), screen.indexOf("{(page === 'confidence' || page === 'focus')"));
     assert.ok(levels.length > 0, 'this check must read the actual level choice group');
     assert.match(levels, /width="100%"/);
-    assert.match(levels, /layout="row"/);
+    assert.match(levels, /<C2Choice/); assert.match(levels, /minimumHeight=\{104\}/); const choice = evidence('apps/mobile/src/onboarding/C2Choice.tsx'); assert.match(choice, /<Choice appearance="onboarding" minimumHeight=\{minimumHeight\} layout="row"/); const shared = evidence('apps/mobile/src/components.tsx'); assert.match(shared, /accessibilityRole=\{role\}/); assert.match(shared, /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/);
     assert.match(levels, /title=\{v\.title\}/);
     assert.match(levels, /choose\(\{ startLevel: v\.key \}\)/);
     assert.doesNotMatch(levels, /numberOfLines|ellipsizeMode|go\(/);
@@ -126,7 +126,7 @@ describe('the personal onboarding journey', () => {
     assert.match(welcome, /animation\.start\(\(\{ finished \}\) => \{ if \(finished\) finish\(\); \}\)/);
     assert.match(welcome, /clearTimeout\(timer\)/);
     assert.match(welcome, /animation\?\.stop\(\)/);
-    assert.match(welcome, /label="Go to home" onPress=\{finish\}/);
+    assert.match(welcome, /label="Go to home" gold onPress=\{finish\}/);
     assert.match(welcome, /<OnboardingLayout page="account-welcome" progress=\{\{ \.\.\.progress, fraction: 1, complete: true \}\}/);
     assert.match(handoff, /const journey = useRef\(draft\)/);
     assert.match(handoff, /<AccountWelcome progress=\{progress\}/);
@@ -142,6 +142,7 @@ describe('the personal onboarding journey', () => {
   test('only a durable finish removes guest progress and stages the verified account welcome', async () => {
     assert.deepEqual(await finishHandoff(), ['busy', 'clear', 'welcome', 'guest-null', 'done-kept', 'idle']);
     assert.deepEqual(await finishHandoff({ newlyCreated: false, saved: false }), ['busy', 'claim', 'clear', 'guest-null', 'done-fresh', 'idle']);
+    assert.deepEqual(await finishHandoff({ newlyCreated: false, nameMissing: true }), ['busy', 'clear', 'welcome', 'guest-null', 'done-kept', 'idle'], 'a resumed new-profile name ask must still lead into its account welcome');
     assert.deepEqual(await finishHandoff({ storageFails: true }), ['busy', 'clear', 'error', 'idle']);
   });
 

@@ -15,6 +15,8 @@ import { emptySignUpFormDraft, type SignUpFormDraft } from '../auth/signUpFormDr
 import { Choice, PillButton, Press } from '../components.tsx';
 import { ScrollScreen, readingColumn } from '../layout.tsx';
 import { AccountWelcome } from '../onboarding/AccountWelcome.tsx';
+import { AccountName } from '../onboarding/AccountName.tsx';
+import { MainAppPreview } from './MainAppPreview.tsx';
 import { OnboardingFrame, OnboardingLayout, useOnboardingTransition } from '../onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from '../onboarding/onboardingProgress.ts';
 import { TutorSelection } from '../onboarding/TutorSelection.tsx';
@@ -49,11 +51,11 @@ const previewFirstLive: FirstLiveRecord = {
   pack:buildConversationPack({id:'11111111-1111-4111-8111-111111111111',sessionId:'11111111-1111-4111-8111-111111111111',learnerId:'screen-preview',createdAt:'2026-10-10T10:00:00Z',title:{fr:'Au restaurant',en:'At the restaurant'},summary:'A restaurant conversation.',
     keyPhrases:[{fr:'Une table pour deux',frWritten:null,en:'A table for two'},{fr:'La carte',frWritten:null,en:'The menu'}]})
 };
-const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'select'] as const;
+const PREVIEWS = ['hear-it', 'reason', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'account-name', 'journey', 'main', 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'hear-it': 'Welcome', reason: 'Purpose', 'start-level': 'French today', confidence: 'Confidence', focus: 'Practice style', time: 'Daily goal',
-  'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
+  'auth-flow': 'Sign in and create account flow', journey: 'Complete onboarding flow', main: 'Main app with isolated sample learner', 'account-name': 'Verified account name (synthetic save)', plan: 'Personal plan', tutor: 'Choose your tutor', signup: 'Create account', signin: 'Sign in', streak: 'Streak', 'streak-long': '7-day streak', 'streak-empty': 'Before first practice', saved: 'First session achievements', celebration: 'First session celebration', partial: 'Interrupted practice', account: 'Account ready', select: 'Screen preview',
 };
 function previewOptions() {
   const query = Platform.OS === 'web' && typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
@@ -143,7 +145,7 @@ export function OnboardingPreview() {
           <PillButton tone="white" label={controlsVisible ? 'Hide preview controls' : 'Show preview controls'} onPress={() => setControlsVisible(value => !value)} />
           {PREVIEWS.filter(value => value !== 'select').map(value => <PillButton key={value} label={LABELS[value]} onPress={() => go(value)} />)}
         </View>
-      </ScrollScreen> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
+      </ScrollScreen> : screen === 'main' ? <MainAppPreview onExit={() => go('select')} /> : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'tutor' && <TutorFixture chosen={chosen} onChoose={setChosen} onDone={() => go('streak')} />}
           {screen === 'signup' && <SignUpScreen onBack={() => go('select')} onSignIn={() => go('signin')} planDraft={draft} formDraft={formDraft} onFormDraftChange={setFormDraft} />}
@@ -161,6 +163,7 @@ export function OnboardingPreview() {
             progress={onboardingProgress({page:'keep'})} onSave={() => go('signup')} />}
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signup')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
+          {screen === 'account-name' && <AccountName progress={onboardingProgress({ page: 'account-name', includeAccountName: true })} onSave={async () => { go('account'); return true; }} />}
           {titles[screen] !== undefined && <OnboardingLayout page={screen} footer={<PillButton label={screen === 'plan' ? 'Choose your tutor' : 'Continue'} onPress={next} />}>
             <View style={st.story}>
               {screen === 'hear-it' && <View style={{ alignItems: 'center' }}><OnboardingScene kind="welcome" size={190} /></View>}
@@ -177,7 +180,7 @@ export function OnboardingPreview() {
           </OnboardingLayout>}
         </Animated.View>
       </OnboardingFrame>}
-      {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+      {(controlsVisible || requestPending) && screen !== 'select' && screen !== 'main' && !screen.startsWith('streak') && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
         <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} style={st.badge}>
           <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
         </Press>

@@ -14,6 +14,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { evidence } from '../../../test/evidence.ts';
 import { accent, colour, onColour, paper } from '../../palette.ts';
+import { C2 } from '../c2Presentation.ts';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './nextFace.ts';
 
 function luminance(hex: string): number {
@@ -38,6 +39,7 @@ describe('a disabled control says it is off — F758', () => {
     assert.notEqual(NEXT_OFF.fill, paper.inkSoft, 'the off Continue is the slate fill that reads as live');
     assert.notEqual(NEXT_OFF.words, paper.onInk, 'the off Continue has the live button\'s white words');
     assert.deepEqual(NEXT_ON, { fill: paper.ink, words: paper.onInk });
+    assert.ok(contrast(C2.white, C2.violet) >= WORDS, 'the C2 live action must retain readable white words');
     assert.ok(contrast(NEXT_OFF.words, NEXT_OFF.fill) >= WORDS, `the off Continue's words are ${contrast(NEXT_OFF.words, NEXT_OFF.fill).toFixed(2)} on its fill`);
 
     // Every ground a first-run pill or Continue sits on, with the tone it
@@ -69,7 +71,7 @@ describe('a disabled control says it is off — F758', () => {
     assert.match(next, /from '\.\/firstRun\/nextFace\.ts'/);
     assert.match(next, /style=\{\[st\.surface, \{ backgroundColor: NEXT_OFF\.fill \}\]\}/, 'the Continue is not drawn on its off face');
     assert.match(next, /\{face\(NEXT_OFF\.words\)\}/);
-    assert.match(next, /<LiveFace live=\{!disabled\} style=\{\[st\.row, \{ backgroundColor: NEXT_ON\.fill \}\]\}>/, 'the live face no longer waits for an answer');
+    assert.match(next, /<LiveFace live=\{!disabled\} style=\{\[st\.row, \{ backgroundColor: NEXT_ON\.fill \}, c2 && \{ backgroundColor: C2\.violet \}\]\}>/, 'the live face no longer waits for an answer');
     assert.match(next, /accessibilityState=\{\{ disabled \}\}/);
     assert.match(next, /accessibilityHint=\{disabled \? NEXT_OFF_HINT : undefined\}/);
     assert.match(next, /<Glint when=\{!disabled\}/, 'turning on no longer glints');
