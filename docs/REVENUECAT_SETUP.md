@@ -11,6 +11,80 @@ The approved trial is seven days. Both Starter and Max are offered monthly and
 yearly. This setup does not add weekly, lifetime or family products. Keep real
 purchase availability closed until the deployment and sandbox checks pass.
 
+Start with the [step-by-step checklist](#step-by-step-checklist). The numbered
+sections after it give the detail for each step.
+
+## Step-by-step checklist
+
+Work through these in order. Tick a box only when you have seen the setting
+saved in the dashboard or confirmed it with the named check. Nothing here is
+configured yet. Where a step says "(founder decision)", an engineer cannot do it
+for you.
+
+- [ ] **0. Accounts.** You need an active Apple Developer Program membership and
+  an App Store Connect app record for bundle ID `com.luvani.app`. In App Store
+  Connect, open Agreements, Tax and Banking and make sure the **Paid Apps**
+  agreement is active, with banking and tax complete. Purchases cannot work
+  until it is. See [section 1](#1-create-the-apple-subscriptions).
+- [ ] **1. Decide prices (founder decision, still open).** For each of the four
+  products, choose an Apple price point in each storefront you will sell in.
+  Read the [pricing analysis](#pricing-decision-before-products-are-published)
+  and the [UK benchmarks](#competitive-launch-recommendation-not-configured-store-prices)
+  first. GBP needs its own proceeds calculation. Record the decision here.
+
+  | Product | UK price | US price | Approved by/date |
+  |---|---|---|---|
+  | `luvani_starter_monthly` | | | |
+  | `luvani_starter_yearly` | | | |
+  | `luvani_regular_monthly` (Max) | | | |
+  | `luvani_regular_yearly` (Max) | | | |
+
+- [ ] **2. App Store Connect products.** Create one subscription group and the
+  four auto-renewable products with the exact IDs in
+  [section 1](#1-create-the-apple-subscriptions). Set the durations (one month
+  or one year). Put Max above Starter in the group's service levels. Add a
+  localized display name and description to each. Add a review screenshot of the
+  paywall. Add the **one-week free introductory offer** to all four products.
+  Apple allows one introductory offer per subscription group per customer.
+- [ ] **3. RevenueCat.** Create the project and an iOS app with bundle ID
+  `com.luvani.app`. In App Store Connect, go to Users and Access → Integrations
+  → In-App Purchase and create an In-App Purchase Key. Upload the `.p8` file,
+  Key ID and Issuer ID to RevenueCat only, never to the repository or the app.
+  Optionally add an App Store Connect API key so RevenueCat can import
+  products. Import the four products. Create the entitlement `luvani` and attach
+  all four. Create the offering `main`, make it the default (current) offering,
+  and add the four custom packages. See
+  [section 2](#2-connect-apple-to-revenuecat) and
+  [section 3](#3-create-the-current-offering).
+- [ ] **4. Mobile build configuration.** Set the six `EXPO_PUBLIC_REVENUECAT_`
+  variables listed in [section 4](#4-set-the-mobile-build-configuration). Use a
+  local `.env` for development builds and EAS environment variables or secrets
+  for cloud builds. Use the RevenueCat iOS **public** SDK key only. Never use a
+  secret key here.
+- [ ] **5. Server configuration and webhook.** Set the server variables in
+  [section 5](#5-set-the-server-configuration-and-webhook). Add the RevenueCat
+  webhook for the token server origin plus `/billing/webhook`. Its Authorization
+  value must exactly match `LUVANI_REVENUECAT_WEBHOOK_SECRET`. Deliver both
+  sandbox and production events.
+- [ ] **6. Database and worker.** Apply the migrations, then confirm that
+  `billing_projection_version` returns `2` and that `POST /billing/readiness`
+  returns `ready: true` with matching IDs. Confirm the maintenance worker is
+  running. See [section 6](#6-verify-the-database-and-renewal-worker).
+- [ ] **7. Build.** Make a native development or release build. Expo Go and the
+  in-app preview cannot buy. See
+  [section 4](#4-set-the-mobile-build-configuration).
+- [ ] **8. Sandbox testing.** Run the full test matrix on the native build. See
+  [Sandbox testing](#sandbox-testing).
+- [ ] **9. Before submitting for review.**
+  - App Review notes explain the paywall and how to reach it.
+  - Restore purchases, Terms of Use (EULA) and Privacy Policy links are
+    reachable in the app and set in the App Store Connect metadata.
+  - App Privacy answers are updated for purchases.
+  - The four subscription products are submitted with the app version (status
+    "ready to submit").
+  - The billed amount is the most prominent price on the paywall (App Review
+    guideline 3.1.2).
+
 ## 1 Create the Apple subscriptions
 
 In App Store Connect, complete the Paid Apps Agreement, banking and tax setup
@@ -174,8 +248,70 @@ purchase cancellation; accepted purchase followed by server confirmation;
 Restore on another signed-in device; trial conversion; lapse; annual refill;
 delayed webhook; account change during an operation; and network failure with
 an intact retry path. Expo Go, web fixtures and preview screenshots do not prove
-store purchases. Promise a trial-end reminder only after permission and actual
-scheduling exist; the current reminder policy does not schedule one.
+store purchases. The paywall promises the Day 5 reminder only when it is actually
+scheduled: after a confirmed trial, with notification permission granted and the
+learner's Trial ending reminder setting on. It fires at 6 pm local time, two
+days before the trial ends.
+The app reads the configured entitlement's period type, `willRenew` and
+expiration date only to manage the trial-ending reminder (cancel it on
+conversion, lapse or auto-renew off); they never grant minutes or a plan.
+Check the reminder on a dev build with notifications enabled, using a StoreKit
+configuration file with a slower time rate or the unit tests. Sandbox timing is
+too fast for it (see Sandbox testing).
+
+## Sandbox testing
+
+Do this on a native build, after sections 1 to 6 are done.
+
+**Set up a tester.**
+
+1. In App Store Connect, go to Users and Access → Sandbox → Test Accounts and
+   create a Sandbox Apple Account.
+2. On the test device or simulator, sign in to it under Settings → App Store →
+   Sandbox Account.
+3. Use a fresh tester to see an eligible free trial. A tester who has already
+   used the trial sees the standard paywall without trial wording.
+
+**Sandbox time is accelerated.** In the App Store sandbox, a one-week period
+lasts about 3 minutes, one month about 5 minutes and one year about 1 hour.
+Subscriptions auto-renew only a limited number of times, then stop.
+
+This matters for the trial-ending reminder. The app schedules it for 6 pm local
+time, two days before the trial ends. In sandbox that moment is usually already
+in the past, so the reminder will usually **not** schedule. Do not judge the
+reminder by sandbox timing. Check its logic with the unit tests. If you need to
+see it on a device, use a StoreKit configuration file in Xcode with a slower
+time rate.
+
+**Xcode StoreKit Testing.** A `.storekit` configuration file lets you test
+products locally without App Store Connect. It does not prove RevenueCat or
+server verification, so it never replaces the sandbox run above.
+
+**Test matrix.** Use the list in
+[section 7](#7-check-trial-allowances-and-purchase-behavior) as the source and
+tick each row.
+
+| Case | Expected result |
+|---|---|
+| Eligible tester, yearly trial | Trial wording shown, purchase accepted, server confirms |
+| Eligible tester, monthly trial | Trial wording shown, purchase accepted, server confirms |
+| Ineligible tester (trial already used) | Standard paywall, no trial wording |
+| Cancel in the Apple sheet | Returns silently, no error |
+| Failed purchase | "The purchase didn’t go through" notice |
+| Restore on a second signed-in device | Plan restored |
+| Restore with nothing to restore | "No subscription found": "Nothing to restore for this Apple ID yet. If you just subscribed, try again in a moment." No plan granted |
+| Offline | "We couldn’t load plans" with Try again and Keep practising free |
+| Trial conversion | Paid allowance replaces the trial allowance, and the trial-ending reminder is cancelled |
+| Lapse | Paid access ends |
+| Annual refill | Allowance refills each 30-day window in the paid year |
+| Delayed webhook | Server recovers from RevenueCat state |
+| Account change mid-operation | No plan or minutes cross to the other account |
+| Settings › Subscription | Shows the plan, and never says "Free" when the plan cannot be checked |
+| Trial ending reminder switch | Appears in Settings only during a trial on this device |
+
+**Ask to Buy.** The app does not yet report an Ask to Buy purchase as pending
+(see [KNOWN_ISSUES F810](KNOWN_ISSUES.md)). The wall shows a general waiting
+notice instead. Do not treat this as a pass for Ask to Buy.
 
 ## Pricing decision before products are published
 
