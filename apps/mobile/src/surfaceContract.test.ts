@@ -211,6 +211,8 @@ describe('reviewed live microphone and tutor card shadows — F569', () => {
         if (shadowProperty.test(line)) {
           if (rel(path) === 'onboarding/TutorSelection.tsx' && line.includes('boxShadow: `0px 3px 12px ${paper.ink}06`')) continue;
           if (welcomeShadows.get(rel(path))?.includes(line.trim())) continue;
+          // UI-006: the one soft lift, for illustrated Explore tiles only.
+          if (rel(path) === 'theme.ts' && line.trim() === 'export const liftStyle = { boxShadow: shadow.lift.css } as const;') continue;
           offenders.push(`${rel(path)}  ${line.trim()}`);
         }
       }

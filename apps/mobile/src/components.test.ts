@@ -271,14 +271,19 @@ describe('the revamp primitives keep their promises — F569, F577, F586', () =>
     // small soft ink, quieter than the heading under it.
     const source = componentsSource();
     const pill = region(source, '  pill: {', '  pillWhite:');
-    assert.match(pill, /minHeight: HIT \+ 12/, 'the pill is under 56pt');
+    // UI-004/UI-005: the one pill is 54pt and fully rounded; the secondary
+    // pill is 46pt white with ink words.
+    assert.match(pill, /minHeight: PILL_HEIGHT/, 'the pill is not drawn at its height token');
+    assert.match(source, /export const PILL_HEIGHT = 54;/, 'the primary pill is not 54pt');
+    assert.match(source, /export const SECONDARY_HEIGHT = 46;/, 'the secondary pill is outside 44 to 48pt');
     assert.match(pill, /backgroundColor: accent\.primary/, 'the pill is not ink');
-    assert.match(pill, /borderRadius: radius\.control/, 'the primary action should use the clean control radius');
+    assert.match(pill, /borderRadius: radius\.pill/, 'the primary action is not fully rounded');
+    assert.doesNotMatch(source, /design === 'bold-rhythm'/, 'the bold-rhythm pill draws a second look again');
     assert.match(source, /pillWhite: \{ backgroundColor: paper\.card \}/, 'the white pill for blue and coral grounds is not white');
     const outline = region(source, '  outline: {', '  outlinePressed:');
     assert.match(outline, /minHeight: HIT/, 'the quiet link is under the touch floor');
     assert.doesNotMatch(outline, /borderWidth|backgroundColor/, 'the secondary action is a boxed button, not a quiet link');
-    const ghost = region(source, '  ghost: {', '  chip:');
+    const ghost = region(source, '  ghost: {', '  option:'); // UI-005: the dead ink chip styles are gone
     assert.match(ghost, /minHeight: HIT/, 'the underlined link is under the touch floor');
     assert.doesNotMatch(ghost, /borderWidth|backgroundColor/, 'the underlined link is drawn as a box');
     const label = region(source, 'export function Label(', 'export function PillButton(');
@@ -759,7 +764,9 @@ describe('the B parts keep their promises — F597', () => {
   test('a colour card is one ground with its words in the palette\'s colours for it, and a stat tile and a hero number each read as one phrase', () => {
     const card = part('ColourCard');
     assert.match(card, /ground: Ground/, 'a colour card is not one of the four grounds');
-    assert.match(card, /backgroundColor: colour\[ground\]/, 'the card is not its ground\'s colour');
+    // UI-005: the feature card also takes a pastel ground.
+    assert.match(card, /: colour\[ground as Ground\]/, 'the card is not its ground\'s colour');
+    assert.match(card, /backgroundColor: fill/, 'the card is not its ground\'s colour');
     assert.match(card, /borderRadius: radius\.feature/, 'the card is not at the feature radius');
     assert.doesNotMatch(card, /<PillButton/, 'the colour card builds its own pill, so a screen\'s pill count moves into a shared file');
     // The whole card is a target only when it is given somewhere to go; a card

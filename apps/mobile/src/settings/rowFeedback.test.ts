@@ -39,7 +39,9 @@ describe('profile and settings controls answer a tap', () => {
     assert.match(toggle, /tapSettled\(\);\s*onChange\(next\);/);
     assert.match(toggle, /accessibilityHint=\{sub\}/);
     assert.match(toggle, /trackColor=\{\{ true: accent.brand, false: offTrack \}\}/);
-    assert.match(toggle, /const offTrack = useInGroup\(\) \? colors\.border : paper\.field;/);
+    // UI-005: the off track is the field grey everywhere; the hairline it used
+    // in grouped lists was ~1.24:1 on white, under the 3:1 non-text floor.
+    assert.match(toggle, /const offTrack = paper\.field;/);
   });
 
   test('every full-screen profile and settings sheet exposes its title as a heading', () => {

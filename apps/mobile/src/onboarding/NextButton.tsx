@@ -14,11 +14,10 @@
  * once and no glint passes, watched live.
  */
 
-import { boldType, c } from './boldRhythm.ts';
 import { nextAction } from './nextAction.ts';
 import { useEffect, useRef, createElement, type KeyboardEvent } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
-import { ArrowRight, Press } from '../components.tsx';
+import { ArrowRight, PILL_HEIGHT, Press } from '../components.tsx';
 import { decorative, radius, space, type } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
 import { Glint } from '../motion/Glint.tsx';
@@ -48,14 +47,14 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
   };
   const face = (ink: string, words = label) => (
     <>
-      <Text style={[bold ? boldType.label : type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{words}</Text>
+      <Text style={[type.button, { color: ink, flexShrink: 1, textAlign: 'center' }]}>{words}</Text>
       <Animated.View style={{ transform: [{ translateX: arrow }] }}>
-        <ArrowRight color={bold && ink === c.white ? c.sun : ink} />
+        <ArrowRight color={ink} />
       </Animated.View>
     </>
   );
   const contents = (<>
-      <View style={[st.row, bold && { minHeight: 52, paddingVertical: 14 }]}>
+      <View style={st.row}>
         {disabledHint ? <>
           {/* The question instruction reserves its largest face before any tap. */}
           <View {...decorative} aria-hidden={true} style={[st.face, { opacity: 0 }]}>{face(NEXT_OFF.words, disabledHint)}</View>
@@ -64,12 +63,12 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
           </View>
         </> : face(NEXT_OFF.words)}
       </View>
-      <LiveFace live={!disabled} style={[st.row, bold && { minHeight: 52, paddingVertical: 14 }, { backgroundColor: bold ? c.violet : NEXT_ON.fill }]}>
+      <LiveFace live={!disabled} style={[st.row, { backgroundColor: NEXT_ON.fill }]}>
         <View {...decorative} style={st.face}>
-          {face(bold ? c.white : NEXT_ON.words)}
+          {face(NEXT_ON.words)}
         </View>
       </LiveFace>
-      <Glint when={!disabled} wait={DUR.fast} radius={bold ? 20 : radius.control} />
+      <Glint when={!disabled} wait={DUR.fast} radius={radius.pill} />
   </>);
   // RN Web Pressable overwrites aria-disabled from its interaction-disabled
   // prop. This explanatory action must remain clickable without advertising
@@ -95,12 +94,12 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
     ] } : undefined}>{createElement('div', {
       ...webEvents, role: 'button', 'aria-label': label, 'aria-disabled': disabled,
       'aria-description': disabled ? NEXT_OFF_HINT : undefined,
-      style: { position: 'relative', minHeight: bold ? 52 : 56, borderRadius: bold ? 20 : radius.control, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
+      style: { position: 'relative', minHeight: PILL_HEIGHT, borderRadius: radius.pill, overflow: 'hidden', backgroundColor: NEXT_OFF.fill, cursor: 'pointer' },
     }, contents)}</Animated.View>;
   }
   return (
     <Press
-      depth={bold && !disabled ? 'raised' : 'control'}
+      depth="control"
       haptic={disabled ? 'none' : 'light'}
       accessibilityLabel={label}
       accessibilityHint={disabled ? NEXT_OFF_HINT : undefined}
@@ -108,7 +107,7 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
       onPress={() => nextAction(disabled, onPress, onDisabledPress)}
       onPressIn={() => { if (!disabled) move(4); }}
       onPressOut={() => move(0)}
-      style={[st.surface, { minHeight: bold ? 52 : 56, borderRadius: bold ? 20 : radius.control, backgroundColor: NEXT_OFF.fill }]}
+      style={[st.surface, { minHeight: PILL_HEIGHT, borderRadius: radius.pill, backgroundColor: NEXT_OFF.fill }]}
     >
       {contents}
     </Press>
@@ -116,9 +115,10 @@ export function NextButton({ onPress, disabled, onDisabledPress, label = NEXT_LA
 }
 
 const st = StyleSheet.create({
-  surface: { minHeight: 56, borderRadius: radius.control, overflow: 'hidden' },
+  // UI-005: the one primary pill, 54pt and fully rounded, ink when live.
+  surface: { minHeight: PILL_HEIGHT, borderRadius: radius.pill, overflow: 'hidden' },
   row: {
-    minHeight: 56,
+    minHeight: PILL_HEIGHT,
     paddingVertical: space(3.5),
     paddingHorizontal: space(6),
     flexDirection: 'row',

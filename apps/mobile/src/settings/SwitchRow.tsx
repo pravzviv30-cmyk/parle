@@ -24,7 +24,7 @@ import { View, Text, Switch, StyleSheet } from 'react-native';
 import { accent, paper, space, type } from '../theme.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { useSettingsColors } from './SettingsAppearance.tsx';
-import { RowDivider, useInGroup, useRowFrame } from './SettingsGroup.tsx';
+import { RowDivider, useRowFrame } from './SettingsGroup.tsx';
 
 export function SwitchRow({
   title,
@@ -47,9 +47,9 @@ export function SwitchRow({
 }) {
   const colors = useSettingsColors();
   const frame = useRowFrame();
-  // P2: in a grouped list the off track is the border ink (light #DCD2C4,
-  // dark #514967) under a white knob; on a card it keeps the field grey.
-  const offTrack = useInGroup() ? colors.border : paper.field;
+  // UI-005: the off track is the field grey everywhere, the 3:1 non-text
+  // floor on white. The hairline it used in grouped lists read ~1.24:1.
+  const offTrack = paper.field;
   return (
     <View style={[st.row, frame]}>
       {first ? null : <RowDivider />}

@@ -141,6 +141,9 @@ export const shadow = {
   lift: { offsetX: 0, offsetY: 12, blur: 24, spread: -16, color: liftInk, css: `0px 12px 24px -16px ${liftInk}` },
 } as const;
 
+/** UI-006: the lift as a style, for an illustrated Explore tile only (Card / ColourCard `lift`). */
+export const liftStyle = { boxShadow: shadow.lift.css } as const;
+
 /** The white disc that holds a glyph inside a tinted row. */
 export const DISC = 44;
 

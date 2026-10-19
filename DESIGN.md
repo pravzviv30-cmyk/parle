@@ -501,13 +501,22 @@ one; where a value differs it still wins on the onboarding screens.
 
 ### Buttons
 
-Built in A2; recorded here as the target.
+Built in A2 (UI-004, UI-005), all through `PillButton` in `components.tsx`.
 
-- **Primary**: the ink pill, 54pt tall, fully rounded, white `button` label and
-  an optional leading icon. One per door.
-- **Secondary**: a white or pastel pill, 44 to 48pt tall, ink label.
+- **Primary**: the ink pill, `PILL_HEIGHT` 54pt, `radius.pill`, white `button`
+  label and an optional leading icon. One per door. `onboarding/BoldButton` is
+  a thin alias that adds only its come-alive glint; `onboarding/NextButton`
+  keeps its own off face and hint but draws the same 54pt ink pill. The old
+  `design="bold-rhythm"` prop is still accepted and does nothing.
+- **Secondary**: `variant="secondary"`, a `SECONDARY_HEIGHT` 46pt white pill
+  with ink words, or a pastel one with `pastel="butter|lavender|peach|sage"`.
 - **Chip**: 36pt visible, with a 1.5pt ink outline; its touch target still
-  reaches 44pt.
+  reaches 44pt. Not a shared part yet: the chips in use are local to the drill
+  and conversation screens and move with their screens.
+- The quiet text links (`OutlineButton`, `GhostButton`) are tertiary, not the
+  secondary pill, and are unchanged.
+- The wall's own CTA (`wall/WallParts`) still draws its own pill until the
+  wall is recomposed.
 - A pressed blue control darkens to `colour.bluePressed`. Radii stay card 24,
   feature 28, tile 20, field 16, pill 999.
 
@@ -524,7 +533,8 @@ the new look, listed at the end, and they go with their call sites.
 - **Card**: the one card (SNIPPETS card-white): white at the card radius, no
   hairline, no shadow, no outline, never nested inside another card.
   `tone="feature"` is deprecated and draws white; `journal` keeps the ground
-  for the phrase card.
+  for the phrase card. `lift` adds the one soft lift (`liftStyle`), for an
+  illustrated Explore tile only.
 - **Ledger / LedgerRow**: how a list is drawn. The ledger rules a hairline
   above its first row and is a list to assistive tech; each row rules the
   hairline under itself. A row is one `Press` at 56pt with an optional 24pt
@@ -532,8 +542,8 @@ the new look, listed at the end, and they go with their call sites.
   own line, trailing meta, an earned state, and the faint chevron that says it
   opens. It names itself once, says disabled in soft ink rather than opacity,
   and grows rather than clips at the largest reading size.
-- **PillButton**: the one primary action per screen: the ink pill
-  (`accent.primary`) with white lettering, 56pt, fully rounded; `tone="white"`
+- **PillButton**: the one button (see Buttons): the ink pill
+  (`accent.primary`) with white lettering, 54pt, fully rounded; `tone="white"`
   is the white pill with ink lettering on a blue or coral ground. The returning
   sign-in form uses `tone="brand"` for its purple primary action; compact
   provider pills retain the touch floor and wrap their labels.
@@ -639,15 +649,18 @@ the new look, listed at the end, and they go with their call sites.
   somewhere, and a destructive label is `danger`. Separators sit inset 16 from
   the left in `border` at 70%. Outside a group the same rows keep their older
   card shape, so the memory screen, social settings and onboarding are
-  unchanged. Switches stay on `accent.brand` with the off track said twice.
+  unchanged. Switches stay on `accent.brand`; the off track is `paper.field`
+  everywhere (3:1 on white), no longer the grouped list's hairline.
 
 More shared parts:
 
 - **RoundButton**: back and close are a white disc at the touch floor with the
   set's back or close icon; next is a 64 disc (sun on blue or coral, ink on
   sun) with its word beside it.
-- **ColourCard**: the one colour card on a paper screen: one ground at the
-  feature radius, words in `textOn`, the secondary in `onColour`. The whole card
+- **ColourCard**: the feature card: one colour ground, or a pastel one
+  (`ground="pastel.sage"` and so on), at the feature radius 28 with no hairline
+  or shadow, words in `textOn`, the secondary in `onColour`. `lift` is for an
+  illustrated Explore tile only. The whole card
   is a target only when it holds no pill of its own.
 - **StatTile / HeroNumber**: a number and one plain line on white, and the one
   giant number with its unit on a colour board. Each is one phrase to a screen

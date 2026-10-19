@@ -53,8 +53,10 @@ import {
   onColour,
   orb,
   paper,
+  pastel,
   radius,
   segmentPending,
+  liftStyle,
   signal,
   space,
   textOn,
@@ -184,20 +186,24 @@ export function AppleMark({ size = 20, color = paper.ink }: { size?: number; col
  *
  * `tone="feature"` is deprecated and draws white like every other card.
  * `journal` keeps the ground colour for the one card that sits a French line on
- * the page itself.
+ * the page itself. `lift` is the one soft lift (UI-006), for an illustrated
+ * Explore tile only; every other card stays flat.
  */
 export function Card({
   children,
   style,
   padded = true,
   tone = 'paper',
+  lift = false,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
   tone?: 'paper' | 'feature' | 'journal';
+  /** The one soft lift (UI-006), for an illustrated Explore tile only. */
+  lift?: boolean;
 }) {
-  return <View style={[s.card, tone === 'journal' && { backgroundColor: paper.ground }, padded && s.cardPadded, style]}>{children}</View>;
+  return <View style={[s.card, tone === 'journal' && { backgroundColor: paper.ground }, lift && liftStyle, padded && s.cardPadded, style]}>{children}</View>;
 }
 
 /**
@@ -212,8 +218,9 @@ export function Label({ children, color = paper.inkSoft }: { children: React.Rea
 // ────────────────────────────────────────────────────────────────── controls
 
 /**
- * The one primary action on a screen (SNIPPETS button-primary): a 56pt pill,
- * fully rounded. Ink with white lettering on paper, sun, mint or white; white
+ * The one button (UI-004/UI-005). The primary action on a screen is a 54pt
+ * ink pill, fully rounded, with white `button` words and an optional leading
+ * icon; `variant="secondary"` is a 46pt white or pastel pill with ink words. Ink with white lettering on paper, sun, mint or white; white
  * with ink lettering on blue or coral. Disabled is soft ink lettering on the
  * sand skeleton for an ink pill, and on the blue ground's pale secondary for a
  * white one (come alive, icons section 3.4; F758): a soft ink pill with white
@@ -233,7 +240,8 @@ export function PillButton({
   decoration,
   ref,
   state = 'idle',
-  design,
+  variant = 'primary',
+  pastel,
 }: {
   label: string;
   onPress: () => void;
@@ -263,13 +271,26 @@ export function PillButton({
    * Reduce Motion.
    */
   state?: 'idle' | 'busy' | 'done';
+  /**
+   * Deprecated no-op (UI-004/UI-005): the bold-rhythm look is folded into the
+   * one pill, so every primary action draws the same. Still accepted so the
+   * onboarding alias and older call sites type-check.
+   */
   design?: 'bold-rhythm';
+  /**
+   * `primary` is the 54pt ink pill. `secondary` is the 46pt white pill with
+   * ink words, or a pastel one when `pastel` names the ground (UI-005).
+   */
+  variant?: 'primary' | 'secondary';
+  /** The pastel fill of a secondary pill on a white card. */
+  pastel?: keyof typeof pastelFill;
 }) {
   const { fontScale } = useWindowDimensions();
   const waiting = state !== 'idle';
-  const foreground = tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
+  const secondary = variant === 'secondary';
+  const foreground = secondary || tone === 'white' || tone === 'sun' ? paper.ink : paper.onInk;
   return (
-    <Press haptic="light" depth={design === 'bold-rhythm' ? 'raised' : 'control'} style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, design === 'bold-rhythm' && { borderRadius: 20, minHeight: 52, backgroundColor: tone === 'sun' ? colour.sun : tone === 'white' ? paper.card : colour.blue }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
+    <Press haptic="light" depth="control" style={[s.pill, compact && { paddingHorizontal: space(3) }, tone === 'white' && s.pillWhite, outlined && s.pillOutlined, tone === 'sun' && { backgroundColor: colour.sun }, tone === 'brand' && { backgroundColor: colour.blue }, secondary && s.pillSecondary, secondary && pastel != null && { backgroundColor: pastelFill[pastel] }, disabled && (tone === 'white' ? s.pillDisabledOnColour : s.pillDisabled)]} disabled={disabled || waiting} onPress={onPress} accessibilityLabel={accessibilityLabel ?? label} accessibilityState={waiting ? { busy: state === 'busy', disabled: true } : undefined} ref={ref}>
       {waiting ? <PillWait done={state === 'done'} color={foreground} /> : icon}
       <Text style={[type.button, { color: disabled ? paper.inkSoft : foreground }, compact && { flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={fontScale + 1}>{label}</Text>
       {!waiting && trailingIcon}
@@ -296,6 +317,11 @@ function PillWait({ done, color }: { done: boolean; color: string }) {
 }
 
 const PILL_MARK = 24;
+/** UI-005 control heights: the primary pill and the secondary pill. */
+export const PILL_HEIGHT = 54;
+export const SECONDARY_HEIGHT = 46;
+const pastelFill = pastel;
+
 
 /**
  * A secondary action: a quiet text link at the touch floor, ink words with no
@@ -934,17 +960,19 @@ const s = StyleSheet.create({
   card: { backgroundColor: paper.card, borderRadius: radius.card },
   cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
   pill: {
-    minHeight: HIT + 12,
+    minHeight: PILL_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: space(2),
     backgroundColor: accent.primary,
-    borderRadius: radius.control,
+    borderRadius: radius.pill,
     paddingHorizontal: space(6),
     paddingVertical: space(3),
   },
   pillWhite: { backgroundColor: paper.card },
+  // UI-005: the secondary pill, 46pt (inside 44 to 48), white with ink words.
+  pillSecondary: { minHeight: SECONDARY_HEIGHT, backgroundColor: paper.card, paddingVertical: space(2) },
   pillOutlined: { borderWidth: STROKE, borderColor: paper.ink },
   pillWait: { width: PILL_MARK, height: PILL_MARK },
   pillDisabled: { backgroundColor: paper.skeleton },
@@ -966,15 +994,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space(3),
   },
-  chip: {
-    minHeight: HIT,
-    justifyContent: 'center',
-    backgroundColor: paper.groundDeep,
-    borderRadius: radius.chip,
-    paddingVertical: space(2),
-    paddingHorizontal: space(3.5),
-  },
-  chipSelected: { backgroundColor: accent.primary },
   option: {
     minHeight: HIT + 12,
     flexDirection: 'row',
@@ -1691,15 +1710,20 @@ export function ColourCard({
   onPress,
   accessibilityLabel,
   style,
+  lift = false,
 }: {
-  ground: Ground;
+  ground: Ground | `pastel.${keyof typeof pastel}`;
   children: ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  /** The one soft lift (UI-006), for an illustrated Explore tile only. */
+  lift?: boolean;
 }) {
+  const fill = ground.startsWith('pastel.') ? pastel[ground.slice(7) as keyof typeof pastel] : colour[ground as Ground];
   const surface = [
-    { backgroundColor: colour[ground], borderRadius: radius.feature, padding: space(6), gap: space(4), overflow: 'hidden' as const },
+    lift && liftStyle,
+    { backgroundColor: fill, borderRadius: radius.feature, padding: space(6), gap: space(4), overflow: 'hidden' as const },
     style,
   ];
   if (onPress != null) {
