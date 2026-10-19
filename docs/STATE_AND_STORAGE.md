@@ -79,7 +79,9 @@ preference writer clears it with the name's causal clock. Missing on legacy
 accounts means no new name prompt. It survives verification/relaunch and sync
 without becoming authentication or guest-adoption authority. Account-local
 `appearance` stores system/light/dark selection; it is exported and reset with
-the account and excluded from cross-device sync.
+the account and excluded from cross-device sync. While dark mode is off
+(`DARK_MODE_ENABLED` in `main/appearanceModel.ts`, KNOWN_ISSUES F847) the stored
+choice is kept but not offered in Settings, and the app always draws light.
 
 Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
 The current version-1 draft carries age confirmation, the starting level and

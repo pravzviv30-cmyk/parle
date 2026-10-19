@@ -70,6 +70,7 @@ import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { SettingsAppearance, SettingsCard as Card, SettingsField as Field } from './SettingsAppearance.tsx';
 import { DisplayPreferences } from './DisplayPreferences.tsx';
+import { DARK_MODE_ENABLED } from '../main/appearanceModel.ts';
 import { displayPreferenceLabel } from './displayModel.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { SettingsRow } from './SettingsRow.tsx';
@@ -874,8 +875,9 @@ export function SettingsScreen({
       )}
 
       <SettingsGroup title={APPEARANCE_GROUP}>
-        <SettingsRow first label={DISPLAY_ROW} value={displayPreferenceLabel(preference)} onPress={() => setSheet('display')} />
-        <SwitchRow title="Haptic feedback" sub="A gentle tap when an action lands. Motion follows your phone’s accessibility setting." accessibilityLabel="Haptic feedback" value={hapticFeedback} disabled={hapticSaving} onChange={value => {
+        {/* Light only for now (KNOWN_ISSUES F847): the display choice returns with dark mode. */}
+        {DARK_MODE_ENABLED && <SettingsRow first label={DISPLAY_ROW} value={displayPreferenceLabel(preference)} onPress={() => setSheet('display')} />}
+        <SwitchRow first={!DARK_MODE_ENABLED} title="Haptic feedback" sub="A gentle tap when an action lands. Motion follows your phone’s accessibility setting." accessibilityLabel="Haptic feedback" value={hapticFeedback} disabled={hapticSaving} onChange={value => {
           if (hapticSaving) return;
           setHapticSaving(true);
           const previous = hapticFeedback;
@@ -996,10 +998,10 @@ export function SettingsScreen({
         setSheet('none');
       }} />
     </BottomSheet>
-    <BottomSheet visible={sheet === 'display'} title="Display" onClose={() => setSheet('none')} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" tone="brand" onPress={() => setSheet('none')} />}>
+    {DARK_MODE_ENABLED && <BottomSheet visible={sheet === 'display'} title="Display" onClose={() => setSheet('none')} surface={colors.surface} ink={colors.text} footer={<PillButton label="Done" tone="brand" onPress={() => setSheet('none')} />}>
       <Text style={[type.body, { color: colors.muted }]}>{DISPLAY_SUB}</Text>
       <DisplayPreferences />
-    </BottomSheet>
+    </BottomSheet>}
     </SettingsAppearance>
   );
 }

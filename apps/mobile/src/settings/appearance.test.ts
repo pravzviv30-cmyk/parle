@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { mainApp, paper } from '../palette.ts';
 import { DISPLAY_OPTIONS, displayPreferenceLabel } from './displayModel.ts';
+import { DARK_MODE_ENABLED, mainMode } from '../main/appearanceModel.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 function luminance(hex: string): number {
@@ -29,7 +30,18 @@ test('Settings and the avatar share one appearance editor and show the stored ch
   assert.match(editor, /accessibilityRole="alert"/);
   assert.doesNotMatch(editor, /AsyncStorage|setItem|useState/);
   assert.match(read('./SettingsScreen.tsx'), /value=\{displayPreferenceLabel\(preference\)\}/);
-  for (const path of ['./SettingsScreen.tsx', '../main/MainUI.tsx']) assert.match(read(path), /<DisplayPreferences \/>/);
+  assert.match(read('./SettingsScreen.tsx'), /<DisplayPreferences \/>/);
+});
+
+test('the app is light only: Settings shows no Appearance row or display sheet while dark mode is off', () => {
+  assert.equal(DARK_MODE_ENABLED, false, 'dark mode was switched on; lift this test with the C2 dark styles');
+  const settings = read('./SettingsScreen.tsx');
+  assert.match(settings, /\{DARK_MODE_ENABLED && <SettingsRow first label=\{DISPLAY_ROW\}/, 'the Appearance row must only draw when dark mode is on');
+  assert.match(settings, /\{DARK_MODE_ENABLED && <BottomSheet visible=\{sheet === 'display'\}/, 'the display sheet must only draw when dark mode is on');
+  assert.equal((settings.match(/label=\{DISPLAY_ROW\}/g) ?? []).length, 1, 'a second, unguarded Appearance row');
+  assert.equal((settings.match(/<DisplayPreferences \/>/g) ?? []).length, 1, 'a second, unguarded display editor');
+  assert.match(read('../main/MainAppearance.tsx'), /const mode = mainMode\(preference, system\);/, 'the provider must resolve through the pinned seam');
+  assert.equal(mainMode('dark', 'dark'), 'light');
 });
 
 test('the profile theme scope protects unrelated paper controls and keeps text readable in both modes', () => {

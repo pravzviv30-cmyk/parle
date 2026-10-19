@@ -10897,5 +10897,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P3
 - status: [ ]
 - where: apps/mobile/src/layout.tsx:1
-- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide. (Filed as F811 on the paywall branch; renumbered on the C2 base.)
+- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide. (Filed as F811 on the paywall branch; renumbered on the C2 base.) Moot until dark mode is on: the app is pinned to light (F847), so no screen draws the night background today.
 - verified-by: `every pushed screen's back button follows the appearance in dark mode`
+
+### F847 — App-wide dark mode is off: the appearance model is pinned to light until the C2 screens get dark styles
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/main/appearanceModel.ts:1
+- note: 2026-10-19, user decision while replaying the paywall onto main's C2 redesign. `DARK_MODE_ENABLED = false` makes `mainMode` resolve to light for every stored choice and device scheme, and Settings hides the Appearance row and display sheet. The stored preference code (`MainAppearance`, `appearanceSession`) is kept but unexposed. The paywall, Profile, Settings, Learning preferences and Subscription screens already have dark palettes (`mainApp.dark` in palette.ts), unused until the rest of the C2 screens get dark styles and the flag is lifted.
+- verified-by: `the app resolves to light for every stored choice and device scheme while dark mode is off`
+- verified-by: `the app is light only: Settings shows no Appearance row or display sheet while dark mode is off`
