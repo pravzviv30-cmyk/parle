@@ -23,6 +23,7 @@
 import { View, Text, Switch, StyleSheet } from 'react-native';
 import { accent, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { tapSettled } from '../motion/haptics.ts';
+import { useSettingsColors } from './SettingsAppearance.tsx';
 
 export function SwitchRow({
   title,
@@ -43,11 +44,12 @@ export function SwitchRow({
   first?: boolean;
   disabled?: boolean;
 }) {
+  const colors = useSettingsColors();
   return (
-    <View style={[st.row, !first && st.divided]}>
+    <View style={[st.row, !first && st.divided, { borderTopColor: colors.border }]}>
       <View style={{ flex: 1 }}>
-        <Text style={[type.bodyStrong, { color: paper.ink }]}>{title}</Text>
-        <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{sub}</Text>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+        <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{sub}</Text>
       </View>
       <Switch
         value={value}

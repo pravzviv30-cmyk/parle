@@ -137,12 +137,12 @@ describe('the tab that is a person — F576', () => {
     //
     // Your tutor, your speaking rhythm, your learning. A fourth over the row
     // that reads Settings would say the same word twice.
-    assert.equal((TAB.match(/<Label>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
+    assert.equal((TAB.match(/<Label color=\{colors\.muted\}>/g) ?? []).length, 2, 'Profile draws a caps label it did not before, or lost one');
     for (const heading of ['TUTOR_LABEL', 'LEARNING_LABEL']) {
-      assert.ok(TAB.includes(`<Label>{${heading}}</Label>`), `the ${heading} heading is spelled in JSX rather than imported`);
+      assert.ok(TAB.includes(`<Label color={colors.muted}>{${heading}}</Label>`), `the ${heading} heading is spelled in JSX rather than imported`);
     }
-    assert.ok(writtenBefore(BODY, '<Label>{TUTOR_LABEL}</Label>', '<Label>{LEARNING_LABEL}</Label>'));
-    assert.doesNotMatch(TAB, /<FrenchLifeCard|<Label>\{RHYTHM_LABEL\}/);
+    assert.ok(writtenBefore(BODY, '<Label color={colors.muted}>{TUTOR_LABEL}</Label>', '<Label color={colors.muted}>{LEARNING_LABEL}</Label>'));
+    assert.doesNotMatch(TAB, /<FrenchLifeCard|<Label color=\{colors\.muted\}>\{RHYTHM_LABEL\}/);
     for (const spelled of ['Your tutor', 'Your speaking rhythm', 'Your learning', 'Your French life']) {
       assert.ok(!TAB.includes(`>${spelled}<`), `Profile writes "${spelled}" in JSX, so the copy sweeps cannot read it`);
     }
@@ -161,7 +161,7 @@ describe('the tab that is a person — F576', () => {
 
     // And the way out is last, under no label of its own.
     assert.ok(
-      TAB.indexOf('label={SETTINGS_ROW}') < TAB.indexOf('<Label>'),
+      TAB.indexOf('label={SETTINGS_ROW}') < TAB.indexOf('<Label color={colors.muted}>'),
       'Settings must be immediately visible above the profile details',
     );
 
@@ -169,7 +169,7 @@ describe('the tab that is a person — F576', () => {
     assert.equal(writtenBefore('<TabHeader />', '<HeaderArt', '<TabHeader'), false, 'a header with no art at all passes the ordering check');
     assert.equal(writtenBefore('<TabHeader /><HeaderArt />', '<HeaderArt', '<TabHeader'), false, 'art drawn after the header passes as art behind it');
     assert.equal(writtenBefore('<HeaderArt /><TabHeader />', '<HeaderArt', '<TabHeader'), true, 'the shape the tab ships does not pass its own check');
-    assert.equal((('<Label>a</Label>').match(/<Label>/g) ?? []).length, 1, 'the label counter does not count');
+    assert.equal((('<Label color={colors.muted}>a</Label>').match(/<Label color=\{colors\.muted\}>/g) ?? []).length, 1, 'the label counter does not count');
   });
 
   test('the plan, the reminder and the intro link live in settings', () => {
@@ -201,9 +201,9 @@ describe('the tab that is a person — F576', () => {
 
     // And what arrived on Settings. Each of the three is drawn there, in the
     // group the founder put it in.
-    assert.match(SETTINGS, /<Label>\{PLAN_GROUP\}<\/Label>\s*<PlanCard \/>/, 'the plan card is not a group of its own on Settings');
+    assert.match(SETTINGS, /<Label color=\{colors\.muted\}>\{PLAN_GROUP\}<\/Label>\s*<PlanCard \/>/, 'the plan card is not a group of its own on Settings');
     assert.ok(
-      writtenBefore(SETTINGS, '<Label>{PLAN_GROUP}</Label>', '<Label>{SUBSCRIPTION_GROUP}</Label>'),
+      writtenBefore(SETTINGS, '<Label color={colors.muted}>{PLAN_GROUP}</Label>', '<Label color={colors.muted}>{SUBSCRIPTION_GROUP}</Label>'),
       'the plan is drawn below the store rows it is about',
     );
     assert.match(SETTINGS, /title=\{REMINDER_ROW\}/, 'the daily reminder switch is on neither screen now');
@@ -211,7 +211,7 @@ describe('the tab that is a person — F576', () => {
     assert.match(SETTINGS, /label=\{CONNECTION_HELP_ROW\}/, 'nothing on Settings opens the one page that teaches the circle');
     assert.match(SETTINGS, /<TutorIntro onDone=\{\(\) => setSheet\('none'\)\} \/>/, 'Settings links to an intro it never renders');
     assert.ok(
-      writtenBefore(SETTINGS, '<Label>{HELP_GROUP}</Label>', 'label={CONNECTION_HELP_ROW}'),
+      writtenBefore(SETTINGS, '<Label color={colors.muted}>{HELP_GROUP}</Label>', 'label={CONNECTION_HELP_ROW}'),
       'the intro link is drawn outside the Help group',
     );
 
@@ -224,7 +224,7 @@ describe('the tab that is a person — F576', () => {
       writtenBefore(voice, 'TUTOR_VOICE_OPTIONS.map(', 'PACE_ROW'),
       'the pace switch is drawn above the eight voices, so the sheet opens on a setting rather than on a choice',
     );
-    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'), TAB.indexOf('</ScrollScreen>'));
+    const learning = TAB.slice(TAB.indexOf('<Label color={colors.muted}>{LEARNING_LABEL}</Label>'), TAB.indexOf('</ScrollScreen>'));
     assert.ok(!learning.includes('PACE_ROW'), 'the pace switch is on the learning card as well as on the sheet');
 
     // One row on Profile leads anywhere at all, and everything above went

@@ -74,6 +74,8 @@ export const PLAN_GROUP = 'Plan';
 export const SUBSCRIPTION_GROUP = 'Subscription';
 export const PRIVACY_GROUP = 'Data and privacy';
 export const PHONE_GROUP = 'Phone';
+export const DISPLAY_ROW = 'Display';
+export const DISPLAY_SUB = 'Follow your device, or choose Light or Dark';
 export const HELP_GROUP = 'Help';
 export const ABOUT_GROUP = 'About';
 
@@ -111,7 +113,7 @@ export const DELETE_ROW = 'Delete account';
 // ────────────────────────────────────────────────────────── data and privacy
 
 export const SAVED_ROW = 'Saved conversations';
-export const SAVED_SUB = 'Manage in Progress';
+export const SAVED_SUB = 'Manage in My French';
 
 export const DOWNLOAD_ROW = 'Download my data';
 export const DOWNLOAD_SUB = 'A copy of your learning history';
@@ -184,6 +186,7 @@ export const SETTINGS_COPY: readonly string[] = [
   DATA_USE_ROW, DATA_USE_SUB, CONNECTION_HELP_ROW, CONNECTION_HELP_SUB,
   LOCAL_PRACTICE_ROW, LOCAL_PRACTICE_SUB,
   SETTINGS_TITLE,
+  DISPLAY_ROW, DISPLAY_SUB,
   SETTINGS_ROW,
   SETTINGS_ROW_SUB,
   ...SETTINGS_GROUPS,

@@ -8,8 +8,9 @@
  */
 
 import { View, Text, StyleSheet } from 'react-native';
-import { paper, radius, signal, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { paper, radius, space, type, HAIRLINE } from '../theme.ts';
 import { ArrowRight, Press } from '../components.tsx';
+import { useSettingsColors } from './SettingsAppearance.tsx';
 
 export function SettingsRow({
   label,
@@ -26,14 +27,15 @@ export function SettingsRow({
   /** Rows after the first carry a divider above them. */
   first?: boolean;
 }) {
-  const colour = destructive ? signal.correspondance : paper.ink;
+  const colors = useSettingsColors();
+  const colour = destructive ? colors.trouble : colors.text;
   const body = (
-    <View style={[st.row, !first && st.divided]}>
+    <View style={[st.row, !first && st.divided, { borderTopColor: colors.border }]}>
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colour }]}>{label}</Text>
-        {value ? <Text style={[type.small, { color: paper.inkSoft, marginTop: space(0.5) }]}>{value}</Text> : null}
+        {value ? <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{value}</Text> : null}
       </View>
-      {onPress ? <ArrowRight size={16} color={paper.inkFaint} /> : null}
+      {onPress ? <ArrowRight size={16} color={colors.muted} /> : null}
     </View>
   );
 
