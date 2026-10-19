@@ -434,6 +434,14 @@ export const PAYWALL_PENDING_TITLE = 'Waiting for confirmation';
 /** Ask to Buy (F845): the store deferred the purchase until it is approved. */
 export const PAYWALL_APPROVAL_TITLE = 'Waiting for approval';
 export const PAYWALL_CHECK_AGAIN = 'Check my purchase again';
+/** The approval card's body, read from the saved checkout so it survives a reopen. */
+export const PAYWALL_APPROVAL_BODY = 'Someone who manages purchases on this account needs to approve it. If they declined, tap Start again.';
+/** The pending page's quiet second action: ask the store whether anything is really there. */
+export const PAYWALL_START_AGAIN = 'Start again';
+/** Start again found the store holding the purchase while the server catches up. */
+export const PAYWALL_START_AGAIN_WAIT = 'The store shows this purchase went through. We’re still adding it to your account.';
+/** Start again could not get an answer from the store. */
+export const PAYWALL_START_AGAIN_TROUBLE = 'We couldn’t reach the store just now. Try again in a moment.';
 
 /** The success page, once the server has confirmed what was bought. */
 export const SUCCESS_TITLE = 'You’re all set';
@@ -613,6 +621,10 @@ export const WALL_COPY: readonly string[] = [
   PAYWALL_RESTORE_NONE_BODY,
   PAYWALL_PENDING_TITLE,
   PAYWALL_CHECK_AGAIN,
+  PAYWALL_APPROVAL_BODY,
+  PAYWALL_START_AGAIN,
+  PAYWALL_START_AGAIN_WAIT,
+  PAYWALL_START_AGAIN_TROUBLE,
   SUCCESS_TITLE,
   SUCCESS_START,
   SUCCESS_FOOTNOTE,

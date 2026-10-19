@@ -308,6 +308,7 @@ tick each row.
 | Cancel in the Apple sheet | Returns silently, no error |
 | Failed purchase | "The purchase didn’t go through" notice |
 | Restore on a second signed-in device | Plan restored |
+| Decline an Ask to Buy request, then Start again | "Waiting for approval" survives a reopen; after the decline, Start again returns to the plans page with nothing granted, and buying works again |
 | Restore with nothing to restore | "No subscription found": "Nothing to restore for this Apple ID yet. If you just subscribed, try again in a moment." No plan granted |
 | Offline | "We couldn’t load plans" with Try again and Keep practising free |
 | Trial conversion | Paid allowance replaces the trial allowance, and the trial-ending reminder is cancelled |

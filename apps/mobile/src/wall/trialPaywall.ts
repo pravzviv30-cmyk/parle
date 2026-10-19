@@ -30,6 +30,7 @@ import {
   PAYWALL_FAILED_BODY,
   PAYWALL_FAILED_TITLE,
   PAYWALL_APPROVAL_TITLE,
+  PAYWALL_APPROVAL_BODY,
   PAYWALL_PURCHASING,
   PAYWALL_RESTORE_NONE_BODY,
   PAYWALL_RESTORE_NONE_TITLE,
@@ -232,12 +233,12 @@ export function paywallNotice(message: string | null, last: 'buy' | 'restore' | 
 }
 
 /**
- * The Ask to Buy card on the pending-checkout page, or null for the default one. The checkout fence stays up while a
+ * The Ask to Buy card on the pending-checkout page, or null for the default one. It reads the saved checkout's
+ * `deferred` mark, never screen memory, so it survives a reopen and a "Check again". The checkout fence stays up while a
  * purchase is deferred, so nobody buys twice; only the words change.
  */
-export function pendingCheckoutNotice(message: string | null): PaywallNotice | null {
-  if (message === PURCHASE_AWAITING_APPROVAL) return { title: PAYWALL_APPROVAL_TITLE, body: PURCHASE_AWAITING_APPROVAL, danger: false };
-  return null;
+export function pendingCheckoutNotice(deferred: boolean): PaywallNotice | null {
+  return deferred ? { title: PAYWALL_APPROVAL_TITLE, body: PAYWALL_APPROVAL_BODY, danger: false } : null;
 }
 
 /** The footer button's words and look while the offer is on screen. */

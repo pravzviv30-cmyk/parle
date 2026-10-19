@@ -266,6 +266,31 @@ export const purchases: PurchasesAdapter = {
     return () => { storeListeners.delete(listener); };
   },
 
+  // Read only, for clearing a stuck checkout fence. Never a grant: the answer
+  // only decides whether a second store transaction is possible at all.
+  async storeHolds(userId, sync) {
+    const owner = scopeGeneration();
+    return serial(async () => {
+    try {
+      if (!(await ready(userId))) return 'unknown';
+      if (configuredFor !== userId || owner !== scopeGeneration()) return 'unknown';
+      if (sync) {
+        await Purchases.restorePurchases();
+        if (configuredFor !== userId || owner !== scopeGeneration()) return 'unknown';
+      }
+      const info = await Purchases.getCustomerInfo();
+      if (configuredFor !== userId || owner !== scopeGeneration()) return 'unknown';
+      if (ENTITLEMENT_ID && info.entitlements.active[ENTITLEMENT_ID] !== undefined) return 'active';
+      const ours = new Set([...Object.values(PRODUCT_IDS), ...Object.values(YEARLY_PRODUCT_IDS), WEEKLY_STARTER_PRODUCT]
+        .filter((id): id is string => typeof id === 'string' && id.length > 0));
+      // Google Play may report "product:base-plan"; the product part is ours.
+      return info.activeSubscriptions.some((id) => ours.has(id) || ours.has(id.split(':')[0] ?? '')) ? 'active' : 'none';
+    } catch {
+      return 'unknown';
+    }
+    });
+  },
+
   // The sheet belongs to the store, so there is nothing to read back. On a
   // build with no key `ready` is false and this is unavailable, which is the
   // same answer the web half gives and the reason the row is drawn only when

@@ -243,8 +243,30 @@ describe('Ask to Buy (F845)', () => {
     assert.equal(notice?.title, 'Waiting for approval');
     assert.equal(notice?.danger, false);
     assert.doesNotMatch(`${notice?.title} ${notice?.body}`, /—/, 'an em dash in learner copy');
-    const { pendingCheckoutNotice } = await import('./trialPaywall.ts') as unknown as { pendingCheckoutNotice: (m: string | null) => { title: string | null } | null };
-    assert.equal(pendingCheckoutNotice(message)?.title, 'Waiting for approval');
-    assert.equal(pendingCheckoutNotice(null), null, 'the ordinary pending checkout lost its own card');
+    const { pendingCheckoutNotice } = await import('./trialPaywall.ts') as unknown as { pendingCheckoutNotice: (deferred: boolean) => { title: string | null } | null };
+    assert.equal(pendingCheckoutNotice(true)?.title, 'Waiting for approval');
+    assert.equal(pendingCheckoutNotice(false), null, 'the ordinary pending checkout lost its own card');
+  });
+
+  test('start again never grants, never starts a trial and never schedules the reminder', async () => {
+    const screen = readFileSync(new URL('./WallScreen.tsx', import.meta.url), 'utf8');
+    const from = screen.indexOf('  const startAgain = async () => {');
+    assert.notEqual(from, -1, 'start again is gone');
+    const body = screen.slice(from, screen.indexOf('\n  };\n', from));
+    for (const forbidden of [/WALL_READY/, /setGrantReadPending/, /setPurchaseAccepted/, /storeGranted\.current = true/, /boughtTrial/, /boughtAt/, /scheduleTrialReminder/, /setReminder/, /purchases\.purchase\(/, /restorePurchases\(/, /settleStoreAction/, /beginPendingPurchase/, /setConfirmedGrant/, /publishCelebrations/]) {
+      assert.doesNotMatch(body, forbidden, `start again reached ${forbidden}`);
+    }
+    // It runs only between store actions, under the same guards as every other one.
+    assert.match(body, /busy \|\| storeActionInFlight\.current\) return;/);
+    assert.match(body, /purchases\.storeHolds\(user\.id, true\)/);
+    assert.match(body, /resolvePendingCheckout\(/);
+    // Every await is followed by an owner check.
+    const awaits = body.split('await ').length - 1;
+    const checks = (body.match(/if \(owner !== scopeGeneration\(\)\) return;/g) ?? []).length;
+    assert.ok(awaits > 0 && checks >= awaits, `${awaits} awaits but ${checks} owner checks`);
+    // The web store has nothing to hold, so it can never clear a fence by itself.
+    const { purchases } = await import('../purchases/adapter.ts');
+    assert.equal(await purchases.storeHolds('someone', true), 'unknown');
+    assert.equal(await purchases.storeHolds('someone', false), 'unknown');
   });
 });

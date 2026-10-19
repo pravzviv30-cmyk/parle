@@ -10891,8 +10891,31 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: apps/mobile/src/purchases/contract.ts:1
 - note: Found 2026-10-19 while building the approved "P2 · Luvani" trial paywall. Its spec has a "Waiting for approval" notice for Ask to Buy, but a StoreKit deferred transaction reaches the wall as no distinct outcome: `StoreAction` and `RestoreOutcome` only carry ok/cancelled/store-trouble/refresh-trouble/nothing-granted. So the wall draws its existing pending-checkout state ("Waiting for confirmation"), which keeps the money guarantees but cannot say "approval". Separately, `restoreTrouble` folds a restore's nothing-granted and refresh-trouble into one message, so the "No subscription found" notice words its body to stay true of both. A deferred outcome in the contract (revenue-engineer) would let `wall/trialPaywall.ts` `paywallNotice` say the spec's words. (Filed as F810 on the paywall branch; renumbered when replayed onto the C2 base, where F810 was taken.)
-- fixed: 2026-10-19. `StoreAction` gains `deferred`; the RevenueCat adapter maps PAYMENT_PENDING_ERROR ("20") to it via `purchases/storeError.ts`; settlement reports `awaiting-approval` without asking the server, so nothing is granted and the checkout fence stays up; the wall says "Waiting for approval". Money pins re-pinned with founder approval. Still open: the `restoreTrouble` nothing-granted/refresh-trouble split, and a reopened wall reverts to "Waiting for confirmation".
+- fixed: 2026-10-19. `StoreAction` gains `deferred`; the RevenueCat adapter maps PAYMENT_PENDING_ERROR ("20") to it via `purchases/storeError.ts`; settlement reports `awaiting-approval` without asking the server, so nothing is granted and the checkout fence stays up; the wall says "Waiting for approval". Money pins re-pinned with founder approval. Still open: the `restoreTrouble` nothing-granted/refresh-trouble split. The reopen that reverted to "Waiting for confirmation" is fixed by F849, and a declined request that locked buying is F848.
 - verified-by: `a deferred store purchase is reported to the wall as waiting for approval`
+
+### F848 — A checkout fence that no store purchase stands behind locks buying on that phone for good
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/pendingPurchase.ts:1
+- note: Found 2026-10-19 by the app review (P1 #1, handoffs/2026-10-19-app-review.md). The local checkout fence is written before the store sheet opens and was cleared only by a matching done or cancelled result in `WallScreen` `settle`, or a server grant `confirmsPendingPurchase` accepts. Store trouble, awaiting approval and a later Ask to Buy decline left it in place with no expiry, and the pending page offered only "Check again", which can never succeed when nothing was bought. Separately, `confirmsPendingPurchase` could never confirm a same-tier purchase whose `before.periodEnd` was null. Purchases are not configured yet, so no learner was affected, but it blocked release.
+- fixed: 2026-10-19. New read-only `PurchasesAdapter.storeHolds(userId, sync)` answers active, none or unknown (web and fakes always unknown; never a grant). Pure `resolvePendingCheckout` clears only on a server confirmation, a store holding nothing, and an active store answer always waits, because an existing same-tier subscription also reads as active and an unknown answer never clears. The wall runs a quiet check on open (no store sync), which clears only on a server confirmation, never on an empty store answer, and the pending page gains "Start again" (store sync plus billing refresh), which never buys, restores, grants or schedules anything. Money pins re-pinned, founder to approve before landing. Still open: a same-tier purchase whose `before.periodEnd` was null still cannot be confirmed by `confirmsPendingPurchase` (the planned store-plus-grant relief was dropped after fix-verifier showed it clears a Regular monthly to Regular yearly purchase early), and real sandbox proof of a declined Ask to Buy (REVENUECAT_SETUP.md sandbox matrix).
+- verified-by: `a declined or expired Ask to Buy request can be cleared once the store holds no purchase`
+- verified-by: `a stuck checkout never clears while the store shows the purchase as active and the server has not granted it`
+- verified-by: `an unknown store answer never clears the checkout`
+- verified-by: `a version 1 pending record still loads and still fences`
+- verified-by: `start again never grants, never starts a trial and never schedules the reminder`
+- verified-by: `reopening the wall never clears a still pending Ask to Buy`
+- verified-by: `the quiet check on open never clears on an empty store answer`
+- verified-by: `an existing same tier subscription never clears a checkout for a new period`
+
+### F849 — "Waiting for approval" lived in screen memory, so a reopen or a "Check again" lost it
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/wall/trialPaywall.ts:1
+- note: Found 2026-10-19 by the app review (P2 #2). The pending page chose its title from the screen's `message`, so after an Ask to Buy the title fell back to "Waiting for confirmation" on a reopen or one tap of "Check again".
+- fixed: 2026-10-19. The pending record is version 2 and carries `deferred`, set by `markPendingDeferred` when settlement reports awaiting approval. `pendingCheckoutNotice` reads only that mark, and "Check again" results go in the detail line. The approval body now says "If they declined, tap Start again." The quiet check on open never clears on an empty store answer, because a still-pending Ask to Buy also reads as none there.
+- verified-by: `the waiting for approval notice survives a reopen and a check again`
 
 ### F846 — Most pushed screens still draw a white back disc in dark mode
 - severity: P3
