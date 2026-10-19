@@ -85,7 +85,7 @@ import { activeUserId, onUserScopeReset, userKey, scopeGeneration, writeInUserSc
 import { markDirty, registerSyncAdopter, type SyncAdoption, type SyncFold } from '../sync/registry.ts';
 import { ageConfirmedFromDob } from './age.ts';
 import { upgradeStored } from './upgrade.ts';
-import { storedPracticePreferences, type PracticePreferences } from './practicePreferences.ts';
+import { practicePreferencesOf, storedPracticePreferences, type PracticePreferences, type StatedLevel } from './practicePreferences.ts';
 
 /** Resolved per call: the active account can change between calls. */
 const KEY = () => userKey('profile');
@@ -523,6 +523,19 @@ export function withDailyGoal(existing: StoredProfile, dailyGoalMin: 5 | 10 | 15
  */
 export function withPracticeDays(existing: StoredProfile, practiceDaysPerWeek: 3 | 5 | 7 | 'none'): StoredProfile {
   return { ...existing, practiceDaysPerWeek };
+}
+
+/**
+ * Change the self-described starting point after onboarding. Only
+ * `practicePreferences.level` moves; confidence and focus are kept, and the
+ * object is created when absent. It steers suggested conversations only, never
+ * `brain.cefr`, stats or mission independence. Clocked as the `statedLevel`
+ * preference field, so a newer edit wins across devices like `withDailyGoal`.
+ */
+export function withStatedLevel(existing: StoredProfile, level: StatedLevel): StoredProfile {
+  const practicePreferences = storedPracticePreferences({ ...practicePreferencesOf(existing), level });
+  if (practicePreferences?.level !== level) throw new Error('invalid stated level');
+  return withPreferenceEdit(existing, { ...existing, practicePreferences }, 'statedLevel');
 }
 
 /**

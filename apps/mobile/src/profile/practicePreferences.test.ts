@@ -120,3 +120,85 @@ test('the post-verification name write durably materializes its existing prefere
   assert.deepEqual(cold?.practicePreferences, answers);
   assert.deepEqual(cold?.brain, before.brain);
 });
+
+test('withStatedLevel moves only the level, keeps confidence and focus, and creates the object when absent', async () => {
+  const { withStatedLevel } = await import('./store.ts');
+  const base: StoredProfile = { ...fresh(), practicePreferences: { ...answers } };
+  const next = withStatedLevel(base, 'few');
+  assert.deepEqual(next.practicePreferences, { level: 'few', confidence: 'hesitant', focus: 'listening' });
+  assert.deepEqual(base.practicePreferences, answers);
+  const bare = fresh(); delete bare.practicePreferences;
+  assert.deepEqual(withStatedLevel(bare, 'confident').practicePreferences, { level: 'confident', confidence: null, focus: null });
+  assert.throws(() => withStatedLevel(base, 'fluent' as never));
+});
+
+test('the parser rejects stated levels outside the closed four', () => {
+  assert.equal(storedPracticePreferences({ level: 'fluent' }), undefined);
+  assert.deepEqual(storedPracticePreferences({ level: 'C2', confidence: 'hesitant' }), { level: null, confidence: 'hesitant', focus: null });
+});
+
+test('changing the stated level leaves every earned-ability input untouched', async () => {
+  const { withStatedLevel } = await import('./store.ts');
+  const base: StoredProfile = { ...fresh(), practicePreferences: { ...answers } };
+  const before = structuredClone(base.brain);
+  for (const level of ['zero', 'few', 'getby', 'confident'] as const) {
+    const next = withStatedLevel(base, level);
+    assert.deepEqual(next.brain, before, 'cefr, stats and preferences stay as earned');
+    const { practicePreferences: _a, ...restNext } = next;
+    const { practicePreferences: _b, ...restBase } = base;
+    assert.deepEqual(restNext, restBase);
+  }
+});
+
+test('a stated-level edit carries sibling setting edits and survives merge with an older remote copy that never answered', async () => {
+  const { withStatedLevel, withDailyGoal, carryPreferenceEdits } = await import('./store.ts');
+  disk('stated-level');
+  const base: StoredProfile = { ...fresh(), practicePreferences: { ...answers } };
+  assert.equal(await saveProfile(base), true);
+  const edited = withStatedLevel(withDailyGoal(base, 20), 'confident');
+  assert.equal(carryPreferenceEdits(edited, { ...edited }).dailyGoalMin, 20);
+  assert.equal(await saveProfile(edited), true);
+  const saved = await loadProfile();
+  assert.equal(saved?.practicePreferences?.level, 'confident');
+  assert.equal(saved?.dailyGoalMin, 20);
+  const remote = { ...base, practicePreferences: { ...answers, level: null } };
+  const merged = mergeStoredProfiles({ stored: saved, savedAt: 300 }, { stored: remote, savedAt: 100 }, { upgrade: upgradeStored, now: 3000 });
+  assert.equal((merged?.practicePreferences as { level: string })?.level, 'confident');
+});
+
+test('stated-level copy matches the onboarding titles verbatim', async () => {
+  const { STATED_LEVEL_OPTIONS, STATED_LEVEL_FOOTER } = await import('./practicePreferences.ts');
+  const { START_LEVELS } = await import('../onboarding/plan.ts');
+  assert.deepEqual(STATED_LEVEL_OPTIONS.map((o) => [o.key, o.title]), START_LEVELS.map((o) => [o.key, o.title]));
+  assert.equal(STATED_LEVEL_FOOTER, 'Changes the conversations we suggest next. Your earned level stays as it is.');
+});
+
+test('a newer stated-level edit records a clock and beats an older remote level in both merge directions', async () => {
+  const { withStatedLevel, withDailyGoal } = await import('./store.ts');
+  disk('stated-level-clock');
+  const base: StoredProfile = { ...fresh(), practicePreferences: { ...answers } };
+  assert.equal(await saveProfile(base), true);
+  // An older edit made elsewhere on a busier device.
+  const busy = structuredClone(base);
+  busy.brain.stats.sessions = 50; busy.brain.stats.totalTurns = 150;
+  busy.practicePreferences = { ...answers, level: 'few' };
+  busy.preferenceClocks = { statedLevel: { counter: 1, mutationId: '00000000-0000-4000-8000-000000000001', value: 'few' } };
+  // The local edit, composed with a sibling setting through carryPreferenceEdits.
+  assert.equal(await saveProfile(withStatedLevel(withDailyGoal(base, 20), 'confident')), true);
+  const saved = (await loadProfile())!;
+  assert.equal(preferenceClocks(saved).statedLevel?.value, 'confident');
+  assert.ok(preferenceClocks(saved).dailyGoalMin);
+  // Saved after observing the remote clock, so its counter is newer.
+  await adopterFor('profile')!(current => mergeStoredProfiles({ stored: current, savedAt: 100 }, { stored: busy, savedAt: 200 }, { upgrade: upgradeStored, now: 3000 }));
+  const saved2Base = (await loadProfile())!;
+  const reedit = withStatedLevel(saved2Base, 'zero');
+  assert.equal(await saveProfile(reedit), true);
+  const local = (await loadProfile())!;
+  for (const merged of [
+    mergeStoredProfiles({ stored: local, savedAt: 100 }, { stored: busy, savedAt: 200 }, { upgrade: upgradeStored, now: 3000 }),
+    mergeStoredProfiles({ stored: busy, savedAt: 200 }, { stored: local, savedAt: 100 }, { upgrade: upgradeStored, now: 3000 }),
+  ]) {
+    assert.deepEqual(merged?.practicePreferences, { level: 'zero', confidence: 'hesitant', focus: 'listening' });
+    assert.equal(merged?.brain.stats.sessions, 50);
+  }
+});

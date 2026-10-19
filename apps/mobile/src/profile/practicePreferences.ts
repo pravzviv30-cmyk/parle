@@ -29,3 +29,18 @@ export function storedPracticePreferences(value: unknown): PracticePreferences |
 export function practicePreferencesOf(profile: { practicePreferences?: unknown } | null | undefined): PracticePreferences {
   return storedPracticePreferences(profile?.practicePreferences) ?? { ...EMPTY };
 }
+
+export type StatedLevel = 'zero' | 'few' | 'getby' | 'confident';
+
+/**
+ * Settings copy for the stated starting point. Titles are the onboarding
+ * `START_LEVELS` titles verbatim, so the learner sees the words they chose.
+ */
+export const STATED_LEVEL_OPTIONS: readonly { key: StatedLevel; title: string }[] = [
+  { key: 'zero', title: 'I’m new to French' },
+  { key: 'few', title: 'I know words and short phrases' },
+  { key: 'getby', title: 'I can manage everyday conversations' },
+  { key: 'confident', title: 'I can have longer conversations' },
+];
+
+export const STATED_LEVEL_FOOTER = 'Changes the conversations we suggest next. Your earned level stays as it is.';

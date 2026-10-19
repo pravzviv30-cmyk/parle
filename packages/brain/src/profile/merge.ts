@@ -77,7 +77,8 @@
  *
  * User settings now have a separate causal rule when an exact-value-bound
  * `preferenceClocks` entry is present: daily goal, voice, typing, name,
- * username, strictness and pace join by counter, mutation ID, then value.
+ * username, strictness, pace and the stated level (`practicePreferences.level`)
+ * join by counter, mutation ID, then value.
  * Null/default choices can therefore undo previous choices. Clocks never
  * govern age, DOB, device stops, account ownership or learning evidence. In
  * clock-aware merges these settings are omitted from the evidence tie key so

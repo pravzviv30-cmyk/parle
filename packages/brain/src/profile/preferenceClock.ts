@@ -1,7 +1,7 @@
 /** Causal clocks for user settings only; never evidence, age gates or authorization. */
 import { isTutorVoiceKey } from '@luvani/core';
 
-export const PREFERENCE_FIELDS = ['dailyGoalMin', 'tutorVoice', 'preferTyping', 'name', 'username', 'strictness', 'pace'] as const;
+export const PREFERENCE_FIELDS = ['dailyGoalMin', 'tutorVoice', 'preferTyping', 'name', 'username', 'strictness', 'pace', 'statedLevel'] as const;
 export type PreferenceField = typeof PREFERENCE_FIELDS[number];
 export type PreferenceValue = string | number | boolean | null;
 export interface PreferenceClock { counter: number; mutationId: string; value: PreferenceValue }
@@ -15,6 +15,9 @@ function record(value: unknown): Record<string, unknown> {
 
 export function preferenceValue(profile: unknown, field: PreferenceField): unknown {
   const outer = record(profile);
+  // statedLevel is the onboarding/Settings `practicePreferences.level`, the one
+  // nested answer a learner edits after onboarding. Confidence and focus are not clocked.
+  if (field === 'statedLevel') return record(outer.practicePreferences).level ?? null;
   return (field === 'strictness' || field === 'pace'
     ? record(record(outer.brain).preferences)[field] : outer[field]) ?? null;
 }
@@ -28,6 +31,7 @@ function validValue(field: PreferenceField, value: unknown): value is Preference
     case 'name': case 'username': return value === null || (typeof value === 'string' && value.length <= 512);
     case 'strictness': return value === 'flow' || value === 'balanced' || value === 'strict';
     case 'pace': return value === null || value === 'normal' || value === 'slow';
+    case 'statedLevel': return value === 'zero' || value === 'few' || value === 'getby' || value === 'confident';
   }
 }
 
@@ -88,6 +92,9 @@ export function resolvePreferenceClocks<T extends object>(base: T, a: unknown, b
       if (field === 'pace' && clock.value === null) delete preferences.pace;
       else preferences[field] = clock.value;
       next.brain = { ...brain, preferences };
+    } else if (field === 'statedLevel') {
+      // Only the level moves; the answer-field merge already chose confidence and focus.
+      next.practicePreferences = { confidence: null, focus: null, ...record(next.practicePreferences), level: clock.value };
     } else next[field] = clock.value;
   }
   delete next.preferenceClocks;
