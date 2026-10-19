@@ -10917,6 +10917,26 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - fixed: 2026-10-19. The pending record is version 2 and carries `deferred`, set by `markPendingDeferred` when settlement reports awaiting approval. `pendingCheckoutNotice` reads only that mark, and "Check again" results go in the detail line. The approval body now says "If they declined, tap Start again." The quiet check on open never clears on an empty store answer, because a still-pending Ask to Buy also reads as none there.
 - verified-by: `the waiting for approval notice survives a reopen and a check again`
 
+### F850 — The trial reminder switch read on while notifications were denied
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/TrialReminderRow.tsx:1
+- note: Found 2026-10-19 by the app review (P2 #3, handoffs/2026-10-19-app-review.md). The row asked only when permission was undetermined; when denied, turning it on saved on with no hint, while `trialReminderPromised` never schedules without permission. The learner could be charged without the warning they thought they had set up.
+- fixed: 2026-10-19. Pure `trialReminderRowView` and `trialReminderTap` in `reminders/trialReminder.ts`: while denied the switch reads off, the line says the reminder can't be sent, an Open Settings row uses `openPhoneSettings` with `LINK_TROUBLE` on failure, and a tap saves nothing and leaves the stored preference alone. `useTrialReminder` re-reads on the app returning to the foreground and drops reads that land after unmount or an account change, which also covers review P3 #10. The decision leaving the `.tsx` covers review P3 #9 for this row.
+- verified-by: `the trial reminder switch never shows on while notifications are denied`
+- verified-by: `turning the trial reminder on while notifications are denied does not save it as on and points to Settings`
+- verified-by: `the trial reminder row re-reads when the app comes back to the foreground`
+
+### F851 — Subscription Restore said done when the store found nothing, and never re-read the plan
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/settings/SubscriptionScreen.tsx:1
+- note: Found 2026-10-19 by the app review (P2 #4). `nothing-granted` reported `RESTORE_DONE` ("anything you paid for is on this account"), a successful restore never called `plan.retry`, and the decision sat untested in the screen (review P3 #9).
+- fixed: 2026-10-19. Pure `restoreResult` in `settings/subscriptionRestore.ts`: done says `RESTORE_DONE` and re-reads the plan; nothing found says "We checked the store and didn't find a subscription for this Apple ID."; the troubles reuse the pinned `restoreTrouble`, with only refresh-trouble re-reading the plan. The screen calls `plan.retry()` under its owner guard. No money pin changed.
+- verified-by: `a restore that finds nothing says so rather than claiming the store has it`
+- verified-by: `a successful restore refreshes the plan on the subscription screen`
+- verified-by: `restore copy has no em dashes`
+
 ### F846 — Most pushed screens still draw a white back disc in dark mode
 - severity: P3
 - status: [ ]

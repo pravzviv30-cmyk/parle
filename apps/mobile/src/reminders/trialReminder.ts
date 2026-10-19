@@ -55,9 +55,13 @@ export const TRIAL_REMINDER_BODY = 'Keep going, or manage your plan in Apple Sub
 /** The Settings row and its explanation. */
 export const TRIAL_REMINDER_ROW = 'Trial ending reminder';
 export const TRIAL_REMINDER_ROW_SUB = 'One notification two days before your free trial ends.';
+/** The row's sentence while notifications are denied: nothing can be sent, and where to fix it. */
+export const TRIAL_REMINDER_BLOCKED_SUB = "Notifications are off for Luvani, so this reminder can't be sent. Turn them on in Settings.";
+/** The action under a blocked row. */
+export const TRIAL_REMINDER_OPEN_SETTINGS = 'Open Settings';
 
 /** Every learner-facing line here, for the ban-list scans. */
-export const TRIAL_REMINDER_COPY: readonly string[] = [TRIAL_REMINDER_TITLE, TRIAL_REMINDER_BODY, TRIAL_REMINDER_ROW, TRIAL_REMINDER_ROW_SUB];
+export const TRIAL_REMINDER_COPY: readonly string[] = [TRIAL_REMINDER_TITLE, TRIAL_REMINDER_BODY, TRIAL_REMINDER_ROW, TRIAL_REMINDER_ROW_SUB, TRIAL_REMINDER_BLOCKED_SUB, TRIAL_REMINDER_OPEN_SETTINGS];
 
 /** A tap opens Settings, where the Subscription group is. */
 export const TRIAL_REMINDER_OPENS: ReminderOpen = 'settings';
@@ -124,6 +128,31 @@ export function trialReminderSlot(endsAt: number, now: number, calendar: Calenda
  */
 export function trialReminderPromised(input: { available: boolean; enabled: boolean; permission: ReminderPermission }): boolean {
   return input.available && input.enabled && input.permission === 'granted';
+}
+
+/**
+ * What the Settings row draws (review P2 #3). While notifications are denied
+ * the switch reads off, because nothing can be sent, and the sentence says so
+ * and where to fix it. The stored preference is not touched, so it comes back
+ * once permission does.
+ */
+export function trialReminderRowView(input: { enabled: boolean; permission: ReminderPermission; available: boolean }): {
+  value: boolean;
+  sub: string;
+  blocked: boolean;
+} {
+  const blocked = input.permission === 'denied';
+  return blocked ? { value: false, sub: TRIAL_REMINDER_BLOCKED_SUB, blocked } : { value: input.enabled, sub: TRIAL_REMINDER_ROW_SUB, blocked };
+}
+
+/**
+ * What a tap on the row does: `blocked` saves nothing (the row already points
+ * to Settings), `ask` raises the dialog nobody has seen yet, `save` writes.
+ */
+export function trialReminderTap(input: { next: boolean; permission: ReminderPermission }): 'blocked' | 'ask' | 'save' {
+  if (input.next && input.permission === 'denied') return 'blocked';
+  if (input.next && input.permission === 'undetermined') return 'ask';
+  return 'save';
 }
 
 function isoInstant(value: string | null): number | null {

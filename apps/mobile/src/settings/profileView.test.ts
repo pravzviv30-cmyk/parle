@@ -82,7 +82,7 @@ describe('an unknown plan is never called Free', () => {
     assert.match(screen, /retry: \{ minHeight: 56, borderRadius: radius\.feature/, 'Try again is not the 56pt secondary button');
     assert.match(screen, /store !== null && view\.kind !== 'free' && view\.kind !== 'checking'/, 'Manage is hidden when the plan is unknown');
     assert.match(screen, /\{store !== null \? <SettingsRow label=\{RESTORE_ROW\}/, 'Restore is not offered whatever the plan read said');
-    assert.match(screen, /outcome\.kind === 'done' \|\| outcome\.kind === 'nothing-granted' \? RESTORE_DONE : restoreTrouble\(outcome\)/, 'Restore reads a granted-nothing restore as trouble');
+    assert.match(screen, /const result = restoreResult\(outcome\);/, 'Restore decides what an outcome means in the screen instead of subscriptionRestore.ts');
     assert.match(screen, /navigate\('Wall', \{ entry: 'settings' \}\)/, 'Compare plans does not open the wall');
     assert.doesNotMatch(screen, /PLAN_LABELS|'Free'/, 'the screen names a plan itself instead of taking the module answer');
     assert.doesNotMatch(screen, /secondsRemaining|allowanceSeconds|periodEnd/, 'the screen reads raw seconds or dates, which F377 refuses');
@@ -108,11 +108,11 @@ describe('the trial-ending reminder switch', () => {
     assert.match(settings, /\{trialShown && <TrialReminderRow trial=\{trial\}/);
     const row = stripComments(read('./TrialReminderRow.tsx'));
     assert.match(row, /title=\{TRIAL_REMINDER_ROW\}/);
-    assert.match(row, /sub=\{TRIAL_REMINDER_ROW_SUB\}/);
-    assert.match(row, /if \(next && trial\.permission === 'undetermined'\) \{\s*await askReminderPermission\(\);\s*await trial\.refresh\(\);/, 'the dialog is raised without a re-read, or for a learner turning it off');
+    assert.match(row, /sub=\{view\.sub\}/);
+    assert.match(row, /if \(tap === 'ask'\) \{\s*await askReminderPermission\(\);\s*await trial\.refresh\(\);/, 'the dialog is raised without a re-read, or for a learner turning it off');
     assert.match(row, /await trial\.setEnabled\(next\);/);
     assert.match(row, /if \(fresh\.enabled !== next\) setTrouble\(CONSENT_SAVE_TROUBLE\);/, 'a write that did not land is not said');
-    assert.match(row, /value=\{pending \?\? trial\.enabled\}/, 'the switch does not go back to the stored answer');
+    assert.match(row, /value=\{pending \?\? view\.value\}/, 'the switch does not go back to the answer the view chose');
     assert.ok(TRIAL_REMINDER_ROW.length > 0 && TRIAL_REMINDER_ROW_SUB.length > 0);
   });
 });

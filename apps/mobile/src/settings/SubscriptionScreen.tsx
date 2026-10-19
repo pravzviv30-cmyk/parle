@@ -20,9 +20,10 @@
  * ## The store, asked once at a time
  *
  * The same rule Settings keeps: Manage reports only a store that could not
- * finish, a dismissed sheet says nothing, and Restore reports that the store
- * was checked rather than a result, because entitlement is settled on the
- * server. Present only when the store answered with a real product, which keeps
+ * finish, a dismissed sheet says nothing, and Restore says what the store
+ * found (`subscriptionRestore.ts`): only a granted restore
+ * says the purchase is here, nothing found says so, and a grant re-reads the
+ * plan. Present only when the store answered with a real product, which keeps
  * it honest in Expo Go, on the web and on a build with no keys.
  */
 
@@ -38,12 +39,13 @@ import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { PlanCard } from '../profile/PlanCard.tsx';
 import { purchases, type StoreOffering } from '../purchases/adapter.ts';
 import { restorePurchases } from '../purchases/restore.ts';
-import { PURCHASE_TROUBLE, RESTORE_BUSY, restoreTrouble } from '../purchases/paywallView.ts';
-import { RESTORE_DONE, RESTORE_ROW, subscriptionGroup, type SubscriptionAction } from '../purchases/subscription.ts';
+import { PURCHASE_TROUBLE, RESTORE_BUSY } from '../purchases/paywallView.ts';
+import { RESTORE_ROW, subscriptionGroup, type SubscriptionAction } from '../purchases/subscription.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { SettingsAppearance } from './SettingsAppearance.tsx';
 import { SettingsGroup } from './SettingsGroup.tsx';
 import { SettingsRow } from './SettingsRow.tsx';
+import { restoreResult } from './subscriptionRestore.ts';
 import { usePlanStatus } from './usePlanStatus.ts';
 import {
   CANCEL_FOOTER,
@@ -93,9 +95,11 @@ export function SubscriptionScreen() {
     const asked: Promise<string | null> =
       action === 'manage'
         ? purchases.manage(user.id).then((result) => (result.ok || result.cancelled ? null : PURCHASE_TROUBLE))
-        : restorePurchases(user.id).then((outcome) =>
-            outcome.kind === 'done' || outcome.kind === 'nothing-granted' ? RESTORE_DONE : restoreTrouble(outcome),
-          );
+        : restorePurchases(user.id).then((outcome) => {
+            const result = restoreResult(outcome);
+            if (result.refreshPlan && owner === scopeGeneration()) plan.retry();
+            return result.message;
+          });
     void asked
       .then((message) => { if (owner === scopeGeneration()) setStoreMessage(message); })
       .catch(() => { if (owner === scopeGeneration()) setStoreMessage(PURCHASE_TROUBLE); })
