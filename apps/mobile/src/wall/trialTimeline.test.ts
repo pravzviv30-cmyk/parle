@@ -62,7 +62,7 @@ describe('the store free trial, said only when it is real', () => {
     assert.equal(view.cta, 'Start 7-day free trial');
     assert.deepEqual(view.nodes.map((node) => [node.key, node.title, node.line]), [
       ['today', 'Today', 'Max starts free. Nothing is charged today.'],
-      ['during', null, 'During the trial: up to 70 minutes with your AI tutor.'],
+      ['during', null, 'During the trial: up to 70 minutes with your tutor.'],
       ['cancel', 'Day 5', 'Cancel in your App Store settings before day 7 and you pay nothing.'],
       ['then', 'Day 7', 'Max continues at £179.99 a year.'],
     ]);
@@ -98,7 +98,7 @@ describe('the store free trial, said only when it is real', () => {
     assert.match(screen, /chosen === null \? PLANS_CHOOSE : trial !== null \? trial\.cta : buyLabel\(chosen\.name, chosen\.price, chosen\.period\)/);
     assert.match(screen, /<WallPlansAtButton trialTerms=\{trial\?\.terms \?\? null\} priceTerms=\{chosen \? billedPrice\(chosen.price, chosen.period\) : null\} \/>/);
     const page = read('./WallPlansPage.tsx');
-    assert.match(page, /\{trial !== null && <TrialTimeline view=\{trial\} \/>\}/);
+    assert.match(page, /\{trial !== null && <View style=\{st\.trialSummary\}>[\s\S]*?<TrialTimeline view=\{trial\} \/>/);
   });
 
   test('with a free trial chosen, no word of the trial is drawn larger than the billed price', () => {
@@ -147,8 +147,8 @@ describe('the store free trial, said only when it is real', () => {
 
     // Each way to pay is titled by its billed amount, with how often and the
     // store's monthly figure under it, smaller.
-    assert.match(page, /const billed = billedPrice\(offer\.price, offer\.period\);/);
-    assert.match(page, /title=\{`\$\{period\} · \$\{offer.price\}`\}/);
+    assert.match(page, /billedPrice\(current\.price, current\.period\)/);
+    assert.match(page, /trial === null && current !== null && <Text style=\{st\.terms\}>\{billedPrice\(current.price, current.period\)\}/);
     const choice = shared.slice(shared.indexOf('export function Choice('), shared.indexOf('const ic = StyleSheet.create('));
     assert.match(choice, /compact \? type\.label : type\.bodyStrong/);
     assert.match(choice, /<Text style=\{\[type\.small, \{ color: quiet \}/);

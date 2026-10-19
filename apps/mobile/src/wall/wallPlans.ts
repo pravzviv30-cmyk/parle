@@ -59,6 +59,8 @@ export interface WallPlanOffer {
    * did not say. An approximation, which is why the page says "about".
    */
   perMonth: string | null;
+  /** Whole percent saved against twelve monthly payments of this same tier and currency. */
+  annualSavingsPercent: number | null;
   /**
    * The store's free trial in whole days, only when the store says this
    * account may still take it. Null otherwise, and then nothing calls it a
@@ -155,15 +157,28 @@ export function storeTrialMinutes(catalogue: Record<Plan, PlanSpec> | null, plan
   return Math.floor(Math.floor((spec.secondsPerPeriod * STORE_TRIAL_DAYS) / ALLOWANCE_WINDOW_DAYS) / 60);
 }
 
-function offerOf(product: StoreProduct): WallPlanOffer {
+/** A display comparison only. Missing numeric store facts never become a claim. */
+function annualSavingsPercent(product: StoreProduct, monthly: StoreProduct | undefined): number | null {
+  if (product.period !== 'year' || monthly?.period !== 'month' || product.plan !== monthly.plan
+    || !product.currencyCode || !/^[A-Z]{3}$/.test(product.currencyCode) || product.currencyCode !== monthly.currencyCode
+    || typeof product.price !== 'number' || !Number.isFinite(product.price) || product.price <= 0
+    || typeof monthly.price !== 'number' || !Number.isFinite(monthly.price) || monthly.price <= 0) return null;
+  const twelveMonths = monthly.price * 12;
+  if (!Number.isFinite(twelveMonths) || product.price >= twelveMonths) return null;
+  const percent = Math.floor((1 - product.price / twelveMonths) * 100);
+  return percent >= 1 && percent <= 99 ? percent : null;
+}
+
+function offerOf(product: StoreProduct, monthly?: StoreProduct): WallPlanOffer {
   return {
     plan: product.plan,
     productId: product.productId,
     period: product.period,
     price: product.localizedPrice,
     perMonth: product.period === 'year' ? product.localizedPricePerMonth?.trim() || null : null,
-    trialDays: product.period === 'year' ? storeTrialDays(product) : null,
-    hasFreeTrial: product.period === 'year' && product.intro !== null,
+    annualSavingsPercent: annualSavingsPercent(product, monthly),
+    trialDays: product.period === 'year' || product.period === 'month' ? storeTrialDays(product) : null,
+    hasFreeTrial: (product.period === 'year' || product.period === 'month') && product.intro !== null,
   };
 }
 
@@ -191,6 +206,7 @@ export function wallPlanRows(
     const spec = catalogue === null ? null : catalogue[product.plan];
     const minutes = spec === undefined || spec === null ? null : Math.floor(spec.secondsPerPeriod / 60);
     const year = yearly.find((candidate) => candidate.plan === product.plan && candidate.period === 'year' && candidate.localizedPrice.trim().length > 0);
+    const monthly = products.find(candidate => candidate.plan === product.plan && candidate.period === 'month');
     const week = weekly.find(candidate => candidate.plan === product.plan && candidate.plan === 'starter' && candidate.period === 'week' && candidate.intro === null && candidate.localizedPrice.trim().length > 0);
     return {
       plan: product.plan,
@@ -203,7 +219,7 @@ export function wallPlanRows(
       perWeek: minutes === null || spec === undefined || spec === null ? null : conversationsAWeek(minutes, spec.periodDays),
       price: product.localizedPrice,
       daily: minutes === null || spec === undefined || spec === null ? null : dailyMinutes(minutes, spec.periodDays),
-      offers: [...(week ? [offerOf(week)] : []), ...products.filter(candidate => candidate.plan === product.plan && candidate.period === 'month').map(offerOf), ...(year ? [offerOf(year)] : [])],
+      offers: [...(week ? [offerOf(week)] : []), ...products.filter(candidate => candidate.plan === product.plan && candidate.period === 'month').map(candidate => offerOf(candidate)), ...(year ? [offerOf(year, monthly)] : [])],
     };
   });
 }

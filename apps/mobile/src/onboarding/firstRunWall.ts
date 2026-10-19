@@ -23,6 +23,11 @@
 
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 
+/** Nested active route, rather than the root stack's Tabs shell. */
+export function firstRunHomeVisible(route: { name: string } | undefined): boolean {
+  return route?.name === 'Home';
+}
+
 /** Whether the first-run offer may open, from the server's answer and the store's. */
 export function firstRunWallDue(status: BillingStatus | null, storeHasPlans: boolean): boolean {
   if (status === null || !storeHasPlans) return false;

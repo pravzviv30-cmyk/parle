@@ -65,6 +65,7 @@ import { ageConfirmedFromDob } from './age.ts';
 import { storedForgottenFacts, storedLearnerGoals } from './memory.ts';
 import type { StoredProfile } from './store.ts';
 import { sanitisePreferenceClocks } from '@luvani/brain/profile/merge';
+import { storedPracticePreferences } from './practicePreferences.ts';
 
 /** A profile through the chain but before the brain is repaired. */
 export type UpgradedProfile = Omit<StoredProfile, 'brain'> & { brain: unknown };
@@ -125,6 +126,12 @@ function storedVoice(value: unknown): TutorVoiceKey | null {
 export function upgradeStored(parsed: unknown, now = Date.now()): UpgradedProfile | null {
   const upgraded = upgradeShape(parsed, now);
   if (!upgraded) return null;
+  const preferences = storedPracticePreferences((parsed as Record<string, unknown>).practicePreferences);
+  if (preferences) upgraded.practicePreferences = preferences;
+  else delete upgraded.practicePreferences;
+  const namePrompt = (parsed as Record<string, unknown>).namePromptPending;
+  if (typeof namePrompt === 'boolean') upgraded.namePromptPending = namePrompt && !(typeof upgraded.name === 'string' && upgraded.name.trim().length > 0);
+  else delete upgraded.namePromptPending;
   // Clocks were added within v8. Earlier envelopes cannot attest an edit.
   const version = (parsed as Record<string, unknown>).version;
   if (version !== 8 && version !== 9) delete upgraded.preferenceClocks;

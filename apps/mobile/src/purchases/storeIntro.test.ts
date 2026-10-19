@@ -74,3 +74,41 @@ test('a store free trial is read only as the store describes it, and offered onl
   // And no price, no product.
   assert.equal(productOf('regular', pkg('yearly', 'P1Y', week, '  '), eligible), null);
 });
+
+test('store comparison prices are SDK numbers and currencies, never parsed from localized price strings', () => {
+  const { productOf } = load(async () => ({}));
+  const found = pkg('yearly', 'P1Y');
+  const actual = { ...found, product: { ...found.product, price: 149.99, currencyCode: 'GBP', priceString: '149,99 livres' } };
+  const product = productOf('regular', actual, new Set())!;
+  assert.equal(product.price, 149.99);
+  assert.equal(product.currencyCode, 'GBP');
+  assert.equal(product.localizedPrice, '149,99 livres');
+  for (const price of [undefined, NaN, Infinity, -1, '149.99']) {
+    assert.equal(productOf('regular', { ...actual, product: { ...actual.product, price } }, new Set())!.price, undefined);
+  }
+  for (const currencyCode of [undefined, '', 'gbp', 'US', 'GBP/EUR']) {
+    assert.equal(productOf('regular', { ...actual, product: { ...actual.product, currencyCode } }, new Set())!.currencyCode, undefined);
+  }
+});
+
+test('monthly and yearly store packages accept free introductory offers but never sell paid introductions as plain price', async () => {
+  const body = native.slice(native.indexOf('async function paidPackages('), native.indexOf("/** The store's own words"));
+  const { freeTrialOf } = load(async () => ({}));
+  const run = new Function('ready', 'scopeGeneration', 'configuredFor', 'Purchases', 'configuredPlans', 'PRODUCT_IDS',
+    'configuredYearlyPlans', 'YEARLY_PRODUCT_IDS', 'WEEKLY_STARTER_PRODUCT', 'freeTrialOf',
+    `${stripTypeScriptTypes(body)}\nreturn paidPackages;`);
+  const offering = async (intro: unknown, period: 'P1M' | 'P1Y') => {
+    const current = { availablePackages: [pkg('month', period === 'P1M' ? period : 'P1M', period === 'P1M' ? intro : null),
+      pkg('year', period === 'P1Y' ? period : 'P1Y', period === 'P1Y' ? intro : null)] };
+    const paidPackages = run(async () => true, () => 1, 'learner', { getOfferings: async () => ({ current }) },
+      () => ['starter'], { starter: 'month' }, () => ['starter'], { starter: 'year' }, undefined, freeTrialOf);
+    return (await paidPackages('learner') as { found: ReturnType<typeof pkg> }[]).map(({ found }) => found.product.identifier);
+  };
+  for (const period of ['P1M', 'P1Y'] as const) {
+    assert.deepEqual(await offering(null, period), ['month', 'year']);
+    assert.deepEqual(await offering(week, period), ['month', 'year']);
+    const excluded = period === 'P1M' ? ['year'] : ['month'];
+    assert.deepEqual(await offering({ ...week, price: 0.99, priceString: '£0.99' }, period), excluded);
+    assert.deepEqual(await offering({ ...week, periodNumberOfUnits: 0 }, period), excluded, 'an incomplete offer was sold with plain terms');
+  }
+});

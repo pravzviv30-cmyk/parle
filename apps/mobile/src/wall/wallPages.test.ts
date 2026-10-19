@@ -31,12 +31,13 @@ describe('the wall is as long as it has something to show', () => {
   // pages, and the price is last" and "with no store there are three, and the
   // wall ends on the free promise", and are stricter: exactly two, never more.
   test('with a store there are two pages, what you get and then the price', () => {
-    for (const entry of ['path-complete', 'refused', 'recap'] as const) {
+    for (const entry of ['refused', 'recap'] as const) {
       const pages = wallPages({ entry, storeHasPlans: true });
       assert.deepEqual([...pages], ['yours', 'plans'], `${entry} drew the wall at the wrong length`);
       assert.equal(canBuy(pages), true);
       assert.equal(endsOnPlans(pages), true);
     }
+    assert.deepEqual(wallPages({ entry: 'path-complete', storeHasPlans: true }), ['plans'], 'post-onboarding opens the complete trial page directly');
   });
 
   test('with no store there is one page, and the wall ends on the free promise', () => {

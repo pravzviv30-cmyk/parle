@@ -1,5 +1,5 @@
 import { billedPrice, PLANS_PRIVACY, PLANS_RENEWAL, PLANS_RESTORE, PLANS_TERMS, PLANS_TRUST } from '../wall/wallCopy.ts';
-import { PAID_PLANS, type StoreOffering, type StoreProduct } from './adapter.ts';
+import { PAID_PLANS, type StoreOffering, type StoreProduct } from './contract.ts';
 import type { RestoreOutcome } from './restore.ts';
 
 export interface PaywallSurface {
