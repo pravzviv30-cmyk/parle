@@ -234,15 +234,15 @@ describe('what the section may say', () => {
     const raw = readFileSync(fileURLToPath(new URL('./ConversationPackLibrary.tsx', import.meta.url)), 'utf8');
     const lib = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s+/g, ' ');
     assert.match(lib, /const revision = selected === null \? null : revisionEvidence\(selected, packs, history\);/);
-    assert.match(lib, /\{revision !== null && \(/, 'the section is drawn without a revisit behind it');
-    assert.match(lib, /<Label>\{REVISION_COPY\.label\}<\/Label>/);
+    assert.match(lib, /\{revision !== null && <View/, 'the section is drawn without a revisit behind it');
+    assert.match(lib, /<Text[^>]*>\{REVISION_COPY\.label\}<\/Text>/);
     assert.match(lib, /\{REVISION_COPY\.process\}/);
     assert.match(lib, /\{revision\.before\.correction\.quote\}/);
     assert.match(lib, /\{revision\.before\.correction\.better\}/);
     assert.match(lib, /correctionLine\(revision\)/);
     // Stage 4 review (2026-09-25): the section's own sentence, not a label
     // joined to My French's line.
-    assert.match(lib, /\{revision\.before\.practice !== null && \( <Text[^>]*>\{PRACTICE_BEFORE\[revision\.before\.practice\]\}<\/Text> \)\}/);
+    assert.match(lib, /\{revision\.before\.practice !== null && <Text[^>]*>\{PRACTICE_BEFORE\[revision\.before\.practice\]\}<\/Text>\}/);
     assert.doesNotMatch(lib, /EVIDENCE_LINE|practisedBefore/, 'the section still borrows My French’s line');
     // The history is read behind the account guard, and a failed read says nothing.
     assert.match(lib, /loadPracticeHistory\(\)/);

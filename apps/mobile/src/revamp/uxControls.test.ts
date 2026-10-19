@@ -41,25 +41,60 @@ test('unavailable plans return to free practice once and retain an accepted cons
   const leave = wall.slice(wall.indexOf('  const leave = '), wall.indexOf('  const back = '));
   const exits: string[] = [];
   const events: unknown[] = [];
+  const eventOwners: unknown[] = [];
   const bindings = {
     left: { current: false }, user: { id: 'owned-test' }, entry: 'profile', granted: false,
-    scopeGeneration: () => 7, trackProductEvent: (event: unknown) => events.push(event),
+    scopeGeneration: () => 7, trackProductEvent: (event: unknown, owner: unknown) => { events.push(event); eventOwners.push(owner); },
     onStartSpeaking: () => exits.push('speak'), onLeave: () => exits.push('original'),
     onOpenPractice: () => exits.push('practice'),
   };
   new Function(...Object.keys(bindings), stripTypeScriptTypes(leave) + "\nleave('back', onOpenPractice); leave('back', onOpenPractice);")(...Object.values(bindings));
   assert.deepEqual(exits, ['practice']);
   assert.deepEqual(events, [{ name: 'wall_left', properties: { entry: 'profile', outcome: 'unchanged', destination: 'back' } }]);
+  assert.deepEqual(eventOwners, [{ userId: 'owned-test', generation: 7 }], 'the consented event must retain the original account rather than acquire the next account');
   assert.match(wall, /does not tell us whether you have a paid plan/);
   assert.match(wall, /IconAction layout="inline" icon="refresh" busy=\{busy\} label="Try again"[^\n]+setRetry/);
   const plans = read('../wall/WallPlansPage.tsx');
   assert.match(plans, /minutesAMonth\(row.minutes\)/);
   assert.doesNotMatch(plans, /perWeekLine\(row.perWeek\)/, 'a second estimate repeats the actual minutes allowance');
-  // 7 October 2026, come alive README Part 5.G and Part 7 ("per month pins edited
-  // for annual rows"): each way to pay is titled by its billed price with its
-  // own period, yearly or monthly, and a screen reader hears the same.
-  assert.match(plans, /const billed = billedPrice\(offer\.price, offer\.period\);/); assert.match(plans, /title=\{`\$\{period\} · \$\{offer.price\}`\}/);
-  assert.match(plans, /monthlyPrice\(offer\.price\)/); assert.match(plans, /yearlyPrice\(offer\.price, offer\.perMonth\)/);
+  // The compact selector chooses a real product; the hero states its billed
+  // price and period. The annual monthly equivalent remains a separate,
+  // explicitly approximate line and never replaces the yearly charge.
+  const periods = read('../wall/WallPeriodSwitch.tsx');
+  assert.match(plans, /<WallPeriodSwitch offers=\{visibleRow\.offers\} name=\{visibleRow\.name\} selected=\{selected\} onSelect=\{onSelect\}/);
+  assert.match(plans, /billedPrice\(current\.price, current\.period\)/);
+  assert.match(plans, /current\?\.period === 'year' && current\.perMonth !== null && <Text[^>]*>About \{current\.perMonth\} a month\. Billed yearly\./);
+  assert.match(periods, /accessibilityLabel=\{\[name, period, billedPrice\(offer\.price, offer\.period\)\]\.join\(', '\)\}/, 'the period choice must announce the actual billed price');
+  assert.match(periods, /onPress=\{\(\) => onSelect\(offer\)\}/);
+
+  const navigator = read('../nav/RootNavigator.tsx');
+  const route = navigator.slice(navigator.indexOf('function WallRoute()'), navigator.indexOf('function TutorMemoryRoute()'));
+  const practiceLine = route.split('\n').find(line => line.includes('onOpenPractice={'));
+  assert.ok(practiceLine, 'the unavailable-offer exit must have a real route callback');
+  const practice = practiceLine.slice(practiceLine.indexOf('onOpenPractice={') + 'onOpenPractice={'.length, practiceLine.lastIndexOf('}'));
+  for (const returnToCollection of [undefined, false, true]) {
+    const calls: unknown[] = [];
+    const callback = new Function('returnToCollection', 'leave', 'nav', `return (${practice});`)(
+      returnToCollection, () => calls.push('back'), { replace: (...args: unknown[]) => calls.push(args) },
+    ) as () => void;
+    callback();
+    assert.deepEqual(calls, returnToCollection === true ? ['back'] : [['Tabs', { screen: 'Practice' }]], 'ordinary unavailable offers lead to free practice, while a collection offer returns to its exact prior activity');
+  }
+  const marker = 'onStartSpeaking={';
+  const start = route.indexOf(marker);
+  const end = route.indexOf('      onOpenPractice=', start);
+  assert.ok(start !== -1 && end > start, 'the collection return callback moved; this check reads nothing');
+  const speaking = route.slice(start + marker.length, end).trim().slice(0, -1);
+  for (const canResume of [false, true]) {
+    const calls: unknown[] = [];
+    const callback = new Function('owner', 'scopeGeneration', 'returnToCollection', 'leave', 'entry', 'nav', 'afterPurchase', 'resumeRouteKey', 'route', `return (${stripTypeScriptTypes(speaking)});`)(
+      7, () => 7, true, () => calls.push('back'), 'refused',
+      { replace: (...args: unknown[]) => calls.push(args), reset: (state: unknown) => calls.push(state), getState: () => ({}) },
+      () => { calls.push('resume-another-room'); return null; }, undefined, { key: 'wall' },
+    ) as (canResume: boolean) => void;
+    callback(canResume);
+    assert.deepEqual(calls, ['back'], 'a collection entry must not replace its prepared activity with a generic conversation or unrelated room');
+  }
 });
 
 test('the research protocol defines evidence windows and denominators without adding pre-account tracking or a live experiment', () => {

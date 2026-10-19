@@ -25,7 +25,7 @@ export function SaveTextChoice({ ownerId, conversation }: { ownerId: string; con
     void saveText(user, adapter, conversation).then(result => {
       if (!alive.current || scope !== scopeGeneration()) return;
       setState(result.ok ? 'saved' : 'idle');
-      setMessage(result.ok ? 'Conversation text saved. Read or delete it in Progress, Your conversations.' : result.message);
+      setMessage(result.ok ? 'Conversation text saved. Read or delete it in My French, Saved.' : result.message);
     }).finally(() => { busy.current = false; });
   };
   return <View style={{ gap: space(2) }}>

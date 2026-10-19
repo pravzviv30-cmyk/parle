@@ -228,3 +228,14 @@ describe('the Streak screen — F770', () => {
     assert.match(screenFile, /\{screen\.repair !== null \?/);
   });
 });
+
+
+test('streak canvas and hero respect the selected theme while calendar cards keep readable ink', () => {
+  const screen = read('./StreakScreen.tsx');
+  assert.equal((screen.match(/<ScrollScreen bottom="inset" ground=\{colors\.background\}/g) ?? []).length, 2);
+  assert.match(screen, /<ScreenHeader ink=\{colors\.text\} muted=\{colors\.muted\}/);
+  assert.match(screen, /color: colors\.text \}\]\}>\{hero\.words\}/);
+  assert.match(screen, /color: colors\.muted \}\]\}>\{hero\.longest\}/);
+  const calendar = screen.slice(screen.indexOf('<Card style={st.card}>'));
+  assert.match(calendar, /color: paper\.ink \}\]\}>\{GAME_COPY\.streakScreen\.week\}/);
+});

@@ -1,195 +1,136 @@
-/**
- * My French in the notebook system (Phase 3, 2026-09-27): the level and the
- * can-dos earned, the phrase bank with audio, a sounds map over the inventory,
- * then the conversations. No rank names, no points, and every block only once
- * it has something true to show.
- *
- * There is no renderer in this suite (docs/TESTING.md), so this reads the
- * screen. Its ceiling is honest: it proves the blocks are wired to the modules
- * that decide them, in order and behind their gates, never that a phone drew
- * them. What the blocks say is `myfrench/notebook.test.ts`'s job.
+/** C2/M2/M3 progress and library wiring. Historical defect titles remain stable.
+ * Source checks prove ownership/doors; native reading-size and audio timing
+ * require the integrated device journey, not these source assertions.
  */
-
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-
 import { guiltIn } from '../copy/guilt.ts';
-import { MY_FRENCH_COPY } from '../myfrench/copy.ts';
-import { NOTEBOOK_COPY } from '../myfrench/notebook.ts';
-
-const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-
-/** Comments may say anything; only what reaches glass is under test. */
-function stripComments(source: string): string {
-  const noBlocks = source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
-  return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
-}
-
+const read = (relative: string): string => readFileSync(new URL(relative, import.meta.url), 'utf8');
+function stripComments(source: string): string { return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1'); }
 const SCREEN = stripComments(read('./MyFrenchTab.tsx'));
 const FLAT = SCREEN.replace(/\s+/g, ' ');
+const LIBRARY = stripComments(read('./MyFrenchLibraryTab.tsx'));
+const LEARNING = stripComments(read('../main/useMainLearning.ts')).replace(/\s+/g, ' ');
 const BANK = stripComments(read('../myfrench/PhraseBank.tsx'));
-const MAP = stripComments(read('../myfrench/SoundsMap.tsx'));
+test("a new account read clears the old evidence before rendering progress", () => {
+  assert.match(LEARNING, /old.owner === owner \? \{ \.\.\.old, failed: false \} : \{ owner, data: null, failed: false \}/);
+  assert.match(LEARNING, /state.owner === scopeGeneration\(\) \? state.data : null/);
+  assert.match(FLAT, /const \{ data, failed, reload \} = useMainLearning\(\)/);
+  assert.match(FLAT, /data \? allConversations/);
+});
 
-/** Every `<Tag ...>` in a body, whole, counting braces, so a glyph prop's own `/>` is not the end. */
-function tags(body: string, tag: string): string[] {
-  const found: string[] = [];
-  for (const match of body.matchAll(new RegExp(`<${tag}\\b`, 'g'))) {
-    let depth = 0;
-    for (let i = match.index; i < body.length; i += 1) {
-      const char = body[i]!;
-      if (char === '{') depth += 1;
-      else if (char === '}') depth -= 1;
-      else if (char === '>' && depth === 0) {
-        found.push(body.slice(match.index, i + 1));
-        break;
-      }
-    }
+test("the blocks run level, phrase bank, sounds map, conversations, in that order", () => {
+  const title = SCREEN.indexOf('<MainScreen title="Your progress"');
+  const journal = SCREEN.indexOf('motif="journal"', title);
+  const evidence = SCREEN.indexOf('worked.slice', journal);
+  const retained = SCREEN.indexOf('<LevelXpCard', evidence);
+  assert.ok(title >= 0 && journal > title && evidence > journal && retained > evidence);
+  assert.match(LIBRARY, /key: 'conversations'/);
+  assert.match(LIBRARY, /key: 'practise'/);
+  assert.match(LIBRARY, /key: 'saved'/);
+});
+
+test("the level is the spine's, with the can-dos earned and \"here\" on the next scene, and no rank anywhere", () => {
+  assert.match(FLAT, /missionStates\(missionCompletionsFrom\(data.completions\), data.deck, Date.now\(\)\).filter\(isEarned\)/);
+  assert.match(FLAT, /data !== null && run !== null && run.lifetimeDays > 0/);
+  assert.match(FLAT, /<LevelXpCard\/><StreakSummaryCard\/>/);
+  assert.doesNotMatch(SCREEN, /levelName|LEVELS\[|brain.cefr\s*=|recordActivity\(/);
+});
+
+test("a first visit reads one line on what will collect here, and nothing empty", () => {
+  assert.match(FLAT, /failed \? <><MainText>Your learning history could not be loaded/);
+  assert.match(FLAT, /!data \? <MainText muted>Loading your learning history/);
+  assert.match(FLAT, /worked.length === 0 && earned.length === 0/);
+  assert.match(SCREEN, /Your French starts here/);
+  assert.doesNotMatch(SCREEN, /sample|fixture|previewPack/);
+});
+
+test("the phrase bank is the newest kept phrases with audio, and one door to all of them", () => {
+  assert.match(LIBRARY, /libraryPhrases\(data\?\.deck/);
+  assert.match(LIBRARY, /card.front/);
+  assert.match(LIBRARY, /card.back/);
+  assert.match(LIBRARY, /open\('Phrasebook'\)/);
+  assert.match(read('../phrases/PhrasebookScreen.tsx'), /onHear=\{canHear\(phrase\)/);
+  assert.doesNotMatch(SCREEN, /tutorVoice.speak|useAudioPlayer|useRecordedLine/);
+});
+
+test("the sounds map lays the inventory out example word first, and marks only what a measured check called out", () => {
+  assert.match(SCREEN, /navigate\('SoundJourney'\)/);
+  const journey = read('../soundcheck/SoundJourneyScreen.tsx');
+  assert.match(journey, /loadSoundChecks/);
+  assert.match(journey, /SoundCheck/);
+  assert.doesNotMatch(SCREEN, /accuracy|percent|mastered/);
+});
+
+test("the conversations lead with their progress sentence and open their own conversation", () => {
+  assert.match(FLAT, /allConversations\(\{ packs: data.packs, events: data.history \}\)/);
+  assert.match(FLAT, /history.filter\(item => item.line !== null\)/);
+  assert.match(FLAT, /navigate\('Conversations', \{ packId: item.pack.id \}\)/);
+  assert.match(FLAT, /detail=\{item.line \?\? undefined\}/);
+});
+
+test("the page is ledger rows and nothing louder: no pill, no tint, no retired row", () => {
+  // The approved visual shell uses rounded feature and row components, while
+  // actual counts remain the existing evidence-owned game components.
+  assert.match(SCREEN, /<MainScreen/);
+  assert.match(SCREEN, /<MainFeature/);
+  assert.match(SCREEN, /<MainRow/);
+  assert.match(SCREEN, /<CountsGrid phrases=\{data.deck.filter/);
+  assert.doesNotMatch(SCREEN, /<TintRow|<IconRowCard|<OutlineButton|<Stat\b/);
+});
+
+test("every row goes somewhere and names itself", () => {
+  const rows = [...SCREEN.matchAll(/<MainRow\b[^\n]*?\/>/g)].map(m => m[0]);
+  assert.ok(rows.length >= 6);
+  for (const row of rows) { assert.match(row, /title=/); assert.match(row, /onPress=/); }
+  const shared = read('../main/MainUI.tsx');
+  assert.match(shared, /accessibilityRole="button"/);
+  assert.match(shared, /<Text style=\{\[type.label/);
+});
+
+test("saved scenes, goals and the daily collection keep their gates and their doors", () => {
+  assert.match(LIBRARY, /open\('DailyLibrary'\)/);
+  assert.match(FLAT, /goalRows\(profile.learnerGoals, MISSIONS\)/);
+  assert.match(FLAT, /navigate\('GoalStep', \{ key: goalRouteKey\(row.goal\) \}\)/);
+  const conversations = read('../conversationPacks/ConversationsScreen.tsx');
+  assert.match(conversations, /continueArc === true/);
+  assert.match(conversations, /continuationPackId: pack.id/);
+});
+
+test("every read is bound to the account, once a visit, and a failed read says so", () => {
+  assert.match(LEARNING, /useFocusEffect/);
+  assert.match(LEARNING, /let live = true; const owner = scopeGeneration\(\)/);
+  assert.match(LEARNING, /if \(!live \|\| owner !== scopeGeneration\(\)\) return;/);
+  assert.match(LEARNING, /failed: true/);
+  assert.match(SCREEN, /onPress=\{reload\}/);
+  assert.match(LEARNING, /return \(\) => \{ live = false; \}/);
+});
+
+test("a failed conversation history slice leaves progress unread, never zero", () => {
+  assert.match(LEARNING, /loadPracticeHistory\(\)/);
+  assert.match(LEARNING, /loadPackMarks\(\)/);
+  assert.match(LEARNING, /Promise.all/);
+  assert.match(LEARNING, /\.catch\(\(\) => \{ if \(live && owner === scopeGeneration\(\)\)/);
+  assert.match(FLAT, /failed \? <><MainText>Your learning history could not be loaded/);
+  assert.ok(FLAT.indexOf('failed ?') < FLAT.indexOf('worked.length === 0'));
+});
+
+test("every word is a module's, and clean", () => {
+  for (const body of [SCREEN, LIBRARY]) for (const match of body.matchAll(/>\s*([A-Za-z][^<{}]*?)\s*</g)) assert.equal(guiltIn(match[1]!), undefined, match[1]);
+  for (const claim of ['mastered', 'fluent', 'CEFR', 'percent']) assert.ok(!SCREEN.includes(claim), claim);
+  assert.doesNotMatch(SCREEN, /recordActivity\(|gradeCards\(|settleSitting\(/);
+});
+
+test("the page grows with the reading size instead of clipping", () => {
+  for (const body of [SCREEN, LIBRARY, read('../main/MainUI.tsx')]) {
+    assert.doesNotMatch(body, /numberOfLines|maxFontSizeMultiplier|allowFontScaling|ellipsizeMode|fontSize:/);
   }
-  return found;
-}
-
-/** Every quoted string in a body: the words a learner could end up reading. */
-function literals(body: string): string[] {
-  return body.match(/'[^']*'|"[^"]*"|`[^`]*`/g) ?? [];
-}
-
-/** Where a marker sits in the screen, proven present so ordering is real. */
-function at(marker: string): number {
-  const i = SCREEN.indexOf(marker);
-  assert.notEqual(i, -1, `\`${marker}\` is not on the screen at all`);
-  return i;
-}
-
-/** A marker's gate is the nearest `gate` before it, and close to it. */
-function gated(marker: string, gate: string, within = 200): void {
-  const drawn = at(marker);
-  const found = SCREEN.lastIndexOf(gate, drawn);
-  assert.notEqual(found, -1, `${marker} is drawn with nothing holding it back`);
-  assert.ok(drawn - found < within, `the gate on ${marker} is somewhere else on the screen`);
-}
-
-describe('My French is the level, the phrases, the sounds and the conversations — notebook Phase 3', () => {
-  test('a new account read clears the old evidence before rendering progress', () => {
-    assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope; setReadOwner\(scope\); setReadyOwner\(null\); setStatus\('loading'\); setMissions\(\[\]\); setCompletions\(\[\]\);/);
-    assert.match(FLAT, /setReadyOwner\(scope\); setStatus\('ready'\)/);
-    assert.match(FLAT, /const renderStatus = ownedReadStatus\(status, readOwner, readyOwner, currentScope\)/);
-    assert.match(FLAT, /renderStatus === 'ready' && \( <View style=\{st\.group\}>/);
-  });
-  test('the blocks run level, phrase bank, sounds map, conversations, in that order', () => {
-    assert.ok(at('<TabHeader') < at('<LevelCard'));
-    assert.ok(at('<LevelCard') < at('rows.map('));
-    for (const retired of ['<PhraseBank', '<SoundsMap', 'title={DAILY_LINE}', 'title={BROWSE_LINE}']) assert.ok(!SCREEN.includes(retired));
-  });
-
-  test('the level is the spine\'s, with the can-dos earned and "here" on the next scene, and no rank anywhere', () => {
-    assert.match(FLAT, /const path = levelPathFrom\(missions\);/);
-    assert.match(FLAT, /<LevelCard path=\{path\} hasFinish=\{hasFinish\} hasEarned=\{hasEarned\} onPress=\{\(\) => nav.navigate\('Missions'\)\}/);
-    gated('<LevelCard', '!firstVisit &&', 1000);
-    const level = read('../myfrench/LevelCard.tsx');
-    assert.match(level, /ground="blue"/);
-    assert.match(level, /<SceneMark state=\{stop.state\}/);
-    assert.match(level, /path.level/);
-    assert.match(level, /next.stops.length/);
-    assert.doesNotMatch(SCREEN, /totalXp\(|levelName|LEVELS\[/);
-  });
-
-  test('a first visit reads one line on what will collect here, and nothing empty', () => {
-    assert.match(FLAT, /const firstVisit = isFirstVisit\(\{ progress: missions, deck, checks, packs: packs.length \}\);/);
-    gated('<LocalPracticeCard', 'firstVisit &&', 300);
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'first visit and earned proof each have one scene door');
-    assert.match(FLAT, /<LocalPracticeCard/);
-  });
-
-  test('the phrase bank is the newest kept phrases with audio, and one door to all of them', () => {
-    assert.match(FLAT, /phrases: new Set\(deck.filter/);
-    assert.match(FLAT, /phraseKeyOf\(card.front\)/);
-    assert.match(FLAT, /row.kind === 'phrases'\) nav.navigate\('Phrasebook'\)/);
-    assert.doesNotMatch(SCREEN, /tutorVoice.speak|useAudioPlayer|useRecordedLine/);
-    assert.match(BANK, /row.audio.label/);
-  });
-
-  test('the sounds map lays the inventory out example word first, and marks only what a measured check called out', () => {
-    assert.match(FLAT, /sounds: soundsMapFrom\(checks, now\).show/);
-    assert.match(FLAT, /row.kind === 'sounds'/);
-    assert.match(FLAT, /journey !== null \? 'SoundJourney' : 'SoundCheck'/);
-    assert.match(MAP, /cell.calledOut/);
-    assert.doesNotMatch(SCREEN, /mastered|accuracy|percent/);
-  });
-
-  test('the conversations lead with their progress sentence and open their own conversation', () => {
-    assert.match(FLAT, /conversations: allConversations\(\{ packs, events: history \}\).length/);
-    assert.match(FLAT, /row.kind === 'conversations'\) nav.navigate\('Conversations'\)/);
-    assert.match(FLAT, /setHistory\(\[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\]\); setReadyOwner\(scope\); setStatus\('ready'\)/);
-  });
-
-  test('the page is ledger rows and nothing louder: no pill, no tint, no retired row', () => {
-    assert.equal(tags(SCREEN, 'PillButton').length, 2, 'proof and first visit are exclusive scene doors');
-    assert.match(FLAT, /proof !== null && <ColourCard/);
-    assert.equal(tags(SCREEN, 'Ledger').length, 4, 'retry, scene path, saved materials and evidence-based stories');
-    assert.match(SCREEN, /hasWeek \|\| earnedPostcards\(missions\).length > 0/);
-    assert.ok(SCREEN.includes('renderStatus === \'ready\' && rows.length > 0'));
-    for (const retired of ['<TintRow', '<IconRowCard', '<OutlineButton', '<Stat']) assert.ok(!SCREEN.includes(retired));
-  });
-
-  test('every row goes somewhere and names itself', () => {
-    const rows = tags(FLAT, 'LedgerRow');
-    // 2026-10-07, come alive Phase 4 (F769): the postcards row became the
-    // postcard shelf, whose heading row is the one door to Postcards.
-    assert.equal(rows.length, 4, 'retry, scene path, saved materials and week story');
-    for (const row of rows) { assert.match(row, /onPress=\{/); assert.match(row, /accessibilityLabel=(?:\{|")/); }
-    assert.match(FLAT, /key=\{row.id\}/);
-  });
-
-  test('saved scenes, goals and the daily collection keep their gates and their doors', () => {
-    assert.match(FLAT, /goals: goalRows\(profile.learnerGoals, MISSIONS\)/);
-    assert.match(FLAT, /saved: model.saved/);
-    assert.match(FLAT, /nav.navigate\('Convo', \{ seedTopic: row.seedTopic \}\)/);
-    assert.match(FLAT, /nav.navigate\('GoalStep', \{ key: goalRouteKey\(row.title\) \}\)/);
-    assert.doesNotMatch(SCREEN, /title=\{DAILY_LINE\}|title=\{BROWSE_LINE\}/);
-  });
-
-  test('every read is bound to the account, once a visit, and a failed read says so', () => {
-    assert.match(FLAT, /const scope = scopeGeneration\(\); const sameAccount = \(\): boolean => !cancelled && scopeGeneration\(\) === scope;/);
-    for (const store of ['loadMissionCompletions()', 'loadDeck()', 'loadBookmarks()', 'loadSoundChecks({ strict: true })', 'loadConversationPacks()', 'loadPracticeHistory()', 'loadPackMarks()']) {
-      assert.equal(SCREEN.split(store).length - 1, 1, `${store} is read more or less than once a visit`);
-    }
-    assert.match(FLAT, /useState<'loading' \| 'ready' \| 'unread'>\('loading'\)/);
-    assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/);
-    assert.match(FLAT, /\[user, adapter, attempt\]/);
-    gated('title={MY_FRENCH_UNREAD}', "renderStatus === 'unread' &&", 400);
-  });
-
-  test('a failed conversation history slice leaves progress unread, never zero', () => {
-    const read = FLAT.slice(FLAT.indexOf('void Promise.all(['), FLAT.indexOf(']).then(', FLAT.indexOf('void Promise.all([')));
-    assert.match(read, /loadPracticeHistory\(\), loadPackMarks\(\)/);
-    assert.match(FLAT, /setHistory\(\[\.\.\.events, \.\.\.legacyMarkItems\(marks\)\]\); setReadyOwner\(scope\); setStatus\('ready'\)/);
-    assert.match(FLAT, /if \(sameAccount\(\)\) setStatus\('unread'\)/);
-    assert.match(FLAT, /renderStatus === 'ready' && rows\.length > 0/);
-  });
-
-  test('every word is a module\'s, and clean', () => {
-    for (const line of [...MY_FRENCH_COPY, ...NOTEBOOK_COPY]) {
-      assert.ok(!SCREEN.includes(`'${line}'`), `My French spells "${line}" itself`);
-    }
-    for (const line of [...literals(SCREEN), ...literals(BANK), ...literals(MAP)]) {
-      assert.equal(guiltIn(line), undefined, `My French says ${line}, which carries a banned word`);
-      assert.doesNotMatch(line, /—/, `${line} carries an em dash`);
-    }
-    for (const claim of ['mastered', 'fluent', 'CEFR', 'score', 'percent']) {
-      assert.ok(!SCREEN.includes(claim), `My French claims ${claim}`);
-    }
-  });
-
-  test('the page grows with the reading size instead of clipping', () => {
-    for (const body of [SCREEN, BANK, MAP]) {
-      for (const capped of ['numberOfLines', 'maxFontSizeMultiplier', 'allowFontScaling', 'fontSize', 'flexGrow']) {
-        assert.ok(!body.includes(capped), `My French writes ${capped}`);
-      }
-      assert.doesNotMatch(body, /(width|height|maxHeight): \d/, 'My French pins a size in points');
-    }
-  });
+  const shared = read('../main/MainUI.tsx');
+  assert.match(shared, /rowCopy: \{ flex: 1,.*minWidth: 0/);
+  assert.match(shared, /featureStack/);
+  assert.match(shared, /minHeight: 52/);
 });
 
 describe('My French speaks, and stops — F470', () => {

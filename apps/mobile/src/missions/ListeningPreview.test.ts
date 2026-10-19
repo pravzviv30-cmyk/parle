@@ -114,7 +114,9 @@ describe('the listening preview control — Stage 4 item 4', () => {
   test('it does not repeat the host’s own description unless asked — Stage 4 review (2026-09-25)', () => {
     // On the chooser's hero the context line is the goal line drawn just
     // above it, so the host opts in rather than out.
-    assert.match(FLAT, /export function ListeningPreview\(\{ selection, showContext = false, ground = 'white' \}: \{ selection: PreviewSelection; showContext\?: boolean; ground\?: 'white' \| 'blue' \}\)/);
+    assert.match(FLAT, /export function ListeningPreview\(\{ selection, showContext = false, ground = 'white', presentation \}/);
+    assert.match(FLAT, /selection: PreviewSelection; showContext\?: boolean; ground\?: 'white' \| 'blue'/);
+    assert.match(FLAT, /presentation\?: \{ ink: string; muted: string \}/);
     assert.equal((CONTROL.match(/preview\.context/g) ?? []).length, 1);
     assert.match(FLAT, /\{showContext && <Text[^>]*>\{preview\.context\}<\/Text>\}/, 'the context line is drawn whether or not the host already says it');
   });
@@ -141,13 +143,13 @@ describe('the listening preview control — Stage 4 item 4', () => {
 describe('the chooser offers it on the one situation already picked out', () => {
   const SCREEN = stripComments(read('./MissionsScreen.tsx'));
   // 2026-09-27, notebook Phase 4 (B1): the card dropped the deprecated `tone="feature"`.
-  const hero = SCREEN.slice(SCREEN.indexOf('<Card style={{ gap: space(3) }}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('<Card style={{ gap: space(3) }}>')));
+  const hero = SCREEN.slice(SCREEN.indexOf('<Card style={{ gap: space(3), backgroundColor: colors.surface }}>'), SCREEN.indexOf('</Card>', SCREEN.indexOf('<Card style={{ gap: space(3), backgroundColor: colors.surface }}>')));
 
   test('mounted inside the Start here card, after its one pill, for that mission', () => {
     assert.ok(hero.length > 0, 'the hero card moved; this test is stale');
-    assert.match(hero, /<ListeningPreview selection=\{\{ kind: 'mission', mission: first\.mission \}\} \/>/);
+    assert.match(hero, /<ListeningPreview selection=\{\{ kind: 'mission', mission: first\.mission \}\} presentation=\{\{ ink: colors\.text, muted: colors\.muted \}\} \/>/);
     assert.match(SCREEN, /if \(focus && first\)/, 'the listening preview must belong to the selected scene brief');
-    assert.equal((SCREEN.match(/<PillButton\b/g) ?? []).length, 1, 'the chooser grew a second primary pill');
+    assert.equal((SCREEN.match(/<MainButton tone="gold"/g) ?? []).length, 1, 'the chooser grew a second primary action');
   });
 });
 
@@ -171,9 +173,13 @@ describe('both lesson doors that can open a live lesson say so', () => {
   test('Speak draws no second lesson door, and the offline local practice needs no minutes', () => {
     const tab = stripComments(read('../tabs/TutorTab.tsx')).replace(/\s+/g, ' ');
     assert.doesNotMatch(tab, /Practise pronunciation|LESSON_MINUTES/, 'Speak draws a lesson door the chooser already draws');
-    assert.match(tab, /<LocalPracticeCard/);
-    const local = stripComments(read('../practice/LocalPracticeCard.tsx'));
-    assert.match(local, /localPracticeFor\(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO\)/);
-    assert.match(local, /navigate\('DailyPractice', \{ id: phrase.id, mode: 'shadowing' \}\)/);
+    assert.match(tab, /offlinePractice\(DAILY_ITEMS, TUTOR_DAILY_AUDIO, dailyTutorVoice\(profile\.tutorVoice\), suggestions\.preferredTier\)/);
+    assert.match(tab, /label=\{offline \? "Hear, say and compare" : "Browse offline French"\}/);
+    assert.match(tab, /navigate\('DailyPractice', \{ id: offline\.id, mode: 'shadowing' \}\)/);
+    assert.match(tab, /: nav\.navigate\('DailyLibrary'\)/);
+    const offline = stripComments(read('../main/offlinePractice.ts'));
+    assert.match(offline, /shadowingPhrase\(items\.filter\(item => item\.tier === tier\), audio, voice\) \?\? shadowingPhrase\(items, audio, voice\)/);
+    assert.doesNotMatch(offline, /fetch\(|canStart|secondsRemaining/);
+    assert.match(stripComments(read('../daily/DailyPracticeScreen.tsx')), /Nothing is graded/);
   });
 });

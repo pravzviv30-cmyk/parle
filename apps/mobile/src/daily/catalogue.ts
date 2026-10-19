@@ -1,6 +1,6 @@
 import { DAILY_WORDS, DAILY_PHRASES, dailyPick, wordsForLevel, wordTierFor } from '@luvani/core';
 import { VOICED_WORD_IDS, VOICED_PHRASE_IDS } from './voicedSelection.ts';
-export interface DailyItem { id: string; fr: string; en: string; label: string; note: string; exampleFr?: string; exampleEn?: string; }
+export interface DailyItem { tier?: 1 | 2 | 3; id: string; fr: string; en: string; label: string; note: string; exampleFr?: string; exampleEn?: string; }
 // The collection names what a card is. Only Home's pick, below, is today's.
 export const DAILY_ITEMS: readonly DailyItem[] = [
   ...DAILY_WORDS.map(w => ({ ...w, label: 'Word' })),

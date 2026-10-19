@@ -24,15 +24,16 @@ import type { RootStackParamList } from '../nav/types.ts';
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { earnedMissionIds, missionStates, type MissionProgress } from '@luvani/core';
-import { colour, frenchText, paper, space, type } from '../theme.ts';
-import { IconActionRow, IconAction, Card, GhostButton, Ledger, LedgerRow, PillButton, SceneMark } from '../components.tsx';
+import { missionStates, type MissionProgress } from '@luvani/core';
+import { frenchText, space, type } from '../theme.ts';
+import { Card } from '../components.tsx';
 import { minutesLine, missionMinutes } from '../home/estimate.ts';
 import { TYPE_INSTEAD } from '../tutor/speakView.ts';
 
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { sceneIllustration } from '../art/flat/scenes.ts';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { MainScreen, MainButton, MainRow } from '../main/MainUI.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { useLive } from '../app/LiveContext.tsx';
 import { lessonStart, TUTOR_OFFLINE } from '../tutor/gate.ts';
 import { loadMissionCompletions } from './store.ts';
@@ -52,6 +53,7 @@ export function MissionsScreen() {
     navigate: (screen: string, params?: object) => void;
   }>();
   const { recheck } = useLive();
+  const { colors } = useMainAppearance();
 
   const [progress, setProgress] = useState<readonly MissionProgress[] | null>(null);
   const [readFailed, setReadFailed] = useState(false);
@@ -120,79 +122,60 @@ export function MissionsScreen() {
   const view = chooserView({ progress: progress ?? missionStates([], [], Date.now()), spokenBefore, focus });
   const [first, ...rest] = view.cards;
 
-  const header = <ScreenHeader back={{ onPress: leave }} title={focus ? undefined : "Scenes"} ground={focus && progress !== null && first ? 'blue' : 'paper'} />;
-  if (progress === null) return <ScrollScreen header={header}><View style={st.scroll}>
-    <Text style={st.sub}>{readFailed ? 'Your scene history could not be read just now.' : 'Finding your scenes.'}</Text>
-    {readFailed && <IconAction layout="inline" icon="refresh" label="Try loading scenes again" onPress={() => setReadAttempt((n) => n + 1)} />}
-  </View></ScrollScreen>;
+  if (progress === null) return <MainScreen title="Scenes" onBack={leave}>
+    <Text style={[type.body, { color: colors.muted }]}>{readFailed ? 'Your scene history could not be read just now.' : 'Finding your scenes.'}</Text>
+    {readFailed && <MainButton tone="quiet" label="Try loading scenes again" onPress={() => setReadAttempt((n) => n + 1)} />}
+  </MainScreen>;
   if (focus && first) {
     return (
-      <ScrollScreen ground={colour.blue} header={header}
+      <MainScreen title={first.mission.titleEn} onBack={leave}
         footer={<View style={{ gap: space(2) }}>
-          <Text style={[type.small, { color: paper.onInk }]}>Start speaking asks for microphone access. Speaking and typing use live minutes while the room is open.</Text>
-          <PillButton tone="white" label={typed ? 'Start typing' : 'Start speaking'} onPress={() => open(first)} />
-          {!typed && <IconAction layout="inline" icon="keyboard" label={TYPE_INSTEAD} ground="blue" onPress={() => open(first, true)} />}
+          <Text style={[type.small, { color: colors.muted }]}>Start speaking asks for microphone access. Speaking and typing use live minutes while the room is open.</Text>
+          <MainButton tone="gold" label={typed ? 'Start typing' : 'Start speaking'} onPress={() => open(first)} />
+          {!typed && <MainButton tone="quiet" label={TYPE_INSTEAD} onPress={() => open(first, true)} />}
         </View>}>
-        <View style={{ gap: space(3), paddingTop: space(3), paddingBottom: space(4) }}>
-          <Text {...frenchText} style={[type.french, { color: paper.onInk }]}>{first.mission.title}</Text>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>{first.mission.titleEn}</Text>
-          <Text style={[type.body, { color: paper.onInk }]}>{first.mission.canDoEn}</Text>
-          {first.status !== 'New' && <Text style={[type.small, { color: paper.onInk }]}>{first.status}</Text>}
-          <Card style={{ gap: space(3) }}>
-            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>One line to try</Text>
-            {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
-            {first.mission.referencePhrases.length > 1 && <IconAction layout="inline" icon="chevron-down" label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
-            {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: paper.ink }]}>{line}</Text>)}
-            <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} />
+        <View style={{ gap: space(3), paddingBottom: space(4) }}>
+          <Text {...frenchText} style={[type.french, { color: colors.text }]}>{first.mission.title}</Text>
+          <Text style={[type.body, { color: colors.text }]}>{first.mission.canDoEn}</Text>
+          {first.status !== 'New' && <Text style={[type.small, { color: colors.muted }]}>{first.status}</Text>}
+          <Card style={{ gap: space(3), backgroundColor: colors.surface }}>
+            <Text accessibilityRole="header" style={[type.heading, { color: colors.text }]}>One line to try</Text>
+            {first.mission.referencePhrases.slice(0, 1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: colors.text }]}>{line}</Text>)}
+            {first.mission.referencePhrases.length > 1 && <MainButton tone="quiet" label={showExamples ? 'Fewer examples' : 'More examples'} onPress={() => setShowExamples((open) => !open)} />}
+            {showExamples && first.mission.referencePhrases.slice(1).map((line) => <Text key={line} {...frenchText} style={[type.french, { color: colors.text }]}>{line}</Text>)}
+            <ListeningPreview selection={{ kind: 'mission', mission: first.mission }} presentation={{ ink: colors.text, muted: colors.muted }} />
           </Card>
           <Illustration name={sceneIllustration(first.mission.id)} fit="small" style={{ alignSelf: 'center' }} />
-          <Text style={[type.small, { color: paper.onInk }]}>{first.mission.cefr} scene</Text>
+          <Text style={[type.small, { color: colors.muted }]}>{first.mission.cefr} scene</Text>
         </View>
-      </ScrollScreen>
+      </MainScreen>
     );
   }
   return (
-    <ScrollScreen header={header}>
-      <View style={st.scroll}>
-        <Text style={st.sub}>{view.sub}</Text>
-        {view.promise !== null && <Text style={st.promise}>{view.promise}</Text>}
-        <Text style={st.access}>{view.access}</Text>
-        {(['A0', 'A1'] as const).map((level) => <View key={level} style={st.rows}>
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{level}</Text>
-          <Ledger accessibilityLabel={`${level} scenes`}>
-            {view.cards.filter((card) => card.mission.cefr === level).map((card) => <LedgerRow
-              key={card.id} glyph={<SceneMark state={earnedMissionIds(progress ?? []).has(card.mission.id) ? 'earned' : card.primary ? 'here' : 'ahead'} />}
-              title={card.mission.titleEn} gloss={`${card.mission.title}. ${card.status}`} meta={minutesLine(missionMinutes(card.mission))}
-              accessibilityLabel={asSentences([card.mission.title, card.mission.titleEn, card.status])}
-              onPress={() => nav.setParams({ focus: card.mission.id, textMode: typed })}
-            />)}
-          </Ledger>
-        </View>)}
-        <View style={st.footer}>
-          <IconActionRow>
-          <IconAction layout="tile" icon="book" label={LESSON_DOOR.title} disabled={checking} onPress={() => openLesson(typed)} />
-          <IconAction layout="tile" icon="keyboard" label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
-          <IconAction layout="tile" icon="chat" label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
-          </IconActionRow>
-          <Text style={[type.small, { color: paper.inkSoft }]}>{LESSON_DOOR.minutes}</Text>
-          {checking && <Text accessibilityLiveRegion="polite" style={st.checking}>{TUTOR_OFFLINE.checking}</Text>}
-        </View>
+    <MainScreen title="Scenes" onBack={leave}>
+      <Text style={[type.body, { color: colors.muted }]}>{view.sub}</Text>
+      {view.promise !== null && <Text style={[type.small, { color: colors.text }]}>{view.promise}</Text>}
+      <Text style={[type.small, { color: colors.muted }]}>{view.access}</Text>
+      {(['A0', 'A1'] as const).map((level) => <View key={level} style={st.rows}>
+        <Text accessibilityRole="header" style={[type.heading, { color: colors.text }]}>{level}</Text>
+        {view.cards.filter((card) => card.mission.cefr === level).map((card) => <MainRow
+          key={card.id} title={card.mission.titleEn}
+          detail={asSentences([card.mission.title, card.status, minutesLine(missionMinutes(card.mission))])}
+          onPress={() => nav.setParams({ focus: card.mission.id, textMode: typed })}
+        />)}
+      </View>)}
+      <View style={st.footer}>
+        <Text style={[type.small, { color: colors.muted }]}>{LESSON_DOOR.minutes}</Text>
+        <MainButton tone="quiet" label={LESSON_DOOR.title} accessibilityLabel={`${LESSON_DOOR.title}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(typed)} />
+        <MainButton tone="quiet" label={LESSON_DOOR.quiet} accessibilityLabel={`${LESSON_DOOR.quiet}. ${LESSON_DOOR.minutes}`} disabled={checking} onPress={() => openLesson(true)} />
+        <MainButton tone="quiet" label={view.talkFreely} disabled={checking} onPress={() => nav.navigate('Convo', { textMode: typed })} />
+        {checking && <Text accessibilityLiveRegion="polite" style={[type.small, { color: colors.muted }]}>{TUTOR_OFFLINE.checking}</Text>}
       </View>
-    </ScrollScreen>
+    </MainScreen>
   );
 }
 
 const st = StyleSheet.create({
-  warmup: { marginTop: space(4), gap: space(3) },
-  scroll: { paddingTop: space(2), paddingBottom: space(6) },
-  headline: { ...type.display, color: paper.ink },
-  sub: { ...type.body, color: paper.inkSoft, marginTop: space(2) },
-  promise: { ...type.small, color: paper.ink, marginTop: space(2) },
-  microphoneNotice: { ...type.small, color: paper.inkSoft, marginTop: space(2) },
-  access: { ...type.small, color: paper.ink, marginTop: space(2) },
-  hero: { marginTop: space(5), gap: space(3) },
-  heroArt: { alignSelf: 'center' },
-  rows: { marginTop: space(5), gap: space(2) },
-  checking: { ...type.small, color: paper.inkSoft, textAlign: 'center', marginTop: space(3) },
-  footer: { marginTop: space(5), gap: space(1) },
+  rows: { gap: space(2) },
+  footer: { gap: space(2) },
 });

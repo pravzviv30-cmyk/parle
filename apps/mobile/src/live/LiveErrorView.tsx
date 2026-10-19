@@ -20,13 +20,14 @@
  * reads the window for itself.
  */
 
-import { Illustration } from '../art/flat/Illustration.tsx';
+import { MainIllustration } from '../illustrations/MainIllustration.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { openPhoneSettings } from '../settings/phoneSettings.ts';
 import { paper, space, type, HIT } from '../theme.ts';
 import { Screen } from '../layout.tsx';
-import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton } from '../components.tsx';
+import { IconAction, Card, Label, PillButton } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 import type { LiveDiagnostics } from './useLiveSession.ts';
 
@@ -83,46 +84,47 @@ export function LiveErrorView({
    */
   onType: (() => void) | null;
 }) {
+  const { colors, mode } = useMainAppearance();
   const [open, setOpen] = useState(false);
   const [settingsHelp, setSettingsHelp] = useState(false);
   const copy = failureCopy(failure);
   const canType = copy.canType && onType !== null;
 
   return (
-    <Screen padded={false}>
+    <Screen ground={colors.background} padded={false}>
       <ScrollView contentContainerStyle={st.center} keyboardShouldPersistTaps="handled">
-        <Illustration name={failure.startsWith('mic-') ? 'state-microphone' : 'state-offline'} fit="small" />
-        <Label color={paper.inkSoft}>{copy.label}</Label>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, textAlign: 'center', marginTop: space(3) }]}>Let’s get you back to French</Text>
+        <MainIllustration motif={failure.startsWith('mic-') ? 'listen' : 'recovery'} theme={mode} width={180} />
+        <Label color={colors.muted}>{copy.label}</Label>
+        <Text accessibilityRole="header" style={[type.title, { color: colors.text, textAlign: 'center', marginTop: space(3) }]}>Let’s get you back to French</Text>
         {/* The sentence is the point of this screen, so it reads at body size in
             full ink rather than in the soft grey a caption gets. Words clear
             4.5 against the ground, and a line somebody is meant to act on is
             not a caption (F330). */}
-        <Text style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
-        {settlementMessage ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>{settlementMessage}</Text> : null}
+        <Text style={[type.body, { color: colors.text, marginTop: space(3), textAlign: 'center' }]}>{message}</Text>
+        {settlementMessage ? <Text accessibilityLiveRegion="polite" style={[type.body, { color: colors.text, marginTop: space(3), textAlign: 'center' }]}>{settlementMessage}</Text> : null}
 
         {canType ? (
           <>
             <View style={st.action}>
-              {restartAsText ? <PillButton label={typedRestartLabel} onPress={onType} disabled={retryBlocked} />
-                : <PillButton label="Continue by typing" onPress={onType} disabled={retryBlocked} />}
+              {restartAsText ? <PillButton label={typedRestartLabel} onPress={onType} tone="brand" disabled={retryBlocked} />
+                : <PillButton label="Continue by typing" onPress={onType} tone="brand" disabled={retryBlocked} />}
             </View>
             <View style={st.secondary}>
-              <IconAction layout="inline" icon="back" label="Back" onPress={onBack} />
+              <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="back" label="Back" onPress={onBack} />
             </View>
           </>
         ) : (
           <View style={st.action}>
-            <PillButton label="Back" onPress={onBack} />
+            <PillButton label="Back" onPress={onBack} tone="brand" />
           </View>
         )}
 
         {failure.startsWith('mic-') && <View style={st.secondary}>
-          <IconAction layout="inline" icon="settings" label="Check microphone settings" onPress={() => {
+          <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="settings" label="Check microphone settings" onPress={() => {
             setSettingsHelp(true);
             void openPhoneSettings();
           }} />
-          {settingsHelp && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.inkSoft, textAlign: 'center' }]}>{Platform.OS === 'web' ? 'Open this site’s permissions beside the address bar and allow the microphone. Close other apps using it, then return and start a spoken conversation.' : 'Allow microphone access for Luvani in Settings, then return and start a spoken conversation.'}</Text>}
+          {settingsHelp && <Text accessibilityLiveRegion="polite" style={[type.small, { color: colors.muted, textAlign: 'center' }]}>{Platform.OS === 'web' ? 'Open this site’s permissions beside the address bar and allow the microphone. Close other apps using it, then return and start a spoken conversation.' : 'Allow microphone access for Luvani in Settings, then return and start a spoken conversation.'}</Text>}
         </View>}
 
         {/* Support details: the technical rows are for whoever is helping, so
@@ -137,7 +139,7 @@ export function LiveErrorView({
               accessibilityState={{ expanded: open }}
               style={({ pressed }) => [st.disclosure, pressed && { opacity: 0.6 }]}
             >
-              <Text style={[type.small, { color: paper.inkSoft }]}>{open ? 'Hide support details' : 'Support details'}</Text>
+              <Text style={[type.small, { color: colors.muted }]}>{open ? 'Hide support details' : 'Support details'}</Text>
             </Pressable>
             {open ? (
               <Card style={st.panel}>

@@ -129,3 +129,18 @@ describe('the daily collection leads with something to do — Stage 3', () => {
     assert.ok(!CARD.includes('future pack'), 'the card still promises audio in a future pack');
   });
 });
+
+test('daily collection uses the chosen canvas without making its light controls unreadable', () => {
+  assert.match(LIBRARY, /const \{ colors, mode \} = useMainAppearance\(\)/);
+  assert.match(LIBRARY, /<ScrollScreen bottom="inset" ground=\{colors\.background\}/);
+  assert.match(LIBRARY, /<ScreenHeader ink=\{colors\.text\} muted=\{colors\.muted\} title="Daily collection"/);
+  const controls = LIBRARY.slice(LIBRARY.indexOf('<View style={{ backgroundColor: paper.card'), LIBRARY.indexOf('</View>'));
+  assert.match(controls, /<TabBar appearance="underline"/);
+  assert.match(controls, /<Field placeholder=\{SEARCH_PLACEHOLDER\}/);
+  for (const label of ['Retry saved items', 'Previous page', 'Next page']) {
+    const action = LIBRARY.slice(0, LIBRARY.indexOf(`label="${label}"`)).split('<IconAction').at(-1);
+    assert.ok(action?.includes("ground={mode === 'dark' ? 'blue' : 'paper'}"), `${label} must remain readable on the dark canvas`);
+  }
+  assert.match(LIBRARY, /<Label color=\{colors\.muted\}>\{STARTER_TITLE\}/);
+  assert.match(CARD, /type\.frenchLg, \{ color: paper\.ink \}/);
+});

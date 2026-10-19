@@ -66,12 +66,18 @@ test('regular columns follow usable width and return to a stack in split view', 
 
 
 test('on a regular-width screen the tabs use two columns and sheets keep the reading width', () => {
-  for (const file of ['tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx', 'tabs/PracticeTab.tsx']) {
-    assert.match(readFileSync(new URL(file, import.meta.url), 'utf8'), /<Columns>/, file);
-  }
-  const layout = readFileSync(new URL('layout.tsx', import.meta.url), 'utf8');
-  assert.match(layout, /fontScale >= 1\.6/);
-  assert.match(layout, /flexDirection: regular \? 'row' : 'column'/);
-  const components = readFileSync(new URL('components.tsx', import.meta.url), 'utf8');
-  assert.match(components, /maxWidth: READING/);
-});
+  // M2/M3 keeps the learning narrative in one reading column; topic discovery
+  // alone forms a grid and returns to a stack for narrow screens/large text.
+  const explore=readFileSync(new URL('tabs/ExploreTab.tsx',import.meta.url),'utf8');
+  assert.match(explore, /fontScale >= 1\.5/); assert.match(explore, /width < 350/);
+  assert.match(explore, /frame=\{\[s\.topicFrame, single && s\.topicFrameSingle\]\}/);
+  assert.match(explore, /topicFrame: \{ flexBasis: '47%'/);
+  assert.match(explore, /topicFrameSingle: \{ width: '100%', flexBasis: 'auto'/);
+  const main=readFileSync(new URL('main/MainUI.tsx',import.meta.url),'utf8');
+  assert.match(main, /fontScale >= 1\.5/); assert.match(main, /compact && s\.featureStack/);
+  assert.match(main, /<ScrollScreen/);
+  const layout=readFileSync(new URL('layout.tsx',import.meta.url),'utf8');
+  assert.match(layout,/flexDirection: regular \? 'row' : 'column'/);
+  const components=readFileSync(new URL('components.tsx',import.meta.url),'utf8');
+  assert.match(components,/maxWidth: READING/);
+  });

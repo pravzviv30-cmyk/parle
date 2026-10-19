@@ -216,15 +216,15 @@ describe('the first-win chooser — what a learner who has never spoken is shown
     // 2026-09-27 (notebook Phase 3): Speak's "More ways to practise" are
     // worded and ordered by speakView.ts, which reads tutorDoors(); the
     // everyday door left because every path row opens this chooser.
-    assert.match(tab, /MORE_WAYS\.map\(/, 'the tab draws its own order instead of the one that was decided');
+    assert.match(tab, /suggestions.ideas.map\(/, 'the tab does not read its ability-dependent suggestions');
     // The Start opens in the learner's standing mode and a quiet link offers
     // the other one, both on the same recommendation (2026-09-27 follow-up).
-    assert.match(tab, /heldBack\?\.textMode \?\? modes\.textMode/, 'a fresh start loses the standing mode');
-    assert.match(tab, /heldBack \? pendingStart\.current : next\.params/, 'a retry loses the original scene');
-    assert.match(tab, /<NextTaskCard/);
-    const shared = stripComments(read('../practice/NextTaskCard.tsx'));
-    assert.match(shared, /<MissionHero hero=\{value.hero\}/);
-    assert.match(stripComments(read('../home/MissionHero.tsx')), /open\(modes.other.textMode\)/, 'the shared recommendation loses its other mode');
+    assert.match(tab, /conversation.start\(suggestions\.freeSeed \? \{ seedTopic: suggestions\.freeSeed \} : \{\}\)/);
+    assert.match(tab, /conversation.start\(suggestions\.freeSeed \? \{ seedTopic: suggestions\.freeSeed \} : \{\}, true\)/);
+    const start = stripComments(read('../main/useConversationStart.ts'));
+    assert.match(start, /textMode = prefersTyping\(profile\)/);
+    assert.match(start, /probe: recheck/);
+    assert.match(tab, /nav.navigate\('Missions'\)/);
   });
 });
 
@@ -262,10 +262,10 @@ describe('the scripted lesson is the last door on the chooser — F573', () => {
     // "Start this one", and a second filled button beside it would be two
     // primary actions on a screen whose whole job is one choice.
     const footer = SCREEN.slice(SCREEN.indexOf('<View style={st.footer}>'));
-    assert.match(footer, /<IconAction layout="tile" icon="book"/, 'the lesson door is not a labelled action tile');
-    assert.doesNotMatch(footer, /<PillButton/, 'the lesson door took the screen\'s second pill');
+    assert.match(footer, /<MainButton tone="quiet" label=\{LESSON_DOOR\.title\}/, 'the lesson door is not a quiet labelled action');
+    assert.doesNotMatch(footer, /<MainButton(?:\s+label|\s+tone="gold")/, 'the lesson door took the screen\'s second primary action');
     assert.equal(
-      (SCREEN.match(/<PillButton\b/g) ?? []).length,
+      (SCREEN.match(/<MainButton tone="gold"/g) ?? []).length,
       1,
       'the chooser draws a number of primary pills other than the one on the card it already picked out',
     );

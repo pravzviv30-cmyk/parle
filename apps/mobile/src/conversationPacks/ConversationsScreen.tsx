@@ -216,7 +216,7 @@ export function ConversationsScreen({
           if(result.ok){setUnavailable(held=>held.filter(row=>row.id!==id));setArchive(null);setAttempt(n=>n+1);return {ok:true};}
           return result;
         }}
-        onBack={() => setShowingLibrary(false)}
+        onBack={openPackId !== undefined ? onBack : () => setShowingLibrary(false)}
         onReview={(pack) => nav.navigate('ConversationPractice', { packId: pack.id })}
         // The tutor revisit is offered only when the plan opens it, by the
         // same continueArc rule the Tutor tab reads. Otherwise the library

@@ -29,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking, AppState } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -68,7 +68,7 @@ import { loadHapticPreference } from './src/motion/hapticPreference.ts';
 import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
-import { flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
+import { firstRunHomeVisible, flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
 import { fetchBillingStatus } from './src/purchases/client.ts';
 import { purchases } from './src/purchases/adapter.ts';
 import { paywallSurface } from './src/purchases/paywallView.ts';
@@ -89,8 +89,10 @@ import {
 import { ProfileGate } from './src/app/ProfileContext.tsx';
 import { LiveProvider } from './src/app/LiveContext.tsx';
 import { GameProvider } from './src/game/GameProvider.tsx';
+import { MainAppearanceProvider } from './src/main/MainAppearance.tsx';
+import { MainNavigationTheme } from './src/main/MainNavigationTheme.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
-import { navTheme, linking } from './src/nav/theme.ts';
+import { linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
 import { OnboardingPreview } from './src/dev/OnboardingPreview.tsx';
@@ -292,11 +294,9 @@ function SignedInRoot({
    * Did this learner finish onboarding a moment ago, in this launch?
    *
    * In memory, and deliberately never written to disk. It decides one thing:
-   * whether the navigator opens on the first scene's microphone primer, with
-   * Today behind it, so the first thing after signing up is the scene the plan
-   * promised. A persisted flag would be one more piece of state that can get
-   * stuck; an app killed between the last onboarding tap and the first frame
-   * lands on Today, whose Start leads to the same scene.
+   * whether Home is reset once after completing onboarding. The optional
+   * first-run offer opens only after Home has become visible. A cold returning
+   * launch never recreates the event.
    */
   const [justOnboarded, setJustOnboarded] = useState(false);
   /** Which scene the plan put first: the spine's first, less the opener for "I can get by". */
@@ -417,9 +417,38 @@ function SignedInRoot({
    * on its own.
    */
   const pendingWall = useRef(false);
+  const wallFrame = useRef<number | null>(null);
+  const wallRequest = useRef(0);
+  useEffect(() => {
+    const invalidate = () => {
+      wallRequest.current++;
+      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
+      wallFrame.current = null;
+    };
+    const foreground = AppState.addEventListener('change', state => { if (state !== 'active') invalidate(); });
+    return () => { invalidate(); foreground.remove(); };
+  }, [user.id]);
   const openPendingWall = useCallback(() => {
+    // Invalidate on the departure event, including a quick away-and-back that
+    // resolves before the original billing read. A current Home is not proof
+    // that the original Home remained visible throughout that request.
+    if (!navigationRef.isReady() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) {
+      wallRequest.current++;
+      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
+      wallFrame.current = null;
+      return;
+    }
+    if (!pendingWall.current
+      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
     const owner = scopeGeneration();
-    void flushFirstRunWall({
+    const request = ++wallRequest.current;
+    if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
+    // Two committed frames let Home appear before this separate decision reads.
+    wallFrame.current = requestAnimationFrame(() => {
+      wallFrame.current = requestAnimationFrame(() => {
+      wallFrame.current = null;
+      if (request !== wallRequest.current || owner !== scopeGeneration() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) return;
+      void flushFirstRunWall({
       take: () => {
         const due = pendingWall.current;
         pendingWall.current = false;
@@ -427,8 +456,10 @@ function SignedInRoot({
       },
       status: () => fetchBillingStatus(user.id),
       storeHasPlans: async () => paywallSurface(await purchases.offering(user.id)) !== null,
-      stillHere: () => owner === scopeGeneration() && navigationRef.isReady(),
+      stillHere: () => request === wallRequest.current && owner === scopeGeneration() && navigationRef.isReady() && firstRunHomeVisible(navigationRef.getCurrentRoute()) && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
       open: () => navigationRef.navigate('Wall', { entry: 'path-complete' }),
+    });
+      });
     });
   }, [navigationRef, user.id]);
 
@@ -448,9 +479,10 @@ function SignedInRoot({
   const openFirstRun = useCallback(() => {
     if (!navigationRef.isReady()) return;
     if (justOnboarded) {
+      pendingWall.current = true;
       navigationRef.resetRoot({
-        index: 1,
-        routes: [{ name: 'Tabs' }, { name: 'FirstScene', params: { missionId: firstScene.current } }],
+        index: 0,
+        routes: [{ name: 'Tabs', state: { index: 0, routes: [{ name: 'Home' }] } }],
       });
       setJustOnboarded(false);
     }
@@ -486,7 +518,7 @@ function SignedInRoot({
             onConsumed={onPreAccountDraftConsumed}
             done={(profile) => {
               firstScene.current = firstSceneFor(preAccountDraft.startLevel, preAccountDraft.reason);
-              setJustOnboarded(!preAccountDraft.eligibilityConfirmed);
+              setJustOnboarded(true);
               done(profile);
             }}
           />
@@ -506,6 +538,7 @@ function SignedInRoot({
               if ((await saveReminder(reminderFromDraft(draft))) !== 'durable' || owner !== scopeGeneration()) return false;
               if (!(await saveProfile(built)) || owner !== scopeGeneration()) return false;
               firstScene.current = firstSceneFor(draft.startLevel, draft.reason);
+              setJustOnboarded(true);
               done(built);
               return true;
             }}
@@ -577,10 +610,12 @@ function SignedInRoot({
           changes. */}
       <ReminderPlanner />
       <LiveProvider>
+        <MainAppearanceProvider><MainNavigationTheme>{navigationTheme => (
         <NavigationContainer
           ref={navigationRef}
           onReady={() => { openFirstRun(); openPendingInvite(); }}
-          theme={navTheme}
+          onStateChange={() => openPendingWall()}
+          theme={navigationTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.
           {...(Platform.OS === 'web' ? { linking } : {})}
@@ -590,6 +625,7 @@ function SignedInRoot({
             onDeleteAccount={onDeleteAccount}
           />
         </NavigationContainer>
+        )}</MainNavigationTheme></MainAppearanceProvider>
       </LiveProvider>
       </GameProvider>
       </GuestAccountHandoff>

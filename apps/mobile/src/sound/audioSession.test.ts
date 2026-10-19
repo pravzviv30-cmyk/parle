@@ -104,11 +104,11 @@ describe('one module owns the audio session', () => {
       'recap/PrivatePractice.tsx',
       'speech/tutorVoice.ts',
       'tabs/ProfileTab.tsx',
-      'tabs/TutorTab.tsx',
       'tutor/useTutorPreview.ts',
     ]) {
       assert.ok(names.includes(expected), `${expected} no longer counts as a voice player, so this rule reads nothing there`);
     }
+    assert.doesNotMatch(named('tabs/TutorTab.tsx').code, /useAudioPlayer|\.play\(\)|Speech\.speak/, 'Speak no longer owns a separate sample; tutor selection uses the shared preview owner');
     for (const { name, code } of players) {
       assert.match(code, /import \{[^}]*\benterVoicePlayback\b[^}]*\} from '\.\.\/sound\/audioSession\.ts'/, `${name} plays a voice without the audio session`);
       // Before every play, in the text: the mode is set, then the line plays.
@@ -159,7 +159,7 @@ describe('one module owns the audio session', () => {
 
     // Each sample enters voice playback first in the text and in time (the native order), and
     // hands its play to the rule with the platform it runs on.
-    for (const name of ['tabs/TutorTab.tsx', 'tabs/ProfileTab.tsx', 'onboarding/PreAccountOnboarding.tsx']) {
+    for (const name of ['tabs/ProfileTab.tsx', 'onboarding/PreAccountOnboarding.tsx']) {
       const code = named(name).code;
       const flat = code.replace(/\s+/g, ' ');
       assert.match(code, /^import \{ startVoiceLine \} from '\.\.\/sound\/voiceLine\.ts';$/m, `${name} plays its sample without the web rule`);

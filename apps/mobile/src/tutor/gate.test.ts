@@ -210,8 +210,11 @@ describe('the three ways into a conversation — what a learner meets instead of
     // spoken, like the one Start, and the other rows push their screen.
     const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
     assert.match(view, /entryStart\(key\)/, 'Speak decides where a row goes instead of reading it from gate.ts');
-    assert.match(tab, /if \(way\.screen === null\) \{ open\(modes\.textMode\); return; \}/, 'the open conversation does not probe in the preferred mode');
-    assert.match(tab, /nav\.navigate\(way\.screen\)/, 'a secondary way in does not open its own screen');
+    const start = stripComments(read('../main/useConversationStart.ts'));
+    assert.match(start, /textMode = prefersTyping\(profile\)/, 'the open conversation does not use the preferred mode');
+    assert.match(start, /probe: recheck/);
+    assert.match(tab, /nav.navigate\('Missions'\)/);
+    assert.match(tab, /nav.navigate\('RealMoment'\)/);
   });
 
   test('the tab opens its rows with nothing standing in front of them', () => {
@@ -222,7 +225,9 @@ describe('the three ways into a conversation — what a learner meets instead of
     assert.doesNotMatch(tab, /if\s*\(\s*!seenIntro\s*\)/, 'the intro is still the first thing on the tab');
     assert.ok(!tab.includes('<TutorIntro'), 'the explainer is back in front of the tab');
     const view = readFileSync(fileURLToPath(new URL('./speakView.ts', import.meta.url)), 'utf8');
-    assert.ok(view.includes('tutorDoors()') && tab.includes('MORE_WAYS.map('), 'the tab decides its own rows again');
+    assert.ok(view.includes('tutorDoors()'), 'the existing free/chooser/rehearsal route model changed');
+    assert.match(tab, /learningSuggestions\(practicePreferencesOf\(profile\)\)/);
+    assert.match(tab, /suggestions.ideas.map\(/);
   });
 
   test('the explainer is still reachable, and still teaches the circle', () => {

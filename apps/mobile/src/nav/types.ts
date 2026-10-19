@@ -18,6 +18,8 @@ import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
 
 export type TabParamList = {
   Home: undefined;
+  Explore: { topic?: string } | undefined;
+  Library: { view?: 'conversations' | 'practise' | 'saved' } | undefined;
   Tutor: undefined;
   Practice: undefined;
   MyFrench: undefined;
@@ -30,6 +32,8 @@ export type RootStackParamList = {
   SocialSettings: undefined;
   DailyPractice: { id: string; mode?: 'shadowing' };
   DailyLibrary: undefined;
+  /** Public collection preview; its activity actions resolve existing content owners. */
+  ExploreCollection: { id: string };
   Postcards: undefined;
   WeekWrapped: undefined;
   /**
@@ -167,7 +171,7 @@ export type RootStackParamList = {
    * property the `wall_shown` event carries, so the funnel is split by the same
    * doors the code has. It is a string union and stays serialisable.
    */
-  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; resumeRouteKey?: string };
+  Wall: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; resumeRouteKey?: string; returnToCollection?: boolean };
   /**
    * The two documents, as routes rather than sheets inside Settings.
    *
@@ -224,6 +228,6 @@ export type RootStackParamList = {
    * longer here simply opens the list.
    */
   Conversations: { packId?: string } | undefined;
-  SavedConversationText: undefined;
+  SavedConversationText: { sessionId?: string } | undefined;
   ConversationPractice: { packId: string };
 };

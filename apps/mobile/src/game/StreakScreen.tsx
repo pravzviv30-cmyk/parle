@@ -33,6 +33,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Card, IconAction, IconButton, Skeleton } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
 import { LivingBar } from '../motion/LivingBar.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
@@ -52,19 +53,20 @@ const MEDAL = space(12);
 const COLUMN = `${100 / 7}%` as const;
 
 export function StreakScreen() {
+  const { colors, mode } = useMainAppearance();
   const back = useBackToHome();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { view, failed, refresh } = useGame();
   const [wanted, setWanted] = useState<CalendarMonth | null>(null);
-  const header = <ScreenHeader title={GAME_COPY.streakScreen.title} back={{ onPress: back }} />;
+  const header = <ScreenHeader ink={colors.text} muted={colors.muted} title={GAME_COPY.streakScreen.title} back={{ onPress: back }} />;
 
   if (view === null) {
     return (
-      <ScrollScreen bottom="inset" header={header}>
+      <ScrollScreen bottom="inset" ground={colors.background} header={header}>
         {failed ? (
           <View style={st.group}>
-            <Text style={[type.body, { color: paper.ink }]}>{GAME_COPY.streakScreen.unread}</Text>
-            <IconAction layout="inline" icon="refresh" label={GAME_COPY.streakScreen.retry} onPress={refresh} />
+            <Text style={[type.body, { color: colors.text }]}>{GAME_COPY.streakScreen.unread}</Text>
+            <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="refresh" label={GAME_COPY.streakScreen.retry} onPress={refresh} />
           </View>
         ) : (
           <Skeleton blocks={[{ height: HERO_FLAME + space(16), radius: radius.feature }, { height: space(20), radius: radius.card }, { height: space(80), radius: radius.card }]} />
@@ -77,19 +79,19 @@ export function StreakScreen() {
   const { hero, month } = screen;
 
   return (
-    <ScrollScreen bottom="inset" header={header}>
+    <ScrollScreen bottom="inset" ground={colors.background} header={header}>
       <View style={st.hero} accessible accessibilityLabel={hero.label}>
         <Flame size={HERO_FLAME} state={hero.lit ? 'lit' : 'unlit'} flicker={hero.lit} />
         <View style={st.heroCount}>
           {/* Drawn where it stands on every visit: Home is where a rise counts
               up. A rise that lands while this screen is open counts on, and a
               new day draws it again, so it never runs down. */}
-          {hero.running ? <CountUp key={view.today} from={hero.count} to={hero.count} textStyle={[type.display, { color: paper.ink }]} /> : null}
-          <Text style={[type.heading, { color: paper.ink }]}>{hero.words}</Text>
+          {hero.running ? <CountUp key={view.today} from={hero.count} to={hero.count} textStyle={[type.display, { color: colors.text }]} /> : null}
+          <Text style={[type.heading, { color: colors.text }]}>{hero.words}</Text>
         </View>
-        <Text style={[type.bodyStrong, st.centred, { color: paper.ink }]}>{hero.lifetime}</Text>
-        {hero.longest !== null ? <Text style={[type.small, st.centred, { color: paper.inkSoft }]}>{hero.longest}</Text> : null}
-        <Text style={[type.body, st.centred, { color: paper.ink }]}>{hero.today}</Text>
+        <Text style={[type.bodyStrong, st.centred, { color: colors.text }]}>{hero.lifetime}</Text>
+        {hero.longest !== null ? <Text style={[type.small, st.centred, { color: colors.muted }]}>{hero.longest}</Text> : null}
+        <Text style={[type.body, st.centred, { color: colors.text }]}>{hero.today}</Text>
       </View>
 
       <Card style={st.card}>
@@ -151,8 +153,8 @@ export function StreakScreen() {
 
       {screen.repairForSubscribers !== null ? (
         <View style={st.group}>
-          <Text style={[type.body, { color: paper.ink }]}>{screen.repairForSubscribers.line}</Text>
-          <IconAction layout="inline" icon="crown" label={screen.repairForSubscribers.action} onPress={() => nav.navigate('Wall', { entry: 'settings' })} />
+          <Text style={[type.body, { color: colors.text }]}>{screen.repairForSubscribers.line}</Text>
+          <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="crown" label={screen.repairForSubscribers.action} onPress={() => nav.navigate('Wall', { entry: 'settings' })} />
         </View>
       ) : null}
 

@@ -1,4 +1,5 @@
 import { Feedback } from './motion/Feedback.tsx';
+import { FocusedFieldGroup, FocusedKeyboardContext } from './layout/focusedFieldGroup.tsx';
 /**
  * The drill sitting — the review deck made active.
  *
@@ -23,7 +24,7 @@ import { Feedback } from './motion/Feedback.tsx';
  * one calm line; it has no way to slow, block, or punish.
  */
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -59,13 +60,17 @@ import {
   type TranslationExercise,
   drillXp,
 } from '@luvani/core';
-import { HAIRLINE, HIT, colour, font, onColour, paper, radius, space, type } from './theme.ts';
+import { HAIRLINE, HIT, colour, font, onColour, paper as basePaper, radius, space, type } from './theme.ts';
 import { tapSettled } from './motion/haptics.ts';
+import { useMainAppearance } from './main/MainAppearance.tsx';
+import { Icon } from './icons/Icon.tsx';
+import { AnimatedIcon } from './icons/AnimatedIcon.tsx';
+import { OrbGlyph } from './tutor/OrbGlyph.tsx';
 import { recordActivity } from './progress/activity.ts';
 import { settleSitting } from './game/settle.ts';
 import { useActiveClock } from './progress/useActiveClock.ts';
-import { Card, GhostButton, IconAction, Label, OptionCard, PillButton, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
-import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
+import { Card as BaseCard, GhostButton as BaseGhostButton, IconAction as BaseIconAction, Label as BaseLabel, OptionCard as BaseOptionCard, PillButton as BasePillButton, Press, SpeakCircle, EarGlyph, fitDisplay } from './components.tsx';
+import { Screen as BaseScreen, ScrollScreen as BaseScrollScreen, ScreenHeader as BaseScreenHeader } from './layout.tsx';
 import { gradeCards, loadDeck } from './review/store.ts';
 import { keepPhrase as keepInPhrasebook } from './review/phraseSaved.ts';
 import { AnswerSheet } from './drill/AnswerSheet.tsx';
@@ -116,6 +121,72 @@ import {
   OWN_WORDS_PROMPT,
   OWN_WORDS_NOT_KEPT,
 } from './drill/ownWordsCopy.ts';
+
+
+/** The existing exercise views share the selected main-page colours. */
+type DrillPaper = { [K in keyof typeof basePaper]: string };
+function useDrillPresentation() {
+  const { colors } = useMainAppearance();
+  const keyboardEditing = useContext(FocusedKeyboardContext);
+  return useMemo(() => {
+    const paper: DrillPaper = { ...basePaper, ground: colors.background, card: colors.surface, groundDeep: colors.inset, skeleton: colors.inset, ink: colors.text, inkSoft: colors.muted, inkFaint: colors.muted, line: colors.border, lineOnCard: colors.border, field: colors.muted };
+    return { paper, keyboardEditing, ds: makeDrillStyles(paper, keyboardEditing) };
+  }, [colors, keyboardEditing]);
+}
+
+function DrillFeedbackArea({ children, hasFeedback }: { children: React.ReactNode; hasFeedback: boolean }) {
+  const { ds, keyboardEditing } = useDrillPresentation();
+  // The answer remains visible while editing; a real feedback sheet keeps its slot.
+  if (keyboardEditing && !hasFeedback) return null;
+  return <View style={ds.feedbackArea}>{children}</View>;
+}
+function Card({ style, ...props }: ComponentProps<typeof BaseCard>) {
+  const { paper } = useDrillPresentation();
+  return <BaseCard {...props} style={[{ backgroundColor: paper.card }, style]} />;
+}
+function Label({ color, ...props }: ComponentProps<typeof BaseLabel>) {
+  const { paper } = useDrillPresentation();
+  return <BaseLabel {...props} color={color ?? paper.inkSoft} />;
+}
+function PillButton(props: ComponentProps<typeof BasePillButton>) {
+  return <BasePillButton {...props} tone={props.tone ?? 'brand'} />;
+}
+function GhostButton(props: ComponentProps<typeof BaseGhostButton>) {
+  const { paper } = useDrillPresentation();
+  return <BaseGhostButton {...props} color={props.color ?? paper.ink} />;
+}
+function IconAction(props: ComponentProps<typeof BaseIconAction>) {
+  const { mode, colors } = useMainAppearance();
+  if (mode !== 'dark') return <BaseIconAction {...props} />;
+  const color = props.disabled ? colors.muted : colors.text;
+  return <Press accessibilityRole="button" accessibilityLabel={props.accessibilityLabel ?? props.label} accessibilityHint={props.accessibilityHint}
+    accessibilityState={{ selected: props.selected, busy: props.busy, disabled: props.disabled }} disabled={props.disabled || props.busy} onPress={props.onPress}
+    style={{ minHeight: HIT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2), paddingVertical: space(2), paddingHorizontal: space(3) }}>
+    {props.busy ? <AnimatedIcon kind="refresh-spin" color={color} active /> : props.icon === 'orb' ? <OrbGlyph color={color} size={20} />
+      : props.animate ? <AnimatedIcon kind={props.animate} color={color} state={props.selected ? 'on' : 'off'} trigger={props.trigger} /> : <Icon name={props.icon} color={color} size={20} />}
+    <Text style={[type.label, { color }]}>{props.label}</Text>
+  </Press>;
+}
+function OptionCard({ text, gloss, onPress, selected = false, disabled = false }: ComponentProps<typeof BaseOptionCard> & { disabled?: boolean }) {
+  const { colors } = useMainAppearance();
+  return <Press accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress} style={{ minHeight: HIT, padding: space(4), gap: space(1), backgroundColor: selected ? colors.inset : colors.surface, borderColor: selected ? colors.text : colors.border, borderWidth: selected ? 2 : 1, borderRadius: radius.card }}><Text style={[type.french, { color: colors.text }]}>{text}</Text>{gloss ? <Text style={[type.small, { color: colors.muted }]}>{gloss}</Text> : null}</Press>;
+}
+function Screen(props: ComponentProps<typeof BaseScreen>) {
+  const { colors } = useMainAppearance();
+  return <BaseScreen {...props} ground={props.ground ?? colors.background} />;
+}
+function ScrollScreen(props: ComponentProps<typeof BaseScrollScreen>) {
+  const { colors } = useMainAppearance();
+  return <BaseScrollScreen {...props} ground={props.ground ?? colors.background} />;
+}
+function ScreenHeader(props: ComponentProps<typeof BaseScreenHeader>) {
+  const { colors } = useMainAppearance();
+  return <View style={{ minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(4) }}>
+    {props.back && <Press accessibilityRole="button" accessibilityLabel={props.back.label ?? 'Back'} onPress={props.back.onPress} disabled={props.back.disabled} style={{ minHeight: HIT, minWidth: HIT, alignItems: 'center', justifyContent: 'center' }}><Icon name="back" color={colors.text} /></Press>}
+    <View style={{ flex: 1, minWidth: 0, gap: space(1) }}>{typeof props.title === 'string' ? <Text accessibilityRole="header" style={[type.heading, { color: colors.text }]}>{props.title}</Text> : props.title}{props.trailing}</View>
+    {props.leave && <Press accessibilityRole="button" accessibilityLabel={props.leave.accessibilityLabel ?? props.leave.label ?? 'Leave'} onPress={props.leave.onPress} style={{ minHeight: HIT, justifyContent: 'center', paddingHorizontal: space(2) }}><Text style={[type.label, { color: colors.text }]}>{props.leave.label ?? 'Leave'}</Text></Press>}
+  </View>;
+}
 
 /** "Can't speak now" holds for an hour, then spoken drills quietly return. */
 const MIC_SUPPRESS_MS = 60 * 60 * 1000;
@@ -193,6 +264,7 @@ const OUTCOME_GROUND: Readonly<Record<SheetTone, { fill: string; soft: string } 
  * hairline, with no tint, and the press is an opacity step.
  */
 function WordChoice({ word, onPress, locked }: { word: string; onPress: () => void; locked: boolean }) {
+  const { paper, ds } = useDrillPresentation();
   return (
     <Pressable
       onPress={onPress}
@@ -217,6 +289,7 @@ const DrillClock = createContext<{ touch: () => void }>({ touch: () => undefined
 
 /** The hear-it affordance ReviewScreen uses, for hearing a French line again. */
 function HearRow({ text }: { text: string }) {
+  const { paper, ds } = useDrillPresentation();
   const clock = useContext(DrillClock);
   return (
     <Pressable
@@ -250,11 +323,14 @@ function TypedAnswer({
   placeholder: string;
   accessibilityLabel?: string;
 }) {
+  const { paper, ds } = useDrillPresentation();
   const canSubmit = typed.trim() !== '' && !locked;
   const clock = useContext(DrillClock);
   return (
-    <View style={{ gap: space(2.5) }}>
+    <FocusedFieldGroup style={{ gap: space(2.5) }}>{focus => <>
       <TextInput
+        onFocus={focus.onFocus}
+        onBlur={focus.onBlur}
         value={typed}
         onChangeText={(text) => {
           clock.touch();
@@ -274,7 +350,7 @@ function TypedAnswer({
         style={ds.input}
       />
       <PillButton label="Check" disabled={!canSubmit} accessibilityLabel="Check your answer" onPress={onSubmit} />
-    </View>
+    </>}</FocusedFieldGroup>
   );
 }
 
@@ -293,6 +369,7 @@ function FillBlankView({
   onAnswer: (a: string) => void;
   locked: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
@@ -330,6 +407,7 @@ function BestSentenceView({
   onAnswer: (i: number) => void;
   locked: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   return (
     <View style={{ gap: space(4) }}>
       <Card>
@@ -341,6 +419,7 @@ function BestSentenceView({
           <OptionCard
             key={candidate.fr}
             text={candidate.fr}
+            disabled={locked}
             onPress={() => {
               if (!locked) onAnswer(i);
             }}
@@ -360,6 +439,7 @@ function AppropriateReplyView({
   onAnswer: (i: number) => void;
   locked: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   return (
     <View style={{ gap: space(4) }}>
       <Card>
@@ -375,6 +455,7 @@ function AppropriateReplyView({
           <OptionCard
             key={option.fr}
             text={option.fr}
+            disabled={locked}
             onPress={() => {
               if (!locked) onAnswer(i);
             }}
@@ -399,6 +480,7 @@ function TapTranslateView({
   onAnswer: (a: string) => void;
   locked: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   const answerText = assembled.map((i) => exercise.tokens[i]).join(' ');
   const canCheck = assembled.length > 0 && !locked;
   return (
@@ -473,6 +555,7 @@ function ListenTypeView({
   onAnswer: (a: string) => void;
   locked: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   return (
     <View style={{ gap: space(4) }}>
       <Card style={ds.exCard}>
@@ -522,16 +605,17 @@ function TranslationView({
    */
   help?: { shown: boolean; onShow: () => void };
 }) {
+  const { paper, ds, keyboardEditing } = useDrillPresentation();
   const isFrenchPrompt = exercise.direction === 'fr-en';
   const prompt = isFrenchPrompt ? exercise.fr : exercise.en;
   // Only an English-to-French ask hides the French, so only it has anything to
   // show. The reference is the exercise's own line, never generated.
   const canHelp = help !== undefined && !isFrenchPrompt;
   return (
-    <View style={{ gap: space(4) }}>
+    <View style={{ gap: keyboardEditing ? space(2) : space(4) }}>
       <Card style={ds.exCard}>
-        <Label>{kindTag(exercise)}</Label>
-        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: paper.ink, textAlign: 'center', marginTop: space(4) }]}>
+        {!keyboardEditing && <Label>{kindTag(exercise)}</Label>}
+        <Text style={[isFrenchPrompt ? type.french : type.heading, { color: paper.ink, textAlign: 'center', marginTop: keyboardEditing ? 0 : space(4) }]}>
           {prompt}
         </Text>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}
@@ -543,7 +627,7 @@ function TranslationView({
           </Feedback>
         )}
         {canHelp && !help.shown && (
-          <View style={{ marginTop: space(3) }}>
+          <View style={{ marginTop: keyboardEditing ? space(1) : space(3) }}>
             <IconAction layout="inline" icon="hint" label={PRACTICE_HELP.show} accessibilityLabel={PRACTICE_HELP.showLabel} disabled={locked} onPress={help.onShow} />
           </View>
         )}
@@ -574,6 +658,7 @@ function RepeatThisView({
   onNoMic: () => void;
   locked: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   const recorder = useAudioRecorder(METERED_TAKE);
   // 'armed': the circle records on tap. 'live': the microphone is on. 'silent':
   // the platform said no — recorder missing, permission refused, or a start
@@ -798,10 +883,13 @@ function OwnWordsView({
   /** The last keep was refused; it can be tried again. */
   keepFailed: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   const [typing, setTyping] = useState(!CAN_RECORD || quiet);
   const typeInstead = useCallback(() => setTyping(true), []);
   const look = ownWordsLook(outcome?.decided ?? null);
-  const ground = look.tone === null ? null : OUTCOME_GROUND[look.tone];
+  const { colors, mode } = useMainAppearance();
+  const authoredGround = look.tone === null ? null : OUTCOME_GROUND[look.tone];
+  const ground = authoredGround !== null && mode === 'dark' ? { fill: look.tone === 'good' ? colors.teal : colors.ochre, soft: colors.muted } : authoredGround;
   const soft = ground === null ? paper.inkSoft : ground.soft;
   return (
     <View style={{ gap: space(4) }}>
@@ -931,6 +1019,7 @@ export function DrillScreen({
    */
   mix?: boolean;
 }) {
+  const { paper, ds } = useDrillPresentation();
   // The sitting. Null while the deck and bank load.
   const [session, setSession] = useState<DrillSessionState | null>(null);
   // The line on the floor. While one shows, inputs are locked and the next
@@ -1832,9 +1921,9 @@ export function DrillScreen({
         // oversight: a mid-session message may not scold, and a drawing scolds
         // louder than a word. The scorer's whole say is its one muted line,
         // core's focus reason, already learner-safe: never a score.
-        <View style={ds.feedbackArea}>
+        <DrillFeedbackArea hasFeedback={sheet !== null}>
           {sheet !== null && <AnswerSheet key={beatRef.current} sheet={sheet} note={focusLine} onContinue={advance} />}
-        </View>
+        </DrillFeedbackArea>
       }
     >
       {node?.moment !== undefined && <MomentCard moment={node.moment} />}
@@ -1892,7 +1981,7 @@ export function DrillScreen({
   );
 }
 
-const ds = StyleSheet.create({
+function makeDrillStyles(paper: DrillPaper, keyboardEditing = false) { return StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   feedbackArea: { minHeight: HIT + 8, justifyContent: 'flex-end' },
   // The own-words outcome's check: a white disc, so it reads on the mint card
@@ -1902,8 +1991,8 @@ const ds = StyleSheet.create({
   ending: { gap: space(4) },
 
   // The exercise card: the SessionView main-card anatomy, content centred.
-  exCard: { alignItems: 'center', minHeight: 220, justifyContent: 'center', borderTopWidth: 5 },
-  promptCard: { minHeight: 260, justifyContent: 'space-between' },
+  exCard: { alignItems: 'center', minHeight: keyboardEditing ? 0 : 220, paddingVertical: keyboardEditing ? space(2) : undefined, justifyContent: 'center' },
+  promptCard: { minHeight: keyboardEditing ? 0 : 260, justifyContent: 'space-between' },
 
   // The chip anatomy, for choices that are bare words: white paper under a
   // paper hairline, the notebook's one surface, with no tint.
@@ -2008,4 +2097,4 @@ const ds = StyleSheet.create({
   speakRing: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
   saidIt: { alignSelf: 'stretch' },
   noMic: { minHeight: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(4) },
-});
+}); }

@@ -37,6 +37,13 @@ function at(marker: string): number {
 }
 
 describe('the live failure screen puts recovery first', () => {
+  test('native tutor recovery keeps the selected appearance and readable recovery controls', () => {
+    assert.match(VIEW, /useMainAppearance\(\)/);
+    assert.match(VIEW, /<Screen ground=\{colors\.background\} padded=\{false\}>/);
+    assert.match(VIEW, /color: colors\.text[^\n]+\{message\}/);
+    assert.match(VIEW, /<MainIllustration[^\n]+theme=\{mode\}/);
+    assert.match(VIEW, /<PillButton label="Back" onPress=\{onBack\} tone="brand"/);
+  });
   test('the technical rows sit behind a closed Support details disclosure, after every recovery action', () => {
     // Closed unless the learner opens it.
     assert.match(FLAT, /const \[open, setOpen\] = useState\(false\);/, 'the support details open by themselves');

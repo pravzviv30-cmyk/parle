@@ -53,7 +53,7 @@ describe('the sound journey screen — Stage 4 item 2', () => {
     assert.match(stripComments(read('./SoundCheckScreen.tsx')), /<IconAction layout="inline" icon="map" label="Choose a situation"/, 'the sound check changed its words, and this door no longer matches them');
     assert.match(
       FLAT,
-      /\{shownStatus === 'ready' && journey === null && \( <View style=\{st\.block\}> <Text style=\{st\.soft\}>\{JOURNEY_COPY\.none\}<\/Text> <IconAction layout="inline" icon="map" label=\{JOURNEY_COPY\.choose\} onPress=\{\(\) => nav\.navigate\('Missions'\)\} \/> <\/View> \)\}/,
+      /\{shownStatus === 'ready' && journey === null && \( <View style=\{st\.block\}> <Text style=\{\[st\.soft, \{ color: colors\.muted \}\]\}>\{JOURNEY_COPY\.none\}<\/Text> <IconAction layout="inline" ground=\{mode === 'dark' \? 'blue' : 'paper'\} icon="map" label=\{JOURNEY_COPY\.choose\} onPress=\{\(\) => nav\.navigate\('Missions'\)\} \/> <\/View> \)\}/,
       'a learner with no journey yet is offered only the way back',
     );
   });
@@ -115,4 +115,14 @@ describe('the journey is a route of its own', () => {
     assert.match(navigator, /<Stack\.Screen name="SoundJourney" component=\{SoundJourneyScreen\} \/>/);
     assert.match(navigator, /import \{ SoundJourneyScreen \} from '\.\.\/soundcheck\/SoundJourneyScreen\.tsx';/);
   });
+});
+
+
+test('sound journey canvas and optional notation follow the selected appearance', () => {
+  assert.match(FLAT, /<ScrollScreen ground=\{colors\.background\}/);
+  assert.match(FLAT, /<ScreenHeader ink=\{colors\.text\} muted=\{colors\.muted\}/);
+  assert.match(FLAT, /type\.notation, \{ color: colors\.muted \}/);
+  assert.match(FLAT, /<Label color=\{colors\.muted\}>\{JOURNEY_COPY\.linesLabel\}/);
+  const phraseCard = FLAT.slice(FLAT.indexOf('<Card>'), FLAT.indexOf('</Card>', FLAT.indexOf('<Card>')));
+  assert.match(phraseCard, /type\.french, \{ color: paper\.ink \}/);
 });

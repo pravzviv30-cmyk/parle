@@ -66,7 +66,6 @@ function calls(source: string): string[] {
 
 /** The content-difficulty standing: the only `levelFor(` a screen may hold, read for its index alone. */
 const STANDING: Readonly<Record<string, RegExp>> = {
-  'tabs/HomeTab.tsx': /const standing = levelFor\(totalXp\(activity\)\);/,
   'practice/NextTaskCard.tsx': /levelIndex: levelFor\(totalXp\(activity\)\)\.index/,
 };
 

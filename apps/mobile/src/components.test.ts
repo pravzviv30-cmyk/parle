@@ -791,8 +791,8 @@ describe('the B parts keep their promises — F597', () => {
     assert.match(choice, /aria-selected=\{navigation \|\| radio \? undefined : selected\}/, 'the option row says nothing to the browser, so on the web the choice is silent');
     assert.match(choice, /haptic="selection"/, 'a choice does not tick like a choice');
     assert.match(choice, /selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/, 'the chosen row is not the brand blue');
-    assert.match(choice, /<View \{\.\.\.decorative\} style=\{\[ch\.disc, \{ backgroundColor: paper\.card \}\]\}>\s*<CheckGlyph size=\{18\} color=\{accent\.brand\} \/>/, 'the chosen mark is not the blue check on a white disc');
-    assert.match(choice, /borderColor: paper\.field/, 'the unchosen mark is not the field ring');
+    assert.match(choice, /<View \{\.\.\.decorative\} style=\{\[ch\.disc, \{ backgroundColor: onboarding \? 'transparent' : paper\.card \}\]\}>\s*<CheckGlyph size=\{18\} color=\{onboarding \? onboardingC2\.violet : accent\.brand\} \/>/, 'the chosen mark is not the blue check on a white disc');
+    assert.match(choice, /borderColor: onboarding \? onboardingC2\.muted : paper\.field/, 'the unchosen mark is not the field ring');
     assert.match(choice, /accessibilityLabel=\{accessibilityLabel \?\? \(detail \? `\$\{title\}, \$\{detail\}` : title\)\}/, 'the option row does not name itself once from its title and detail');
   });
 
@@ -1064,14 +1064,14 @@ describe('the icon controls keep their promises', () => {
     assert.doesNotMatch(art, /<Svg\b|<Path\b/, 'the first run\'s choice art still draws by hand');
   });
 
-  test('a selected choice on a blue question fills with contrasting sun and preserves the readable title', () => {
+  test('a selected choice preserves default colour semantics and C2 questions use their readable illustrated variant', () => {
     const choice = part('Choice');
     assert.match(choice, /const sunny = on === 'blue';/);
-    assert.match(choice, /const fill = selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/);
+    assert.match(choice, /const fill = onboarding \? \(selected \? onboardingC2\.reflection : onboardingC2\.reading\) : selected && !outlined \? \(sunny \? colour\.sun : accent\.brand\)/);
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
     assert.match(screen, /page === 'confidence' \|\| page === 'focus'/);
-    assert.match(screen, /ground=\{page === 'focus' \? 'blue' : 'sun'\}/);
-    assert.match(screen, /title=\{option\.title\}/);
+    assert.match(screen, /<C2Choice minimumHeight=\{page === 'confidence' \? 84 : 64\}/); const c2 = stripComments(readFileSync(join(SRC, 'onboarding', 'C2Choice.tsx'), 'utf8')); assert.match(c2, /<Choice appearance="onboarding" minimumHeight=\{minimumHeight\} layout="row"/); assert.match(choice, /const words = onboarding \? onboardingC2\.ink/);
+    assert.match(screen, /title=\{C2_OPTION_COPY\[option\.key\]\.title\}/);
     assert.match(screen, /draft\.practiceFocus === option\.key/);
     const welcome = region(screen, '{blue && (', '{question && (');
     assert.doesNotMatch(welcome, /<Choice\b/, 'the retired coffee preference must not reappear before the personal plan');

@@ -7,22 +7,25 @@ const has=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const p
 const lacks=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const pattern of patterns) assert.doesNotMatch(code,pattern,file);};
 
 test('revamp B Speak preserves real gates, one primary action and the authored scene path',()=>{
-  has('tabs/TutorTab.tsx',/<TutorCard/,/<ContinuityCard/,/<NextTaskCard/,/<SceneMark/,/PATH_LABEL/,/TUTOR_OFFLINE.retry/,/nav.navigate\('Missions'/);
+  // M2/M3 moves discovery to Explore; the shared start still probes the real gate.
+  has('tabs/TutorTab.tsx',/<MainFeature/,/useConversationStart\(\)/,/conversation.checking/,/conversation.failed/,/nav.navigate\('Missions'/);
+  has('main/useConversationStart.ts',/probe: recheck/,/scope: scopeGeneration/,/onUserScopeReset/,/useFocusEffect/);
+  has('main/conversationStartRequest.ts',/tutorGate\(answer, textMode\)/,/ticket === this.issued/,/finally/);
   lacks('tabs/TutorTab.tsx',/<TintRow/,/<OptionCard/,/Start a real conversation/);
-  has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<SceneMark/,/nav.setParams\(\{ focus: card.mission.id/,/ground=\{colour.blue\}/,/type.display/,/minutes/,/tone="white"/);
+  has('missions/MissionsScreen.tsx',/\['A0', 'A1'\]/,/<MainScreen/,/nav.setParams\(\{ focus: card.mission.id/,/tone="gold"/,/minutes/,/presentation=\{\{ ink: colors.text, muted: colors.muted \}\}/);
 });
 test('revamp B room controls keep typing, help and leave alongside the real waiting and error states',()=>{
   has('ConvoScreen.tsx',/label="Help me out"/,/label="Simpler"/,/label="Type instead"/,/label="Give me a moment"/,/label="In English"/,/maxHeight: 100/,/keyboardShouldPersistTaps="handled"/,/<RoomWait/);
   has('live/RoomWait.tsx',/state="thinking"/,/size=\{120\}/,/accessibilityLiveRegion="polite"/,/\{stage\}/,/label=\{leaveLabel\}/);
   lacks('live/RoomWait.tsx',/ProgressDots|CheckGlyph|percent|ProgressBar/);
-  has('live/LiveErrorView.tsx',/state-microphone/,/state-offline/,/<PillButton/,/<IconAction/);
+  has('live/LiveErrorView.tsx',/<MainIllustration motif=\{failure.startsWith\('mic-'\) \? 'listen' : 'recovery'\}/,/theme=\{mode\}/,/<PillButton/,/<IconAction/);
   has('live/LiveRoomHeader.tsx',/kind="close"/,/accessibilityHint/,/frenchText/);
   lacks('live/LiveRoomHeader.tsx',/borderBottomWidth/);
 });
 test('revamp B conversation bubbles distinguish speaker and highlight only the newest correction',()=>{
   has('tutor/Transcript.tsx',/paper.card/,/paper.ink/,/paper.onInk/,/latestCorrection/,/<Highlight/,/frenchText/,/keyboardShouldPersistTaps="handled"/);
   has('SessionView.tsx',/<ControlTile/,/<ScrollScreen/,/avoidKeyboard/,/frenchText/,/multiline/,/maxHeight: 100/);
-  has('tutor/RealMomentScreen.tsx',/<OptionRow/,/MAX_ONLY_LINE/,/type.title/);
+  has('tutor/RealMomentScreen.tsx',/<OptionRow/,/MAX_ONLY_LINE/,/<MainScreen title=\{REAL_MOMENT_TITLE\} onBack=\{onBack\} avoidKeyboard/);
   has('tutor/SafetyStopView.tsx',/type.title/,/<PillButton/);
   lacks('tutor/SafetyStopView.tsx',/Animated|VoiceOrb|centerFill/);
 });
@@ -31,10 +34,9 @@ test('revamp B shared choices, controls and sheets carry state and keep secondar
   has('layout.tsx',/trailing\?: ReactNode/,/props.divider === true \? HAIRLINE : 0/,/alignItems: 'flex-start'/);
 });
 test('revamp B Practice leads with the short action, then an optional evidence-bounded sound guide and local compare',()=>{
-  has('practice/TuneSoundCard.tsx',/measured === null \? SOUND_LEAD.starterLabel : SOUND_LEAD.measuredLabel/,/lead.cue/,/measured !== null/,/native !== null/,/details && <View/,/<MouthGuide ipa=\{lead.ipa\}/);
-  const practice = read('tabs/PracticeTab.tsx');
-  assert.ok(practice.indexOf('<Label>{NEXT_STEP.label}</Label>') < practice.indexOf('<TuneSoundCard'), 'the sound guide buries the recommended action');
-  has('tabs/PracticeTab.tsx',/step !== null && \(/,/<FrenchBlock/,/<TuneSoundCard/,/shadowingPhrase/,/mode:'shadowing'/,/Hear, say and compare/);
+  has('tabs/MyFrenchLibraryTab.tsx',/view === 'practise'/,/rec\?\.kind === 'resume'/,/rec\?\.kind === 'start'/,/open\('Drill'/,/shadowingPhrase/,/mode: 'shadowing'/,/Hear, say and compare/);
+  has('tabs/MyFrenchTab.tsx',/navigate\('SoundJourney'\)/);
+  has('soundcheck/SoundJourneyScreen.tsx',/loadSoundChecks/,/SoundCheck/);
   has('daily/DailyPracticeScreen.tsx',/state-headphones/,/Nothing is graded/,/Record my take/,/Hear my take/,/Try again/,/recordActiveDay\(\)/,/ack === 'durable'/,/setDaySaved\(true\)/,/discardRecording/,/enterVoicePlayback\(\)/);
   lacks('daily/DailyPracticeScreen.tsx',/fetch\(|Speech.speak|pronunciationScore/);
 });
@@ -43,10 +45,12 @@ test('revamp B retrieval and drills preserve attempted recall, honest scoring an
   lacks('ReviewScreen.tsx',/borderLeftWidth|<VoiceOrb|score/);
   has('DrillScreen.tsx',/drillTitle/,/CheckGlyph/,/colour.mint/,/state-microphone/,/label="I said it"/);
   has('daily/DailyLibraryScreen.tsx',/appearance="underline"/,/label="Clear search"/,/change\(\{ query: '', limit: 12 \}\)/,/Retry saved items/);
-  for(const file of ['phrases/PhrasebookScreen.tsx','conversationPacks/ConversationPackLibrary.tsx']) has(file,/state-notebook/,/label="Choose a scene"/,/nav.navigate\('Missions'\)/);
+  has('phrases/PhrasebookScreen.tsx',/state-notebook/,/label="Choose a scene"/,/nav.navigate\('Missions'\)/);
+  has('conversationPacks/ConversationPackLibrary.tsx',/<MainScreen/,/label="Choose a situation"/,/nav.navigate\('Missions'\)/,/Practise this conversation/);
 });
 test('revamp B Progress opens evidence-based materials, a weekly story and earned postcards without starting audio',()=>{
-  has('tabs/MyFrenchTab.tsx',/<LevelCard/,/<DayCount weekly/,/hasStory\(storyFrom/,/earnedPostcards\(missions\).length > 0/,/nav.navigate\('Postcards'\)/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Phrasebook'\)/,/nav.navigate\('GoalStep'/);
+  has('tabs/MyFrenchTab.tsx',/<LevelXpCard/,/run.lifetimeDays > 0/,/filter\(isEarned\)/,/nav.navigate\('Postcards'\)/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Library', \{ view: 'practise' \}\)/,/nav.navigate\('GoalStep'/);
+  has('tabs/MyFrenchLibraryTab.tsx',/open\('Phrasebook'\)/);
   lacks('tabs/MyFrenchTab.tsx',/tutorVoice.speak|AudioModule|recordActivity\(/);
   has('myfrench/LevelCard.tsx',/ground="blue"/,/<SceneMark/,/next.stops.length/);
   has('goals/GoalStepScreen.tsx',/ground="blue"/,/tone="white"/,/<Ledger/);
@@ -67,11 +71,12 @@ test('revamp B reminder and deletion controls retain explicit choices and explai
 test('revamp B plans preserve catalogue and store prices, accessible selection and a single restore',()=>{
   // Come-alive D16: each store product is now a shared radio choice. Keep
   // the actual price and selected product wired to its accessible name/state.
-  has('wall/WallPlansPage.tsx', /<Choice/, /role="radio"/, /selected=\{offer.productId === selected\}/, /title=\{`\$\{period\} · \$\{offer.price\}`\}/, /billedPrice\(offer.price, offer.period\)/, /accessibilityLabel=\{\[row.name, period, price\].join\(', '\)\}/);
+  has('wall/WallPlansPage.tsx', /<Choice key=\{row.plan\} role="radio"/, /<WallPeriodSwitch offers=\{visibleRow.offers\} name=\{visibleRow.name\} selected=\{selected\} onSelect=\{onSelect\}/, /billedPrice\(current.price, current.period\)/);
+  has('wall/WallPeriodSwitch.tsx', /accessibilityRole="radio"/, /const checked = offer.productId === selected;/, /accessibilityState=\{\{ checked \}\} aria-checked=\{checked\}/, /accessibilityLabel=\{\[name, period, billedPrice\(offer.price, offer.period\)\].join\(', '\)\}/, /minHeight: HIT/);
   has('components.tsx', /accessibilityState=\{navigation \? undefined : radio \? \{ checked: selected \} : \{ selected \}\}/, /aria-checked=\{radio \? selected : undefined\}/);
   lacks('wall/WallPlansPage.tsx', /recommended/);
   has('wall/WallScreen.tsx',/wallSuccess/,/ground=\{colour.mint\}/,/state-offline/,/Start speaking/,/restore/);
-  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/paper.ink/,/<Illustration/);
+  has('wall/WallYoursPage.tsx',/YOURS_ROWS.map/,/ADDS_ROWS.map/,/YOURS_FREE_TITLE/,/colors.text/,/<MainIllustration motif="cloud"/);
   lacks('wall/WallYoursPage.tsx',/borderBottomWidth/);
   has('purchases/paywallView.ts',/price/);
 });

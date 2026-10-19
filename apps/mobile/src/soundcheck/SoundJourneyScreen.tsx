@@ -19,9 +19,10 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getMission } from '@luvani/core';
 
 import { MouthGuide } from '../practice/MouthGuide.tsx';
-import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
+import { IconAction, Card, Label, Ledger, LedgerRow } from '../components.tsx';
 import { WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { accent, HIT, paper, space, type } from '../theme.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { SOUND_DETAIL, soundInWord } from '../tutor/soundExample.ts';
@@ -35,6 +36,7 @@ function situationName(id: string | undefined): string {
 }
 
 export function SoundJourneyScreen() {
+  const { colors, mode } = useMainAppearance();
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -80,10 +82,10 @@ export function SoundJourneyScreen() {
   const journey = shownStatus === 'ready' ? soundJourney(checks, Date.now()) : null;
 
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
-      <Label>{JOURNEY_COPY.label}</Label>
+    <ScrollScreen ground={colors.background} header={<ScreenHeader ink={colors.text} muted={colors.muted} back={{ onPress: leave }} />}>
+      <Label color={colors.muted}>{JOURNEY_COPY.label}</Label>
 
-      {shownStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{JOURNEY_COPY.loading}</Text>}
+      {shownStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={[st.soft, { color: colors.muted }]}>{JOURNEY_COPY.loading}</Text>}
 
       {shownStatus === 'unread' && (
         <Card style={st.block}>
@@ -95,18 +97,18 @@ export function SoundJourneyScreen() {
       {/* Nothing measured yet: a quiet way to the situations that measure it. */}
       {shownStatus === 'ready' && journey === null && (
         <View style={st.block}>
-          <Text style={st.soft}>{JOURNEY_COPY.none}</Text>
-          <IconAction layout="inline" icon="map" label={JOURNEY_COPY.choose}  onPress={() => nav.navigate('Missions')} />
+          <Text style={[st.soft, { color: colors.muted }]}>{JOURNEY_COPY.none}</Text>
+          <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="map" label={JOURNEY_COPY.choose} onPress={() => nav.navigate('Missions')} />
         </View>
       )}
 
       {shownStatus === 'ready' && journey !== null && (
         <>
-          <Text accessibilityRole="header" style={st.heading}>{soundInWord(journey.example)}</Text>
-          <Text style={st.soft}>{JOURNEY_COPY.purpose}</Text>
-          <Text style={st.count}>{calledOutLine(journey.flaggedTimes, situationName(journey.situations[0]))}</Text>
+          <Text accessibilityRole="header" style={[st.heading, { color: colors.text }]}>{soundInWord(journey.example)}</Text>
+          <Text style={[st.soft, { color: colors.muted }]}>{JOURNEY_COPY.purpose}</Text>
+          <Text style={[st.count, { color: colors.text }]}>{calledOutLine(journey.flaggedTimes, situationName(journey.situations[0]))}</Text>
           <MouthGuide ipa={journey.phoneme} />
-          {journey.focus !== null && <Text style={st.soft}>{journey.focus}</Text>}
+          {journey.focus !== null && <Text style={[st.soft, { color: colors.muted }]}>{journey.focus}</Text>}
 
           {/* The notation, for whoever wants it. A beginner hears a word in
               their head and cannot hear a symbol. */}
@@ -116,12 +118,12 @@ export function SoundJourneyScreen() {
             accessibilityState={{ expanded: detail }}
             style={({ pressed }) => [st.disclosure, pressed && st.pressed]}
           >
-            <Text style={[type.small, { color: paper.ink }]}>{detail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
+            <Text style={[type.small, { color: colors.text }]}>{detail ? SOUND_DETAIL.hide : SOUND_DETAIL.show}</Text>
           </Pressable>
-          {detail && <Text style={[type.notation, { color: paper.inkSoft }]}>/{journey.phoneme}/</Text>}
+          {detail && <Text style={[type.notation, { color: colors.muted }]}>/{journey.phoneme}/</Text>}
 
           <View style={st.lines}>
-            <Label>{JOURNEY_COPY.linesLabel}</Label>
+            <Label color={colors.muted}>{JOURNEY_COPY.linesLabel}</Label>
             {journey.lines.map((line) => (
               <View key={`${line.missionId}\u0000${line.reference}`} style={st.line}>
                 <Card>
@@ -141,7 +143,7 @@ export function SoundJourneyScreen() {
             ))}
           </View>
 
-          {journey.unmeasured > 0 && <Text style={st.soft}>{JOURNEY_COPY.unmeasured}</Text>}
+          {journey.unmeasured > 0 && <Text style={[st.soft, { color: colors.muted }]}>{JOURNEY_COPY.unmeasured}</Text>}
         </>
       )}
     </ScrollScreen>

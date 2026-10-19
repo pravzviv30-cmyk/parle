@@ -23,17 +23,19 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
-import { IconAction, Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, OptionRow } from '../components.tsx';
-import { ScreenHeader, ScrollScreen } from '../layout.tsx';
+import { IconAction, Card, Field, GhostButton, Label, OutlineButton, TabBar, OptionRow } from '../components.tsx';
+import { MainScreen, MainButton } from '../main/MainUI.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { FocusedFieldGroup } from '../layout/focusedFieldGroup.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
-import { paper, radius, space, type, HIT } from '../theme.ts';
+import { paper, space, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from './gate.ts';
 import { loadMoments, saveMoment, type RealMoment } from './momentsStore.ts';
 import {
@@ -56,21 +58,9 @@ import {
 } from './realMoments.ts';
 
 /**
- * One moment the learner could bring, as a white cell on the page.
- *
- * Two columns, because eight of these read as a grid to choose from rather than
- * a list to read down, and that is what the mockup draws. Since the notebook
- * redesign (Phase 4, 2026-09-27) every cell is the same white: the place tints
- * retired, and the title is what tells one moment from another.
- *
- * Chosen is an ink ring, not a fill and never a second tint. `OptionCard` and
- * `TabBar` already say "this one" that way, and a filled card here would read
- * as a state rather than a choice. The state is said twice, once per platform:
- * `accessibilityState` is what VoiceOver and TalkBack read, and `aria-selected`
- * is the only one react-native-web puts in the accessibility tree (F522).
- *
- * It grows rather than clips: `flexBasis` with `flexGrow`, so at the largest
- * reading size the two columns fall to one and every title wraps whole.
+ * Existing accessible option rows sit in a deliberate light contrast panel in
+ * both display modes. Selection, keyboard operation and text wrapping remain
+ * the shared control's responsibility.
  */
 function MomentCard({ title, gloss, selected, onPress }: {
   momentKey: RealMomentKey; title: string; gloss: string;
@@ -92,6 +82,7 @@ export function RealMomentScreen({
   initialTextMode?: boolean;
 }) {
   const { recheck } = useLive();
+  const { colors } = useMainAppearance();
   const { user } = useAuth();
   const [key, setKey] = useState<RealMomentKey | null>(null);
   const [detail, setDetail] = useState('');
@@ -178,15 +169,14 @@ export function RealMomentScreen({
   };
 
   return (
-    <ScrollScreen avoidKeyboard header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{REAL_MOMENT_TITLE}</Text>
-      <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{REAL_MOMENT_SUB}</Text>
+    <MainScreen title={REAL_MOMENT_TITLE} onBack={onBack} avoidKeyboard>
+      <Text style={[type.body, { color: colors.muted }]}>{REAL_MOMENT_SUB}</Text>
 
       {/* The plan, said before anything is filled in (Stage 3A). One notice,
           four answers: checking, could not check (a retry, the draft kept),
           not included (the one door to plans), or included. A failed read is
           never offered an upgrade. */}
-      <Card tone="journal" style={st.detail}>
+      <Card style={st.detail}>
         <Label>Included with Max</Label>
         <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>Choose your situation and practise with your tutor before it happens.</Text>
         {allowed === null && <Text accessibilityLiveRegion="polite" style={st.planLine}>{planError ? PLAN_READ_FAILED : PLAN_CHECKING}</Text>}
@@ -201,11 +191,11 @@ export function RealMomentScreen({
         {allowed === true && <Text style={st.planLine}>{PLAN_INCLUDED}</Text>}
       </Card>
 
-      <View style={st.detail}>
+      {/* The existing shared choice/input controls retain an intentional light
+          contrast panel; all surrounding surfaces follow the selected theme. */}
+      <Card style={st.detail}>
         <Label>Choose a situation</Label>
-      </View>
-
-      <View style={st.kinds}>
+        <View style={st.kinds}>
         {REAL_MOMENTS.map((option) => (
           <MomentCard
             key={option.key}
@@ -216,37 +206,45 @@ export function RealMomentScreen({
             onPress={() => { setKey(option.key); setDetail((text) => text.slice(0, detailCap(option))); }}
           />
         ))}
-      </View>
+        </View>
+      </Card>
 
       {kind !== null && (
-        <View style={st.detail}>
-          <Field
-            label={key === 'other' ? 'What would you like to rehearse?' : DETAIL_LABEL}
-            value={detail}
-            onChangeText={setDetail}
-            placeholder={DETAIL_PLACEHOLDER}
-            maxLength={detailCap(kind)}
-            autoCapitalize="sentences"
-            returnKeyType="done"
-            multiline
-          />
-          <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters. Include who you will speak to and what you need to say.</Text>
-        </View>
+        <Card style={st.detail}>
+          <FocusedFieldGroup>{focus => <>
+            <Field
+              onFocus={focus.onFocus}
+              onBlur={focus.onBlur}
+              label={key === 'other' ? 'What would you like to rehearse?' : DETAIL_LABEL}
+              value={detail}
+              onChangeText={setDetail}
+              placeholder={DETAIL_PLACEHOLDER}
+              maxLength={detailCap(kind)}
+              autoCapitalize="sentences"
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
+              onSubmitEditing={Keyboard.dismiss}
+              multiline
+            />
+            <Text style={[type.small, { color: paper.inkSoft, marginTop: space(2) }]}>{detail.length}/{detailCap(kind)} characters. Include who you will speak to and what you need to say.</Text>
+          </>}</FocusedFieldGroup>
+        </Card>
       )}
 
-      <View style={st.detail}>
+      <Card style={st.detail}>
+        <Label>Rehearsal mode</Label>
         <TabBar tabs={[{ key: 'speak', label: 'Speak' }, { key: 'type', label: 'Type' }]} active={mode} onChange={setMode} accessibilityLabel="Rehearsal mode" />
-      </View>
+      </Card>
 
       {allowed === true && (
         <View style={st.action}>
-          <PillButton label={checking ? 'Connecting…' : REHEARSE_ACTION} disabled={checking || kind === null || (key === 'other' && detail.trim().length === 0)} onPress={open} />
-          {kind === null && <Text style={st.checking}>Choose a situation to begin.</Text>}
+          <MainButton label={checking ? 'Connecting…' : REHEARSE_ACTION} disabled={checking || kind === null || (key === 'other' && detail.trim().length === 0)} onPress={open} />
+          {kind === null && <Text style={[st.checking, { color: colors.muted }]}>Choose a situation to begin.</Text>}
         </View>
       )}
 
       {checking && (
-        <Text accessibilityLiveRegion="polite" style={st.checking}>
+        <Text accessibilityLiveRegion="polite" style={[st.checking, { color: colors.muted }]}>
           {TUTOR_OFFLINE.checking}
         </Text>
       )}
@@ -255,8 +253,8 @@ export function RealMomentScreen({
           way forward is the same start again rather than a smaller one. */}
       {heldBack !== null && (
         <View style={st.offline}>
-          <Text style={st.offlineBody}>{TUTOR_OFFLINE.body}</Text>
-          <OutlineButton
+          <Text style={[st.offlineBody, { color: colors.text }]}>{TUTOR_OFFLINE.body}</Text>
+          <MainButton tone="quiet"
             label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
             disabled={checking}
             onPress={open}
@@ -266,13 +264,13 @@ export function RealMomentScreen({
 
       {momentsStatus === 'unread' && (
         <View style={st.again}>
-          <Text style={st.planLine}>We couldn’t load your saved moments.</Text>
-          <IconAction layout="inline" icon="refresh" label="Try loading saved moments again" onPress={() => setMomentsAttempt((n) => n + 1)} />
+          <Text style={[st.planLine, { color: colors.text }]}>We couldn’t load your saved moments.</Text>
+          <MainButton tone="quiet" label="Try loading saved moments again" onPress={() => setMomentsAttempt((n) => n + 1)} />
         </View>
       )}
       {visibleMoments.length > 0 && (
         <View style={st.again}>
-          <Label>{REHEARSE_AGAIN_LABEL}</Label>
+          <Label color={colors.muted}>{REHEARSE_AGAIN_LABEL}</Label>
           <View style={st.kinds}>
             {visibleMoments.map((moment) => {
               const brought = kindOf(moment.kind);
@@ -294,24 +292,12 @@ export function RealMomentScreen({
           </View>
         </View>
       )}
-    </ScrollScreen>
+    </MainScreen>
   );
 }
 
 const st = StyleSheet.create({
   kinds: { marginTop: space(4), gap: space(2) },
-  cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
-  moment: {
-    backgroundColor: paper.card,
-    borderRadius: radius.row,
-    padding: space(4),
-    minHeight: HIT,
-    // The ring is drawn whatever the state, so a chosen card does not grow by
-    // two points and shove its neighbour down the grid.
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  chosen: { borderColor: paper.ink },
   detail: { marginTop: space(5) },
   action: { marginTop: space(6), gap: space(3) },
   gate: { marginTop: space(3), gap: space(3) },

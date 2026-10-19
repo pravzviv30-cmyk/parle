@@ -23,13 +23,13 @@ const MARK = 10;
  * `cadence.ts` decides all of it. This file lays it out and plays it, and stops
  * the voice when it goes (F304).
  */
-export function CadenceCard({ cadence }: { cadence: Cadence }) {
+export function CadenceCard({ cadence, labelColor = paper.inkSoft }: { cadence: Cadence; labelColor?: string }) {
   useEffect(() => () => tutorVoice.stop(), []);
   if (cadence.words.length === 0) return null;
 
   return (
     <View style={st.block}>
-      <Label>{CADENCE.label}</Label>
+      <Label color={labelColor}>{CADENCE.label}</Label>
       <Card style={{ marginTop: space(2) }}>
         <Text style={[type.title, { color: paper.ink }]}>{CADENCE.title}</Text>
         <Text style={[type.body, { color: paper.inkSoft, marginTop: space(1) }]}>{CADENCE.blurb}</Text>

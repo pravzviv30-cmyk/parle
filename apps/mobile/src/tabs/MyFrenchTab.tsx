@@ -1,286 +1,42 @@
-import { storyFrom, hasStory } from '../progress/story.ts';
-import { loadHistory } from '../progress/store.ts';
-import { earnedPostcards } from '../recap/evidence.ts';
-import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
-import { DayCount } from '../progress/DayCount.tsx';
-import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { DAILY_SCENARIOS, MISSIONS, isEarned, missionStates, suggestedMission, phraseKeyOf, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
-import { Choice, Sheet, IconAction, ColourCard, Ledger, LedgerRow, PillButton } from '../components.tsx';
-import { IconTile } from '../icons/IconTile.tsx';
-import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
-import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { colour, onColour, paper, space, type } from '../theme.ts';
-import { loadDeck } from '../review/store.ts';
-import { loadTopics } from '../topics/store.ts';
-import { loadActivity } from '../progress/activity.ts';
-import { evidenceFrom } from '../progress/evidence.ts';
-import { savedSituations } from '../bookmarks/view.ts';
-import { loadBookmarks } from '../bookmarks/store.ts';
-import { buildPhrasebook } from '../phrases/phrasebook.ts';
-import { loadMissionCompletions } from '../missions/store.ts';
-import { missionCompletionsFrom } from '../missions/chooserView.ts';
-import { trackProductEvent } from '../analytics/track.ts';
-import { useAuth } from '../auth/useAuth.tsx';
-import { loadConversationPacks, refreshConversationPacks } from '../conversationPacks/store.ts';
-import { myFrenchFrom, type MyFrench } from '../myfrench/model.ts';
-import { MY_FRENCH_RETRY, MY_FRENCH_UNREAD, MY_FRENCH_PURPOSE, MY_FRENCH_TITLE } from '../myfrench/copy.ts';
-import { isFirstVisit, levelPathFrom, soundsMapFrom } from '../myfrench/notebook.ts';
-import { LevelCard } from '../myfrench/LevelCard.tsx';
-import { progressRows } from '../myfrench/progressRows.ts';
-import { allConversations, type HistoryItem } from '../myfrench/recentConversations.ts';
-import { loadPracticeHistory } from '../practice/historyStore.ts';
-import { scopeGeneration } from '../storage/scope.ts';
-import { legacyMarkItems } from '../practice/history.ts';
-import { loadPackMarks } from '../conversationPacks/marks.ts';
-import { loadSoundChecks } from '../soundcheck/store.ts';
-import type { SoundCheckEvidence } from '../soundcheck/model.ts';
-import { soundJourney } from '../soundcheck/journey.ts';
+import { MISSIONS, isEarned, missionStates } from '@luvani/core';
+import { useNavigation } from '@react-navigation/native';
+import { MainFeature, MainHeading, MainRow, MainScreen, MainText } from '../main/MainUI.tsx';
+import { useMainLearning } from '../main/useMainLearning.ts';
+import { allConversations } from '../myfrench/recentConversations.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
-import { goalRouteKey, goalRows } from '../goals/rows.ts';
-import { abilityProof } from '../myfrench/abilityProof.ts';
-import { ownedReadStatus } from './ownedRead.ts';
+import { goalRows, goalRouteKey } from '../goals/rows.ts';
+import { useStreak } from '../game/GameProvider.tsx';
 import { LevelXpCard } from '../game/LevelXpCard.tsx';
 import { StreakSummaryCard } from '../game/StreakSummaryCard.tsx';
 import { CountsGrid } from '../game/CountsGrid.tsx';
 import { BadgeShelf } from '../game/BadgeShelf.tsx';
-import { useStreak } from '../game/GameProvider.tsx';
-import { progressShowsGame, rowTile } from '../game/progressView.ts';
-import { PostcardShelf } from '../progress/PostcardShelf.tsx';
-
-/**
- * Evidence-based level and saved-material doors; this tab starts no audio.
- *
- * Come alive Phase 4 (F769): the tab leads with the numbered level and its XP,
- * the streak and this week (holding the pinned weekly day line), four counts
- * and the badges, each read from its own record by the game layer, and drawn
- * only once there is practice to show. Then the CEFR level card, the one pill;
- * the earned postcards as a shelf; and the ledger rows, each led by its tile.
- */
+import { missionCompletionsFrom } from '../missions/chooserView.ts';
+/** Progress reports saved evidence; it never creates an achievement by opening. */
 export function MyFrenchTab() {
-  const [details, setDetails] = useState(false);
-  useFocusEffect(useCallback(() => () => setDetails(false), []));
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
-  const { user, adapter } = useAuth();
-  const { profile } = useProfile();
-  const [deck, setDeck] = useState<readonly ReviewCard[]>([]);
-  const [missions, setMissions] = useState<readonly MissionProgress[]>([]);
-  const [completions, setCompletions] = useState<readonly { id: string; at: number; rung: number }[]>([]);
-  const [packs, setPacks] = useState<ConversationPack[]>([]);
-  const [suggested, setSuggested] = useState<MissionProgress | null>(null);
-  const [saved, setSaved] = useState<readonly DailyScenario[]>([]);
-  // Pronunciation evidence. Only measured checks mark anything, and the pure
-  // projections below are the ones that know which those are.
-  const [checks, setChecks] = useState<readonly SoundCheckEvidence[]>([]);
-  const [history, setHistory] = useState<readonly HistoryItem[]>([]);
-  // 'loading' and 'unread' are facts of their own: neither is an empty account.
-  const [status, setStatus] = useState<'loading' | 'ready' | 'unread'>('loading');
-  const [readOwner, setReadOwner] = useState(() => scopeGeneration());
-  const [readyOwner, setReadyOwner] = useState<number | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const [hasWeek, setHasWeek] = useState(false);
-  const run = useStreak();
-
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      // Bound to the account before any read.
-      const scope = scopeGeneration();
-      const sameAccount = (): boolean => !cancelled && scopeGeneration() === scope;
-      setReadOwner(scope);
-      setReadyOwner(null);
-      setStatus('loading');
-      setMissions([]);
-      setCompletions([]);
-      setDeck([]);
-      setPacks([]);
-      setSaved([]);
-      setChecks([]);
-      setHistory([]);
-      void Promise.all([
-        loadMissionCompletions(),
-        loadDeck(),
-        loadTopics(),
-        loadActivity({ strict: true }),
-        loadBookmarks(),
-        loadSoundChecks({ strict: true }),
-        loadHistory(),
-        loadConversationPacks(),
-        loadPracticeHistory(),
-        loadPackMarks(),
-      ]).then(
-        ([completions, cards, topics, activity, bookmarks, soundChecks, sessions, packs, events, marks]) => {
-          if (!sameAccount()) return;
-          const at = Date.now();
-          const nextMissions = missionStates(missionCompletionsFrom(completions), cards, at);
-          setDeck(cards);
-          setPacks(packs);
-          setHasWeek(hasStory(storyFrom({ sessions, activity, packs, completions, now: at })));
-          setMissions(nextMissions);
-          setCompletions(completions);
-          setSuggested(suggestedMission(nextMissions));
-          setSaved(savedSituations(bookmarks, DAILY_SCENARIOS));
-          setChecks(soundChecks);
-          setHistory([...events, ...legacyMarkItems(marks)]);
-          setReadyOwner(scope);
-          setStatus('ready');
-          // The two numbers the product event has always carried, still never drawn.
-          const nextEvidence = evidenceFrom({ missions: nextMissions, book: buildPhrasebook(cards, topics, at), activity });
-          void trackProductEvent({
-            name: 'my_french_opened',
-            properties: { situationsDone: nextEvidence.situations, linesKept: nextEvidence.lines },
-          });
-        },
-        () => {
-          // Any failed evidence read leaves the whole account view unread.
-          if (sameAccount()) setStatus('unread');
-        },
-      );
-      setHasWeek(false);
-      if (user) {
-        void refreshConversationPacks(user, adapter).then((result) => {
-          if (sameAccount() && result.ok) setPacks(result.packs);
-        });
-      }
-      return () => {
-        cancelled = true;
-      };
-    }, [user, adapter, attempt]),
-  );
-
-  const now = Date.now();
-  const model: MyFrench = myFrenchFrom({ deck, missions, saved, packs, suggested, now });
-  const path = levelPathFrom(missions);
-  const proof = abilityProof(missions, completions, now);
-  const hasFinish = missions.some((mission) => mission.timesFinished > 0);
-  const hasEarned = missions.some(isEarned);
-  const firstVisit = isFirstVisit({ progress: missions, deck, checks, packs: packs.length });
-  const journey = soundJourney(checks, now);
-  // Counted once, for the rows and for the counts grid alike.
-  const kept = {
-    phrases: new Set(deck.filter((card) => card.front.trim() !== '').map((card) => phraseKeyOf(card.front))).size,
-    conversations: allConversations({ packs, events: history }).length,
-  };
-  const rows = progressRows({
-    phrases: kept.phrases,
-    sounds: soundsMapFrom(checks, now).show,
-    conversations: kept.conversations,
-    goals: goalRows(profile.learnerGoals, MISSIONS),
-    saved: model.saved,
-  });
-  const currentScope = scopeGeneration();
-  const renderStatus = ownedReadStatus(status, readOwner, readyOwner, currentScope);
-  const showsGame = progressShowsGame(firstVisit, run === null ? null : run.lifetimeDays);
-  // The weekly day line reads its own record: inside the streak card when the
-  // game cards are drawn, and on its own when they are not (loading, a failed
-  // evidence read, a first visit), so it never depends on them.
-  const gameCards = renderStatus === 'ready' && showsGame;
-  const postcards = earnedPostcards(missions);
-
-  return (
-    <ScrollScreen bottom="tab" ground={colour.sun}>
-      <View style={st.head}>
-        <TabHeader display title={renderStatus === 'ready' && firstVisit ? 'Your French starts here.' : 'Look how far you’ve come.'} trailing={<ProfileButton />} />
-      </View>
-      {renderStatus === 'loading' && <Text style={[type.body, { color: paper.inkSoft, marginTop: space(4) }]}>Finding your French.</Text>}
-
-      {/* A failed read is a row like every other door, not a button. */}
-      {renderStatus === 'unread' && (
-        <View style={st.block}>
-          <Ledger>
-            <LedgerRow
-              glyph={<IconTile ground="skeleton" name="book" size={ROW_TILE} />}
-              label={MY_FRENCH_RETRY}
-              title={MY_FRENCH_UNREAD}
-              accessibilityLabel={`${MY_FRENCH_UNREAD} ${MY_FRENCH_RETRY}`}
-              onPress={() => {
-                setStatus('loading');
-                setAttempt((n) => n + 1);
-              }}
-            />
-          </Ledger>
-        </View>
-      )}
-
-      {renderStatus === 'ready' && !firstVisit && <View style={{ gap: space(4), marginTop: space(4) }}>
-        <Text style={[type.hero, { color: paper.ink }]}>{kept.phrases}</Text>
-        <Text style={[type.label, { color: paper.ink }]}>phrases you’ve saved</Text>
-        <Choice role="button" navigation outlined compact title="Your week in French" detail="See what you practised" selected={false} onPress={() => nav.navigate('WeekWrapped')} />
-        <Choice role="button" navigation outlined compact title="Your postcards" detail="Moments worth keeping" selected={false} onPress={() => nav.navigate('Postcards')} />
-        <PillButton label="Practise saved French" onPress={() => nav.navigate('Phrasebook')} />
-        <IconAction layout="inline" icon="forward" label="See all progress" onPress={() => setDetails(true)} />
-      </View>}
-      {renderStatus === 'ready' && firstVisit && <LocalPracticeCard vivid />}
-      <Sheet visible={details} title="Your progress" onClose={() => setDetails(false)}>
-      {gameCards && (
-        <View style={st.group}>
-          <Columns>
-            <LevelXpCard />
-            <StreakSummaryCard><DayCount weekly /></StreakSummaryCard>
-          </Columns>
-          <CountsGrid phrases={kept.phrases} conversations={kept.conversations} />
-          <BadgeShelf />
-        </View>
-      )}
-
-      {renderStatus === 'ready' && (
-        <View style={st.group}>
-          {proof !== null && <ColourCard ground="mint" style={{ gap: space(2) }}>
-            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>You can {proof.mission.canDoEn.toLowerCase()}</Text>
-            <Text style={[type.body, { color: onColour.mint }]}>{proof.mission.titleEn}. {new Date(proof.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
-            <Text style={[type.small, { color: onColour.mint }]}>You finished this scene independently. A later practice with help does not take it away.</Text>
-            <PillButton label="See this scene" onPress={() => nav.navigate('Missions', { focus: proof.mission.id })} />
-          </ColourCard>}
-          {proof !== null && <Ledger><LedgerRow title="Your scene path" gloss="See the beginner scenes" accessibilityLabel="Your scene path. See the beginner scenes" onPress={() => nav.navigate('Missions')} /></Ledger>}
-          {proof === null && hasFinish && <Text style={[type.body, { color: paper.inkSoft }]}>You have practised a scene with support. An independent finish adds a can-do here.</Text>}
-          {!firstVisit && proof === null && <LevelCard path={path} hasFinish={hasFinish} hasEarned={hasEarned} onPress={() => nav.navigate('Missions')} />}
-        </View>
-      )}
-
-
-      {!gameCards && <DayCount weekly />}
-
-      {renderStatus === 'ready' && (hasWeek || earnedPostcards(missions).length > 0) && <View style={st.group}>
-        {postcards.length > 0 && <PostcardShelf postcards={postcards} onOpen={() => nav.navigate('Postcards')} />}
-        {hasWeek && <Ledger><LedgerRow glyph={<IconTile ground="skeleton" name="book" size={ROW_TILE} />} title="Your week in French" accessibilityLabel="Your week in French, a few moments from the last seven days" gloss="A few moments from the last seven days" onPress={() => nav.navigate('WeekWrapped')} /></Ledger>}
-      </View>}
-      {renderStatus === 'ready' && rows.length > 0 && (
-        <View style={st.group}>
-          <Ledger>
-            {rows.map((row) => (
-              <LedgerRow
-                key={row.id}
-                glyph={<IconTile ground="skeleton" name={rowTile(row.kind)} size={ROW_TILE} />}
-                title={row.title}
-                gloss={row.detail}
-                accessibilityLabel={`${row.title}. ${row.detail}`}
-                onPress={() => {
-                  if (row.kind === 'phrases') nav.navigate('Phrasebook');
-                  else if (row.kind === 'sounds') nav.navigate(journey !== null ? 'SoundJourney' : 'SoundCheck', journey === null ? { missionId: suggested?.mission.id } : undefined);
-                  else if (row.kind === 'conversations') nav.navigate('Conversations');
-                  else if (row.kind === 'goal') nav.navigate('GoalStep', { key: goalRouteKey(row.title) });
-                  else nav.navigate('Convo', { seedTopic: row.seedTopic });
-                }}
-              />
-            ))}
-          </Ledger>
-        </View>
-      )}
-      </Sheet>
-    </ScrollScreen>
-  );
+  const { profile } = useProfile(); const run = useStreak();
+  const goals = goalRows(profile.learnerGoals, MISSIONS);
+  const { data, failed, reload } = useMainLearning();
+  const history = data ? allConversations({ packs: data.packs, events: data.history }) : [];
+  const worked = history.filter(item => item.line !== null);
+  const earned = data ? missionStates(missionCompletionsFrom(data.completions), data.deck, Date.now()).filter(isEarned) : [];
+  return <MainScreen title="Your progress">
+    <MainFeature title={'See what\nyou’ve practised.'} motif="journal" tone="ochre" body="See the French you used and came back to." action={{ label: 'View learning history', onPress: () => nav.navigate('Library', { view: 'conversations' }) }}/>
+    {failed ? <><MainText>Your learning history could not be loaded.</MainText><MainRow title="Try loading again" onPress={reload}/></> : !data ? <MainText muted>Loading your learning history…</MainText> : <>
+      {worked.length > 0 && <MainHeading>What you’ve worked on</MainHeading>}
+      {worked.slice(0, 6).map(item => <MainRow key={item.pack.id} title={item.pack.title.en} detail={item.line ?? undefined} onPress={() => nav.navigate('Conversations', { packId: item.pack.id })}/>)}
+      {earned.length > 0 && <MainHeading>French you can use</MainHeading>}
+      {earned.map(item => <MainRow key={item.mission.id} title={item.mission.earnedEn} detail="From your completed speaking practice." onPress={() => nav.navigate('Missions', { focus: item.mission.id })}/>)}
+      {worked.length === 0 && earned.length === 0 && <><MainHeading>Your French starts here</MainHeading><MainText>Conversations and completed practice will give you examples to look back on.</MainText><MainRow title="Start a conversation" onPress={() => nav.navigate('Tutor')}/></>}
+    </>}
+    {data !== null && run !== null && run.lifetimeDays > 0 && <>
+      <MainHeading>Your practice, over time</MainHeading><LevelXpCard/><StreakSummaryCard/>
+      <CountsGrid phrases={data.deck.filter(card => card.kind !== 'phoneme').length} conversations={data.packs.filter(pack => pack.state === 'ready').length}/><BadgeShelf/>
+    </>}
+    {goals.length > 0 && <MainHeading>What you’re working towards</MainHeading>}
+    {goals.map(row => <MainRow key={goalRouteKey(row.goal)} title={row.goal} detail={row.line ?? undefined} onPress={() => nav.navigate('GoalStep', { key: goalRouteKey(row.goal) })}/>)}
+    <MainHeading>Keep going</MainHeading><MainRow title="Your pronunciation" detail="Look back at measured sound checks and practise a sound." onPress={() => nav.navigate('SoundJourney')}/>
+    <MainRow title="Your practice rhythm" detail="Your recorded days of French and personal goal." onPress={() => nav.navigate('Streak')}/>
+    <MainRow title="Practise your saved French" detail="Remember a reply, then use it for something new." onPress={() => nav.navigate('Library', { view: 'practise' })}/><MainRow title="Your week in French" detail="A story from your recorded learning." onPress={() => nav.navigate('WeekWrapped')}/><MainRow title="Your places and milestones" onPress={() => nav.navigate('Postcards')}/>
+  </MainScreen>;
 }
-
-/** A ledger row's tile: a little under the touch floor, the row itself being the target. */
-const ROW_TILE = space(10);
-
-const st = StyleSheet.create({
-  // The blocks are the scroll's own children (F383): no wrapper that can grow.
-  head: { position: 'relative' },
-  block: { marginTop: space(4) },
-  group: { marginTop: space(5), gap: space(3) },
-  level: { ...type.body, color: paper.ink },
-  line: { ...type.small, color: paper.inkSoft },
-  firstVisit: { ...type.body, color: paper.inkSoft, marginTop: space(4) },
-});

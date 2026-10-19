@@ -49,6 +49,11 @@ test('native purchases gets its paid plans from a platform-neutral contract', as
   const native = read('./purchases/adapter.native.ts');
   assert.doesNotMatch(native, /from ['"]\.\/adapter(?:\.native)?\.ts['"]/);
   assert.match(native, /import \{ PAID_PLANS,[^\n]+from '\.\/contract\.ts';/);
+  const paywall = read('./purchases/paywallView.ts');
+  assert.match(paywall, /import \{ PAID_PLANS,[^\n]+from '\.\/contract\.ts';/,
+    'pure paywall rules must read the shared constant from its owner instead of a platform-specific SDK adapter');
+  assert.doesNotMatch(paywall, /from '\.\/adapter\.ts'/,
+    'Metro substitutes adapter.native, which deliberately exports the native store implementation only');
   const contract = await import('./purchases/contract.ts');
   const web = await import('./purchases/adapter.ts');
   assert.deepEqual(contract.PAID_PLANS, ['starter', 'regular']);

@@ -41,6 +41,7 @@ import Svg, { Path } from 'react-native-svg';
 import { AnimatedIcon, type AnimatedIconKind } from './icons/AnimatedIcon.tsx';
 import { Icon, type IconName } from './icons/Icon.tsx';
 import { TileOnChosen } from './icons/IconTile.tsx';
+import { onboardingC2 } from './palette.ts';
 import {
   STROKE,
   accent,
@@ -493,7 +494,10 @@ export function Field({
   autoCapitalize = 'none',
   autoComplete,
   returnKeyType,
+  submitBehavior,
   onSubmitEditing,
+  onFocus,
+  onBlur,
   autoFocus = false,
   maxLength,
   center = false,
@@ -509,7 +513,10 @@ export function Field({
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoComplete?: React.ComponentProps<typeof TextInput>['autoComplete'];
   returnKeyType?: React.ComponentProps<typeof TextInput>['returnKeyType'];
+  submitBehavior?: React.ComponentProps<typeof TextInput>['submitBehavior'];
   onSubmitEditing?: () => void;
+  onFocus?: React.ComponentProps<typeof TextInput>['onFocus'];
+  onBlur?: React.ComponentProps<typeof TextInput>['onBlur'];
   autoFocus?: boolean;
   maxLength?: number;
   center?: boolean;
@@ -559,12 +566,13 @@ export function Field({
           autoComplete={autoComplete}
           autoCorrect={false}
           returnKeyType={returnKeyType}
+          submitBehavior={submitBehavior}
           onSubmitEditing={onSubmitEditing}
           autoFocus={autoFocus}
           maxLength={maxLength}
           multiline={multiline}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={(event) => { setFocused(true); onFocus?.(event); }}
+          onBlur={(event) => { setFocused(false); onBlur?.(event); }}
           style={[
             s.field,
             multiline && { minHeight: 100, textAlignVertical: 'top' },
@@ -1763,7 +1771,7 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  * the way the old centred leave card said its question (F603). `ConfirmSheet`
  * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean }) {
+export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false, surface, ink }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean; surface?: string; ink?: string }) {
   const insets = useSafeAreaInsets();
   // F755: while the content runs under the footer, a hairline sits over the
   // footer and the scroll indicator flashes once per opening (`sheetRunsUnder`).
@@ -1838,12 +1846,12 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <Animated.View accessibilityViewIsModal {...(Platform.OS === 'web' ? { role: 'dialog', 'aria-modal': true } as object : {})} onAccessibilityEscape={onClose}
-            style={[b.sheetPanel, reading && b.sheetReading, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
+            style={[b.sheetPanel, reading && b.sheetReading, surface !== undefined ? { backgroundColor: surface } : undefined, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
-              <IconButton icon="close" label="Close" onPress={onClose} />
+              <Text ref={heading} accessibilityRole="header" {...(Platform.OS === 'web' ? { tabIndex: -1 } as object : {})} style={[type.heading, { color: ink ?? paper.ink, flex: 1 }]}>{snapshot.current.title}</Text>
+              <IconButton icon="close" label="Close" tone={ink === undefined ? 'plain' : 'disc'} onPress={onClose} />
             </View>
             <ScrollView
               ref={scroller}
@@ -2324,6 +2332,8 @@ export function Choice({
   navigation = false,
   lang,
   accessibilityLabel,
+  appearance,
+  minimumHeight,
 }: {
   title: string;
   detail?: string;
@@ -2355,24 +2365,28 @@ export function Choice({
   lang?: 'fr';
   /** Say something other than the title and detail. Falls back to both, joined. */
   accessibilityLabel?: string;
+  /** The C2 setup uses the same selection semantics with quiet illustrated rows. */
+  appearance?: 'onboarding';
+  minimumHeight?: number;
 }) {
+  const onboarding = appearance === 'onboarding';
   const on: ChoiceGround = ground === paper.ground ? 'card' : ground;
   const sunny = on === 'blue';
   const radio = role === 'radio';
   const head = tile ?? glyph;
   const isTile = layout === 'tile';
-  const fill = selected && !outlined ? (sunny ? colour.sun : accent.brand) : on === 'card' ? paper.ground : paper.card;
-  const words = selected && !sunny && !outlined ? paper.onInk : paper.ink;
-  const quiet = selected && !outlined ? (sunny ? onColour.sun : onColour.blue) : paper.inkSoft;
-  const titleStyle = lang === 'fr' ? type.french : outlined ? type.heading : compact ? type.label : type.bodyStrong;
+  const fill = onboarding ? (selected ? onboardingC2.reflection : onboardingC2.reading) : selected && !outlined ? (sunny ? colour.sun : accent.brand) : on === 'card' ? paper.ground : paper.card;
+  const words = onboarding ? onboardingC2.ink : selected && !sunny && !outlined ? paper.onInk : paper.ink;
+  const quiet = onboarding ? onboardingC2.muted : selected && !outlined ? (sunny ? onColour.sun : onColour.blue) : paper.inkSoft;
+  const titleStyle = lang === 'fr' ? type.french : onboarding ? type.label : outlined ? type.heading : compact ? type.label : type.bodyStrong;
   const disc = (
     <Feedback kind="selection" active={selected}>
       {selected ? (
-        <View {...decorative} style={[ch.disc, { backgroundColor: paper.card }]}>
-          <CheckGlyph size={18} color={accent.brand} />
+        <View {...decorative} style={[ch.disc, { backgroundColor: onboarding ? 'transparent' : paper.card }]}>
+          <CheckGlyph size={18} color={onboarding ? onboardingC2.violet : accent.brand} />
         </View>
       ) : (
-        <View {...decorative} style={[ch.disc, { borderWidth: 2, borderColor: paper.field }]} />
+        <View {...decorative} style={[ch.disc, { borderWidth: onboarding ? 1 : 2, borderColor: onboarding ? onboardingC2.muted : paper.field }]} />
       )}
     </Feedback>
   );
@@ -2390,7 +2404,7 @@ export function Choice({
       accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
       onPress={onPress}
       frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
-      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : paper.card) : selected ? fill : paper.line }]}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? accent.brand : paper.card) : selected ? fill : paper.line }, onboarding && { borderRadius: 16, borderWidth: selected ? 2 : 1, borderColor: selected ? onboardingC2.violet : onboardingC2.line, paddingVertical: 10, paddingHorizontal: head != null ? 8 : 16, gap: 10, minHeight: minimumHeight ?? 64 }]}
     >
       {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
       <View style={isTile ? ch.tileWords : ch.words}>

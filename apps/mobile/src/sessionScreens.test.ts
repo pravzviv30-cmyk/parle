@@ -8,9 +8,11 @@
  * account onboarding, Settings, the legal screens, and Speak. None of them may
  * draw the old kit: no tinted row or panel, no row card, no hero card, no
  * feature paper, no whisper shadow, no week rail, no card inside a card, and no
- * authored clip-art. Nothing here moves: only the orb and the highlighter do,
+ * authored clip-art outside the approved C2 cloud-family recovery owner.
+ * Screens do not drive their own motion: only shared components do,
  * and both live in their own components. The highlighter is at most once per
- * file. The one picture allowed is a place's flat drawing, on the chooser.
+ * file. Approved scene/state drawings remain in their shared art owners; the
+ * recovery page uses the C2 cloud-family owner with matching theme.
  *
  * Read as source with comments stripped, because a comment may name the thing
  * it replaced. Same shape as `evidenceScreens.test.ts`, B2's half of this pass.
@@ -98,7 +100,7 @@ describe('the session side and the remaining screens wear the notebook — Phase
     }
   });
 
-  test('nothing in this pass moves, and none of it draws clip-art', () => {
+  test('session screens delegate approved cloud artwork and motion to shared owners', () => {
     for (const file of FILES) {
       const body = read(file);
       if (file === 'onboarding/OnboardingFlow.tsx') {
@@ -107,7 +109,17 @@ describe('the session side and the remaining screens wear the notebook — Phase
       } else {
         assert.doesNotMatch(body, /\bAnimated\./, `${file} animates outside the shared onboarding transition`);
       }
-      assert.doesNotMatch(body, /from '(\.\.\/)*\.?\/?illustrations/, `${file} draws an authored scene`);
+      if (file === 'live/LiveErrorView.tsx') {
+        // The founder's C2/M2/M3 revision replaces this recovery illustration
+        // with the same lifecycle-aware cloud family as the main app. Keep
+        // this one exact shared owner; do not permit local animation or an
+        // arbitrary new illustration subsystem on session screens.
+        assert.deepEqual([...body.matchAll(/from '((?:\.\.\/)*\.?\/?illustrations[^']*)'/g)].map(match => match[1]), ['../illustrations/MainIllustration.tsx']);
+        assert.equal((body.match(/<MainIllustration\b/g) ?? []).length, 1);
+        assert.match(body, /<MainIllustration motif=\{failure.startsWith\('mic-'\) \? 'listen' : 'recovery'\} theme=\{mode\}/);
+      } else {
+        assert.doesNotMatch(body, /from '(\.\.\/)*\.?\/?illustrations/, `${file} draws an authored scene`);
+      }
       // One picture is allowed: the scene's place drawing on the chooser's
       // brief (revamp B, F599: the watercolour it replaced has retired).
       assert.doesNotMatch(body, /<Art\b/, `${file} draws a retired watercolour`);

@@ -420,7 +420,10 @@ describe('the STYLE colours the parts draw — F597', () => {
       if (/\.test\.tsx?$/.test(file)) continue;
       const rel = file.slice(SRC.length);
       if (!/\blilac\b/.test(strip(readFileSync(file, 'utf8')))) continue;
-      if (rel === 'palette.ts' || rel === 'theme.ts' || rel.startsWith('art/flat/')) continue;
+      // The founder-approved M2/M3 source geometry uses its own palette-owned
+      // lilac. MainIllustrationArt.test.ts compares all shapes and colours to
+      // the exact local Figma/Remotion sources in both themes.
+      if (rel === 'palette.ts' || rel === 'theme.ts' || rel.startsWith('art/flat/') || rel === 'illustrations/MainIllustrationArt.ts') continue;
       drawers.push(rel);
     }
     assert.deepEqual(drawers, [], `lilac is drawn outside the flat illustrations: ${drawers.join(', ')}`);

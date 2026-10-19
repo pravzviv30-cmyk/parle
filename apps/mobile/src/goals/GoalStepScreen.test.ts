@@ -119,7 +119,7 @@ describe('the goal screen — Stage 4', () => {
 
   test('a cold link has a way out', () => {
     assert.match(FLAT, /const leave = \(\) => \(nav\.canGoBack\(\) \? nav\.goBack\(\) : nav\.navigate\('Tabs'\)\);/);
-    assert.match(FLAT, /<ScrollScreen header=\{<ScreenHeader back=\{\{ onPress: leave \}\} title=\{current \?\? GOAL_LABEL\} \/>\}>/);
+    assert.match(FLAT, /<ScrollScreen ground=\{colors\.background\} header=\{<ScreenHeader ink=\{colors\.text\} muted=\{colors\.muted\} back=\{\{ onPress: leave \}\} title=\{current \?\? GOAL_LABEL\} \/>\}>/);
   });
 });
 
@@ -132,4 +132,14 @@ describe('the goal screen is a route with an address — Stage 4', () => {
     assert.match(nav, /<Stack\.Screen name="GoalStep" component=\{GoalStepScreen\} \/>/);
     assert.match(stripComments(read('../nav/theme.ts')), /GoalStep: 'goal-step',/);
   });
+});
+
+
+test('goal trail follows the selected canvas while the suggested lesson keeps its blue editorial surface', () => {
+  assert.match(FLAT, /<ScrollScreen ground=\{colors\.background\}/);
+  assert.match(FLAT, /<Label color=\{colors\.muted\}>\{GOAL_TRAIL_LABEL\}/);
+  assert.match(FLAT, /style=\{\[st\.said, \{ color: colors\.text \}\]\}/);
+  assert.match(FLAT, /<ColourCard ground="blue"/);
+  assert.match(FLAT, /<Label color=\{paper\.onInk\}>\{GOAL_NEXT_LABEL\}/);
+  assert.match(FLAT, /<ListeningPreview[^>]*ground="blue"/);
 });

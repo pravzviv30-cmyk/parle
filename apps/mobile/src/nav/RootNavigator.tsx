@@ -64,6 +64,10 @@ import { goalRouteKey } from '../goals/rows.ts';
 import { markPackPractised, packIdOfNode } from '../conversationPacks/marks.ts';
 import { missionReplay, type MissionReplay } from '../missions/chooserView.ts';
 import { loadMissionCompletions } from '../missions/store.ts';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
+import { ExploreTab } from '../tabs/ExploreTab.tsx';
+import { ExploreCollectionScreen } from '../main/ExploreCollectionScreen.tsx';
+import { MyFrenchLibraryTab } from '../tabs/MyFrenchLibraryTab.tsx';
 import { HomeTab } from '../tabs/HomeTab.tsx';
 import { TutorTab } from '../tabs/TutorTab.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
@@ -109,9 +113,10 @@ function asRung(value: unknown): Rung | null {
 }
 
 function Loading() {
+  const { colors } = useMainAppearance();
   return (
-    <View style={st.center}>
-      <ActivityIndicator color={paper.inkFaint} />
+    <View style={[st.center, { backgroundColor: colors.background }]}>
+      <ActivityIndicator color={colors.muted} />
     </View>
   );
 }
@@ -147,6 +152,7 @@ function FirstSceneRoute() {
 
 /** The guided lesson, and the end card it finishes on. */
 function LessonRoute() {
+  const { colors, mode } = useMainAppearance();
   const nav = useNavigation<LeavingNav & {
     navigate: ((screen: 'Tabs', params?: { screen: keyof TabParamList }) => void) &
       ((screen: keyof RootStackParamList) => void);
@@ -275,13 +281,13 @@ function LessonRoute() {
   }, [endHold]);
 
   if (!ownsLesson()) return <Loading />;
-  if (!live || user === null) return <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><IconAction layout="inline" icon="refresh" busy={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
+  if (!live || user === null) return <ScrollScreen ground={colors.background} header={<ScreenHeader ink={colors.text} muted={colors.muted} back={{ onPress: leave }} />}><View style={{ gap: space(3) }}><LocalPracticeCard /><IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="refresh" busy={checking} label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={() => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} /></View></ScrollScreen>;
 
   if (historyFailed) return (
-    <View style={[st.center, { gap: space(3), padding: space(6) }]}>
-      <Text style={[type.body, { color: paper.ink }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
-      <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
-      <IconAction layout="inline" icon="home" label="Back to Home" onPress={leave} />
+    <View style={[st.center, { backgroundColor: colors.background, gap: space(3), padding: space(6) }]}>
+      <Text style={[type.body, { color: colors.text }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
+      <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} tone="brand" />
+      <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="home" label="Back to Home" onPress={leave} />
     </View>
   );
   if (startRung === null) return <Loading />;
@@ -327,6 +333,7 @@ function LessonRoute() {
  * Practice can reach this route too.
  */
 function ConvoRoute() {
+  const { colors, mode } = useMainAppearance();
   const nav = useNavigation<LeavingNav & {
     replace: (screen: 'Drill', params: NonNullable<RootStackParamList['Drill']>) => void;
   }>();
@@ -418,17 +425,17 @@ function ConvoRoute() {
   if (!user) return <Loading />;
   if (!live) {
     return (
-      <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} />}>
-        <Label color={paper.inkSoft}>{TUTOR_OFFLINE.label}</Label>
-        <Text style={[type.bodyStrong, { color: paper.ink, marginTop: space(3), textAlign: 'center' }]}>
+      <ScrollScreen ground={colors.background} header={<ScreenHeader ink={colors.text} muted={colors.muted} back={{ onPress: leave }} />}>
+        <Label color={colors.muted}>{TUTOR_OFFLINE.label}</Label>
+        <Text style={[type.bodyStrong, { color: colors.text, marginTop: space(3), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.headline}
         </Text>
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+        <Text style={[type.body, { color: colors.muted, marginTop: space(2), textAlign: 'center' }]}>
           {TUTOR_OFFLINE.body}
         </Text>
         <LocalPracticeCard />
         <View style={st.gateAction}>
-          <IconAction layout="inline" icon="refresh" busy={checking}
+          <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="refresh" busy={checking}
             label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
             disabled={checking}
             onPress={() => {
@@ -550,7 +557,7 @@ function WallRoute() {
     navigate: (screen: string, params?: object) => void;
   }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Wall'>>();
-  const { entry, resumeRouteKey } = route.params;
+  const { entry, resumeRouteKey, returnToCollection } = route.params;
   const owner = useRef(scopeGeneration()).current;
 
   // A preview opens ON this screen, so there can be nothing behind it to go back
@@ -561,15 +568,17 @@ function WallRoute() {
   return (
     <WallScreen
       entry={entry}
+      startSpeakingLabel={returnToCollection === true ? 'Back to your conversation' : undefined}
       onLeave={leave}
       onStartSpeaking={(canResume) => {
         if (owner !== scopeGeneration()) return;
+        if (returnToCollection === true) { leave(); return; }
         if (entry !== 'refused') { nav.replace('Convo'); return; }
         const resumed = afterPurchase({ granted: canResume, canStart: canResume,
           ownsAccount: owner === scopeGeneration(), resumeRouteKey, wallKey: route.key, state: nav.getState() });
         if (resumed !== null) nav.reset(resumed); else leave();
       }}
-      onOpenPractice={() => nav.replace('Tabs', { screen: 'Practice' })}
+      onOpenPractice={() => returnToCollection === true ? leave() : nav.replace('Tabs', { screen: 'Practice' })}
       onOpenBank={() => nav.navigate('Review')}
       onOpenPolicy={() => nav.navigate('Policy')}
       onOpenTerms={() => nav.navigate('Terms')}
@@ -686,33 +695,42 @@ function SoundCheckRoute() {
  * matters beyond tidiness: a children function re-creates its element on every
  * render of the parent, and the parent here is the whole root stack.
  */
+function LibraryRoute() {
+  const route = useRoute<RouteProp<TabParamList, 'Library'>>();
+  return <MyFrenchLibraryTab key={route.params?.view ?? 'conversations'} initialView={route.params?.view} />;
+}
+function LegacyPracticeRoute() { return <MyFrenchLibraryTab initialView="practise" />; }
 function Tabs() {
+  const { colors } = useMainAppearance();
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: paper.ground } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
       tabBar={(props) => <LuvaniTabBar {...props} />}
     >
       <Tab.Screen name="Home" component={HomeTab} />
+      <Tab.Screen name="Explore" component={ExploreTab} />
       <Tab.Screen name="Tutor" component={TutorTab} />
-      <Tab.Screen name="Practice" component={PracticeTab} />
+      <Tab.Screen name="Library" component={LibraryRoute} />
+      <Tab.Screen name="Practice" component={LegacyPracticeRoute} />
       <Tab.Screen name="MyFrench" component={MyFrenchTab} />
     </Tab.Navigator>
   );
 }
 
-export function RootNavigator({
+function MainNavigator({
   onSignOut,
   onDeleteAccount,
 }: {
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
+  const { colors } = useMainAppearance();
   return (
     <Stack.Navigator
       initialRouteName={wallPreviewEnabled() ? 'Wall' : 'Tabs'}
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: paper.ground },
+        contentStyle: { backgroundColor: colors.background },
         // The app has one authored motion vocabulary and a native slide is not
         // in it. Screens replace; the orb and the splash carry the movement.
         animation: 'fade',
@@ -725,6 +743,7 @@ export function RootNavigator({
       <Stack.Screen name="SocialSettings" component={SocialSettingsScreen} />
       <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
+      <Stack.Screen name="ExploreCollection" component={ExploreCollectionScreen} />
       <Stack.Screen name="Postcards" component={PostcardsScreen} />
       <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
       <Stack.Screen name="Streak" component={StreakScreen} />
@@ -787,3 +806,7 @@ const st = StyleSheet.create({
   gateAction: { marginTop: space(6), alignSelf: 'stretch' },
   gateSecondary: { marginTop: space(2), alignSelf: 'stretch' },
 });
+
+export function RootNavigator(props: { onSignOut: () => void; onDeleteAccount: (reauthentication?: string) => Promise<AuthResult> }) {
+  return <MainNavigator {...props}/>;
+}

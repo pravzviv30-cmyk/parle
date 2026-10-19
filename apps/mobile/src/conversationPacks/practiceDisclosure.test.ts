@@ -17,6 +17,14 @@ test('recognition feedback uses the two-miss policy and resets it for each liste
   assert.match(screen, /<Label>\{pack.title.en\}<\/Label>/);
 });
 
+test('conversation warm-up helper and recall handoff remain readable on a dark card', () => {
+  const screen = read('./ConversationPracticeScreen.tsx');
+  assert.match(screen, /style=\{\[type\.heading, \{ color: paper\.ink, marginVertical: space\(3\) \}\]\}>Try it without the choices\./,
+    'the recall handoff must use the selected foreground, not React Native black');
+  assert.match(screen, /style=\{\[type\.small, \{ color: paper\.inkSoft, marginTop: space\(3\) \}\]\}>\{reading \? 'The same meaning, without audio\.'/,
+    'audio and quiet-reading helper text share the dark-card foreground');
+});
+
 test('French choice exercises do not give away meanings through visible or spoken option glosses', () => {
   const screen = read('../DrillScreen.tsx');
   assert.doesNotMatch(screen, /gloss=\{(?:candidate|option).en\}/);
@@ -34,10 +42,13 @@ test('a finished warm-up is recorded once as exposure, and a skip or the preview
   const skip = screen.slice(screen.indexOf('Skip warm-up and recall') - 200, screen.indexOf('Skip warm-up and recall') + 120);
   assert.doesNotMatch(skip, /setWarmedUp/, 'skipping the warm-up records it as completed');
   // Recorded through the store, once, never for the preview, and with no grade.
-  const effect = screen.slice(screen.indexOf('if (!warmedUp || previewPack || !pack || warmupRecordedRef.current) return;'));
-  assert.ok(effect.length > 0, 'the warm-up recording is not guarded against the preview, a re-render, or a missing pack');
+  const guard = 'if (!warmedUp || previewPack || !pack || !ownsNow() || warmupRecordedRef.current) return;';
+  const start = screen.indexOf(guard);
+  assert.notEqual(start, -1, 'the warm-up recording must require a completed warm-up, a real pack, its current account and a first write');
+  const effect = screen.slice(start, screen.indexOf('useEffect(() => {', start));
   assert.match(effect, /warmupRecordedRef\.current = true;/);
   assert.match(effect, /recordWarmupCompleted\(\{ warmupId: warmupIdRef\.current, packId: pack\.id, at: Date\.now\(\) \}\)/);
   assert.match(screen, /mintPracticeId\(Date\.now\(\), 'w'\)/, 'the warm-up id is not a minted practice id');
   assert.doesNotMatch(screen, /gradeCards|recordActivity|recordPracticeEvent\(\{ kind: 'session-completed'/, 'the warm-up grades, earns XP or claims a practice sitting');
+  assert.match(screen, /const visiblePack = ownerMatches \? pack : undefined/, 'an earlier account must not remain visible while effects reload');
 });

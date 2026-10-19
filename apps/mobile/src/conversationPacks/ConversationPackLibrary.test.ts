@@ -23,8 +23,9 @@ describe('Conversation Pack library', () => {
   test('keeps a complete learner-owned route back into a conversation', () => {
     for (const required of [
       'Practice from conversations',
-      'You practised',
-      'Review phrases',
+      'Useful phrases',
+      'Practise this conversation',
+      'Talk about this again',
       'Continue talking',
       'Delete this conversation',
       'Delete all saved conversations',
@@ -33,6 +34,8 @@ describe('Conversation Pack library', () => {
     }
     assert.match(source, /useHardwareBack\(selected !== null/, 'Android back strands a learner inside pack detail');
     assert.match(source, /Full conversation text is saved only if you choose it separately/, 'curated practice is not distinguished from opted-in text');
+    assert.match(source, /sessionId: selected\.sessionId/, 'original words must be linked to this exact session, never a similar title');
+    assert.match(source, /footer=\{hasPractice/, 'the conversation practice action must stay available at the safe-area footer');
   });
 
   test('the tutor revisit is drawn only when the plan opens it, and each route says what it costs', () => {

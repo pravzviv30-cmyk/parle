@@ -55,6 +55,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
         path: '',
         screens: {
           Home: 'home',
+          Explore: 'explore',
+          Library: 'my-french-library',
           Tutor: 'tutor',
           Practice: 'practice',
           MyFrench: 'my-french',
@@ -80,6 +82,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       SocialSettings: 'social-settings',
       DailyPractice: 'daily/:id',
       DailyLibrary: 'daily-library',
+      ExploreCollection: 'explore-collection/:id',
       Postcards: 'postcards',
       WeekWrapped: 'week-in-french',
       Streak: 'streak',

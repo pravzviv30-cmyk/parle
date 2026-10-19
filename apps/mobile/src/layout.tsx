@@ -15,7 +15,7 @@
  * frame may hold a value somebody else is moving, and stays out of the way.
  */
 
-import { Children, useState, type ReactNode, type Ref } from 'react';
+import { Children, useCallback, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   View,
   ScrollView,
@@ -31,9 +31,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { GhostButton, PillButton, RoundButton, Sheet } from './components.tsx';
+import { mainApp } from './palette.ts';
 import { colour, paper, space, type, HAIRLINE, HIT, RHYTHM } from './theme.ts';
 import { footerOverflow } from './footerOverflow.ts';
 import { compactPhone, screenGeometry, screenInsets, READING, layoutClass, FOOTER_MAX } from './responsiveLayout.ts';
+import { FocusedFieldContext, FocusedKeyboardContext, FocusedKeyboardObserver, useFocusedFieldScroll } from './layout/focusedFieldGroup.tsx';
 
 /**
  * The reading column as a style: full width up to `READING`, centred. The first
@@ -104,15 +106,14 @@ type ScreenProps = {
  * be white too. Blue and coral are the two colour pages that take white words
  * (palette.ts `textOn`), and ink is the dark live ground.
  */
-const LIGHT_BAR_GROUNDS: readonly string[] = [colour.blue, colour.coral, paper.ink];
+const LIGHT_BAR_GROUNDS: readonly string[] = [colour.blue, colour.coral, paper.ink, mainApp.dark.background];
 
 /**
- * The status bar a ground asks for, or null for the paper, where the app's one
- * dark bar in App.tsx already governs. The OS stacks status bar styles, so a
- * colour page's style lifts again when the page unmounts.
+ * Every surface states its own status foreground, including a paper modal over
+ * a dark page. The OS restores the underlying style when the surface unmounts.
  */
-function barStyleFor(ground: string): 'light' | 'dark' | null {
-  if (ground === paper.ground) return null;
+function barStyleFor(ground: string): 'light' | 'dark' {
+  if (ground === paper.ground) return 'dark';
   return LIGHT_BAR_GROUNDS.includes(ground) ? 'light' : 'dark';
 }
 
@@ -138,6 +139,8 @@ export function Screen({
   avoidKeyboard,
   overflowing = false,
 }: ScreenProps) {
+  const keyboardFrame = useRef<View>(null);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const insets = useSafeAreaInsets();
   const { width, height, fontScale } = useWindowDimensions();
   const geometry = screenGeometry(width, height, insets, fontScale);
@@ -184,12 +187,19 @@ export function Screen({
 
   if (avoidKeyboard) {
     return (
+      <View ref={keyboardFrame} onLayout={() => {
+        if (Platform.OS === 'ios') keyboardFrame.current?.measureInWindow((_x, y) => {
+          if (Number.isFinite(y)) setKeyboardOffset(Math.max(0, y));
+        });
+      }} style={{ flex: 1, minHeight: 0 }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={keyboardOffset}
         style={{ flex: 1, minHeight: 0 }}
       >
         {root}
       </KeyboardAvoidingView>
+      </View>
     );
   }
   return root;
@@ -242,11 +252,22 @@ export function ScrollScreen({
   const [contentHeight, setContentHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [offset, setOffset] = useState(0);
+  const nativeScroll = useRef<ScrollView>(null);
+  const scrollOffset = useRef(0);
+  const focus = useFocusedFieldScroll(nativeScroll, scrollOffset);
+  const connectScroll = useCallback((node: ScrollView | null) => {
+    nativeScroll.current = node;
+    if (typeof scrollRef === 'function') scrollRef(node);
+    else if (scrollRef) scrollRef.current = node;
+  }, [scrollRef]);
   const overflowing = footerOverflow(contentHeight, viewportHeight, offset);
   if (embedded) {
     return <View style={{ gap: space(4) }}>{children}{footer}</View>;
   }
   const screen = (
+    <FocusedFieldContext.Provider value={focus.owner}>
+      {focus.focused && <FocusedKeyboardObserver onSettled={focus.onKeyboardSettled} />}
+      <FocusedKeyboardContext.Provider value={focus.keyboardVisible}>
     <Screen
       ground={ground}
       padded={padded}
@@ -258,15 +279,17 @@ export function ScrollScreen({
       overflowing={overflowing}
     >
       <ScrollView
-        ref={scrollRef}
+        ref={connectScroll}
         scrollEnabled={scrollEnabled}
-        onContentSizeChange={(_, height) => setContentHeight(height)}
+        onContentSizeChange={(_, height) => { setContentHeight(height); focus.refresh(); }}
         onLayout={(event) => {
           setViewportHeight(event.nativeEvent.layout.height);
           onViewportLayout?.(event);
+          focus.refresh();
         }}
         onScroll={(event) => {
           setOffset(event.nativeEvent.contentOffset.y);
+          scrollOffset.current = event.nativeEvent.contentOffset.y;
           onScroll?.(event);
         }}
         scrollEventThrottle={scrollEventThrottle}
@@ -286,6 +309,8 @@ export function ScrollScreen({
         {children}
       </ScrollView>
     </Screen>
+      </FocusedKeyboardContext.Provider>
+    </FocusedFieldContext.Provider>
   );
   // This is background behaviour, never a navigation action or a grouped
   // accessibility button. Child fields and named controls keep their own
@@ -302,7 +327,7 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ground?: 'blue' | 'coral' | 'paper' } & (
+type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ink?: string; muted?: string; ground?: 'blue' | 'coral' | 'paper' } & (
   | { back?: { onPress: () => void; label?: string; disabled?: boolean }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
@@ -333,7 +358,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           // A bare string under a View is a raw text node — Fabric drops it and
           // logs. A caller that wants a status line passes its own <Text> (with
           // a live region); this only keeps a plain string title from vanishing.
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{title}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: props.ink ?? paper.ink }]}>{title}</Text>
         ) : (
           title ?? null
         )}
@@ -346,7 +371,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           accessibilityLabel={leave.accessibilityLabel ?? leave.label}
           style={{ minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' }}
         >
-          <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>{leave.label}</Text>
+          <Text style={[type.bodyStrong, { color: props.muted ?? paper.inkSoft }]}>{leave.label}</Text>
         </Pressable>
       ) : (
         <View style={{ minWidth: HIT }} />
@@ -369,6 +394,9 @@ export function ScreenHeader(props: ScreenHeaderProps) {
  * timing. The frame is handed the value; it never starts it.
  */
 type TabHeaderProps = {
+  /** Selected-theme text, while legacy callers keep their paper default. */
+  ink?: string;
+  mutedInk?: string;
   /** Full-colour editorial screens use the approved display role. */
   display?: boolean;
   /** The tab's name, set large. */
@@ -428,10 +456,10 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false, ink = paper.ink, mutedInk = paper.inkSoft }: TabHeaderProps) {
   if (display) return <View style={{ gap: space(3), marginBottom: space(4) }}>
     {(leading != null || trailing != null) && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: space(11) }}>{leading ?? <View />}{trailing}</View>}
-    <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{title}</Text>
+    <Text accessibilityRole="header" style={[type.display, { color: ink }]}>{title}</Text>
     {children}
   </View>;
   if (align === 'center') {
@@ -442,13 +470,13 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
           accessibilityRole="header"
           style={[
             type.display,
-            { color: paper.ink, textAlign: 'center', marginTop: leading != null ? space(3) : 0 },
+            { color: ink, textAlign: 'center', marginTop: leading != null ? space(3) : 0 },
           ]}
         >
           {title}
         </Text>
         {purpose != null ? (
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+          <Text style={[type.body, { color: mutedInk, marginTop: space(2), textAlign: 'center' }]}>
             {purpose}
           </Text>
         ) : null}
@@ -459,13 +487,13 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, flex: 1 }]}>
+        <Text accessibilityRole="header" style={[type.title, { color: ink, flex: 1 }]}>
           {title}
         </Text>
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{purpose}</Text>
+        <Text style={[type.body, { color: mutedInk, marginTop: space(2) }]}>{purpose}</Text>
       ) : null}
       {children != null ? children : null}
     </View>

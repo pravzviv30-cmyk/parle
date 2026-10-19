@@ -99,6 +99,9 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
       return out;
     };
     const rows: [string, string, number, number, number?][] = [
+      ['mainDisplay', 'extraBold', 44, 48],
+      ['mainHeading', 'semiBold', 22, 27],
+      ['mainBody', 'regular', 17, 23],
       ['hero', 'extraBold', 112, 95, -4.5],
       ['display', 'extraBold', 44, 44, -1.3],
       ['title', 'extraBold', 30, 33, -0.6],

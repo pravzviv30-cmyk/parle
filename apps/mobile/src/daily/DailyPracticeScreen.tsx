@@ -10,10 +10,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState, Text, View } from 'react-native';
 import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { AudioModule, RecordingPresets, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder } from 'expo-audio';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { MainScreen, MainButton } from '../main/MainUI.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
-import { IconActionRow, IconAction, Card, GhostButton, PillButton } from '../components.tsx';
-import { paper, type, space, frenchText } from '../theme.ts';
+import { IconActionRow, IconAction, Card } from '../components.tsx';
+import { type, space, frenchText } from '../theme.ts';
 import { discardRecording } from '../speech/discardRecording.ts';
 import { addPhrases } from '../review/store.ts';
 import { dailyItem } from './catalogue.ts';
@@ -40,6 +41,7 @@ const METERED_TAKE = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true
 /** Local listen/record/compare. Recordings are never uploaded or graded. */
 export function DailyPracticeScreen() {
   const goBack = useBackToHome();
+  const { colors } = useMainAppearance();
   const nav = useNavigation<{ goBack: () => void; navigate: (screen: string) => void }>();
   const route = useRoute<RouteProp<RootStackParamList, 'DailyPractice'>>();
   const item = dailyItem(route.params?.id ?? '');
@@ -211,29 +213,29 @@ export function DailyPracticeScreen() {
       operation.current = false; if (live.current && owner === scopeGeneration()) setBusy(false);
     }
   };
-  return <ScrollScreen bottom="inset" header={<ScreenHeader title={shadowing ? 'Hear, say and compare' : 'A little French'} back={{ onPress: goBack }} />}>
+  return <MainScreen title={shadowing ? 'Hear, say and compare' : 'A little French'} onBack={goBack}>
     {item ? <View style={{gap:space(4)}}>
-      <Card><Text {...frenchText} style={[type.frenchLg, { color: paper.ink }]}>{item.fr}</Text><Text style={[type.body, { color: paper.inkSoft, marginTop: space(3) }]}>{item.en}</Text>
+      <Card style={{ backgroundColor: colors.surface }}><Text {...frenchText} style={[type.frenchLg, { color: colors.text }]}>{item.fr}</Text><Text style={[type.body, { color: colors.muted, marginTop: space(3) }]}>{item.en}</Text>
       <View style={{ gap: space(3), marginTop: space(4) }}>
-        <Text style={[type.body, { color: paper.inkSoft }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
+        <Text style={[type.body, { color: colors.muted }]}>Hear the model, record your take, then compare. Free offline practice. Your take is deleted when you leave. Nothing is graded.</Text>
         {recording && voice.metered && <RecordingLevel level={voice.level} />}
-        {(!completedTake || recording) && !daySaved && <PillButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
+        {(!completedTake || recording) && !daySaved && <MainButton label={busy ? 'One moment…' : recording ? 'Finish recording' : 'Record my take'} onPress={() => void record()} disabled={busy} />}
         <IconActionRow>
         {modelAsset != null && <IconAction layout="tile" icon="speaker" label="Hear model" onPress={() => void play()} disabled={recording || busy} />}
         {uri !== '' && uri != null && !recording && <IconAction layout="tile" icon="speaker" label="Hear my take" onPress={() => void play(true)} />}
         {completedTake && uri !== null && !recording && !daySaved && <IconAction layout="tile" icon="refresh" busy={busy} label="Try again" onPress={() => void record()} disabled={busy} />}
         </IconActionRow>
-        {modelAsset == null && <Text style={[type.small, { color: paper.inkSoft }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
-        <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
-        {completedTake && !recording && !daySaved && <PillButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}
-        {daySaved && <PillButton label="Done" onPress={goBack} />}
-        <IconAction layout="inline" icon="cards" label="Add to review and practise recall" onPress={() => void review()} />
+        {modelAsset == null && <Text style={[type.small, { color: colors.muted }]}>Tutor audio is not in this pack yet. You can record and listen to your own take.</Text>}
+        <Feedback kind="practised" active={daySaved}><Text accessibilityLiveRegion="polite" style={[type.body, { color: colors.text }]}>{daySaved ? 'Practised. Your take is temporary and ungraded.' : note}</Text></Feedback>
+        {completedTake && !recording && !daySaved && <MainButton label="Finish practice" disabled={busy} onPress={() => void completePractice()} />}
+        {daySaved && <MainButton label="Done" onPress={goBack} />}
+        <MainButton tone="quiet" label="Add to review and practise recall" onPress={() => void review()} />
       </View>
     </Card>
       {/* The end card in place, once the day is durable and the settle has read
           it back: only the delta's numbers. While it is still being read, or if
           it never is, the line above already says the practice counted. */}
       {daySaved && end.state === 'settled' && <EndCard delta={end.delta} count={end.delta.streak.after.lifetimeDays} release={release} />}
-      {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={type.body}>That item is not in this pack.</Text><PillButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
-  </ScrollScreen>;
+      {shadowing && <Illustration name="state-headphones" fit="small" />}</View> : <View style={{gap:space(4)}}><Text style={[type.body, { color: colors.text }]}>That item is not in this pack.</Text><MainButton label="Browse phrases" onPress={()=>nav.navigate('DailyLibrary')} /></View>}
+  </MainScreen>;
 }

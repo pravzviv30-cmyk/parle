@@ -49,13 +49,13 @@ describe('your phrases, as a route of its own — F575', () => {
     // line already earned, and the authored connectors close the page so a
     // first morning ends on something to use rather than on an empty list.
     assert.match(FLAT, /<OneLineCard line=\{oneLine\} onGraded=\{\(\) => setGraded\(\(n\) => n \+ 1\)\} \/>/, 'the one line card is gone, or no longer re-reads the deck it just graded');
-    assert.ok(at('<OneLineCard') < at('<Label>{LEDGER.rowsLabel}</Label>'), 'the lines already said are drawn above the one line the visit asks for');
-    assert.ok(at('<CadenceCard cadence={cadence}') > at('<Label>{LEDGER.rowsLabel}</Label>'), 'the cadence set no longer closes the page');
+    assert.ok(at('<OneLineCard') < at('<Label color={colors.muted}>{LEDGER.rowsLabel}</Label>'), 'the lines already said are drawn above the one line the visit asks for');
+    assert.ok(at('<CadenceCard cadence={cadence}') > at('<Label color={colors.muted}>{LEDGER.rowsLabel}</Label>'), 'the cadence set no longer closes the page');
     assert.match(FLAT, /visibleBook !== null && query\.trim\(\) === '' && oneLine !== null && <OneLineCard/, 'an unread deck still deals a card');
     // Stage 3: the set is an optional collection now, so the card is gated on a
     // read that has answered with words AND on the learner asking to see it.
     assert.match(FLAT, /hasCadence\(cadence\) && \(/, 'the cadence collection is drawn from an unanswered read');
-    assert.match(FLAT, /cadenceOpen && <CadenceCard cadence=\{cadence\} \/>/, 'the cadence card is drawn without being asked for');
+    assert.match(FLAT, /cadenceOpen && <CadenceCard cadence=\{cadence\} labelColor=\{colors\.muted\} \/>/, 'the cadence card is drawn without being asked for');
 
     // Built from the deck and the topics, by the modules that own each answer.
     // Saved conversations are the second known source (whole-app phase 1), so
@@ -81,11 +81,11 @@ describe('your phrases, as a route of its own — F575', () => {
     // Separate from "Yours in conversation", never inside it: the retained
     // groups are evidence, and a saved phrase is a promise until it is recalled.
     assert.match(FLAT, /displayBook !== null && hasSaved\(displayBook\) &&/, 'the saved block is drawn from an unanswered read, or on a length the screen works out itself');
-    assert.match(FLAT, /<Label>\{SAVED_TITLE\}<\/Label>/, 'the saved block spells its own heading, or has none');
+    assert.match(FLAT, /<Label color=\{colors\.muted\}>\{SAVED_TITLE\}<\/Label>/, 'the saved block spells its own heading, or has none');
     assert.match(FLAT, /\{SAVED_NOTE\}/, 'the saved block does not say how a phrase joins the retained lines');
     assert.match(FLAT, /displayBook\.saved\.map\(/, 'the saved phrases are not drawn');
-    assert.ok(at('<Label>{LEDGER.rowsLabel}</Label>') < at('<Label>{SAVED_TITLE}</Label>'), 'saved phrases are drawn above the lines already recalled');
-    assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('<CadenceCard cadence={cadence}'), 'the cadence set no longer closes the page');
+    assert.ok(at('<Label color={colors.muted}>{LEDGER.rowsLabel}</Label>') < at('<Label color={colors.muted}>{SAVED_TITLE}</Label>'), 'saved phrases are drawn above the lines already recalled');
+    assert.ok(at('<Label color={colors.muted}>{SAVED_TITLE}</Label>') < at('<CadenceCard cadence={cadence}'), 'the cadence set no longer closes the page');
     // The retained gate is unchanged, so a saved phrase alone never draws the retained heading.
     assert.match(FLAT, /displayBook !== null && hasPhrases\(displayBook\) &&/, 'the retained block lost its own gate');
     // And each saved line can be heard by the same labelled speaker.
@@ -123,8 +123,8 @@ describe('your phrases, as a route of its own — F575', () => {
 
     // And it comes after everything that is the learner's own.
     assert.ok(at('<OneLineCard') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the one line to say');
-    assert.ok(at('<Label>{LEDGER.rowsLabel}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the recalled lines');
-    assert.ok(at('<Label>{SAVED_TITLE}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the saved lines');
+    assert.ok(at('<Label color={colors.muted}>{LEDGER.rowsLabel}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the recalled lines');
+    assert.ok(at('<Label color={colors.muted}>{SAVED_TITLE}</Label>') < at('cadenceToggleLabel(cadenceOpen)'), 'the collection is drawn above the saved lines');
   });
 
   test('available selected-tutor recordings have distinct controls and unavailable lines say so', () => {
@@ -149,7 +149,7 @@ describe('your phrases, as a route of its own — F575', () => {
   test('the route wears the one frame and shows one way back', () => {
     assert.equal((SCREEN.match(/<ScrollScreen\b/g) ?? []).length, 1, 'the route is not built on the shared scrolling frame');
     assert.equal((SCREEN.match(/<ScreenHeader\b/g) ?? []).length, 1, 'a pushed screen shows exactly one way back');
-    assert.match(FLAT, /<ScreenHeader back=\{\{ onPress: onBack \}\} \/>/, 'the header is not the shared back');
+    assert.match(FLAT, /<ScreenHeader ink=\{colors\.text\} muted=\{colors\.muted\} back=\{\{ onPress: onBack \}\} \/>/, 'the header is not the shared back');
     for (const own of ['useSafeAreaInsets', '<ScrollView', '<ChevronLeft', 'accessibilityLabel="Back"', '<FlatList']) {
       assert.ok(!SCREEN.includes(own), `the route re-derives ${own} instead of taking it from the frame`);
     }
@@ -167,4 +167,15 @@ describe('your phrases, as a route of its own — F575', () => {
 // A saved-but-unrecalled collection is populated, not an empty notebook.
 test('saved phrases and search results never draw the first-phrase empty prompt', () => {
   assert.match(FLAT, /!hasPhrases\(visibleBook\) && !hasSaved\(visibleBook\) && query.trim\(\) === '' && <Card>/);
+});
+
+test('phrasebook canvas follows the selected appearance while phrase cards keep readable ink', () => {
+  assert.match(FLAT, /const \{ colors \} = useMainAppearance\(\)/);
+  assert.match(FLAT, /<ScrollScreen bottom="inset" ground=\{colors\.background\}/);
+  assert.match(FLAT, /style=\{\[st\.title, \{ color: colors\.text \}\]\}/);
+  assert.match(FLAT, /<Label color=\{colors\.muted\}>\{SAVED_TITLE\}/);
+  assert.match(FLAT, /cadenceOpen && <CadenceCard cadence=\{cadence\} labelColor=\{colors\.muted\}/);
+  const rows = FLAT.slice(FLAT.indexOf('function PhraseRow('));
+  assert.match(rows, /type\.french, \{ color: paper\.ink \}/);
+  assert.match(rows, /type\.small, \{ color: paper\.inkSoft/);
 });

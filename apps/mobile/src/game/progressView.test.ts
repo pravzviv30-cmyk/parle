@@ -151,26 +151,22 @@ describe('Progress from its own records — F769', () => {
     // The tab: the cards in order, each from its own read, the CEFR card the
     // one pill after them, the postcard shelf, then the tiled rows.
     const tab = read('../tabs/MyFrenchTab.tsx');
-    const order = ['<TabHeader', '<LevelXpCard />', '<StreakSummaryCard><DayCount weekly /></StreakSummaryCard>', '<CountsGrid', '<BadgeShelf />', '<LevelCard', '<PostcardShelf', 'rows.map('];
+    const order = ['<MainScreen', '<MainFeature', '<LevelXpCard/>', '<StreakSummaryCard/>', '<CountsGrid', '<BadgeShelf/>', 'goals.map('];
     for (let i = 1; i < order.length; i += 1) {
       const before = tab.indexOf(order[i - 1]!);
       const after = tab.indexOf(order[i]!);
       assert.ok(before !== -1 && after !== -1 && before < after, `${order[i - 1]} is not drawn before ${order[i]}`);
     }
-    assert.match(tab, /const gameCards = renderStatus === 'ready' && showsGame;/, 'the game cards are drawn before the tab has read, or on an empty first visit');
-    assert.match(tab, /\{gameCards && \(/);
-    assert.match(tab, /const showsGame = progressShowsGame\(firstVisit, run === null \? null : run\.lifetimeDays\);/);
-    // The weekly day line reads its own record, so it is drawn on its own
-    // whenever the game cards are not (loading, a failed read, a first visit).
-    assert.match(tab, /\{!gameCards && <DayCount weekly \/>\}/, 'the weekly day line hides whenever the game cards do');
-    assert.equal((tab.match(/<DayCount weekly \/>/g) ?? []).length, 2);
+    assert.match(tab, /data !== null && run !== null && run.lifetimeDays > 0/, 'the game cards must wait for owned evidence and real practice');
+    assert.match(tab, /useStreak\(\)/);
+    assert.match(tab, /nav.navigate\('Streak'\)/, 'the detailed rhythm remains reachable from Progress');
     // The minutes are the game view's, the ring's own fold, not a sum the tab makes.
-    assert.match(tab, /<CountsGrid phrases=\{kept\.phrases\} conversations=\{kept\.conversations\} \/>/);
+    assert.match(tab, /<CountsGrid phrases=\{data.deck.filter\(card => card.kind !== 'phoneme'\).length\} conversations=\{data.packs.filter\(pack => pack.state === 'ready'\).length\}/);
     assert.doesNotMatch(tab, /minutesPractised|activeMs/, 'the tab sums the minutes itself');
     assert.match(read('./CountsGrid.tsx'), /const minutes = useMinutesPractised\(\);/, 'the minutes tile does not read the game view');
-    assert.match(tab, /<PostcardShelf postcards=\{postcards\} onOpen=\{\(\) => nav\.navigate\('Postcards'\)\} \/>/);
-    assert.doesNotMatch(tab, /<LedgerRow[^>]*title="Place postcards"/, 'the postcards are still a ledger row beside the shelf');
-    assert.match(tab, /glyph=\{<IconTile ground="skeleton" name=\{rowTile\(row\.kind\)\} size=\{ROW_TILE\} \/>\}/, 'the rows are not led by their tiles');
+    assert.match(tab, /nav.navigate\('Postcards'\)/);
+    assert.match(tab, /nav.navigate\('WeekWrapped'\)/);
+    assert.match(tab, /<MainRow/);
     assert.doesNotMatch(tab, /\b(?:levelFor|xpLevelFor|totalXp|displayXp)\(/, 'the tab works out a level or an XP total itself');
     // The level card reads the hooks, and only the hooks.
     const card = read('./LevelXpCard.tsx');

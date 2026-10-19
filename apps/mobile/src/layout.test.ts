@@ -148,6 +148,19 @@ describe('the layout primitives keep their promises — F306', () => {
 });
 
 describe('the chrome primitives hold their shape — F331, F334, F335', () => {
+  test('tab header theme overrides reach every title and purpose while paper defaults stay intact', () => {
+    const source = layoutSource();
+    const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
+    const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
+    assert.match(props, /ink\?: string;/);
+    assert.match(props, /mutedInk\?: string;/);
+    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/);
+    assert.equal((header.match(/color: ink\b/g) ?? []).length, 3, 'display, centred identity and ordinary titles must all accept the selected ink');
+    assert.equal((header.match(/color: mutedInk\b/g) ?? []).length, 2, 'centred and ordinary purpose lines must both accept selected secondary ink');
+    const profile = stripComments(readFileSync(join(SRC, 'tabs/ProfileTab.tsx'), 'utf8'));
+    assert.match(profile, /<TabHeader\s+align="center"\s+ink=\{colors\.text\}\s+mutedInk=\{colors\.muted\}/, 'Profile identity must pass the selected main theme instead of relying on paper defaults');
+  });
+
   test('the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped', () => {
     // TabHeader mounts in the scroll body, not the frame's header slot, so a
     // title over a purpose line can scroll rather than pin. The title is the
@@ -155,6 +168,7 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     // under it. Nothing caps or truncates either. Its size is F602's, held in
     // `every tab title is the working title at 30, and the greeting is one of them`.
     const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
+    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/, 'callers without a selected theme must keep the existing paper ink defaults');
     assert.match(header, /marginBottom: space\(5\)/, 'the header block does not space itself off the body beneath it');
     assert.match(
       header,
@@ -164,12 +178,12 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.match(header, /accessibilityRole="header"/, 'the tab title is not rolled as a heading');
     assert.match(
       header,
-      /type\.title,\s*\{ color: paper\.ink, flex: 1 \}/,
+      /type\.title,\s*\{ color: ink, flex: 1 \}/,
       'the title is not the working title in ink, taking the row',
     );
     assert.match(
       header,
-      /type\.body,\s*\{ color: paper\.inkSoft, marginTop: space\(2\) \}/,
+      /type\.body,\s*\{ color: mutedInk, marginTop: space\(2\) \}/,
       'the purpose is not a soft-ink body line beneath the title',
     );
     // Nothing capped: no line cap, no growth cap, no scaling switch.
@@ -277,16 +291,15 @@ describe('a colour ground is a whole page — F601', () => {
     assert.match(source, /import \{ StatusBar \} from 'expo-status-bar';/, 'the frame does not import the status bar');
     assert.match(screen, /\{bar != null \? <StatusBar style=\{bar\} \/> : null\}/, 'the frame never mounts a status bar for its ground');
 
-    // The light grounds are named: blue, coral and ink take white words, so
-    // they take a white clock. Anything else off paper is dark, and paper
-    // mounts nothing.
+    // Blue, coral and ink take white words and a white clock. Light surfaces,
+    // including a paper modal over dark main, explicitly request dark glyphs.
     const grounds = region(source, 'const LIGHT_BAR_GROUNDS', 'export function Screen(');
     assert.match(
       grounds,
-      /LIGHT_BAR_GROUNDS: readonly string\[\] = \[colour\.blue, colour\.coral, paper\.ink\];/,
+      /LIGHT_BAR_GROUNDS: readonly string\[\] = \[colour\.blue, colour\.coral, paper\.ink, mainApp\.dark\.background\];/,
       'the light-bar grounds are not blue, coral and ink',
     );
-    assert.match(grounds, /if \(ground === paper\.ground\) return null;/, 'the paper mounts a bar of its own over App.tsx\'s');
+    assert.match(grounds, /if \(ground === paper\.ground\) return 'dark';/, 'paper must not inherit white glyphs from an underlying dark page');
     assert.match(
       grounds,
       /LIGHT_BAR_GROUNDS\.includes\(ground\) \? 'light' : 'dark'/,
@@ -306,52 +319,20 @@ describe('a colour ground is a whole page — F601', () => {
  */
 describe('the tab title is the working title — F602', () => {
   test('every tab title is the working title at 30, and the greeting is one of them', () => {
-    const header = region(layoutSource(), 'export function TabHeader(', 'type ConfirmSheetProps');
-    const left = outsideTheCentredBranch(header);
-    assert.match(
-      left,
-      /<Text accessibilityRole="header" style=\{\[type\.title, \{ color: paper\.ink, flex: 1 \}\]\}>/,
-      'the left title is not the working title in ink, rolled as a heading',
-    );
-    assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');
-
-    // The working title is 30 at ExtraBold, and nothing else in the theme
-    // decides it: a screen cannot nudge it.
-    const theme = stripComments(readFileSync(join(SRC, 'theme.ts'), 'utf8'));
-    assert.match(
-      theme,
-      /\btitle: \{ fontFamily: font\.extraBold, fontSize: 30,/,
-      'the working title is not 30 at ExtraBold',
-    );
-
-    // Every tab that names a subject takes the left branch: it opens on the
-    // one header and does not ask to be centred.
-    for (const tab of ['HomeTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
-      const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
-      if (tab === 'TutorTab.tsx') {
-        const unreadStart = body.indexOf("if (renderHistoryStatus !== 'ready') return <ScrollScreen");
-        assert.notEqual(unreadStart, -1, 'Speak no longer separates loading or unread history from a ready conversation');
-        const unreadEnd = body.indexOf('</ScrollScreen>;', unreadStart);
-        assert.notEqual(unreadEnd, -1, 'Speak has no end to its loading and unread branch');
-        const readyStart = body.indexOf('\n  return (', unreadEnd);
-        assert.notEqual(readyStart, -1, 'Speak has no ready render branch');
-        const unread = body.slice(unreadStart, unreadEnd);
-        const ready = body.slice(readyStart);
-        for (const [state, branch] of [['loading or unread', unread], ['ready', ready]] as const) {
-          assert.equal((branch.match(/<TabHeader\b/g) ?? []).length, 1, `Speak draws other than one header when ${state}`);
-          assert.match(branch, /<TabHeader title=\{tutorHeading\(tutorName\)\}/, `Speak loses its working title when ${state}`);
-        }
-        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 2, 'Speak gained a header outside its mutually exclusive render branches');
-      } else {
-        assert.equal((body.match(/<TabHeader\b/g) ?? []).length, 1, `${tab} does not open on exactly one tab header`);
-      }
-      assert.doesNotMatch(body, /<TabHeader\b[^>]*align="center"/, `${tab} centres its title, which only a tab that is a person does`);
+    // C2 uses a shared 44/48 display title on the five main pages. Existing
+    // auxiliary tabs retain the working title. Both have accessible headers.
+    const main = stripComments(readFileSync(join(SRC,'main','MainUI.tsx'),'utf8'));
+    assert.match(main, /accessibilityRole="header" style=\{\[s\.title/);
+    assert.match(main, /title: \{ \.\.\.type\.mainDisplay/);
+    assert.match(stripComments(readFileSync(join(SRC,'theme.ts'),'utf8')), /mainDisplay: \{ fontFamily: font\.extraBold, fontSize: 44, lineHeight: 48/);
+    for (const tab of ['HomeTab','ExploreTab','TutorTab','MyFrenchLibraryTab','MyFrenchTab']) {
+      const body=stripComments(readFileSync(join(SRC,'tabs',tab+'.tsx'),'utf8'));
+      assert.equal((body.match(/<MainScreen\b/g)??[]).length,1,tab);
+      assert.doesNotMatch(body,/allowFontScaling=\{false\}|numberOfLines=/);
     }
-
-    // And the greeting is one of them: Home hands its greeting to the header
-    // as the title, so it is set at the same 30 as every other tab name.
-    const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
-    assert.match(home, /<TabHeader display leading=\{<Text[\s\S]*?\{greeting\.title\}/, 'Home does not hand its greeting to the tab header as the title');
+    const home=stripComments(readFileSync(join(SRC,'tabs','HomeTab.tsx'),'utf8'));
+    assert.match(home,/Bonjour/); assert.match(home,/profile\.name\?\.trim/);
+    for(const tab of ['PracticeTab','FriendsTab']) assert.match(readFileSync(join(SRC,'tabs',tab+'.tsx'),'utf8'), /<TabHeader/);
   });
 });
 

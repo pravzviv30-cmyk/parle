@@ -35,7 +35,7 @@ const SCREEN = stripComments(read('./MissionsScreen.tsx'));
 describe('the chooser is one card and five rows — F573', () => {
   test('an unread scene history is never drawn as a fresh catalogue', () => {
     assert.match(SCREEN, /setProgress\(null\)/);
-    assert.match(SCREEN, /if \(progress === null\) return <ScrollScreen/);
+    assert.match(SCREEN, /if \(progress === null\) return <MainScreen/);
     assert.match(SCREEN, /Your scene history could not be read just now/);
     assert.match(SCREEN, /Try loading scenes again/);
   });
@@ -43,21 +43,21 @@ describe('the chooser is one card and five rows — F573', () => {
     assert.match(SCREEN, /if \(focus && first\)/, 'a named scene never opens its own brief');
     assert.match(SCREEN, /\{first\.mission\.title\}/, 'the brief loses its French title');
     assert.match(SCREEN, /\{first\.mission\.canDoEn\}/, 'the brief loses its learning outcome');
-    assert.match(SCREEN, /<PillButton tone="white" label=\{typed \? 'Start typing' : 'Start speaking'\}/, 'the action does not preserve the selected mode');
+    assert.match(SCREEN, /<MainButton tone="gold" label=\{typed \? 'Start typing' : 'Start speaking'\}/, 'the action does not preserve the selected mode');
     assert.doesNotMatch(SCREEN, /<TabBar\b/, 'the scene brief grows a mode chooser');
     assert.match(SCREEN, /const typed = route\.params\?\.textMode === true;/);
-    assert.match(SCREEN, /label=\{TYPE_INSTEAD\} ground="blue" onPress=\{\(\) => open\(first, true\)\}/, 'the brief loses its quiet typed twin');
+    assert.match(SCREEN, /<MainButton tone="quiet" label=\{TYPE_INSTEAD\} onPress=\{\(\) => open\(first, true\)\}/, 'the brief loses its quiet typed twin');
     assert.doesNotMatch(SCREEN, /missionMinutes\(first\.mission\)/, 'an unmeasured duration dominates the brief');
     const brief = SCREEN.slice(SCREEN.indexOf('if (focus && first)'));
     assert.ok(brief.indexOf('{first.mission.title}') < brief.indexOf('<Illustration'), 'decoration precedes the actual task');
-    assert.match(SCREEN, /ground=\{focus && progress !== null && first \? 'blue' : 'paper'\}/, 'the brand has no contrast on its ground');
+    assert.match(SCREEN, /const \{ colors \} = useMainAppearance\(\)/, 'the brief does not follow the selected display mode');
+    assert.match(SCREEN, /backgroundColor: colors\.surface/, 'the practice panel loses its themed contrast surface');
     assert.match(SCREEN, /\['A0', 'A1'\]/, 'the list loses its level grouping');
     assert.match(SCREEN, /view\.cards\.filter\(\(card\) => card\.mission\.cefr === level\)\.map/, 'the list loses scenes from the view model');
-    assert.match(SCREEN, /<LedgerRow\b/);
-    assert.match(SCREEN, /glyph=\{<SceneMark state=\{earnedMissionIds/, 'the list invents earning instead of asking core');
-    assert.match(SCREEN, /title=\{card\.mission\.titleEn\} gloss=\{`\$\{card\.mission\.title\}\. \$\{card\.status\}`\}/, 'the list loses its English outcome, French title or evidence state');
+    assert.match(SCREEN, /<MainRow\b/);
+    assert.match(SCREEN, /title=\{card\.mission\.titleEn\}/, 'the list loses its English outcome');
+    assert.match(SCREEN, /detail=\{asSentences\(\[card\.mission\.title, card\.status, minutesLine\(missionMinutes\(card\.mission\)\)\]\)\}/, 'the list loses its French title, evidence state or time estimate');
     assert.match(SCREEN, /nav\.setParams\(\{ focus: card\.mission\.id, textMode: typed \}\)/, 'the list starts a session before its brief');
-    assert.match(SCREEN, /accessibilityLabel=\{asSentences\(\[card\.mission\.title, card\.mission\.titleEn, card\.status\]\)\}/, 'a row stops saying where the learner stands with the situation behind it');
     assert.match(SCREEN, /^import \{ asSentences \} from '\.\.\/copy\/spoken\.ts';$/m, 'the row joins its label its own way rather than through the shared joiner');
     assert.ok(!/'Started'|'Ready when you are'|'Ready to come back to'/.test(SCREEN), 'the screen spells a status line that chooserView.ts already decides');
   });
@@ -69,7 +69,9 @@ describe('the chooser is one card and five rows — F573', () => {
     const leave = SCREEN.slice(SCREEN.indexOf('const leave'), SCREEN.indexOf('const open'));
     assert.ok(leave.includes('canGoBack()'), 'the way out assumes there is something behind this screen');
     assert.match(leave, /navigate\('Tabs'\)/, 'a chooser nobody can leave is a dead end on screen one');
-    assert.equal((SCREEN.match(/<ScreenHeader\b/g) ?? []).length, 1, 'the chooser draws a second way back beside the shared header');
+    const frames = SCREEN.match(/<MainScreen[^>]*>/g) ?? [];
+    assert.equal(frames.length, 3, 'loading, scene brief and catalogue need their own exclusive shared frame');
+    assert.ok(frames.every(frame => frame.includes('onBack={leave}')), 'one frame lost the safe first-run way back');
 
     // A learner at the largest reading size reads the same words as everybody
     // else: nothing truncates, nothing caps the scale, and no picture is sized

@@ -58,16 +58,20 @@ function completion(kind: 'new' | 'repair', bindings: Record<string, unknown>): 
 test('signed-in setup requires durable consent, reminder and profile before completion', async () => {
   for (const failure of [undefined, 'consent', 'reminder', 'profile']) {
     const calls: string[] = [];
+    const firstScene = { current: null as string | null };
     const invoke = completion('new', {
       scopeGeneration: () => 1, profileFromDraft: () => ({}), reminderFromDraft: () => ({}),
       saveConsent: async () => { calls.push('consent'); return failure === 'consent' ? 'volatile' : 'durable'; },
       saveReminder: async () => { calls.push('reminder'); return failure === 'reminder' ? 'volatile' : 'durable'; },
       saveProfile: async () => { calls.push('profile'); return failure !== 'profile'; },
-      firstScene: { current: null }, firstSceneFor: () => 'first', done: () => calls.push('done'),
+      firstScene, firstSceneFor: (level: string, reason: string) => { assert.equal(level, 'getby'); assert.equal(reason, 'trip'); return 'first'; },
+      setJustOnboarded: (value: boolean) => { assert.equal(value, true); calls.push('home-ready'); },
+      done: () => calls.push('done'),
     });
-    assert.equal(await invoke({ eligibilityConfirmed: true }), failure === undefined);
-    const expected = failure === 'consent' ? ['consent'] : failure === 'reminder' ? ['consent', 'reminder'] : failure === 'profile' ? ['consent', 'reminder', 'profile'] : ['consent', 'reminder', 'profile', 'done'];
+    assert.equal(await invoke({ eligibilityConfirmed: true, startLevel: 'getby', reason: 'trip' }), failure === undefined);
+    const expected = failure === 'consent' ? ['consent'] : failure === 'reminder' ? ['consent', 'reminder'] : failure === 'profile' ? ['consent', 'reminder', 'profile'] : ['consent', 'reminder', 'profile', 'home-ready', 'done'];
     assert.deepEqual(calls, expected);
+    assert.equal(firstScene.current, failure === undefined ? 'first' : null, 'the scene-plan metadata must be retained only after all account writes succeed');
   }
 });
 

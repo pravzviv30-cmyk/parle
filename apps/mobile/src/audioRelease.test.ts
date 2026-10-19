@@ -407,12 +407,20 @@ test('no screen touches a sound player or recorder in a cleanup that runs after 
     'a manual audio owner was added or removed and needs an explicit disposal audit');
   assert.ok(!files.some(file => relative(APP_ROOT, file.fileName) === 'src/onboarding/GuestRecording.tsx'), 'the replaced guest recorder returned');
   const previewOwners = manual.filter(name => name === 'src/tutor/useTutorPreview.ts').length;
-  // Fourteen voice players and recorders after deliberately removing GuestRecording
-  // on 10 October 2026. Live onboarding uses room tracks, not an expo recorder.
-  // Including the manual tutor preview, this inventory guards the remaining owners:
-  // a new sound raises the count freely, and one that disappears has either
-  // been removed on purpose, which lowers this by hand, or slipped past the walk.
-  assert.ok(made.length + previewOwners >= 14, `only ${made.length + previewOwners} sound objects were found, so the walk lost one or a screen's sound was removed:\n${made.join('\n')}`);
+  // M2/M3 removes Speak's inline sample player; selecting a tutor still
+  // previews through the audited manual owner above. Pin the full current
+  // inventory instead of lowering a broad floor that can hide a missing owner.
+  const hookOwners = made.map(label => label.split(' at ')[1]!.replace(/:\d+$/, '')).sort();
+  assert.deepEqual(hookOwners, [
+    'src/onboarding/PreAccountOnboarding.tsx', 'src/drill/SpokenAttempt.tsx',
+    'src/DrillScreen.tsx', 'src/missions/ListeningPreview.tsx',
+    'src/practice/recordedPlayer.ts', 'src/tabs/ProfileTab.tsx',
+    'src/daily/DailyPracticeScreen.tsx', 'src/daily/DailyPracticeScreen.tsx',
+    'src/daily/DailyCard.tsx', 'src/soundcheck/SoundCheckScreen.tsx',
+    'src/recap/PrivatePractice.tsx', 'src/recap/PrivatePractice.tsx',
+  ].sort(), 'every hook audio owner must remain in the disposal walk; changes require an explicit owner audit');
+  assert.equal(previewOwners, 1);
+
   assert.ok(
     made.some((label) => label.startsWith('player from useAudioPlayer at src/onboarding/PreAccountOnboarding.tsx:')),
     `the walk no longer reads pre-account onboarding's player, where F792 was found:\n${made.join('\n')}`,

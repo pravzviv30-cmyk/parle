@@ -22,8 +22,9 @@ test('retired Home and phrase-lane components stay absent while current evidence
     assert.doesNotMatch(body, /<(?:AbilitiesCard|LedgerLane)\b/, file);
   }
   const tab = readFileSync(join(src, 'tabs/MyFrenchTab.tsx'), 'utf8');
-  assert.match(tab, /<LevelCard\b/);
-  assert.match(tab, /navigate\('Phrasebook'\)/);
+  assert.match(tab, /<LevelXpCard\b/);
+  const library = readFileSync(join(src, 'tabs/MyFrenchLibraryTab.tsx'), 'utf8');
+  assert.match(library, /open\('Phrasebook'\)/);
   const nav = readFileSync(join(src, 'nav/RootNavigator.tsx'), 'utf8');
   assert.match(nav, /<Stack\.Screen name="Phrasebook"/);
 });

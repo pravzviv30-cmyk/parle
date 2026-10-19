@@ -52,6 +52,7 @@
  * | `onboarding-repair-draft` | **excluded** — see SYNC_EXCLUSIONS             |
  * | `gameLocal`   | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `home-seen`   | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `appearance`  | **excluded** — see SYNC_EXCLUSIONS                          |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -808,6 +809,7 @@ export interface SyncExclusion {
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
+  { namespace: 'appearance', reason: 'The light, dark or follow-device choice belongs to this phone and its signed-in account. Following the device resolves against that phone’s OS setting; syncing an explicit override would unexpectedly change another device’s appearance. Resetting this account removes the local choice.' },
   { namespace: 'home-seen', reason: "What this phone's Home last drew, so a number that rose since counts up once. A fact about one screen on one phone: synced, a tablet would skip a rise the learner never saw on it, and the real numbers all live in the synced game and activity records." },
   { namespace: 'gameLocal', reason: "The OS schedule, timezone and the plan observed are facts about this phone; syncing them would nudge one learner twice and let one device's billing read decide another's." },
   { namespace: 'first-live-arrival', reason: 'A presentation receipt for this phone, scoped to its signed-in account. Welcome and streak overlays describe what this phone already displayed; syncing it could suppress another phone’s pending arrival. Learning credit lives in the ordinary activity records.' },

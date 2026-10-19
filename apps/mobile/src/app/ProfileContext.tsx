@@ -15,6 +15,7 @@ import { brainAfterRecap } from '../profile/memory.ts';
 import { entryFor } from '../onboarding/answers.ts';
 import { AgeGateScreen } from '../onboarding/AgeGateScreen.tsx';
 import { useLaunchHold } from '../launch/useLaunch.ts';
+import { comparePreferenceClocks, preferenceClocks } from '@luvani/brain/profile/merge';
 
 interface ProfileValue {
   profile: StoredProfile;
@@ -97,9 +98,19 @@ export function ProfileGate({
     const generation = scopeGeneration();
     const saved = await saveMemoryChange(edit);
     if (!saved || activeUserId() !== owner || scopeGeneration() !== generation) return false;
-    setProfile((current) => current === null || current === 'loading' ? current : {
-      ...current, forgottenFacts: saved.forgottenFacts, learnerGoals: saved.learnerGoals,
-      brain: { ...current.brain, memory: saved.brain.memory },
+    // The same durable edit door also acknowledges the post-verification name.
+    // Only its causally winning name changes; newer learning and other settings stay current.
+    setProfile((current) => {
+      if (current === null || current === 'loading') return current;
+      const currentName = preferenceClocks(current).name;
+      const savedName = preferenceClocks(saved).name;
+      const takeName = savedName && (!currentName || comparePreferenceClocks(savedName, currentName) >= 0);
+      return {
+        ...current,
+        ...(takeName ? { name: saved.name, namePromptPending: saved.namePromptPending === true, preferenceClocks: { ...current.preferenceClocks, name: savedName } } : {}),
+        forgottenFacts: saved.forgottenFacts, learnerGoals: saved.learnerGoals,
+        brain: { ...current.brain, memory: saved.brain.memory },
+      };
     });
     return true;
   }, []);

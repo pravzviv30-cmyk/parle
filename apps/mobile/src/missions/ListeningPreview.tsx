@@ -19,6 +19,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 import { IconAction, GhostButton } from '../components.tsx';
+import { MainButton } from '../main/MainUI.tsx';
 import { HIT, onColour, frenchText, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
@@ -34,9 +35,13 @@ import { PREVIEW_COPY, previewFor, type PreviewSelection } from './preview.ts';
  * default, because a host card usually says it already: on the chooser's hero
  * it is the goal line drawn just above this control.
  */
-export function ListeningPreview({ selection, showContext = false, ground = 'white' }: { selection: PreviewSelection; showContext?: boolean; ground?: 'white' | 'blue' }) {
-  const ink = ground === 'blue' ? paper.onInk : paper.ink;
-  const quiet = ground === 'blue' ? onColour.blue : paper.inkSoft;
+export function ListeningPreview({ selection, showContext = false, ground = 'white', presentation }: {
+  selection: PreviewSelection; showContext?: boolean; ground?: 'white' | 'blue';
+  /** Main-app theme only; audio selection and lifecycle remain unchanged. */
+  presentation?: { ink: string; muted: string };
+}) {
+  const ink = presentation?.ink ?? (ground === 'blue' ? paper.onInk : paper.ink);
+  const quiet = presentation?.muted ?? (ground === 'blue' ? onColour.blue : paper.inkSoft);
   const { profile } = useProfile();
   const voice = dailyTutorVoice(profile.tutorVoice);
   const player = useAudioPlayer();
@@ -149,8 +154,8 @@ export function ListeningPreview({ selection, showContext = false, ground = 'whi
           <Text style={[type.small, { color: quiet }]}>{preview.note}</Text>
           {sourceKnown && preview.plays !== 'none' && (
             <View style={st.controls}>
-              <IconAction layout="inline" icon="speaker" label={preview.plays === 'first' ? PREVIEW_COPY.playFirst : PREVIEW_COPY.play}  onPress={() => void play()} />
-              <IconAction layout="inline" icon="speaker" label={PREVIEW_COPY.stop} ground={ground === 'blue' ? 'blue' : 'paper'} onPress={silence} />
+              {presentation ? <MainButton tone="quiet" label={preview.plays === 'first' ? PREVIEW_COPY.playFirst : PREVIEW_COPY.play} onPress={() => void play()} /> : <IconAction layout="inline" icon="speaker" label={preview.plays === 'first' ? PREVIEW_COPY.playFirst : PREVIEW_COPY.play} onPress={() => void play()} />}
+              {presentation ? <MainButton tone="quiet" label={PREVIEW_COPY.stop} onPress={silence} /> : <IconAction layout="inline" icon="speaker" label={PREVIEW_COPY.stop} ground={ground === 'blue' ? 'blue' : 'paper'} onPress={silence} />}
             </View>
           )}
           {note !== '' && <Text accessibilityLiveRegion="polite" style={[type.small, { color: quiet }]}>{note}</Text>}

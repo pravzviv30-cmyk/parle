@@ -41,9 +41,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { IconAction, Card, Field, GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, Card, Field, Label, PillButton } from '../components.tsx';
 import { SpeakerGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { useRecordedLine } from '../practice/recordedPlayer.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
@@ -68,6 +69,7 @@ import { CADENCE_NOTE, PHRASEBOOK_TITLE, cadenceToggleLabel, hasCadence, speaker
 let nextVisit = 0;
 
 export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
+  const { colors } = useMainAppearance();
   const nav = useNavigation<{ navigate: (screen: string) => void }>();
   const [book, setBook] = useState<Phrasebook | null>(null);
   const [bookScope, setBookScope] = useState<number | null>(null);
@@ -153,15 +155,15 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: onBack }} />}>
+    <ScrollScreen bottom="inset" ground={colors.background} header={<ScreenHeader ink={colors.text} muted={colors.muted} back={{ onPress: onBack }} />}>
       <View style={st.head}>
-        <Text accessibilityRole="header" style={st.title}>
+        <Text accessibilityRole="header" style={[st.title, { color: colors.text }]}>
           {PHRASEBOOK_TITLE}
         </Text>
       </View>
 
-      {visibleBook !== null && needsPhraseSearch(visibleBook) && <Field label="Find a phrase" value={query} onChangeText={setQuery} placeholder="French or English" maxLength={120} />}
-      {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={type.small}>No matching phrases.</Text>}
+      {visibleBook !== null && needsPhraseSearch(visibleBook) && <View style={st.search}><Field label="Find a phrase" value={query} onChangeText={setQuery} placeholder="French or English" maxLength={120} /></View>}
+      {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={[type.small, { color: colors.muted }]}>No matching phrases.</Text>}
 
       {unread && <Card><Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>Your phrases could not be loaded. They may still be saved; try again.</Text><IconAction layout="inline" icon="refresh" label="Retry phrases" onPress={() => setAttempt(value => value + 1)} /></Card>}
 
@@ -173,7 +175,7 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
 
       {displayBook !== null && hasPhrases(displayBook) && (
         <Feedback kind="reopened" active appear eventKey={`phrasebook-${visit}`}><View style={st.block}>
-          <Label>{LEDGER.rowsLabel}</Label>
+          <Label color={colors.muted}>{LEDGER.rowsLabel}</Label>
           <View style={st.groups}>
             {displayBook.groups.map((group) => (
               <Card key={group.id}>
@@ -202,8 +204,8 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
           vanish here, because the list above is recalled lines only. */}
       {displayBook !== null && hasSaved(displayBook) && (
         <Feedback kind="reopened" active appear eventKey={`phrasebook-${visit}`}><View style={st.block}>
-          <Label>{SAVED_TITLE}</Label>
-          <Text style={st.savedNote}>{SAVED_NOTE}</Text>
+          <Label color={colors.muted}>{SAVED_TITLE}</Label>
+          <Text style={[st.savedNote, { color: colors.muted }]}>{SAVED_NOTE}</Text>
           <Card style={st.savedCard}>
             {displayBook.saved.map((phrase, index) => (
               <PhraseRow
@@ -229,12 +231,12 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
             onPress={() => setCadenceOpen((open) => !open)}
             accessibilityRole="button"
             accessibilityState={{ expanded: cadenceOpen }}
-            style={({ pressed }) => [st.disclosure, pressed && st.speakerPressed]}
+            style={({ pressed }) => [st.disclosure, pressed && { backgroundColor: colors.inset }]}
           >
-            <Text style={[type.bodyStrong, { color: paper.ink }]}>{cadenceToggleLabel(cadenceOpen)}</Text>
-            {!cadenceOpen && <Text style={st.savedNote}>{CADENCE_NOTE}</Text>}
+            <Text style={[type.bodyStrong, { color: colors.text }]}>{cadenceToggleLabel(cadenceOpen)}</Text>
+            {!cadenceOpen && <Text style={[st.savedNote, { color: colors.muted }]}>{CADENCE_NOTE}</Text>}
           </Pressable>
-          {cadenceOpen && <CadenceCard cadence={cadence} />}
+          {cadenceOpen && <CadenceCard cadence={cadence} labelColor={colors.muted} />}
         </View>
       )}
     </ScrollScreen>
@@ -296,6 +298,7 @@ const st = StyleSheet.create({
   title: { ...type.display, color: paper.ink, flexGrow: 1, flexBasis: 160, minWidth: 0 },
   // Placement only. The size is the registry's, never a number written here.
   art: { flexShrink: 0 },
+  search: { backgroundColor: paper.card, borderRadius: radius.input, padding: space(3) },
   block: { marginTop: space(7) },
   groups: { marginTop: space(3), gap: space(3) },
   rows: { marginTop: space(2) },

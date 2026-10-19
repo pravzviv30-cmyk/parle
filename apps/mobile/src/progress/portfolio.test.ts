@@ -96,99 +96,36 @@ describe('the portfolio — a situation row and the next-situation words, decide
   });
 
   test('the tab that draws the next situation reads its words from portfolio.ts rather than spelling them', () => {
-    // F351. Two tabs used to spell "Next situation" and "Start this one"
-    // themselves while this module mirrored the words and a test kept them in
-    // step. F399 left one tab drawing the shared card. Revamp A folded the card
-    // away entirely: the next situation is the first row under "Next places",
-    // which is `splitByStamp` putting core's own suggestion at the head of the
-    // second group, so there is no card left to spell anything.
-    //
-    // What did not move is the row's verb. `situationAction` still decides
-    // whether a place is one to start or one to refine, and still writes the
-    // sentence a screen reader hears; the model reads both and the card spells
-    // neither. That is the half of F351 with a surface left, and it is what is
-    // held here.
-    const home = stripComments(read('../tabs/HomeTab.tsx'));
-    const myFrench = stripComments(read('../tabs/MyFrenchTab.tsx'));
-    const card = stripComments(read('../myfrench/SituationsCard.tsx'));
-    const model = stripComments(read('../myfrench/model.ts'));
-
-    // The card is gone from both tabs and from the file that replaced it, so a
-    // reader arriving at this module is not sent looking for it.
-    for (const [name, source] of [['Home', home], ['My French', myFrench], ['the situations card', card]] as const) {
-      assert.ok(!source.includes('<NextSituationCard'), `${name} draws a next-situation card, and the card was folded into the rows`);
-    }
-    assert.match(home, /<NextTaskCard/, 'Home draws neither a card nor the hero, so there is no next step at all');
-
-    // The two headings are the group module's words, read rather than spelled,
-    // and which place comes first is `splitByStamp`'s answer rather than the
-    // card's.
-    assert.match(card, /<Label>\{YOU_CAN_NOW\.label\}<\/Label>/, 'the card spells the first heading instead of reading it from situations.ts');
-    assert.match(card, /<Label>\{NEXT_PLACES\.label\}<\/Label>/, 'the card spells the second heading instead of reading it from situations.ts');
-    assert.match(
-      card,
-      /splitByStamp\(model\.situations, model\.suggestedId\)/,
-      'the card decides which place a learner meets first instead of asking situations.ts, which is where the suggestion is folded in',
-    );
-
-    // The verb, and the sentence that travels with it, still come from here.
-    assert.match(model, /situationAction\(progress\)/, 'the model no longer reads the row action from portfolio.ts');
-    assert.match(model, /startLabel\(scenario\.titleEn\)/, "a saved row's spoken sentence is written in the model instead of read from portfolio.ts");
-
-    // And nothing on the way to the screen spells any of portfolio's four words
-    // itself, which is the guarantee F351 was filed for.
-    for (const [name, source] of [['My French', myFrench], ['the situations card', card], ['the model', model]] as const) {
-      for (const words of [SITUATION_ACTION.start, SITUATION_ACTION.refine, NEXT_SITUATION.label, NEXT_SITUATION.action]) {
-        assert.ok(
-          !source.includes(`'${words}'`) && !source.includes(`>${words}<`),
-          `${name} spells "${words}" itself instead of reading it from portfolio.ts`,
-        );
-      }
-    }
-
-    assert.doesNotMatch(read('./portfolio.ts'), /NEXT_STEP\b/, 'portfolio.ts still spells the words of a row nothing draws');
-
-    // F233 keeps a single reader of the weekly story. This module is not it.
-    const portfolio = read('./portfolio.ts');
-    assert.doesNotMatch(portfolio, /progress\/story\.ts/, 'portfolio.ts must not read the weekly story');
+    // M2/M3 keeps one authored situation catalogue, reached through Explore.
+    // The tab no longer copies the old next-situation card or its judgement.
+    const home = read('../tabs/HomeTab.tsx');
+    const progress = read('../tabs/MyFrenchTab.tsx');
+    const explore = read('../tabs/ExploreTab.tsx');
+    const chooser = read('../missions/MissionsScreen.tsx');
+    assert.match(home, /<MainFeature/);
+    assert.match(home, /conversation.start\(suggestions.freeSeed \? \{ seedTopic: suggestions.freeSeed \} : \{\}\)/);
+    assert.match(explore, /exploreMissions\(query, topic\)/);
+    assert.match(explore, /navigate\('Missions', \{ focus: m.id \}\)/);
+    assert.match(chooser, /chooserView\(\{ progress:/);
+    assert.match(chooser, /nav.navigate\(card.route.screen, \{ \.\.\.card.route.params, textMode \}\)/);
+    for (const surface of [home, progress, explore]) assert.doesNotMatch(surface, /<NextSituationCard|<SituationsCard/);
+    assert.doesNotMatch(read('./portfolio.ts'), /NEXT_STEP\b|progress\/story\.ts/);
   });
 
   test('my french draws one next-situation card, with the place, the goal and the status — F363', () => {
-    // One shape, and now literally one: both groups go through the same `Row`,
-    // so the place a learner has handled and the place they have not cannot
-    // drift apart. The row carries what the card used to: the place as its
-    // paper and its mark, the French title, the English under it, and the state
-    // reached as a chip before the chevron.
-    const card = stripComments(read('../myfrench/SituationsCard.tsx'));
-    assert.equal(
-      (card.match(/<LedgerRow\b/g) ?? []).length,
-      1,
-      'the two groups are drawn by two different rows, so one of them can be restyled without the other',
-    );
-    assert.doesNotMatch(card, /\btint\b|TintRow|TintPanel/, 'the situation row must not retain retired tint presentation');
-    assert.match(card, /<PlaceGlyph place=\{row\.place\}/, 'the row does not show the place on its disc');
-    assert.match(card, /title=\{row\.title\}/, 'the row lost the French title');
-    assert.match(card, /gloss=\{row\.gloss\}/, 'the row lost the English title');
-    assert.match(card, /trailing=\{<StateChip chip=\{row\.chip\} \/>\}/, 'the state the learner reached is no longer the row trailing');
-    assert.match(card, /accessibilityLabel=\{row\.accessibilityLabel\}/, 'the row names itself twice to a screen reader instead of once, in the model words');
-    assert.doesNotMatch(card, /<PillButton|<OutlineButton|<GhostButton/, 'a row carries a button of its own, so the tab could end up with two primaries');
-
-    // And it decides none of it. The tint, the chip and the verb are all the
-    // model's, which is what stops a screen growing a second opinion about
-    // whether a place has been handled.
-    const model = stripComments(read('../myfrench/model.ts'));
-    for (const decision of ['chipFor(', 'situationAction(']) {
-      assert.ok(model.includes(decision), `the model no longer folds ${decision}, so the card would have to decide it`);
-    }
-
-    // F399. Home carries neither the rows nor the outline that used to sit
-    // under the card: tonight's situation is its headline and the tutor is a
-    // tab away, so a second door to the same place would be a second primary in
-    // disguise.
-    const home = stripComments(read('../tabs/HomeTab.tsx'));
-    assert.ok(!home.includes('<SituationsCard'), 'the situation rows are back on Home beside tonight\'s card');
-    assert.ok(!home.includes('Talk to '), 'the outline to the tutor is back on Home');
-    assert.ok(!home.includes('tutorNameOf'), 'Home names the tutor again, which is the Tutor tab\'s to do');
+    // The live chooser renders every state with the same MainRow and reads
+    // place/title/status from its core-derived card, rather than hand-building it.
+    const chooser = read('../missions/MissionsScreen.tsx');
+    assert.match(chooser, /view.cards.filter\(\(card\) => card.mission.cefr === level\).map/);
+    assert.match(chooser, /title=\{card.mission.titleEn\}/);
+    assert.match(chooser, /card.mission.title, card.status, minutesLine\(missionMinutes\(card.mission\)\)/);
+    assert.match(chooser, /nav.setParams\(\{ focus: card.mission.id, textMode: typed \}\)/);
+    const shared = read('../main/MainUI.tsx');
+    assert.match(shared, /accessibilityRole="button"/);
+    assert.match(shared, /row: \{ minHeight: 76/);
+    const home = read('../tabs/HomeTab.tsx');
+    assert.doesNotMatch(home, /<SituationsCard|situationAction\(|chipFor\(/);
+    assert.match(home, /Speak with \$\{tutorNameOf\(profile\)\}/);
 
     // Every line the catalogue puts on one of these rows obeys the copy rules.
     for (const item of missionStates([], [], NOW)) {
@@ -198,4 +135,17 @@ describe('the portfolio — a situation row and the next-situation words, decide
       }
     }
   });
+});
+
+
+test('week and postcards use the selected base for empty states and retain their populated editorial grounds', () => {
+  const week = read('./WeekWrappedScreen.tsx');
+  const places = read('./PostcardsScreen.tsx');
+  assert.match(week, /ground=\{populated \? palette\.blue : colors\.background\}/);
+  assert.match(week, /type\.body,\{color:colors\.text\}\]\}>Your week will take shape/);
+  assert.match(week, /type\.body,\{color:colors\.muted\}\]\}>Finding your week/);
+  assert.match(places, /ground=\{populated \? colour\.mint : colors\.background\}/);
+  assert.match(places, /ink=\{populated \? paper\.ink : colors\.text\}/);
+  assert.match(places, /type\.body,\{color:colors\.text\}\]\}>A place postcard/);
+  assert.match(places, /type\.heading,\{color:paper\.ink\}\]\}>\{card\.mission\.titleEn\}/);
 });

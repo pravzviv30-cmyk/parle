@@ -24,9 +24,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { MISSIONS, type ConversationPack } from '@luvani/core';
 
-import { IconAction, ColourCard, GhostButton, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
+import { IconAction, ColourCard, Label, Ledger, LedgerRow, PillButton } from '../components.tsx';
 import { DocumentGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
+import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { accent, onColour, paper, space, type } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -62,6 +63,7 @@ import {
 } from './copy.ts';
 
 export function GoalStepScreen() {
+  const { colors, mode } = useMainAppearance();
   const nav = useNavigation<{
     goBack: () => void;
     canGoBack: () => boolean;
@@ -154,12 +156,12 @@ export function GoalStepScreen() {
   };
 
   return (
-    <ScrollScreen header={<ScreenHeader back={{ onPress: leave }} title={current ?? GOAL_LABEL} />}>
+    <ScrollScreen ground={colors.background} header={<ScreenHeader ink={colors.text} muted={colors.muted} back={{ onPress: leave }} title={current ?? GOAL_LABEL} />}>
 
       {current === null && (
         <View style={st.block}>
-          <Text style={st.soft}>{GOAL_GONE}</Text>
-          <IconAction layout="inline" icon="edit" label={GOAL_GONE_OPEN}  onPress={() => nav.navigate('TutorMemory')} />
+          <Text style={[st.soft, { color: colors.muted }]}>{GOAL_GONE}</Text>
+          <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="edit" label={GOAL_GONE_OPEN} onPress={() => nav.navigate('TutorMemory')} />
         </View>
       )}
 
@@ -184,16 +186,16 @@ export function GoalStepScreen() {
           )}
 
           <View style={st.block}>
-            <Label>{GOAL_TRAIL_LABEL}</Label>
-            <Text style={st.soft}>You can change or remove this goal in tutor memory. The French you have saved and practised stays with you.</Text>
-            <IconAction layout="inline" icon="edit" label="Edit this goal" onPress={() => nav.navigate('TutorMemory')} />
+            <Label color={colors.muted}>{GOAL_TRAIL_LABEL}</Label>
+            <Text style={[st.soft, { color: colors.muted }]}>You can change or remove this goal in tutor memory. The French you have saved and practised stays with you.</Text>
+            <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="edit" label="Edit this goal" onPress={() => nav.navigate('TutorMemory')} />
 
-            {visibleStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={st.soft}>{GOAL_LOADING}</Text>}
+            {visibleStatus === 'loading' && <Text accessibilityLiveRegion="polite" style={[st.soft, { color: colors.muted }]}>{GOAL_LOADING}</Text>}
 
             {visibleStatus === 'unread' && (
               <View style={st.rows}>
-                <Text style={st.soft}>{GOAL_UNREAD}</Text>
-                <IconAction layout="inline" icon="refresh"
+                <Text style={[st.soft, { color: colors.muted }]}>{GOAL_UNREAD}</Text>
+                <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="refresh"
                   label={GOAL_RETRY}
 
                   onPress={() => {
@@ -204,7 +206,7 @@ export function GoalStepScreen() {
               </View>
             )}
 
-            {visibleStatus === 'loaded' && trail.length === 0 && <Text style={st.soft}>{GOAL_TRAIL_EMPTY}</Text>}
+            {visibleStatus === 'loaded' && trail.length === 0 && <Text style={[st.soft, { color: colors.muted }]}>{GOAL_TRAIL_EMPTY}</Text>}
 
             {visibleStatus === 'loaded' && trail.length > 0 && (
               <View style={st.rows}>
@@ -223,16 +225,16 @@ export function GoalStepScreen() {
                         />
                       </Ledger>
                       {row.usedOutside ? (
-                        <Text style={st.said}>{USED_OUTSIDE_SAID}</Text>
+                        <Text style={[st.said, { color: colors.text }]}>{USED_OUTSIDE_SAID}</Text>
                       ) : (
-                        <IconAction layout="inline" icon="tick-circle"
+                        <IconAction layout="inline" ground={mode === 'dark' ? 'blue' : 'paper'} icon="tick-circle"
                           label={USED_OUTSIDE_CONTROL}
 
                           disabled={reporting !== null}
                           onPress={() => report(row)}
                         />
                       )}
-                      {refused === row.stepId && <Text style={st.soft}>{USED_OUTSIDE_REFUSED}</Text>}
+                      {refused === row.stepId && <Text style={[st.soft, { color: colors.muted }]}>{USED_OUTSIDE_REFUSED}</Text>}
                     </View>
                   );
                 })}
