@@ -199,28 +199,14 @@ describe('the voice on the Profile tab', () => {
       'the sheet spreads the profile by hand instead of going through the door that owns this field',
     );
 
-    // The pace switch moved to the foot of this sheet with revamp A (F576).
-    // How fast the tutor speaks is a question about the tutor, so it belongs
-    // beside the six cards that choose who the tutor is rather than on the
-    // learner's own card. Below them, so the sheet still opens on the choice it
-    // exists for rather than on a setting.
-    assert.match(VOICE_SHEET, /title=\{PACE_ROW\}/, 'the pace switch is not on the voice sheet');
-    assert.ok(
-      writtenBefore(VOICE_SHEET, 'TUTOR_VOICE_OPTIONS.map(', 'PACE_ROW'),
-      'the pace switch is drawn above the six voices, so the sheet opens on a setting rather than on a choice',
-    );
-    assert.match(VOICE_SHEET, /update\(withPace\(profile, next \? 'slow' : 'normal'\)\)/, 'the pace is written some other way than the named door');
-    // One site. Twice inside the sheet, which is the row named once for the eye
-    // and once for a screen reader, and nowhere on the learning card: a copy
-    // left there would be a second switch for one value, and the two would
-    // report different things about one tutor.
-    assert.equal(
-      (VOICE_SHEET.match(/PACE_ROW/g) ?? []).length,
-      2,
-      'the pace row at the foot of the sheet is not named once for the eye and once for a screen reader',
-    );
-    const learning = TAB.slice(TAB.indexOf('<Label>{LEARNING_LABEL}</Label>'), TAB.indexOf('</ScrollScreen>'));
-    assert.ok(!learning.includes('PACE_ROW'), 'the pace switch is on the learning card as well as on the sheet, so one value has two switches');
+    // P2 (2026-10-19): the pace switch left this sheet for Learning
+    // preferences, with the other standing choices. One switch for one value:
+    // it is on neither the sheet nor anywhere else on Profile now.
+    assert.ok(!VOICE_SHEET.includes('PACE_ROW'), 'the pace switch is on the voice sheet as well as on Learning preferences');
+    assert.ok(!TAB.includes('PACE_ROW'), 'Profile carries a second pace switch');
+    const learning = stripComments(read('../settings/LearningPreferencesScreen.tsx'));
+    assert.equal((learning.match(/PACE_ROW/g) ?? []).length, 3, 'the pace row is not imported once and named once for the eye and once for a screen reader');
+    assert.match(learning, /update\(withPace\(profile, next \? 'slow' : 'normal'\)\)/, 'the pace is written some other way than the named door');
   });
 
   test('the voice sheet never names a vendor and carries no em dash', () => {

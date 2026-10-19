@@ -176,7 +176,9 @@ describe('the pace dial — the second thing the engine already reads', () => {
 
     // 6. The wiring. No renderer here, so the row is read out of the screen: a
     //    dial nothing renders is exactly the shape this defect had.
-    const tab = stripComments(read('../tabs/ProfileTab.tsx'));
+    // P2 (2026-10-19): the standing choices moved from Profile to Learning
+    // preferences, one row away, unchanged in what they read and write.
+    const tab = stripComments(read('../settings/LearningPreferencesScreen.tsx'));
     assert.match(tab, /withPace\(/, 'profile has no way to set the pace, so the preference is unreachable');
     assert.match(
       tab,

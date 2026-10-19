@@ -309,7 +309,7 @@ export function ScrollScreen({
  * step in a stack, the other abandons something the meter is counting, and a
  * header that offered both would let a learner think a tab switch left the room.
  */
-type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ground?: 'blue' | 'coral' | 'paper' } & (
+type ScreenHeaderProps = { title?: ReactNode; trailing?: ReactNode; divider?: boolean; ink?: string; muted?: string; ground?: 'blue' | 'coral' | 'paper'; /** Opt-in (P2): the back disc and chevron from the selected appearance. Absent, the white disc as before. */ backAppearance?: { disc: string; mark: string } } & (
   | { back?: { onPress: () => void; label?: string; disabled?: boolean }; leave?: never }
   | { leave?: { onPress: () => void; label: string; accessibilityLabel?: string }; back?: never }
 );
@@ -331,7 +331,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
   return (
     <View style={{ minHeight: HIT + space(3), flexDirection: 'row', alignItems: 'center', borderBottomWidth: props.divider === true ? HAIRLINE : 0, borderBottomColor: paper.line, marginBottom: space(4), paddingBottom: space(2) }}>
       {back != null ? (
-        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} />
+        <RoundButton kind="back" onPress={back.onPress} accessibilityLabel={back.label ?? 'Back'} disabled={back.disabled} appearance={props.backAppearance} />
       ) : (
         <View style={{ width: HIT }} />
       )}
@@ -340,7 +340,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           // A bare string under a View is a raw text node — Fabric drops it and
           // logs. A caller that wants a status line passes its own <Text> (with
           // a live region); this only keeps a plain string title from vanishing.
-          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{title}</Text>
+          <Text accessibilityRole="header" style={[type.heading, { color: props.ink ?? paper.ink }]}>{title}</Text>
         ) : (
           title ?? null
         )}
@@ -353,7 +353,7 @@ export function ScreenHeader(props: ScreenHeaderProps) {
           accessibilityLabel={leave.accessibilityLabel ?? leave.label}
           style={{ minWidth: HIT, minHeight: HIT, alignItems: 'flex-end', justifyContent: 'center' }}
         >
-          <Text style={[type.bodyStrong, { color: paper.inkSoft }]}>{leave.label}</Text>
+          <Text style={[type.bodyStrong, { color: props.muted ?? paper.inkSoft }]}>{leave.label}</Text>
         </Pressable>
       ) : (
         <View style={{ minWidth: HIT }} />
@@ -393,6 +393,10 @@ type TabHeaderProps = {
   leading?: ReactNode;
   /** Anything the tab wants under the purpose, still inside the header block. */
   children?: ReactNode;
+  /** Title ink from the selected appearance; paper ink when absent. */
+  ink?: string;
+  /** Purpose-line ink from the selected appearance; paper's soft ink when absent. */
+  mutedInk?: string;
 };
 
 /**
@@ -435,10 +439,10 @@ type TabHeaderProps = {
  * title pulls it off centre; and a header that could do everything is a header
  * with no shape.
  */
-export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false }: TabHeaderProps) {
+export function TabHeader({ title, purpose, trailing, leading, align = 'left', children, display = false, ink = paper.ink, mutedInk = paper.inkSoft }: TabHeaderProps) {
   if (display) return <View style={{ gap: space(3), marginBottom: space(4) }}>
     {(leading != null || trailing != null) && <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: space(11) }}>{leading ?? <View />}{trailing}</View>}
-    <Text accessibilityRole="header" style={[type.display, { color: paper.ink }]}>{title}</Text>
+    <Text accessibilityRole="header" style={[type.display, { color: ink }]}>{title}</Text>
     {children}
   </View>;
   if (align === 'center') {
@@ -449,13 +453,13 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
           accessibilityRole="header"
           style={[
             type.display,
-            { color: paper.ink, textAlign: 'center', marginTop: leading != null ? space(3) : 0 },
+            { color: ink, textAlign: 'center', marginTop: leading != null ? space(3) : 0 },
           ]}
         >
           {title}
         </Text>
         {purpose != null ? (
-          <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2), textAlign: 'center' }]}>
+          <Text style={[type.body, { color: inkSoft, marginTop: space(2), textAlign: 'center' }]}>
             {purpose}
           </Text>
         ) : null}
@@ -466,13 +470,13 @@ export function TabHeader({ title, purpose, trailing, leading, align = 'left', c
   return (
     <View style={{ marginBottom: space(5) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
-        <Text accessibilityRole="header" style={[type.title, { color: paper.ink, flex: 1 }]}>
+        <Text accessibilityRole="header" style={[type.title, { color: ink, flex: 1 }]}>
           {title}
         </Text>
         {trailing != null ? trailing : null}
       </View>
       {purpose != null ? (
-        <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>{purpose}</Text>
+        <Text style={[type.body, { color: inkSoft, marginTop: space(2) }]}>{purpose}</Text>
       ) : null}
       {children != null ? children : null}
     </View>

@@ -163,8 +163,10 @@ describe('what the tutor remembers, drawn', () => {
     const profile = stripComments(read('../tabs/ProfileTab.tsx'));
     assert.match(
       profile,
-      /<Label color=\{colors\.muted\}>\{TUTOR_LABEL\}<\/Label>\s*<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>/,
-      'the tutor card is not the one thing drawn under the tutor heading, or it cannot open the voice sheet',
+      // P2 (2026-10-19): the tutor rows sit in Profile's Learning group, under
+      // the Learning preferences row, rather than under a heading of their own.
+      /<SettingsGroup title=\{LEARNING_GROUP\}>[\s\S]*?<TutorMemoryCard onVoice=\{\(\) => setSheet\('tutorVoice'\)\} \/>\s*<\/SettingsGroup>/,
+      'the tutor rows are not in the Learning group, or they cannot open the voice sheet',
     );
     assert.equal(
       (profile.match(/<TutorMemoryCard\b/g) ?? []).length,

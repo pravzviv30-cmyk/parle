@@ -21,9 +21,10 @@
  */
 
 import { View, Text, Switch, StyleSheet } from 'react-native';
-import { accent, paper, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { accent, paper, space, type } from '../theme.ts';
 import { tapSettled } from '../motion/haptics.ts';
 import { useSettingsColors } from './SettingsAppearance.tsx';
+import { RowDivider, useInGroup, useRowFrame } from './SettingsGroup.tsx';
 
 export function SwitchRow({
   title,
@@ -45,10 +46,15 @@ export function SwitchRow({
   disabled?: boolean;
 }) {
   const colors = useSettingsColors();
+  const frame = useRowFrame();
+  // P2: in a grouped list the off track is the border ink (light #DCD2C4,
+  // dark #514967) under a white knob; on a card it keeps the field grey.
+  const offTrack = useInGroup() ? colors.border : paper.field;
   return (
-    <View style={[st.row, !first && st.divided, { borderTopColor: colors.border }]}>
-      <View style={{ flex: 1 }}>
-        <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+    <View style={[st.row, frame]}>
+      {first ? null : <RowDivider />}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[type.body, { color: colors.text }]}>{title}</Text>
         <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{sub}</Text>
       </View>
       <Switch
@@ -60,8 +66,8 @@ export function SwitchRow({
         }}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={sub}
-        trackColor={{ true: accent.brand, false: paper.field }}
-        ios_backgroundColor={paper.field}
+        trackColor={{ true: accent.brand, false: offTrack }}
+        ios_backgroundColor={offTrack}
         thumbColor={paper.card}
       />
     </View>
@@ -69,6 +75,5 @@ export function SwitchRow({
 }
 
 const st = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2.5) },
-  divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
 });

@@ -117,7 +117,9 @@ describe('the flexible speaking target, chosen where it is read — F368', () =>
     // 6. The wiring. There is no renderer in this suite, so the row is read out
     //    of the screen: the choice is on the card, it writes through the store's
     //    door, and the sheet it replaced is gone rather than orphaned.
-    const tab = stripComments(read('../tabs/ProfileTab.tsx'));
+    // P2 (2026-10-19): the standing choices moved from Profile to Learning
+    // preferences, one row away, unchanged in what they read and write.
+    const tab = stripComments(read('../settings/LearningPreferencesScreen.tsx'));
     // 2026-10-07, come alive Phase 4 (F769, founder decision D5): the goal is
     // five choices on the card (No goal, Casual, Regular, Serious, Intense,
     // `game/profileStatsView.ts`), so Intense has a choice of its own. Each

@@ -70,7 +70,9 @@ describe('preferring the keyboard, as the app reads it — F370', () => {
 
     // 4. The wiring, read out of the screen: there is no renderer here, and a
     //    stored preference nothing offers is the shape the strictness dial had.
-    const tab = stripComments(read('../tabs/ProfileTab.tsx'));
+    // P2 (2026-10-19): the standing choices moved from Profile to Learning
+    // preferences, one row away, unchanged in what they read and write.
+    const tab = stripComments(read('../settings/LearningPreferencesScreen.tsx'));
     assert.match(tab, /<SwitchRow/, 'the row is not a switch on the card, so the choice is unreachable');
     assert.match(
       tab,

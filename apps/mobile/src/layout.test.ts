@@ -148,6 +148,23 @@ describe('the layout primitives keep their promises — F306', () => {
 });
 
 describe('the chrome primitives hold their shape — F331, F334, F335', () => {
+  test('tab header theme overrides reach every title and purpose while paper defaults stay intact', () => {
+    const source = layoutSource();
+    const props = region(source, 'type TabHeaderProps = {', 'export function TabHeader(');
+    const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
+    assert.match(props, /ink\?: string;/);
+    assert.match(props, /mutedInk\?: string;/);
+    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/);
+    assert.equal((header.match(/color: ink\b/g) ?? []).length, 3, 'display, centred identity and ordinary titles must all accept the selected ink');
+    assert.equal((header.match(/color: mutedInk\b/g) ?? []).length, 2, 'centred and ordinary purpose lines must both accept selected secondary ink');
+    const profile = stripComments(readFileSync(join(SRC, 'tabs/ProfileTab.tsx'), 'utf8'));
+    // P2 (2026-10-19): Profile draws its own large title and identity row
+    // rather than the centred TabHeader, and both take the selected theme.
+    assert.match(profile, /\{PROFILE_TITLE\}/, 'Profile lost its title');
+    assert.match(profile, /<ScreenHeader back=\{\{ onPress: goBack \}\} ink=\{colors\.text\} muted=\{colors\.muted\} \/>/, 'Profile identity must pass the selected main theme instead of relying on paper defaults');
+    assert.match(profile, /\{profile\.name \?\? NAME_UNSET\}<\/Text>/, 'the learner name is not drawn');
+  });
+
   test('the tab header sets its title left, as a heading, with a purpose line beneath and nothing capped', () => {
     // TabHeader mounts in the scroll body, not the frame's header slot, so a
     // title over a purpose line can scroll rather than pin. The title is the
@@ -213,7 +230,7 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     const header = region(layoutSource(), 'export function ScreenHeader(', 'type TabHeaderProps');
     assert.match(
       header,
-      /<RoundButton kind="back" onPress=\{back\.onPress\} accessibilityLabel=\{back\.label \?\? 'Back'\} disabled=\{back\.disabled\} \/>/,
+      /<RoundButton kind="back" onPress=\{back\.onPress\} accessibilityLabel=\{back\.label \?\? 'Back'\} disabled=\{back\.disabled\} appearance=\{props\.backAppearance\} \/>/,
       'the pushed header does not go back through the round button, or lost its fallback name',
     );
     assert.doesNotMatch(header, /<ChevronLeft/, 'the header draws a bare chevron again beside the round button');

@@ -41,6 +41,7 @@ import { useEffect } from 'react';
 import { AccessibilityInfo, Platform, Text } from 'react-native';
 import { space, type } from '../theme.ts';
 import { useSettingsColors } from './SettingsAppearance.tsx';
+import { useInGroup } from './SettingsGroup.tsx';
 
 export function TroubleLine({
   message,
@@ -59,6 +60,7 @@ export function TroubleLine({
   strong?: boolean;
 }) {
   const colors = useSettingsColors();
+  const grouped = useInGroup();
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
     AccessibilityInfo.announceForAccessibility(message);
@@ -71,7 +73,7 @@ export function TroubleLine({
       style={[
         strong ? type.bodyStrong : type.small,
         { color: colors.trouble },
-        strong ? { marginTop: space(4) } : { marginBottom: space(3) },
+        strong ? { marginTop: space(4) } : grouped ? { paddingHorizontal: space(4), paddingVertical: space(3) } : { marginBottom: space(3) },
       ]}
     >
       {message}

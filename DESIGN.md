@@ -148,6 +148,28 @@ handoff. The shared Home/Speak start rejects duplicate and stale visit taps.
 These controls retain their existing server and account ownership; see the
 [onboarding contract](docs/ONBOARDING.md#account-handoff-when-guest-live-is-unavailable).
 
+### Premium paywall and account (Luvani theme), 19 October 2026
+
+Paywalls, their states, Profile, Settings, Learning preferences and
+Subscription use the main appearance and Outfit. The app currently always
+resolves that appearance to light (cream); the dark palettes stay defined but
+unused until the C2 screens get dark styles, and Settings does not offer a
+display choice (KNOWN_ISSUES F847). The single action is the indigo pill: 56pt
+tall, radius 28. The Yearly/Monthly switch is lavender on `inset`, with the
+chosen segment on `selected`. The trial timeline uses 28pt sunflower markers
+with ink glyphs on a 3pt sun rail at 45% opacity. Cards take radius 20 to 22;
+there is no hero art. The billed amount is the most prominent price. The Day 5
+reminder line appears only when a reminder is actually scheduled. Text links use
+`link`; destructive labels and the purchase-failed title use `danger`.
+
+- Subscription timelines use real store trial eligibility, duration and local
+  prices. The amount and renewal period stay beside the purchase action.
+  A reminder is promised only when the app actually schedules it. Restore,
+  terms, privacy and an unambiguous exit stay visible.
+- Profile, Settings, tutor memory and their sheets share the main appearance's
+  surfaces and text colours. Account/security actions keep their existing
+  confirmations, validation and operation owners.
+
 ## 9 October 2026 · vibrant UI revision
 
 The founder requested a fuller colour treatment, joyful editable illustrations,
@@ -645,17 +667,26 @@ the new look, listed at the end, and they go with their call sites.
   purpose line beneath it in soft ink, and an optional trailing `Monogram` on the
   title row. It mounts as the first child of a tab's scroll body, never in the
   frame's `header` slot, so the fixed title and purpose can scroll at large text.
-  It has a second, centred variant, and Profile is the one tab that uses it: that
-  screen is about a person rather than a subject, so the monogram leads above a
-  centred name, straight on the page with no panel behind it. Centring is the
-  exception and stays that way — it is the only place in the app where
-  `textAlign` is written at all, and a test cuts the centred branch out before
-  banning it everywhere else. The shared `ScreenHeader` rules a paper hairline
-  under itself, and its way back is the round white back button at the touch
-  floor.
+  It still has a centred variant, but since P2 (19 October 2026) no screen
+  uses it: Profile draws its own large title and identity row instead. The
+  shared `ScreenHeader` rules a paper hairline under itself, and its way back is
+  the round white back button at the touch floor.
 - **Monogram**: the learner's initial drawn one way (SNIPPETS header-tab). A
-  white initial in Outfit Bold on an ink disc, hidden from assistive tech.
-  `HIT`-sized in the header, larger on Profile.
+  white initial in Outfit Bold on an ink disc, hidden from assistive tech, at
+  `HIT` in the header button. Profile's own identity disc is the exception since
+  P2: 64pt `colour.sun` with the initial in `paper.ink` at `title`, drawn once,
+  because the design gives the learner's page a warmer mark than the header.
+- **Grouped list** (`settings/SettingsGroup.tsx`, P2): what Profile, Learning
+  preferences, Settings and Subscription are built from. A quiet header in
+  `small` muted ink inset 16, a `surface` list at `radius.tile` (20), clipped, a
+  footer in the same ink, and 28 between groups. Rows (`SettingsRow`,
+  `SwitchRow`, `ChoiceRow`) take 16 across and 13 down with a 52 floor; the
+  label is `body` in text ink, a long answer is a muted subtitle under it, a
+  short one a muted value at the trailing edge, a chevron when the row leads
+  somewhere, and a destructive label is `danger`. Separators sit inset 16 from
+  the left in `border` at 70%. Outside a group the same rows keep their older
+  card shape, so the memory screen, social settings and onboarding are
+  unchanged. Switches stay on `accent.brand` with the off track said twice.
 
 The B parts, appended in revamp B Stage 2 for Stage 3 to paste:
 
@@ -851,7 +882,23 @@ avatar. Friends is a Profile route and retains shared challenges and moderation.
 | Speak | The chosen tutor or real continuity, the same next task as Home, then the current level scene path. The grouped scene list opens a brief before starting. |
 | Practice | One ready next practice made from the learner's saved work or due review, with its French line first, then an optional sound example and guide. The three rows for replay, own phrase and due review appear only when they can start. Shadowing is free offline. The archive is one level down in Conversations. |
 | Progress | A first task when empty. Once there is practice: the numbered level and its XP (`game/LevelXpCard`, never a rank name), the run and this week holding the weekly day line (`game/StreakSummaryCard`), four counts that open their sources (`game/CountsGrid`) and the badges earned with at most three ahead, never locked (`game/BadgeShelf`). Then independently earned can-dos before the A0/A1 level card, the one pill; earned postcards as a shelf of drawings and a week story, only with evidence; saved phrases, sound evidence, conversations and goals as rows, each led by its tile. |
-| Profile (avatar) | Settings first, the learner’s monogram and name, the chosen tutor and memory, the run and the level as two tiles that open the Streak screen and Progress (`game/ProfileStats`, with a subscriber's freezes), lifetime days, and learning choices with the daily goal as five choices: No goal, Casual, Regular, Serious, Intense. Voice and name choices open sheets over the page. |
+| Profile (avatar) | A large `title` with the settings gear (44) at its trailing edge, then the learner's sun disc, name, "Learning French since" when the onboarding date is known, and an Edit link to the name sheet. Then three grouped lists: Learning (Learning preferences with a one-line summary, the tutor as the orb opening the voice sheet, and Tutor memory), Your French (Progress, saying level, a confident level estimate and practice days, which opens Streak; My French; Friends), and Plan (one row opening Subscription). An unread or unknown plan names no plan and is never called Free. The voice and name choices open sheets over the page. |
+
+Two routes hold the standing choices and the plan (P2, 19 October 2026). Both
+are pushed with the shared header's chevron and an inline title, and both are
+grouped lists.
+
+| Route | What it is |
+|---|---|
+| Learning preferences | Opened from Profile. An intro line saying these never change the level earned, then Routine (the daily goal as its five choices, the one editor it has), How your tutor helps (correction style, the same row word for word as the memory screen's, then Tutor speaks more simply and Prefer typing), and Conversation starting point: one row whose subtitle is the chosen sentence, opening the four options, saved through `withStatedLevel` with the footer saying the earned level stays. |
+| Subscription | Opened from the plan row on Profile and Settings. The plan's name at `title`, its period in words, and a tutor-time card saying the speaking-time band in words. No minute count, no date and no filled track (F377, F541), and no price row, because nothing on the phone says which product the account holds. Manage in Apple Subscriptions, Compare plans (See plans for a free learner) and Restore. When the plan cannot be checked, an `inset` notice and a 56pt Try again, with Manage and Restore still there. |
+
+Settings (P2) is six groups in this order: Account, Subscription, Reminders,
+Appearance & sound, Privacy & data, Help & about, then Delete account alone in a
+group with no heading at the foot, standing apart from every routine row. The
+trial-ending reminder switch appears in Reminders only on a build that can
+schedule it and while a store trial is on record. Summaries that join several
+facts join them with commas: middots are out of learner copy.
 
 Three routes carry what used to be a section of a tab. Each is pushed, each opens
 with the shared header's one chevron, and each was moved rather than cut, because

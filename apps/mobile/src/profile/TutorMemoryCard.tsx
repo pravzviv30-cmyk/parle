@@ -1,9 +1,11 @@
 /**
  * Who your tutor is, and what your tutor remembers (F562, F576).
  *
- * One white card with two rows: the tutor, drawn as the orb and named by the
- * voice the learner chose, and the memory behind it. The first opens the voice
- * sheet on Profile, the second pushes the editing screen.
+ * Two rows: the tutor, drawn as the orb and named by the voice the learner
+ * chose, and the memory behind it. The first opens the voice sheet on Profile,
+ * the second pushes the editing screen. Since P2 (2026-10-19) they are drawn
+ * inside Profile's Learning group rather than on a card of their own, so they
+ * take the grouped list's padding and inset separator.
  *
  * ## The tutor is a mark, never a face
  *
@@ -27,9 +29,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { ChevronRight } from '../components.tsx';
-import { SettingsCard as Card, useSettingsColors } from '../settings/SettingsAppearance.tsx';
+import { useSettingsColors } from '../settings/SettingsAppearance.tsx';
+import { RowDivider, useInGroup } from '../settings/SettingsGroup.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
-import { accent, decorative, paper, radius, space, type, DISC, HAIRLINE, HIT } from '../theme.ts';
+import { decorative, paper, space, type, DISC, HIT } from '../theme.ts';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { tapSettled } from '../motion/haptics.ts';
 import { TutorMark } from '../tutor/TutorMark.tsx';
@@ -58,6 +61,10 @@ function TutorRow({
   first?: boolean;
 }) {
   const colors = useSettingsColors();
+  // Inside a group another row always comes first (Learning preferences on
+  // Profile), so the tutor row takes the separator too.
+  const grouped = useInGroup();
+  const divided = !first || grouped;
   return (
     <Pressable
       onPress={() => {
@@ -66,11 +73,12 @@ function TutorRow({
       }}
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${gloss}`}
-      style={({ pressed }) => [st.row, !first && st.divided, { borderTopColor: colors.border }, pressed && st.pressed, pressed && { backgroundColor: colors.background }]}
+      style={({ pressed }) => [st.row, pressed && st.pressed, pressed && { backgroundColor: colors.background }]}
     >
+      {divided ? <RowDivider /> : null}
       {mark}
       <View style={st.words}>
-        <Text style={[type.heading, { color: colors.text }]}>{title}</Text>
+        <Text style={[type.body, { color: colors.text }]}>{title}</Text>
         <Text style={[type.small, { color: colors.muted, marginTop: space(0.5) }]}>{gloss}</Text>
       </View>
       <ChevronRight color={colors.muted} />
@@ -84,7 +92,7 @@ export function TutorMemoryCard({ onVoice }: { onVoice: () => void }) {
   const { profile } = useProfile();
   const name = tutorNameOf(profile);
   return (
-    <Card style={st.card}>
+    <>
       <TutorRow first mark={<TutorMark />} title={name} gloss={PARTNER_LINE} onPress={onVoice} />
       <TutorRow
         mark={
@@ -96,15 +104,13 @@ export function TutorMemoryCard({ onVoice }: { onVoice: () => void }) {
         gloss={MEMORY_ROW_SUB}
         onPress={() => nav.navigate('TutorMemory')}
       />
-    </Card>
+    </>
   );
 }
 
 const st = StyleSheet.create({
-  card: { marginTop: space(2.5) },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2.5) },
-  divided: { borderTopWidth: HAIRLINE, borderTopColor: paper.lineOnCard },
-  pressed: { backgroundColor: paper.groundDeep, borderRadius: radius.row },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingHorizontal: space(4), paddingVertical: space(3.25) },
+  pressed: { backgroundColor: paper.groundDeep },
   words: { flex: 1, minWidth: 0 },
   // An ink glyph with no disc under it (notebook Phase 4, 2026-09-27), kept at
   // the orb's width so the two titles start on one line.

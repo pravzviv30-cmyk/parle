@@ -203,11 +203,16 @@ describe('Progress from its own records — F769', () => {
     }
     assert.equal(goalChoiceOf(7), 'none');
 
+    // P2 (2026-10-19): Profile says the level and the practice days on its
+    // Progress row, and the goal's five choices are on Learning preferences.
     const tab = read('../tabs/ProfileTab.tsx');
-    assert.ok(tab.indexOf('<TutorMemoryCard') < tab.indexOf('<ProfileStats />') && tab.indexOf('<ProfileStats />') < tab.indexOf('<DayCount />'), 'the tiles are not between the tutor and the lifetime count');
-    assert.match(tab, /GOAL_CHOICES\.map\(\(choice\) => \( <Choice/, 'the goal is not drawn as the five choices');
-    assert.match(tab, /selected=\{goalChoiceOf\(dailyGoalOf\(profile\)\) === choice\.key\}/);
-    assert.match(tab, /onPress=\{\(\) => update\(withDailyGoal\(profile, choice\.minutes\)\)\}/);
+    assert.match(tab, /level: level\?\.level \?\? null/, 'the Progress row does not read the level from the game view');
+    assert.match(tab, /label=\{PROGRESS_ROW\}/, 'Profile has no Progress row');
+    const prefs = read('../settings/LearningPreferencesScreen.tsx');
+    assert.match(prefs, /GOAL_CHOICES\.map\(\(choice\) => \(\s*<Choice/, 'the goal is not drawn as the five choices');
+    assert.match(prefs, /selected=\{goalChoiceOf\(dailyGoalOf\(profile\)\) === choice\.key\}/);
+    assert.match(prefs, /onPress=\{\(\) => update\(withDailyGoal\(profile, choice\.minutes\)\)\}/);
+    assert.doesNotMatch(prefs, /Days a week|reminderDays|daysAWeek/, 'the days-a-week question is back');
     assert.doesNotMatch(tab, /Days a week|reminderDays|daysAWeek/, 'the days-a-week question is back');
     const tiles = read('./ProfileStats.tsx');
     assert.match(tiles, /profileStatsView\(\{ streak: run, level: useLevel\(\)/);
