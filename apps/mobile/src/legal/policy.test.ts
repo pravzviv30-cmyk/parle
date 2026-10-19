@@ -262,7 +262,7 @@ describe('the privacy notice — F479', () => {
       ['RevenueCat', /Apple or Google takes the payment in its store, and RevenueCat handles the purchase/],
       ['Supabase', /Supabase runs the database that keeps your account and your learning, and the sign-in/],
       ['Upstash', /Upstash holds the counters that hold cost and abuse in check, under a scrambled marker/],
-      ['Railway', /Railway runs our server/],
+      ['Railway', /Our server runs on computers we rent from Railway/],
     ];
     const seen = POLICY_SECTIONS.find((section) => section.heading === 'Who else sees it');
     assert.ok(seen, 'the notice stopped saying who else sees what a learner says');
@@ -525,8 +525,8 @@ describe('the privacy notice — F479', () => {
 
     // And bounded the other way, because overclaiming is its own untruth: an
     // account and a purchase cross, and not one word of French.
-    assert.match(said, /it hears none of your French/);
-    assert.match(said, /No audio, no words you said and nothing you are learning goes to it\./);
+    assert.match(said, /none of them hears any of your French/);
+    assert.match(said, /No audio, no words you said and nothing you are learning goes to any of them\./);
 
     // The two calls the paragraph is about, so this fails when the purchase path
     // changes shape rather than only when somebody edits the copy.
@@ -593,7 +593,7 @@ describe('the privacy notice — F479', () => {
     // "The ones above" has to point at something, so the two recipients the
     // count hid are named there. Our own server is companies we pay to hold
     // things, and neither of those was in the notice either.
-    assert.match(said, /The server this notice calls ours runs on computers we rent\./, 'the notice lets a rented database read as a machine of ours');
+    assert.match(said, /Our server runs on computers we rent from Railway\./, 'the notice lets a rented database read as a machine of ours');
     assert.match(said, /under a scrambled marker rather than your name/, 'the notice stopped saying what the counter store is keyed by');
     assert.match(DOC, /Our server is somebody else's computer/, 'the document stopped naming the companies behind "our server"');
     assert.match(DOC, /Recipients are bounded by purpose, not by a count/, 'the document stopped holding the rule this entry exists for');
@@ -664,7 +664,7 @@ describe('the privacy notice — F479', () => {
     assert.match(said, /Another is the language model/, 'the language model is the fifth of something again');
     assert.match(said, /What you say reaches these services during a session/, 'what a learner says reaches a number again');
     assert.match(said, /Nothing more about that session reaches any of them after that, unless you practise a phrase from it\./, 'the sending after a session stops at a number again');
-    assert.match(said, /Paying for Luvani brings in another company/, 'the payment company is counted rather than named');
+    assert.match(said, /Paying for Luvani brings in other companies, and none of them hears any of your French\./, 'the payment company is counted rather than named');
 
     // What a count is NOT. The opening enumeration gives each service the job it
     // does, and a new vendor edits that sentence exactly as it edits the rest of
@@ -678,7 +678,7 @@ describe('the privacy notice — F479', () => {
 
     // The paragraph nobody was looking at. Two rented holders were tied together
     // by a word that means two, which is the same construction one size down.
-    const rented = seen.body.find((paragraph) => paragraph.startsWith('The server this notice calls ours'));
+    const rented = seen.body.find((paragraph) => paragraph.startsWith('Our server runs on computers we rent'));
     assert.ok(rented, "the notice stopped saying that our server is somebody else's computer");
     assert.doesNotMatch(rented, /\b(both|neither|either)\b/i, 'the rented database and the counter store are tied together by a word that counts them');
     assert.match(rented, /They hold what is described above so that we can, and nothing else is sent to them\./);
