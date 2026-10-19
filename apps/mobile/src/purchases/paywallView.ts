@@ -114,6 +114,8 @@ export function inlinePaywall(offering: StoreOffering): InlinePaywallView {
 
 export const PURCHASE_TROUBLE ='The store could not finish that just now. Nothing was changed, and you can try later.';
 export const REFRESH_TROUBLE = 'The store finished, but speaking time is still catching up. Try again in a moment.';
+/** Ask to Buy: the store is holding the purchase until a parent or organiser approves it. */
+export const PURCHASE_AWAITING_APPROVAL = 'Someone on your Family Sharing account needs to approve this. Nothing has been charged yet. Your plan will appear here once it is approved.';
 export const PURCHASE_READY = 'Your speaking time is ready.';
 
 /**
@@ -137,6 +139,7 @@ export const RESTORE_BUSY = 'Checking the store…';
 export function restoreTrouble(outcome: RestoreOutcome): string | null {
   if (outcome.kind === 'store-trouble') return PURCHASE_TROUBLE;
   if (outcome.kind === 'refresh-trouble') return REFRESH_TROUBLE;
+  if (outcome.kind === 'awaiting-approval') return PURCHASE_AWAITING_APPROVAL;
   // The store finished and the server granted nothing. On this surface that has
   // just followed a purchase, so the honest reading is that the grant has not
   // arrived yet rather than that the learner owns nothing. Settings reads the

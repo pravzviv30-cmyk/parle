@@ -92,10 +92,16 @@ export type StoreOffering =
   | { available: false }
   | { available: true; products: readonly StoreProduct[]; yearly?: readonly StoreProduct[]; weekly?: readonly StoreProduct[] };
 
+/**
+ * What the store said. `deferred` is StoreKit's Ask to Buy (or any purchase
+ * the store holds as pending): nobody has paid yet, so it carries no grant, no
+ * trial and no plan. Entitlement still arrives only from the server's verified
+ * state, if and when the store later completes the transaction.
+ */
 export type StoreAction =
   | { ok: true }
   | { ok: false; cancelled: true }
-  | { ok: false; cancelled: false };
+  | { ok: false; cancelled: false; deferred?: true };
 
 export interface PurchasesAdapter {
   offering(userId: string): Promise<StoreOffering>;

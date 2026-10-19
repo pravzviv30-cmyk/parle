@@ -17,7 +17,7 @@
 
 import { ALLOWANCE_WINDOW_DAYS, STORE_TRIAL_DAYS, type Plan, type PlanSpec } from '@luvani/core';
 
-import { PURCHASE_TROUBLE, REFRESH_TROUBLE } from '../purchases/paywallView.ts';
+import { PURCHASE_AWAITING_APPROVAL, PURCHASE_TROUBLE, REFRESH_TROUBLE } from '../purchases/paywallView.ts';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
 import type { TrialNodeKey, TrialTimelineView } from './trialTimeline.ts';
 import { dayAndMonth } from './wallAccount.ts';
@@ -29,6 +29,7 @@ import {
   PAYWALL_BILLED_YEARLY,
   PAYWALL_FAILED_BODY,
   PAYWALL_FAILED_TITLE,
+  PAYWALL_APPROVAL_TITLE,
   PAYWALL_PURCHASING,
   PAYWALL_RESTORE_NONE_BODY,
   PAYWALL_RESTORE_NONE_TITLE,
@@ -225,8 +226,18 @@ export interface PaywallNotice {
 export function paywallNotice(message: string | null, last: 'buy' | 'restore' | null): PaywallNotice | null {
   if (message === null) return null;
   if (message === PURCHASE_TROUBLE && last === 'buy') return { title: PAYWALL_FAILED_TITLE, body: PAYWALL_FAILED_BODY, danger: true };
+  if (message === PURCHASE_AWAITING_APPROVAL) return { title: PAYWALL_APPROVAL_TITLE, body: PURCHASE_AWAITING_APPROVAL, danger: false };
   if (message === REFRESH_TROUBLE && last === 'restore') return { title: PAYWALL_RESTORE_NONE_TITLE, body: PAYWALL_RESTORE_NONE_BODY, danger: false };
   return { title: null, body: message, danger: false };
+}
+
+/**
+ * The Ask to Buy card on the pending-checkout page, or null for the default one. The checkout fence stays up while a
+ * purchase is deferred, so nobody buys twice; only the words change.
+ */
+export function pendingCheckoutNotice(message: string | null): PaywallNotice | null {
+  if (message === PURCHASE_AWAITING_APPROVAL) return { title: PAYWALL_APPROVAL_TITLE, body: PURCHASE_AWAITING_APPROVAL, danger: false };
+  return null;
 }
 
 /** The footer button's words and look while the offer is on screen. */

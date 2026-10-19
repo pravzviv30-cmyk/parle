@@ -1,5 +1,14 @@
 # RevenueCat setup for Luvani
 
+> **Deferred 2026-10-19:** App Store Connect and RevenueCat setup waits until the
+> founder has an Apple Developer Program membership (paid, individual or
+> organisation). Prices are still undecided.
+>
+> UK starting suggestion, **not a decision and not yet checked against Apple's
+> proceeds**: Starter £14.99 monthly or £149.99 yearly, Max £22.99 monthly or
+> £219.99 yearly. The reason: UK store prices include 20% VAT, so a £119.99
+> yearly Starter would earn below its full-use cost.
+
 Luvani already has a native RevenueCat adapter and server-owned subscription
 verification. Complete the store and dashboard configuration below to activate
 real purchases. The identifiers in this document are **proposals, not configured

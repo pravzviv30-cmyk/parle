@@ -49,7 +49,7 @@ The paywall uses the approved P2 Luvani design (Figma `sjAwoGinWQKvhGrWbgMO18`, 
   - Learning preferences: includes the Conversation starting point, editing `practicePreferences.level` with newest-edit-wins sync.
   - Settings: six groups.
   - Subscription: never says "Free" when the plan is unknown.
-- **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested.
+- **Real purchases:** unverified until the App Store and RevenueCat setup in `REVENUECAT_SETUP.md` is done and sandbox-tested. That setup is deferred (2026-10-19) until the founder has an Apple Developer Program membership; prices are undecided.
 - **Appearance:** `main/MainAppearance.tsx` gives these screens an account-scoped appearance, and `main/appearanceModel.ts` pins it to light (`DARK_MODE_ENABLED`). Their dark palettes are defined but unused, and Settings shows no display choice (KNOWN_ISSUES F847).
 - **Branch status:** this work is on branch `paywall-on-c2`, replayed on top of `main`'s C2 redesign, and is not yet on `main`.
 

@@ -24,3 +24,12 @@ test('store settlement distinguishes cancellation, no grant and a verified paid 
   assert.deepEqual(await ownedStoreSettlement(async () => ({ ok: true }), async () => ({ granted: false, plan: 'trial' }), yes), { kind: 'nothing-granted' });
   assert.deepEqual(await ownedStoreSettlement(async () => ({ ok: true }), async () => ({ granted: true, plan: 'regular' }), yes), { kind: 'done', plan: 'regular' });
 });
+
+test('a deferred store purchase grants nothing: no refresh, no plan, no trial', async () => {
+  let refreshes = 0;
+  const outcome = await ownedStoreSettlement(async () => ({ ok: false, cancelled: false, deferred: true }),
+    async () => { refreshes++; return { granted: true, plan: 'regular' }; }, () => true);
+  assert.deepEqual(outcome, { kind: 'awaiting-approval' });
+  assert.equal(refreshes, 0, 'a deferred purchase asked the server for a grant');
+  assert.ok(!('plan' in outcome), 'a deferred purchase claimed a plan');
+});

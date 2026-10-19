@@ -221,3 +221,30 @@ describe('an available offering always shows a priced offer', () => {
     }
   });
 });
+
+describe('Ask to Buy (F845)', () => {
+  test('a deferred store purchase is reported to the wall as waiting for approval', async () => {
+    // react-native-purchases rejects purchasePackage with PAYMENT_PENDING_ERROR
+    // ("20") and userCancelled false when StoreKit defers the transaction.
+    const { storeActionFromError } = await import('../purchases/storeError.ts');
+    const deferred = storeActionFromError({ code: '20', userCancelled: false });
+    assert.deepEqual(deferred, { ok: false, cancelled: false, deferred: true });
+    assert.deepEqual(storeActionFromError({ code: '1', userCancelled: true }), { ok: false, cancelled: true });
+    assert.deepEqual(storeActionFromError(new Error('boom')), { ok: false, cancelled: false });
+
+    const { ownedStoreSettlement } = await import('../purchases/storeSettlement.ts');
+    const outcome = await ownedStoreSettlement(async () => deferred, async () => { throw new Error('must not refresh'); }, () => true);
+    assert.deepEqual(outcome, { kind: 'awaiting-approval' });
+
+    const paywallView = await import('../purchases/paywallView.ts') as Record<string, unknown>;
+    const message = (paywallView.restoreTrouble as (o: unknown) => string | null)(outcome);
+    assert.notEqual(message, null);
+    const notice = paywallNotice(message, 'buy');
+    assert.equal(notice?.title, 'Waiting for approval');
+    assert.equal(notice?.danger, false);
+    assert.doesNotMatch(`${notice?.title} ${notice?.body}`, /—/, 'an em dash in learner copy');
+    const { pendingCheckoutNotice } = await import('./trialPaywall.ts') as unknown as { pendingCheckoutNotice: (m: string | null) => { title: string | null } | null };
+    assert.equal(pendingCheckoutNotice(message)?.title, 'Waiting for approval');
+    assert.equal(pendingCheckoutNotice(null), null, 'the ordinary pending checkout lost its own card');
+  });
+});

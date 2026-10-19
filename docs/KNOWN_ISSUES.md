@@ -10888,9 +10888,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F845 — The paywall cannot show Ask to Buy approval, because the adapter never reports a deferred purchase
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/contract.ts:1
 - note: Found 2026-10-19 while building the approved "P2 · Luvani" trial paywall. Its spec has a "Waiting for approval" notice for Ask to Buy, but a StoreKit deferred transaction reaches the wall as no distinct outcome: `StoreAction` and `RestoreOutcome` only carry ok/cancelled/store-trouble/refresh-trouble/nothing-granted. So the wall draws its existing pending-checkout state ("Waiting for confirmation"), which keeps the money guarantees but cannot say "approval". Separately, `restoreTrouble` folds a restore's nothing-granted and refresh-trouble into one message, so the "No subscription found" notice words its body to stay true of both. A deferred outcome in the contract (revenue-engineer) would let `wall/trialPaywall.ts` `paywallNotice` say the spec's words. (Filed as F810 on the paywall branch; renumbered when replayed onto the C2 base, where F810 was taken.)
+- fixed: 2026-10-19. `StoreAction` gains `deferred`; the RevenueCat adapter maps PAYMENT_PENDING_ERROR ("20") to it via `purchases/storeError.ts`; settlement reports `awaiting-approval` without asking the server, so nothing is granted and the checkout fence stays up; the wall says "Waiting for approval". Money pins re-pinned with founder approval. Still open: the `restoreTrouble` nothing-granted/refresh-trouble split, and a reopened wall reverts to "Waiting for confirmation".
 - verified-by: `a deferred store purchase is reported to the wall as waiting for approval`
 
 ### F846 — Most pushed screens still draw a white back disc in dark mode
