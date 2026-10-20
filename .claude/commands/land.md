@@ -113,8 +113,9 @@ git branch -d <branch>          # retire the label, now that main carries the wo
 pushing is the last honest check; let it run rather than working around it.
 
 **Delete the branch in the same breath as the merge.** Work leaves this repo by going to
-`main` and pushing `main`, so a landed branch has nothing left to say and is never pushed on
-its own. Left alone the labels accumulate, and a later reader cannot tell a branch holding
+`main` and pushing `main`, so a landed branch has nothing left to say. (Since 2026-10-20 a
+branch with unlanded work may be pushed under its own name as a backup; once it lands,
+delete it locally and on `origin`.) Left alone the labels accumulate, and a later reader cannot tell a branch holding
 real unpushed work from one that merged three weeks ago. Use lowercase `-d`, which refuses
 anything unmerged and so cannot lose work. If git objects that the branch is not merged to
 its *upstream* even though it is merged to HEAD, that is a stale remote pointer rather than
