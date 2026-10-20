@@ -161,6 +161,14 @@ export function pickUp(input: {
 
 // ─────────────────────────────────────────────────────────────── comes up often
 
+/**
+ * 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" returns built
+ * from a stored correction reason kept with each fix, once
+ * docs/PRIVACY_AND_SAFETY.md has a row for it. The logic below stays tested;
+ * no screen draws it while this is false.
+ */
+export const COMES_UP_OFTEN_ENABLED = false;
+
 export const COMES_UP_TITLE = 'Comes up often in your conversations';
 export const COMES_UP_SHORT = 'Comes up often';
 export const PRACTISE_THIS = 'Practise this';

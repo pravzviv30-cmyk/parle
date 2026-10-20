@@ -28,6 +28,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { COMES_UP_OFTEN_ENABLED } from '../practice/practiceTabView.ts';
+
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
 /** Comments may say anything; only what reaches glass is under test. */
@@ -68,9 +70,10 @@ function at(marker: string): number {
 
 describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3, B-Practice', () => {
   test('the page puts the conversations before the optional sound guide', () => {
+    // 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" left the order.
     // Artboard order: chips, pick up, comes up often, your conversations, then
     // the mix, saved phrases and the sound doors.
-    const order = ['<TabHeader', 'chips.map(', '{PICK_UP_TITLE}', '{COMES_UP_TITLE}', '{CONVERSATIONS_TITLE}', '{MIX_TITLE}', '{savedRows}', 'Hear, say and compare', '<TuneSoundCard'];
+    const order = ['<TabHeader', 'chips.map(', '{PICK_UP_TITLE}', '{CONVERSATIONS_TITLE}', '{MIX_TITLE}', '{savedRows}', 'Hear, say and compare', '<TuneSoundCard'];
     // savedRows is drawn twice (the empty page draws it too); read the full page.
     const full = RENDER.slice(RENDER.indexOf('!newLearner && (() =>'));
     assert.ok(full.length > 0, 'the full page is not its own branch');
@@ -155,6 +158,17 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
     assert.match(FLAT, /\{library\.olderPage && <OutlineButton label=\{NEWEST\}/);
   });
 
+  // 2026-10-20, B3.1, founder: hide until Phase C.
+  test('"Comes up often" is not drawn on Practice or Your fixes while its flag is off', () => {
+    assert.equal(COMES_UP_OFTEN_ENABLED, false);
+    for (const file of ['./PracticeTab.tsx', '../practice/FixesScreen.tsx']) {
+      const source = stripComments(read(file));
+      for (const drawn of ['comesUpOften(', 'COMES_UP_TITLE', 'COMES_UP_SHORT', 'PRACTISE_THIS']) {
+        assert.ok(!source.includes(drawn), `${file} draws ${drawn} while Comes up often is hidden`);
+      }
+    }
+  });
+
   test('a fix is tried on Your fixes, not replayed from the tab', () => {
     for (const gone of ['ReplayMomentCard', 'MakePhraseCard', 'madeFromConversations', 'moment:']) {
       assert.ok(!SCREEN.includes(gone), `${gone} is back on Practice; a fix is tried first on Your fixes`);
@@ -214,7 +228,7 @@ describe('Practice goes back to the learner\'s conversations — 2026-10-20, B3,
   test('every block that can be empty is gated, and a failed read says so', () => {
     assert.match(FLAT, /\{library\.failed && \(/, 'a read that never finished leaves the learner on a page that says nothing');
     assert.match(FLAT, /\{library\.cached && \(/, 'a page drawn from the phone does not say so');
-    for (const gate of ['{chips.length > 0 && (', '{resume !== null && (', '{patterns.length > 0 && (', '{mix !== null && (', '{week !== null && ', '{card.kept.length > 0 && (', '{shadowPhrase && (']) {
+    for (const gate of ['{chips.length > 0 && (', '{resume !== null && (', '{mix !== null && (', '{week !== null && ', '{card.kept.length > 0 && (', '{shadowPhrase && (']) {
       assert.ok(SCREEN.includes(gate), `\`${gate}\` is gone, so an empty block draws its heading over nothing`);
     }
   });

@@ -1,8 +1,8 @@
 /**
  * Practice, built to direction B (B3, 2026-10-20, artboards B-Practice and
  * B-Empty-Practice). The learner goes back to their own conversations: topic
- * chips over the page, the sitting they stopped, the patterns that come up
- * often, each conversation with its fixes, three practice steps and a revisit,
+ * chips over the page, the sitting they stopped ("Comes up often" is hidden until Phase C),
+ * each conversation with its fixes, three practice steps and a revisit,
  * the mix, saved phrases and saved text, and one honest door to sound practice.
  * A learner with no conversation yet meets the empty page and one pill.
  *
@@ -29,7 +29,6 @@ import { useRecordedLine } from '../practice/recordedPlayer.ts';
 import { soundLead } from '../practice/soundLead.ts';
 import {
   CONVERSATIONS_TITLE,
-  COMES_UP_TITLE,
   EMPTY,
   EMPTY_SUBTITLE,
   MIX_TITLE,
@@ -38,11 +37,9 @@ import {
   PICK_UP_TITLE,
   PRACTICE_SUBTITLE,
   PRACTISE_CONVERSATION,
-  PRACTISE_THIS,
   SAVED_PHRASES,
   SAVED_TEXT,
   chosenTopic,
-  comesUpOften,
   conversationCard,
   isNewLearner,
   mixCard,
@@ -232,7 +229,6 @@ export function PracticeTab() {
           const chosen = chosenTopic(data.page, topic);
           const shown = packsInTopic(data.page, chosen);
           const resume = pickUp({ saved: data.session, packs: data.packs, deck: data.deck, bank: data.bank, now });
-          const patterns = comesUpOften({ patterns: profile.brain?.errorPatterns, packs: data.packs, bank: data.bank });
           const mix = mixCard({ deck: data.deck, bank: data.bank, topics: data.topics, now });
           const week = thisWeekLine(data.page, now);
           return (
@@ -256,21 +252,7 @@ export function PracticeTab() {
                   </ColourCard>
                 )}
 
-                {patterns.length > 0 && (
-                  <ColourCard ground="pastel.butter">
-                    <View style={st.titleRow}>
-                      <Text accessibilityRole="header" style={[type.label, st.grow, { color: paper.ink }]}>{COMES_UP_TITLE}</Text>
-                      {patterns.some((p) => p.locked) && <LockBadge ground="card" />}
-                    </View>
-                    {patterns.map((p) => (
-                      <View key={p.tag} style={st.small}>
-                        <Text style={[type.bodyStrong, { color: paper.ink }]}>{p.title}</Text>
-                        <Text style={[type.small, { color: paper.inkSoft }]}>{p.hint}</Text>
-                        {p.practise !== null && <PillButton variant="secondary" compact label={PRACTISE_THIS} accessibilityLabel={`${PRACTISE_THIS}, ${p.title}`} onPress={() => go(p.practise!)} />}
-                      </View>
-                    ))}
-                  </ColourCard>
-                )}
+                {/* 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" returns built from a stored correction reason. */}
 
                 <View style={st.stack}>
                   <View style={st.titleRow}>

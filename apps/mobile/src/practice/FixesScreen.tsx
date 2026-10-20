@@ -20,10 +20,9 @@ import { Card, ColourCard, Field, FrenchBlock, LockBadge, OutlineButton, PillBut
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { frenchText, paper, radius, space, type } from '../theme.ts';
 import type { RootStackParamList } from '../nav/types.ts';
-import { useProfile } from '../app/ProfileContext.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { useLibraryData } from './useLibraryData.ts';
-import { COMES_UP_SHORT, PRACTISE_THIS, comesUpOften, type PracticeRoute } from './practiceTabView.ts';
+import type { PracticeRoute } from './practiceTabView.ts';
 import {
   FIXES_TITLE,
   FIX_COPY,
@@ -45,7 +44,6 @@ export function FixesScreen() {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void; goBack: () => void; canGoBack: () => boolean }>();
   const route = useRoute<RouteProp<RootStackParamList, 'Fixes'>>();
   const packId = typeof route.params?.packId === 'string' ? route.params.packId : '';
-  const { profile } = useProfile();
   const library = useLibraryData();
   const { data } = library;
   const [scope, setScope] = useState<FixesScope>('this');
@@ -110,7 +108,6 @@ export function FixesScreen() {
 
   const fixes = fixesFor({ pack, packs: data.packs, deck: data.deck, bank: data.bank, scope, now });
   const rows = fixRows(fixes, { active, typed });
-  const patterns = comesUpOften({ patterns: profile.brain?.errorPatterns, packs: data.packs, bank: data.bank });
   const all = practiseAll(fixes, scope, pack.id);
   const phrases = phraseRows(pack, data.deck);
   const locked = fixesLocked();
@@ -125,18 +122,7 @@ export function FixesScreen() {
 
         <TabBar tabs={SCOPES} active={scope} accessibilityLabel="Which fixes" onChange={(key) => { setScope(key); setActive(null); setTyping(null); setDraft(''); }} />
 
-        {patterns.length > 0 && (
-          <ColourCard ground="pastel.butter">
-            <Text accessibilityRole="header" style={[type.label, { color: paper.ink }]}>{COMES_UP_SHORT}</Text>
-            {patterns.map((p) => (
-              <View key={p.tag} style={st.small}>
-                <Text style={[type.bodyStrong, { color: paper.ink }]}>{p.title}</Text>
-                <Text style={[type.small, { color: paper.inkSoft }]}>{p.hint}</Text>
-                {p.practise !== null && <PillButton variant="secondary" compact label={PRACTISE_THIS} accessibilityLabel={`${PRACTISE_THIS}, ${p.title}`} onPress={() => go(p.practise!)} />}
-              </View>
-            ))}
-          </ColourCard>
-        )}
+        {/* 2026-10-20, B3.1, founder: hide until Phase C. "Comes up often" returns built from a stored correction reason. */}
 
         {rows.length === 0 && <Text style={[type.body, { color: paper.inkSoft }]}>{FIX_COPY.none}</Text>}
         {rows.map((row) => {
