@@ -3,6 +3,7 @@ name: onboarding-ux-engineer
 description: Owns welcome, sign-up handoff, consent and AI disclosure, first-run questions, microphone readiness, and time to first useful French.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

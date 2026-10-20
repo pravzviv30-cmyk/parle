@@ -69,6 +69,19 @@ describe('product event privacy boundary', () => {
     );
   });
 
+  test('the wall accepts the launch and locked doors and no others (D24)', () => {
+    for (const entry of ['path-complete', 'refused', 'settings', 'recap', 'launch', 'locked']) {
+      assert.notEqual(parseProductEvent({ name: 'wall_shown', properties: { entry, pages: 4 } }), null, `wall_shown refused the ${entry} door`);
+      assert.notEqual(
+        parseProductEvent({ name: 'wall_left', properties: { entry, outcome: 'unchanged', destination: 'back' } }),
+        null,
+        `wall_left refused the ${entry} door`,
+      );
+    }
+    assert.equal(parseProductEvent({ name: 'wall_shown', properties: { entry: 'banner', pages: 4 } }), null);
+    assert.equal(parseProductEvent({ name: 'wall_left', properties: { entry: 'banner', outcome: 'unchanged', destination: 'back' } }), null);
+  });
+
   test('rejects arbitrary event names', () => {
     assert.equal(parseProductEvent({ name: 'anything_we_felt_like', properties: {} }), null);
   });

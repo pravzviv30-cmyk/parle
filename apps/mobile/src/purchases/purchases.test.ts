@@ -34,7 +34,7 @@ const SUBSCRIPTION = read('./subscription.ts');
 const SETTINGS_SCREEN = read('../settings/SettingsScreen.tsx');
 
 /** One store product, as the store would hand it over. */
-const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): StoreProduct => ({
+const product = (plan: PaidPlan, localizedPrice: string, title = 'Core'): StoreProduct => ({
   plan,
   productId: `luvani_${plan}_monthly`,
   title,
@@ -93,7 +93,7 @@ describe('the shared paywall — F250', () => {
       'a blank store price is not a product',
     );
     const shown = paywallSurface({ available: true, products: [product('starter', '£14.99')] });
-    assert.equal(shown?.purchaseLabel, 'Continue with Starter · £14.99');
+    assert.equal(shown?.purchaseLabel, 'Continue with Core · £14.99');
 
     // Two tiers, one button. The terminal refusal offers the cheapest and never a
     // choice: somebody who has just been stopped at a room door is not in a
@@ -103,7 +103,7 @@ describe('the shared paywall — F250', () => {
       products: [product('regular', '£24.99', 'Max'), product('starter', '£14.99')],
     });
     assert.equal(both?.product.plan, 'starter', 'the refusal block offers the dearer tier');
-    assert.equal(both?.purchaseLabel, 'Continue with Starter · £14.99');
+    assert.equal(both?.purchaseLabel, 'Continue with Core · £14.99');
 
     // And it names what the store named. A build configured with only the second
     // product would otherwise have offered Max under the word Starter, with a

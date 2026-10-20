@@ -51,6 +51,8 @@
  */
 
 import {
+  FREEZE_CAP,
+  FREE_FREEZE_CAP,
   QUEST_XP,
   addDays,
   freezesToApply,
@@ -79,7 +81,7 @@ import type { PersistAck } from '../storage/ack.ts';
 import { activeUserId, onUserScopeReset, scopeGeneration } from '../storage/scope.ts';
 import type { GameDelta, SittingSource } from './delta.ts';
 import { eventsFromDelta } from './events.ts';
-import { enqueueCelebrations, loadGameLocal, setLastPracticeOffset, setPaidSince, type GameLocal } from './gameLocal.ts';
+import { enqueueCelebrations, loadGameLocal, setLastPracticeOffset, setPaidSince, setProtectedSince, type GameLocal } from './gameLocal.ts';
 import { MAX_SITTING_ACTIVE_MS, isSittingSource, seenIn, type QuestClaimRow, type StoredGame } from './model.ts';
 import { readOutsideFacts } from './sources.ts';
 import {
@@ -274,19 +276,25 @@ function coversToApply(i: {
   now: number;
   mode: 'practice' | 'quiet';
   paidSince: DayKey | null;
+  protectedSince: DayKey | null;
   offsetNow?: number;
   offsetBefore: number | null;
 }): StreakCover[] {
   const protection = protectionOf(i.facts.billing);
   if (protection === null) return [];
   const input = { practiceDays: i.facts.practiceDays, covers: i.facts.game.covers, today: i.today };
-  // Travel first, so a trip never spends a freeze. Entitled-only, as freezes are (D4).
-  if (i.mode === 'practice' && protection.freezes && i.offsetNow !== undefined) {
+  const paid = protection.cap >= FREEZE_CAP;
+  // Travel first, so a trip never spends a freeze. Paid-only, as it was (D4).
+  if (i.mode === 'practice' && paid && i.offsetNow !== undefined) {
     const day = travelCover({ ...input, entitled: true, offsetNow: i.offsetNow, offsetBefore: i.offsetBefore });
     if (day !== null) return [{ day, kind: 'travel', at: i.now }];
   }
   if (protection.freezes) {
-    const days = freezesToApply({ ...input, entitled: true, paidSince: i.paidSince });
+    // A paid plan's two freezes never reach before the plan (paidSince); the
+    // one every learner holds reaches back only to protectedSince (D23). So a
+    // plan bought after a gap cannot spend its second freeze on that gap.
+    const both = paid ? freezesToApply(protection.cap, { ...input, protectedSince: i.paidSince }) : [];
+    const days = both.length > 0 ? both : freezesToApply(Math.min(protection.cap, FREE_FREEZE_CAP), { ...input, protectedSince: i.protectedSince });
     if (days.length > 0) return days.map((day) => ({ day, kind: 'freeze' as const, at: i.now }));
   }
   // A repair is earned by practice (two finished sittings in the window) and
@@ -312,17 +320,26 @@ export async function reconcileGame(input: ReconcileInput): Promise<Reconciled |
   let facts = await readGameFacts(outside, billing);
   const local: GameLocal | null = await safely(() => loadGameLocal(), null);
 
-  // The first day this phone saw a paid plan (its own calendar day, whatever
-  // day the facts are for), and forgetting it when the plan goes. Unknown
-  // billing changes nothing.
+  // The first day this phone saw a paid plan, and the first day it saw any
+  // plan holding a freeze (the free plan's one, D23), each on its own calendar
+  // day whatever day the facts are for, and forgetting each when it goes. So no
+  // freeze is ever applied to a day before it was held. Unknown billing
+  // changes nothing.
   const protection = protectionOf(billing);
   const observed = localDayKey(input.now);
   let paidSince = local?.paidSince ?? null;
+  let protectedSince = local?.protectedSince ?? null;
   if (protection !== null && local !== null && input.live()) {
-    if (protection.freezes && paidSince === null) {
+    const paid = protection.cap >= FREEZE_CAP;
+    if (paid && paidSince === null) {
       if ((await setPaidSince(observed)) === 'durable') paidSince = observed;
-    } else if (!protection.freezes && paidSince !== null) {
+    } else if (!paid && paidSince !== null) {
       if ((await setPaidSince(null)) === 'durable') paidSince = null;
+    }
+    if (protection.freezes && protectedSince === null && input.live()) {
+      if ((await setProtectedSince(observed)) === 'durable') protectedSince = observed;
+    } else if (!protection.freezes && protectedSince !== null && input.live()) {
+      if ((await setProtectedSince(null)) === 'durable') protectedSince = null;
     }
   }
 
@@ -332,6 +349,7 @@ export async function reconcileGame(input: ReconcileInput): Promise<Reconciled |
     now: input.now,
     mode: input.mode,
     paidSince,
+    protectedSince,
     ...(input.offsetNow === undefined ? {} : { offsetNow: input.offsetNow }),
     offsetBefore: local?.lastPracticeOffsetMin ?? null,
   });

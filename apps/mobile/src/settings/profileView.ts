@@ -24,7 +24,7 @@
 
 import { GAME_COPY } from '../game/copy.ts';
 import { GOAL_CHOICES, goalChoiceOf } from '../game/profileStatsView.ts';
-import { PLAN_LABELS, type PlanStatusView } from '../purchases/planStatus.ts';
+import { PLAN_LABELS, planSentence, type PlanStatusView } from '../purchases/planStatus.ts';
 import { STATED_LEVEL_OPTIONS, type StatedLevel } from '../profile/practicePreferences.ts';
 import { STRICTNESS_OPTIONS, type Strictness } from '../tutor/strictness.ts';
 
@@ -140,7 +140,7 @@ export function statedLevelTitle(level: StatedLevel | null | undefined): string 
   return STATED_LEVEL_OPTIONS.find((option) => option.key === level)?.title ?? STARTING_POINT_UNSET;
 }
 
-/** Whether a stored plan view is the free minutes every account starts with. */
+/** Whether a stored plan view is the free plan (D24: five minutes every week). */
 function isFree(view: Extract<PlanStatusView, { known: true }>): boolean {
   return view.planLabel === PLAN_LABELS.trial;
 }
@@ -154,7 +154,7 @@ function isFree(view: Extract<PlanStatusView, { known: true }>): boolean {
 export function planRow(view: PlanStatusView | null): { label: string; sub: string } {
   if (view === null) return { label: PLAN_GROUP_TITLE, sub: PLAN_CHECKING };
   if (!view.known) return { label: PLAN_GROUP_TITLE, sub: PLAN_UNKNOWN_TITLE };
-  return { label: isFree(view) ? PLAN_FREE_TITLE : view.planLabel, sub: `${view.bandLine} ${view.periodLine}` };
+  return { label: isFree(view) ? PLAN_FREE_TITLE : view.planLabel, sub: planSentence(view.bandLine, view.periodLine) };
 }
 
 export type SubscriptionView =

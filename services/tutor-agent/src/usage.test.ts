@@ -15,9 +15,9 @@ describe('usage reporting', () => {
     const refund = { ...report, seconds: 100, serviceFailure: 'tts_error' as const };
     const base = { tokenServer: 'https://api.luvani.test', agentSecret: 'agent-secret', attempts: 1 };
     assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response('{}', { status: 503 }) }), { kind: 'pending' });
-    assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response(JSON.stringify({ secondsRemaining: 1800 }), { status: 200 }) }), { kind: 'pending' });
+    assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response(JSON.stringify({ secondsRemaining: 200 }), { status: 200 }) }), { kind: 'pending' });
     assert.deepEqual(await reportUsage(refund, { ...base, request: async () => new Response('{}', { status: 409 }) }), { kind: 'reconciliation' });
-    const ack = { kind: 'restored-current-period', refundedSeconds: 100, secondsRemaining: 1800, plan: 'trial' };
+    const ack = { kind: 'restored-current-period', refundedSeconds: 100, secondsRemaining: 200, plan: 'trial' };
     let sent: Record<string, unknown> = {};
     const confirmed = await reportUsage(refund, { ...base, request: async (_url, options) => {
       sent = JSON.parse(String(options?.body));
@@ -31,7 +31,7 @@ describe('usage reporting', () => {
     const bodies: string[] = [];
     const request = async (_input: string | URL | Request, init?: RequestInit) => {
       bodies.push(String(init?.body));
-      return new Response(JSON.stringify({ secondsRemaining: 1800 }), { status: 200 });
+      return new Response(JSON.stringify({ secondsRemaining: 200 }), { status: 200 });
     };
 
     await reportUsage(report, {

@@ -182,6 +182,8 @@ try {
   const downgraded=await complete(8,8,2,90,1);assert.equal(downgraded.receipt.chargedSeconds,0);assert.equal((await entitlement(8)).seconds_used,70);
   await reserve(8,88);await claim(8,88);await age(88);await db.query("update public.entitlements set period_end='2027-02-01',seconds_used=25 where user_id=$1",[uuid(8)]);
   assert.equal((await complete(8,88,1,60,1)).receipt.chargedSeconds,0);assert.equal((await entitlement(8)).seconds_used,25);
+  // This database reapplied the lifecycle migration alone above, so its cap is that file's 1800-second trial.
+  // The D24 five-minute taste and its 180/181 boundary are proved on the fresh replay below.
   await db.query('update public.entitlements set seconds_used=1680 where user_id=$1',[uuid(9)]);assert.equal((await reserve(9,9)).reservedSeconds,120);
   await call('abandon_tutor_session_v1',[uuid(9),sid(9)]);
   await db.query('update public.entitlements set seconds_used=1681 where user_id=$1',[uuid(9)]);assert.equal((await reserve(9,99)).reason,'insufficient-for-session');
@@ -262,6 +264,121 @@ try {
   await refuseRollback(/ever.*issued/i);
   assert.ok(Number((await db.query('select sum(issued_seconds)::bigint n from public.tutor_session_budget_days')).rows[0].n)>0);
   groups.push('issued-schema rollback remains forbidden after every owned grant/account is deleted');
+
+  // D24 weekly free taste, on a fresh replay of every migration. Separate from
+  // the database above because that one rolls the lifecycle migration back and
+  // reapplies it alone, which restores the pre-D24 bodies beneath this one.
+  const taste = new PGlite();
+  try {
+    await taste.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+      create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+      create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;
+      alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
+      alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
+    for (const name of migrations) await taste.exec(await readFile(new URL(name,root),'utf8'));
+    const t = async (name,args=[]) => (await taste.query(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(',')}) as value`,
+      args.map(v=>v && typeof v==='object' ? JSON.stringify(v) : v))).rows[0].value;
+    const row = async n => (await taste.query('select * from public.entitlements where user_id=$1',[uuid(n)])).rows[0];
+    const read = async n => (await taste.query('select * from public.consume_entitlement($1,0,null)',[uuid(n)])).rows[0];
+    const tReserve = (n,id) => t('reserve_tutor_session_v1',[uuid(n),sid(id),`luvani-taste-${id}`,'lesson',digest(id),authId(n)]);
+    const tClaim = (n,id) => t('claim_tutor_session_v1',[uuid(n),sid(id),`luvani-taste-${id}`,'lesson',fence(id)]);
+    const tAge = (id,seconds) => taste.query('update public.session_grants set claimed_at=clock_timestamp()-make_interval(secs=>$2),hard_deadline=clock_timestamp()+make_interval(secs=>reserved_seconds-$2) where session_id=$1',[sid(id),seconds]);
+    const tComplete = (n,id,seconds) => t('complete_tutor_session_v1',[uuid(n),sid(id),fence(id),1,digest(500+id),seconds,1,null,null]);
+    // Time passing moves no row: stand the refill time in the past without the write itself starting a new epoch.
+    const passWindow = async n => { await taste.exec('alter table public.entitlements disable trigger entitlement_usage_epoch');
+      try { await taste.query("update public.entitlements set period_end=clock_timestamp()-interval '1 second' where user_id=$1",[uuid(n)]); }
+      finally { await taste.exec('alter table public.entitlements enable trigger entitlement_usage_epoch'); } };
+    const week = 7*86400000;
+    await taste.exec('update public.tutor_session_admission_config set enabled=true,max_active_sessions=10,max_daily_issued_seconds=100000,max_account_daily_sessions=50,max_account_daily_seconds=100000');
+    for (let n=51;n<=56;n++) {
+      await taste.query('insert into auth.users(id) values($1)',[uuid(n)]);
+      await taste.query('insert into auth.sessions(id,user_id) values($1,$2)',[authId(n),uuid(n)]);
+    }
+    assert.equal(await t('claim_trial_with_evidence',[uuid(51),'a'.repeat(43),'b'.repeat(43),false]),true);
+    let e = await row(51);
+    assert.equal(e.plan,'trial');assert.equal(e.seconds_used,0);assert.equal(e.weekly_taste,true);assert.equal(e.period_end,null,'an unspent taste already has a refill time');
+    assert.equal(await t('claim_trial_with_evidence',[uuid(52),'a'.repeat(43),'c'.repeat(43),false]),false,'a claimed device minted a second taste');
+
+    // The first debit starts the window and keeps the epoch; a later debit leaves the window.
+    const epoch = e.usage_epoch;
+    const first = await tReserve(51,51);assert.equal(first.reservedSeconds,300,'the taste is not five minutes');
+    await tClaim(51,51);await tAge(51,60);
+    const started = Date.now();
+    assert.equal((await tComplete(51,51,60)).receipt.chargedSeconds,60);
+    e = await row(51);
+    assert.equal(e.seconds_used,60);assert.equal(e.usage_epoch,epoch,'starting the window started a new usage epoch');
+    assert.ok(Math.abs(new Date(e.period_end).getTime()-started-week)<60000,'the first debit did not set the refill a week out');
+    const refillsAt = e.period_end;
+    await tReserve(51,52);await tClaim(51,52);await tAge(52,30);await tComplete(51,52,30);
+    e = await row(51);assert.equal(e.seconds_used,90);assert.deepEqual(e.period_end,refillsAt,'a later debit moved the refill');
+
+    // A refill waits for a live claimed session, which is charged to its own window.
+    await tReserve(51,53);await tClaim(51,53);await tAge(53,20);await passWindow(51);
+    assert.equal((await read(51)).seconds_used,90,'a refill landed under a live session');
+    assert.equal((await tComplete(51,53,20)).receipt.chargedSeconds,20);
+    // Then the passed window refills on the next read: nothing spent, no refill time, a new epoch.
+    const before = await row(51);
+    const refilled = await read(51);
+    assert.equal(refilled.seconds_used,0);assert.equal(refilled.period_end,null);assert.equal(refilled.weekly_taste,true);
+    assert.notEqual(refilled.usage_epoch,before.usage_epoch,'a refill kept the last window\'s usage epoch');
+    assert.equal((await tReserve(51,54)).reservedSeconds,300,'a refilled taste cannot be reserved');
+    await t('abandon_tutor_session_v1',[uuid(51),sid(54)]);
+
+    // An unclaimed row made by a billing refresh is a spent taste that never refills.
+    await t('begin_billing_refresh',[uuid(53)]);
+    e = await row(53);assert.equal(e.plan,'trial');assert.equal(e.seconds_used,300);assert.equal(e.weekly_taste,false);
+    await passWindow(53);
+    assert.equal((await read(53)).seconds_used,300,'an unclaimed row refilled');
+    assert.equal((await tReserve(53,55)).reason,'exhausted');
+
+    // A lapse falls back to a fresh taste that can be reserved.
+    await taste.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'starter',9000,clock_timestamp()-interval '48 hours')",[uuid(54)]);
+    const lapsed = await read(54);
+    assert.deepEqual([lapsed.plan,lapsed.seconds_used,lapsed.period_end,lapsed.weekly_taste,lapsed.lapsed_from_paid],['trial',0,null,true,true]);
+    await taste.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'regular',100,clock_timestamp()-interval '48 hours')",[uuid(55)]);
+    const lazily = await tReserve(55,56);
+    assert.equal(lazily.reservedSeconds,300,'a lapsed learner could not spend the taste');
+    e = await row(55);assert.deepEqual([e.plan,e.weekly_taste,e.lapsed_from_paid],['trial',true,true]);
+    await t('abandon_tutor_session_v1',[uuid(55),sid(56)]);
+    await taste.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'regular',100,clock_timestamp()+interval '30 days')",[uuid(56)]);
+    const ticket = await t('begin_billing_refresh',[uuid(56)]);
+    const projected = await t('apply_billing_projection_v2',[uuid(56),ticket,'inactive',null,null,null,null,null,null]);
+    assert.equal(projected.kind,'lapsed');
+    assert.deepEqual([projected.entitlement.plan,projected.entitlement.seconds_used,projected.entitlement.weekly_taste,projected.entitlement.lapsed_from_paid],['trial',0,true,true]);
+
+    // Lapsed and spent is subscription-lapsed; lapsed with a little left is short, not lapsed.
+    await taste.query('update public.entitlements set seconds_used=300 where user_id=$1',[uuid(54)]);
+    assert.equal((await tReserve(54,57)).reason,'subscription-lapsed');
+    await taste.query('update public.entitlements set seconds_used=200 where user_id=$1',[uuid(54)]);
+    assert.equal((await tReserve(54,58)).reason,'insufficient-for-session');
+    await taste.query('update public.entitlements set seconds_used=180 where user_id=$1',[uuid(51)]);assert.equal((await tReserve(51,60)).reservedSeconds,120);
+    await t('abandon_tutor_session_v1',[uuid(51),sid(60)]);
+    await taste.query('update public.entitlements set seconds_used=181 where user_id=$1',[uuid(51)]);assert.equal((await tReserve(51,61)).reason,'insufficient-for-session');
+    await taste.query('update public.entitlements set seconds_used=300 where user_id=$1',[uuid(51)]);
+    assert.equal((await tReserve(51,59)).reason,'exhausted');
+
+    // The two new wall doors, and nothing else, cross the product event trigger.
+    const wall = (name,properties) => taste.query('insert into public.product_events(user_id,name,properties) values($1,$2,$3)',[uuid(51),name,JSON.stringify(properties)]);
+    for (const entry of ['launch','locked']) {
+      await wall('wall_shown',{entry,pages:4});
+      await wall('wall_left',{entry,outcome:'unchanged',destination:'back'});
+    }
+    await assert.rejects(wall('wall_shown',{entry:'banner',pages:4}),/invalid wall_shown/);
+    assert.equal((await taste.query('select luvani_private.tutor_cap_v1($1) as cap',['trial'])).rows[0].cap,300);
+    // The rollback refuses without its interlock, restores the one-off trial, and the migration reapplies.
+    const tasteName = migrations.find(name=>name.endsWith('_weekly_free_taste.sql'));
+    const tasteDown = await readFile(new URL(`../supabase/rollback/${tasteName.split('_')[0]}_down.sql`,import.meta.url),'utf8');
+    await assert.rejects(taste.exec(tasteDown),/interlock/);
+    await taste.exec("set luvani.reopen_one_off_trial='yes'");await taste.exec(tasteDown);await taste.exec('reset luvani.reopen_one_off_trial');
+    assert.equal((await taste.query('select luvani_private.tutor_cap_v1($1) as cap',['trial'])).rows[0].cap,1800);
+    assert.equal((await taste.query("select count(*)::int n from information_schema.columns where table_name='entitlements' and column_name='weekly_taste'")).rows[0].n,0);
+    await taste.exec(await readFile(new URL(tasteName,root),'utf8'));
+    assert.equal((await taste.query('select luvani_private.tutor_cap_v1($1) as cap',['trial'])).rows[0].cap,300);
+    assert.equal((await row(51)).weekly_taste,true,'reapplying did not restore the claimed taste');
+  } finally { await taste.close(); }
+  groups.push('D24 weekly taste: claim marks the taste, first debit starts a week-long window in the same epoch, live sessions defer the refill, a passed window refills to a new epoch, an unclaimed billing row never refills, every lapse lands on a reservable fresh taste, lapsed-and-spent is subscription-lapsed, wall doors launch/locked, interlocked rollback and reapply');
   console.log(JSON.stringify({status:'PASS',migrationCount:migrations.length,proofGroups:groups.length,groups,
     limits:'Sequential disposable PostgreSQL/WASM. No hosted Auth, independent concurrent connections, actual SDK process/network shutdown, provider spend or deployed reconciler acceptance.'},null,2));
 } finally {await db.close();}

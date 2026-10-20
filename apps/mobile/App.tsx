@@ -29,7 +29,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking, AppState } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import { friendUsernameFromUrl } from './src/friends/invite.ts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -68,10 +68,8 @@ import { loadHapticPreference } from './src/motion/hapticPreference.ts';
 import { loadSoundPreference } from './src/sound/soundPreference.ts';
 import { hasUsedApp, rememberAppUse } from './src/auth/installHistory.ts';
 import { GuestAccountHandoff } from './src/onboarding/GuestAccountHandoff.tsx';
-import { firstRunHomeVisible, flushFirstRunWall } from './src/onboarding/firstRunWall.ts';
-import { fetchBillingStatus } from './src/purchases/client.ts';
-import { purchases } from './src/purchases/adapter.ts';
-import { paywallSurface } from './src/purchases/paywallView.ts';
+import { LaunchWallArrival, useLaunchWall } from './src/wall/useLaunchWall.ts';
+import { useFeatureStanding, useLockedRouteGuard } from './src/purchases/useFeatureLocks.ts';
 import { loadGuestPractice } from './src/onboarding/guestPractice.ts';
 import { OnboardingFlow } from './src/onboarding/OnboardingFlow.tsx';
 import { withChosenVoice } from './src/onboarding/voiceStep.ts';
@@ -96,6 +94,8 @@ import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
+import { AppErrorBoundary } from './src/app/errorBoundary.ts';
+import { AppErrorScreen } from './src/app/AppErrorScreen.tsx';
 import { OnboardingPreview } from './src/dev/OnboardingPreview.tsx';
 import { OnboardingLayout } from './src/onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from './src/onboarding/onboardingProgress.ts';
@@ -435,60 +435,16 @@ function SignedInRoot({
   }, [user.id, startupRead]);
 
   /**
-   * The first-run offer (come alive, README Part 5.C row 12): set when the
-   * hand-off ends with the guest's practice kept, and taken once by
-   * `openFirstRun` when the navigator is ready, after its own reset. The
-   * existing wall opens at its `path-complete` door only after the server says
-   * this account holds no paid plan and the store has plans to sell
-   * (`onboarding/firstRunWall.ts`). In memory only, so it is never shown again
-   * on its own.
+   * The wall on its own (D24): the free-trial offer on each open of the app,
+   * and the D13 first-run offer after a kept guest practice, one pending flag
+   * between them. Rules in `wall/launchWall.ts`; in memory only. The locked
+   * features' standing and the locked-route guard ride beside it.
    */
-  const pendingWall = useRef(false);
-  const wallFrame = useRef<number | null>(null);
-  const wallRequest = useRef(0);
-  useEffect(() => {
-    const invalidate = () => {
-      wallRequest.current++;
-      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
-      wallFrame.current = null;
-    };
-    const foreground = AppState.addEventListener('change', state => { if (state !== 'active') invalidate(); });
-    return () => { invalidate(); foreground.remove(); };
-  }, [user.id]);
-  const openPendingWall = useCallback(() => {
-    // Invalidate on the departure event, including a quick away-and-back that
-    // resolves before the original billing read. A current Home is not proof
-    // that the original Home remained visible throughout that request.
-    if (!navigationRef.isReady() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) {
-      wallRequest.current++;
-      if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
-      wallFrame.current = null;
-      return;
-    }
-    if (!pendingWall.current
-      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
-    const owner = scopeGeneration();
-    const request = ++wallRequest.current;
-    if (wallFrame.current !== null) cancelAnimationFrame(wallFrame.current);
-    // Two committed frames let Home appear before this separate decision reads.
-    wallFrame.current = requestAnimationFrame(() => {
-      wallFrame.current = requestAnimationFrame(() => {
-      wallFrame.current = null;
-      if (request !== wallRequest.current || owner !== scopeGeneration() || !firstRunHomeVisible(navigationRef.getCurrentRoute())) return;
-      void flushFirstRunWall({
-      take: () => {
-        const due = pendingWall.current;
-        pendingWall.current = false;
-        return due;
-      },
-      status: () => fetchBillingStatus(user.id),
-      storeHasPlans: async () => paywallSurface(await purchases.offering(user.id)) !== null,
-      stillHere: () => request === wallRequest.current && owner === scopeGeneration() && navigationRef.isReady() && firstRunHomeVisible(navigationRef.getCurrentRoute()) && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
-      open: () => navigationRef.navigate('Wall', { entry: 'path-complete' }),
-    });
-      });
-    });
-  }, [navigationRef, user.id]);
+  const launchWall = useLaunchWall(navigationRef, user.id);
+  useFeatureStanding(user.id);
+  const guardLockedRoute = useLockedRouteGuard(navigationRef, user.id);
+  // A launch that just onboarded shows only the first-run offer (D24).
+  useEffect(() => { if (justOnboarded) launchWall.onboarded(); }, [justOnboarded, launchWall]);
 
   /**
    * Linking owns the initial state on web, so a stale URL can resolve somewhere
@@ -512,9 +468,9 @@ function SignedInRoot({
       });
       setJustOnboarded(false);
     }
-    // Then the first-run offer, once, after a kept practice (below).
-    openPendingWall();
-  }, [justOnboarded, navigationRef, openPendingWall]);
+    // Then the pending wall, if it may open (below).
+    launchWall.flush();
+  }, [justOnboarded, navigationRef, launchWall]);
 
   // An unreachable account is not an empty account. Keep existing learning
   // safe and offer retry instead of treating an offline reinstall as first use.
@@ -629,10 +585,11 @@ function SignedInRoot({
         newlyCreated={newlyCreated}
         onWelcomeDone={clearNewAccount}
         onDone={(kept, showFirstRunOffer) => {
-          if (kept && showFirstRunOffer) pendingWall.current = true;
+          if (kept && showFirstRunOffer) launchWall.pendFirstRun();
           onPreAccountDraftConsumed();
         }}
       >
+      <LaunchWallArrival report={launchWall.arrival} />
       {!preAccountDraft?.eligibilityConfirmed && <CompleteProfileDraftCleanup onConsumed={onPreAccountDraftConsumed} />}
       <GameProvider>
       {/* After the hand-off, inside the game layer: plans on mount, on the way
@@ -644,8 +601,8 @@ function SignedInRoot({
         <MainAppearanceProvider>
         <NavigationContainer
           ref={navigationRef}
-          onReady={() => { openFirstRun(); openPendingInvite(); }}
-          onStateChange={() => openPendingWall()}
+          onReady={() => { openFirstRun(); openPendingInvite(); void guardLockedRoute(); }}
+          onStateChange={() => { launchWall.flush(); void guardLockedRoute(); }}
           theme={navTheme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.
@@ -812,45 +769,58 @@ function Gate() {
     );
   }, []);
 
-  if (status === 'loading' || !draftLoaded || (status === 'signedIn' && creatingAccount)) return <Loading />;
-  if (status === 'signedIn' && user !== null) {
-    if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
+  /** What the door opens on, which is every screen the app draws. */
+  const door = () => {
+    if (status === 'loading' || !draftLoaded || (status === 'signedIn' && creatingAccount)) return <Loading />;
+    if (status === 'signedIn' && user !== null) {
+      if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
+      return (
+        <SignedInRoot
+          key={user.id}
+          user={user}
+          preAccountDraft={preAccountDraft}
+          onPreAccountDraftConsumed={discardPreAccountDraft}
+          refused={preAccountRefused}
+          onRefuseOnboarding={refusePreAccount}
+          onDeleteAccount={deleteAccount}
+        />
+      );
+    }
+    // Signed out with a copy still on the disk. Drawn here, below the signed-in
+    // branch, so it is read after the sign-out rather than written to a sheet the
+    // sign-out has already taken away. Dismissing it leads to the welcome, and
+    // nothing else can be reached until it is, so this cannot be waiting behind
+    // the next learner's sign-in either. F496.
+    if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
+    if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
     return (
-      <SignedInRoot
-        key={user.id}
-        user={user}
-        preAccountDraft={preAccountDraft}
-        onPreAccountDraftConsumed={discardPreAccountDraft}
-        refused={preAccountRefused}
-        onRefuseOnboarding={refusePreAccount}
-        onDeleteAccount={deleteAccount}
-      />
+      <>
+        {/* A guest who said yes on day one has no account yet: their reminder is
+            planned from the first run's draft and the days they finished. */}
+        <GuestReminderPlanner draft={preAccountDraft} />
+        <AuthFlow
+          initialDraft={preAccountDraft}
+          returning={returning}
+          onDraftChange={keepPreAccountDraft}
+          onCreateAccount={keepPreAccountDraft}
+          onDiscardDraft={discardPreAccountDraft}
+          onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
+          refused={preAccountRefused}
+          onRefuse={refusePreAccount}
+        />
+      </>
     );
-  }
-  // Signed out with a copy still on the disk. Drawn here, below the signed-in
-  // branch, so it is read after the sign-out rather than written to a sheet the
-  // sign-out has already taken away. Dismissing it leads to the welcome, and
-  // nothing else can be reached until it is, so this cannot be waiting behind
-  // the next learner's sign-in either. F496.
-  if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
-  if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
-  return (
-    <>
-      {/* A guest who said yes on day one has no account yet: their reminder is
-          planned from the first run's draft and the days they finished. */}
-      <GuestReminderPlanner draft={preAccountDraft} />
-      <AuthFlow
-        initialDraft={preAccountDraft}
-        returning={returning}
-        onDraftChange={keepPreAccountDraft}
-        onCreateAccount={keepPreAccountDraft}
-        onDiscardDraft={discardPreAccountDraft}
-        onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
-        refused={preAccountRefused}
-        onRefuse={refusePreAccount}
-      />
-    </>
-  );
+  };
+
+  // The app's one error boundary (F794), so a throw anywhere behind the door
+  // shows a way back instead of emptying the screen. It is the door's own root
+  // rather than its parent, and that is the point: Gate and the auth provider
+  // above it hold what this launch must remember (the refusal, the kept-copy
+  // notice, a pending deletion, a password recovery), and Try again mounts only
+  // what is behind the door. It stays one boundary across every branch, so a
+  // cleanup that throws while one branch hands over to another, as F792's did
+  // at sign-in, is still caught. The launch is drawn by App, outside it.
+  return <AppErrorBoundary fallback={(tryAgain) => <AppErrorScreen onTryAgain={tryAgain} />}>{door()}</AppErrorBoundary>;
 }
 
 export default function App() {

@@ -13,6 +13,10 @@
  *   minutes, so a travel cover can tell a flight from a missed day.
  * - `paidSince`: the local day this phone first saw a paid plan, reset to null
  *   when it sees a plan that is not.
+ * - `protectedSince`: the local day this phone first saw a plan that holds a
+ *   streak freeze, the free plan's one included (D23, 2026-10-20). A freeze
+ *   never covers a day before it. Added after version 1 shipped, so a stored
+ *   record without it reads as null rather than being refused.
  * - `nudges`: the streak reminders planned or fired, one per day, the last 30.
  * - `nudgesPausedAt`: when reminders paused themselves, or null.
  * - `introducedAt`: when the one-time "Your streak and level" sheet was settled.
@@ -58,13 +62,16 @@ export interface GameLocal {
   version: typeof GAME_LOCAL_VERSION;
   lastPracticeOffsetMin: number | null;
   paidSince: DayKey | null;
+  protectedSince: DayKey | null;
   nudges: NudgeLogRow[];
   nudgesPausedAt: number | null;
   introducedAt: number | null;
   pending: PendingCelebration[];
 }
 
-const KEYS = ['version', 'lastPracticeOffsetMin', 'paidSince', 'nudges', 'nudgesPausedAt', 'introducedAt', 'pending'] as const;
+const KEYS = ['version', 'lastPracticeOffsetMin', 'paidSince', 'protectedSince', 'nudges', 'nudgesPausedAt', 'introducedAt', 'pending'] as const;
+/** Keys a version 1 record may lack, written by a build from before them. Absent reads as null. */
+const LATER_KEYS: readonly string[] = ['protectedSince'];
 const VARIANTS: readonly NudgeVariant[] = ['streak', 'milestone-eve', 'routine'];
 /** Every UTC offset in use, from -12:00 to +14:00. */
 const MAX_OFFSET_MIN = 14 * 60;
@@ -72,7 +79,7 @@ const MAX_OFFSET_MIN = 14 * 60;
 const KEY = () => userKey('gameLocal');
 
 export function emptyGameLocal(): GameLocal {
-  return { version: GAME_LOCAL_VERSION, lastPracticeOffsetMin: null, paidSince: null, nudges: [], nudgesPausedAt: null, introducedAt: null, pending: [] };
+  return { version: GAME_LOCAL_VERSION, lastPracticeOffsetMin: null, paidSince: null, protectedSince: null, nudges: [], nudgesPausedAt: null, introducedAt: null, pending: [] };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -132,6 +139,7 @@ function bound(value: GameLocal): GameLocal {
     version: GAME_LOCAL_VERSION,
     lastPracticeOffsetMin: value.lastPracticeOffsetMin,
     paidSince: value.paidSince,
+    protectedSince: value.protectedSince ?? null,
     nudges: boundNudges(value.nudges),
     nudgesPausedAt: value.nudgesPausedAt,
     introducedAt: value.introducedAt,
@@ -147,9 +155,11 @@ function bound(value: GameLocal): GameLocal {
 export function readGameLocal(value: unknown): GameLocal | null {
   if (!isRecord(value) || value.version !== GAME_LOCAL_VERSION) return null;
   const keys = Object.keys(value);
-  if (keys.length !== KEYS.length || !KEYS.every((key) => keys.includes(key))) return null;
+  if (!keys.every((key) => (KEYS as readonly string[]).includes(key))) return null;
+  if (!KEYS.every((key) => keys.includes(key) || LATER_KEYS.includes(key))) return null;
   if (!nullable(isOffset)(value.lastPracticeOffsetMin)) return null;
   if (!nullable(isDayKey)(value.paidSince)) return null;
+  if (value.protectedSince !== undefined && !nullable(isDayKey)(value.protectedSince)) return null;
   if (!nullable(isTime)(value.nudgesPausedAt) || !nullable(isTime)(value.introducedAt)) return null;
   if (!Array.isArray(value.nudges) || !value.nudges.every(isNudge)) return null;
   if (!Array.isArray(value.pending) || !value.pending.every(isPending)) return null;
@@ -230,6 +240,10 @@ export function setLastPracticeOffset(minutes: number): Promise<PersistAck> {
 
 export function setPaidSince(day: DayKey | null): Promise<PersistAck> {
   return updateGameLocal((g) => ({ ...g, paidSince: day }));
+}
+
+export function setProtectedSince(day: DayKey | null): Promise<PersistAck> {
+  return updateGameLocal((g) => ({ ...g, protectedSince: day }));
 }
 
 export function logNudges(rows: readonly NudgeLogRow[]): Promise<PersistAck> {

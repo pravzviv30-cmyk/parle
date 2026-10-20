@@ -212,15 +212,20 @@ export function conversationLength(minutes: number): string {
 }
 
 /**
- * The free minutes every account starts with, said in minutes and in
- * conversations. "Free minutes" and never "free trial" (come alive, README
- * Part 5.G): a free trial is now the store's own offer, and the two are
- * different things a learner should never have to tell apart from one word.
+ * The free plan's weekly taste (D24), said in minutes and in conversations.
+ * "Free minutes" and never "free trial" (come alive, README Part 5.G): a free
+ * trial is now the store's own offer, and the two are different things a
+ * learner should never have to tell apart from one word.
  */
 export function trialAllowance(minutes: number, conversations: number): string {
   return conversations >= 1
-    ? `You start with ${count(minutes, 'free minute')}, about ${count(conversations, 'conversation')}.`
-    : `You start with ${count(minutes, 'free minute')}.`;
+    ? `You get ${count(minutes, 'free minute')} every week, about ${count(conversations, 'conversation')}.`
+    : `You get ${count(minutes, 'free minute')} every week.`;
+}
+
+/** When the free minutes refill, as a weekday (D24). */
+export function freeRefill(day: string): string {
+  return `They refill on ${day}.`;
 }
 
 /** What is left on the account, rounded down, with what that is in conversations. */

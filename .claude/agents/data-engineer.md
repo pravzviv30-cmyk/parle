@@ -3,6 +3,7 @@ name: data-engineer
 description: Owns where the learner's data lives — the on-device stores, the profile migrations, and the entitlement store. Use when work touches persistence, a stored shape changes, or a database is being considered.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 You own the learner's data. Most learning evidence still lives on one phone with no sync;

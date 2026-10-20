@@ -193,7 +193,8 @@ describe('Progress from its own records — F769', () => {
     const subscriber = profileStatsView({ streak: paid.streak, level: paid.level, freezes: paid.freezes, protection: paid.protection })!;
     assert.equal(subscriber.freezes?.ready, '2 ready');
     const trial = gameViewFrom(facts([], { plan: 'trial', lapsed: false, secondsRemaining: 600, canStart: true }), TODAY);
-    assert.equal(profileStatsView({ streak: trial.streak, level: trial.level, freezes: trial.freezes, protection: trial.protection })!.freezes, null, 'a free learner is shown freezes');
+    // D23: a free learner holds one freeze, and sees it.
+    assert.equal(profileStatsView({ streak: trial.streak, level: trial.level, freezes: trial.freezes, protection: trial.protection })!.freezes?.ready, '1 ready', 'a free learner is not shown their freeze');
     assert.equal(profileStatsView({ streak: null, level: null, freezes: null, protection: null }), null);
 
     // No goal, then core's four tiers, gentlest first, sizes in words.

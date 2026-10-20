@@ -13,7 +13,7 @@ const read = (relative: string) => readFileSync(new URL(relative, import.meta.ur
 const parts = readFileSync(new URL('./WallParts.tsx', import.meta.url), 'utf8');
 
 test('the paywall presents three connected trial moments without dropping the verified allowance or changing the timeline', () => {
-  const month: StoreProduct = { plan: 'starter', productId: 'month', title: 'Starter', localizedPrice: '£19.99', period: 'month',
+  const month: StoreProduct = { plan: 'starter', productId: 'month', title: 'Core', localizedPrice: '£19.99', period: 'month',
     intro: { priceString: '£0.00', periodUnit: 'WEEK', periodNumberOfUnits: 1, cycles: 1 }, introEligible: true };
   const chosen = chosenOffer(wallPlanRows({ available: true, products: [month] }, PLANS), month.productId)!;
   for (const remind of [false, true]) for (const minutes of [null, storeTrialMinutes(PLANS, 'starter')]) {

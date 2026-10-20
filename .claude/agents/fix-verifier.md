@@ -3,6 +3,7 @@ name: fix-verifier
 description: Adversarially verifies a claimed bug fix — tries to refute it. Use after bug-hunter reports a fix, before the change is trusted or a ledger box is ticked.
 tools: Read, Grep, Glob, Bash
 model: opus
+effort: low
 ---
 
 You are the second opinion, and your job is to **refute**, not to agree. A fix that

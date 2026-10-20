@@ -29,7 +29,7 @@ import { WallYoursPage } from './WallYoursPage.tsx';
 import { WallCta, WallLinks, WallNotice, WallSecondary, WallTextLink, WallTopRow, wallType } from './WallParts.tsx';
 import {
   PAYWALL_CHECK_AGAIN, PAYWALL_LOADING, PAYWALL_PENDING_TITLE, PAYWALL_START_AGAIN, PAYWALL_START_AGAIN_TROUBLE, PAYWALL_START_AGAIN_WAIT, PAYWALL_TRY_AGAIN, PAYWALL_UNAVAILABLE_BODY, PAYWALL_UNAVAILABLE_TITLE,
-  SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
+  SUCCESS_FOOTNOTE, SUCCESS_TITLE, WALL_DONE, WALL_LEAVE, WALL_NEXT, WALL_READY, YOURS_DECLINE, YOURS_NEXT,
 } from './wallCopy.ts';
 import { wallAccount } from './wallAccount.ts';
 import { chosenOffer, preselectedOffer, storeTrialMinutes, wallPlanRows } from './wallPlans.ts';
@@ -627,6 +627,8 @@ export function WallScreen({
               onPress={forward}
             />
             {page === 'plans' && <WallPlansAtButton disclosure={offerView?.disclosure ?? null} busy={busy} onRestore={onRestore} onOpenTerms={onOpenTerms} onOpenPolicy={onOpenPolicy} />}
+            {/* D24: the wall opens on its own now (on launch, on a locked feature), so declining is said in words too, beside the close mark. */}
+            {page === 'plans' && <WallTextLink label={WALL_LEAVE} onPress={() => leave()} />}
             {page !== 'plans' && notice !== null && <Text accessibilityLiveRegion="polite" style={[wallType.detail, { color: colors.text }]}>{notice.body}</Text>}
           </View>
         }

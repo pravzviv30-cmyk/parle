@@ -38,13 +38,15 @@ describe('the wall is as long as it has something to show', () => {
       assert.equal(endsOnPlans(pages), true);
     }
     assert.deepEqual(wallPages({ entry: 'path-complete', storeHasPlans: true }), ['plans'], 'post-onboarding opens the complete trial page directly');
+    // D24 (2026-10-20): the wall on launch and on a locked feature go straight to the plans, like Settings.
+    for (const entry of ['launch', 'locked', 'settings'] as const) assert.deepEqual(wallPages({ entry, storeHasPlans: true }), ['plans'], `${entry} did not open on the plans`);
   });
 
   test('with no store there is one page, and the wall ends on the free promise', () => {
     // Web, Expo Go, and every build without a RevenueCat key. A page of appetite
     // ending in a button to nowhere would be worse than not opening the wall at
     // all, so the last word is the promise the page just made.
-    for (const entry of ['path-complete', 'refused', 'recap'] as const) {
+    for (const entry of ['path-complete', 'refused', 'recap', 'launch', 'locked'] as const) {
       const pages = wallPages({ entry, storeHasPlans: false });
       assert.deepEqual([...pages], ['yours'], `${entry} drew a page that cannot exist`);
       assert.equal(canBuy(pages), false);
@@ -53,7 +55,7 @@ describe('the wall is as long as it has something to show', () => {
   });
 
   test('no door ever draws more than two pages, or the retired map and French pages', () => {
-    const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap'];
+    const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap', 'launch', 'locked'];
     for (const entry of doors) {
       for (const storeHasPlans of [true, false]) {
         const pages = wallPages({ entry, storeHasPlans });
@@ -98,7 +100,7 @@ describe('the wall is as long as it has something to show', () => {
   });
 
   test('no door draws a page that is not there, whatever the door', () => {
-    const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap'];
+    const doors: readonly WallEntry[] = ['path-complete', 'refused', 'settings', 'recap', 'launch', 'locked'];
     for (const entry of doors) {
       for (const storeHasPlans of [true, false]) {
         const pages = wallPages({ entry, storeHasPlans });

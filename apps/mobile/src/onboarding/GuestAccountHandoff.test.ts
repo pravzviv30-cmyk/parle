@@ -55,8 +55,8 @@ describe('the hand-off', () => {
     assert.equal(tutorTimeLine(-5, null), null);
     assert.equal(tutorTimeLine(Number.NaN, true), null);
     assert.equal(tutorTimeLine(45, true), 'You have less than a minute with your AI tutor.');
-    assert.equal(tutorTimeLine(60, true), 'You have 1 free minute with your AI tutor.');
-    assert.equal(tutorTimeLine(1799, true), 'You have 29 free minutes with your AI tutor.');
+    assert.equal(tutorTimeLine(60, true), 'You have 1 free minute with your AI tutor this week.');
+    assert.equal(tutorTimeLine(299, true), 'You have 4 free minutes with your AI tutor this week.');
     assert.equal(tutorTimeLine(10800, false), 'You have 180 minutes with your AI tutor on your plan.');
     assert.equal(tutorTimeLine(600, null), 'You have 10 minutes with your AI tutor.');
     for (const seconds of [45, 60, 1799, 10800]) {
@@ -69,7 +69,7 @@ describe('the hand-off', () => {
 
     const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
     // The toast: after the durable phrasebook write, and before nothing else that could fail it.
-    const durable = handoff.indexOf("if ((await addPhrases(phrases)) !== 'durable')");
+    const durable = handoff.indexOf("if ((await addPhrases(phrases, { source: 'curated' })) !== 'durable')");
     const toast = handoff.indexOf('publishCelebrations(');
     assert.ok(durable > 0 && toast > durable, 'the phrase is said saved before the phrasebook write is durable');
     assert.equal((handoff.match(/publishCelebrations\(/g) ?? []).length, 1);

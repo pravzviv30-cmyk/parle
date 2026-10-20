@@ -19,7 +19,7 @@ function fixture(overrides: { call?: LifecycleOptions['call']; mode?: 'convo-tex
     receipt: { version: 1, sessionId: identity.sessionId, state: 'settled', chargedSeconds: payload.serviceFailure || !payload.learnerTurns ? 0 : payload.seconds,
       releasedReservedSeconds: 120, checkpointRevision: Number(payload.revision ?? revision), baselineStatus: payload.baseline ? 'saved' : 'none',
       completedAt: new Date(epoch + time).toISOString(), settlement: { kind: payload.serviceFailure || !payload.learnerTurns ? 'not-charged' : 'charged',
-        refundedSeconds: 0, secondsRemaining: 900, plan: 'trial' } } });
+        refundedSeconds: 0, secondsRemaining: 200, plan: 'trial' } } });
   const normal: NonNullable<LifecycleOptions['call']> = async (operation, payload) => {
     if (operation === 'claim') {
       const result = { kind: 'claimed', version: 1, sessionId: identity.sessionId, fence: nonce,

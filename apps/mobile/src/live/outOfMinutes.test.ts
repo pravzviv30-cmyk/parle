@@ -270,7 +270,9 @@ describe('the 402 the hook is handed — F251', () => {
 
     assert.equal(status.code, 'trial already claimed');
     assert.notEqual(status.message, CLAIMED.message, 'the server sentence went straight to the learner');
-    assert.match(CLAIMED.message, /installation/i, 'the server stopped saying "installation"; this test is stale');
+    // D24 (2026-10-20): the server's sentence now offers a plan, which this
+    // build's copy table does not; ours stays the one the learner reads.
+    assert.match(CLAIMED.message, /this device/i, 'the server stopped naming the device; this test is stale');
     assert.doesNotMatch(status.message!, /installation/i, 'an internal noun reached a learner');
     assert.doesNotMatch(
       status.message!,

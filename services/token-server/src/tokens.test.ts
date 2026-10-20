@@ -198,6 +198,30 @@ describe('session shape in token metadata', () => {
     assert.deepEqual(meta.snapshot, snapshot);
   });
 
+  test('free, lapsed and guest sessions sign memoryLocked; paid sessions carry no key at all', async () => {
+    const snapshot = { cefr: 'A1', sessions: 4 };
+    const free = await metadataFor({ snapshot, entitlement: { plan: 'trial', secondsUsed: 0 }, memoryLocked: true });
+    assert.equal(free.memoryLocked, true);
+    assert.deepEqual(free.snapshot, snapshot, 'the snapshot is unchanged by the lock');
+    const lapsed = await metadataFor({ snapshot, entitlement: { plan: 'trial', secondsUsed: 0, lapsed: true }, memoryLocked: true });
+    assert.equal(lapsed.memoryLocked, true);
+    assert.deepEqual(lapsed.snapshot, snapshot);
+    for (const plan of ['starter', 'regular'] as const) {
+      const paid = await metadataFor({ snapshot, entitlement: { plan, secondsUsed: 0 }, memoryLocked: false });
+      assert.equal('memoryLocked' in paid, false, 'the key never appears as false');
+      assert.deepEqual(paid.snapshot, snapshot);
+    }
+    assert.equal('memoryLocked' in (await metadataFor({})), false);
+  });
+
+  test('/session/start derives memoryLocked from the loaded entitlement on every admission path', () => {
+    const source = readFileSync(new URL('./server.ts', import.meta.url), 'utf8');
+    const call = source.slice(source.indexOf('const result = await grantSession({\n        userId,'));
+    const body = call.slice(0, call.indexOf('});'));
+    assert.match(body, /memoryLocked: entitlement\.plan === 'trial' \|\| entitlement\.lapsed === true,/);
+    assert.ok(source.indexOf('const entitlement = await store.get(userId);') < source.indexOf(call.slice(0, 40)));
+  });
+
   test('no snapshot means no snapshot key at all', async () => {
     const meta = await metadataFor({});
     assert.equal('snapshot' in meta, false);

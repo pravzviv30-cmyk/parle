@@ -3,6 +3,7 @@ name: practice-ux-engineer
 description: Owns review, drills, saved phrases, attempt-before-reveal interactions, accessibility, and recovery of post-session practice artefacts.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

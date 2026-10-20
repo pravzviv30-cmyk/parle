@@ -5,9 +5,9 @@
 > organisation). Prices are still undecided.
 >
 > UK starting suggestion, **not a decision and not yet checked against Apple's
-> proceeds**: Starter £14.99 monthly or £149.99 yearly, Max £22.99 monthly or
+> proceeds**: Core £14.99 monthly or £149.99 yearly, Max £22.99 monthly or
 > £219.99 yearly. The reason: UK store prices include 20% VAT, so a £119.99
-> yearly Starter would earn below its full-use cost.
+> yearly Core would earn below its full-use cost.
 
 Luvani already has a native RevenueCat adapter and server-owned subscription
 verification. Complete the store and dashboard configuration below to activate
@@ -16,7 +16,7 @@ products**. The paywall reads actual localized prices, periods and trial
 eligibility from the store; sample preview offers do not establish a real price
 or entitlement.
 
-The approved trial is seven days. Both Starter and Max are offered monthly and
+The approved trial is seven days. Both Core and Max are offered monthly and
 yearly. This setup does not add weekly, lifetime or family products. Keep real
 purchase availability closed until the deployment and sandbox checks pass.
 
@@ -51,7 +51,7 @@ for you.
 - [ ] **2. App Store Connect products.** Create one subscription group and the
   four auto-renewable products with the exact IDs in
   [section 1](#1-create-the-apple-subscriptions). Set the durations (one month
-  or one year). Put Max above Starter in the group's service levels. Add a
+  or one year). Put Max above Core in the group's service levels. Add a
   localized display name and description to each. Add a review screenshot of the
   paywall. Add the **one-week free introductory offer** to all four products.
   Apple allows one introductory offer per subscription group per customer.
@@ -85,7 +85,17 @@ for you.
 - [ ] **8. Sandbox testing.** Run the full test matrix on the native build. See
   [Sandbox testing](#sandbox-testing).
 - [ ] **9. Before submitting for review.**
-  - App Review notes explain the paywall and how to reach it.
+  - App Review notes explain the paywall and how to reach it. Paste the text
+    in [App Review notes](#app-review-notes-d24).
+- [ ] **10. Rename Starter to Core (founder task, 2026-10-20).** In App Store
+  Connect, set the subscription display name of `luvani_starter_monthly` and
+  `luvani_starter_yearly` to "Core" in every localization, and update each
+  description that says "Starter". Product ids stay exactly as they are. In
+  RevenueCat, check the `main` offering, its package descriptions, the
+  entitlement display name and any paywall or metadata that says "Starter",
+  and change them to "Core". Package keys `starter_monthly` and
+  `starter_yearly` stay unchanged. The app's own label already reads Core
+  (`PLANS.starter.label`); the token server sends it, so redeploy it too.
   - Restore purchases, Terms of Use (EULA) and Privacy Policy links are
     reachable in the app and set in the App Store Connect metadata.
   - App Privacy answers are updated for purchases.
@@ -98,13 +108,13 @@ for you.
 
 In App Store Connect, complete the Paid Apps Agreement, banking and tax setup
 for the Luvani app with bundle ID `com.luvani.app`. Create one auto-renewable
-subscription group. Put Max above Starter in the group's service levels, with
+subscription group. Put Max above Core in the group's service levels, with
 the two billing periods of each tier at the same service level.
 
 | Proposed product ID | Displayed tier | Subscription duration | Paid tutor allowance |
 |---|---|---|---|
-| `luvani_starter_monthly` | Starter | One month | 180 minutes per allowance window |
-| `luvani_starter_yearly` | Starter | One year | 180 minutes per allowance window |
+| `luvani_starter_monthly` | Core | One month | 180 minutes per allowance window |
+| `luvani_starter_yearly` | Core | One year | 180 minutes per allowance window |
 | `luvani_regular_monthly` | Max | One month | 300 minutes per allowance window |
 | `luvani_regular_yearly` | Max | One year | 300 minutes per allowance window |
 
@@ -135,7 +145,7 @@ Connect API key is optional for importing products and prices automatically.
 
 Import the four Apple products and create one proposed entitlement, `luvani`.
 Attach all four products to it. The existing server uses the verified product
-ID to distinguish Starter from Max and to grant its allowance; the shared
+ID to distinguish Core from Max and to grant its allowance; the shared
 entitlement does not imply that both tiers have the same allowance.
 [RevenueCat entitlements](https://www.revenuecat.com/docs/getting-started/entitlements).
 
@@ -218,8 +228,9 @@ Follow the existing [release gate](RELEASE_GATE.md) and apply the repository's
 ordered migration inventory to the intended environment. Billing depends on the
 atomic projection, store-trial and annual-window support, including
 `20261002154637_atomic_billing_projection.sql`,
-`20261005231742_store_trial_yearly_allowance.sql` and
-`20261007121856_preserve_store_trial_budget_and_year_extension.sql`, together
+`20261005231742_store_trial_yearly_allowance.sql`,
+`20261007121856_preserve_store_trial_budget_and_year_extension.sql` and
+`20261020140000_weekly_free_taste.sql` (a lapse lands on the weekly free taste), together
 with their prerequisites. These filenames are not a standalone migration set.
 
 The service-only `billing_projection_version` RPC must return `2`. The client's
@@ -242,9 +253,9 @@ The existing server policy remains unchanged:
 | Situation | Tutor minutes |
 |---|---|
 | One-time free allowance without a store subscription | 30 once, never renewed |
-| Eligible seven-day Starter store trial | 42 over the trial |
+| Eligible seven-day Core store trial | 42 over the trial |
 | Eligible seven-day Max store trial | 70 over the trial |
-| Verified paid Starter period | 180 per allowance window |
+| Verified paid Core period | 180 per allowance window |
 | Verified paid Max period | 300 per allowance window |
 
 Annual plans refill the tier's allowance every 30-day window within the paid
@@ -328,13 +339,13 @@ notice instead. Do not treat this as a pass for Ask to Buy.
 ## Pricing decision before products are published
 
 No new price is established by this checklist. The existing USD model uses
-Starter $19 monthly or $149 yearly and Max $29 monthly or $229 yearly. The
+Core $19 monthly or $149 yearly and Max $29 monthly or $229 yearly. The
 actual consumer price must be approved and configured in App Store Connect,
 then returned by the store in the learner's currency.
 
-At full use, the current cost model estimates $10.404 per Starter allowance
+At full use, the current cost model estimates $10.404 per Core allowance
 window and $17.34 per Max window. With a 15% store fee, the current annual
-prices leave about 1.4% Starter margin and -6.9% Max margin at full use. The
+prices leave about 1.4% Core margin and -6.9% Max margin at full use. The
 existing founder decision explicitly accepts that Max annual exposure. A 20%
 full-use margin would require approximately $15.30/$25.50 monthly or
 $183.60/$306 yearly at these allowances and costs, before tax, hosting, refunds,
@@ -349,8 +360,8 @@ and [the core cost model](../packages/core/src/metering/meter.ts).
 
 ### Competitive launch recommendation, not configured store prices
 
-The user requested competitive pricing while retaining Starter and Max. A
-bounded US launch proposal is **Starter $17.99/month or $149.99/year**, and
+The user requested competitive pricing while retaining Core and Max. A
+bounded US launch proposal is **Core $17.99/month or $149.99/year**, and
 **Max $27.99/month or $229.99/year**. These lower the existing monthly modelling
 points without materially deepening the already accepted annual exposure. The
 genuine annual comparisons would round down to 30% and 31%, respectively. The
@@ -390,9 +401,46 @@ the current app. Luvani's lasting samples are our own product decision, inspired
 by clear library previews and subscription boundaries.
 [Headspace free-access explanation](https://help.headspace.com/hc/en-us/articles/115008192928-What-s-included-for-free).
 
-Luvani keeps public collection previews, thirty permanent conversation samples
-across every theme and pitch, existing local practice, and the learner's own
-saved learning. Either active paid tier and its confirmed store trial open the
-rest of the curated conversation starters. All tutor conversations still consume
-the server's allowance. Personal review never disappears after a subscription
-ends, and a sample is never described as unlimited tutor access.
+Since D24 (2026-10-20) Luvani follows the Headspace model with a small
+permanent free tier. Free learners keep public collection previews, thirty
+permanent conversation samples, scene previews, existing local practice, the
+daily phrase, the learner's own saved learning, quests and XP, the streak with
+one freeze, a Journey summary, and a weekly taste of live time: five minutes on
+a rolling seven days from first use, claimed once per device. Either active
+paid tier and its confirmed store trial open the rest: live time beyond the
+taste, tutor memory (in the tutor's sessions too), Your fixes, spaced review and
+drills of conversation phrases, Then and now, sound practice (including the café
+pronunciation lesson), the full Journey, streak repair and the
+second freeze, and on Max "Prepare for something real" and continue arc. All
+tutor conversations still consume the server's allowance, and a sample is never
+described as unlimited tutor access. The list lives in code as
+`capabilitiesFor(...).unlocks` (`apps/mobile/src/purchases/capabilities.ts`).
+
+### App Review notes (D24)
+
+Paste into App Store Connect, App Review Information. Fill in the test account
+before submitting.
+
+```text
+Luvani is free to download and use. Free learners keep local practice, their
+saved learning, one streak freeze, and five minutes of live conversation with
+the AI tutor every week. The five minutes refill weekly and can be claimed once
+per device.
+
+A seven-day free trial (an App Store introductory offer) or a Core or Max plan
+opens the rest: longer live conversations, tutor memory, Your fixes, spaced
+review of conversation phrases, Then and now, sound practice, Prepare for
+something real, the full Journey, and streak repair with a second freeze.
+
+For learners without a plan or trial, the plans page appears when the app
+opens and when it returns after 30 minutes or more away. It never appears
+during onboarding, a live conversation, a drill or a recap. Tapping a locked
+feature also opens it. To dismiss it, tap "Not now" or the close button at the
+top. Everything that is free stays free.
+
+Restore purchases is on the plans page, under the main button, next to Terms of
+Use and Privacy Policy. It is also in Settings, Subscription.
+
+Test account: [email] / [password]. This account has no plan, so the plans
+page appears on launch. Use a fresh sandbox Apple ID to see the free trial.
+```

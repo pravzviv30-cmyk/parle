@@ -5,7 +5,7 @@ import type { StoreProduct } from '../purchases/contract.ts';
 import { chosenOffer, wallPlanRows } from './wallPlans.ts';
 import { trialTimeline } from './trialTimeline.ts';
 
-const month: StoreProduct = { plan: 'starter', productId: 'starter-month', title: 'Starter', localizedPrice: '£19.99',
+const month: StoreProduct = { plan: 'starter', productId: 'starter-month', title: 'Core', localizedPrice: '£19.99',
   period: 'month', price: 19.99, currencyCode: 'GBP', intro: null, introEligible: false };
 const year: StoreProduct = { ...month, productId: 'starter-year', period: 'year', price: 149.99, localizedPrice: '£149.99' };
 function annual(monthly: StoreProduct, yearly: StoreProduct) {

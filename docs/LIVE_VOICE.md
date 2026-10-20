@@ -226,7 +226,9 @@ like narration, correction, and roleplay glued together.
 The conversation-only memory brief now supplies the same last five repaired
 saved notes to the frame and every turn, labelled as editable tutor memory
 rather than an exact past utterance or an invented conversation/date source.
-Paused memory supplies no brief. Relevance and at most one natural sourced
+Paused memory supplies no brief. A session signed `memoryLocked: true` (free or lapsed
+learner) also supplies no brief, skips the remembered opener and extraction, and
+returns the received profile memory unchanged in the recap. Relevance and at most one natural sourced
 recall are prompt guidance; a real model test is still required before claiming
 reliable adherence. No extra model call or new decision threshold was added.
 

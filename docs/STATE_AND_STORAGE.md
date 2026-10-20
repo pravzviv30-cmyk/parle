@@ -233,6 +233,21 @@ max, in the same acknowledged write as the phrases, so one acknowledgement
 covers both and a replayed batch can never inflate what a learner is credited
 with. Version 1 and version 2 journals already on phones are still read.
 
+**Each card says where it came from (2026-10-20).** `ReviewCard.sources` is an
+optional set of `'daily' | 'lesson' | 'sample' | 'conversation' | 'curated'`
+(core's `review/sources.ts`), metadata only, never read by the scheduler. Every
+writer tags: `addPhrases` takes a required `source` (daily phrase `daily`;
+conversation journal, conversation packs, recap keepsake and drill keeps
+`conversation`; the sample pack `sample`; the starter and guest hand-off
+`curated`), and `addFromSummary` tags `lesson`. A phrase added again from
+another source keeps its scheduling and unions the tag; `mergeDecks` unions it
+on sync too, left out of the tiebreak like `evidence`. A card with no field
+predates tagging and stays untagged through both merges, so it is reviewable
+for everyone (fail open). The free tier uses it: when `conversationPractice` is
+locked, Review deals `reviewableFree` (everything not conversation-only) and
+shows one quiet row counting the due conversation-only cards held back
+(`apps/mobile/src/review/freeTier.ts`).
+
 **Grading is deliberately not acknowledged.** An ordinary review sitting must
 never wait on a disk. The screen moves on the beat the learner tapped, and a
 card that failed to persist is one card asked again, not a session lost.
@@ -415,8 +430,12 @@ without discarding its surviving facts. Earlier builds refuse version 2 instead 
 applying their age cutoffs to it. Already discarded v1 rows cannot be recovered.
 
 `gameLocal` (`game/gameLocal.ts`) is never synced and registers no adopter:
-`lastPracticeOffsetMin`, `paidSince`, the last 30 days of `nudges`, `nudgesPausedAt`,
-`introducedAt` and up to 32 `pending` celebrations, read as strictly as `game`. Queueing
+`lastPracticeOffsetMin`, `paidSince`, `protectedSince`, the last 30 days of `nudges`,
+`nudgesPausedAt`, `introducedAt` and up to 32 `pending` celebrations, read as strictly as
+`game`. `protectedSince` (D23, 2026-10-20) sits beside `paidSince`: the local day this phone
+first saw a plan that holds a streak freeze, including the free plan's one included freeze;
+a freeze never covers a day before it. It was added after version 1 shipped, so a stored
+record without it reads as null rather than being refused. Queueing
 celebrations answers `failed` and writes nothing when the ceiling would cut one of the
 moments offered, so a crash-replay entry is never reported as kept when it was not.
 
@@ -723,7 +742,7 @@ Four pieces, and each has one file:
 `sync/policy.ts` is the one to read. Fifteen namespaces under three merge classes:
 
 - **structured** — `profile`, delegated to `@luvani/brain`'s `mergeStoredProfiles`.
-- **per-item** — `review` (delegated to core's `mergeDecks`), `drills`, `topics`,
+- **per-item** — `review` (delegated to core's `mergeDecks`; evidence counts max, source tags union), `drills`, `topics`,
   `bookmarks`, `scenarioProgress`.
 - **set-union** — `history`, `activity`, `missions`, `soundChecks`, `coachMarks`,
   `tutorIntro`, `practiceHistory`, `goalSteps`, `game`.
@@ -919,6 +938,18 @@ one-time trial claim, read, plan save, and idempotent session consumption.
 - `SupabaseEntitlementStore` — selected when `SUPABASE_URL` and
   `SUPABASE_SERVICE_ROLE_KEY` are present. Reads and plan changes use PostgREST;
   consumption uses the atomic `consume_entitlement` database function.
+
+The free plan (`trial`, D24, 2026-10-20) is a five-minute weekly taste. An entitlement
+that passed the device claim, or lapsed from paid (`lapsedEntitlement()`), carries
+`weeklyTaste: true` (`entitlements.weekly_taste` in
+`supabase/migrations/20261020140000_weekly_free_taste.sql`). Its first debit above zero
+sets `periodEnd` seven days out (`recordUsage`); a read at or after that instant refills it
+(`refillTaste`: `secondsUsed` back to 0, `periodEnd` cleared), so the window rolls from first
+use. A trial row without `weeklyTaste` never refills. The local stores apply
+`refillTaste(rollPeriod(row, now), now)` on read; opening a taste's window keeps the usage
+epoch (a refund in it restores), while a refill starts a new one, as the SQL does. They do
+not copy the SQL rule that a refill waits while a claimed session is live. The file ledger
+accepts `weeklyTaste` only as a boolean; an older file without it still loads.
 
 `supabase/migrations/202608220001_luvani_learning.sql` creates the durable
 entitlements, privacy-filtered product events and a row-level-secured

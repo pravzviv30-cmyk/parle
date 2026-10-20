@@ -266,6 +266,15 @@ function safeModelProfile(profile: LearnerProfile): LearnerProfile {
 }
 
 /** Existing saved notes, bounded and labelled without inventing a session source. */
+/**
+ * The signed free-tier memory lock, read strictly: only boolean `true` locks.
+ * A string, number or object is not a lock, so a malformed value falls back to
+ * today's paid behaviour rather than guessing.
+ */
+export function memoryLockedFrom(value: unknown): boolean {
+  return value === true;
+}
+
 export function tutorMemoryBrief(profile: LearnerProfile): string {
   const repaired = repairProfile(profile);
   if (repaired.memory.control?.paused === true) return '';
@@ -1075,6 +1084,12 @@ export class LuvaniConversation extends voice.Agent {
   private readonly firstPractice: FirstPracticeBrief | undefined;
   private readonly teachingBrief: string;
   private readonly memoryBrief: string;
+  /**
+   * Free or lapsed learner (signed by the token server): tutor memory is
+   * neither used nor written this session. Unlike pause, the profile is left
+   * exactly as received so the recap hands the stored memory back unchanged.
+   */
+  private readonly memoryLocked: boolean;
   private spokenRecastUsed = false;
   /**
    * The saved conversation this session revisits, by id only, or null. Kept
@@ -1171,6 +1186,8 @@ export class LuvaniConversation extends voice.Agent {
        * and handed down here so the prompt and the voice describe one person.
        */
       persona?: TutorPersona;
+      /** Free or lapsed learner: no saved memory in prompts, no remembered opener, no extraction. */
+      memoryLocked?: boolean;
     } = {},
   ) {
     // The pipeline LLM never generates here; see the header. One line keeps
@@ -1188,7 +1205,10 @@ export class LuvaniConversation extends voice.Agent {
     // Honour pause at the backend too, even if an older client sent held details.
     this.profile = profile.memory.control?.paused === true
       ? { ...profile, memory: { ...profile.memory, facts: [], opener: null } } : profile;
+    this.memoryLocked = opts.memoryLocked === true;
+    // Locked: the brief is dropped here, so neither the scene nor any turn sees it.
     this.memoryBrief = tutorMemoryBrief(this.profile);
+    if (this.memoryLocked) this.memoryBrief = '';
     this.voiceless = opts.voiceless ?? false;
     this.state = createConversation(chooseFrame(profile), learnerSnapshotFrom(profile), {
       strictness: strictnessOf(profile),
@@ -1605,7 +1625,7 @@ export class LuvaniConversation extends voice.Agent {
     // A remembered opener is a whole greeting the analyst wrote after the last
     // session, in its own time, and it already knows the learner's name. Only
     // the generic question needs one stapled to the front.
-    const remembered = currentPolicyOpener(this.profile);
+    const remembered = this.memoryLocked ? null : currentPolicyOpener(this.profile);
     // The remembered opener is the sharpest edge of the tampered-profile hole:
     // a whole greeting written by a model last session, stored on the device,
     // and handed back to the worker in the join token. It arrives as data and
@@ -2832,7 +2852,7 @@ export class LuvaniConversation extends voice.Agent {
   private async extractMemory(turnCount: number, publish = true, maximumMs?: number): Promise<void> {
     // An empty session has nothing to remember, and asking would be spend
     // without a question.
-    if (turnCount === 0 || this.lastRecap === null || this.profile.memory.control?.paused === true) return;
+    if (turnCount === 0 || this.lastRecap === null || this.memoryLocked || this.profile.memory.control?.paused === true) return;
     try {
       const request = buildExtractionRequest({ history: this.state.history, knownFacts: this.profile.memory.facts });
       const ms = Math.min(postSessionDeadlineMs('extract'), maximumMs ?? Infinity);

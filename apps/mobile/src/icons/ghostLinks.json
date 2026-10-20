@@ -230,5 +230,9 @@
   {
     "file": "auth/SignInScreen.tsx",
     "label": "\"Forgot your password?\""
+  },
+  {
+    "file": "ReviewScreen.tsx",
+    "label": "{HELD_BACK_ACTION}"
   }
 ]

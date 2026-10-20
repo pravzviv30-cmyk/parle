@@ -3,6 +3,7 @@ name: revenue-engineer
 description: Owns metering, plans, entitlement and the purchase path. Use when work touches what a session costs, what a learner has bought, or how they buy more.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract
@@ -28,8 +29,9 @@ The store's own implementation is `data-engineer`'s. The screen that shows a pla
 `meter.ts` says outright why it was built early: **not because we are charging yet, but
 because we cannot retrofit it.** Respect that. It contains:
 
-- `PLANS` — trial 30 minutes, non-renewing, $0; starter 180 minutes per 30 days, $19;
-  regular 450 minutes per 30 days, $39.
+- `PLANS` — trial (shown as "Free") 5 minutes a week, refilling from first use, $0 (D24);
+  starter (shown as "Core") 180 minutes per 30 days, $19; regular (shown as "Max") 300
+  minutes per 30 days, $29.
 - `DEFAULT_COST_MODEL` — STT, LLM and TTS priced per minute, assessment per utterance, and
   `tutorSpeakingShare: 0.5` because TTS only bills while the tutor talks. **TTS is the
   dominant cost line.**

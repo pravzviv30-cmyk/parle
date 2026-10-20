@@ -674,9 +674,11 @@ export async function runSupabaseVerification(options: RunOptions): Promise<RunR
       expect(!seeded.error, `could not seed an expired period: ${redact(seeded.error)}`);
       const lapsed = await store.get(bob.id);
       expect(lapsed.plan === 'trial', `an expired paid period kept its paid plan: ${lapsed.plan}`);
-      expect(lapsed.secondsUsed === 1800, `an expired paid period left ${lapsed.secondsUsed} seconds used, expected 1800`);
+      // D24 (20261020140000): the lapse lands on a fresh weekly taste, still marked lapsed.
+      expect(lapsed.secondsUsed === 0, `an expired paid period left ${lapsed.secondsUsed} seconds used, expected a fresh taste (0)`);
+      expect(lapsed.lapsed === true, 'an expired paid period lost its lapse marker');
       expect(lapsed.periodEnd === undefined, `an expired paid period was granted one ending ${lapsed.periodEnd?.toISOString()}`);
-      return 'a period one hour past its end held; one 48 hours past it lapsed to an exhausted trial';
+      return 'a period one hour past its end held; one 48 hours past it lapsed to a fresh weekly taste';
     });
 
     await run.check('debit-concurrency', async () => {

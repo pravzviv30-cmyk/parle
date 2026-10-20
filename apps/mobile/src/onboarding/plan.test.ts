@@ -142,8 +142,9 @@ describe('answers to a plan', () => {
     assert.equal(NO_STREAKS, 'A day off takes nothing away.');
     assert.doesNotMatch(NO_STREAKS, /\b(miss|missed|break|breaks|broken|streaks?)\b/i, 'the no-streak line names what it is meant to spare the learner');
     assert.equal(METHOD_STEPS.length, 3, 'the method is three short steps');
-    assert.equal(TRIAL_LINE, '30 free minutes, no card needed');
-    assert.equal(PLANS.trial.secondsPerPeriod / 60, 30, 'the trial no longer grants thirty minutes, so the save page line is untrue');
+    assert.equal(TRIAL_LINE, '5 free minutes every week, no card needed');
+    assert.equal(PLANS.trial.secondsPerPeriod / 60, 5, 'the free plan no longer grants five minutes, so the save page line is untrue');
+    assert.equal(PLANS.trial.periodDays, 7, 'the free minutes no longer come every week, so the save page line is untrue');
     assert.equal(PLANS.trial.priceUsd, 0, 'the trial costs money, so "no card needed" is untrue');
     for (const line of [...PLAN_COPY, reminderLine('6:00 pm'), ...START_LEVELS.flatMap((l) => [l.title, l.gloss]), ...REASONS.map((r) => r.title)]) {
       assert.doesNotMatch(line, /[—–·]/, `a dash or a middot in "${line}"`);

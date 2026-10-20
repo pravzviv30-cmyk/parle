@@ -9,8 +9,9 @@ when those workflows are used.
 
 ## Where this project lives
 
-The permanent home of this project is `/Users/pravz_07/Documents/StartUps/Luvani`
-(renamed from the old `Parle` path). It is the integration destination. Work in
+The permanent home of this project is `/Users/pravz_07/Developer/StartUps/Luvani`
+(renamed from the old `Parle` path, and moved out of the iCloud-synced `~/Documents`
+on 2026-10-20 so iCloud cannot evict project files; `~/Documents/StartUps` is only a link). It is the integration destination. Work in
 the checkout attached to the current task; a worktree is a valid editing root.
 Worktree changes are not landed until integrated through the existing landing
 workflow. Do not silently move edits into another session's checkout.
@@ -266,6 +267,11 @@ Three hard stops, and none of them is negotiable by being asked:
 - **Never merge while another session is mid-edit.** `git status` showing files you did not
   touch, or `git worktree list` showing a live worktree, means someone is working. Your own
   files may still land; theirs never do.
+- **Push active work branches as backups (founder, 2026-10-20).** A branch that holds
+  committed work not yet on `main` may be pushed to `origin` under its own name so the work
+  is safe on GitHub; it still reaches `main` only through this landing workflow. Push from a
+  checkout whose gate is green, because the pre-push hook gates the checkout you push from.
+  Old branches kept only for reference go to `archive/<name>-<date>` before local deletion.
 - **Never `--force`, `--no-verify`, or rebase anything already pushed.** The hooks are the
   last honest check on the way out; a change that needs them off is a change that is not
   ready.

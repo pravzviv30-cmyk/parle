@@ -80,7 +80,7 @@ describe('trial or standard is decided by the store, and unknown is never eligib
 
   test('the plan line is the tier and the catalogue minutes, never a guess', () => {
     const { rows, chosen } = setup(true);
-    assert.equal(planLine(rows[0]!, chosen, PLANS), 'Starter, 180 min every 30 days');
+    assert.equal(planLine(rows[0]!, chosen, PLANS), 'Core, 180 min every 30 days');
     assert.equal(planLine(wallPlanRows(offering(true), null)![0]!, chosen, null), 'starter', 'minutes were guessed with no catalogue');
   });
 });
@@ -89,14 +89,14 @@ describe('the compare sheet', () => {
   test('trial lines show only when this account may take the trial', () => {
     const eligible = compareCards(setup(true).rows, setup(true).chosen, PLANS);
     assert.deepEqual(eligible.map(card => [card.name, card.price, card.allowance, card.trial]), [
-      ['Starter', '£99.99 a year', '180 minutes of live conversation every 30 days', 'Free trial: 42 minutes over 7 days'],
+      ['Core', '£99.99 a year', '180 minutes of live conversation every 30 days', 'Free trial: 42 minutes over 7 days'],
       ['Max', '£149.99 a year', '300 minutes of live conversation every 30 days', 'Free trial: 70 minutes over 7 days'],
     ]);
-    assert.deepEqual(eligible.map(compareCta), ['Continue with Starter', 'Continue with Max']);
+    assert.deepEqual(eligible.map(compareCta), ['Continue with Core', 'Continue with Max']);
     for (const unknown of [false, null]) {
       const cards = compareCards(setup(unknown).rows, setup(unknown).chosen, PLANS);
       assert.deepEqual(cards.map(card => card.trial), [null, null], 'a trial line was shown to an account that may not take it');
-      assert.deepEqual(cards.map(compareCta), ['Subscribe to Starter', 'Subscribe to Max']);
+      assert.deepEqual(cards.map(compareCta), ['Subscribe to Core', 'Subscribe to Max']);
     }
   });
 });
@@ -139,14 +139,14 @@ describe('the reminder is the same real state on the timeline and the success pa
 
   test('the success page names the reminder only once one is scheduled', () => {
     const { chosen } = setup(true);
-    const success = { name: 'Starter', minutes: 42, perWeek: null, trial: true as const };
+    const success = { name: 'Core', minutes: 42, perWeek: null, trial: true as const };
     const ends = Date.parse('2026-10-26T09:00:00.000Z');
     const base = { success, offer: chosen, catalogue: PLANS, plan: 'starter' as const, endsAt: ends, reminderAt: ends - 2 * 86_400_000 };
     const scheduled = successSummary({ ...base, reminderScheduled: true });
     assert.deepEqual(scheduled.rows.map(row => row.key), ['Plan', 'Trial ends', SUCCESS_ROW_REMINDER, 'Then']);
-    assert.equal(scheduled.body, 'Your Starter trial has started. You have 42 minutes with your tutor over the next 7 days.');
+    assert.equal(scheduled.body, 'Your Core trial has started. You have 42 minutes with your tutor over the next 7 days.');
     assert.ok(!successSummary({ ...base, reminderScheduled: false }).rows.some(row => row.key === SUCCESS_ROW_REMINDER), 'a reminder row with no reminder');
-    const paid = successSummary({ ...base, success: { name: 'Starter', minutes: 180, perWeek: 4 }, reminderScheduled: false });
+    const paid = successSummary({ ...base, success: { name: 'Core', minutes: 180, perWeek: 4 }, reminderScheduled: false });
     assert.doesNotMatch(paid.body + paid.rows.map(row => row.key + row.value).join(), /trial/i);
   });
 
@@ -155,8 +155,8 @@ describe('the reminder is the same real state on the timeline and the success pa
     assert.equal(trialEndsAt(null, 1_000, 7), 1_000 + 7 * 86_400_000);
     assert.equal(trialEndsAt(null, 1_000, null), 1_000 + 7 * 86_400_000);
     assert.equal(trialEndsAt(null, null, 7), null);
-    assert.equal(shouldScheduleTrialReminder({ name: 'Starter', minutes: 42, perWeek: null, trial: true }, null), false);
-    assert.equal(shouldScheduleTrialReminder({ name: 'Starter', minutes: 180, perWeek: 4 }, { plan: 'starter' } as never), false, 'a paid plan scheduled a trial reminder');
+    assert.equal(shouldScheduleTrialReminder({ name: 'Core', minutes: 42, perWeek: null, trial: true }, null), false);
+    assert.equal(shouldScheduleTrialReminder({ name: 'Core', minutes: 180, perWeek: 4 }, { plan: 'starter' } as never), false, 'a paid plan scheduled a trial reminder');
   });
 
   test('the screen schedules after confirmation, never asks permission, and the timeline reads the hook', () => {
@@ -170,7 +170,7 @@ describe('the reminder is the same real state on the timeline and the success pa
 describe('an available offering always shows a priced offer', () => {
   const PREVIEW_ENV = { EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: '1', EXPO_PUBLIC_LUVANI_WALL_PREVIEW: '1' };
 
-  test('with nothing chosen or suggested, the default is Starter yearly, then Starter monthly, then the first product', () => {
+  test('with nothing chosen or suggested, the default is Core yearly, then Core monthly, then the first product', () => {
     const rows = wallPlanRows(offering(true), PLANS)!;
     assert.equal(effectiveSelection(rows, null, null), 'starter_year');
     const monthlyOnly = wallPlanRows({ available: true, products: offering(true).products }, PLANS)!;

@@ -31,14 +31,14 @@ export type ProductEvent =
   // our own tier id, and `outcome` is the same closed set restore.ts already answers
   // with. A monetisation surface nobody can measure is a surface nobody can improve,
   // and this is the smallest set that answers "which page lost them".
-  | { name: 'wall_shown'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; pages: number } }
+  | { name: 'wall_shown'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; pages: number } }
   | { name: 'wall_page_seen'; properties: { page: 'yours' | 'plans'; index: number } }
   | { name: 'plan_selected'; properties: { plan: 'starter' | 'regular' } }
   | { name: 'purchase_started'; properties: { plan: 'starter' | 'regular' } }
   | { name: 'purchase_settled'; properties: { plan: 'starter' | 'regular'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'refresh-trouble' } }
   | { name: 'restore_started'; properties: { entry: 'settings' | 'wall' | 'inline' } }
   | { name: 'restore_settled'; properties: { entry: 'settings' | 'wall' | 'inline'; outcome: 'done' | 'nothing-granted' | 'cancelled' | 'awaiting-approval' | 'store-trouble' | 'refresh-trouble' } }
-  | { name: 'wall_left'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap'; outcome: 'granted' | 'unchanged'; destination: 'back' | 'speak' } };
+  | { name: 'wall_left'; properties: { entry: 'path-complete' | 'refused' | 'settings' | 'recap' | 'launch' | 'locked'; outcome: 'granted' | 'unchanged'; destination: 'back' | 'speak' } };
 
 /**
  * Fire-and-forget product evidence. No content fields exist in the type.

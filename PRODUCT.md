@@ -73,8 +73,11 @@ Two things competitors structurally cannot copy without changing shape:
   speech-to-speech model — cost and French-quality control both demand cascaded.
 - Pronunciation assessment needs a reference text; free conversation yields
   fluency signals only. This constraint shapes the whole scaffolding design.
-- **Metered minutes, enforced from v1.** Trial is a finite 30 minutes total (not a
-  daily allowance). Paid: Starter 180 minutes, Max 300 minutes. Prices come from the store. Unlimited pricing is rejected
+- **Metered minutes, enforced from v1.** The app is free to use (D24, 2026-10-20,
+  the Headspace model): free learners get a weekly taste of live time, 5 minutes on a
+  rolling 7 days from first use, claimed once per device, and a lapsed plan falls back
+  to it. The 7-day trial and the paid plans unlock the rest. Paid: Core 180 minutes,
+  Max 300 minutes. Prices come from the store. Unlimited pricing is rejected
   on modelled unit economics.
 - Premium French TTS voices — the dominant cost line, and the most immediately
   felt quality signal for a beginner.
@@ -103,9 +106,10 @@ Two hard behavioural commitments, both derived from confirmed research:
   because the free practices count too. A safety stop earns no day. The number
   is the practice days in the current run.
 
-  Freezes and repair come with a paid plan. A freeze is applied automatically,
-  and a covered day keeps the run without adding to it. For a free learner a
-  missed day starts a new run. Just after a run ends, a free learner sees one
+  A free learner holds one freeze and a paid plan holds two, plus repair (D23,
+  2026-10-20). A freeze is applied automatically, a covered day keeps the run
+  without adding to it, and a used freeze comes back a week later. For a free
+  learner a missed day the freeze cannot cover starts a new run. Just after a run ends, a free learner sees one
   calm line on the Streak screen and a way to see plans:
   "Subscribers can repair a streak within 2 days." There is no notification
   about it, no countdown, and never "save your streak".

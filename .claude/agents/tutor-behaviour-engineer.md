@@ -3,6 +3,7 @@ name: tutor-behaviour-engineer
 description: Owns tutor persona, scene conduct, rescue behaviour, corrections, mode consistency, and safety responses across voice and text.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

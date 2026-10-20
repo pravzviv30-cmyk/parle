@@ -64,7 +64,7 @@ import {
   type Rung,
   type ServerMessage,
 } from '@luvani/core';
-import { LuvaniConversation, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
+import { LuvaniConversation, memoryLockedFrom, parseStoredProfile, sttLanguageFor, validSeedTopic } from './convo.ts';
 import { recognitionPlan } from './recognitionPlan.ts';
 import { LuvaniTutor } from './tutor.ts';
 import { formatVendorMetrics, type VendorMetrics } from './timing.ts';
@@ -149,6 +149,8 @@ export default defineAgent({
       lifecycleVersion?: unknown;
       guestLifecycleKey?: unknown;
       firstPractice?: unknown;
+      /** Signed `true` for a free or lapsed learner: no tutor memory is read or written. Absent on paid sessions. */
+      memoryLocked?: unknown;
     };
     const parseMeta = (raw?: string): TokenMeta => {
       try {
@@ -284,6 +286,8 @@ export default defineAgent({
     const tutor = isConvo
       ? new LuvaniConversation(parseStoredProfile(meta.snapshot), {
           voiceless,
+          // Strict: only a signed boolean `true` locks memory; anything else is a paid session.
+          memoryLocked: memoryLockedFrom(meta.memoryLocked),
           seedTopic,
           firstPractice,
           revision: meta.revision,

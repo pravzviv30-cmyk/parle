@@ -3,6 +3,7 @@ name: qa-release-engineer
 description: Independently validates security, learning, product, accessibility, performance, builds, rollback, and external blockers before a release decision.
 tools: Read, Grep, Glob, Bash
 model: opus
+effort: low
 ---
 
 ## Handoff contract

@@ -266,7 +266,7 @@ export async function bankPractice(batch: PracticeBatch): Promise<'banked' | 'ke
   if (!current()) return 'kept';
   // The counts ride the phrases' own write. One conversation, one deck write,
   // one acknowledgement to reason about.
-  const phrases = await acknowledged(() => addPhrases(batch.phrases, { stagger: true, convoUses: batch.convoUses }));
+  const phrases = await acknowledged(() => addPhrases(batch.phrases, { source: 'conversation', stagger: true, convoUses: batch.convoUses }));
   if (!current()) return 'kept';
   const drills = await acknowledged(() => mergeExercises(batch.drills));
   if (!current()) return 'kept';

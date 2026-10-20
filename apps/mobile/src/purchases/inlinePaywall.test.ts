@@ -42,7 +42,7 @@ const CONVO = read('../ConvoScreen.tsx');
 const LESSON = read('../LiveSessionScreen.tsx');
 const OUT_OF_MINUTES_PAGE = read('../live/OutOfMinutesView.tsx');
 
-const product = (plan: PaidPlan, localizedPrice: string, title = 'Starter'): StoreProduct => ({
+const product = (plan: PaidPlan, localizedPrice: string, title = 'Core'): StoreProduct => ({
   plan,
   productId: `luvani_${plan}_monthly`,
   title,

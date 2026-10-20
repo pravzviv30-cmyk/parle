@@ -24,7 +24,7 @@
  * Whenever the facts stop showing an active trial: the end has passed, the
  * store says the subscription is no longer in its trial period or will not
  * renew, the server or store reports a period end that is not the trial's
- * (it converted), the server says the plan has lapsed or is the free minutes,
+ * (it converted), the server says the plan has lapsed or is the free plan,
  * or there is no trial on record for the signed-in account (a sign-out or an
  * account change). Also when the setting is turned off or permission is gone.
  * Unknown facts (no billing answer, no store answer) change nothing.

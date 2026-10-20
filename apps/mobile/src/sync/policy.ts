@@ -693,7 +693,7 @@ export const SYNC_POLICIES: readonly NamespacePolicy[] = [
     namespace: 'review',
     merges: 'per-item',
     writes: null,
-    rule: 'union by card id; the whole card from the side with more grades applied, scheduling carried never recomputed',
+    rule: 'union by card id; the whole card from the side with more grades applied, scheduling carried never recomputed; evidence counts max and source tags union',
     merge: (local, remote) => mergeReview(local, remote),
   },
   {

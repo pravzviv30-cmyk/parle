@@ -75,6 +75,7 @@ import {
   seededOpening,
   spokenTurn,
   tutorMemoryBrief,
+  memoryLockedFrom,
   sttLanguageFor,
   toConvoView,
   toRecapPayload,
@@ -548,6 +549,7 @@ function buildConvo(
     sessionId?: string;
     /** The voice the learner chose, made into someone to be. */
     persona?: TutorPersona;
+    memoryLocked?: boolean;
   } = {},
 ) {
   const client = opts.client ?? new MockLlmClient();
@@ -556,6 +558,7 @@ function buildConvo(
   const convo = new LuvaniConversation(opts.profile ?? createProfile(), {
     voiceless: opts.voiceless ?? false,
     client,
+    memoryLocked: opts.memoryLocked,
     seedTopic: opts.seedTopic,
     revision: opts.revision,
     previousCorrection: opts.previousCorrection,
@@ -640,6 +643,7 @@ async function inScene(
     profile?: LearnerProfile;
     sessionId?: string;
     persona?: TutorPersona;
+    memoryLocked?: boolean;
   } = {},
 ) {
   const built = buildConvo(t, opts);
@@ -698,6 +702,51 @@ test('paused personal memory reaches neither the scenario request nor the extrac
   assert.doesNotMatch(JSON.stringify(client.turnRequests), /jazz|concert/i);
   assert.ok(published.some((message) => message.t === 'recap'));
   assert.ok(client.curateRequests.length > 0, 'French practice preparation remains available');
+});
+
+test('a memory-locked (free or lapsed) session neither uses nor writes tutor memory, and hands the stored memory back untouched', async (t) => {
+  const profile = createProfile();
+  profile.memory.name = 'Camille';
+  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+  profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
+  const received = structuredClone(profile);
+  const client = new MockLlmClient({ turns: [sampleTurn(), sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
+  const { convo, published, session } = await inScene(t, { client, profile, memoryLocked: true, voiceless: true });
+  const opening = published.find((message) => message.t === 'opening');
+  assert.ok(opening);
+  assert.doesNotMatch(JSON.stringify(opening), /concert/i, 'the remembered opener is not used');
+  assert.match(JSON.stringify(opening), /Camille/, 'the learner name is still fine to use');
+  for (const line of ['Bonjour', 'Un café, merci']) {
+    await convo.handleClientMessage(session, tapped({ t: 'say', text: line }));
+    await convo.settled();
+  }
+  for (let i = 0; i < 6; i++) await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(client.frameRequests.length > 0 && client.turnRequests.length > 0);
+  assert.doesNotMatch(JSON.stringify(client.frameRequests), /SAVED TUTOR MEMORY|jazz|concert/i);
+  assert.doesNotMatch(JSON.stringify(client.turnRequests), /SAVED TUTOR MEMORY|jazz|concert/i);
+  assert.equal(client.extractRequests.length, 0, 'the lock prevents the extraction model call');
+  const recaps = published.filter((message) => message.t === 'recap');
+  assert.ok(recaps.length > 0);
+  for (const recap of recaps) assert.deepEqual((recap as { profile: LearnerProfile }).profile.memory, received.memory);
+});
+
+test('an unlocked session still uses the remembered opener and extracts memory', async (t) => {
+  const profile = createProfile();
+  profile.memory.facts = [{ kind: 'interest', fr: null, en: 'Likes jazz', happensAround: null, notedAt: '2026-01-01' }];
+  profile.memory.opener = { fr: 'Et le concert ?', en: 'How was the concert?', policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
+  const client = new MockLlmClient({ turns: [sampleTurn({ scene: { beat: 'greet', beatDone: true, sceneDone: true } })] });
+  const { convo, published } = await inScene(t, { client, profile, memoryLocked: false });
+  assert.match(JSON.stringify(published.find((message) => message.t === 'opening')), /concert/i);
+  await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+  await convo.settled();
+  for (let i = 0; i < 6; i++) await new Promise((resolve) => setImmediate(resolve));
+  assert.match(JSON.stringify(client.frameRequests), /SAVED TUTOR MEMORY/);
+  assert.ok(client.extractRequests.length > 0);
+});
+
+test('memoryLockedFrom only counts a boolean true', () => {
+  assert.equal(memoryLockedFrom(true), true);
+  for (const value of [undefined, null, false, 'true', 1, {}, [true]]) assert.equal(memoryLockedFrom(value), false);
 });
 
 test('saved tutor memory is bounded in the frame and every turn, with an honest editable-note source', async (t) => {

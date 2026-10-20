@@ -187,10 +187,20 @@ describe('an existing learner meets the game layer — F745', () => {
     assert.equal(view.freezes, 2);
     assert.deepEqual((await loadGame()).covers, []);
 
-    // A free learner holds none, and no day before the update is ever covered.
+    assert.equal((await loadGameLocal()).protectedSince, TODAY);
+
+    // A free learner holds one (D23), from the day of the update, and is not paid.
     setActiveUser(nextUid());
     billing = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
     await seedExistingLearner();
     assert.equal((await loadGameLocal()).paidSince, null);
+    assert.equal((await loadGameLocal()).protectedSince, TODAY);
+    assert.equal(gameViewFrom(await readGameFacts({ ...NO_OUTSIDE_FACTS }, billing), TODAY).freezes, 1);
+
+    // A plan nobody could read starts nothing.
+    setActiveUser(nextUid());
+    billing = null;
+    await seedExistingLearner();
+    assert.equal((await loadGameLocal()).protectedSince, null);
   });
 });

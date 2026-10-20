@@ -3,6 +3,7 @@ name: data-sync-engineer
 description: Owns Supabase learner-state persistence, versioned envelopes, offline queues, conflict policy, RLS, migrations, and cross-device recovery.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

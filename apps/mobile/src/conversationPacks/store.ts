@@ -126,7 +126,7 @@ async function getReply(url: string, token: string, request: typeof fetch): Prom
 }
 async function bankPage(packs: readonly ConversationPack[], current:()=>boolean): Promise<boolean> {
   if (packs.length>CONVERSATION_PAGE_SIZE || !current()) return false;
-  if (await addPhrases(packs.filter(pack=>pack.state==='ready').flatMap(reviewPhrasesFor),{stagger:true})!=='durable' || !current()) return false;
+  if (await addPhrases(packs.filter(pack=>pack.state==='ready').flatMap(reviewPhrasesFor),{source:'conversation',stagger:true})!=='durable' || !current()) return false;
   if (await mergeExercises(packs.flatMap(pack=>pack.exercises))!=='durable' || !current()) return false;
   if (await mergeExercises(packs.flatMap(packExercisesFor))!=='durable' || !current()) return false;
   return true;

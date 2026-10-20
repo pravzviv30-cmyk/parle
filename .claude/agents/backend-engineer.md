@@ -3,6 +3,7 @@ name: backend-engineer
 description: Builds and repairs the Luvani services — the LiveKit tutor agent and the token server. Use when work touches services/, the live voice pipeline, or the process that mints join tokens.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 You own the two processes that make a live session possible. When they are wrong a learner

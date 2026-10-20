@@ -11,9 +11,10 @@
  *   day says what covered it; a day still to come says so.
  * - **The lifetime total is always beside the run**, so a reset never shows a
  *   learner nothing (D2).
- * - **Freezes and repair are a plan's** (D4). A subscriber sees the freezes
- *   card, and the repair card while a repair is being earned. A free learner
- *   sees one calm line, "Subscribers can repair a streak within 2 days.", and
+ * - **Freezes and repair** (D4, D23). A subscriber sees the freezes card with
+ *   two, and the repair card while a repair is being earned. A free learner
+ *   sees the freezes card with their one freeze, and one calm line,
+ *   "Subscribers get a second freeze and can repair a streak within 2 days.", and
  *   See plans, only while a streak that just ended could still be repaired:
  *   no notification, no countdown, nothing at any other time. While the plan
  *   is unknown, neither is said.
@@ -24,7 +25,6 @@
  */
 
 import {
-  FREEZE_CAP,
   MONTH_NAMES,
   STREAK_MILESTONES,
   WEEKDAY_NAMES,
@@ -206,14 +206,15 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
   const freezes =
     view.protection?.freezes === true
       ? (() => {
-          const returning = view.freezes === 0 ? nextFreezeReturn({ ...input, entitled: true }) : null;
+          const cap = view.protection?.cap ?? 0;
+          const returning = view.freezes === 0 ? nextFreezeReturn(cap, input) : null;
           return {
             held: view.freezes,
-            max: FREEZE_CAP,
+            max: cap,
             title: copy.freezes.title,
             ready: copy.freezes.ready(view.freezes),
             line: copy.freezes.line,
-            returns: returning === null ? null : copy.freezes.returns(weekdayDateWords(returning)),
+            returns: returning === null ? null : copy.freezes.returns(weekdayDateWords(returning), cap),
           };
         })()
       : null;

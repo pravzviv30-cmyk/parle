@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { dueCards, levelFor, missionStates, totalXp, type ReviewCard } from '@luvani/core';
+import { levelFor, missionStates, totalXp } from '@luvani/core';
 import { Card, ColourCard, FrenchBlock, IconAction, PillButton } from '../components.tsx';
 import { paper, type } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { fetchBillingStatus } from '../purchases/client.ts';
 import type { HomeBilling } from '../home/nextAction.ts';
-import { PLANS_LEAD } from '../home/nextAction.ts';
+import { PLANS_LEAD, plansLeadBody } from '../home/nextAction.ts';
 import { nextTaskKind } from './nextTask.ts';
 import { recoverPracticeCompletion } from './completion.ts';
 import { loadPackMarks, withMarks } from '../conversationPacks/marks.ts';
@@ -15,6 +15,8 @@ import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 import { loadDeck } from '../review/store.ts';
+import { offeredReview, reviewOffer, type ReviewOffer } from '../review/freeTier.ts';
+import { useFeatureLocks } from '../purchases/useFeatureLocks.ts';
 import { loadDrillBank } from '../drill/store.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { loadPracticeSession } from './sessionStore.ts';
@@ -36,11 +38,12 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
+  const locks = useFeatureLocks(user?.id ?? null);
   const { profile } = useProfile();
   const owner = scopeGeneration();
   const startingMissionId = profile.brain.cefr.estimate === 'A1' && profile.brain.cefr.confidence === 'low' && profile.brain.cefr.evidence.length === 0 ? 'mission:cafe' : undefined;
   const [billing, setBilling] = useState<HomeBilling | null>(null);
-  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; review: ReviewCard | null; hero: HomeMission | null } | null>(null);
+  const [value, setValue] = useState<{ scope: number; card: PracticeCard | null; offer: ReviewOffer; hero: HomeMission | null } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
@@ -62,7 +65,7 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
         const rec = recommendation({ resumable: resumableOf(saved, packs, bank), deck, bank, packs, now });
         const card = rec.kind === 'none' ? null : practiceCard({ rec, deck, packs, now, resuming: saved?.targets.map(t => t.phraseKey) ?? [] });
         const hero = homeMissionFrom({ progress: missionStates(missionCompletionsFrom(completions), deck, now), records, levelIndex: levelFor(totalXp(activity)).index, startingMissionId, now });
-        setValue({ scope, card, review: dueCards(deck, now)[0] ?? null, hero });
+        setValue({ scope, card, offer: reviewOffer(deck, now), hero });
       }).catch(() => { if (!cancelled && scope === scopeGeneration()) setFailed(true); });
     return () => { cancelled = true; };
   }, [attempt, owner, startingMissionId]));
@@ -81,13 +84,16 @@ export function NextTaskCard({ vivid = false }: { vivid?: boolean }) {
       <Text style={[type.small, { color: paper.onInk }]}>{card.noMinutes}</Text>
     </ColourCard>;
   }
-  const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, value.review !== null);
-  if (kind === 'review' && value.review !== null) return <ColourCard ground="blue">
+  // Home offers only what Review will deal: a free learner's conversation
+  // phrases wait for the trial, so the card falls through to the next free step.
+  const review = offeredReview(value.offer, locks.access('conversationPractice'));
+  const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, review !== null);
+  if (kind === 'review' && review !== null) return <ColourCard ground="blue">
     <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>Ready for review</Text>
-    <Card><FrenchBlock french={value.review.front} /></Card>
+    <Card><FrenchBlock french={review.front} /></Card>
     <Text style={[type.small, { color: paper.onInk }]}>A saved phrase, ready to revisit. Free on this phone.</Text>
     <PillButton tone="white" label="Practise review" onPress={() => navigateOwned('Review')} />
   </ColourCard>;
-  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{PLANS_LEAD.body}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
+  if (kind === 'plans') return <ColourCard ground="sun"><Text accessibilityRole="header" style={type.heading}>{PLANS_LEAD.title}</Text><Text style={type.body}>{plansLeadBody(billing)}</Text><Text style={type.small}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={() => navigateOwned('Wall', { entry: 'refused' })} /><IconAction layout="inline" ground="sun" icon="headphones" label="Try the offline café line" onPress={() => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' })} /></ColourCard>;
   return kind === 'scene' && value.hero !== null ? <MissionHero hero={value.hero} vivid={vivid} /> : <LocalPracticeCard vivid={vivid} />;
 }

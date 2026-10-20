@@ -170,7 +170,7 @@ export function DailyPracticeScreen() {
   const review = async () => {
     if (!item || operation.current || recording) return; operation.current = true; setBusy(true);
     try {
-      const ack = await addPhrases([{ fr: item.fr, en: item.en, frWritten: null, enLiteral: null, register: 'neutral', note: item.note }]);
+      const ack = await addPhrases([{ fr: item.fr, en: item.en, frWritten: null, enLiteral: null, register: 'neutral', note: item.note }], { source: 'daily' });
       // Saved means durable, and only then is the saved moment handed over.
       announcePhraseSaved(ack, item.fr);
       if (!live.current) return;

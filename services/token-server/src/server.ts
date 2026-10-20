@@ -29,10 +29,12 @@ import {
   isConversationText,
   PLANS,
   WEEKLY_STARTER_SECONDS,
+  canStartSession,
   secondsRemaining,
   revisionFromPack,
   withoutRevisionSource,
   withVerifiedRevisionSource,
+  type Entitlement,
   type TutorRevision,
 } from '@luvani/core';
 import { brainClientFromEnv, type LlmClient } from '@luvani/brain/llm';
@@ -271,6 +273,23 @@ async function withinLimits(
   return false;
 }
 
+/**
+ * The sentence for a refused reservation. The database decided; core words it,
+ * from the row read just before the reservation, so a spent weekly taste says
+ * when it refills ("They refill on Monday."). The app shows its own copy keyed
+ * on the error code; this is the fallback a client without that table reads.
+ */
+function refusalMessage(reason: string, entitlement: Entitlement): string {
+  if (reason !== 'exhausted' && reason !== 'insufficient-for-session' && reason !== 'subscription-lapsed') {
+    return 'Your session could not be prepared. Please try again.';
+  }
+  const decision = canStartSession(entitlement);
+  if (!decision.allowed && decision.reason === reason) return decision.message;
+  if (reason === 'insufficient-for-session') return 'There is a little speaking time left, but not quite enough for a full session.';
+  if (reason === 'subscription-lapsed') return 'Your subscription has ended. Your free minutes for this week are used.';
+  return entitlement.plan === 'trial' ? 'Your free minutes for this week are used.' : 'You have used all your minutes for now.';
+}
+
 function ipCheck(req: IncomingMessage, rule: RateLimitRule): readonly [RateLimitRule, 'ip', string] {
   return [rule, 'ip', clientIp(req, trustProxy)];
 }
@@ -422,7 +441,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         const prepared = await prepareGuestLive(guestStore, guestKey(token), guest.live.brief);
         const result = await grantSession({ userId: guest.id, lessonId: 'convo-01', mode: 'convo', config,
           entitlement: { plan: 'trial', secondsUsed: 0 }, firstPractice: prepared.brief,
-          seedTopic: firstPracticeScenario(prepared.brief), tutorVoice: prepared.brief.tutorVoice,
+          seedTopic: firstPracticeScenario(prepared.brief), tutorVoice: prepared.brief.tutorVoice, memoryLocked: true,
           guest: { key: guestKey(token), sessionId: prepared.sessionId, roomName: prepared.roomName, maxSeconds: prepared.maxSeconds } });
         if (!result.ok) return json(res, result.status, { error: result.reason });
         return json(res, 200, { ...result.grant, secondsRemaining: prepared.maxSeconds, livekitUrl });
@@ -463,11 +482,10 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         // The existing one-time installation/account boundary grants the trial, not this route.
         const trial = await claimTrialWithEvidence(store, eventSink, identity.userId, claimed.installation, privateSignal(rateLimitSalt, 'user', identity.userId), false);
         if (!trial) return json(res, 200, { secondsRemaining: 0, trialEligible: false });
-        const entitlement = await store.get(identity.userId);
-        if (entitlement.plan === 'trial' && claimed.seconds > 0) {
-          if (!(await store.recordSessionGrant(identity.userId, claimed.id, entitlement))) return json(res, 409, { error: 'usage changed, retry saving' });
-          await store.consume(identity.userId, claimed.seconds, claimed.id);
-        }
+        // D24 (founder, 2026-10-20): the onboarding first scene is a gift on top
+        // of the weekly free taste, so the guest's seconds are not debited from
+        // it. Their cost was already bounded by the guest speech budget when
+        // they were spoken, and that is where it stays recorded.
         return json(res, 200, { secondsRemaining: secondsRemaining(await store.get(identity.userId)) });
       }
       if (url.pathname === '/onboarding/attempt' || url.pathname === '/onboarding/audio') {
@@ -661,7 +679,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
       ) {
         return json(res, 402, {
           error: 'trial already claimed',
-          message: 'The introductory minutes for this installation have already been used by another account.',
+          message: 'Free minutes are already in use on this device. Practice and review still work, and a plan can add speaking time.',
           plans: PLANS,
         });
       }
@@ -676,7 +694,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         if (reservation.kind === 'refused') {
           const status = ['exhausted', 'insufficient-for-session', 'subscription-lapsed'].includes(reservation.reason)
             ? 402 : reservation.reason === 'session-active' ? 409 : 503;
-          return json(res, status, { error: reservation.reason, message: 'Your session could not be prepared. Please try again.', plans: PLANS });
+          return json(res, status, { error: reservation.reason, message: refusalMessage(reservation.reason, entitlement), plans: PLANS });
         }
         admitted = reservation;
         if(paid)try {
@@ -701,6 +719,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         ...(seedTopic !== undefined ? { seedTopic } : {}),
         ...(missionId !== undefined ? { missionId } : {}),
         ...(tutorVoice !== undefined ? { tutorVoice } : {}),
+        // D24 follow-up: a free or lapsed learner's tutor neither reads nor writes memory.
+        memoryLocked: entitlement.plan === 'trial' || entitlement.lapsed === true,
       });
       const grantedAt = performance.now();
       const serverTiming = [

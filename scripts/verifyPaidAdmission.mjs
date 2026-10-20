@@ -36,7 +36,8 @@ try {
  const migrations=(await readdir(`${root}/supabase/migrations`)).filter(f=>f.endsWith('.sql')).sort();
  for(const file of migrations)await db.exec(await readFile(`${root}/supabase/migrations/${file}`,'utf8'));
  assert.equal((await rpc('paid_admission_schema_v1')).enabled,false);
- for(let n=1;n<=6;n++){await db.query('insert into auth.users(id)values($1)',[id(n)]);await db.query('insert into auth.sessions(id,user_id)values($1,$2)',[auth(n),id(n)]);await db.query("insert into entitlements(user_id,plan)values($1,'trial')",[id(n)]);}
+ for(let n=1;n<=6;n++){await db.query('insert into auth.users(id)values($1)',[id(n)]);await db.query('insert into auth.sessions(id,user_id)values($1,$2)',[auth(n),id(n)]);await db.query("insert into entitlements(user_id,plan,period_end)values($1,'regular',clock_timestamp()+interval '30 days')",[id(n)]);}
+ // A paid allowance, so a 900-second reservation is the admission ceiling under test and not the weekly free taste (D24, 300 seconds).
  for(const name of ['anon','authenticated','service_role']){
   await role(name,id(1));
   for(const table of ['paid_admission_config','paid_admission_vendors','paid_quotes','paid_global_days','paid_vendor_days','paid_account_days','paid_operations','paid_effects','tutor_account_budget_days','paid_execution_global_days','paid_execution_account_days','paid_execution_vendor_days','paid_component_days'])await assert.rejects(db.exec(`select * from luvani_private.${table}`),e=>e.code==='42501');

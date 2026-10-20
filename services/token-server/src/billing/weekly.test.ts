@@ -6,13 +6,13 @@ import { billingStatusFor } from '../billingStatus.ts';
 const config: RevenueCatConfiguration = { secretApiKey: 'test', webhookSecret: 'test', entitlementId: 'live', products: { starter: 'month', regular: 'max' }, weeklyStarterProduct: 'week' };
 const now = new Date('2026-10-09T12:00:00Z');
 const body = (start = '2026-10-09T00:00:00Z', end = '2026-10-16T00:00:00Z', type = 'normal') => ({ subscriber: { entitlements: { live: { product_identifier: 'week', purchase_date: start, expires_date: end } }, subscriptions: { week: { period_type: type } } } });
-const fresh: Entitlement = { plan: 'trial', secondsUsed: 1800 };
+const fresh: Entitlement = { plan: 'trial', secondsUsed: 300 };
 test('weekly grants 45 minutes, replay preserves usage and renewal never rolls over', () => {
  const first = projectSubscriber(body(), fresh, config, now);
  assert.equal(first.kind, 'active'); if (first.kind !== 'active') return;
  assert.equal(secondsRemaining(first.entitlement), 2700);
  assert.equal(billingStatusFor(first.entitlement).allowanceSeconds, 2700);
- const spent = recordUsage(first.entitlement, 600);
+ const spent = recordUsage(first.entitlement, 600, now);
  const replay = projectSubscriber(body(), spent, config, now);
  assert.equal(secondsRemaining(replay.entitlement), 2100);
  const next = projectSubscriber(body('2026-10-16T00:00:00Z', '2026-10-23T00:00:00Z'), spent, config, new Date('2026-10-16T12:00:00Z'));

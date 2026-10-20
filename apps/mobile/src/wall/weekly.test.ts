@@ -6,7 +6,7 @@ import { billedPrice } from './wallCopy.ts';
 import { wallSuccess } from './wallSuccess.ts';
 import { billingPairMatches } from '../purchases/billingReadiness.ts';
 import type { StoreProduct } from '../purchases/contract.ts';
-const month: StoreProduct = { plan: 'starter', period: 'month', productId: 'month', title: 'Starter', localizedPrice: '£14.99', intro: null, introEligible: false };
+const month: StoreProduct = { plan: 'starter', period: 'month', productId: 'month', title: 'Core', localizedPrice: '£14.99', intro: null, introEligible: false };
 const week: StoreProduct = { ...month, period: 'week', productId: 'week', localizedPrice: '$5.49' };
 test('weekly is an explicit localized choice with its own allowance and no free trial', () => {
  const rows = wallPlanRows({ available: true, products: [month], weekly: [week] }, PLANS)!;

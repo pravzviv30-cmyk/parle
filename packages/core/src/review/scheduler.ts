@@ -24,6 +24,7 @@
  */
 
 import { addEvidence, isDue, isSettled, presentationOf, type PhraseEvidence } from './evidence.ts';
+import { unionSources, withSources, type ReviewSource } from './sources.ts';
 
 export type ReviewCardKind = 'vocab' | 'phoneme' | 'turn';
 
@@ -107,6 +108,12 @@ export interface ReviewCard {
    * a week the learner had already forgotten it.
    */
   settledAt?: number;
+  /**
+   * Which writers added this phrase (`sources.ts`). Metadata only, never read
+   * by the scheduler. Absent on cards written before it existed, which stay
+   * reviewable for everyone.
+   */
+  sources?: readonly ReviewSource[];
 }
 
 /**
@@ -351,12 +358,23 @@ export function firstReturn(card: ReviewCard, now: number): boolean {
  * it would throw away real memory data and re-show them a card they know.
  */
 export function mergeCards(existing: readonly ReviewCard[], incoming: readonly ReviewCard[]): ReviewCard[] {
-  const known = new Set(existing.map((c) => c.id));
+  const index = new Map<string, number>();
   const merged = [...existing];
+  merged.forEach((card, i) => index.set(card.id, i));
   for (const card of incoming) {
-    if (known.has(card.id)) continue;
-    known.add(card.id);
-    merged.push(card);
+    const at = index.get(card.id);
+    if (at === undefined) {
+      index.set(card.id, merged.length);
+      merged.push(card);
+      continue;
+    }
+    // Scheduling stays with the card already held; only the source tags union,
+    // so a phrase added again from another writer remembers both. A held card
+    // with no tag predates tagging and stays untagged: we do not know where it
+    // came from, and unknown means reviewable for everyone (`sources.ts`).
+    const held = merged[at]!;
+    if (held.sources === undefined || card.sources === undefined) continue;
+    merged[at] = withSources(held, unionSources(held.sources, card.sources));
   }
   return merged;
 }

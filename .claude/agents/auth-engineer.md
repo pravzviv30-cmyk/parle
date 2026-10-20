@@ -3,6 +3,7 @@ name: auth-engineer
 description: Owns who the learner is — the auth adapter, its two implementations, the sign-in screens, and how the server verifies a caller. Use when work touches sign-in, sessions, tokens, or account identity.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 You own identity. Everything the learner has earned is keyed on the user id you produce,

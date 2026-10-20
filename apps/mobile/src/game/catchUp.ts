@@ -19,12 +19,12 @@
  * write lands under the catch-up's reads still celebrates its own moments.
  */
 
-import { localDayKey, newBadges } from '@luvani/core';
+import { FREEZE_CAP, localDayKey, newBadges } from '@luvani/core';
 
 import { publishCelebrations, type CelebrationEvent } from '../celebrate/events.ts';
 import { activeUserId, onUserScopeReset, scopeGeneration } from '../storage/scope.ts';
 import { durableEventFor } from './events.ts';
-import { dropCelebrations, loadGameLocal, markIntroduced, setPaidSince } from './gameLocal.ts';
+import { dropCelebrations, loadGameLocal, markIntroduced, setPaidSince, setProtectedSince } from './gameLocal.ts';
 import { isDaySeenKey, seenIn, type BadgeAward } from './model.ts';
 import {
   gameEnvironment,
@@ -131,7 +131,10 @@ export function seedExistingLearner(): Promise<IntroFacts | null> {
     const months = activityMonths(facts.activity);
     if (!live()) return null;
     if (months.length > 0 && (await raiseXpMonths(months)) !== 'durable') return null;
-    if (protectionOf(billing)?.freezes === true && local.paidSince === null && live()) await setPaidSince(today);
+    // From the day of the update: two freezes for a paid plan, the free plan's one (D23).
+    const protection = protectionOf(billing);
+    if (protection !== null && protection.cap >= FREEZE_CAP && local.paidSince === null && live()) await setPaidSince(today);
+    if (protection?.freezes === true && local.protectedSince === null && live()) await setProtectedSince(today);
 
     facts = await safely(() => readGameFacts(outside, billing), null);
     if (facts === null || !live()) return null;

@@ -35,7 +35,7 @@ try{
  // Unknown older proof precedes all known work; it must not consume LIMIT1.
  await db.query('insert into public.session_grants(session_id,user_id,usage_epoch)values($1,$2,$3)',[sid(1),id(1),id(500)]);
  await db.query("insert into public.session_usage(session_id,user_id,seconds,reported_at)values($1,$2,41,clock_timestamp()-interval '26 months')",[sid(1),id(1)]);
- await db.query('update public.entitlements set seconds_used=1790 where user_id=$1',[id(2)]);
+ await db.query('update public.entitlements set seconds_used=290 where user_id=$1',[id(2)]);
  let e=await entitlement(2);
  assert.equal(await call('record_session_grant',[id(2),sid(2),e.plan,e.seconds_used,e.period_end]),true);
  await call('consume_entitlement',[id(2),100,sid(2)]);await old(2);
@@ -65,8 +65,8 @@ try{
  for(const key of Object.keys(beforeGrant4).filter(k=>!['checkpoint_seconds','checkpoint_learner_turns','checkpoint_baseline','details_expired_at'].includes(k)))assert.deepEqual(afterGrant4[key],beforeGrant4[key],`grant proof changed:${key}`);
  assert.deepEqual(await grant(2),beforeGrant2);
  pass('LIMIT1 skips older unknown legacy; only known >24month elapsed details becomeNULL with explicit marker; all exact charge/epoch/refund/timestamp/receipt/digest/identity fields preserved');
- await call('consume_entitlement',[id(2),899,sid(2)]);assert.equal((await entitlement(2)).seconds_used,1800);
- const refund=await call('refund_failed_session',[id(2),sid(2),'tts_error']);assert.equal(refund.refundedSeconds,10);assert.equal(refund.kind,'restored-current-period');assert.equal((await entitlement(2)).seconds_used,1790);
+ await call('consume_entitlement',[id(2),899,sid(2)]);assert.equal((await entitlement(2)).seconds_used,300);
+ const refund=await call('refund_failed_session',[id(2),sid(2),'tts_error']);assert.equal(refund.refundedSeconds,10);assert.equal(refund.kind,'restored-current-period');assert.equal((await entitlement(2)).seconds_used,290);
  assert.deepEqual(await call('refund_failed_session',[id(2),sid(2),'tts_error']),refund);
  const historical=await call('refund_failed_session',[id(3),sid(3),'llm_error']);assert.equal(historical.refundedSeconds,30);assert.equal(historical.kind,'historical-reversal');assert.equal((await entitlement(3)).seconds_used,7);
  assert.deepEqual(await call('complete_tutor_session_v1',args),completion);assert.deepEqual(await entitlement(4),e4);

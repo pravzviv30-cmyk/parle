@@ -7,7 +7,7 @@ import { describe, test } from 'node:test';
 import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
 import { PAID_PLANS } from './adapter.ts';
 import { billingStatusIn } from './billingStatus.ts';
-import { CAPABILITY_COPY, INCLUSIONS, capabilitiesFor, planInclusions } from './capabilities.ts';
+import { CAPABILITY_COPY, INCLUSIONS, LOCKED_FEATURES, capabilitiesFor, planInclusions } from './capabilities.ts';
 import { isFreeExploreContent } from './exploreAccess.ts';
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -21,6 +21,24 @@ function sourceFiles(dir: string): string[] {
   }
   return out;
 }
+
+describe('the D24 locks each plan opens', () => {
+  test('free, unknown and lapsed open none; Core opens all but the two Max doors; Max opens all', () => {
+    const keys = ['fixes', 'thenAndNow', 'conversationPractice', 'sounds', 'realMoment', 'continueArc', 'fullJourney', 'tutorMemory'];
+    assert.deepEqual([...LOCKED_FEATURES], keys, 'the locks are not direction B\'s eight, in its order');
+    for (const plan of ['trial', 'starter', 'regular', 'unknown'] as const) {
+      for (const lapsed of [false, true]) assert.deepEqual(Object.keys(capabilitiesFor(plan, lapsed).unlocks), keys);
+    }
+    for (const [plan, lapsed] of [['trial', false], ['trial', true], ['unknown', false], ['starter', true], ['regular', true]] as const) {
+      assert.ok(Object.values(capabilitiesFor(plan, lapsed).unlocks).every((open) => open === false), `${plan}${lapsed ? ' (lapsed)' : ''} opened a lock`);
+    }
+    const core = capabilitiesFor('starter').unlocks;
+    for (const key of keys) assert.equal(core[key as keyof typeof core], key !== 'realMoment' && key !== 'continueArc', `Core: ${key}`);
+    assert.equal(core.realMoment, capabilitiesFor('starter').customRehearsal, 'the real moment lock and the Max door disagree');
+    assert.equal(core.continueArc, capabilitiesFor('starter').continueArc);
+    assert.ok(Object.values(capabilitiesFor('regular').unlocks).every((open) => open === true));
+  });
+});
 
 describe('what a plan opens, said in one place (F564, F565)', () => {
   test('each plan lists only what capabilities.ts opens, and nothing gates packs, phrases or missions', () => {
@@ -63,7 +81,8 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     // protection (founder decision D4: freezes and repair come with a plan).
     assert.deepEqual(
       askers,
-      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/exploreAccess.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
+      // D24 (2026-10-20): featureLocks.ts is the one owner of the locks and reads `unlocks` alone.
+      ['game/view.ts', 'purchases/capabilities.ts', 'purchases/exploreAccess.ts', 'purchases/featureLocks.ts', 'purchases/useContinueArc.ts', 'tabs/TutorTab.tsx', 'tutor/RealMomentScreen.tsx'],
       `something else gates on the plan: ${askers.join(', ')}`,
     );
     assert.ok(askers.includes('tutor/RealMomentScreen.tsx'), 'the real moment no longer asks the plan');
@@ -81,6 +100,13 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     assert.match(view, /capabilitiesFor\(billing\.plan, billing\.lapsed\)\.streakProtection/, 'the game view reads something other than streak protection');
     for (const earned of ['.packs', '.savedPhrases', '.missions', '.memory', '.customRehearsal', '.continueArc']) {
       assert.ok(!view.includes(earned), `the game view gates ${earned}, which it was not added for`);
+    }
+
+    // The lock owner reads `unlocks` and nothing else.
+    const locks = readFileSync(join(SRC, 'purchases/featureLocks.ts'), 'utf8');
+    assert.match(locks, /capabilitiesFor\(status\.plan, status\.lapsed\)\.unlocks\[feature\]/, 'the lock owner reads something other than unlocks');
+    for (const other of ['.packs', '.savedPhrases', '.missions', '.memory', '.customRehearsal', '.continueArc', '.streakProtection', '.liveMinutes']) {
+      assert.ok(!locks.includes(other), `the lock owner gates ${other}, which it was not added for`);
     }
 
     // The helper reads the one Max door it exists for, and nothing else.
@@ -101,7 +127,9 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
   });
 
   test('a learner on the trial meets an honest line and a door to plans, and an unknown plan reads as the trial', () => {
-    assert.deepEqual(capabilitiesFor('unknown'), capabilitiesFor('trial'), 'a plan nobody could read opens a door the trial does not');
+    // An unknown plan reads as the free plan, except that it holds no freeze (D23).
+    assert.deepEqual({ ...capabilitiesFor('unknown'), streakProtection: null }, { ...capabilitiesFor('trial'), streakProtection: null }, 'a plan nobody could read opens a door the free plan does not');
+    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false });
     assert.equal(capabilitiesFor('trial').customRehearsal, false);
     const screen = readFileSync(join(SRC, 'tutor', 'RealMomentScreen.tsx'), 'utf8');
     assert.match(screen, /status === null \? null : capabilitiesFor\(status\.plan, status\.lapsed\)\.customRehearsal/, 'an unread plan cannot be treated as an upgrade opportunity');
@@ -110,19 +138,18 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     assert.match(screen, /allowed === null && <Text accessibilityLiveRegion="polite"/, 'plan loading or failure is explained');
   });
 
-  test('streak protection comes only with an unlapsed paid plan', () => {
-    // D4 (2026-10-05): freezes and the one-tap repair are a paid perk on either
-    // tier. A lapsed plan reads as the trial it now is, and so does a plan
-    // nobody could read: a freeze that applied because a check failed would be
-    // a perk the plan does not hold.
+  test('two freezes and the repair come with a paid plan; the free plan holds one freeze (D23)', () => {
+    // D4 (2026-10-05): two freezes and the one-tap repair on either paid tier.
+    // D23 (2026-10-20): the free plan, and so a lapsed plan, holds one freeze and
+    // no repair. A plan nobody could read holds none: a freeze that applied
+    // because a check failed would be a perk the plan may not hold.
     for (const plan of ['starter', 'regular'] as const) {
       assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true }, `${plan} holds no streak protection`);
-      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 0, repair: false }, `a lapsed ${plan} kept its streak protection`);
+      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 1, repair: false }, `a lapsed ${plan} kept its paid protection, or lost the free freeze`);
     }
-    for (const plan of ['trial', 'unknown'] as const) {
-      assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 0, repair: false }, `the ${plan} plan was given streak protection`);
-      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 0, repair: false });
-    }
+    assert.deepEqual(capabilitiesFor('trial').streakProtection, { freezes: 1, repair: false });
+    assert.deepEqual(capabilitiesFor('trial', true).streakProtection, { freezes: 1, repair: false });
+    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false }, 'an unread plan was given a freeze');
 
     // A store free trial is answered by the server as the plan itself, unlapsed,
     // with a week of minutes, so the trial holds the perk as D4 says it should.
@@ -143,7 +170,7 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     // plans page can say what D4 gives every paid plan. One line, written here
     // where what a plan opens is said, and true of every plan the page sells:
     // both tiers, monthly or yearly, during the store's free trial too.
-    assert.equal(INCLUSIONS.streak, 'Every plan includes streak freezes and a one-tap repair.');
+    assert.equal(INCLUSIONS.streak, 'Every plan includes a second streak freeze and a one-tap repair.');
     assert.ok(CAPABILITY_COPY.includes(INCLUSIONS.streak), 'the streak line escapes the copy sweeps');
     assert.equal(guiltIn(INCLUSIONS.streak), undefined);
     assert.equal(streakGuiltIn(INCLUSIONS.streak), undefined, 'the streak line threatens');
@@ -152,8 +179,9 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
       const protection = capabilitiesFor(plan).streakProtection;
       assert.ok(protection.freezes > 0 && protection.repair, `the plans page promises ${plan} a protection it does not hold`);
     }
-    // The free minutes hold none, so the line is never one of theirs.
+    // The free plan holds one freeze and no repair, so the line is never one of its own.
     assert.equal(capabilitiesFor('trial').streakProtection.repair, false);
+    assert.ok(capabilitiesFor('trial').streakProtection.freezes < capabilitiesFor('starter').streakProtection.freezes, 'a "second" freeze is not more than the free plan holds');
     for (const plan of ['trial', 'starter', 'regular'] as const) {
       assert.ok(!planInclusions(plan).includes(INCLUSIONS.streak), 'the streak line is listed per plan, where the free minutes share Starter\'s list');
     }

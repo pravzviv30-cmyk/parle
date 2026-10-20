@@ -14,6 +14,10 @@ subsystem, and knows the things about those paths that a generalist gets wrong.
 
 ## Who owns what
 
+Since 2026-10-19 every Opus specialist and `implementer-opus-low` runs at `effort: low`
+(founder routing rule in `StartUps/CLAUDE.md`); Fable-pinned agents need the founder's
+approval before they are dispatched.
+
 | Engineer | Model | Edits? | Territory |
 |---|---|---|---|
 | `frontend-engineer` | opus | yes | `apps/mobile/src/` screens, tabs, components, theme, nav |
@@ -26,6 +30,8 @@ subsystem, and knows the things about those paths that a generalist gets wrong.
 | `security-engineer` | opus | yes | rate limits, secrets, CORS, headers, `agentAuth.ts` |
 | `observability-engineer` | opus | yes | `usage.ts` logging, `live/failure.ts`, diagnostics |
 | `deploy-engineer` | opus | yes | `app.json`, `eas.json`, CI, containers |
+| `implementer` | claude-sonnet-5-5 | yes | one bounded step of an approved plan that no specialist owns |
+| `implementer-opus-low` | opus (low effort) | yes | the same, when the step needs more reasoning than Sonnet |
 | `release-engineer` | opus | **no** | git: branch shape, commit shaping, revert paths |
 | `scaling-engineer` | fable | **no** | nothing. It answers "should we", and usually says no |
 | `product-orchestrator` | opus | yes | phased plan, evidence matrix, ownership, risk and release gates |
