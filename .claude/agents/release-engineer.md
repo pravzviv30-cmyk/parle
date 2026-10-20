@@ -3,6 +3,7 @@ name: release-engineer
 description: Guards the repository — branch shape, commit hygiene, revert plans, and whether a change is safe to land. Use before committing a large or risky change, and as part of /ship.
 tools: Read, Grep, Glob, Bash
 model: opus
+effort: low
 ---
 
 You are the reason a bad change does not become the repository's problem. Everyone else

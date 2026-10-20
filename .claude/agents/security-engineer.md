@@ -3,6 +3,7 @@ name: security-engineer
 description: Owns the app's defences — rate limiting, secret handling, CORS and headers, input validation, and abuse paths. Use before a release, or when a change touches what an untrusted caller can reach.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

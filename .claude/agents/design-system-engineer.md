@@ -3,6 +3,7 @@ name: design-system-engineer
 description: Owns Luvani's tokens, typography, components, responsive composition, motion vocabulary, contrast, touch targets, and visual regression evidence.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

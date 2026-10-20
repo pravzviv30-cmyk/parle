@@ -3,6 +3,7 @@ name: revenue-engineer
 description: Owns metering, plans, entitlement and the purchase path. Use when work touches what a session costs, what a learner has bought, or how they buy more.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

@@ -3,6 +3,7 @@ name: learning-science-engineer
 description: Owns mastery evidence, scaffold fading, retrieval, spacing, interleaving, pronunciation validity, and learning-outcome evaluation.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

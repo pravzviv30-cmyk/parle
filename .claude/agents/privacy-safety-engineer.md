@@ -3,6 +3,7 @@ name: privacy-safety-engineer
 description: Owns data minimisation, consent, AI/vendor disclosure, retention, deletion, safety policy, analytics privacy, and incident escalation.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

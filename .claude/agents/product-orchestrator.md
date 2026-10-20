@@ -3,6 +3,7 @@ name: product-orchestrator
 description: Owns the phased delivery plan, evidence matrix, release gates, risk register, and cross-specialist sequencing. Use for whole-product programmes rather than a single subsystem.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

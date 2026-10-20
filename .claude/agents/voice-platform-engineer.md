@@ -3,6 +3,7 @@ name: voice-platform-engineer
 description: Owns LiveKit rooms and grants, STT/TTS plumbing, reconnects, latency, hard duration, provider failures, and voice-session cost controls.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

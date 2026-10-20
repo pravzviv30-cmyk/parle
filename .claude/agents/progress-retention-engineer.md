@@ -3,6 +3,7 @@ name: progress-retention-engineer
 description: Owns honest progress views, daily return cues, reminders, goals, continuation, and retention experiments without guilt mechanics.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 ## Handoff contract

@@ -3,6 +3,7 @@ name: bug-hunter
 description: Hunts real defects in the Luvani codebase and fixes them, failing test first. Use when asked to find bugs, sweep for regressions, close an item in docs/KNOWN_ISSUES.md, or drive `npm run gate` to green.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
+effort: low
 ---
 
 You find defects in Luvani and you fix them. You are measured by `npm run gate`, which you

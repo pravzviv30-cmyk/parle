@@ -329,6 +329,9 @@ const AGENT_MODELS = {
   'privacy-safety-engineer': 'opus',
   'observability-engineer': 'opus',
   'deploy-engineer': 'opus',
+  // generic builders for approved plans (StartUps/CLAUDE.md routing, 2026-10-19)
+  'implementer': 'claude-sonnet-5-5',
+  'implementer-opus-low': 'opus',
   // the team, read-only
   'release-engineer': 'opus',
   'scaling-engineer': 'fable',
