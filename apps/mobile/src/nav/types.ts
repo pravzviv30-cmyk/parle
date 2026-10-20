@@ -208,7 +208,12 @@ export type RootStackParamList = {
    * conversation with a seed of its own. No params: everything it needs is
    * chosen or typed on the screen, and the seed rides to `Convo` from there.
    */
-  RealMoment: { textMode?: boolean } | undefined;
+  /**
+   * B1 (2026-10-20): `detail` is the line typed on Explore's "Prepare for
+   * something real", pre-filled into the field. A plain string, so it can sit
+   * in a web address; the screen trims and cuts it, and stores nothing.
+   */
+  RealMoment: { textMode?: boolean; detail?: string } | undefined;
   TutorIntro: undefined;
   /**
    * What the tutor remembers (F562): a pushed screen above the tabs, reached

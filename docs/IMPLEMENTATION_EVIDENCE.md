@@ -22,6 +22,15 @@ of the list.
 
 ## Current landing snapshot
 
+- 20 October 2026 direction B, step B1 (Explore and Scene preview) with its
+  learning-science fixes, on branch `claude/direction-b` (held, not on main):
+  **5,509 tests, 0 failing**; core 804, brain 481, tutor agent 622, token server 445,
+  playground 26, mobile 3131. All six typechecks, eight database proofs and 94 shared
+  release/provider checks pass. Floors raised only through `gate:bless`.
+- 20 October 2026 direction B, step B1 before its learning-science fixes, on branch
+  `claude/direction-b` (held, not on main): **5,506 tests, 0 failing**; core 804, brain 481,
+  tutor agent 622, token server 445, playground 26, mobile 3128. Floors raised only
+  through `gate:bless`.
 - 20 October 2026 direction B, step B0, on branch `claude/direction-b` (held, not on
   main): **5,474 tests, 0 failing**; core 804, brain 481, tutor agent 622, token server 445,
   playground 26, mobile 3096. All six typechecks, eight database proofs and 94 shared

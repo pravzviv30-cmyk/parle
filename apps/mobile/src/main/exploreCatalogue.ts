@@ -36,6 +36,8 @@ export const searchKey = (s: string) => s.normalize('NFD').replace(/[\u0300-\u03
 export function isExploreTopic(value: unknown): value is ExploreTopic { return EXPLORE_TOPICS.some(t => t.key === value); }
 export function topicOf(key: ExploreTopic) { return EXPLORE_TOPICS.find(t => t.key === key)!; }
 export function scenarioTopic(scenario: DailyScenario) { return EXPLORE_TOPICS.find(t => t.theme === scenario.theme)!; }
+/** A guided mission's topic, from the same map the search filters by (B1, 2026-10-20). */
+export function missionTopic(mission: Pick<Mission, 'id'>) { const key = MISSION_TOPICS[mission.id]; return key ? topicOf(key) : undefined; }
 
 /** Ability orders the complete catalogue; it never hides content or awards a level. */
 export function orderByPitch<T extends { tier?: 1 | 2 | 3 }>(items: readonly T[], preferredTier?: 1 | 2 | 3): T[] {

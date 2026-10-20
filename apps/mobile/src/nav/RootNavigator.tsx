@@ -605,6 +605,7 @@ function RealMomentRoute() {
   return (
     <RealMomentScreen
       initialTextMode={route.params?.textMode ?? false}
+      initialDetail={route.params?.detail}
       onBack={leave}
       onStart={(seedTopic, textMode) => nav.navigate('Convo', { seedTopic, textMode })}
       onSeePlans={() => nav.navigate('Wall', { entry: 'settings' })}

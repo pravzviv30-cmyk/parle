@@ -1,24 +1,142 @@
 /**
- * Scene preview (B0 route stub, 2026-10-20). A placeholder so the route, its web
- * address and the wiring contract exist before B1 fills it from the
- * B-ScenePreview artboard. It reads nothing and decides nothing: no capabilities, no
- * continue arc, no lock.
+ * Scene preview (B1, 2026-10-20, artboard B-ScenePreview).
+ *
+ * What a scene is before it starts: its topic and stage, the English and
+ * French titles, the minutes, what you'll practise, the first line, and the
+ * lines you'll likely need with a way to hear each. Every decision is
+ * `scenePreview.ts`'s; this file is layout.
+ *
+ * The one primary is the start, through `useConversationStart`, which keeps
+ * its own gate; a daily scene that is not a free sample goes through the same
+ * Explore access check the collection screen uses. Practising the lines is the
+ * free, quiet secondary. It reads no plan table and no continue arc.
  */
 
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import type { RootStackParamList } from '../nav/types.ts';
+import { StyleSheet, Text, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { seedTopicOf, DAILY_SCENARIOS } from '@luvani/core';
+import { Card, Chip, ColourCard, IconAction, Ledger, PillButton } from '../components.tsx';
+import { ScreenHeader, ScrollScreen } from '../layout.tsx';
+import { frenchText, onColour, paper, space, textOn, type, HIT } from '../theme.ts';
+import { useProfile } from '../app/ProfileContext.tsx';
+import { tutorNameOf } from '../tutor/tutorName.ts';
+import { dailyTutorVoice, tutorAudioFor } from '../daily/tutorAudio.ts';
+import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
+import { TUTOR_LINE_AUDIO } from '../onboarding/tutorLineAudio.ts';
+import { minutesLine } from '../home/estimate.ts';
+import { useConversationStart } from '../main/useConversationStart.ts';
+import { useExploreAccess } from '../purchases/useExploreAccess.ts';
+import { PREVIEW_COPY, scenePreview, soundLabel, startLabel, type PreviewLine } from './scenePreview.ts';
+import { useHear } from './useHear.ts';
 
 export const SCENE_PREVIEW_TITLE = 'Scene preview';
 
 export function ScenePreviewScreen() {
-  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const nav = useNavigation<{ navigate: (screen: string, params?: object) => void; goBack: () => void; canGoBack: () => boolean }>();
+  const route = useRoute();
+  const id = (route.params as { missionId?: unknown } | undefined)?.missionId;
+  const { profile } = useProfile();
+  const voice = dailyTutorVoice(profile.tutorVoice);
+  const tutorName = tutorNameOf(profile);
+  const conversation = useConversationStart();
+  const access = useExploreAccess();
+  const sound = useHear();
+  const back = () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs'));
+  const header = <ScreenHeader back={{ onPress: back }} />;
+  const model = scenePreview(id, { audio: TUTOR_DAILY_AUDIO, voice });
+
+  if (model === null) {
+    return (
+      <ScrollScreen bottom="inset" header={header}>
+        <Card style={st.stack}>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PREVIEW_COPY.missingTitle}</Text>
+          <Text style={[type.body, { color: paper.ink }]}>{PREVIEW_COPY.missingBody}</Text>
+          <PillButton label={PREVIEW_COPY.missingAction} onPress={() => nav.navigate('Tabs', { screen: 'Explore' })} />
+        </Card>
+      </ScrollScreen>
+    );
+  }
+
+  const assetOf = (line: PreviewLine): number | undefined =>
+    line.sound.kind === 'clip' ? tutorAudioFor(TUTOR_DAILY_AUDIO, line.sound.id, voice)
+      : line.sound.kind === 'opener' ? TUTOR_LINE_AUDIO[line.sound.id]
+      : undefined;
+  const accessLabel = model.kind === 'scenario' ? access.label({ kind: 'scenario', id: model.id }) : null;
+  const busy = access.checking || conversation.checking;
+  const start = () => {
+    if (model.kind === 'mission') { conversation.start({ missionId: model.id }); return; }
+    const source = DAILY_SCENARIOS.find((s) => s.id === model.id);
+    if (source) void access.open({ kind: 'scenario', id: source.id }, () => conversation.start({ seedTopic: seedTopicOf(source) }));
+  };
+
+  const lineRow = (line: PreviewLine) => {
+    const asset = assetOf(line);
+    const label = soundLabel(line.sound, asset !== undefined, sound.deviceFrench);
+    return (
+      <View key={line.fr} style={st.line}>
+        <View style={st.lineWords}>
+          <Text {...frenchText} style={[type.frenchSm, { color: paper.ink }]}>{line.fr}</Text>
+          {line.en !== null && <Text style={[type.small, { color: paper.inkSoft }]}>{line.en}</Text>}
+          <Text style={[type.caption, { color: paper.inkSoft }]}>{label}</Text>
+        </View>
+        {(asset !== undefined || sound.deviceFrench) && (
+          <IconAction layout="inline" icon="speaker" label="Hear" accessibilityLabel={`Hear it. ${label}`} onPress={() => void sound.hear(line.fr, asset)} />
+        )}
+      </View>
+    );
+  };
+
   return (
-    <ScrollScreen
-      header={<ScreenHeader back={{ onPress: () => (nav.canGoBack() ? nav.goBack() : nav.navigate('Tabs')) }} title={SCENE_PREVIEW_TITLE} />}
-    >
-      {null}
+    <ScrollScreen bottom="inset" header={header}>
+      <View style={st.page}>
+        <ColourCard ground="sun">
+          <Text style={[type.eyebrow, { color: textOn.sun }]}>{model.eyebrow}</Text>
+          <Text accessibilityRole="header" style={[type.title, { color: textOn.sun }]}>{model.titleEn}</Text>
+          <Text {...frenchText} style={[type.french, { color: textOn.sun }]}>{model.titleFr}</Text>
+          <View style={st.chips}>
+            <Chip variant="meta" label={minutesLine(model.minutes)} />
+            <Chip variant="meta" label={PREVIEW_COPY.liveChip} />
+          </View>
+          {accessLabel !== null && <Text style={[type.small, { color: onColour.sun }]}>{accessLabel}</Text>}
+        </ColourCard>
+
+        <View style={st.stack}>
+          <Text style={[type.small, { color: paper.inkSoft }]}>{PREVIEW_COPY.practiseHeading}</Text>
+          <Text style={[type.heading, { color: paper.ink }]}>{model.practise}</Text>
+        </View>
+
+        {model.opener !== null && <View style={st.stack}>
+          <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{model.opener.heading}</Text>
+          <Card>{lineRow(model.opener.line)}</Card>
+        </View>}
+
+        {model.lines.length > 0 && (
+          <View style={st.stack}>
+            <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>{PREVIEW_COPY.linesHeading}</Text>
+            <Text style={[type.small, { color: paper.inkSoft }]}>{PREVIEW_COPY.linesSub}</Text>
+            <Ledger>{model.lines.map(lineRow)}</Ledger>
+          </View>
+        )}
+
+        <View style={st.stack}>
+          <PillButton label={startLabel(tutorName)} state={busy ? 'busy' : 'idle'} onPress={start} />
+          {model.practice !== null && (
+            <PillButton variant="secondary" label={model.practice.label} onPress={() => { const target = model.practice!; nav.navigate(target.screen, target.params); }} />
+          )}
+          <Text style={[type.small, st.centre, { color: paper.inkSoft }]}>{PREVIEW_COPY.footnote}</Text>
+          {access.error !== null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{access.error}</Text>}
+          {conversation.failed && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>Your tutor could not connect. You can practise the lines now, or try again when you are connected.</Text>}
+        </View>
+      </View>
     </ScrollScreen>
   );
 }
+
+const st = StyleSheet.create({
+  page: { gap: space(6) },
+  stack: { gap: space(2.5) },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(1.5) },
+  line: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3) },
+  lineWords: { flex: 1, minWidth: 0, gap: space(0.5) },
+  centre: { textAlign: 'center' },
+});

@@ -21,13 +21,18 @@ test('Explore is a tab and advertises real conversation ideas instead of opening
 });
 
 test('Explore gives the native Press frame its topic grid width and lets large text stack', () => {
+  // 2026-10-20, B1, B-Explore: the tiles are ColourCards now, drawn by one
+  // `tile` helper for the topics and the practice doors. The outer frame View
+  // still owns the grid width, never the pressable card inside it.
   const explore = read('../tabs/ExploreTab.tsx');
-  const start = explore.indexOf('EXPLORE_TOPICS.slice(0, 4).map(t =>');
-  const topics = explore.slice(start, explore.indexOf('})}</View>', start));
-  assert.match(topics, /frame=\{\[s\.topicFrame, single && s\.topicFrameSingle\]\}/,
-    'Press owns parent layout through frame; inner surface width leaves native cards in a half-width column');
-  assert.doesNotMatch(topics, /style=\{\[[\s\S]*?flexBasis/,
-    'the animated surface cannot size the tile in its parent grid');
+  const start = explore.indexOf('const tile = (');
+  assert.notEqual(start, -1, 'Explore no longer draws its tiles through one helper');
+  const tile = explore.slice(start, explore.indexOf('</ColourCard>', start));
+  assert.match(tile, /<View key=\{key\} style=\{\[st\.topicFrame, single && st\.topicFrameSingle\]\}>/,
+    'the frame owns parent layout; inner surface width leaves native cards in a half-width column');
+  assert.match(tile, /<ColourCard ground=\{ground\} lift onPress=\{go\}/);
+  assert.doesNotMatch(explore, /tile: \{[^}]*flexBasis/, 'the pressable surface cannot size the tile in its parent grid');
+  assert.match(explore, /EXPLORE_TOPICS\.slice\(0, 4\)\.map\(t => \{[\s\S]*?return tile\(/, 'the topic grid stopped using the framed tile');
   assert.match(explore, /const single = width < 350 \|\| fontScale >= 1\.5/);
   assert.match(explore, /topicFrame: \{ flexBasis: '47%', flexGrow: 1, minWidth: 0 \}/);
   assert.match(explore, /topicFrameSingle: \{ width: '100%', flexBasis: 'auto', flexGrow: 0 \}/,

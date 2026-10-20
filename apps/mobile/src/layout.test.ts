@@ -346,7 +346,8 @@ describe('the tab title is the working title — F602', () => {
 
     // Every tab that names a subject takes the left branch: it opens on the
     // one header and does not ask to be centred.
-    for (const tab of ['HomeTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
+    // 2026-10-20, B1, B-Explore: Explore opens on the one header like the rest.
+    for (const tab of ['HomeTab.tsx', 'ExploreTab.tsx', 'TutorTab.tsx', 'PracticeTab.tsx', 'MyFrenchTab.tsx', 'FriendsTab.tsx']) {
       const body = stripComments(readFileSync(join(SRC, 'tabs', tab), 'utf8'));
       if (tab === 'TutorTab.tsx') {
         const unreadStart = body.indexOf("if (renderHistoryStatus !== 'ready') return <ScrollScreen");
@@ -373,12 +374,11 @@ describe('the tab title is the working title — F602', () => {
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
     assert.match(home, /<TabHeader title=\{greeting\.title\} purpose=\{greeting\.subline\}/, 'Home does not hand its real contextual greeting to the working header');
 
-    // B0 (2026-10-20): Explore, the Phase A port, opens on MainScreen's own
-    // title and no TabHeader. Pinned as it is, so B1's rebuild onto TabHeader
-    // fails here and moves it into the loop above.
+    // 2026-10-20, B1, B-Explore: Explore left MainScreen for the loop above,
+    // and its title is the plain "Explore" handed to the header.
     const explore = stripComments(readFileSync(join(SRC, 'tabs', 'ExploreTab.tsx'), 'utf8'));
-    assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 0, 'Explore now opens on TabHeader; move it into the loop above');
-    assert.match(explore, /<MainScreen title="Explore">/, 'Explore lost its one page title');
+    assert.match(explore, /<TabHeader title="Explore"/, 'Explore lost its one page title');
+    assert.doesNotMatch(explore, /<MainScreen\b/, 'Explore draws the retired MainScreen frame again');
   });
 });
 

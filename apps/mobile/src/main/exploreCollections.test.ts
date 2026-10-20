@@ -161,8 +161,11 @@ test('Explore landing uses finite previews and real full-list destinations witho
   const explore = read('../tabs/ExploreTab.tsx');
   assert.match(explore, /EXPLORE_TOPICS.slice\(0, 4\)/);
   assert.match(explore, /openCollection\('everyday'\)/);
-  assert.match(explore, /scenarios.slice\(0, limit\)/);
-  assert.match(explore, /phrases.slice\(0, searching \? limit : 3\)/);
+  // 2026-10-20, B1, B-Explore: situations (scenes and missions together) and
+  // words are both three on the landing and paged by `limit` once narrowed.
+  assert.match(explore, /situations\.slice\(0, narrowing \? limit : 3\)/);
+  assert.match(explore, /words\.slice\(0, narrowing \? limit : 3\)/);
+  assert.match(explore, /setLimit\(n => n \+ 12\)/);
   assert.match(explore, /nav.navigate\('MyFrench'\)/, 'saved conversation phrases live on the Journey tab');
   assert.doesNotMatch(explore, /loadConversationPacks|saveConversationPack|AsyncStorage|samplePack|previewPack/);
 });

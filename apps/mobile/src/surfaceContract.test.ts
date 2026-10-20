@@ -1065,10 +1065,8 @@ const ROOT = join(SRC, '..', '..', '..');
 /** Every tab and pushed screen rebuilt on the shared frame in this phase. */
 const ADOPTERS = [
   'tabs/HomeTab.tsx',
-  // B0 (2026-10-20): tabs/ExploreTab.tsx is not listed. It is the Phase A port
-  // from Codex and still draws main/MainUI's MainScreen, not the shared frame.
-  // 'Explore keeps its current shape until B1' below pins that truthfully; B1
-  // rebuilds it on ScrollScreen and adds it here.
+  // 2026-10-20, B1, B-Explore: Explore left MainUI's MainScreen for the frame.
+  'tabs/ExploreTab.tsx',
   'tabs/TutorTab.tsx',
   'tabs/PracticeTab.tsx',
   'tabs/MyFrenchTab.tsx',
@@ -1568,15 +1566,11 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
  * scroll that pads itself twice over the frame.
  * =========================================================================== */
 
-/** Explore until B1 rebuilds it: MainScreen's title, not TabHeader (B0, 2026-10-20). */
-const EXPLORE_UNTIL_B1 = 'tabs/ExploreTab.tsx';
-
 /** The five tabs, which all open the same way now. */
 const TABS = [
   'tabs/HomeTab.tsx',
-  // B0 (2026-10-20): Explore joins every cross-tab rule it already keeps. The
-  // two header rules exempt it by name (EXPLORE_UNTIL_B1) because it still
-  // opens on MainScreen's own title, not TabHeader.
+  // 2026-10-20, B1, B-Explore: Explore keeps every cross-tab rule, the two
+  // header rules included, now that it opens on TabHeader.
   'tabs/ExploreTab.tsx',
   'tabs/TutorTab.tsx',
   'tabs/PracticeTab.tsx',
@@ -1668,7 +1662,7 @@ describe('the five tabs open the same way — F336', () => {
     const profile = named('tabs/ProfileTab.tsx');
     assert.equal((profile.match(/accessibilityRole="header"[^>]*>\{PROFILE_TITLE\}/g) ?? []).length, 1, 'Profile lost its one accessible page title');
     assert.doesNotMatch(profile, /<TabHeader\b/, 'Profile draws a second header shape');
-    for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx' && t !== EXPLORE_UNTIL_B1)) {
+    for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
       const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : 1;
       assert.equal(
@@ -1720,7 +1714,7 @@ describe('the five tabs open the same way — F336', () => {
       /purpose="/,
       'Home spells its purpose line itself, so it says the same thing at seven in the morning and at midnight',
     );
-    for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx' && t !== 'tabs/ProfileTab.tsx' && t !== EXPLORE_UNTIL_B1)) {
+    for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx' && t !== 'tabs/ProfileTab.tsx')) {
       const body = named(name);
       // 9 October 2026: the founder requested shorter, action-first tabs.
       assert.match(body, /<TabHeader/, `${name} lost its accessible page title`);
@@ -1729,15 +1723,15 @@ describe('the five tabs open the same way — F336', () => {
   });
 });
 
-describe('Explore keeps its current shape until B1 (B0, 2026-10-20)', () => {
-  test('Explore still opens on MainScreen with its own title and no TabHeader, and never on a ScrollView of its own', () => {
-    // The truthful current values behind the two exemptions above and its
-    // absence from ADOPTERS. When B1 moves Explore to ScrollScreen and
-    // TabHeader this fails, and B1 removes EXPLORE_UNTIL_B1 and lists it.
-    const explore = named(EXPLORE_UNTIL_B1);
-    assert.match(explore, /<MainScreen title="Explore">/);
-    assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 0);
-    assert.doesNotMatch(explore, /<ScrollView\b|useSafeAreaInsets/);
+describe('Explore opens on the shared frame (2026-10-20, B1, B-Explore)', () => {
+  test('Explore opens on ScrollScreen and one TabHeader with the avatar, never on MainScreen or a ScrollView of its own', () => {
+    // Replaces B0's "Explore keeps its current shape until B1", which pinned
+    // MainScreen and no TabHeader. B1 moved it to the frame, so this pins that.
+    const explore = named('tabs/ExploreTab.tsx');
+    assert.match(explore, /<ScrollScreen bottom="tab">/);
+    assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 1);
+    assert.match(explore, /<TabHeader title="Explore" trailing=\{<ProfileButton \/>\} \/>/);
+    assert.doesNotMatch(explore, /<MainScreen\b|<ScrollView\b|useSafeAreaInsets/);
   });
 });
 
@@ -1891,8 +1885,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
     'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx'],
-    // B0 (2026-10-20): Explore as it is today, every list drawn inline as
-    // MainUI rows in the tab file. B1 replaces this with its new surfaces.
+    // 2026-10-20, B1, B-Explore: every Explore list is drawn inline in the
+    // tab file as ledger rows; it imports no card file of its own.
     'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx'],
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
     'tabs/PracticeTab.tsx': [
@@ -1958,8 +1952,10 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // Revamp B (F602): the one review row, under a scene or plans lead when
       // phrases are due. Everything else on Today is a card or a sentence.
       'tabs/HomeTab.tsx': 0,
-      // B0 (2026-10-20): Explore's rows are MainUI's MainRow, not LedgerRow.
-      'tabs/ExploreTab.tsx': 0,
+      // 2026-10-20, B1, B-Explore: every Explore list is ledger rows: search
+      // collections, situations, the own-topic seed, next-conversation ideas,
+      // take it further, words and phrases, and from your conversations.
+      'tabs/ExploreTab.tsx': 7,
       // The level path's scenes, the other ways in, and the memory row.
       'tabs/TutorTab.tsx': 2,
       // The review door on the tab, then replay a moment and make this phrase

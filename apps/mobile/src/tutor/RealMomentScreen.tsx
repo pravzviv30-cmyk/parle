@@ -51,6 +51,7 @@ import {
   SEE_PLANS,
   detailCap,
   kindOf,
+  prefillFor,
   seedFor,
   type RealMomentKey,
 } from './realMoments.ts';
@@ -84,17 +85,21 @@ export function RealMomentScreen({
   onStart,
   onSeePlans,
   initialTextMode = false,
+  initialDetail,
 }: {
   onBack: () => void;
   /** The seed the conversation opens on. The navigator carries it to the route. */
   onStart: (seedTopic: { fr: string; en: string }, textMode: boolean) => void;
   onSeePlans: () => void;
   initialTextMode?: boolean;
+  /** Words typed on Explore's "Prepare for something real" (B1), shown in the field. */
+  initialDetail?: string;
 }) {
   const { recheck } = useLive();
   const { user } = useAuth();
-  const [key, setKey] = useState<RealMomentKey | null>(null);
-  const [detail, setDetail] = useState('');
+  const [prefill] = useState(() => prefillFor(initialDetail));
+  const [key, setKey] = useState<RealMomentKey | null>(prefill.key);
+  const [detail, setDetail] = useState(prefill.detail);
   const [mode, setMode] = useState<'speak' | 'type'>(initialTextMode ? 'type' : 'speak');
   const starting = useRef(false);
   const [planError, setPlanError] = useState(false);

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, test } from 'node:test';
 
 import { guiltIn } from '../copy/guilt.ts';
-import { MAX_SEED_TOPIC_CHARS, REAL_MOMENTS, REAL_MOMENT_COPY, detailCap, fitDetail, kindOf, seedFor } from './realMoments.ts';
+import { MAX_SEED_TOPIC_CHARS, REAL_MOMENTS, REAL_MOMENT_COPY, detailCap, fitDetail, kindOf, prefillFor, seedFor } from './realMoments.ts';
 
 const SERVER_TOKENS = path.resolve(import.meta.dirname, '..', '..', '..', '..', 'services', 'token-server', 'src', 'tokens.ts');
 
@@ -47,5 +47,28 @@ describe('bring a real moment — the seed it becomes (F548)', () => {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /—|\d/, `"${line}" carries an em dash or a digit`);
     }
+  });
+});
+
+describe('the Explore prefill (B1, 2026-10-20, B-Explore)', () => {
+  test('words typed on Explore open "Something else", cut to fit, and nothing opens empty', () => {
+    assert.deepEqual(prefillFor(undefined), { key: null, detail: '' });
+    assert.deepEqual(prefillFor('   '), { key: null, detail: '' });
+    assert.deepEqual(prefillFor(7), { key: null, detail: '' });
+    const typed = prefillFor('  Dinner with my partner’s parents in Lyon ');
+    assert.equal(typed.key, 'other');
+    assert.equal(typed.detail, 'Dinner with my partner’s parents in Lyon');
+    const long = prefillFor('x'.repeat(MAX_SEED_TOPIC_CHARS * 2));
+    assert.ok(long.detail.length <= detailCap(kindOf('other')!), 'the prefill is cut to what fits beside its kind');
+  });
+
+  test('the route carries the param to the screen, and the screen starts from it', () => {
+    const types = readFileSync(path.join(import.meta.dirname, '..', 'nav', 'types.ts'), 'utf8');
+    const nav = readFileSync(path.join(import.meta.dirname, '..', 'nav', 'RootNavigator.tsx'), 'utf8');
+    const screen = readFileSync(path.join(import.meta.dirname, 'RealMomentScreen.tsx'), 'utf8');
+    assert.match(types, /RealMoment: \{ textMode\?: boolean; detail\?: string \} \| undefined;/);
+    assert.match(nav, /initialDetail=\{route\.params\?\.detail\}/);
+    assert.match(screen, /const \[prefill\] = useState\(\(\) => prefillFor\(initialDetail\)\);/);
+    assert.match(screen, /useState<RealMomentKey \| null>\(prefill\.key\)/);
   });
 });
