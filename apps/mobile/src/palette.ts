@@ -79,6 +79,17 @@ export const colour = {
   mintWash: '#D4F5E5',
   /** Green words: 5.3 on white, 4.5 on mintWash. The only green that letters text. */
   mintWords: '#1F7A52',
+  /**
+   * A pale violet ring (B0, 2026-10-20): a progress track, a decorative circle.
+   * About 1.4 on white, so it is decoration only and never the only edge of a
+   * control or a mark that carries meaning.
+   */
+  ring: '#D9CFE9',
+  /**
+   * A second violet, a chip ground on a blue card (B0, 2026-10-20). White words
+   * on it clear the floor; onColour.blue never sits on it.
+   */
+  violet2: '#5A50EA',
 } as const;
 
 /**

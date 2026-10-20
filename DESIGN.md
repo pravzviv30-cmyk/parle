@@ -237,6 +237,11 @@ sun or mint, no ink on blue or coral, and no soft ink on any colour.
 | `colour.bluePressed` | `#2A20B0` | White (10.9). A blue control under a finger |
 | `colour.mintWash` | `#D4F5E5` | Ink or `mintWords`. A pale wash behind a done or earned state |
 | `colour.mintWords` | `#1F7A52` | Green words: 5.3 on white, 4.5 on `mintWash`. The only green that letters text |
+| `colour.ring` | `#D9CFE9` | No words. A decorative ring or track, 1.5 on white, so never the only edge of a control or a mark that means something |
+| `colour.violet2` | `#5A50EA` | White only (5.6). A chip ground on a blue card. `onColour.blue` is 4.4 on it, so it never sits behind that text |
+
+Where the artboards write a near twin of `onColour.blue` for the soft line on
+blue, the app uses `onColour.blue` itself, so there is one value, not two.
 
 ### Pastels
 
@@ -665,6 +670,29 @@ More shared parts:
 - **StatTile / HeroNumber**: a number and one plain line on white, and the one
   giant number with its unit on a colour board. Each is one phrase to a screen
   reader.
+- **StatRow**: three stats in one white card, three equal columns, as on
+  Today. It lays out `StatTile compact` children (the number in `statSm`, the
+  line under it in `caption`, centred) and draws nothing of its own. A tile may
+  carry a decorative `mark` disc above its number, hidden from a screen reader;
+  a ring or bar that means something is labelled by its caller. Words wrap
+  rather than shrink at a large reading size.
+- **Chip**: the one small pill, two variants. `filter` is a choice in a row of
+  them: 44pt tall (`minHeight: HIT`, so the floor holds at any reading size),
+  white with a hairline, and when chosen filled with ink, with white words and
+  a tick, so the state is never colour alone. It says selected on a device
+  (`accessibilityState`) and on the web (`aria-selected`, F522), as a tab by
+  default or a button. `meta` is a still fact such as "About 6 min" or a
+  scene's state: never pressable, on white, ink or lavender, with an optional
+  mark before the words. The archive's filters and My French's situation state
+  both draw it.
+- **LockBadge**: the trial's lock, two forms. The pill reads "Included with
+  your trial" in blue `badge` words beside a blue lock, 26 tall, on lavender
+  (or white when it sits on a lavender card). The round form is a 28pt white
+  disc with the blue lock alone, named "Included with your trial" to a screen
+  reader. It is pure presentation and never decides whether something is
+  locked: `access/featureAccess.ts` does, and a surface draws the badge only
+  when that seam says locked. The seam answers unlocked for everyone until D5
+  wires it to entitlement and the paywall, so nothing shows a lock before then.
 - **OptionRow**: a one-tap choice, now a thin name for `Choice` as a button
   row: white with a title and a line under it and the field ring when not
   chosen, the brand blue with white words and a white disc holding the blue

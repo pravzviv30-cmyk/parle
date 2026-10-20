@@ -372,6 +372,13 @@ describe('the tab title is the working title — F602', () => {
     // as the title, so it is set at the same 30 as every other tab name.
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
     assert.match(home, /<TabHeader title=\{greeting\.title\} purpose=\{greeting\.subline\}/, 'Home does not hand its real contextual greeting to the working header');
+
+    // B0 (2026-10-20): Explore, the Phase A port, opens on MainScreen's own
+    // title and no TabHeader. Pinned as it is, so B1's rebuild onto TabHeader
+    // fails here and moves it into the loop above.
+    const explore = stripComments(readFileSync(join(SRC, 'tabs', 'ExploreTab.tsx'), 'utf8'));
+    assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 0, 'Explore now opens on TabHeader; move it into the loop above');
+    assert.match(explore, /<MainScreen title="Explore">/, 'Explore lost its one page title');
   });
 });
 

@@ -244,6 +244,9 @@ describe('direction B: one token set, old names alias it — DECISIONS.md 2026-1
     assert.equal(colour.bluePressed, '#2A20B0');
     assert.equal(colour.mintWash, '#D4F5E5');
     assert.equal(colour.mintWords, '#1F7A52');
+    // B0 (2026-10-20): the ring and the second violet from the v82 artboards.
+    assert.equal(colour.ring, '#D9CFE9');
+    assert.equal(colour.violet2, '#5A50EA');
     assert.deepEqual({ ...pastel }, { butter: '#FFE8AB', lavender: '#E9E3FA', peach: '#F7D8C7', sage: '#D4E2D7' });
     assert.equal(liftInk, 'rgba(22, 18, 58, 0.45)');
   });
@@ -268,10 +271,36 @@ describe('direction B: one token set, old names alias it — DECISIONS.md 2026-1
       ['ink on the mint wash', INK, colour.mintWash],
       ['inkSoft on the inset', paper.inkSoft, paper.inset],
       ['white on pressed blue', paper.onInk, colour.bluePressed],
+      // B0 (2026-10-20): white words on the violet2 chip, and the lock badge's
+      // blue words on its lavender pill and its white disc.
+      ['white on violet2', paper.onInk, colour.violet2],
+      ['blue on lavender (lock pill)', colour.blue, pastel.lavender],
+      ['blue on a card (lock badge)', colour.blue, CARD],
     ];
     for (const [name, fg, bg] of pairs) {
       assert.ok(contrast(fg, bg) >= TEXT, `${name} is ${contrast(fg, bg).toFixed(2)}, under the ${TEXT} floor`);
     }
+  });
+});
+
+describe('B0 tokens keep to their roles (2026-10-20)', () => {
+  test('the ring is decoration only: under the mark floor on a card, so it never edges a control', () => {
+    const r = contrast(colour.ring, CARD);
+    assert.ok(r < MARK, `the ring is ${r.toFixed(2)} on a card; if it clears ${MARK} the decorative-only rule needs a rethink`);
+    assert.ok(r > 1.2 && r < 1.6, `the ring is ${r.toFixed(2)} on a card, not the documented ~1.4`);
+  });
+
+  test('violet2 never sits behind the blue ground\'s soft words', () => {
+    // onColour.blue on violet2 is under the text floor, which is why DESIGN.md
+    // says white words only on a violet2 chip.
+    assert.ok(contrast(onColour.blue, colour.violet2) < TEXT, 'onColour.blue now clears the floor on violet2; revisit the rule');
+    assert.ok(contrast(paper.onInk, colour.violet2) >= TEXT);
+  });
+
+  test('#E4E0FF is folded into onColour.blue: no near-duplicate is written in palette.ts', () => {
+    const src = readFileSync(join(SRC, 'palette.ts'), 'utf8');
+    assert.doesNotMatch(src, /#E4E0FF/i);
+    assert.equal(onColour.blue, '#E4E1FF');
   });
 });
 

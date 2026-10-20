@@ -130,6 +130,10 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
       ['label', 'semiBold', 16, 20],
       ['button', 'semiBold', 16, 20],
       ['small', 'medium', 14, 20],
+      // B0 (2026-10-20): the compact stat, its caption and the lock badge's words.
+      ['statSm', 'bold', 17, 20],
+      ['caption', 'medium', 12, 16],
+      ['badge', 'bold', 12, 16],
       ['tabLabel', 'semiBold', 12, 12],
       ['notation', 'medium', 14, 20, 0.4],
     ];

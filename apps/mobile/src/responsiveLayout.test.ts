@@ -69,6 +69,12 @@ test('on a regular-width screen the tabs use two columns and sheets keep the rea
   for (const file of ['tabs/HomeTab.tsx', 'tabs/MyFrenchTab.tsx', 'tabs/PracticeTab.tsx']) {
     assert.match(readFileSync(new URL(file, import.meta.url), 'utf8'), /<Columns>/, file);
   }
+  // B0 (2026-10-20): Explore, the Phase A port, has no <Columns>; it lays its
+  // topic tiles two to a row and drops to one under 350pt or at 1.5x text.
+  // Pinned as it is, so B1 decides its wide layout on purpose.
+  const explore = readFileSync(new URL('tabs/ExploreTab.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(explore, /<Columns>/, 'Explore now uses Columns; move it into the list above');
+  assert.match(explore, /width < 350 \|\| fontScale >= 1\.5/, 'Explore lost its one-column fallback');
   const layout = readFileSync(new URL('layout.tsx', import.meta.url), 'utf8');
   assert.match(layout, /fontScale >= 1\.6/);
   assert.match(layout, /flexDirection: regular \? 'row' : 'column'/);

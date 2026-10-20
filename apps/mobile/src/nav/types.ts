@@ -35,6 +35,13 @@ export type RootStackParamList = {
   DailyLibrary: undefined;
   /** One Explore collection or scenario, by id. */
   ExploreCollection: { id: string };
+  /**
+   * Phase B detail screens (B0 route stubs, 2026-10-20): a scene before it
+   * starts, one pack's fixes, and then-and-now. Later steps fill them.
+   */
+  ScenePreview: { missionId: string };
+  Fixes: { packId: string };
+  ThenNow: undefined;
   Postcards: undefined;
   WeekWrapped: undefined;
   /**

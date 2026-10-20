@@ -71,6 +71,9 @@ import { PracticeTab } from '../tabs/PracticeTab.tsx';
 import { MyFrenchTab } from '../tabs/MyFrenchTab.tsx';
 import { ExploreTab } from '../tabs/ExploreTab.tsx';
 import { ExploreCollectionScreen } from '../main/ExploreCollectionScreen.tsx';
+import { ScenePreviewScreen } from '../scenes/ScenePreviewScreen.tsx';
+import { FixesScreen } from '../practice/FixesScreen.tsx';
+import { ThenNowScreen } from '../journey/ThenNowScreen.tsx';
 import { ProfileTab } from '../tabs/ProfileTab.tsx';
 import { FriendsTab } from '../tabs/FriendsTab.tsx';
 import { InviteFriendsScreen } from '../friends/InviteFriendsScreen.tsx';
@@ -731,6 +734,10 @@ export function RootNavigator({
       <Stack.Screen name="DailyPractice" component={DailyPracticeScreen} />
       <Stack.Screen name="DailyLibrary" component={DailyLibraryScreen} />
       <Stack.Screen name="ExploreCollection" component={ExploreCollectionScreen} />
+      {/* Phase B detail screens, stubs until their steps fill them (B0, 2026-10-20). */}
+      <Stack.Screen name="ScenePreview" component={ScenePreviewScreen} />
+      <Stack.Screen name="Fixes" component={FixesScreen} />
+      <Stack.Screen name="ThenNow" component={ThenNowScreen} />
       <Stack.Screen name="Postcards" component={PostcardsScreen} />
       <Stack.Screen name="WeekWrapped" component={WeekWrappedScreen} />
       <Stack.Screen name="Streak" component={StreakScreen} />

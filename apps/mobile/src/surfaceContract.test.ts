@@ -383,8 +383,10 @@ describe('nothing ships that nothing renders — J14', () => {
   // And `Art`, the watercolour renderer, which revamp B (F599) retired with
   // the PNGs it drew: the flat drawings reach a screen through `Illustration`,
   // and a second renderer beside it is the same coin toss again.
+  // B0 (2026-10-20): 'Chip' left this list. It is the shared filter and meta
+  // chip in components.tsx now, and the test after this one pins its callers.
   const RETIRED = [
-    'Chip', 'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard',
+    'Bloom', 'OffTheHook', 'TodayRow', 'PhrasebookCard',
     'RecapPostcard', 'OnboardCake', 'NothingDue', 'Phrasebook',
     'MissionDisc', 'MissionArt',
     'HeroCafe', 'StreetCorner', 'MarketStall', 'FrontDesk', 'EveningIn',
@@ -395,6 +397,13 @@ describe('nothing ships that nothing renders — J14', () => {
     for (const name of RETIRED) {
       const definers = SOURCES.filter(({ body }) => new RegExp(`export function ${name}\\b`).test(body));
       assert.deepEqual(definers.map((d) => d.path), [], `${name} is exported again and still has no caller`);
+    }
+  });
+
+  test('the shared Chip has callers, so it is not the retired one come back (B0, 2026-10-20)', () => {
+    const callers = SOURCES.filter(({ body }) => /<Chip\b/.test(body)).map(({ path }) => rel(path));
+    for (const file of ['SessionFilters.tsx', 'SituationsCard.tsx']) {
+      assert.ok(callers.some((c) => c.endsWith(file)), `${file} no longer draws the shared Chip`);
     }
   });
 
@@ -1056,6 +1065,10 @@ const ROOT = join(SRC, '..', '..', '..');
 /** Every tab and pushed screen rebuilt on the shared frame in this phase. */
 const ADOPTERS = [
   'tabs/HomeTab.tsx',
+  // B0 (2026-10-20): tabs/ExploreTab.tsx is not listed. It is the Phase A port
+  // from Codex and still draws main/MainUI's MainScreen, not the shared frame.
+  // 'Explore keeps its current shape until B1' below pins that truthfully; B1
+  // rebuilds it on ScrollScreen and adds it here.
   'tabs/TutorTab.tsx',
   'tabs/PracticeTab.tsx',
   'tabs/MyFrenchTab.tsx',
@@ -1555,9 +1568,16 @@ describe('the Phase 1 revise fixes — F317, F318, F319', () => {
  * scroll that pads itself twice over the frame.
  * =========================================================================== */
 
+/** Explore until B1 rebuilds it: MainScreen's title, not TabHeader (B0, 2026-10-20). */
+const EXPLORE_UNTIL_B1 = 'tabs/ExploreTab.tsx';
+
 /** The five tabs, which all open the same way now. */
 const TABS = [
   'tabs/HomeTab.tsx',
+  // B0 (2026-10-20): Explore joins every cross-tab rule it already keeps. The
+  // two header rules exempt it by name (EXPLORE_UNTIL_B1) because it still
+  // opens on MainScreen's own title, not TabHeader.
+  'tabs/ExploreTab.tsx',
   'tabs/TutorTab.tsx',
   'tabs/PracticeTab.tsx',
   'tabs/MyFrenchTab.tsx',
@@ -1648,7 +1668,7 @@ describe('the five tabs open the same way — F336', () => {
     const profile = named('tabs/ProfileTab.tsx');
     assert.equal((profile.match(/accessibilityRole="header"[^>]*>\{PROFILE_TITLE\}/g) ?? []).length, 1, 'Profile lost its one accessible page title');
     assert.doesNotMatch(profile, /<TabHeader\b/, 'Profile draws a second header shape');
-    for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx')) {
+    for (const name of TABS.filter((t) => t !== 'tabs/ProfileTab.tsx' && t !== EXPLORE_UNTIL_B1)) {
       const body = named(name);
       const expectedHeaders = name === 'tabs/TutorTab.tsx' ? 2 : 1;
       assert.equal(
@@ -1700,12 +1720,24 @@ describe('the five tabs open the same way — F336', () => {
       /purpose="/,
       'Home spells its purpose line itself, so it says the same thing at seven in the morning and at midnight',
     );
-    for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx' && t !== 'tabs/ProfileTab.tsx')) {
+    for (const name of TABS.filter((t) => t !== 'tabs/HomeTab.tsx' && t !== 'tabs/ProfileTab.tsx' && t !== EXPLORE_UNTIL_B1)) {
       const body = named(name);
       // 9 October 2026: the founder requested shorter, action-first tabs.
       assert.match(body, /<TabHeader/, `${name} lost its accessible page title`);
       assert.doesNotMatch(body, /purpose=/, `${name} repeats an explanation under its title`);
     }
+  });
+});
+
+describe('Explore keeps its current shape until B1 (B0, 2026-10-20)', () => {
+  test('Explore still opens on MainScreen with its own title and no TabHeader, and never on a ScrollView of its own', () => {
+    // The truthful current values behind the two exemptions above and its
+    // absence from ADOPTERS. When B1 moves Explore to ScrollScreen and
+    // TabHeader this fails, and B1 removes EXPLORE_UNTIL_B1 and lists it.
+    const explore = named(EXPLORE_UNTIL_B1);
+    assert.match(explore, /<MainScreen title="Explore">/);
+    assert.equal((explore.match(/<TabHeader\b/g) ?? []).length, 0);
+    assert.doesNotMatch(explore, /<ScrollView\b|useSafeAreaInsets/);
   });
 });
 
@@ -1859,6 +1891,9 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
   // with no pill of its own and no ledger row (README Part 7, Surfaces).
   const SURFACES: Record<string, readonly string[]> = {
     'tabs/HomeTab.tsx': ['tabs/HomeTab.tsx', 'practice/NextTaskCard.tsx', 'game/TodayHero.tsx', 'game/QuestsCard.tsx', 'daily/DailyCard.tsx'],
+    // B0 (2026-10-20): Explore as it is today, every list drawn inline as
+    // MainUI rows in the tab file. B1 replaces this with its new surfaces.
+    'tabs/ExploreTab.tsx': ['tabs/ExploreTab.tsx'],
     'tabs/TutorTab.tsx': ['tabs/TutorTab.tsx', 'tutor/ContinuityCard.tsx'],
     'tabs/PracticeTab.tsx': [
       'tabs/PracticeTab.tsx',
@@ -1913,6 +1948,7 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     }
     const tinted: Record<string, number> = {
       'tabs/HomeTab.tsx': 0,
+      'tabs/ExploreTab.tsx': 0,
       'tabs/TutorTab.tsx': 0,
       'tabs/PracticeTab.tsx': 0,
       'tabs/MyFrenchTab.tsx': 0,
@@ -1922,6 +1958,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
       // Revamp B (F602): the one review row, under a scene or plans lead when
       // phrases are due. Everything else on Today is a card or a sentence.
       'tabs/HomeTab.tsx': 0,
+      // B0 (2026-10-20): Explore's rows are MainUI's MainRow, not LedgerRow.
+      'tabs/ExploreTab.tsx': 0,
       // The level path's scenes, the other ways in, and the memory row.
       'tabs/TutorTab.tsx': 2,
       // The review door on the tab, then replay a moment and make this phrase

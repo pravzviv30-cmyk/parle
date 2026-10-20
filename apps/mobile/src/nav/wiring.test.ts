@@ -177,6 +177,11 @@ describe('every root screen has an address on the web — F493', () => {
     // The one this entry was filed about, named rather than left to the sweep,
     // because it is the screen holding delete account and the data export.
     assert.equal(paths.get('Settings'), 'settings', 'Settings has no address of its own');
+
+    // B0 (2026-10-20): the three Phase B detail screens have their addresses.
+    assert.equal(paths.get('ScenePreview'), 'scene-preview/:missionId');
+    assert.equal(paths.get('Fixes'), 'fixes/:packId');
+    assert.equal(paths.get('ThenNow'), 'then-and-now');
   });
 });
 

@@ -11,10 +11,13 @@
  * Which filters exist at all is that module's question.
  */
 
-import { Pressable, View, Text, StyleSheet } from 'react-native';
-import { accent, HAIRLINE, HIT, paper, radius, space, type } from '../theme.ts';
+import { View, StyleSheet } from 'react-native';
+import { Chip } from '../components.tsx';
+import { space } from '../theme.ts';
 import type { ArchiveFilter, FilterKey } from './archive.ts';
 
+// B0 (2026-10-20): each chip is the shared `Chip` filter variant now, so the
+// touch floor, the chosen tick and aria-selected (F522) live in one part.
 export function SessionFilters({
   filters,
   active,
@@ -26,42 +29,20 @@ export function SessionFilters({
 }) {
   return (
     <View style={st.row} accessibilityRole="tablist" accessibilityLabel="Filter your recorded sessions">
-      {filters.map((filter) => {
-        const chosen = filter.key === active;
-        return (
-          <Pressable
-            key={filter.key}
-            onPress={() => onChange(filter.key)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: chosen }}
-            style={[st.chip, chosen && st.chipChosen]}
-          >
-            <Text style={[st.word, chosen && st.wordChosen]}>{filter.label}</Text>
-          </Pressable>
-        );
-      })}
+      {filters.map((filter) => (
+        <Chip
+          key={filter.key}
+          variant="filter"
+          role="tab"
+          label={filter.label}
+          selected={filter.key === active}
+          onPress={() => onChange(filter.key)}
+        />
+      ))}
     </View>
   );
 }
 
 const st = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
-  // The touch floor is the height, not the padding, so a chip stays reachable
-  // whatever the reading size does to the word inside it.
-  chip: {
-    minHeight: HIT,
-    justifyContent: 'center',
-    flexShrink: 1,
-    minWidth: 0,
-    paddingHorizontal: space(4),
-    borderRadius: radius.pill,
-    backgroundColor: paper.card,
-    borderWidth: HAIRLINE,
-    borderColor: paper.line,
-  },
-  // The chosen chip takes the identity violet, which is what an active tab
-  // already does. It is labelling the control, not reporting a state.
-  chipChosen: { backgroundColor: accent.primary, borderColor: accent.primary },
-  word: { ...type.button, color: paper.inkSoft },
-  wordChosen: { color: paper.onInk },
 });

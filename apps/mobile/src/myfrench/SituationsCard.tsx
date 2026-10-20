@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { BadgeGlyph, Label, LedgerRow } from '../components.tsx';
+import { BadgeGlyph, Chip, Label, LedgerRow } from '../components.tsx';
 import { PlaceGlyph } from '../glyphs.tsx';
-import { accent, paper, radius, signal, space, type } from '../theme.ts';
+import { accent, paper, space } from '../theme.ts';
 import { NEXT_PLACES, YOU_CAN_NOW, splitByStamp, tryNext, type SituationChip } from './situations.ts';
 import type { MyFrench, SituationRow } from './model.ts';
 
@@ -76,30 +76,19 @@ function Row({ row, onOpen }: { row: SituationRow; onOpen: (id: string, refine: 
  * back" are things the heading above the row does not say.
  */
 function StateChip({ chip }: { chip: SituationChip }) {
+  // B0 (2026-10-20): drawn by the shared `Chip` meta variant, same ground,
+  // words and mark as before.
   return (
-    <View style={[st.chip, chip.earned ? st.chipEarned : st.chipQuiet]}>
-      {chip.earned && <BadgeGlyph size={14} color={paper.onInk} />}
-      <Text style={[type.small, { color: chip.earned ? paper.onInk : paper.ink }]}>{chip.text}</Text>
-    </View>
+    <Chip
+      variant="meta"
+      tone={chip.earned ? 'ink' : 'card'}
+      leading={chip.earned ? <BadgeGlyph size={14} color={paper.onInk} /> : undefined}
+      label={chip.text}
+    />
   );
 }
 
 const st = StyleSheet.create({
   block: { gap: space(4) },
   group: { gap: space(4) },
-  // The chip keeps its width and the words take what is left: the chip is five
-  // to eleven characters and the situation name is not, so shrinking the name
-  // is the wrong way round and was what hyphenated "réception" through the
-  // middle on a 375pt phone.
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(1),
-    paddingVertical: space(1),
-    paddingHorizontal: space(2.5),
-    borderRadius: radius.pill,
-    flexShrink: 0,
-  },
-  chipEarned: { backgroundColor: signal.good },
-  chipQuiet: { backgroundColor: paper.card },
 });

@@ -1,8 +1,8 @@
 {
-  "@luvani/core": 794,
-  "@luvani/brain": 468,
-  "@luvani/tutor-agent": 609,
-  "@luvani/token-server": 425,
+  "@luvani/core": 804,
+  "@luvani/brain": 481,
+  "@luvani/tutor-agent": 622,
+  "@luvani/token-server": 445,
   "@luvani/brain-playground": 26,
-  "@luvani/mobile": 2598
+  "@luvani/mobile": 3096
 }

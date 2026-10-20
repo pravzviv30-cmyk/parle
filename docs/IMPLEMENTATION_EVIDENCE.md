@@ -22,6 +22,10 @@ of the list.
 
 ## Current landing snapshot
 
+- 20 October 2026 direction B, step B0, on branch `claude/direction-b` (held, not on
+  main): **5,474 tests, 0 failing**; core 804, brain 481, tutor agent 622, token server 445,
+  playground 26, mobile 3096. All six typechecks, eight database proofs and 94 shared
+  release/provider checks pass. Floors raised only through `gate:bless`.
 - 7 October 2026 main integration: compared remote `7d399b79` with Come Alive
   `8f639d3f` from common base `47fbc2ea`. Retained all 13 main-only commits:
   Hum artwork/launch and loading holds, Expo 57.0.27 alignment, web render fixes,

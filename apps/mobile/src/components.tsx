@@ -1740,11 +1740,105 @@ export function ColourCard({
  * A number and one plain line (SNIPPETS stat-tile), on a colour ground or on
  * paper. One phrase to a screen reader: "1 min 12, longest stretch in French".
  */
-export function StatTile({ value, label }: { value: string; label: string }) {
+export function StatTile({ value, label, mark, compact = false }: {
+  value: string;
+  label: string;
+  /**
+   * A decorative disc above the number, as on Today's stats row (B0,
+   * 2026-10-20). Hidden from a screen reader: the value and label say it. A
+   * ring or bar that means something must be labelled by its caller instead.
+   */
+  mark?: ReactNode;
+  /** The smaller, centred cut that sits three to a `StatRow` card. */
+  compact?: boolean;
+}) {
   return (
-    <View style={b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
-      <Text style={[type.stat, { color: paper.ink }]}>{value}</Text>
-      <Text style={[type.small, { color: paper.inkSoft }]}>{label}</Text>
+    <View style={compact ? b.statCompact : b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
+      {mark ? <View {...decorative}>{mark}</View> : null}
+      <Text style={[compact ? b.statCompactValue : type.stat, { color: paper.ink }]}>{value}</Text>
+      <Text style={[compact ? b.statCompactLabel : type.small, { color: paper.inkSoft }]}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * Three stats in one white card, three equal columns (B-Today's stats row, B0
+ * 2026-10-20). It lays out `StatTile compact` children and draws nothing of
+ * its own; a column's words wrap rather than shrink at a large reading size.
+ */
+export function StatRow({ children }: { children: ReactNode }) {
+  return (
+    <View style={b.statRow}>
+      {Children.toArray(children).map((child, i) => (
+        <View key={i} style={b.statColumn}>{child}</View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A small pill (B0, 2026-10-20), lifted from the archive's filter row so every
+ * chip is one part.
+ *
+ * `filter` is a choice in a row of them: the touch floor is its height, the
+ * chosen one fills with ink and carries a tick so the state is never colour
+ * alone, and it says selected on a device and on the web (F522). `meta` is a
+ * still fact, "About 6 min" or a scene's state, never pressable; `tone` picks
+ * its ground and `leading` an optional mark before the words.
+ */
+export function Chip(props:
+  | { variant: 'filter'; label: string; selected: boolean; onPress: () => void; role?: 'tab' | 'button'; accessibilityLabel?: string }
+  | { variant: 'meta'; label: string; tone?: 'card' | 'ink' | 'lavender'; leading?: ReactNode }
+) {
+  if (props.variant === 'meta') {
+    const tone = props.tone ?? 'card';
+    const ground = tone === 'ink' ? signal.good : tone === 'lavender' ? pastel.lavender : paper.card;
+    const words = tone === 'ink' ? paper.onInk : paper.ink;
+    return (
+      <View style={[b.metaChip, { backgroundColor: ground }]}>
+        {props.leading}
+        <Text style={[type.small, { color: words }]}>{props.label}</Text>
+      </View>
+    );
+  }
+  const { label, selected, onPress, role = 'tab', accessibilityLabel } = props;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={role}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
+      style={[b.filterChip, selected && b.filterChipChosen]}
+    >
+      {selected ? <View {...decorative}><CheckGlyph size={16} color={paper.onInk} /></View> : null}
+      <Text style={[type.button, { color: selected ? paper.onInk : paper.inkSoft }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/**
+ * The trial's lock, drawn two ways from the v82 artboards (B0, 2026-10-20): a
+ * pill reading "Included with your trial", and a 28pt white disc with the lock
+ * alone, named the same to a screen reader.
+ *
+ * Pure presentation. Whether a feature is locked is `access/featureAccess.ts`'s
+ * answer, and a surface draws this only when that seam says so. Until D5 wires
+ * the seam to entitlement it says unlocked for everyone, so nothing shows.
+ */
+export const LOCK_BADGE_LABEL = 'Included with your trial';
+export function LockBadge({ form = 'pill', ground = 'lavender' }: { form?: 'pill' | 'round'; ground?: 'lavender' | 'card' }) {
+  if (form === 'round') {
+    return (
+      <View style={b.lockRound} accessible accessibilityRole="image" accessibilityLabel={LOCK_BADGE_LABEL}>
+        <View {...decorative}><Icon name="lock" size={14} color={colour.blue} /></View>
+      </View>
+    );
+  }
+  return (
+    <View style={[b.lockPill, { backgroundColor: ground === 'card' ? paper.card : pastel.lavender }]}>
+      <View {...decorative}><Icon name="lock" size={12} color={colour.blue} /></View>
+      <Text style={b.lockWords}>{LOCK_BADGE_LABEL}</Text>
     </View>
   );
 }
@@ -1987,6 +2081,40 @@ const b = StyleSheet.create({
   roundRow: { flexDirection: 'row', alignItems: 'center', gap: space(3.5) },
   roundDisc: { alignItems: 'center', justifyContent: 'center' },
   statTile: { backgroundColor: paper.card, borderRadius: radius.tile, padding: space(4), gap: space(1.5) },
+  statCompact: { alignItems: 'center', gap: space(1.5) },
+  statCompactValue: { ...type.statSm, textAlign: 'center' },
+  statCompactLabel: { ...type.caption, textAlign: 'center' },
+  statRow: { flexDirection: 'row', gap: space(1.5), backgroundColor: paper.card, borderRadius: radius.card, paddingVertical: space(3.5), paddingHorizontal: space(3) },
+  statColumn: { flex: 1, minWidth: 0 },
+  // The touch floor is the height, not the padding, so a chip stays reachable
+  // whatever the reading size does to the word inside it.
+  filterChip: {
+    minHeight: HIT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(1.5),
+    flexShrink: 1,
+    minWidth: 0,
+    paddingHorizontal: space(4),
+    borderRadius: radius.pill,
+    backgroundColor: paper.card,
+    borderWidth: HAIRLINE,
+    borderColor: paper.line,
+  },
+  filterChipChosen: { backgroundColor: accent.primary, borderColor: accent.primary },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(1),
+    paddingVertical: space(1),
+    paddingHorizontal: space(2.5),
+    borderRadius: radius.pill,
+    flexShrink: 0,
+  },
+  lockPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: space(1.25), minHeight: 26, paddingHorizontal: space(2.5), borderRadius: radius.pill },
+  lockWords: { ...type.badge, color: colour.blue },
+  lockRound: { width: 28, height: 28, borderRadius: 14, backgroundColor: paper.card, alignItems: 'center', justifyContent: 'center' },
   heroRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2.5) },
   sheetOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' },
   // On an iPad the first run's sheets keep its reading column (come alive, icons section 3.6).
