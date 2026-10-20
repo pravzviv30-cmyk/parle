@@ -1,10 +1,11 @@
 /**
- * Home's daily quests (F767; README Part 5.F, D22): "Daily quests", the day so
- * far in one line, and today's three as rows, each with its own progress.
+ * Home's daily quests (F767; README Part 5.F, D22; B-Today 2026-10-20): "Today's
+ * three", the day so far as "1 of 3 done", and today's three as rows, each with
+ * its own progress.
  *
  * What it says is `questsCardView.ts`'s, from the game layer's `useQuests()`:
- * the three dealt and frozen for today, never a fourth, and when all three are
- * done the one quiet line "All three quests done today.". There is no chest,
+ * the three dealt and frozen for today, never a fourth, counted as "n of 3
+ * done" beside the heading (B5, 2026-10-20). There is no chest,
  * no reward and no countdown. Nothing is drawn when the quests could not be
  * read or are not dealt yet.
  *
@@ -21,23 +22,29 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card } from '../components.tsx';
-import { IconTile } from '../icons/IconTile.tsx';
+import { Card, CheckGlyph, Chip } from '../components.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
-import { LivingBar } from '../motion/LivingBar.tsx';
+import { ProgressRing } from '../motion/ProgressRing.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { questCounts } from '../home/homeDraw.ts';
 import { useHomeDraw } from '../home/useHomeDraw.ts';
+import { TODAY_COPY, questTrailing, threeDone } from '../home/todayView.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
-import { HIT, accent, paper, space, type } from '../theme.ts';
-import { GAME_COPY } from './copy.ts';
+import { HIT, colour, decorative, paper, pastel, space, type } from '../theme.ts';
 import { useGame, useGoal, useQuests } from './GameProvider.tsx';
 import { questsCardView } from './questsCardView.ts';
 
-/** A row's tile, a little under the touch floor: the row is not a target. */
-const TILE = HIT - space(2);
-const BAR = space(1.5);
+/** A row's mark, a little under the touch floor: the row is not a target. */
+const MARK = HIT - space(5);
 
+/**
+ * 2026-10-20, B5, B-Today: "Today's three" on the page, not in a sheet. A
+ * done quest is a mint disc with a tick, so done is never colour alone; one
+ * still moving is a ring drawn to its fraction; one not started is the empty
+ * ring. Each row says its title and where it stands as one phrase, which is
+ * the ring's label too. On the right, the quest's XP while it waits and once
+ * it is done, or its count while it moves.
+ */
 export function QuestsCard() {
   const { profile } = useProfile();
   const { view } = useGame();
@@ -51,36 +58,45 @@ export function QuestsCard() {
 
   return (
     <Card style={st.card}>
-      <Text accessibilityRole="header" style={[type.heading, { color: paper.ink }]}>
-        {card.title}
-      </Text>
-      <View accessibilityLiveRegion="polite">
-        {done !== undefined ? (
-          <CountUp
-            key={`done-${done.mount}`}
-            from={done.from}
-            to={done.to}
-            format={GAME_COPY.quests.progress}
-            textStyle={[card.allDone ? type.bodyStrong : type.small, { color: card.allDone ? paper.ink : paper.inkSoft }]}
-          />
-        ) : null}
-      </View>
-      {card.rows.map((row) => (
-        <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={st.row}>
-          <IconTile ground={row.complete ? 'mint' : 'skeleton'} name={row.complete ? 'tick-circle' : row.icon} size={TILE} />
-          <View style={st.words}>
-            <Text style={[type.label, { color: paper.ink }]}>{row.title}</Text>
-            <LivingBar from={row.fraction} to={row.fraction} height={BAR} radius={BAR / 2} color={accent.brand} />
-          </View>
-          <Text style={[type.small, { color: row.complete ? paper.ink : paper.inkSoft }]}>{row.count}</Text>
+      <View style={st.head}>
+        <Text accessibilityRole="header" style={[type.heading, st.title, { color: paper.ink }]}>
+          {TODAY_COPY.three}
+        </Text>
+        <View accessibilityLiveRegion="polite">
+          {done !== undefined ? (
+            <CountUp key={`done-${done.mount}`} from={done.from} to={done.to} format={threeDone} textStyle={[type.small, { color: paper.inkSoft }]} />
+          ) : null}
         </View>
-      ))}
+      </View>
+      {card.rows.map((row) => {
+        const trailing = questTrailing(row);
+        return (
+          <View key={`${drawn.draw.day}:${row.id}:${row.target}`} accessible accessibilityLabel={row.label} style={st.row}>
+            <View {...decorative}>
+              {row.complete ? (
+                <View style={[st.done, { backgroundColor: colour.mint }]}><CheckGlyph size={MARK - space(2)} color={paper.ink} /></View>
+              ) : (
+                <ProgressRing from={row.fraction} to={row.fraction} size={MARK} stroke={space(0.75)} color={colour.blue} track={pastel.lavender} />
+              )}
+            </View>
+            <Text style={[type.label, st.words, { color: paper.ink }]}>{row.title}</Text>
+            {trailing.kind === 'xp' ? (
+              <Chip variant="meta" tone={trailing.earned ? 'sage' : 'butter'} label={trailing.label} />
+            ) : (
+              <Text style={[type.small, { color: paper.inkSoft }]}>{trailing.label}</Text>
+            )}
+          </View>
+        );
+      })}
     </Card>
   );
 }
 
 const st = StyleSheet.create({
-  card: { marginTop: space(5), gap: space(3) },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(1) },
-  words: { flex: 1, minWidth: 0, gap: space(1.5) },
+  card: { gap: space(2) },
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: space(3) },
+  title: { flexShrink: 1, minWidth: 0 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(1) },
+  words: { flex: 1, minWidth: 0 },
+  done: { width: MARK, height: MARK, borderRadius: MARK / 2, alignItems: 'center', justifyContent: 'center' },
 });

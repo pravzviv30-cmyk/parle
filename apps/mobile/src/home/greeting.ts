@@ -88,7 +88,15 @@ export function greetingSubline(now: number): string {
   return match?.line ?? GREETING_SUBLINES[1]!.line;
 }
 
-/** Today's header: the still greeting and the hour's question, from one clock reading. */
-export function homeGreeting(firstName: string | null, now: number): { title: string; subline: string } {
-  return { title: greetingLine(firstName, now), subline: greetingSubline(now) };
+/**
+ * Today's header: "Bonjour, Name." or, with no name, "Bonjour." (2026-10-20,
+ * B5, B-Today). The founder's decision for direction B is one word all day,
+ * with no Bonsoir switch and no question under it, so the header reads no
+ * clock. The name is the app's own use of it and goes nowhere else.
+ * `greetingWord` and `greetingSubline` stay as rules for any surface that
+ * still wants the hour.
+ */
+export function homeGreeting(firstName: string | null): { title: string } {
+  const first = firstNameOf(firstName);
+  return { title: first === null ? 'Bonjour.' : `Bonjour, ${first}.` };
 }

@@ -44,8 +44,8 @@ import { useLive } from '../app/LiveContext.tsx';
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadBookmarks, setBookmark, type BookmarkItem } from '../bookmarks/store.ts';
 import { bookmarkControl, bookmarkDecisions, isBookmarkedIn, type BookmarkWrite } from '../bookmarks/view.ts';
-import { Card, IconAction, BookmarkGlyph, GhostButton, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
-import { HIT, onColour, paper, space, textOn, type } from '../theme.ts';
+import { Chip, ColourCard, IconAction, BookmarkGlyph, MicGlyph, PillButton, SceneBrief, canDoSentence } from '../components.tsx';
+import { HIT, frenchText, onColour, paper, space, textOn, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
 import { launchLabel } from '../tutor/orbState.ts';
 import { startModes } from '../tutor/speakView.ts';
@@ -53,13 +53,11 @@ import { prefersTyping } from '../profile/typing.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { sceneMeta } from './estimate.ts';
 import { heroBookmark, heroStart, type HomeMission } from './homeMission.ts';
-import { BoldScene } from '../onboarding/motion/BoldScene.tsx';
-import { BoldButton } from '../onboarding/BoldButton.tsx';
-import { c, boldType } from '../onboarding/boldRhythm.ts';
+import { buildsOnLine, sceneEyebrow, sceneLine } from './todayView.ts';
 import { SceneArt } from './SceneArt.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
 
-export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?: boolean }) {
+export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: HomeMission; vivid?: boolean; /** Today only: the phrase from the last conversation this scene builds on. */ buildsOn?: string | null }) {
   const focused = useIsFocused();
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
   const { live, recheck } = useLive();
@@ -160,19 +158,46 @@ export function MissionHero({ hero, vivid = false }: { hero: HomeMission; vivid?
       });
   };
 
-  if (vivid) return <View style={{ gap: 12, backgroundColor: c.sage, borderRadius: 24, padding: 20 }}>
-    <Text accessibilityRole="header" style={[boldType.title, { color: c.ink }]}>{hero.title}</Text>
-    <BoldScene kind="home" width={210} active={focused} />
-    <Text style={[boldType.label, { color: c.ink }]}>{sceneMeta('Live practice', hero.minutes, tutorName)}</Text>
-    {Boolean(hero.canDo) && <Text style={[boldType.body, { color: c.ink }]}>{canDoSentence(hero.canDo ?? '')}</Text>}
-    {!!hero.lines[0] && <View style={{ backgroundColor: c.lavender, borderRadius: 20, padding: 18, gap: 8 }}>
-      <Text style={[boldType.heading, { color: c.ink }]}>Your first words</Text>
-      <Text style={[boldType.body, { color: c.ink }]}>{hero.lines[0]}</Text>
-    </View>}
-    <BoldButton label={label} disabled={checking} onPress={() => open(modes.textMode)} />
-    <IconAction layout="inline" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
-    {heldBack !== null && <View><Text style={[boldType.body, { color: c.ink }]}>{TUTOR_OFFLINE.body}</Text><IconAction layout="inline" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} /></View>}
-  </View>;
+  // 2026-10-20, B5, B-Today: Today's lead is the yellow card. The eyebrow is
+  // the scene's place in its stage, the line under the title its French name,
+  // minutes and tutor, and the "Builds on" chip shows only when the newest
+  // conversation's key phrase is one of this scene's lines. The Start is the
+  // same gated start as the blue brief's, in ink on the sun.
+  if (vivid) {
+    const line = sceneLine(hero, tutorName);
+    return (
+      <ColourCard ground="sun" style={st.vivid}>
+        {hero.kind === 'scene' ? <SceneArt mission={hero.mission.id} /> : null}
+        <Text style={[type.eyebrow, { color: paper.ink }]}>{sceneEyebrow(hero)}</Text>
+        <Text accessibilityRole="header" style={[type.title, { color: paper.ink }]}>{hero.title}</Text>
+        <Text style={[type.body, { color: paper.ink }]}>
+          {line.french !== null ? <Text {...frenchText}>{line.french}</Text> : null}
+          {line.rest}
+        </Text>
+        {buildsOn != null ? (
+          <Chip
+            variant="meta"
+            label={<>{buildsOnLine(buildsOn).before}<Text {...frenchText}>{buildsOnLine(buildsOn).french}</Text>{buildsOnLine(buildsOn).after}</>}
+          />
+        ) : null}
+        <PillButton
+          label={label}
+          accessibilityLabel={`${label}: ${hero.title}`}
+          icon={<MicGlyph size={20} color={paper.onInk} />}
+          disabled={checking}
+          onPress={() => open(modes.textMode)}
+        />
+        <IconAction layout="inline" ground="sun" icon="keyboard" label={modes.other.label} disabled={checking} onPress={() => open(modes.other.textMode)} />
+        {checking && <Text accessibilityLiveRegion="polite" style={[type.small, { color: paper.ink }]}>{TUTOR_OFFLINE.checking}</Text>}
+        {heldBack !== null && (
+          <View style={st.offline}>
+            <Text style={[type.body, { color: paper.ink }]}>{TUTOR_OFFLINE.body}</Text>
+            <IconAction layout="inline" ground="sun" icon="refresh" label={TUTOR_OFFLINE.retry} disabled={checking} onPress={() => open(heldBack.textMode)} />
+          </View>
+        )}
+      </ColourCard>
+    );
+  }
   return (
     <SceneBrief
       meta={sceneMeta(hero.label ?? 'Next scene', hero.minutes, tutorName)}
@@ -244,5 +269,7 @@ const st = StyleSheet.create({
   // sentence the learner has to read to know what happened.
   checking: { ...type.small, color: onColour.blue, textAlign: 'center' },
   offline: { gap: space(3) },
+  // The yellow lead's own rhythm: the colour card's padding, a tighter gap.
+  vivid: { gap: space(2) },
   offlineBody: { ...type.body, color: paper.onInk },
 });

@@ -373,7 +373,10 @@ describe('the tab title is the working title — F602', () => {
     // And the greeting is one of them: Home hands its greeting to the header
     // as the title, so it is set at the same 30 as every other tab name.
     const home = stripComments(readFileSync(join(SRC, 'tabs', 'HomeTab.tsx'), 'utf8'));
-    assert.match(home, /<TabHeader title=\{greeting\.title\} purpose=\{greeting\.subline\}/, 'Home does not hand its real contextual greeting to the working header');
+    // 2026-10-20, B5, B-Today: the greeting is "Bonjour, Name." alone, with
+    // the avatar beside it and no question under it.
+    assert.match(home, /<TabHeader title=\{greeting\.title\} trailing=\{<ProfileButton \/>\} \/>/, 'Home does not hand its greeting to the working header');
+    assert.doesNotMatch(home, /purpose=/, 'Home draws a line under its greeting again');
 
     // 2026-10-20, B1, B-Explore: Explore left MainScreen for the loop above,
     // and its title is the plain "Explore" handed to the header.

@@ -1740,9 +1740,14 @@ export function ColourCard({
  * A number and one plain line (SNIPPETS stat-tile), on a colour ground or on
  * paper. One phrase to a screen reader: "1 min 12, longest stretch in French".
  */
-export function StatTile({ value, label, mark, compact = false }: {
+export function StatTile({ value, label, mark, compact = false, valueNode }: {
   value: string;
   label: string;
+  /**
+   * What is drawn in the number's place when it moves (B5, 2026-10-20: Today's
+   * count-ups). `value` is still what a screen reader hears.
+   */
+  valueNode?: ReactNode;
   /**
    * A decorative disc above the number, as on Today's stats row (B0,
    * 2026-10-20). Hidden from a screen reader: the value and label say it. A
@@ -1755,7 +1760,7 @@ export function StatTile({ value, label, mark, compact = false }: {
   return (
     <View style={compact ? b.statCompact : b.statTile} accessible accessibilityLabel={`${value}, ${label}`}>
       {mark ? <View {...decorative}>{mark}</View> : null}
-      <Text style={[compact ? b.statCompactValue : type.stat, { color: paper.ink }]}>{value}</Text>
+      {valueNode ?? <Text style={[compact ? b.statCompactValue : type.stat, { color: paper.ink }]}>{value}</Text>}
       <Text style={[compact ? b.statCompactLabel : type.small, { color: paper.inkSoft }]}>{label}</Text>
     </View>
   );
@@ -1788,11 +1793,21 @@ export function StatRow({ children }: { children: ReactNode }) {
  */
 export function Chip(props:
   | { variant: 'filter'; label: string; selected: boolean; onPress: () => void; role?: 'tab' | 'button'; accessibilityLabel?: string; ground?: 'card' | 'violet2' }
-  | { variant: 'meta'; label: string; tone?: 'card' | 'ink' | 'lavender'; leading?: ReactNode; /** The label is French (B3, 2026-10-20): set and read as French. */ lang?: 'fr' }
+  | {
+      variant: 'meta';
+      /**
+       * Words, or words with a French span nested in them (B5, 2026-10-20:
+       * Today's "Builds on" chip sets its quoted phrase as French).
+       */
+      label: ReactNode;
+      /** butter and sage are Today's quest XP chips (B5, 2026-10-20), ink words on both. */
+      tone?: 'card' | 'ink' | 'lavender' | 'butter' | 'sage';
+      leading?: ReactNode;
+      /** The label is French (B3, 2026-10-20): set and read as French. */ lang?: 'fr' }
 ) {
   if (props.variant === 'meta') {
     const tone = props.tone ?? 'card';
-    const ground = tone === 'ink' ? signal.good : tone === 'lavender' ? pastel.lavender : paper.card;
+    const ground = tone === 'ink' ? signal.good : tone === 'lavender' ? pastel.lavender : tone === 'butter' ? pastel.butter : tone === 'sage' ? pastel.sage : paper.card;
     const words = tone === 'ink' ? paper.onInk : paper.ink;
     return (
       <View style={[b.metaChip, { backgroundColor: ground }]}>

@@ -1711,6 +1711,10 @@ describe('the five tabs open the same way — F336', () => {
    * and no test would see it stop.
    */
   test("Home keeps its contextual greeting; other tabs omit repeated subtitles", () => {
+    // 2026-10-20, B5, B-Today: Home's greeting is "Bonjour, Name." all day
+    // (founder decision) with no line under it at all, so it carries no
+    // purpose, literal or otherwise.
+    assert.doesNotMatch(named('tabs/HomeTab.tsx'), /purpose=/, 'Home draws a line under its greeting again');
     assert.match(
       named('tabs/HomeTab.tsx'),
       /\{greeting\.title\}/,

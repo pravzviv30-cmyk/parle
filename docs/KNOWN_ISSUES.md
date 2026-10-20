@@ -9022,9 +9022,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 - verified-by: `Today leads with one colour card: the next scene, the recall card, or the plans card when the free minutes are used`
-- verified-by: `day one lists where the learner starts with a sun dot on the first scene; afterwards the week sentences with no label and a slot for the lifetime count`
+- verified-by: `day one lists where the learner starts with a sun dot on the first scene, and the page reads in the artboard order` (renamed 2026-10-20 when direction B B5 redrew Today to B-Today: the week sentences and the lifetime count left Today for the week card and the streak tile)
 - verified-by: `a Home that has not read its storage yet draws still sand blocks shaped like the page`
-- verified-by: `today's phrase is a white card: the French with a play disc, the English, and Practise it`
+- verified-by: `today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself` (renamed 2026-10-20 when direction B B5 redrew today's phrase as B-Today's lavender card)
 - verified-by: `Home names no weekday, counts no days this week, shows no rate and draws no tag`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 
