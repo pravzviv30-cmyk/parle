@@ -36,6 +36,9 @@ export const LOCKED_ROUTES: Readonly<Record<string, LockedFeature>> = {
   TutorMemory: 'tutorMemory',
   SoundJourney: 'sounds',
   SoundCheck: 'sounds',
+  // The café pronunciation lesson is sound practice (founder, 2026-10-20,
+  // after D24): locked in spoken and typed mode alike.
+  Lesson: 'sounds',
   ConversationPractice: 'conversationPractice',
   RealMoment: 'realMoment',
   Fixes: 'fixes',
@@ -49,7 +52,9 @@ export const LOCKED_ROUTES: Readonly<Record<string, LockedFeature>> = {
  * conversation (`practice: 'pack'` with a packId): that is review of
  * conversation phrases. The recommended sitting, a resumed one, a node of the
  * path, a made phrase and the ordinary deck stay free. Review takes no params,
- * so it cannot say what it reviews, and it stays free.
+ * so it cannot say what it reviews, and it stays free. Convo, DailyPractice
+ * and FirstScene are free. Lesson (the café pronunciation lesson) is locked
+ * as 'sounds' whatever its params, typed mode included.
  */
 export function lockedRouteFeature(name: string, params?: unknown): LockedFeature | null {
   const direct = Object.prototype.hasOwnProperty.call(LOCKED_ROUTES, name) ? LOCKED_ROUTES[name]! : null;
@@ -64,6 +69,9 @@ export function lockedRouteFeature(name: string, params?: unknown): LockedFeatur
 // The last answer read for the signed-in account, so a synchronous caller
 // (direction B's featureAccess) can ask without a fetch.
 let standing: { userId: string; status: BillingStatus | null } | null = null;
+// Bumped on every invalidation, so a read begun before a purchase cannot land
+// its old answer after it.
+let version = 0;
 const listeners = new Set<() => void>();
 
 function changed(): void {
@@ -78,8 +86,27 @@ export function setStanding(userId: string, status: BillingStatus | null): void 
   changed();
 }
 
+/** The invalidation count; a read records its answer only if this is unchanged. */
+export function standingVersion(): number {
+  return version;
+}
+
+/**
+ * A billing change: drop this account's answer to unread at once, before the
+ * fresh read returns. Without it a resume after a purchase (afterPurchase)
+ * meets the old 'locked' answer and the guard swaps the lesson for the wall;
+ * unread makes the guard read again instead.
+ */
+export function invalidateStanding(userId: string): void {
+  version++;
+  if (standing === null || standing.userId !== userId) return;
+  standing = { userId, status: null };
+  changed();
+}
+
 /** Forget the standing: on sign-out and on every account change. */
 export function clearStanding(): void {
+  version++;
   if (standing === null) return;
   standing = null;
   changed();

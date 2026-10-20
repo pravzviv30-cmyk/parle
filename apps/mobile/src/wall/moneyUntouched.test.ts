@@ -185,7 +185,11 @@ const FILES: Record<string, string> = {
   // reservation→cryptographically verified SDK JWT proof, malformed RPC/owner
   // tests and 38 billing tests. SQL admission supersedes stale snapshots;
   // store changes remove raw error logging only. Prices/allowances remain pinned.
-  'services/token-server/src/tokens.ts': '0b83b715a62ed5948631f13f4cfd785f4723ad4bada5eafdb8ac4bf5d020788f',
+  // 2026-10-20, D24 follow-up: grantSession signs `memoryLocked: true` for free, lapsed and
+  // guest sessions so the tutor neither reads nor writes memory. No allowance, debit or
+  // price logic changed. Approval: founder 2026-10-20. Review: the Opus orchestrator reads
+  // the tokens.ts diff before landing.
+  'services/token-server/src/tokens.ts': '1ddfbe4ed477bd29fb65fbeb2d3497de63eea3df42c83f64efe13e36ba80138f',
   'services/token-server/src/store.ts': '2d6d42ea21964bd640ad0f4f2e3b931c0e245364cc39f0d76791165b436fb019',
   'packages/core/src/metering/index.ts': '430ac2a2da7a53dac3d083dccb7a713e4d85d61c910c122128abef675d1c0efa',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',

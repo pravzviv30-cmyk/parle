@@ -136,7 +136,7 @@ export function GuestAccountHandoff({
         register: 'courant' as const,
         note: null,
       }));
-      if ((await addPhrases(phrases)) !== 'durable')
+      if ((await addPhrases(phrases, { source: 'curated' })) !== 'durable')
         throw new Error('Your phrase could not be saved. Try again.');
       // Said only now that the phrasebook write is durable: one toast for the
       // phrase kept last, keyed by the stored phrase, never the learner's text.

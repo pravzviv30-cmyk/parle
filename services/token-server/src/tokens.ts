@@ -217,6 +217,8 @@ export async function grantSession(
     mode?: SessionMode;
     /** A compact learner snapshot, passed through opaquely for the agent. */
     snapshot?: object;
+    /** D24 follow-up: free, lapsed and guest sessions neither read nor write tutor memory. */
+    memoryLocked?: boolean;
     /** Server-loaded, owner-scoped conversation learning context. */
     revision?: TutorRevision;
     /**
@@ -288,6 +290,7 @@ export async function grantSession(
       ...(missionId !== undefined ? { missionId } : {}),
       ...(tutorVoice !== undefined ? { tutorVoice } : {}),
       ...(opts.snapshot !== undefined ? { snapshot: opts.snapshot } : {}),
+      ...(opts.memoryLocked ? { memoryLocked: true } : {}),
     }),
   });
 

@@ -408,8 +408,9 @@ daily phrase, the learner's own saved learning, quests and XP, the streak with
 one freeze, a Journey summary, and a weekly taste of live time: five minutes on
 a rolling seven days from first use, claimed once per device. Either active
 paid tier and its confirmed store trial open the rest: live time beyond the
-taste, tutor memory, Your fixes, spaced review and drills of conversation
-phrases, Then and now, sound practice, the full Journey, streak repair and the
+taste, tutor memory (in the tutor's sessions too), Your fixes, spaced review and
+drills of conversation phrases, Then and now, sound practice (including the café
+pronunciation lesson), the full Journey, streak repair and the
 second freeze, and on Max "Prepare for something real" and continue arc. All
 tutor conversations still consume the server's allowance, and a sample is never
 described as unlimited tutor access. The list lives in code as

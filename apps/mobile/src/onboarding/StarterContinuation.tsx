@@ -86,7 +86,7 @@ export function StarterContinuation({
           register: 'courant',
           note: null,
         },
-      ]);
+      ], { source: 'curated' });
       if (owner === scopeGeneration())
         setNote(
           saved === 'durable'

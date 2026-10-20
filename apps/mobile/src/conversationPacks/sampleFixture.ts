@@ -118,7 +118,7 @@ export async function loadSampleConversation(
     if (activeUserId() !== owner) return { ok: false, reason: 'account-changed' };
     // Cards and exercises merge, never replace: a card the learner already
     // owns keeps its scheduling, and nothing is graded.
-    if ((await addPhrases(reviewPhrasesFor(sample), { stagger: true })) === 'failed') return { ok: false, reason: 'failed' };
+    if ((await addPhrases(reviewPhrasesFor(sample), { source: 'sample', stagger: true })) === 'failed') return { ok: false, reason: 'failed' };
     if (activeUserId() !== owner) return { ok: false, reason: 'account-changed' };
     if ((await mergeExercises(sampleExercises(sample))) === 'failed') return { ok: false, reason: 'failed' };
     return { ok: true, added };

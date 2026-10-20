@@ -38,3 +38,13 @@ export { buildCardsFromSummary } from './cards.ts';
 export { mergeDecks, gradesApplied } from './merge.ts';
 
 export { reviewPhraseFor } from './language.ts';
+
+export {
+  conversationOnly,
+  reviewableFree,
+  sourcesOf,
+  unionSources,
+  withSources,
+  REVIEW_SOURCES,
+  type ReviewSource,
+} from './sources.ts';

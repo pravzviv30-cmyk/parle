@@ -363,7 +363,8 @@ describe('the review sitting on screen', () => {
     // an introduction depending on the minute, which is a coin toss deciding
     // whether the learner is asked to produce anything.
     assert.match(screen, /dealtAt\.current = now/, 'the sitting no longer pins the instant it was dealt');
-    assert.match(screen, /dueCards\(deck, now\)/, 'the cards and their presentation are chosen against different clocks');
+    // Dealt through the free tier (review/freeTier.ts), which runs `dueCards` on the same `now`.
+    assert.match(screen, /dealForTier\(deck, now, /, 'the cards and their presentation are chosen against different clocks');
     const body = screen.slice(screen.indexOf('export function ReviewScreen'));
     // Three reads now, and the third is named rather than allowed. F395 gave the
     // sitting a duration, and a duration needs an end. What this rule was always
@@ -610,7 +611,7 @@ describe('the delayed test, said out loud — F220', () => {
     const screen = stripComments(read('../ReviewScreen.tsx'));
     assert.match(
       screen,
-      /sittingView\(dueCards\(deck, now\), now\)/,
+      /sittingView\(deal\.due, now\)/,
       'the sitting is ordered against something other than the cards dueCards dealt',
     );
     assert.doesNotMatch(screen, /firstReturn/, 'the screen decides for itself which cards are back, which is a second copy of the rule');

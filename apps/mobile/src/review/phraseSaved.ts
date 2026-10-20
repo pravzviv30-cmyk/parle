@@ -14,7 +14,7 @@
  * `account`: every caller of this runs inside a signed-in app.
  */
 
-import { phraseKeyOf, type ConvoPhrase } from '@luvani/core';
+import { phraseKeyOf, type ConvoPhrase, type ReviewSource } from '@luvani/core';
 
 import { celebrationKey, publishCelebrations } from '../celebrate/events.ts';
 import type { PersistAck } from '../storage/ack.ts';
@@ -32,10 +32,14 @@ export function announcePhraseSaved(ack: PersistAck, fr: string, at: number = Da
  * Keep one phrase and answer whether it is saved. Saved means durable, and only
  * a saved phrase is announced.
  */
-export async function keepPhrase(phrase: ConvoPhrase, write: (phrases: readonly ConvoPhrase[]) => Promise<PersistAck> = addPhrases): Promise<boolean> {
+export async function keepPhrase(
+  phrase: ConvoPhrase,
+  source: ReviewSource,
+  write: (phrases: readonly ConvoPhrase[], opts: { source: ReviewSource }) => Promise<PersistAck> = addPhrases,
+): Promise<boolean> {
   let ack: PersistAck;
   try {
-    ack = await write([phrase]);
+    ack = await write([phrase], { source });
   } catch {
     ack = 'failed';
   }

@@ -57,6 +57,7 @@ test('local guest start binds the actual brief and one room, rejects another ins
   const grant=await h.call('/onboarding/live',{token,body:{completed:true,seconds:9999}});assert.equal(grant.status,200);assert.equal(grant.body.secondsRemaining,1260);
   const claims=JSON.parse(Buffer.from((grant.body.token as string).split('.')[1]!,'base64url').toString());
   assert.deepEqual(JSON.parse(claims.metadata).firstPractice,brief);
+  assert.equal(JSON.parse(claims.metadata).memoryLocked,true,'a guest has no account memory to read or write');
   assert.equal((await h.call('/onboarding/live-result',{token})).body.outcome,'active');
   assert.equal((await h.call('/onboarding/end',{token})).body.outcome,'partial');
 });

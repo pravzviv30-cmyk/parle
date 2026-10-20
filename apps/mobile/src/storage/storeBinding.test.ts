@@ -199,7 +199,7 @@ const QUEUED_WRITES: readonly QueuedWrite[] = [
     write: () => mergeSessionTopics([{ title: { fr: 'Au café', en: 'Ordering at the café' }, phraseKeys: [] }], '2026-08-26'),
   },
   { store: 'progress/store.ts', suffix: 'history', write: () => recordSession(summary('cafe-order'), 5) },
-  { store: 'review/store.ts', suffix: 'review', write: () => addPhrases([phrase('Ça marche', 'coming up')]) },
+  { store: 'review/store.ts', suffix: 'review', write: () => addPhrases([phrase('Ça marche', 'coming up')], { source: 'conversation' }) },
   { store: 'missions/store.ts', suffix: 'missions', write: () => recordMissionCompletion('cafe-order', 2, 5) },
   {
     store: 'missions/progressStore.ts',
@@ -427,7 +427,7 @@ const SYNCED_STORES: readonly SyncedStore[] = [
   },
   {
     namespace: 'review',
-    write: () => addPhrases([phrase('Ça marche', 'coming up')]),
+    write: () => addPhrases([phrase('Ça marche', 'coming up')], { source: 'conversation' }),
     merged: [card('phrase:merged')],
     read: async () => (await loadDeck()).map((c) => c.id),
     expected: ['phrase:merged'],

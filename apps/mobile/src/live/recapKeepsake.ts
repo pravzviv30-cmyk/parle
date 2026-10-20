@@ -24,6 +24,6 @@ export async function saveRecapKeepsake(phrase: RecapKeepsake): Promise<boolean>
       register: 'courant',
       note: null,
     },
-  ]);
+  ], { source: 'conversation' });
   return acknowledged === 'durable';
 }

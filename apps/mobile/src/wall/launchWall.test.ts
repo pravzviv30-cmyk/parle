@@ -228,14 +228,18 @@ describe('the launch wall controller', () => {
 describe('the locked-route guard', () => {
   test('the route map', () => {
     assert.deepEqual({ ...LOCKED_ROUTES }, {
-      TutorMemory: 'tutorMemory', SoundJourney: 'sounds', SoundCheck: 'sounds', ConversationPractice: 'conversationPractice',
+      TutorMemory: 'tutorMemory', SoundJourney: 'sounds', SoundCheck: 'sounds', Lesson: 'sounds', ConversationPractice: 'conversationPractice',
       RealMoment: 'realMoment', Fixes: 'fixes', ThenNow: 'thenAndNow',
     });
     assert.equal(lockedRouteFeature('Drill', { practice: 'pack', packId: 'p1' }), 'conversationPractice');
     for (const params of [undefined, { practice: 'recommended' }, { practice: 'resume' }, { mix: true }, { node: { id: 'n' } }, { practice: 'pack' }]) {
       assert.equal(lockedRouteFeature('Drill', params), null, `a free drill was locked: ${JSON.stringify(params)}`);
     }
-    for (const free of ['Review', 'DailyPractice', 'Home', 'Convo', 'Wall', 'toString', 'constructor']) assert.equal(lockedRouteFeature(free), null, `${free} was locked`);
+    assert.equal(lockedRouteFeature('Lesson'), 'sounds');
+    assert.equal(lockedRouteFeature('Lesson', { textMode: true }), 'sounds', 'the typed lesson was free');
+    assert.equal(lockedRouteDecision('Lesson', { textMode: true }, FREE, false), 'wall');
+    assert.equal(lockedRouteDecision('Lesson', undefined, CORE, false), 'stay');
+    for (const free of ['Review', 'DailyPractice', 'FirstScene', 'Home', 'Convo', 'Wall', 'toString', 'constructor']) assert.equal(lockedRouteFeature(free), null, `${free} was locked`);
   });
 
   test('locked goes to the wall, unlocked stays, unknown reads once, unreadable stays', async () => {

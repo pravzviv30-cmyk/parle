@@ -198,6 +198,9 @@ The turn is not the only call, and the scene call hands over more than a derived
 estimate. `tutorMemoryBrief` in `services/tutor-agent/src/convo.ts` repairs the
 profile and sends `repaired.memory.facts.filter(...).slice(-5)` to the same vendor, once
 inside `buildFrame` and again in each turn request, as `SAVED TUTOR MEMORY`.
+This happens only on a plan or trial: when the token server signs `memoryLocked: true`
+(a free or lapsed learner), the worker sends no saved memory, skips the remembered opener,
+makes no extraction call, and returns the stored memory unchanged in the recap.
 The unmastered phrases and recent scene list remain beside it in the scene call.
 Those are stored rows, and they are about the learner's
 real life: `extractMemory` writes them after each session from what was volunteered

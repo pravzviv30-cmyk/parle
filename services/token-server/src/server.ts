@@ -441,7 +441,7 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         const prepared = await prepareGuestLive(guestStore, guestKey(token), guest.live.brief);
         const result = await grantSession({ userId: guest.id, lessonId: 'convo-01', mode: 'convo', config,
           entitlement: { plan: 'trial', secondsUsed: 0 }, firstPractice: prepared.brief,
-          seedTopic: firstPracticeScenario(prepared.brief), tutorVoice: prepared.brief.tutorVoice,
+          seedTopic: firstPracticeScenario(prepared.brief), tutorVoice: prepared.brief.tutorVoice, memoryLocked: true,
           guest: { key: guestKey(token), sessionId: prepared.sessionId, roomName: prepared.roomName, maxSeconds: prepared.maxSeconds } });
         if (!result.ok) return json(res, result.status, { error: result.reason });
         return json(res, 200, { ...result.grant, secondsRemaining: prepared.maxSeconds, livekitUrl });
@@ -719,6 +719,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
         ...(seedTopic !== undefined ? { seedTopic } : {}),
         ...(missionId !== undefined ? { missionId } : {}),
         ...(tutorVoice !== undefined ? { tutorVoice } : {}),
+        // D24 follow-up: a free or lapsed learner's tutor neither reads nor writes memory.
+        memoryLocked: entitlement.plan === 'trial' || entitlement.lapsed === true,
       });
       const grantedAt = performance.now();
       const serverTiming = [

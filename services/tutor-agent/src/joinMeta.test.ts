@@ -140,4 +140,8 @@ describe('the chosen voice reaches the vendor and the persona reaches the tutor'
       'and the scripted lesson opens with an introduction, so it is the first thing a learner hears',
     );
   });
+  test('the worker reads the free-tier memory lock strictly and hands it to the conversation', () => {
+    assert.match(CODE, /type TokenMeta = \{[^}]*memoryLocked\?: unknown[^}]*\}/);
+    assert.match(CODE, /memoryLocked: memoryLockedFrom\(meta\.memoryLocked\)/);
+  });
 });

@@ -57,15 +57,15 @@ describe('saved means durable — F762', () => {
   test('a kept own-words phrase is called saved only on a durable acknowledgement', async () => {
     // A full phone: the write is refused, nothing is called saved, nothing is celebrated.
     full = true;
-    assert.equal(await keepPhrase(PHRASE), false, 'a refused write was called saved');
+    assert.equal(await keepPhrase(PHRASE, 'conversation'), false, 'a refused write was called saved');
     assert.equal(published.length, 0, 'a refused write was celebrated');
     // A write that throws is the same answer.
-    assert.equal(await keepPhrase(PHRASE, () => Promise.reject(new Error('gone'))), false);
+    assert.equal(await keepPhrase(PHRASE, 'conversation', () => Promise.reject(new Error('gone'))), false);
     assert.equal(published.length, 0, 'a write that threw was celebrated');
 
     // The phone has room: saved, once, with the phrase's own key and never the learner's words.
     full = false;
-    assert.equal(await keepPhrase(PHRASE), true);
+    assert.equal(await keepPhrase(PHRASE, 'conversation'), true);
     assert.ok((await loadDeck()).some((card) => card.id === phraseKeyOf(PHRASE.fr)), 'called saved, and the phrasebook does not hold it');
     assert.equal(published.length, 1);
     const moment = published[0]!;
@@ -92,6 +92,6 @@ describe('saved means durable — F762', () => {
 
     // Today's phrase added to review announces only a durable write too.
     const daily = stripComments(read('../daily/DailyPracticeScreen.tsx')).replace(/\s+/g, ' ');
-    assert.match(daily, /const ack = await addPhrases\(\[[^\]]*\]\); announcePhraseSaved\(ack, item\.fr\);/, 'today\'s phrase announces a save it did not check');
+    assert.match(daily, /const ack = await addPhrases\(\[[^\]]*\], \{ source: 'daily' \}\); announcePhraseSaved\(ack, item\.fr\);/, 'today\'s phrase announces a save it did not check');
   });
 });

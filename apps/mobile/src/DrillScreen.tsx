@@ -1433,7 +1433,7 @@ export function DrillScreen({
       if (keeping || kept) return;
       setKeeping(true);
       setKeepFailed(false);
-      void keepInPhrasebook({ fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null })
+      void keepInPhrasebook({ fr: exercise.fr, frWritten: null, en: exercise.en, enLiteral: null, register: 'courant', note: null }, 'conversation')
         .then((saved) => {
           if (!attemptAlive.current) return;
           if (saved) setKept(true);

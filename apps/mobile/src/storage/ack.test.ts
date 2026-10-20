@@ -84,7 +84,7 @@ const STORES: readonly AcknowledgingStore[] = [
     store: 'review/store.ts',
     suffix: 'review',
     namespace: 'review',
-    write: () => addPhrases([phrase('Ça marche', 'coming up')]),
+    write: () => addPhrases([phrase('Ça marche', 'coming up')], { source: 'conversation' }),
     stillServes: async () => (await loadDeck()).some((card) => card.id === 'phrase:ça marche'),
   },
   {
@@ -197,7 +197,7 @@ describe('what a store says about its own write', () => {
     // section as a failure would keep every journal forever.
     const disk = installDisk({ full: () => true });
 
-    assert.equal(await addPhrases([]), 'durable');
+    assert.equal(await addPhrases([], { source: 'conversation' }), 'durable');
     assert.equal(await mergeSessionTopics([]), 'durable');
     assert.equal(await mergeExercises([]), 'durable');
     assert.equal(disk.size, 0, 'an empty batch wrote something');

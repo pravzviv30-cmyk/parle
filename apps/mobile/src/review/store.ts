@@ -29,6 +29,7 @@ import {
   type GradeContext,
   type ReviewCard,
   type ReviewGrade,
+  type ReviewSource,
   type SessionSummary,
 } from '@luvani/core';
 import type { PersistAck } from '../storage/ack.ts';
@@ -153,7 +154,9 @@ async function saveDeck(key: string, deck: readonly ReviewCard[], origin: WriteO
 export function addFromSummary(summary: SessionSummary): Promise<PersistAck> {
   return serialized(async (key, owner) => {
     const existing = await loadDeckFor(key);
-    const incoming = buildCardsFromSummary(summary, LESSONS, Date.now());
+    // A scripted lesson's cards. Tagged so the free tier keeps them reviewable.
+    const sources: readonly ReviewSource[] = ['lesson'];
+    const incoming = buildCardsFromSummary(summary, LESSONS, Date.now()).map((card) => ({ ...card, sources }));
     return saveDeck(key, mergeCards(existing, incoming), 'local', owner);
   });
 }
@@ -215,12 +218,17 @@ function foldConvoUses(deck: readonly ReviewCard[], uses: readonly PhraseUse[]):
  * out of one conversation, and splitting them across two writes would mean two
  * acknowledgements, two ways to half-fail, and a journal that cannot say which
  * half is safe to drop. One write, one answer.
+ *
+ * `source` is required so no writer can forget to say where a phrase came
+ * from. It is metadata only (core's `sources.ts`): a phrase already in the
+ * deck keeps its scheduling and gains the new source in its set.
  */
 export async function addPhrases(
   phrases: readonly ConvoPhrase[],
-  opts: { stagger?: boolean; convoUses?: readonly PhraseUse[] } = {},
+  opts: { source: ReviewSource; stagger?: boolean; convoUses?: readonly PhraseUse[] },
 ): Promise<PersistAck> {
   const now = Date.now();
+  const sources: readonly ReviewSource[] = [opts.source];
   const uses = opts.convoUses ?? [];
   let incoming = phrases
     .filter((p) => p.fr.trim() !== '')
@@ -236,7 +244,8 @@ export async function addPhrases(
         },
         now,
       ),
-    );
+    )
+    .map((card): ReviewCard => ({ ...card, sources }));
   // Nothing to merge and nothing to raise is nothing at risk, so the honest
   // answer is durable: no disk was asked for anything and none refused.
   if (incoming.length === 0 && uses.length === 0) return 'durable';

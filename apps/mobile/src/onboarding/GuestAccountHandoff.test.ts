@@ -69,7 +69,7 @@ describe('the hand-off', () => {
 
     const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx');
     // The toast: after the durable phrasebook write, and before nothing else that could fail it.
-    const durable = handoff.indexOf("if ((await addPhrases(phrases)) !== 'durable')");
+    const durable = handoff.indexOf("if ((await addPhrases(phrases, { source: 'curated' })) !== 'durable')");
     const toast = handoff.indexOf('publishCelebrations(');
     assert.ok(durable > 0 && toast > durable, 'the phrase is said saved before the phrasebook write is durable');
     assert.equal((handoff.match(/publishCelebrations\(/g) ?? []).length, 1);

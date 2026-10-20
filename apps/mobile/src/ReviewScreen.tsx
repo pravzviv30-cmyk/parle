@@ -31,14 +31,17 @@ import {
   AccessibilityInfo,
   TextInput,
 } from 'react-native';
-import { dueCards, reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
+import { reviewXp, type ReviewCard, type ReviewGrade } from '@luvani/core';
 import { HAIRLINE, HIT, accent, font, paper, radius, space, type, frenchText } from './theme.ts';
-import { Card, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
+import { Card, GhostButton, Label, OutlineButton, PillButton, fitDisplay } from './components.tsx';
 import { SpeakerGlyph } from './glyphs.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { conversationContext } from './review/context.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
+import { HELD_BACK_ACTION, dealForTier, heldBackLine } from './review/freeTier.ts';
+import { useAuth } from './auth/useAuth.tsx';
+import { useFeatureLocks } from './purchases/useFeatureLocks.ts';
 import {
   CARD_START,
   SAID_IT,
@@ -72,6 +75,14 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
    * must not be able to bring it back.
    */
   const [opener, setOpener] = useState<string | null>(null);
+  // Free tier: due conversation-only cards left out of this sitting, counted
+  // once at the deal (review/freeTier.ts). Zero whenever the feature is open.
+  const [heldBack, setHeldBack] = useState(0);
+  const { user } = useAuth();
+  const locks = useFeatureLocks(user?.id ?? null);
+  // Read through a ref so the deal, which runs once, sees the lock at mount.
+  const lockAtDeal = useRef(locks.access);
+  lockAtDeal.current = locks.access;
   /**
    * The instant the sitting was dealt, and the only clock this screen reads
    * while it runs. `dueCards` picked the cards against it, so presentation is
@@ -137,7 +148,12 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // back for their first real test to the front, and returns the same
       // cards in a different order. It has no way to select, so the cap and
       // the longest-overdue-first rule cannot be starved from here.
-      const sitting = sittingView(dueCards(deck, now), now);
+      // When conversation practice is locked, the deck is narrowed to what
+      // the free tier reviews before `dueCards` caps it, so a free learner
+      // still gets a full sitting of their own free cards.
+      const deal = dealForTier(deck, now, lockAtDeal.current('conversationPractice'));
+      setHeldBack(deal.heldBack);
+      const sitting = sittingView(deal.due, now);
       setFragments(Object.fromEntries(sitting.cards.map(card => [card.id, conversationContext(card, packs)])));
       setQueue(sitting.cards);
       setOpener(sitting.opener);
@@ -201,6 +217,15 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   const remaining = queue.length - index;
 
+  // One quiet row, only on the two terminal pages, only when cards were held back.
+  const heldLine = heldBackLine(heldBack);
+  const heldRow = heldLine === null ? null : (
+    <View style={st.held}>
+      <Text style={[type.small, { color: paper.inkSoft }]}>{heldLine}</Text>
+      <GhostButton small label={HELD_BACK_ACTION} color={paper.inkSoft} onPress={() => locks.open('conversationPractice')} />
+    </View>
+  );
+
   const primary = <PillButton label={!card || !view ? 'Done' : 'Show me'} onPress={() => {
     if (!card || !view) return onDone();
     clock.touch();
@@ -226,6 +251,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             ) : (
               <ActivityIndicator color={paper.inkSoft} />
             )}
+            {heldRow}
           </View>
         </ScrollScreen>
       );
@@ -240,6 +266,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
           <Text style={[type.title, { color: paper.ink }]}>Nothing waiting.</Text>
           <Text style={[type.body, { color: paper.inkSoft, marginTop: space(2) }]}>Your next session adds more.</Text>
         </Card>
+        {heldRow}
       </ScrollScreen>
     );
   }
@@ -428,6 +455,8 @@ const st = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // A finished sitting: its heading, then its end card.
   ending: { gap: space(4) },
+  // The free tier's held-back row: small, soft, under the card, never a banner.
+  held: { marginTop: space(4), gap: space(1), alignItems: 'flex-start' },
   // The card itself: the SessionView main-card anatomy, content centred.
   card: { alignItems: 'center', minHeight: 240, justifyContent: 'center' },
   // The speaker disc: white, on the card, under a paper hairline. No shadow:

@@ -18,21 +18,22 @@ import { onUserScopeReset, scopeGeneration } from '../storage/scope.ts';
 import type { RootStackParamList } from '../nav/types.ts';
 import { onBillingChange } from './billingChanges.ts';
 import { fetchBillingStatus } from './client.ts';
-import { clearStanding, featureLockState, lockedRouteGuard, onStandingChange, setStanding, standingFor, type FeatureLockState, type LockedFeature } from './featureLocks.ts';
+import { clearStanding, featureLockState, invalidateStanding, lockedRouteGuard, onStandingChange, setStanding, standingFor, standingVersion, type FeatureLockState, type LockedFeature } from './featureLocks.ts';
 
 /** Read the server's answer for this account into the standing, fenced to the account. */
 async function refreshStanding(userId: string): Promise<void> {
   const owner = scopeGeneration();
+  const asked = standingVersion();
   let status = null;
   try { status = await fetchBillingStatus(userId); } catch { status = null; }
-  if (owner === scopeGeneration()) setStanding(userId, status);
+  if (owner === scopeGeneration() && asked === standingVersion()) setStanding(userId, status);
 }
 
 export function useFeatureStanding(userId: string): void {
   useEffect(() => {
     void refreshStanding(userId);
     const foreground = AppState.addEventListener('change', (state) => { if (state === 'active') void refreshStanding(userId); });
-    const billing = onBillingChange((change) => { if (change.userId === userId && change.owner === scopeGeneration()) void refreshStanding(userId); });
+    const billing = onBillingChange((change) => { if (change.userId === userId && change.owner === scopeGeneration()) { invalidateStanding(userId); void refreshStanding(userId); } });
     const reset = onUserScopeReset(() => clearStanding());
     return () => { foreground.remove(); billing(); reset(); clearStanding(); };
   }, [userId]);
