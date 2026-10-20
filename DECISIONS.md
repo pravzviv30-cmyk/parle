@@ -211,3 +211,33 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   not before. Profile still opens from the avatar and Friends stays a Profile
   route.
 - Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules).
+
+## UI-007 — Phase B content honesty and the lock seam
+
+- Date: 2026-10-20
+- Status: accepted (Phase B, B0 to B6)
+- Decision: a direction B artboard line with no data behind it is dropped or
+  reworded, never filled. Today has no Coming up card until Phase C stores the
+  event, its checklist and Not now. Speak's twist reads "Same scene, a bit less
+  help" and is offered only when `replayRung` would really start with less help;
+  authored twists wait for D2. "Comes up often" is hidden on Practice and Your
+  fixes until Phase C stores a correction reason with each fix
+  (`COMES_UP_OFTEN_ENABLED`). Explore's interest card says "picked for you",
+  because interests are not stored. The scene preview says "might say" only
+  over an authored opener bundled on the device, and "You could start with"
+  everywhere else. Today's week says "minutes practised" (typed conversations
+  have a length too) and "phrases saved" (a card added this week is not yet
+  retained). A phrase says "Used n times" from its own counter, because nothing
+  counts distinct conversations.
+- Decision: lock badges come only from `access/featureAccess.ts`, which mirrors
+  `purchases/featureLocks.ts` (`featureLockedNow`, failing open). No surface
+  decides a lock inline; a route-less lock opens the Wall through `tapThrough`.
+- Decision: stage words replace CEFR on learner surfaces. Starter (A0) and
+  Basics (A1) name the stage on Journey, Speak and guided mission previews.
+  "Starting out" stays only as Explore's tier filter and a daily scene's tier.
+- Reason: Luvani never claims what it has not measured or stored, and a lock a
+  learner meets must agree with the billing standing that decides it.
+- Consequence: each Phase C store (events, correction reasons, interests) must
+  bring its line back with a test, and a new lockable surface reads the seam.
+- Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules),
+  `apps/mobile/src/access/featureAccess.ts`.

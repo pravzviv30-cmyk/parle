@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { guiltIn } from '../copy/guilt.ts';
 import {
   ENTRY_MODES_LABEL,
-  entryStart,
   isEntryMode,
   lessonStart,
   minutesRemainingLine,
@@ -190,21 +189,7 @@ describe('the three ways into a conversation — what a learner meets instead of
   });
 
   test('the open chat runs the same connection check the circle runs, and the other two need no server at all', () => {
-    // The difference is not a detail. The open chat opens the same metered room
-    // the circle opens, so it is probed; the chooser and the real moment cost
-    // nothing and must not be refused because a health endpoint is asleep.
-    assert.deepEqual(entryStart('free'), { probe: true }, 'the open chat walks into a live room without checking there is one');
-    assert.deepEqual(
-      entryStart('everyday'),
-      { probe: false, screen: 'Missions' },
-      'the everyday mission does not open the chooser, where a choice is made before a session spends anything',
-    );
-    assert.deepEqual(
-      entryStart('rehearse'),
-      { probe: false, screen: 'RealMoment' },
-      'rehearsing something does not open the screen that asks what the real moment is',
-    );
-    // And Speak does what the model says.
+    // 2026-10-20, B6: the entryStart model was removed as dead code; Speak itself is pinned.
     // 2026-10-20, B2, B-Speak: "More ways to practise" left Speak. The open
     // chat is the Talk about anything chips, which probe through `open` like
     // the one Start; the chooser is Every scene, pushed with no probe; and a

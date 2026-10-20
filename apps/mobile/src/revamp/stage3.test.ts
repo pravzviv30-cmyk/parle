@@ -1,7 +1,7 @@
 /** Report 2 surface contracts. Pure models and storage suites cover the underlying decisions. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 const read=(file:string)=>readFileSync(new URL('../'+file,import.meta.url),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/(^|[^:])\/\/.*$/gm,'$1');
 const has=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const pattern of patterns) assert.match(code,pattern,file);};
 const lacks=(file:string,...patterns:RegExp[])=>{const code=read(file);for(const pattern of patterns) assert.doesNotMatch(code,pattern,file);};
@@ -60,7 +60,8 @@ test('revamp B Progress opens evidence-based materials, a weekly story and earne
   has('tabs/MyFrenchTab.tsx',/stagesFrom\(missions\)/,/<DayCount weekly/,/hasStory\(week\)/,/storyFrom\(/,/earnedPostcards\(missions\)\.length/,/nav.navigate\('WeekWrapped'\)/,/nav.navigate\('Phrasebook'\)/,/nav.navigate\('GoalStep'/,/<TabHeader title=\{JOURNEY_TITLE\}/);
   has('journey/journeyView.ts',/screen: 'Postcards'/,/JOURNEY_TITLE = MY_FRENCH_TITLE/);
   lacks('tabs/MyFrenchTab.tsx',/tutorVoice.speak|AudioModule|recordActivity\(/);
-  has('myfrench/LevelCard.tsx',/ground="blue"/,/<SceneMark/,/next.stops.length/);
+  // 2026-10-20, B6: myfrench/LevelCard.tsx was deleted as dead code; the stages pin above replaces it.
+  assert.ok(!existsSync(new URL('../myfrench/LevelCard.tsx',import.meta.url)),'the retired CEFR LevelCard is back');
   has('goals/GoalStepScreen.tsx',/ground="blue"/,/tone="white"/,/<Ledger/);
   // 2026-10-20, B4, B-Journey: the page title is "Your journey".
   has('myfrench/copy.ts',/MY_FRENCH_TITLE = 'Your journey'/);

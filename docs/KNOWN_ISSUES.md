@@ -6055,7 +6055,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `each row says what it is and what is behind it, in a line short enough to read while walking`
 - verified-by: `the two formatters are still the only place a numeral becomes words`
 - verified-by: `a tab carries at most one primary pill per door, and Home and Tutor carry exactly what the founder drew — F406`
-- verified-by: `the tutor heading names the tutor and the subline is the screenshot's — F404`
+- verified-by: `the tutor tab's lines are the screenshot's, with no hourly greeting — F404`
+- note (2026-10-20, B6): the test was renamed from `the tutor heading names the tutor and the subline is the screenshot's — F404` when `tutorHeading` was removed as dead code (docs/DELETION_LEDGER.md); it still holds the tab's lines.
 
 ### F405 — The tutor tab is the screenshot, drawn from the door model
 - severity: P1
@@ -9193,6 +9194,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/settings/sections.ts:114
 - note: found by the Stage 2 pass B judge. F600 renamed the tab to Progress and F605 retitles the screen, but RecapScreen.tsx:178,181, settings/sections.ts:114, conversationPacks/ConversationPackLibrary.tsx:204, daily/DailyCard.tsx:59, profile/tutorMemory.ts:54 and tutor/TutorIntro.tsx:115 still tell the learner their phrases are saved in or managed in My French. After F605, no tab or title says My French, so a learner who looks for it finds nothing. Reword each one to Progress, or to the phrasebook where that is the real destination, in the same change as F605.
 - verified-by: `no learner-facing string names My French once the tab and its title say Progress`
+- note (2026-10-20, B6): still open. The tab is now titled Your journey (direction B), and two learner-facing strings still say My French: `MY_FRENCH_ROW = 'My French'` (apps/mobile/src/settings/profileView.ts:43, drawn as a Profile row in tabs/ProfileTab.tsx:291) and `SAVED_SUB = 'Manage in My French'` (apps/mobile/src/settings/sections.ts:119). The other sites this entry listed no longer name it.
 
 ### F633 — The under-13 refusal is said to last the session, but leaving through "I have an account" and back starts it fresh
 - severity: P1
@@ -11014,3 +11016,52 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/conversationPacks/store.ts:186
 - note: Found 2026-10-20 in B3 (B-Practice). The artboard's "Works offline once unlocked" was checked against the code: `loadConversationPackForLearner` reads the server on a Supabase build and never falls back to the device's cached pack, so ConversationPractice says "This conversation isn't available here." offline even though Practice drew the conversation from the cache. The line is not drawn on Practice until this is true. Fix: fall back to the owned cached pack when the server cannot be reached (not on a 404, which means deleted).
 - verified-by: `conversation practice opens from the device cache when the server cannot be reached on Supabase builds`
+
+### F856 — Speak calls the next scene on the path "Recommended" when nothing recommended it
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tutor/speakTabView.ts:38
+- note: Found 2026-10-20 in B6. `RECOMMENDED` heads Speak's sun card, but when no unfinished conversation or thread leads, the pick is only the next scene in spine order. "Recommended" implies a judgement about the learner that was not made. Say "Next" when the pick is the path order and keep "Recommended" only for a pick with a reason behind it, decided in speakTabView.ts.
+- verified-by: `Speak heads a path-order pick "Next" and keeps "Recommended" for a pick with a reason`
+
+### F857 — "Uses speaking time" shows on Speak while the learner has chosen typing
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tutor/speakTabView.ts:39
+- note: Found 2026-10-20 in B6. The meta chip on the Recommended card (tabs/TutorTab.tsx:279) reads "Uses speaking time" whichever mode is chosen. A typed session is metered too, so the claim is true, but "speaking" reads wrong next to Typing. The wording of the allowance belongs to D5; until it lands, the chip should name the allowance in a word true of both modes.
+- verified-by: `the time chip on Speak is worded true of both speaking and typing`
+
+### F858 — Today's level tile reads like a French ability level
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/game/todayHeroView.ts:113
+- note: Found 2026-10-20 in B6. The third stats tile on Today says "Level n" over the XP total. Beside a stage system (Starter, Basics) and CEFR elsewhere, "Level 2" reads as a claim about the learner's French rather than XP earned. Name it as the game's level (for example "XP level") or show XP alone, decided in todayHeroView.ts, and keep Journey's head consistent.
+- verified-by: `Today's level tile names the XP level, never a French level`
+
+### F859 — Quest titles make XP the goal
+- severity: P3
+- status: [ ]
+- where: packages/core/src/quests/catalogue.ts:76
+- note: Found 2026-10-20 in B6. The stretch quest's title is "Earn {n} XP", drawn on Today's three. XP is the reward for practice, not the practice; a quest that names XP as the goal invites grinding the cheapest source. Reword as practice (a scene, a fix, minutes) with XP as the chip only. The catalogue is core's, so the change is core's.
+- verified-by: `no quest title names XP as its goal`
+
+### F860 — Saved conversation text opens without the conversation it came from
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:13
+- note: Found 2026-10-20 in B6. The Codex library port (B3) opens `SavedConversationText` as a list. Codex linked a library row to one conversation's saved text by `sessionId`; that param and link were not ported, so a learner who opens a conversation's text from Practice lands on the whole list. Add the optional `sessionId` route param and scroll or filter to it.
+- verified-by: `a conversation's saved text opens on that conversation`
+
+### F861 — Today's fix card copies the drill's exercise-picking rule
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/home/todayView.ts:197
+- note: Found 2026-10-20 in B6. `oneFix` calls `buildDrillSession(..., { only: [key] })` and checks `hidesAnswer` on the first exercise, so the card's promise ("the French stays hidden until you try") holds only while DrillScreen opens the same node the same way. If DrillScreen changes how it builds the sitting for a fix node, the card can promise a hidden answer the drill shows. Share one function for "the exercise a fix node opens on" between DrillScreen and todayView, or pin the two together with a test.
+- verified-by: `Today's fix card and the drill agree on the exercise a fix opens on`
+
+### F862 — Unused code is kept alive only by its own tests
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/tutor/ContinuityCard.tsx:1
+- note: Found 2026-10-20 in B6. Direction B left code that no screen reads but that still has tests: `tutor/ContinuityCard.tsx`, `greetingSubline` and `GREETING_SUBLINES` (with `greetingWord` and `greetingLine`) in `home/greeting.ts`, `weekLines` and `WEEK_LINES_MAX` in `home/todayView.ts`, `tutorDoors` in `tutor/gate.ts`, `continuityRow` and its copy in `tutor/dashboard.ts`, and `WEEK_LABEL` in `home/todayView.ts`. B6 tried removing the first four and lost six tests, which the floors forbid (docs/TESTING.md). Removing them needs replacement tests for the live surfaces in the same change, so the mobile count does not drop.
+- verified-by: `no production module is reachable only from its own tests`

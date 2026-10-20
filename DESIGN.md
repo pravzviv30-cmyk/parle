@@ -49,25 +49,83 @@ period stay near a purchase action, and large text is never capped to fit.
   `Explore`, `Tutor`, `Practice`, `MyFrench`). Profile opens from the
   labelled avatar; Settings is its first row and optional Friends follows it.
   Route identifiers and the Friends URL stay stable.
-- Today offers one useful next action, a lifetime day count, starting scenes or
-  evidence-based week sentences, and today's voiced French. It shows no weekly
-  day quota. Loading never claims the learner has no history.
-- Speak shows the chosen tutor and the same next task as Today: unfinished
-  personal practice, usable practice, then the next scene. Offline, the bundled
-  coffee line replaces a service retry as the useful primary. The scene path
-  uses earned evidence from core.
+- Every view model below lives in a plain module (`home/todayView.ts`,
+  `main/exploreView.ts`, `tutor/speakTabView.ts`,
+  `practice/practiceTabView.ts`, `journey/journeyView.ts`,
+  `scenes/scenePreview.ts`, `practice/fixesView.ts`,
+  `journey/thenNowView.ts`); the screens are layout. A design line with no
+  data behind it is not drawn, and a section with nothing true to say is
+  hidden rather than filled.
+- Lock badges come from one seam. A surface draws `LockBadge` only when
+  `access/featureAccess.ts` answers locked, and that seam mirrors
+  `purchases/featureLocks.ts` (`featureLockedNow`, failing open). A locked
+  item that has no route of its own opens the Wall through `tapThrough`.
+- Stage words, never CEFR: Starter (A0) and Basics (A1) on Journey, Speak and
+  the scene preview of a guided mission, then Everyday, Chatting and Confident
+  as Journey's future stages that claim nothing. "Starting out" survives only
+  as Explore's tier filter chip, and a daily scene's tier.
+- Help is said in words only, the ladder's four: Line given, Choices, Hint and
+  On your own (`HELP_WORDS`). No number, percentage or dot stands for help.
+- Live speaking time is a band in words (plenty, a little, none) from
+  `purchases/planStatus.ts`, never a count of minutes or a date. A scene's
+  length is an estimate said as "about n min".
+- Today, top to bottom: "Bonjour, Name." (one word all day, no question under
+  it), a white stats row of three tiles (streak, today's goal ring, numbered
+  level) with decorative discs, the sun next scene card with its stage place
+  ("Next scene, 2 of 3") and a "Uses" chip only when the last conversation's
+  phrase is one of the scene's lines, today's three quests ("n of 3 done", XP
+  chips in butter and sage), one fix to try (English only before the try, and
+  only when the drill would open on an exercise that hides the French), today's
+  phrase, and the blue week card ("n minutes practised, n phrases saved" over
+  seven local days, absent with no evidence). There is no Coming up card until
+  Phase C stores the event it would describe. Loading never claims the learner
+  has no history.
+- Explore: search, then four filter chips (Starting out, Under 5 min, Free,
+  offline, With your tutor), Prepare for something real with its badge, the
+  topic tiles, situations, a blue "Live with your tutor, picked for you" card
+  from the learner's own answers, a little practice, and words and phrases.
+  Each situation opens the scene preview.
+- Scene preview: a sun hero with topic and stage, the English and French
+  titles and minutes; what you'll practise; "The barista might say" only where
+  an authored opener ships on the device, otherwise "You could start with" the
+  learner's own opening line; the lines with hear buttons; Start with the
+  tutor; and the free practice of the lines, which uses no speaking time. An
+  unknown id says so and returns to Explore.
+- Speak: the subtitle names the tutor; the sun Recommended card carries the
+  scene's goal, its minutes, the speaking or typing choice and Start, with
+  "Prepare first, free" to the preview; the stage's starter scenes with a Next
+  chip; "Same scene, a bit less help" only when a replay would really start
+  with less help (the twist; authored twists wait for D2); the blue Talk about
+  anything card whose chips are the learner's own suggestions and their own
+  topic on `violet2`; three pastel tiles; Revisit a conversation; and the
+  minutes band with See your minutes.
+- Practice leads with the learner's conversations (topic chips, Pick up where
+  you stopped, each conversation's fixes and three steps, Talk about it again,
+  Mix your conversations), then saved phrases ("Used n times" from each card's
+  own counter, never a count of conversations), then the sound guide and
+  compare. No minutes on a step, the mix or a pattern, and never a count beside
+  a mistake pattern. "Comes up often" is hidden until Phase C stores the reason
+  with each fix (`COMES_UP_OFTEN_ENABLED`). With no conversation, the empty page
+  offers a first one and Sounds of French. Shadowing plays the tutor's bundled
+  audio, records a temporary local take and offers comparison without judging
+  it; finishing records an active date only after a durable write.
+- Your fixes: This conversation or All conversations. Attempt before reveal:
+  an untried fix shows its English only, and the learner's line, the better
+  French and the reason show after a try, said or typed. Phrases from the
+  conversation follow, and Practise all fixes is free.
+- Journey ("Your journey"): with no finished scene, one page and the one scene
+  to start. Otherwise a blue head with the level, the XP bar and up to three
+  stats (days in a row, min practised, phrases kept; an unread figure is left
+  out), Where you are (five stages), What you can do with no "n of m" count,
+  Then and now, French you've used, Help you needed in words, Your sounds only
+  with a saved check, Your week in words, and the Postcards and Badges tiles. A
+  locked section keeps its heading and badge with one teaser line.
+- Then and now: one row per guided scene, the first try we still have next to
+  the best, each in help words with its date, and Try it again. Free
+  conversations do not appear, and the footer says why.
 - Live rooms keep the real start, pause, type, help, slower, English and leave
   paths. White tutor bubbles and ink learner bubbles tell the speakers apart;
   only the newest recast is highlighted. Waiting shows the stage really reached.
-- Practice puts one concrete next action and its French line in the first
-  viewport. The sound example follows, with its full guide on request, labelled
-  as authored or tied to a saved check. Shadowing plays the tutor's bundled
-  audio, records a temporary local take and offers comparison without judging
-  it. Finishing records an active date only after a durable write.
-- Journey with no history offers a real first task. With history, earned
-  can-dos lead, then the scene path, saved material, a week story when the week
-  has evidence, and earned place postcards. Its day count is weekly; Profile's
-  is lifetime.
 - A recap starts with real French on a white surface inside its coral result.
   It adds the learner's own lines, a correction or saved phrase, a sound page
   only for a saved check, an ability page only for a core-earned can-do, and a
@@ -674,7 +732,10 @@ More shared parts:
   Today. It lays out `StatTile compact` children (the number in `statSm`, the
   line under it in `caption`, centred) and draws nothing of its own. A tile may
   carry a decorative `mark` disc above its number, hidden from a screen reader;
-  a ring or bar that means something is labelled by its caller. Words wrap
+  a ring or bar that means something is labelled by its caller. `valueNode`
+  draws in the number's place when it moves (Today's count-ups) while `value`
+  is still what a screen reader hears; `compact` is the smaller centred cut
+  the row lays out. Words wrap
   rather than shrink at a large reading size.
 - **Chip**: the one small pill, two variants. `filter` is a choice in a row of
   them: 44pt tall (`minHeight: HIT`, so the floor holds at any reading size),
@@ -683,8 +744,11 @@ More shared parts:
   (`accessibilityState`) and on the web (`aria-selected`, F522), as a tab by
   default or a button. `meta` is a still fact such as "About 6 min" or a
   scene's state: never pressable, on white, ink or lavender, with an optional
-  mark before the words. The archive's filters and My French's situation state
-  both draw it.
+  mark before the words. Today's quest XP chips use the `butter` and `sage`
+  meta tones, ink words on both pastels. On a blue card a filter chip may take
+  `ground="violet2"` (Speak's own topic chip): white words only, never
+  `onColour.blue`, and it falls back to the chosen ink fill when selected. The
+  archive's filters and My French's situation state both draw it.
 - **LockBadge**: the trial's lock, two forms. The pill reads "Included with
   your trial" in blue `badge` words beside a blue lock, 26 tall, on lavender
   (or white when it sits on a lavender card). The round form is a 28pt white

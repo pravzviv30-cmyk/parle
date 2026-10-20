@@ -45,6 +45,35 @@ not ported. Profile is a pushed screen reached from the profile
 button; Friends is an optional stack route inside Profile. Revamp B and the
 video UX implementation use this same navigator.
 
+### Direction B tabs (Phase B, 20 October 2026)
+
+Each tab is layout over a plain view model (DESIGN.md composition rules,
+DECISIONS.md UI-007):
+
+- **Today** (`tabs/HomeTab.tsx`, `home/todayView.ts`): "Bonjour, Name.", the
+  stats row (`game/TodayHero.tsx`), the next scene (`home/MissionHero.tsx`),
+  today's three quests (`game/QuestsCard.tsx`), one fix to try (`oneFix`),
+  today's phrase and the week in French. No Coming up card until Phase C.
+- **Explore** (`tabs/ExploreTab.tsx`, `main/exploreView.ts`): four filter chips,
+  Prepare for something real, topic tiles and situations; a situation opens
+  the scene preview.
+- **Speak** (`tabs/TutorTab.tsx`, `tutor/speakTabView.ts`): Recommended, the
+  stage's starter scenes, "Same scene, a bit less help", Talk about anything,
+  three tiles, Revisit a conversation and the minutes band.
+- **Practice** (`tabs/PracticeTab.tsx`, `practice/practiceTabView.ts`,
+  `practice/useLibraryData.ts`): the learner's conversations, saved phrases
+  and the sound guide; "Comes up often" is hidden until Phase C.
+- **Journey** (`tabs/MyFrenchTab.tsx`, `journey/journeyView.ts`): the level
+  head, five stages, abilities, Then and now, used French, help in words,
+  sounds, the week and the collection tiles.
+
+Three stack routes were added in `nav/RootNavigator.tsx` and `nav/types.ts`:
+`ScenePreview` (`scenes/ScenePreviewScreen.tsx`, by mission or daily scene id),
+`Fixes` (`practice/FixesScreen.tsx`, attempt before reveal) and `ThenNow`
+(`journey/ThenNowScreen.tsx`). Lock badges read `access/featureAccess.ts`,
+which mirrors `purchases/featureLocks.ts`; `access/useFeatureAccess.ts` is the
+reactive hook that opens the Wall.
+
 ### Free tier and locks (20 October 2026, D23 and D24)
 
 - **Weekly taste:** `PLANS.trial` is 5 minutes on a rolling 7 days from first use (`packages/core/src/metering/meter.ts`, `refillTaste`), refilled lazily by the database only for rows that passed the device claim (`entitlements.weekly_taste`). A lapsed plan falls back to it. `/billing/status` returns the refill time as `periodEnd`.

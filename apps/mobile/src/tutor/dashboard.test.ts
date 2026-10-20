@@ -27,16 +27,14 @@ import {
   TUTOR_PURPOSE,
   continuityRow,
   firstNameOf,
-  tutorHeading,
 } from './dashboard.ts';
 import type { Thread } from './threads.ts';
 
 describe('the tutor tab opens on the tutor, not on the hour — F404', () => {
-  test("the tutor heading names the tutor and the subline is the screenshot's — F404", () => {
-    // The name is the tutor's. `tutorNameOf` has already resolved whichever
-    // voice the learner chose, so this only sets it.
-    assert.equal(tutorHeading('Margot'), 'Talk with Margot', 'the header does not invite the learner back to the tutor they chose');
-    assert.equal(tutorHeading('Céline'), 'Talk with Céline', 'a name written with an accent is not set as it is written');
+  test("the tutor tab's lines are the screenshot's, with no hourly greeting — F404", () => {
+    // 2026-10-20, B6: `tutorHeading` ("Talk with <name>") was removed as dead
+    // code once direction B's Speak stopped drawing it.
+    assert.ok(!('tutorHeading' in dashboard), 'tutorHeading is back with no screen drawing it');
 
     // Same header at every hour. The clock is gone from this module, and with
     // it the reason a learner could not use the top of the page as a landmark.
@@ -57,7 +55,6 @@ describe('the tutor tab opens on the tutor, not on the hour — F404', () => {
         'TUTOR_PURPOSE',
         'continuityRow',
         'firstNameOf',
-        'tutorHeading',
       ],
       'the tutor page module grew or lost an export, and every line it holds is a line a learner reads before speaking',
     );
@@ -70,7 +67,7 @@ describe('the tutor tab opens on the tutor, not on the hour — F404', () => {
 
     // Nothing up here is a count, a dash, a scold or a hurry. The circle's line
     // says what the conversation is like, and it names no pressure at all.
-    for (const line of [tutorHeading('Margot'), TUTOR_PURPOSE, TUTOR_ORB_SUBLINE]) {
+    for (const line of [TUTOR_PURPOSE, TUTOR_ORB_SUBLINE]) {
       assert.ok(!/\d/.test(line), `"${line}" carries a number, and the header is not a place a count belongs`);
       assert.ok(!/[—%]/.test(line), `"${line}" carries an em dash or a percentage`);
       assert.equal(guiltIn(line), undefined, `"${line}" says a word the app promised never to say`);
