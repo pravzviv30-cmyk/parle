@@ -168,7 +168,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   values, and the founder approved direction B as the single target.
 - Consequence: screens are not restyled by this entry. Outfit stays the only
   face, the contrast floors stay, and dark mode stays off (`DARK_MODE_ENABLED`
-  false, `mainApp.dark` kept). Learner-facing stages are Starter, Basics,
+  false, `mainApp.dark` kept). Superseded on dark mode by UI-008 (2026-10-20),
+  which turns it on behind per-route pins. Learner-facing stages are Starter, Basics,
   Everyday, Chatting and Confident; CEFR stays internal.
 - Sources: [DESIGN.md](DESIGN.md#one-system-bright-luvani), founder approval
   2026-10-19.
@@ -241,3 +242,41 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   bring its line back with a test, and a new lockable surface reads the seam.
 - Sources: [DESIGN.md composition rules](DESIGN.md#composition-rules),
   `apps/mobile/src/access/featureAccess.ts`.
+
+## UI-008 — Canvas fidelity, dark mode from M3, and the Codex tab bar
+
+- Date: 2026-10-20
+- Status: accepted (fidelity rebuild, steps 0 to 13 on `claude/direction-b`)
+- Decision: every direction B screen is rebuilt to its canvas artboard
+  (https://claude.ai/artifact/KtAoFKnzU7SWjWq6fatA7A, version 1792530488-069b):
+  layout, slots, type sizes, colours, radii, spacing and the canvas art. The
+  artboard wins over DESIGN.md on layout; a slot with no data keeps its place
+  and drops only the missing number. Phase B's reviewed wording stays
+  ("saved", "practised", "Uses", relative days, commas for middots).
+- Decision: dark mode returns for the main app (`DARK_MODE_ENABLED` true). The
+  dark values are the Figma "M3 · Reviewed main app · Dark" page (file
+  sjAwoGinWQKvhGrWbgMO18, node 307:364), already held in `mainApp.dark`: pastel
+  tiles become M3's tints, the yellow hero becomes the M3 hero with a gold
+  button, the ink primary becomes violet. Appearance follows the device, with a
+  Settings row (Follow device, Light, Dark). Onboarding stays pinned light. The
+  paywall keeps its current design and structure and only gains a dark variant.
+- Decision: the tab bar is Codex's floating capsule (Figma `C2/Main2/Navigation`,
+  node 292:1103): an ink capsule in both themes, a violet selected cell with a
+  gold bulk glyph and a cream label, Codex's Iconsax icons, B's labels.
+- Decision: three held cards show now with the data that exists. "Comes up
+  often" uses error patterns with authored copy and never a count. Today's
+  "Coming up" uses the latest remembered life event, with no countdown and no
+  checklist; Not now hides it for the app session. Speak's topic chips use
+  remembered interests and events, falling back to suggestions. Review keeps no
+  count and no intervals. The live room's pill gives the scene's own length,
+  never the allowance. A speaker on the learner's own line plays the tutor's
+  voice, labelled "Hear it said". "Works offline once unlocked", "You asked for
+  less help this time", "free" on Café basics and "free, offline" on live
+  situations stay hidden until their data exists.
+- Reason: the founder rejected Phase B because it did not look like the canvas,
+  and asked for M3's dark mode and Codex's tab bar.
+- Consequence: colours reach screens through `useB()` rather than static
+  imports as each screen is rebuilt; every hex stays in `palette.ts`; contrast
+  tests cover both themes; each step is proven by light and dark simulator
+  screenshots beside its artboard before it is committed.
+- Sources: founder answers 2026-10-20 (this session), canvas artboards, Figma M3.

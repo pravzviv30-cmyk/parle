@@ -33,15 +33,19 @@ test('Settings and the avatar share one appearance editor and show the stored ch
   assert.match(read('./SettingsScreen.tsx'), /<DisplayPreferences \/>/);
 });
 
-test('the app is light only: Settings shows no Appearance row or display sheet while dark mode is off', () => {
-  assert.equal(DARK_MODE_ENABLED, false, 'dark mode was switched on; lift this test with the C2 dark styles');
+// 2026-10-20, UI-008: dark mode is on. Screens not yet rebuilt stay light
+// through PinLight and DARK_READY (nav/darkReady.ts), so the Appearance row and
+// its sheet draw, still behind the one seam.
+test('dark mode is on: Settings draws the Appearance row and display sheet only through the DARK_MODE_ENABLED seam', () => {
+  assert.equal(DARK_MODE_ENABLED, true, 'dark mode was switched off again; UI-008 turned it on');
   const settings = read('./SettingsScreen.tsx');
   assert.match(settings, /\{DARK_MODE_ENABLED && <SettingsRow first label=\{DISPLAY_ROW\}/, 'the Appearance row must only draw when dark mode is on');
   assert.match(settings, /\{DARK_MODE_ENABLED && <BottomSheet visible=\{sheet === 'display'\}/, 'the display sheet must only draw when dark mode is on');
   assert.equal((settings.match(/label=\{DISPLAY_ROW\}/g) ?? []).length, 1, 'a second, unguarded Appearance row');
   assert.equal((settings.match(/<DisplayPreferences \/>/g) ?? []).length, 1, 'a second, unguarded display editor');
   assert.match(read('../main/MainAppearance.tsx'), /const mode = mainMode\(preference, system\);/, 'the provider must resolve through the pinned seam');
-  assert.equal(mainMode('dark', 'dark'), 'light');
+  assert.equal(mainMode('dark', 'dark'), 'dark');
+  assert.equal(mainMode('light', 'dark'), 'light');
 });
 
 test('the profile theme scope protects unrelated paper controls and keeps text readable in both modes', () => {

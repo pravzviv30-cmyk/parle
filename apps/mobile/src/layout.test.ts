@@ -154,7 +154,8 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     const header = region(source, 'export function TabHeader(', 'type ConfirmSheetProps');
     assert.match(props, /ink\?: string;/);
     assert.match(props, /mutedInk\?: string;/);
-    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/);
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(header, /const ink = askedInk \?\? t\.text;\n  const mutedInk = askedMuted \?\? t\.muted;/);
     assert.equal((header.match(/color: ink\b/g) ?? []).length, 3, 'display, centred identity and ordinary titles must all accept the selected ink');
     assert.equal((header.match(/color: mutedInk\b/g) ?? []).length, 2, 'centred and ordinary purpose lines must both accept selected secondary ink');
     const profile = stripComments(readFileSync(join(SRC, 'tabs/ProfileTab.tsx'), 'utf8'));
@@ -239,7 +240,8 @@ describe('the chrome primitives hold their shape — F331, F334, F335', () => {
     assert.notEqual(at, -1, 'components.tsx has no RoundButton for the header to use');
     const button = round.slice(at, round.indexOf('\nexport ', at + 1));
     assert.match(button, /const disc = next \? HIT \+ space\(5\) : HIT;/, 'the back disc is not at the touch floor');
-    assert.match(button, /ground === 'white' \? paper\.card/, 'the back disc is not white');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(button, /ground === 'white' \? t\.card/, 'the back disc is not white');
   });
 
   test('a scroll screen under the tab bar pads its own bottom, and one that is not does not', () => {
@@ -278,10 +280,12 @@ describe('a colour ground is a whole page — F601', () => {
     const screen = region(source, 'export function Screen(', 'export function ScrollScreen(');
 
     // The rule is conditional on the paper ground, never unconditional.
-    assert.match(screen, /const onPaper = ground === paper\.ground;/, 'the frame does not ask whether it is on paper');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(screen, /const ground = asked === undefined \|\| asked === paper\.ground \? t\.ground : asked;/, 'the house paper is not the theme ground');
+    assert.match(screen, /const onPaper = ground === t\.ground;/, 'the frame does not ask whether it is on paper');
     assert.match(
       screen,
-      /\.\.\.\(onPaper && overflowing \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\)/,
+      /\.\.\.\(onPaper && overflowing \? \{ borderTopWidth: HAIRLINE, borderTopColor: t\.line \} : null\)/,
       'the footer\'s hairline is not drawn only on paper',
     );
     assert.doesNotMatch(
@@ -303,10 +307,12 @@ describe('a colour ground is a whole page — F601', () => {
       /LIGHT_BAR_GROUNDS: readonly string\[\] = \[colour\.blue, colour\.coral, paper\.ink\];/,
       'the light-bar grounds are not blue, coral and ink',
     );
-    assert.match(grounds, /if \(ground === paper\.ground\) return null;/, 'the paper mounts a bar of its own over App.tsx\'s');
+    // 2026-10-20, UI-008: the themed ground mounts nothing; the route's bar
+    // (main/MainNavigationTheme.tsx) governs it, and in dark only sun and mint stay dark.
+    assert.match(grounds, /if \(ground === t\.ground\) return null;/, 'the paper mounts a bar of its own over the route\'s');
     assert.match(
       grounds,
-      /LIGHT_BAR_GROUNDS\.includes\(ground\) \? 'light' : 'dark'/,
+      /if \(LIGHT_BAR_GROUNDS\.includes\(ground\)\) return 'light';\n  return t\.mode === 'dark' && ground !== colour\.sun && ground !== colour\.mint \? 'light' : 'dark';/,
       'a light ground does not get a light bar, or sun and mint do not get a dark one',
     );
   });
@@ -333,7 +339,8 @@ describe('the tab title is the working title — F602', () => {
       'the left title is not the working title in ink, rolled as a heading',
     );
     assert.match(left, /if \(display\) return/, 'the editorial display role must be explicit');
-    assert.match(header, /ink = paper\.ink, mutedInk = paper\.inkSoft/, 'the title ink must still default to paper ink');
+    // 2026-10-20, UI-008: the default is the theme's ink, which is paper ink in light.
+    assert.match(header, /const ink = askedInk \?\? t\.text;/, 'the title ink must still default to the theme ink');
 
     // The working title is 34 at ExtraBold (DECISIONS.md, 2026-10-19; was 30),
     // and nothing else in the theme decides it: a screen cannot nudge it.

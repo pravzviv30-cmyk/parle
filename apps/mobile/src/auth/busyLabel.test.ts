@@ -152,8 +152,9 @@ describe('a screen that is waiting says so — F152', () => {
     // Revamp B (F597, F627): a live ghost is ink by default and a busy one is
     // soft ink. The two pins together are what keep them apart, since the
     // sign-in screen passes no colour and so draws in the default.
-    assert.match(ghost, /disabled \? paper\.inkSoft : color/, 'a disabled ghost looks exactly like a live one');
-    assert.match(ghost, /color = paper\.ink,/, 'a live ghost no longer defaults to ink, so it may be drawn in the same soft ink as a busy one');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(ghost, /disabled \? t\.muted : color/, 'a disabled ghost looks exactly like a live one');
+    assert.match(ghost, /const color = asked \?\? t\.text;/, 'a live ghost no longer defaults to ink, so it may be drawn in the same soft ink as a busy one');
 
     // And the flag it reads is really raised for the whole request.
     //

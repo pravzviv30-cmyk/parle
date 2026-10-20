@@ -250,12 +250,13 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     const COMPONENTS = stripComments(read('components.tsx'));
     assert.match(
       COMPONENTS,
-      /playing \? accent\.primary : paper\.inkSoft/,
+      // 2026-10-20, UI-008: themed; the playing ear is the theme's ink.
+      /playing \? t\.text : t\.muted/,
       'the sounding ear is not tinted in the accent',
     );
     assert.match(
       COMPONENTS,
-      /playing && \{ backgroundColor: paper\.groundDeep, borderRadius: radius\.pill \}/,
+      /playing && \{ backgroundColor: t\.skeleton, borderRadius: radius\.pill \}/,
       'the sounding ear sits on no lit disc',
     );
     assert.match(

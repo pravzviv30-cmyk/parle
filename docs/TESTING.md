@@ -29,6 +29,17 @@ A file that never loads takes its whole suite with it **silently**, and the run
 still exits 0. This is why `npm run gate` reads the test *count* and not only the
 failure count, and why the floors in `scripts/gate.floors.json` only ever go up.
 
+### The canvas learner (local screenshots)
+
+To see every slot on the design artboards filled, run a local mock build with
+`EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 EXPO_PUBLIC_LUVANI_CANVAS_LEARNER=1`.
+`apps/mobile/src/dev/canvasLearner.ts` then seeds the signed-in mock account as
+Yasmin: a three-day run, 140 XP, 6 of 10 minutes today, Le premier café done on
+her own and Au café du coin next, two labelled sample conversations with fixes, a
+few due cards, and tutor memory. It refuses in production, without either flag,
+or on any adapter but the mock one, writes only through the stores' own
+functions, and never overwrites a record the account already holds.
+
 ## Writing
 
 Node's built-in runner. No Jest, no Vitest, no test dependencies anywhere.

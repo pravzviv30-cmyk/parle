@@ -2,7 +2,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 const parts = readFileSync(new URL('../components.tsx', import.meta.url), 'utf8');
-const block = parts.slice(parts.indexOf('export function FrenchBlock'), parts.indexOf('const b ='));
+// 2026-10-20, UI-008: the sheet after FrenchBlock is built per mode, so it is a maker now.
+const block = parts.slice(parts.indexOf('export function FrenchBlock'), parts.indexOf('const makeB ='));
 describe('the card that holds one French line — F569', () => {
   test('the speaker is one button at the touch floor that offers to stop what it is already playing', () => {
     assert.match(block, /<Press[\s\S]*accessibilityRole="button"/);

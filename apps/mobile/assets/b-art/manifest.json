@@ -1,0 +1,134 @@
+{
+  "alarm-clock": {
+    "width": 190.00001525878906,
+    "height": 173.71429443359375,
+    "sha256": "8811ca2b1401b47a809ccfae952f70630b53910e415899a2cd957276027a32e2",
+    "source": "0141ff7d6f680f2b95ffdc9817ab96bd"
+  },
+  "cafe-table": {
+    "width": 175,
+    "height": 160,
+    "sha256": "5feacea7d66db04ae701afb63cf61b94215f7d98b852d791dbef5765741e192f",
+    "source": "927d5422e276b8c8086c017f36dc5224"
+  },
+  "clock-calendar": {
+    "width": 210.00001525878906,
+    "height": 138,
+    "sha256": "c1ad1d88810570a9076829cb00518e6f1918ee525421eb8b8db36ae765035d90",
+    "source": "4754a4f5be614499742818cae4105cf4"
+  },
+  "cloud-cheer": {
+    "width": 342,
+    "height": 260,
+    "sha256": "7777521479c372725590634de2254b8fff58ab0097a329f8f615179399c67465",
+    "source": "773a92fff845b214d42e298964d60062"
+  },
+  "cloud-heart": {
+    "width": 191.52,
+    "height": 145.6,
+    "sha256": "ade400a153471a6a125605625468c97cab1341008c7e9376a2aa18d0eb3625cc",
+    "source": "7cfee0f92ccce20630f9036b45867959"
+  },
+  "coffee-break": {
+    "width": 220.00001525878906,
+    "height": 201.1428680419922,
+    "sha256": "d5817a292c5536741f92bb2e67bfa8242296d923525885960d169e5c7c112cfb",
+    "source": "e59dc7d2d2d5b8ac3d07a9f960673a45"
+  },
+  "compass": {
+    "width": 220.00001525878906,
+    "height": 201.1428680419922,
+    "sha256": "6a2b4ac775a4a11cf188e45c878d0ed4508c08ab1556fcd8359ab163607e9550",
+    "source": "58bf5d4db622e2f3c6245d95afbc7e47"
+  },
+  "flame": {
+    "width": 58,
+    "height": 72,
+    "sha256": "5eddf422bcd9ebd9ffa015b581ebe73651db0f368c93e893c9205e740b9a683b",
+    "source": "c701ec96e9421d937f098c05edb458d7"
+  },
+  "flame-dance": {
+    "width": 342,
+    "height": 220,
+    "sha256": "43cd0e1554be092d30d944127c90b64c0bfea98fa4aafee04535004aaa1bea31",
+    "source": "6dcb8cc470d8e3e117a715413a3474d7"
+  },
+  "friends-cheer": {
+    "width": 315,
+    "height": 288,
+    "sha256": "cffb07192075de86a0fec26f7ee280a6ef1fe8c02ac67ab3f0ddfe23657000ed",
+    "source": "47643aa385b1f34ccefe281fd5ba8f0a"
+  },
+  "icon-briefcase": {
+    "width": 48,
+    "height": 48,
+    "sha256": "129b14dcc5943e8a88e059ee4adb842631e45749bc1857ab551704fe6676cedb",
+    "source": "4c2af4ec1b1e35f0198104992d38083e"
+  },
+  "icon-cafe": {
+    "width": 48,
+    "height": 48,
+    "sha256": "9b84d0817f891d3b1a6f6a7d29466078584b78f42f58feeea12be9b3a36470b4",
+    "source": "6198ff42db54d51f1d8597a0f82cb846"
+  },
+  "icon-friends": {
+    "width": 48,
+    "height": 48,
+    "sha256": "144ad7ce4e05783e1b925c124baf6557621c613555c498635cd607527cd81eda",
+    "source": "35ab73b9da9f60714db04bd803e52495"
+  },
+  "icon-house": {
+    "width": 48,
+    "height": 48,
+    "sha256": "4bce4cbae834abe3b7e898c59571a1adffc78f66b7ed1fe714427d01208dfb8a",
+    "source": "b0ebb9feb2462efc229e6749ffc69932"
+  },
+  "icon-suitcase": {
+    "width": 48,
+    "height": 48,
+    "sha256": "24187136e6948d6d9680e234bee2df94a66c78139539e2d4f82ecf328c571a16",
+    "source": "7266c80dae8ea7d6275e5ec8a04d0a92"
+  },
+  "map-route": {
+    "width": 230,
+    "height": 210.2857208251953,
+    "sha256": "59d9b609d55107c6ad4f878fae4937795a47e3b68e94fe335f592320a91dd46a",
+    "source": "f9289f59d7c44eae3d8d4f7c337d24b7"
+  },
+  "paper-plane": {
+    "width": 240,
+    "height": 200,
+    "sha256": "57d5316ec4d18e3161d71ef1219bf1ffc18dc0cb7de37e2731e8cf35c97a48b0",
+    "source": "11d76588018dbf16094778eb5d1c5240"
+  },
+  "phrasebook": {
+    "width": 190.00001525878906,
+    "height": 173.71429443359375,
+    "sha256": "a081b79a3397baa9e9f6d34725bae45555ddc34dd54368ae026a36184883a797",
+    "source": "62a3b69d430c0589d8f2e98e909f8ecb"
+  },
+  "star-jar": {
+    "width": 220.00001525878906,
+    "height": 201.1428680419922,
+    "sha256": "2a607588bf36322c87fb22c268436af665a8600922d047ced7deddc2d40f5f1d",
+    "source": "4c1d7f08acfad290e63e2c2da31aa6b8"
+  },
+  "tutor-orb": {
+    "width": 112,
+    "height": 112,
+    "sha256": "58f0e44bd8b646cea042a5c05677c8465214539c96841b1dee43f1394774dae2",
+    "source": "4d7681f7f8c21fb8c5ddd87f35ebb823"
+  },
+  "voice-chat": {
+    "width": 185,
+    "height": 169.14285278320312,
+    "sha256": "25142eadac38f80df36077f9e687f6548a7fec6ee9d8eb0ec996166a592991a8",
+    "source": "73425f29e5d8bf1102bd70260b6a69d5"
+  },
+  "watering-plant": {
+    "width": 210.00001525878906,
+    "height": 192,
+    "sha256": "4af0bc0c4155d40af2ddf6afd8824ad6777d3dce77cc6391c52245f7dfa091a4",
+    "source": "003f57f75f3c07adff026e8079100c83"
+  }
+}

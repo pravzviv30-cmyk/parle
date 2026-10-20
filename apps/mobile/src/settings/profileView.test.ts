@@ -184,8 +184,9 @@ describe('the back button follows the appearance on the three P2 screens, opt-in
     assert.match(layout, /accessibilityLabel=\{back\.label \?\? 'Back'\} disabled=\{back\.disabled\} appearance=\{props\.backAppearance\}/);
     const components = stripComments(read('../components.tsx'));
     // Absent, the tone decides exactly as before: white disc, ink mark, 44pt.
-    assert.match(components, /const fill = appearance\?\.disc \?\? \(ground === 'white' \? paper\.card : ground === 'sun' \? colour\.sun : paper\.ink\);/);
-    assert.match(components, /const markColour = appearance\?\.mark \?\? \(ground === 'ink' \? paper\.onInk : paper\.ink\);/);
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(components, /const fill = appearance\?\.disc \?\? \(ground === 'white' \? t\.card : ground === 'sun' \? colour\.sun : paper\.ink\);/);
+    assert.match(components, /const markColour = appearance\?\.mark \?\? \(ground === 'ink' \? paper\.onInk : ground === 'white' \? t\.text : paper\.ink\);/);
     assert.match(components, /const disc = next \? HIT \+ space\(5\) : HIT;/);
     // Nobody else opts in yet (F846 tracks adopting it app-wide).
     const users = ['../tabs/ProfileTab.tsx', '../profile/TutorMemoryScreen.tsx'].filter((f) => read(f).includes('backAppearance'));

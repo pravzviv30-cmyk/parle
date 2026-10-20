@@ -33,11 +33,14 @@ test('display parsing follows the device for missing or malformed data', () => {
   assert.equal(preferredMode('dark', 'light'), 'dark');
 });
 
-test('the app resolves to light for every stored choice and device scheme while dark mode is off', () => {
-  assert.equal(DARK_MODE_ENABLED, false);
+// 2026-10-20, UI-008: dark mode is on, so the drawn mode is the stored choice
+// resolved against the device. Unrebuilt screens are pinned light elsewhere.
+test('the app resolves every stored choice and device scheme to the preferred mode now dark mode is on', () => {
+  assert.equal(DARK_MODE_ENABLED, true);
   for (const preference of ['system', 'light', 'dark'] as const) {
-    for (const system of ['dark', 'light', null, undefined]) assert.equal(mainMode(preference, system), 'light');
+    for (const system of ['dark', 'light', null, undefined]) assert.equal(mainMode(preference, system), preferredMode(preference, system));
   }
+  assert.equal(mainMode('system', 'dark'), 'dark');
 });
 
 test('a slow persisted read cannot overwrite a newer explicit choice or report its stale failure', async () => {

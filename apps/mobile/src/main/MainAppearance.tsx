@@ -1,12 +1,14 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mainApp } from '../palette.ts';
 import { activeUserId, scopeGeneration, setItemInUserScope, userKey } from '../storage/scope.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { mainMode, type DisplayPreference } from './appearanceModel.ts';
 import { appearanceSession, serialAppearanceWrites } from './appearanceSession.ts';
-const Appearance = createContext({ mode: 'light' as 'light' | 'dark', colors: mainApp.light as { [K in keyof typeof mainApp.light]: string }, preference: 'system' as DisplayPreference, setPreference: (_value: DisplayPreference) => {}, error: null as string | null });
+import { Appearance, appearanceFor } from './bTheme.tsx';
+// The context, useB, useThemedStyles and PinLight live in the leaf bTheme.tsx so
+// shared parts can read the theme without importing auth (UI-008, 2026-10-20).
+export { useB, useThemedStyles, PinLight, ModeScope, type B } from './bTheme.tsx';
 // One device write order also protects a same-account provider remount.
 const persistChoice = serialAppearanceWrites((change: { owner: number; key: string; value: DisplayPreference }) =>
   setItemInUserScope(change.owner, change.key, change.value));
@@ -35,6 +37,8 @@ export function MainAppearanceProvider({ children }: { children: ReactNode }) {
   const owned = state.owner === scopeGeneration() && state.userId === (user?.id ?? null);
   const preference = owned ? state.preference : 'system';
   const mode = mainMode(preference, system);
-  return <Appearance.Provider value={{ mode, colors: mainApp[mode], preference, setPreference, error: owned ? state.error : null }}>{children}</Appearance.Provider>;
+  const error = owned ? state.error : null;
+  const value = useMemo(() => appearanceFor(mode, { preference, setPreference, error }), [mode, preference, setPreference, error]);
+  return <Appearance.Provider value={value}>{children}</Appearance.Provider>;
 }
 export function useMainAppearance() { return useContext(Appearance); }

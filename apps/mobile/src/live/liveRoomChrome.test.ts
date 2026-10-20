@@ -57,7 +57,8 @@ describe('quiet live-room chrome', () => {
     assert.match(round, /next \? HIT \+ space\(5\) : HIT/, 'the close disc is below the shared touch floor');
     assert.match(round, /borderRadius: disc \/ 2/, 'the exit is not round');
     assert.match(round, /<Press haptic="light"/, 'the exit loses the shared press feedback');
-    assert.match(round, /paper\.card/, 'the resting disc is not white');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(round, /ground === 'white' \? t\.card/, 'the resting disc is not white');
     assert.doesNotMatch(header, /\bAnimated\b|opacity:/, 'the header adds an independent animation');
     assert.match(header, /accessibilityHint="Opens a confirmation before ending the session"/, 'the icon does not explain its safe two-step exit');
   });

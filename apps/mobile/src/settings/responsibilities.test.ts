@@ -74,6 +74,9 @@ describe('one stored value, one way of saying it — Stage 3', () => {
       .filter((file) => /\bwithDailyGoal\(/.test(stripComments(readFileSync(file, 'utf8'))))
       .map((file) => relative(SRC, file))
       .filter((file) => file !== join('profile', 'store.ts'))
+      // 2026-10-20 UI-008: the development-only canvas learner seeds the mock
+      // account's goal once for screenshots; it is a fixture, not an editor.
+      .filter((file) => file !== join('dev', 'canvasLearner.ts'))
       .sort();
     assert.deepEqual(writers, [join('settings', 'LearningPreferencesScreen.tsx')], 'a second screen edits the speaking target');
     // 2026-10-07, come alive Phase 4 (F769): the goal is five choices under the

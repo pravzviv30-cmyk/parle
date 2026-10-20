@@ -61,7 +61,8 @@ describe('the start sheet — F755', () => {
     for (const feed of ['onLayout={(event) => { measures.current.viewport', 'onContentSizeChange={(_width, height) => { measures.current.content', 'onScroll={(event) => { measures.current.offset']) {
       assert.ok(sheet.includes(feed), `the sheet does not feed the cue from ${feed.slice(0, feed.indexOf('='))}`);
     }
-    assert.match(sheet, /<View style=\{cue \? \{ borderTopWidth: HAIRLINE, borderTopColor: paper\.line \} : null\}>\{snapshot\.current\.footer\}<\/View>/, 'the footer hairline is drawn whether or not anything runs under it');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(sheet, /<View style=\{cue \? \{ borderTopWidth: HAIRLINE, borderTopColor: t\.line \} : null\}>\{snapshot\.current\.footer\}<\/View>/, 'the footer hairline is drawn whether or not anything runs under it');
     assert.match(sheet, /if \(!visible \|\| !cue \|\| flashed\.current\) return undefined; flashed\.current = true;/, 'the scroll indicator can flash more than once an opening');
     assert.match(sheet, /setTimeout\(\(\) => scroller\.current\?\.flashScrollIndicators\(\), SHEET_CUE_FLASH_MS\)/);
     assert.match(sheet, /measures\.current = \{ content: 0, viewport: 0, offset: 0 \}; setCue\(false\);/, 'a closed sheet carries its last measures into the next opening');

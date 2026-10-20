@@ -90,6 +90,7 @@ import { SoundCheckScreen } from '../soundcheck/SoundCheckScreen.tsx';
 import { SoundJourneyScreen } from '../soundcheck/SoundJourneyScreen.tsx';
 import { GoalStepScreen } from '../goals/GoalStepScreen.tsx';
 import { LuvaniTabBar } from './LuvaniTabBar.tsx';
+import { RouteTheme, useRouteGround } from './RouteTheme.tsx';
 import { backOrTabs, type LeavingNav } from './leave.ts';
 import type { RootStackParamList, TabParamList } from './types.ts';
 import type { AuthResult } from '../auth/types.ts';
@@ -696,10 +697,14 @@ function SoundCheckRoute() {
  * render of the parent, and the parent here is the whole root stack.
  */
 function Tabs() {
+  // UI-008 (2026-10-20): each tab renders under PinLight unless its route is
+  // in DARK_READY, and the scene ground and the bar follow the focused route.
+  const groundFor = useRouteGround();
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: paper.ground } }}
-      tabBar={(props) => <LuvaniTabBar {...props} />}
+      screenOptions={({ route }) => ({ headerShown: false, sceneStyle: { backgroundColor: groundFor(route.name) } })}
+      screenLayout={({ route, children }) => <RouteTheme route={route.name}>{children}</RouteTheme>}
+      tabBar={(props) => <RouteTheme route={props.state.routes[props.state.index]?.name ?? 'Home'}><LuvaniTabBar {...props} /></RouteTheme>}
     >
       <Tab.Screen name="Home" component={HomeTab} />
       <Tab.Screen name="Explore" component={ExploreTab} />
@@ -717,16 +722,21 @@ export function RootNavigator({
   onSignOut: () => void;
   onDeleteAccount: (reauthentication?: string) => Promise<AuthResult>;
 }) {
+  const groundFor = useRouteGround();
   return (
     <Stack.Navigator
       initialRouteName={wallPreviewEnabled() ? 'Wall' : 'Tabs'}
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
-        contentStyle: { backgroundColor: paper.ground },
+        contentStyle: { backgroundColor: groundFor(route.name) },
         // The app has one authored motion vocabulary and a native slide is not
         // in it. Screens replace; the orb and the splash carry the movement.
         animation: 'fade',
-      }}
+      })}
+      // UI-008 (2026-10-20): every pushed screen renders under PinLight unless
+      // its route is in DARK_READY (nav/darkReady.ts). Tabs is the tab
+      // navigator, which applies the same rule per tab, so it is not wrapped.
+      screenLayout={({ route, children }) => route.name === 'Tabs' ? children : <RouteTheme route={route.name}>{children}</RouteTheme>}
     >
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Profile" component={ProfileTab} />

@@ -83,8 +83,9 @@ describe('a disabled control says it is off — F758', () => {
     const components = evidence('apps/mobile/src/components.tsx');
     const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function OutlineButton('));
     assert.match(pill, /disabled && \(tone === 'white' \? s\.pillDisabledOnColour : s\.pillDisabled\)/, 'an off white pill takes the ink pill\'s sand on blue or coral');
-    assert.match(pill, /color: disabled \? paper\.inkSoft :/, 'an off pill keeps live words');
-    assert.match(components, /pillDisabled: \{ backgroundColor: paper\.skeleton \}/);
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(pill, /color: disabled \? \(tone === 'white' \? paper\.inkSoft : t\.muted\) :/, 'an off pill keeps live words');
+    assert.match(components, /pillDisabled: \{ backgroundColor: t\.skeleton \}/);
     assert.match(components, /pillDisabledOnColour: \{ backgroundColor: onColour\.blue \}/);
   });
 

@@ -475,10 +475,11 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     }
     assert.ok(at('<TabHeader') < at(') : hero === null || unowned ? ('), 'the greeting waits on storage');
 
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
     // Still: the shared part is sand, read once as "Loading", and never moves.
     const components = stripComments(read('../components.tsx'));
     const part = between(components, 'export function Skeleton(', '\nexport function ', 'Skeleton is drawn in components.tsx');
-    assert.match(part, /backgroundColor: paper\.skeleton/);
+    assert.match(part, /backgroundColor: t\.skeleton/);
     assert.match(part, /accessibilityLabel="Loading"/);
     assert.doesNotMatch(part, /Animated|useReduceMotion|loop/, 'the sand blocks shimmer');
   });

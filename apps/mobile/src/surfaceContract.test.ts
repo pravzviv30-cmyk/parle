@@ -1051,7 +1051,8 @@ describe('a ghost control can be busy — F152 hand-off', () => {
     // spring. The disabled flag reaches that one Press, and a disabled Pressable
     // never fires onPressIn, so a disabled ghost neither shrinks nor flashes.
     assert.match(ghost, /<Press haptic="light"[^>]*disabled=\{disabled\}/, 'a disabled GhostButton still springs when pressed');
-    assert.match(ghost, /disabled \? paper\.inkSoft : color/, 'a disabled GhostButton looks live');
+    // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
+    assert.match(ghost, /disabled \? t\.muted : color/, 'a disabled GhostButton looks live');
   });
 });
 

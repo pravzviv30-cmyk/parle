@@ -22,6 +22,12 @@ of the list.
 
 ## Current landing snapshot
 
+- 20 October 2026 direction B fidelity rebuild, step 1 (B tokens, theme hook, dark mode
+  behind DARK_READY, canvas art, dev canvas learner), on branch `claude/direction-b` (held,
+  not on main): **5,752 tests, 0 failing**; core 825, brain 481, tutor agent 626, token
+  server 456, playground 26, mobile 3338. All six typechecks, 94 shared release/provider
+  checks and eight database proofs pass. Floors raised only through `gate:bless`.
+  Simulator A8293A24 in dark mode shows every route still light (DARK_READY empty).
 - 20 October 2026 direction B, step B5 (Today), on branch `claude/direction-b` (held,
   not on main): **5,722 tests, 0 failing**; core 825, brain 481, tutor agent 626,
   token server 456, playground 26, mobile 3308. All six typechecks, eight database

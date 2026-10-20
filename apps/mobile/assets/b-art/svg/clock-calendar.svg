@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="210.00001525878906" height="138" viewBox="0 0 210.00001525878906 138" fill="none"><g transform="translate(134.40038999999888 12.003129972076588) rotate(0) scale(1.0000000155068993 0.99995227558262)"><svg width="49.2" height="66.6" viewBox="0 0 49.2 66.6" overflow="visible" preserveAspectRatio="none">
+<g id="time0_calendar">
+<path id="time0_Vector" d="M0 7.2H49.2V66.6H0V7.2Z" fill="#E9E3FA"></path>
+<path id="time0_Vector_2" d="M0 7.2H49.2V22.2H0V7.2Z" fill="#3B2FE0"></path>
+<g id="time0_Vector_3">
+<path d="M12 1.2V13.8ZM35.4 1.2V13.8Z" fill="black"></path>
+<path d="M12 1.2V13.8M35.4 1.2V13.8" stroke="#16123A" stroke-width="2.4" stroke-linecap="round"></path>
+</g>
+<path id="time0_Vector_4" d="M14.4 39L20.4 45L34.2 30.6" stroke="#3B2FE0" stroke-width="3"></path>
+</g>
+</svg></g><g transform="translate(22.199219999998604 21.60010000000011) rotate(0) scale(1.0000000747979856 0.9999936305935331)"><svg width="81.6" height="94.2003" viewBox="0 0 81.6 94.2003" overflow="visible" preserveAspectRatio="none">
+<g id="time1_clock">
+<path id="time1_Vector" d="M40.8 81.6C63.3332 81.6 81.6 63.3332 81.6 40.8C81.6 18.2668 63.3332 0 40.8 0C18.2668 0 0 18.2668 0 40.8C0 63.3332 18.2668 81.6 40.8 81.6Z" fill="#FFC93C"></path>
+<path id="time1_Vector_2" d="M40.8 73.2C58.694 73.2 73.2 58.694 73.2 40.8C73.2 22.906 58.694 8.4 40.8 8.4C22.906 8.4 8.4 22.906 8.4 40.8C8.4 58.694 22.906 73.2 40.8 73.2Z" fill="#FFF6E9"></path>
+<path id="time1_Vector_3" d="M40.8 18V42L57 52.8M16.8 77.4L10.2 93M60.6 77.4L68.4 93" stroke="#16123A" stroke-width="2.4" stroke-linecap="round"></path>
+<path id="time1_Vector_4" d="M40.8 44.4C42.4569 44.4 43.8 43.0569 43.8 41.4C43.8 39.7431 42.4569 38.4 40.8 38.4C39.1431 38.4 37.8 39.7431 37.8 41.4C37.8 43.0569 39.1431 44.4 40.8 44.4Z" fill="#D63A22"></path>
+<path id="time1_Vector_5" d="M25.8 55.2C29.8 60.4 33.8 60.4 37.8 55.2" stroke="#16123A" stroke-width="1.8" stroke-linecap="round"></path>
+</g>
+</svg></g><g transform="translate(125.40038999999888 62.40215998382568) rotate(0) scale(0.9999763584187474 0.9999621323167233)"><svg width="60.9837" height="57" viewBox="0 0 60.9837 57" overflow="visible" preserveAspectRatio="none">
+<g id="time2_cup">
+<path id="time2_Vector" d="M0 25.2H40.2V48C27 60 13.6 60 0 48V25.2Z" fill="#F59A45"></path>
+<path id="time2_Vector_2" d="M40.2 28.2C54.6 25 60.4 28.4 57.6 38.4C56 43.2 50.2 45 40.2 43.8" stroke="#F59A45" stroke-width="5.4"></path>
+<path id="time2_Vector_3" d="M14.4 15.6C10.4 10.4 10.4 5.40002 14.4 0.600015M25.8 15.6C21.8 10.4 21.8 5.40002 25.8 0.600015" stroke="#655F77" stroke-width="1.2" stroke-linecap="round"></path>
+<path id="time2_Vector_4" d="M13.8 39.6C14.4627 39.6 15 39.0628 15 38.4C15 37.7373 14.4627 37.2 13.8 37.2C13.1373 37.2 12.6 37.7373 12.6 38.4C12.6 39.0628 13.1373 39.6 13.8 39.6Z" fill="#16123A"></path>
+<path id="time2_Vector_5" d="M24.6 39.6C25.2627 39.6 25.8 39.0628 25.8 38.4C25.8 37.7373 25.2627 37.2 24.6 37.2C23.9373 37.2 23.4 37.7373 23.4 38.4C23.4 39.0628 23.9373 39.6 24.6 39.6Z" fill="#16123A"></path>
+<path id="time2_Vector_6" d="M15.6 45.6C18.8 49.2 21.6 49.2 24 45.6" stroke="#16123A" stroke-width="1.2"></path>
+</g>
+</svg></g></svg>

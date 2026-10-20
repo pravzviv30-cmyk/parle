@@ -324,3 +324,105 @@ export const passwordMeter = { low: colour.coral, medium: colour.sun, good: '#17
 
 /** Official provider assets retain their required brand colors. */
 export const providerBrand = { black: '#000000', white: '#FFFFFF', googleInk: '#1F1F1F' } as const;
+
+/**
+ * Direction B's semantic tokens, one set per appearance (DECISIONS.md UI-008,
+ * 2026-10-20). Light is read straight off the canvas artboards and equals the
+ * values above, so a screen drawn from `b.light` looks exactly as it did from
+ * `paper` and `colour`. Dark follows the Figma M3 "Reviewed main app, Dark"
+ * page (file sjAwoGinWQKvhGrWbgMO18, 307:364), the same values as
+ * `mainApp.dark`. Screens read these through `useB()` (main/MainAppearance.tsx)
+ * and never import a mode directly; a screen not yet rebuilt is pinned light.
+ */
+const bLight = {
+  ground: paper.ground,
+  card: paper.card,
+  inset: paper.inset,
+  line: paper.line,
+  text: paper.ink,
+  muted: paper.inkSoft,
+  secondary: paper.inkOnPastel,
+  /** The radio ring and the switch-off track: a mark, never words. */
+  field: paper.field,
+  /** Loading blocks, the pressed wash and the disabled fill. */
+  skeleton: paper.skeleton,
+  brand: colour.blue,
+  brandPressed: colour.bluePressed,
+  onBrand: paper.onInk,
+  /** The soft words on a blue card (the artboards' near-identical soft lilac, folded into onColour.blue). */
+  onBrandSoft: onColour.blue,
+  violet2: colour.violet2,
+  violetDeep: '#2E24B8',
+  periwinkle: lilac,
+  ring: colour.ring,
+  sun: colour.sun,
+  mint: colour.mint,
+  mintWash: colour.mintWash,
+  mintWords: colour.mintWords,
+  coral: colour.coral,
+  butter: pastel.butter,
+  lavender: pastel.lavender,
+  peach: pastel.peach,
+  sage: pastel.sage,
+  heroGround: colour.sun,
+  heroText: paper.ink,
+  heroCta: paper.ink,
+  heroCtaText: paper.onInk,
+  heroChip: paper.card,
+  /** The one primary pill. */
+  primary: paper.ink,
+  onPrimary: paper.onInk,
+  /** The quiet secondary button and chip. */
+  quiet: paper.inset,
+  link: colour.blue,
+  avatar: paper.ink,
+  onAvatar: paper.onInk,
+  /** The sheet's scrim, drawn at 0.4 opacity. */
+  scrim: paper.ink,
+  danger: '#C2341F',
+  tabCapsule: paper.ink,
+  tabSelected: colour.blue,
+  tabGlyphSelected: colour.sun,
+  tabLabel: paper.ground,
+  statusBar: 'dark' as 'dark' | 'light',
+};
+
+export type BTokens = { readonly [K in Exclude<keyof typeof bLight, 'statusBar'>]: string } & { readonly statusBar: 'dark' | 'light' };
+
+export const b: { readonly light: BTokens; readonly dark: BTokens } = {
+  light: bLight,
+  dark: {
+    ...bLight,
+    ground: '#151127',
+    card: '#25203D',
+    inset: '#302A48',
+    line: '#514967',
+    text: paper.ground,
+    muted: '#C6BED8',
+    secondary: '#C6BED8',
+    skeleton: '#302A48',
+    ring: '#514967',
+    // Mint words on the dark teal wash and on a dark card: the mint itself
+    // clears the text floor on both (palette.test.ts).
+    mintWash: '#233F41',
+    mintWords: colour.mint,
+    butter: '#493C2E',
+    lavender: '#322B50',
+    peach: '#49333F',
+    sage: '#233F41',
+    heroGround: '#363064',
+    heroText: paper.ground,
+    heroCta: colour.sun,
+    heroCtaText: paper.ink,
+    heroChip: '#4A4170',
+    primary: colour.blue,
+    onPrimary: paper.onInk,
+    quiet: '#302A48',
+    link: '#A79AFF',
+    avatar: '#302A48',
+    onAvatar: paper.ground,
+    scrim: '#000000',
+    danger: '#FF9A85',
+    statusBar: 'light',
+  },
+};

@@ -44,6 +44,7 @@ import { ScrollScreen, ScreenHeader } from './src/layout.tsx';
 import { saveConsent } from './src/analytics/consentStore.ts';
 import { trackProductEvent } from './src/analytics/track.ts';
 import { auth } from './src/auth/adapter.ts';
+import { useCanvasLearner } from './src/dev/useCanvasLearner.ts';
 import { installationId } from './src/auth/installation.ts';
 import { AuthProvider, useAuth } from './src/auth/useAuth.tsx';
 import { AuthFlow } from './src/auth/AuthFlow.tsx';
@@ -91,7 +92,9 @@ import { LiveProvider } from './src/app/LiveContext.tsx';
 import { MainAppearanceProvider } from './src/main/MainAppearance.tsx';
 import { GameProvider } from './src/game/GameProvider.tsx';
 import { RootNavigator } from './src/nav/RootNavigator.tsx';
-import { navTheme, linking } from './src/nav/theme.ts';
+import { linking } from './src/nav/theme.ts';
+import { MainNavigationTheme } from './src/main/MainNavigationTheme.tsx';
+import { PinLight } from './src/main/bTheme.tsx';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
 import { AppErrorBoundary } from './src/app/errorBoundary.ts';
@@ -491,7 +494,9 @@ function SignedInRoot({
   return (
     <ProfileGate
       onSignOut={() => void auth.signOut()}
-      onboarding={(existing, done) => (
+      // Onboarding is pinned light by rule (UI-008, 2026-10-20), whatever the
+      // device or a later DARK_READY says.
+      onboarding={(existing, done) => <PinLight>{(
         existing === null && preAccountDraft !== null && preAccountDraft.accountReturnPage !== 'hear-it' && mayAdoptPreAccountDraft(freshStart) ? (
           <PreAccountProfileBootstrap
             draft={preAccountDraft}
@@ -578,7 +583,7 @@ function SignedInRoot({
             }}
           />
         )
-      )}
+      )}</PinLight>}
     >
       <GuestAccountHandoff
         draft={preAccountDraft}
@@ -599,11 +604,15 @@ function SignedInRoot({
       <LiveProvider>
         {/* Account-scoped appearance for the paywall, Profile and Settings screens. */}
         <MainAppearanceProvider>
+        {/* The container theme and the status bar follow the mode the focused
+            route draws in: light while it is pinned (UI-008, 2026-10-20). */}
+        <MainNavigationTheme navigationRef={navigationRef}>
+        {(theme) => (
         <NavigationContainer
           ref={navigationRef}
           onReady={() => { openFirstRun(); openPendingInvite(); void guardLockedRoute(); }}
           onStateChange={() => { launchWall.flush(); void guardLockedRoute(); }}
-          theme={navTheme}
+          theme={theme}
           // Web only. A native linking config would claim luvani://auth/callback,
           // which auth/oauth.native.ts needs for the OAuth round trip.
           {...(Platform.OS === 'web' ? { linking } : {})}
@@ -613,6 +622,8 @@ function SignedInRoot({
             onDeleteAccount={onDeleteAccount}
           />
         </NavigationContainer>
+        )}
+        </MainNavigationTheme>
         </MainAppearanceProvider>
       </LiveProvider>
       </GameProvider>
@@ -636,6 +647,8 @@ function SignedInRoot({
  */
 function Gate() {
   const { status, user, recovering, clearRecovery, creatingAccount } = useAuth();
+  // Development only (UI-008): the labelled canvas learner for side-by-side screenshots.
+  useCanvasLearner(auth, user);
   const [preAccountDraft, setPreAccountDraft] = useState<PreAccountOnboardingDraft | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [returning, setReturning] = useState(false);
@@ -798,6 +811,7 @@ function Gate() {
         {/* A guest who said yes on day one has no account yet: their reminder is
             planned from the first run's draft and the days they finished. */}
         <GuestReminderPlanner draft={preAccountDraft} />
+        <PinLight>
         <AuthFlow
           initialDraft={preAccountDraft}
           returning={returning}
@@ -808,6 +822,7 @@ function Gate() {
           refused={preAccountRefused}
           onRefuse={refusePreAccount}
         />
+        </PinLight>
       </>
     );
   };
@@ -851,6 +866,10 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <ReduceMotionBridge />
+      {/* Everything outside the main app's own provider is light: the launch,
+          sign up, onboarding and the first run (UI-008, 2026-10-20). The
+          provider inside the signed-in tree re-provides the learner's mode. */}
+      <PinLight>
       <AuthProvider adapter={auth}>
         {/* Out of a screen reader's reach until the launch has gone, on both
             platforms: the first prop is VoiceOver's, the second TalkBack's. */}
@@ -877,6 +896,7 @@ export default function App() {
         </View>
         {!launched && <LaunchScreen onDone={finishLaunch} />}
       </AuthProvider>
+      </PinLight>
     </SafeAreaProvider>
   );
 }

@@ -80,9 +80,10 @@ preference writer clears it with the name's causal clock. Missing on legacy
 accounts means no new name prompt. It survives verification/relaunch and sync
 without becoming authentication or guest-adoption authority. Account-local
 `appearance` stores system/light/dark selection; it is exported and reset with
-the account and excluded from cross-device sync. While dark mode is off
-(`DARK_MODE_ENABLED` in `main/appearanceModel.ts`, KNOWN_ISSUES F847) the stored
-choice is kept but not offered in Settings, and the app always draws light.
+the account and excluded from cross-device sync. Dark mode is on
+(`DARK_MODE_ENABLED` in `main/appearanceModel.ts`, DECISIONS.md UI-008): Settings
+offers the choice, and a screen follows it once its route is in `DARK_READY`
+(`nav/darkReady.ts`, KNOWN_ISSUES F847); until then it draws light.
 
 Before an account exists, the app may also hold `@luvani/pre-account-onboarding/v1`.
 The current version-1 draft carries age confirmation, the starting level and
@@ -769,7 +770,7 @@ one made.
 Seventeen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
 `appearance` is the light, dark or follow-device choice for this phone and its
 account; syncing an explicit override would change another device's appearance.
-While dark mode is off it is stored but never drawn.
+Dark mode is on (UI-008); a screen draws the choice once its route is in `DARK_READY`.
 `first-live-arrival` records whether this phone has displayed the first-session welcome
 and streak. It is account-scoped and cleared by account-data reset. It carries no
 learning credit; syncing it could suppress a pending presentation on another phone.

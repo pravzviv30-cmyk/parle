@@ -30,9 +30,10 @@ never a punishment. There are no visible Friends ranks and no rank names.
 Learners see five stages: Starter, Basics, Everyday, Chatting and Confident.
 CEFR levels (A0, A1 and up) stay internal, in code and in these docs.
 
-Dark mode is off. `DARK_MODE_ENABLED` is false and the app always resolves to
-light until the onboarding screens have dark styles (KNOWN_ISSUES F847).
-`mainApp.dark` stays defined for that day; Settings offers no display choice.
+Dark mode is on for the main app (DECISIONS.md UI-008). Every screen stays
+light until it is rebuilt to its artboard in both themes and its route joins
+`DARK_READY`; onboarding stays light by rule. See
+[Dark mode and the B tokens](#dark-mode-and-the-b-tokens-ui-008).
 
 ### Layout
 
@@ -521,6 +522,136 @@ glow and the reviewed sign-in glow stay the only other shadows, and
 `surfaceContract.test.ts` still refuses a shadow style anywhere else. The
 selected glow is a ring layer, not a shadow. `theme.test.ts` holds the theme to
 exactly one shadow token. Cards are never nested.
+
+### Dark mode and the B tokens (UI-008)
+
+Dark mode is on for the main app (DECISIONS.md UI-008, 20 October 2026).
+Screens read colour through `useB()` (`main/bTheme.tsx`, re-exported by
+`main/MainAppearance.tsx`), which returns `b.light` or `b.dark` with the mode,
+and build their sheets with `useThemedStyles(make)`, which builds each sheet
+once per mode. `b.light` is read off the canvas artboards and equals the paper,
+colour and pastel values above, so nothing pinned light moved by a pixel. `b.dark`
+is the Figma page "M3 Reviewed main app, Dark" (file sjAwoGinWQKvhGrWbgMO18,
+node 307:364): the M3 ground, surface and inset; pastel tiles become its tints
+(butter to ochre, lavender to plum, peach to rose, sage and the mint wash to
+teal); the yellow hero becomes the M3 hero with a gold button, ink words on the
+button and cream words on the card; the ink primary becomes violet; links become
+the M3 periwinkle. Violet cards, the sun, the mint and the art stay as they are.
+The tab capsule is ink in both modes (Figma `C2/Main2/Navigation`, 292:1103).
+`palette.test.ts` holds every text pair in both modes to 4.5 and every mark to 3.
+
+**Pinned light until rebuilt.** A screen follows the device only once it is
+rebuilt to its artboard in both themes. `nav/darkReady.ts` exports `DARK_READY`,
+empty to start; each rebuild step adds its route. Both navigators wrap every
+screen through `screenLayout` in `RouteTheme`, which renders `<PinLight>` for a
+route not in the set; the tab bar, the scene ground, the container theme and
+the status bar follow the focused route the same way. `ALWAYS_LIGHT` holds the
+first scene and the paywall, which stay light whatever `DARK_READY` says.
+Onboarding, sign up and the launch are mounted under `<PinLight>` in `App.tsx`
+and sit outside the one `MainAppearanceProvider`. The shared parts in
+`components.tsx` and `layout.tsx` read the theme; parts on a colour ground
+(blue, coral, sun, mint, the white pill on blue) keep their values in both modes.
+
+**Canvas art.** The 22 drawings the artboards use are in
+`apps/mobile/assets/b-art/` (`svg/<name>.svg`, `manifest.json` with each root size,
+sha256 and canvas blob, and `svg.json` inlined), drawn by
+`<BArt name width height? />` (`src/art/BArt.tsx`) through `SvgXml`, with each
+copy's definition IDs namespaced and the drawing hidden from screen readers. Art
+is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
+
+| Token | Value | Role |
+|---|---|---|
+| `b.light.ground` | `#FFF6E9` | The page |
+| `b.light.card` | `#FFFFFF` | Cards, sheets, the white disc |
+| `b.light.inset` | `#F5EEE2` | A recessed well inside a card |
+| `b.light.line` | `#F0E6D6` | The one hairline |
+| `b.light.text` | `#16123A` | Words and marks on the ground and cards |
+| `b.light.muted` | `#5C5A74` | Secondary words |
+| `b.light.secondary` | `#4A4766` | Secondary words on a tint |
+| `b.light.field` | `#8A8499` | Radio ring, input border, switch-off track. A mark |
+| `b.light.skeleton` | `#EFE6D6` | Loading blocks, pressed wash, disabled fill |
+| `b.light.brand` | `#3B2FE0` | Blue cards, selected states, the select ring |
+| `b.light.brandPressed` | `#2A20B0` | A pressed blue control |
+| `b.light.onBrand` | `#FFFFFF` | Words on blue |
+| `b.light.onBrandSoft` | `#E4E1FF` | Soft words on blue |
+| `b.light.violet2` | `#5A50EA` | Chip ground and decor on a blue card |
+| `b.light.violetDeep` | `#2E24B8` | Live controls, Welcome chips |
+| `b.light.periwinkle` | `#B9A7FF` | Dashed accent borders, confetti |
+| `b.light.ring` | `#D9CFE9` | Empty rings, dashed borders. Decoration only |
+| `b.light.sun` | `#FFC93C` | Sunshine accents |
+| `b.light.mint` | `#2FD18B` | Done ticks |
+| `b.light.mintWash` | `#D4F5E5` | The success panel |
+| `b.light.mintWords` | `#1F7A52` | Success words |
+| `b.light.coral` | `#D63A22` | The tutor speaking. A mark |
+| `b.light.butter` | `#FFE8AB` | Butter tile |
+| `b.light.lavender` | `#E9E3FA` | Lavender tile, the lock pill |
+| `b.light.peach` | `#F7D8C7` | Peach tile |
+| `b.light.sage` | `#D4E2D7` | Sage tile |
+| `b.light.heroGround` | `#FFC93C` | The hero card |
+| `b.light.heroText` | `#16123A` | Words on the hero |
+| `b.light.heroCta` | `#16123A` | The hero button |
+| `b.light.heroCtaText` | `#FFFFFF` | Words on the hero button |
+| `b.light.heroChip` | `#FFFFFF` | A chip on the hero |
+| `b.light.primary` | `#16123A` | The one primary pill |
+| `b.light.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.light.quiet` | `#F5EEE2` | The quiet secondary button and chip |
+| `b.light.link` | `#3B2FE0` | Links and the lock mark |
+| `b.light.avatar` | `#16123A` | The avatar disc |
+| `b.light.onAvatar` | `#FFFFFF` | The avatar initial |
+| `b.light.scrim` | `#16123A` | The sheet scrim, at 0.4 |
+| `b.light.danger` | `#C2341F` | A destructive action |
+| `b.light.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.light.tabSelected` | `#3B2FE0` | The selected tab cell |
+| `b.light.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
+| `b.light.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
+
+| Token | Value | Role |
+|---|---|---|
+| `b.dark.ground` | `#151127` | The page |
+| `b.dark.card` | `#25203D` | Cards, sheets, the white disc |
+| `b.dark.inset` | `#302A48` | A recessed well inside a card |
+| `b.dark.line` | `#514967` | The one hairline |
+| `b.dark.text` | `#FFF6E9` | Words and marks on the ground and cards |
+| `b.dark.muted` | `#C6BED8` | Secondary words |
+| `b.dark.secondary` | `#C6BED8` | Secondary words on a tint |
+| `b.dark.field` | `#8A8499` | Radio ring, input border, switch-off track. A mark |
+| `b.dark.skeleton` | `#302A48` | Loading blocks, pressed wash, disabled fill |
+| `b.dark.brand` | `#3B2FE0` | Blue cards, selected states, the select ring |
+| `b.dark.brandPressed` | `#2A20B0` | A pressed blue control |
+| `b.dark.onBrand` | `#FFFFFF` | Words on blue |
+| `b.dark.onBrandSoft` | `#E4E1FF` | Soft words on blue |
+| `b.dark.violet2` | `#5A50EA` | Chip ground and decor on a blue card |
+| `b.dark.violetDeep` | `#2E24B8` | Live controls, Welcome chips |
+| `b.dark.periwinkle` | `#B9A7FF` | Dashed accent borders, confetti |
+| `b.dark.ring` | `#514967` | Empty rings, dashed borders. Decoration only |
+| `b.dark.sun` | `#FFC93C` | Sunshine accents |
+| `b.dark.mint` | `#2FD18B` | Done ticks |
+| `b.dark.mintWash` | `#233F41` | The success panel |
+| `b.dark.mintWords` | `#2FD18B` | Success words |
+| `b.dark.coral` | `#D63A22` | The tutor speaking. A mark |
+| `b.dark.butter` | `#493C2E` | Butter tile |
+| `b.dark.lavender` | `#322B50` | Lavender tile, the lock pill |
+| `b.dark.peach` | `#49333F` | Peach tile |
+| `b.dark.sage` | `#233F41` | Sage tile |
+| `b.dark.heroGround` | `#363064` | The hero card |
+| `b.dark.heroText` | `#FFF6E9` | Words on the hero |
+| `b.dark.heroCta` | `#FFC93C` | The hero button |
+| `b.dark.heroCtaText` | `#16123A` | Words on the hero button |
+| `b.dark.heroChip` | `#4A4170` | A chip on the hero |
+| `b.dark.primary` | `#3B2FE0` | The one primary pill |
+| `b.dark.onPrimary` | `#FFFFFF` | Words on the primary pill |
+| `b.dark.quiet` | `#302A48` | The quiet secondary button and chip |
+| `b.dark.link` | `#A79AFF` | Links and the lock mark |
+| `b.dark.avatar` | `#302A48` | The avatar disc |
+| `b.dark.onAvatar` | `#FFF6E9` | The avatar initial |
+| `b.dark.scrim` | `#000000` | The sheet scrim, at 0.4 |
+| `b.dark.danger` | `#FF9A85` | A destructive action |
+| `b.dark.tabCapsule` | `#16123A` | The tab bar capsule |
+| `b.dark.tabSelected` | `#3B2FE0` | The selected tab cell |
+| `b.dark.tabGlyphSelected` | `#FFC93C` | The selected tab glyph |
+| `b.dark.tabLabel` | `#FFF6E9` | Tab labels and unselected glyphs |
+
+The status bar style is a token too: `dark` in light, `light` in dark.
 
 ## Type
 

@@ -10982,16 +10982,19 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P3
 - status: [ ]
 - where: apps/mobile/src/layout.tsx:1
-- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide. (Filed as F811 on the paywall branch; renumbered on the C2 base.) Moot until dark mode is on: the app is pinned to light (F847), so no screen draws the night background today.
+- note: 2026-10-19, P2 follow-up: `ScreenHeader` gained an opt-in `backAppearance` (disc `colors.surface`, chevron `colors.text`) used only by Settings, Learning preferences and Subscription; the other ~24 screens that pass `back` still draw the white disc on the night background until they adopt it app-wide. (Filed as F811 on the paywall branch; renumbered on the C2 base.) Still moot after UI-008 turned dark mode on: every route is pinned light until it joins `DARK_READY` (F847), so no screen draws the night background yet.
 - verified-by: `every pushed screen's back button follows the appearance in dark mode`
 
-### F847 — App-wide dark mode is off: the appearance model is pinned to light until the C2 screens get dark styles
+### F847 — Dark mode is on, but every screen is pinned light until it is rebuilt for dark
 - severity: P3
 - status: [ ]
-- where: apps/mobile/src/main/appearanceModel.ts:1
+- where: apps/mobile/src/nav/darkReady.ts:1
 - note: 2026-10-19, user decision while replaying the paywall onto main's C2 redesign. `DARK_MODE_ENABLED = false` makes `mainMode` resolve to light for every stored choice and device scheme, and Settings hides the Appearance row and display sheet. The stored preference code (`MainAppearance`, `appearanceSession`) is kept but unexposed. The paywall, Profile, Settings, Learning preferences and Subscription screens already have dark palettes (`mainApp.dark` in palette.ts), unused until the rest of the C2 screens get dark styles and the flag is lifted.
-- verified-by: `the app resolves to light for every stored choice and device scheme while dark mode is off`
-- verified-by: `the app is light only: Settings shows no Appearance row or display sheet while dark mode is off`
+- note: 2026-10-20, UI-008 (direction B fidelity, step 1): `DARK_MODE_ENABLED` is true, so the stored choice and the device resolve again and Settings draws the Appearance row. Screens follow it only once rebuilt: both navigators wrap every route in `<PinLight>` unless it is in `DARK_READY` (`nav/darkReady.ts`, empty at this step), and the tab bar, scene ground, container theme and status bar follow the focused route. The first scene and the paywall are light by rule (`ALWAYS_LIGHT`), and onboarding, sign up and the launch are under `<PinLight>` in App.tsx. Closes when the last rebuilt main-app route joins `DARK_READY` and the paywall's dark variant lands.
+- verified-by: `the app resolves every stored choice and device scheme to the preferred mode now dark mode is on`
+- verified-by: `dark mode is on: Settings draws the Appearance row and display sheet only through the DARK_MODE_ENABLED seam`
+- verified-by: `with the device dark and nothing ready, every route draws the light tokens`
+- verified-by: `onboarding, sign up and the launch are pinned light by rule, whatever DARK_READY says`
 
 ### F853 — A short RevenueCat webhook secret, or a non-OpenAI brain, could boot production
 - severity: P3

@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b } from './palette.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
 
@@ -681,6 +681,11 @@ describe('the recorded palette matches the code — F327, F328', () => {
   for (const [k, v] of Object.entries(segmentPending)) tokens[`segmentPending.${k}`] = v;
   // The scoped streak palette participates in the same complete documentation contract.
   for (const [k, v] of Object.entries(streakCelebration)) tokens[`streakCelebration.${k}`] = v;
+  // UI-008 (2026-10-20): both B token sets are recorded like the rest; the
+  // status bar style is a word, not a colour, so it has no row.
+  for (const mode of ['light', 'dark'] as const) {
+    for (const [k, v] of Object.entries(b[mode])) if (k !== 'statusBar') tokens[`b.${mode}.${k}`] = v;
+  }
 
   test('DESIGN.md records the palette the app ships', () => {
     // DESIGN.md is recorded from the built artifact, so its token table has to be
@@ -755,6 +760,100 @@ describe('the recorded palette matches the code — F327, F328', () => {
     const app = readFileSync(join(SRC, '..', 'App.tsx'), 'utf8');
     assert.match(app, /app: \{ flex: 1, backgroundColor: paper\.ground \}/, 'the app beneath the launch is not on the ground');
   });
+});
+
+/**
+ * Direction B's semantic tokens in both modes (DECISIONS.md UI-008,
+ * 2026-10-20). Light is the artboards and must equal what the parts drew
+ * before they read the theme, so a pinned-light screen cannot change by a
+ * pixel. Dark is the Figma M3 page and is held to the same floors.
+ */
+describe('B tokens, light and dark — UI-008', () => {
+  test('b.light is exactly the shipped light values, so a pinned screen draws as it did', () => {
+    const t = b.light;
+    const same: [keyof typeof t, string][] = [
+      ['ground', paper.ground], ['card', paper.card], ['inset', paper.inset], ['line', paper.line],
+      ['text', paper.ink], ['muted', paper.inkSoft], ['secondary', paper.inkOnPastel], ['field', paper.field],
+      ['skeleton', paper.skeleton], ['brand', colour.blue], ['brandPressed', colour.bluePressed], ['onBrand', paper.onInk],
+      ['onBrandSoft', onColour.blue], ['violet2', colour.violet2], ['periwinkle', lilac], ['ring', colour.ring],
+      ['sun', colour.sun], ['mint', colour.mint], ['mintWash', colour.mintWash], ['mintWords', colour.mintWords],
+      ['coral', colour.coral], ['butter', pastel.butter], ['lavender', pastel.lavender], ['peach', pastel.peach],
+      ['sage', pastel.sage], ['heroGround', colour.sun], ['heroText', paper.ink], ['heroCta', paper.ink],
+      ['heroCtaText', paper.onInk], ['heroChip', paper.card], ['primary', accent.primary], ['onPrimary', paper.onInk],
+      ['quiet', paper.inset], ['link', colour.blue], ['avatar', paper.ink], ['onAvatar', paper.onInk], ['scrim', paper.ink],
+      ['danger', mainApp.light.danger], ['tabCapsule', paper.ink], ['tabSelected', colour.blue], ['tabGlyphSelected', colour.sun],
+      ['tabLabel', paper.ground],
+    ];
+    for (const [key, value] of same) assert.equal(t[key], value, `b.light.${key} drifted from the value the parts drew before UI-008`);
+    assert.equal(t.violetDeep, '#2E24B8', 'the deep violet is not the artboards\' Live and Welcome value');
+    assert.equal(t.statusBar, 'dark');
+    assert.deepEqual(Object.keys(b.dark).sort(), Object.keys(b.light).sort(), 'the two modes do not name the same tokens');
+  });
+
+  test('b.dark follows the Figma M3 page: the main app dark values, violet kept, the hero turned', () => {
+    const t = b.dark;
+    const m3: [keyof typeof t, string][] = [
+      ['ground', mainApp.dark.background], ['card', mainApp.dark.surface], ['inset', mainApp.dark.inset], ['line', mainApp.dark.border],
+      ['text', mainApp.dark.text], ['muted', mainApp.dark.muted], ['butter', mainApp.dark.ochre], ['lavender', mainApp.dark.plum],
+      ['peach', mainApp.dark.rose], ['sage', mainApp.dark.teal], ['mintWash', mainApp.dark.teal], ['heroGround', mainApp.dark.hero],
+      ['link', mainApp.dark.link], ['ring', mainApp.dark.border], ['quiet', mainApp.dark.inset], ['danger', mainApp.dark.danger],
+    ];
+    for (const [key, value] of m3) assert.equal(t[key], value, `b.dark.${key} is not the M3 value`);
+    // M3 keeps the violet as the accent, turns the ink pill violet, and gives
+    // the hero a gold button with ink words and cream text.
+    assert.equal(t.brand, colour.blue);
+    assert.equal(t.primary, colour.blue);
+    assert.equal(t.heroCta, colour.sun);
+    assert.equal(t.heroCtaText, paper.ink);
+    assert.equal(t.heroText, paper.ground);
+    assert.equal(t.tabCapsule, paper.ink, 'the tab capsule is ink in both modes (Figma 292:1103)');
+    assert.equal(t.statusBar, 'light');
+  });
+
+  for (const mode of ['light', 'dark'] as const) {
+    test(`${mode}: every text pair clears ${TEXT}, and every mark clears ${MARK}`, () => {
+      const t = b[mode];
+      const pairs: [string, string, string][] = [];
+      for (const fg of ['text', 'muted', 'secondary'] as const) {
+        for (const bg of ['ground', 'card', 'inset', 'quiet', 'butter', 'lavender', 'peach', 'sage', 'mintWash'] as const) {
+          pairs.push([`${fg} on ${bg}`, t[fg], t[bg]]);
+        }
+      }
+      pairs.push(
+        ['onBrand on brand', t.onBrand, t.brand],
+        ['onBrandSoft on brand', t.onBrandSoft, t.brand],
+        ['onBrand on brandPressed', t.onBrand, t.brandPressed],
+        ['heroText on heroGround', t.heroText, t.heroGround],
+        ['heroText on heroChip', t.heroText, t.heroChip],
+        ['heroCtaText on heroCta', t.heroCtaText, t.heroCta],
+        ['link on ground', t.link, t.ground],
+        ['link on card', t.link, t.card],
+        ['link on lavender (the lock badge)', t.link, t.lavender],
+        ['mintWords on mintWash', t.mintWords, t.mintWash],
+        ['mintWords on card', t.mintWords, t.card],
+        ['onPrimary on primary', t.onPrimary, t.primary],
+        ['onAvatar on avatar', t.onAvatar, t.avatar],
+        ['tabLabel on tabCapsule', t.tabLabel, t.tabCapsule],
+        ['tabLabel on tabSelected', t.tabLabel, t.tabSelected],
+        ['danger on ground', t.danger, t.ground],
+        ['danger on card', t.danger, t.card],
+      );
+      for (const [name, fg, bg] of pairs) {
+        const r = contrast(fg, bg);
+        assert.ok(r >= TEXT, `${mode} ${name} is ${r.toFixed(2)}, under the ${TEXT} floor for words`);
+      }
+      const marks: [string, string, string][] = [
+        ['field on card', t.field, t.card],
+        ['field on ground', t.field, t.ground],
+        ['the selected glyph on its cell', t.tabGlyphSelected, t.tabSelected],
+        ['an unselected glyph on the capsule', t.tabLabel, t.tabCapsule],
+      ];
+      for (const [name, fg, bg] of marks) {
+        const r = contrast(fg, bg);
+        assert.ok(r >= MARK, `${mode} ${name} is ${r.toFixed(2)}, under the ${MARK} floor for a mark`);
+      }
+    });
+  }
 });
 
 describe('main appearance premium roles', () => {
