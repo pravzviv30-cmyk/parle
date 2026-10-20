@@ -96,6 +96,8 @@ import { RootNavigator } from './src/nav/RootNavigator.tsx';
 import { navTheme, linking } from './src/nav/theme.ts';
 import type { RootStackParamList } from './src/nav/types.ts';
 import { LaunchScreen } from './src/launch/LaunchScreen.tsx';
+import { AppErrorBoundary } from './src/app/errorBoundary.ts';
+import { AppErrorScreen } from './src/app/AppErrorScreen.tsx';
 import { OnboardingPreview } from './src/dev/OnboardingPreview.tsx';
 import { OnboardingLayout } from './src/onboarding/OnboardingLayout.tsx';
 import { onboardingProgress } from './src/onboarding/onboardingProgress.ts';
@@ -812,45 +814,58 @@ function Gate() {
     );
   }, []);
 
-  if (status === 'loading' || !draftLoaded || (status === 'signedIn' && creatingAccount)) return <Loading />;
-  if (status === 'signedIn' && user !== null) {
-    if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
+  /** What the door opens on, which is every screen the app draws. */
+  const door = () => {
+    if (status === 'loading' || !draftLoaded || (status === 'signedIn' && creatingAccount)) return <Loading />;
+    if (status === 'signedIn' && user !== null) {
+      if (recovering) return <SetNewPasswordScreen onDone={clearRecovery} />;
+      return (
+        <SignedInRoot
+          key={user.id}
+          user={user}
+          preAccountDraft={preAccountDraft}
+          onPreAccountDraftConsumed={discardPreAccountDraft}
+          refused={preAccountRefused}
+          onRefuseOnboarding={refusePreAccount}
+          onDeleteAccount={deleteAccount}
+        />
+      );
+    }
+    // Signed out with a copy still on the disk. Drawn here, below the signed-in
+    // branch, so it is read after the sign-out rather than written to a sheet the
+    // sign-out has already taken away. Dismissing it leads to the welcome, and
+    // nothing else can be reached until it is, so this cannot be waiting behind
+    // the next learner's sign-in either. F496.
+    if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
+    if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
     return (
-      <SignedInRoot
-        key={user.id}
-        user={user}
-        preAccountDraft={preAccountDraft}
-        onPreAccountDraftConsumed={discardPreAccountDraft}
-        refused={preAccountRefused}
-        onRefuseOnboarding={refusePreAccount}
-        onDeleteAccount={deleteAccount}
-      />
+      <>
+        {/* A guest who said yes on day one has no account yet: their reminder is
+            planned from the first run's draft and the days they finished. */}
+        <GuestReminderPlanner draft={preAccountDraft} />
+        <AuthFlow
+          initialDraft={preAccountDraft}
+          returning={returning}
+          onDraftChange={keepPreAccountDraft}
+          onCreateAccount={keepPreAccountDraft}
+          onDiscardDraft={discardPreAccountDraft}
+          onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
+          refused={preAccountRefused}
+          onRefuse={refusePreAccount}
+        />
+      </>
     );
-  }
-  // Signed out with a copy still on the disk. Drawn here, below the signed-in
-  // branch, so it is read after the sign-out rather than written to a sheet the
-  // sign-out has already taken away. Dismissing it leads to the welcome, and
-  // nothing else can be reached until it is, so this cannot be waiting behind
-  // the next learner's sign-in either. F496.
-  if (localCopyKept) return <EraseNoticeScreen onDismiss={() => setLocalCopyKept(false)} />;
-  if (deletionPending) return <DeletionPendingNotice onDismiss={() => setDeletionPending(false)} />;
-  return (
-    <>
-      {/* A guest who said yes on day one has no account yet: their reminder is
-          planned from the first run's draft and the days they finished. */}
-      <GuestReminderPlanner draft={preAccountDraft} />
-      <AuthFlow
-        initialDraft={preAccountDraft}
-        returning={returning}
-        onDraftChange={keepPreAccountDraft}
-        onCreateAccount={keepPreAccountDraft}
-        onDiscardDraft={discardPreAccountDraft}
-        onSignIn={() => { /* Preserve the local practice until its owner chooses whether to keep it. */ }}
-        refused={preAccountRefused}
-        onRefuse={refusePreAccount}
-      />
-    </>
-  );
+  };
+
+  // The app's one error boundary (F794), so a throw anywhere behind the door
+  // shows a way back instead of emptying the screen. It is the door's own root
+  // rather than its parent, and that is the point: Gate and the auth provider
+  // above it hold what this launch must remember (the refusal, the kept-copy
+  // notice, a pending deletion, a password recovery), and Try again mounts only
+  // what is behind the door. It stays one boundary across every branch, so a
+  // cleanup that throws while one branch hands over to another, as F792's did
+  // at sign-in, is still caught. The launch is drawn by App, outside it.
+  return <AppErrorBoundary fallback={(tryAgain) => <AppErrorScreen onTryAgain={tryAgain} />}>{door()}</AppErrorBoundary>;
 }
 
 export default function App() {

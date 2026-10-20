@@ -1431,6 +1431,22 @@ wait, so a stuck load is never hidden behind the mark. Reduce motion draws the
 stacked logo at once and keeps the ring still and upright. A screen reader
 meets the launch alone, as "Luvani", and reaches the app once it has gone.
 
+## When something breaks
+
+The app has one error boundary, `src/app/errorBoundary.ts`, and it is the
+door's own root in App.tsx, so every screen is inside it. A throw while a screen
+draws, or in one of its effects or cleanups, no longer empties the screen. The
+learner meets the error screen instead, drawn the way the door's other notices
+are: a title, one plain line that says the fault was the app's, and one ink
+pill, Try again, at the foot. The line is said through TroubleLine, so VoiceOver
+hears it. It names no screen and promises nothing about saved work, because it
+can follow an account deletion the learner asked for. There is no back arrow,
+because there is nothing behind it to go back to. Try again opens everything
+behind the door afresh, the way a relaunch does, while the door itself keeps
+what this launch must remember. The launch is drawn outside the boundary and
+fades onto the error screen like any other. The words are in
+`src/app/appErrorCopy.ts`.
+
 ## What has no design yet
 
 Alternate app icons (phase 2 of the come-alive programme) and a Liquid Glass
